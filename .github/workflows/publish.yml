@@ -1,0 +1,79 @@
+name: publish
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  curseforge:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      # Tag format: AddonName-vX.Y.Z-N  →  addon = AddonName
+      - name: Parse addon name from tag
+        id: info
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          echo "addon=${TAG%-v*}" >> "$GITHUB_OUTPUT"
+
+      # Reads X-Curse-Project-ID and Interface from the .toc.
+      # An addon is only published if X-Curse-Project-ID is present.
+      # Interface values (e.g. "120001" or "110002, 110005") are converted to
+      # CurseForge game version strings: XXYYZZ → X.Y.Z (leading zeros stripped).
+      - name: Read .toc metadata
+        id: toc
+        run: |
+          ADDON="${{ steps.info.outputs.addon }}"
+          TOC=$(ls "${ADDON}"/*.toc | head -1)
+
+          PROJECT_ID=$(grep -E "^## X-Curse-Project-ID:" "$TOC" \
+            | sed 's/## X-Curse-Project-ID:[[:space:]]*//' | tr -d '\r')
+
+          if [[ -z "$PROJECT_ID" ]]; then
+            echo "No X-Curse-Project-ID in $TOC — skipping."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "project_id=$PROJECT_ID" >> "$GITHUB_OUTPUT"
+          echo "skip=false"             >> "$GITHUB_OUTPUT"
+
+          IFACE_RAW=$(grep -E "^## Interface:" "$TOC" \
+            | sed 's/## Interface:[[:space:]]*//' | tr -d '\r')
+
+          GAME_VERSIONS=""
+          IFS=',' read -ra IFACES <<< "$IFACE_RAW"
+          for iface in "${IFACES[@]}"; do
+            iface=$(echo "$iface" | tr -d ' ')
+            major=$(( 10#${iface:0:2} ))
+            minor=$(( 10#${iface:2:2} ))
+            patch=$(( 10#${iface:4:2} ))
+            ver="${major}.${minor}.${patch}"
+            GAME_VERSIONS="${GAME_VERSIONS:+${GAME_VERSIONS},}${ver}"
+          done
+
+          echo "game_versions=$GAME_VERSIONS" >> "$GITHUB_OUTPUT"
+
+      # Zip just the addon folder so it installs correctly into AddOns/.
+      - name: Package addon zip
+        if: steps.toc.outputs.skip != 'true'
+        run: |
+          ADDON="${{ steps.info.outputs.addon }}"
+          zip -r "${ADDON}.zip" "${ADDON}/" --exclude "*.git*"
+
+      - name: Upload to CurseForge
+        if: steps.toc.outputs.skip != 'true'
+        uses: CurseForge/upload-curseforge-action@v1
+        with:
+          api-token: ${{ secrets.CURSEFORGE_API_TOKEN }}
+          game-endpoint: wow
+          project-id: ${{ steps.toc.outputs.project_id }}
+          changelog: ${{ github.event.release.body }}
+          changelog-type: markdown
+          release-type: ${{ github.event.release.prerelease && 'beta' || 'release' }}
+          game-versions: ${{ steps.toc.outputs.game_versions }}
+          file: "${{ steps.info.outputs.addon }}.zip"
