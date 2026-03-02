@@ -1,4 +1,4 @@
-## Interface: 120000
+## Interface: 120001
 ## Category: Shadows of UI
 ## Title: XP Bar
 ## Author: Nazuraki
