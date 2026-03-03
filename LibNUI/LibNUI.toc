@@ -1,0 +1,44 @@
+## Interface: 120001
+## Category: Lib
+## Title: LibNUI
+## Author: Nazuraki
+## Version: 12.0.0-1
+## IconTexture: Interface\Icons\achievement_guildperk_bountifulbags
+## Dependencies: LibNAddOn
+## X-NUI-COMMANDS: /nui
+
+# https://wowpedia.fandom.com/wiki/How_the_user_interface_is_rendered
+
+globals.lua
+
+constants.lua
+
+# core wrappers
+Region.lua
+Texture.lua
+Label.lua
+Frame.lua
+BgFrame.lua
+Dialog.lua
+StatusBar.lua
+Button.lua
+SecureButton.lua
+CheckButton.lua
+AutoWidget.lua
+EditBox.lua
+ScrollFrame.lua
+
+# "Clean UI" classes
+CleanFrame.lua
+Cell.lua
+TableCol.lua
+TableRow.lua
+TableFrame.lua
+TitleFrame.lua
+TabFrame.lua
+Tooltip.lua
+
+# Settings
+settings/SettingsFrame.lua
+settings/TextSetting.lua
+settings/ToggleSetting.lua

@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400">
+
+  <!-- Background -->
+  <rect width="400" height="400" fill="#161210"/>
+
+  <!-- Shelf surface -->
+  <rect x="25" y="365" width="350" height="13" rx="2" fill="#6B5233"/>
+  <!-- Shelf front face (darker) -->
+  <rect x="25" y="371" width="350" height="7" fill="#3E2C0F"/>
+  <!-- Shelf shadow cast upward -->
+  <rect x="25" y="357" width="350" height="8" fill="#000000" opacity="0.25"/>
+
+  <!-- ============================================= -->
+  <!-- LEFT BOOK: Yellow, "Lib", standing upright    -->
+  <!-- ============================================= -->
+
+  <!-- Page tips visible at top of book -->
+  <rect x="58" y="112" width="63" height="6" fill="#EDEADB"/>
+
+  <!-- Full book block -->
+  <rect x="48" y="118" width="83" height="247" rx="2" fill="#C49000"/>
+
+  <!-- Left binding/spine ridge -->
+  <rect x="48" y="118" width="10" height="247" rx="2" fill="#9A7200"/>
+
+  <!-- Right page-edge strip -->
+  <rect x="121" y="118" width="10" height="247" fill="#DDD9C8"/>
+
+  <!-- Main cover face (lighter yellow) -->
+  <rect x="58" y="118" width="63" height="247" fill="#EFB823"/>
+
+  <!-- Inner title-label area (inset) -->
+  <rect x="63" y="133" width="53" height="217" rx="1" fill="#F5C840"/>
+
+  <!-- Decorative spine bands top -->
+  <rect x="58" y="133" width="63" height="7" fill="#9A7200" opacity="0.55"/>
+  <!-- Decorative spine bands bottom -->
+  <rect x="58" y="343" width="63" height="7" fill="#9A7200" opacity="0.55"/>
+
+  <!-- Title "Lib" rotated -->
+  <text
+    x="89" y="241"
+    text-anchor="middle"
+    dominant-baseline="middle"
+    font-family="'Arial Black', Arial, sans-serif"
+    font-weight="900"
+    font-size="50"
+    fill="#2B1800"
+    transform="rotate(-90, 89, 241)">Lib</text>
+
+
+  <!-- ============================================= -->
+  <!-- STACKED BOOKS (right side)                    -->
+  <!-- Blue "N" on top, Orange "UI" on bottom        -->
+  <!-- ============================================= -->
+
+  <!-- - - - BLUE BOOK (top of stack): "N" - - - -->
+
+  <!-- Spine strip (left edge) -->
+  <rect x="142" y="229" width="11" height="65" rx="2" fill="#102488"/>
+  <!-- Main cover -->
+  <rect x="153" y="229" width="185" height="65" fill="#1D3DAF"/>
+  <!-- Right page edges -->
+  <rect x="338" y="229" width="9" height="65" fill="#DDD9C8"/>
+  <!-- Inner label (inset 5px top/bottom) -->
+  <rect x="153" y="234" width="185" height="55" rx="1" fill="#2563EB"/>
+  <!-- Decorative bands -->
+  <rect x="153" y="234" width="185" height="6" fill="#102488" opacity="0.5"/>
+  <rect x="153" y="283" width="185" height="6" fill="#102488" opacity="0.5"/>
+
+  <!-- Title "N" -->
+  <text
+    x="248" y="262"
+    text-anchor="middle"
+    dominant-baseline="middle"
+    font-family="'Arial Black', Arial, sans-serif"
+    font-weight="900"
+    font-size="40"
+    fill="white">N</text>
+
+
+  <!-- - - - ORANGE BOOK (bottom of stack): "UI" - - - -->
+
+  <!-- Spine strip -->
+  <rect x="142" y="300" width="11" height="65" rx="2" fill="#923B00"/>
+  <!-- Main cover -->
+  <rect x="153" y="300" width="185" height="65" fill="#C04D00"/>
+  <!-- Right page edges -->
+  <rect x="338" y="300" width="9" height="65" fill="#DDD9C8"/>
+  <!-- Inner label -->
+  <rect x="153" y="305" width="185" height="55" rx="1" fill="#EA580C"/>
+  <!-- Decorative bands -->
+  <rect x="153" y="305" width="185" height="6" fill="#923B00" opacity="0.5"/>
+  <rect x="153" y="354" width="185" height="6" fill="#923B00" opacity="0.5"/>
+
+  <!-- Title "UI" -->
+  <text
+    x="248" y="333"
+    text-anchor="middle"
+    dominant-baseline="middle"
+    font-family="'Arial Black', Arial, sans-serif"
+    font-weight="900"
+    font-size="40"
+    fill="white">UI</text>
+
+</svg>

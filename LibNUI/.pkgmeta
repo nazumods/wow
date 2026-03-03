@@ -1,0 +1,3 @@
+# https://support.curseforge.com/en/support/solutions/articles/9000197952-preparing-the-packagemeta-file
+required-dependencies:
+  - LibNAddOn
