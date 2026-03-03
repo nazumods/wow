@@ -1,0 +1,41 @@
+## Interface: 120001
+## Category: Warband
+## Title: Characters
+## Author: Nazuraki
+## Version: 12.0.0-1
+## IconTexture: Interface\Icons\inv_10_tailoring2_banner_green.blp
+## SavedVariables: WarbandeerCharDB
+## Dependencies: LibNAddOn, LibNUI
+## X-NUI-DB: WarbandeerCharDB
+## X-NUI-DB-VERSION: 6
+## X-NUI-COMMANDS: /characters, /wbc
+## X-NUI-API: WarbandeerApi
+## X-NUI-UI: LibNUI
+
+# addon set up
+init.lua
+
+# Data Broker definition
+broker.lua
+
+# initialize character
+database.lua
+
+main.lua
+
+data/basic.lua
+data/currency.lua
+data/items.lua
+data/professions.lua
+data/races.lua
+data/quests.lua
+data/daily.lua
+data/weekly.lua
+data/instances.lua
+# load equipment last as it takes the data a while to be available
+data/equipment.lua
+data/artifacts.lua
+
+login.lua
+
+api.lua
