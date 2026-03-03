@@ -1,0 +1,32 @@
+## Interface: 120001
+## Category: Lib
+## Title: LibNAddOn
+## Author: Nazuraki
+## Version: 12.0.0-1
+## IconTexture: Interface\Icons\achievement_guildperk_bountifulbags
+## X-NUI-COMMANDS: /lib
+
+functions.lua
+
+lua/lua.lua
+lua/maps.lua
+lua/sets.lua
+lua/lists.lua
+lua/class.lua
+lua/strings.lua
+
+slashCommands.lua
+
+globals/colors.lua
+globals/wow.lua
+globals/player.lua
+globals/factions.lua
+globals/icons.lua
+globals/items.lua
+globals.lua
+
+eventListener.lua
+database.lua
+settings.lua
+
+api.lua
