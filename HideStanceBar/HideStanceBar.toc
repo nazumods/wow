@@ -1,0 +1,13 @@
+## Interface: 120000
+## Category: Shadows of UI
+## Title: Hide Stance Bar
+## Version: 12.0.0-1
+## Author: nazuraki
+## IconTexture: Interface\Icons\inv_misc_bag_10_black
+## SavedVariables: HideStanceBarDB
+## Dependencies: LibNAddOn, LibNUI
+## X-NUI-DB: HideStanceBarDB
+## X-NUI-DB-VERSION: 1
+## X-NUI-UI: LibNUI
+
+addon.lua
