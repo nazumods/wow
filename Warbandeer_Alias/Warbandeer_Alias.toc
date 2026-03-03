@@ -1,0 +1,14 @@
+## Interface: 120001
+## Category: Warband
+## Title: Alias
+## Author: Nazuraki
+## Version: 12.0.0-1
+## IconTexture: Interface\Icons\inv_10_tailoring2_banner_green
+## SavedVariables: Warbandeer_AliasDB
+## Dependencies: LibNAddOn, LibNUI
+## X-NUI-DB: Warbandeer_AliasDB
+## X-NUI-DB-VERSION: 1
+## X-NUI-API: WarbandeerApi
+## X-NUI-UI: LibNUI
+
+addon.lua

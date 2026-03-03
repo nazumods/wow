@@ -1,0 +1,38 @@
+# https://gist.github.com/jagrosh/5b1761213e33fc5b54ec7f6379034a22
+# https://github.com/marketplace/actions/actions-status-discord
+
+name: "Post to Discord"
+on: push
+
+jobs:
+  post:
+    runs-on: ubuntu-slim
+    steps:
+      - name: Process Event
+        id: process_event
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const cl = context.payload.commits.length
+            const desc = context.payload.commits.map(c =>
+              `[\`${c.id.substring(0,6)}\`](${c.url}) ${c.message}`
+            ).join('\n')
+            return { cl, desc }
+      #   env:
+      #     commits: ${{ toJson(github.event.commits) }}
+      #   run: |
+      #     CL=$(echo $commits | jq '. | length' )
+      #     echo "numCommits=$CL" >> $GITHUB_OUTPUT
+      - name: Actions Status Discord
+        uses: sarisia/actions-status-discord@v1.15.5
+        if: always()
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          notimestamp: true
+          noprefix: true
+          nocontext: true
+          title: "${{ github.repository }}"
+          description: |
+            ${{ fromJSON(steps.process_event.outputs.result).cl }} new ${{ fromJSON(steps.process_event.outputs.result).cl > 1 && 'commits' || 'commit' }} by ${{ github.actor }}
+            ${{ fromJSON(steps.process_event.outputs.result).desc }}
+          url: "${{ github.server_url }}/${{ github.repository }}"
