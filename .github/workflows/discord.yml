@@ -1,0 +1,61 @@
+# https://github.com/marketplace/actions/actions-status-discord
+
+name: "Post to Discord"
+
+on: push
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Process Event
+        id: process_event
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const commits = context.payload.commits || []
+            const cl = commits.length
+
+            if (cl === 0) return { cl: 0, desc: '' }
+
+            // Group commits by the first path segment (addon directory).
+            // Files with no slash (true root-level files) fall under 'General'.
+            const addonMap = new Map()
+
+            for (const c of commits) {
+              const hash = `[\`${c.id.substring(0,6)}\`](${c.url})`
+              const line = `${hash} ${c.message}`
+
+              const files = [...(c.added||[]), ...(c.modified||[]), ...(c.removed||[])]
+              const addons = [...new Set(
+                files.filter(f => f.includes('/')).map(f => f.split('/')[0])
+              )]
+
+              const targets = addons.length > 0 ? addons : ['General']
+              for (const addon of targets) {
+                if (!addonMap.has(addon)) addonMap.set(addon, [])
+                addonMap.get(addon).push(line)
+              }
+            }
+
+            let desc = ''
+            for (const [addon, lines] of [...addonMap.entries()].sort(([a],[b]) => a.localeCompare(b))) {
+              desc += `**${addon}**\n${lines.join('\n')}\n\n`
+            }
+
+            return { cl, desc: desc.trim() }
+
+      - name: Actions Status Discord
+        uses: sarisia/actions-status-discord@v1.15.5
+        if: always()
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          notimestamp: true
+          noprefix: true
+          nocontext: true
+          title: "${{ github.repository }}"
+          description: |
+            ${{ fromJSON(steps.process_event.outputs.result).cl }} new ${{ fromJSON(steps.process_event.outputs.result).cl > 1 && 'commits' || 'commit' }} by ${{ github.actor }}
+
+            ${{ fromJSON(steps.process_event.outputs.result).desc }}
+          url: "${{ github.server_url }}/${{ github.repository }}"
