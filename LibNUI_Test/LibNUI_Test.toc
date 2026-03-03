@@ -1,0 +1,12 @@
+## Interface: 120001
+## Category: Lib
+## Title: LibNUI Test
+## Author: Nazuraki
+## LoadOnDemand: 1
+## Dependencies: LibNUI
+
+init.lua
+table.lua
+table-dynamic.lua
+tab.lua
+entry.lua
