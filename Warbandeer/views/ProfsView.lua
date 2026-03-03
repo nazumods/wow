@@ -1,9 +1,11 @@
 local _, ns = ...
 local ui = ns.ui
-local Class, Frame, TableFrame = ns.lua.Class, ui.Frame, ui.TableFrame
+local Class, Frame, TableFrame, ScrollFrame = ns.lua.Class, ui.Frame, ui.TableFrame, ui.ScrollFrame
+local Colors = ns.Colors
 local insert, sort = table.insert, table.sort
 
--- Expansion name abbreviations for the hover tooltip.
+-- Ordered expansion columns (chronological).
+local EXP_ORDER = { "Clsc", "TBC", "WotLK", "Cata", "MoP", "WoD", "Leg", "BfA", "SL", "DF", "TWW" }
 local EXP_ABBR = {
   ["Vanilla"]                = "Clsc",
   ["Classic"]                = "Clsc",
@@ -20,117 +22,169 @@ local EXP_ABBR = {
   ["The War Within"]         = "TWW",
 }
 
-local TRANSPARENT = {color = ns.Colors.TransparentBlack}
--- Per-character group backgrounds: alternate between two shades so rows belonging
--- to the same character read as a single visual block.
-local CHAR_BG = {
-  {color = {0, 0, 0, 0.35}},
-  {color = {0, 0, 0, 0.15}},
+-- Professions in display order (no Fishing — no expansion sub-skills).
+local PROF_ORDER = {
+  "Alchemy", "Blacksmithing", "Cooking", "Enchanting", "Engineering",
+  "Herbalism", "Inscription", "Jewelcrafting", "Leatherworking",
+  "Mining", "Skinning", "Tailoring",
 }
 
-local COL_INFO = {
-  { width = 20,  backdrop = TRANSPARENT },                                          -- faction icon
-  { name = "Character",  width = 110, backdrop = TRANSPARENT },
-  { width = 20,  backdrop = TRANSPARENT },                                          -- profession icon
-  { name = "Profession", width = 110, backdrop = TRANSPARENT },
-  { name = "Skill",      width = 75,  backdrop = TRANSPARENT, justifyH = ui.justify.Right },
-  { name = "Spec Pts",   width = 55,  backdrop = TRANSPARENT, justifyH = ui.justify.Right },
-}
+-- Column widths.  ICON + CHAR == PROF so expansion columns align between the two tables.
+local PROF_COL_W    = 110   -- profession-name column in the summary grid
+local ICON_COL_W    = 20    -- faction icon in the character list
+local CHAR_COL_W    = 90    -- character name in the character list
+local EXP_COL_W     = 44    -- shared width for every expansion column
+local CHAR_LIST_H   = 180   -- height of the scrollable character-list area
 
-local TABLE_WIDTH = 0
-for _, c in ipairs(COL_INFO) do TABLE_WIDTH = TABLE_WIDTH + c.width end
+local VIEW_WIDTH    = PROF_COL_W + #EXP_ORDER * EXP_COL_W  -- 594
 
--- Profession slots in display order: primary slots first, then secondary.
-local PROF_SLOTS = {
-  { field = "primary",   isPrimary = true  },
-  { field = "secondary", isPrimary = true  },
-  { field = "fishing",   isPrimary = false },
-  { field = "cooking",   isPrimary = false },
-}
+-- Row backdrop colours.
+local TRANSPARENT   = { color = { 0, 0, 0, 0 } }
+local SELECTED_COLOR = { 1, 0.82, 0.2, 0.22 }
+local function rowBgColor(i)
+  return i % 2 == 0 and { 0, 0, 0, 0.4 } or { 0, 0, 0, 0.2 }
+end
 
--- ============================================================================
--- Cell builders
--- ============================================================================
+-- ─── Column-info factories ────────────────────────────────────────────────────
 
-local function getNameCell(toon)
-  local current = ns.api.GetCurrentCharacter()
-  local text = toon.name
-  if toon.name == current then
-    text = "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_1:14:14|t " .. text
+local function makeGridColInfo()
+  local cols = { { name = "Profession", width = PROF_COL_W, backdrop = TRANSPARENT } }
+  for _, abbr in ipairs(EXP_ORDER) do
+    insert(cols, { name = abbr, width = EXP_COL_W, backdrop = TRANSPARENT, justifyH = ui.justify.Right })
+  end
+  return cols
+end
+
+local function makeCharColInfo()
+  local cols = {
+    { width = ICON_COL_W, backdrop = TRANSPARENT },
+    { name = "Character", width = CHAR_COL_W, backdrop = TRANSPARENT },
+  }
+  for _, abbr in ipairs(EXP_ORDER) do
+    insert(cols, { name = abbr, width = EXP_COL_W, backdrop = TRANSPARENT, justifyH = ui.justify.Right })
+  end
+  return cols
+end
+
+-- Returns the pre-built empty row used to clear stale cells in the char table.
+local function makeEmptyRow(numCols)
+  local r = {}
+  for _ = 1, numCols do insert(r, "") end
+  return r
+end
+
+-- ─── Cell helpers ─────────────────────────────────────────────────────────────
+
+local function skillCell(best, max, onClick)
+  if not best or best == 0 then
+    return { text = "—", color = DISABLED_FONT_COLOR, onClick = onClick }
   end
   return {
-    text  = text,
-    color = ns.Colors[toon.classKey],
-    onEnter = function(self)
-      ui.tip:AnchorTo(self, "ANCHOR_BOTTOMRIGHT", -10, 10)
-      ui.tip:ClearLines()
-      ui.tip:AddLine(toon.realm)
-      if toon.basic.specialization and toon.basic.specialization.active then
-        ui.tip:AddLine(toon.basic.specialization.active)
-      end
-      ui.tip:Show()
-    end,
-    onLeave = function() ui.tip:Hide() end,
+    text    = tostring(best),
+    color   = best >= max and DIM_GREEN_FONT_COLOR or NORMAL_FONT_COLOR,
+    onClick = onClick,
   }
 end
 
-local function getSkillCell(prof)
-  if prof.skillLevel == nil then return "" end
-  local atMax = prof.skillLevel >= prof.maxSkill
-  return {
-    text  = prof.skillLevel .. "/" .. prof.maxSkill,
-    color = atMax and DIM_GREEN_FONT_COLOR or NORMAL_FONT_COLOR,
-  }
-end
+-- ─── Data helpers ─────────────────────────────────────────────────────────────
 
--- Returns the Spec Pts cell for a primary profession.  When expansion data is
--- cached the cell gains a hover tooltip showing the per-expansion breakdown.
-local function getSpecCell(prof, detail)
-  if prof.skillID == nil then return "" end
-
-  local cell
-  if detail and detail.specPoints ~= nil then
-    cell = { text = detail.specPoints .. " pts", color = { 1, 0.80, 0.27 } }
-  else
-    cell = { text = "—", color = DISABLED_FONT_COLOR }
-  end
-
-  if detail and detail.expansions then
-    local expansions = detail.expansions  -- capture for closure
-    cell.onEnter = function(self)
-      ui.tip:AnchorTo(self, "ANCHOR_BOTTOMRIGHT", -10, 10)
-      ui.tip:ClearLines()
-      ui.tip:AddLine("Expansion Skills", 1, 0.82, 0)
-      for _, exp in ipairs(expansions) do
-        local abbr  = EXP_ABBR[exp.name] or exp.name
-        local maxed = exp.skillLevel >= exp.maxSkillLevel
-        ui.tip:AddLine(
-          "  " .. abbr .. ": " .. exp.skillLevel .. "/" .. exp.maxSkillLevel,
-          maxed and DIM_GREEN_FONT_COLOR or NORMAL_FONT_COLOR
-        )
+-- For each profession, find the best skill per expansion across all characters.
+-- Returns { [profName] -> { [expAbbr] -> { best, max } } }
+local function buildBestSkills(toons)
+  local result = {}
+  for _, toon in ipairs(toons) do
+    local profs = toon.basic.professions
+    if profs then
+      for _, slot in ipairs({ "primary", "secondary", "fishing", "cooking" }) do
+        local prof = profs[slot]
+        if prof and prof.name then
+          if not result[prof.name] then result[prof.name] = {} end
+          local pData  = result[prof.name]
+          local detail = toon.professions
+                      and toon.professions.details
+                      and toon.professions.details[prof.skillID]
+          if detail and detail.expansions then
+            for _, exp in ipairs(detail.expansions) do
+              local abbr = EXP_ABBR[exp.name]
+              if abbr then
+                if not pData[abbr] or exp.skillLevel > pData[abbr].best then
+                  pData[abbr] = { best = exp.skillLevel, max = exp.maxSkillLevel }
+                end
+              end
+            end
+          end
+        end
       end
-      ui.tip:Show()
     end
-    cell.onLeave = function() ui.tip:Hide() end
   end
-
-  return cell
+  return result
 end
 
--- ============================================================================
--- View
--- ============================================================================
+-- Build a sorted character list for a given profession name.
+-- Returns { { toon, prof, detail } ... } sorted by skill desc then name asc.
+local function buildCharList(toons, profName)
+  local list = {}
+  for _, toon in ipairs(toons) do
+    local profs = toon.basic.professions
+    if profs then
+      for _, slot in ipairs({ "primary", "secondary", "fishing", "cooking" }) do
+        local prof = profs[slot]
+        if prof and prof.name == profName then
+          local detail = toon.professions
+                      and toon.professions.details
+                      and toon.professions.details[prof.skillID]
+          insert(list, { toon = toon, prof = prof, detail = detail })
+          break
+        end
+      end
+    end
+  end
+  sort(list, function(a, b)
+    if a.prof.skillLevel ~= b.prof.skillLevel then return a.prof.skillLevel > b.prof.skillLevel end
+    return a.toon.name < b.toon.name
+  end)
+  return list
+end
+
+-- ─── View ─────────────────────────────────────────────────────────────────────
 
 ---@class ProfsView: Frame
 local ProfsView = Class(Frame, function(self)
-  self.table = TableFrame:new{
+  -- Account Summary grid: rows = professions, columns = expansions.
+  self.gridTable = TableFrame:new{
     parent   = self,
-    colInfo  = COL_INFO,
+    colInfo  = makeGridColInfo(),
     position = { TopLeft = {} },
   }
-  self.table.data = {}
-  self:Width(TABLE_WIDTH)
-  self:Height(self.table:Height())
+
+  -- Character-list section: a fixed header TableFrame + a ScrollFrame for the rows.
+  -- The character table's header is placed immediately below the grid.
+  -- A ScrollFrame is laid over the row area so only the header stays fixed.
+  self.charTable = TableFrame:new{
+    parent   = self,
+    colInfo  = makeCharColInfo(),
+    position = { TopLeft = { self.gridTable, ui.edge.BottomLeft, 0, -8 } },
+  }
+
+  -- charTable.offsetY is the header height; the scroll starts just below the header.
+  local scrollTop = 8 + self.charTable.offsetY
+  self.charScroll = ScrollFrame:new{
+    parent   = self,
+    position = {
+      TopLeft = { self.gridTable, ui.edge.BottomLeft, 0, -scrollTop },
+      Height  = CHAR_LIST_H,
+      Width   = VIEW_WIDTH,
+    },
+  }
+  self.charScroll:Child(self.charTable.rowArea)
+
+  self._selectedRowIdx = nil
+  self._visibleProfs   = {}
+  self._toons          = nil
+  self._charColCount   = 2 + #EXP_ORDER  -- icon + name + expansions
+
+  self:Width(VIEW_WIDTH)
+  self:Height(self.gridTable:Height() + scrollTop + CHAR_LIST_H)
 end, {
   name   = "profs",
   _title = "Professions",
@@ -150,65 +204,149 @@ function ProfsView:GetCharacters()
   return toons
 end
 
----Rebuild table content and resize the view.  Called automatically by
----Region:Show() before the frame becomes visible.
-function ProfsView:OnBeforeShow()
-  local rowInfos = {}
-  local rowData  = {}
-  local bgIdx    = 1
-
-  for _, toon in ipairs(self:GetCharacters()) do
-    local profs = toon.basic.professions
-    if profs then
-      local firstRow = true
-
-      for _, slot in ipairs(PROF_SLOTS) do
-        local prof = profs[slot.field]
-        if prof then
-          local detail = toon.professions and
-                         toon.professions.details and
-                         toon.professions.details[prof.skillID]
-
-          insert(rowInfos, { backdrop = CHAR_BG[bgIdx] })
-          insert(rowData, {
-            -- faction icon: only on the character's first profession row
-            firstRow and (toon.isAlliance and ns.icons.AllianceLight or ns.icons.HordeLight) or "",
-            -- character name: same; cell is reused as a single visual unit
-            firstRow and getNameCell(toon) or "",
-            -- profession icon
-            prof.icon and { path = prof.icon, position = { TopLeft = {1,-1}, BottomRight = {-1,1} } } or "",
-            -- profession name
-            { text = prof.name, color = slot.isPrimary and NORMAL_FONT_COLOR or DISABLED_FONT_COLOR },
-            -- skill level
-            getSkillCell(prof),
-            -- spec points (primary only; secondaries have no spec tree)
-            slot.isPrimary and getSpecCell(prof, detail) or "",
-          })
-
-          firstRow = false
-        end
-      end
-
-      -- Only advance the background alternation when the character had professions.
-      if not firstRow then
-        bgIdx = bgIdx % 2 + 1
-      end
-    end
+-- Highlight the clicked grid row and populate the character list below it.
+---@param rowIdx integer  index into self._visibleProfs
+function ProfsView:SelectRow(rowIdx)
+  -- Restore the previous row's backdrop.
+  if self._selectedRowIdx then
+    local prev = self.gridTable.rows[self._selectedRowIdx]
+    if prev then prev:backdropColor(unpack(rowBgColor(self._selectedRowIdx))) end
   end
 
-  -- Grow the row pool for any new rows; update the backdrop on existing ones
-  -- (character ordering can change between sessions).
-  for i, info in ipairs(rowInfos) do
-    if not self.table.rows[i] then
-      self.table:addRow(info)
+  self._selectedRowIdx = rowIdx
+  local row = self.gridTable.rows[rowIdx]
+  if row then row:backdropColor(unpack(SELECTED_COLOR)) end
+
+  self:RebuildCharList(self._visibleProfs[rowIdx])
+end
+
+-- Rebuild the character list for profName; pass nil to clear the list.
+---@param profName string|nil
+function ProfsView:RebuildCharList(profName)
+  local entries = profName and buildCharList(self._toons, profName) or {}
+  local current = ns.api.GetCurrentCharacter()
+
+  -- Build data rows for real characters.
+  local rowData = {}
+  for _, entry in ipairs(entries) do
+    local toon   = entry.toon
+    local detail = entry.detail
+
+    -- Map expansion abbreviation → data from this character's cached detail.
+    local expMap = {}
+    if detail and detail.expansions then
+      for _, exp in ipairs(detail.expansions) do
+        local abbr = EXP_ABBR[exp.name]
+        if abbr then expMap[abbr] = exp end
+      end
+    end
+
+    local nameText = toon.name
+    if toon.name == current then
+      nameText = "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_1:14:14:14:14|t " .. nameText
+    end
+
+    local row = {
+      -- Faction icon.
+      toon.isAlliance and ns.icons.AllianceLight or ns.icons.HordeLight,
+      -- Character name (class coloured; realm on hover).
+      {
+        text    = nameText,
+        color   = Colors[toon.classKey],
+        onEnter = function(self)
+          ui.tip:AnchorTo(self, "ANCHOR_BOTTOMRIGHT", -10, 10)
+          ui.tip:ClearLines()
+          ui.tip:AddLine(toon.realm)
+          ui.tip:Show()
+        end,
+        onLeave = function() ui.tip:Hide() end,
+      },
+    }
+
+    -- One cell per expansion, green if at cap.
+    for _, abbr in ipairs(EXP_ORDER) do
+      local exp = expMap[abbr]
+      if exp then
+        insert(row, {
+          text  = exp.skillLevel,
+          color = exp.skillLevel >= exp.maxSkillLevel and DIM_GREEN_FONT_COLOR or NORMAL_FONT_COLOR,
+        })
+      else
+        insert(row, { text = "—", color = DISABLED_FONT_COLOR })
+      end
+    end
+
+    insert(rowData, row)
+  end
+
+  -- Grow the row pool to cover all real entries (update() would do this too,
+  -- but doing it here lets us set backdrops before the update call).
+  for _ = #self.charTable.rows + 1, #entries do
+    self.charTable:addRow({})
+  end
+
+  -- Pad data with empty rows to clear stale cells from a previous (larger) selection.
+  local emptyRow = makeEmptyRow(self._charColCount)
+  for _ = #entries + 1, #self.charTable.rows do
+    insert(rowData, emptyRow)
+  end
+
+  -- Update backdrops: alternating colours for real rows, transparent for padding.
+  for i, tblRow in ipairs(self.charTable.rows) do
+    if i <= #entries then
+      tblRow:backdropColor(unpack(rowBgColor(i)))
     else
-      self.table.rows[i]:backdropColor(unpack(info.backdrop.color))
+      tblRow:backdropColor(0, 0, 0, 0)
     end
   end
 
-  self.table.data = rowData
-  self.table:update()
+  self.charTable.data = rowData
+  self.charTable:update()
+end
 
-  self:Width(self.table:Width())
-  self:Height(self.table:Height())
+-- Called automatically by Region:Show() just before the frame becomes visible.
+function ProfsView:OnBeforeShow()
+  self._toons = self:GetCharacters()
+  local bestSkills = buildBestSkills(self._toons)
+
+  -- Build grid rows only for professions present in the warband.
+  local visibleProfs = {}
+  local gridRowData  = {}
+
+  for _, profName in ipairs(PROF_ORDER) do
+    local data = bestSkills[profName]
+    if data then
+      local rowIdx  = #visibleProfs + 1
+      local onClick = function() self:SelectRow(rowIdx) end
+
+      insert(visibleProfs, profName)
+      local row = { { text = profName, onClick = onClick } }
+      for _, abbr in ipairs(EXP_ORDER) do
+        local skill = data[abbr]
+        insert(row, skillCell(skill and skill.best, skill and skill.max, onClick))
+      end
+      insert(gridRowData, row)
+    end
+  end
+
+  -- Grow grid row pool; restore alternating backdrops (clears any prior selection highlight).
+  for _ = #self.gridTable.rows + 1, #visibleProfs do
+    self.gridTable:addRow({})
+  end
+  for i, tblRow in ipairs(self.gridTable.rows) do
+    if i <= #visibleProfs then tblRow:backdropColor(unpack(rowBgColor(i))) end
+  end
+
+  self.gridTable.data = gridRowData
+  self.gridTable:update()
+
+  self._visibleProfs   = visibleProfs
+  self._selectedRowIdx = nil
+
+  -- Clear the character list.
+  self:RebuildCharList(nil)
+
+  local scrollTop = 8 + self.charTable.offsetY
+  self:Width(VIEW_WIDTH)
+  self:Height(self.gridTable:Height() + scrollTop + CHAR_LIST_H)
 end
