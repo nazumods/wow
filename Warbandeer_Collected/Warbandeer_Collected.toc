@@ -1,0 +1,26 @@
+## Interface: 120001
+## Category: Warband
+## Title: Collected
+## Author: Nazuraki
+## Version: 12.0.0-1
+## IconTexture: Interface\Icons\inv_10_tailoring2_banner_green
+## SavedVariables: WarbandeerCollectedDB
+## AddonCompartmentFunc: WarbandeerCollected_OnAddonCompartmentClick
+## Dependencies: LibNAddOn, LibNUI, Warbandeer_Characters
+## X-NUI-DB: WarbandeerCollectedDB
+## X-NUI-DB-VERSION: 2
+## X-NUI-COMMANDS: /collected, /collect
+## X-NUI-COMPARTMENT: WarbandeerCollected_OnAddonCompartmentClick
+## X-NUI-API: WarbandeerApi
+## X-NUI-UI: LibNUI
+
+init.lua
+commands.lua
+
+data\sets.lua
+
+controls\InfoTip.lua
+controls\LockoutView.lua
+
+DataView.lua
+window.lua
