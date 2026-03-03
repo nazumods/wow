@@ -1,0 +1,36 @@
+## Interface: 120001
+## Category: Warband
+## Title: Warbandeer
+## Author: Nazuraki
+## Version: 12.0.0-1
+## IconTexture: Interface\Icons\inv_10_tailoring2_banner_green
+## SavedVariables: WarbandeerDB
+## AddonCompartmentFunc: Warbandeer_OnAddonCompartmentClick
+## Dependencies: LibNAddOn, LibNUI, Warbandeer_Characters
+## X-NUI-DB: WarbandeerDB
+## X-NUI-DB-VERSION: 1
+## X-NUI-COMMANDS: /warband, /wb
+## X-NUI-COMPARTMENT: Warbandeer_OnAddonCompartmentClick
+## X-NUI-API: WarbandeerApi
+## X-NUI-UI: LibNUI
+
+init.lua
+data.lua
+
+controls\CharacterTooltip.lua
+
+views\Overview.lua
+views\SummaryColumns.lua
+views\SummaryView.lua
+views\GearView.lua
+views\DetailView.lua
+views\RoleView.lua
+views\RaceView.lua
+views\Remix.lua
+views\Legion.lua
+views\Midnight.lua
+views\ProfsView.lua
+
+window.lua
+
+commands.lua
