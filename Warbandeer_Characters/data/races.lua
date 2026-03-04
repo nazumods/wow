@@ -17,6 +17,7 @@ API.ALLIANCE_RACES = {
   "Mechagnome",
   "Dracthyr",
   "Earthen",
+  "Haranir",
 }
 
 API.HORDE_RACES = {
@@ -34,6 +35,7 @@ API.HORDE_RACES = {
   "Vulpera",
   "Dracthyr",
   "Earthen",
+  "Haranir",
 }
 
 -- index, isAlliance
@@ -67,6 +69,8 @@ raceIdToFactionIndex[52] = {13, true}
 raceIdToFactionIndex[70] = {13, false}
 raceIdToFactionIndex[84] = {14, false}
 raceIdToFactionIndex[85] = {14, true}
+raceIdToFactionIndex[86] = {15, true}
+raceIdToFactionIndex[87] = {15, true}
 
 function ns.NormalizeRaceId(raceId)
   return unpack(raceIdToFactionIndex[raceId])

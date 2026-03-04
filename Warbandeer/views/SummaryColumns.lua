@@ -301,6 +301,8 @@ local isDMF = function()
 end
 
 ns.SummaryColumnsDelayed = function(view)
+  if ns._dmfChecked then return end
+  ns._dmfChecked = true
   if isDMF() then
     insert(
       ns.SummaryColumns,
