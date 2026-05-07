@@ -1,4 +1,4 @@
--- luacheck: globals LibNAddOn SendChatMessage
+-- luacheck: globals LibNAddOn
 local ns = LibNAddOn(...)
 
 function ns:MigrateDB()
@@ -12,67 +12,71 @@ function ns:MigrateDB()
   if not db.settings.startsWith then
     db.settings.startsWith = false
   end
-  db.version = 1 -- update version after migration
+  db.version = 1
 end
 
-local SettingsFrame, TextSetting = ns.ui.SettingsFrame, ns.ui.TextSetting
+local SettingsFrame = ns.ui.SettingsFrame
 
-local NameMatches = function()
-  return not ns.player == ns.db.settings.alias
+local function ShouldPrefix()
+  local alias = ns.db.settings.alias
+  if not alias or alias == "" then return false end
+  if ns.db.settings.startsWith then
+    return not ns.lua.strings.startsWith(ns.player, alias)
+  end
+  return ns.player ~= alias
 end
 
-local NameStartsWith = function()
-  return not ns.lua.strings.startsWith(ns.player, ns.db.settings.alias)
+local function GetPrefix()
+  return "(" .. ns.db.settings.alias .. ") "
+end
+
+local function hookEditBox(editBox)
+  if not editBox or editBox._aliasHooked then return end
+
+  -- OnKeyDown fires before OnEnterPressed, so SetText here is picked up by
+  -- the secure send path without causing taint (HookScript doesn't spread taint).
+  editBox:HookScript("OnKeyDown", function(eb, key)
+    if key ~= "ENTER" and key ~= "NUMPADENTER" then return end
+    if not ShouldPrefix() then return end
+
+    local text = eb:GetText()
+    if not text or text == "" then return end
+
+    local chatType = eb:GetAttribute("chatType") or
+                     (eb.GetChatType and eb:GetChatType()) or
+                     eb.chatType
+    if chatType ~= "GUILD" then return end
+
+    if text:match("^%s*[/!#@?]") then return end
+
+    eb:SetText(GetPrefix() .. text)
+  end)
+
+  editBox._aliasHooked = true
 end
 
 function ns:onLoad()
   ns.player = ns.wow.Player.GetName()
-  ns.prefix = ns.db.settings.startsWith and NameStartsWith or NameMatches
 
-  local settings = SettingsFrame:new{
-    headingText = ns._TITLE,
-  }
+  local settings = SettingsFrame:new{ headingText = ns._TITLE }
   settings:AddTextControl("Alias", ns.db.settings, "alias").SettingChanged = nil
-  settings:AddToggleControl("Suppress if character name starts with alias", ns.db.settings, "startsWith").SettingChanged = function(_, state)
-    ns.prefix = state and NameStartsWith or NameMatches
-  end
+  settings:AddToggleControl("Suppress if character name starts with alias", ns.db.settings, "startsWith").SettingChanged = nil
   if ns.api.SettingsCategory then
     ns.api.AliasSettingsCategory = settings:RegisterSubcategory(ns.api.SettingsCategory)
   else
     ns.api.AliasSettingsCategory = settings:RegisterCategory()
   end
 
-  for i = 1, NUM_CHAT_WINDOWS do
-    local editBox = _G["ChatFrame" .. i .. "EditBox"]
-    if editBox then
-      local send = editBox.SendText
-      editBox.SendText = function(editBox, addToHistory)
-        local text = editBox:GetText()
-        if not text or text == "" or not ns.prefix() then
-          send(editBox, addToHistory)
-          return
-        end
-        local chatType = (editBox.GetAttribute and editBox:GetAttribute("chatType")) or editBox.chatType
-        if type(text) == "string" then
-          local symbols = "/!#@?"
-          local firstChar = text:match("^%s*(.)")
-          if firstChar and symbols:find(firstChar, 1, true) then
-            send(editBox, addToHistory)
-            return
-          end
-        end
-        if chatType == "GUILD" then
-          local prefixedText = "(" .. ns.db.settings.alias .. ") " .. text
-          editBox:SetText(prefixedText)
-          send(editBox, 0)
-          editBox:SetText(text)
-          if addToHistory and addToHistory ~= 0 then
-            editBox:AddHistoryLine(text)
-          end
-          return
-        end
-        send(editBox, addToHistory)
+  local numFrames = NUM_CHAT_WINDOWS or 10
+  for i = 1, numFrames do
+    hookEditBox(_G["ChatFrame" .. i .. "EditBox"])
+  end
+
+  if type(FCF_OpenTemporaryWindow) == "function" then
+    hooksecurefunc("FCF_OpenTemporaryWindow", function()
+      for i = 1, (NUM_CHAT_WINDOWS or 10) do
+        hookEditBox(_G["ChatFrame" .. i .. "EditBox"])
       end
-    end
+    end)
   end
 end
