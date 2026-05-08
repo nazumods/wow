@@ -1,0 +1,8 @@
+## Interface: 120001
+## Category: Shadows of UI
+## Title: Darkmoon Faire
+## Author: Nazuraki
+## Version: 12.0.1-1
+## Dependencies: LibNAddOn
+
+DMF.lua

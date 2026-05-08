@@ -1,7 +1,7 @@
 # WoW AddOn Suite — Full Code Context
 
 > **Purpose:** Complete code reference so Claude doesn't have to re-read source files.
-> Covers every Nazuraki addon: LibNAddOn, LibNUI, Warbandeer suite, ShadowsOfUI suite, CombatOutline, Recycle.
+> Covers every Nazuraki addon: LibNAddOn, LibNUI, Warbandeer suite, ShadowsOfUI suite, CombatOutline, Recycle, ShadowsOfUI-DMF.
 
 ---
 
@@ -21,7 +21,8 @@ LibNAddOn
     |           +-- Warbandeer
     |           +-- Warbandeer_Collected
     |
-    +-- CombatOutline  (LibNAddOn only, no LibNUI)
+    +-- CombatOutline    (LibNAddOn only, no LibNUI)
+    +-- ShadowsOfUI-DMF (LibNAddOn only, no LibNUI)
 
 (no LibN dependency):
     HideBagBar  (raw WoW API only)
@@ -42,6 +43,7 @@ LibNAddOn
 9. [HideBagBar](#9-hidebagbar)
 10. [CombatOutline](#10-combatoutline)
 11. [Recycle](#11-recycle)
+12. [ShadowsOfUI-DMF](#12-shadowsofui-dmf)
 
 ---
 
@@ -898,6 +900,42 @@ Single file: `addon.lua`. Assignment form.
 - Baganator junk plugin integration if present
 - Settings: sellGrey toggle, silent toggle
 - `/recycle`, `/recycle clear`, `/recycle key CTRL|SHIFT|ALT`
+
+---
+
+# 12. ShadowsOfUI-DMF
+
+## TOC
+```
+Interface: 120001, Category: Shadows of UI
+Dependencies: LibNAddOn (no LibNUI)
+No SavedVariables, no slash commands
+```
+
+Single file: `DMF.lua`. Assignment form `local ns = LibNAddOn(...)`.
+
+**Headless Darkmoon Faire helper — no UI, no archaeology.**
+
+### Features
+- **Calendar detection** (`checkForDMF`): checks `C_Calendar` holiday textures (235446–235448) to determine if DMF is active; caches `startTime`/`endTime` for fast re-checks
+- **Auto-buy**: when opening the merchant on Darkmoon Island during DMF week, automatically purchases required profession quest materials for any profession with skill ≥ 1 and quest not yet done
+- **Quest auto-accept**: `QUEST_DETAIL` handler calls `AcceptQuest()` when you use a dungeon/raid/PvP drop item (Imbued Crystal, Monstrous Egg, etc.)
+- **Gossip auto-complete**: `GOSSIP_SHOW` handler calls `C_GossipInfo.SelectOption()` for minigame quests you are on, have a token for, and haven't completed
+- **Login alert**: prints "Darkmoon Faire is open!" on first login/reload if DMF is active
+
+### Event lifecycle
+Dynamic events (merchant, quest, gossip) are registered/unregistered based on DMF active status via `checkDMFStatus()`, called from `PLAYER_ENTERING_WORLD`, `ZONE_CHANGED_NEW_AREA`, and `CALENDAR_UPDATE_EVENT_LIST`.
+
+### Profession data
+All primary and secondary professions except Archaeology. Uses `C_TradeSkillUI.GetProfessionInfoBySkillLineID` to sum skill across all expansions for primary professions; uses direct `GetProfessionInfo` values for secondary (fishing, cooking).
+
+### Key tables
+| Table | Key → Value |
+|---|---|
+| `ProfessionQuestData` | professionId → `{ questId, questItems? }` |
+| `ProfessionTradeSkillLines` | professionId → `{ skillLineId, ... }` (11 expansions) |
+| `turnInItems` | itemId → questId (10 drop items) |
+| `gossipQuestIds` | gossipOptionID → questId (7 minigames) |
 
 ---
 
