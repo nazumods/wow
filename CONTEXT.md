@@ -569,9 +569,9 @@ X-NUI-API: WarbandeerApi, X-NUI-UI: LibNUI
 | `data/items.lua` | Broker: bag inventory |
 | `data/professions.lua` | Broker: per-expansion skill levels, spec points. Also `ns.api.professionInfo` |
 | `data/races.lua` | Race tables, `NormalizeRaceId()` |
-| `data/quests.lua` | Broker: `UndermineStoryMode`, `WWIRep` |
+| `data/quests.lua` | Broker: `UndermineStoryMode`, `WWIRep`, `delves` |
 | `data/daily.lua` | Broker: (empty) |
-| `data/weekly.lua` | Broker: `DMF`, `theater`, `preMidnight`, `caches`, `vault` |
+| `data/weekly.lua` | Broker: `DMF`, `preMidnight`, `caches`, `vault` |
 | `data/instances.lua` | Broker: `locks` (instance lockouts) |
 | `data/equipment.lua` | Broker: `slots`, `ilvl` |
 | `data/artifacts.lua` | Broker: `hidden`, `hiddenColors`, `classHall` |
@@ -614,12 +614,14 @@ professions = {
 quests = {
   UndermineStoryMode,
   WWIRep = { complete, missing, Dornogal, Assembly, Hallowfall, Azjkahet, Undermine, Arathi, Karesh },
+  delves = { complete, missing, [label] = bool },
 }
 dailies = {}
 weeklies = {
-  DMF, theater,
+  DMF,
   preMidnight = { eight, three },
-  caches, vault = { rewards, counts, best, bestN }?,
+  caches,
+  vault = { rewards, counts, best, bestN }?,
 }
 instances = {
   locks = { [instanceID] = { [difficultyID] = { name, total, progress, reset, extended, isRaid } } },
@@ -646,9 +648,9 @@ reputation = {
 | `currency` | RestoredCofferKey | — | — |
 | `items` | bags, reagentBag | — | — |
 | `professions` | details | `TRADE_SKILL_SHOW` (500ms C_Timer) | — |
-| `quests` | UndermineStoryMode, WWIRep | `QUEST_TURNED_IN` (ID filtered) | — |
+| `quests` | UndermineStoryMode, WWIRep, delves | `QUEST_TURNED_IN`, `QUEST_ACCEPTED`, `QUEST_REMOVED`, `UNIT_QUEST_LOG_CHANGED` | — |
 | `dailies` | (empty) | — | — |
-| `weeklies` | DMF, theater, preMidnight, caches, vault | `QUEST_TURNED_IN`, `WEEKLY_REWARDS_UPDATE` (1000ms delay) | DMF: `RESET_SUNDAY`, others: `RESET_WEEKLY` |
+| `weeklies` | DMF, preMidnight, caches, vault | `QUEST_TURNED_IN`, `WEEKLY_REWARDS_UPDATE` (1000ms delay) | DMF: `RESET_SUNDAY`, others: `RESET_WEEKLY` |
 | `instances` | locks | `INSTANCE_LOCK_STOP` | `RESET_WEEKLY` |
 | `equipment` | slots, ilvl | `PLAYER_EQUIPMENT_CHANGED` (500ms delay + item load) | — |
 | `artifacts` | hidden, hiddenColors, classHall | `QUEST_TURNED_IN` | — |

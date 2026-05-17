@@ -2,6 +2,7 @@ local _, ns = ...
 local Set = ns.lua.sets.Set
 local Values = ns.lua.sets.values
 local IsQuestFlaggedCompleted = C_QuestLog.IsQuestFlaggedCompleted
+local ReadyForTurnIn = C_QuestLog.ReadyForTurnIn
 
 local WWIRepQuests = {
   Dornogal   = 82362,
@@ -13,6 +14,20 @@ local WWIRepQuests = {
   Karesh     = 90667,
 }
 local WWIRepQuestsR = tInvert(WWIRepQuests)
+
+-- Delve introduction quests (one-time per character). Add entries as discovered.
+local DelveQuests = {
+  ["Shadow Enclave"]      = 93372,
+  ["Collegiate Calamity"] = 93384,
+  ["The Darkway"]         = 93385,
+  ["Parhelion Plaza"]     = 93386,
+  ["Atal'Aman"]           = 93409,
+  ["Twilight Crypts"]     = 93410,
+  ["The Gulf of Memory"]  = 93416,
+  ["The Grudge Pit"]      = 93421,
+  ["Sunkiller Sanctum"]   = 93427,
+  ["Shadowguard Point"]   = 93428,
+}
 
 ---@type Broker
 ns.Quests = ns:RegisterBroker("quests")
@@ -52,6 +67,20 @@ ns.Quests.fields = {
         currentValue[zone] = true
       end
     end,
+  },
+  delves = {
+    ids = Values(DelveQuests),
+    get = function()
+      local d = { complete = true, missing = 0 }
+      for label,id in pairs(DelveQuests) do
+        local done = IsQuestFlaggedCompleted(id) or ReadyForTurnIn(id) or false
+        d[label] = done
+        d.complete = d.complete and done
+        if not done then d.missing = d.missing + 1 end
+      end
+      return d
+    end,
+    event = {"QUEST_TURNED_IN", "QUEST_ACCEPTED", "QUEST_REMOVED", "UNIT_QUEST_LOG_CHANGED"},
   },
 }
 

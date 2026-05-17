@@ -242,12 +242,36 @@ insert(
   }
 )
 
--- theater troupe
+local formatDelves = function(toon)
+  if not (toon.quests and toon.quests.delves) then return "" end
+  local d = toon.quests.delves
+  local labels = {}
+  for k in pairs(d) do
+    if k ~= "complete" and k ~= "missing" then insert(labels, k) end
+  end
+  if #labels == 0 then return "" end
+  if d.complete then return GreenCheck end
+  return {
+    text = d.missing,
+    justifyH = ui.justify.Center,
+    onEnter = function(self)
+      ui.tip:AnchorTo(self, "ANCHOR_BOTTOMRIGHT", -10, 10)
+      ui.tip:ClearLines()
+      table.sort(labels)
+      for _,label in ipairs(labels) do
+        ui.tip:AddLine(label..' '..(d[label] and 'true' or 'false'))
+      end
+      ui.tip:Show()
+    end,
+    onLeave = function(self) ui.tip:Hide() end,
+  }
+end
 insert(
   ns.SummaryColumns,
   SummaryColumn:new{
-    icon = Icons.Theatre,
-    getData = function(t) return t.weeklies and t.weeklies.theater and GreenCheck or "" end,
+    name = "D",
+    justifyH = ui.justify.Center,
+    getData = formatDelves,
   }
 )
 

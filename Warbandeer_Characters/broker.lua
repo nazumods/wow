@@ -67,10 +67,13 @@ function Broker:Init(toon)
             end
           end
         end
-        -- register for the event
-        ns:registerEvent(field.event, function(_, ...)
-          field.eventHandler(field, toon[broker][name], ...)
-        end)
+        -- register for the event(s)
+        local events = type(field.event) == "table" and field.event or {field.event}
+        for _,ev in ipairs(events) do
+          ns:registerEvent(ev, function(_, ...)
+            field.eventHandler(field, toon[broker][name], ...)
+          end)
+        end
       end
       
       -- auto-reset for simple fields

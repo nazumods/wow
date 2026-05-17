@@ -1,5 +1,5 @@
 local _, ns = ...
-local Set, ValueList, any, anyKey = ns.lua.sets.Set, ns.lua.lists.values, ns.lua.maps.any, ns.lua.maps.anyKey
+local Set, ValueList, any = ns.lua.sets.Set, ns.lua.lists.values, ns.lua.maps.any
 local Player = ns.wow.Player
 local IsQuestFlaggedCompleted = C_QuestLog.IsQuestFlaggedCompleted
 
@@ -31,23 +31,6 @@ ns.Weekly.fields = {
       return any(DMFQuests, function(id)
         return IsQuestFlaggedCompleted(id)
       end)
-    end,
-  },
-  ---@class WeeklyBroker
-  ---@field theater boolean
-  theater = {
-    ids = Set{83240},
-    maxLevel = true,
-    resetOn = ns.RESET_WEEKLY,
-    get = function(self)
-      return anyKey(self.ids, function(id) return IsQuestFlaggedCompleted(id) end)
-    end,
-    reset = function() return false end,
-    event = "QUEST_TURNED_IN",
-    eventHandler = function(self, _, questId)
-      if self.ids[questId] then
-        self:set(true)
-      end
     end,
   },
   preMidnight = {
