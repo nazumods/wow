@@ -8,7 +8,7 @@
 ## Dependencies: LibNAddOn, LibNUI
 ## X-Curse-Project-ID: 1546588
 ## X-NUI-DB: WarbandeerCharDB
-## X-NUI-DB-VERSION: 6
+## X-NUI-DB-VERSION: 7
 ## X-NUI-COMMANDS: /characters, /wbc
 ## X-NUI-API: WarbandeerApi
 ## X-NUI-UI: LibNUI
@@ -31,6 +31,7 @@ data/professions.lua
 data/races.lua
 data/quests.lua
 data/daily.lua
+data/playtime.lua
 data/weekly.lua
 data/instances.lua
 # load equipment last as it takes the data a while to be available
@@ -40,3 +41,5 @@ data/artifacts.lua
 login.lua
 
 api.lua
+
+dump.lua

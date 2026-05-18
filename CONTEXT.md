@@ -548,7 +548,7 @@ Data collection backbone. Populates `WarbandeerApi` global.
 ## TOC
 ```
 Interface: 120001, Dependencies: LibNAddOn, LibNUI
-SavedVariables: WarbandeerCharDB (version 6)
+SavedVariables: WarbandeerCharDB (version 7)
 X-NUI-COMMANDS: /characters, /wbc
 X-NUI-API: WarbandeerApi, X-NUI-UI: LibNUI
 ```
@@ -571,6 +571,7 @@ X-NUI-API: WarbandeerApi, X-NUI-UI: LibNUI
 | `data/races.lua` | Race tables, `NormalizeRaceId()` |
 | `data/quests.lua` | Broker: `UndermineStoryMode`, `WWIRep`, `delves` |
 | `data/daily.lua` | Broker: (empty) |
+| `data/playtime.lua` | Broker: `total` seconds, `byPatch` baseline per WoW version |
 | `data/weekly.lua` | Broker: `DMF`, `preMidnight`, `caches`, `vault` |
 | `data/instances.lua` | Broker: `locks` (instance lockouts) |
 | `data/equipment.lua` | Broker: `slots`, `ilvl` |
@@ -638,6 +639,10 @@ artifacts = {
 reputation = {
   legion = { [factionID] = { name, done, current, max } },
 }
+playtime = {
+  total,    -- total /played in seconds
+  byPatch = { ["12.0.5"] = baseSeconds, ... }, -- /played at first login per patch
+}
 ```
 
 ## Broker Definitions
@@ -655,6 +660,7 @@ reputation = {
 | `equipment` | slots, ilvl | `PLAYER_EQUIPMENT_CHANGED` (500ms delay + item load) | — |
 | `artifacts` | hidden, hiddenColors, classHall | `QUEST_TURNED_IN` | — |
 | `reputation` | legion | — | — |
+| `playtime` | total, byPatch | `TIME_PLAYED_MSG` (via `GetTimePlayed()` on Init) | — |
 
 Reset constants: `RESET_SUNDAY=0`, `RESET_DAILY=1`, `RESET_WEEKLY=7`
 

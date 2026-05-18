@@ -28,7 +28,7 @@ end, "Delete a character")
 ---@field IsLegionTimerunner boolean
 
 function ns:MigrateDB()
-  if ns.db.version == 6 then return end
+  if ns.db.version == 7 then return end
   local db = ns.db
   if not db.characters then db.characters = {} end
   if not db.numCharacters then
@@ -67,7 +67,7 @@ function ns:MigrateDB()
     c.fishing = nil
     c.cooking = nil
   end
-  db.version = 6
+  db.version = 7
 end
 
 function ns:initialize()
