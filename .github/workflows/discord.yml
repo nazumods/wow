@@ -16,10 +16,10 @@ jobs:
             const commits = context.payload.commits || []
             const cl = commits.length
 
-            if (cl === 0) return { cl: 0, desc: '' }
+            if (cl === 0) return { cl: 0, skip: true, desc: '' }
 
             // Group commits by the first path segment (addon directory).
-            // Files with no slash (true root-level files) fall under 'General'.
+            // Commits that only touch root-level files are ignored.
             const addonMap = new Map()
 
             for (const c of commits) {
@@ -31,23 +31,24 @@ jobs:
                 files.filter(f => f.includes('/')).map(f => f.split('/')[0])
               )]
 
-              const targets = addons.length > 0 ? addons : ['General']
-              for (const addon of targets) {
+              for (const addon of addons) {
                 if (!addonMap.has(addon)) addonMap.set(addon, [])
                 addonMap.get(addon).push(line)
               }
             }
+
+            if (addonMap.size === 0) return { cl, skip: true, desc: '' }
 
             let desc = ''
             for (const [addon, lines] of [...addonMap.entries()].sort(([a],[b]) => a.localeCompare(b))) {
               desc += `**${addon}**\n${lines.join('\n')}\n\n`
             }
 
-            return { cl, desc: desc.trim() }
+            return { cl, skip: false, desc: desc.trim() }
 
       - name: Actions Status Discord
         uses: sarisia/actions-status-discord@v1.15.5
-        if: always()
+        if: fromJSON(steps.process_event.outputs.result).skip != true
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
           notimestamp: true

@@ -4,23 +4,27 @@ on:
   release:
     types: [published]
   workflow_dispatch:
-    inputs:
-      tag:
-        description: "Release tag to publish (e.g. LibNAddOn-v12.0.5-r1)"
-        required: true
 
 jobs:
   curseforge:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Validate ref is a release tag
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          if [[ ! "${{ github.ref_name }}" =~ ^[A-Za-z_]+-v[0-9]+\.[0-9]+\.[0-9]+-r[0-9]+$ ]]; then
+            echo "Error: must be run from a release tag (e.g. LibNAddOn-v12.0.5-r1), got: ${{ github.ref_name }}"
+            exit 1
+          fi
+
       - name: Resolve tag and release info
         id: info
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            TAG="${{ inputs.tag }}"
+            TAG="${{ github.ref_name }}"
             BODY=$(gh release view "$TAG" --repo "${{ github.repository }}" --json body --jq .body)
             PRERELEASE=$(gh release view "$TAG" --repo "${{ github.repository }}" --json isPrerelease --jq .isPrerelease)
           else
