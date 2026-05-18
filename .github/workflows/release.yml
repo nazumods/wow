@@ -28,7 +28,7 @@ jobs:
 
       - name: Release changed addons
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
           chmod +x .github/scripts/release.sh
           .github/scripts/release.sh
