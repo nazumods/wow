@@ -2,7 +2,7 @@
 ## Category: Shadows of UI
 ## Title: XP Bar
 ## Author: Nazuraki
-## Version: 12.0.5-r0
+## Version: 12.0.5-r1
 ## IconTexture: Interface\Icons\inv_icon_shadowcouncilorb_green
 ## Dependencies: LibNAddOn, LibNUI
 ## X-NUI-UI: LibNUI
