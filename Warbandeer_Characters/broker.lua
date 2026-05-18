@@ -1,7 +1,6 @@
 local _, ns = ...
 local insert = table.insert
 local Class = ns.lua.Class
-local maxLevel = ns.wow.maxLevel
 local GetServerTime = GetServerTime -- luacheck: globals GetServerTime
 local DateAndTime = C_DateAndTime -- luacheck: globals C_DateAndTime
 local LAST_DAILY_RESET = GetServerTime() + DateAndTime.GetSecondsUntilDailyReset() - (60*60*24)
@@ -85,15 +84,6 @@ function Broker:Init(toon)
 
 end
 ns.Broker = Broker
-
-function Broker:Update(toon)
-  if self.fields then
-    for _,name in ipairs(self.fieldOrder) do
-      if self.fields[name].maxLevel and toon.basic.level < maxLevel then return end
-      toon[self.name][name] = self.fields[name]:get(toon, toon[self.name][name])
-    end
-  end
-end
 
 function Broker:Reset(type, toon)
   if self.fields then
