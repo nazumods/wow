@@ -100,7 +100,8 @@ for addon in "${ADDONS[@]}"; do
     matched=false
     for t in "${COMMIT_TYPES_ORDER[@]}"; do
       # Matches: type(optional-scope): description
-      if [[ "$msg" =~ ^${t}(\([^)]*\))?:[[:space:]]+(.+)$ ]]; then
+      pattern="^${t}(\([^)]*\))?:[[:space:]]+(.+)$"
+      if [[ "$msg" =~ $pattern ]]; then
         type_entries[$t]+="- ${BASH_REMATCH[2]}"$'\n'
         matched=true
         break
