@@ -84,7 +84,8 @@ for addon in "${ADDONS[@]}"; do
 
   # ── Bump version ────────────────────────────────────────────────────────────
   current_version=$(grep -E "^## Version:" "$toc" \
-    | sed 's/## Version:[[:space:]]*//' | tr -d '\r')
+    | sed 's/## Version:[[:space:]]*//' | tr -d '\r' || true)
+  [[ -z "$current_version" ]] && continue
   new_version=$(bump_version "$current_version")
 
   sed -i "s|^## Version:.*|## Version: ${new_version}|" "$toc"
