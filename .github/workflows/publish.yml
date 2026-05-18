@@ -3,26 +3,50 @@ name: publish
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to publish (e.g. LibNAddOn-v12.0.5-r1)"
+        required: true
 
 jobs:
   curseforge:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Resolve tag and release info
+        id: info
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            TAG="${{ inputs.tag }}"
+            BODY=$(gh release view "$TAG" --repo "${{ github.repository }}" --json body --jq .body)
+            PRERELEASE=$(gh release view "$TAG" --repo "${{ github.repository }}" --json isPrerelease --jq .isPrerelease)
+          else
+            TAG="${{ github.event.release.tag_name }}"
+            BODY="${{ github.event.release.body }}"
+            PRERELEASE="${{ github.event.release.prerelease }}"
+          fi
+
+          echo "tag=$TAG"               >> "$GITHUB_OUTPUT"
+          echo "addon=${TAG%-v*}"       >> "$GITHUB_OUTPUT"
+          echo "prerelease=$PRERELEASE" >> "$GITHUB_OUTPUT"
+
+          # Multiline body needs a heredoc-style output
+          {
+            echo "body<<EOF"
+            echo "$BODY"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.release.tag_name }}
-
-      # Tag format: AddonName-vX.Y.Z-N  →  addon = AddonName
-      - name: Parse addon name from tag
-        id: info
-        run: |
-          TAG="${{ github.event.release.tag_name }}"
-          echo "addon=${TAG%-v*}" >> "$GITHUB_OUTPUT"
+          ref: ${{ steps.info.outputs.tag }}
 
       # Reads X-Curse-Project-ID and Interface from the .toc.
       # An addon is only published if X-Curse-Project-ID is present.
-      # Interface values (e.g. "120001" or "110002, 110005") are converted to
+      # Interface values (e.g. "120005" or "110002, 110005") are converted to
       # CurseForge game version strings: XXYYZZ → X.Y.Z (leading zeros stripped).
       - name: Read .toc metadata
         id: toc
@@ -72,8 +96,8 @@ jobs:
           api-token: ${{ secrets.CURSEFORGE_API_TOKEN }}
           game-endpoint: wow
           project-id: ${{ steps.toc.outputs.project_id }}
-          changelog: ${{ github.event.release.body }}
+          changelog: ${{ steps.info.outputs.body }}
           changelog-type: markdown
-          release-type: ${{ github.event.release.prerelease && 'beta' || 'release' }}
+          release-type: ${{ steps.info.outputs.prerelease == 'true' && 'beta' || 'release' }}
           game-versions: ${{ steps.toc.outputs.game_versions }}
           file: "${{ steps.info.outputs.addon }}.zip"
