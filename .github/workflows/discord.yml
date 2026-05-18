@@ -2,7 +2,9 @@
 
 name: "Post to Discord"
 
-on: push
+on:
+  push:
+    branches: [main]
 
 jobs:
   post:

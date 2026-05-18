@@ -95,13 +95,13 @@ jobs:
 
       - name: Upload to CurseForge
         if: steps.toc.outputs.skip != 'true'
-        uses: CurseForge/upload-curseforge-action@v1
+        uses: itsmeow/curseforge-upload@master
         with:
-          api-token: ${{ secrets.CURSEFORGE_API_TOKEN }}
-          game-endpoint: wow
-          project-id: ${{ steps.toc.outputs.project_id }}
+          token: ${{ secrets.CURSEFORGE_API_TOKEN }}
+          game_endpoint: wow
+          project_id: ${{ steps.toc.outputs.project_id }}
           changelog: ${{ steps.info.outputs.body }}
-          changelog-type: markdown
-          release-type: ${{ steps.info.outputs.prerelease == 'true' && 'beta' || 'release' }}
-          game-versions: ${{ steps.toc.outputs.game_versions }}
-          file: "${{ steps.info.outputs.addon }}.zip"
+          changelog_type: markdown
+          release_type: ${{ steps.info.outputs.prerelease == 'true' && 'beta' || 'release' }}
+          game_versions: ${{ steps.toc.outputs.game_versions }}
+          file_path: "${{ steps.info.outputs.addon }}.zip"
