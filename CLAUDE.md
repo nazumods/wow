@@ -45,6 +45,20 @@ function MyClass:Value(v)
 end
 ```
 
+## Versioning
+
+The `## Version:` field in each `.toc` uses the format **`MAJOR.MINOR.PATCH-rREVISION`**, where `MAJOR.MINOR.PATCH` mirrors the WoW client version (e.g. `12.0.5-r0`) and `REVISION` is a zero-based counter that resets each patch cycle. `r0` is the initial release adding support for that client version (at minimum a client version bump in the `.toc`). The `v` prefix is added by the release tooling to tags and titles (e.g. `AddonName-v12.0.5-r0`).
+
+## DB Backwards Compatibility
+
+- DB upgrades must be **non-destructive**: new keys are added, old keys are never removed or repurposed by `MigrateDB`.
+- A user must be able to rollback to any earlier revision within the same patch cycle (or a prior cycle) with no data loss or corruption.
+- If old keys become stale after an upgrade, expose a **cleanup command** (e.g. `/addon cleanup`) that removes them explicitly. Never run cleanup automatically — only after the user confirms the upgrade is stable.
+
+## File Size
+
+Keep individual files to **200–300 lines maximum**. If a file grows beyond that, split it by responsibility (e.g. separate data, view, and controller concerns into distinct files listed in the `.toc`).
+
 ## Key Gotchas
 
 - **TableFrame offsetX/offsetY** are computed once at construction based on whether `rowNames`/`colNames` are non-nil. For dynamic tables, pass `rowNames = {}` / `colNames = {}`.

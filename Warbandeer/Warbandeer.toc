@@ -1,12 +1,13 @@
-## Interface: 120001
+## Interface: 120005
 ## Category: Warband
 ## Title: Warbandeer
 ## Author: Nazuraki
-## Version: 12.0.0-1
+## Version: 12.0.5-r0
 ## IconTexture: Interface\Icons\inv_10_tailoring2_banner_green
 ## SavedVariables: WarbandeerDB
 ## AddonCompartmentFunc: Warbandeer_OnAddonCompartmentClick
 ## Dependencies: LibNAddOn, LibNUI, Warbandeer_Characters
+## X-Curse-Project-ID: 1546586
 ## X-NUI-DB: WarbandeerDB
 ## X-NUI-DB-VERSION: 1
 ## X-NUI-COMMANDS: /warband, /wb

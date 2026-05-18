@@ -1,6 +1,8 @@
 name: release
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 # Needed to create tags, releases, and push the version-bump commit.
@@ -9,6 +11,8 @@ permissions:
 
 jobs:
   release:
+    # Skip the version-bump commit that this workflow itself pushes.
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
 
     steps:

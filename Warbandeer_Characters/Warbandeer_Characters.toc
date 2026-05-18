@@ -1,11 +1,12 @@
-## Interface: 120001
+## Interface: 120005
 ## Category: Warband
 ## Title: Characters
 ## Author: Nazuraki
-## Version: 12.0.0-1
+## Version: 12.0.5-r0
 ## IconTexture: Interface\Icons\inv_10_tailoring2_banner_green.blp
 ## SavedVariables: WarbandeerCharDB
 ## Dependencies: LibNAddOn, LibNUI
+## X-Curse-Project-ID: 1546588
 ## X-NUI-DB: WarbandeerCharDB
 ## X-NUI-DB-VERSION: 6
 ## X-NUI-COMMANDS: /characters, /wbc
