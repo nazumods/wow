@@ -22,13 +22,19 @@ jobs:
 
             // Group commits by the first path segment (addon directory).
             // Commits that only touch root-level files are ignored.
+            // NOTE: payload commit file lists are often empty; use the REST API instead.
             const addonMap = new Map()
 
             for (const c of commits) {
               const hash = `[\`${c.id.substring(0,6)}\`](${c.url})`
               const line = `${hash} ${c.message}`
 
-              const files = [...(c.added||[]), ...(c.modified||[]), ...(c.removed||[])]
+              const { data } = await github.rest.repos.getCommit({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: c.id,
+              })
+              const files = (data.files || []).map(f => f.filename)
               const addons = [...new Set(
                 files.filter(f => f.includes('/')).map(f => f.split('/')[0])
               )]
