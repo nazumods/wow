@@ -5,21 +5,20 @@ local Colors = ns.Colors
 local insert, sort = table.insert, table.sort
 
 -- Ordered expansion columns (chronological).
-local EXP_ORDER = { "Clsc", "TBC", "WotLK", "Cata", "MoP", "WoD", "Leg", "BfA", "SL", "DF", "TWW" }
+local EXP_ORDER = { "Clsc", "TBC", "WotLK", "Cata", "MoP", "WoD", "Leg", "BfA", "SL", "DF", "TWW", "Mid" }
 local EXP_ABBR = {
-  ["Vanilla"]                = "Clsc",
-  ["Classic"]                = "Clsc",
-  ["The Burning Crusade"]    = "TBC",
-  ["Burning Crusade"]        = "TBC",
-  ["Wrath of the Lich King"] = "WotLK",
-  ["Cataclysm"]              = "Cata",
-  ["Mists of Pandaria"]      = "MoP",
-  ["Warlords of Draenor"]    = "WoD",
-  ["Legion"]                 = "Leg",
-  ["Battle for Azeroth"]     = "BfA",
-  ["Shadowlands"]            = "SL",
-  ["Dragonflight"]           = "DF",
-  ["The War Within"]         = "TWW",
+  ["Classic"]      = "Clsc",
+  ["Outland"]      = "TBC",
+  ["Northrend"]    = "WotLK",
+  ["Cataclysm"]    = "Cata",
+  ["Pandaria"]     = "MoP",
+  ["Draenor"]      = "WoD",
+  ["Legion"]       = "Leg",
+  ["Kul Tiran"]    = "BfA",
+  ["Shadowlands"]  = "SL",
+  ["Dragon Isles"] = "DF",
+  ["Khaz Algar"]   = "TWW",
+  ["Midnight"]     = "Mid",
 }
 
 -- Professions in display order (no Fishing — no expansion sub-skills).
@@ -36,7 +35,7 @@ local CHAR_COL_W    = 90    -- character name in the character list
 local EXP_COL_W     = 44    -- shared width for every expansion column
 local CHAR_LIST_H   = 180   -- height of the scrollable character-list area
 
-local VIEW_WIDTH    = PROF_COL_W + #EXP_ORDER * EXP_COL_W  -- 594
+local VIEW_WIDTH    = PROF_COL_W + #EXP_ORDER * EXP_COL_W  -- 638
 
 -- Row backdrop colours.
 local TRANSPARENT   = { color = { 0, 0, 0, 0 } }
@@ -48,9 +47,9 @@ end
 -- ─── Column-info factories ────────────────────────────────────────────────────
 
 local function makeGridColInfo()
-  local cols = { { name = "Profession", width = PROF_COL_W, backdrop = TRANSPARENT } }
+  local cols = { { name = "Profession", width = PROF_COL_W, backdrop = TRANSPARENT, justifyH = ui.justify.Left } }
   for _, abbr in ipairs(EXP_ORDER) do
-    insert(cols, { name = abbr, width = EXP_COL_W, backdrop = TRANSPARENT, justifyH = ui.justify.Right })
+    insert(cols, { name = abbr, width = EXP_COL_W, backdrop = TRANSPARENT, justifyH = ui.justify.Left })
   end
   return cols
 end
@@ -58,10 +57,10 @@ end
 local function makeCharColInfo()
   local cols = {
     { width = ICON_COL_W, backdrop = TRANSPARENT },
-    { name = "Character", width = CHAR_COL_W, backdrop = TRANSPARENT },
+    { name = "Character", width = CHAR_COL_W, backdrop = TRANSPARENT, justifyH = ui.justify.Left },
   }
   for _, abbr in ipairs(EXP_ORDER) do
-    insert(cols, { name = abbr, width = EXP_COL_W, backdrop = TRANSPARENT, justifyH = ui.justify.Right })
+    insert(cols, { name = abbr, width = EXP_COL_W, backdrop = TRANSPARENT, justifyH = ui.justify.Left })
   end
   return cols
 end
@@ -177,6 +176,13 @@ local ProfsView = Class(Frame, function(self)
     },
   }
   self.charScroll:Child(self.charTable.rowArea)
+
+  self.emptyHint = ui.Label:new{
+    parent  = self.charScroll,
+    text    = "Select a profession above to view characters",
+    color   = DISABLED_FONT_COLOR,
+    position = { Center = {} },
+  }
 
   self._selectedRowIdx = nil
   self._visibleProfs   = {}
@@ -302,6 +308,7 @@ function ProfsView:RebuildCharList(profName)
 
   self.charTable.data = rowData
   self.charTable:update()
+  self.emptyHint:SetShown(#entries == 0)
 end
 
 -- Called automatically by Region:Show() just before the frame becomes visible.
