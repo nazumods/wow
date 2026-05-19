@@ -95,14 +95,17 @@ ns.Professions.fields = {
     -- keyed by skillLineID so each profession's data is updated independently.
     event = "TRADE_SKILL_SHOW",
     eventHandler = function(self, currentValue)
-      -- Small delay mirrors TRADE_SKILL_SHOW usage elsewhere; ensures child profession
-      -- info is fully populated before we query it.
-      C_Timer.After(0.5, function()
-        if not C_TradeSkillUI or not C_TradeSkillUI.GetBaseProfessionInfo then return end
-        local baseInfo = C_TradeSkillUI.GetBaseProfessionInfo()
-        if not baseInfo or not baseInfo.professionID then return end
+      -- Capture which profession was opened NOW, before any timer delay.
+      -- Reading GetBaseProfessionInfo() inside the timer is unreliable: if the
+      -- player switches professions before the timer fires, the wrong profession
+      -- gets updated.
+      if not C_TradeSkillUI or not C_TradeSkillUI.GetBaseProfessionInfo then return end
+      local baseInfo = C_TradeSkillUI.GetBaseProfessionInfo()
+      if not baseInfo or not baseInfo.professionID then return end
+      local skillLineID = baseInfo.professionID
 
-        local skillLineID = baseInfo.professionID
+      -- Small delay ensures child profession info is fully populated before querying.
+      C_Timer.After(0.5, function()
         local profData = {}
 
         -- Per-expansion skill levels.  Primary professions return one child per
@@ -143,10 +146,13 @@ ns.Professions.fields = {
           end
         end
 
-        -- Merge with existing entries so data from other professions is preserved.
+        -- Read the live value at timer-fire time rather than the value captured at
+        -- event time; prevents a stale merge if another profession was opened and
+        -- saved while this timer was pending.
         local data = {}
-        if currentValue then
-          for k, v in pairs(currentValue) do data[k] = v end
+        local live = self.get_live and self.get_live() or currentValue
+        if live then
+          for k, v in pairs(live) do data[k] = v end
         end
         data[skillLineID] = profData
         self:set(data)

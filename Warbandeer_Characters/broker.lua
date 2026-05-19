@@ -53,6 +53,7 @@ function Broker:Init(toon)
   if self.fields then
     for name,field in pairs(self.fields) do
       field.set = function(_, val) toon[broker][name] = val end
+      field.get_live = function() return toon[broker][name] end
       if field.event then
         if not field.eventHandler then
           field.eventHandler = function(self, ...)
