@@ -59,10 +59,10 @@ function Broker:Init(toon)
             if field.eventFilter and not field.eventFilter(self, ...) then return end
             if field.eventDelay then
               _delay(field.eventDelay, function()
-                toon[broker][name] = field:get(toon)
+                toon[broker][name] = field:get(toon, toon[broker][name])
               end)
             else
-              toon[broker][name] = field:get(toon)
+              toon[broker][name] = field:get(toon, toon[broker][name])
             end
           end
         end
@@ -84,6 +84,13 @@ function Broker:Init(toon)
 
 end
 ns.Broker = Broker
+
+function Broker:Update(toon)
+  if not self.fields then return end
+  for _, name in ipairs(self.fieldOrder) do
+    toon[self.name][name] = self.fields[name]:get(toon, toon[self.name][name])
+  end
+end
 
 function Broker:Reset(type, toon)
   if self.fields then
