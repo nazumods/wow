@@ -577,6 +577,8 @@ X-NUI-API: WarbandeerApi, X-NUI-UI: LibNUI
 | `data/equipment.lua` | Broker: `slots`, `ilvl` |
 | `data/artifacts.lua` | Broker: `hidden`, `hiddenColors`, `classHall` |
 | `data/reputation.lua` | Broker: `legion` (9 Legion faction standings) |
+| `dump.lua` | `stat` command — warband-wide playtime/class statistics |
+| `missing.lua` | `missing` command — lists characters missing playtime or profession detail data |
 
 ## WarbandeerApi Methods
 
@@ -953,7 +955,7 @@ All primary and secondary professions except Archaeology. Uses `C_TradeSkillUI.G
 |---|---|---|
 | LibNAddOn | `/lib` | `player` |
 | LibNUI | `/nui` | `version`, `test [key]` |
-| Warbandeer_Characters | `/characters`, `/wbc` | `list`, `delete <name>`, `refresh`, `refresh items/locks`, `dump`, `dump bank/gt/locks/artifact` |
+| Warbandeer_Characters | `/characters`, `/wbc` | `list`, `delete <name>`, `refresh`, `refresh items/locks`, `dump`, `dump bank/gt/locks/artifact`, `missing` |
 | Warbandeer | `/warband`, `/wb` | `""` (open), `overview`, `summary`, `gear`, `detail`, `roles`, `races`, `remix`, `legion`, `midnight`, `profs`, `check legion` |
 | Warbandeer_Collected | `/collected`, `/collect` | `scan` |
 | Recycle | `/recycle` | `clear`, `key CTRL|SHIFT|ALT` |
