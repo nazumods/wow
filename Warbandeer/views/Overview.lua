@@ -14,38 +14,47 @@ local Factions = Class(TableFrame, function(self)
   local factions = GetMajorFactionIDs(self.expansionLevel)
   for _, factionID in ipairs(factions) do
     local info = GetMajorFactionData(factionID)
-    local levels = GetRenownLevels(factionID)
-    local done = IsFactionParagon(factionID)
-    self:addRow({backdrop = TransparentBackdrop})
-    insert(self.data, {
-      {
-        text = info.name,
-        color = info.factionFontColor and info.factionFontColor.color,
-      },
-      {
-        text = done and "complete" or (info.renownLevel .. " / " .. levels[#levels].level),
-        color = done and DIM_GREEN_FONT_COLOR or (info.factionFontColor and info.factionFontColor.color),
-        justifyH = ui.justify.Right,
-      },
-    })
+    if info and info.name and info.name ~= "" then
+      local levels = GetRenownLevels(factionID)
+      local done = false
+      if info.maxLevel then
+        done = info.renownLevel == info.maxLevel
+      else
+        done = IsFactionParagon(factionID)
+      end
+      local nameColor = info.factionFontColor and info.factionFontColor.color
+      if nameColor and nameColor.a == 0 then nameColor.a = 100 end
+      self:addRow({backdrop = TransparentBackdrop})
+      insert(self.data, {
+        {
+          text = info.name,
+          color = nameColor,
+        },
+        {
+          text = done and "complete" or (info.renownLevel .. " / " .. (info.maxLevel or levels[#levels].level)),
+          color = done and DIM_GREEN_FONT_COLOR or nameColor,
+          justifyH = ui.justify.Right,
+        },
+      })
 
-    -- add any sub-factions, if any
-    if ns.data.minorFactions[factionID] then
-      for _, subFactionID in ipairs(ns.data.minorFactions[factionID]) do
-        local subInfo = GetFactionDataByID(subFactionID)
-        local done = IsFactionParagon(subFactionID)
-        self:addRow({backdrop = TransparentBackdrop})
-        insert(self.data, {
-          {
-            text = "  " .. subInfo.name,
-            color = info.factionFontColor and info.factionFontColor.color,
-          },
-          {
-            text = done and "complete" or (subInfo.currentStanding .. " / " .. ns.data.minorFactionMaxStanding[factionID]),
-            color = done and DIM_GREEN_FONT_COLOR or (info.factionFontColor and info.factionFontColor.color),
-            justifyH = ui.justify.Right,
-          },
-        })
+      -- add any sub-factions, if any
+      if ns.data.minorFactions[factionID] then
+        for _, subFactionID in ipairs(ns.data.minorFactions[factionID]) do
+          local subInfo = GetFactionDataByID(subFactionID)
+          local subDone = IsFactionParagon(subFactionID)
+          self:addRow({backdrop = TransparentBackdrop})
+          insert(self.data, {
+            {
+              text = "  " .. subInfo.name,
+              color = nameColor,
+            },
+            {
+              text = subDone and "complete" or (subInfo.currentStanding .. " / " .. ns.data.minorFactionMaxStanding[factionID]),
+              color = subDone and DIM_GREEN_FONT_COLOR or nameColor,
+              justifyH = ui.justify.Right,
+            },
+          })
+        end
       end
     end
   end
