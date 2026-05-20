@@ -57,6 +57,12 @@ minorFactions[2653] = {
 }
 minorFactionMaxStanding[2653] = 42000
 
+-- Midnight
+minorFactions[2742] = {2744}                          -- Delves S1: Valeera Sanguinar (friendship reputation, level 1-60)
+minorFactions[2764] = {2770}                          -- Prey S1: Slayer's Duellum (likely friendship rep)
+minorFactions[2710] = {2711, 2712, 2713, 2714}        -- Silvermoon Court: Magisters, Blood Knights, Farstriders, Shades of the Row
+minorFactionMaxStanding[2710] = 42000
+
 minorFactionMaxStanding[2170] = 42000 -- Argussian Reach
 minorFactionMaxStanding[2045] = 42000 -- Armies of Legionfall
 minorFactionMaxStanding[2165] = 42000 -- Army of the Light

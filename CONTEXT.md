@@ -691,9 +691,9 @@ X-NUI-API: WarbandeerApi, X-NUI-UI: LibNUI
 | File | Purpose |
 |---|---|
 | `init.lua` | Table form init with settings (defaultView dropdown). Defines `ns.views`, class/race arrays, `MigrateDB`, `onLoad` |
-| `data.lua` | `ns.data` — `gearTiers`, `IlvlColor()`, `minorFactions`, `minorFactionMaxStanding` |
+| `data.lua` | `ns.data` — `gearTiers`, `IlvlColor()`, `minorFactions`, `minorFactionMaxStanding`. Midnight entries: Delves→Valeera (2742→2744, friendship rep), Silvermoon Court subfactions (2710→2711-2714) |
 | `controls/CharacterTooltip.lua` | `CharacterTooltip` singleton (CleanFrame) showing name/spec/class/realm/level |
-| `views/Overview.lua` | `TopAlts` + `TabFrame` (Midnight/WWI tabs) + `Factions` + `Achievements` |
+| `views/Overview.lua` | `TopAlts` + `TabFrame` (Midnight/WWI tabs) + `Factions` + `Achievements`. `Factions` accepts `extraFactionIDs` (deduplicated against `GetMajorFactionIDs`); subfaction rendering has three tiers: major faction renown → friendship rep (Valeera) → standard C_Reputation standings |
 | `views/SummaryColumns.lua` | `SummaryColumn` specs + `SummaryColumnsDelayed()` for DMF |
 | `views/SummaryView.lua` | Two `ClassSummary` TableFrames (Alliance/Horde side-by-side) |
 | `views/GearView.lua` | `TabFrame` per armor type, 21-col TableFrame per tab |
@@ -721,6 +721,30 @@ X-NUI-API: WarbandeerApi, X-NUI-UI: LibNUI
 | `legion` | Legion | Frame | Hidden artifacts + achievements |
 | `midnight` | Midnight | Frame | Achievement grid |
 | `profs` | Professions | Frame | Profession skill grid + detail panel |
+
+## Overview — Factions Widget
+
+`Factions` (TableFrame subclass) renders one row per major faction plus optional subfaction rows.
+
+**Constructor options:**
+- `expansionLevel` — passed to `C_MajorFactions.GetMajorFactionIDs()`; `10` = TWW, `11` = Midnight
+- `extraFactionIDs` — additional IDs to always include, deduped against the API list (used for Midnight factions not returned by the API: Silvermoon Court `2710`, Slayer's Duellum `2770`)
+
+**Subfaction rendering tiers** (tried in order):
+1. `C_MajorFactions.GetMajorFactionData(id)` returns `renownLevel` → standard major faction renown display
+2. `C_GossipInfo.GetFriendshipReputation(id)` returns `friendshipFactionID > 0` → friendship reputation, shows `currentLevel / maxLevel` from `GetFriendshipReputationRanks` (e.g. Valeera 2744, levels 1–60)
+3. Fallback → `C_Reputation.GetFactionDataByID`, shows `currentStanding / minorFactionMaxStanding[parentID]` (e.g. Silvermoon Court subfactions 2711–2714)
+
+**Midnight faction IDs (expansion 11):**
+- `GetMajorFactionIDs(11)` returns 7 IDs: 4 zone factions, Delves `2742`, Prey `2764`, Ritual `2792`
+- `2710` Silvermoon Court — not in `GetMajorFactionIDs`; added via `extraFactionIDs`. Subfactions: Magisters `2711`, Blood Knights `2712`, Farstriders `2713`, Shades of the Row `2714` (standard rep, max standing 42000)
+- `2742` Delves S1 — in `GetMajorFactionIDs`. Subfaction: Valeera `2744` (friendship rep, `GetMajorFactionData` returns nil for 2744)
+- `2770` Slayer's Duellum — not in `GetMajorFactionIDs`; added via `extraFactionIDs`
+
+**API pitfalls:**
+- `C_MajorFactions.GetMajorFactionData` and `GetMajorFactionRenownInfo` both return nil for Valeera (2744) even though `C_Reputation.IsMajorFaction(2744)` is true. Use `C_GossipInfo.GetFriendshipReputation` instead.
+- `C_Reputation.IsFactionParagon` returns true for many in-progress Midnight factions because paragon caches exist from the start. Do NOT use it to determine if a faction is "done" — use `renownLevel == maxLevel` for major factions and `reaction >= 8` for standard reputation subfactions.
+- Some standard reputation subfactions (e.g. Slayer's Duellum 2770) have a `friendshipFactionID` but with `maxLevel = 1` (dummy/uninitialized). Guard with `rankInfo.maxLevel > 1` before treating as a real friendship rep.
 
 ## MainWindow
 

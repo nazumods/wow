@@ -5,51 +5,77 @@ local Class, Frame, TableFrame, TabFrame, Texture, Label = ns.lua.Class, ui.Fram
 local GetMajorFactionIDs = C_MajorFactions.GetMajorFactionIDs
 local GetMajorFactionData, GetFactionDataByID = C_MajorFactions.GetMajorFactionData, C_Reputation.GetFactionDataByID
 local GetRenownLevels, IsFactionParagon = C_MajorFactions.GetRenownLevels, C_Reputation.IsFactionParagon
+local GetFriendshipReputation = C_GossipInfo.GetFriendshipReputation
+local GetFriendshipReputationRanks = C_GossipInfo.GetFriendshipReputationRanks
 
 local TransparentBackdrop = {color = ns.Colors.TransparentBlack}
 
 -- table of reputations for a given expansion level
 local Factions = Class(TableFrame, function(self)
   self.data = {}
-  local factions = GetMajorFactionIDs(self.expansionLevel)
-  for _, factionID in ipairs(factions) do
+  local seen = {}
+
+  local function addFaction(factionID)
     local info = GetMajorFactionData(factionID)
     if info and info.name and info.name ~= "" then
       local levels = GetRenownLevels(factionID)
-      local done = false
-      if info.maxLevel then
-        done = info.renownLevel == info.maxLevel
-      else
-        done = IsFactionParagon(factionID)
-      end
+      local maxLevel = info.maxLevel or (levels and levels[#levels] and levels[#levels].level)
+      local done = maxLevel ~= nil and info.renownLevel == maxLevel
       local nameColor = info.factionFontColor and info.factionFontColor.color
       if nameColor and nameColor.a == 0 then nameColor.a = 100 end
       self:addRow({backdrop = TransparentBackdrop})
       insert(self.data, {
+        {text = info.name, color = nameColor},
         {
-          text = info.name,
-          color = nameColor,
-        },
-        {
-          text = done and "complete" or (info.renownLevel .. " / " .. (info.maxLevel or levels[#levels].level)),
+          text = done and "complete" or (info.renownLevel .. " / " .. (maxLevel or "?")),
           color = done and DIM_GREEN_FONT_COLOR or nameColor,
           justifyH = ui.justify.Right,
         },
       })
 
-      -- add any sub-factions, if any
       if ns.data.minorFactions[factionID] then
         for _, subFactionID in ipairs(ns.data.minorFactions[factionID]) do
-          local subInfo = GetFactionDataByID(subFactionID)
-          local subDone = IsFactionParagon(subFactionID)
+          local subMajorInfo = GetMajorFactionData(subFactionID)
+          local subDone, subText, subName
+          if subMajorInfo and subMajorInfo.renownLevel ~= nil then
+            -- standard major faction (GetMajorFactionData works)
+            subDone = subMajorInfo.maxLevel and (subMajorInfo.renownLevel == subMajorInfo.maxLevel)
+            local subMax = subMajorInfo.maxLevel
+            if not subMax then
+              local subLevels = GetRenownLevels(subFactionID)
+              subMax = subLevels and subLevels[#subLevels] and subLevels[#subLevels].level
+            end
+            subText = subDone and "complete" or (subMajorInfo.renownLevel .. " / " .. (subMax or "?"))
+            subName = subMajorInfo.name
+          else
+            local friendInfo = GetFriendshipReputation(subFactionID)
+            local rankInfo = friendInfo and friendInfo.friendshipFactionID
+                             and friendInfo.friendshipFactionID > 0
+                             and GetFriendshipReputationRanks(friendInfo.friendshipFactionID)
+            if rankInfo and rankInfo.maxLevel > 1 then
+              -- friendship reputation with real levels (e.g. Valeera — level 1-60)
+              subDone = rankInfo.currentLevel >= rankInfo.maxLevel
+              subText = subDone and "complete" or (rankInfo.currentLevel .. " / " .. rankInfo.maxLevel)
+              subName = friendInfo.name
+            else
+              -- standard reputation: show progress within current tier
+              local subInfo = GetFactionDataByID(subFactionID)
+              subDone = subInfo.reaction >= 8
+              if subDone then
+                subText = "complete"
+              else
+                local progress = subInfo.currentStanding - (subInfo.currentReactionThreshold or 0)
+                local tierSize = (subInfo.nextReactionThreshold or 0) - (subInfo.currentReactionThreshold or 0)
+                subText = tierSize > 0 and (progress .. " / " .. tierSize) or tostring(subInfo.currentStanding)
+              end
+              subName = subInfo.name
+            end
+          end
           self:addRow({backdrop = TransparentBackdrop})
           insert(self.data, {
+            {text = "  " .. subName, color = nameColor},
             {
-              text = "  " .. subInfo.name,
-              color = nameColor,
-            },
-            {
-              text = subDone and "complete" or (subInfo.currentStanding .. " / " .. ns.data.minorFactionMaxStanding[factionID]),
+              text = subText,
               color = subDone and DIM_GREEN_FONT_COLOR or nameColor,
               justifyH = ui.justify.Right,
             },
@@ -58,8 +84,19 @@ local Factions = Class(TableFrame, function(self)
       end
     end
   end
+
+  for _, factionID in ipairs(GetMajorFactionIDs(self.expansionLevel)) do
+    seen[factionID] = true
+    addFaction(factionID)
+  end
+  for _, factionID in ipairs(self.extraFactionIDs) do
+    if not seen[factionID] then
+      addFaction(factionID)
+    end
+  end
 end, {
   expansionLevel = 10,  -- LE_EXPANSION_THE_WAR_WITHIN
+  extraFactionIDs = {},
   headerHeight = 0,
   headerWidth = 0,
   colInfo = {
@@ -193,6 +230,7 @@ local Overview = Class(Frame, function(self)
   self.midnightFactions = Factions:new{
     parent = midnightPanel,
     expansionLevel = 11,
+    extraFactionIDs = {},
     position = { TopLeft = {0, 0} },
   }
   self.midnightAchievements = Achievements:new{
