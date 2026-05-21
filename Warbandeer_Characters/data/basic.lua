@@ -6,19 +6,19 @@ local GetSpecializationRoleByID = GetSpecializationRoleByID -- luacheck: globals
 ---@field basic BasicBroker
 
 ---@class BasicBroker: Broker
----@field level integer
----@field specialization {primary:Specialization?, active:Specialization, role:string, key:SpecializationKey}?
----@field professions {primary:any?, secondary:any?, fishing:any?, cooking:any?}?
----@field remix { unbound: integer }
 ns.Basic = ns:RegisterBroker("basic")
 
 ns.Basic.fields = {
+  ---@class BasicBroker
+  ---@field level integer
   level = {
     order = 0, -- make sure this is updated first
     get = function() return Player:GetLevel() end,
     event = "PLAYER_LEVEL_UP",
     eventDelay = 500, -- delay to allow level up to complete
   },
+  ---@class BasicBroker: Broker
+  ---@field specialization {primary:Specialization?, active:Specialization, role:string, key:SpecializationKey}?
   specialization = {
     get = function()
       local pid, primarySpec = Player:GetPrimarySpecialization()
@@ -31,6 +31,8 @@ ns.Basic.fields = {
       }
     end,
   },
+  ---@class BasicBroker: Broker
+  ---@field professions {primary:any?, secondary:any?, fishing:any?, cooking:any?}?
   professions = {
     get = function()
       local professions = Player:GetProfessions()
@@ -41,17 +43,6 @@ ns.Basic.fields = {
         cooking = professions.cooking:GetInfo(),
       }
     end,
-  },
-  remix = {
-    get = function()
-      local c = C_CurrencyInfo.GetCurrencyInfo(3268)
-      local power = c and c.quantity or -1
-      return {
-        unbound = power > 115875 and floor((power - 115875) / 50000) or -1
-      }
-    end,
-    event = "CURRENCY_DISPLAY_UPDATE",
-    eventFilter = function(_, type) return type == 3268 end,
   },
 }
 

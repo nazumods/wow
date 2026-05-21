@@ -91,7 +91,6 @@ function ns:initialize()
     c.realm = GetRealmName()
   end
   self.currentData = c
-  c.IsLegionTimerunner = PlayerIsTimerunning() and C_TimerunningUI.GetActiveTimerunningSeasonID() == 2
 
   self:InitBrokers()
 end
