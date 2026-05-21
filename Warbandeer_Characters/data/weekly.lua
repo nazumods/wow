@@ -35,7 +35,6 @@ ns.Weekly.fields = {
   },
   preMidnight = {
     ids = Set{87308,91795},
-    --maxLevel = true,
     resetOn = ns.RESET_WEEKLY,
     get = function(self)
       return { 
@@ -83,7 +82,7 @@ ns.Weekly.fields = {
     end,
   },
   ---@class WeeklyBroker
-  ---@field vault { rewards: integer, counts: integer, best: integer, bestN: integer }
+  ---@field vault VaultRewards
   vault = {
     maxLevel = true,
     resetOn = ns.RESET_WEEKLY,
@@ -95,3 +94,21 @@ ns.Weekly.fields = {
     eventDelay = 1000,
   },
 }
+
+ns:registerCommand("dump", "vault", function(self)
+  ---@type VaultRewards
+  local vault = self.currentData.weeklies.vault
+  if not vault or vault.best <= 0 then
+    ns.Print("No current vault data.")
+    return
+  end
+
+  ns.Print("Vault Rewards: " .. vault.best)
+  for ilvl,count in pairs(vault.counts) do
+    print(ilvl .. " x " .. count)
+  end
+
+  for k,v in pairs(vault.progress) do
+    print(k, ": " .. v.progress .. "/" .. v.max)
+  end
+end)

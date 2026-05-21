@@ -20,6 +20,7 @@ local UnitLevel, UnitName = UnitLevel, UnitName
 
 local wow = ns.wow
 
+---@class Player
 local Player = {
   Cast = CastSpell,
   GetAverageItemLevel = function() local _, ilvl = GetAverageItemLevel(); return math.floor(ilvl) end,
@@ -121,17 +122,32 @@ function Player:GetProfessions()
   return self.professions
 end
 
+local ACTIVITY_TYPES = {
+  [1] = "Activities",
+  [2] = "RankedPvP",
+  [3] = "Raid",
+  [4] = "AlsoReceive",
+  [5] = "Concession",
+  [6] = "World"
+}
+
 ns.wow.GreatVault = {}
 function ns.wow.GreatVault.getRewardOptions()
   local rewards = {}
   local counts = {}
+  local progress = {}
   local best = 0
   local bestN = 0
-  -- https://wowpedia.fandom.com/wiki/API_C_WeeklyRewards.GetActivities
+  -- https://warcraft.wiki.gg/wiki/API_C_WeeklyRewards.GetActivities
   local activities = GetActivities()
   for _,activity in ipairs(activities) do
-    if activity.progress >= activity.threshold then
-      ns.Print("progress for " .. activity.id)
+    local type = ACTIVITY_TYPES[activity.type]
+    if not progress[type] then progress[type] = { complete = 0, progress = 0, max = 0 } end
+    local complete = activity.progress >= activity.threshold
+    progress[type].progress = activity.progress
+    progress[type].max = max(progress[type].max, activity.threshold)
+    if complete then
+      progress[type].complete = progress[type].complete + 1
       local link = GetExampleRewardItemHyperlinks(activity.id)
       if link then
         local ilvl = GetDetailedItemLevelInfo(link)
@@ -151,14 +167,24 @@ function ns.wow.GreatVault.getRewardOptions()
       end
     end
   end
-  return rewards, counts, best, bestN
+  return rewards, counts, progress, best, bestN
 end
 
+---@class VaultRewards
+---@field rewards {}
+---@field counts table<integer, integer> Map of iLVL to count of that iLVL rewards
+---@field progress table<string, { complete: integer, progress: integer, max: integer }>
+---@field best integer iLVL of best reward
+---@field bestN integer Count of best iLVL rewards
+
+---@class Player
+---@field GetRewardOptions fun(): VaultRewards
 function Player:GetRewardOptions()
-  local rewards, counts, best, bestN = ns.wow.GreatVault.getRewardOptions()
+  local rewards, counts, progress, best, bestN = ns.wow.GreatVault.getRewardOptions()
   return {
     rewards = rewards,
     counts = counts,
+    progress = progress,
     best = best,
     bestN = bestN,
   }

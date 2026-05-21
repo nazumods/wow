@@ -21,7 +21,7 @@ Addons: LibNAddOn, LibNUI, LibNUI_Test, Warbandeer (Characters, main UI, Alias, 
 | Event handling | `ns:registerEvent("EVENT", handler)` or define `function ns.EVENT_NAME(self, ...) end` |
 | UI widget access | Always via `self._widget`; **never access `_widget` from outside a class** |
 | Shared API data | Access via `ns.api.*` (bound from `X-NUI-API` toc field) |
-| LuaLS annotations | `---@class`, `---@field`, `---@param`, `---@return` on all classes and public methods |
+| LuaLS annotations | `---@class`, `---@field`, `---@param`, `---@return` |
 | No error handling | WoW API errors surface in-game; no defensive nil-checks on internal invariants |
 | No standalone utilities | Everything belongs on a class or the addon namespace |
 | Testing | In-game only via `/reload` and `/nui test [key]` for UI |
