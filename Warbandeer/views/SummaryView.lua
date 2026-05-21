@@ -1,15 +1,10 @@
 local _, ns = ...
 local ui = ns.ui
-local GetCurrencyInfo = C_CurrencyInfo.GetCurrencyInfo -- luacheck: globals C_CurrencyInfo
 local insert, filter = table.insert, ns.lua.lists.filter
-local Colors, alpha = ns.Colors, ns.Colors.alpha
+local alpha = ns.Colors.alpha
 local Class, TableFrame, Texture, Label = ns.lua.Class, ui.TableFrame, ui.Texture, ui.Label
 
 local ClassSummary = Class(TableFrame, function(self)
-  local RestoredCofferKey = GetCurrencyInfo(3028)
-  self.cols[10].header.texture:Texture(RestoredCofferKey.iconFileID)
-  self.cols[10].header.texture:Coords(0.1, 0.9, 0.1, 0.9)
-
   ns.SummaryColumnsDelayed(self)
 
   self.data = {}

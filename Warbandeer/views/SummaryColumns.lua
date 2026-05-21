@@ -145,54 +145,6 @@ insert(
   }
 )
 
-local formatTaskWWIRep = function(toon)
-  if not (toon.quests and toon.quests.WWIRep) then return "" end
-  if (toon.basic.level < ns.wow.maxLevel) then return "" end
-  if toon.quests.WWIRep.complete then
-    return {
-      atlas = ns.icons.CheckGreen,
-      atlasSize = false,
-      position = {
-        TopLeft = {3, -2},
-        BottomRight = {-3, 2},
-      },
-    }
-  end
-  if toon.quests.WWIRep.missing then
-    return {
-      text = toon.quests.WWIRep.missing,
-      justifyH = ui.justify.Center,
-      onEnter = function(self)
-        ui.tip:AnchorTo(self, "ANCHOR_BOTTOMRIGHT", -10, 10)
-        ui.tip:ClearLines()
-        for _,zone in ipairs({"Dornogal", "Assembly", "Hallowfall", "Azjkahet", "Undermine", "Arathi", "Karesh"}) do
-          ui.tip:AddLine(zone..' '..(toon.quests.WWIRep[zone] and 'true' or 'false'))
-        end
-        ui.tip:Show()
-      end,
-      onLeave = function(self) ui.tip:Hide() end,
-    }
-  end
-  return ""
-end
-insert(
-  ns.SummaryColumns,
-  SummaryColumn:new{
-    name = "R",
-    justifyH = ui.justify.Center,
-    getData = formatTaskWWIRep,
-  }
-)
-
--- insert(
---   ns.SummaryColumns,
---   SummaryColumn:new{
---     name = "U",
---     justifyH = ui.justify.Center,
---     getData = function(t) return t.quests and t.quests.UndermineStoryMode and GreenCheck or "" end,
---   }
--- )
-
 local function formatBestVaultRewardOption(o)
   if not o or o.best == 0 then return nil end
   local t
@@ -230,14 +182,7 @@ insert(
     name = "Vault",
     width = 50,
     getData = function(t)
-      return t.weeklies.vault and {
-        atlas = "greatVault-whole-normal",
-        atlasSize = false,
-        position = {
-          TopLeft = {0, -2},
-          BottomRight = {-34, 2},
-        },
-      } or formatBestVaultRewardOption(t.weeklies.vault)
+      return t.weeklies.vault and formatBestVaultRewardOption(t.weeklies.vault)
     end,
   }
 )
@@ -283,33 +228,6 @@ insert(
     getData = function(t) return t.weeklies and t.weeklies.caches and t.weeklies.caches > 0 and {text = t.weeklies.caches, justifyH = ui.justify.Center} or "" end,
   }
 )
-
-insert(
-  ns.SummaryColumns,
-  SummaryColumn:new{
-    icon = Icons.Vault,
-    getData = function(t) return t.currency and (t.currency.RestoredCofferKey or 0) > 0 and {text = t.currency.RestoredCofferKey, justifyH = ui.justify.Center} or "" end,
-  }
-)
-
- insert(
-   ns.SummaryColumns,
-   SummaryColumn:new{
-     icon = Icons.preMidnight,
-     getData = function(t) return t.weeklies and t.weeklies.preMidnight and (t.weeklies.preMidnight.three or t.weeklies.preMidnight.eight) and GreenCheck or "" end,
-   }
- )
-
--- insert(
---   ns.SummaryColumns,
---   SummaryColumn:new{
---     icon = Icons.Nightfall,
---     getData = function(t)
---       return t.dailies and t.dailies.nightfall and t.dailies.nightfall > 0
---         and {text = t.dailies.nightfall, justifyH = ui.justify.Center} or ""
---     end,
---   }
--- )
 
 local isDMF = function()
   local day = C_DateAndTime.GetCurrentCalendarTime().monthDay
