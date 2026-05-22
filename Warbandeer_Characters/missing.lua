@@ -3,7 +3,7 @@ local GetBuildInfo = GetBuildInfo -- luacheck: globals GetBuildInfo
 
 local patch = false
 
-local function getMissingFields(toon)
+function ns.getMissingFields(toon)
   if not patch then patch = select(1, GetBuildInfo()) end
   local missing = {}
 
@@ -31,6 +31,7 @@ local function getMissingFields(toon)
 
   return missing
 end
+local getMissingFields = ns.getMissingFields
 
 ns:registerCommand("missing", "", function(self)
   local missing = {}
