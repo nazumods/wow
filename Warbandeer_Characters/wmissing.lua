@@ -2,11 +2,27 @@ local _, ns = ...
 local ui = ns.ui
 local TitleFrame, ScrollFrame, EditBox = ui.TitleFrame, ui.ScrollFrame, ui.EditBox
 
-local WINDOW_W = 440
-local EB_W     = WINDOW_W - 26   -- leave room for the scrollbar
-local LINE_H   = 16               -- approx line height for GameFontHighlightSmall
+local SCROLLBAR_W = 26
+local LINE_H      = 16
+local PADDING     = 20
+local MIN_W       = 200
 
-local window = nil
+local window    = nil
+local measureFS = nil
+
+local function maxLineWidth(text)
+  if not measureFS then
+    measureFS = UIParent:CreateFontString(nil, "ARTWORK")
+    measureFS:SetFontObject(GameFontHighlightSmall)
+  end
+  local maxW = 0
+  for line in text:gmatch("[^\n]+") do
+    measureFS:SetText(line)
+    local w = measureFS:GetStringWidth()
+    if w > maxW then maxW = w end
+  end
+  return maxW
+end
 
 local function createWindow()
   local f = TitleFrame:new{
@@ -14,11 +30,7 @@ local function createWindow()
     title    = "Missing Data",
     special  = true,
     level    = 600,
-    position = {
-      Center = {},
-      Width  = WINDOW_W,
-      Height = 380,
-    },
+    position = { Center = {}, Height = 380 },
   }
 
   local scroll = ScrollFrame:new{
@@ -34,7 +46,7 @@ local function createWindow()
     multiline = true,
     template  = "",
     fontObj   = GameFontHighlightSmall,
-    position  = { Width = EB_W },
+    position  = {},
     OnEscapePressed = function() f:Hide() end,
   }
   scroll:Child(eb)
@@ -59,6 +71,12 @@ ns:registerCommand("wmissing", "", function(self)
     text  = table.concat(lines, "\n")
     count = #lines
   end
+
+  local ebW     = math.max(maxLineWidth(text) + PADDING, MIN_W)
+  local windowW = ebW + SCROLLBAR_W
+
+  window:Width(windowW)
+  window._eb:Width(ebW)
   window._eb:Height(math.max(count * LINE_H + 10, 50))
   window._eb:Text(text)
   window._eb:HighlightText()
