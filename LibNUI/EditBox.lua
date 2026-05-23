@@ -3,7 +3,14 @@ local ui = ns.ui
 local Class = ns.lua.Class
 local Frame = ui.Frame
 
+---@class EditBox: Frame
+---@field multiline boolean? enable multiline mode (skips InputBoxTemplate)
+---@field fontObj table? WoW font object to apply
+---@field autoFocus boolean? whether to auto-focus when shown
+---@field text string? initial text content
+---@field cursorPosition number? initial cursor position
 local EditBox = Class(Frame, function(self)
+  if self.multiline then self._widget:SetMultiLine(true) end
   if self.fontObj then self._widget:SetFontObject(self.fontObj) end
   self._widget:SetAutoFocus(self.autoFocus or false)
   if self.text then self:Text(self.text) end
@@ -16,11 +23,25 @@ end, {
     "OnEnterPressed",
     "OnEscapePressed",
   },
+  CreateWidget = function(self)
+    local template = self.multiline and nil or self.template
+    return CreateFrame(self.type, self.name, self.parent and self.parent._widget or self.parent, template)
+  end,
 })
 ui.EditBox = EditBox
 
+---@param text string?
+---@return string|EditBox
 function EditBox:Text(text)
   if not text then return self._widget:GetText() end
   self._widget:SetText(text)
+  return self
+end
+
+---@param pos number?
+---@return number|EditBox
+function EditBox:CursorPosition(pos)
+  if pos == nil then return self._widget:GetCursorPosition() end
+  self._widget:SetCursorPosition(pos)
   return self
 end
