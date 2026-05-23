@@ -9,6 +9,13 @@ on:
 permissions:
   contents: write
 
+# Only one release run at a time. If a second push lands while a release is
+# in progress, queue it — don't cancel. When the queued run starts it will
+# find no unreleased commits (all tags were already created) and exit early.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   release:
     # Skip the version-bump commit that this workflow itself pushes.
