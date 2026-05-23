@@ -241,6 +241,27 @@ insert(
   }
 )
 
+local function formatPlaytime(seconds)
+  if not seconds then return "" end
+  local d = math.floor(seconds / 86400)
+  local h = math.floor((seconds % 86400) / 3600)
+  local m = math.floor((seconds % 3600) / 60)
+  if d > 0 then return d.."d "..h.."h "..m.."m" end
+  if h > 0 then return h.."h "..m.."m" end
+  return m.."m"
+end
+
+insert(
+  ns.SummaryColumns,
+  SummaryColumn:new{
+    name = "Played",
+    width = 80,
+    getData = function(t)
+      return t.playtime and formatPlaytime(t.playtime.total) or ""
+    end,
+  }
+)
+
 local isDMF = function()
   local day = C_DateAndTime.GetCurrentCalendarTime().monthDay
   local numEvents = C_Calendar.GetNumDayEvents(0,day)
