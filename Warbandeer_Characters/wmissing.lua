@@ -61,6 +61,6 @@ ns:registerCommand("wmissing", "", function(self)
   end
   window._eb:Height(math.max(count * LINE_H + 10, 50))
   window._eb:Text(text)
-  window._eb:CursorPosition(0)
+  window._eb:HighlightText()
   window:Show()
 end, "Show missing character data in a copyable window")

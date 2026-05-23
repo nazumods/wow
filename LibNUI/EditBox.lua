@@ -45,3 +45,10 @@ function EditBox:CursorPosition(pos)
   self._widget:SetCursorPosition(pos)
   return self
 end
+
+---@class EditBox
+---@field HighlightText fun(startPos: number?, endPos: number?): EditBox
+function EditBox:HighlightText(startPos, endPos)
+  self._widget:HighlightText(startPos, endPos)
+  return self
+end
