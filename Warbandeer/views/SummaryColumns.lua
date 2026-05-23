@@ -220,6 +220,18 @@ insert(
   }
 )
 
+-- restored coffer keys
+insert(
+  ns.SummaryColumns,
+  SummaryColumn:new{
+    icon = Icons.Vault,
+    getData = function(t)
+      local n = t.currency and t.currency.RestoredCofferKey
+      return n and n > 0 and {text = n, justifyH = ui.justify.Center} or ""
+    end,
+  }
+)
+
 -- caches
 insert(
   ns.SummaryColumns,
