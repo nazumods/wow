@@ -1,6 +1,10 @@
-local _, ns = ...
+---@class LibNAddOn
+local ns = select(2, ...)
 local Mixin, setmetatable = Mixin, setmetatable
 local fill = ns.lua.maps.fill
+
+---@class Lua
+---@field Class fun(parent: table?, fn: function, defaults: table?, ...: table?): table create a class with optional parent class, constructor function, default properties and mixins
 
 ---@param parent table? Parent Class
 ---@param fn function constructor

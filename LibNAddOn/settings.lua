@@ -1,11 +1,13 @@
-local _, ns = ...
--- luacheck: globals MinimalSliderWithSteppersMixin ShowOptionsCategory
-local ShowOptionsCategory = ShowOptionsCategory
-
+---@class LibNAddOn
+local ns = select(2, ...)
+-- luacheck: globals MinimalSliderWithSteppersMixin
 local Settings = Settings
 
+---@class Setting
 local Setting = {}
 
+---@class Setting
+---@field checkbox fun(db: table, category: table, data: table) create a checkbox setting
 function Setting.checkbox(db, category, data)
   local setting = Settings.RegisterAddOnSetting(
     category, data.name, data.key, data.table(db), type(data.default), data.label, data.default
@@ -14,6 +16,8 @@ function Setting.checkbox(db, category, data)
   Settings.CreateCheckbox(category, setting, data.tooltip)
 end
 
+---@class Setting
+---@field slider fun(db: table, category: table, data: table) create a slider setting
 function Setting.slider(db, category, data)
   local setting = Settings.RegisterAddOnSetting(
     category, data.name, data.key, data.table(db), type(data.default), data.label, data.default
@@ -24,6 +28,8 @@ function Setting.slider(db, category, data)
   Settings.CreateSlider(category, setting, options, data.tooltip)
 end
 
+---@class Setting
+---@field dropdown fun(db: table, category: table, data: table) create a dropdown setting
 function Setting.dropdown(db, category, data)
   local setting = Settings.RegisterAddOnSetting(
     category, data.name, data.key, data.table(db), type(data.default), data.label, data.default
@@ -42,6 +48,8 @@ function Setting.dropdown(db, category, data)
   )
 end
 
+---@class LibNAddOn
+---@field registerSettings fun(addOn: AddOn, addOnName: string, features: table) register settings for an add-on
 function ns.registerSettings(addOn, addOnName, features)
   addOn:registerEvent("ADDON_LOADED", function(self, name)
     if name ~= addOnName then return end

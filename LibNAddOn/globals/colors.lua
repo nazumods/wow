@@ -6,6 +6,24 @@ local CreateColor = CreateColor
 -- https://wowpedia.fandom.com/wiki/ColorMixin#Global_Colors
 -- https://www.rapidtables.com/convert/color/hex-to-rgb.html
 
+---@class LibNAddOn
+---@field Colors Colors color utility functions
+
+---@class Colors
+---@field DeathKnight table color for Death Knight class
+---@field DemonHunter table color for Demon Hunter class
+---@field Druid table color for Druid class
+---@field Evoker table color for Evoker class
+---@field Hunter table color for Hunter class
+---@field Mage table color for Mage class
+---@field Monk table color for Monk class
+---@field Paladin table color for Paladin class
+---@field Priest table color for Priest class
+---@field Rogue table color for Rogue class
+---@field Shaman table color for Shaman class
+---@field Warlock table color for Warlock class
+---@field Warrior table color for Warrior class
+---@field TransparentBlack table color for transparent black
 ns.Colors = {
   -- https://wowpedia.fandom.com/wiki/Class_colors
   DeathKnight = {0.77, 0.12, 0.23},

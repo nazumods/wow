@@ -1,14 +1,18 @@
-local _, ns = ...
--- luacheck: globals LibNAddOn
-
+---@class LibNAddOn
+local ns = select(2, ...)
 local G = _G
 
-function ns.Print(...) print("|cFF33FF99LibNAddOn|r:", ...) end
+---@class AddOn
+---@field CompartmentClick fun(self: AddOn, buttonName: string)?
 
--- C_AddOns.GetAddOnMetadata(name, variable)
----@return table AddOn object
+-- luacheck: globals LibNAddOn
+---@param features {name: string, addOn: AddOn, [any]: any}|string
+---@param o AddOn|nil
+---@return AddOn addon
 function LibNAddOn(features, o)
   if type(features) == "string" then
+    -- called with [name, addOn]
+    if not o then ns:Print("missing addOn"); return {} end
     features = {
       name = features,
       addOn = o,
@@ -18,15 +22,12 @@ function LibNAddOn(features, o)
   if not features.addOn then ns.Print("missing field addOn"); return {} end
   local addOn = features.addOn
   local addOnName = features.name
-  addOn._NAME = addOnName
 
-  ns.linkCommonFunctions(addOn)
-
-  addOn._TITLE = addOn:GetMetadata("Title") or addOnName
+  ns.linkCommonFunctions(addOn, addOnName)
 
   ns.linkGlobals(addOn, features)
 
-  ns.createEventListener(addOn, addOnName)
+  ns.createEventListener(addOn)
 
   local dbName = addOn:GetMetadata("X-NUI-DB")
   if not features.db and dbName then

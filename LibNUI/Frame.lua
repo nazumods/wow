@@ -9,6 +9,11 @@ local Region, Texture = ui.Region, ui.Texture
 -- https://www.reddit.com/r/wowaddondev/comments/1cc2qgj/creating_a_wow_addon_part_2_creating_a_frame/
 -- frame/UI control templates: https://www.wowinterface.com/forums/showthread.php?t=40444
 
+---@class WoWFrame: WoWRegion
+---@field SetScript fun(self: WoWFrame, event: string, handler: function) set a script handler for an event
+---@field RegisterEvent fun(self: WoWFrame, event: string) register for an event
+---@field UnregisterEvent fun(self: WoWFrame, event: string) unregister for an
+
 -- empty frame
 ---@class Frame: Region
 ---@field OnLogin function

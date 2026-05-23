@@ -1,3 +1,4 @@
+---@type Warbandeer_Characters
 local _, ns = ...
 local GetBuildInfo = GetBuildInfo -- luacheck: globals GetBuildInfo
 
@@ -33,7 +34,9 @@ function ns.getMissingFields(toon)
 end
 local getMissingFields = ns.getMissingFields
 
-ns:registerCommand("missing", "", function(self)
+---@class Warbandeer_Characters
+---@field getMissingReport fun(self): string[] Report of missing character data
+function ns:getMissingReport()
   local missing = {}
   for name, toon in pairs(self.db.characters) do
     local issues = getMissingFields(toon)
@@ -41,13 +44,18 @@ ns:registerCommand("missing", "", function(self)
       table.insert(missing, name .. " - missing " .. table.concat(issues, ", "))
     end
   end
+  table.sort(missing)
+  return missing
+end
+
+ns:registerCommand("missing", "", function(self)
+  local missing = self:getMissingReport()
 
   if #missing == 0 then
     ns.Print("All characters have complete data.")
     return
   end
 
-  table.sort(missing)
   ns.Print(#missing .. " characters missing data:")
   for _, line in ipairs(missing) do
     print(line)

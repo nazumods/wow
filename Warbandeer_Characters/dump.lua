@@ -5,6 +5,22 @@ local GetBuildInfo = GetBuildInfo -- luacheck: globals GetBuildInfo
 local TIME_LONG = "%d days %d hours %d minutes"
 local TIME_SHORT = "%dd %dh %dm"
 
+local function formatTime(seconds, fmt)
+  fmt = fmt or TIME_LONG
+  local days = 0
+  local hours = math.floor(seconds / 3600)
+  local minutes = math.floor((seconds % 3600) / 60)
+  if hours > 24 then
+    days = math.floor(hours / 24)
+    hours = hours % 24
+  end
+  return string.format(fmt, days, hours, minutes)
+end
+
+local function roundTime(seconds)
+  return string.format("%.2f days", seconds / 86400)
+end
+
 ns:registerCommand("stat", "", function(self)
   local patch = select(1, GetBuildInfo())
   local a, h, p, pp = 0, 0, 0, 0
@@ -35,19 +51,3 @@ ns:registerCommand("stat", "", function(self)
   print("Most played: " .. ft .. " (" .. formatTime(mp) .. ")")
   print("Most played class: " .. cn .. " (" .. formatTime(cp) .. ")")
 end, "Dump current character data")
-
-function formatTime(seconds, fmt)
-  fmt = fmt or TIME_LONG
-  local days = 0
-  local hours = math.floor(seconds / 3600)
-  local minutes = math.floor((seconds % 3600) / 60)
-  if hours > 24 then
-    days = math.floor(hours / 24)
-    hours = hours % 24
-  end
-  return string.format(fmt, days, hours, minutes)
-end
-
-function roundTime(seconds)
-  return string.format("%.2f days", seconds / 86400)
-end

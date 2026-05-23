@@ -1,9 +1,15 @@
-local _, ns = ...
+---@class LibNAddOn
+local ns = select(2, ...)
 
+---@class Lua
+---@field sets Sets set utility functions
+
+---@class Sets
 local sets = {}
 ns.lua.sets = sets
 
--- create a Set from a list of values
+---@class Sets
+---@field Set fun(list: table): table create a Set from a list of values
 function sets.Set(list)
   local set = {}
   for _,v in ipairs(list) do
@@ -15,7 +21,8 @@ function sets.Set(list)
   return set
 end
 
--- return the values of a table as a Set
+---@class Sets
+---@field values fun(t: table): table return the values of a table as a Set
 function sets.values(t)
   local r = {}
   for _,v in pairs(t) do
