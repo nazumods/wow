@@ -224,7 +224,13 @@ end
 function TableFrame:update()
   for rowN,row in ipairs(self.data) do
     if not self.rows[rowN] then self:addRow{} end
-    for colN,data in ipairs(row) do
+    -- ipairs stops at the first nil, dropping data in sparse rows.
+    local maxCol = #self.cols
+    for k in pairs(row) do
+      if type(k) == "number" and k > maxCol then maxCol = k end
+    end
+    for colN = 1, maxCol do
+      local data = row[colN]
       if not self.cols[colN] then self:addCol{} end
       if data and not self.cells[rowN][colN] then
         self.cells[rowN][colN] = Cell:new{

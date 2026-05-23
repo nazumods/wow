@@ -50,7 +50,7 @@ ns.wow.ClassByKey = {
 
 ns.wow.Specializations = {
   DeathKnight = {"Blood", "Frost", "Unholy"},
-  DemonHunter = {"Vengeance", "Havoc"},
+  DemonHunter = {"Vengeance", "Havoc", "Devourer"},
   Druid = {"Restoration", "Feral", "Guardian", "Balance"},
   Evoker = {"Augmentation", "Devastation", "Preservation"},
   Hunter = {"Marksmanship", "Beast Mastery", "Survival"},

@@ -23,11 +23,12 @@ ns.Basic.fields = {
     get = function()
       local pid, primarySpec = Player:GetPrimarySpecialization()
       local aid, activeSpec = Player:GetActiveSpecialization()
+      local specId = pid or aid
       return {
         primary = primarySpec,
         active = activeSpec,
-        role = GetSpecializationRoleByID(pid or aid),
-        key = (pid or aid) and gsub(primarySpec or activeSpec, " ", ""),
+        role = specId and GetSpecializationRoleByID(specId),
+        key = specId and gsub(primarySpec or activeSpec, " ", ""),
       }
     end,
   },
