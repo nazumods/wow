@@ -1,9 +1,13 @@
-local _, ns = ...
--- luacheck: globals CreateFrame
-local CreateFrame = CreateFrame
-
+---@class LibNAddOn
+local ns = select(2, ...)
 local getn, insert, remove = table.getn, table.insert, table.remove
 
+---@alias Event string
+
+---Handle an event
+---@param self AddOn addon
+---@param e string event name
+---@param ... any event arguments
 local function OnEvent(self, e, ...)
   if self[e] and type(self[e]) == "function" then
     self[e](self, ...)
@@ -15,6 +19,11 @@ local function OnEvent(self, e, ...)
   end
 end
 
+---Register an AddOn for an event
+---@param self AddOn addon
+---@param name string event name
+---@param handler function? event handler function, or nil to just register the event without a handler
+---@param idx integer? insert handler at index in handler list, or append if nil
 local function RegisterEvent(self, name, handler, idx)
   if not self._eventHandlers[name] then
     self._eventListener:RegisterEvent(name)
@@ -29,6 +38,10 @@ local function RegisterEvent(self, name, handler, idx)
   end
 end
 
+---Unregister an AddOn for an event
+---@param self AddOn addon
+---@param name string event name
+---@param handler function? event handler function to unregister, or nil to unregister all handlers for the event
 local function UnregisterEvent(self, name, handler)
   if handler then
     local idx
@@ -46,7 +59,21 @@ local function UnregisterEvent(self, name, handler)
   end
 end
 
-function ns.createEventListener(addOn, addOnName)
+---@class AddOn
+---@field _eventListener WoWFrame event listener frame
+---@field _eventHandlers table<string, function[]> event handlers for registered events
+---@field registerEvent fun(self: AddOn, name: string, handler: function?, idx: number?) register an event handler for an event
+---@field unregisterEvent fun(self: AddOn, name: string, handler: function?) unregister an event handler for an event, or all handlers if handler is nil
+---@field delay fun(self: AddOn, ms: number, fn: function|string) call a function or method after a delay in milliseconds
+---@field onLoad fun(self: AddOn) called when the add-on is loaded
+---@field onLogin fun(self: AddOn, isLogin: boolean, isReload: boolean) called when the player logs in or the UI is reloaded
+---@field ADDON_LOADED Event
+---@field PLAYER_ENTERING_WORLD Event
+---@field ON_UPDATE Event
+
+---@class LibNAddOn
+---@field createEventListener fun(addOn: AddOn) create event listener for an add-on
+function ns.createEventListener(addOn)
   local a = addOn
   a._eventListener = CreateFrame("Frame")
   a._eventHandlers = {}

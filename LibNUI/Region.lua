@@ -3,6 +3,8 @@ local ui = ns.ui
 
 local Class, unpack = ns.lua.Class, unpack
 
+---@class WoWRegion: table
+
 ---@class Region
 ---@field _widget table backing WoW UI widget
 ---@field OnBeforeShow function

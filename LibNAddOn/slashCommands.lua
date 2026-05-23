@@ -1,14 +1,9 @@
-local _, ns = ...
+---@class LibNAddOn
+local ns = select(2, ...)
 local G, SlashCmdList, insert = _G, SlashCmdList, table.insert
 local split = ns.lua.strings.split
 
 ---@alias Command { handler: fun(self, args: string), description: string, subcommands?: table<string, Command> }
-
----@class AddOn
----@field commands table<string, Command> Registered slash commands
----@field registerCommand fun(self, cmd: string, subcmd: string, handler: fun(self, args: string), description: string) register a slash command
----@field usage fun(self) print usage information for slash commands
----@field SlashCmd fun(self, base: string, msg: string) handle a slash command
 
 local registerSlashCommands = function(addOn, slashCommands)
   local bases = {}
@@ -23,7 +18,12 @@ local registerSlashCommands = function(addOn, slashCommands)
     end
   end
 
+  ---@class AddOn
+  ---@field commands table<string, Command> Registered slash commands
   addOn.commands = {}
+
+  ---@class AddOn
+  ---@field registerCommand fun(self, cmd: string, subcmd: string, handler: fun(self, args: string), description: string) register a slash command
   function addOn:registerCommand(cmd, subcmd, handler, description)
     if not self.commands[cmd] then
       self.commands[cmd] = {
@@ -46,6 +46,8 @@ local registerSlashCommands = function(addOn, slashCommands)
     baseCmds = baseCmds .. base
   end
 
+  ---@class AddOn
+  ---@field usage fun(self) print usage information for slash commands
   function addOn:usage()
     addOn.Print("Usage: [" .. baseCmds .. "] <command>")
     addOn.Print("Available commands:")
@@ -58,6 +60,8 @@ local registerSlashCommands = function(addOn, slashCommands)
     end
   end
 
+  ---@class AddOn
+  ---@field SlashCmd fun(self, base: string, msg: string) handle a slash command
   function addOn:SlashCmd(_, msg) -- slashCmd
     local _, _, cmd, args = string.find(msg, "(%w+) ?(.*)")
     if cmd == nil then cmd = "" end
@@ -78,6 +82,8 @@ local registerSlashCommands = function(addOn, slashCommands)
   end
 end
 
+---@class LibNAddOn
+---@field registerSlashCommands fun(addOn: AddOn, slashCommands: table<string, string[]>?) register slash commands for an add-on
 function ns.registerSlashCommands(addOn, slashCommands)
   if slashCommands then
     registerSlashCommands(addOn, slashCommands)

@@ -1,5 +1,9 @@
-local _, ns = ...
+---@class LibNAddOn
+local ns = select(2, ...)
 local select, pairs, insert = select, pairs, table.insert
+
+---@class Lua
+---@field lists Lists list utility functions
 
 ---@class Lists
 local lists = {}

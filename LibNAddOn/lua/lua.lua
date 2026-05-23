@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class LibNAddOn
+local ns = select(2, ...)
 -- luacheck: globals unpack table CopyTable floor AbbreviateNumbers gsub strsub strmatch strupper strfind
 
 -- table: setn, insert, getn, foreachi, maxn, foreach, concat, create, removemulti, sort, wipe, remove
@@ -8,6 +9,11 @@ local _, ns = ...
 -- wow api
 -- AbbreviateNumbers Interface/AddOns/Blizzard_SharedXMLBase/TableUtil.lua
 
+---@class LibNAddOn
+---@field Lua Lua Lua utility functions
+
+---@class Lua
+---@field Select fun(k: integer): fun(...: any): any return a function that transforms a table by selecting the provided key
 ns.lua = {
   -- return a function that transforms a table by selecting the provided key
   Select = function(k) return function(t) return t[k] end end,
