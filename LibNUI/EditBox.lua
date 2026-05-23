@@ -24,7 +24,7 @@ end, {
     "OnEscapePressed",
   },
   CreateWidget = function(self)
-    local template = self.multiline and nil or self.template
+    local template = self.template ~= "" and self.template or nil
     return CreateFrame(self.type, self.name, self.parent and self.parent._widget or self.parent, template)
   end,
 })

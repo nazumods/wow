@@ -32,6 +32,7 @@ local function createWindow()
   local eb = EditBox:new{
     parent    = scroll,
     multiline = true,
+    template  = "",
     fontObj   = GameFontHighlightSmall,
     position  = { Width = EB_W },
     OnEscapePressed = function() f:Hide() end,
