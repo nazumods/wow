@@ -26,6 +26,8 @@ jobs:
             const addonMap = new Map()
 
             for (const c of commits) {
+              if (c.message === 'chore(release): bump versions') continue
+
               const hash = `[\`${c.id.substring(0,6)}\`](${c.url})`
               const line = `${hash} ${c.message}`
 
