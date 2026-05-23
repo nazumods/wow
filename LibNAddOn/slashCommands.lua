@@ -2,6 +2,14 @@ local _, ns = ...
 local G, SlashCmdList, insert = _G, SlashCmdList, table.insert
 local split = ns.lua.strings.split
 
+---@alias Command { handler: fun(self, args: string), description: string, subcommands?: table<string, Command> }
+
+---@class AddOn
+---@field commands table<string, Command> Registered slash commands
+---@field registerCommand fun(self, cmd: string, subcmd: string, handler: fun(self, args: string), description: string) register a slash command
+---@field usage fun(self) print usage information for slash commands
+---@field SlashCmd fun(self, base: string, msg: string) handle a slash command
+
 local registerSlashCommands = function(addOn, slashCommands)
   local bases = {}
   for base,commands in pairs(slashCommands) do

@@ -123,11 +123,8 @@ function Player:GetProfessions()
 end
 
 local ACTIVITY_TYPES = {
-  [1] = "Activities",
-  [2] = "RankedPvP",
+  [1] = "Dungeons",
   [3] = "Raid",
-  [4] = "AlsoReceive",
-  [5] = "Concession",
   [6] = "World"
 }
 

@@ -1,6 +1,15 @@
+---@type Warbandeer_Characters
 local _, ns = ...
 local gsub = string.gsub
 local Player = ns.wow.Player
+
+---@class WarbandeerCharactersDB
+---@field version integer
+---@field characters table<string, Character> Character data indexed by character name
+---@field numCharacters integer total number of characters
+
+---@class Warbandeer_Characters
+---@field db WarbandeerCharactersDB
 
 ns:registerCommand("list", "", function(self)
   ns.Print("Characters:")
@@ -27,6 +36,8 @@ end, "Delete a character")
 ---@field realm string
 ---@field IsLegionTimerunner boolean
 
+---@class Warbandeer_Characters
+---@field MigrateDB fun(self) Migrate database to latest version
 function ns:MigrateDB()
   if ns.db.version == 7 then return end
   local db = ns.db
@@ -70,6 +81,12 @@ function ns:MigrateDB()
   db.version = 7
 end
 
+---@class Warbandeer_Characters
+---@field currentPlayer string Name of currently active character
+---@field currentData Character Data for currently active character
+
+---@class Warbandeer_Characters
+---@field initialize fun(self) Initialize character data for the current player and set up brokers
 function ns:initialize()
   self.currentPlayer = Player:GetName()
   local c = self.db.characters[self.currentPlayer]
