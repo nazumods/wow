@@ -36,7 +36,7 @@ jobs:
               })
               const files = (data.files || []).map(f => f.filename)
               const addons = [...new Set(
-                files.filter(f => f.includes('/')).map(f => f.split('/')[0])
+                files.filter(f => f.includes('/') && !f.startsWith('.')).map(f => f.split('/')[0])
               )]
 
               for (const addon of addons) {

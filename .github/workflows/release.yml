@@ -19,7 +19,7 @@ concurrency:
 jobs:
   release:
     # Skip the version-bump commit that this workflow itself pushes.
-    if: github.actor != 'github-actions[bot]'
+    if: "!startsWith(github.event.head_commit.message, 'chore(release):')"
     runs-on: ubuntu-latest
 
     steps:
@@ -27,11 +27,14 @@ jobs:
         with:
           # Full history is required to find previous release tags.
           fetch-depth: 0
+          # Use RELEASE_TOKEN so git pushes are authenticated as an admin,
+          # allowing the version-bump commit to bypass the PR ruleset.
+          token: ${{ secrets.RELEASE_TOKEN }}
 
       - name: Configure git identity
         run: |
           git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - name: Release changed addons
         env:
