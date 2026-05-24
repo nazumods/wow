@@ -5,18 +5,12 @@ local Class, Frame, TableFrame = ns.lua.Class, ui.Frame, ui.TableFrame
 local Left, Center, Right = ui.justify.Left, ui.justify.Center, ui.justify.Right
 local RAID_CLASS_COLORS = RAID_CLASS_COLORS -- luacheck: globals RAID_CLASS_COLORS
 
-local transpBk   = {color = {0, 0, 0, 0}}
-local GreenCheck = {
-  atlas     = ns.icons.CheckGreen,
-  atlasSize = false,
-  position  = { Center = {}, Width = 12, Height = 12 },
-}
+local transpBk = {color = {0, 0, 0, 0}}
 
 local colInfo = {
-  {name = "Character", width = 105, justifyH = Left,   backdrop = transpBk},
-  {name = "Vault",     width = 45,  justifyH = Right,  backdrop = transpBk},
+  {name = "Character", width = 105, justifyH = Left,  backdrop = transpBk},
+  {name = "Vault",     width = 45,  justifyH = Right, backdrop = transpBk},
   {name = "Caches",    width = 40,  justifyH = Center, backdrop = transpBk},
-  {name = "Delves",    width = 40,  justifyH = Center, backdrop = transpBk},
 }
 
 local function getCharacters(isAlliance)
@@ -45,16 +39,6 @@ local function cachesData(toon)
   return {text = n, justifyH = Center}
 end
 
-local function delvesData(toon)
-  local d = toon.quests and toon.quests.delves
-  if not d then return "" end
-  if d.complete then return GreenCheck end
-  if d.missing and d.missing > 0 then
-    return {text = d.missing, justifyH = Center}
-  end
-  return ""
-end
-
 local function buildData(isAlliance)
   local data = {}
   for _, toon in ipairs(getCharacters(isAlliance)) do
@@ -63,7 +47,6 @@ local function buildData(isAlliance)
       c and c:WrapTextInColorCode(toon.name) or toon.name,
       vaultData(toon),
       cachesData(toon),
-      delvesData(toon),
     })
   end
   return data
