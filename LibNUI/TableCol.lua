@@ -5,10 +5,11 @@ local Class, BgFrame = ns.lua.Class, ui.BgFrame
 local TableCol = Class(BgFrame, function(self)
   local p = self.padding or 0
   local headerPosition
-  if self.path then
-    -- path-based icons (e.g. currency icons) have no atlas-size constraint,
-    -- so they stretch to fill the header rect. Pin them to a square anchored
-    -- to the top of the column so wider columns don't distort them.
+  if self.path or (self.atlas and self.atlasSize == false) then
+    -- icons would otherwise stretch to fill the header rect (path has no
+    -- atlas-size constraint; atlas with atlasSize=false explicitly disables
+    -- native sizing). Pin them to a centered square at the top of the column
+    -- so wider columns don't distort them.
     local size = self.headerHeight - 2 * p
     headerPosition = {
       Top = {0, -p},

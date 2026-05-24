@@ -94,7 +94,7 @@ end, {
 function ClassSummary:GetCharacters()
   local toons = ns.api.GetAllCharacters() -- returns a copy
   toons = filter(toons, function(t)
-    return not t.IsLegionTimerunner and t.isAlliance == self.isAlliance
+    return t.isAlliance == self.isAlliance
   end)
   -- sort by level, then ilvl, then name
   table.sort(toons, function(c1, c2)
@@ -126,13 +126,13 @@ local SummaryView = Class(ui.Frame, function(self)
   self.horde = ClassSummary:new{
     parent = self,
     position = {
-      TopLeft = {self.alliance, ui.edge.TopRight, 20, 0},
+      TopLeft = {self.alliance, ui.edge.TopRight, 30, 0},
     },
     isAlliance = false,
   }
 
   self:Height(math.max(self.alliance:Height(), self.horde:Height()))
-  self:Width(20 + self.alliance:Width() + self.horde:Width())
+  self:Width(35 + self.alliance:Width() + self.horde:Width())
 end, {
   name = "summary",
   _title = "Summary",

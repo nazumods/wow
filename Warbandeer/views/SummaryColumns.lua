@@ -93,7 +93,7 @@ insert(
   ns.SummaryColumns,
   SummaryColumn:new{
     name = "Lvl",
-    width = 30,
+    width = 20,
     getData = function(t) return t.basic.level end,
   }
 )
@@ -110,6 +110,7 @@ local getILvlString = function(toon)
   end
   return {
     text = toon.basic.level < ns.wow.maxLevel and ITEM_STANDARD_COLOR:WrapTextInColorCode(toon.equipment.ilvl) or ns.IlvlColor(toon.equipment.ilvl),
+    justifyH = ui.justify.Right,
     onEnter = function(self)
       ui.tip:AnchorTo(self, "ANCHOR_BOTTOMRIGHT", -10, 10)
       ui.tip:ClearLines()
@@ -125,7 +126,8 @@ insert(
   ns.SummaryColumns,
   SummaryColumn:new{
     name = "iLvl",
-    width = 35,
+    width = 30,
+    justifyH = ui.justify.Right,
     getData = getILvlString,
   }
 )
@@ -142,14 +144,17 @@ local getBagStatus = function(toon)
     end
   end
   local reagent = toon.items.reagentBag and toon.items.reagentBag.slots >= 36
-  return n == 0 and reagent and GreenCheck or (
-    (n == 0 and "" or n) .. (reagent and "" or "R")
-  )
+  if n == 0 and reagent then return GreenCheck end
+  return {
+    text = (n == 0 and "" or n) .. (reagent and "" or "R"),
+    justifyH = ui.justify.Center,
+  }
 end
 insert(
   ns.SummaryColumns,
   SummaryColumn:new{
     icon = Icons.Bag,
+    width = 30,
     getData = getBagStatus,
   }
 )
@@ -245,7 +250,7 @@ insert(
       if keys == 0 and shardQty == 0 then return "" end
       return {
         text = ("%.2f"):format(keys + shardQty / 100),
-        justifyH = ui.justify.Center,
+        justifyH = ui.justify.Right,
         color = shards and shards.capped and CappedColor or UncappedColor,
       }
     end,
@@ -275,9 +280,11 @@ insert(
   ns.SummaryColumns,
   SummaryColumn:new{
     name = "Played",
-    width = 80,
+    width = 100,
+    justifyH = ui.justify.Right,
     getData = function(t)
-      return t.playtime and formatPlaytime(t.playtime.total) or ""
+      if not t.playtime then return "" end
+      return {text = formatPlaytime(t.playtime.total), justifyH = ui.justify.Right}
     end,
   }
 )
