@@ -80,8 +80,10 @@ ns.views.WeeklyView = WeeklyView
 function WeeklyView:refresh()
   self.alliance.data = buildData(true)
   self.alliance:update()
+  self.alliance:Autosize()
   self.horde.data    = buildData(false)
   self.horde:update()
+  self.horde:Autosize()
   self:Width(self.alliance:Width() + GAP + self.horde:Width())
   self:Height(math.max(self.alliance:Height(), self.horde:Height()))
 end
