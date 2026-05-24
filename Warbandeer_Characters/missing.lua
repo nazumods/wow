@@ -8,6 +8,10 @@ function ns.getMissingFields(toon)
   if not patch then patch = select(1, GetBuildInfo()) end
   local missing = {}
 
+  if not toon.gold or not toon.gold.gold then
+    table.insert(missing, "gold")
+  end
+
   if not toon.playtime or not toon.playtime.total then
     table.insert(missing, "playtime")
   elseif not toon.playtime.byPatch or not toon.playtime.byPatch[patch] then

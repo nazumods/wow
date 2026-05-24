@@ -32,6 +32,7 @@ data/races.lua
 data/quests.lua
 data/daily.lua
 data/playtime.lua
+data/gold.lua
 data/weekly.lua
 data/instances.lua
 # load equipment last as it takes the data a while to be available
