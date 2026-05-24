@@ -94,6 +94,16 @@ ns.Weekly.fields = {
     event = "WEEKLY_REWARDS_UPDATE", -- WEEKLY_REWARDS_ITEM_CHANGED
     eventDelay = 1000,
   },
+  ---@class WeeklyBroker
+  ---@field hasUnclaimedVault boolean
+  hasUnclaimedVault = {
+    maxLevel = true,
+    resetOn = ns.RESET_WEEKLY,
+    get = function() return C_WeeklyRewards.HasAvailableRewards() end,
+    reset = function() return C_WeeklyRewards.HasAvailableRewards() end,
+    event = "WEEKLY_REWARDS_UPDATE",
+    eventDelay = 1000,
+  },
 }
 
 ns:registerCommand("dump", "vault", function(self)

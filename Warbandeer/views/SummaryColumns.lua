@@ -193,13 +193,23 @@ local function formatBestVaultRewardOption(o)
     end,
   }
 end
+local UnclaimedVault = {
+  atlas = Icons.Vault,
+  atlasSize = false,
+  position = {
+    TopLeft = {3, -2},
+    BottomRight = {-3, 2},
+  },
+}
 insert(
   ns.SummaryColumns,
   SummaryColumn:new{
     name = "Vault",
     width = 50,
     getData = function(t)
-      return t.weeklies.vault and formatBestVaultRewardOption(t.weeklies.vault)
+      if t.weeklies.vault then return formatBestVaultRewardOption(t.weeklies.vault) end
+      if t.weeklies.hasUnclaimedVault then return UnclaimedVault end
+      return nil
     end,
   }
 )
