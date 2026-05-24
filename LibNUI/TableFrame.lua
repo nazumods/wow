@@ -52,7 +52,8 @@ local TableFrame = Class(Frame, function(self)
   if self.colNames then
     for i=1,#self.colNames do
       local w = self.colInfo and self.colInfo[i].width or self.cellWidth
-      width = width + w
+      local padLeft = (i > 1 and self.colInfo and self.colInfo[i].padLeft) or 0
+      width = width + w + padLeft
       insert(self.cols, TableCol:new{
         parent = self,
         name = "$parentCol"..i,
@@ -63,7 +64,7 @@ local TableFrame = Class(Frame, function(self)
         coords = self.colInfo and self.colInfo[i].coords,
         headerHeight = self.headerHeight,
         position = {
-          TopLeft = i == 1 and {self.offsetX, 0} or {self.cols[i-1], TopRight, self.colInfo and self.colInfo[i].padLeft or 0, 0},
+          TopLeft = i == 1 and {self.offsetX, 0} or {self.cols[i-1], TopRight, padLeft, 0},
           Bottom = {},
           Width = w,
         },
