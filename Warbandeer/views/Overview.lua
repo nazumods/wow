@@ -2,11 +2,16 @@ local _, ns = ...
 local insert = table.insert
 local ui = ns.ui
 local Class, Frame, TableFrame, TabFrame, Texture, Label = ns.lua.Class, ui.Frame, ui.TableFrame, ui.TabFrame, ui.Texture, ui.Label
-local GetMajorFactionIDs = C_MajorFactions.GetMajorFactionIDs
+local GetMajorFactionIDs = C_MajorFactions.GetMajorFactionIDs                    -- luacheck: globals C_MajorFactions
 local GetMajorFactionData, GetFactionDataByID = C_MajorFactions.GetMajorFactionData, C_Reputation.GetFactionDataByID
 local GetRenownLevels, IsFactionParagon = C_MajorFactions.GetRenownLevels, C_Reputation.IsFactionParagon
 local GetFriendshipReputation = C_GossipInfo.GetFriendshipReputation
 local GetFriendshipReputationRanks = C_GossipInfo.GetFriendshipReputationRanks
+local GetPlayerOwnedHouses    = C_Housing.GetPlayerOwnedHouses                    -- luacheck: globals C_Housing
+local GetCurrentHouseLevelFavor = C_Housing.GetCurrentHouseLevelFavor
+local GetHouseLevelFavorForLevel = C_Housing.GetHouseLevelFavorForLevel
+local GetMaxHouseLevel        = C_Housing.GetMaxHouseLevel
+local HasHousingExpansionAccess = C_Housing.HasHousingExpansionAccess
 
 local TransparentBackdrop = {color = ns.Colors.TransparentBlack}
 
@@ -207,6 +212,37 @@ end, {
   },
 })
 
+-- House level and XP-to-next-level for the current character
+local Housing = Class(TableFrame, function(self)
+  self.data = {}
+  local maxLevel = GetMaxHouseLevel()
+  for _, info in ipairs(GetPlayerOwnedHouses() or {}) do
+    if info.houseGUID then
+      local favor = GetCurrentHouseLevelFavor(info.houseGUID)
+      if favor then
+        local level   = favor.houseLevel
+        local xpText  = level >= maxLevel
+          and "max"
+          or (favor.houseFavor .. "/" .. GetHouseLevelFavorForLevel(level))
+        self:addRow({backdrop = TransparentBackdrop})
+        insert(self.data, {
+          {text = info.houseName or "House"},
+          {text = "Lv " .. level,  justifyH = ui.justify.Center},
+          {text = xpText,           justifyH = ui.justify.Right},
+        })
+      end
+    end
+  end
+end, {
+  headerHeight = 0,
+  headerWidth  = 0,
+  colInfo = {
+    {width = 100, backdrop = TransparentBackdrop},
+    {width = 35,  backdrop = TransparentBackdrop},
+    {width = 70,  backdrop = TransparentBackdrop},
+  },
+})
+
 -- Overview
 local Overview = Class(Frame, function(self)
   self.topAlts = TopAlts:new{
@@ -239,6 +275,15 @@ local Overview = Class(Frame, function(self)
       TopLeft = {self.midnightFactions, ui.edge.TopRight, 10, 0},
     },
   }
+  if HasHousingExpansionAccess() then
+    local houseInfos = GetPlayerOwnedHouses()
+    if houseInfos and #houseInfos > 0 then
+      self.midnightHousing = Housing:new{
+        parent   = midnightPanel,
+        position = { TopLeft = {self.midnightAchievements, ui.edge.TopRight, 10, 0} },
+      }
+    end
+  end
 
   -- WWI tab (tab 2)
   local wwiPanel = self.tabFrame:Tab(2)
@@ -257,8 +302,13 @@ local Overview = Class(Frame, function(self)
   -- size the tab frame to fit the larger of the two tab contents
   local wwiW = self.wwiFactions:Width() + 10 + self.wwiAchievements:Width()
   local wwiH = math.max(self.wwiFactions:Height(), self.wwiAchievements:Height())
-  local midW = self.midnightFactions:Width() + 10 + self.midnightAchievements:Width()
-  local midH = math.max(self.midnightFactions:Height(), self.midnightAchievements:Height())
+  local housingW = self.midnightHousing and (10 + self.midnightHousing:Width()) or 0
+  local midW = self.midnightFactions:Width() + 10 + self.midnightAchievements:Width() + housingW
+  local midH = math.max(
+    self.midnightFactions:Height(),
+    self.midnightAchievements:Height(),
+    self.midnightHousing and self.midnightHousing:Height() or 0
+  )
   local tabW = math.max(wwiW, midW)
   local tabH = self.tabFrame.tabHeight + math.max(wwiH, midH)
   self.tabFrame:Width(tabW)
