@@ -31,6 +31,7 @@ views\Legion.lua
 views\Midnight.lua
 views\ProfsView.lua
 views\PlaytimeView.lua
+views\WeeklyView.lua
 
 window.lua
 

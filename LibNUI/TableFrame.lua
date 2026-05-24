@@ -126,42 +126,43 @@ end, {
 })
 ui.TableFrame = TableFrame
 
+function TableFrame:Autosize()
+  local s, w = 0, 0
+  if self.rowNames then
+    for _,r in ipairs(self.rows) do
+      s = max(s, r.header.label:Width())
+    end
+    s = s + (self.padding or 2)
+    for _,r in ipairs(self.rows) do
+      r.header.label:Width(s)
+    end
+  end
+  local offset = s
+  for i,c in ipairs(self.cols) do
+    if self.autosize or (self.colInfo and self.colInfo[i].autosize) then
+      s = c.header.label._widget:GetUnboundedStringWidth()
+      for n = 1, #self.rows do
+        if self.cells[n][i] and self.cells[n][i].label then
+          s = max(s, self.cells[n][i].label._widget:GetUnboundedStringWidth())
+        end
+      end
+      s = s + (self.padding or 2)
+      c:Width(s)
+      if i == 1 then c:TopLeft(offset, 0) end
+    end
+    w = w + c:Width()
+  end
+  self:Width(offset + w)
+  -- force the rows to recompute their bounds
+  for _,r in ipairs(self.rows) do
+    r:Right(self, ui.edge.Right)
+  end
+end
+
 function TableFrame:onLoad()
   if not self.data and self.GetData then self.data = self:GetData() end
   if self.data then self:update() end
-
-  if self.autosize then
-    local s, w = 0, 0
-    if self.rowNames then
-      for _,r in ipairs(self.rows) do
-        s = max(s, r.header.label:Width())
-      end
-      s = s + (self.padding or 2)
-      for _,r in ipairs(self.rows) do
-        r.header.label:Width(s)
-      end
-    end
-    local offset = s
-    for i,c in ipairs(self.cols) do
-      if self.autosize or (self.colInfo and self.colInfo[i].autosize) then
-        s = c.header.label._widget:GetUnboundedStringWidth()
-        for n,r in ipairs(self.rows) do
-          if self.cells[n][i] and self.cells[n][i].label then
-            s = max(s, self.cells[n][i].label._widget:GetUnboundedStringWidth())
-          end
-        end
-        s = s + (self.padding or 2)
-        c:Width(s)
-        if i == 1 then c:TopLeft(offset, 0) end
-      end
-      w = w + c:Width()
-    end
-    self:Width(offset + w)
-    -- force the rows to recompute their bounds
-    for _,r in ipairs(self.rows) do
-      r:Right(self, ui.edge.Right)
-    end
-  end
+  if self.autosize then self:Autosize() end
 end
 
 function TableFrame:row(n) return self.rows[n] end
