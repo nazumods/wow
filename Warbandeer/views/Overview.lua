@@ -320,7 +320,7 @@ local Overview = Class(Frame, function(self)
     housing:Populate(houseInfos)
   end)
   if HasHousingExpansionAccess() then
-    C_Housing.RequestPlayerCharacterList()
+    GetPlayerOwnedHouses()  -- triggers async fetch; result arrives via PLAYER_HOUSE_LIST_UPDATED
   end
 end, {
   name = "overview",
