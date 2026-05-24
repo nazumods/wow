@@ -12,17 +12,20 @@ local SummaryColumn = Class(nil, function(self)
     path = info.iconFileID
     coords = {0.1, 0.9, 0.1, 0.9}
   end
+  local atlas = not path and self.icon or nil
   self.colInfo = {
     name = self.name,
     width = self.width,
     justifyH = self.justifyH,
     backdrop = {color = Colors.TransparentBlack},
     padLeft = self.padLeft,
-    atlas = not path and self.icon or nil,
-    atlasSize = (not path and self.icon) and false or nil,
+    atlas = atlas,
+    -- `X and false or nil` always evaluates to nil — assign explicitly so
+    -- TableCol's "centered square" branch fires for atlas icons.
     path = path,
     coords = coords,
   }
+  if atlas then self.colInfo.atlasSize = false end
 end, {
   -- default options
   name = nil,

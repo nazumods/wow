@@ -6,7 +6,13 @@ local Region = ui.Region
 
 local Texture = Class(Region, function(self)
   if self.atlas then
-    self._widget:SetAtlas(self.atlas, self.atlasSize ~= nil and self.atlasSize or true)
+    -- `X ~= nil and X or true` collapses to `true` when X is false, defeating
+    -- atlasSize = false. Branch explicitly so the caller's false is honored.
+    if self.atlasSize == nil then
+      self._widget:SetAtlas(self.atlas)
+    else
+      self._widget:SetAtlas(self.atlas, self.atlasSize)
+    end
   end
   if self.rotation then self._widget:SetRotation(self.rotation); self.rotation = nil end
 
