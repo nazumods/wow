@@ -6,14 +6,22 @@ local Colors, Icons = ns.Colors, ns.icons
 local Class = ns.lua.Class
 
 local SummaryColumn = Class(nil, function(self)
+  local path, coords
+  if self.currencyID then
+    local info = C_CurrencyInfo.GetCurrencyInfo(self.currencyID)
+    path = info.iconFileID
+    coords = {0.1, 0.9, 0.1, 0.9}
+  end
   self.colInfo = {
     name = self.name,
     width = self.width,
     justifyH = self.justifyH,
     backdrop = {color = Colors.TransparentBlack},
     padLeft = self.padLeft,
-    atlas = self.icon,
-    atlasSize = self.icon and false or nil,
+    atlas = not path and self.icon or nil,
+    atlasSize = (not path and self.icon) and false or nil,
+    path = path,
+    coords = coords,
   }
 end, {
   -- default options
@@ -22,6 +30,7 @@ end, {
   justifyH = Left,
   padLeft = nil,
   icon = nil,
+  currencyID = nil,
   getData = function() return "" end, -- function to get data for this column
 })
 
@@ -220,14 +229,25 @@ insert(
   }
 )
 
--- restored coffer keys
+-- restored coffer keys (+ shards as fractional, 100 shards = 1 key)
+local CappedColor = {1, 0.2, 0.2, 1}
+local UncappedColor = {1, 1, 1, 1}
 insert(
   ns.SummaryColumns,
   SummaryColumn:new{
-    icon = Icons.Vault,
+    currencyID = 3028, -- Restored Coffer Key
+    width = 40,
     getData = function(t)
-      local n = t.currency and t.currency.RestoredCofferKey
-      return n and n > 0 and {text = n, justifyH = ui.justify.Center} or ""
+      if not t.currency then return "" end
+      local keys = t.currency.RestoredCofferKey or 0
+      local shards = t.currency.CofferKeyShard
+      local shardQty = shards and shards.quantity or 0
+      if keys == 0 and shardQty == 0 then return "" end
+      return {
+        text = ("%.2f"):format(keys + shardQty / 100),
+        justifyH = ui.justify.Center,
+        color = shards and shards.capped and CappedColor or UncappedColor,
+      }
     end,
   }
 )

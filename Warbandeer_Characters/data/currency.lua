@@ -9,4 +9,17 @@ ns.Currency.fields = {
     id = 3028,
     get = function(self) return GetCurrencyInfo(self.id).quantity end,
   },
+  CofferKeyShard = {
+    id = 3310, -- Coffer Key Shard
+    get = function(self)
+      local info = GetCurrencyInfo(self.id)
+      if not info then return nil end
+      local cap = info.maxWeeklyQuantity or 0
+      local earned = info.quantityEarnedThisWeek or 0
+      return {
+        quantity = info.quantity,
+        capped = cap > 0 and earned >= cap,
+      }
+    end,
+  },
 }
