@@ -247,6 +247,18 @@ insert(
   }
 )
 
+-- lumber axe (quest 93647 "Lumber For You")
+insert(
+  ns.SummaryColumns,
+  SummaryColumn:new{
+    name = "L",
+    justifyH = ui.justify.Center,
+    getData = function(t)
+      return t.quests and t.quests.LumberAxe and GreenCheck or ""
+    end,
+  }
+)
+
 -- restored coffer keys (+ shards as fractional, 100 shards = 1 key)
 local CappedColor = {1, 0.2, 0.2, 1}
 local UncappedColor = {1, 1, 1, 1}

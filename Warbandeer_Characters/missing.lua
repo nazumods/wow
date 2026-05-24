@@ -20,6 +20,10 @@ function ns.getMissingFields(toon)
 
   if not toon.lastRefresh then table.insert(missing, "lastRefresh") end
 
+  if not (toon.quests and toon.quests.LumberAxe) then
+    table.insert(missing, "lumber axe")
+  end
+
   if toon.basic and toon.basic.professions then
     local details = toon.professions and toon.professions.details
     local missingProfs = {}

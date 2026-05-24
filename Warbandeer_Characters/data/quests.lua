@@ -2,7 +2,10 @@ local _, ns = ...
 local Set = ns.lua.sets.Set
 local Values = ns.lua.sets.values
 local IsQuestFlaggedCompleted = C_QuestLog.IsQuestFlaggedCompleted
+local IsOnQuest = C_QuestLog.IsOnQuest
 local ReadyForTurnIn = C_QuestLog.ReadyForTurnIn
+
+local LUMBER_AXE_QUEST = 93647 -- Lumber For You
 
 local WWIRepQuests = {
   Dornogal   = 82362,
@@ -65,6 +68,17 @@ ns.Quests.fields = {
       local zone = WWIRepQuestsR[questId]
       if zone ~= nil then
         currentValue[zone] = true
+      end
+    end,
+  },
+  LumberAxe = {
+    get = function(_, _, currentValue)
+      return currentValue or IsQuestFlaggedCompleted(LUMBER_AXE_QUEST) or IsOnQuest(LUMBER_AXE_QUEST) or false
+    end,
+    event = {"QUEST_ACCEPTED", "QUEST_TURNED_IN"},
+    eventHandler = function(self, _, questId)
+      if questId == LUMBER_AXE_QUEST then
+        self:set(true)
       end
     end,
   },
