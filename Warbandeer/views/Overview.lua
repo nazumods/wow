@@ -213,26 +213,9 @@ end, {
 })
 
 -- House level and XP-to-next-level for the current character
+-- Data is loaded asynchronously via Populate() on PLAYER_HOUSE_LIST_UPDATED
 local Housing = Class(TableFrame, function(self)
   self.data = {}
-  local maxLevel = GetMaxHouseLevel()
-  for _, info in ipairs(GetPlayerOwnedHouses() or {}) do
-    if info.houseGUID then
-      local favor = GetCurrentHouseLevelFavor(info.houseGUID)
-      if favor then
-        local level   = favor.houseLevel
-        local xpText  = level >= maxLevel
-          and "max"
-          or (favor.houseFavor .. "/" .. GetHouseLevelFavorForLevel(level))
-        self:addRow({backdrop = TransparentBackdrop})
-        insert(self.data, {
-          {text = info.houseName or "House"},
-          {text = "Lv " .. level,  justifyH = ui.justify.Center},
-          {text = xpText,           justifyH = ui.justify.Right},
-        })
-      end
-    end
-  end
 end, {
   headerHeight = 0,
   headerWidth  = 0,
@@ -242,6 +225,29 @@ end, {
     {width = 70,  backdrop = TransparentBackdrop},
   },
 })
+
+function Housing:Populate(houseInfos)
+  if not houseInfos or #houseInfos == 0 or #self.data > 0 then return end
+  local maxLevel = GetMaxHouseLevel()
+  for _, info in ipairs(houseInfos) do
+    if info.houseGUID then
+      local favor = GetCurrentHouseLevelFavor(info.houseGUID)
+      if favor then
+        local level  = favor.houseLevel
+        local xpText = level >= maxLevel
+          and "max"
+          or (favor.houseFavor .. "/" .. GetHouseLevelFavorForLevel(level))
+        self:addRow({backdrop = TransparentBackdrop})
+        insert(self.data, {
+          {text = info.houseName or "House"},
+          {text = "Lv " .. level, justifyH = ui.justify.Center},
+          {text = xpText,         justifyH = ui.justify.Right},
+        })
+      end
+    end
+  end
+  self:update()
+end
 
 -- Overview
 local Overview = Class(Frame, function(self)
@@ -275,15 +281,10 @@ local Overview = Class(Frame, function(self)
       TopLeft = {self.midnightFactions, ui.edge.TopRight, 10, 0},
     },
   }
-  if HasHousingExpansionAccess() then
-    local houseInfos = GetPlayerOwnedHouses()
-    if houseInfos and #houseInfos > 0 then
-      self.midnightHousing = Housing:new{
-        parent   = midnightPanel,
-        position = { TopLeft = {self.midnightAchievements, ui.edge.TopRight, 10, 0} },
-      }
-    end
-  end
+  self.midnightHousing = Housing:new{
+    parent   = midnightPanel,
+    position = { TopLeft = {self.midnightAchievements, ui.edge.TopRight, 10, 0} },
+  }
 
   -- WWI tab (tab 2)
   local wwiPanel = self.tabFrame:Tab(2)
@@ -302,13 +303,9 @@ local Overview = Class(Frame, function(self)
   -- size the tab frame to fit the larger of the two tab contents
   local wwiW = self.wwiFactions:Width() + 10 + self.wwiAchievements:Width()
   local wwiH = math.max(self.wwiFactions:Height(), self.wwiAchievements:Height())
-  local housingW = self.midnightHousing and (10 + self.midnightHousing:Width()) or 0
-  local midW = self.midnightFactions:Width() + 10 + self.midnightAchievements:Width() + housingW
-  local midH = math.max(
-    self.midnightFactions:Height(),
-    self.midnightAchievements:Height(),
-    self.midnightHousing and self.midnightHousing:Height() or 0
-  )
+  local midW = self.midnightFactions:Width() + 10 + self.midnightAchievements:Width()
+              + 10 + self.midnightHousing:Width()
+  local midH = math.max(self.midnightFactions:Height(), self.midnightAchievements:Height())
   local tabW = math.max(wwiW, midW)
   local tabH = self.tabFrame.tabHeight + math.max(wwiH, midH)
   self.tabFrame:Width(tabW)
@@ -316,6 +313,15 @@ local Overview = Class(Frame, function(self)
 
   self:Height(20 + math.max(self.topAlts:Height(), tabH))
   self:Width(10 + self.topAlts:Width() + 10 + tabW)
+
+  -- Request housing data asynchronously; populate when the response arrives
+  local housing = self.midnightHousing
+  ns:registerEvent("PLAYER_HOUSE_LIST_UPDATED", function(_, houseInfos)
+    housing:Populate(houseInfos)
+  end)
+  if HasHousingExpansionAccess() then
+    C_Housing.RequestPlayerCharacterList()
+  end
 end, {
   name = "overview",
   _title = "Overview",
