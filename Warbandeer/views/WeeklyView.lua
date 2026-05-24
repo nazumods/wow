@@ -10,7 +10,7 @@ local transpBk = {color = {0, 0, 0, 0}}
 local colInfo = {
   {name = "Character", width = 105, justifyH = Left,  backdrop = transpBk},
   {name = "Vault",     width = 45,  justifyH = Right, backdrop = transpBk},
-  {name = "Caches",    width = 40,  justifyH = Center, backdrop = transpBk},
+  {name = "Caches",    width = 40,  justifyH = Center, backdrop = transpBk, padLeft = 8},
 }
 
 local function getCharacters(isAlliance)
