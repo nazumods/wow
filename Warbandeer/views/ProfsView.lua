@@ -201,7 +201,6 @@ ns.views.ProfsView = ProfsView
 ---@return Character[]
 function ProfsView:GetCharacters()
   local toons = ns.api.GetAllCharacters()
-  toons = ns.lua.lists.filter(toons, function(t) return not t.IsLegionTimerunner end)
   sort(toons, function(a, b)
     if a.basic.level ~= b.basic.level then return a.basic.level > b.basic.level end
     if a.equipment.ilvl ~= b.equipment.ilvl then return a.equipment.ilvl > b.equipment.ilvl end

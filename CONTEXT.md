@@ -564,7 +564,7 @@ X-NUI-API: WarbandeerApi, X-NUI-UI: LibNUI
 | `main.lua` | `refresh`, `refreshQueue` (one broker per 100ms), `/characters refresh/dump` |
 | `login.lua` | `onLogin` → `initialize()` then `refresh()` |
 | `api.lua` | `WarbandeerApi` public methods |
-| `data/basic.lua` | Broker: level, specialization, professions, remix |
+| `data/basic.lua` | Broker: level, specialization, professions |
 | `data/currency.lua` | Broker: `RestoredCofferKey` (currency 3028) |
 | `data/items.lua` | Broker: bag inventory |
 | `data/professions.lua` | Broker: per-expansion skill levels, spec points. Also `ns.api.professionInfo` |
@@ -598,13 +598,12 @@ Also on API table: `ALLIANCE_RACES`, `HORDE_RACES`, `professionInfo`, `SettingsC
 
 ```lua
 -- Top-level (set at creation):
-name, classId, className, classKey, race, raceId, raceIdx, isAlliance, realm, IsLegionTimerunner
+name, classId, className, classKey, race, raceId, raceIdx, isAlliance, realm
 
 -- Sub-tables (populated by brokers):
 basic = {
   level, specialization = { primary, active, role, key },
   professions = { primary, secondary, fishing, cooking },
-  remix = { unbound },
 }
 currency = { RestoredCofferKey }
 items = {
@@ -651,7 +650,7 @@ playtime = {
 
 | Broker | Fields | Events | Resets |
 |---|---|---|---|
-| `basic` | level, specialization, professions, remix | `PLAYER_LEVEL_UP` (500ms delay), `CURRENCY_DISPLAY_UPDATE` (filtered type 3268) | — |
+| `basic` | level, specialization, professions | `PLAYER_LEVEL_UP` (500ms delay) | — |
 | `currency` | RestoredCofferKey | — | — |
 | `items` | bags, reagentBag | — | — |
 | `professions` | details | `TRADE_SKILL_SHOW` (500ms C_Timer) | — |
@@ -700,7 +699,6 @@ X-NUI-API: WarbandeerApi, X-NUI-UI: LibNUI
 | `views/DetailView.lua` | Single-character detail (stub) |
 | `views/RoleView.lua` | `ClassTable` frames grouped by spec |
 | `views/RaceView.lua` | 13-class × 29-race grid |
-| `views/Remix.lua` | Legion Timerunner characters + rep + achievements |
 | `views/Legion.lua` | Hidden artifact appearances + Legion achievements |
 | `views/Midnight.lua` | 54 achievement IDs in multi-column grid |
 | `views/ProfsView.lua` | Top: best skill per expansion grid. Bottom: per-character detail on click |
@@ -717,7 +715,6 @@ X-NUI-API: WarbandeerApi, X-NUI-UI: LibNUI
 | `detail` | Detail | Frame | Stub |
 | `roles` | Roles | Frame | ClassTable per class, grouped by spec |
 | `races` | Races | TableFrame | 13×29 grid |
-| `remix` | Remix | Frame | Legion Timerunner filter |
 | `legion` | Legion | Frame | Hidden artifacts + achievements |
 | `midnight` | Midnight | Frame | Achievement grid |
 | `profs` | Professions | Frame | Profession skill grid + detail panel |
@@ -980,6 +977,6 @@ All primary and secondary professions except Archaeology. Uses `C_TradeSkillUI.G
 | LibNAddOn | `/lib` | `player` |
 | LibNUI | `/nui` | `version`, `test [key]` |
 | Warbandeer_Characters | `/characters`, `/wbc` | `list`, `delete <name>`, `refresh`, `refresh items/locks`, `dump`, `dump bank/gt/locks/artifact`, `missing` |
-| Warbandeer | `/warband`, `/wb` | `""` (open), `overview`, `summary`, `gear`, `detail`, `roles`, `races`, `remix`, `legion`, `midnight`, `profs`, `check legion` |
+| Warbandeer | `/warband`, `/wb` | `""` (open), `overview`, `summary`, `gear`, `detail`, `roles`, `races`, `legion`, `midnight`, `profs`, `check legion` |
 | Warbandeer_Collected | `/collected`, `/collect` | `scan` |
 | Recycle | `/recycle` | `clear`, `key CTRL|SHIFT|ALT` |

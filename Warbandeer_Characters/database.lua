@@ -34,7 +34,6 @@ end, "Delete a character")
 ---@field raceIdx integer
 ---@field isAlliance boolean
 ---@field realm string
----@field IsLegionTimerunner boolean
 
 ---@class Warbandeer_Characters
 ---@field MigrateDB fun(self) Migrate database to latest version

@@ -110,7 +110,7 @@ function Appearances:GetData()
       c.wq = math.max(c.wq, t.artifacts.hiddenColors.wq.progress)
       c.dungeon = math.max(c.dungeon, t.artifacts.hiddenColors.dungeon.progress)
       c.kills = math.max(c.kills, t.artifacts.hiddenColors.kills.progress)
-      c.ch = c.ch or (t.IsLegionTimerunner and t.artifacts.classHall)
+      c.ch = c.ch or t.artifacts.classHall
     end
   end
   for _,c in ipairs({'DeathKnight', 'DemonHunter', 'Druid', 'Hunter', 'Mage', 'Monk', 'Paladin', 'Priest', 'Rogue', 'Shaman', 'Warlock', 'Warrior'}) do

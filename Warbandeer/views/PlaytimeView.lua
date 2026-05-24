@@ -27,7 +27,7 @@ end
 local function getCharacters(isAlliance)
   local result = {}
   for _, t in ipairs(ns.api:GetAllCharacters()) do
-    if not t.IsLegionTimerunner and t.isAlliance == isAlliance then
+    if t.isAlliance == isAlliance then
       insert(result, t)
     end
   end

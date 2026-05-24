@@ -130,7 +130,6 @@ end, {
   },
   GetData = function(self)
     local toons = ns.api.GetAllCharacters()
-    toons = ns.lua.lists.filter(toons, function(t) return not t.IsLegionTimerunner end)
     local top = {}
     for _, toon in pairs(toons) do
       if not top[toon.classKey] or

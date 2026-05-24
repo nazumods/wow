@@ -27,7 +27,6 @@ views\GearView.lua
 views\DetailView.lua
 views\RoleView.lua
 views\RaceView.lua
-views\Remix.lua
 views\Legion.lua
 views\Midnight.lua
 views\ProfsView.lua
