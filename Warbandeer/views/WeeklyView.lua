@@ -9,14 +9,12 @@ local transpBk   = {color = {0, 0, 0, 0}}
 local GreenCheck = {
   atlas     = ns.icons.CheckGreen,
   atlasSize = false,
-  position  = { TopLeft = {3, -2}, BottomRight = {-3, 2} },
+  position  = { Center = {}, Width = 12, Height = 12 },
 }
 
 local colInfo = {
   {name = "Character", width = 105, justifyH = Left,   backdrop = transpBk},
   {name = "Vault",     width = 45,  justifyH = Right,  backdrop = transpBk},
-  {name = "Pre-Mid",   width = 45,  justifyH = Center, backdrop = transpBk},
-  {name = "WWI Rep",   width = 45,  justifyH = Center, backdrop = transpBk},
   {name = "Caches",    width = 40,  justifyH = Center, backdrop = transpBk},
   {name = "Delves",    width = 40,  justifyH = Center, backdrop = transpBk},
 }
@@ -39,21 +37,6 @@ local function vaultData(toon)
   local v = toon.weeklies and toon.weeklies.vault
   if not v or v.best == 0 then return "" end
   return {text = v.best, justifyH = Right}
-end
-
-local function preMidData(toon)
-  local pm = toon.weeklies and toon.weeklies.preMidnight
-  if not pm then return "" end
-  local n = (pm.three and 1 or 0) + (pm.eight and 1 or 0)
-  if n == 2 then return GreenCheck end
-  return {text = n .. "/2", justifyH = Center}
-end
-
-local function wwiRepData(toon)
-  local wwi = toon.quests and toon.quests.WWIRep
-  if not wwi then return "" end
-  if wwi.complete then return GreenCheck end
-  return {text = (7 - wwi.missing) .. "/7", justifyH = Center}
 end
 
 local function cachesData(toon)
@@ -79,8 +62,6 @@ local function buildData(isAlliance)
     insert(data, {
       c and c:WrapTextInColorCode(toon.name) or toon.name,
       vaultData(toon),
-      preMidData(toon),
-      wwiRepData(toon),
       cachesData(toon),
       delvesData(toon),
     })
@@ -94,12 +75,14 @@ local WeeklyView = Class(Frame, function(self)
   self.alliance = TableFrame:new{
     parent     = self,
     colInfo    = colInfo,
+    autosize   = true,
     cellHeight = 16,
     position   = { TopLeft = {} },
   }
   self.horde = TableFrame:new{
     parent     = self,
     colInfo    = colInfo,
+    autosize   = true,
     cellHeight = 16,
     position   = { TopLeft = {self.alliance, ui.edge.TopRight, GAP, 0} },
   }
