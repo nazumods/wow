@@ -1,5 +1,6 @@
 local _, ns = ...
 local GetCurrencyInfo = C_CurrencyInfo.GetCurrencyInfo -- luacheck: globals C_CurrencyInfo
+local GetMoney = GetMoney -- luacheck: globals GetMoney
 
 ---@type Broker
 ns.Currency = ns:RegisterBroker("currency")
@@ -8,6 +9,10 @@ ns.Currency.fields = {
   RestoredCofferKey = {
     id = 3028,
     get = function(self) return GetCurrencyInfo(self.id).quantity end,
+  },
+  gold = {
+    get = function() return GetMoney() end,
+    event = "PLAYER_MONEY",
   },
   CofferKeyShard = {
     id = 3310, -- Coffer Key Shard

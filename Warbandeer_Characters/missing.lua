@@ -8,7 +8,7 @@ function ns.getMissingFields(toon)
   if not patch then patch = select(1, GetBuildInfo()) end
   local missing = {}
 
-  if not toon.gold or not toon.gold.gold then
+  if not toon.currency or not toon.currency.gold then
     table.insert(missing, "gold")
   end
 
