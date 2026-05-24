@@ -5,7 +5,7 @@ local Class, Frame, TableFrame = ns.lua.Class, ui.Frame, ui.TableFrame
 local Left, Center, Right = ui.justify.Left, ui.justify.Center, ui.justify.Right
 local RAID_CLASS_COLORS = RAID_CLASS_COLORS -- luacheck: globals RAID_CLASS_COLORS
 
-local transpBk = {color = {0, 0, 0, 0}}
+local transpBk = {color = ns.Colors.TransparentBlack}
 
 local colInfo = {
   {name = "Character", width = 105, justifyH = Left,  backdrop = transpBk},
@@ -16,7 +16,7 @@ local colInfo = {
 local function getCharacters(isAlliance)
   local result = {}
   for _, t in ipairs(ns.api:GetAllCharacters()) do
-    if not t.IsLegionTimerunner and t.isAlliance == isAlliance then
+    if t.isAlliance == isAlliance then
       insert(result, t)
     end
   end
