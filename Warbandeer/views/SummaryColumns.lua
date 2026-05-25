@@ -43,8 +43,8 @@ local GreenCheck = {
   atlas = ns.icons.CheckGreen,
   atlasSize = false,
   position = {
-    TopLeft = {3, -2},
-    BottomRight = {-3, 2},
+    Center = {},
+    Size = {16, 16},
   },
 }
 
