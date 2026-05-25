@@ -240,7 +240,12 @@ insert(
 )
 
 local function formatCrest(c)
-  if not c or c.quantity == 0 then return "" end
+  if not c then return "" end
+  -- stale DB entries from before the table migration store a bare number
+  if type(c) == "number" then
+    return c > 0 and {text = c, justifyH = ui.justify.Right} or ""
+  end
+  if c.quantity == 0 then return "" end
   local lines = {c.quantity .. " held"}
   if c.max > 0 then
     lines[2] = c.earned .. " / " .. c.max .. " earned this week"
