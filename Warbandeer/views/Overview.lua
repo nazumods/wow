@@ -291,7 +291,7 @@ local Overview = Class(Frame, function(self)
     parent   = self,
     position = { TopLeft = {self.topAlts, ui.edge.BottomLeft, 0, -20} },
     text     = "Total Gold",
-    color    = {1, 1, 1, 0.6},
+    color    = {1, 1, 1, 1},
   }
   self.goldLabel = Label:new{
     parent   = self,
