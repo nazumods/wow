@@ -252,7 +252,7 @@ insert(
     getData = function(t)
       if not t.currency then return "" end
       local n = t.currency.HeroDawncrest
-      if not n then return "" end
+      if not n or n == 0 then return "" end
       return {text = n, justifyH = ui.justify.Right}
     end,
   }
@@ -271,7 +271,7 @@ insert(
     getData = function(t)
       if not t.currency then return "" end
       local n = t.currency.MythDawncrest
-      if not n then return "" end
+      if not n or n == 0 then return "" end
       return {text = n, justifyH = ui.justify.Right}
     end,
   }

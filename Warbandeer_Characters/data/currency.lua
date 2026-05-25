@@ -31,14 +31,14 @@ ns.Currency.fields = {
     id = 3345,
     get = function(self)
       local info = GetCurrencyInfo(self.id)
-      return info and info.quantity > 0 and info.quantity or nil
+      return info and info.quantity or 0
     end,
   },
   MythDawncrest = {
     id = 3347,
     get = function(self)
       local info = GetCurrencyInfo(self.id)
-      return info and info.quantity > 0 and info.quantity or nil
+      return info and info.quantity or 0
     end,
   },
 }

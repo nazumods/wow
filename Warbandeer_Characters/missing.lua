@@ -24,6 +24,15 @@ function ns.getMissingFields(toon)
     table.insert(missing, "lumber axe")
   end
 
+  if toon.basic and toon.basic.level == ns.wow.maxLevel then
+    if not toon.currency or toon.currency.HeroDawncrest == nil then
+      table.insert(missing, "hero dawncrest")
+    end
+    if not toon.currency or toon.currency.MythDawncrest == nil then
+      table.insert(missing, "myth dawncrest")
+    end
+  end
+
   if toon.basic and toon.basic.professions then
     local details = toon.professions and toon.professions.details
     local missingProfs = {}
