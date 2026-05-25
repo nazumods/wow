@@ -74,8 +74,8 @@ local PlaytimeView = Class(Frame, function(self)
   self.totalLabel = Label:new{
     parent   = self,
     position = {
-      TopLeft  = {self, ui.edge.BottomLeft,  0, -6},
-      TopRight = {self, ui.edge.BottomRight, 0, -6},
+      TopLeft  = {self, ui.edge.BottomLeft,  0, 16},
+      TopRight = {self, ui.edge.BottomRight, 0, 16},
     },
     justifyH = ui.justify.Center,
     color    = {1, 1, 1, 0.6},
