@@ -203,8 +203,8 @@ local UnclaimedVault = {
   atlas = Icons.Vault,
   atlasSize = false,
   position = {
-    TopLeft = {3, -2},
-    BottomRight = {-3, 2},
+    Center = {},
+    Size = {16, 16},
   },
 }
 insert(
