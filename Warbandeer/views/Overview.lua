@@ -177,7 +177,22 @@ local GreenCheck = {
 }
 
 local wwiAchievementIds     = {20597, 40791, 20596, 40309, 40360, 41052, 40618, 41818, 41970, 41808, 61017}
-local midnightAchievementIds = {61839}
+local midnightAchievementIds = {
+  62386, -- Light Up the Night (meta)
+  62110, -- Loremaster of Midnight
+  62104, -- Midnight Lore Hunter
+  61741, -- Delve Loremaster: Midnight
+  61506, -- Allied Race: Haranir
+  61839, -- (existing)
+  62261, -- Forever Song (Eversong Woods story)
+  61453, -- Making an Amani Out of You (Zul'Aman story)
+  62260, -- That's Aln, Folks! (Harandar story)
+  62256, -- Yelling into the Voidstorm (Voidstorm story)
+  61957, -- Sojourner of Eversong Woods
+  61452, -- Sojourner of Zul'Aman
+  61739, -- Sojourner of Harandar
+  61864, -- Sojourner of Voidstorm
+}
 
 local Achievements = Class(TableFrame, function(self)
   self.data = {}
@@ -203,7 +218,7 @@ end, {
   headerHeight = 0,
   headerWidth = 0,
   colInfo = {
-    {width = 155, backdrop = TransparentBackdrop},
+    {width = 200, backdrop = TransparentBackdrop},
   },
 })
 
