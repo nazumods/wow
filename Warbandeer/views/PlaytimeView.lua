@@ -1,7 +1,7 @@
 local _, ns = ...
 local ui = ns.ui
 local insert = table.insert
-local Class, Frame, TableFrame = ns.lua.Class, ui.Frame, ui.TableFrame
+local Class, Frame, TableFrame, Label = ns.lua.Class, ui.Frame, ui.TableFrame, ui.Label
 local Left = ui.justify.Left
 local RAID_CLASS_COLORS = RAID_CLASS_COLORS -- luacheck: globals RAID_CLASS_COLORS
 
@@ -71,6 +71,11 @@ local PlaytimeView = Class(Frame, function(self)
     cellHeight = 16,
     position   = { TopLeft = {self.alliance, ui.edge.TopRight, GAP, 0} },
   }
+  self.totalLabel = Label:new{
+    parent   = self,
+    position = { TopLeft = {self.alliance, ui.edge.BottomLeft, 0, -6} },
+    color    = {1, 1, 1, 0.6},
+  }
   self:refresh()
 end, {
   name   = "playtime",
@@ -84,8 +89,15 @@ function PlaytimeView:refresh()
   self.alliance:update()
   self.horde.data    = buildData(false)
   self.horde:update()
+
+  local total = 0
+  for _, t in ipairs(ns.api:GetAllCharacters()) do
+    total = total + (t.playtime and t.playtime.total or 0)
+  end
+  self.totalLabel:Text("Total: " .. formatTime(total))
+
   self:Width(self.alliance:Width() + GAP + self.horde:Width())
-  self:Height(math.max(self.alliance:Height(), self.horde:Height()))
+  self:Height(math.max(self.alliance:Height(), self.horde:Height()) + 22)
 end
 
 function PlaytimeView:OnBeforeShow()
