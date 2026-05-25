@@ -26,6 +26,23 @@ local function formatTime(seconds)
   return m.."m"
 end
 
+local function formatTotalTime(seconds)
+  if not seconds then return "" end
+  local d = math.floor(seconds / 86400)
+  local h = math.floor((seconds % 86400) / 3600)
+  local m = math.floor((seconds % 3600) / 60)
+  local y  = math.floor(d / 365)
+  local mo = math.floor((d % 365) / 30)
+  local dd = d % 365 % 30
+  local parts = {}
+  if y  > 0 then parts[#parts+1] = y.."y"  end
+  if mo > 0 then parts[#parts+1] = mo.."mo" end
+  if dd > 0 then parts[#parts+1] = dd.."d"  end
+  if h  > 0 then parts[#parts+1] = h.."h"  end
+  if m  > 0 then parts[#parts+1] = m.."m"  end
+  return table.concat(parts, " ")
+end
+
 local function getCharacters(isAlliance)
   local result = {}
   for _, t in ipairs(ns.api:GetAllCharacters()) do
@@ -98,7 +115,7 @@ function PlaytimeView:refresh()
   for _, t in ipairs(ns.api:GetAllCharacters()) do
     total = total + (t.playtime and t.playtime.total or 0)
   end
-  self.totalLabel:Text("Total: " .. formatTime(total))
+  self.totalLabel:Text("Total: " .. formatTotalTime(total))
 
   self:Width(self.alliance:Width() + GAP + self.horde:Width())
   self:Height(math.max(self.alliance:Height(), self.horde:Height()) + 22)
