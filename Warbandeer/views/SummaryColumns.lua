@@ -220,6 +220,63 @@ insert(
   }
 )
 
+-- M+ keystone level
+insert(
+  ns.SummaryColumns,
+  SummaryColumn:new{
+    name = "Key",
+    width = 28,
+    justifyH = ui.justify.Right,
+    tooltip = {
+      "Mythic+ Keystone",
+      "Current keystone level held by this character.",
+    },
+    getData = function(t)
+      local k = t.weeklies and t.weeklies.keystone
+      if not k then return "" end
+      return {text = "+"..k, justifyH = ui.justify.Right}
+    end,
+  }
+)
+
+-- Hero Dawncrest (IDs 3345 + 3346)
+insert(
+  ns.SummaryColumns,
+  SummaryColumn:new{
+    currencyID = 3345,
+    width = 30,
+    tooltip = {
+      "Hero Dawncrest",
+      "Hero Dawncrest currently held.",
+    },
+    getData = function(t)
+      if not t.currency then return "" end
+      local n = t.currency.HeroDawncrest
+      if not n or n == 0 then return "" end
+      return {text = n, justifyH = ui.justify.Right}
+    end,
+  }
+)
+
+-- Myth Dawncrest (IDs 3347 + 3348)
+insert(
+  ns.SummaryColumns,
+  SummaryColumn:new{
+    currencyID = 3347,
+    width = 30,
+    tooltip = {
+      "Myth Dawncrest",
+      "Myth Dawncrest currently held.",
+    },
+    getData = function(t)
+      if not t.currency then return "" end
+      local n = t.currency.MythDawncrest
+      if not n or n == 0 then return "" end
+      return {text = n, justifyH = ui.justify.Right}
+    end,
+  }
+)
+
 local formatDelves = function(toon)
   if not (toon.quests and toon.quests.delves) then return "" end
   local d = toon.quests.delves

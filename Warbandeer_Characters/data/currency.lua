@@ -27,4 +27,18 @@ ns.Currency.fields = {
       }
     end,
   },
+  HeroDawncrest = {
+    id = 3345,
+    get = function(self)
+      local info = GetCurrencyInfo(self.id)
+      return info and info.quantity or 0
+    end,
+  },
+  MythDawncrest = {
+    id = 3347,
+    get = function(self)
+      local info = GetCurrencyInfo(self.id)
+      return info and info.quantity or 0
+    end,
+  },
 }

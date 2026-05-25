@@ -10,6 +10,7 @@ local transpBk = {color = ns.Colors.TransparentBlack}
 local colInfo = {
   {name = "Character", width = 105, justifyH = Left,  backdrop = transpBk},
   {name = "Vault",     width = 45,  justifyH = Right, backdrop = transpBk},
+  {name = "M+",        width = 35,  justifyH = Right, backdrop = transpBk, padLeft = 8},
   {name = "Caches",    width = 40,  justifyH = Center, backdrop = transpBk, padLeft = 8},
 }
 
@@ -33,6 +34,12 @@ local function vaultData(toon)
   return {text = v.best, justifyH = Right}
 end
 
+local function dungeonData(toon)
+  local d = toon.weeklies and toon.weeklies.dungeons
+  if not d then return "" end
+  return {text = d.done .. "/" .. d.max, justifyH = Right}
+end
+
 local function cachesData(toon)
   local n = toon.weeklies and toon.weeklies.caches
   if not n or n == 0 then return "" end
@@ -46,6 +53,7 @@ local function buildData(isAlliance)
     insert(data, {
       c and c:WrapTextInColorCode(toon.name) or toon.name,
       vaultData(toon),
+      dungeonData(toon),
       cachesData(toon),
     })
   end
@@ -89,5 +97,7 @@ function WeeklyView:refresh()
 end
 
 function WeeklyView:OnBeforeShow()
+  ns.api:RefreshCurrentCharacterField("weeklies", "keystone")
+  ns.api:RefreshCurrentCharacterField("weeklies", "dungeons")
   self:refresh()
 end
