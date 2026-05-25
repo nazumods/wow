@@ -239,6 +239,44 @@ insert(
   }
 )
 
+-- Hero Dawncrest (IDs 3345 + 3346)
+insert(
+  ns.SummaryColumns,
+  SummaryColumn:new{
+    currencyID = 3345,
+    width = 30,
+    tooltip = {
+      "Hero Dawncrest",
+      "Total Hero Dawncrest held across both currency IDs.",
+    },
+    getData = function(t)
+      if not t.currency then return "" end
+      local n = t.currency.HeroDawncrest
+      if not n then return "" end
+      return {text = n, justifyH = ui.justify.Right}
+    end,
+  }
+)
+
+-- Myth Dawncrest (IDs 3347 + 3348)
+insert(
+  ns.SummaryColumns,
+  SummaryColumn:new{
+    currencyID = 3347,
+    width = 30,
+    tooltip = {
+      "Myth Dawncrest",
+      "Total Myth Dawncrest held across both currency IDs.",
+    },
+    getData = function(t)
+      if not t.currency then return "" end
+      local n = t.currency.MythDawncrest
+      if not n then return "" end
+      return {text = n, justifyH = ui.justify.Right}
+    end,
+  }
+)
+
 local formatDelves = function(toon)
   if not (toon.quests and toon.quests.delves) then return "" end
   local d = toon.quests.delves

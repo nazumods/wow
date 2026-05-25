@@ -27,4 +27,26 @@ ns.Currency.fields = {
       }
     end,
   },
+  HeroDawncrest = {
+    ids = {3345, 3346},
+    get = function(self)
+      local total = 0
+      for _, id in ipairs(self.ids) do
+        local info = GetCurrencyInfo(id)
+        if info then total = total + (info.quantity or 0) end
+      end
+      return total > 0 and total or nil
+    end,
+  },
+  MythDawncrest = {
+    ids = {3347, 3348},
+    get = function(self)
+      local total = 0
+      for _, id in ipairs(self.ids) do
+        local info = GetCurrencyInfo(id)
+        if info then total = total + (info.quantity or 0) end
+      end
+      return total > 0 and total or nil
+    end,
+  },
 }
