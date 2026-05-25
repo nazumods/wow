@@ -140,7 +140,7 @@ ns.Weekly.fields = {
   },
 }
 
-ns:registerCommand("dump", "mplus", function(self)
+ns:registerCommand("dump", "m+", function(self)
   local ks = self.currentData.weeklies.keystone
   local dg = self.currentData.weeklies.dungeons
   ns.Print("Keystone: " .. (ks and ("+"..ks) or "none"))
