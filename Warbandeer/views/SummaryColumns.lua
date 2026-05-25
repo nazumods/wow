@@ -239,11 +239,13 @@ insert(
   }
 )
 
+local CappedColor = {1, 0.2, 0.2, 1}
+local UncappedColor = {1, 1, 1, 1}
 local function formatCrest(c)
   if not c then return "" end
   -- stale DB entries from before the table migration store a bare number
   if type(c) == "number" then
-    return c > 0 and {text = c, justifyH = ui.justify.Right} or ""
+    return c > 0 and {text = c, justifyH = ui.justify.Center} or ""
   end
   if c.quantity == 0 then return "" end
   local lines = {c.quantity .. " held"}
@@ -253,7 +255,7 @@ local function formatCrest(c)
   end
   return {
     text     = c.quantity,
-    justifyH = ui.justify.Right,
+    justifyH = ui.justify.Center,
     color    = c.capped and CappedColor or UncappedColor,
     onEnter  = function(self)
       ui.tip:AnchorTo(self, "ANCHOR_BOTTOMRIGHT", -10, 10)
@@ -271,6 +273,7 @@ insert(
   SummaryColumn:new{
     currencyID = 3345,
     width = 30,
+    justifyH = ui.justify.Center,
     tooltip = {"Hero Dawncrest", "Hero Dawncrest held. Red when weekly cap reached."},
     getData = function(t)
       if not t.currency then return "" end
@@ -285,6 +288,7 @@ insert(
   SummaryColumn:new{
     currencyID = 3347,
     width = 30,
+    justifyH = ui.justify.Center,
     tooltip = {"Myth Dawncrest", "Myth Dawncrest held. Red when weekly cap reached."},
     getData = function(t)
       if not t.currency then return "" end
@@ -347,8 +351,6 @@ insert(
 )
 
 -- restored coffer keys (+ shards as fractional, 100 shards = 1 key)
-local CappedColor = {1, 0.2, 0.2, 1}
-local UncappedColor = {1, 1, 1, 1}
 insert(
   ns.SummaryColumns,
   SummaryColumn:new{
