@@ -370,6 +370,27 @@ insert(
   }
 )
 
+-- gilded chests (weekly bountiful delve reward quests, 0–4)
+local GILDED_MAX = 4
+insert(
+  ns.SummaryColumns,
+  SummaryColumn:new{
+    name = "Gilded",
+    width = 35,
+    justifyH = ui.justify.Center,
+    tooltip = {
+      "Gilded Chests",
+      "Weekly gilded chest quests completed (out of " .. GILDED_MAX .. ").",
+    },
+    getData = function(t)
+      local n = t.weeklies and t.weeklies.caches
+      if not n or n == 0 then return "" end
+      if n >= GILDED_MAX then return GreenCheck end
+      return {text = n .. "/" .. GILDED_MAX, justifyH = ui.justify.Center}
+    end,
+  }
+)
+
 local function formatPlaytime(seconds)
   if not seconds then return "" end
   local d = math.floor(seconds / 86400)
