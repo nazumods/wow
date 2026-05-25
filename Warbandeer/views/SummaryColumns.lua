@@ -220,6 +220,25 @@ insert(
   }
 )
 
+-- M+ keystone level
+insert(
+  ns.SummaryColumns,
+  SummaryColumn:new{
+    name = "Key",
+    width = 28,
+    justifyH = ui.justify.Right,
+    tooltip = {
+      "Mythic+ Keystone",
+      "Current keystone level held by this character.",
+    },
+    getData = function(t)
+      local k = t.weeklies and t.weeklies.keystone
+      if not k then return "" end
+      return {text = "+"..k, justifyH = ui.justify.Right}
+    end,
+  }
+)
+
 local formatDelves = function(toon)
   if not (toon.quests and toon.quests.delves) then return "" end
   local d = toon.quests.delves

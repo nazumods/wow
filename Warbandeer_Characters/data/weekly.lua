@@ -1,7 +1,10 @@
 local _, ns = ...
+-- luacheck: globals C_WeeklyRewards C_MythicPlus
 local Set, ValueList, any = ns.lua.sets.Set, ns.lua.lists.values, ns.lua.maps.any
 local Player = ns.wow.Player
 local IsQuestFlaggedCompleted = C_QuestLog.IsQuestFlaggedCompleted
+local GetActivities = C_WeeklyRewards.GetActivities
+local GetOwnedKeystoneMapAndLevel = C_MythicPlus.GetOwnedKeystoneMapAndLevel
 
 local DMFQuests = {
   Alchemy = 29506,
@@ -104,7 +107,49 @@ ns.Weekly.fields = {
     event = "WEEKLY_REWARDS_UPDATE",
     eventDelay = 1000,
   },
+  ---@class WeeklyBroker
+  ---@field keystone integer? current keystone level, nil if none
+  keystone = {
+    maxLevel = true,
+    resetOn = ns.RESET_WEEKLY,
+    get = function()
+      local _, level = GetOwnedKeystoneMapAndLevel()
+      return level  -- nil when the character has no keystone
+    end,
+    event = "CHALLENGE_MODE_COMPLETED",
+  },
+  ---@class WeeklyBroker
+  ---@field dungeons {done: integer, max: integer}? M+ runs done and vault max threshold
+  dungeons = {
+    maxLevel = true,
+    resetOn = ns.RESET_WEEKLY,
+    get = function()
+      local activities = GetActivities()
+      if not activities then return nil end
+      local done, maxThreshold = 0, 0
+      for _, a in ipairs(activities) do
+        if a.type == 1 then  -- Enum.WeeklyRewardChestThresholdType.Activities (M+ dungeons)
+          done = a.progress
+          if a.threshold > maxThreshold then maxThreshold = a.threshold end
+        end
+      end
+      return done > 0 and { done = done, max = maxThreshold } or nil
+    end,
+    event = "CHALLENGE_MODE_COMPLETED",
+    eventDelay = 2000,
+  },
 }
+
+ns:registerCommand("dump", "mplus", function(self)
+  local ks = self.currentData.weeklies.keystone
+  local dg = self.currentData.weeklies.dungeons
+  ns.Print("Keystone: " .. (ks and ("+"..ks) or "none"))
+  if dg then
+    ns.Print("Dungeons: " .. dg.done .. "/" .. dg.max)
+  else
+    ns.Print("Dungeons: 0")
+  end
+end)
 
 ns:registerCommand("dump", "vault", function(self)
   ---@type VaultRewards
