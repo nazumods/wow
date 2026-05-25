@@ -82,6 +82,11 @@ function ns:Open()
 end
 
 function ns:view(name)
+  local w = self.MainWindow
+  if w and w._widget:IsShown() and w._view == w.views[name] then
+    w:Hide()
+    return
+  end
   self:Open()
   self.MainWindow:view(name)
 end
