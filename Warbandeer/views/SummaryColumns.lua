@@ -143,12 +143,12 @@ local getBagStatus = function(toon)
   if not toon.items or not toon.items.bags then return "" end
   local n = NUM_BAG_SLOTS
   for i = 1, NUM_BAG_SLOTS do 
-    if toon.items.bags[i].slots >= 34 then n = n - 1 
+    if toon.items.bags[i].slots >= 36 then n = n - 1 
     end 
     if toon.items.bags[i].id == 92748 then n = n -1
     end
   end
-  local reagent = toon.items.reagentBag and toon.items.reagentBag.slots >= 36
+  local reagent = toon.items.reagentBag and toon.items.reagentBag.slots >= 38
   if n == 0 and reagent then return GreenCheck end
   return {
     text = (n == 0 and "" or n) .. (reagent and "" or "R"),
@@ -162,7 +162,7 @@ insert(
     width = 30,
     tooltip = {
       "Bags",
-      "Count of bags below 34 slots, plus R if the reagent bag is below 36.",
+      "Count of bags below 36 slots, plus R if the reagent bag is below 38.",
     },
     getData = getBagStatus,
   }
