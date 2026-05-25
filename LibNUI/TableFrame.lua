@@ -72,6 +72,7 @@ local TableFrame = Class(Frame, function(self)
         justifyH = self.colInfo and self.colInfo[i].justifyH,
         font = self.colHeaderFont or self.headerFont,
         color = self.colInfo and self.colInfo[i].color,
+        tooltip = self.colInfo and self.colInfo[i].tooltip,
         backdrop = self.colInfo and self.colInfo[i].backdrop or self.backdrop or self.colBackdrop or
           {color = {0, 0, 0, math.fmod(i, 2) == 0 and 0.6 or 0.4}},
       })
@@ -194,6 +195,7 @@ function TableFrame:addCol(info)
     },
     justifyH = self.colInfo and self.colInfo[n].justifyH,
     font = self.colHeaderFont or self.headerFont,
+    tooltip = self.colInfo and self.colInfo[n].tooltip,
     backdrop = self.colInfo and self.colInfo[n].backdrop or self.backdrop or self.colBackdrop or
       {color = {0, 0, 0, math.fmod(n, 2) == 0 and 0.6 or 0.4}},
   })

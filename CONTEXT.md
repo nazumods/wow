@@ -266,7 +266,7 @@ OOP UI widget library. Global: `LibNUI` (also `ns.ui` in consuming addons).
 | `LibNUI/ScrollFrame.lua` | Scrollable container |
 | `LibNUI/CleanFrame.lua` | Styled frame with dark background and border |
 | `LibNUI/Cell.lua` | Table cell, auto-renders as Label or Texture |
-| `LibNUI/TableCol.lua` | Column header strip |
+| `LibNUI/TableCol.lua` | Column header strip; `header` is a Frame so it can carry mouse scripts (e.g. `tooltip`). The Label/Texture content is parented inside and surfaced as `header.label` / `header.texture` |
 | `LibNUI/TableRow.lua` | Row header strip |
 | `LibNUI/TableFrame.lua` | Full data grid with headers and cells |
 | `LibNUI/TitleFrame.lua` | Windowed frame with title bar, icon, close button |
@@ -333,6 +333,7 @@ Calls `self:CreateWidget()` (subclass provides), then applies `position` and `al
 | `Position(position)` | Apply declarative position table |
 | `SetPoint(point, target?, edge?, x?, y?)` | Anchor (auto-unwraps target) |
 | `All()` | `SetAllPoints()` |
+| `ClearAllPoints()` | `ClearAllPoints()` |
 | `Center/Top/TopLeft/TopRight/Bottom/BottomLeft/BottomRight/Left/Right(...)` | Shorthand anchors |
 | `Size(x?, y?)` | Getter/setter |
 | `Width(w?)` / `Height(h?)` | Getter/setter |
@@ -511,7 +512,7 @@ Computed **once at construction**: `offsetX = rowNames ~= nil ? headerWidth : 0`
 `onLoad()`, `row(n)`, `col(n)`, `set(row, col, element)`, `addCol(info)`, `addRow(info)`, `update()`
 
 ### `colInfo` Fields
-`name`, `width`, `atlas`, `atlasSize`, `padding`, `padLeft`, `justifyH`, `color`, `backdrop`, `autosize`
+`name`, `width`, `atlas`, `atlasSize`, `padding`, `padLeft`, `justifyH`, `color`, `backdrop`, `autosize`, `tooltip` (string or string[] — shown on header hover via `ui.tip`)
 
 ### `rowInfo` Fields
 `name`, `height`, `atlas`, `atlasSize`, `justifyH`, `color`, `backdrop`
@@ -523,7 +524,7 @@ Computed **once at construction**: `offsetX = rowNames ~= nil ? headerWidth : 0`
 Defaults: `strata="DIALOG"`, `background={0,0,0,0.7}`, `inset=3`
 
 ### Methods
-`ClearLines()`, `AddLine(text, r?, g?, b?, a?)`, `AnchorTo(frame, anchor, dx?, dy?)`, `ShowForCharacter(toon, position)`
+`ClearLines()`, `AddLine(text, r?, g?, b?, a?)`, `AnchorTo(frame, anchor, dx?, dy?)`, `ShowForCharacter(toon, position)`, `MaxWidth(w)` (cap content width; pass nil to clear — deviates from getter pattern since nil is a meaningful set value)
 
 Singleton: `ui.tip`
 Helpers: `ui.ShowCharacterTooltip(toon, frame, position)`, `ui.HideCharacterTooltip()`

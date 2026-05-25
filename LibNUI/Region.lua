@@ -48,6 +48,7 @@ function Region:SetPoint(point, target, edge, x, y)
 end
 
 function Region:All() self._widget:SetAllPoints() end
+function Region:ClearAllPoints() self._widget:ClearAllPoints() end
 function Region:Center(...) self:SetPoint(ui.edge.Center, ...) end
 function Region:Top(...) self:SetPoint(ui.edge.Top, ...) end
 function Region:TopLeft(...) self:SetPoint(ui.edge.TopLeft, ...) end

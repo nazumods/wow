@@ -46,8 +46,23 @@ end, {
   background = {0, 0, 0, 0.7},
   inset = 3,
   lines = {},
+  maxWidth = nil,
 })
 ui.Tooltip = Tooltip
+
+-- Cap the tooltip's content width. When a line's natural width exceeds the
+-- cap, the FontString wraps via its anchor-driven width (lines are All=true
+-- inside frames whose width tracks the tooltip's), and the line frame grows
+-- vertically to fit the wrapped height. Pass nil to remove the cap.
+--
+-- This deviates from the standard getter/setter pattern because nil is a
+-- meaningful set value (clears the cap). Read `tooltip.maxWidth` directly.
+---@param w number?
+---@return Tooltip
+function Tooltip:MaxWidth(w)
+  self.maxWidth = w
+  return self
+end
 
 -- Grabs the next line frame from the pool, creating one if the pool is exhausted.
 -- Repositions pooled frames to maintain correct stacking order after ClearLines().
@@ -116,12 +131,29 @@ function Tooltip:AddLine(text, r, g, b, a)
   else
     l.label:Color(1, 1, 1, 1)
   end
-  local lineW = l.label._widget:GetUnboundedStringWidth()
+
+  -- Width budget for a single text line. With a cap in effect, anything wider
+  -- than maxLineW gets wrapped: capping the tooltip width propagates through
+  -- the line frame (Right anchor → tooltip.Right) and the All=true label, so
+  -- the FontString wraps to maxLineW.
+  local fs = l.label._widget
+  local rawW = fs:GetUnboundedStringWidth()
+  local maxLineW = self.maxWidth and (self.maxWidth - 2 * self.inset)
+  local wraps = maxLineW ~= nil and rawW > maxLineW
+  local lineW = wraps and maxLineW or rawW
+
   if lineW > self._w then
     self._w = lineW
     self:Width(self._w + 2 * self.inset)
   end
-  self._h = self._h + l:Height()
+
+  -- Pooled lines retain whatever height a prior wrapped use gave them. Reset
+  -- to the default row height when not wrapping, otherwise use the wrapped
+  -- height reported by the FontString.
+  local lineH = wraps and fs:GetStringHeight() or 20
+  if lineH < 1 then lineH = 20 end
+  l:Height(lineH)
+  self._h = self._h + lineH
   self:Height(self._h + 2 * self.inset)
 end
 

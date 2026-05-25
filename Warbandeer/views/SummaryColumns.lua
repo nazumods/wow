@@ -24,6 +24,7 @@ local SummaryColumn = Class(nil, function(self)
     -- TableCol's "centered square" branch fires for atlas icons.
     path = path,
     coords = coords,
+    tooltip = self.tooltip,
   }
   if atlas then self.colInfo.atlasSize = false end
 end, {
@@ -34,6 +35,7 @@ end, {
   padLeft = nil,
   icon = nil,
   currencyID = nil,
+  tooltip = nil,
   getData = function() return "" end, -- function to get data for this column
 })
 
@@ -158,6 +160,10 @@ insert(
   SummaryColumn:new{
     icon = Icons.Bag,
     width = 30,
+    tooltip = {
+      "Bags",
+      "Count of bags below 34 slots, plus R if the reagent bag is below 36.",
+    },
     getData = getBagStatus,
   }
 )
@@ -243,6 +249,10 @@ insert(
   SummaryColumn:new{
     name = "D",
     justifyH = ui.justify.Center,
+    tooltip = {
+      "Delves",
+      "Weekly bountiful delve quests remaining. Green check when all done.",
+    },
     getData = formatDelves,
   }
 )
@@ -253,6 +263,10 @@ insert(
   SummaryColumn:new{
     name = "L",
     justifyH = ui.justify.Center,
+    tooltip = {
+      "Lumber For You",
+      "Make sure your alt has their lumber axe! Green check when complete.",
+    },
     getData = function(t)
       return t.quests and t.quests.LumberAxe and GreenCheck or ""
     end,
@@ -267,6 +281,10 @@ insert(
   SummaryColumn:new{
     currencyID = 3028, -- Restored Coffer Key
     width = 40,
+    tooltip = {
+      "Restored Coffer Keys",
+      "Keys + shards/100 as a fractional total. Red when shards are capped.",
+    },
     getData = function(t)
       if not t.currency then return "" end
       local keys = t.currency.RestoredCofferKey or 0
@@ -287,6 +305,10 @@ insert(
   ns.SummaryColumns,
   SummaryColumn:new{
     icon = Icons.Treasure,
+    tooltip = {
+      "Unopened weekly caches",
+      "Counts both completed Great Vault caches and other unopened weeklies.",
+    },
     getData = function(t) return t.weeklies and t.weeklies.caches and t.weeklies.caches > 0 and {text = t.weeklies.caches, justifyH = ui.justify.Center} or "" end,
   }
 )
