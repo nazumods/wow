@@ -314,13 +314,14 @@ local Overview = Class(Frame, function(self)
   self:Height(20 + math.max(self.topAlts:Height(), tabH))
   self:Width(10 + self.topAlts:Width() + 10 + tabW)
 
-  -- Request housing data asynchronously; populate when the response arrives
+  -- Populate housing: try synchronously first (data may already be cached),
+  -- then listen for the async event in case a server fetch is needed.
   local housing = self.midnightHousing
   ns:registerEvent("PLAYER_HOUSE_LIST_UPDATED", function(_, houseInfos)
     housing:Populate(houseInfos)
   end)
   if HasHousingExpansionAccess() then
-    GetPlayerOwnedHouses()  -- triggers async fetch; result arrives via PLAYER_HOUSE_LIST_UPDATED
+    housing:Populate(GetPlayerOwnedHouses())  -- use return value if cached; also triggers fetch
   end
 end, {
   name = "overview",
