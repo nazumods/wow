@@ -141,6 +141,8 @@ SummaryView.name = "summary"
 ns.views.SummaryView = SummaryView
 
 function SummaryView:OnBeforeShow()
+  ns.api:RefreshCurrentCharacterField("weeklies", "keystone")
+  ns.api:RefreshCurrentCharacterField("weeklies", "dungeons")
   self.alliance:OnBeforeShow()
   self.horde:OnBeforeShow()
 end

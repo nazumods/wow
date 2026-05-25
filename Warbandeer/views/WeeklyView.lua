@@ -97,5 +97,7 @@ function WeeklyView:refresh()
 end
 
 function WeeklyView:OnBeforeShow()
+  ns.api:RefreshCurrentCharacterField("weeklies", "keystone")
+  ns.api:RefreshCurrentCharacterField("weeklies", "dungeons")
   self:refresh()
 end

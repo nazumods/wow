@@ -45,3 +45,19 @@ function API:GetHordeCharacters()
   end
   return c
 end
+
+---Synchronously re-fetch one broker field for the current character.
+---Safe to call at any time; respects the maxLevel guard.
+---@param brokerName string
+---@param fieldName string
+function API:RefreshCurrentCharacterField(brokerName, fieldName)
+  local toon = ns.currentData
+  if not toon then return end
+  local broker = ns.brokers[brokerName]
+  if not broker then return end
+  local field = broker.fields[fieldName]
+  if not field then return end
+  if not (field.maxLevel and toon.basic.level < ns.wow.maxLevel) then
+    toon[brokerName][fieldName] = field:get(toon, toon[brokerName][fieldName])
+  end
+end
