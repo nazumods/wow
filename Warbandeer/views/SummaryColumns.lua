@@ -314,11 +314,10 @@ local formatDelves = function(toon)
       ui.tip:ClearLines()
       table.sort(labels)
       for _,label in ipairs(labels) do
-        local done = d[label]
-        if done then
-          ui.tip:AddLine(label..' true')
+        if d[label] then
+          ui.tip:AddLine(label)
         else
-          ui.tip:AddLine(label..' false', 1, 0, 0)
+          ui.tip:AddLine(label, 1, 0, 0)
         end
       end
       ui.tip:Show()
