@@ -247,7 +247,7 @@ insert(
     width = 30,
     tooltip = {
       "Hero Dawncrest",
-      "Total Hero Dawncrest held across both currency IDs.",
+      "Hero Dawncrest currently held.",
     },
     getData = function(t)
       if not t.currency then return "" end
@@ -266,7 +266,7 @@ insert(
     width = 30,
     tooltip = {
       "Myth Dawncrest",
-      "Total Myth Dawncrest held across both currency IDs.",
+      "Myth Dawncrest currently held.",
     },
     getData = function(t)
       if not t.currency then return "" end
