@@ -31,14 +31,30 @@ ns.Currency.fields = {
     id = 3345,
     get = function(self)
       local info = GetCurrencyInfo(self.id)
-      return info and info.quantity or 0
+      if not info then return {quantity = 0, earned = 0, max = 0, capped = false} end
+      local earned = info.quantityEarnedThisWeek or 0
+      local max    = info.maxWeeklyQuantity or 0
+      return {
+        quantity = info.quantity or 0,
+        earned   = earned,
+        max      = max,
+        capped   = max > 0 and earned >= max,
+      }
     end,
   },
   MythDawncrest = {
     id = 3347,
     get = function(self)
       local info = GetCurrencyInfo(self.id)
-      return info and info.quantity or 0
+      if not info then return {quantity = 0, earned = 0, max = 0, capped = false} end
+      local earned = info.quantityEarnedThisWeek or 0
+      local max    = info.maxWeeklyQuantity or 0
+      return {
+        quantity = info.quantity or 0,
+        earned   = earned,
+        max      = max,
+        capped   = max > 0 and earned >= max,
+      }
     end,
   },
 }

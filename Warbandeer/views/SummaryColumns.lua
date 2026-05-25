@@ -239,40 +239,51 @@ insert(
   }
 )
 
--- Hero Dawncrest (IDs 3345 + 3346)
+local function formatCrest(c)
+  if not c or c.quantity == 0 then return "" end
+  local lines = {c.quantity .. " held"}
+  if c.max > 0 then
+    lines[2] = c.earned .. " / " .. c.max .. " earned this week"
+    if c.capped then lines[3] = "Weekly cap reached" end
+  end
+  return {
+    text     = c.quantity,
+    justifyH = ui.justify.Right,
+    color    = c.capped and CappedColor or UncappedColor,
+    onEnter  = function(self)
+      ui.tip:AnchorTo(self, "ANCHOR_BOTTOMRIGHT", -10, 10)
+      ui.tip:ClearLines()
+      for _, l in ipairs(lines) do ui.tip:AddLine(l) end
+      ui.tip:Show()
+    end,
+    onLeave = function(self) ui.tip:Hide() end,
+  }
+end
+
+-- Hero Dawncrest
 insert(
   ns.SummaryColumns,
   SummaryColumn:new{
     currencyID = 3345,
     width = 30,
-    tooltip = {
-      "Hero Dawncrest",
-      "Hero Dawncrest currently held.",
-    },
+    tooltip = {"Hero Dawncrest", "Hero Dawncrest held. Red when weekly cap reached."},
     getData = function(t)
       if not t.currency then return "" end
-      local n = t.currency.HeroDawncrest
-      if not n or n == 0 then return "" end
-      return {text = n, justifyH = ui.justify.Right}
+      return formatCrest(t.currency.HeroDawncrest)
     end,
   }
 )
 
--- Myth Dawncrest (IDs 3347 + 3348)
+-- Myth Dawncrest
 insert(
   ns.SummaryColumns,
   SummaryColumn:new{
     currencyID = 3347,
     width = 30,
-    tooltip = {
-      "Myth Dawncrest",
-      "Myth Dawncrest currently held.",
-    },
+    tooltip = {"Myth Dawncrest", "Myth Dawncrest held. Red when weekly cap reached."},
     getData = function(t)
       if not t.currency then return "" end
-      local n = t.currency.MythDawncrest
-      if not n or n == 0 then return "" end
-      return {text = n, justifyH = ui.justify.Right}
+      return formatCrest(t.currency.MythDawncrest)
     end,
   }
 )
