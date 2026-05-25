@@ -287,14 +287,20 @@ local Overview = Class(Frame, function(self)
       goldTotal = goldTotal + toon.currency.gold
     end
   end
+  self.goldHeader = Label:new{
+    parent   = self,
+    position = { TopLeft = {self.topAlts, ui.edge.BottomLeft, 0, -20} },
+    text     = "Total Gold",
+    color    = {1, 1, 1, 0.6},
+  }
   self.goldLabel = Label:new{
     parent   = self,
-    position = { TopLeft = {self.topAlts, ui.edge.BottomLeft, 0, -8} },
+    position = { TopLeft = {self.goldHeader, ui.edge.BottomLeft, 0, -4} },
     text     = BreakUpLargeNumbers(math.floor(goldTotal / 10000)) .. "g",
     color    = {1, 0.82, 0, 1},
   }
 
-  local leftH = self.topAlts:Height() + 24
+  local leftH = self.topAlts:Height() + 56
   self:Height(20 + math.max(leftH, tabH))
   self:Width(10 + self.topAlts:Width() + 10 + tabW)
 end, {
