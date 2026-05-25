@@ -1,7 +1,9 @@
 local _, ns = ...
 local insert = table.insert
 local ui = ns.ui
+-- luacheck: globals DIM_GREEN_FONT_COLOR DIM_RED_FONT_COLOR NORMAL_FONT_COLOR GetAchievementInfo OpenAchievementFrameToAchievement BreakUpLargeNumbers
 local Class, Frame, TableFrame, TabFrame, Texture, Label = ns.lua.Class, ui.Frame, ui.TableFrame, ui.TabFrame, ui.Texture, ui.Label
+local BreakUpLargeNumbers = BreakUpLargeNumbers
 local GetMajorFactionIDs = C_MajorFactions.GetMajorFactionIDs
 local GetMajorFactionData, GetFactionDataByID = C_MajorFactions.GetMajorFactionData, C_Reputation.GetFactionDataByID
 local GetRenownLevels, IsFactionParagon = C_MajorFactions.GetRenownLevels, C_Reputation.IsFactionParagon
@@ -279,7 +281,27 @@ local Overview = Class(Frame, function(self)
   self.tabFrame:Width(tabW)
   self.tabFrame:Height(tabH)
 
-  self:Height(20 + math.max(self.topAlts:Height(), tabH))
+  local goldTotal = 0
+  for _, toon in ipairs(ns.api.GetAllCharacters()) do
+    if toon.currency and toon.currency.gold then
+      goldTotal = goldTotal + toon.currency.gold
+    end
+  end
+  self.goldHeader = Label:new{
+    parent   = self,
+    position = { TopLeft = {self.topAlts, ui.edge.BottomLeft, 0, -20} },
+    text     = "Total Gold",
+    color    = {1, 1, 1, 1},
+  }
+  self.goldLabel = Label:new{
+    parent   = self,
+    position = { TopLeft = {self.goldHeader, ui.edge.BottomLeft, 0, -4} },
+    text     = BreakUpLargeNumbers(math.floor(goldTotal / 10000)) .. "g",
+    color    = {1, 0.82, 0, 1},
+  }
+
+  local leftH = self.topAlts:Height() + 56
+  self:Height(20 + math.max(leftH, tabH))
   self:Width(10 + self.topAlts:Width() + 10 + tabW)
 end, {
   name = "overview",

@@ -43,8 +43,8 @@ local GreenCheck = {
   atlas = ns.icons.CheckGreen,
   atlasSize = false,
   position = {
-    TopLeft = {3, -2},
-    BottomRight = {-3, 2},
+    Center = {},
+    Size = {16, 16},
   },
 }
 
@@ -203,8 +203,8 @@ local UnclaimedVault = {
   atlas = Icons.Vault,
   atlasSize = false,
   position = {
-    TopLeft = {3, -2},
-    BottomRight = {-3, 2},
+    Center = {},
+    Size = {16, 16},
   },
 }
 insert(
@@ -239,40 +239,60 @@ insert(
   }
 )
 
--- Hero Dawncrest (IDs 3345 + 3346)
+local CappedColor = {1, 0.2, 0.2, 1}
+local UncappedColor = {1, 1, 1, 1}
+local function formatCrest(c)
+  if not c then return "" end
+  -- stale DB entries from before the table migration store a bare number
+  if type(c) == "number" then
+    return c > 0 and {text = c, justifyH = ui.justify.Center} or ""
+  end
+  if c.quantity == 0 then return "" end
+  local lines = {c.quantity .. " held"}
+  if c.max > 0 then
+    lines[2] = c.earned .. " / " .. c.max .. " earned this week"
+    if c.capped then lines[3] = "Weekly cap reached" end
+  end
+  return {
+    text     = c.quantity,
+    justifyH = ui.justify.Center,
+    color    = c.capped and CappedColor or UncappedColor,
+    onEnter  = function(self)
+      ui.tip:AnchorTo(self, "ANCHOR_BOTTOMRIGHT", -10, 10)
+      ui.tip:ClearLines()
+      for _, l in ipairs(lines) do ui.tip:AddLine(l) end
+      ui.tip:Show()
+    end,
+    onLeave = function(self) ui.tip:Hide() end,
+  }
+end
+
+-- Hero Dawncrest
 insert(
   ns.SummaryColumns,
   SummaryColumn:new{
     currencyID = 3345,
     width = 30,
-    tooltip = {
-      "Hero Dawncrest",
-      "Hero Dawncrest currently held.",
-    },
+    justifyH = ui.justify.Center,
+    tooltip = {"Hero Dawncrest", "Hero Dawncrest held. Red when weekly cap reached."},
     getData = function(t)
       if not t.currency then return "" end
-      local n = t.currency.HeroDawncrest
-      if not n or n == 0 then return "" end
-      return {text = n, justifyH = ui.justify.Right}
+      return formatCrest(t.currency.HeroDawncrest)
     end,
   }
 )
 
--- Myth Dawncrest (IDs 3347 + 3348)
+-- Myth Dawncrest
 insert(
   ns.SummaryColumns,
   SummaryColumn:new{
     currencyID = 3347,
     width = 30,
-    tooltip = {
-      "Myth Dawncrest",
-      "Myth Dawncrest currently held.",
-    },
+    justifyH = ui.justify.Center,
+    tooltip = {"Myth Dawncrest", "Myth Dawncrest held. Red when weekly cap reached."},
     getData = function(t)
       if not t.currency then return "" end
-      local n = t.currency.MythDawncrest
-      if not n or n == 0 then return "" end
-      return {text = n, justifyH = ui.justify.Right}
+      return formatCrest(t.currency.MythDawncrest)
     end,
   }
 )
@@ -294,7 +314,11 @@ local formatDelves = function(toon)
       ui.tip:ClearLines()
       table.sort(labels)
       for _,label in ipairs(labels) do
-        ui.tip:AddLine(label..' '..(d[label] and 'true' or 'false'))
+        if d[label] then
+          ui.tip:AddLine(label)
+        else
+          ui.tip:AddLine(label, 1, 0, 0)
+        end
       end
       ui.tip:Show()
     end,
@@ -331,8 +355,6 @@ insert(
 )
 
 -- restored coffer keys (+ shards as fractional, 100 shards = 1 key)
-local CappedColor = {1, 0.2, 0.2, 1}
-local UncappedColor = {1, 1, 1, 1}
 insert(
   ns.SummaryColumns,
   SummaryColumn:new{

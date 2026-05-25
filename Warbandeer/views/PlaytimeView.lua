@@ -1,14 +1,16 @@
 local _, ns = ...
 local ui = ns.ui
 local insert = table.insert
-local Class, Frame, TableFrame = ns.lua.Class, ui.Frame, ui.TableFrame
+local Class, Frame, TableFrame, Label = ns.lua.Class, ui.Frame, ui.TableFrame, ui.Label
 local Left = ui.justify.Left
 local RAID_CLASS_COLORS = RAID_CLASS_COLORS -- luacheck: globals RAID_CLASS_COLORS
 
 local transpBk = {color = {0, 0, 0, 0}}
 
+local Icons = ns.icons
 local colInfo = {
-  {name = "Character", width = 105, justifyH = Left, backdrop = transpBk},
+  {name = "",          width = 20,  backdrop = transpBk},
+  {name = "Character", width = 105, justifyH = Left, backdrop = transpBk, padLeft = 2},
   {name = "Lvl",       width = 30,  justifyH = Left, backdrop = transpBk},
   {name = "Class",     width = 90,  justifyH = Left, backdrop = transpBk},
   {name = "Played",    width = 95,  justifyH = Left, backdrop = transpBk, padLeft = 10},
@@ -22,6 +24,23 @@ local function formatTime(seconds)
   if d > 0 then return d.."d "..h.."h "..m.."m" end
   if h > 0 then return h.."h "..m.."m" end
   return m.."m"
+end
+
+local function formatTotalTime(seconds)
+  if not seconds then return "" end
+  local d = math.floor(seconds / 86400)
+  local h = math.floor((seconds % 86400) / 3600)
+  local m = math.floor((seconds % 3600) / 60)
+  local y  = math.floor(d / 365)
+  local mo = math.floor((d % 365) / 30)
+  local dd = d % 365 % 30
+  local parts = {}
+  if y  > 0 then parts[#parts+1] = y.."y"  end
+  if mo > 0 then parts[#parts+1] = mo.."mo" end
+  if dd > 0 then parts[#parts+1] = dd.."d"  end
+  if h  > 0 then parts[#parts+1] = h.."h"  end
+  if m  > 0 then parts[#parts+1] = m.."m"  end
+  return table.concat(parts, " ")
 end
 
 local function getCharacters(isAlliance)
@@ -44,6 +63,7 @@ local function buildData(isAlliance)
   for _, toon in ipairs(getCharacters(isAlliance)) do
     local c = toon.classKey and RAID_CLASS_COLORS[toon.classKey:upper()]
     insert(data, {
+      toon.isAlliance and Icons.AllianceLight or Icons.HordeLight,
       c and c:WrapTextInColorCode(toon.name) or toon.name,
       toon.basic.level,
       toon.className or "?",
@@ -68,6 +88,15 @@ local PlaytimeView = Class(Frame, function(self)
     cellHeight = 16,
     position   = { TopLeft = {self.alliance, ui.edge.TopRight, GAP, 0} },
   }
+  self.totalLabel = Label:new{
+    parent   = self,
+    position = {
+      TopLeft  = {self, ui.edge.BottomLeft,  0, 16},
+      TopRight = {self, ui.edge.BottomRight, 0, 16},
+    },
+    justifyH = ui.justify.Center,
+    color    = {1, 1, 1, 0.6},
+  }
   self:refresh()
 end, {
   name   = "playtime",
@@ -81,8 +110,15 @@ function PlaytimeView:refresh()
   self.alliance:update()
   self.horde.data    = buildData(false)
   self.horde:update()
+
+  local total = 0
+  for _, t in ipairs(ns.api:GetAllCharacters()) do
+    total = total + (t.playtime and t.playtime.total or 0)
+  end
+  self.totalLabel:Text("Total: " .. formatTotalTime(total))
+
   self:Width(self.alliance:Width() + GAP + self.horde:Width())
-  self:Height(math.max(self.alliance:Height(), self.horde:Height()))
+  self:Height(math.max(self.alliance:Height(), self.horde:Height()) + 22)
 end
 
 function PlaytimeView:OnBeforeShow()

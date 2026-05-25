@@ -1,5 +1,6 @@
 local _, ns = ...
 local ui = ns.ui
+-- luacheck: globals DISABLED_FONT_COLOR DIM_GREEN_FONT_COLOR NORMAL_FONT_COLOR
 local Class, Frame, TableFrame, ScrollFrame = ns.lua.Class, ui.Frame, ui.TableFrame, ui.ScrollFrame
 local Colors = ns.Colors
 local insert, sort = table.insert, table.sort
@@ -23,7 +24,7 @@ local EXP_ABBR = {
 
 -- Professions in display order (no Fishing — no expansion sub-skills).
 local PROF_ORDER = {
-  "Alchemy", "Blacksmithing", "Cooking", "Enchanting", "Engineering",
+  "Alchemy", "Blacksmithing", "Cooking", "Enchanting", "Engineering", "Fishing",
   "Herbalism", "Inscription", "Jewelcrafting", "Leatherworking",
   "Mining", "Skinning", "Tailoring",
 }
