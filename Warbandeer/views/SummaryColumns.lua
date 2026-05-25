@@ -239,6 +239,19 @@ insert(
   }
 )
 
+local CappedColor = {1, 0.2, 0.2, 1}
+local UncappedColor = {1, 1, 1, 1}
+local function formatCrest(c)
+  if not c then return "" end
+  local qty = type(c) == "table" and c.quantity or c
+  if qty == 0 then return "" end
+  return {
+    text = qty,
+    justifyH = ui.justify.Right,
+    color = (type(c) == "table" and c.capped) and CappedColor or UncappedColor,
+  }
+end
+
 -- Hero Dawncrest (IDs 3345 + 3346)
 insert(
   ns.SummaryColumns,
@@ -251,9 +264,7 @@ insert(
     },
     getData = function(t)
       if not t.currency then return "" end
-      local n = t.currency.HeroDawncrest
-      if not n or n == 0 then return "" end
-      return {text = n, justifyH = ui.justify.Right}
+      return formatCrest(t.currency.HeroDawncrest)
     end,
   }
 )
@@ -270,9 +281,7 @@ insert(
     },
     getData = function(t)
       if not t.currency then return "" end
-      local n = t.currency.MythDawncrest
-      if not n or n == 0 then return "" end
-      return {text = n, justifyH = ui.justify.Right}
+      return formatCrest(t.currency.MythDawncrest)
     end,
   }
 )
@@ -331,8 +340,6 @@ insert(
 )
 
 -- restored coffer keys (+ shards as fractional, 100 shards = 1 key)
-local CappedColor = {1, 0.2, 0.2, 1}
-local UncappedColor = {1, 1, 1, 1}
 insert(
   ns.SummaryColumns,
   SummaryColumn:new{
