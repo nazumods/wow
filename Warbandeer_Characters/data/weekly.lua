@@ -4,7 +4,7 @@ local Set, ValueList, any = ns.lua.sets.Set, ns.lua.lists.values, ns.lua.maps.an
 local Player = ns.wow.Player
 local IsQuestFlaggedCompleted = C_QuestLog.IsQuestFlaggedCompleted
 local GetActivities = C_WeeklyRewards.GetActivities
-local GetOwnedKeystoneMapAndLevel = C_MythicPlus.GetOwnedKeystoneMapAndLevel
+local GetOwnedKeystoneLevel = C_MythicPlus.GetOwnedKeystoneLevel
 
 local DMFQuests = {
   Alchemy = 29506,
@@ -113,8 +113,7 @@ ns.Weekly.fields = {
     maxLevel = true,
     resetOn = ns.RESET_WEEKLY,
     get = function()
-      local _, level = GetOwnedKeystoneMapAndLevel()
-      return level  -- nil when the character has no keystone
+      return GetOwnedKeystoneLevel()  -- MayReturnNothing: nil when no keystone
     end,
     event = "CHALLENGE_MODE_COMPLETED",
   },
