@@ -24,7 +24,7 @@ local EXP_ABBR = {
 
 -- Professions in display order (no Fishing — no expansion sub-skills).
 local PROF_ORDER = {
-  "Alchemy", "Blacksmithing", "Cooking", "Enchanting", "Engineering",
+  "Alchemy", "Blacksmithing", "Cooking", "Enchanting", "Engineering", "Fishing",
   "Herbalism", "Inscription", "Jewelcrafting", "Leatherworking",
   "Mining", "Skinning", "Tailoring",
 }
