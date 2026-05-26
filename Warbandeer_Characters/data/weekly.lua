@@ -56,7 +56,7 @@ ns.Weekly.fields = {
   ---@field caches integer
   caches = {
     ids = Set{
-      93595, 93766, 88998, 89507, -- Midnight
+      93595, 93766, 93769, 88998, 89507, -- Midnight
       --84736, 84737, 84738, 84739, -- WWI cache 1-4 Season 1 & 2
       -- 91175, 91176, 91177, 91178, -- WWI cache 1-4 Season 3
       --82453, -- The Beginning of the End (From Dragon flight??)
