@@ -45,3 +45,4 @@ api.lua
 dump.lua
 missing.lua
 wmissing.lua
+debug.lua
