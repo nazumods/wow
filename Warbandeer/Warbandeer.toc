@@ -2,7 +2,7 @@
 ## Category: Warband
 ## Title: Warbandeer
 ## Author: Nazuraki
-## Version: 12.0.5-r20
+## Version: 12.0.5-r21
 ## IconTexture: Interface\Icons\inv_10_tailoring2_banner_green
 ## SavedVariables: WarbandeerDB
 ## AddonCompartmentFunc: Warbandeer_OnAddonCompartmentClick
