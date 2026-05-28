@@ -17,10 +17,21 @@ local Tooltip = Class(CleanFrame, function(self)
   }
   h = h + self.name:Height() + 2
 
-  self.specialization = Label:new{
+  self.race = Label:new{
     parent = self,
     position = {
       TopLeft = {self.name, ui.edge.BottomLeft, 0, -5},
+    },
+    color = NORMAL_FONT_COLOR,
+    text = "Race",
+  }
+  h = h + self.race:Height() + 5
+  w = w + self.race:Width()
+
+  self.specialization = Label:new{
+    parent = self,
+    position = {
+      TopLeft = {self.race, ui.edge.BottomLeft, 0, -5},
     },
     color = NORMAL_FONT_COLOR,
     text = "Specialization",
@@ -92,6 +103,8 @@ function Tooltip:SetToon(toon)
 
   self.name:Text(toon.name):Color(Colors[toon.classKey])
   self.specialization:Text(toon.basic.specialization.active or "")
+  local raceList = toon.isAlliance and ns.api.ALLIANCE_RACES or ns.api.HORDE_RACES
+  self.race:Text(raceList[toon.raceIdx] or toon.race or "")
   self.class:Text(toon.className):Color(Colors[toon.classKey])
   self.realm:Text(toon.realm)
 end
