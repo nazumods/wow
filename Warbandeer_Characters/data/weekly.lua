@@ -6,6 +6,13 @@ local IsQuestFlaggedCompleted = C_QuestLog.IsQuestFlaggedCompleted
 local GetActivities = C_WeeklyRewards.GetActivities
 local GetOwnedKeystoneLevel = C_MythicPlus.GetOwnedKeystoneLevel
 
+local function anyDone(...)
+  for i = 1, select('#', ...) do
+    if IsQuestFlaggedCompleted(select(i, ...)) then return true end
+  end
+  return false
+end
+
 local DMFQuests = {
   Alchemy = 29506,
   Blacksmithing = 29508,
@@ -50,6 +57,48 @@ ns.Weekly.fields = {
     eventHandler = function(self, _, questId)
       if self.ids[questId] then self:set(self:get())
       end
+    end,
+  },
+  midnightS1 = {
+    ids = Set{
+      90962,                                                                              -- Stormarion Assault
+      95842, 94385, 94386,                                                               -- Void Assaults
+      95843, 94880, 94878,                                                               -- Ritual Sites
+      92447, 96388,                                                                      -- Abyss Anglers
+      92319, 92320, 92321, 92322, 92323, 92324, 92325, 92326, 92327,                    -- Arcantina
+      93751, 93752, 93753, 93754, 93755, 93756, 93757, 93758, 95468,                    -- Halduron
+      93744, 93889, 93890, 93891, 93892, 93909, 93910, 93911, 93912, 93913,             -- Unity Against the Void
+      93766, 93767, 93769, 94457,                                                        -- Unity branches
+      91390, 91796, 92063, 92139, 92145, 93013, 93244, 93438,                           -- Special Assignments
+      89289, 91966,                                                                      -- Soiree
+      90573, 90574, 90575, 90576,                                                        -- Fortify Runestones
+    },
+    resetOn = ns.RESET_WEEKLY,
+    get = function()
+      return {
+        voidAssaults      = anyDone(95842, 94385, 94386),
+        ritualSites       = anyDone(95843, 94880, 94878),
+        abyssAnglers      = anyDone(92447, 96388),
+        arcantina         = anyDone(92319, 92320, 92321, 92322, 92323, 92324, 92325, 92326, 92327),
+        halduron          = anyDone(93751, 93752, 93753, 93754, 93755, 93756, 93757, 93758, 95468),
+        unityVoid         = anyDone(93744, 93889, 93890, 93891, 93892, 93909, 93910, 93911, 93912, 93913, 93766, 93767, 93769, 94457),
+        specialAssignment = anyDone(91390, 91796, 92063, 92139, 92145, 93013, 93244, 93438),
+        soiree            = anyDone(89289, 91966),
+        fortifyRunestones = anyDone(90573, 90574, 90575, 90576),
+        stormarion        = IsQuestFlaggedCompleted(90962),
+      }
+    end,
+    reset = function()
+      return {
+        voidAssaults = false, ritualSites = false, abyssAnglers = false,
+        arcantina = false, halduron = false, unityVoid = false,
+        specialAssignment = false, soiree = false, fortifyRunestones = false,
+        stormarion = false,
+      }
+    end,
+    event = "QUEST_TURNED_IN",
+    eventHandler = function(self, _, questId)
+      if self.ids[questId] then self:set(self:get()) end
     end,
   },
   ---@class WeeklyBroker

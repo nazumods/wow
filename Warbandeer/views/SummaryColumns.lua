@@ -505,6 +505,60 @@ insert(
   }
 )
 
+local S1_FIELDS = {
+  { key = "voidAssaults",       label = "Void Assaults"       },
+  { key = "ritualSites",        label = "Ritual Sites"        },
+  { key = "abyssAnglers",       label = "Abyss Anglers"       },
+  { key = "arcantina",          label = "Arcantina"           },
+  { key = "halduron",           label = "Halduron"            },
+  { key = "unityVoid",          label = "Unity Against Void"  },
+  { key = "specialAssignment",  label = "Special Assignment"  },
+  { key = "soiree",             label = "Soiree"              },
+  { key = "fortifyRunestones",  label = "Fortify Runestones"  },
+  { key = "stormarion",         label = "Stormarion Assault"  },
+}
+
+insert(
+  ns.SummaryColumns,
+  SummaryColumn:new{
+    name = "S1",
+    width = 34,
+    justifyH = ui.justify.Center,
+    tooltip = {
+      "Midnight Season 1 Weeklies",
+      "Count of Midnight S1 weekly activities completed.",
+    },
+    getData = function(t)
+      local s1 = t.weeklies and t.weeklies.midnightS1
+      if not s1 then return "" end
+      local done = 0
+      for _, f in ipairs(S1_FIELDS) do
+        if s1[f.key] then done = done + 1 end
+      end
+      if done == 0 then return "" end
+      local total = #S1_FIELDS
+      return {
+        text = done .. "/" .. total,
+        justifyH = ui.justify.Center,
+        color = done == total and DIM_GREEN_FONT_COLOR or NORMAL_FONT_COLOR,
+        onEnter = function(self)
+          ui.tip:AnchorTo(self, "ANCHOR_BOTTOMRIGHT", -10, 10)
+          ui.tip:ClearLines()
+          for _, f in ipairs(S1_FIELDS) do
+            if s1[f.key] then
+              ui.tip:AddLine(f.label, 0.4, 0.85, 0.4)
+            else
+              ui.tip:AddLine(f.label, 0.5, 0.5, 0.5)
+            end
+          end
+          ui.tip:Show()
+        end,
+        onLeave = function() ui.tip:Hide() end,
+      }
+    end,
+  }
+)
+
 local function formatPlaytime(seconds)
   if not seconds then return "" end
   local d = math.floor(seconds / 86400)
