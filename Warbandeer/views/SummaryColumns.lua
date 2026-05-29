@@ -4,8 +4,13 @@ local ui = ns.ui
 local Left = ui.justify.Left
 local Colors, Icons = ns.Colors, ns.icons
 local Class = ns.lua.Class
+local GetServerTime = GetServerTime -- luacheck: globals GetServerTime
 
-local SummaryColumn = Class(nil, function(self)
+---@class Warbandeer
+---@field SummaryColumn fun():SummaryColumn
+
+---@class SummaryColumn
+ns.SummaryColumn = Class(nil, function(self)
   local path, coords
   if self.currencyID then
     local info = C_CurrencyInfo.GetCurrencyInfo(self.currencyID)
@@ -38,6 +43,7 @@ end, {
   tooltip = nil,
   getData = function() return "" end, -- function to get data for this column
 })
+local SummaryColumn = ns.SummaryColumn
 
 local GreenCheck = {
   atlas = ns.icons.CheckGreen,
@@ -48,6 +54,8 @@ local GreenCheck = {
   },
 }
 
+---@class Warbandeer
+---@field SummaryColumns SummaryColumn[]
 ns.SummaryColumns = {}
 
 -- faction
@@ -502,48 +510,6 @@ insert(
       "Count of weekly activities completed that reward a cache.",
     },
     getData = function(t) return t.weeklies and t.weeklies.caches and t.weeklies.caches > 0 and {text = t.weeklies.caches, justifyH = ui.justify.Center} or "" end,
-  }
-)
-
-local function formatPlaytime(seconds)
-  if not seconds then return "" end
-  local d = math.floor(seconds / 86400)
-  local h = math.floor((seconds % 86400) / 3600)
-  local m = math.floor((seconds % 3600) / 60)
-  if d > 0 then return d.."d "..h.."h "..m.."m" end
-  if h > 0 then return h.."h "..m.."m" end
-  return m.."m"
-end
-
-insert(
-  ns.SummaryColumns,
-  SummaryColumn:new{
-    name = "Played",
-    width = 100,
-    justifyH = ui.justify.Right,
-    getData = function(t)
-      if not t.playtime then return "" end
-      return {text = formatPlaytime(t.playtime.total), justifyH = ui.justify.Right}
-    end,
-  }
-)
-
--- gold
-local BreakUpLargeNumbers = BreakUpLargeNumbers -- luacheck: globals BreakUpLargeNumbers
-insert(
-  ns.SummaryColumns,
-  SummaryColumn:new{
-    name = "Gold",
-    width = 70,
-    justifyH = ui.justify.Right,
-    getData = function(t)
-      if not t.currency or not t.currency.gold then return "" end
-      return {
-        text = BreakUpLargeNumbers(math.floor(t.currency.gold / 10000)) .. "g",
-        justifyH = ui.justify.Right,
-        color = {1, 0.82, 0, 1},
-      }
-    end,
   }
 )
 

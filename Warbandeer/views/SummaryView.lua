@@ -64,7 +64,7 @@ local ClassSummary = Class(TableFrame, function(self)
   local bagsLine = Texture:new{
     parent = self,
     position = {
-      TopLeft = {self.cols[6], ui.edge.Bottom, 0, 0},
+      TopLeft = {self.cols[7], ui.edge.Bottom, 0, 0},
       Width = 1,
       Height = 10,
     },

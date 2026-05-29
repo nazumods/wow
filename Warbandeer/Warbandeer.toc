@@ -21,7 +21,12 @@ data.lua
 controls\CharacterTooltip.lua
 
 views\Overview.lua
+
 views\SummaryColumns.lua
+views\summaryCol\rested.lua
+views\summaryCol\played.lua
+views\summaryCol\gold.lua
+
 views\SummaryView.lua
 views\GearView.lua
 views\DetailView.lua

@@ -1,6 +1,7 @@
 local _, ns = ...
 local Player = ns.wow.Player
 local GetSpecializationRoleByID = GetSpecializationRoleByID -- luacheck: globals GetSpecializationRoleByID
+local GetServerTime = GetServerTime -- luacheck: globals GetServerTime
 
 ---@class Character
 ---@field basic BasicBroker
@@ -44,6 +45,22 @@ ns.Basic.fields = {
         cooking = professions.cooking:GetInfo(),
       }
     end,
+  },
+  ---@class BasicBroker: Broker
+  ---@field xp {percent:number, restPercent:number, isResting:boolean, recordedAt:integer}?
+  xp = {
+    get = function()
+      local maxXP = Player:GetMaxXP()
+      if not maxXP or maxXP == 0 then return nil end
+      return {
+        percent = Player:GetXP() / maxXP,
+        restPercent = (Player:GetXPExhaustion() or 0) / maxXP,
+        isResting = Player.IsResting(),
+        recordedAt = GetServerTime(),
+      }
+    end,
+    event = {"PLAYER_XP_UPDATE", "UPDATE_EXHAUSTION", "PLAYER_UPDATE_RESTING"},
+    eventDelay = 1000,
   },
 }
 

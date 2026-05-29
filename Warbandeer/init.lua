@@ -1,4 +1,7 @@
-local ADDON_NAME, ns = ...
+local ADDON_NAME = ...
+
+---@class Warbandeer: AddOn
+local ns = select(2, ...)
 -- luacheck: globals LibNAddOn LibNUI WarbandeerApi
 
 local Views = {"Overview", "Races", "Summary", "Gear", "Detail", "Roles", "Professions"}
