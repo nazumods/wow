@@ -36,6 +36,7 @@ data/weekly.lua
 data/instances.lua
 data/equipment.lua
 data/artifacts.lua
+data/concentration.lua
 
 login.lua
 

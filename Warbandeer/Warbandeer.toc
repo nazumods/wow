@@ -35,6 +35,7 @@ views\RaceView.lua
 views\Legion.lua
 views\Midnight.lua
 views\ProfsView.lua
+views\MidnightProfs.lua
 views\PlaytimeView.lua
 views\WeeklyView.lua
 
