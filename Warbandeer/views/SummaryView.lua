@@ -120,13 +120,13 @@ local SummaryView = Class(ui.Frame, function(self)
   self.alliance = ClassSummary:new{
     parent = self,
     position = {
-      TopLeft = {},
+      TopLeft = {2, 0},
     },
   }
   self.horde = ClassSummary:new{
     parent = self,
     position = {
-      TopLeft = {self.alliance, ui.edge.TopRight, 30, 0},
+      TopLeft = {2, 0},
     },
     isAlliance = false,
   }
@@ -147,13 +147,11 @@ function SummaryView:layout()
   self.horde:SetShown(not a)
 
   if a then
-    self:Width(self.alliance:Width() + 5)
-    self:Height(self.alliance:Height())
+    self:Width(self.alliance:Width() + 4)
+    self:Height(self.alliance:Height() + 2)
   else
-    self.horde:ClearAllPoints()
-    self.horde:TopLeft(0, 0)
-    self:Width(self.horde:Width() + 5)
-    self:Height(self.horde:Height())
+    self:Width(self.horde:Width() + 4)
+    self:Height(self.horde:Height() + 2)
   end
 end
 
