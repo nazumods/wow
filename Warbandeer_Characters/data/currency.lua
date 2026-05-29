@@ -26,6 +26,14 @@ ns.Currency.fields = {
         capped = cap > 0 and earned >= cap,
       }
     end,
+    resetOn = ns.RESET_WEEKLY,
+    reset = function(toon)
+      if not toon.currency or not toon.currency.CofferKeyShard then return nil end
+      return {
+        quantity = toon.currency.CofferKeyShard.quantity,
+        capped = false,
+      }
+    end,
   },
   HeroDawncrest = {
     id = 3345,
