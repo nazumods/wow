@@ -1,5 +1,6 @@
 local ns = LibNAddOn(...)
 local floor = math.floor
+local min = math.min
 
 local Player = ns.wow.Player
 local ui, Class = ns.ui, ns.lua.Class
@@ -123,7 +124,7 @@ function ExpBar:update()
   self.textPercent:SetPoint(TopRight, self._widget, TopLeft, self.fill:Width() - 3, -1)
   self.textPercent:SetText(floor(xp * 100).."%")
 
-  self.secondary:Width(w * rest)
+  self.secondary:Width(w * min(rest, 1))
   -- self.secondary:SetPoint(TopLeft, self.fill:Width(), 0)
   self.restPercent:SetPoint(TopLeft, self._widget, TopLeft, self.fill:Width() + 3, -1)
   self.restPercent:SetText(floor(rest * 100).."%")

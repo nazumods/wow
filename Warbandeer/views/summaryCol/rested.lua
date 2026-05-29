@@ -74,7 +74,7 @@ table.insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
     name = "Rest",
-    width = 30,
+    width = 40,
     justifyH = ui.justify.Right,
     tooltip = {
       "Rest XP",
