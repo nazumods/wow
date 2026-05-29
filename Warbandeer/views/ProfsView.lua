@@ -36,7 +36,10 @@ local CHAR_COL_W    = 90    -- character name in the character list
 local EXP_COL_W     = 44    -- shared width for every expansion column
 local CHAR_LIST_H   = 180   -- height of the scrollable character-list area
 
+local UNSP_COL_W    = EXP_COL_W
+
 local VIEW_WIDTH    = PROF_COL_W + #EXP_ORDER * EXP_COL_W  -- 638
+local CHAR_LIST_W   = VIEW_WIDTH + UNSP_COL_W
 
 -- Row backdrop colours.
 local TRANSPARENT   = { color = { 0, 0, 0, 0 } }
@@ -63,6 +66,7 @@ local function makeCharColInfo()
   for _, abbr in ipairs(EXP_ORDER) do
     insert(cols, { name = abbr, width = EXP_COL_W, backdrop = TRANSPARENT, justifyH = ui.justify.Left })
   end
+  insert(cols, { name = "Unsp", width = UNSP_COL_W, backdrop = TRANSPARENT, justifyH = ui.justify.Right })
   return cols
 end
 
@@ -173,7 +177,7 @@ local ProfsView = Class(Frame, function(self)
     position = {
       TopLeft = { self.gridTable, ui.edge.BottomLeft, 0, -scrollTop },
       Height  = CHAR_LIST_H,
-      Width   = VIEW_WIDTH,
+      Width   = CHAR_LIST_W,
     },
   }
   self.charScroll:Child(self.charTable.rowArea)
@@ -188,9 +192,9 @@ local ProfsView = Class(Frame, function(self)
   self._selectedRowIdx = nil
   self._visibleProfs   = {}
   self._toons          = nil
-  self._charColCount   = 2 + #EXP_ORDER  -- icon + name + expansions
+  self._charColCount   = 2 + #EXP_ORDER + 1  -- icon + name + expansions + Unsp
 
-  self:Width(VIEW_WIDTH)
+  self:Width(CHAR_LIST_W)
   self:Height(self.gridTable:Height() + scrollTop + CHAR_LIST_H)
 end, {
   name   = "profs",
@@ -282,6 +286,18 @@ function ProfsView:RebuildCharList(profName)
       end
     end
 
+    -- Unsp: unspent knowledge points, yellow if >0
+    if detail and detail.knowledgeUnspent then
+      local u = detail.knowledgeUnspent
+      insert(row, {
+        text     = tostring(u),
+        color    = u > 0 and { 1, 0.82, 0.2, 1 } or DISABLED_FONT_COLOR,
+        justifyH = ui.justify.Right,
+      })
+    else
+      insert(row, { text = "—", color = DISABLED_FONT_COLOR, justifyH = ui.justify.Right })
+    end
+
     insert(rowData, row)
   end
 
@@ -354,6 +370,6 @@ function ProfsView:OnBeforeShow()
   self:RebuildCharList(nil)
 
   local scrollTop = 8 + self.charTable.offsetY
-  self:Width(VIEW_WIDTH)
+  self:Width(CHAR_LIST_W)
   self:Height(self.gridTable:Height() + scrollTop + CHAR_LIST_H)
 end

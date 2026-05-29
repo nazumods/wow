@@ -82,6 +82,7 @@ API.professionInfo = {
 ---@class ProfDetail
 ---@field expansions {name:string, skillLevel:integer, maxSkillLevel:integer}[]?
 ---@field specPoints integer?
+---@field knowledgeUnspent integer?
 
 ---@class ProfGearSlot
 ---@field name string?
@@ -101,23 +102,70 @@ API.professionInfo = {
 ---@field details table<integer, ProfDetail>?
 ---@field gear table<integer, ProfGear>? keyed by parent skillLineID
 
+-- Scans profession knowledge (spec points, knowledge level/max, unspent) for
+-- skillLineID using C_ProfSpecs + C_Traits.  Works without the profession window
+-- open.  Returns nil when the profession has no spec tree (Fishing, Cooking).
+local function scanKnowledge(skillLineID)
+  if not C_ProfSpecs or not C_ProfSpecs.GetConfigIDForSkillLine then return end
+  local configID = C_ProfSpecs.GetConfigIDForSkillLine(skillLineID)
+  if not configID or not C_Traits or not C_Traits.GetConfigInfo then return end
+  local configInfo = C_Traits.GetConfigInfo(configID)
+  if not configInfo or not configInfo.treeIDs then return end
+
+  local points = 0
+  for _, treeID in ipairs(configInfo.treeIDs) do
+    if C_Traits.GetTreeInfo then
+      local treeInfo = C_Traits.GetTreeInfo(configID, treeID)
+      if treeInfo and treeInfo.pointsSpent then points = points + treeInfo.pointsSpent end
+    end
+  end
+
+  local kc = C_ProfSpecs.GetCurrencyInfoForSkillLine and C_ProfSpecs.GetCurrencyInfoForSkillLine(skillLineID)
+  return {
+    specPoints       = points,
+    knowledgeUnspent = kc and kc.numAvailable or 0,
+  }
+end
+
 ns.Professions = ns:RegisterBroker("professions")
 ns.Professions.fields = {
   details = {
-    -- On login/refresh, preserve whatever was cached from prior TRADE_SKILL_SHOW scans.
+    -- On login/refresh, scan knowledge for all of this character's professions.
+    -- Preserves expansions/concentration from prior TRADE_SKILL_SHOW scans.
     get = function(self, toon, currentValue)
-      return currentValue or {}
+      local data = {}
+      if currentValue then
+        for k, v in pairs(currentValue) do data[k] = v end
+      end
+
+      local profs = toon and toon.basic and toon.basic.professions
+      if not profs then return data end
+
+      for _, slot in ipairs({ "primary", "secondary", "fishing", "cooking" }) do
+        local prof = profs[slot]
+        if prof and prof.skillID then
+          local skillLineID = prof.skillID
+          local entry = {}
+          if data[skillLineID] then
+            for k, v in pairs(data[skillLineID]) do entry[k] = v end
+          end
+          local know = scanKnowledge(skillLineID)
+          if know then
+            entry.specPoints       = know.specPoints
+            entry.knowledgeUnspent = know.knowledgeUnspent
+          end
+          data[skillLineID] = entry
+        end
+      end
+
+      return data
     end,
 
-    -- Fired when the player opens a profession window.  Scans the active profession
-    -- and merges its expansion skill levels and spec points into the stored table,
-    -- keyed by skillLineID so each profession's data is updated independently.
+    -- Fired when the player opens a profession window.  Adds expansion skill levels
+    -- and concentration (window-only APIs) and refreshes knowledge for that profession.
     event = "TRADE_SKILL_SHOW",
     eventHandler = function(self, currentValue)
       -- Capture which profession was opened NOW, before any timer delay.
-      -- Reading GetBaseProfessionInfo() inside the timer is unreliable: if the
-      -- player switches professions before the timer fires, the wrong profession
-      -- gets updated.
       if not C_TradeSkillUI or not C_TradeSkillUI.GetBaseProfessionInfo then return end
       local baseInfo = C_TradeSkillUI.GetBaseProfessionInfo()
       if not baseInfo or not baseInfo.professionID then return end
@@ -127,8 +175,7 @@ ns.Professions.fields = {
       C_Timer.After(0.5, function()
         local profData = {}
 
-        -- Per-expansion skill levels.  Primary professions return one child per
-        -- expansion; secondary professions (Fishing, Cooking) return no children.
+        -- Per-expansion skill levels (requires profession window).
         if C_TradeSkillUI.GetChildProfessionInfos then
           local children = C_TradeSkillUI.GetChildProfessionInfos()
           if children and #children > 0 then
@@ -144,30 +191,14 @@ ns.Professions.fields = {
           end
         end
 
-        -- Total spec points spent across all spec trees for this profession.
-        -- Returns nil for secondary professions that have no spec tree.
-        if C_ProfSpecs and C_ProfSpecs.GetConfigIDForSkillLine then
-          local configID = C_ProfSpecs.GetConfigIDForSkillLine(skillLineID)
-          if configID and C_Traits and C_Traits.GetConfigInfo then
-            local configInfo = C_Traits.GetConfigInfo(configID)
-            if configInfo and configInfo.treeIDs then
-              local points = 0
-              for _, treeID in ipairs(configInfo.treeIDs) do
-                if C_Traits.GetTreeInfo then
-                  local treeInfo = C_Traits.GetTreeInfo(configID, treeID)
-                  if treeInfo and treeInfo.pointsSpent then
-                    points = points + treeInfo.pointsSpent
-                  end
-                end
-              end
-              profData.specPoints = points
-            end
-          end
+        -- Knowledge (works offline; re-scanned here for freshness).
+        local know = scanKnowledge(skillLineID)
+        if know then
+          profData.specPoints       = know.specPoints
+          profData.knowledgeUnspent = know.knowledgeUnspent
         end
 
-        -- Read the live value at timer-fire time rather than the value captured at
-        -- event time; prevents a stale merge if another profession was opened and
-        -- saved while this timer was pending.
+        -- Read the live value at timer-fire time to avoid stale merges.
         local data = {}
         local live = self.get_live and self.get_live() or currentValue
         if live then
