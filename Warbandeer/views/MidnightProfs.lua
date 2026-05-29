@@ -1,0 +1,266 @@
+local _, ns = ...
+local ui = ns.ui
+-- luacheck: globals DISABLED_FONT_COLOR GetServerTime
+local Class, Frame, TableFrame = ns.lua.Class, ui.Frame, ui.TableFrame
+local Colors = ns.Colors
+local insert, sort, concat = table.insert, table.sort, table.concat
+
+-- All professions in display order. hasCon = has Midnight concentration resource.
+local PROF_ORDER = { 171, 164, 333, 202, 773, 755, 165, 197, 182, 186, 393, 356, 185 }
+local PROF_INFO = {
+  [171] = { abbr = "Alch", name = "Alchemy",       hasCon = true  },
+  [164] = { abbr = "BS",   name = "Blacksmithing",  hasCon = true  },
+  [333] = { abbr = "Ench", name = "Enchanting",     hasCon = true  },
+  [202] = { abbr = "Eng",  name = "Engineering",    hasCon = true  },
+  [773] = { abbr = "Insc", name = "Inscription",    hasCon = true  },
+  [755] = { abbr = "JC",   name = "Jewelcrafting",  hasCon = true  },
+  [165] = { abbr = "LW",   name = "Leatherworking", hasCon = true  },
+  [197] = { abbr = "Tail", name = "Tailoring",      hasCon = true  },
+  [182] = { abbr = "Herb", name = "Herbalism",      hasCon = false },
+  [186] = { abbr = "Mine", name = "Mining",         hasCon = false },
+  [393] = { abbr = "Skin", name = "Skinning",       hasCon = false },
+  [356] = { abbr = "Fish", name = "Fishing",        hasCon = false },
+  [185] = { abbr = "Cook", name = "Cooking",        hasCon = false },
+}
+
+local ICON_COL_W = 20
+local CHAR_COL_W = 90
+local PROF_COL_W = 82
+
+local TRANSPARENT = { color = { 0, 0, 0, 0 } }
+
+-- WoW color escape codes embedded in cell text (Cell is a FontString; codes work natively).
+local C_GREEN  = "|cff44dd44"
+local C_WHITE  = "|cffffffff"
+local C_ORANGE = "|cffff7433"
+local C_GREY   = "|cff888888"
+local C_END    = "|r"
+
+local function rowBgColor(i)
+  return i % 2 == 0 and { 0, 0, 0, 0.4 } or { 0, 0, 0, 0.2 }
+end
+
+-- ─── Data helpers ─────────────────────────────────────────────────────────────
+
+local function estimateConcentration(entry)
+  local cycleMs  = entry.rechargingCycleDurationMS or 0
+  local cycleAmt = entry.rechargingAmountPerCycle  or 0
+  if cycleMs == 0 or cycleAmt == 0 then
+    return entry.quantity, entry.maxQuantity, false
+  end
+  local elapsed = GetServerTime() - (entry.lastUpdated or 0)
+  local gained  = math.floor(elapsed / (cycleMs / 1000)) * cycleAmt
+  return math.min(entry.maxQuantity, entry.quantity + gained), entry.maxQuantity, gained > 0
+end
+
+-- Returns the Midnight expansion skill and max for a crafting profession, if captured.
+local function midnightSkill(toon, skillLineID)
+  local detail = toon.professions
+               and toon.professions.details
+               and toon.professions.details[skillLineID]
+  if not detail or not detail.expansions then return nil, nil end
+  for _, exp in ipairs(detail.expansions) do
+    if exp.name == "Midnight" then return exp.skillLevel, exp.maxSkillLevel end
+  end
+  return nil, nil
+end
+
+-- Finds the character's profession object from the basic broker for a given skill line.
+local function findProf(toon, skillLineID)
+  local profs = toon.basic and toon.basic.professions
+  if not profs then return nil end
+  for _, slot in ipairs({"primary", "secondary", "fishing", "cooking"}) do
+    local p = profs[slot]
+    if p and p.skillID == skillLineID then return p end
+  end
+  return nil
+end
+
+-- Builds a single cell showing "skill [conc]" for crafting profs or "skill" for others.
+-- Uses embedded WoW color codes so skill and concentration can be colored independently.
+local function profCell(toon, prof)
+  local p = findProf(toon, prof.id)
+  if not p then return { text = C_GREY .. "—" .. C_END, justifyH = ui.justify.Center } end
+
+  -- Skill level: prefer Midnight-specific from professions broker, fall back to basic.
+  local skillLevel, skillMax
+  if prof.hasCon then
+    skillLevel, skillMax = midnightSkill(toon, prof.id)
+    if not skillLevel then skillLevel, skillMax = p.skillLevel, p.maxSkillLevel end
+  else
+    skillLevel, skillMax = p.skillLevel, p.maxSkillLevel
+  end
+
+  local skillCol = (skillMax and skillLevel and skillLevel >= skillMax) and C_GREEN or C_WHITE
+  local text     = skillCol .. (skillLevel and tostring(skillLevel) or "—") .. C_END
+
+  -- Concentration bracket: only for crafting professions.
+  local concQty, concMax, concEst
+  if prof.hasCon then
+    local concEntry = toon.concentration and toon.concentration.data and toon.concentration.data[prof.id]
+    if concEntry then
+      concQty, concMax, concEst = estimateConcentration(concEntry)
+      local concCol
+      if concMax and concMax > 0 then
+        local pct = concQty / concMax
+        if     pct >= 0.8 then concCol = C_GREEN
+        elseif pct >= 0.3 then concCol = C_WHITE
+        else                    concCol = C_ORANGE
+        end
+      else
+        concCol = C_WHITE
+      end
+      text = text .. " " .. concCol .. "[" .. (concEst and "~" or "") .. concQty .. "]" .. C_END
+    else
+      text = text .. " " .. C_GREY .. "[—]" .. C_END
+    end
+  end
+
+  return {
+    text      = text,
+    justifyH  = ui.justify.Center,
+    onEnter = function(self)
+      ui.tip:AnchorTo(self, "ANCHOR_BOTTOMRIGHT", -10, 10)
+      ui.tip:ClearLines()
+      ui.tip:AddLine(prof.name)
+      if skillLevel then
+        ui.tip:AddLine("Skill: " .. skillLevel .. (skillMax and " / " .. skillMax or ""))
+      end
+      if concQty then
+        local line = "Concentration: " .. concQty .. " / " .. (concMax or "?")
+        if concEst then line = line .. "  (estimated)" end
+        ui.tip:AddLine(line)
+      end
+      ui.tip:Show()
+    end,
+    onLeave = function() ui.tip:Hide() end,
+  }
+end
+
+-- ─── Column discovery ─────────────────────────────────────────────────────────
+
+-- Returns the ordered list of professions present across the warband.
+local function discoverProfs(toons)
+  local seen = {}
+  for _, toon in ipairs(toons) do
+    local profs = toon.basic and toon.basic.professions
+    if profs then
+      for _, slot in ipairs({"primary", "secondary", "fishing", "cooking"}) do
+        local p = profs[slot]
+        if p and p.skillID and PROF_INFO[p.skillID] then seen[p.skillID] = true end
+      end
+    end
+  end
+  local result = {}
+  for _, id in ipairs(PROF_ORDER) do
+    if seen[id] then
+      local info = PROF_INFO[id]
+      insert(result, { id = id, abbr = info.abbr, name = info.name, hasCon = info.hasCon })
+    end
+  end
+  return result
+end
+
+local function profKey(profs)
+  local ids = {}
+  for _, p in ipairs(profs) do insert(ids, p.id) end
+  return concat(ids, ",")
+end
+
+local function buildColInfo(profs)
+  local cols = {
+    { width = ICON_COL_W, backdrop = TRANSPARENT },
+    { name = "Character", width = CHAR_COL_W, backdrop = TRANSPARENT, justifyH = ui.justify.Left },
+  }
+  for _, prof in ipairs(profs) do
+    insert(cols, {
+      name     = prof.abbr,
+      width    = PROF_COL_W,
+      backdrop = TRANSPARENT,
+      tooltip  = prof.name .. (prof.hasCon and " — skill [concentration]" or " — skill"),
+    })
+  end
+  return cols
+end
+
+-- ─── View ─────────────────────────────────────────────────────────────────────
+
+---@class MidnightProfs: Frame
+local MidnightProfs = Class(Frame, function(self)
+  self._profKey = nil
+  self._profs   = nil
+  self._numCols = 0
+  self.tbl      = nil
+  self:Width(200)
+  self:Height(40)
+end, {
+  name   = "midnightprofs",
+  _title = "Midnight Profs",
+})
+MidnightProfs.name = "midnightprofs"
+ns.views.MidnightProfs = MidnightProfs
+
+function MidnightProfs:BuildTable(profs)
+  if self.tbl then self.tbl:Hide() end
+  self.tbl = TableFrame:new{
+    parent   = self,
+    colInfo  = buildColInfo(profs),
+    position = { TopLeft = {} },
+  }
+  self._profKey = profKey(profs)
+  self._profs   = profs
+  self._numCols = 2 + #profs
+end
+
+function MidnightProfs:OnBeforeShow()
+  local toons = ns.api.GetAllCharacters()
+  sort(toons, function(a, b)
+    if a.basic.level ~= b.basic.level then return a.basic.level > b.basic.level end
+    return a.name < b.name
+  end)
+
+  local profs = discoverProfs(toons)
+  if profKey(profs) ~= self._profKey then self:BuildTable(profs) end
+
+  local current = ns.api.GetCurrentCharacter()
+  for _ = #self.tbl.rows + 1, #toons do self.tbl:addRow({}) end
+
+  local emptyRow = {}
+  for _ = 1, self._numCols do insert(emptyRow, "") end
+
+  local rowData = {}
+  for i, toon in ipairs(toons) do
+    local nameText = toon.name
+    if toon.name == current then
+      nameText = "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_1:14:14:0:0|t " .. nameText
+    end
+
+    local row = {
+      toon.isAlliance and ns.icons.AllianceLight or ns.icons.HordeLight,
+      {
+        text    = nameText,
+        color   = Colors[toon.classKey],
+        onEnter = function(self)
+          ui.ShowCharacterTooltip(toon, self, { TopLeft = {self, ui.edge.Bottom, 20, -10} })
+        end,
+        onLeave = ui.HideCharacterTooltip,
+      },
+    }
+
+    for _, prof in ipairs(profs) do insert(row, profCell(toon, prof)) end
+
+    insert(rowData, row)
+    self.tbl.rows[i]:backdropColor(unpack(rowBgColor(i)))
+  end
+
+  for i = #toons + 1, #self.tbl.rows do
+    insert(rowData, emptyRow)
+    self.tbl.rows[i]:backdropColor(0, 0, 0, 0)
+  end
+
+  self.tbl.data = rowData
+  self.tbl:update()
+
+  self:Width(ICON_COL_W + CHAR_COL_W + #profs * PROF_COL_W)
+  self:Height(self.tbl:Height())
+end

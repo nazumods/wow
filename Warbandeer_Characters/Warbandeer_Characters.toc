@@ -37,6 +37,7 @@ data/instances.lua
 # load equipment last as it takes the data a while to be available
 data/equipment.lua
 data/artifacts.lua
+data/concentration.lua
 
 login.lua
 
