@@ -23,6 +23,12 @@ local MainWindow = Class(TitleFrame, function(self)
       },
     }
     self.views[v.name] = v
+    if v.BuildFilter then
+      v._filter = v:BuildFilter(self.titlebar)
+      v._filter:ClearAllPoints()
+      v._filter:Right(self.closeButton, ui.edge.Left, -4, 0)
+      v._filter:Hide()
+    end
 
     table.insert(options, {
         text = v._title,
@@ -60,7 +66,10 @@ end, {
 })
 
 function MainWindow:view(name)
-  if self._view then self._view:Hide() end
+  if self._view then
+    self._view:Hide()
+    if self._view._filter then self._view._filter:Hide() end
+  end
   self._view = self.views[name]
   if self._view._title then
     self:Title(ADDON_NAME.." | "..self._view._title)
@@ -68,6 +77,12 @@ function MainWindow:view(name)
     self:Title(ADDON_NAME)
   end
   self._view:Show()
+  if self._view._filter then self._view._filter:Show() end
+  self:Fit()
+end
+
+function MainWindow:Fit()
+  if not self._view then return end
   self:Width(self._view:Width()  + 6)
   self:Height(self._view:Height() + 30)
 end

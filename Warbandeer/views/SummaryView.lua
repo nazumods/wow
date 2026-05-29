@@ -2,7 +2,7 @@ local _, ns = ...
 local ui = ns.ui
 local insert, filter = table.insert, ns.lua.lists.filter
 local alpha = ns.Colors.alpha
-local Class, TableFrame, Texture, Label = ns.lua.Class, ui.TableFrame, ui.Texture, ui.Label
+local Class, TableFrame, Texture, Label, Button = ns.lua.Class, ui.TableFrame, ui.Texture, ui.Label, ui.Button
 
 local ClassSummary = Class(TableFrame, function(self)
   ns.SummaryColumnsDelayed(self)
@@ -131,14 +131,81 @@ local SummaryView = Class(ui.Frame, function(self)
     isAlliance = false,
   }
 
-  self:Height(math.max(self.alliance:Height(), self.horde:Height()))
-  self:Width(35 + self.alliance:Width() + self.horde:Width())
+  self:layout()
 end, {
   name = "summary",
   _title = "Summary",
+  _showAlliance = true,
+  _showHorde = false,
 })
 SummaryView.name = "summary"
 ns.views.SummaryView = SummaryView
+
+function SummaryView:layout()
+  local a = self._showAlliance
+  self.alliance:SetShown(a)
+  self.horde:SetShown(not a)
+
+  if a then
+    self:Width(self.alliance:Width() + 5)
+    self:Height(self.alliance:Height())
+  else
+    self.horde:ClearAllPoints()
+    self.horde:TopLeft(0, 0)
+    self:Width(self.horde:Width() + 5)
+    self:Height(self.horde:Height())
+  end
+end
+
+function SummaryView:toggleFaction()
+  self._showAlliance = not self._showAlliance
+  self._showHorde = not self._showAlliance
+  self:layout()
+  self:refreshFilterButtons()
+  if ns.MainWindow then ns.MainWindow:Fit() end
+end
+
+function SummaryView:refreshFilterButtons()
+  if not self._filter then return end
+  self._filter.alliance:Alpha(self._showAlliance and 1 or 0.3)
+  self._filter.horde:Alpha(self._showHorde and 1 or 0.3)
+end
+
+function SummaryView:BuildFilter(parent)
+  local box = ui.Frame:new{
+    parent = parent,
+    position = {
+      Height = 20,
+      Width = 44,
+    },
+  }
+  local function btn(iconPath, isAlliance, position)
+    local b = Button:new{
+      parent = box,
+      position = position,
+      glow = false,
+      onClick = function() self:toggleFaction() end,
+    }
+    b.icon = Texture:new{
+      parent = b,
+      layer = ui.layer.Artwork,
+      path = iconPath,
+      position = { All = true },
+    }
+    return b
+  end
+  box.alliance = btn(ns.icons.Alliance, true, {
+    Left = {0, 0},
+    Size = {20, 20},
+  })
+  box.horde = btn(ns.icons.Horde, false, {
+    Left = {box.alliance, ui.edge.Right, 4, 0},
+    Size = {20, 20},
+  })
+  self._filter = box
+  self:refreshFilterButtons()
+  return box
+end
 
 function SummaryView:OnBeforeShow()
   ns.api:RefreshCurrentCharacterField("weeklies", "keystone")
