@@ -182,7 +182,7 @@ function SummaryView:BuildFilter(parent)
       parent = box,
       position = position,
       glow = false,
-      onClick = function() self:toggleFaction() end,
+      OnClick = function() self:toggleFaction() end,
     }
     b.icon = Texture:new{
       parent = b,
