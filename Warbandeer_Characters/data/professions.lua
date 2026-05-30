@@ -90,9 +90,22 @@ API.professionInfo = {
   },
 }
 
+-- Expansion display name -> short bucket key for per-expansion recipe capture.
+-- Only expansions listed here are captured; add more keys to track DF, etc.
+local RECIPE_EXP_KEYS = {
+  ["Midnight"]     = "midnight",
+  ["Khaz Algar"]   = "tww",
+  ["Dragon Isles"] = "df",
+}
+
+---@class ProfRecipeBucket
+---@field learned {id:integer, name:string}[]
+---@field total integer
+
 ---@class ProfDetail
 ---@field expansions {name:string, skillLevel:integer, maxSkillLevel:integer}[]?
 ---@field specPoints integer?
+---@field recipes table<string, ProfRecipeBucket>? -- keyed by expansion (midnight/tww/df)
 
 ---@class ProfGearSlot
 ---@field name string?
@@ -173,6 +186,36 @@ ns.Professions.fields = {
               end
               profData.specPoints = points
             end
+          end
+        end
+
+        -- Per-expansion learned recipes (ids + names).  Recipes are only queryable
+        -- while the trade-skill window is open.  Every profession (including Fishing
+        -- and Cooking) exposes per-expansion child skill lines; we bucket each recipe
+        -- by the child it belongs to so future expansions can be added without reshape.
+        if C_TradeSkillUI.GetChildProfessionInfos and C_TradeSkillUI.GetAllRecipeIDs then
+          local children  = C_TradeSkillUI.GetChildProfessionInfos()
+          local recipeIDs = C_TradeSkillUI.GetAllRecipeIDs()
+          if children and recipeIDs and #recipeIDs > 0 then
+            local recipes
+            for _, child in ipairs(children) do
+              local key = RECIPE_EXP_KEYS[child.expansionName]
+              if key and child.professionID then
+                local learned, total = {}, 0
+                for _, id in ipairs(recipeIDs) do
+                  if C_TradeSkillUI.IsRecipeInSkillLine(id, child.professionID) then
+                    total = total + 1
+                    local info = C_TradeSkillUI.GetRecipeInfo(id)
+                    if info and info.learned then
+                      insert(learned, { id = id, name = info.name })
+                    end
+                  end
+                end
+                recipes = recipes or {}
+                recipes[key] = { learned = learned, total = total }
+              end
+            end
+            profData.recipes = recipes
           end
         end
 

@@ -75,3 +75,83 @@ minorFactionMaxStanding[1948] = 42000 -- Valarjar
 
 ns.data.minorFactions = minorFactions
 ns.data.minorFactionMaxStanding = minorFactionMaxStanding
+
+-- ─── Profession helpers ───────────────────────────────────────────────────────
+-- luacheck: globals GetServerTime
+local insert, sort = table.insert, table.sort
+
+-- Concentration fill estimate, shared by the Midnight Profs and Crafting views.
+-- Concentration recharges passively; the stored snapshot is projected forward to now.
+-- Returns currentQuantity, maxQuantity, isEstimate.
+function ns.data.EstimateConcentration(entry)
+  local cycleMs  = entry.rechargingCycleDurationMS or 0
+  local cycleAmt = entry.rechargingAmountPerCycle  or 0
+  if cycleMs == 0 or cycleAmt == 0 then
+    return entry.quantity, entry.maxQuantity, false
+  end
+  local elapsed = GetServerTime() - (entry.lastUpdated or 0)
+  local gained  = math.floor(elapsed / (cycleMs / 1000)) * cycleAmt
+  return math.min(entry.maxQuantity, entry.quantity + gained), entry.maxQuantity, gained > 0
+end
+
+local PROF_SLOTS = { "primary", "secondary", "fishing", "cooking" }
+
+-- Returns a character's profession object for a parent skill line ID, or nil.
+function ns.data.FindProf(toon, skillLineID)
+  local profs = toon.basic and toon.basic.professions
+  if not profs then return nil end
+  for _, slot in ipairs(PROF_SLOTS) do
+    local p = profs[slot]
+    if p and p.skillID == skillLineID then return p end
+  end
+  return nil
+end
+
+-- User-assigned intent for a character's profession: "main" | "secondary" | "gatherer" | nil.
+function ns.data.GetProfIntent(charName, skillLineID)
+  local intents = ns.db and ns.db.profIntent
+  local forChar = intents and intents[charName]
+  return forChar and forChar[skillLineID] or nil
+end
+
+local INTENT_ORDER = { main = 1, secondary = 2, gatherer = 3 }
+
+-- Every toon that has the given profession, with intent + skill, for tooltip display.
+-- Sorted main -> secondary -> gatherer -> unset, then by skill descending.
+---@return {toon:Character, intent:string?, skill:integer}[]
+function ns.data.GetProfToons(skillLineID, toons)
+  local list = {}
+  for _, toon in ipairs(toons) do
+    local p = ns.data.FindProf(toon, skillLineID)
+    if p then
+      insert(list, {
+        toon   = toon,
+        intent = ns.data.GetProfIntent(toon.name, skillLineID),
+        skill  = p.skillLevel or 0,
+      })
+    end
+  end
+  sort(list, function(a, b)
+    local ra, rb = INTENT_ORDER[a.intent] or 4, INTENT_ORDER[b.intent] or 4
+    if ra ~= rb then return ra < rb end
+    return a.skill > b.skill
+  end)
+  return list
+end
+
+-- The designated crafter for a profession: the toon flagged "main", else the
+-- highest-skill toon that has it. Returns toon, isFlaggedMain (toon may be nil).
+function ns.data.GetMainCrafter(skillLineID, toons)
+  local best, bestSkill
+  for _, toon in ipairs(toons) do
+    local p = ns.data.FindProf(toon, skillLineID)
+    if p then
+      if ns.data.GetProfIntent(toon.name, skillLineID) == "main" then
+        return toon, true
+      end
+      local s = p.skillLevel or 0
+      if not best or s > bestSkill then best, bestSkill = toon, s end
+    end
+  end
+  return best, false
+end

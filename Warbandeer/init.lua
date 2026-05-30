@@ -132,6 +132,12 @@ function ns:MigrateDB()
     db.settings.defaultView = 1
     db.version = 1
   end
+  if db.version < 2 then
+    -- Per-character, per-profession crafting intent: profIntent[charName][skillLineID]
+    -- = "main" | "secondary" | "gatherer". Editor lives in a later session.
+    db.profIntent = db.profIntent or {}
+    db.version = 2
+  end
 end
 
 function ns:onLoad(self)

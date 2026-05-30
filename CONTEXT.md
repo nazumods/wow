@@ -568,7 +568,8 @@ X-NUI-API: WarbandeerApi, X-NUI-UI: LibNUI
 | `data/basic.lua` | Broker: level, specialization, professions |
 | `data/currency.lua` | Broker: `RestoredCofferKey` (currency 3028) |
 | `data/items.lua` | Broker: bag inventory |
-| `data/professions.lua` | Broker: per-expansion skill levels, spec points. Also `ns.api.professionInfo` |
+| `data/professions.lua` | Broker: per-expansion skill levels, spec points, per-expansion learned recipes (ids+names). Also `ns.api.professionInfo` |
+| `data/concentration.lua` | Broker: `data` — Midnight concentration currency per crafting prof (qty/max/recharge), keyed by parent skillLineID |
 | `data/races.lua` | Race tables, `NormalizeRaceId()` |
 | `data/quests.lua` | Broker: `UndermineStoryMode`, `WWIRep`, `delves` |
 | `data/daily.lua` | Broker: (empty) |
@@ -579,7 +580,7 @@ X-NUI-API: WarbandeerApi, X-NUI-UI: LibNUI
 | `data/artifacts.lua` | Broker: `hidden`, `hiddenColors`, `classHall` |
 | `data/reputation.lua` | Broker: `legion` (9 Legion faction standings) |
 | `dump.lua` | `stat` command — warband-wide playtime/class statistics |
-| `missing.lua` | `missing` command — lists characters missing playtime or profession detail data |
+| `missing.lua` | `missing` command — lists characters missing data (gold, playtime, profession detail, recipe capture, …) |
 
 ## WarbandeerApi Methods
 
@@ -612,7 +613,14 @@ items = {
   reagentBag = { id, slots },
 }
 professions = {
-  details = { [skillLineID] = { expansions = { {name, skillLevel, maxSkillLevel} }, specPoints? } },
+  details = { [skillLineID] = {
+    expansions = { {name, skillLevel, maxSkillLevel} }, specPoints?,
+    recipes = { [expKey] = { learned = { {id, name} }, total } }?,  -- expKey: midnight/tww/df
+  } },
+}
+concentration = {
+  data = { [skillLineID] = { name, currencyId, quantity, maxQuantity,
+                             rechargingAmountPerCycle, rechargingCycleDurationMS, lastUpdated } },
 }
 quests = {
   UndermineStoryMode,
@@ -654,7 +662,8 @@ playtime = {
 | `basic` | level, specialization, professions | `PLAYER_LEVEL_UP` (500ms delay) | — |
 | `currency` | RestoredCofferKey | — | — |
 | `items` | bags, reagentBag | — | — |
-| `professions` | details | `TRADE_SKILL_SHOW` (500ms C_Timer) | — |
+| `professions` | details (expansions, specPoints, per-exp recipes) | `TRADE_SKILL_SHOW` (500ms C_Timer) | — |
+| `concentration` | data (per-prof Midnight concentration currency) | `CURRENCY_DISPLAY_UPDATE` | — |
 | `quests` | UndermineStoryMode, WWIRep, delves | `QUEST_TURNED_IN`, `QUEST_ACCEPTED`, `QUEST_REMOVED`, `UNIT_QUEST_LOG_CHANGED` | — |
 | `dailies` | (empty) | — | — |
 | `weeklies` | DMF, preMidnight, caches, vault | `QUEST_TURNED_IN`, `WEEKLY_REWARDS_UPDATE` (1000ms delay) | DMF: `RESET_SUNDAY`, others: `RESET_WEEKLY` |
@@ -680,7 +689,7 @@ Reset constants: `RESET_SUNDAY=0`, `RESET_DAILY=1`, `RESET_WEEKLY=7`
 ## TOC
 ```
 Interface: 120001, Dependencies: LibNAddOn, LibNUI, Warbandeer_Characters
-SavedVariables: WarbandeerDB (version 1)
+SavedVariables: WarbandeerDB (version 2)
 X-NUI-COMMANDS: /warband, /wb
 X-NUI-COMPARTMENT: Warbandeer_OnAddonCompartmentClick
 X-NUI-API: WarbandeerApi, X-NUI-UI: LibNUI
@@ -691,7 +700,7 @@ X-NUI-API: WarbandeerApi, X-NUI-UI: LibNUI
 | File | Purpose |
 |---|---|
 | `init.lua` | Table form init with settings (defaultView dropdown). Defines `ns.views`, class/race arrays, `MigrateDB`, `onLoad` |
-| `data.lua` | `ns.data` — `gearTiers`, `IlvlColor()`, `minorFactions`, `minorFactionMaxStanding`. Midnight entries: Delves→Valeera (2742→2744, friendship rep), Silvermoon Court subfactions (2710→2711-2714) |
+| `data.lua` | `ns.data` — `gearTiers`, `IlvlColor()`, `minorFactions`, `minorFactionMaxStanding`. Midnight entries: Delves→Valeera (2742→2744, friendship rep), Silvermoon Court subfactions (2710→2711-2714). Profession helpers: `EstimateConcentration`, `FindProf`, `GetProfIntent`, `GetProfToons`, `GetMainCrafter` |
 | `controls/CharacterTooltip.lua` | `CharacterTooltip` singleton (CleanFrame) showing name/spec/class/realm/level |
 | `views/Overview.lua` | `TopAlts` + `TabFrame` (Midnight/WWI tabs) + `Factions` + `Achievements`. `Factions` accepts `extraFactionIDs` (deduplicated against `GetMajorFactionIDs`); subfaction rendering has three tiers: major faction renown → friendship rep (Valeera) → standard C_Reputation standings |
 | `views/SummaryColumns.lua` | `SummaryColumn` specs + `SummaryColumnsDelayed()` for DMF |
@@ -703,7 +712,11 @@ X-NUI-API: WarbandeerApi, X-NUI-UI: LibNUI
 | `views/Legion.lua` | Hidden artifact appearances + Legion achievements |
 | `views/Midnight.lua` | 54 achievement IDs in multi-column grid |
 | `views/ProfsView.lua` | Top: best skill per expansion grid. Bottom: per-character detail on click |
-| `window.lua` | `MainWindow` (TitleFrame), view selector, `ns:Open()`, `ns:view(name)` |
+| `views/MidnightProfs.lua` | One column per prof, one row per character: Midnight skill + concentration |
+| `views/CraftingView.lua` | One row per crafting prof: Crafter (intent-based), Concentration, Learned Recipe %. Expansion-filter dropdown (Midnight wired) |
+| `views/PlaytimeView.lua` | Per-character playtime breakdown |
+| `views/WeeklyView.lua` | Per-character weekly content tracking |
+| `window.lua` | `MainWindow` (TitleFrame), view selector, `ns:Open()`, `ns:view(name)`. Calls `view:BuildFilter(titlebar)` if defined, anchored left of close button |
 | `commands.lua` | Registers base `""` (open) + one command per view |
 
 ## Views
@@ -719,6 +732,13 @@ X-NUI-API: WarbandeerApi, X-NUI-UI: LibNUI
 | `legion` | Legion | Frame | Hidden artifacts + achievements |
 | `midnight` | Midnight | Frame | Achievement grid |
 | `profs` | Professions | Frame | Profession skill grid + detail panel |
+| `midnightprofs` | Midnight Profs | Frame | Profs × characters grid: Midnight skill + concentration |
+| `crafting` | Crafting | Frame | Crafting profs: main crafter, concentration, learned recipe %; `BuildFilter` expansion dropdown |
+| `playtime` | Playtime | Frame | Per-character playtime |
+| `weekly` | Weekly | Frame | Per-character weekly content |
+
+Views with a `BuildFilter(parent)` method get a filter widget in the title bar (shown only
+while that view is active): `summary` (faction toggle), `crafting` (expansion dropdown).
 
 ## Overview — Factions Widget
 
@@ -754,8 +774,11 @@ Subclasses `TitleFrame`, `special=true`, `level=600`.
 
 ## SavedVariables (`WarbandeerDB`)
 ```lua
-{ version = 1, settings = { defaultView = integer } }
+{ version = 2, settings = { defaultView = integer },
+  -- per-character, per-profession crafting intent (v2): "main" | "secondary" | "gatherer"
+  profIntent = { [charName] = { [skillLineID] = intent } } }
 ```
+`MigrateDB`: v1 seeds `settings.defaultView`; v2 adds `profIntent = {}` (non-destructive).
 
 ---
 
@@ -977,7 +1000,7 @@ All primary and secondary professions except Archaeology. Uses `C_TradeSkillUI.G
 |---|---|---|
 | LibNAddOn | `/lib` | `player` |
 | LibNUI | `/nui` | `version`, `test [key]` |
-| Warbandeer_Characters | `/characters`, `/wbc` | `list`, `delete <name>`, `refresh`, `refresh items/locks`, `dump`, `dump bank/gt/locks/artifact`, `missing` |
-| Warbandeer | `/warband`, `/wb` | `""` (open), `overview`, `summary`, `gear`, `detail`, `roles`, `races`, `legion`, `midnight`, `profs`, `check legion` |
+| Warbandeer_Characters | `/characters`, `/wbc` | `list`, `delete <name>`, `refresh`, `refresh items/locks`, `dump`, `dump bank/gt/locks/artifact`, `missing`, `missing me` |
+| Warbandeer | `/warband`, `/wb` | `""` (open), `overview`, `summary`, `gear`, `detail`, `roles`, `races`, `legion`, `midnight`, `profs`, `midnightprofs`, `crafting`, `playtime`, `weekly`, `check legion` |
 | Warbandeer_Collected | `/collected`, `/collect` | `scan` |
 | Recycle | `/recycle` | `clear`, `key CTRL|SHIFT|ALT` |

@@ -36,16 +36,7 @@ end
 
 -- ─── Data helpers ─────────────────────────────────────────────────────────────
 
-local function estimateConcentration(entry)
-  local cycleMs  = entry.rechargingCycleDurationMS or 0
-  local cycleAmt = entry.rechargingAmountPerCycle  or 0
-  if cycleMs == 0 or cycleAmt == 0 then
-    return entry.quantity, entry.maxQuantity, false
-  end
-  local elapsed = GetServerTime() - (entry.lastUpdated or 0)
-  local gained  = math.floor(elapsed / (cycleMs / 1000)) * cycleAmt
-  return math.min(entry.maxQuantity, entry.quantity + gained), entry.maxQuantity, gained > 0
-end
+local estimateConcentration = ns.data.EstimateConcentration
 
 -- Returns the Midnight expansion skill and max for a crafting profession, if captured.
 local function midnightSkill(toon, skillLineID)

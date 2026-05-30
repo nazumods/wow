@@ -35,15 +35,24 @@ function ns.getMissingFields(toon)
 
   if toon.basic and toon.basic.professions then
     local details = toon.professions and toon.professions.details
-    local missingProfs = {}
+    local missingProfs, missingRecipes = {}, {}
     for _, prof in ipairs({ toon.basic.professions.primary, toon.basic.professions.secondary,
                               toon.basic.professions.fishing, toon.basic.professions.cooking }) do
-      if prof and prof.name and prof.skillID and (not details or not details[prof.skillID]) then
-        table.insert(missingProfs, prof.name)
+      if prof and prof.name and prof.skillID then
+        local detail = details and details[prof.skillID]
+        if not detail then
+          table.insert(missingProfs, prof.name)
+        elseif not detail.recipes then
+          -- Detail captured before recipe tracking existed (or prof window not reopened since).
+          table.insert(missingRecipes, prof.name)
+        end
       end
     end
     if #missingProfs > 0 then
       table.insert(missing, "professions (" .. table.concat(missingProfs, ", ") .. ")")
+    end
+    if #missingRecipes > 0 then
+      table.insert(missing, "recipes (" .. table.concat(missingRecipes, ", ") .. ")")
     end
   end
 
