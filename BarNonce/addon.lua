@@ -18,7 +18,7 @@ local function SetupBar(prefix, count)
     for i = 1, count do
       local btn = _G[prefix .. i]
       if btn then
-        btn:SetAlpha(0.8)
+        btn:SetAlpha(0.7)
         btn.NormalTexture:SetAlpha(0.7)
       end
     end

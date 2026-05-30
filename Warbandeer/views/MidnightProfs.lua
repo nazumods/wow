@@ -1,14 +1,15 @@
 local _, ns = ...
 local ui = ns.ui
 -- luacheck: globals DISABLED_FONT_COLOR GetServerTime
-local Class, Frame, TableFrame = ns.lua.Class, ui.Frame, ui.TableFrame
-local Colors = ns.Colors
 local insert, sort, concat = table.insert, table.sort, table.concat
+local Class, Frame, TableFrame = ns.lua.Class, ui.Frame, ui.TableFrame
+local Colors, ColorS = ns.Colors, ns.Colors.Strings
+local C_GREEN, C_WHITE, C_ORANGE, C_GREY, C_END = ColorS.GREEN, ColorS.WHITE, ColorS.ORANGE, ColorS.GREY, ColorS.END
 
 -- All professions in display order. hasCon = has Midnight concentration resource.
 local PROF_ORDER = { 171, 164, 333, 202, 773, 755, 165, 197, 182, 186, 393, 356, 185 }
 local PROF_INFO = {
-  [171] = { abbr = "Alch", name = "Alchemy",       hasCon = true  },
+  [171] = { abbr = "Alch", name = "Alchemy",        hasCon = true  },
   [164] = { abbr = "BS",   name = "Blacksmithing",  hasCon = true  },
   [333] = { abbr = "Ench", name = "Enchanting",     hasCon = true  },
   [202] = { abbr = "Eng",  name = "Engineering",    hasCon = true  },
@@ -27,14 +28,7 @@ local ICON_COL_W = 20
 local CHAR_COL_W = 90
 local PROF_COL_W = 82
 
-local TRANSPARENT = { color = { 0, 0, 0, 0 } }
-
--- WoW color escape codes embedded in cell text (Cell is a FontString; codes work natively).
-local C_GREEN  = "|cff44dd44"
-local C_WHITE  = "|cffffffff"
-local C_ORANGE = "|cffff7433"
-local C_GREY   = "|cff888888"
-local C_END    = "|r"
+local TRANSPARENT = { color = Colors.TransparentBlack }
 
 local function rowBgColor(i)
   return i % 2 == 0 and { 0, 0, 0, 0.4 } or { 0, 0, 0, 0.2 }
@@ -105,7 +99,7 @@ local function profCell(toon, prof)
         local pct = concQty / concMax
         if     pct >= 0.8 then concCol = C_GREEN
         elseif pct >= 0.3 then concCol = C_WHITE
-        else                    concCol = C_ORANGE
+        else                   concCol = C_ORANGE
         end
       else
         concCol = C_WHITE

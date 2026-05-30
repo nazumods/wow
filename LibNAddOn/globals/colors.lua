@@ -50,6 +50,12 @@ ns.Colors.Strings = {
     Horde = "|TInterface\\TargetingFrame\\UI-PVP-HORDE:18:19:0:0:64:64:0:38:0:36|t",
     Lock = "|TInterface\\LFGFrame\\UI-LFG-ICON-LOCK:14:14:0:0:32:32:0:28:0:28|t",
   },
+
+  GREEN  = "|cff44dd44",
+  WHITE  = "|cffffffff",
+  ORANGE = "|cffff7433",
+  GREY   = "|cff888888",
+  END    = "|r",
 }
 
 ---Create a new color table with the specified RGBA values.
