@@ -699,7 +699,7 @@ X-NUI-API: WarbandeerApi, X-NUI-UI: LibNUI
 
 | File | Purpose |
 |---|---|
-| `init.lua` | Table form init with settings (defaultView dropdown). Defines `ns.views`, class/race arrays, `MigrateDB`, `onLoad` |
+| `init.lua` | Table form init with settings (defaultView dropdown). Defines `ns.views`, `ns.viewOrder` (selector order), class/race arrays, `MigrateDB`, `onLoad` |
 | `data.lua` | `ns.data` — `gearTiers`, `IlvlColor()`, `minorFactions`, `minorFactionMaxStanding`. Midnight entries: Delves→Valeera (2742→2744, friendship rep), Silvermoon Court subfactions (2710→2711-2714). Profession helpers: `EstimateConcentration`, `FindProf`, `GetProfIntent`, `GetProfToons`, `GetMainCrafter` |
 | `controls/CharacterTooltip.lua` | `CharacterTooltip` singleton (CleanFrame) showing name/spec/class/realm/level |
 | `views/Overview.lua` | `TopAlts` + `TabFrame` (Midnight/WWI tabs) + `Factions` + `Achievements`. `Factions` accepts `extraFactionIDs` (deduplicated against `GetMajorFactionIDs`); subfaction rendering has three tiers: major faction renown → friendship rep (Valeera) → standard C_Reputation standings |
@@ -767,7 +767,7 @@ while that view is active): `summary` (faction toggle), `crafting` (expansion dr
 ## MainWindow
 
 Subclasses `TitleFrame`, `special=true`, `level=600`.
-- `self.viewSelector` (Tooltip) — lists all views, click to switch
+- `self.viewSelector` (Tooltip) — lists all views in `ns.viewOrder` (unlisted views appended, sorted by title), click to switch
 - `MainWindow:view(name)` — hides current, shows named, updates title+size
 - `ns:Open()` — lazy-creates window on first call
 - `ns:view(name)` — `Open()` then `view(name)`

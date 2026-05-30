@@ -12,7 +12,6 @@ local viewIdx = {"overview", "races", "summary", "gear", "detail", "roles"}
 local MainWindow = Class(TitleFrame, function(self)
   -- add the contents
   self.views = {}
-  local options = {}
 
   for _, c in pairs(ns.views) do
     local v = c:new{
@@ -29,7 +28,15 @@ local MainWindow = Class(TitleFrame, function(self)
       v._filter:Right(self.closeButton, ui.edge.Left, -4, 0)
       v._filter:Hide()
     end
+  end
 
+  -- Build selector options in ns.viewOrder; any unlisted view falls to the end
+  -- (sorted by title) so the dropdown order is always deterministic.
+  local options = {}
+  local seen = {}
+  local function addOption(v)
+    if not v or seen[v.name] then return end
+    seen[v.name] = true
     table.insert(options, {
         text = v._title,
         background = {0, 0, 0, 0},
@@ -38,6 +45,13 @@ local MainWindow = Class(TitleFrame, function(self)
         onClick = function() self:view(v.name); self.viewSelector:Hide() end,
     })
   end
+  for _, name in ipairs(ns.viewOrder) do addOption(self.views[name]) end
+  local leftovers = {}
+  for name, v in pairs(self.views) do
+    if not seen[name] then table.insert(leftovers, v) end
+  end
+  table.sort(leftovers, function(a, b) return (a._title or a.name) < (b._title or b.name) end)
+  for _, v in ipairs(leftovers) do addOption(v) end
 
   local defaultView = ns.db.settings.defaultView
   if defaultView and viewIdx[defaultView] then

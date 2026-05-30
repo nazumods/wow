@@ -30,6 +30,25 @@ LibNAddOn{
 
 ns.views = {}
 
+-- Order of views in the selector dropdown (by view `.name`).  Single source of
+-- truth for selector ordering; any registered view not listed here falls to the
+-- end (sorted by title).  Keep new views in their intended slot.
+ns.viewOrder = {
+  "overview",
+  "summary",
+  "detail",
+  "gear",
+  "roles",
+  "races",
+  "profs",
+  "crafting",
+  "midnight",
+  "legion",
+  "playtime",
+  "midnightprofs",
+  "weekly",
+}
+
 -- https://wowpedia.fandom.com/wiki/Category:HOWTOs
 -- addon compartment, settings scroll templates: https://warcraft.wiki.gg/wiki/Patch_10.1.0/API_changes
 -- settings changes: https://warcraft.wiki.gg/wiki/Patch_11.0.2/API_changes
