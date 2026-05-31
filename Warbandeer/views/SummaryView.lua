@@ -117,6 +117,11 @@ function ClassSummary:OnBeforeShow()
 end
 
 local SummaryView = Class(ui.Frame, function(self)
+  -- default to the current character's faction on first open
+  local current = ns.api:GetCharacterData()
+  self._showAlliance = not current or current.isAlliance
+  self._showHorde = not self._showAlliance
+
   self.alliance = ClassSummary:new{
     parent = self,
     position = {
