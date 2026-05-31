@@ -268,7 +268,7 @@ function MidnightProfs:OnBeforeShow()
   for i, toon in ipairs(toons) do
     local nameText = toon.name
     if toon.name == current then
-      nameText = "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_1:14:14:0:0|t " .. nameText
+      nameText = nameText .. " |TInterface\\TargetingFrame\\UI-RaidTargetingIcon_1:14:14:0:0|t"
     end
 
     local row = {
