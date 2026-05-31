@@ -160,14 +160,7 @@ function SummaryView:toggleFaction()
   self._showAlliance = not self._showAlliance
   self._showHorde = not self._showAlliance
   self:layout()
-  self:refreshFilterButtons()
   if ns.MainWindow then ns.MainWindow:Fit() end
-end
-
-function SummaryView:refreshFilterButtons()
-  if not self._filter then return end
-  self._filter.alliance:Alpha(self._showAlliance and 1 or 0.3)
-  self._filter.horde:Alpha(self._showHorde and 1 or 0.3)
 end
 
 function SummaryView:BuildFilter(parent)
@@ -175,34 +168,29 @@ function SummaryView:BuildFilter(parent)
     parent = parent,
     position = {
       Height = 20,
-      Width = 44,
+      Width = 20,
     },
   }
-  local function btn(iconPath, isAlliance, position)
-    local b = Button:new{
-      parent = box,
-      position = position,
-      glow = false,
-      OnClick = function() self:toggleFaction() end,
-    }
-    b.icon = Texture:new{
-      parent = b,
-      layer = ui.layer.Artwork,
-      path = iconPath,
-      position = { All = true },
-    }
-    return b
-  end
-  box.alliance = btn(ns.icons.Alliance, true, {
-    Left = {0, 0},
-    Size = {20, 20},
-  })
-  box.horde = btn(ns.icons.Horde, false, {
-    Left = {box.alliance, ui.edge.Right, 4, 0},
-    Size = {20, 20},
-  })
+  local b = Button:new{
+    parent = box,
+    position = {
+      Left = {0, 0},
+      Size = {20, 20},
+    },
+    glow = false,
+    OnClick = function() self:toggleFaction() end,
+  }
+  b.icon = Texture:new{
+    parent = b,
+    layer = ui.layer.Artwork,
+    atlas = "tokens-changeFaction-small",
+    position = { All = true },
+  }
+  -- dimmed at rest, full opacity on hover
+  b:Alpha(0.8)
+  b.OnEnter = function(self) self:Alpha(1) end
+  b.OnLeave = function(self) self:Alpha(0.8) end
   self._filter = box
-  self:refreshFilterButtons()
   return box
 end
 
