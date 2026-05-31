@@ -39,8 +39,8 @@ local EXPANSIONS = {
   { key = "midnight", label = "Midnight",       enabled = true  },
 }
 
-local PROF_COL_W, CRAFTER_COL_W, CONC_COL_W, RECIPE_COL_W = 104, 104, 72, 78
-local VIEW_WIDTH = PROF_COL_W + CRAFTER_COL_W + CONC_COL_W + RECIPE_COL_W
+local PROF_COL_W, CRAFTER_COL_W, SKILL_COL_W, CONC_COL_W, RECIPE_COL_W = 104, 104, 52, 72, 78
+local VIEW_WIDTH = PROF_COL_W + CRAFTER_COL_W + SKILL_COL_W + CONC_COL_W + RECIPE_COL_W
 
 local TRANSPARENT = { color = Colors.TransparentBlack }
 
@@ -52,6 +52,8 @@ local function buildColInfo()
   return {
     { name = "Profession", width = PROF_COL_W,    backdrop = TRANSPARENT, justifyH = ui.justify.Left },
     { name = "Crafter",    width = CRAFTER_COL_W, backdrop = TRANSPARENT, justifyH = ui.justify.Left },
+    { name = "Skill",      width = SKILL_COL_W,   backdrop = TRANSPARENT, justifyH = ui.justify.Center,
+      tooltip = "Main crafter's skill in the selected expansion" },
     { name = "Conc",       width = CONC_COL_W,    backdrop = TRANSPARENT, justifyH = ui.justify.Center,
       tooltip = "Main crafter's concentration" },
     { name = "Recipes",    width = RECIPE_COL_W,  backdrop = TRANSPARENT, justifyH = ui.justify.Center,
@@ -76,7 +78,7 @@ local CraftingView = Class(Frame, function(self)
     padding  = 8,      -- breathing room added per autosized column
     position = { TopLeft = {} },
   }
-  self._numCols = 4
+  self._numCols = 5
   self:Width(VIEW_WIDTH)
   self:Height(self.tbl:Height())
 end, {
@@ -111,6 +113,45 @@ function CraftingView:crafterCell(info, mainCrafter, isFlagged, profToons)
       if not isFlagged then
         ui.tip:AddLine("No main crafter set — showing highest skill", 0.6, 0.6, 0.6)
       end
+      ui.tip:Show()
+    end,
+    onLeave = function() ui.tip:Hide() end,
+  }
+end
+
+-- Main crafter's skill in the selected expansion, from the professions broker.
+-- Returns skillLevel, maxSkillLevel (or nil, nil if not captured).
+local function expansionSkill(mainCrafter, id, expName)
+  local details = mainCrafter and mainCrafter.professions and mainCrafter.professions.details
+  local detail  = details and details[id]
+  if not detail or not detail.expansions then return nil, nil end
+  for _, exp in ipairs(detail.expansions) do
+    if exp.name == expName then return exp.skillLevel, exp.maxSkillLevel end
+  end
+  return nil, nil
+end
+
+-- Main crafter's skill for the selected expansion — just the number, colour-coded
+-- by progress toward the expansion cap.
+function CraftingView:skillCell(id, mainCrafter)
+  local skill, max = expansionSkill(mainCrafter, id, EXP_LABEL[self._expansion])
+  if not skill then
+    return { text = C_GREY .. "—" .. C_END, justifyH = ui.justify.Center }
+  end
+  local col = C_WHITE
+  if max and max > 0 then
+    if     skill >= max       then col = C_GREEN
+    elseif skill >= max * 0.5 then col = C_WHITE
+    else                           col = C_ORANGE
+    end
+  end
+  return {
+    text     = col .. skill .. C_END,
+    justifyH = ui.justify.Center,
+    onEnter  = function(cell)
+      tipAt(cell)
+      ui.tip:AddLine(EXP_LABEL[self._expansion] .. " skill")
+      ui.tip:AddLine(skill .. " / " .. (max or "?"))
       ui.tip:Show()
     end,
     onLeave = function() ui.tip:Hide() end,
@@ -183,6 +224,7 @@ function CraftingView:buildRow(id, toons)
   return {
     { text = info.name, justifyH = ui.justify.Left },
     self:crafterCell(info, mainCrafter, isFlagged, profToons),
+    self:skillCell(id, mainCrafter),
     self:concCell(id, info, mainCrafter),
     self:recipeCell(id, mainCrafter),
   }
