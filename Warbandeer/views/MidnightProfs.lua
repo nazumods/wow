@@ -1,7 +1,7 @@
 local _, ns = ...
 local ui = ns.ui
 -- luacheck: globals DISABLED_FONT_COLOR GetServerTime UnitFactionGroup
-local insert, sort, concat = table.insert, table.sort, table.concat
+local insert, sort, concat, floor = table.insert, table.sort, table.concat, math.floor
 local Class, Frame, TableFrame, Button, Texture = ns.lua.Class, ui.Frame, ui.TableFrame, ui.Button, ui.Texture
 local Colors, ColorS = ns.Colors, ns.Colors.Strings
 local C_GREEN, C_WHITE, C_ORANGE, C_GREY, C_END = ColorS.GREEN, ColorS.WHITE, ColorS.ORANGE, ColorS.GREY, ColorS.END
@@ -26,7 +26,7 @@ local PROF_INFO = {
 
 local ICON_COL_W = 20
 local CHAR_COL_W = 90
-local PROF_COL_W = 82
+local PROF_COL_W = 100
 
 local TRANSPARENT = { color = Colors.TransparentBlack }
 
@@ -101,6 +101,20 @@ local function profCell(toon, prof)
     end
   end
 
+  -- Midnight recipe % (learned / total for this profession).
+  local recipePct, recipeLearned, recipeTotal
+  local bucket = toon.professions and toon.professions.details
+             and toon.professions.details[prof.id]
+             and toon.professions.details[prof.id].recipes
+             and toon.professions.details[prof.id].recipes.midnight
+  if bucket and bucket.total and bucket.total > 0 then
+    recipeLearned = #bucket.learned
+    recipeTotal   = bucket.total
+    recipePct     = floor(recipeLearned / recipeTotal * 100 + 0.5)
+    local recipeCol = recipePct >= 90 and C_GREEN or (recipePct >= 50 and C_WHITE or C_ORANGE)
+    text = text .. " " .. recipeCol .. recipePct .. "%" .. C_END
+  end
+
   return {
     text      = text,
     justifyH  = ui.justify.Center,
@@ -115,6 +129,9 @@ local function profCell(toon, prof)
         local line = "Concentration: " .. concQty .. " / " .. (concMax or "?")
         if concEst then line = line .. "  (estimated)" end
         ui.tip:AddLine(line)
+      end
+      if recipePct then
+        ui.tip:AddLine("Recipes: " .. recipeLearned .. " / " .. recipeTotal .. " (" .. recipePct .. "%)")
       end
       ui.tip:Show()
     end,
