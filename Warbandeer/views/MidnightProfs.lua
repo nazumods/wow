@@ -26,7 +26,8 @@ local PROF_INFO = {
 
 local ICON_COL_W = 20
 local CHAR_COL_W = 90
-local PROF_COL_W = 100
+local PROF_COL_W     = 100  -- gathering / fishing / cooking
+local PROF_CON_COL_W = 142  -- crafting profs with concentration (6 chars wider)
 
 local TRANSPARENT = { color = Colors.TransparentBlack }
 
@@ -112,7 +113,7 @@ local function profCell(toon, prof)
     recipeTotal   = bucket.total
     recipePct     = floor(recipeLearned / recipeTotal * 100 + 0.5)
     local recipeCol = recipePct >= 90 and C_GREEN or (recipePct >= 50 and C_WHITE or C_ORANGE)
-    text = text .. " " .. recipeCol .. recipePct .. "%" .. C_END
+    text = text .. " " .. recipeCol .. "(" .. recipePct .. "%)" .. C_END
   end
 
   return {
@@ -177,9 +178,9 @@ local function buildColInfo(profs)
   for _, prof in ipairs(profs) do
     insert(cols, {
       name     = prof.abbr,
-      width    = PROF_COL_W,
+      width    = prof.hasCon and PROF_CON_COL_W or PROF_COL_W,
       backdrop = TRANSPARENT,
-      tooltip  = prof.name .. (prof.hasCon and " — skill [concentration]" or " — skill"),
+      tooltip  = prof.name .. (prof.hasCon and " — skill [concentration] (recipes%)" or " — skill (recipes%)"),
     })
   end
   return cols
@@ -314,6 +315,6 @@ function MidnightProfs:OnBeforeShow()
   self.tbl.data = rowData
   self.tbl:update()
 
-  self:Width(ICON_COL_W + CHAR_COL_W + #profs * PROF_COL_W)
+  self:Width(self.tbl:Width())
   self:Height(self.tbl:Height())
 end
