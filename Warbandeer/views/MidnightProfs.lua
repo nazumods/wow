@@ -1,6 +1,6 @@
 local _, ns = ...
 local ui = ns.ui
--- luacheck: globals DISABLED_FONT_COLOR GetServerTime
+-- luacheck: globals DISABLED_FONT_COLOR GetServerTime UnitFactionGroup
 local insert, sort, concat = table.insert, table.sort, table.concat
 local Class, Frame, TableFrame, Button, Texture = ns.lua.Class, ui.Frame, ui.TableFrame, ui.Button, ui.Texture
 local Colors, ColorS = ns.Colors, ns.Colors.Strings
@@ -172,6 +172,7 @@ end
 
 ---@class MidnightProfs: Frame
 local MidnightProfs = Class(Frame, function(self)
+  self._showAlliance = UnitFactionGroup("player") == "Alliance"
   self._profKey = nil
   self._profs   = nil
   self._numCols = 0
@@ -179,9 +180,8 @@ local MidnightProfs = Class(Frame, function(self)
   self:Width(200)
   self:Height(40)
 end, {
-  name          = "midnightprofs",
-  _title        = "Midnight Profs",
-  _showAlliance = true,
+  name   = "midnightprofs",
+  _title = "Midnight Profs",
 })
 MidnightProfs.name = "midnightprofs"
 ns.views.MidnightProfs = MidnightProfs
