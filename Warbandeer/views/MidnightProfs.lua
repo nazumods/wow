@@ -72,7 +72,7 @@ local function profCell(toon, prof)
   local skillLevel, skillMax
   if prof.hasCon then
     skillLevel, skillMax = midnightSkill(toon, prof.id)
-    if not skillLevel then skillLevel = 0 end
+    if not skillLevel then skillLevel, skillMax = p.skillLevel, p.maxSkillLevel end
   else
     skillLevel, skillMax = p.skillLevel, p.maxSkillLevel
   end
