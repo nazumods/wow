@@ -2,7 +2,7 @@ local _, ns = ...
 local ui = ns.ui
 -- luacheck: globals DISABLED_FONT_COLOR GetServerTime
 local insert, sort, concat = table.insert, table.sort, table.concat
-local Class, Frame, TableFrame = ns.lua.Class, ui.Frame, ui.TableFrame
+local Class, Frame, TableFrame, Button, Texture = ns.lua.Class, ui.Frame, ui.TableFrame, ui.Button, ui.Texture
 local Colors, ColorS = ns.Colors, ns.Colors.Strings
 local C_GREEN, C_WHITE, C_ORANGE, C_GREY, C_END = ColorS.GREEN, ColorS.WHITE, ColorS.ORANGE, ColorS.GREY, ColorS.END
 
@@ -179,8 +179,9 @@ local MidnightProfs = Class(Frame, function(self)
   self:Width(200)
   self:Height(40)
 end, {
-  name   = "midnightprofs",
-  _title = "Midnight Profs",
+  name          = "midnightprofs",
+  _title        = "Midnight Profs",
+  _showAlliance = true,
 })
 MidnightProfs.name = "midnightprofs"
 ns.views.MidnightProfs = MidnightProfs
@@ -197,8 +198,58 @@ function MidnightProfs:BuildTable(profs)
   self._numCols = 2 + #profs
 end
 
+function MidnightProfs:toggleFaction()
+  self._showAlliance = not self._showAlliance
+  self:refreshFilterButtons()
+  self:OnBeforeShow()
+  if ns.MainWindow then ns.MainWindow:Fit() end
+end
+
+function MidnightProfs:refreshFilterButtons()
+  if not self._filter then return end
+  self._filter.alliance:Alpha(self._showAlliance and 1 or 0.3)
+  self._filter.horde:Alpha(not self._showAlliance and 1 or 0.3)
+end
+
+function MidnightProfs:BuildFilter(parent)
+  local box = ui.Frame:new{
+    parent = parent,
+    position = { Height = 20, Width = 44 },
+  }
+  local function btn(iconPath, position)
+    local b = Button:new{
+      parent = box,
+      position = position,
+      glow = false,
+      OnClick = function() self:toggleFaction() end,
+    }
+    b.icon = Texture:new{
+      parent = b,
+      layer = ui.layer.Artwork,
+      path = iconPath,
+      position = { All = true },
+    }
+    return b
+  end
+  box.alliance = btn(ns.icons.Alliance, {
+    Left = {0, 0},
+    Size = {20, 20},
+  })
+  box.horde = btn(ns.icons.Horde, {
+    Left = {box.alliance, ui.edge.Right, 4, 0},
+    Size = {20, 20},
+  })
+  self._filter = box
+  self:refreshFilterButtons()
+  return box
+end
+
 function MidnightProfs:OnBeforeShow()
-  local toons = ns.api.GetAllCharacters()
+  local all = ns.api.GetAllCharacters()
+  local toons = {}
+  for _, t in ipairs(all) do
+    if t.isAlliance == self._showAlliance then insert(toons, t) end
+  end
   sort(toons, function(a, b)
     if a.basic.level ~= b.basic.level then return a.basic.level > b.basic.level end
     return a.name < b.name
