@@ -48,6 +48,9 @@ function Cell:Label()
   if self.label then
     self.label:Text(data.text)
     if data.color then self.label:Color(data.color) end
+    -- re-apply justify: cells are reused across re-sorts, so a cell that
+    -- previously held left-aligned data must reset when new data is right-aligned
+    self.label:JustifyH(data.justifyH or ui.justify.Left)
   else
     self.label = Label:new{
       parent = self,

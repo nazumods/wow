@@ -35,6 +35,14 @@ function Label:Text(text)
   return self
 end
 
+---@param justify string?
+---@return string|Label
+function Label:JustifyH(justify)
+  if not justify then return self._widget:GetJustifyH() end
+  self._widget:SetJustifyH(justify)
+  return self
+end
+
 function Label:Color(r, g, b, a)
   if type(r) == "table" then
     if r.GetRGBA then
