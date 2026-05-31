@@ -1,8 +1,8 @@
 local _, ns = ...
 local ui = ns.ui
--- luacheck: globals DISABLED_FONT_COLOR GetServerTime
-local insert, sort, concat = table.insert, table.sort, table.concat
-local Class, Frame, TableFrame = ns.lua.Class, ui.Frame, ui.TableFrame
+-- luacheck: globals DISABLED_FONT_COLOR GetServerTime UnitFactionGroup
+local insert, sort, concat, floor = table.insert, table.sort, table.concat, math.floor
+local Class, Frame, TableFrame, Button, Texture = ns.lua.Class, ui.Frame, ui.TableFrame, ui.Button, ui.Texture
 local Colors, ColorS = ns.Colors, ns.Colors.Strings
 local C_GREEN, C_WHITE, C_ORANGE, C_GREY, C_END = ColorS.GREEN, ColorS.WHITE, ColorS.ORANGE, ColorS.GREY, ColorS.END
 
@@ -26,7 +26,8 @@ local PROF_INFO = {
 
 local ICON_COL_W = 20
 local CHAR_COL_W = 90
-local PROF_COL_W = 82
+local PROF_COL_W     = 100  -- gathering / fishing / cooking
+local PROF_CON_COL_W = 142  -- crafting profs with concentration (6 chars wider)
 
 local TRANSPARENT = { color = Colors.TransparentBlack }
 
@@ -101,6 +102,20 @@ local function profCell(toon, prof)
     end
   end
 
+  -- Midnight recipe % (learned / total for this profession).
+  local recipePct, recipeLearned, recipeTotal
+  local bucket = toon.professions and toon.professions.details
+             and toon.professions.details[prof.id]
+             and toon.professions.details[prof.id].recipes
+             and toon.professions.details[prof.id].recipes.midnight
+  if bucket and bucket.total and bucket.total > 0 then
+    recipeLearned = #bucket.learned
+    recipeTotal   = bucket.total
+    recipePct     = floor(recipeLearned / recipeTotal * 100 + 0.5)
+    local recipeCol = recipePct >= 90 and C_GREEN or (recipePct >= 50 and C_WHITE or C_ORANGE)
+    text = text .. " " .. recipeCol .. "(" .. recipePct .. "%)" .. C_END
+  end
+
   return {
     text      = text,
     justifyH  = ui.justify.Center,
@@ -115,6 +130,9 @@ local function profCell(toon, prof)
         local line = "Concentration: " .. concQty .. " / " .. (concMax or "?")
         if concEst then line = line .. "  (estimated)" end
         ui.tip:AddLine(line)
+      end
+      if recipePct then
+        ui.tip:AddLine("Recipes: " .. recipeLearned .. " / " .. recipeTotal .. " (" .. recipePct .. "%)")
       end
       ui.tip:Show()
     end,
@@ -160,9 +178,9 @@ local function buildColInfo(profs)
   for _, prof in ipairs(profs) do
     insert(cols, {
       name     = prof.abbr,
-      width    = PROF_COL_W,
+      width    = prof.hasCon and PROF_CON_COL_W or PROF_COL_W,
       backdrop = TRANSPARENT,
-      tooltip  = prof.name .. (prof.hasCon and " — skill [concentration]" or " — skill"),
+      tooltip  = prof.name .. (prof.hasCon and " — skill [concentration] (recipes%)" or " — skill (recipes%)"),
     })
   end
   return cols
@@ -172,6 +190,7 @@ end
 
 ---@class MidnightProfs: Frame
 local MidnightProfs = Class(Frame, function(self)
+  self._showAlliance = UnitFactionGroup("player") == "Alliance"
   self._profKey = nil
   self._profs   = nil
   self._numCols = 0
@@ -197,8 +216,58 @@ function MidnightProfs:BuildTable(profs)
   self._numCols = 2 + #profs
 end
 
+function MidnightProfs:toggleFaction()
+  self._showAlliance = not self._showAlliance
+  self:refreshFilterButtons()
+  self:OnBeforeShow()
+  if ns.MainWindow then ns.MainWindow:Fit() end
+end
+
+function MidnightProfs:refreshFilterButtons()
+  if not self._filter then return end
+  self._filter.alliance:Alpha(self._showAlliance and 1 or 0.3)
+  self._filter.horde:Alpha(not self._showAlliance and 1 or 0.3)
+end
+
+function MidnightProfs:BuildFilter(parent)
+  local box = ui.Frame:new{
+    parent = parent,
+    position = { Height = 20, Width = 44 },
+  }
+  local function btn(iconPath, position)
+    local b = Button:new{
+      parent = box,
+      position = position,
+      glow = false,
+      OnClick = function() self:toggleFaction() end,
+    }
+    b.icon = Texture:new{
+      parent = b,
+      layer = ui.layer.Artwork,
+      path = iconPath,
+      position = { All = true },
+    }
+    return b
+  end
+  box.alliance = btn(ns.icons.Alliance, {
+    Left = {0, 0},
+    Size = {20, 20},
+  })
+  box.horde = btn(ns.icons.Horde, {
+    Left = {box.alliance, ui.edge.Right, 4, 0},
+    Size = {20, 20},
+  })
+  self._filter = box
+  self:refreshFilterButtons()
+  return box
+end
+
 function MidnightProfs:OnBeforeShow()
-  local toons = ns.api.GetAllCharacters()
+  local all = ns.api.GetAllCharacters()
+  local toons = {}
+  for _, t in ipairs(all) do
+    if t.isAlliance == self._showAlliance then insert(toons, t) end
+  end
   sort(toons, function(a, b)
     if a.basic.level ~= b.basic.level then return a.basic.level > b.basic.level end
     return a.name < b.name
@@ -217,7 +286,7 @@ function MidnightProfs:OnBeforeShow()
   for i, toon in ipairs(toons) do
     local nameText = toon.name
     if toon.name == current then
-      nameText = "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_1:14:14:0:0|t " .. nameText
+      nameText = nameText .. " |TInterface\\TargetingFrame\\UI-RaidTargetingIcon_1:14:14:0:0|t"
     end
 
     local row = {
@@ -246,6 +315,6 @@ function MidnightProfs:OnBeforeShow()
   self.tbl.data = rowData
   self.tbl:update()
 
-  self:Width(ICON_COL_W + CHAR_COL_W + #profs * PROF_COL_W)
+  self:Width(self.tbl:Width())
   self:Height(self.tbl:Height())
 end

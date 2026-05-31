@@ -1,5 +1,6 @@
 local _, ns = ...
 local ui = ns.ui
+-- luacheck: globals UnitFactionGroup
 local insert, filter = table.insert, ns.lua.lists.filter
 local alpha = ns.Colors.alpha
 local Class, TableFrame, Texture, Label, Button = ns.lua.Class, ui.TableFrame, ui.Texture, ui.Label, ui.Button
@@ -117,11 +118,8 @@ function ClassSummary:OnBeforeShow()
 end
 
 local SummaryView = Class(ui.Frame, function(self)
-  -- default to the current character's faction on first open
-  local current = ns.api:GetCharacterData()
-  self._showAlliance = not current or current.isAlliance
-  self._showHorde = not self._showAlliance
-
+  self._showAlliance = UnitFactionGroup("player") == "Alliance"
+  self._showHorde    = not self._showAlliance
   self.alliance = ClassSummary:new{
     parent = self,
     position = {
@@ -138,10 +136,8 @@ local SummaryView = Class(ui.Frame, function(self)
 
   self:layout()
 end, {
-  name = "summary",
+  name   = "summary",
   _title = "Summary",
-  _showAlliance = true,
-  _showHorde = false,
 })
 SummaryView.name = "summary"
 ns.views.SummaryView = SummaryView
