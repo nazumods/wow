@@ -114,6 +114,19 @@ function ns.data.GetProfIntent(charName, skillLineID)
   return forChar and forChar[skillLineID] or nil
 end
 
+-- Assign (or clear, when intent is nil) a character's profession intent.
+-- Persisted to WarbandeerDB.profIntent[charName][skillLineID].
+function ns.data.SetProfIntent(charName, skillLineID, intent)
+  local db = ns.db
+  db.profIntent = db.profIntent or {}
+  local forChar = db.profIntent[charName]
+  if not forChar then
+    forChar = {}
+    db.profIntent[charName] = forChar
+  end
+  forChar[skillLineID] = intent
+end
+
 local INTENT_ORDER = { main = 1, secondary = 2, gatherer = 3 }
 
 -- Every toon that has the given profession, with intent + skill, for tooltip display.

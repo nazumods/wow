@@ -526,6 +526,12 @@ Defaults: `strata="DIALOG"`, `background={0,0,0,0.7}`, `inset=3`
 ### Methods
 `ClearLines()`, `AddLine(text, r?, g?, b?, a?)`, `AnchorTo(frame, anchor, dx?, dy?)`, `ShowForCharacter(toon, position)`, `MaxWidth(w)` (cap content width; pass nil to clear — deviates from getter pattern since nil is a meaningful set value)
 
+### `maxHeight` (scrolling menus)
+Optional constructor field. When the stacked constructor `lines` exceed `maxHeight`, they're
+clipped into an inner mouse-wheel-scrollable viewport (the CleanFrame border is anchored outside
+`self`, so an inner `_port` frame is clipped, not the tooltip). Only the constructor `lines` path
+is scroll-aware (not `AddLine`). Used by the Detail view's character picker.
+
 Singleton: `ui.tip`
 Helpers: `ui.ShowCharacterTooltip(toon, frame, position)`, `ui.HideCharacterTooltip()`
 
@@ -700,13 +706,13 @@ X-NUI-API: WarbandeerApi, X-NUI-UI: LibNUI
 | File | Purpose |
 |---|---|
 | `init.lua` | Table form init with settings (defaultView dropdown). Defines `ns.views`, `ns.viewOrder` (selector order), class/race arrays, `MigrateDB`, `onLoad` |
-| `data.lua` | `ns.data` — `gearTiers`, `IlvlColor()`, `minorFactions`, `minorFactionMaxStanding`. Midnight entries: Delves→Valeera (2742→2744, friendship rep), Silvermoon Court subfactions (2710→2711-2714). Profession helpers: `EstimateConcentration`, `FindProf`, `GetProfIntent`, `GetProfToons`, `GetMainCrafter` |
+| `data.lua` | `ns.data` — `gearTiers`, `IlvlColor()`, `minorFactions`, `minorFactionMaxStanding`. Midnight entries: Delves→Valeera (2742→2744, friendship rep), Silvermoon Court subfactions (2710→2711-2714). Profession helpers: `EstimateConcentration`, `FindProf`, `GetProfIntent`, `SetProfIntent`, `GetProfToons`, `GetMainCrafter` |
 | `controls/CharacterTooltip.lua` | `CharacterTooltip` singleton (CleanFrame) showing name/spec/class/realm/level |
 | `views/Overview.lua` | `TopAlts` + `TabFrame` (Midnight/WWI tabs) + `Factions` + `Achievements`. `Factions` accepts `extraFactionIDs` (deduplicated against `GetMajorFactionIDs`); subfaction rendering has three tiers: major faction renown → friendship rep (Valeera) → standard C_Reputation standings |
 | `views/SummaryColumns.lua` | `SummaryColumn` specs + `SummaryColumnsDelayed()` for DMF |
 | `views/SummaryView.lua` | Two `ClassSummary` TableFrames (Alliance/Horde side-by-side) |
 | `views/GearView.lua` | `TabFrame` per armor type, 21-col TableFrame per tab |
-| `views/DetailView.lua` | Single-character detail (stub) |
+| `views/DetailView.lua` | Single-character detail: level/race/class/realm/ilvl + per-profession intent editor. `BuildFilter` character-picker dropdown; writes `profIntent` via `ns.data.SetProfIntent` |
 | `views/RoleView.lua` | `ClassTable` frames grouped by spec |
 | `views/RaceView.lua` | 13-class × 29-race grid |
 | `views/Legion.lua` | Hidden artifact appearances + Legion achievements |
@@ -726,7 +732,7 @@ X-NUI-API: WarbandeerApi, X-NUI-UI: LibNUI
 | `overview` | Overview | Frame | TopAlts, Factions, Achievements, TabFrame |
 | `summary` | Summary | Frame | Dual ClassSummary tables (Alliance/Horde) |
 | `gear` | Gear | TabFrame | 4 armor-type tabs, 16 equipment slot columns |
-| `detail` | Detail | Frame | Stub |
+| `detail` | Detail | Frame | Per-character detail + profession intent editor; `BuildFilter` character picker |
 | `roles` | Roles | Frame | ClassTable per class, grouped by spec |
 | `races` | Races | TableFrame | 13×29 grid |
 | `legion` | Legion | Frame | Hidden artifacts + achievements |
@@ -738,7 +744,8 @@ X-NUI-API: WarbandeerApi, X-NUI-UI: LibNUI
 | `weekly` | Weekly | Frame | Per-character weekly content |
 
 Views with a `BuildFilter(parent)` method get a filter widget in the title bar (shown only
-while that view is active): `summary` (faction toggle), `crafting` (expansion dropdown).
+while that view is active): `summary` (faction toggle), `crafting` (expansion dropdown),
+`detail` (character picker).
 
 ## Overview — Factions Widget
 

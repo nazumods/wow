@@ -41,12 +41,19 @@ local Tooltip = Class(CleanFrame, function(self)
   end
   self:Height(self._h + 2 * self.inset)
   self:Width(self._w + 2 * self.inset)
+
+  -- When a maxHeight is set and the stacked lines overflow it, clip them into a
+  -- scrollable inner viewport. Only the constructor `lines` path is scroll-aware.
+  if self.maxHeight and self._h + 2 * self.inset > self.maxHeight then
+    self:_enableScroll()
+  end
 end, {
   strata = "DIALOG",
   background = {0, 0, 0, 0.7},
   inset = 3,
   lines = {},
   maxWidth = nil,
+  maxHeight = nil,
 })
 ui.Tooltip = Tooltip
 
@@ -62,6 +69,74 @@ ui.Tooltip = Tooltip
 function Tooltip:MaxWidth(w)
   self.maxWidth = w
   return self
+end
+
+-- Move the line stack inside a clipping viewport so an overflowing menu scrolls
+-- with the mouse wheel instead of running off-screen. The CleanFrame border is
+-- anchored outside `self`, so we clip an inner frame rather than the tooltip.
+-- Called once from the constructor; assumes the constructor `lines` are built.
+function Tooltip:_enableScroll()
+  local inset = self.inset
+  local contentW = self._w
+  self._viewH = self.maxHeight - 2 * inset
+  self._contentH = self._h
+  self._scroll = 0
+
+  local port = Frame:new{
+    parent = self,
+    position = { TopLeft = {inset, -inset}, Width = contentW, Height = self._viewH },
+  }
+  port._widget:SetClipsChildren(true)
+  self._port = port
+
+  local wheel = function(_, delta) self:_scrollBy(-delta * 40) end
+  port._widget:EnableMouseWheel(true)
+  port._widget:SetScript("OnMouseWheel", wheel)
+
+  -- Reparent each line into the viewport, preserving the stacked anchor chain.
+  -- Lines carry their own mouse scripts, so they also forward the wheel.
+  for i = 1, self._lineCount do
+    local l = self.lines[i]
+    l:Parent(port)
+    l._widget:ClearAllPoints()
+    if i == 1 then
+      l._widget:SetPoint("TOPLEFT", port._widget, "TOPLEFT", 0, 0)
+    else
+      l._widget:SetPoint("TOPLEFT", self.lines[i - 1]._widget, "BOTTOMLEFT")
+    end
+    l._widget:SetPoint("RIGHT", port._widget, "RIGHT")
+    l._widget:EnableMouseWheel(true)
+    l._widget:SetScript("OnMouseWheel", wheel)
+  end
+
+  self:Width(contentW + 2 * inset)
+  self:Height(self.maxHeight)
+  self:_applyScroll()
+end
+
+-- Re-anchor the first line to reflect the scroll offset (the rest follow via the
+-- anchor chain) and hide lines fully outside the viewport so they neither render
+-- nor capture mouse input.
+function Tooltip:_applyScroll()
+  local first = self.lines[1]
+  first._widget:ClearAllPoints()
+  first._widget:SetPoint("TOPLEFT", self._port._widget, "TOPLEFT", 0, self._scroll)
+  first._widget:SetPoint("RIGHT", self._port._widget, "RIGHT")
+
+  local y = 0
+  for i = 1, self._lineCount do
+    local l = self.lines[i]
+    local h = l:Height()
+    l._widget:SetShown(y + h > self._scroll and y < self._scroll + self._viewH)
+    y = y + h
+  end
+end
+
+---@param dy number pixels to scroll (positive scrolls toward the end of the list)
+function Tooltip:_scrollBy(dy)
+  local maxScroll = max(0, self._contentH - self._viewH)
+  self._scroll = max(0, math.min(maxScroll, self._scroll + dy))
+  self:_applyScroll()
 end
 
 -- Grabs the next line frame from the pool, creating one if the pool is exhausted.
