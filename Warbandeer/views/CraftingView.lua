@@ -30,8 +30,9 @@ local INTENT_LABEL = { main = "Main Crafter", secondary = "Secondary", gatherer 
 -- Expansion filter.  Only Midnight is wired for now; DF/TWW are greyed placeholders
 -- until their recipe/concentration data is captured (separate session).
 local EXP_LABEL = { df = "Dragonflight", tww = "The War Within", midnight = "Midnight" }
--- Inline down-arrow texture (the default font lacks a ▾ glyph).
-local CHEVRON = "  |TInterface\\Buttons\\Arrow-Down-Up:14:14|t"
+-- Inline down-arrow (atlas markup: |A:atlasName:height:width|a). The minimal
+-- scrollbar arrow already points down and is a neutral grey, so no rotation/tint.
+local CHEVRON = "  |A:UI-HUD-ActionBar-PageDownArrow-Disabled:12:12|a"
 local EXPANSIONS = {
   { key = "df",       label = "Dragonflight",   enabled = false },
   { key = "tww",      label = "The War Within", enabled = false },

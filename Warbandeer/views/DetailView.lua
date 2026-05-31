@@ -11,8 +11,9 @@ local VIEW_WIDTH = 320
 local ROW_H = 22
 local INTENT_BTN_W = 120
 
--- Inline down-arrow texture (the default font lacks a ▾ glyph).
-local CHEVRON = "  |TInterface\\Buttons\\Arrow-Down-Up:14:14|t"
+-- Inline down-arrow (atlas markup: |A:atlasName:height:width|a). The minimal
+-- scrollbar arrow already points down and is a neutral grey, so no rotation/tint.
+local CHEVRON = "  |A:UI-HUD-ActionBar-PageDownArrow-Disabled:12:12|a"
 
 local INTENT_LABEL = { main = "Main Crafter", secondary = "Secondary", gatherer = "Gatherer" }
 -- Editor options.  `key = false` is the "clear" sentinel (stored as nil).
