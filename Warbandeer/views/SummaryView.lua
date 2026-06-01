@@ -110,7 +110,8 @@ function ClassSummary:GetRowData(toon)
 end
 
 function ClassSummary:OnBeforeShow()
-  for i,t in pairs(self:GetCharacters()) do
+  self.data = {}
+  for i,t in ipairs(self:GetCharacters()) do
     self.data[i] = self:GetRowData(t)
   end
   self:update()
@@ -197,6 +198,8 @@ end
 function SummaryView:OnBeforeShow()
   ns.api:RefreshCurrentCharacterField("weeklies", "keystone")
   ns.api:RefreshCurrentCharacterField("weeklies", "dungeons")
+  ns.api:RefreshCurrentCharacterField("weeklies", "vault")
+  ns.api:RefreshCurrentCharacterField("weeklies", "hasUnclaimedVault")
   self.alliance:OnBeforeShow()
   self.horde:OnBeforeShow()
 end

@@ -334,6 +334,7 @@ insert(
     name = "Vault",
     width = 50,
     getData = function(t)
+      if not t.weeklies then return nil end
       if t.weeklies.vault then return formatBestVaultRewardOption(t.weeklies.vault) end
       if t.weeklies.hasUnclaimedVault then return UnclaimedVault end
       return nil
