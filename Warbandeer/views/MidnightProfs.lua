@@ -193,10 +193,12 @@ local MidnightProfs = Class(Frame, function(self)
   -- default to the current character's faction on first open
   local current = ns.api:GetCharacterData()
   self._showAlliance = not current or current.isAlliance
-  self._profKey = nil
-  self._profs   = nil
-  self._numCols = 0
-  self.tbl      = nil
+  self._profKey  = nil
+  self._profs    = nil
+  self._numCols  = 0
+  self.tbl       = nil
+  self._sortProfID = nil  -- nil = level/name default; "name" = by name; int = skillLineID
+  self._sortDir    = 1    -- 1 = natural (desc for numbers, asc for name); -1 = reversed
   self:Width(200)
   self:Height(40)
 end, {
@@ -216,10 +218,50 @@ function MidnightProfs:BuildTable(profs)
   self._profKey = profKey(profs)
   self._profs   = profs
   self._numCols = 2 + #profs
+  self:_hookSortHeaders(profs)
+end
+
+-- Wire OnMouseUp sort handlers onto each column header.
+-- Col 1 (faction icon) is skipped — not a useful sort key.
+function MidnightProfs:_hookSortHeaders(profs)
+  local function hook(col, sortID)
+    col.header._widget:EnableMouse(true)
+    col.header._widget:SetScript("OnMouseUp", function()
+      if self._sortProfID == sortID then
+        self._sortDir = -self._sortDir
+      else
+        self._sortProfID = sortID
+        self._sortDir = 1
+      end
+      self:OnBeforeShow()
+      if ns.MainWindow then ns.MainWindow:Fit() end
+    end)
+  end
+  hook(self.tbl.cols[2], "name")
+  for i, prof in ipairs(profs) do
+    hook(self.tbl.cols[2 + i], prof.id)
+  end
+end
+
+-- Update header labels to show ▲/▼ on the active sort column.
+function MidnightProfs:_updateSortIndicators(profs)
+  local arrow = self._sortDir > 0 and " ^" or " v"
+  -- col 2: Character
+  local nameLabel = self.tbl.cols[2].header.label
+  local nameTxt   = self._sortProfID == "name" and ("Character" .. arrow) or "Character"
+  if nameLabel and nameLabel._widget then nameLabel._widget:SetText(nameTxt) end
+  -- col 3+: profs
+  for i, prof in ipairs(profs) do
+    local label = self.tbl.cols[2 + i].header.label
+    local txt   = self._sortProfID == prof.id and (prof.abbr .. arrow) or prof.abbr
+    if label and label._widget then label._widget:SetText(txt) end
+  end
 end
 
 function MidnightProfs:toggleFaction()
   self._showAlliance = not self._showAlliance
+  self._sortProfID   = nil  -- prof columns may differ between factions
+  self._sortDir      = 1
   self:refreshFilterButtons()
   self:OnBeforeShow()
   if ns.MainWindow then ns.MainWindow:Fit() end
@@ -270,13 +312,54 @@ function MidnightProfs:OnBeforeShow()
   for _, t in ipairs(all) do
     if t.isAlliance == self._showAlliance then insert(toons, t) end
   end
-  sort(toons, function(a, b)
-    if a.basic.level ~= b.basic.level then return a.basic.level > b.basic.level end
-    return a.name < b.name
-  end)
 
+  -- Discover profs first so prof-column sorts are available immediately.
   local profs = discoverProfs(toons)
   if profKey(profs) ~= self._profKey then self:BuildTable(profs) end
+
+  -- Sort rows.
+  local sortID = self._sortProfID
+  local dir    = self._sortDir
+  if sortID == "name" then
+    sort(toons, function(a, b)
+      if a.name == b.name then return false end
+      return dir > 0 and a.name < b.name or a.name > b.name
+    end)
+  elseif sortID then
+    local sortProf
+    for _, p in ipairs(profs) do if p.id == sortID then sortProf = p; break end end
+    if sortProf then
+      sort(toons, function(a, b)
+        local function val(toon)
+          local p = findProf(toon, sortProf.id)
+          if not p then return -1 end
+          local sl = p.skillLevel or 0
+          if sortProf.hasCon then
+            local ms = midnightSkill(toon, sortProf.id)
+            if ms then sl = ms end
+          end
+          return sl
+        end
+        local va, vb = val(a), val(b)
+        if va == vb then return a.name < b.name end
+        if dir > 0 then return va > vb end
+        return va < vb
+      end)
+    else
+      self._sortProfID = nil  -- prof not present for this faction, reset
+      sort(toons, function(a, b)
+        if a.basic.level ~= b.basic.level then return a.basic.level > b.basic.level end
+        return a.name < b.name
+      end)
+    end
+  else
+    sort(toons, function(a, b)
+      if a.basic.level ~= b.basic.level then return a.basic.level > b.basic.level end
+      return a.name < b.name
+    end)
+  end
+
+  self:_updateSortIndicators(profs)
 
   local current = ns.api.GetCurrentCharacter()
   for _ = #self.tbl.rows + 1, #toons do self.tbl:addRow({}) end
