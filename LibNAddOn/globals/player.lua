@@ -139,32 +139,32 @@ function ns.wow.GreatVault.getRewardOptions()
   local activities = GetActivities()
   for _,activity in ipairs(activities) do
     local type = ACTIVITY_TYPES[activity.type]
-    if not type then goto continue end
-    if not progress[type] then progress[type] = { complete = 0, progress = 0, max = 0 } end
-    local complete = activity.progress >= activity.threshold
-    progress[type].progress = activity.progress
-    progress[type].max = max(progress[type].max, activity.threshold)
-    if complete then
-      progress[type].complete = progress[type].complete + 1
-      local link = GetExampleRewardItemHyperlinks(activity.id)
-      if link then
-        local ilvl = GetDetailedItemLevelInfo(link)
-        if ilvl then
-          if not counts[ilvl] then
-            counts[ilvl] = 1
-          else
-            counts[ilvl] = counts[ilvl] + 1
-          end
-          if ilvl > best then
-            best = ilvl
-            bestN = 1
-          elseif ilvl == best then
-            bestN = bestN + 1
+    if type then
+      if not progress[type] then progress[type] = { complete = 0, progress = 0, max = 0 } end
+      local complete = activity.progress >= activity.threshold
+      progress[type].progress = activity.progress
+      progress[type].max = max(progress[type].max, activity.threshold)
+      if complete then
+        progress[type].complete = progress[type].complete + 1
+        local link = GetExampleRewardItemHyperlinks(activity.id)
+        if link then
+          local ilvl = GetDetailedItemLevelInfo(link)
+          if ilvl then
+            if not counts[ilvl] then
+              counts[ilvl] = 1
+            else
+              counts[ilvl] = counts[ilvl] + 1
+            end
+            if ilvl > best then
+              best = ilvl
+              bestN = 1
+            elseif ilvl == best then
+              bestN = bestN + 1
+            end
           end
         end
       end
     end
-    ::continue::
   end
   return rewards, counts, progress, best, bestN
 end
