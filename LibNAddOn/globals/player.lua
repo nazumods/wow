@@ -139,6 +139,7 @@ function ns.wow.GreatVault.getRewardOptions()
   local activities = GetActivities()
   for _,activity in ipairs(activities) do
     local type = ACTIVITY_TYPES[activity.type]
+    if not type then goto continue end
     if not progress[type] then progress[type] = { complete = 0, progress = 0, max = 0 } end
     local complete = activity.progress >= activity.threshold
     progress[type].progress = activity.progress
@@ -163,6 +164,7 @@ function ns.wow.GreatVault.getRewardOptions()
         end
       end
     end
+    ::continue::
   end
   return rewards, counts, progress, best, bestN
 end
