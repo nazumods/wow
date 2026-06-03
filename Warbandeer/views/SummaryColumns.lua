@@ -335,8 +335,13 @@ insert(
     width = 50,
     getData = function(t)
       if not t.weeklies then return nil end
-      if t.weeklies.vault then return formatBestVaultRewardOption(t.weeklies.vault) end
-      if t.weeklies.hasUnclaimedVault then return UnclaimedVault end
+      local prefix = t.weeklies.hasUnclaimedVault and ("|A:"..Icons.Vault..":14:14|a ") or ""
+      if t.weeklies.vault then
+        local r = formatBestVaultRewardOption(t.weeklies.vault)
+        if r and prefix ~= "" then r.text = prefix..r.text end
+        return r
+      end
+      if prefix ~= "" then return {text = prefix} end
       return nil
     end,
   }
