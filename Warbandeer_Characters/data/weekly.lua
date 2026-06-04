@@ -103,7 +103,7 @@ ns.Weekly.fields = {
     maxLevel = true,
     resetOn = ns.RESET_WEEKLY,
     get = function() return C_WeeklyRewards.HasAvailableRewards() end,
-    reset = function(toon) return toon.weeklies and toon.weeklies.vault and toon.weeklies.vault.best > 0 end,
+    reset = function(_, toon) return toon.weeklies and toon.weeklies.vault and toon.weeklies.vault.best > 0 end,
     event = "WEEKLY_REWARDS_UPDATE",
     eventDelay = 1000,
   },

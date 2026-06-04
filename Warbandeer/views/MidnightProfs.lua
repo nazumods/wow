@@ -197,6 +197,8 @@ local MidnightProfs = Class(Frame, function(self)
   self._profs   = nil
   self._numCols = 0
   self.tbl      = nil
+  self._sortCol = nil  -- nil = default level/name sort
+  self._sortAsc = false
   self:Width(200)
   self:Height(40)
 end, {
@@ -216,6 +218,21 @@ function MidnightProfs:BuildTable(profs)
   self._profKey = profKey(profs)
   self._profs   = profs
   self._numCols = 2 + #profs
+  self._sortCol = nil
+  -- wire sort click on each column header
+  for i, col in ipairs(self.tbl.cols) do
+    local colIdx = i
+    col.header:SetScript("OnMouseUp", function()
+      if self._sortCol == colIdx then
+        self._sortAsc = not self._sortAsc
+      else
+        self._sortCol = colIdx
+        self._sortAsc = false -- default descending
+      end
+      self:OnBeforeShow()
+      if ns.MainWindow then ns.MainWindow:Fit() end
+    end)
+  end
 end
 
 function MidnightProfs:toggleFaction()
@@ -264,33 +281,33 @@ function MidnightProfs:BuildFilter(parent)
   return box
 end
 
+local function profSortKey(toon, prof)
+  local p = findProf(toon, prof.id)
+  if not p then return 0 end
+  if prof.hasCon then return midnightSkill(toon, prof.id) or p.skillLevel or 0 end
+  return p.skillLevel or 0
+end
+
 function MidnightProfs:OnBeforeShow()
   local all = ns.api.GetAllCharacters()
   local toons = {}
   for _, t in ipairs(all) do
     if t.isAlliance == self._showAlliance then insert(toons, t) end
   end
-  sort(toons, function(a, b)
-    if a.basic.level ~= b.basic.level then return a.basic.level > b.basic.level end
-    return a.name < b.name
-  end)
 
   local profs = discoverProfs(toons)
   if profKey(profs) ~= self._profKey then self:BuildTable(profs) end
 
   local current = ns.api.GetCurrentCharacter()
-  for _ = #self.tbl.rows + 1, #toons do self.tbl:addRow({}) end
 
-  local emptyRow = {}
-  for _ = 1, self._numCols do insert(emptyRow, "") end
-
-  local rowData = {}
-  for i, toon in ipairs(toons) do
+  -- build entries: {toon, row, keys}
+  local entries = {}
+  for _, toon in ipairs(toons) do
     local nameText = toon.name
     if toon.name == current then
       nameText = nameText .. " |TInterface\\TargetingFrame\\UI-RaidTargetingIcon_1:14:14:0:0|t"
     end
-
+    nameText = nameText .. " " .. C_GREY .. "(" .. toon.basic.level .. ")" .. C_END
     local row = {
       toon.isAlliance and ns.icons.AllianceLight or ns.icons.HordeLight,
       {
@@ -302,21 +319,61 @@ function MidnightProfs:OnBeforeShow()
         onLeave = ui.HideCharacterTooltip,
       },
     }
-
-    for _, prof in ipairs(profs) do insert(row, profCell(toon, prof)) end
-
-    insert(rowData, row)
-    self.tbl.rows[i]:backdropColor(unpack(rowBgColor(i)))
+    -- sort keys: col1=faction, col2=name, col3+=prof skill
+    local keys = { toon.isAlliance and 1 or 0, toon.name }
+    for _, prof in ipairs(self._profs) do
+      insert(row, profCell(toon, prof))
+      insert(keys, profSortKey(toon, prof))
+    end
+    insert(entries, { toon = toon, row = row, keys = keys })
   end
 
-  for i = #toons + 1, #self.tbl.rows do
+  -- sort
+  if self._sortCol then
+    local col, asc = self._sortCol, self._sortAsc
+    sort(entries, function(a, b)
+      local av, bv = a.keys[col], b.keys[col]
+      if av == bv then return a.toon.name < b.toon.name end
+      if asc then return av < bv else return av > bv end
+    end)
+  else
+    sort(entries, function(a, b)
+      if a.toon.basic.level ~= b.toon.basic.level then return a.toon.basic.level > b.toon.basic.level end
+      return a.toon.name < b.toon.name
+    end)
+  end
+
+  for _ = #self.tbl.rows + 1, #entries do self.tbl:addRow({}) end
+
+  local emptyRow = {}
+  for _ = 1, self._numCols do insert(emptyRow, "") end
+
+  local rowData = {}
+  for i, entry in ipairs(entries) do
+    insert(rowData, entry.row)
+    self.tbl.rows[i]:backdropColor(unpack(rowBgColor(i)))
+  end
+  for i = #entries + 1, #self.tbl.rows do
     insert(rowData, emptyRow)
     self.tbl.rows[i]:backdropColor(0, 0, 0, 0)
   end
 
   self.tbl.data = rowData
   self.tbl:update()
-
   self:Width(self.tbl:Width())
   self:Height(self.tbl:Height())
+  self:updateSortIndicators()
+end
+
+function MidnightProfs:updateSortIndicators()
+  for i, col in ipairs(self.tbl.cols) do
+    local base = self.tbl.colInfo[i].name or ""
+    local label
+    if self._sortCol == i then
+      label = base .. (self._sortAsc and " ^" or " v")
+    else
+      label = base
+    end
+    col.header.label:Text(label)
+  end
 end

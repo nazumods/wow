@@ -27,7 +27,7 @@ ns.Currency.fields = {
       }
     end,
     resetOn = ns.RESET_WEEKLY,
-    reset = function(toon)
+    reset = function(_, toon)
       if not toon.currency or not toon.currency.CofferKeyShard then return nil end
       return {
         quantity = toon.currency.CofferKeyShard.quantity,
