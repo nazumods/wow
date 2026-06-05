@@ -1,8 +1,9 @@
 local _, ns = ...
 local Player = ns.wow.Player
-local DoesItemExist =  C_Item.DoesItemExist -- luacheck: globals C_Item
 local RequestLoadItemData = C_Item.RequestLoadItemData -- luacheck: globals C_Item
-local GetItemID, GetItemInfo, GetCurrentItemLevel =  C_Item.GetItemID, C_Item.GetItemInfo, C_Item.GetCurrentItemLevel -- luacheck: globals C_Item
+local GetItemInfo, GetCurrentItemLevel = C_Item.GetItemInfo, C_Item.GetCurrentItemLevel -- luacheck: globals C_Item
+local GetItemUpgradeInfo = C_Item.GetItemUpgradeInfo
+local GetInventoryItemLink = GetInventoryItemLink -- luacheck: globals GetInventoryItemLink
 
 local EquipmentSlots = {
   Head = 1,
@@ -32,14 +33,19 @@ ns.Equipment.fields = {
     get = function()
       local slots = {}
       for slot, index in pairs(EquipmentSlots) do
-        if DoesItemExist({equipmentSlotIndex = index}) then
-          local id = GetItemID({equipmentSlotIndex = index})
-          if id then
-            local name, link = GetItemInfo(id)
-            if link then
-              local ilvl = GetCurrentItemLevel({equipmentSlotIndex = index})
-              slots[slot] = {name = name, link = link, ilvl = ilvl}
-            end
+        local link = GetInventoryItemLink("player", index)
+        if link then
+          local name = GetItemInfo(link)
+          if name then
+            local ilvl = GetCurrentItemLevel({equipmentSlotIndex = index})
+            local upgradeInfo = GetItemUpgradeInfo(link)
+            slots[slot] = {
+              name = name,
+              link = link,
+              ilvl = ilvl,
+              track = upgradeInfo and upgradeInfo.trackString or nil,
+              trackLevel = upgradeInfo and upgradeInfo.currentLevel or nil,
+            }
           end
         end
       end
@@ -50,9 +56,8 @@ ns.Equipment.fields = {
     eventHandler = function()
       ns.requests = 16
       for _, index in pairs(EquipmentSlots) do
-        if DoesItemExist({equipmentSlotIndex = index}) then
-          RequestLoadItemData({equipmentSlotIndex = index})
-        end
+        local link = GetInventoryItemLink("player", index)
+        if link then RequestLoadItemData({equipmentSlotIndex = index}) end
       end
     end,
   },

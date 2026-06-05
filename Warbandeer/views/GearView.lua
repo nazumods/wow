@@ -14,22 +14,22 @@ local colInfo = {
   { name = "Lvl",  width = 30, justifyH = ui.justify.Left, backdrop = {color = {0, 0, 0, 0}} },
   { name = "iLvl", width = 35, justifyH = ui.justify.Left, backdrop = {color = {0, 0, 0, 0}} },
   --
-  { name = "Head", width = 35, justifyH = ui.justify.Left, backdrop = {color = {0, 0, 0, 0}} },
-  { name = "Neck", width = 35, justifyH = ui.justify.Left, backdrop = {color = {0, 0, 0, 0}} },
-  { name = "Shdr", width = 35, justifyH = ui.justify.Left, backdrop = {color = {0, 0, 0, 0}} },
-  { name = "Back", width = 35, justifyH = ui.justify.Left, backdrop = {color = {0, 0, 0, 0}} },
-  { name = "Chst", width = 35, justifyH = ui.justify.Left, backdrop = {color = {0, 0, 0, 0}} },
-  { name = "Wrst", width = 35, justifyH = ui.justify.Left, backdrop = {color = {0, 0, 0, 0}} },
-  { name = "Hand", width = 35, justifyH = ui.justify.Left, backdrop = {color = {0, 0, 0, 0}} },
-  { name = "Wast", width = 35, justifyH = ui.justify.Left, backdrop = {color = {0, 0, 0, 0}} },
-  { name = "Legs", width = 35, justifyH = ui.justify.Left, backdrop = {color = {0, 0, 0, 0}} },
-  { name = "Feet", width = 35, justifyH = ui.justify.Left, backdrop = {color = {0, 0, 0, 0}} },
-  { name = "Fgr1", width = 35, justifyH = ui.justify.Left, backdrop = {color = {0, 0, 0, 0}} },
-  { name = "Fgr2", width = 35, justifyH = ui.justify.Left, backdrop = {color = {0, 0, 0, 0}} },
-  { name = "Tnk1", width = 35, justifyH = ui.justify.Left, backdrop = {color = {0, 0, 0, 0}} },
-  { name = "Tnk2", width = 35, justifyH = ui.justify.Left, backdrop = {color = {0, 0, 0, 0}} },
-  { name = "MH",   width = 35, justifyH = ui.justify.Left, backdrop = {color = {0, 0, 0, 0}} },
-  { name = "OH",   width = 35, justifyH = ui.justify.Left, backdrop = {color = {0, 0, 0, 0}} },
+  { name = "Head", width = 60, justifyH = ui.justify.Center, backdrop = {color = {0, 0, 0, 0}} },
+  { name = "Neck", width = 60, justifyH = ui.justify.Center, backdrop = {color = {0, 0, 0, 0}} },
+  { name = "Shdr", width = 60, justifyH = ui.justify.Center, backdrop = {color = {0, 0, 0, 0}} },
+  { name = "Back", width = 60, justifyH = ui.justify.Center, backdrop = {color = {0, 0, 0, 0}} },
+  { name = "Chst", width = 60, justifyH = ui.justify.Center, backdrop = {color = {0, 0, 0, 0}} },
+  { name = "Wrst", width = 60, justifyH = ui.justify.Center, backdrop = {color = {0, 0, 0, 0}} },
+  { name = "Hand", width = 60, justifyH = ui.justify.Center, backdrop = {color = {0, 0, 0, 0}} },
+  { name = "Wast", width = 60, justifyH = ui.justify.Center, backdrop = {color = {0, 0, 0, 0}} },
+  { name = "Legs", width = 60, justifyH = ui.justify.Center, backdrop = {color = {0, 0, 0, 0}} },
+  { name = "Feet", width = 60, justifyH = ui.justify.Center, backdrop = {color = {0, 0, 0, 0}} },
+  { name = "Fgr1", width = 60, justifyH = ui.justify.Center, backdrop = {color = {0, 0, 0, 0}} },
+  { name = "Fgr2", width = 60, justifyH = ui.justify.Center, backdrop = {color = {0, 0, 0, 0}} },
+  { name = "Tnk1", width = 60, justifyH = ui.justify.Center, backdrop = {color = {0, 0, 0, 0}} },
+  { name = "Tnk2", width = 60, justifyH = ui.justify.Center, backdrop = {color = {0, 0, 0, 0}} },
+  { name = "MH",   width = 60, justifyH = ui.justify.Center, backdrop = {color = {0, 0, 0, 0}} },
+  { name = "OH",   width = 60, justifyH = ui.justify.Center, backdrop = {color = {0, 0, 0, 0}} },
 }
 
 local tableWidth = 0
@@ -92,6 +92,15 @@ local getNameString = function(toon)
   }
 end
 
+local function slotStr(slot)
+  if not slot then return "" end
+  local text = ns.IlvlColor(slot.ilvl)
+  if slot.track and slot.trackLevel and slot.trackLevel > 0 then
+    text = text .. "(" .. slot.track:sub(1,1) .. slot.trackLevel .. ")"
+  end
+  return { text = text, justifyH = ui.justify.Center }
+end
+
 local getILvlString = function(toon)
   local lines = {}
   if toon.equipment then
@@ -120,22 +129,22 @@ function GearView:GetRowData(toon)
     getNameString(toon),
     toon.basic.level,
     getILvlString(toon),
-    toon.equipment.slots.Head and ns.IlvlColor(toon.equipment.slots.Head.ilvl) or "",
-    toon.equipment.slots.Neck and ns.IlvlColor(toon.equipment.slots.Neck.ilvl) or "",
-    toon.equipment.slots.Shoulder and ns.IlvlColor(toon.equipment.slots.Shoulder.ilvl) or "",
-    toon.equipment.slots.Back and ns.IlvlColor(toon.equipment.slots.Back.ilvl) or "",
-    toon.equipment.slots.Chest and ns.IlvlColor(toon.equipment.slots.Chest.ilvl) or "",
-    toon.equipment.slots.Wrist and ns.IlvlColor(toon.equipment.slots.Wrist.ilvl) or "",
-    toon.equipment.slots.Hands and ns.IlvlColor(toon.equipment.slots.Hands.ilvl) or "",
-    toon.equipment.slots.Waist and ns.IlvlColor(toon.equipment.slots.Waist.ilvl) or "",
-    toon.equipment.slots.Legs and ns.IlvlColor(toon.equipment.slots.Legs.ilvl) or "",
-    toon.equipment.slots.Feet and ns.IlvlColor(toon.equipment.slots.Feet.ilvl) or "",
-    toon.equipment.slots.Finger1 and ns.IlvlColor(toon.equipment.slots.Finger1.ilvl) or "",
-    toon.equipment.slots.Finger2 and ns.IlvlColor(toon.equipment.slots.Finger2.ilvl) or "",
-    toon.equipment.slots.Trinket1 and ns.IlvlColor(toon.equipment.slots.Trinket1.ilvl) or "",
-    toon.equipment.slots.Trinket2 and ns.IlvlColor(toon.equipment.slots.Trinket2.ilvl) or "",
-    toon.equipment.slots.MainHand and ns.IlvlColor(toon.equipment.slots.MainHand.ilvl) or "",
-    toon.equipment.slots.OffHand and ns.IlvlColor(toon.equipment.slots.OffHand.ilvl) or "",
+    slotStr(toon.equipment.slots.Head),
+    slotStr(toon.equipment.slots.Neck),
+    slotStr(toon.equipment.slots.Shoulder),
+    slotStr(toon.equipment.slots.Back),
+    slotStr(toon.equipment.slots.Chest),
+    slotStr(toon.equipment.slots.Wrist),
+    slotStr(toon.equipment.slots.Hands),
+    slotStr(toon.equipment.slots.Waist),
+    slotStr(toon.equipment.slots.Legs),
+    slotStr(toon.equipment.slots.Feet),
+    slotStr(toon.equipment.slots.Finger1),
+    slotStr(toon.equipment.slots.Finger2),
+    slotStr(toon.equipment.slots.Trinket1),
+    slotStr(toon.equipment.slots.Trinket2),
+    slotStr(toon.equipment.slots.MainHand),
+    slotStr(toon.equipment.slots.OffHand),
   } or {"", "", "", "", "", "", "", "", "", "", "", "", "", ""}
 end
 

@@ -647,7 +647,7 @@ instances = {
   locks = { [instanceID] = { [difficultyID] = { name, total, progress, reset, extended, isRaid } } },
 }
 equipment = {
-  slots = { Head/Neck/Shoulder/.../OffHand = { name, link, ilvl } },
+  slots = { Head/Neck/Shoulder/.../OffHand = { name, link, ilvl, track?, trackLevel? } },
   ilvl,
 }
 artifacts = {

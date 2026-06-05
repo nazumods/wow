@@ -142,8 +142,13 @@ local getILvlString = function(toon)
   if toon.equipment then
     local orderedSlots = {"Head", "Neck", "Shoulder", "Back", "Chest", "Wrist", "Hands", "Waist", "Legs", "Feet", "Finger1", "Finger2", "Trinket1", "Trinket2", "MainHand", "OffHand"}
     for _,value in ipairs(orderedSlots) do
-      if toon.equipment.slots and toon.equipment.slots[value] then
-        insert(lines, value.." "..ns.IlvlColor(toon.equipment.slots[value].ilvl))
+      local slot = toon.equipment.slots and toon.equipment.slots[value]
+      if slot then
+        local suffix = ""
+        if slot.track and slot.trackLevel and slot.trackLevel > 0 then
+          suffix = " (" .. slot.track:sub(1,1) .. slot.trackLevel .. ")"
+        end
+        insert(lines, value .. " " .. ns.IlvlColor(slot.ilvl) .. suffix)
       end
     end
   end
@@ -157,7 +162,7 @@ local getILvlString = function(toon)
       ui.tip:Show()
     end,
     onLeave = function(self) ui.tip:Hide() end,
-    onClick = function(self) self.parent:view("gear") end,
+    onClick = function() ns:view("gear") end,
   }
 end
 
