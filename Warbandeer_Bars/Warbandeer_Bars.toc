@@ -1,0 +1,20 @@
+## Interface: 120001
+## Title: Warbandeer Bars
+## Notes: Action bar, keybind, macro, and outfit profiles
+## Author: Nazuraki
+## Version: 12.0.5-r0
+## Dependencies: LibNAddOn, LibNUI
+## SavedVariables: WarbandeerBarsDB
+## SavedVariablesPerCharacter: WarbandeerBarsSettings
+## X-NUI-UI: LibNUI
+## X-NUI-DB: WarbandeerBarsDB
+## X-NUI-DB-VERSION: 1
+## X-NUI-COMMANDS: /bars, /wbars
+
+libs\base64.lua
+libs\crc32.lua
+init.lua
+capture.lua
+restore.lua
+serialize.lua
+window.lua
