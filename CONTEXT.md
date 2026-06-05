@@ -21,6 +21,7 @@ LibNAddOn
     |           +-- Warbandeer
     |           +-- Warbandeer_Collected
     |
+    +-- Warbandeer_Bars_RGS  (LibNUI, no Warbandeer_Characters dep)
     +-- CombatOutline    (LibNAddOn only, no LibNUI)
     +-- ShadowsOfUI-DMF (LibNAddOn only, no LibNUI)
 
@@ -44,6 +45,7 @@ LibNAddOn
 10. [CombatOutline](#10-combatoutline)
 11. [Recycle](#11-recycle)
 12. [ShadowsOfUI-DMF](#12-shadowsofui-dmf)
+13. [Warbandeer_Bars_RGS](#13-warbandeer_bars_rgs)
 
 ---
 
@@ -1004,6 +1006,81 @@ All primary and secondary professions except Archaeology. Uses `C_TradeSkillUI.G
 
 ---
 
+# 13. Warbandeer_Bars_RGS
+
+Action bar, keybind, macro, and outfit profile manager for duplicating setups across same-spec characters.
+
+## TOC
+```
+Interface: 120001, Dependencies: LibNAddOn, LibNUI
+SavedVariables: WarbandeerBarsRGSDB (version 1)
+SavedVariablesPerCharacter: WarbandeerBarsRGSSettings
+X-NUI-COMMANDS: /bars, /wbars, X-NUI-UI: LibNUI
+```
+
+## Files
+
+| File | Purpose |
+|---|---|
+| `init.lua` | Table-form bootstrap, `MigrateDB`, per-char settings init (`WarbandeerBarsRGSSettings`) |
+| `libs/base64.lua` | Base64 encode/decode |
+| `libs/crc32.lua` | CRC32 integrity check |
+| `capture.lua` | Reads WoW state → profile table: bars, binds, macros, pet bar, outfits |
+| `restore.lua` | Applies profile table → WoW state with spell override/fallback chain |
+| `serialize.lua` | Binary pack/unpack + base64 + CRC header for portable text encoding |
+| `autosave.lua` | Auto-saves on `PLAYER_LOGIN`, `PLAYER_LOGOUT`, `ACTIVE_TALENT_GROUP_CHANGED` |
+| `profilelist.lua` | `ns.BuildProfileList(parent, onSelect)` — scrollable profile list widget |
+| `window.lua` | TitleFrame UI: profile list, text area, Export/Import/Save/Load/Delete, option checkboxes |
+
+## Public API
+
+```lua
+ns.Capture(include, accountMacros, charMacros) → profile
+ns.Restore(profile, include)
+ns.Encode(profile)                             → string
+ns.Decode(text)                                → profile, err
+ns.BuildProfileList(parent, onSelect)          → scroll, Refresh(), GetSelected()
+ns:Open()
+```
+
+## Profile table
+
+```lua
+{
+  version  = 1,
+  char     = "Nazuraki",
+  class    = "MAGE",
+  spec     = "Frost",
+  slots    = { { id, type, index?, strindex? }, ... },
+  binds    = { { command, key1?, key2? }, ... },
+  macros   = { { id, name, icon, body }, ... },
+  petslots = { { id, type, index?, strindex? }, ... },
+  outfits  = { "Set Name", ... },
+}
+```
+
+## SavedVariables (`WarbandeerBarsRGSDB`)
+
+```lua
+{ version = 1,
+  profiles = { { name, char, class, spec, encoded, autosave? }, ... } }
+```
+
+## Per-character settings (`WarbandeerBarsRGSSettings`)
+
+```lua
+{ include = { bars=true, bindings=true, macros=true, petbar=false, outfits=true },
+  accountMacros = true, charMacros = true }
+```
+
+## Auto-save behaviour
+
+Fires `ns.Capture` (all options forced on) on login, logout, and spec change (500 ms delay).
+Profile is keyed `"CharName - SpecName"` and overwrites the previous auto-save for that slot.
+Auto-saves are flagged `autosave = true` in the profile entry and appear with a grey `[auto]` prefix in the list.
+
+---
+
 # Slash Command Registry
 
 | Addon | Commands | Sub-commands |
@@ -1014,3 +1091,4 @@ All primary and secondary professions except Archaeology. Uses `C_TradeSkillUI.G
 | Warbandeer | `/warband`, `/wb` | `""` (open), `overview`, `summary`, `gear`, `detail`, `roles`, `races`, `legion`, `midnight`, `profs`, `midnightprofs`, `crafting`, `playtime`, `weekly`, `check legion` |
 | Warbandeer_Collected | `/collected`, `/collect` | `scan` |
 | Recycle | `/recycle` | `clear`, `key CTRL|SHIFT|ALT` |
+| Warbandeer_Bars_RGS | `/bars`, `/wbars` | `""` (open) |

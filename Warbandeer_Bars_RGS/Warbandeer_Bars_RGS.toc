@@ -18,4 +18,5 @@ capture.lua
 restore.lua
 serialize.lua
 autosave.lua
+profilelist.lua
 window.lua

@@ -32,15 +32,15 @@ local function DoAutoSave()
   })
 end
 
-ns:registerEvent("PLAYER_LOGIN", function()
+ns:registerEvent("PLAYER_LOGIN", function(self, ...)
   DoAutoSave()
 end)
 
-ns:registerEvent("PLAYER_LOGOUT", function()
+ns:registerEvent("PLAYER_LOGOUT", function(self, ...)
   DoAutoSave()
 end)
 
 -- Delay slightly on spec change to let the new spec fully settle
-ns:registerEvent("ACTIVE_TALENT_GROUP_CHANGED", function()
+ns:registerEvent("ACTIVE_TALENT_GROUP_CHANGED", function(self, ...)
   ns:delay(500, DoAutoSave)
 end)
