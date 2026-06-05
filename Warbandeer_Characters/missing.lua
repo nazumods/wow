@@ -25,6 +25,9 @@ function ns.getMissingFields(toon)
   end
 
   if toon.basic and toon.basic.level == ns.wow.maxLevel then
+    if toon.equipment and toon.equipment.slots and not toon.equipment.trackScanned then
+      table.insert(missing, "upgrade track data")
+    end
     if not toon.currency or toon.currency.HeroDawncrest == nil then
       table.insert(missing, "hero dawncrest")
     end

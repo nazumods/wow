@@ -66,6 +66,9 @@ ns.Equipment.fields = {
       return Player:GetAverageItemLevel()
     end,
   },
+  trackScanned = {
+    get = function() return true end,
+  },
 }
 
 function ns:ITEM_DATA_LOAD_RESULT()
