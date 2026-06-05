@@ -1,7 +1,7 @@
 local _, ns = ...
 
 LibNAddOn{
-  name    = "Warbandeer_Bars",
+  name    = "Warbandeer_Bars_RGS",
   addOn   = ns,
 }
 
@@ -28,10 +28,10 @@ end
 
 function ns:onLoad()
   -- Initialise per-character settings with defaults for any missing keys
-  if not WarbandeerBarsSettings then
-    WarbandeerBarsSettings = {}
+  if not WarbandeerBarsRGSSettings then
+    WarbandeerBarsRGSSettings = {}
   end
-  local s = WarbandeerBarsSettings
+  local s = WarbandeerBarsRGSSettings
   if not s.include then
     s.include = {}
   end

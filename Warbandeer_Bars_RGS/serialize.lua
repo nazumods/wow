@@ -186,7 +186,7 @@ function ns.Encode(profile)
 
   local b64 = base64.enc(frame)
   local lines = {
-    "# Warbandeer Bars",
+    "# Warbandeer Bars RGS",
     "# " .. (profile.char or "") .. " / " .. (profile.class or "") .. " / " .. (profile.spec or ""),
     "# --------------------",
   }

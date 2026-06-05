@@ -75,8 +75,8 @@ end
 
 local function CreateWindow()
   local f = ui.TitleFrame:new{
-    name     = "WarbandeerBarsWindow",
-    title    = "Warbandeer Bars",
+    name     = "WarbandeerBarsRGSWindow",
+    title    = "Warbandeer Bars RGS",
     special  = true,
     level    = 600,
     position = { Center = {}, Width = WIN_W, Height = WIN_H },
@@ -192,7 +192,7 @@ local function CreateWindow()
           ns.Print("Import failed: " .. (err or "unknown error"))
           return
         end
-        StaticPopup_Show("WBARS_CONFIRM_IMPORT", profile.char .. " / " .. profile.spec)
+        StaticPopup_Show("WBARSRGS_CONFIRM_IMPORT", profile.char .. " / " .. profile.spec)
         f._pendingProfile = profile
       end,
     },
@@ -200,7 +200,7 @@ local function CreateWindow()
       label = "Save",
       x     = PAD,
       fn    = function()
-        StaticPopup_Show("WBARS_SAVE_NAME")
+        StaticPopup_Show("WBARSRGS_SAVE_NAME")
       end,
     },
     {
@@ -213,7 +213,7 @@ local function CreateWindow()
         local profile, err = ns.Decode(p.encoded or "")
         if not profile then ns.Print("Load failed: " .. (err or "?")); return end
         f._pendingProfile = profile
-        StaticPopup_Show("WBARS_CONFIRM_IMPORT", p.name)
+        StaticPopup_Show("WBARSRGS_CONFIRM_IMPORT", p.name)
       end,
     },
     {
@@ -256,7 +256,7 @@ local function CreateWindow()
   f._refreshList = refreshList
 
   -- Confirm import popup
-  StaticPopupDialogs["WBARS_CONFIRM_IMPORT"] = {
+  StaticPopupDialogs["WBARSRGS_CONFIRM_IMPORT"] = {
     text      = "Restore bars from '%s'?",
     button1   = ACCEPT,
     button2   = CANCEL,
@@ -272,7 +272,7 @@ local function CreateWindow()
   }
 
   -- Save-name popup
-  StaticPopupDialogs["WBARS_SAVE_NAME"] = {
+  StaticPopupDialogs["WBARSRGS_SAVE_NAME"] = {
     text         = "Profile name:",
     button1      = ACCEPT,
     button2      = CANCEL,
@@ -309,4 +309,4 @@ function ns:Open()
   window:Show()
 end
 
-ns:registerCommand("", "", function() ns:Open() end, "Open Warbandeer Bars")
+ns:registerCommand("", "", function() ns:Open() end, "Open Warbandeer Bars RGS")
