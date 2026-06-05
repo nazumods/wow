@@ -227,6 +227,12 @@ ns.Professions.fields = {
         if live then
           for k, v in pairs(live) do data[k] = v end
         end
+        -- If the new scan returned no recipes (e.g. GetAllRecipeIDs() returned empty
+        -- because the recipe list hadn't loaded yet at login), preserve whatever was
+        -- previously stored rather than wiping it.
+        if not profData.recipes and data[skillLineID] then
+          profData.recipes = data[skillLineID].recipes
+        end
         data[skillLineID] = profData
         self:set(data)
       end)
