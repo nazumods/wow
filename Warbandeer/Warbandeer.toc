@@ -23,6 +23,20 @@ controls\CharacterTooltip.lua
 views\Overview.lua
 
 views\SummaryColumns.lua
+views\summaryCol\faction.lua
+views\summaryCol\role.lua
+views\summaryCol\character.lua
+views\summaryCol\level.lua
+views\summaryCol\ilvl.lua
+views\summaryCol\profs.lua
+views\summaryCol\bags.lua
+views\summaryCol\vault.lua
+views\summaryCol\keystone.lua
+views\summaryCol\crests.lua
+views\summaryCol\delves.lua
+views\summaryCol\lumber.lua
+views\summaryCol\cofferKey.lua
+views\summaryCol\caches.lua
 views\summaryCol\rested.lua
 views\summaryCol\played.lua
 views\summaryCol\gold.lua
