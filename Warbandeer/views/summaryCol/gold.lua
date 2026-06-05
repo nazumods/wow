@@ -9,7 +9,7 @@ table.insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
     name = "Gold",
-    width = 70,
+    width = 85,
     justifyH = ui.justify.Right,
     getData = function(t)
       if not t.currency or not t.currency.gold then return "" end
