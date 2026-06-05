@@ -1,0 +1,22 @@
+## Interface: 120001
+## Title: Warbandeer Bars
+## Notes: Headless action bar / keybind / macro / outfit profile tracker (per character + spec)
+## Author: Nazuraki
+## Version: 12.0.5-r0
+## Dependencies: LibNAddOn
+## SavedVariables: WarbandeerBarsDB
+## SavedVariablesPerCharacter: WarbandeerBarsSettings
+## X-NUI-API: WarbandeerBarsApi
+## X-NUI-DB: WarbandeerBarsDB
+## X-NUI-DB-VERSION: 1
+## X-NUI-COMMANDS: /wbbars, /wbb
+
+libs\base64.lua
+libs\crc32.lua
+init.lua
+capture.lua
+restore.lua
+serialize.lua
+tracker.lua
+api.lua
+commands.lua
