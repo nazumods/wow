@@ -527,15 +527,15 @@ insert(
   }
 )
 
--- lumber axe (quest 93647 "Lumber For You")
+-- Find Lumber tracking spell (1256697)
 insert(
   ns.SummaryColumns,
   SummaryColumn:new{
     name = "L",
     justifyH = ui.justify.Center,
     tooltip = {
-      "Lumber For You",
-      "Make sure your alt has their lumber axe! Green check when complete.",
+      "Find Lumber",
+      "Green check when the character knows Find Lumber.",
     },
     getData = function(t)
       return t.quests and t.quests.LumberAxe and GreenCheck or ""

@@ -5,7 +5,15 @@ local IsQuestFlaggedCompleted = C_QuestLog.IsQuestFlaggedCompleted
 local IsOnQuest = C_QuestLog.IsOnQuest
 local ReadyForTurnIn = C_QuestLog.ReadyForTurnIn
 
-local LUMBER_AXE_QUEST = 93647 -- Lumber For You
+local FIND_LUMBER_SPELL = 1256697
+
+local function HasTrackingSpell(spellId)
+  for i = 1, C_Minimap.GetNumTrackingTypes() do
+    local t = C_Minimap.GetTrackingInfo(i)
+    if t and t.spellID == spellId then return true end
+  end
+  return false
+end
 
 local WWIRepQuests = {
   Dornogal   = 82362,
@@ -73,13 +81,11 @@ ns.Quests.fields = {
   },
   LumberAxe = {
     get = function(_, _, currentValue)
-      return currentValue or IsQuestFlaggedCompleted(LUMBER_AXE_QUEST) or IsOnQuest(LUMBER_AXE_QUEST) or false
+      return currentValue or HasTrackingSpell(FIND_LUMBER_SPELL)
     end,
-    event = {"QUEST_ACCEPTED", "QUEST_TURNED_IN"},
-    eventHandler = function(self, _, questId)
-      if questId == LUMBER_AXE_QUEST then
-        self:set(true)
-      end
+    event = "SPELLS_CHANGED",
+    eventHandler = function(self)
+      self:set(HasTrackingSpell(FIND_LUMBER_SPELL))
     end,
   },
   delves = {
