@@ -309,4 +309,4 @@ function ns:Open()
   window:Show()
 end
 
-ns:registerCommand("", "", function() ns:Open() end, "Open Warbandeer Bars RGS")
+ns:registerCommand("", nil, function() ns:Open() end, "Open Warbandeer Bars RGS")

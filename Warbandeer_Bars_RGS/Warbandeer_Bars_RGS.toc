@@ -17,4 +17,5 @@ init.lua
 capture.lua
 restore.lua
 serialize.lua
+autosave.lua
 window.lua
