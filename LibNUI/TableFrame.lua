@@ -1,7 +1,7 @@
 local _, ns = ...
 local ui = ns.ui
 local insert = table.insert
-local Class, Frame = ns.lua.Class, ui.Frame
+local Class, Frame, Texture = ns.lua.Class, ui.Frame, ui.Texture
 local TableRow, TableCol, Cell = ui.TableRow, ui.TableCol, ui.Cell
 local TopRight, BottomLeft, Right = ui.edge.TopRight, ui.edge.BottomLeft, ui.edge.Right
 local Top, Bottom = ui.edge.Top, ui.edge.Bottom
@@ -26,6 +26,10 @@ local Top, Bottom = ui.edge.Top, ui.edge.Bottom
 ---@field cols table
 ---@field cells table
 ---@field rowArea table
+---@field footerHeight? integer  height of the footer row (defaults to cellHeight)
+---@field footerBackdrop? table  backdrop for the footer row
+---@field footerRow? table  the footer TableRow, created lazily by setFooter
+---@field footerCells? table  footer Cell[] keyed by column index
 local TableFrame = Class(Frame, function(self)
   if not self.colNames and self.colInfo then
     self.colNames = {}
@@ -224,6 +228,58 @@ function TableFrame:addRow(info)
   })
   self.rowArea:Height(self.rowArea:Height()+h)
   self:Height(self:Height()+h)
+  return self
+end
+
+-- Build (or refresh) a footer row pinned below the data rows. `data` is a
+-- per-column map of cell data (same shape as a row's cell data) keyed by column
+-- index; columns absent from `data` get no footer cell. Reuses footer cells on
+-- subsequent calls so it can be re-run to refresh, like `update()`.
+---@param data table  footer cell data keyed by column index
+---@return TableFrame
+function TableFrame:setFooter(data)
+  if not self.footerRow then
+    self.footerHeight = self.footerHeight or self.cellHeight
+    self.footerRow = TableRow:new{
+      parent = self,
+      name = self.name and self.name.."Footer" or nil,
+      position = {
+        TopLeft = {self.rowArea, BottomLeft, 0, 0},
+        Right = {},
+        Height = self.footerHeight,
+      },
+      backdrop = self.footerBackdrop or {color = {0, 0, 0, 0.2}},
+    }
+    Texture:new{
+      parent = self.footerRow,
+      layer = ui.layer.Overlay,
+      position = {
+        TopLeft = {self.footerRow, ui.edge.TopLeft, 0, 0},
+        TopRight = {self.footerRow, ui.edge.TopRight, 0, 0},
+        Height = 1,
+      },
+      color = {255, 255, 255, 0.05},
+    }
+    self.footerCells = {}
+    self:Height(self:Height() + self.footerHeight)
+  end
+  for colN, cellData in pairs(data) do
+    if not self.footerCells[colN] then
+      self.footerCells[colN] = Cell:new{
+        parent = self,
+        name = "$parentFooterCell"..colN,
+        position = {
+          Top = {self.footerRow, Top},
+          Bottom = {self.footerRow, Bottom},
+          Left = {self.cols[colN], ui.justify.Left},
+          Right = {self.cols[colN], Right},
+        },
+        data = cellData,
+      }
+    else
+      self.footerCells[colN]:update(cellData)
+    end
+  end
   return self
 end
 

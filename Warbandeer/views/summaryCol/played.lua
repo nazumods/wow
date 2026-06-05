@@ -24,5 +24,14 @@ table.insert(
       if not t.playtime then return "" end
       return {text = formatPlaytime(t.playtime.total), justifyH = ui.justify.Right}
     end,
+    -- footer: total played across the warband
+    getFooter = function(toons)
+      local total = 0
+      for _,t in ipairs(toons) do
+        if t.playtime and t.playtime.total then total = total + t.playtime.total end
+      end
+      if total == 0 then return "" end
+      return {text = formatPlaytime(total), justifyH = ui.justify.Right, color = {1, 1, 1, 0.6}}
+    end,
   }
 )

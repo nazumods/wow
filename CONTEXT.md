@@ -509,7 +509,10 @@ Computed **once at construction**: `offsetX = rowNames ~= nil ? headerWidth : 0`
 `self.cols` (TableCol[]), `self.rows` (TableRow[]), `self.cells` (Cell[][]), `self.rowArea` (Frame)
 
 ### Methods
-`onLoad()`, `row(n)`, `col(n)`, `set(row, col, element)`, `addCol(info)`, `addRow(info)`, `update()`
+`onLoad()`, `row(n)`, `col(n)`, `set(row, col, element)`, `addCol(info)`, `addRow(info)`, `update()`, `setFooter(data)`
+
+### Footer row (`setFooter(data)`)
+Lazily builds a footer TableRow pinned below `rowArea`; `data` is per-column cell data (same shape as a row's cell data) keyed by column index — columns absent from `data` render no footer cell. Re-callable to refresh (reuses footer cells like `update()`). Optional construction fields: `footerHeight` (defaults to `cellHeight`), `footerBackdrop`. Footer cells live in `self.footerCells` / row in `self.footerRow`.
 
 ### `colInfo` Fields
 `name`, `width`, `atlas`, `atlasSize`, `padding`, `padLeft`, `justifyH`, `color`, `backdrop`, `autosize`, `tooltip` (string or string[] — shown on header hover via `ui.tip`)
@@ -709,8 +712,8 @@ X-NUI-API: WarbandeerApi, X-NUI-UI: LibNUI
 | `data.lua` | `ns.data` — `gearTiers`, `IlvlColor()`, `minorFactions`, `minorFactionMaxStanding`. Midnight entries: Delves→Valeera (2742→2744, friendship rep), Silvermoon Court subfactions (2710→2711-2714). Profession helpers: `EstimateConcentration`, `FindProf`, `GetProfIntent`, `SetProfIntent`, `GetProfToons`, `GetMainCrafter` |
 | `controls/CharacterTooltip.lua` | `CharacterTooltip` singleton (CleanFrame) showing name/spec/class/realm/level |
 | `views/Overview.lua` | `TopAlts` + `TabFrame` (Midnight/WWI tabs) + `Factions` + `Achievements`. `Factions` accepts `extraFactionIDs` (deduplicated against `GetMajorFactionIDs`); subfaction rendering has three tiers: major faction renown → friendship rep (Valeera) → standard C_Reputation standings |
-| `views/SummaryColumns.lua` | `SummaryColumn` specs + `SummaryColumnsDelayed()` for DMF |
-| `views/SummaryView.lua` | Two `ClassSummary` TableFrames (Alliance/Horde side-by-side) |
+| `views/SummaryColumns.lua` | `SummaryColumn` specs + `SummaryColumnsDelayed()` for DMF. Each column has `getData(toon)` for cells and optional `getFooter(toons)` for the footer cell. Footers: Character → max/levelling tally, Bag → total sub-par bags w/ split tooltip, Played → total playtime, Gold → total gold. Extra columns (Played, Gold) are appended from `views/summaryCol/*.lua` |
+| `views/SummaryView.lua` | Two `ClassSummary` TableFrames (Alliance/Horde side-by-side). Footer row built via `TableFrame:setFooter` from each column's `getFooter`; a 1px divider still separates max-level from levelling rows |
 | `views/GearView.lua` | `TabFrame` per armor type, 21-col TableFrame per tab |
 | `views/DetailView.lua` | Single-character detail: level/race/class/realm/ilvl + per-profession intent editor. `BuildFilter` character-picker dropdown; writes `profIntent` via `ns.data.SetProfIntent` |
 | `views/RoleView.lua` | `ClassTable` frames grouped by spec |

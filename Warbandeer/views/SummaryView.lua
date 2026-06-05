@@ -2,29 +2,17 @@ local _, ns = ...
 local ui = ns.ui
 local insert, filter = table.insert, ns.lua.lists.filter
 local alpha = ns.Colors.alpha
-local Class, TableFrame, Texture, Label, Button = ns.lua.Class, ui.TableFrame, ui.Texture, ui.Label, ui.Button
+local Class, TableFrame, Texture, Button = ns.lua.Class, ui.TableFrame, ui.Texture, ui.Button
 
 local ClassSummary = Class(TableFrame, function(self)
   ns.SummaryColumnsDelayed(self)
 
   self.data = {}
   local n = 1
-  local bags = 0
-  local reagent = 0
   local toons = self:GetCharacters()
   for _,t in pairs(toons) do
     insert(self.data, self:GetRowData(t))
     if t.basic.level == ns.wow.maxLevel then n = n + 1 end
-    if t.items and t.items.reagentBag and t.items.reagentBag.slots < 36 then
-      reagent = reagent + 1
-    end
-    if t.items and t.items.bags then
-      for i = 1, #t.items.bags-1 do -- skip reagent bag
-        if t.items.bags[i].slots < 34 then
-          bags = bags + 1
-        end
-      end
-    end
   end
   self:update()
 
@@ -46,64 +34,7 @@ local ClassSummary = Class(TableFrame, function(self)
     }
   end
 
-  local halfWhite = alpha(WHITE_FONT_COLOR, 0.5)
-  local divider = Texture:new{
-    parent = self,
-    position = {
-      TopLeft = {self.rows[n], ui.edge.TopLeft, -20, 0},
-      TopRight = {self.cells[n][3], ui.edge.TopRight, 0, -1},
-      Height = 1,
-    },
-    color = alpha(WHITE_FONT_COLOR, 0.5),
-  }
-  -- bump the first sub-max row down 1px to clear the divider
-  if n > 1 and self.rows[n] then
-    self.rows[n]:TopLeft(self.rows[n - 1], ui.edge.BottomLeft, 0, -1)
-    self:Height(self:Height() + 1)
-  end
-  local counter = Label:new{
-    parent = self,
-    position = {
-      BottomRight = {divider, ui.edge.TopLeft, 15, 1},
-    },
-    text = n - 1,
-    color = alpha(WHITE_FONT_COLOR, 0.5),
-  }
-  local subCounter = Label:new{
-    parent = self,
-    position = {
-      TopRight = {divider, ui.edge.BottomLeft, 15, -1},
-    },
-    text = #toons - n,
-    color = alpha(WHITE_FONT_COLOR, 0.5),
-  }
-
-  -- missing bag count
-  local bagsLine = Texture:new{
-    parent = self,
-    position = {
-      TopLeft = {self.cols[7], ui.edge.Bottom, 0, 0},
-      Width = 1,
-      Height = 10,
-    },
-    color = halfWhite,
-  }
-  Label:new{
-    parent = self,
-    position = {
-      TopRight = {bagsLine, ui.edge.TopLeft, -1, -1},
-    },
-    color = halfWhite,
-    text = bags,
-  }
-  Label:new{
-    parent = self,
-    position = {
-      TopLeft = {bagsLine, ui.edge.TopRight, 1, -1},
-    },
-    color = halfWhite,
-    text = reagent,
-  }
+  self:setFooter(self:GetFooterData(toons))
 end, {
   isAlliance = true,
   colInfo = ns.lua.lists.map(ns.SummaryColumns, function(c) return c.colInfo end),
@@ -128,12 +59,24 @@ function ClassSummary:GetRowData(toon)
   return ns.lua.lists.map(ns.SummaryColumns, function(c) return c.getData(toon) end)
 end
 
+-- per-column footer cell data, keyed by column index (columns without a
+-- getFooter are left absent so they render no footer cell)
+function ClassSummary:GetFooterData(toons)
+  local footer = {}
+  for i,c in ipairs(ns.SummaryColumns) do
+    if c.getFooter then footer[i] = c.getFooter(toons) end
+  end
+  return footer
+end
+
 function ClassSummary:OnBeforeShow()
   self.data = {}
-  for i,t in ipairs(self:GetCharacters()) do
+  local toons = self:GetCharacters()
+  for i,t in ipairs(toons) do
     self.data[i] = self:GetRowData(t)
   end
   self:update()
+  self:setFooter(self:GetFooterData(toons))
 end
 
 local SummaryView = Class(ui.Frame, function(self)

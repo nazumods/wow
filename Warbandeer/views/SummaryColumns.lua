@@ -10,6 +10,8 @@ local GetServerTime = GetServerTime -- luacheck: globals GetServerTime
 ---@field SummaryColumn fun():SummaryColumn
 
 ---@class SummaryColumn
+---@field getData fun(toon:Character):any  cell data builder for a single character row
+---@field getFooter? fun(toons:Character[]):any  optional footer cell data builder, given all rows
 ns.SummaryColumn = Class(nil, function(self)
   local path, coords
   if self.currencyID then
@@ -42,6 +44,7 @@ end, {
   currencyID = nil,
   tooltip = nil,
   getData = function() return "" end, -- function to get data for this column
+  getFooter = nil, -- optional: function(toons) -> footer cell data for this column
 })
 local SummaryColumn = ns.SummaryColumn
 
@@ -92,6 +95,28 @@ local function getNameString(toon)
     onLeave = function(self) ui.HideCharacterTooltip() end,
   }
 end
+-- footer: tally of max-level vs still-levelling characters
+local getLevelFooter = function(toons)
+  local maxN, lvlN = 0, 0
+  for _,t in ipairs(toons) do
+    if t.basic.level == ns.wow.maxLevel then maxN = maxN + 1 else lvlN = lvlN + 1 end
+  end
+  local text = maxN.." max"
+  if lvlN > 0 then text = text..", "..lvlN.." lvl" end
+  return {
+    text = text,
+    justifyH = Left,
+    color = {1, 1, 1, 0.6},
+    onEnter = function(self)
+      ui.tip:AnchorTo(self, "ANCHOR_BOTTOMRIGHT", -10, 10)
+      ui.tip:ClearLines()
+      ui.tip:AddLine(maxN.." at max level")
+      ui.tip:AddLine(lvlN.." levelling")
+      ui.tip:Show()
+    end,
+    onLeave = function(self) ui.tip:Hide() end,
+  }
+end
 insert(
   ns.SummaryColumns,
   SummaryColumn:new{
@@ -99,6 +124,7 @@ insert(
     name = "Character",
     width = 105,
     getData = getNameString,
+    getFooter = getLevelFooter,
   }
 )
 
@@ -276,6 +302,36 @@ local getBagStatus = function(toon)
     justifyH = ui.justify.Center,
   }
 end
+-- footer: warband-wide total of sub-par bags, split bags vs reagent bags
+local getBagFooter = function(toons)
+  local bags, reagent = 0, 0
+  for _,t in ipairs(toons) do
+    if t.items and t.items.bags then
+      for i = 1, NUM_BAG_SLOTS do
+        local b = t.items.bags[i]
+        if b and b.id ~= 92748 and b.slots < 36 then bags = bags + 1 end
+      end
+    end
+    if t.items and t.items.reagentBag and t.items.reagentBag.slots < 38 then
+      reagent = reagent + 1
+    end
+  end
+  local total = bags + reagent
+  if total == 0 then return "" end
+  return {
+    text = total,
+    justifyH = ui.justify.Center,
+    color = {1, 1, 1, 0.6},
+    onEnter = function(self)
+      ui.tip:AnchorTo(self, "ANCHOR_BOTTOMRIGHT", -10, 10)
+      ui.tip:ClearLines()
+      ui.tip:AddLine(bags.." bags below 36 slots")
+      ui.tip:AddLine(reagent.." reagent bags below 38 slots")
+      ui.tip:Show()
+    end,
+    onLeave = function(self) ui.tip:Hide() end,
+  }
+end
 insert(
   ns.SummaryColumns,
   SummaryColumn:new{
@@ -286,6 +342,7 @@ insert(
       "Count of bags below 36 slots, plus R if the reagent bag is below 38.",
     },
     getData = getBagStatus,
+    getFooter = getBagFooter,
   }
 )
 

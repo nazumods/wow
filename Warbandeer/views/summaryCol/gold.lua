@@ -19,5 +19,18 @@ table.insert(
         color = {1, 0.82, 0, 1},
       }
     end,
+    -- footer: total gold across the warband
+    getFooter = function(toons)
+      local total = 0
+      for _,t in ipairs(toons) do
+        if t.currency and t.currency.gold then total = total + t.currency.gold end
+      end
+      if total == 0 then return "" end
+      return {
+        text = BreakUpLargeNumbers(math.floor(total / 10000)) .. "g",
+        justifyH = ui.justify.Right,
+        color = {1, 0.82, 0, 1},
+      }
+    end,
   }
 )
