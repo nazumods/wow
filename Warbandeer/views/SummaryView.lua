@@ -28,6 +28,24 @@ local ClassSummary = Class(TableFrame, function(self)
   end
   self:update()
 
+  -- swap the striped row backdrops for a 1px top border in the same darker tone
+  local rowBorder = {255, 255, 255, 0.05}
+  for i, row in ipairs(self.rows) do
+    if toons[i].basic.level < ns.wow.maxLevel then
+      row:backdropColor(0, 0, 0, 0.1)
+    end
+    Texture:new{
+      parent = row,
+      layer = ui.layer.Overlay,
+      position = {
+        TopLeft = {row, ui.edge.TopLeft, 0, 0},
+        TopRight = {row, ui.edge.TopRight, 0, 0},
+        Height = 1,
+      },
+      color = rowBorder,
+    }
+  end
+
   local halfWhite = alpha(WHITE_FONT_COLOR, 0.5)
   local divider = Texture:new{
     parent = self,
@@ -89,6 +107,7 @@ local ClassSummary = Class(TableFrame, function(self)
 end, {
   isAlliance = true,
   colInfo = ns.lua.lists.map(ns.SummaryColumns, function(c) return c.colInfo end),
+  backdrop = {color = ns.Colors.TransparentBlack},
 })
 
 function ClassSummary:GetCharacters()
