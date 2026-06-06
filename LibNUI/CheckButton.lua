@@ -5,6 +5,7 @@ local Button = ui.Button
 
 local CheckButton = Class(Button, function(self)
   self._widget.Text:SetText(self.text or "")
+  self._widget:SetHitRectInsets(0, 0, 0, 0)
 end, {
   type = "CheckButton",
   template = "ChatConfigCheckButtonTemplate", --"UICheckButtonTemplate",
