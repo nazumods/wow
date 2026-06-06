@@ -59,6 +59,23 @@ ns.GreenCheck = {
 ns.CappedColor = {1, 0.2, 0.2, 1}
 ns.UncappedColor = {1, 1, 1, 1}
 
+-- Cell data for a small square icon (faction, role) that should sit centered in
+-- its cell rather than stretching to fill it: a fixed 16px size leaves ~2px above
+-- and below the 20px row and keeps an hPad inset from squishing the icon. Returns
+-- a copy so the shared ns.icons.* table (reused by other views at full size) is
+-- never mutated.
+---@param icon table  a shared ns.icons.* entry (path/atlas/coords/vertexColor)
+---@return table
+function ns.SummaryIconCell(icon)
+  return {
+    path = icon.path,
+    atlas = icon.atlas,
+    coords = icon.coords,
+    vertexColor = icon.vertexColor,
+    position = { Center = {}, Size = {16, 16} },
+  }
+end
+
 ---@class Warbandeer
 ---@field SummaryColumns SummaryColumn[]
 ns.SummaryColumns = {}

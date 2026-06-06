@@ -20,6 +20,7 @@ local Top, Bottom = ui.edge.Top, ui.edge.Bottom
 ---@field cellHeight? integer
 ---@field cellWidth? integer
 ---@field padding? integer
+---@field hPad? integer  horizontal inset (px) applied to both sides of every cell; per-column override via colInfo[i].hPad (or asymmetric colInfo[i].hPadL / hPadR)
 ---@field rowNames table
 ---@field offsetX integer
 ---@field rows table
@@ -174,6 +175,28 @@ end
 function TableFrame:row(n) return self.rows[n] end
 function TableFrame:col(n) return self.cols[n] end
 
+-- Position table for a cell in column `colN` spanning `rowFrame` vertically.
+-- Left/right anchors are inset by the column's horizontal pad so a column can
+-- breathe without padding the rows top/bottom. Padding is read per-column from
+-- colInfo (hPadL/hPadR, or hPad as a both-sides shorthand) falling back to the
+-- table-level hPad; sides default independently so `hPadL` alone insets the
+-- left edge only (handy for pushing the first/last column off the table edge).
+---@param colN integer
+---@param rowFrame table  the TableRow (or footer row) the cell sits in
+---@return table
+function TableFrame:cellPosition(colN, rowFrame)
+  local info = self.colInfo and self.colInfo[colN]
+  local hPad = (info and info.hPad) or self.hPad or 0
+  local padL = (info and info.hPadL) or hPad
+  local padR = (info and info.hPadR) or hPad
+  return {
+    Top = {rowFrame, Top},
+    Bottom = {rowFrame, Bottom},
+    Left = {self.cols[colN], ui.justify.Left, padL, 0},
+    Right = {self.cols[colN], Right, -padR, 0},
+  }
+end
+
 function TableFrame:set(row, col, element)
   if #self.cells < row then
     for i=#self.cells,row do
@@ -268,12 +291,7 @@ function TableFrame:setFooter(data)
       self.footerCells[colN] = Cell:new{
         parent = self,
         name = "$parentFooterCell"..colN,
-        position = {
-          Top = {self.footerRow, Top},
-          Bottom = {self.footerRow, Bottom},
-          Left = {self.cols[colN], ui.justify.Left},
-          Right = {self.cols[colN], Right},
-        },
+        position = self:cellPosition(colN, self.footerRow),
         data = cellData,
       }
     else
@@ -298,12 +316,7 @@ function TableFrame:update()
         self.cells[rowN][colN] = Cell:new{
           parent = self.rowArea,
           name = "$parentCell"..rowN.."-"..colN,
-          position = {
-            Top = {self.rows[rowN], Top},
-            Bottom = {self.rows[rowN], Bottom},
-            Left = {self.cols[colN], ui.justify.Left},
-            Right = {self.cols[colN], Right},
-          },
+          position = self:cellPosition(colN, self.rows[rowN]),
           data = data,
         }
       elseif data then

@@ -49,11 +49,14 @@ end, {
   -- Shallow-copy each column's colInfo with muted, uppercased text headers to
   -- match the Aetheric-Glass chrome (icon-only columns have no name and are
   -- unaffected). The source colInfo is left untouched (shared with addCol etc).
-  colInfo = ns.lua.lists.map(ns.SummaryColumns, function(c)
+  colInfo = ns.lua.lists.map(ns.SummaryColumns, function(c, i)
     local info = {}
     for k, v in pairs(c.colInfo) do info[k] = v end
     info.color = theme.colors.muted
     if info.name and info.name ~= "" then info.name = info.name:upper() end
+    -- inset the outer columns' cells so they don't sit against the table edges
+    if i == 1 then info.hPadL = 8 end
+    if i == #ns.SummaryColumns then info.hPadR = 8 end
     return info
   end),
   backdrop = {color = ns.Colors.TransparentBlack},
