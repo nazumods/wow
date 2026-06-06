@@ -106,7 +106,7 @@ end
 table.insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
-    name = "Profs",
+    name = "Prof",
     width = 36,
     justifyH = ui.justify.Right,
     tooltip = {

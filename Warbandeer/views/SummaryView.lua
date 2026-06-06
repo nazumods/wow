@@ -1,8 +1,17 @@
 local _, ns = ...
 local ui = ns.ui
 local insert, filter = table.insert, ns.lua.lists.filter
-local alpha = ns.Colors.alpha
-local Class, TableFrame, Texture, Button = ns.lua.Class, ui.TableFrame, ui.Texture, ui.Button
+local Class, TableFrame, Texture, Button, Label = ns.lua.Class, ui.TableFrame, ui.Texture, ui.Button, ui.Label
+local theme = ns.theme
+
+local P, BLEED = 12, 6   -- outer padding / module-bg outer bleed
+
+-- Faction accent colours for the toggle (Alliance blue / Horde red), matching
+-- the AllianceLight / HordeLight icon tints.
+local FACTION_COLOR = {
+  alliance = {0.40, 0.733, 1.0, 1},
+  horde    = {1.0,  0.125, 0.125, 1},
+}
 
 local ClassSummary = Class(TableFrame, function(self)
   ns.SummaryColumnsDelayed(self)
@@ -16,11 +25,14 @@ local ClassSummary = Class(TableFrame, function(self)
   end
   self:update()
 
-  -- swap the striped row backdrops for a 1px top border in the same darker tone
-  local rowBorder = {255, 255, 255, 0.05}
+  -- The module surface behind the table provides the glass backing; rows stay
+  -- transparent with a thin divider above each one, and still-levelling
+  -- characters are dimmed so the max-level roster reads first. Each row also
+  -- brightens on hover and opens its character in the Detail view on click.
+  self._toons = toons
   for i, row in ipairs(self.rows) do
     if toons[i].basic.level < ns.wow.maxLevel then
-      row:backdropColor(0, 0, 0, 0.1)
+      row:backdropColor(0, 0, 0, 0.22)
     end
     Texture:new{
       parent = row,
@@ -30,15 +42,42 @@ local ClassSummary = Class(TableFrame, function(self)
         TopRight = {row, ui.edge.TopRight, 0, 0},
         Height = 1,
       },
-      color = rowBorder,
+      color = theme.colors.divider,
     }
+
+    local idx = i
+    row._widget:SetMouseMotionEnabled(true)
+    row._widget:SetMouseClickEnabled(true)
+    row:SetScript("OnEnter", function() row:backdropColor(theme.colors.hover) end)
+    row:SetScript("OnLeave", function()
+      -- restore the resting tone: dimmed for still-levelling toons, else clear
+      local toon = self._toons[idx]
+      local dim = toon and toon.basic.level < ns.wow.maxLevel
+      row:backdropColor(0, 0, 0, dim and 0.22 or 0)
+    end)
+    row:SetScript("OnMouseUp", function()
+      local toon, w = self._toons[idx], ns.MainWindow
+      if not (toon and w) then return end
+      w.views.detail:Select(toon)
+      w:view("detail")
+    end)
   end
 
   self:setFooter(self:GetFooterData(toons))
 end, {
   isAlliance = true,
-  colInfo = ns.lua.lists.map(ns.SummaryColumns, function(c) return c.colInfo end),
+  -- Shallow-copy each column's colInfo with muted, uppercased text headers to
+  -- match the Aetheric-Glass chrome (icon-only columns have no name and are
+  -- unaffected). The source colInfo is left untouched (shared with addCol etc).
+  colInfo = ns.lua.lists.map(ns.SummaryColumns, function(c)
+    local info = {}
+    for k, v in pairs(c.colInfo) do info[k] = v end
+    info.color = theme.colors.muted
+    if info.name and info.name ~= "" then info.name = info.name:upper() end
+    return info
+  end),
   backdrop = {color = ns.Colors.TransparentBlack},
+  footerBackdrop = {color = theme.colors.moduleHi},
 })
 
 function ClassSummary:GetCharacters()
@@ -72,6 +111,7 @@ end
 function ClassSummary:OnBeforeShow()
   self.data = {}
   local toons = self:GetCharacters()
+  self._toons = toons   -- keep row→character mapping current for hover/click
   for i,t in ipairs(toons) do
     self.data[i] = self:GetRowData(t)
   end
@@ -83,17 +123,20 @@ local SummaryView = Class(ui.Frame, function(self)
   -- default to the current character's faction on first open
   local current = ns.api:GetCharacterData()
   self._showAlliance = not current or current.isAlliance
+
+  -- glass-module surface behind the active table
+  self.moduleBg = Texture:new{
+    parent = self, layer = ui.layer.Artwork, color = theme.colors.module,
+    position = { TopLeft = {P - BLEED, -(P - BLEED)}, Width = 12, Height = 12 },
+  }
+
   self.alliance = ClassSummary:new{
     parent = self,
-    position = {
-      TopLeft = {2, 0},
-    },
+    position = { TopLeft = {P, -P} },
   }
   self.horde = ClassSummary:new{
     parent = self,
-    position = {
-      TopLeft = {2, 0},
-    },
+    position = { TopLeft = {P, -P} },
     isAlliance = false,
   }
 
@@ -101,6 +144,7 @@ local SummaryView = Class(ui.Frame, function(self)
 end, {
   name   = "summary",
   _title = "Summary",
+  background = theme.colors.window,
 })
 SummaryView.name = "summary"
 ns.views.SummaryView = SummaryView
@@ -110,51 +154,77 @@ function SummaryView:layout()
   self.alliance:SetShown(a)
   self.horde:SetShown(not a)
 
-  if a then
-    self:Width(self.alliance:Width() + 4)
-    self:Height(self.alliance:Height() + 2)
-  else
-    self:Width(self.horde:Width() + 4)
-    self:Height(self.horde:Height() + 2)
-  end
+  local t = a and self.alliance or self.horde
+  self.moduleBg:Width(t:Width() + BLEED * 2)
+  self.moduleBg:Height(t:Height() + BLEED * 2)
+  self:Width(P + t:Width() + P)
+  self:Height(P + t:Height() + P)
 end
 
 function SummaryView:toggleFaction()
   self._showAlliance = not self._showAlliance
   self._showHorde = not self._showAlliance
+  self:updateFilter()
   self:layout()
   if ns.MainWindow then ns.MainWindow:Fit() end
 end
 
+-- Faction toggle: the current faction's icon + name, tinted blue (Alliance) or
+-- red (Horde) with a matching 1px border. Clicking flips to the other faction.
 function SummaryView:BuildFilter(parent)
+  local FW, FH, PAD, ICON, GAP = 80, 20, 5, 14, 5
   local box = ui.Frame:new{
     parent = parent,
-    position = {
-      Height = 20,
-      Width = 20,
-    },
+    position = { Width = FW, Height = FH },
   }
-  local b = Button:new{
+  -- faction-coloured 1px border with a dark interior
+  box.border = Texture:new{
+    parent = box, layer = ui.layer.Background,
+    position = { All = true },
+  }
+  Texture:new{
+    parent = box, layer = ui.layer.Border, color = {0.05, 0.05, 0.06, 0.92},
+    position = { TopLeft = {1, -1}, BottomRight = {-1, 1} },
+  }
+  box.button = Button:new{
     parent = box,
-    position = {
-      Left = {0, 0},
-      Size = {20, 20},
-    },
+    position = { All = true },
     glow = false,
     OnClick = function() self:toggleFaction() end,
   }
-  b.icon = Texture:new{
-    parent = b,
-    layer = ui.layer.Artwork,
-    atlas = "tokens-changeFaction-small",
-    position = { All = true },
+  box.icon = Texture:new{
+    parent = box.button, layer = ui.layer.Artwork,
+    position = { Left = {PAD, 0}, Size = {ICON, ICON} },
+  }
+  box.label = Label:new{
+    parent = box.button,
+    -- mono caps (like the column headers) — crisper than the soft Hanken display
+    -- font at this size, and consistent with the rest of the chrome
+    fontInfo = {theme.fonts.caps[1], 10},
+    position = { Left = {box.icon, ui.edge.Right, GAP, 0} },
   }
   -- dimmed at rest, full opacity on hover
-  b:Alpha(0.8)
-  b.OnEnter = function(self) self:Alpha(1) end
-  b.OnLeave = function(self) self:Alpha(0.8) end
+  box.button:Alpha(0.85)
+  box.button.OnEnter = function(b) b:Alpha(1) end
+  box.button.OnLeave = function(b) b:Alpha(0.85) end
+
   self._filter = box
+  self:updateFilter()
   return box
+end
+
+-- Point the toggle at the currently shown faction (icon, name, accent colour).
+function SummaryView:updateFilter()
+  local f = self._filter
+  if not f then return end
+  local a = self._showAlliance
+  local ico = a and ns.icons.AllianceLight or ns.icons.HordeLight
+  local col = a and FACTION_COLOR.alliance or FACTION_COLOR.horde
+  f.icon:Texture(ico.path)
+  f.icon:Coords(unpack(ico.coords))
+  f.icon:SetVertexColor(unpack(ico.vertexColor))
+  f.label:Text((a and "Alliance" or "Horde"):upper()):Color(col)
+  f.border:Color(col[1], col[2], col[3], 0.9)
 end
 
 function SummaryView:OnBeforeShow()
@@ -164,4 +234,5 @@ function SummaryView:OnBeforeShow()
   ns.api:RefreshCurrentCharacterField("weeklies", "hasUnclaimedVault")
   self.alliance:OnBeforeShow()
   self.horde:OnBeforeShow()
+  self:layout()
 end

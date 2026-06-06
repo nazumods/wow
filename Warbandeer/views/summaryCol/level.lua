@@ -6,7 +6,8 @@ table.insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
     name = "Lvl",
-    width = 20,
-    getData = function(t) return t.basic.level end,
+    width = 25,
+    justifyH = ns.ui.justify.Right,
+    getData = function(t) return { text = t.basic.level, justifyH = ns.ui.justify.Right } end,
   }
 )
