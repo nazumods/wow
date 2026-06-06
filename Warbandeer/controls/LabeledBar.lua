@@ -3,7 +3,16 @@ local ui = ns.ui
 local Class, Frame, Label, StatusBar, Texture = ns.lua.Class, ui.Frame, ui.Label, ui.StatusBar, ui.Texture
 local theme = ns.theme
 local unpack = unpack
-local BottomLeft, BottomRight = ui.edge.BottomLeft, ui.edge.BottomRight
+local BottomRight = ui.edge.BottomRight
+
+-- Blend a colour toward white for the hover tint. Returns r,g,b,a (alpha preserved).
+local HOVER_LIGHTEN = 0.3
+local function lighten(color)
+  local r, g, b, a = color[1], color[2], color[3], color[4] or 1
+  return r + (1 - r) * HOVER_LIGHTEN,
+         g + (1 - g) * HOVER_LIGHTEN,
+         b + (1 - b) * HOVER_LIGHTEN, a
+end
 
 -- A labelled progress row: name on the left, value on the right, and a thin
 -- progress bar beneath. Used for reputations (and reusable for professions).
@@ -28,19 +37,26 @@ local BottomLeft, BottomRight = ui.edge.BottomLeft, ui.edge.BottomRight
 ---@field trackTexture string? track texture path (used when trackAtlas is unset/false)
 ---@field hoverValue string?  alternate value text shown while the row is hovered
 ---@field hoverColor number[]? color for the hovered value (defaults to muted)
----@field highlight  Texture   row hover highlight
+---@field onClick    fun(self: LabeledBar, button: string)?  optional click action; enables mouse clicks
+---@field highlight  Texture   row hover highlight (behind the text; the bar lightens its own colours)
 ---@field nameLabel  Label
 ---@field valueLabel Label
 ---@field bar        StatusBar
 local LabeledBar = Class(Frame, function(self)
   local c, f = theme.colors, theme.fonts
 
+  -- Rounded hover backing that wraps the whole row (text + bar) with a clear margin
+  -- on every side, so the bar reads as part of the highlight rather than sitting
+  -- below a band around just the label. White rounded texture, tinted in on hover.
   self.highlight = Texture:new{
     parent = self,
     layer = ui.layer.Background,
-    color = {0, 0, 0, 0},
-    position = { TopLeft = {-3, 3}, BottomRight = {self, BottomRight, 3, -3} },
+    position = { TopLeft = {-5, 5}, BottomRight = {self, BottomRight, 5, -5} },
   }
+  self.highlight:Texture(self.barTexture)
+  self.highlight:SliceMargins(6, 6, 6, 6)
+  self.highlight:SliceMode(0)
+  self.highlight:SetVertexColor(1, 1, 1, 0)
 
   self.nameLabel = Label:new{
     parent = self,
@@ -57,12 +73,16 @@ local LabeledBar = Class(Frame, function(self)
     justifyH = ui.justify.Right,
     position = { TopRight = {0, 0} },
   }
+  -- Name-row height computed from the font (a FontString reports GetHeight() == 0
+  -- until it's been laid out a frame later, which would leave the frame too short
+  -- to cover — or receive mouse over — the bar).
+  local nameH = (f.body[2] or 13) + 6
   self.bar = StatusBar:new{
     parent = self,
     backdrop = {},
     fill = {},
     position = {
-      TopLeft = {self.nameLabel, BottomLeft, 0, -3},
+      TopLeft = {0, -nameH},
       Width = self.width,
       Height = self.barHeight,
     },
@@ -88,19 +108,33 @@ local LabeledBar = Class(Frame, function(self)
   self.bar.fill:SetVertexColor(unpack(self.barColor or c.gold))
   self.bar.fill:Width(self.width * math.max(0, math.min(1, self.pct)))
 
-  -- brighten on hover; swap the value for an alternate (e.g. raw paragon numbers)
+  -- brighten on hover; swap the value for an alternate (e.g. raw paragon numbers).
+  -- The bar is a child frame that occludes the Background `highlight`, and an
+  -- overlay wash barely registers on the already-opaque bar — so instead lighten
+  -- the bar's own fill+track colours, which reads clearly and keeps the whole row
+  -- looking hovered as one piece.
   self._widget:SetMouseMotionEnabled(true)
   self:SetScript("OnEnter", function()
-    self.highlight:Color(theme.colors.hover)
+    self.highlight:SetVertexColor(1, 1, 1, c.hover[4])
+    self.bar.fill:SetVertexColor(lighten(self.barColor or c.gold))
+    self.bar.backdrop:SetVertexColor(lighten(self.trackColor or c.track))
     if self.hoverValue then self.valueLabel:Text(self.hoverValue):Color(self.hoverColor or c.muted) end
   end)
   self:SetScript("OnLeave", function()
-    self.highlight:Color(0, 0, 0, 0)
+    self.highlight:SetVertexColor(1, 1, 1, 0)
+    self.bar.fill:SetVertexColor(unpack(self.barColor or c.gold))
+    self.bar.backdrop:SetVertexColor(unpack(self.trackColor or c.track))
     if self.hoverValue then self.valueLabel:Text(self.value):Color(self.valueColor or c.muted) end
   end)
 
+  -- optional click action (e.g. open the relevant profession window)
+  if self.onClick then
+    self._widget:SetMouseClickEnabled(true)
+    self:SetScript("OnMouseUp", function(_, button) self.onClick(self, button) end)
+  end
+
   self:Width(self.width)
-  self:Height(self.nameLabel:Height() + 3 + self.barHeight)
+  self:Height(nameH + self.barHeight)
 end, {
   width = 200,
   barHeight = 8,

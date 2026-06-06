@@ -8,6 +8,7 @@ local theme = ns.theme
 local Colors = ns.Colors
 local BottomLeft, BottomRight = ui.edge.BottomLeft, ui.edge.BottomRight
 local BreakUpLargeNumbers = BreakUpLargeNumbers
+local C_TradeSkillUI = C_TradeSkillUI
 
 -- ─── Layout ─────────────────────────────────────────────────────────────────────
 local P, GAP = 12, 12          -- outer padding / section gap
@@ -215,6 +216,10 @@ function DetailView:_profRow(i)
     parent = panel,
     width = BAR_W,
     position = { TopLeft = {BAR_X, -BAR_Y} },
+    -- Click the bar to open that profession's window (no-op for alts you're not on).
+    onClick = function()
+      if row._skillID then C_TradeSkillUI.OpenTradeSkill(row._skillID) end
+    end,
   }
   row.dropdown = FilterDropdown:new{
     parent    = panel,
