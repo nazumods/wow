@@ -23,6 +23,7 @@ controls\CharacterTooltip.lua
 controls\StatCard.lua
 controls\LabeledBar.lua
 controls\FilterDropdown.lua
+controls\IconStrip.lua
 
 views\Overview.lua
 

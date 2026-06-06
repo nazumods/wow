@@ -1,8 +1,8 @@
 local _, ns = ...
 local ui = ns.ui
-local Class, Frame, Label = ns.lua.Class, ui.Frame, ui.Label
+local Class, Frame, Label, Texture = ns.lua.Class, ui.Frame, ui.Label, ui.Texture
 local theme = ns.theme
-local BottomLeft = ui.edge.BottomLeft
+local BottomLeft, Right = ui.edge.BottomLeft, ui.edge.Right
 
 -- A single "stat" tile for the summary strip: a small caps caption, a big mono
 -- numeral, and an optional muted sub-line. Background is the glass-module surface.
@@ -12,8 +12,11 @@ local BottomLeft = ui.edge.BottomLeft
 ---@field amount      string  the headline value (mono numerals)
 ---@field amountColor number[]? color for the value (defaults to on-surface)
 ---@field sub         string? optional muted sub-line below the value
+---@field subIcon      string? optional texture path drawn before the sub-line (e.g. a trend arrow)
+---@field subIconColor number[]? tint for subIcon (defaults to muted)
 ---@field captionLabel Label
 ---@field amountLabel  Label
+---@field subIconTex   Texture?
 ---@field subLabel     Label?
 local StatCard = Class(Frame, function(self)
   local c, f = theme.colors, theme.fonts
@@ -34,12 +37,24 @@ local StatCard = Class(Frame, function(self)
     position = { TopLeft = {self.captionLabel, BottomLeft, 0, -5} },
   }
   if self.sub then
+    -- optional leading trend glyph (e.g. an up/down arrow for weekly change)
+    if self.subIcon then
+      self.subIconTex = Texture:new{
+        parent = self,
+        layer = ui.layer.Artwork,
+        path = self.subIcon,
+        position = { TopLeft = {self.amountLabel, BottomLeft, 0, -3}, Size = {11, 11} },
+      }
+      self.subIconTex:SetVertexColor(self.subIconColor or c.muted)
+    end
     self.subLabel = Label:new{
       parent = self,
       fontInfo = f.subcaps,
       color = c.muted,
       text = self.sub,
-      position = { TopLeft = {self.amountLabel, BottomLeft, 0, -4} },
+      position = self.subIcon
+        and { Left = {self.subIconTex, Right, 3, 0} }
+        or  { TopLeft = {self.amountLabel, BottomLeft, 0, -4} },
     }
   end
 end, {

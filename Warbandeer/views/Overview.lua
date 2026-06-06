@@ -17,6 +17,7 @@ local BottomLeft = ui.edge.BottomLeft
 
 local TransparentBackdrop = {color = ns.Colors.TransparentBlack}
 local P, GAP, STRIP_H, HEAD_H = 12, 8, 64, 16
+local TREND_ICON = "Interface\\AddOns\\Warbandeer\\icons\\"
 
 -- caps label used for section headers ("REPUTATIONS", "TOP CHARACTERS", ...)
 local function capsHeader(parent, text, position)
@@ -414,24 +415,29 @@ local Overview = Class(Frame, function(self)
     end
   end
 
-  local function card(i, caption, amount, amountColor, sub)
+  local function card(i, caption, amount, amountColor, sub, subIcon, subIconColor)
     return StatCard:new{
       parent = self,
       caption = caption,
       amount = amount,
       amountColor = amountColor,
       sub = sub,
+      subIcon = subIcon,
+      subIconColor = subIconColor,
       position = { TopLeft = {P - BLEED + (i - 1) * (cardW + GAP), -BLEED}, Width = cardW, Height = STRIP_H },
     }
   end
   -- wealth includes the warband (account) bank, not just per-character gold
   local wealth = ns.api.GetWarbandWealth()
   local madeGold = math.floor(ns.api.GetWeeklyGoldMade() / 10000)
-  local madeSub
+  local madeSub, trendIcon, trendColor
   if madeGold ~= 0 then
     madeSub = (madeGold > 0 and "+" or "") .. BreakUpLargeNumbers(madeGold) .. "g this week"
+    trendIcon = TREND_ICON .. (madeGold > 0 and "trending_up.tga" or "trending_down.tga")
+    trendColor = madeGold > 0 and c.green or c.red
   end
-  card(1, "Total Warband Wealth", BreakUpLargeNumbers(math.floor(wealth / 10000)) .. "g", c.gold, madeSub)
+  card(1, "Total Warband Wealth", BreakUpLargeNumbers(math.floor(wealth / 10000)) .. "g", c.gold,
+       madeSub, trendIcon, trendColor)
   card(2, "Total Playtime", BreakUpLargeNumbers(math.floor(playSecs / 3600)) .. " hrs", c.text,
        "Across " .. count .. " characters")
   card(3, "Top Item Level", tostring(topIlvl), ns.IlvlColorObj(topIlvl))

@@ -2,7 +2,8 @@ local ADDON_NAME, ns = ...
 local ui = ns.ui
 
 -- set up the main addon window
-local Class, TitleFrame, Tooltip = ns.lua.Class, ui.TitleFrame, ui.Tooltip
+local Class, TitleFrame = ns.lua.Class, ui.TitleFrame
+local IconStrip = ns.IconStrip
 
 local viewIdx = {"overview", "races", "summary", "gear", "detail", "roles"}
 
@@ -27,45 +28,36 @@ local MainWindow = Class(TitleFrame, function(self)
     end
   end
 
-  -- Build selector options in ns.viewOrder; any unlisted view falls to the end
-  -- (sorted by title) so the dropdown order is always deterministic.
-  local options = {}
+  -- Navigation-rail order: ns.viewOrder first, any unlisted view appended (sorted
+  -- by title) so the rail order is always deterministic.
+  local navViews = {}
   local seen = {}
-  local function addOption(v)
+  local function addNav(v)
     if not v or seen[v.name] then return end
     seen[v.name] = true
-    table.insert(options, {
-        text = v._title,
-        background = {0, 0, 0, 0},
-        onEnter = function(line) line.background:Color(1, 1, 1, 0.2) end,
-        onLeave = function(line) line.background:Color(1, 1, 1, 0) end,
-        onClick = function() self:view(v.name); self.viewSelector:Hide() end,
-    })
+    table.insert(navViews, { name = v.name, title = v._title or v.name })
   end
-  for _, name in ipairs(ns.viewOrder) do addOption(self.views[name]) end
+  for _, name in ipairs(ns.viewOrder) do addNav(self.views[name]) end
   local leftovers = {}
   for name, v in pairs(self.views) do
     if not seen[name] then table.insert(leftovers, v) end
   end
   table.sort(leftovers, function(a, b) return (a._title or a.name) < (b._title or b.name) end)
-  for _, v in ipairs(leftovers) do addOption(v) end
+  for _, v in ipairs(leftovers) do addNav(v) end
+
+  -- Floating icon rail docked just left of the window (replaces the old
+  -- titlebar-icon dropdown selector). Clicking a glyph switches view.
+  self.iconStrip = IconStrip:new{
+    parent = self,
+    views = navViews,
+    onSelect = function(name) self:view(name) end,
+    position = { TopRight = {self, ui.edge.TopLeft, -8, 0} },
+  }
 
   local defaultView = ns.db.settings.defaultView
   if defaultView and viewIdx[defaultView] then
     self:view(viewIdx[defaultView])
   end
-
-  -- view control toolip
-  self.viewSelector = Tooltip:new{
-    position = {
-      TopLeft = {self.titlebar, ui.edge.BottomLeft, 6, 3},
-      Width = 60,
-    },
-    lines = options,
-  }
-  self.titlebar.icon:SetScript("OnMouseUp", function()
-    self.viewSelector:Toggle()
-  end)
 
   -- Persist position when the user finishes dragging the titlebar. The base
   -- TitleFrame wires the titlebar OnMouseUp to StopMovingOrSizing; wrap it so we
@@ -102,6 +94,7 @@ function MainWindow:view(name)
   end
   self._view:Show()
   if self._view._filter then self._view._filter:Show() end
+  if self.iconStrip then self.iconStrip:SetActive(name) end
   self:Fit()
 end
 
