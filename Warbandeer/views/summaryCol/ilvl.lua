@@ -5,6 +5,15 @@ local ui = ns.ui
 local insert = table.insert
 local ITEM_STANDARD_COLOR = ITEM_STANDARD_COLOR -- luacheck: globals ITEM_STANDARD_COLOR
 
+local trackColors = {
+  Explorer   = ITEM_STANDARD_COLOR,
+  Adventurer = ITEM_GOOD_COLOR,
+  Veteran    = ITEM_SUPERIOR_COLOR,
+  Champion   = ITEM_EPIC_COLOR,
+  Hero       = ITEM_LEGENDARY_COLOR,
+  Mythic     = ITEM_LEGENDARY_COLOR,
+}
+
 local getILvlString = function(toon)
   local lines = {}
   if toon.equipment then
@@ -14,7 +23,9 @@ local getILvlString = function(toon)
       if slot then
         local suffix = ""
         if slot.track and slot.trackLevel and slot.trackLevel > 0 then
-          suffix = " (" .. slot.track:sub(1,1) .. slot.trackLevel .. ")"
+          local letter = slot.track:sub(1,1)
+          local color  = trackColors[slot.track]
+          suffix = " (" .. (color and color:WrapTextInColorCode(letter) or letter) .. slot.trackLevel .. ")"
         end
         insert(lines, value .. " " .. ns.IlvlColor(slot.ilvl) .. suffix)
       end
