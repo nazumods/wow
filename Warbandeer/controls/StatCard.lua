@@ -12,6 +12,7 @@ local BottomLeft, Right = ui.edge.BottomLeft, ui.edge.Right
 ---@field amount      string  the headline value (mono numerals)
 ---@field amountColor number[]? color for the value (defaults to on-surface)
 ---@field sub         string? optional muted sub-line below the value
+---@field subColor     number[]? color for the sub-line text (defaults to muted)
 ---@field subIcon      string? optional texture path drawn before the sub-line (e.g. a trend arrow)
 ---@field subIconColor number[]? tint for subIcon (defaults to muted)
 ---@field captionLabel Label
@@ -50,7 +51,7 @@ local StatCard = Class(Frame, function(self)
     self.subLabel = Label:new{
       parent = self,
       fontInfo = f.subcaps,
-      color = c.muted,
+      color = self.subColor or c.muted,
       text = self.sub,
       position = self.subIcon
         and { Left = {self.subIconTex, Right, 3, 0} }

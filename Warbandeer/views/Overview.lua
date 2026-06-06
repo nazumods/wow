@@ -415,7 +415,7 @@ local Overview = Class(Frame, function(self)
     end
   end
 
-  local function card(i, caption, amount, amountColor, sub, subIcon, subIconColor)
+  local function card(i, caption, amount, amountColor, sub, subIcon, subColor)
     return StatCard:new{
       parent = self,
       caption = caption,
@@ -423,7 +423,8 @@ local Overview = Class(Frame, function(self)
       amountColor = amountColor,
       sub = sub,
       subIcon = subIcon,
-      subIconColor = subIconColor,
+      subColor = subColor,
+      subIconColor = subColor,
       position = { TopLeft = {P - BLEED + (i - 1) * (cardW + GAP), -BLEED}, Width = cardW, Height = STRIP_H },
     }
   end
