@@ -74,8 +74,15 @@ function ClassSummary:GetCharacters()
   return toons
 end
 
+-- One cell per column, by position. A column's getData may return nil (no data);
+-- map it to "" so the cell array stays index-aligned with the columns — `lists.map`
+-- would otherwise drop nils and shift every later column left for that row.
 function ClassSummary:GetRowData(toon)
-  return ns.lua.lists.map(ns.SummaryColumns, function(c) return c.getData(toon) end)
+  local cells = {}
+  for n, c in ipairs(ns.SummaryColumns) do
+    cells[n] = c.getData(toon) or ""
+  end
+  return cells
 end
 
 -- Make every cell in row `i` drive the row's hover highlight and open that

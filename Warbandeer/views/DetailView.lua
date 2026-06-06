@@ -28,20 +28,40 @@ local PROF_HEADER_Y = CONTENT_TOP + STRIP_H + GAP -- professions header top
 local GEAR_PAD = 12                             -- gear panel inner padding
 local GEAR_ROW_H = 20                           -- one gear row
 local GEAR_HEADER_GAP = 8                       -- header → first row
+local GEAR_ICON_W, GEAR_ICON_GAP = 18, 8        -- left slot-icon column / gap to name
 local GEAR_ILVL_W, GEAR_TRACK_W = 30, 28        -- right-aligned ilvl / track columns
 local GEAR_COL_GAP = 8                          -- gap between name/ilvl/track
 local GEAR_NAME_MIN, GEAR_NAME_MAX = 150, 280   -- autosize clamp for the name column
 local GEAR_X = P + PANEL_W + GAP                -- gear panel left edge
 
+-- Width left of the name column (slot icon + gap).
+local GEAR_LEAD_W = GEAR_ICON_W + GEAR_ICON_GAP
 -- Width contributed by everything right of the name column (gaps + ilvl + track).
 local GEAR_EXTRAS_W = GEAR_COL_GAP + GEAR_ILVL_W + GEAR_COL_GAP + GEAR_TRACK_W
-local function gearInnerW(nameW) return nameW + GEAR_EXTRAS_W end
+local function gearInnerW(nameW) return GEAR_LEAD_W + nameW + GEAR_EXTRAS_W end
 local function gearPanelW(nameW) return gearInnerW(nameW) + 2 * GEAR_PAD end
 
 -- Slot draw order (mirrors GearView's column order). Shirt/Tabard are skipped.
 local GEAR_SLOTS = {
   "Head", "Neck", "Shoulder", "Back", "Chest", "Wrist", "Hands", "Waist",
   "Legs", "Feet", "Finger1", "Finger2", "Trinket1", "Trinket2", "MainHand", "OffHand",
+}
+
+-- Slot → transmog-nav-slot atlas. Only appearance slots have these atlases, so the
+-- non-transmoggable slots (Neck/Finger/Trinket) map to nil and render a blank icon
+-- column (space still reserved so the name column stays aligned across rows).
+local GEAR_SLOT_ATLAS = {
+  Head     = "transmog-nav-slot-head",
+  Shoulder = "transmog-nav-slot-shoulder",
+  Back     = "transmog-nav-slot-back",
+  Chest    = "transmog-nav-slot-chest",
+  Wrist    = "transmog-nav-slot-wrist",
+  Hands    = "transmog-nav-slot-hands",
+  Waist    = "transmog-nav-slot-waist",
+  Legs     = "transmog-nav-slot-legs",
+  Feet     = "transmog-nav-slot-feet",
+  MainHand = "transmog-nav-slot-mainhand",
+  OffHand  = "transmog-nav-slot-secondaryhand",
 }
 
 -- Rarity color pulled straight from the stored item link's color prefix, so it works
@@ -276,6 +296,11 @@ function DetailView:_gearRow(i)
   }
   row = { frame = frame }
 
+  -- Slot icon pinned to the left (blank for non-transmoggable slots; see GEAR_SLOT_ATLAS).
+  row.icon = Texture:new{
+    parent = frame, layer = ui.layer.Artwork,
+    position = { Left = {frame, ui.edge.Left, 0, 0}, Width = GEAR_ICON_W, Height = GEAR_ICON_W },
+  }
   -- Track badge pinned to the right, ilvl left of it, name fills the remaining space.
   row.track = Label:new{
     parent = frame, fontInfo = theme.fonts.stat, color = c.gold,
@@ -291,7 +316,7 @@ function DetailView:_gearRow(i)
     parent = frame, fontInfo = theme.fonts.body,
     justifyH = ui.justify.Left, wordWrap = false,
     position = {
-      Left  = {frame, ui.edge.Left, 0, 0},
+      Left  = {row.icon, ui.edge.Right, GEAR_ICON_GAP, 0},
       Right = {row.ilvl, ui.edge.Left, -GEAR_COL_GAP, 0},
     },
   }
@@ -300,9 +325,16 @@ function DetailView:_gearRow(i)
   return row
 end
 
--- Populate a visible gear row for an equipped item.
-function DetailView:_showGear(i, item)
+-- Populate a visible gear row for an equipped item. `slotKey` selects the slot icon.
+function DetailView:_showGear(i, item, slotKey)
   local row = self:_gearRow(i)
+  local atlas = GEAR_SLOT_ATLAS[slotKey]
+  if atlas then
+    row.icon:Atlas(atlas, false)
+    row.icon:Show()
+  else
+    row.icon:Hide()  -- non-transmoggable slot: reserve the column, leave it blank
+  end
   row.name:Text(item.name or ""):Color(rarityColor(item.link))
   local ilvl = item.ilvl or 0
   row.ilvl:Text(tostring(ilvl)):Color(ns.IlvlColorObj(ilvl))
@@ -425,7 +457,7 @@ function DetailView:OnBeforeShow()
     local item = slots[slotKey]
     if item then
       g = g + 1
-      self:_showGear(g, item)
+      self:_showGear(g, item, slotKey)
       local w = self._gearRows[g].name:StringWidth()
       if w > maxNameW then maxNameW = w end
     end
