@@ -2,7 +2,7 @@ local _, ns = ...
 local insert = table.insert
 local ui = ns.ui
 -- luacheck: globals DIM_GREEN_FONT_COLOR DIM_RED_FONT_COLOR NORMAL_FONT_COLOR GetAchievementInfo OpenAchievementFrameToAchievement BreakUpLargeNumbers
-local Class, Frame, TableFrame, TabFrame, Label, Texture = ns.lua.Class, ui.Frame, ui.TableFrame, ui.TabFrame, ui.Label, ui.Texture
+local Class, Frame, TableFrame, Label, Texture = ns.lua.Class, ui.Frame, ui.TableFrame, ui.Label, ui.Texture
 local LabeledBar, StatCard = ns.LabeledBar, ns.StatCard
 local theme = ns.theme
 local BreakUpLargeNumbers = BreakUpLargeNumbers
@@ -307,7 +307,10 @@ end, {
   },
 })
 
--- Build one tab's content (reputations left, achievements right). Returns w, h.
+-- Build one expansion's content into `panel`: a Reputations box (left) and an
+-- Achievements box (right), each under its own caps header. The two sit a box-gap
+-- (GAP*2) apart so each can carry its own module background. Returns the reps and
+-- achievements section sizes (width, height) for the caller to size those boxes.
 local function buildTab(panel, expansionLevel, extraFactionIDs, achievementIds)
   capsHeader(panel, "Reputations", { TopLeft = {0, 0} })
   local bars = FactionBars:new{
@@ -316,56 +319,80 @@ local function buildTab(panel, expansionLevel, extraFactionIDs, achievementIds)
     extraFactionIDs = extraFactionIDs,
     position = { TopLeft = {0, -HEAD_H} },
   }
-  local achX = bars:Width() + 16
+  local achX = bars:Width() + GAP * 2
   capsHeader(panel, "Achievements", { TopLeft = {achX, 0} })
   local ach = Achievements:new{
     parent = panel,
     achievementIds = achievementIds,
     position = { TopLeft = {achX, -HEAD_H} },
   }
-  return achX + ach:Width(), HEAD_H + math.max(bars:Height(), ach:Height())
+  return bars:Width(), bars:Height(), ach:Width(), ach:Height()
 end
+
+-- Expansions selectable via the titlebar dropdown. Each builds its own
+-- Reputations + Achievements panel; only the selected one is shown.
+local EXPANSIONS = {
+  { key = "midnight", label = "Midnight",       expansionLevel = 11, extraFactionIDs = {}, achievementIds = midnightAchievementIds },
+  { key = "wwi",      label = "The War Within", expansionLevel = 10, extraFactionIDs = {}, achievementIds = wwiAchievementIds },
+}
 
 -- Overview
 local Overview = Class(Frame, function(self)
   local c = theme.colors
   local BLEED = 6                        -- module/strip outer bleed (matches module bg padding)
   local contentTop = P + STRIP_H + GAP
+  self._contentTop = contentTop
 
-  -- Reputations + Achievements tabs (left of the content row)
-  self.tabFrame = TabFrame:new{
-    parent = self,
-    tabs = {"Midnight", "WWI"},
-    position = { TopLeft = {P, -contentTop} },
-  }
-  local midW, midH = buildTab(self.tabFrame:Tab(1), 11, {}, midnightAchievementIds)
-  local wwiW, wwiH = buildTab(self.tabFrame:Tab(2), 10, {}, wwiAchievementIds)
-  local tabBarH, tabContentH = self.tabFrame.tabHeight, {midH, wwiH}
-  local tabW = math.max(midW, wwiW)
-  self.tabFrame:Width(tabW)
+  -- Reputations + Achievements, one panel per expansion. Each panel holds a reps
+  -- box (left) and an achievements box (right); panels share the same anchor and
+  -- only the selected one is shown. The two module backgrounds are siblings of the
+  -- panels and resize to the active expansion's section heights.
+  self._panels, self._repsH, self._achH = {}, {}, {}
+  local repsW, achW = 0, 0
+  for _, e in ipairs(EXPANSIONS) do
+    local panel = Frame:new{
+      parent = self,
+      position = { TopLeft = {P, -contentTop}, Hide = true },
+    }
+    local bw, bh, aw, ah = buildTab(panel, e.expansionLevel, e.extraFactionIDs, e.achievementIds)
+    panel:Width(bw + GAP * 2 + aw)
+    panel:Height(HEAD_H + math.max(bh, ah))
+    self._panels[e.key] = panel
+    self._repsH[e.key] = HEAD_H + bh
+    self._achH[e.key]  = HEAD_H + ah
+    repsW = math.max(repsW, bw)
+    achW  = math.max(achW, aw)
+  end
 
-  -- Top Characters (right of the tabs, beside the future detail card)
-  local altX = P + tabW + GAP * 2
+  -- box X positions: achievements a box-gap right of reputations, Top Characters a
+  -- box-gap right of that (beside the future detail card).
+  local achX = P + repsW + GAP * 2
+  local altX = achX + achW + GAP * 2
   capsHeader(self, "Top Characters", { TopLeft = {altX, -contentTop} })
   self.topAlts = TopAlts:new{
     parent = self,
     position = { TopLeft = {altX, -(contentTop + HEAD_H)} },
   }
-  local altH = HEAD_H + self.topAlts:Height()
-  local contentW = tabW + GAP * 2 + self.topAlts:Width()
+  self._altH = HEAD_H + self.topAlts:Height()
+  self._contentW = (altX - P) + self.topAlts:Width()
 
-  -- module backgrounds (parent textures render behind the child content frames)
-  self._modTab = Texture:new{
+  -- module backgrounds (parent textures render behind the child content frames);
+  -- reps + achievements each get their own box, resized per selection.
+  self._modReps = Texture:new{
     parent = self, layer = ui.layer.Artwork, color = c.module,
-    position = { TopLeft = {P - 6, -(contentTop - 6)}, Width = tabW + 12, Height = tabBarH + 12 },
+    position = { TopLeft = {P - 6, -(contentTop - 6)}, Width = repsW + 12, Height = 12 },
+  }
+  self._modAch = Texture:new{
+    parent = self, layer = ui.layer.Artwork, color = c.module,
+    position = { TopLeft = {achX - 6, -(contentTop - 6)}, Width = achW + 12, Height = 12 },
   }
   Texture:new{
     parent = self, layer = ui.layer.Artwork, color = c.module,
-    position = { TopLeft = {altX - 6, -(contentTop - 6)}, Width = self.topAlts:Width() + 12, Height = altH + 12 },
+    position = { TopLeft = {altX - 6, -(contentTop - 6)}, Width = self.topAlts:Width() + 12, Height = self._altH + 12 },
   }
 
   -- Stat strip — aligned to the same outer extent as the module panels below
-  local cardW = (contentW + BLEED * 2 - GAP * 2) / 3
+  local cardW = (self._contentW + BLEED * 2 - GAP * 2) / 3
 
   local goldTotal, playSecs, topIlvl, count = 0, 0, 0, 0
   for _, toon in ipairs(ns.api.GetAllCharacters()) do
@@ -392,18 +419,7 @@ local Overview = Class(Frame, function(self)
        "Across " .. count .. " characters")
   card(3, "Top Item Level", tostring(topIlvl), ns.IlvlColorObj(topIlvl))
 
-  -- size to the active tab and refit the window when the tab changes, so the
-  -- shorter tab doesn't leave dead space below the content.
-  self._fit = function(idx)
-    local th = tabBarH + tabContentH[idx]
-    self.tabFrame:Height(th)
-    self._modTab:Height(th + 12)
-    self:Width(P + contentW + P)
-    self:Height(contentTop + math.max(altH, th) + P)
-    if self.parent and self.parent.Fit then self.parent:Fit() end
-  end
-  self._fit(self.tabFrame:Selected())
-  self.tabFrame.onSelect = function(_, idx) self._fit(idx) end
+  self:selectExpansion(EXPANSIONS[1].key)
 end, {
   name = "overview",
   _title = "Overview",
@@ -411,3 +427,35 @@ end, {
 })
 Overview.name = "overview"
 ns.views.Overview = Overview
+
+-- Show the panel for `key`, size the reps + achievements boxes and the view to it,
+-- and refit the window so the shorter expansion doesn't leave dead space below.
+---@param key string
+function Overview:selectExpansion(key)
+  for k, panel in pairs(self._panels) do
+    panel:SetShown(k == key)
+  end
+  self._expansion = key
+  local repsH, achH = self._repsH[key], self._achH[key]
+  self._modReps:Height(repsH + 12)
+  self._modAch:Height(achH + 12)
+  self:Width(P + self._contentW + P)
+  self:Height(self._contentTop + math.max(repsH, achH, self._altH) + P)
+  if self.parent and self.parent.Fit then self.parent:Fit() end
+end
+
+-- Titlebar expansion picker (shown only while the Overview is active).
+---@param parent Frame
+---@return FilterDropdown
+function Overview:BuildFilter(parent)
+  local box = ns.FilterDropdown:new{
+    parent    = parent,
+    options   = EXPANSIONS,
+    selected  = self._expansion,
+    width     = 112,
+    menuWidth = 130,
+    onSelect  = function(_, key) self:selectExpansion(key) end,
+  }
+  self._filter = box
+  return box
+end

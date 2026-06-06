@@ -3,7 +3,6 @@ local ui = ns.ui
 local insert = table.insert
 local floor = math.floor
 local Class, Frame, TableFrame = ns.lua.Class, ui.Frame, ui.TableFrame
-local Button, Label, Tooltip = ui.Button, ui.Label, ui.Tooltip
 local Colors, ColorS = ns.Colors, ns.Colors.Strings
 local C_GREEN, C_WHITE, C_ORANGE, C_GREY, C_END = ColorS.GREEN, ColorS.WHITE, ColorS.ORANGE, ColorS.GREY, ColorS.END
 
@@ -30,9 +29,6 @@ local INTENT_LABEL = { main = "Main Crafter", secondary = "Secondary", gatherer 
 -- Expansion filter.  Only Midnight is wired for now; DF/TWW are greyed placeholders
 -- until their recipe/concentration data is captured (separate session).
 local EXP_LABEL = { df = "Dragonflight", tww = "The War Within", midnight = "Midnight" }
--- Inline down-arrow (atlas markup: |A:atlasName:height:width|a). The minimal
--- scrollbar arrow already points down and is a neutral grey, so no rotation/tint.
-local CHEVRON = "  |A:UI-HUD-ActionBar-PageDownArrow-Disabled:12:12|a"
 local EXPANSIONS = {
   { key = "df",       label = "Dragonflight",   enabled = false },
   { key = "tww",      label = "The War Within", enabled = false },
@@ -233,44 +229,15 @@ end
 -- ─── Filter ───────────────────────────────────────────────────────────────────
 
 function CraftingView:BuildFilter(parent)
-  local box = Frame:new{ parent = parent, position = { Height = 20, Width = 96 } }
-
-  box.button = Button:new{
-    parent   = box,
-    position = { All = true },
-    glow     = false,
-    OnClick  = function() box.menu:Toggle() end,
-  }
-  box.label = Label:new{
-    parent   = box.button,
-    position = { Center = {} },
-    text     = EXP_LABEL[self._expansion] .. CHEVRON,
-  }
-
-  local lines = {}
-  for _, e in ipairs(EXPANSIONS) do
-    insert(lines, {
-      text       = e.enabled and e.label or (C_GREY .. e.label .. C_END),
-      background = { 0, 0, 0, 0 },
-      onEnter    = function(line) line.background:Color(1, 1, 1, 0.2) end,
-      onLeave    = function(line) line.background:Color(1, 1, 1, 0) end,
-      onClick    = function()
-        if not e.enabled then return end
-        box.menu:Hide()
-        if self._expansion == e.key then return end
-        self._expansion = e.key
-        box.label:Text(e.label .. CHEVRON)
-        self:OnBeforeShow()
-        if ns.MainWindow then ns.MainWindow:Fit() end
-      end,
-    })
-  end
-  box.menu = Tooltip:new{
-    position = {
-      TopRight = { box, ui.edge.BottomRight, 0, 2 },
-      Width    = 120,
-    },
-    lines = lines,
+  local box = ns.FilterDropdown:new{
+    parent   = parent,
+    options  = EXPANSIONS,
+    selected = self._expansion,
+    onSelect = function(_, key)
+      self._expansion = key
+      self:OnBeforeShow()
+      if ns.MainWindow then ns.MainWindow:Fit() end
+    end,
   }
   self._filter = box
   return box
