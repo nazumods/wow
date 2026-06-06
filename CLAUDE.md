@@ -2,7 +2,7 @@
 
 ## First Step: Read CONTEXT.md
 
-**At the start of every session, read `CONTEXT.md` in this directory.** It contains the complete code reference for all addons — file maps, class hierarchies, API surfaces, data structures, and constructor options. This eliminates the need to re-read source files.
+**At the start of every session, read `CONTEXT.md` in this directory.** It is the top-level index: the dependency graph, a one-line summary per addon, and the global slash command registry. Each addon's full code reference — file maps, class hierarchies, API surfaces, data structures, and constructor options — lives in its own `<addon>/CONTEXT.md` (linked from the root index). Load only the per-addon files relevant to the task; together they eliminate the need to re-read source files.
 
 ## Project Overview
 
