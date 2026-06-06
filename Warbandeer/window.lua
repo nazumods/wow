@@ -107,8 +107,17 @@ end
 
 function MainWindow:Fit()
   if not self._view then return end
+  -- Capture the top-left corner *before* resizing so the window grows down/right
+  -- from a fixed corner. Resizing a center-anchored frame would otherwise expand
+  -- symmetrically and appear to re-center on every view switch.
+  local w = self._widget
+  local left, top = w:GetLeft(), w:GetTop()
   self:Width(self._view:Width()  + 6)
   self:Height(self._view:Height() + 30)
+  if left and top then
+    w:ClearAllPoints()
+    self:TopLeft(UIParent, ui.edge.TopLeft, left - UIParent:GetLeft(), top - UIParent:GetTop())
+  end
 end
 
 -- Normalize the window to a single TOPLEFT anchor (relative to UIParent) at its
