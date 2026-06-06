@@ -1,11 +1,8 @@
 local ADDON_NAME, ns = ...
 local ui = ns.ui
-local views = ns.views
 
 -- set up the main addon window
 local Class, TitleFrame, Tooltip = ns.lua.Class, ui.TitleFrame, ui.Tooltip
-local RaceView, SummaryView, GearView, DetailView = views.RaceView, views.SummaryView, views.GearView, views.DetailView
-local RoleView, Overview = views.RoleView, views.Overview
 
 local viewIdx = {"overview", "races", "summary", "gear", "detail", "roles"}
 
@@ -69,6 +66,18 @@ local MainWindow = Class(TitleFrame, function(self)
   self.titlebar.icon:SetScript("OnMouseUp", function()
     self.viewSelector:Toggle()
   end)
+
+  -- Persist position when the user finishes dragging the titlebar. The base
+  -- TitleFrame wires the titlebar OnMouseUp to StopMovingOrSizing; wrap it so we
+  -- also normalize to a TOPLEFT anchor and save.
+  self.titlebar:SetScript("OnMouseUp", function()
+    self._widget:StopMovingOrSizing()
+    self:SavePosition()
+  end)
+
+  -- Anchor by top-left (from the DB, or the computed center on first run) so view
+  -- changes grow the window down/right instead of re-centering it.
+  self:RestorePosition()
 end, {
   name = ADDON_NAME,
   title = ADDON_NAME,
@@ -77,6 +86,7 @@ end, {
   },
   special = true,
   level = 600,
+  background = {0.11372549019, 0.14117647058, 0.16470588235, 0.92},
 })
 
 function MainWindow:view(name)
@@ -99,6 +109,32 @@ function MainWindow:Fit()
   if not self._view then return end
   self:Width(self._view:Width()  + 6)
   self:Height(self._view:Height() + 30)
+end
+
+-- Normalize the window to a single TOPLEFT anchor (relative to UIParent) at its
+-- current screen position, and persist that offset. Called after a drag and to
+-- "freeze" the computed-center position on first run, so subsequent Fit() calls
+-- grow the window down/right instead of moving its top-left corner.
+function MainWindow:SavePosition()
+  local w = self._widget
+  local x = w:GetLeft() - UIParent:GetLeft()
+  local y = w:GetTop()  - UIParent:GetTop()
+  w:ClearAllPoints()
+  self:TopLeft(UIParent, ui.edge.TopLeft, x, y)
+  ns.db.settings.windowPos = { x = x, y = y }
+end
+
+-- Apply the stored top-left anchor. With no stored position, the window is still
+-- centered (the construction-time anchor); SavePosition then freezes that center
+-- into a TOPLEFT anchor and records it.
+function MainWindow:RestorePosition()
+  local pos = ns.db.settings.windowPos
+  if pos then
+    self._widget:ClearAllPoints()
+    self:TopLeft(UIParent, ui.edge.TopLeft, pos.x, pos.y)
+  else
+    self:SavePosition()
+  end
 end
 
 function ns:Open()

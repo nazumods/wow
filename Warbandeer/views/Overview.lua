@@ -205,11 +205,20 @@ local TopAlts = Class(TableFrame, function(self)
     self:Width(self:Width() + delta)
   end
 
-  -- brighten the row on hover (rows are transparent at rest)
-  for _, row in ipairs(self.rows) do
+  -- brighten the row on hover (rows are transparent at rest); click to open that
+  -- character in the Detail view.
+  for i, row in ipairs(self.rows) do
+    local toon = self._toons[i]
     row._widget:SetMouseMotionEnabled(true)
+    row._widget:SetMouseClickEnabled(true)
     row:SetScript("OnEnter", function() row.backdrop:Color(theme.colors.hover) end)
     row:SetScript("OnLeave", function() row.backdrop:Color(0, 0, 0, 0) end)
+    row:SetScript("OnMouseUp", function()
+      local w = ns.MainWindow
+      if not w then return end
+      w.views.detail:Select(toon)
+      w:view("detail")
+    end)
   end
 end, {
   headerHeight = 0,
@@ -237,8 +246,10 @@ end, {
       return c1.name < c2.name
     end)
     local data = {}
+    self._toons = {}
     for _, toon in ipairs(top) do
       self:addRow({backdrop = TransparentBackdrop})
+      insert(self._toons, toon)
       insert(data, {
         {
           text = toon.basic.level,

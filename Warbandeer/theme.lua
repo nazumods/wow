@@ -14,7 +14,7 @@ local FONT = "Interface\\AddOns\\Warbandeer\\media\\fonts\\"
 ---@field fonts table<string, table>
 ns.theme = {
   colors = {
-    window   = {0.05, 0.05, 0.06, 0.92}, -- main content surface (void dark)
+    window   = {0.05, 0.05, 0.06, 0}, -- main content surface (void dark)
     module   = {1, 1, 1, 0.05},          -- "glass-module" inner panel
     moduleHi = {1, 1, 1, 0.08},          -- header strip / hover tint
     hover    = {1, 1, 1, 0.10},          -- row hover highlight

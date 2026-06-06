@@ -177,11 +177,7 @@ function DetailView:BuildFilter(parent)
       onLeave    = function(line) line.background:Color(1, 1, 1, 0) end,
       onClick    = function()
         box.menu:Hide()
-        if self._char == toon then return end
-        self._char = toon
-        box.label:Text(toon.name .. CHEVRON)
-        self:OnBeforeShow()
-        if ns.MainWindow then ns.MainWindow:Fit() end
+        self:Select(toon)
       end,
     })
   end
@@ -197,6 +193,20 @@ function DetailView:BuildFilter(parent)
 
   self._filter = box
   return box
+end
+
+-- Select a character to display. Used by the titlebar picker and by clicking a
+-- character on the Overview. Updates the picker label, rebuilds the body, and
+-- refits the window. No-op if the character is already shown.
+---@param toon Character
+function DetailView:Select(toon)
+  if not toon or self._char == toon then return end
+  self._char = toon
+  if self._filter and self._filter.label then
+    self._filter.label:Text(toon.name .. CHEVRON)
+  end
+  self:OnBeforeShow()
+  if ns.MainWindow then ns.MainWindow:Fit() end
 end
 
 -- ─── Lifecycle ────────────────────────────────────────────────────────────────
