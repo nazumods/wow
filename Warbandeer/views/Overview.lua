@@ -405,10 +405,9 @@ local Overview = Class(Frame, function(self)
   -- Stat strip — aligned to the same outer extent as the module panels below
   local cardW = (self._contentW + BLEED * 2 - GAP * 2) / 3
 
-  local goldTotal, playSecs, topIlvl, count = 0, 0, 0, 0
+  local playSecs, topIlvl, count = 0, 0, 0
   for _, toon in ipairs(ns.api.GetAllCharacters()) do
     count = count + 1
-    if toon.currency and toon.currency.gold then goldTotal = goldTotal + toon.currency.gold end
     if toon.playtime and toon.playtime.total then playSecs = playSecs + toon.playtime.total end
     if toon.equipment and toon.equipment.ilvl and toon.equipment.ilvl > topIlvl then
       topIlvl = toon.equipment.ilvl
@@ -425,7 +424,14 @@ local Overview = Class(Frame, function(self)
       position = { TopLeft = {P - BLEED + (i - 1) * (cardW + GAP), -BLEED}, Width = cardW, Height = STRIP_H },
     }
   end
-  card(1, "Total Warband Wealth", BreakUpLargeNumbers(math.floor(goldTotal / 10000)) .. "g", c.gold)
+  -- wealth includes the warband (account) bank, not just per-character gold
+  local wealth = ns.api.GetWarbandWealth()
+  local madeGold = math.floor(ns.api.GetWeeklyGoldMade() / 10000)
+  local madeSub
+  if madeGold ~= 0 then
+    madeSub = (madeGold > 0 and "+" or "") .. BreakUpLargeNumbers(madeGold) .. "g this week"
+  end
+  card(1, "Total Warband Wealth", BreakUpLargeNumbers(math.floor(wealth / 10000)) .. "g", c.gold, madeSub)
   card(2, "Total Playtime", BreakUpLargeNumbers(math.floor(playSecs / 3600)) .. " hrs", c.text,
        "Across " .. count .. " characters")
   card(3, "Top Item Level", tostring(topIlvl), ns.IlvlColorObj(topIlvl))

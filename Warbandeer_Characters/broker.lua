@@ -9,6 +9,15 @@ local time = DateAndTime.GetCurrentCalendarTime()
 local LAST_SUNDAY_RESET = GetServerTime() - ((time.weekday - 1) * 24 * 60 * 60) - (time.hour * 60 * 60) - (time.minute * 60) -- reset to sunday midnight
 LAST_SUNDAY_RESET = LAST_SUNDAY_RESET - (LAST_SUNDAY_RESET % 60) -- zero out seconds
 
+-- expose reset boundaries for non-broker (account-wide) data that resets on the same cadence
+---@class Warbandeer_Characters
+---@field LAST_DAILY_RESET integer
+---@field LAST_RESET integer
+---@field LAST_SUNDAY_RESET integer
+ns.LAST_DAILY_RESET = LAST_DAILY_RESET
+ns.LAST_RESET = LAST_RESET
+ns.LAST_SUNDAY_RESET = LAST_SUNDAY_RESET
+
 local eventListener = CreateFrame("Frame")
 local _delay = function(ms, fn)
   local timer = 0

@@ -7,6 +7,7 @@ local Player = ns.wow.Player
 ---@field version integer
 ---@field characters table<string, Character> Character data indexed by character name
 ---@field numCharacters integer total number of characters
+---@field warband WarbandData account-wide warband bank gold + weekly wealth tracking
 
 ---@class Warbandeer_Characters
 ---@field db WarbandeerCharactersDB
@@ -38,14 +39,15 @@ end, "Delete a character")
 ---@class Warbandeer_Characters
 ---@field MigrateDB fun(self) Migrate database to latest version
 function ns:MigrateDB()
-  if ns.db.version == 7 then return end
   local db = ns.db
+  if db.version == 8 then return end
   if not db.characters then db.characters = {} end
   if not db.numCharacters then
     local n = 0
     for _ in pairs(db.characters) do n = n + 1 end
     db.numCharacters = n
   end
+  if (db.version or 0) < 7 then
   for _,c in pairs(db.characters) do
     if not c.basic then
       c.basic = {
@@ -78,6 +80,11 @@ function ns:MigrateDB()
     c.cooking = nil
   end
   db.version = 7
+  end
+
+  -- v8: account-wide warband bank gold + weekly wealth tracking (non-destructive)
+  if not db.warband then db.warband = { bankGold = 0, history = {} } end
+  db.version = 8
 end
 
 ---@class Warbandeer_Characters
@@ -109,4 +116,5 @@ function ns:initialize()
   self.currentData = c
 
   self:InitBrokers()
+  self:InitWarband()
 end

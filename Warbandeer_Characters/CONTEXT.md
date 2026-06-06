@@ -5,7 +5,7 @@ Data collection backbone. Populates `WarbandeerApi` global.
 ## TOC
 ```
 Interface: 120001, Dependencies: LibNAddOn, LibNUI
-SavedVariables: WarbandeerCharDB (version 7)
+SavedVariables: WarbandeerCharDB (version 8)
 X-NUI-COMMANDS: /characters, /wbc
 X-NUI-API: WarbandeerApi, X-NUI-UI: LibNUI
 ```
@@ -22,7 +22,8 @@ X-NUI-API: WarbandeerApi, X-NUI-UI: LibNUI
 | `login.lua` | `onLogin` → `initialize()` then `refresh()` |
 | `api.lua` | `WarbandeerApi` public methods |
 | `data/basic.lua` | Broker: level, specialization, professions |
-| `data/currency.lua` | Broker: `RestoredCofferKey` (currency 3028) |
+| `data/currency.lua` | Broker: `RestoredCofferKey` (currency 3028), per-char `gold` (`GetMoney`), Coffer/Dawncrest currencies |
+| `data/warband.lua` | Account-wide (not a broker): `db.warband` bank gold + weekly wealth tracking. `GetWarbandWealth`, `RolloverWarbandWeek`, `InitWarband`, `/wbc dump warband` |
 | `data/items.lua` | Broker: bag inventory |
 | `data/professions.lua` | Broker: per-expansion skill levels, spec points, per-expansion learned recipes (ids+names). Also `ns.api.professionInfo` |
 | `data/concentration.lua` | Broker: `data` — Midnight concentration currency per crafting prof (qty/max/recharge), keyed by parent skillLineID |
@@ -48,6 +49,10 @@ WarbandeerApi:GetNumMaxLevel()            → integer
 WarbandeerApi:GetAllCharacters()          → Character[]
 WarbandeerApi:GetAllianceCharacters()     → Character[]
 WarbandeerApi:GetHordeCharacters()        → Character[]
+WarbandeerApi:GetWarbandBankGold()        → integer (copper)
+WarbandeerApi:GetWarbandWealth()          → integer (copper, bank + all char gold)
+WarbandeerApi:GetWeeklyGoldMade()         → integer (copper, current wealth − week baseline)
+WarbandeerApi:GetWealthHistory()          → WarbandWeekRecord[]  (closed weeks, oldest first)
 ```
 
 Also on API table: `ALLIANCE_RACES`, `HORDE_RACES`, `professionInfo`, `SettingsCategory`, `AliasSettingsCategory`
@@ -135,5 +140,16 @@ Reset constants: `RESET_SUNDAY=0`, `RESET_DAILY=1`, `RESET_WEEKLY=7`
 
 ```lua
 { version, numCharacters, lastDailyReset, lastReset, lastSundayReset,
-  characters = { ["Name"] = Character } }
+  characters = { ["Name"] = Character },
+  -- account-wide warband wealth (v8); not per-character (warband bank is shared)
+  warband = {
+    bankGold,                              -- last-known account bank gold (copper)
+    week = { start, baseline },            -- open week: reset timestamp + wealth at week start
+    history = { { start, ending, made } }, -- closed weeks, oldest first (made = ending − baseline)
+  } }
 ```
+
+`MigrateDB` v8 seeds `warband = { bankGold = 0, history = {} }` (non-destructive); `week`
+is filled lazily by `RolloverWarbandWeek` on first login. Wealth = `bankGold` + the
+last-known `currency.gold` of every character; `RolloverWarbandWeek` closes elapsed weeks
+at the `ns.LAST_RESET` boundary (exposed from `broker.lua`).
