@@ -20,9 +20,54 @@ local ROW_PAD = 12             -- inner padding of a profession panel
 local ROW_H, ROW_GAP = 44, 8   -- profession panel height / gap between panels
 
 local PANEL_W = ROW_PAD + ICON_W + ICON_GAP + BAR_W + DD_GAP + DD_W + ROW_PAD
-local VIEW_WIDTH = P + PANEL_W + P
 local CONTENT_TOP = P + PORTRAIT + GAP          -- stat strip top
 local PROF_HEADER_Y = CONTENT_TOP + STRIP_H + GAP -- professions header top
+
+-- ─── Gear list (right column) ─────────────────────────────────────────────────
+local GEAR_PAD = 12                             -- gear panel inner padding
+local GEAR_ROW_H = 20                           -- one gear row
+local GEAR_HEADER_GAP = 8                       -- header → first row
+local GEAR_ILVL_W, GEAR_TRACK_W = 30, 28        -- right-aligned ilvl / track columns
+local GEAR_COL_GAP = 8                          -- gap between name/ilvl/track
+local GEAR_NAME_MIN, GEAR_NAME_MAX = 150, 280   -- autosize clamp for the name column
+local GEAR_X = P + PANEL_W + GAP                -- gear panel left edge
+
+-- Width contributed by everything right of the name column (gaps + ilvl + track).
+local GEAR_EXTRAS_W = GEAR_COL_GAP + GEAR_ILVL_W + GEAR_COL_GAP + GEAR_TRACK_W
+local function gearInnerW(nameW) return nameW + GEAR_EXTRAS_W end
+local function gearPanelW(nameW) return gearInnerW(nameW) + 2 * GEAR_PAD end
+
+-- Slot draw order (mirrors GearView's column order). Shirt/Tabard are skipped.
+local GEAR_SLOTS = {
+  "Head", "Neck", "Shoulder", "Back", "Chest", "Wrist", "Hands", "Waist",
+  "Legs", "Feet", "Finger1", "Finger2", "Trinket1", "Trinket2", "MainHand", "OffHand",
+}
+
+-- Rarity color pulled straight from the stored item link's color prefix, so it works
+-- for any character without relying on the item being in this client's cache. Modern
+-- links color by quality name (|cnIQ<n>: where n is Enum.ItemQuality); older ones use
+-- the literal |cffRRGGBB hex. Handle both.
+local ITEM_QUALITY_COLORS = ITEM_QUALITY_COLORS
+---@return number, number, number
+local function rarityColor(link)
+  if link then
+    local iq = link:match("|cnIQ(%d+):")
+    if iq then
+      local q = ITEM_QUALITY_COLORS[tonumber(iq)]
+      if q then return q.r, q.g, q.b end
+    end
+    local hex = link:match("|c%x%x(%x%x%x%x%x%x)")
+    if hex then
+      return tonumber(hex:sub(1, 2), 16) / 255,
+             tonumber(hex:sub(3, 4), 16) / 255,
+             tonumber(hex:sub(5, 6), 16) / 255
+    end
+  end
+  local t = theme.colors.text
+  return t[1], t[2], t[3]
+end
+
+local VIEW_WIDTH = GEAR_X + gearPanelW(GEAR_NAME_MIN) + P
 
 -- vertical centring of each element inside a profession panel
 local ICON_Y, BAR_Y, DD_Y = (ROW_H - ICON_W) / 2, 8, (ROW_H - 20) / 2
@@ -54,11 +99,15 @@ local function intentColor(intent) return INTENT_COLOR[intent] or theme.colors.t
 ---@field _char Character        currently displayed character
 ---@field _profRows table[]      pooled profession rows
 ---@field _numRows integer       number of rows currently visible
+---@field _gearRows table[]      pooled gear rows
+---@field _numGearRows integer   number of gear rows currently visible
 local DetailView = Class(Frame, function(self)
   local c = theme.colors
   self._char = ns.api:GetCharacterData()
   self._profRows = {}
   self._numRows = 0
+  self._gearRows = {}
+  self._numGearRows = 0
 
   -- Portrait: class icon framed by a class-coloured border, with a level badge.
   self.portraitBorder = Texture:new{
@@ -112,6 +161,17 @@ local DetailView = Class(Frame, function(self)
     parent = self, fontInfo = theme.fonts.caps, color = c.muted,
     text = "PROFESSIONS",
     position = { TopLeft = {P, -PROF_HEADER_Y} },
+  }
+
+  -- Gear list down the right column: one row per equipped slot.
+  self.gearPanel = Frame:new{
+    parent = self, background = c.module,
+    position = { TopLeft = {GEAR_X, -CONTENT_TOP}, Width = gearPanelW(GEAR_NAME_MIN), Height = STRIP_H },
+  }
+  self.gearHeader = Label:new{
+    parent = self.gearPanel, fontInfo = theme.fonts.caps, color = c.muted,
+    text = "GEAR",
+    position = { TopLeft = {GEAR_PAD, -GEAR_PAD} },
   }
 
   self:Width(VIEW_WIDTH)
@@ -187,6 +247,66 @@ function DetailView:_showProf(i, prof)
   row.bar:BarColor(intentColor(intent))
   row.dropdown:Select(intent or false)
   row.panel:Show()
+end
+
+-- ─── Gear rows ─────────────────────────────────────────────────────────────────
+
+-- Grab (or lazily create) a pooled gear row: item name (truncated) on the left,
+-- with the item level and upgrade-track badge right-aligned.
+---@return table
+function DetailView:_gearRow(i)
+  local row = self._gearRows[i]
+  if row then return row end
+
+  local c = theme.colors
+  local prev = self._gearRows[i - 1]
+  local frame = Frame:new{
+    parent = self.gearPanel,
+    position = {
+      TopLeft = prev and {prev.frame, BottomLeft, 0, 0}
+                     or  {self.gearHeader, BottomLeft, 0, -GEAR_HEADER_GAP},
+      Width  = gearInnerW(GEAR_NAME_MIN),  -- resized to fit content in OnBeforeShow
+      Height = GEAR_ROW_H,
+    },
+  }
+  row = { frame = frame }
+
+  -- Track badge pinned to the right, ilvl left of it, name fills the remaining space.
+  row.track = Label:new{
+    parent = frame, fontInfo = theme.fonts.stat, color = c.gold,
+    justifyH = ui.justify.Right,
+    position = { Right = {frame, ui.edge.Right, 0, 0}, Width = GEAR_TRACK_W },
+  }
+  row.ilvl = Label:new{
+    parent = frame, fontInfo = theme.fonts.stat,
+    justifyH = ui.justify.Right,
+    position = { Right = {row.track, ui.edge.Left, -GEAR_COL_GAP, 0}, Width = GEAR_ILVL_W },
+  }
+  row.name = Label:new{
+    parent = frame, fontInfo = theme.fonts.body,
+    justifyH = ui.justify.Left, wordWrap = false,
+    position = {
+      Left  = {frame, ui.edge.Left, 0, 0},
+      Right = {row.ilvl, ui.edge.Left, -GEAR_COL_GAP, 0},
+    },
+  }
+
+  self._gearRows[i] = row
+  return row
+end
+
+-- Populate a visible gear row for an equipped item.
+function DetailView:_showGear(i, item)
+  local row = self:_gearRow(i)
+  row.name:Text(item.name or ""):Color(rarityColor(item.link))
+  local ilvl = item.ilvl or 0
+  row.ilvl:Text(tostring(ilvl)):Color(ns.IlvlColorObj(ilvl))
+  if item.track and item.trackLevel and item.trackLevel > 0 then
+    row.track:Text(item.track:sub(1, 1) .. item.trackLevel)
+  else
+    row.track:Text("")
+  end
+  row.frame:Show()
 end
 
 -- ─── Filter (character picker) ──────────────────────────────────────────────
@@ -292,9 +412,44 @@ function DetailView:OnBeforeShow()
   end
   self._numRows = i
 
-  local h = PROF_HEADER_Y + self.profHeader:Height()
-  if i > 0 then h = h + 8 + i * ROW_H + (i - 1) * ROW_GAP end
-  self:Height(h + P)
+  -- Gear list (right column): one row per equipped slot, in slot order. The name
+  -- column autosizes to the longest equipped item name (clamped to a min/max).
+  local slots = (char.equipment and char.equipment.slots) or {}
+  local g, maxNameW = 0, 0
+  for _, slotKey in ipairs(GEAR_SLOTS) do
+    local item = slots[slotKey]
+    if item then
+      g = g + 1
+      self:_showGear(g, item)
+      local w = self._gearRows[g].name:StringWidth()
+      if w > maxNameW then maxNameW = w end
+    end
+  end
+  for j = g + 1, self._numGearRows do
+    self._gearRows[j].frame:Hide()
+  end
+  self._numGearRows = g
+
+  -- Size the name column to content, then the rows / panel / view to match.
+  local nameW = math.max(GEAR_NAME_MIN, math.min(GEAR_NAME_MAX, math.ceil(maxNameW)))
+  local innerW = gearInnerW(nameW)
+  for j = 1, g do self._gearRows[j].frame:Width(innerW) end
+  self.gearPanel:Width(gearPanelW(nameW))
+
+  -- Left column height (identity + stats + professions).
+  local leftH = PROF_HEADER_Y + self.profHeader:Height()
+  if i > 0 then leftH = leftH + 8 + i * ROW_H + (i - 1) * ROW_GAP end
+  leftH = leftH + P
+
+  -- Right column height (gear panel).
+  local gearH = GEAR_PAD + self.gearHeader:Height()
+  if g > 0 then gearH = gearH + GEAR_HEADER_GAP + g * GEAR_ROW_H end
+  gearH = gearH + GEAR_PAD
+  self.gearPanel:Height(gearH)
+  local rightH = CONTENT_TOP + gearH + P
+
+  self:Width(GEAR_X + gearPanelW(nameW) + P)
+  self:Height(math.max(leftH, rightH))
 end
 
 function DetailView:update() end

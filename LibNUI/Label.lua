@@ -20,6 +20,9 @@ local Label = Class(Region, function(self)
 
   if self.justifyH then self._widget:SetJustifyH(self.justifyH) end
   if self.justifyV then self._widget:SetJustifyV(self.justifyV) end
+  -- A width-constrained, non-wrapping FontString truncates with an ellipsis instead
+  -- of flowing onto extra lines (e.g. long item names in a fixed-width list).
+  if self.wordWrap == false then self._widget:SetWordWrap(false) end
 end, {
   CreateWidget = function(self)
     return (self.parent._widget or self.parent):CreateFontString(self.name, self.layer, self.font)
@@ -42,6 +45,11 @@ function Label:JustifyH(justify)
   self._widget:SetJustifyH(justify)
   return self
 end
+
+-- Natural (unwrapped) pixel width of the current text, ignoring any width
+-- constraint on the FontString — useful for autosizing a column to its content.
+---@return number
+function Label:StringWidth() return self._widget:GetStringWidth() end
 
 function Label:Color(r, g, b, a)
   if type(r) == "table" then

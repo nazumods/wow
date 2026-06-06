@@ -123,11 +123,13 @@ Any key matching a method name on the instance is valid.
 **Parent:** Region | **Registered:** `ui.Label`
 
 ### Constructor Options
-`parent`, `name`, `layer` (default `Artwork`), `font` (default `GameFontHighlight`), `fontObj`, `fontInfo`, `text`, `color`, `justifyH`, `justifyV`
+`parent`, `name`, `layer` (default `Artwork`), `font` (default `GameFontHighlight`), `fontObj`, `fontInfo`, `text`, `color`, `justifyH`, `justifyV`, `wordWrap` (set `false` so a width-constrained string truncates with an ellipsis instead of wrapping)
 
 ### Methods
 `Text(text?)` — getter/setter, returns self when setting
 `Color(r,g,b,a | table | ColorMixin)` — returns self
+`JustifyH(justify?)` — getter/setter
+`StringWidth()` — natural (unwrapped) pixel width of the current text, ignoring width constraint (for autosizing a column to content)
 
 ## Frame
 
