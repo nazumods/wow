@@ -7,6 +7,17 @@
 
 ---
 
+## Runtime Environment
+
+WoW runs **Lua 5.1**. All addon code must be compatible with Lua 5.1 — in particular:
+
+- No `goto` / `::label::` (added in Lua 5.2) — use `if/end` blocks to skip loop iterations
+- No integer division operator `//` (added in Lua 5.3) — use `math.floor(a / b)`
+- No bitwise operators `&`, `|`, `~`, `<<`, `>>` (added in Lua 5.3) — use `bit.band` etc. (WoW provides the `bit` library)
+- No `table.move`, `table.unpack` (5.2+) — use `unpack()`
+
+---
+
 ## Dependency Graph (All Addons)
 
 ```
