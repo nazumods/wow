@@ -1,6 +1,6 @@
 local _, ns = ...
 local ui = ns.ui
-local insert, filter = table.insert, ns.lua.lists.filter
+local filter = ns.lua.lists.filter
 local Class, TableFrame, Texture, Button, Label = ns.lua.Class, ui.TableFrame, ui.Texture, ui.Button, ui.Label
 local theme = ns.theme
 
@@ -16,20 +16,17 @@ local FACTION_COLOR = {
 local ClassSummary = Class(TableFrame, function(self)
   ns.SummaryColumnsDelayed(self)
 
-  self.data = {}
-  local n = 1
   local toons = self:GetCharacters()
-  for _,t in pairs(toons) do
-    insert(self.data, self:GetRowData(t))
-    if t.basic.level == ns.wow.maxLevel then n = n + 1 end
+  self._toons = toons
+  self.data = {}
+  for i, t in ipairs(toons) do
+    self.data[i] = self:decorateRow(self:GetRowData(t), i)
   end
   self:update()
 
   -- The module surface behind the table provides the glass backing; rows stay
   -- transparent with a thin divider above each one, and still-levelling
-  -- characters are dimmed so the max-level roster reads first. Each row also
-  -- brightens on hover and opens its character in the Detail view on click.
-  self._toons = toons
+  -- characters are dimmed so the max-level roster reads first.
   for i, row in ipairs(self.rows) do
     if toons[i].basic.level < ns.wow.maxLevel then
       row:backdropColor(0, 0, 0, 0.22)
@@ -44,23 +41,6 @@ local ClassSummary = Class(TableFrame, function(self)
       },
       color = theme.colors.divider,
     }
-
-    local idx = i
-    row._widget:SetMouseMotionEnabled(true)
-    row._widget:SetMouseClickEnabled(true)
-    row:SetScript("OnEnter", function() row:backdropColor(theme.colors.hover) end)
-    row:SetScript("OnLeave", function()
-      -- restore the resting tone: dimmed for still-levelling toons, else clear
-      local toon = self._toons[idx]
-      local dim = toon and toon.basic.level < ns.wow.maxLevel
-      row:backdropColor(0, 0, 0, dim and 0.22 or 0)
-    end)
-    row:SetScript("OnMouseUp", function()
-      local toon, w = self._toons[idx], ns.MainWindow
-      if not (toon and w) then return end
-      w.views.detail:Select(toon)
-      w:view("detail")
-    end)
   end
 
   self:setFooter(self:GetFooterData(toons))
@@ -98,6 +78,49 @@ function ClassSummary:GetRowData(toon)
   return ns.lua.lists.map(ns.SummaryColumns, function(c) return c.getData(toon) end)
 end
 
+-- Make every cell in row `i` drive the row's hover highlight and open that
+-- character in the Detail view on click, chaining onto any existing cell
+-- onEnter/onLeave/onClick (so the per-column tooltips keep working). Each cell is
+-- a shallow COPY of the source data — several getData functions return shared
+-- table objects (e.g. ns.icons.AllianceLight for the faction icon), so mutating
+-- them in place would chain wrappers across every row that shares the object (and
+-- corrupt the shared table globally). Plain string cells become {text=...}. The
+-- closures resolve the row + character live (self.rows[i] / self._toons[i]) so
+-- they stay correct across re-sorts. Footer cells are left untouched.
+---@param cells table  the row's per-column cell data array
+---@param i integer    row index
+---@return table cells
+function ClassSummary:decorateRow(cells, i)
+  for n, cell in ipairs(cells) do
+    local src = type(cell) == "table" and cell or {text = cell}
+    local copy = {}
+    for k, v in pairs(src) do copy[k] = v end
+    local onEnter, onLeave, onClick = src.onEnter, src.onLeave, src.onClick
+    copy.onEnter = function(s)
+      local row = self.rows[i]
+      if row then row:backdropColor(theme.colors.hover) end
+      if onEnter then onEnter(s) end
+    end
+    copy.onLeave = function(s)
+      local row, toon = self.rows[i], self._toons[i]
+      if row then
+        row:backdropColor(0, 0, 0, (toon and toon.basic.level < ns.wow.maxLevel) and 0.22 or 0)
+      end
+      if onLeave then onLeave(s) end
+    end
+    copy.onClick = function(s)
+      if onClick then onClick(s) end
+      local toon, w = self._toons[i], ns.MainWindow
+      if toon and w then
+        w.views.detail:Select(toon)
+        w:view("detail")
+      end
+    end
+    cells[n] = copy
+  end
+  return cells
+end
+
 -- per-column footer cell data, keyed by column index (columns without a
 -- getFooter are left absent so they render no footer cell)
 function ClassSummary:GetFooterData(toons)
@@ -109,11 +132,11 @@ function ClassSummary:GetFooterData(toons)
 end
 
 function ClassSummary:OnBeforeShow()
-  self.data = {}
   local toons = self:GetCharacters()
   self._toons = toons   -- keep row→character mapping current for hover/click
+  self.data = {}
   for i,t in ipairs(toons) do
-    self.data[i] = self:GetRowData(t)
+    self.data[i] = self:decorateRow(self:GetRowData(t), i)
   end
   self:update()
   self:setFooter(self:GetFooterData(toons))
