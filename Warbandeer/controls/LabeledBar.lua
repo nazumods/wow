@@ -118,3 +118,30 @@ function LabeledBar:Fill(pct)
   self.bar.fill:Width(self.width * math.max(0, math.min(1, pct)))
   return self
 end
+
+---@param text string left-hand name
+---@return LabeledBar
+function LabeledBar:Label(text)
+  self.nameLabel:Text(text)
+  return self
+end
+
+-- Set the right-hand value text. Updates the stored `value` so the hover/leave
+-- swap (when `hoverValue` is set) restores the new text rather than the old one.
+---@param text string
+---@param color number[]?
+---@return LabeledBar
+function LabeledBar:Value(text, color)
+  self.value = text
+  self.valueLabel:Text(text)
+  if color then self.valueLabel:Color(color) end
+  return self
+end
+
+---@param color number[] fill tint
+---@return LabeledBar
+function LabeledBar:BarColor(color)
+  self.barColor = color
+  self.bar.fill:SetVertexColor(unpack(color))
+  return self
+end

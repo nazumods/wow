@@ -81,3 +81,13 @@ function FilterDropdown:labelFor(key)
   end
   return ""
 end
+
+-- Point the dropdown at `key` (updates the button label) without firing
+-- `onSelect`. Used when a pooled dropdown is reassigned to a new subject.
+---@param key any
+---@return FilterDropdown
+function FilterDropdown:Select(key)
+  self.selected = key
+  self.label:Text(self:labelFor(key) .. CHEVRON)
+  return self
+end
