@@ -17,9 +17,7 @@ ui.CheckButton = CheckButton
 
 function CheckButton:OnClick()
   if self.OnToggle then
-    local checked = self:Checked()
-    self:OnToggle(checked)
-    self:Checked(not checked)
+    self:OnToggle(self:Checked())
   end
 end
 
