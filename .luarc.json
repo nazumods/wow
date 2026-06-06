@@ -38,6 +38,7 @@
     "C_Container",
     "C_CurrencyInfo",
     "C_DateAndTime",
+    "C_GossipInfo",
     "C_Item",
     "C_MajorFactions",
     "C_MountJournal",
@@ -87,6 +88,7 @@
     "UIParent",
     "UISpecialFrames",
     
+    "BreakUpLargeNumbers",
     "CastSpell",
     "GetAchievementCriteriaInfo",
     "GetAchievementCriteriaInfoByID",

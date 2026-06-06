@@ -14,11 +14,11 @@ local function getNameString(toon)
     text = s,
     color = ns.Colors[toon.classKey or toon.className],
     onEnter = function(self)
-      ui.ShowCharacterTooltip(toon, self, {
+      ns.ShowCharacterTooltip(toon, self, {
         TopLeft = {self, ui.edge.Bottom, 20, -10},
       })
     end,
-    onLeave = function(self) ui.HideCharacterTooltip() end,
+    onLeave = function(self) ns.HideCharacterTooltip() end,
   }
 end
 

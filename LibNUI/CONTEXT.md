@@ -116,7 +116,7 @@ Any key matching a method name on the instance is valid.
 `parent`, `name`, `layer`, `template`, `atlas`, `atlasSize`, `rotation`, `color`, `vertexColor`, `blendMode`, `gradient`, `path`, `coords`
 
 ### Methods
-`Atlas(...)`, `Texture(texture)`, `Color(r,g,b,a | table | ColorMixin)`, `SetVertexColor(...)`, `Coords(...)`
+`Atlas(...)`, `Texture(texture)`, `Color(r,g,b,a | table | ColorMixin)`, `SetVertexColor(...)`, `Coords(...)`, `SliceMargins(l,t,r,b)`, `SliceMode(mode)` (nine-slice; margins in source px)
 
 ## Label
 

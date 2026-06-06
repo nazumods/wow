@@ -634,3 +634,7 @@ local btn = Button:new{
 btn:Size(36, 36)
 btn:Center()
 ```
+
+## References
+
+- [UIOBJECT_Font](https://warcraft.wiki.gg/wiki/UIOBJECT_Font) has some good preview images of the various font globals.

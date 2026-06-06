@@ -17,8 +17,11 @@
 
 init.lua
 data.lua
+theme.lua
 
 controls\CharacterTooltip.lua
+controls\StatCard.lua
+controls\LabeledBar.lua
 
 views\Overview.lua
 

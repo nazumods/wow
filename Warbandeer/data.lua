@@ -24,15 +24,35 @@ local gearTiers = {
 
 ns.data.gearTiers = gearTiers
 
-function ns.IlvlColor(ilvl)
-  if ilvl >= gearTiers.hero then return ITEM_LEGENDARY_COLOR:WrapTextInColorCode(ilvl)
-  elseif ilvl >= gearTiers.champion then return ITEM_EPIC_COLOR:WrapTextInColorCode(ilvl)
-  elseif ilvl >= gearTiers.veteran then return ITEM_SUPERIOR_COLOR:WrapTextInColorCode(ilvl)
-  elseif ilvl >= gearTiers.adventurer then return ITEM_GOOD_COLOR:WrapTextInColorCode(ilvl)
-  elseif ilvl >= gearTiers.explorer then return ITEM_STANDARD_COLOR:WrapTextInColorCode(ilvl)
-  else return ITEM_POOR_COLOR:WrapTextInColorCode(ilvl)
+-- ColorMixin for an item level, by gear tier (mirrors IlvlColor's thresholds).
+function ns.IlvlColorObj(ilvl)
+  if ilvl >= gearTiers.hero then return ITEM_LEGENDARY_COLOR
+  elseif ilvl >= gearTiers.champion then return ITEM_EPIC_COLOR
+  elseif ilvl >= gearTiers.veteran then return ITEM_SUPERIOR_COLOR
+  elseif ilvl >= gearTiers.adventurer then return ITEM_GOOD_COLOR
+  elseif ilvl >= gearTiers.explorer then return ITEM_STANDARD_COLOR
+  else return ITEM_POOR_COLOR
   end
 end
+
+function ns.IlvlColor(ilvl)
+  return ns.IlvlColorObj(ilvl):WrapTextInColorCode(ilvl)
+end
+
+-- Bar colors for factions the API exposes no color for (Delves, Prey, the
+-- Silvermoon Court minor factions, Slayer's Duellum, Valeera). Values match the
+-- palette the Plumber addon uses so the overview reads consistently. {r,g,b} 0..1.
+ns.data.factionColors = {
+  [2710] = {206/255, 164/255,  56/255}, -- Silvermoon Court
+  [2711] = {155/255, 173/255, 204/255}, -- Magisters
+  [2712] = {206/255, 159/255, 159/255}, -- Blood Knights
+  [2713] = {145/255, 181/255, 128/255}, -- Farstriders
+  [2714] = {206/255, 164/255,  56/255}, -- Shades of the Row
+  [2742] = {215/255, 160/255,  65/255}, -- Delves: Season 1
+  [2744] = {242/255, 141/255, 152/255}, -- Valeera Sanguinar
+  [2764] = {246/255, 138/255, 162/255}, -- Prey: Season 1
+  [2770] = { 56/255, 184/255, 255/255}, -- Slayer's Duellum
+}
 
 -- doesn't seem a good way to get this via the api
 -- except to crawl the discovered factions by expanding/collapsing what's shown in the standard rep window

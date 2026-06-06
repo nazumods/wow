@@ -96,7 +96,7 @@ end, {
   toon = nil,
   -- defaults for optional settings
 })
-ui.CharacterTooltip = Tooltip
+ns.CharacterTooltip = Tooltip
 
 function Tooltip:SetToon(toon)
   self.toon = toon
@@ -110,7 +110,7 @@ function Tooltip:SetToon(toon)
 end
 
 local _tooltip = nil
-ui.ShowCharacterTooltip = function(toon, parent, position)
+ns.ShowCharacterTooltip = function(toon, parent, position)
   if not _tooltip then _tooltip = Tooltip:new{} end
   _tooltip:SetToon(toon)
   _tooltip:Position(position)
@@ -118,7 +118,7 @@ ui.ShowCharacterTooltip = function(toon, parent, position)
   _tooltip:Level(parent:Level() + 1)
 end
 
-ui.HideCharacterTooltip = function()
+ns.HideCharacterTooltip = function()
   if _tooltip then
     _tooltip:Hide()
   end

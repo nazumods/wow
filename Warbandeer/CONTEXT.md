@@ -14,9 +14,14 @@ X-NUI-API: WarbandeerApi, X-NUI-UI: LibNUI
 | File | Purpose |
 |---|---|
 | `init.lua` | Table form init with settings (defaultView dropdown). Defines `ns.views`, `ns.viewOrder` (selector order), class/race arrays, `MigrateDB`, `onLoad` |
-| `data.lua` | `ns.data` — `gearTiers`, `IlvlColor()`, `minorFactions`, `minorFactionMaxStanding`. Midnight entries: Delves→Valeera (2742→2744, friendship rep), Silvermoon Court subfactions (2710→2711-2714). Profession helpers: `EstimateConcentration`, `FindProf`, `GetProfIntent`, `SetProfIntent`, `GetProfToons`, `GetMainCrafter` |
-| `controls/CharacterTooltip.lua` | `CharacterTooltip` singleton (CleanFrame) showing name/spec/class/realm/level |
-| `views/Overview.lua` | `TopAlts` + `TabFrame` (Midnight/WWI tabs) + `Factions` + `Achievements`. `Factions` accepts `extraFactionIDs` (deduplicated against `GetMajorFactionIDs`); subfaction rendering has three tiers: major faction renown → friendship rep (Valeera) → standard C_Reputation standings |
+| `data.lua` | `ns.data` — `gearTiers`, `IlvlColor()` (wrapped string), `IlvlColorObj()` (ColorMixin), `minorFactions`, `minorFactionMaxStanding`, `factionColors` (`{[id]={r,g,b}}` bar-color overrides for factions the API gives no color for — Delves/Prey/minor factions/Slayer's/Valeera; palette matches the Plumber addon). Midnight entries: Delves→Valeera (2742→2744, friendship rep), Silvermoon Court subfactions (2710→2711-2714). Profession helpers: `EstimateConcentration`, `FindProf`, `GetProfIntent`, `SetProfIntent`, `GetProfToons`, `GetMainCrafter` |
+| `theme.lua` | `ns.theme` — "Aetheric Glass" Void-Dark design tokens. `colors` (window/module/hover/track/border/text/muted/gold/orange/green/red) and `fonts` (`fontInfo` {path,size} tuples). Fonts are **bundled** in `media/fonts/`: Hanken Grotesk (headline/title), Geist (body), JetBrains Mono (caps/stat/statBig). No real backdrop blur in WoW → translucent dark surfaces approximate the glassmorphism mockup |
+| `media/fonts/` | Bundled OFL/Apache fonts + license files: HankenGrotesk-{SemiBold,Bold}, Geist-Regular, JetBrainsMono-{SemiBold,Bold}. Referenced by `theme.fonts`; not in the `.toc` (loaded by path at runtime) |
+| `controls/CharacterTooltip.lua` | `ns.CharacterTooltip` class + `ns.ShowCharacterTooltip`/`ns.HideCharacterTooltip` (richer name/spec/class/realm/level tooltip). Registered on `ns`, NOT `ui` — addon-local controls must not pollute the shared LibNUI global (LibNUI has its own simpler `ui.ShowCharacterTooltip` via `ui.tip`) |
+| `controls/StatCard.lua` | `ns.StatCard` — summary tile: caps caption + big mono `amount` (+ optional `sub`), glass-module background. `Amount(text, color?)` setter |
+| `controls/LabeledBar.lua` | `ns.LabeledBar` — progress row: name (left) + value (right) + thin bar beneath. Fill is a manually-sized texture over a track (ExpBar pattern, not StatusBar:SetValue). Flat color comes from tinting (`SetVertexColor` with `barColor`/`trackColor`) a white **rounded** texture (`media/bar-rounded.tga`) **nine-sliced** (margin `sliceMargin`==corner radius; `barHeight = 2*sliceMargin` → pill ends at any width). An atlas may be supplied via `barAtlas`/`trackAtlas` instead (skips slicing). Whole row brightens on hover (`highlight` texture + `SetMouseMotionEnabled`); `hoverValue`/`hoverColor` swap the value text on hover (paragon numbers). `Fill(pct)` setter |
+| `media/bar-rounded.tga` | 16×16 white rounded-rect (4px radius), nine-sliced as the bar texture in `LabeledBar`. Regenerable; tinted at runtime via vertex color |
+| `views/Overview.lua` | Aetheric-Glass overview. Top: 3-card stat strip (Warband Wealth / Playtime / Top Item Level — no M+ rating broker exists yet). Below: `TabFrame` (Midnight/WWI) left + `TopAlts` (Top Characters) right (beside where the phase-2 detail card will sit), both on glass-module backgrounds; window refits to the active tab via `TabFrame.onSelect`. `TopAlts` rows are transparent at rest and brighten (`theme.colors.hover`) on mouse-over via per-row `SetMouseMotionEnabled` + OnEnter/OnLeave. `LabeledBar` rep rows brighten the same way; `Achievements` rows brighten via each cell's `onEnter`/`onLeave` (the captured row's backdrop), making the click-to-open affordance obvious. `FactionBars` renders reputations as `LabeledBar` progress bars (replaces the old `Factions` table). Bar **fill = faction color** (`info.factionFontColor.color`, via `rgbaOf`). `gatherFactions` derives name/value/pct across three subfaction tiers (major renown → friendship rep Valeera → standard C_Reputation standings); `resolveProgress`/`paragonInfo` turn a maxed faction with paragon unlocked into a paragon-progress bar on a **darker-faction-color track** (so paragon reads differently from base rep grey); the value shows green **"paragon"**, swapping to the raw numbers on row hover. `Achievements` table unchanged |
 | `views/SummaryColumns.lua` | `SummaryColumn` specs + `SummaryColumnsDelayed()` for DMF. Each column has `getData(toon)` for cells and optional `getFooter(toons)` for the footer cell. Footers: Character → max/levelling tally, Bag → total sub-par bags w/ split tooltip, Played → total playtime, Gold → total gold. Extra columns (Played, Gold) are appended from `views/summaryCol/*.lua` |
 | `views/SummaryView.lua` | Two `ClassSummary` TableFrames (Alliance/Horde side-by-side). Footer row built via `TableFrame:setFooter` from each column's `getFooter`; a 1px divider still separates max-level from levelling rows |
 | `views/GearView.lua` | `TabFrame` per armor type, 21-col TableFrame per tab |
@@ -57,11 +62,20 @@ while that view is active): `summary` (faction toggle), `crafting` (expansion dr
 
 ## Overview — Factions Widget
 
-`Factions` (TableFrame subclass) renders one row per major faction plus optional subfaction rows.
+`FactionBars` (Frame subclass; replaced the old `Factions` TableFrame) stacks one `LabeledBar`
+per major faction plus optional subfaction rows. Data is built by the file-local `gatherFactions`
+(not a class). Bar **fill colour = the faction colour**, resolved by `colorFor(id, apiColor, fallback)`:
+`ns.data.factionColors[id]` override → API `factionFontColor.color` → fallback (a subfaction
+falls back to its parent's colour). Maxed
+factions with paragon unlocked show **paragon progress on a darker-faction-colour track** instead
+of the grey base-rep track (`paragonInfo` + `resolveProgress`). A paragon row's value reads
+**"paragon"** in green (like "complete"); hovering the row swaps it to the raw `prog / threshold`
+numbers (`LabeledBar.hoverValue`).
 
-**Constructor options:**
+**Constructor options (`FactionBars`):**
 - `expansionLevel` — passed to `C_MajorFactions.GetMajorFactionIDs()`; `10` = TWW, `11` = Midnight
 - `extraFactionIDs` — additional IDs to always include, deduped against the API list (used for Midnight factions not returned by the API: Silvermoon Court `2710`, Slayer's Duellum `2770`)
+- `width` — bar/row width
 
 **Subfaction rendering tiers** (tried in order):
 1. `C_MajorFactions.GetMajorFactionData(id)` returns `renownLevel` → standard major faction renown display
@@ -76,7 +90,7 @@ while that view is active): `summary` (faction toggle), `crafting` (expansion dr
 
 **API pitfalls:**
 - `C_MajorFactions.GetMajorFactionData` and `GetMajorFactionRenownInfo` both return nil for Valeera (2744) even though `C_Reputation.IsMajorFaction(2744)` is true. Use `C_GossipInfo.GetFriendshipReputation` instead.
-- `C_Reputation.IsFactionParagon` returns true for many in-progress Midnight factions because paragon caches exist from the start. Do NOT use it to determine if a faction is "done" — use `renownLevel == maxLevel` for major factions and `reaction >= 8` for standard reputation subfactions.
+- `C_Reputation.IsFactionParagon` returns true for many in-progress Midnight factions because paragon caches exist from the start. Do NOT use it to determine if a faction is "done" — use `renownLevel == maxLevel` for major factions and `reaction >= 8` for standard reputation subfactions. `gatherFactions` only consults paragon (`IsFactionParagon` + `GetFactionParagonInfo`) **after** a faction is already at max (`resolveProgress`), so the cache-from-start behaviour is harmless. Paragon `currentValue` accumulates past `threshold` (one bag per multiple); show `currentValue % threshold`, and treat `hasRewardPending` with `prog == 0` as a full bar.
 - Some standard reputation subfactions (e.g. Slayer's Duellum 2770) have a `friendshipFactionID` but with `maxLevel = 1` (dummy/uninitialized). Guard with `rankInfo.maxLevel > 1` before treating as a real friendship rep.
 
 ## MainWindow

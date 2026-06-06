@@ -53,3 +53,6 @@ function Texture:SetVertexColor(r, g, b, a)
   self._widget:SetVertexColor(r, g, b, a)
 end
 function Texture:Coords(...) self._widget:SetTexCoord(...) end
+-- nine-slice: margins are in source-texture pixels; mode is Enum.UITextureSliceMode
+function Texture:SliceMargins(l, t, r, b) self._widget:SetTextureSliceMargins(l, t, r, b) end
+function Texture:SliceMode(mode) self._widget:SetTextureSliceMode(mode) end

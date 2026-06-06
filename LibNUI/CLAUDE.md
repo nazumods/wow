@@ -93,6 +93,7 @@ end
 - **Don't create new files for one-off helpers** — put it on the relevant class
 - **Don't use `self._widget` from outside a class** — expose a method instead
 - **Don't break the getter/setter pattern** — no separate `GetFoo`/`SetFoo` pairs
+- **Don't register addon-local controls on `ui`** — only LibNUI's own widgets belong on the shared `ui`/`LibNUI` global. A control defined inside a consuming addon (e.g. Warbandeer) must register on its own namespace `ns` (`ns.MyControl = ...`), never `ui.MyControl`. Registering on `ui` pollutes the shared global and can silently clobber LibNUI's own symbols for every other addon.
 
 ## TableFrame dynamic construction
 

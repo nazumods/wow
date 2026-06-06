@@ -314,9 +314,9 @@ function MidnightProfs:OnBeforeShow()
         text    = nameText,
         color   = Colors[toon.classKey],
         onEnter = function(self)
-          ui.ShowCharacterTooltip(toon, self, { TopLeft = {self, ui.edge.Bottom, 20, -10} })
+          ns.ShowCharacterTooltip(toon, self, { TopLeft = {self, ui.edge.Bottom, 20, -10} })
         end,
-        onLeave = ui.HideCharacterTooltip,
+        onLeave = ns.HideCharacterTooltip,
       },
     }
     -- sort keys: col1=faction, col2=name, col3+=prof skill
