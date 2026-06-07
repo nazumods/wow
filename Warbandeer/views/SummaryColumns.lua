@@ -1,4 +1,5 @@
 local _, ns = ...
+-- luacheck: globals CalendarFrame
 local insert = table.insert
 local ui = ns.ui
 local Left = ui.justify.Left
@@ -88,33 +89,59 @@ end
 ---@field SummaryColumns SummaryColumn[]
 ns.SummaryColumns = {}
 
+-- The Darkmoon Faire holiday uses three calendar textures across its run:
+-- 235448 (begins), 235447 (in progress), 235446 (ends) — match all three so the
+-- column is present on the first and last days too.
+local DMF_TEXTURES = {[235448] = true, [235447] = true, [235446] = true}
+
+-- The calendar event list is loaded lazily (see ns:onLogin's OpenCalendar). Pin the
+-- absolute month to the real current month before reading day events — offset 0 is
+-- relative to whatever month the calendar UI last browsed to — and restore it after
+-- so we never disturb an open CalendarFrame.
 local isDMF = function()
-  local day = C_DateAndTime.GetCurrentCalendarTime().monthDay
-  local numEvents = C_Calendar.GetNumDayEvents(0,day)
-  for i = 1, numEvents do
-    -- name, startTime, endTime, description, texture=235447
-    local info = C_Calendar.GetHolidayInfo(0,day,i)
-    if info and info.texture == 235447 then -- DMF texture
-      return true
+  local now = C_DateAndTime.GetCurrentCalendarTime()
+  local savedMonth, savedYear
+  if CalendarFrame and CalendarFrame:IsShown() then
+    local info = C_Calendar.GetMonthInfo()
+    savedMonth, savedYear = info.month, info.year
+  end
+  C_Calendar.SetAbsMonth(now.month, now.year)
+
+  local found = false
+  for i = 1, C_Calendar.GetNumDayEvents(0, now.monthDay) do
+    local info = C_Calendar.GetHolidayInfo(0, now.monthDay, i)
+    if info and DMF_TEXTURES[info.texture] then
+      found = true
+      break
     end
   end
-  return false
+
+  if savedMonth then C_Calendar.SetAbsMonth(savedMonth, savedYear) end
+  return found
 end
 
+-- Append the DMF weekly column while the faire is open. The column spec is inserted
+-- into ns.SummaryColumns only once, but addCol must run for *every* table — the
+-- Alliance and Horde ClassSummary frames are built separately — so the one-shot
+-- guard only gates detection + spec insertion, not the per-view addCol. Detection
+-- is NOT cached on a negative result: if the calendar wasn't loaded yet on the
+-- first table build, a later build can still pick the faire up.
 ns.SummaryColumnsDelayed = function(view)
-  if ns._dmfChecked then return end
-  ns._dmfChecked = true
-  if isDMF() then
-    insert(
-      ns.SummaryColumns,
-      SummaryColumn:new{
-        name = "DMF",
-        width = 30,
-        getData = function(toon)
-          return toon.weeklies.dmf and ns.GreenCheck or ""
-        end,
-      }
-    )
-    view:addCol(ns.SummaryColumns[#ns.SummaryColumns].colInfo)
+  if not ns._dmfColumn then
+    if not isDMF() then return end
+    ns._dmfColumn = SummaryColumn:new{
+      name = "DMF",
+      width = 30,
+      getData = function(toon)
+        return toon.weeklies.DMF and ns.GreenCheck or ""
+      end,
+    }
+    insert(ns.SummaryColumns, ns._dmfColumn)
   end
+  -- match the muted header chrome of the other summary columns (SummaryView mutes
+  -- its colInfo copies; this column is added after that map runs, so mute it here)
+  local info = {}
+  for k, v in pairs(ns._dmfColumn.colInfo) do info[k] = v end
+  info.color = ns.theme.colors.muted
+  view:addCol(info)
 end

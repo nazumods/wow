@@ -215,6 +215,15 @@ function TableFrame:addCol(info)
     parent = self,
     name = "$parentCol"..n,
     label = self.colInfo[n].name,
+    -- mirror the constructor's per-column header options so columns added
+    -- dynamically render identically to ones declared up front
+    atlas = self.colInfo[n].atlas,
+    atlasSize = self.colInfo[n].atlasSize,
+    path = self.colInfo[n].path,
+    coords = self.colInfo[n].coords,
+    vertexColor = self.colInfo[n].vertexColor,
+    color = self.colInfo[n].color,
+    padding = self.colInfo[n].padding,
     headerHeight = self.headerHeight,
     position = {
       TopLeft = n == 1 and {self.offsetX, 0} or {self.cols[n-1], TopRight},

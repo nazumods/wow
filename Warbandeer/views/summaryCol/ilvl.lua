@@ -35,7 +35,7 @@ local getILvlString = function(toon)
     text = toon.basic.level < ns.wow.maxLevel and ITEM_STANDARD_COLOR:WrapTextInColorCode(toon.equipment.ilvl) or ns.IlvlColor(toon.equipment.ilvl),
     justifyH = ui.justify.Right,
     onEnter = function(self)
-      ui.tip:AnchorTo(self, "ANCHOR_BOTTOMRIGHT", -10, 10)
+      ns.AnchorTip(self)
       ui.tip:ClearLines()
       for _,l in ipairs(lines) do ui.tip:AddLine(l) end
       ui.tip:Show()

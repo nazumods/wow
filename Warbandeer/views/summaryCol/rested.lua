@@ -53,7 +53,7 @@ local function getRestPercent(toon)
     justifyH = ui.justify.Right,
     color = color,
     onEnter = function(self)
-      ui.tip:AnchorTo(self, "ANCHOR_BOTTOMRIGHT", -10, 10)
+      ns.AnchorTip(self)
       ui.tip:ClearLines()
       ui.tip:AddLine("Rest XP")
       ui.tip:AddLine(("XP: %d%%"):format(xpPct))

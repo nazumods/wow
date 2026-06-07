@@ -14,9 +14,7 @@ local function getNameString(toon)
     text = s,
     color = ns.Colors[toon.classKey or toon.className],
     onEnter = function(self)
-      ns.ShowCharacterTooltip(toon, self, {
-        TopLeft = {self, ui.edge.Bottom, 20, -10},
-      })
+      ns.ShowCharacterTooltip(toon, self)
     end,
     onLeave = function(self) ns.HideCharacterTooltip() end,
   }
@@ -30,18 +28,11 @@ local getLevelFooter = function(toons)
   end
   local text = maxN.." max"
   if lvlN > 0 then text = text..", "..lvlN.." lvl" end
+  -- No footer tooltip: the "N max, M lvl" text already says it all.
   return {
     text = text,
     justifyH = Left,
     color = {1, 1, 1, 0.6},
-    onEnter = function(self)
-      ui.tip:AnchorTo(self, "ANCHOR_BOTTOMRIGHT", -10, 10)
-      ui.tip:ClearLines()
-      ui.tip:AddLine(maxN.." at max level")
-      ui.tip:AddLine(lvlN.." levelling")
-      ui.tip:Show()
-    end,
-    onLeave = function(self) ui.tip:Hide() end,
   }
 end
 

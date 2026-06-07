@@ -14,22 +14,12 @@ local function formatCrest(c)
     return c > 0 and {text = c, justifyH = ui.justify.Center} or ""
   end
   if c.quantity == 0 then return "" end
-  local lines = {c.quantity .. " held"}
-  if c.max > 0 then
-    lines[2] = c.earned .. " / " .. c.max .. " earned this week"
-    if c.capped then lines[3] = "Weekly cap reached" end
-  end
+  -- No cell tooltip: the count + cap color already convey everything the
+  -- per-cell breakdown did. Header tooltip still explains the column.
   return {
     text     = c.quantity,
     justifyH = ui.justify.Center,
     color    = c.capped and ns.CappedColor or ns.UncappedColor,
-    onEnter  = function(self)
-      ui.tip:AnchorTo(self, "ANCHOR_BOTTOMRIGHT", -10, 10)
-      ui.tip:ClearLines()
-      for _, l in ipairs(lines) do ui.tip:AddLine(l) end
-      ui.tip:Show()
-    end,
-    onLeave = function(self) ui.tip:Hide() end,
   }
 end
 

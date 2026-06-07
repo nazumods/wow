@@ -109,11 +109,40 @@ function Tooltip:SetToon(toon)
   self.realm:Text(toon.realm)
 end
 
+-- Configured tooltip side (index into ns.TOOLTIP_SIDES): 1=Left, 2=Right.
+function ns.TooltipSide()
+  return ns.db.settings.tooltipSide or 1
+end
+
+-- Anchor the tooltip below the hovered cell on the configured side. Left anchors
+-- the tooltip's top-right so it extends leftward, keeping it clear of the cursor;
+-- Right keeps the original behaviour of extending rightward.
+local function sidePosition(parent)
+  if ns.TooltipSide() == 2 then
+    return { TopLeft = {parent, ui.edge.Bottom, 20, -10} }
+  end
+  return { TopRight = {parent, ui.edge.Bottom, -20, -10} }
+end
+
+-- Side-aware anchor for the shared LibNUI tooltip (`ui.tip`), used by the summary
+-- column cell tooltips. Mirrors sidePosition via ui.tip's GameTooltip-style
+-- anchors: Left extends the tooltip leftward (clear of the cursor), Right keeps
+-- the original down-right placement.
+function ns.AnchorTip(frame)
+  if ns.TooltipSide() == 2 then
+    ui.tip:AnchorTo(frame, "ANCHOR_BOTTOMRIGHT", -10, 10)
+  else
+    ui.tip:AnchorTo(frame, "ANCHOR_BOTTOMLEFT", 10, 10)
+  end
+end
+
 local _tooltip = nil
+-- `position` overrides the side setting when supplied (LibNUI position table).
 ns.ShowCharacterTooltip = function(toon, parent, position)
   if not _tooltip then _tooltip = Tooltip:new{} end
   _tooltip:SetToon(toon)
-  _tooltip:Position(position)
+  _tooltip:ClearAllPoints()
+  _tooltip:Position(position or sidePosition(parent))
   _tooltip:Show()
   _tooltip:Level(parent:Level() + 1)
 end

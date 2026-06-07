@@ -9,7 +9,7 @@
 ## Dependencies: LibNAddOn, LibNUI, Warbandeer_Characters
 ## X-Curse-Project-ID: 1546586
 ## X-NUI-DB: WarbandeerDB
-## X-NUI-DB-VERSION: 2
+## X-NUI-DB-VERSION: 3
 ## X-NUI-COMMANDS: /warband, /wb
 ## X-NUI-COMPARTMENT: Warbandeer_OnAddonCompartmentClick
 ## X-NUI-API: WarbandeerApi

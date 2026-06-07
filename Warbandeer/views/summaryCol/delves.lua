@@ -17,7 +17,7 @@ local formatDelves = function(toon)
     text = d.missing,
     justifyH = ui.justify.Center,
     onEnter = function(self)
-      ui.tip:AnchorTo(self, "ANCHOR_BOTTOMRIGHT", -10, 10)
+      ns.AnchorTip(self)
       ui.tip:ClearLines()
       table.sort(labels)
       for _,label in ipairs(labels) do

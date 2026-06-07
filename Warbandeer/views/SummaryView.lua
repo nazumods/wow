@@ -4,8 +4,6 @@ local filter = ns.lua.lists.filter
 local Class, TableFrame, Texture, Button, Label = ns.lua.Class, ui.TableFrame, ui.Texture, ui.Button, ui.Label
 local theme = ns.theme
 
-local P, BLEED = 12, 6   -- outer padding / module-bg outer bleed
-
 -- Faction accent colours for the toggle (Alliance blue / Horde red), matching
 -- the ns.factionIcon tints.
 local FACTION_COLOR = {
@@ -56,7 +54,10 @@ end, {
     if info.name and info.name ~= "" then info.name = info.name:upper() end
     -- inset the outer columns' cells so they don't sit against the table edges
     if i == 1 then info.hPadL = 8 end
-    if i == #ns.SummaryColumns then info.hPadR = 8 end
+    -- the right-aligned Gold column also insets its header to match its cells:
+    -- cells use hPadR, headers use the symmetric `padding`, so set both (the
+    -- header's left inset is invisible under right-justification)
+    if i == #ns.SummaryColumns then info.hPadR = 8; info.padding = 8 end
     return info
   end),
   backdrop = {color = ns.Colors.TransparentBlack},
@@ -158,18 +159,18 @@ local SummaryView = Class(ui.Frame, function(self)
   self._showAlliance = not current or current.isAlliance
 
   -- glass-module surface behind the active table
-  self.moduleBg = Texture:new{
-    parent = self, layer = ui.layer.Artwork, color = theme.colors.module,
-    position = { TopLeft = {P - BLEED, -(P - BLEED)}, Width = 12, Height = 12 },
-  }
+  -- self.moduleBg = Texture:new{
+  --   parent = self, layer = ui.layer.Artwork, color = theme.colors.module,
+  --   position = { TopLeft = {0, 0}, Width = 12, Height = 12 },
+  -- }
 
   self.alliance = ClassSummary:new{
     parent = self,
-    position = { TopLeft = {P, -P} },
+    position = { TopLeft = {0, 0} },
   }
   self.horde = ClassSummary:new{
     parent = self,
-    position = { TopLeft = {P, -P} },
+    position = { TopLeft = {0, 0} },
     isAlliance = false,
   }
 
@@ -188,10 +189,10 @@ function SummaryView:layout()
   self.horde:SetShown(not a)
 
   local t = a and self.alliance or self.horde
-  self.moduleBg:Width(t:Width() + BLEED * 2)
-  self.moduleBg:Height(t:Height() + BLEED * 2)
-  self:Width(P + t:Width() + P)
-  self:Height(P + t:Height() + P)
+  -- self.moduleBg:Width(t:Width())
+  -- self.moduleBg:Height(t:Height())
+  self:Width(t:Width())
+  self:Height(t:Height())
 end
 
 function SummaryView:toggleFaction()
@@ -265,6 +266,9 @@ function SummaryView:OnBeforeShow()
   ns.api:RefreshCurrentCharacterField("weeklies", "dungeons")
   ns.api:RefreshCurrentCharacterField("weeklies", "vault")
   ns.api:RefreshCurrentCharacterField("weeklies", "hasUnclaimedVault")
+  -- DMF has no live event handler, so refresh it on show or the column stays
+  -- stale after completing the faire quests this session
+  ns.api:RefreshCurrentCharacterField("weeklies", "DMF")
   self.alliance:OnBeforeShow()
   self.horde:OnBeforeShow()
   self:layout()

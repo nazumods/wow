@@ -93,7 +93,7 @@ local function getProfGearScore(toon)
     justifyH = ui.justify.Right,
     color = color,
     onEnter = function(self)
-      ui.tip:AnchorTo(self, "ANCHOR_BOTTOMRIGHT", -10, 10)
+      ns.AnchorTip(self)
       ui.tip:ClearLines()
       ui.tip:AddLine(score.." / "..maxScore.." points")
       for _, l in ipairs(lines) do ui.tip:AddLine(l) end

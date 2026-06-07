@@ -6,6 +6,9 @@ local ns = select(2, ...)
 
 local Views = {"Overview", "Races", "Summary", "Gear", "Detail", "Roles", "Professions"}
 
+-- Index → side for the character-tooltip anchor (see CharacterTooltip.lua).
+ns.TOOLTIP_SIDES = {"Left", "Right"}
+
 LibNAddOn{
   name = ADDON_NAME,
   addOn = ns,
@@ -22,6 +25,16 @@ LibNAddOn{
           label = "default view",
           tooltip = "View to open by default",
           options = Views,
+        },
+        {
+          name = "Tooltip Side",
+          typ = "dropdown",
+          default = 1,
+          table = function(db) return db.settings end,
+          key = "tooltipSide",
+          label = "tooltip side",
+          tooltip = "Which side of the hovered cell the character tooltip appears on",
+          options = ns.TOOLTIP_SIDES,
         },
       },
     },
@@ -157,8 +170,21 @@ function ns:MigrateDB()
     db.profIntent = db.profIntent or {}
     db.version = 2
   end
+  if db.version < 3 then
+    -- Character-tooltip anchor side (index into ns.TOOLTIP_SIDES): 1=Left, 2=Right.
+    db.settings.tooltipSide = db.settings.tooltipSide or 1
+    db.version = 3
+  end
 end
 
 function ns:onLoad(self)
   ns.api.SettingsCategory = ns.settingsCategory
+end
+
+function ns:onLogin()
+  -- Pre-warm the calendar event list so the Summary view's Darkmoon Faire check
+  -- (SummaryColumns.isDMF) has holiday data available, without relying on another
+  -- addon to open the calendar first. Calendar APIs require PLAYER_ENTERING_WORLD,
+  -- so this lives in onLogin rather than onLoad.
+  C_Calendar.OpenCalendar()
 end

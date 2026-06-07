@@ -3,7 +3,7 @@
 ## TOC
 ```
 Interface: 120001, Dependencies: LibNAddOn, LibNUI, Warbandeer_Characters
-SavedVariables: WarbandeerDB (version 2)
+SavedVariables: WarbandeerDB (version 3)
 X-NUI-COMMANDS: /warband, /wb
 X-NUI-COMPARTMENT: Warbandeer_OnAddonCompartmentClick
 X-NUI-API: WarbandeerApi, X-NUI-UI: LibNUI
@@ -13,11 +13,11 @@ X-NUI-API: WarbandeerApi, X-NUI-UI: LibNUI
 
 | File | Purpose |
 |---|---|
-| `init.lua` | Table form init with settings (defaultView dropdown). Defines `ns.views`, `ns.viewOrder` (selector order), class/race arrays, `MigrateDB`, `onLoad` |
+| `init.lua` | Table form init with settings (defaultView dropdown, tooltipSide dropdown — `ns.TOOLTIP_SIDES` = {Left, Right}, default Left). Defines `ns.views`, `ns.viewOrder` (selector order), class/race arrays, `MigrateDB`, `onLoad` |
 | `data.lua` | `ns.data` — `gearTiers`, `IlvlColor()` (wrapped string), `IlvlColorObj()` (ColorMixin), `minorFactions`, `minorFactionMaxStanding`, `factionColors` (`{[id]={r,g,b}}` bar-color overrides for factions the API gives no color for — Delves/Prey/minor factions/Slayer's/Valeera; palette matches the Plumber addon). Midnight entries: Delves→Valeera (2742→2744, friendship rep), Silvermoon Court subfactions (2710→2711-2714). Profession helpers: `EstimateConcentration`, `FindProf`, `GetProfIntent`, `SetProfIntent`, `GetProfToons`, `GetMainCrafter` |
 | `theme.lua` | `ns.theme` — "Aetheric Glass" Void-Dark design tokens. `colors` (window/module/hover/track/border/text/muted/gold/orange/green/red) and `fonts` (`fontInfo` {path,size} tuples). Fonts are **bundled** in `media/fonts/`: Hanken Grotesk (headline/title), Geist (body), JetBrains Mono (caps/stat/statBig). No real backdrop blur in WoW → translucent dark surfaces approximate the glassmorphism mockup |
 | `media/fonts/` | Bundled OFL/Apache fonts + license files: HankenGrotesk-{SemiBold,Bold}, Geist-Regular, JetBrainsMono-{SemiBold,Bold}. Referenced by `theme.fonts`; not in the `.toc` (loaded by path at runtime) |
-| `controls/CharacterTooltip.lua` | `ns.CharacterTooltip` class + `ns.ShowCharacterTooltip`/`ns.HideCharacterTooltip` (richer name/spec/class/realm/level tooltip). Registered on `ns`, NOT `ui` — addon-local controls must not pollute the shared LibNUI global (LibNUI has its own simpler `ui.ShowCharacterTooltip` via `ui.tip`) |
+| `controls/CharacterTooltip.lua` | `ns.CharacterTooltip` class + `ns.ShowCharacterTooltip`/`ns.HideCharacterTooltip` (richer name/spec/class/realm/level tooltip). Registered on `ns`, NOT `ui` — addon-local controls must not pollute the shared LibNUI global (LibNUI has its own simpler `ui.ShowCharacterTooltip` via `ui.tip`). `ShowCharacterTooltip(toon, parent[, position])` auto-anchors below the hovered cell on the side from `db.settings.tooltipSide` (1=Left→anchor TopRight, extends left; 2=Right→anchor TopLeft, extends right) via file-local `sidePosition`; an explicit `position` table overrides the setting. Also exports `ns.TooltipSide()` (the configured index, default 1) and `ns.AnchorTip(frame)` — the side-aware anchor for the shared `ui.tip` (Left→`ANCHOR_BOTTOMLEFT`, Right→`ANCHOR_BOTTOMRIGHT`), used by the summary-column cell tooltips (ilvl/profs/delves/rested) |
 | `controls/StatCard.lua` | `ns.StatCard` — summary tile: caps caption + big mono `amount` (+ optional `sub`), glass-module background. `Amount(text, color?)` setter. Optional `subIcon` (texture path) + `subIconColor` draw a small glyph before the sub-line (e.g. the green/red trend arrow on the weekly gold change) |
 | `controls/IconStrip.lua` | `ns.IconStrip` (CleanFrame) — floating left-docked navigation rail; replaces the old titlebar-icon dropdown selector. Brand mark (`logo.tga`) + divider on top, then one tinted glyph button per view (white TGA `icons/views/<name>.tga`, tinted muted→on-surface on hover→gold+left-accent+faint-gold-wash when active). Hover shows the view title via `ui.tip` (`ANCHOR_RIGHT`); click fires `onSelect(name)`. `SetActive(name)` highlights the current view. `clamped=false` so it stays glued to the window. Built from `{name,title}` list in `ns.viewOrder` order |
 | `controls/FilterDropdown.lua` | `ns.FilterDropdown` — reusable filter: a labelled `Button` that drops a `Tooltip` menu of `{ key, label, enabled? }` options. Disabled options render greyed/unselectable; picking one updates the button label and fires `onSelect(self, key)`. Shared by views with a dropdown `BuildFilter` (Crafting + Overview expansion pickers) and as the **per-profession intent dropdown** in DetailView. Options: `options`, `selected`, `onSelect`, `width` (96), `menuWidth` (120). `labelFor(key)` resolves an option's display text; `Select(key)` re-points the dropdown (updates label) **without** firing `onSelect` — used when a pooled dropdown is reassigned to a new subject |
@@ -110,8 +110,8 @@ Subclasses `TitleFrame`, `special=true`, `level=600`.
 
 ## SavedVariables (`WarbandeerDB`)
 ```lua
-{ version = 2, settings = { defaultView = integer, windowPos = { x = number, y = number } },
+{ version = 3, settings = { defaultView = integer, tooltipSide = integer, windowPos = { x = number, y = number } },
   -- per-character, per-profession crafting intent (v2): "main" | "secondary" | "gatherer"
   profIntent = { [charName] = { [skillLineID] = intent } } }
 ```
-`MigrateDB`: v1 seeds `settings.defaultView`; v2 adds `profIntent = {}` (non-destructive). `settings.windowPos` is not migrated — it is written lazily at runtime by `MainWindow:SavePosition` (first window open / drag).
+`MigrateDB`: v1 seeds `settings.defaultView`; v2 adds `profIntent = {}` (non-destructive); v3 seeds `settings.tooltipSide = 1` (Left). `settings.windowPos` is not migrated — it is written lazily at runtime by `MainWindow:SavePosition` (first window open / drag).
