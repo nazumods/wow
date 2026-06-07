@@ -246,19 +246,25 @@ ns.Professions.fields = {
       if not C_TradeSkillUI or not C_TradeSkillUI.GetProfessionSlots then
         return currentValue or {}
       end
-      local gear = {}
+      -- Start from the cached data and only overwrite fields that the API
+      -- actually returns this pass.  The WoW item APIs frequently return nil
+      -- for not-yet-loaded items, so blindly rebuilding would clobber good
+      -- cached values with nil.
+      local gear = currentValue or {}
       for _, profEnum in pairs(Enum.Profession or {}) do
         local skillID = C_TradeSkillUI.GetProfessionSkillLineID
           and C_TradeSkillUI.GetProfessionSkillLineID(profEnum)
         if skillID and skillID > 0 then
           local slots = C_TradeSkillUI.GetProfessionSlots(profEnum)
           if slots and #slots > 0 then
+            local existingSlots = gear[skillID] and gear[skillID].slots or {}
             local slotData = {}
             for _, invSlot in ipairs(slots) do
               local loc = {equipmentSlotIndex = invSlot}
               if DoesItemExist(loc) then
                 local id = GetItemID(loc)
                 if id then
+                  local prev = existingSlots[invSlot] or {}
                   -- Use the equipment-location link, not GetItemInfo(id) — the
                   -- latter returns the base item link without bonus IDs, and
                   -- crafted tier lives in those bonus IDs.
@@ -269,14 +275,20 @@ ns.Professions.fields = {
                   local tier = link and C_TradeSkillUI.GetItemCraftedQualityByItemInfo
                     and C_TradeSkillUI.GetItemCraftedQualityByItemInfo(link)
                   local rarity = GetItemQuality and GetItemQuality(loc)
+                  -- Keep the previously-cached value whenever the API hands us nil.
                   slotData[invSlot] = {
-                    name    = name,
-                    link    = link,
-                    ilvl    = ilvl,
-                    rarity  = rarity,
-                    tier    = tier,
-                    expacID = expacID,
+                    name    = name    ~= nil and name    or prev.name,
+                    link    = link    ~= nil and link    or prev.link,
+                    ilvl    = ilvl    ~= nil and ilvl    or prev.ilvl,
+                    rarity  = rarity  ~= nil and rarity  or prev.rarity,
+                    tier    = tier    ~= nil and tier    or prev.tier,
+                    expacID = expacID ~= nil and expacID or prev.expacID,
                   }
+                else
+                  -- Item exists but its id isn't available yet; don't drop the slot.
+                  if existingSlots[invSlot] then
+                    slotData[invSlot] = existingSlots[invSlot]
+                  end
                 end
               end
             end
