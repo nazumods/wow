@@ -121,6 +121,12 @@ function Button:Text(text)
   return self._widget:GetText()
 end
 
+---@param h string  "LEFT", "CENTER", or "RIGHT"
+function Button:TextAlign(h)
+  local fs = self._widget:GetFontString()
+  if fs then fs:SetJustifyH(h) end
+end
+
 function Button:OnReceiveDrag()
   if not self.OnChange then return end
   local infoType, a, _, c, _ = GetCursorInfo()
