@@ -2,7 +2,8 @@ local _, ns = ...
 local ui = ns.ui
 local insert = table.insert
 local floor = math.floor
-local Class, Frame, TableFrame = ns.lua.Class, ui.Frame, ui.TableFrame
+local Class, Frame, TableFrame, Texture = ns.lua.Class, ui.Frame, ui.TableFrame, ui.Texture
+local theme = ns.theme
 local Colors, ColorS = ns.Colors, ns.Colors.Strings
 local C_GREEN, C_WHITE, C_ORANGE, C_GREY, C_END = ColorS.GREEN, ColorS.WHITE, ColorS.ORANGE, ColorS.GREY, ColorS.END
 
@@ -40,25 +41,50 @@ local VIEW_WIDTH = PROF_COL_W + CRAFTER_COL_W + SKILL_COL_W + CONC_COL_W + RECIP
 
 local TRANSPARENT = { color = Colors.TransparentBlack }
 
-local function rowBgColor(i)
-  return i % 2 == 0 and { 0, 0, 0, 0.4 } or { 0, 0, 0, 0.2 }
-end
-
+-- Aetheric-Glass column headers: muted + uppercased, matching SummaryView. Outer
+-- columns are inset (hPadL/hPadR) so cells don't sit against the table edges.
 local function buildColInfo()
-  return {
-    { name = "Profession", width = PROF_COL_W,    backdrop = TRANSPARENT, justifyH = ui.justify.Left },
+  local cols = {
+    -- inset the Profession cells both sides (hPadL/hPadR) so long names like
+    -- Leatherworking don't run up against the Crafter column; padding insets the
+    -- header label to match (header uses the symmetric `padding`, cells use hPad*)
+    { name = "Profession", width = PROF_COL_W,    backdrop = TRANSPARENT, justifyH = ui.justify.Left,
+      hPadL = 8, hPadR = 8, padding = 8 },
     { name = "Crafter",    width = CRAFTER_COL_W, backdrop = TRANSPARENT, justifyH = ui.justify.Left },
     { name = "Skill",      width = SKILL_COL_W,   backdrop = TRANSPARENT, justifyH = ui.justify.Center,
       tooltip = "Main crafter's skill in the selected expansion" },
     { name = "Conc",       width = CONC_COL_W,    backdrop = TRANSPARENT, justifyH = ui.justify.Center,
       tooltip = "Main crafter's concentration" },
-    { name = "Recipes",    width = RECIPE_COL_W,  backdrop = TRANSPARENT, justifyH = ui.justify.Center,
+    { name = "Recipes",    width = RECIPE_COL_W,  backdrop = TRANSPARENT, justifyH = ui.justify.Center, hPadR = 8,
       tooltip = "Learned recipe %" },
   }
+  for _, c in ipairs(cols) do
+    c.color = theme.colors.muted
+    c.name  = c.name:upper()
+  end
+  return cols
+end
+
+-- A 1px divider line above the row (Aetheric-Glass chrome), created once per row
+-- frame and reused. Returns the texture so callers can Show/Hide it.
+local function ensureDivider(row)
+  if not row._divider then
+    row._divider = Texture:new{
+      parent = row,
+      layer = ui.layer.Overlay,
+      position = {
+        TopLeft = {row, ui.edge.TopLeft, 0, 0},
+        TopRight = {row, ui.edge.TopRight, 0, 0},
+        Height = 1,
+      },
+      color = theme.colors.divider,
+    }
+  end
+  return row._divider
 end
 
 local function tipAt(cell)
-  ui.tip:AnchorTo(cell, "ANCHOR_BOTTOMRIGHT", -10, 10)
+  ns.AnchorTip(cell)
   ui.tip:ClearLines()
 end
 
@@ -72,14 +98,16 @@ local CraftingView = Class(Frame, function(self)
     colInfo  = buildColInfo(),
     autosize = true,   -- size each column to its widest cell (Conc was clipping)
     padding  = 8,      -- breathing room added per autosized column
+    backdrop = TRANSPARENT,  -- glass surface shows through; rows carry the dividers
     position = { TopLeft = {} },
   }
   self._numCols = 5
   self:Width(VIEW_WIDTH)
   self:Height(self.tbl:Height())
 end, {
-  name   = "crafting",
-  _title = "Crafting",
+  name       = "crafting",
+  _title     = "Crafting",
+  background = theme.colors.window,
 })
 CraftingView.name = "crafting"
 ns.views.CraftingView = CraftingView
@@ -213,17 +241,49 @@ function CraftingView:recipeCell(id, mainCrafter)
   }
 end
 
-function CraftingView:buildRow(id, toons)
+-- Make every cell drive the row's hover highlight and open the row's main
+-- crafter in the Detail view on click, chaining onto any existing cell
+-- onEnter/onLeave/onClick (so the per-column tooltips keep working). Cells are
+-- decorated in place — buildRow builds a fresh cell table per call, so there are
+-- no shared-table aliasing concerns (unlike SummaryView). The row resolves live
+-- via self.tbl.rows[rowIdx] so it stays correct across rebuilds.
+function CraftingView:decorateRow(cells, rowIdx, crafter)
+  for _, cell in ipairs(cells) do
+    local onEnter, onLeave, onClick = cell.onEnter, cell.onLeave, cell.onClick
+    cell.onEnter = function(s)
+      local row = self.tbl.rows[rowIdx]
+      if row then row:backdropColor(theme.colors.hover) end
+      if onEnter then onEnter(s) end
+    end
+    cell.onLeave = function(s)
+      local row = self.tbl.rows[rowIdx]
+      if row then row:backdropColor(0, 0, 0, 0) end
+      if onLeave then onLeave(s) end
+    end
+    cell.onClick = function(s)
+      if onClick then onClick(s) end
+      local w = ns.MainWindow
+      if crafter and w then
+        w.views.detail:Select(crafter)
+        w:view("detail")
+      end
+    end
+  end
+  return cells
+end
+
+function CraftingView:buildRow(id, toons, rowIdx)
   local info = PROF_INFO[id]
   local mainCrafter, isFlagged = ns.data.GetMainCrafter(id, toons)
   local profToons = ns.data.GetProfToons(id, toons)
-  return {
+  local cells = {
     { text = info.name, justifyH = ui.justify.Left },
     self:crafterCell(info, mainCrafter, isFlagged, profToons),
     self:skillCell(id, mainCrafter),
     self:concCell(id, info, mainCrafter),
     self:recipeCell(id, mainCrafter),
   }
+  return self:decorateRow(cells, rowIdx, mainCrafter)
 end
 
 -- ─── Filter ───────────────────────────────────────────────────────────────────
@@ -261,12 +321,16 @@ function CraftingView:OnBeforeShow()
 
   local rowData = {}
   for i, id in ipairs(present) do
-    insert(rowData, self:buildRow(id, toons))
-    self.tbl.rows[i]:backdropColor(unpack(rowBgColor(i)))
+    insert(rowData, self:buildRow(id, toons, i))
+    -- transparent rows; the glass surface shows through and a 1px divider above
+    -- each populated row carries the chrome (matches SummaryView)
+    self.tbl.rows[i]:backdropColor(0, 0, 0, 0)
+    ensureDivider(self.tbl.rows[i]):Show()
   end
   for i = #present + 1, #self.tbl.rows do
     insert(rowData, emptyRow)
     self.tbl.rows[i]:backdropColor(0, 0, 0, 0)
+    if self.tbl.rows[i]._divider then self.tbl.rows[i]._divider:Hide() end
   end
 
   self.tbl.data = rowData
