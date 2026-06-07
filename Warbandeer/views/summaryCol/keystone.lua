@@ -7,7 +7,7 @@ local ui = ns.ui
 table.insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
-    name = "Key",
+    name = "M+",
     width = 28,
     justifyH = ui.justify.Right,
     tooltip = {
