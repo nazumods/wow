@@ -67,6 +67,7 @@ local TableFrame = Class(Frame, function(self)
         atlasSize = self.colInfo and self.colInfo[i].atlasSize,
         path = self.colInfo and self.colInfo[i].path,
         coords = self.colInfo and self.colInfo[i].coords,
+        vertexColor = self.colInfo and self.colInfo[i].vertexColor,
         headerHeight = self.headerHeight,
         position = {
           TopLeft = i == 1 and {self.offsetX, 0} or {self.cols[i-1], TopRight, padLeft, 0},

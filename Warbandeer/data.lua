@@ -3,6 +3,15 @@ local Strings = ns.Colors.Strings
 
 ns.data = {}
 
+-- Custom Warbandeer faction art (white TGAs under icons/, tinted at draw time).
+-- Defined here rather than in the shared LibNAddOn icon set, which only re-exports
+-- WoW globals. Indexed by isAlliance; tints mirror the legacy AllianceLight/HordeLight.
+local FACTION_ICONS = "Interface\\AddOns\\Warbandeer\\icons\\"
+ns.factionIcon = {
+  [true]  = {path = FACTION_ICONS.."alliance.tga", coords = {0, 1, 0, 1}, vertexColor = {0.400, 0.733, 1.000}},
+  [false] = {path = FACTION_ICONS.."horde.tga",    coords = {0, 1, 0, 1}, vertexColor = {1.000, 0.125, 0.125}},
+}
+
 -- Ready for Midnight
 local gearTiers = {
   explorer = 207,

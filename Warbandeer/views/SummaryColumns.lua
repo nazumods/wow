@@ -13,7 +13,11 @@ local Class = ns.lua.Class
 ---@field getFooter? fun(toons:Character[]):any  optional footer cell data builder, given all rows
 ns.SummaryColumn = Class(nil, function(self)
   local path, coords
-  if self.currencyID then
+  if self.iconPath then
+    -- explicit custom texture (e.g. the M/H crest TGAs); full image by default
+    path = self.iconPath
+    coords = self.iconCoords or {0, 1, 0, 1}
+  elseif self.currencyID then
     local info = C_CurrencyInfo.GetCurrencyInfo(self.currencyID)
     path = info.iconFileID
     coords = {0.1, 0.9, 0.1, 0.9}
@@ -30,6 +34,7 @@ ns.SummaryColumn = Class(nil, function(self)
     -- TableCol's "centered square" branch fires for atlas icons.
     path = path,
     coords = coords,
+    vertexColor = self.iconColor,
     tooltip = self.tooltip,
   }
   if atlas then self.colInfo.atlasSize = false end
@@ -40,6 +45,9 @@ end, {
   justifyH = Left,
   padLeft = nil,
   icon = nil,
+  iconPath = nil,   -- explicit texture path; takes precedence over currencyID/icon
+  iconCoords = nil, -- optional {l,r,t,b} for iconPath (defaults to full image)
+  iconColor = nil,  -- optional vertexColor tint for the header icon (e.g. white crest TGAs -> muted)
   currencyID = nil,
   tooltip = nil,
   getData = function() return "" end, -- function to get data for this column

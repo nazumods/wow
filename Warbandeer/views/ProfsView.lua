@@ -254,7 +254,7 @@ function ProfsView:RebuildCharList(profName)
 
     local row = {
       -- Faction icon.
-      toon.isAlliance and ns.icons.AllianceLight or ns.icons.HordeLight,
+      ns.factionIcon[toon.isAlliance],
       -- Character name (class coloured; realm on hover).
       {
         text    = nameText,

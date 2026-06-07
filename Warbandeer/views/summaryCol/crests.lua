@@ -3,6 +3,10 @@ local ns = select(2, ...)
 ---@class LibNUI
 local ui = ns.ui
 
+local CREST_ICON = "Interface\\AddOns\\Warbandeer\\icons\\"
+-- match the muted tan of the other (text) column headers
+local CREST_TINT = ns.theme.colors.muted
+
 local function formatCrest(c)
   if not c then return "" end
   -- stale DB entries from before the table migration store a bare number
@@ -33,7 +37,8 @@ end
 table.insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
-    currencyID = 3345,
+    iconPath = CREST_ICON .. "crest_hero.tga",
+    iconColor = CREST_TINT,
     width = 30,
     justifyH = ui.justify.Center,
     tooltip = {"Hero Dawncrest", "Hero Dawncrest held. Red when weekly cap reached."},
@@ -48,7 +53,8 @@ table.insert(
 table.insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
-    currencyID = 3347,
+    iconPath = CREST_ICON .. "crest_myth.tga",
+    iconColor = CREST_TINT,
     width = 30,
     justifyH = ui.justify.Center,
     tooltip = {"Myth Dawncrest", "Myth Dawncrest held. Red when weekly cap reached."},

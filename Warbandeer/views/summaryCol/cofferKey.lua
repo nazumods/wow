@@ -7,8 +7,10 @@ local ui = ns.ui
 table.insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
-    currencyID = 3028, -- Restored Coffer Key
+    iconPath = "Interface\\AddOns\\Warbandeer\\icons\\key.tga",
+    iconColor = ns.theme.colors.muted,
     width = 40,
+    justifyH = ui.justify.Center,
     tooltip = {
       "Restored Coffer Keys",
       "Keys + shards/100 as a fractional total. Red when shards are capped.",

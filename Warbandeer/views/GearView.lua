@@ -124,7 +124,7 @@ end
 ---@return table
 function GearView:GetRowData(toon)
   return toon.equipment and toon.equipment.slots and {
-    toon.isAlliance and ns.icons.AllianceLight or ns.icons.HordeLight,
+    ns.factionIcon[toon.isAlliance],
     toon.basic.specialization and ns.icons[toon.basic.specialization.role] or "",
     getNameString(toon),
     toon.basic.level,

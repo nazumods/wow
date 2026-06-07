@@ -7,7 +7,9 @@ local ui = ns.ui
 table.insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
-    name = "L",
+    iconPath = "Interface\\AddOns\\Warbandeer\\icons\\axe.tga",
+    iconColor = ns.theme.colors.muted,
+    width = 30,
     justifyH = ui.justify.Center,
     tooltip = {
       "Find Lumber",

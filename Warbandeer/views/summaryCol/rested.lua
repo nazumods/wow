@@ -73,7 +73,8 @@ end
 table.insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
-    name = "Rest",
+    iconPath = "Interface\\AddOns\\Warbandeer\\icons\\views\\midnight.tga",
+    iconColor = ns.theme.colors.muted,
     width = 40,
     justifyH = ui.justify.Right,
     tooltip = {

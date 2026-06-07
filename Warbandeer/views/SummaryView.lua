@@ -7,7 +7,7 @@ local theme = ns.theme
 local P, BLEED = 12, 6   -- outer padding / module-bg outer bleed
 
 -- Faction accent colours for the toggle (Alliance blue / Horde red), matching
--- the AllianceLight / HordeLight icon tints.
+-- the ns.factionIcon tints.
 local FACTION_COLOR = {
   alliance = {0.40, 0.733, 1.0, 1},
   horde    = {1.0,  0.125, 0.125, 1},
@@ -92,7 +92,7 @@ end
 -- character in the Detail view on click, chaining onto any existing cell
 -- onEnter/onLeave/onClick (so the per-column tooltips keep working). Each cell is
 -- a shallow COPY of the source data — several getData functions return shared
--- table objects (e.g. ns.icons.AllianceLight for the faction icon), so mutating
+-- table objects (e.g. ns.factionIcon[...] for the faction icon), so mutating
 -- them in place would chain wrappers across every row that shares the object (and
 -- corrupt the shared table globally). Plain string cells become {text=...}. The
 -- closures resolve the row + character live (self.rows[i] / self._toons[i]) so
@@ -251,7 +251,7 @@ function SummaryView:updateFilter()
   local f = self._filter
   if not f then return end
   local a = self._showAlliance
-  local ico = a and ns.icons.AllianceLight or ns.icons.HordeLight
+  local ico = ns.factionIcon[a]
   local col = a and FACTION_COLOR.alliance or FACTION_COLOR.horde
   f.icon:Texture(ico.path)
   f.icon:Coords(unpack(ico.coords))

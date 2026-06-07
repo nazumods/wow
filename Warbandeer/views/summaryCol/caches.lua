@@ -2,13 +2,15 @@
 local ns = select(2, ...)
 ---@class LibNUI
 local ui = ns.ui
-local Icons = ns.icons
 
 -- caches
 table.insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
-    icon = Icons.Treasure,
+    iconPath = "Interface\\AddOns\\Warbandeer\\icons\\chest.tga",
+    iconColor = ns.theme.colors.muted,
+    width = 30,
+    justifyH = ui.justify.Center,
     tooltip = {
       "Weekly cache quests completed",
       "Count of weekly activities completed that reward a cache.",

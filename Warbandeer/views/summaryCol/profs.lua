@@ -106,7 +106,8 @@ end
 table.insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
-    name = "Prof",
+    iconPath = "Interface\\AddOns\\Warbandeer\\icons\\views\\profs.tga",
+    iconColor = ns.theme.colors.muted,
     width = 36,
     justifyH = ui.justify.Right,
     tooltip = {

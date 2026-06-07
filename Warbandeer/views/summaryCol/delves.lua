@@ -36,7 +36,9 @@ end
 table.insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
-    name = "D",
+    iconPath = "Interface\\AddOns\\Warbandeer\\icons\\delve.tga",
+    iconColor = ns.theme.colors.muted,
+    width = 30,
     justifyH = ui.justify.Center,
     tooltip = {
       "Delves",

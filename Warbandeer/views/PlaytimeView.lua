@@ -7,7 +7,6 @@ local RAID_CLASS_COLORS = RAID_CLASS_COLORS -- luacheck: globals RAID_CLASS_COLO
 
 local transpBk = {color = {0, 0, 0, 0}}
 
-local Icons = ns.icons
 local colInfo = {
   {name = "",          width = 20,  backdrop = transpBk},
   {name = "Character", width = 105, justifyH = Left, backdrop = transpBk, padLeft = 2},
@@ -63,7 +62,7 @@ local function buildData(isAlliance)
   for _, toon in ipairs(getCharacters(isAlliance)) do
     local c = toon.classKey and RAID_CLASS_COLORS[toon.classKey:upper()]
     insert(data, {
-      toon.isAlliance and Icons.AllianceLight or Icons.HordeLight,
+      ns.factionIcon[toon.isAlliance],
       c and c:WrapTextInColorCode(toon.name) or toon.name,
       toon.basic.level,
       toon.className or "?",

@@ -309,7 +309,7 @@ function MidnightProfs:OnBeforeShow()
     end
     nameText = nameText .. " " .. C_GREY .. "(" .. toon.basic.level .. ")" .. C_END
     local row = {
-      toon.isAlliance and ns.icons.AllianceLight or ns.icons.HordeLight,
+      ns.factionIcon[toon.isAlliance],
       {
         text    = nameText,
         color   = Colors[toon.classKey],

@@ -2,7 +2,6 @@
 local ns = select(2, ...)
 ---@class LibNUI
 local ui = ns.ui
-local Icons = ns.icons
 local NUM_BAG_SLOTS = NUM_BAG_SLOTS -- luacheck: globals NUM_BAG_SLOTS
 
 -- Bag Status
@@ -57,8 +56,10 @@ end
 table.insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
-    icon = Icons.Bag,
+    iconPath = "Interface\\AddOns\\Warbandeer\\icons\\bag.tga",
+    iconColor = ns.theme.colors.muted,
     width = 30,
+    justifyH = ui.justify.Center,
     tooltip = {
       "Bags",
       "Count of bags below 36 slots, plus R if the reagent bag is below 38.",
