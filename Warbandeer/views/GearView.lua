@@ -7,7 +7,7 @@ local theme = ns.theme
 local insert = table.insert
 local Armor = ns.wow.Armor
 
--- Base column layout. Restyled at load (below) into the Aetheric-Glass chrome:
+-- Base column layout. Restyled at load (below):
 -- muted, uppercased headers; the first column inset off the table edge. Columns
 -- stay transparent so the void window surface shows through behind the rows.
 local TRANSPARENT = { color = ns.Colors.TransparentBlack }
@@ -97,7 +97,7 @@ local getILvlString = function(toon)
   }
 end
 
--- One TableFrame per armor type. Aetheric-Glass restyle: transparent rows with a
+-- One TableFrame per armor type: transparent rows with a
 -- 1px divider above each, still-levelling characters dimmed, row hover highlight +
 -- click-to-open-Detail (mirrors SummaryView's ClassSummary).
 ---@class GearTable: TableFrame

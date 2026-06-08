@@ -12,7 +12,7 @@ local FACTION_COLOR = {
 }
 
 -- Base column layout, built once at load: shallow-copy each column's colInfo with
--- muted, uppercased text headers to match the Aetheric-Glass chrome (icon-only
+-- muted, uppercased text headers (icon-only
 -- columns have no name and are unaffected). The source colInfo is left untouched.
 -- Each ClassSummary instance gets its OWN shallow copy of this list (see :new
 -- below) — addCol mutates self.colInfo in place (the dynamic DMF column), so a

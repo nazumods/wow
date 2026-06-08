@@ -4,7 +4,7 @@ local Class, Frame, Texture = ns.lua.Class, ui.Frame, ui.Texture
 local CleanFrame = ui.CleanFrame
 local theme = ns.theme
 
--- Floating navigation rail (Aetheric Glass) docked to the left of the main window.
+-- Floating navigation rail docked to the left of the main window.
 -- One tinted glyph per view (in display order); replaces the old titlebar-icon
 -- dropdown selector. Icons are white TGAs (icons/views/<name>.tga) tinted per state:
 -- muted at rest, on-surface on hover, gold + left accent + faint gold wash when

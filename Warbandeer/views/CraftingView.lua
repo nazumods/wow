@@ -41,7 +41,7 @@ local VIEW_WIDTH = PROF_COL_W + CRAFTER_COL_W + SKILL_COL_W + CONC_COL_W + RECIP
 
 local TRANSPARENT = { color = Colors.TransparentBlack }
 
--- Aetheric-Glass column headers: muted + uppercased, matching SummaryView. Outer
+-- Column headers: muted + uppercased, matching SummaryView. Outer
 -- columns are inset (hPadL/hPadR) so cells don't sit against the table edges.
 local function buildColInfo()
   local cols = {
@@ -65,7 +65,7 @@ local function buildColInfo()
   return cols
 end
 
--- A 1px divider line above the row (Aetheric-Glass chrome), created once per row
+-- A 1px divider line above the row, created once per row
 -- frame and reused. Returns the texture so callers can Show/Hide it.
 local function ensureDivider(row)
   if not row._divider then

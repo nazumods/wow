@@ -39,14 +39,14 @@ local CHAR_LIST_H   = 180   -- height of the scrollable character-list area
 
 local VIEW_WIDTH    = PROF_COL_W + #EXP_ORDER * EXP_COL_W  -- 638
 
--- Aetheric-Glass tones: transparent rows/columns let the void window surface show
+-- Transparent rows/columns let the void window surface show
 -- through; the selected grid row reads as a faint gold wash, empty cells dim.
 local TRANSPARENT = { color = { 0, 0, 0, 0 } }
 local SELECTED    = { 1, 0.82, 0, 0.16 }
 local DIM         = { 0.82, 0.776, 0.671, 0.35 } -- muted at low alpha (— cells)
 
 -- ─── Column-info factories ────────────────────────────────────────────────────
--- Headers are muted + uppercased to match the Aetheric-Glass chrome; columns stay
+-- Headers are muted + uppercased; columns stay
 -- transparent so the void window surface shows through behind the rows.
 
 local function makeGridColInfo()
