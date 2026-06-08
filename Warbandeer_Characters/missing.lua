@@ -21,19 +21,23 @@ function ns.getMissingFields(toon)
   if not patch then patch = select(1, GetBuildInfo()) end
   local missing = {}
 
-  if not toon.currency or not toon.currency.gold then
+  -- gold/total are recorded numbers; 0 is valid data (a broke or freshly-tracked
+  -- character), so only a nil means the value was never captured.
+  if not toon.currency or toon.currency.gold == nil then
     table.insert(missing, "gold")
   end
 
-  if not toon.playtime or not toon.playtime.total then
+  if not toon.playtime or toon.playtime.total == nil then
     table.insert(missing, "playtime")
-  elseif not toon.playtime.byPatch or not toon.playtime.byPatch[patch] then
+  elseif not toon.playtime.byPatch or toon.playtime.byPatch[patch] == nil then
     table.insert(missing, "playtime (this patch)")
   end
 
   if not toon.lastRefresh then table.insert(missing, "lastRefresh") end
 
-  if not (toon.quests and toon.quests.LumberAxe) then
+  -- LumberAxe is a recorded boolean (has / doesn't have the Find Lumber tracking
+  -- spell), so only a nil means the data was never captured. false is real data.
+  if not toon.quests or toon.quests.LumberAxe == nil then
     table.insert(missing, "lumber axe")
   end
 
