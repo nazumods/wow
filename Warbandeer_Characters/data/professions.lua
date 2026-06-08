@@ -98,6 +98,11 @@ local RECIPE_EXP_KEYS = {
   ["Dragon Isles"] = "df",
 }
 
+-- Profession display name of the current expansion.  A character that has trained
+-- this expansion's skill line is expected to have recipe data captured; missing.lua
+-- uses this to tell "never scanned / capture gap" apart from "just hasn't trained it".
+ns.CURRENT_RECIPE_EXP = "Midnight"
+
 ---@class ProfRecipeBucket
 ---@field learned {id:integer, name:string}[]
 ---@field total integer
@@ -227,11 +232,16 @@ ns.Professions.fields = {
         if live then
           for k, v in pairs(live) do data[k] = v end
         end
-        -- If the new scan returned no recipes (e.g. GetAllRecipeIDs() returned empty
-        -- because the recipe list hadn't loaded yet at login), preserve whatever was
-        -- previously stored rather than wiping it.
-        if not profData.recipes and data[skillLineID] then
-          profData.recipes = data[skillLineID].recipes
+        -- Per-field nil-guard: the trade-skill API often returns empty before its
+        -- data finishes loading (e.g. GetChildProfessionInfos()/GetAllRecipeIDs()
+        -- empty at login).  Since this overwrites the whole detail, any field the
+        -- scan didn't populate this pass falls back to the previously-stored value
+        -- rather than wiping good cached data.
+        local prev = data[skillLineID]
+        if prev then
+          if not profData.expansions then profData.expansions = prev.expansions end
+          if profData.specPoints == nil then profData.specPoints = prev.specPoints end
+          if not profData.recipes then profData.recipes = prev.recipes end
         end
         data[skillLineID] = profData
         self:set(data)

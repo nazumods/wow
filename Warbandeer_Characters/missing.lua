@@ -4,6 +4,19 @@ local GetBuildInfo = GetBuildInfo -- luacheck: globals GetBuildInfo
 
 local patch = false
 
+-- True when the stored profession detail shows the character has trained the
+-- current expansion's skill line.  Only then is recipe capture expected, so only
+-- then does a nil recipes table mean "missing data" rather than "not trained yet".
+local function hasCurrentExpSkill(detail)
+  if not detail or not detail.expansions then return false end
+  for _, exp in ipairs(detail.expansions) do
+    if exp.name == ns.CURRENT_RECIPE_EXP and (exp.maxSkillLevel or 0) > 0 then
+      return true
+    end
+  end
+  return false
+end
+
 function ns.getMissingFields(toon)
   if not patch then patch = select(1, GetBuildInfo()) end
   local missing = {}
@@ -45,8 +58,11 @@ function ns.getMissingFields(toon)
         local detail = details and details[prof.skillID]
         if not detail then
           table.insert(missingProfs, prof.name)
-        elseif not detail.recipes then
-          -- Detail captured before recipe tracking existed (or prof window not reopened since).
+        elseif not detail.recipes and hasCurrentExpSkill(detail) then
+          -- Trained the current expansion but recipes weren't captured: detail
+          -- predates recipe tracking, or the prof window hasn't been reopened since.
+          -- (A character that simply hasn't trained the current-expansion skill is
+          -- intentionally not reported here — that's expected, not missing data.)
           table.insert(missingRecipes, prof.name)
         end
       end
