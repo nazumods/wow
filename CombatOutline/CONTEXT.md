@@ -1,13 +1,16 @@
 # CombatOutline
 
-## TOC
-```
-Interface: 110002/110005/110007
-Dependencies: LibNAddOn (no LibNUI)
-SavedVariables: CombatOutlineDB
-```
+**Deps:** LibNAddOn · **SavedVars:** `CombatOutlineDB` (unused) · **Commands:** none
 
-Single file: `core.lua`. Table form init.
+Toggles the `OutlineEngineMode` CVar on while in combat and off when leaving it, driven by the regen events.
 
-`PLAYER_REGEN_DISABLED` → `SetCVar("OutlineEngineMode", 1)`
-`PLAYER_REGEN_ENABLED` → `SetCVar("OutlineEngineMode", 0)`
+## Files
+
+| File | Purpose |
+|---|---|
+| `core.lua` | Whole addon. Table-form `LibNAddOn` init; `PLAYER_REGEN_DISABLED` sets `OutlineEngineMode` to 1, `PLAYER_REGEN_ENABLED` resets it to 0. |
+
+## Gotchas
+
+- The toggle is driven by `PLAYER_REGEN_DISABLED` / `PLAYER_REGEN_ENABLED`, which fire on combat enter/leave — not the actual combat-flag transition. `OutlineEngineMode` is not combat-protected, so setting it from these handlers is safe.
+- Leaving combat hard-resets the CVar to `0`; any prior user setting is not saved/restored (see the `todo` in `core.lua`). `CombatOutlineDB` is declared but unused.

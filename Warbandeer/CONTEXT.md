@@ -1,115 +1,104 @@
 # Warbandeer (Main UI)
 
-## TOC
-```
-Interface: 120001, Dependencies: LibNAddOn, LibNUI, Warbandeer_Characters
-SavedVariables: WarbandeerDB (version 3)
-X-NUI-COMMANDS: /warband, /wb
-X-NUI-COMPARTMENT: Warbandeer_OnAddonCompartmentClick
-X-NUI-API: WarbandeerApi, X-NUI-UI: LibNUI
-```
+**Deps:** LibNAddOn, LibNUI, Warbandeer_Characters · **SavedVars:** `WarbandeerDB` (v3) · **Commands:** `/warband`, `/wb` (+ one per view) · **Reads:** `WarbandeerApi` · **UI:** LibNUI
+
+Main viewer UI. Reads the data layer (`ns.api` ← `WarbandeerApi`) and renders it across a set of views switched from a left icon rail.
 
 ## Files
 
 | File | Purpose |
 |---|---|
-| `init.lua` | Table form init with settings (defaultView dropdown, tooltipSide dropdown — `ns.TOOLTIP_SIDES` = {Left, Right}, default Left). Defines `ns.views`, `ns.viewOrder` (selector order), class/race arrays, `MigrateDB`, `onLoad` |
-| `data.lua` | `ns.data` — `gearTiers`, `IlvlColor()` (wrapped string), `IlvlColorObj()` (ColorMixin), `minorFactions`, `minorFactionMaxStanding`, `factionColors` (`{[id]={r,g,b}}` bar-color overrides for factions the API gives no color for — Delves/Prey/minor factions/Slayer's/Valeera; palette matches the Plumber addon). Midnight entries: Delves→Valeera (2742→2744, friendship rep), Silvermoon Court subfactions (2710→2711-2714). Profession helpers: `EstimateConcentration`, `FindProf`, `GetProfIntent`, `SetProfIntent`, `GetProfToons`, `GetMainCrafter` |
-| `theme.lua` | `ns.theme` — Design tokens. `colors` (window/module/hover/track/border/text/muted/gold/orange/green/red) and `fonts` (`fontInfo` {path,size} tuples). Fonts are **bundled** in `media/fonts/`: Hanken Grotesk (headline/title), Geist (body), JetBrains Mono (caps/stat/statBig). |
-| `media/fonts/` | Bundled OFL/Apache fonts + license files: HankenGrotesk-{SemiBold,Bold}, Geist-Regular, JetBrainsMono-{SemiBold,Bold}. Referenced by `theme.fonts`; not in the `.toc` (loaded by path at runtime) |
-| `controls/CharacterTooltip.lua` | `ns.CharacterTooltip` class + `ns.ShowCharacterTooltip`/`ns.HideCharacterTooltip` (richer name/spec/class/realm/level tooltip). Registered on `ns`, NOT `ui` — addon-local controls must not pollute the shared LibNUI global (LibNUI has its own simpler `ui.ShowCharacterTooltip` via `ui.tip`). `ShowCharacterTooltip(toon, parent[, position])` auto-anchors below the hovered cell on the side from `db.settings.tooltipSide` (1=Left→anchor TopRight, extends left; 2=Right→anchor TopLeft, extends right) via file-local `sidePosition`; an explicit `position` table overrides the setting. Also exports `ns.TooltipSide()` (the configured index, default 1) and `ns.AnchorTip(frame)` — the side-aware anchor for the shared `ui.tip` (Left→`ANCHOR_BOTTOMLEFT`, Right→`ANCHOR_BOTTOMRIGHT`), used by the summary-column cell tooltips (ilvl/profs/delves/rested) |
-| `controls/StatCard.lua` | `ns.StatCard` — summary tile: caps caption + big mono `amount` (+ optional `sub`), glass-module background. `Amount(text, color?)` setter. Optional `subIcon` (texture path) + `subIconColor` draw a small glyph before the sub-line (e.g. the green/red trend arrow on the weekly gold change) |
-| `controls/IconStrip.lua` | `ns.IconStrip` (CleanFrame) — floating left-docked navigation rail; replaces the old titlebar-icon dropdown selector. Brand mark (`logo.tga`) + divider on top, then one tinted glyph button per view (white TGA `icons/views/<name>.tga`, tinted muted→on-surface on hover→gold+left-accent+faint-gold-wash when active). Hover shows the view title via `ui.tip` (`ANCHOR_RIGHT`); click fires `onSelect(name)`. `SetActive(name)` highlights the current view. `clamped=false` so it stays glued to the window. Built from `{name,title}` list in `ns.viewOrder` order |
-| `controls/FilterDropdown.lua` | `ns.FilterDropdown` — reusable filter: a labelled `Button` that drops a `Tooltip` menu of `{ key, label, enabled? }` options. Disabled options render greyed/unselectable; picking one updates the button label and fires `onSelect(self, key)`. Shared by views with a dropdown `BuildFilter` (Crafting + Overview expansion pickers) and as the **per-profession intent dropdown** in DetailView. Options: `options`, `selected`, `onSelect`, `width` (96), `menuWidth` (120). `labelFor(key)` resolves an option's display text; `Select(key)` re-points the dropdown (updates label) **without** firing `onSelect` — used when a pooled dropdown is reassigned to a new subject |
-| `controls/LabeledBar.lua` | `ns.LabeledBar` — progress row: name (left) + value (right) + thin bar beneath. Fill is a manually-sized texture over a track (ExpBar pattern, not StatusBar:SetValue). Flat color comes from tinting (`SetVertexColor` with `barColor`/`trackColor`) a white **rounded** texture (`media/bar-rounded.tga`) **nine-sliced** (margin `sliceMargin`==corner radius; `barHeight = 2*sliceMargin` → pill ends at any width). An atlas may be supplied via `barAtlas`/`trackAtlas` instead (skips slicing). Whole row brightens on hover: `highlight` is a **rounded** (nine-sliced white `barTexture`) Background backing that wraps the entire row — text *and* bar — with a ~5px margin on every side, tinted in via `SetVertexColor` so the bar reads as enclosed rather than sitting below a band around just the label; **additionally the bar lightens its own fill+track colours** (`lighten()` blends toward white) since the bar (a child frame) occludes `highlight` and a translucent overlay barely registers on the opaque bar. `hoverValue`/`hoverColor` swap the value text on hover (paragon numbers). Optional `onClick(self, button)` enables mouse clicks (`SetMouseClickEnabled`) — e.g. DetailView opens the profession window. **The frame height + bar offset are computed from the body font size (`nameH`), not `nameLabel:Height()`** — a FontString reports `GetHeight()==0` until laid out a frame later, which previously left the frame too short to cover (or receive mouse over) the bar. Setters: `Fill(pct)`, `Label(text)`, `Value(text, color?)` (updates stored `value` so hover-restore is correct), `BarColor(color)` (used to recolor pooled bars on reuse) |
-| `media/bar-rounded.tga` | 16×16 white rounded-rect (4px radius), nine-sliced as the bar texture in `LabeledBar`. Regenerable; tinted at runtime via vertex color |
-| `icons/views/*.tga` | 64×64 white Material-Symbols glyphs (one per view + `logo.tga`), tinted in-game by `IconStrip`. Rasterized from `@material-symbols/svg-400` via a sharp→TGA node script (32-bit, descriptor 0x08, matches `bar-rounded.tga`) — see the design repo `iconbuild/` |
-| `icons/trending_{up,down}.tga` | 64×64 white trend arrows (same pipeline); green/red trend glyph on the Overview weekly-gold StatCard sub-line |
-| `views/Overview.lua` | Overview. Top: 3-card stat strip (Warband Wealth / Playtime / Top Item Level — no M+ rating broker exists yet). Below: three glass-module boxes side by side — **Reputations**, **Achievements**, and `TopAlts` (Top Characters) (beside where the phase-2 detail card will sit), each a box-gap (`GAP*2`) apart. Expansion is chosen via a **titlebar `FilterDropdown`** (`BuildFilter`, options Midnight/WWI from the `EXPANSIONS` table): each expansion builds its own hidden panel once (reps left + achievements right, via `buildTab`), and `selectExpansion(key)` shows the matching panel while resizing the two shared module backgrounds (`_modReps`/`_modAch`, sized to that expansion's section heights) + the view (window refits via `parent:Fit()`). `TopAlts` rows are transparent at rest and brighten (`theme.colors.hover`) on mouse-over via per-row `SetMouseMotionEnabled` + OnEnter/OnLeave; each row is also click-enabled (`SetMouseClickEnabled` + OnMouseUp) and **clicking a row opens that character in the Detail view** (`MainWindow.views.detail:Select(toon)` then `MainWindow:view("detail")`). The clicked toon is captured per-row via `self._toons` (populated alongside `addRow` in `GetData`). `LabeledBar` rep rows brighten the same way; `Achievements` rows brighten via each cell's `onEnter`/`onLeave` (the captured row's backdrop), making the click-to-open affordance obvious. `FactionBars` renders reputations as `LabeledBar` progress bars. Bar **fill = faction color** (`info.factionFontColor.color`, via `rgbaOf`). `gatherFactions` derives name/value/pct across three subfaction tiers (major renown → friendship rep Valeera → standard C_Reputation standings); `resolveProgress`/`paragonInfo` turn a maxed faction with paragon unlocked into a paragon-progress bar on a **darker-faction-color track** (so paragon reads differently from base rep grey); the value shows green **"paragon"**, swapping to the raw numbers on row hover. |
-| `views/SummaryColumns.lua` | `SummaryColumn` specs + `SummaryColumnsDelayed()` for DMF. Each column has `getData(toon)` for cells and optional `getFooter(toons)` for the footer cell. Footers: Character → max/levelling tally, Bag → total sub-par bags w/ split tooltip, Played → total playtime, Gold → total gold. Extra columns (Played, Gold) are appended from `views/summaryCol/*.lua` |
-| `views/SummaryView.lua` | Two `ClassSummary` TableFrames (Alliance/Horde) toggled by the `BuildFilter` faction button (one shown at a time; no section header — the toggle makes the faction obvious). The active table sits on a glass-module backdrop (`moduleBg` Texture, resized in `layout()`). View has the void `theme.colors.window` background. `ClassSummary` keeps cols/rows transparent so the module surface shows through: each row gets a 1px `theme.colors.divider` top line, still-levelling characters are dimmed (`backdropColor 0,0,0,0.22`), column headers are muted+uppercased via a shallow-copied `colInfo` (each entry gets `color = theme.colors.muted` and an uppercased `name`; the shared source colInfo is left untouched), and the footer uses `theme.colors.moduleHi`. Footer row built via `TableFrame:setFooter` from each column's `getFooter`. **Row hover + click** is cell-driven (not row-driven — data cells are mouse-interactive for their per-column tooltips, so a mouse-enabled row would steal those events): `decorateRow(cells, i)` (called when building `self.data` in the constructor + `OnBeforeShow`) wraps every cell's `onEnter`/`onLeave`/`onClick` to also brighten the row to `theme.colors.hover` / restore its resting tone / open that character in the Detail view (`w.views.detail:Select(toon)` then `w:view("detail")`), chaining onto any existing handlers so tooltips survive. Each decorated cell is a **shallow copy** of the source data — several `getData` fns return shared table objects (e.g. `faction.lua` → `ns.icons.AllianceLight`), so decorating in place would chain wrappers across every row sharing the object (hovering one highlights many) and corrupt the shared table globally. Plain string cells become `{text=...}`; row + toon resolve live via `self.rows[i]` / `self._toons[i]`. `layout()` sizes the module bg + view to the active table; re-run on toggle and in `OnBeforeShow`. **Faction toggle** (`BuildFilter` + `updateFilter`): a bordered button showing the current faction's icon (`ns.icons.AllianceLight`/`HordeLight`) + name, tinted blue (Alliance) / red (Horde) via `FACTION_COLOR`, with a matching 1px border (faction-colour Texture + dark inset interior). Click flips faction; `updateFilter` re-points icon/name/accent |
-| `views/GearView.lua` | `Frame` holding four `GearTable` (TableFrame subclass), one per armor type, stacked at the same spot with only the selected one shown (replaces the old `TabFrame` tabs). 21-col table: faction/role icons, Character, Lvl, iLvl, then one column per equipment slot (`slotStr` = ilvl + upgrade-track badge). Restyle mirrors SummaryView's `ClassSummary`: muted/uppercased headers (shared `COL_INFO` built once via `lists.map` over `BASE_COLS`; no first-column inset — the icon column is only 20px wide so an `hPadL` would squish the faction icon), transparent rows + 1px `theme.colors.divider` above each, still-levelling characters dimmed (`0,0,0,0.22`), and `decorateRow` makes every cell drive row hover (`theme.colors.hover`) + click-to-open-Detail (shallow-copies cells so shared objects like `ns.factionIcon[...]` aren't corrupted). `BuildFilter` = a horizontal strip of four bordered armor-type buttons (Cloth/Leather/Mail/Plate), one active at a time, active tinted gold (`theme.colors.gold`) vs. muted; `selectArmor(type)` swaps the shown table + refits, `updateFilter()` re-tints. Defaults to the current character's armor type. `layout()` sizes the view to the active table |
-| `views/DetailView.lua` | Single-character detail. **Two columns.** Left: class-icon **portrait** (class-colored border + level badge) beside name (class color) / race+class subtitle / realm; below, a 2-card stat strip (**Item Level** via `ns.IlvlColorObj`, **Playtime** hrs — no per-char M+ rating exists); then a `PROFESSIONS` caps header and one **module panel per flexible profession** (`primary`/`secondary`): prof icon + `LabeledBar` (skill/maxSkill fill) + `FilterDropdown` intent picker. Bar fill is tinted **by intent** (`INTENT_COLOR`: main→orange, secondary→gold, gatherer→green, unset→track) and recolored live on pick. Prof rows are pooled (`_profRow`); reuse updates via `LabeledBar:Label/Value/Fill/BarColor` + `FilterDropdown:Select`. Dropdown `onSelect` writes `profIntent` via `ns.data.SetProfIntent`. The bar's `onClick` calls `C_TradeSkillUI.OpenTradeSkill(row._skillID)` to open that profession's window (no-op for alts you're not logged into). Right column: a `GEAR` module panel listing one **pooled gear row** (`_gearRow`/`_showGear`) per equipped slot in `GEAR_SLOTS` order (mirrors GearView, shirt/tabard skipped) — a left **slot icon** (`transmog-nav-slot-<slot>` atlas via `GEAR_SLOT_ATLAS`; non-transmoggable slots Neck/Finger/Trinket have no such atlas so the icon is hidden but its column width `GEAR_LEAD_W` is still reserved to keep names aligned), then item **name** colored by **rarity** (`rarityColor` parses the color prefix off the stored `item.link` — modern `|cnIQ<n>:` quality-name form via `ITEM_QUALITY_COLORS`, or legacy `|cffRRGGBB` hex; cache-independent), right-aligned **ilvl** (`ns.IlvlColorObj` quality color) + **upgrade-track badge** (`track:sub(1,1)..trackLevel`, e.g. `C6`, gold; blank if untracked) from `char.equipment.slots[slot]`. The **name column autosizes**: each row's `name:StringWidth()` is measured, the max clamped to `GEAR_NAME_MIN..GEAR_NAME_MAX`, then rows/panel/view widths are set to fit (name `Label` uses `wordWrap=false` so it still ellipsizes past the max). `OnBeforeShow` sizes the view to `max(leftColH, rightColH)` and sets its width dynamically. `BuildFilter` = class-colored character-picker dropdown (view-local Button+Tooltip, not FilterDropdown, for per-line class colors + scroll). `Select(toon)` switches the displayed character (used by the picker and by clicking a Top Characters row on the Overview) — updates the picker label, calls `OnBeforeShow`, refits |
-| `views/RoleView.lua` | `ClassTable` frames grouped by spec |
-| `views/RaceView.lua` | 13-class × 29-race grid, built **dynamically** (like RoleView — base table builds no rows/cols; offsets set in-body, then `addCol`/`addRow`). **One character per cell**: characters are bucketed by `(raceRow, classCol)` and a race with several of one class spills into extra physical rows beneath its label (race name labels the first row of the group; continuation rows blank). This replaces the old merged stacked-name cell, restoring per-character hover highlight (`theme.colors.hover`) + click-to-open-Detail (`nameCell`) and fixing the click-through ambiguity. Class **column headers are muted** (`theme.colors.muted`, the shared new-style header tone) over the faint class-tinted column backdrop; race **row headers faction-colored**; zebra shading per race group; a 1px faction-colored `Overlay` divider sits below the last Alliance row. Frame width/height are set explicitly at the end (`headerWidth + 13*105`, `offsetY + rowArea height`) because dynamic `addCol`/`addRow` only accumulate the column/row spans, not the header offsets |
+| `init.lua` | Addon init (table form) + settings (`defaultView`, `tooltipSide`). Defines `ns.views`, `ns.viewOrder` (nav order), class/race arrays, `MigrateDB`, `onLoad` |
+| `data.lua` | `ns.data` — ilvl/gear-tier color helpers (`IlvlColor`, `IlvlColorObj`), faction color/standing override tables, profession-intent helpers (`GetProfIntent`/`SetProfIntent`, `GetMainCrafter`, `GetProfToons`, `FindProf`, `EstimateConcentration`) |
+| `theme.lua` | `ns.theme` — design tokens: `colors` + `fonts` (`{path,size}` tuples) |
+| `media/fonts/` | Bundled fonts (Hanken Grotesk, Geist, JetBrains Mono) + licenses; loaded by path, not listed in `.toc` |
+| `controls/CharacterTooltip.lua` | `ns.CharacterTooltip` + `ns.ShowCharacterTooltip`/`HideCharacterTooltip`; side-aware anchoring via `ns.TooltipSide()` / `ns.AnchorTip(frame)`. Registered on `ns`, not `ui` |
+| `controls/StatCard.lua` | `ns.StatCard` — summary tile (caption + big mono `amount`, optional `sub` + trend `subIcon`). `Amount(text, color?)` |
+| `controls/IconStrip.lua` | `ns.IconStrip` — floating left nav rail, one tinted glyph per view; `onSelect(name)`, `SetActive(name)` |
+| `controls/FilterDropdown.lua` | `ns.FilterDropdown` — reusable labelled dropdown filter. `options`/`selected`/`onSelect`; `Select(key)` re-points label without firing |
+| `controls/LabeledBar.lua` | `ns.LabeledBar` — progress row (name + value + bar beneath). Setters `Fill`/`Label`/`Value`/`BarColor`; optional `onClick`, `hoverValue`/`hoverColor` |
+| `media/bar-rounded.tga` | 16×16 white rounded-rect, nine-sliced as the `LabeledBar` bar texture; tinted at runtime |
+| `icons/views/*.tga` | White per-view glyphs (+ `logo.tga`) tinted in-game by `IconStrip` |
+| `icons/trending_{up,down}.tga` | White up/down trend arrows for the Overview weekly-gold card |
+| `views/Overview.lua` | Stat strip + Reputations / Achievements / Top Characters modules; expansion `BuildFilter`. Rep bars via `FactionBars` (see below); rows click through to Detail |
+| `views/SummaryColumns.lua` | `SummaryColumn` specs (`getData`/`getFooter` per column) + `SummaryColumnsDelayed()` (appends the DMF column while the faire is open) |
+| `views/summaryCol/*.lua` | One file per Summary column: faction, role, character, level, ilvl, profs, bags, vault, keystone, crests, delves, lumber, cofferKey, caches, rested, played, gold |
+| `views/SummaryView.lua` | Dual `ClassSummary` tables (Alliance/Horde) toggled by a faction `BuildFilter`; cells drive row hover + click-to-Detail |
+| `views/GearView.lua` | Four armor-type tables toggled by `BuildFilter` buttons; per-equipment-slot ilvl + upgrade-track columns |
+| `views/DetailView.lua` | Single-character detail: portrait, stat strip, per-profession intent panels, gear list. Character-picker `BuildFilter`; `Select(toon)` switches subject |
+| `views/RoleView.lua` | `ClassTable` per class, grouped by spec |
+| `views/RaceView.lua` | 13×29 class/race grid (dynamic build), one character per cell; hover + click-to-Detail |
 | `views/Legion.lua` | Hidden artifact appearances + Legion achievements |
-| `views/Midnight.lua` | 54 achievement IDs in multi-column grid |
-| `views/ProfsView.lua` | Top: best skill per expansion grid. Bottom: per-character detail on click |
-| `views/MidnightProfs.lua` | One column per prof, one row per character: Midnight skill + concentration |
-| `views/CraftingView.lua` | One row per crafting prof: Crafter (intent-based), Concentration, Learned Recipe %. Expansion-filter dropdown (Midnight wired) |
+| `views/Midnight.lua` | Midnight achievement grid |
+| `views/ProfsView.lua` | Best-skill-per-expansion grid + per-character detail panel |
+| `views/MidnightProfs.lua` | Profs × characters grid: Midnight skill + concentration |
+| `views/CraftingView.lua` | Crafting profs: main crafter, concentration, learned-recipe %; expansion `BuildFilter` |
 | `views/PlaytimeView.lua` | Per-character playtime breakdown |
-| `window.lua` | `MainWindow` (TitleFrame), `self.iconStrip` (IconStrip nav rail, replaces the old dropdown), `ns:Open()`, `ns:view(name)`. Calls `view:BuildFilter(titlebar)` if defined, anchored left of close button. `Fit()` re-pins the window's TOPLEFT corner so view switches grow down/right, never re-center |
-| `commands.lua` | Registers base `""` (open) + one command per view |
+| `window.lua` | `MainWindow` (TitleFrame) + `IconStrip` rail; `ns:Open()`, `ns:view(name)`; `Fit()` grows the window down/right |
+| `commands.lua` | Registers the base open command + one per view (from `ns.views`) |
 
 ## Views
 
-| name | _title | Parent Class | Key Feature |
-|---|---|---|---|
-| `overview` | Overview | Frame | TopAlts, Factions, Achievements; `BuildFilter` expansion dropdown |
-| `summary` | Summary | Frame | Dual ClassSummary tables (Alliance/Horde) |
-| `gear` | Gear | Frame | 4 armor-type tables toggled by `BuildFilter` buttons, 16 equipment slot columns |
-| `detail` | Detail | Frame | Per-character detail + profession intent editor; `BuildFilter` character picker |
-| `roles` | Roles | Frame | ClassTable per class, grouped by spec |
-| `races` | Races | TableFrame | 13×29 grid, one character per cell (dynamic build); hover + click-to-Detail |
-| `legion` | Legion | Frame | Hidden artifacts + achievements |
-| `midnight` | Midnight | Frame | Achievement grid |
-| `profs` | Professions | Frame | Profession skill grid + detail panel |
-| `midnightprofs` | Midnight Profs | Frame | Profs × characters grid: Midnight skill + concentration |
-| `crafting` | Crafting | Frame | Crafting profs: main crafter, concentration, learned recipe %; `BuildFilter` expansion dropdown |
-| `playtime` | Playtime | Frame | Per-character playtime |
+| name | _title | Parent | Key feature | `BuildFilter` |
+|---|---|---|---|---|
+| `overview` | Overview | Frame | Stat strip, reputations, achievements, top characters | expansion dropdown |
+| `summary` | Summary | Frame | Dual ClassSummary tables (Alliance/Horde) | faction toggle |
+| `detail` | Detail | Frame | Per-character detail + profession-intent editor | character picker |
+| `gear` | Gear | Frame | 4 armor-type tables, per-slot columns | armor-type buttons |
+| `roles` | Roles | Frame | ClassTable per class, grouped by spec | — |
+| `races` | Races | TableFrame | 13×29 grid, one character per cell | — |
+| `profs` | Professions | Frame | Profession skill grid + detail panel | — |
+| `crafting` | Crafting | Frame | Main crafter, concentration, recipe % | expansion dropdown |
+| `midnight` | Midnight | Frame | Achievement grid | — |
+| `legion` | Legion | Frame | Hidden artifacts + achievements | — |
+| `playtime` | Playtime | Frame | Per-character playtime | — |
+| `midnightprofs` | Midnight Profs | Frame | Profs × characters: skill + concentration | — |
 
-Views with a `BuildFilter(parent)` method get a filter widget in the title bar (shown only
-while that view is active): `summary` (faction toggle), `crafting` (expansion dropdown),
-`overview` (expansion dropdown), `detail` (character picker), `gear` (armor-type button strip).
-The two expansion dropdowns share the reusable `ns.FilterDropdown` control; the faction toggle,
-character picker, and armor-type button strip are view-local.
-
-## Overview — Factions Widget
-
-`FactionBars` (Frame subclass; replaced the old `Factions` TableFrame) stacks one `LabeledBar`
-per major faction plus optional subfaction rows. Data is built by the file-local `gatherFactions`
-(not a class). Bar **fill colour = the faction colour**, resolved by `colorFor(id, apiColor, fallback)`:
-`ns.data.factionColors[id]` override → API `factionFontColor.color` → fallback (a subfaction
-falls back to its parent's colour). Maxed
-factions with paragon unlocked show **paragon progress on a darker-faction-colour track** instead
-of the grey base-rep track (`paragonInfo` + `resolveProgress`). A paragon row's value reads
-**"paragon"** in green (like "complete"); hovering the row swaps it to the raw `prog / threshold`
-numbers (`LabeledBar.hoverValue`).
-
-**Constructor options (`FactionBars`):**
-- `expansionLevel` — passed to `C_MajorFactions.GetMajorFactionIDs()`; `10` = TWW, `11` = Midnight
-- `extraFactionIDs` — additional IDs to always include, deduped against the API list (used for Midnight factions not returned by the API: Silvermoon Court `2710`, Slayer's Duellum `2770`)
-- `width` — bar/row width
-
-**Subfaction rendering tiers** (tried in order):
-1. `C_MajorFactions.GetMajorFactionData(id)` returns `renownLevel` → standard major faction renown display
-2. `C_GossipInfo.GetFriendshipReputation(id)` returns `friendshipFactionID > 0` → friendship reputation, shows `currentLevel / maxLevel` from `GetFriendshipReputationRanks` (e.g. Valeera 2744, levels 1–60)
-3. Fallback → `C_Reputation.GetFactionDataByID`, shows `currentStanding / minorFactionMaxStanding[parentID]` (e.g. Silvermoon Court subfactions 2711–2714)
-
-**Midnight faction IDs (expansion 11):**
-- `GetMajorFactionIDs(11)` returns 7 IDs: 4 zone factions, Delves `2742`, Prey `2764`, Ritual `2792`
-- `2710` Silvermoon Court — not in `GetMajorFactionIDs`; added via `extraFactionIDs`. Subfactions: Magisters `2711`, Blood Knights `2712`, Farstriders `2713`, Shades of the Row `2714` (standard rep, max standing 42000)
-- `2742` Delves S1 — in `GetMajorFactionIDs`. Subfaction: Valeera `2744` (friendship rep, `GetMajorFactionData` returns nil for 2744)
-- `2770` Slayer's Duellum — not in `GetMajorFactionIDs`; added via `extraFactionIDs`
-
-**API pitfalls:**
-- `C_MajorFactions.GetMajorFactionData` and `GetMajorFactionRenownInfo` both return nil for Valeera (2744) even though `C_Reputation.IsMajorFaction(2744)` is true. Use `C_GossipInfo.GetFriendshipReputation` instead.
-- `C_Reputation.IsFactionParagon` returns true for many in-progress Midnight factions because paragon caches exist from the start. Do NOT use it to determine if a faction is "done" — use `renownLevel == maxLevel` for major factions and `reaction >= 8` for standard reputation subfactions. `gatherFactions` only consults paragon (`IsFactionParagon` + `GetFactionParagonInfo`) **after** a faction is already at max (`resolveProgress`), so the cache-from-start behaviour is harmless. Paragon `currentValue` accumulates past `threshold` (one bag per multiple); show `currentValue % threshold`, and treat `hasRewardPending` with `prog == 0` as a full bar.
-- Some standard reputation subfactions (e.g. Slayer's Duellum 2770) have a `friendshipFactionID` but with `maxLevel = 1` (dummy/uninitialized). Guard with `rankInfo.maxLevel > 1` before treating as a real friendship rep.
+`BuildFilter(parent)` widgets show in the title bar only while that view is active. The two
+expansion dropdowns share `ns.FilterDropdown`; the faction toggle, character picker, and
+armor-type strip are view-local.
 
 ## MainWindow
 
-Subclasses `TitleFrame`, `special=true`, `level=600`.
-- `self.iconStrip` (IconStrip) — floating icon rail docked just left of the window (`TopRight`→window `TopLeft`, -8px). One glyph per view in `ns.viewOrder` order (unlisted views appended, sorted by title). Replaces the removed titlebar-icon dropdown (`viewSelector`). Clicking a glyph calls `self:view(name)`
-- `MainWindow:view(name)` — hides current, shows named, updates title+size, calls `iconStrip:SetActive(name)`
-- `MainWindow:SavePosition()` / `RestorePosition()` — window is anchored by a single **TOPLEFT** point relative to UIParent (stored in `db.settings.windowPos = {x, y}`) so view changes grow it down/right instead of re-centering. `RestorePosition` (called at end of construction) applies the stored anchor; with none, `SavePosition` freezes the construction-time computed-center into a TOPLEFT anchor and records it. The titlebar drag (`OnMouseUp`) calls `SavePosition` to persist after a move.
-- `ns:Open()` — lazy-creates window on first call
-- `ns:view(name)` — `Open()` then `view(name)`
+Subclasses `TitleFrame`; `special=true`, `level=600`.
+- `self.iconStrip` — `IconStrip` rail docked just left of the window, one glyph per view in `ns.viewOrder` order (unlisted views appended, sorted by title). Clicking a glyph calls `self:view(name)`.
+- `MainWindow:view(name)` — hides current, shows named, updates title+size, calls `iconStrip:SetActive(name)`.
+- Window is anchored by a single **TOPLEFT** point (stored in `db.settings.windowPos`) so view changes grow it down/right instead of re-centering. `SavePosition`/`RestorePosition` persist/apply it; titlebar drag saves on release.
+- `ns:Open()` lazy-creates the window; `ns:view(name)` = `Open()` then `view(name)`.
+
+## Overview — Factions Widget
+
+`FactionBars` (Frame subclass) stacks one `LabeledBar` per major faction plus optional subfaction
+rows; data built by file-local `gatherFactions`. Bar **fill = faction colour**, resolved by
+`colorFor(id, apiColor, fallback)`: `ns.data.factionColors[id]` override → API `factionFontColor` →
+fallback (subfaction falls back to parent). Maxed factions with paragon unlocked show **paragon
+progress on a darker-faction-colour track**; the value reads green **"paragon"**, swapping to raw
+`prog / threshold` on row hover (`LabeledBar.hoverValue`).
+
+**Constructor options:** `expansionLevel` (10=TWW, 11=Midnight; passed to `GetMajorFactionIDs`),
+`extraFactionIDs` (IDs the API omits, e.g. Silvermoon Court `2710`, Slayer's Duellum `2770`), `width`.
+
+**Subfaction tiers** (tried in order): (1) `GetMajorFactionData` → renown; (2)
+`GetFriendshipReputation` with `maxLevel > 1` → friendship rep (e.g. Valeera `2744`); (3)
+`C_Reputation.GetFactionDataByID` → standard standing / `minorFactionMaxStanding[parentID]`.
 
 ## SavedVariables (`WarbandeerDB`)
+
 ```lua
-{ version = 3, settings = { defaultView = integer, tooltipSide = integer, windowPos = { x = number, y = number } },
-  -- per-character, per-profession crafting intent (v2): "main" | "secondary" | "gatherer"
+{ version = 3,
+  settings = { defaultView = int, tooltipSide = int, windowPos = { x, y } },
+  -- per-character, per-profession crafting intent: "main" | "secondary" | "gatherer"
   profIntent = { [charName] = { [skillLineID] = intent } } }
 ```
-`MigrateDB`: v1 seeds `settings.defaultView`; v2 adds `profIntent = {}` (non-destructive); v3 seeds `settings.tooltipSide = 1` (Left). `settings.windowPos` is not migrated — it is written lazily at runtime by `MainWindow:SavePosition` (first window open / drag).
+`MigrateDB`: v1 seeds `settings.defaultView`; v2 adds `profIntent = {}`; v3 seeds `tooltipSide = 1`
+(Left). All migrations are non-destructive. `windowPos` is not migrated — written lazily at runtime.
+
+## Gotchas
+
+- **Decorated table cells must be shallow-copied.** Several `getData` fns return shared table objects (e.g. `faction.lua` → `ns.icons.AllianceLight`); decorating in place chains hover/click wrappers across every row sharing the object and corrupts it globally. SummaryView/GearView/RaceView copy each cell before wrapping.
+- **Row hover/click is cell-driven, not row-driven.** Data cells are mouse-interactive for their per-column tooltips, so a mouse-enabled row would steal those events. `decorateRow` chains onto each cell's `onEnter`/`onLeave`/`onClick`.
+- **`LabeledBar` frame height comes from the body font size, not `nameLabel:GetHeight()`** — a FontString reports `GetHeight()==0` until laid out a frame later, leaving the frame too short to cover/receive mouse over the bar.
+- **`LabeledBar` hover lightens its own fill+track** in addition to the row `highlight` backing, because the opaque bar (a child frame) occludes the highlight overlay.
+- **Faction "done" ≠ `IsFactionParagon`.** Paragon caches exist from the start of Midnight factions. Use `renownLevel == maxLevel` (major) / `reaction >= 8` (standard); only consult paragon *after* max. `GetMajorFactionData`/`GetMajorFactionRenownInfo` return nil for Valeera (2744) despite `IsMajorFaction` — use `GetFriendshipReputation`. Some standard reps (e.g. Slayer's 2770) expose a dummy `friendshipFactionID` with `maxLevel == 1` — guard with `maxLevel > 1`.
+- **Dynamic tables need explicit final width/height** — `addCol`/`addRow` accumulate only column/row spans, not header offsets (RaceView, RoleView).
+- **Icon TGAs are white and tinted in-game**, rasterized from `@material-symbols/svg-400` (32-bit, descriptor 0x08, matching `bar-rounded.tga`) — see the design repo `iconbuild/`. Regenerate there to add view glyphs.

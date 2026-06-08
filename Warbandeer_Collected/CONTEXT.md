@@ -1,37 +1,52 @@
 # Warbandeer_Collected
 
-## TOC
-```
-Interface: 120001, Dependencies: LibNAddOn, LibNUI, Warbandeer_Characters
-SavedVariables: WarbandeerCollectedDB (version 2)
-X-NUI-COMMANDS: /collected, /collect
-X-NUI-COMPARTMENT: WarbandeerCollected_OnAddonCompartmentClick
-X-NUI-API: WarbandeerApi, X-NUI-UI: LibNUI
-```
+**Deps:** LibNAddOn, LibNUI, Warbandeer_Characters · **SavedVars:** `WarbandeerCollectedDB` (v2) · **Commands:** `/collected`, `/collect` (`scan` subcommand) · **Reads:** `WarbandeerApi` · **UI:** LibNUI · **Compartment:** `WarbandeerCollected_OnAddonCompartmentClick`
+
+Transmog set collection tracker. Renders a class × instance-set grid showing, per character, how many appearances of each tier/dungeon set remain uncollected, plus per-character instance lockouts.
 
 ## Files
 
 | File | Purpose |
 |---|---|
-| `init.lua` | Assignment form init, `MigrateDB` (v2: ensures `db.sets/collected/total`) |
-| `commands.lua` | `/collected scan` — iterates `ns.Sets`, calls `C_TransmogSets` APIs |
-| `data/sets.lua` | `ns.Sets` array + `ns.Releases` array (Vanilla through TWW) |
-| `DataView.lua` | TableFrame subclass — lock + name + 13 class columns, 10-shade gradient |
-| `controls/InfoTip.lua` | Per-slot item tooltip (CleanFrame), `ui.ShowInfoTip/HideInfoTip` |
-| `controls/LockoutView.lua` | Character lockout list (CleanFrame), `ns.ShowLockoutView/HideLockoutView` |
-| `window.lua` | MainWindow (TitleFrame), ScrollFrame, counter label, `ns:Open()`, compartment click |
+| `init.lua` | Assignment-form init (`local ns = LibNAddOn(...)`); `MigrateDB` seeds `db.sets`/`collected`/`total`, sets `version = 2` |
+| `commands.lua` | `scan` subcommand — rebuilds `db.sets`/`collected`/`total` from `C_TransmogSets` APIs, refreshes the open window |
+| `data/sets.lua` | `ns.Sets` (set-group array) + `ns.Releases` (expansion names, Vanilla→TWW) |
+| `DataView.lua` | `ns.DataView` (TableFrame subclass) — lock + name + 13 class columns; cell value = uncollected count, tinted by a 10-shade red→green gradient; name click opens `LockoutView` |
+| `controls/InfoTip.lua` | `ns.InfoTip` (CleanFrame) + `ui.ShowInfoTip(group, set, parent, pos)` / `ui.HideInfoTip()` — per-slot source list for a hovered set |
+| `controls/LockoutView.lua` | `ns.LockoutView` (CleanFrame) + `ns.ShowLockoutView(grpIdx, parent, pos)` / `ns.HideLockoutView()` — character list, locked toons red and sorted first |
+| `window.lua` | `MainWindow` (TitleFrame, `special`, `level=580`): DataView + ScrollFrame + `Sets: x / y` counter; `ns:Open()`, `ns:CompartmentClick(btn)` |
 
 ## Data Model (`ns.Sets`)
+
 ```lua
 { id, name, release, instance, difficulty, minLevel?,
-  sets = { { id, name, classId }, {}, ... } }  -- 11-13 entries, indexed by class position
+  sets = { { id, name, classId }, ... } }  -- one entry per class set; id is the base set id
 ```
+`release` indexes `ns.Releases`; `instance`/`difficulty` key into a character's `instances.locks` (from the data layer) for lockout display.
 
-## Scan Logic
-Iterates all groups → `C_TransmogSets.IsBaseSetCollected(set.id)` → if not, `GetSetPrimaryAppearances(set.id)` → stores `{collected, parts, total}`.
+## SavedVariables (`WarbandeerCollectedDB`)
 
-## DB (`WarbandeerCollectedDB`)
 ```lua
-{ version=2, collected, total,
-  sets = { [groupId] = { [setId] = true | {collected, parts, total} } } }
+{ version = 2, collected = int, total = int,
+  sets = { [groupId] = { [setId] = true | { collected, parts, total } } } }
 ```
+- `true` = base set fully collected; otherwise a partial record (`parts` is the raw `GetSetPrimaryAppearances` array).
+- `MigrateDB` is non-destructive: only ensures missing top-level keys exist.
+
+## Scan Logic (`/collected scan`)
+
+Resets the three DB keys, then for each group → each set with an `id`:
+- `C_TransmogSets.IsBaseSetCollected(id)` true → store `true`, bump `collected`.
+- else → `GetSetPrimaryAppearances(id)`, count `p.collected`, store `{ collected, parts, total }`.
+
+`total` accumulates `#grp.sets`. After scanning, refreshes `ns.window.counter` and `ns.window.data`.
+
+## Gotchas
+
+- **Grid cells show *uncollected* count, not collected** — `text = total - collected`, and the gradient shade is keyed by the *collected* fraction (`floor(collected/total*10)`), so a low number on a green cell means nearly done.
+- **InfoTip slot order is fixed** — it walks slots `{1,3,5,6,7,8,9,10}` (Head, Shoulder, Chest, Waist, Legs, Feet, Wrist, Hands), matching `GetSourcesForSlot` against the set's primary `appearanceID`s; collected sources green, missing red.
+- **Lockout state lives in the data layer**, not here — read via `api.GetAllCharacters()` → `toon.instances.locks[group.instance][group.difficulty]`.
+- **`ns:CompartmentClick`**: right-click runs the scan, any other click opens the window.
+- **DataView auto-sizes the name column** at construction from the widest row label, then grows `rowArea`/self to match.
+</content>
+</invoke>
