@@ -1,8 +1,9 @@
 local _, ns = ...
 local ui = ns.ui
--- luacheck: globals DISABLED_FONT_COLOR DIM_GREEN_FONT_COLOR NORMAL_FONT_COLOR
-local Class, Frame, TableFrame, ScrollFrame = ns.lua.Class, ui.Frame, ui.TableFrame, ui.ScrollFrame
+local Class, Frame, TableFrame, ScrollFrame, Texture =
+  ns.lua.Class, ui.Frame, ui.TableFrame, ui.ScrollFrame, ui.Texture
 local Colors = ns.Colors
+local theme = ns.theme
 local insert, sort = table.insert, table.sort
 
 -- Ordered expansion columns (chronological).
@@ -38,19 +39,26 @@ local CHAR_LIST_H   = 180   -- height of the scrollable character-list area
 
 local VIEW_WIDTH    = PROF_COL_W + #EXP_ORDER * EXP_COL_W  -- 638
 
--- Row backdrop colours.
-local TRANSPARENT   = { color = { 0, 0, 0, 0 } }
-local SELECTED_COLOR = { 1, 0.82, 0.2, 0.22 }
-local function rowBgColor(i)
-  return i % 2 == 0 and { 0, 0, 0, 0.4 } or { 0, 0, 0, 0.2 }
-end
+-- Aetheric-Glass tones: transparent rows/columns let the void window surface show
+-- through; the selected grid row reads as a faint gold wash, empty cells dim.
+local TRANSPARENT = { color = { 0, 0, 0, 0 } }
+local SELECTED    = { 1, 0.82, 0, 0.16 }
+local DIM         = { 0.82, 0.776, 0.671, 0.35 } -- muted at low alpha (— cells)
 
 -- ─── Column-info factories ────────────────────────────────────────────────────
+-- Headers are muted + uppercased to match the Aetheric-Glass chrome; columns stay
+-- transparent so the void window surface shows through behind the rows.
 
 local function makeGridColInfo()
-  local cols = { { name = "Profession", width = PROF_COL_W, backdrop = TRANSPARENT, justifyH = ui.justify.Left } }
+  local cols = {
+    -- cells inset via hPadL; the header label insets via the symmetric `padding`
+    -- (left inset only matters under left-justification) so the two line up
+    { name = "PROFESSION", width = PROF_COL_W, backdrop = TRANSPARENT,
+      justifyH = ui.justify.Left, color = theme.colors.muted, hPadL = 8, padding = 8 },
+  }
   for _, abbr in ipairs(EXP_ORDER) do
-    insert(cols, { name = abbr, width = EXP_COL_W, backdrop = TRANSPARENT, justifyH = ui.justify.Left })
+    insert(cols, { name = abbr:upper(), width = EXP_COL_W, backdrop = TRANSPARENT,
+      justifyH = ui.justify.Left, color = theme.colors.muted })
   end
   return cols
 end
@@ -58,10 +66,12 @@ end
 local function makeCharColInfo()
   local cols = {
     { width = ICON_COL_W, backdrop = TRANSPARENT },
-    { name = "Character", width = CHAR_COL_W, backdrop = TRANSPARENT, justifyH = ui.justify.Left },
+    { name = "CHARACTER", width = CHAR_COL_W, backdrop = TRANSPARENT,
+      justifyH = ui.justify.Left, color = theme.colors.muted },
   }
   for _, abbr in ipairs(EXP_ORDER) do
-    insert(cols, { name = abbr, width = EXP_COL_W, backdrop = TRANSPARENT, justifyH = ui.justify.Left })
+    insert(cols, { name = abbr:upper(), width = EXP_COL_W, backdrop = TRANSPARENT,
+      justifyH = ui.justify.Left, color = theme.colors.muted })
   end
   return cols
 end
@@ -73,15 +83,33 @@ local function makeEmptyRow(numCols)
   return r
 end
 
+-- Lazily attach a 1px top divider to a pooled table row (mirrors the other
+-- restyled table views). Returns the texture so callers can show/hide it.
+local function rowDivider(row)
+  if not row._divider then
+    row._divider = Texture:new{
+      parent = row,
+      layer = ui.layer.Overlay,
+      position = {
+        TopLeft = { row, ui.edge.TopLeft, 0, 0 },
+        TopRight = { row, ui.edge.TopRight, 0, 0 },
+        Height = 1,
+      },
+      color = theme.colors.divider,
+    }
+  end
+  return row._divider
+end
+
 -- ─── Cell helpers ─────────────────────────────────────────────────────────────
 
 local function skillCell(best, max, onClick)
   if not best or best == 0 then
-    return { text = "—", color = DISABLED_FONT_COLOR, onClick = onClick }
+    return { text = "—", color = DIM, onClick = onClick }
   end
   return {
     text    = tostring(best),
-    color   = best >= max and DIM_GREEN_FONT_COLOR or NORMAL_FONT_COLOR,
+    color   = best >= max and theme.colors.green or theme.colors.text,
     onClick = onClick,
   }
 end
@@ -154,6 +182,7 @@ local ProfsView = Class(Frame, function(self)
   self.gridTable = TableFrame:new{
     parent   = self,
     colInfo  = makeGridColInfo(),
+    backdrop = TRANSPARENT,
     position = { TopLeft = {} },
   }
 
@@ -163,6 +192,7 @@ local ProfsView = Class(Frame, function(self)
   self.charTable = TableFrame:new{
     parent   = self,
     colInfo  = makeCharColInfo(),
+    backdrop = TRANSPARENT,
     position = { TopLeft = { self.gridTable, ui.edge.BottomLeft, 0, -8 } },
   }
 
@@ -181,13 +211,14 @@ local ProfsView = Class(Frame, function(self)
   self.emptyHint = ui.Label:new{
     parent  = self.charScroll,
     text    = "Select a profession above to view characters",
-    color   = DISABLED_FONT_COLOR,
+    color   = theme.colors.muted,
     position = { Center = {} },
   }
 
   self._selectedRowIdx = nil
   self._visibleProfs   = {}
   self._toons          = nil
+  self._charToons      = {}
   self._charColCount   = 2 + #EXP_ORDER  -- icon + name + expansions
 
   self:Width(VIEW_WIDTH)
@@ -195,6 +226,7 @@ local ProfsView = Class(Frame, function(self)
 end, {
   name   = "profs",
   _title = "Professions",
+  background = theme.colors.window,
 })
 ProfsView.name = "profs"
 ns.views.ProfsView = ProfsView
@@ -213,17 +245,28 @@ end
 -- Highlight the clicked grid row and populate the character list below it.
 ---@param rowIdx integer  index into self._visibleProfs
 function ProfsView:SelectRow(rowIdx)
-  -- Restore the previous row's backdrop.
+  -- Restore the previous row's resting (transparent) backdrop.
   if self._selectedRowIdx then
     local prev = self.gridTable.rows[self._selectedRowIdx]
-    if prev then prev:backdropColor(unpack(rowBgColor(self._selectedRowIdx))) end
+    if prev then prev:backdropColor(0, 0, 0, 0) end
   end
 
   self._selectedRowIdx = rowIdx
   local row = self.gridTable.rows[rowIdx]
-  if row then row:backdropColor(unpack(SELECTED_COLOR)) end
+  if row then row:backdropColor(SELECTED) end
 
   self:RebuildCharList(self._visibleProfs[rowIdx])
+end
+
+-- Resting backdrop for a grid row: gold wash if selected, otherwise transparent.
+function ProfsView:RestoreGridRow(rowIdx)
+  local row = self.gridTable.rows[rowIdx]
+  if not row then return end
+  if self._selectedRowIdx == rowIdx then
+    row:backdropColor(SELECTED)
+  else
+    row:backdropColor(0, 0, 0, 0)
+  end
 end
 
 -- Rebuild the character list for profName; pass nil to clear the list.
@@ -231,12 +274,14 @@ end
 function ProfsView:RebuildCharList(profName)
   local entries = profName and buildCharList(self._toons, profName) or {}
   local current = ns.api.GetCurrentCharacter()
+  self._charToons = {}
 
   -- Build data rows for real characters.
   local rowData = {}
-  for _, entry in ipairs(entries) do
+  for i, entry in ipairs(entries) do
     local toon   = entry.toon
     local detail = entry.detail
+    self._charToons[i] = toon
 
     -- Map expansion abbreviation → data from this character's cached detail.
     local expMap = {}
@@ -259,8 +304,8 @@ function ProfsView:RebuildCharList(profName)
       {
         text    = nameText,
         color   = Colors[toon.classKey],
-        onEnter = function(self)
-          ui.tip:AnchorTo(self, "ANCHOR_BOTTOMRIGHT", -10, 10)
+        onEnter = function(s)
+          ui.tip:AnchorTo(s, "ANCHOR_BOTTOMRIGHT", -10, 10)
           ui.tip:ClearLines()
           ui.tip:AddLine(toon.realm)
           ui.tip:Show()
@@ -275,18 +320,18 @@ function ProfsView:RebuildCharList(profName)
       if exp then
         insert(row, {
           text  = exp.skillLevel,
-          color = exp.skillLevel >= exp.maxSkillLevel and DIM_GREEN_FONT_COLOR or NORMAL_FONT_COLOR,
+          color = exp.skillLevel >= exp.maxSkillLevel and theme.colors.green or theme.colors.text,
         })
       else
-        insert(row, { text = "—", color = DISABLED_FONT_COLOR })
+        insert(row, { text = "—", color = DIM })
       end
     end
 
-    insert(rowData, row)
+    insert(rowData, self:decorateCharRow(row, i, toon))
   end
 
   -- Grow the row pool to cover all real entries (update() would do this too,
-  -- but doing it here lets us set backdrops before the update call).
+  -- but doing it here lets us set backdrops/dividers before the update call).
   for _ = #self.charTable.rows + 1, #entries do
     self.charTable:addRow({})
   end
@@ -297,18 +342,54 @@ function ProfsView:RebuildCharList(profName)
     insert(rowData, emptyRow)
   end
 
-  -- Update backdrops: alternating colours for real rows, transparent for padding.
+  -- Rows stay transparent (the void surface shows through); a thin divider sits
+  -- above each real row, hidden on the empty padding rows.
   for i, tblRow in ipairs(self.charTable.rows) do
-    if i <= #entries then
-      tblRow:backdropColor(unpack(rowBgColor(i)))
-    else
-      tblRow:backdropColor(0, 0, 0, 0)
-    end
+    tblRow:backdropColor(0, 0, 0, 0)
+    rowDivider(tblRow):SetShown(i <= #entries)
   end
 
   self.charTable.data = rowData
   self.charTable:update()
   self.emptyHint:SetShown(#entries == 0)
+end
+
+-- Make every cell in char row `i` drive the row hover highlight and open that
+-- character in the Detail view on click, chaining onto any existing cell handlers
+-- (so the name's realm tooltip keeps working). Each cell is a shallow COPY of the
+-- source data — the faction-icon cell is a shared table object (ns.factionIcon[...]),
+-- so mutating it in place would chain wrappers across every row sharing it.
+---@param cells table  the row's per-column cell data array
+---@param i integer    row index
+---@param toon table   the character this row represents
+---@return table cells
+function ProfsView:decorateCharRow(cells, i, toon)
+  for n, cell in ipairs(cells) do
+    local src = type(cell) == "table" and cell or { text = cell }
+    local copy = {}
+    for k, v in pairs(src) do copy[k] = v end
+    local onEnter, onLeave, onClick = src.onEnter, src.onLeave, src.onClick
+    copy.onEnter = function(s)
+      local row = self.charTable.rows[i]
+      if row then row:backdropColor(theme.colors.hover) end
+      if onEnter then onEnter(s) end
+    end
+    copy.onLeave = function(s)
+      local row = self.charTable.rows[i]
+      if row then row:backdropColor(0, 0, 0, 0) end
+      if onLeave then onLeave(s) end
+    end
+    copy.onClick = function(s)
+      if onClick then onClick(s) end
+      local w = ns.MainWindow
+      if toon and w then
+        w.views.detail:Select(toon)
+        w:view("detail")
+      end
+    end
+    cells[n] = copy
+  end
+  return cells
 end
 
 -- Called automatically by Region:Show() just before the frame becomes visible.
@@ -325,23 +406,35 @@ function ProfsView:OnBeforeShow()
     if data then
       local rowIdx  = #visibleProfs + 1
       local onClick = function() self:SelectRow(rowIdx) end
+      -- Whole row brightens on hover unless it's the selected row.
+      local onEnter = function()
+        if self._selectedRowIdx ~= rowIdx then
+          local row = self.gridTable.rows[rowIdx]
+          if row then row:backdropColor(theme.colors.hover) end
+        end
+      end
+      local onLeave = function() self:RestoreGridRow(rowIdx) end
 
       insert(visibleProfs, profName)
-      local row = { { text = profName, onClick = onClick } }
+      local row = { { text = profName, onClick = onClick, onEnter = onEnter, onLeave = onLeave } }
       for _, abbr in ipairs(EXP_ORDER) do
         local skill = data[abbr]
-        insert(row, skillCell(skill and skill.best, skill and skill.max, onClick))
+        local cell = skillCell(skill and skill.best, skill and skill.max, onClick)
+        cell.onEnter = onEnter
+        cell.onLeave = onLeave
+        insert(row, cell)
       end
       insert(gridRowData, row)
     end
   end
 
-  -- Grow grid row pool; restore alternating backdrops (clears any prior selection highlight).
+  -- Grow grid row pool; rows stay transparent with a divider above each visible one.
   for _ = #self.gridTable.rows + 1, #visibleProfs do
     self.gridTable:addRow({})
   end
   for i, tblRow in ipairs(self.gridTable.rows) do
-    if i <= #visibleProfs then tblRow:backdropColor(unpack(rowBgColor(i))) end
+    tblRow:backdropColor(0, 0, 0, 0)
+    rowDivider(tblRow):SetShown(i <= #visibleProfs)
   end
 
   self.gridTable.data = gridRowData
