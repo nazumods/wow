@@ -11,6 +11,26 @@ local FACTION_COLOR = {
   horde    = {1.0,  0.125, 0.125, 1},
 }
 
+-- Base column layout, built once at load: shallow-copy each column's colInfo with
+-- muted, uppercased text headers to match the Aetheric-Glass chrome (icon-only
+-- columns have no name and are unaffected). The source colInfo is left untouched.
+-- Each ClassSummary instance gets its OWN shallow copy of this list (see :new
+-- below) — addCol mutates self.colInfo in place (the dynamic DMF column), so a
+-- shared table would leak that column into every sibling table built afterwards.
+local BASE_COL_INFO = ns.lua.lists.map(ns.SummaryColumns, function(c, i)
+  local info = {}
+  for k, v in pairs(c.colInfo) do info[k] = v end
+  info.color = theme.colors.muted
+  if info.name and info.name ~= "" then info.name = info.name:upper() end
+  -- inset the outer columns' cells so they don't sit against the table edges
+  if i == 1 then info.hPadL = 8 end
+  -- the right-aligned Gold column also insets its header to match its cells:
+  -- cells use hPadR, headers use the symmetric `padding`, so set both (the
+  -- header's left inset is invisible under right-justification)
+  if i == #ns.SummaryColumns then info.hPadR = 8; info.padding = 8 end
+  return info
+end)
+
 local ClassSummary = Class(TableFrame, function(self)
   ns.SummaryColumnsDelayed(self)
 
@@ -44,22 +64,6 @@ local ClassSummary = Class(TableFrame, function(self)
   self:setFooter(self:GetFooterData(toons))
 end, {
   isAlliance = true,
-  -- Shallow-copy each column's colInfo with muted, uppercased text headers to
-  -- match the Aetheric-Glass chrome (icon-only columns have no name and are
-  -- unaffected). The source colInfo is left untouched (shared with addCol etc).
-  colInfo = ns.lua.lists.map(ns.SummaryColumns, function(c, i)
-    local info = {}
-    for k, v in pairs(c.colInfo) do info[k] = v end
-    info.color = theme.colors.muted
-    if info.name and info.name ~= "" then info.name = info.name:upper() end
-    -- inset the outer columns' cells so they don't sit against the table edges
-    if i == 1 then info.hPadL = 8 end
-    -- the right-aligned Gold column also insets its header to match its cells:
-    -- cells use hPadR, headers use the symmetric `padding`, so set both (the
-    -- header's left inset is invisible under right-justification)
-    if i == #ns.SummaryColumns then info.hPadR = 8; info.padding = 8 end
-    return info
-  end),
   backdrop = {color = ns.Colors.TransparentBlack},
   footerBackdrop = {color = theme.colors.moduleHi},
 })
@@ -164,14 +168,18 @@ local SummaryView = Class(ui.Frame, function(self)
   --   position = { TopLeft = {0, 0}, Width = 12, Height = 12 },
   -- }
 
+  -- Each table gets its own shallow copy of the base columns; addCol (the dynamic
+  -- DMF column) mutates self.colInfo in place, so a shared list would double-add.
   self.alliance = ClassSummary:new{
     parent = self,
     position = { TopLeft = {0, 0} },
+    colInfo = ns.lua.lists.map(BASE_COL_INFO),
   }
   self.horde = ClassSummary:new{
     parent = self,
     position = { TopLeft = {0, 0} },
     isAlliance = false,
+    colInfo = ns.lua.lists.map(BASE_COL_INFO),
   }
 
   self:layout()
