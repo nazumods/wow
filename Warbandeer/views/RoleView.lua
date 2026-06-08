@@ -5,11 +5,48 @@ local ui = ns.ui
 local insert = table.insert
 local Class, Frame, TableFrame, Texture = ns.lua.Class, ui.Frame, ui.TableFrame, ui.Texture
 local Colors = ns.Colors
+local theme = ns.theme
 
 local TransparentBackdrop = {color = Colors.TransparentBlack}
 
-local nameString = function(toon)
-  return (toon.isAlliance and Colors.Strings.Icons.Alliance or Colors.Strings.Icons.Horde) .. " " .. toon.name
+-- Faction crests normalized to a common 16px width (the shared Colors.Strings.Icons
+-- render Alliance at 16 but Horde at 19, so names in a column wouldn't line up across
+-- factions). HeaderSpacer is a same-width transparent inline texture so the spec
+-- header text lines up with the names below it (which are pushed right by the crest).
+local AllianceIcon = "|TInterface\\TargetingFrame\\UI-PVP-ALLIANCE:16:16:0:0:64:64:0:32:0:38|t"
+local HordeIcon    = "|TInterface\\TargetingFrame\\UI-PVP-HORDE:16:16:0:0:64:64:0:38:0:36|t"
+local HeaderSpacer = "|T:16:16:0:0|t "
+
+-- Per-character name cell: faction crest + name, with a hover highlight and
+-- click-through to the Detail view (mirrors GearView/SummaryView). Each name is
+-- its own cell (a spec column stacks one toon per row), so the highlight + click
+-- target the individual character rather than the whole row.
+local function nameCell(toon)
+  return {
+    text = (toon.isAlliance and AllianceIcon or HordeIcon) .. " " .. toon.name,
+    onEnter = function(cell)
+      if not cell._hl then
+        cell._hl = Texture:new{
+          parent = cell,
+          layer = ui.layer.Background,
+          position = { All = true },
+          color = theme.colors.hover,
+        }
+      else
+        cell._hl:Show()
+      end
+    end,
+    onLeave = function(cell)
+      if cell._hl then cell._hl:Hide() end
+    end,
+    onClick = function()
+      local w = ns.MainWindow
+      if w then
+        w.views.detail:Select(toon)
+        w:view("detail")
+      end
+    end,
+  }
 end
 
 local ClassTable = Class(TableFrame, function(self)
@@ -25,7 +62,7 @@ local ClassTable = Class(TableFrame, function(self)
   self.offsetX = self.headerWidth
   self.offsetY = self.headerHeight
   self.rowArea:TopLeft(0, -self.offsetY)
-  
+
   self:addRow({
     name = self.className,
     backdrop = TransparentBackdrop,
@@ -35,9 +72,10 @@ local ClassTable = Class(TableFrame, function(self)
   for i,spec in ipairs(self.specs) do
     specIdx[spec] = i
     self:addCol({
-      name = spec,
+      name = HeaderSpacer .. spec,
       width = 105,
       justifyH = ui.justify.Left,
+      color = theme.colors.muted,
       backdrop = TransparentBackdrop,
     })
   end
@@ -56,7 +94,7 @@ local ClassTable = Class(TableFrame, function(self)
           self:addRow({ backdrop = TransparentBackdrop })
           insert(self.data, {})
         end
-        self.data[counts[idx]][idx] = nameString(t)
+        self.data[counts[idx]][idx] = nameCell(t)
       end
     end
   end
