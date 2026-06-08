@@ -59,7 +59,6 @@ ns.viewOrder = {
   "legion",
   "playtime",
   "midnightprofs",
-  "weekly",
 }
 
 -- https://wowpedia.fandom.com/wiki/Category:HOWTOs

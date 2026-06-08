@@ -57,7 +57,6 @@ views\ProfsView.lua
 views\MidnightProfs.lua
 views\CraftingView.lua
 views\PlaytimeView.lua
-views\WeeklyView.lua
 
 window.lua
 

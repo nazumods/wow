@@ -38,7 +38,6 @@ X-NUI-API: WarbandeerApi, X-NUI-UI: LibNUI
 | `views/MidnightProfs.lua` | One column per prof, one row per character: Midnight skill + concentration |
 | `views/CraftingView.lua` | One row per crafting prof: Crafter (intent-based), Concentration, Learned Recipe %. Expansion-filter dropdown (Midnight wired) |
 | `views/PlaytimeView.lua` | Per-character playtime breakdown |
-| `views/WeeklyView.lua` | Per-character weekly content tracking |
 | `window.lua` | `MainWindow` (TitleFrame), `self.iconStrip` (IconStrip nav rail, replaces the old dropdown), `ns:Open()`, `ns:view(name)`. Calls `view:BuildFilter(titlebar)` if defined, anchored left of close button. `Fit()` re-pins the window's TOPLEFT corner so view switches grow down/right, never re-center |
 | `commands.lua` | Registers base `""` (open) + one command per view |
 
@@ -58,7 +57,6 @@ X-NUI-API: WarbandeerApi, X-NUI-UI: LibNUI
 | `midnightprofs` | Midnight Profs | Frame | Profs × characters grid: Midnight skill + concentration |
 | `crafting` | Crafting | Frame | Crafting profs: main crafter, concentration, learned recipe %; `BuildFilter` expansion dropdown |
 | `playtime` | Playtime | Frame | Per-character playtime |
-| `weekly` | Weekly | Frame | Per-character weekly content |
 
 Views with a `BuildFilter(parent)` method get a filter widget in the title bar (shown only
 while that view is active): `summary` (faction toggle), `crafting` (expansion dropdown),
