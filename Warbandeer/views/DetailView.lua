@@ -433,10 +433,10 @@ function DetailView:OnBeforeShow()
   local hrs = (char.playtime and char.playtime.total and math.floor(char.playtime.total / 3600)) or 0
   self.playCard:Amount(BreakUpLargeNumbers(hrs) .. " hrs", c.text)
 
-  -- Only the two flexible profession slots carry a meaningful crafter/gatherer intent.
+  -- The two flexible slots plus Fishing/Cooking, so a main cook/fisher can be set too.
   local profs = char.basic.professions or {}
   local i = 0
-  for _, slot in ipairs({ "primary", "secondary" }) do
+  for _, slot in ipairs({ "primary", "secondary", "fishing", "cooking" }) do
     local p = profs[slot]
     if p and p.skillID then
       i = i + 1
