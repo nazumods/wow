@@ -255,6 +255,10 @@ function TableFrame:addRow(info)
       Right = {},
       Height = h,
     },
+    -- mirror the constructor's per-row header options so rows added dynamically
+    -- render identically to ones declared up front
+    justifyH = self.rowInfo[n].justifyH,
+    font = self.rowHeaderFont or self.headerFont,
     color = self.rowInfo and self.rowInfo[n].color,
     backdrop = self.rowInfo and self.rowInfo[n].backdrop or self.backdrop or
       {color = {0, 0, 0, math.fmod(n, 2) == 0 and 0.2 or 0}},
