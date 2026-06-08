@@ -30,10 +30,13 @@ ns.Weekly.fields = {
   DMF = {
     ids = ValueList(DMFQuests),
     resetOn = ns.RESET_SUNDAY,
-    get = function()
+    get = function(_, _, current)
+      -- Once completed, stay completed until the Sunday reset clears it.
+      -- An early/transient read (e.g. quest log not yet populated) returns
+      -- false for everything — don't let that wipe a stored completion.
       return any(DMFQuests, function(id)
         return IsQuestFlaggedCompleted(id)
-      end)
+      end) or current
     end,
   },
   preMidnight = {
@@ -90,9 +93,12 @@ ns.Weekly.fields = {
   vault = {
     maxLevel = true,
     resetOn = ns.RESET_WEEKLY,
-    get = function()
+    get = function(_, _, current)
       local rewards = Player:GetRewardOptions()
-      return rewards.best > 0 and rewards or nil
+      -- A transient/early API return can report best == 0; don't wipe
+      -- previously-stored vault data — keep the existing value instead.
+      if rewards.best > 0 then return rewards end
+      return current
     end,
     event = "WEEKLY_REWARDS_UPDATE", -- WEEKLY_REWARDS_ITEM_CHANGED
     eventDelay = 1000,
@@ -122,9 +128,10 @@ ns.Weekly.fields = {
   dungeons = {
     maxLevel = true,
     resetOn = ns.RESET_WEEKLY,
-    get = function()
+    get = function(_, _, current)
       local activities = GetActivities()
-      if not activities then return nil end
+      -- transient/early API return — keep existing data rather than wiping
+      if not activities then return current end
       local done, maxThreshold = 0, 0
       for _, a in ipairs(activities) do
         if a.type == 1 then  -- Enum.WeeklyRewardChestThresholdType.Activities (M+ dungeons)
