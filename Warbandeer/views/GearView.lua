@@ -151,29 +151,23 @@ end
 ---@param toon table
 ---@return table
 function GearTable:GetRowData(toon)
-  return toon.equipment and toon.equipment.slots and {
+  -- 5 leading columns (faction, role, name, level, ilvl) then one cell per gear slot
+  if not (toon.equipment and toon.equipment.slots) then
+    local empty = {}
+    for i = 1, 5 + #ns.gearSlots do empty[i] = "" end
+    return empty
+  end
+  local row = {
     ns.factionIcon[toon.isAlliance],
     toon.basic.specialization and ns.icons[toon.basic.specialization.role] or "",
     getNameString(toon),
     toon.basic.level,
     getILvlString(toon),
-    slotStr(toon.equipment.slots.Head),
-    slotStr(toon.equipment.slots.Neck),
-    slotStr(toon.equipment.slots.Shoulder),
-    slotStr(toon.equipment.slots.Back),
-    slotStr(toon.equipment.slots.Chest),
-    slotStr(toon.equipment.slots.Wrist),
-    slotStr(toon.equipment.slots.Hands),
-    slotStr(toon.equipment.slots.Waist),
-    slotStr(toon.equipment.slots.Legs),
-    slotStr(toon.equipment.slots.Feet),
-    slotStr(toon.equipment.slots.Finger1),
-    slotStr(toon.equipment.slots.Finger2),
-    slotStr(toon.equipment.slots.Trinket1),
-    slotStr(toon.equipment.slots.Trinket2),
-    slotStr(toon.equipment.slots.MainHand),
-    slotStr(toon.equipment.slots.OffHand),
-  } or {"", "", "", "", "", "", "", "", "", "", "", "", "", ""}
+  }
+  for _, slot in ipairs(ns.gearSlots) do
+    row[#row + 1] = slotStr(toon.equipment.slots[slot])
+  end
+  return row
 end
 
 -- Make every cell drive the row hover highlight + click-to-open-Detail, chaining

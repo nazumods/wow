@@ -24,7 +24,7 @@ OOP UI widget library. Every widget wraps a backing WoW object (`self._widget`) 
 | `EditBox.lua` | `EditBox` — text input; `Text` |
 | `ScrollFrame.lua` | `ScrollFrame` — scrollable container; `Child` |
 | `CleanFrame.lua` | `CleanFrame` — styled dark frame with tooltip border (base for windows) |
-| `Cell.lua` | `Cell` — table cell (Frame); renders as Label or Texture, reused across re-sorts via `update` |
+| `Cell.lua` | `Cell` — table cell (Frame); renders as Label or Texture, reused across re-sorts via `update`. Label cell-data keys: `text`, `color`, `justifyH`, `font` (font-object name), `fontInfo` (`{path,size}` tuple, re-applied on reuse) |
 | `TableCol.lua` | `TableCol` — column header (BgFrame); content surfaced as `header.label`/`header.texture` |
 | `TableRow.lua` | `TableRow` — row header strip (BgFrame) |
 | `TableFrame.lua` | `TableFrame` — full data grid (headers + cells); `set`, `addCol`/`addRow`, `update`, `setFooter` |

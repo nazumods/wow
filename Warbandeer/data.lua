@@ -24,6 +24,13 @@ local gearTiers = {
 
 ns.data.gearTiers = gearTiers
 
+-- Canonical gear-slot draw order, shared by the Gear table, the Detail panel, and
+-- the Summary iLvl tooltip. Mirrors the paper-doll layout; Shirt/Tabard are omitted.
+ns.gearSlots = {
+  "Head", "Neck", "Shoulder", "Back", "Chest", "Wrist", "Hands", "Waist",
+  "Legs", "Feet", "Finger1", "Finger2", "Trinket1", "Trinket2", "MainHand", "OffHand",
+}
+
 -- ColorMixin for an item level, by gear tier (mirrors IlvlColor's thresholds).
 function ns.IlvlColorObj(ilvl)
   if ilvl >= gearTiers.hero then return ITEM_LEGENDARY_COLOR

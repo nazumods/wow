@@ -38,6 +38,16 @@ function Label:Text(text)
   return self
 end
 
+-- {path, size[, flags]} tuple (matches the constructor `fontInfo` option). Getter
+-- returns the current font as the same tuple.
+---@param fontInfo table?
+---@return table|Label
+function Label:Font(fontInfo)
+  if not fontInfo then return {self._widget:GetFont()} end
+  self._widget:SetFont(unpack(fontInfo))
+  return self
+end
+
 ---@param justify string?
 ---@return string|Label
 function Label:JustifyH(justify)

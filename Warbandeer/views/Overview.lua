@@ -255,6 +255,7 @@ end, {
         {
           text = toon.basic.level,
           color = NORMAL_FONT_COLOR,
+          fontInfo = ns.theme.fonts.number,
         },
         {
           text = toon.name,
@@ -263,6 +264,7 @@ end, {
         {
           text = ns.IlvlColor(toon.equipment.ilvl),
           justifyH = ui.justify.Right,
+          fontInfo = ns.theme.fonts.number,
         },
       })
     end

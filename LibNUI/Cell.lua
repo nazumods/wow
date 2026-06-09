@@ -48,6 +48,10 @@ function Cell:Label()
   if self.label then
     self.label:Text(data.text)
     if data.color then self.label:Color(data.color) end
+    -- re-apply font: cells are reused across re-sorts, so a cell that previously
+    -- held a value in this column's font must pick it up again (an empty "" cell
+    -- carries no fontInfo, so leave the prior font untouched in that case)
+    if data.fontInfo then self.label:Font(data.fontInfo) end
     -- re-apply justify: cells are reused across re-sorts, so a cell that
     -- previously held left-aligned data must reset when new data is right-aligned
     self.label:JustifyH(data.justifyH or ui.justify.Left)
@@ -57,6 +61,7 @@ function Cell:Label()
       text = data.text,
       color = data.color,
       font = data.font,
+      fontInfo = data.fontInfo,
       position = { All = true },
       justifyH = data.justifyH or ui.justify.Left,
     }

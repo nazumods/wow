@@ -11,14 +11,14 @@ local function formatCrest(c)
   if not c then return "" end
   -- stale DB entries from before the table migration store a bare number
   if type(c) == "number" then
-    return c > 0 and {text = c, justifyH = ui.justify.Center} or ""
+    return c > 0 and {text = c, justifyH = ui.justify.Right} or ""
   end
   if c.quantity == 0 then return "" end
   -- No cell tooltip: the count + cap color already convey everything the
   -- per-cell breakdown did. Header tooltip still explains the column.
   return {
     text     = c.quantity,
-    justifyH = ui.justify.Center,
+    justifyH = ui.justify.Right,
     color    = c.capped and ns.CappedColor or ns.UncappedColor,
   }
 end

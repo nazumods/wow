@@ -24,6 +24,7 @@ table.insert(
       return {
         text = ("%.2f"):format(keys + shardQty / 100),
         justifyH = ui.justify.Right,
+        fontInfo = ns.theme.fonts.number,
         color = shards and shards.capped and ns.CappedColor or ns.UncappedColor,
       }
     end,

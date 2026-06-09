@@ -8,6 +8,6 @@ table.insert(
     name = "Lvl",
     width = 25,
     justifyH = ns.ui.justify.Right,
-    getData = function(t) return { text = t.basic.level, justifyH = ns.ui.justify.Right } end,
+    getData = function(t) return { text = t.basic.level, justifyH = ns.ui.justify.Right, fontInfo = ns.theme.fonts.number } end,
   }
 )

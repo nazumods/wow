@@ -41,12 +41,6 @@ local GEAR_EXTRAS_W = GEAR_COL_GAP + GEAR_ILVL_W + GEAR_COL_GAP + GEAR_TRACK_W
 local function gearInnerW(nameW) return GEAR_LEAD_W + nameW + GEAR_EXTRAS_W end
 local function gearPanelW(nameW) return gearInnerW(nameW) + 2 * GEAR_PAD end
 
--- Slot draw order (mirrors GearView's column order). Shirt/Tabard are skipped.
-local GEAR_SLOTS = {
-  "Head", "Neck", "Shoulder", "Back", "Chest", "Wrist", "Hands", "Waist",
-  "Legs", "Feet", "Finger1", "Finger2", "Trinket1", "Trinket2", "MainHand", "OffHand",
-}
-
 -- Slot → transmog-nav-slot atlas. Only appearance slots have these atlases, so the
 -- non-transmoggable slots (Neck/Finger/Trinket) map to nil and render a blank icon
 -- column (space still reserved so the name column stays aligned across rows).
@@ -453,7 +447,7 @@ function DetailView:OnBeforeShow()
   -- column autosizes to the longest equipped item name (clamped to a min/max).
   local slots = (char.equipment and char.equipment.slots) or {}
   local g, maxNameW = 0, 0
-  for _, slotKey in ipairs(GEAR_SLOTS) do
+  for _, slotKey in ipairs(ns.gearSlots) do
     local item = slots[slotKey]
     if item then
       g = g + 1

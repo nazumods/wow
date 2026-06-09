@@ -17,8 +17,7 @@ local trackColors = {
 local getILvlString = function(toon)
   local lines = {}
   if toon.equipment then
-    local orderedSlots = {"Head", "Neck", "Shoulder", "Back", "Chest", "Wrist", "Hands", "Waist", "Legs", "Feet", "Finger1", "Finger2", "Trinket1", "Trinket2", "MainHand", "OffHand"}
-    for _,value in ipairs(orderedSlots) do
+    for _,value in ipairs(ns.gearSlots) do
       local slot = toon.equipment.slots and toon.equipment.slots[value]
       if slot then
         local suffix = ""
@@ -34,6 +33,7 @@ local getILvlString = function(toon)
   return {
     text = toon.basic.level < ns.wow.maxLevel and ITEM_STANDARD_COLOR:WrapTextInColorCode(toon.equipment.ilvl) or ns.IlvlColor(toon.equipment.ilvl),
     justifyH = ui.justify.Right,
+    fontInfo = ns.theme.fonts.number,
     onEnter = function(self)
       ns.AnchorTip(self)
       ui.tip:ClearLines()

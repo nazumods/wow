@@ -14,8 +14,9 @@ table.insert(
     getData = function(t)
       if not t.currency or not t.currency.gold then return "" end
       return {
-        text = BreakUpLargeNumbers(math.floor(t.currency.gold / 10000)) .. "g",
+        text = BreakUpLargeNumbers(math.floor(t.currency.gold / 10000)),
         justifyH = ui.justify.Right,
+        fontInfo = ns.theme.fonts.number,
         color = {1, 0.82, 0, 1},
       }
     end,
@@ -27,8 +28,9 @@ table.insert(
       end
       if total == 0 then return "" end
       return {
-        text = BreakUpLargeNumbers(math.floor(total / 10000)) .. "g",
+        text = BreakUpLargeNumbers(math.floor(total / 10000)),
         justifyH = ui.justify.Right,
+        fontInfo = ns.theme.fonts.number,
         color = {1, 0.82, 0, 1},
       }
     end,
