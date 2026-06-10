@@ -35,6 +35,21 @@ ns.Currency.fields = {
       }
     end,
   },
+  Catalyst = {
+    id = 3378, -- Dawnlight Manaflux (Catalyst charges): banks 1 per two weeks, no weekly-earn caps
+    get = function(self)
+      local info = GetCurrencyInfo(self.id)
+      if not info then return nil end
+      local max = info.maxQuantity or 0
+      return {
+        quantity = info.quantity or 0,
+        max      = max,
+        capped   = max > 0 and (info.quantity or 0) >= max,
+      }
+    end,
+    event = "CURRENCY_DISPLAY_UPDATE",
+    eventFilter = function(self, _, currencyID) return currencyID == self.id end,
+  },
   HeroDawncrest = {
     id = 3345,
     get = function(self)

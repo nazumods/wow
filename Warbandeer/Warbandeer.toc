@@ -38,6 +38,7 @@ views\summaryCol\bags.lua
 views\summaryCol\vault.lua
 views\summaryCol\keystone.lua
 views\summaryCol\crests.lua
+views\summaryCol\catalyst.lua
 views\summaryCol\delves.lua
 views\summaryCol\lumber.lua
 views\summaryCol\cofferKey.lua
