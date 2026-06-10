@@ -66,6 +66,34 @@ ns.Currency.fields = {
       }
     end,
   },
+  NebulousVoidcore = {
+    id = 3418, -- season-total cap (totalEarned vs maxQuantity) grows by 2 each weekly reset
+    get = function(self)
+      local info = GetCurrencyInfo(self.id)
+      if not info then return {quantity = 0, earned = 0, max = 0, capped = false} end
+      local earned = info.totalEarned or 0
+      local max    = info.maxQuantity or 0
+      return {
+        quantity = info.quantity or 0,
+        earned   = earned,
+        max      = max,
+        capped   = max > 0 and earned >= max,
+      }
+    end,
+    event = "CURRENCY_DISPLAY_UPDATE",
+    eventFilter = function(self, _, currencyID) return currencyID == self.id end,
+    resetOn = ns.RESET_WEEKLY,
+    reset = function(_, toon)
+      local c = toon.currency and toon.currency.NebulousVoidcore
+      if not c then return nil end
+      -- a stale pre-table-shape entry is a bare number holding just the count
+      if type(c) == "number" then
+        return {quantity = c, earned = 0, max = 0, capped = false}
+      end
+      -- the cap grows at reset, so a previously capped character can earn again
+      return {quantity = c.quantity, earned = c.earned, max = c.max, capped = false}
+    end,
+  },
   MythDawncrest = {
     id = 3347,
     get = function(self)

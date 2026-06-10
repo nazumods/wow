@@ -23,7 +23,7 @@ Main viewer UI. Reads the data layer (`ns.api` ← `WarbandeerApi`) and renders 
 | `icons/*.tga` | White 64×64 glyphs for Summary column headers (`crest_hero`, `crest_myth`, `catalyst`, …), tinted muted in-game |
 | `views/Overview.lua` | Stat strip + Reputations / Achievements / Top Characters modules; expansion `BuildFilter`. Rep bars via `FactionBars` (see below); rows click through to Detail |
 | `views/SummaryColumns.lua` | `SummaryColumn` specs (`getData`/`getFooter` per column) + `SummaryColumnsDelayed()` (appends the DMF column while the faire is open) |
-| `views/summaryCol/*.lua` | One file per Summary column: faction, role, character, level, ilvl, profs, bags, vault, keystone, crests, catalyst, delves, lumber, cofferKey, caches, rested, played, gold |
+| `views/summaryCol/*.lua` | One file per Summary column: faction, role, character, level, ilvl, profs, bags, vault, keystone, crests, catalyst, voidcore, delves, lumber, cofferKey, caches, rested, played, gold |
 | `views/SummaryView.lua` | Dual `ClassSummary` tables (Alliance/Horde) toggled by a faction `BuildFilter`; cells drive row hover + click-to-Detail |
 | `views/GearView.lua` | Four armor-type tables toggled by `BuildFilter` buttons; per-equipment-slot ilvl + upgrade-track columns |
 | `views/DetailView.lua` | Single-character detail: portrait, stat strip, per-profession intent panels, gear list. Character-picker `BuildFilter`; `Select(toon)` switches subject; `OnNavigate()` resets to the logged-in character |
