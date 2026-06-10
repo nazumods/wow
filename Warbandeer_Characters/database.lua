@@ -21,6 +21,10 @@ ns:registerCommand("list", "", function(self)
 end, "List all characters")
 
 ns:registerCommand("delete", "", function(self, args)
+  if not ns.db.characters[args] then
+    ns.Print(args .. " not found. Use /wbc list for exact names (case-sensitive).")
+    return
+  end
   ns.db.characters[args] = nil
   ns.db.numCharacters = ns.db.numCharacters - 1
   ns.Print(args .. " deleted.")
