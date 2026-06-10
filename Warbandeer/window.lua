@@ -52,7 +52,13 @@ local MainWindow = Class(TitleFrame, function(self)
   self.iconStrip = IconStrip:new{
     parent = self,
     views = navViews,
-    onSelect = function(name) self:view(name) end,
+    -- direct navigation: let the view reset itself (e.g. Detail re-resolves the
+    -- logged-in character) before it is shown
+    onSelect = function(name)
+      local v = self.views[name]
+      if v.OnNavigate then v:OnNavigate() end
+      self:view(name)
+    end,
     position = { TopRight = {self, ui.edge.TopLeft, -8, 0} },
   }
 
@@ -158,6 +164,9 @@ function ns:view(name)
     return
   end
   self:Open()
+  -- slash commands are direct navigation too — same view reset as the icon rail
+  local v = self.MainWindow.views[name]
+  if v.OnNavigate then v:OnNavigate() end
   self.MainWindow:view(name)
 end
 

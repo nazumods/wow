@@ -26,7 +26,7 @@ Main viewer UI. Reads the data layer (`ns.api` ← `WarbandeerApi`) and renders 
 | `views/summaryCol/*.lua` | One file per Summary column: faction, role, character, level, ilvl, profs, bags, vault, keystone, crests, catalyst, delves, lumber, cofferKey, caches, rested, played, gold |
 | `views/SummaryView.lua` | Dual `ClassSummary` tables (Alliance/Horde) toggled by a faction `BuildFilter`; cells drive row hover + click-to-Detail |
 | `views/GearView.lua` | Four armor-type tables toggled by `BuildFilter` buttons; per-equipment-slot ilvl + upgrade-track columns |
-| `views/DetailView.lua` | Single-character detail: portrait, stat strip, per-profession intent panels, gear list. Character-picker `BuildFilter`; `Select(toon)` switches subject |
+| `views/DetailView.lua` | Single-character detail: portrait, stat strip, per-profession intent panels, gear list. Character-picker `BuildFilter`; `Select(toon)` switches subject; `OnNavigate()` resets to the logged-in character |
 | `views/RoleView.lua` | `ClassTable` per class, grouped by spec |
 | `views/RaceView.lua` | 13×29 class/race grid (dynamic build), one character per cell; hover + click-to-Detail |
 | `views/Legion.lua` | Hidden artifact appearances + Legion achievements |
@@ -62,10 +62,10 @@ armor-type strip are view-local.
 ## MainWindow
 
 Subclasses `TitleFrame`; `special=true`, `level=600`, `theme = ns.theme` (inherited by all window widgets; table headers default to the theme's muted `header` token, so views no longer set header colors explicitly).
-- `self.iconStrip` — `IconStrip` rail docked just left of the window, one glyph per view in `ns.viewOrder` order (unlisted views appended, sorted by title). Clicking a glyph calls `self:view(name)`.
+- `self.iconStrip` — `IconStrip` rail docked just left of the window, one glyph per view in `ns.viewOrder` order (unlisted views appended, sorted by title). Clicking a glyph calls the view's `OnNavigate()` (if defined) then `self:view(name)`.
 - `MainWindow:view(name)` — hides current, shows named, updates title+size, calls `iconStrip:SetActive(name)`.
 - Window is anchored by a single **TOPLEFT** point (stored in `db.settings.windowPos`) so view changes grow it down/right instead of re-centering. `SavePosition`/`RestorePosition` persist/apply it; titlebar drag saves on release.
-- `ns:Open()` lazy-creates the window; `ns:view(name)` = `Open()` then `view(name)`.
+- `ns:Open()` lazy-creates the window; `ns:view(name)` = `Open()` then `OnNavigate()` (if the view defines it) then `view(name)`. Both the icon rail and slash commands count as *direct navigation* and fire `OnNavigate`; row-click paths (`w.views.detail:Select(toon)` + `w:view("detail")`) call `MainWindow:view` directly and skip it, so the clicked character stays selected.
 
 ## Overview — Factions Widget
 
