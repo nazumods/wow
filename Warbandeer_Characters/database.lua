@@ -12,6 +12,12 @@ local Player = ns.wow.Player
 ---@class Warbandeer_Characters
 ---@field db WarbandeerCharactersDB
 
+local function countCharacters(db)
+  local n = 0
+  for _ in pairs(db.characters) do n = n + 1 end
+  return n
+end
+
 ns:registerCommand("list", "", function(self)
   ns.Print("Characters:")
   for n,_ in pairs(ns.db.characters) do
@@ -30,6 +36,20 @@ ns:registerCommand("delete", "", function(self, args)
   ns.Print(args .. " deleted.")
 end, "Delete a character")
 
+-- Explicit, user-invoked repair of stored data (per the DB-compat convention,
+-- cleanup never runs automatically). Currently: recount numCharacters, which
+-- pre-#47 deletes could skew by decrementing on names that didn't exist.
+ns:registerCommand("cleanup", "", function(self)
+  local fixed = 0
+  local n = countCharacters(ns.db)
+  if ns.db.numCharacters ~= n then
+    ns.Print("numCharacters corrected: " .. tostring(ns.db.numCharacters) .. " -> " .. n)
+    ns.db.numCharacters = n
+    fixed = fixed + 1
+  end
+  if fixed == 0 then ns.Print("Nothing to clean.") end
+end, "Repair stored data (recount characters)")
+
 ---@class Character
 ---@field name string
 ---@field classId string
@@ -47,9 +67,7 @@ function ns:MigrateDB()
   if db.version == 8 then return end
   if not db.characters then db.characters = {} end
   if not db.numCharacters then
-    local n = 0
-    for _ in pairs(db.characters) do n = n + 1 end
-    db.numCharacters = n
+    db.numCharacters = countCharacters(db)
   end
   if (db.version or 0) < 7 then
   for _,c in pairs(db.characters) do
