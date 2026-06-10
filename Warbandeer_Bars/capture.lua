@@ -13,19 +13,21 @@ local function BuildSpellOverrides()
   if not (C_SpellBook and C_SpellBook.GetNumSpellBookSkillLines) then return map end
 
   for idx = 1, C_SpellBook.GetNumSpellBookSkillLines() do
-    local info = C_SpellBook.GetSpellBookSkillLineInfo(idx)
-    for i = 1, info.numSpellBookItems do
-      local spellIndex = info.itemIndexOffset + i
-      local spellType, id, spellId = C_SpellBook.GetSpellBookItemType(spellIndex, Enum.SpellBookSpellBank.Player)
-      if spellId then
-        local base = C_Spell.GetOverrideSpell(spellId)
-        if base ~= spellId then map[spellId] = base end
-      elseif spellType == Enum.SpellBookItemType.Flyout then
-        local _, _, numSlots, isKnown = GetFlyoutInfo(id)
-        if isKnown and numSlots > 0 then
-          for k = 1, numSlots do
-            local sid, ovr = GetFlyoutSlotInfo(id, k)
-            if ovr ~= sid then map[ovr] = sid end
+    local info = C_SpellBook.GetSpellBookSkillLineInfo(idx)  -- MayReturnNothing
+    if info then
+      for i = 1, info.numSpellBookItems do
+        local spellIndex = info.itemIndexOffset + i
+        local spellType, id, spellId = C_SpellBook.GetSpellBookItemType(spellIndex, Enum.SpellBookSpellBank.Player)
+        if spellId then
+          local base = C_Spell.GetOverrideSpell(spellId)
+          if base ~= spellId then map[spellId] = base end
+        elseif spellType == Enum.SpellBookItemType.Flyout then
+          local _, _, numSlots, isKnown = GetFlyoutInfo(id)
+          if isKnown and numSlots > 0 then
+            for k = 1, numSlots do
+              local sid, ovr = GetFlyoutSlotInfo(id, k)
+              if ovr ~= sid then map[ovr] = sid end
+            end
           end
         end
       end
