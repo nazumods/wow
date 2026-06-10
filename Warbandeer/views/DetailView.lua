@@ -408,6 +408,16 @@ function DetailView:Select(toon)
   if ns.MainWindow then ns.MainWindow:Fit() end
 end
 
+-- Direct navigation (the rail's Detail glyph or `/wb detail`) always shows the
+-- logged-in character with fresh data; a character picked via Select sticks only
+-- until the user navigates here directly again.
+function DetailView:OnNavigate()
+  self._char = ns.api:GetCharacterData()
+  if self._filter and self._filter.label then
+    self._filter.label:Text(self._char.name .. CHEVRON)
+  end
+end
+
 -- ─── Lifecycle ────────────────────────────────────────────────────────────────
 
 function DetailView:OnBeforeShow()
