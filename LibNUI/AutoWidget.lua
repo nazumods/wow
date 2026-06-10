@@ -26,7 +26,8 @@ local AutoWidget = Class(nil, function(self)
       text = self.label,
       position = self.position or {All = true},
       font = self.font,
-      color = self.color or {1, 1, 1, 1},
+      fontInfo = self.fontInfo,
+      color = self.color or "text",
       justifyH = self.justifyH or ui.justify.Center,
       justifyV = ui.justify.Middle,
     }

@@ -7,13 +7,34 @@ local Class, unpack = ns.lua.Class, unpack
 
 ---@class Region
 ---@field _widget table backing WoW UI widget
+---@field theme Theme? active theme; inherited from the parent widget when not given
 ---@field OnBeforeShow function
 local Region = Class(nil, function(self)
+  -- inherit the theme down the widget tree: passing `theme` once on a top-level
+  -- window styles every child widget created with `parent = <that widget>`
+  if not self.theme and type(self.parent) == "table" then
+    self.theme = self.parent.theme
+  end
   self._widget = self:CreateWidget()
   if self.position then self:Position(self.position) end
   if self.alpha then self:Alpha(self.alpha) end
 end)
 ui.Region = Region
+
+-- The active theme (own, inherited, or the default dark theme).
+---@return Theme
+function Region:Theme()
+  return self.theme or ui.themes.dark
+end
+
+-- Resolve a color option: a token name string looks up the active theme's
+-- colors; anything else (rgba table, ColorMixin, nil) passes through.
+---@param c string|table|nil
+---@return table|nil
+function Region:ThemeColor(c)
+  if type(c) == "string" then return self:Theme().colors[c] end
+  return c
+end
 
 function Region:Parent(parent)
   self._widget:SetParent(parent._widget or parent)

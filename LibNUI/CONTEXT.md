@@ -10,6 +10,7 @@ OOP UI widget library. Every widget wraps a backing WoW object (`self._widget`) 
 |---|---|
 | `globals.lua` | Creates `LibNUI`/`ns.ui`; registers `/nui version` and `/nui test` (loads on-demand `LibNUI_Test`) |
 | `constants.lua` | Enum tables: `ui.edge`, `ui.layer`, `ui.justify`, `ui.wrap`, `ui.fonts` |
+| `Theme.lua` | `ui.themes.dark` (default styling tokens) + `ui.Theme(overrides)` factory for custom themes |
 | `Region.lua` | `Region` — abstract base; anchoring/size/visibility/alpha + declarative `position` system |
 | `Texture.lua` | `Texture` — wraps WoW Texture (atlas, color, coords, nine-slice) |
 | `Label.lua` | `Label` — wraps FontString; `Text`, `Color`, `JustifyH`, `StringWidth` |
@@ -73,9 +74,28 @@ AutoWidget — standalone factory (no parent class)
 | `ui.wrap` | `Clamp`, `Repeat`, `Mirror` |
 | `ui.fonts` | `GameFontHighlight`, `GameFontHighlightSmall`, `SystemFont_Med2` |
 
+## Themes
+
+All built-in widget styling lives in `ui.themes.dark` as named tokens (`colors`, `fonts`, `textures`). Widgets resolve their styling defaults against the **active theme**: the `theme` constructor option, inherited from the parent widget chain, falling back to `ui.themes.dark`. Pass a theme once on a top-level window and every child widget created with `parent = <widget>` inherits it.
+
+```lua
+local myTheme = ui.Theme{               -- unlisted tokens fall back to dark
+  colors = { window = {0.05, 0.05, 0.06, 1}, header = {1, 0.6, 0.4, 1} },
+  fonts  = { title = {path, 16}, header = {path, 11}, body = {path, 13} },
+}
+local win = ui.TitleFrame:new{ title = "Mine", theme = myTheme }
+```
+
+- **Color tokens**: `window`, `border`, `titlebar`, `backdrop`, `tooltip`, `text`, `header`, `muted`, `icon`, `iconHover`, `closeHover`, `tabBar`, `tabActive`, `tabInactive`, `colEven`/`colOdd`, `rowEven`/`rowOdd`, `footer`, `divider`.
+- **Font slots** (fontInfo `{path, size}` tuples; absent = Blizzard font objects as before): `title` (TitleFrame), `header` (table row/col headers), `body` (default Label font).
+- **Texture slots**: `titleIcon`, `closeIcon` (TitleFrame).
+- **Token strings as colors**: any color option (`background`, `color`, `activeColor`, cell `data.color`, …) and `Label:Color`/`Texture:Color`/`Texture:SetVertexColor` accept a token name string (e.g. `background = "window"`), resolved against the widget's active theme.
+- `Region:Theme()` returns the active theme; `Region:ThemeColor(c)` resolves a token-or-table.
+- Always build custom themes via `ui.Theme{}` (raw tables miss the dark fallback metatables).
+
 ## Region (base class)
 
-Constructor calls subclass `CreateWidget()`, then applies `position` and `alpha`.
+Constructor resolves `theme` (own option → parent widget's theme), calls subclass `CreateWidget()`, then applies `position` and `alpha`.
 
 | Method | Description |
 |---|---|

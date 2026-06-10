@@ -80,7 +80,7 @@ local TableFrame = Class(Frame, function(self)
         color = self.colInfo and self.colInfo[i].color,
         tooltip = self.colInfo and self.colInfo[i].tooltip,
         backdrop = self.colInfo and self.colInfo[i].backdrop or self.backdrop or self.colBackdrop or
-          {color = {0, 0, 0, math.fmod(i, 2) == 0 and 0.6 or 0.4}},
+          {color = math.fmod(i, 2) == 0 and "colEven" or "colOdd"},
       })
     end
   end
@@ -112,7 +112,7 @@ local TableFrame = Class(Frame, function(self)
         font = self.rowHeaderFont or self.headerFont,
         color = self.rowInfo and self.rowInfo[i].color,
         backdrop = self.rowInfo and self.rowInfo[i].backdrop or self.backdrop or
-          {color = {0, 0, 0, math.fmod(i, 2) == 0 and 0.2 or 0}}
+          {color = math.fmod(i, 2) == 0 and "rowEven" or "rowOdd"}
       })
     end
   end
@@ -234,7 +234,7 @@ function TableFrame:addCol(info)
     font = self.colHeaderFont or self.headerFont,
     tooltip = self.colInfo and self.colInfo[n].tooltip,
     backdrop = self.colInfo and self.colInfo[n].backdrop or self.backdrop or self.colBackdrop or
-      {color = {0, 0, 0, math.fmod(n, 2) == 0 and 0.6 or 0.4}},
+      {color = math.fmod(n, 2) == 0 and "colEven" or "colOdd"},
   })
   self:Width(self:Width()+w)
   self.rowArea:Width(self.rowArea:Width()+w)
@@ -261,7 +261,7 @@ function TableFrame:addRow(info)
     font = self.rowHeaderFont or self.headerFont,
     color = self.rowInfo and self.rowInfo[n].color,
     backdrop = self.rowInfo and self.rowInfo[n].backdrop or self.backdrop or
-      {color = {0, 0, 0, math.fmod(n, 2) == 0 and 0.2 or 0}},
+      {color = math.fmod(n, 2) == 0 and "rowEven" or "rowOdd"},
   })
   self.rowArea:Height(self.rowArea:Height()+h)
   self:Height(self:Height()+h)
@@ -285,7 +285,7 @@ function TableFrame:setFooter(data)
         Right = {},
         Height = self.footerHeight,
       },
-      backdrop = self.footerBackdrop or {color = {0, 0, 0, 0.2}},
+      backdrop = self.footerBackdrop or {color = "footer"},
     }
     Texture:new{
       parent = self.footerRow,
@@ -295,7 +295,7 @@ function TableFrame:setFooter(data)
         TopRight = {self.footerRow, ui.edge.TopRight, 0, 0},
         Height = 1,
       },
-      color = {255, 255, 255, 0.05},
+      color = "divider",
     }
     self.footerCells = {}
     self:Height(self:Height() + self.footerHeight)

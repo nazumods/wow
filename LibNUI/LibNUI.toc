@@ -13,6 +13,7 @@
 globals.lua
 
 constants.lua
+Theme.lua
 
 # core wrappers
 Region.lua

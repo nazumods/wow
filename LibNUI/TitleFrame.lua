@@ -6,6 +6,7 @@ local TopLeft, TopRight = ui.edge.TopLeft, ui.edge.TopRight
 local Left, Right, Center = ui.edge.Left, ui.edge.Right, ui.edge.Center
 
 local TitleFrame = Class(CleanFrame, function(o)
+  local theme = o:Theme()
   -- title bar
   o.titlebar = Frame:new{
     parent = o,
@@ -16,13 +17,14 @@ local TitleFrame = Class(CleanFrame, function(o)
       Height = 30,
     },
     dragTarget = o._widget,
-    background = {0, 0, 0, 0.5},
+    background = "titlebar",
   }
   o.titlebar.title = Label:new{
     parent = o.titlebar,
     name = "$parentText",
     layer = "OVERLAY",
     font = ui.fonts.SystemFont_Med2,
+    fontInfo = theme.fonts.title,
     position = {
       Left = {o.titlebar, 28, 0},
     },
@@ -43,7 +45,7 @@ local TitleFrame = Class(CleanFrame, function(o)
   o.titlebar.icon.icon = Texture:new{
     parent = o.titlebar.icon,
     layer = ui.layer.Artwork,
-    path = "Interface/Icons/inv_10_tailoring2_banner_green.blp",
+    path = theme.textures.titleIcon,
     coords = {0.1, 0.9, 0.1, 0.9},
     position = { All = true },
   }
@@ -62,12 +64,12 @@ local TitleFrame = Class(CleanFrame, function(o)
   }
   o.closeButton:SetScript("OnClick", function() o:Hide() end)
   o.closeButton:SetScript("OnEnter", function()
-    o.closeButton.icon._widget:SetVertexColor(1, 1, 1, 1)
-    o.closeButton.background._widget:SetColorTexture(1, 0, 0, 0.2)
+    o.closeButton.icon:SetVertexColor("iconHover")
+    o.closeButton.background:Color("closeHover")
   end)
   o.closeButton:SetScript("OnLeave", function()
-    o.closeButton.icon._widget:SetVertexColor(0.7, 0.7, 0.7, 1)
-    o.closeButton.background._widget:SetColorTexture(1, 1, 1, 0)
+    o.closeButton.icon:SetVertexColor("icon")
+    o.closeButton.background:Color(1, 1, 1, 0)
   end)
   o.closeButton.icon = Texture:new{
     parent = o.closeButton,
@@ -76,10 +78,10 @@ local TitleFrame = Class(CleanFrame, function(o)
     position = {
       Center = {o.closeButton, Center},
     },
-    path = "Interface/AddOns/Warbandeer/icons/close.blp",
+    path = theme.textures.closeIcon,
   }
   o.closeButton.icon:Size(10, 10)
-  o.closeButton.icon._widget:SetVertexColor(0.7, 0.7, 0.7, 1)
+  o.closeButton.icon:SetVertexColor("icon")
 end, {
   drag = true,
 })

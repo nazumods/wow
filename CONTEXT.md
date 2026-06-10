@@ -51,7 +51,7 @@ Load the linked `CONTEXT.md` for full file maps, class hierarchies, API surfaces
 | Addon | Summary | Reference |
 |---|---|---|
 | **LibNAddOn** | Bootstrapping factory (`LibNAddOn(features)`), class system, lua utils, event/DB/settings wiring. Every addon depends on it. | [LibNAddOn/CONTEXT.md](LibNAddOn/CONTEXT.md) |
-| **LibNUI** | OOP UI widget library; global `LibNUI` / `ns.ui`. Region→Frame hierarchy: Texture, Label, StatusBar, Button, TableFrame, TitleFrame, TabFrame, Tooltip, settings widgets. | [LibNUI/CONTEXT.md](LibNUI/CONTEXT.md) |
+| **LibNUI** | OOP UI widget library; global `LibNUI` / `ns.ui`. Region→Frame hierarchy: Texture, Label, StatusBar, Button, TableFrame, TitleFrame, TabFrame, Tooltip, settings widgets. Themable via `ui.Theme{}` / `ui.themes.dark`. | [LibNUI/CONTEXT.md](LibNUI/CONTEXT.md) |
 | **Warbandeer_Characters** | Data collection backbone; populates `WarbandeerApi`. Broker system, per-character struct, account-wide warband wealth, `WarbandeerCharDB` (v8). | [Warbandeer_Characters/CONTEXT.md](Warbandeer_Characters/CONTEXT.md) |
 | **Warbandeer** | Main viewer UI (`/warband`, `/wb`). 12 views, MainWindow, faction widget, `profIntent`, `WarbandeerDB` (v3). | [Warbandeer/CONTEXT.md](Warbandeer/CONTEXT.md) |
 | **Warbandeer_Alias** | Guild-chat alias prefix hook. Single file; `Warbandeer_AliasDB` (v1). | [Warbandeer_Alias/CONTEXT.md](Warbandeer_Alias/CONTEXT.md) |

@@ -14,7 +14,15 @@ ui.fonts = ns.lua.maps.toMap({
 
 local Label = Class(Region, function(self)
   if self.fontObj then self._widget:SetFontObject(self.fontObj) end
-  if self.fontInfo then self._widget:SetFont(unpack(self.fontInfo)) end
+  -- fontInfo accepts a theme font slot name ("title", "header", "body") in
+  -- place of a {path, size} tuple; an absent slot leaves the font unchanged
+  if type(self.fontInfo) == "string" then self.fontInfo = self:Theme().fonts[self.fontInfo] end
+  if self.fontInfo then
+    self._widget:SetFont(unpack(self.fontInfo))
+  elseif not self.fontObj and self.font == ui.fonts.GameFontHighlight and self:Theme().fonts.body then
+    -- no explicit font given: a theme `body` font overrides the stock default
+    self._widget:SetFont(unpack(self:Theme().fonts.body))
+  end
   if self.text then self:Text(self.text) end
   if self.color then self:Color(self.color) end
 
@@ -62,6 +70,7 @@ end
 function Label:StringWidth() return self._widget:GetStringWidth() end
 
 function Label:Color(r, g, b, a)
+  if type(r) == "string" then r = self:Theme().colors[r] end
   if type(r) == "table" then
     if r.GetRGBA then
       r, g, b, a = r:GetRGBA()

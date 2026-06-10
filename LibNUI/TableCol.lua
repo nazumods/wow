@@ -44,7 +44,8 @@ local TableCol = Class(BgFrame, function(self)
     -- label
     label = self.label,
     font = self.font,
-    color = self.color or {1, 215/255, 0, 1},
+    fontInfo = not self.font and self:Theme().fonts.header or nil,
+    color = self.color or "header",
     justifyH = self.justifyH or ui.justify.Center,
     justifyV = ui.justify.Middle,
     -- texture

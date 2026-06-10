@@ -33,6 +33,7 @@ ui.Texture = Texture
 function Texture:Atlas(...) self._widget:SetAtlas(...) end
 function Texture:Texture(texture) self._widget:SetTexture(texture) end
 function Texture:Color(r, g, b, a)
+  if type(r) == "string" then r = self:Theme().colors[r] end
   if type(r) == "table" then
     if r.GetRGBA then
       r, g, b, a = r:GetRGBA()
@@ -43,6 +44,7 @@ function Texture:Color(r, g, b, a)
   self._widget:SetColorTexture(r, g, b, a)
 end
 function Texture:SetVertexColor(r, g, b, a)
+  if type(r) == "string" then r = self:Theme().colors[r] end
   if type(r) == "table" then
     if r.GetRGBA then
       r, g, b, a = r:GetRGBA()

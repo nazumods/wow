@@ -49,7 +49,7 @@ local Tooltip = Class(CleanFrame, function(self)
   end
 end, {
   strata = "DIALOG",
-  background = {0, 0, 0, 0.7},
+  background = "tooltip",
   inset = 3,
   lines = {},
   maxWidth = nil,
@@ -204,7 +204,7 @@ function Tooltip:AddLine(text, r, g, b, a)
   if r then
     l.label:Color(r, g, b, a)
   else
-    l.label:Color(1, 1, 1, 1)
+    l.label:Color("text")
   end
 
   -- Width budget for a single text line. With a cap in effect, anything wider

@@ -12,8 +12,8 @@ local BottomLeft, BottomRight = ui.edge.BottomLeft, ui.edge.BottomRight
 ---@field tabs          string[]                           label strings passed at construction
 ---@field tabHeight     number                             height of the tab button bar
 ---@field tabWidth      number                             width of each tab button
----@field activeColor   number[]                           background color of the selected tab button
----@field inactiveColor number[]                           background color of unselected tab buttons
+---@field activeColor   number[]|string                    background color (or theme token) of the selected tab button
+---@field inactiveColor number[]|string                    background color (or theme token) of unselected tab buttons
 ---@field onSelect      fun(self: TabFrame, index: number)?  called when the selected tab changes
 ---@field _tabs         Frame[]                            tab button frames (internal)
 ---@field _panels       Frame[]                            content panel frames (internal)
@@ -31,7 +31,7 @@ local TabFrame = Class(Frame, function(self)
       TopRight = {self, TopRight},
       Height   = tabHeight,
     },
-    background = {0, 0, 0, 0.4},
+    background = "tabBar",
   }
 
   -- content area fills everything below the tab bar
@@ -89,8 +89,8 @@ local TabFrame = Class(Frame, function(self)
 end, {
   tabHeight     = 24,
   tabWidth      = 80,
-  activeColor   = {0.20, 0.40, 0.70, 0.90},
-  inactiveColor = {0.08, 0.08, 0.08, 0.80},
+  activeColor   = "tabActive",
+  inactiveColor = "tabInactive",
 })
 ui.TabFrame = TabFrame
 

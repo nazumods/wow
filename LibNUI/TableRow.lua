@@ -8,6 +8,7 @@ local TableRow = Class(BgFrame, function(self)
     -- label
     label = self.label,
     font = self.font,
+    fontInfo = not self.font and self:Theme().fonts.header or nil,
     color = self.color,
     justifyH = self.justifyH or ui.justify.Center,
     justifyV = ui.justify.Middle,

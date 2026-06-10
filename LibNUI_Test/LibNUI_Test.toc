@@ -9,4 +9,5 @@ init.lua
 table.lua
 table-dynamic.lua
 tab.lua
+theme.lua
 entry.lua

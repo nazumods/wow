@@ -13,7 +13,7 @@ local StatusBar = Class(Frame, function(self)
       name = "$parentBackdrop",
       layer = ui.layer.Background,
       position = { All = true },
-      color = {0, 0, 0, 0.8}
+      color = "backdrop"
     }, self.backdrop))
   end
 

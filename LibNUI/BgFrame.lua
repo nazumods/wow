@@ -10,7 +10,7 @@ local BgFrame = Class(Frame, function(self)
     parent = self,
     layer = ui.layer.Overlay,
     position = { All = true },
-    color = self.backdrop and self.backdrop.color or {0, 0, 0, 0.8},
+    color = self.backdrop and self.backdrop.color or "backdrop",
   }
 end)
 ui.BgFrame = BgFrame
