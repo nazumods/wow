@@ -51,6 +51,9 @@ function ns.getMissingFields(toon)
     if not toon.currency or toon.currency.MythDawncrest == nil then
       table.insert(missing, "myth dawncrest")
     end
+    if not toon.currency or toon.currency.Catalyst == nil then
+      table.insert(missing, "catalyst charges")
+    end
   end
 
   if toon.basic and toon.basic.professions then
