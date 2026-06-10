@@ -74,9 +74,7 @@ local function dump(v, indent, seen)
   seen[v] = true
 
   -- Compact empty tables.
-  local hasAny = false
-  for _ in pairs(v) do hasAny = true; break end
-  if not hasAny then return "{}" end
+  if next(v) == nil then return "{}" end
 
   local lines = {"{"}
   local inner = indent .. "  "

@@ -79,7 +79,7 @@ local Tooltip = Class(CleanFrame, function(self)
 
   -- needs bag
   -- druid needs Deamwalk
-  
+
   self:Height(h)
   self:Width(w)
   self:Hide()

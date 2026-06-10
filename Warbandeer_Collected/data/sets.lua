@@ -140,7 +140,7 @@ tinsert(ns.Sets, {
     { id = 847, name = "Onslaught Armor" },
     { id = 896, name = "Lightbringer Armor" },
     { id = 912, name = "Gronnstalker's Armor" },
-    { id = 888, name = "Slayer's Armor" }, 
+    { id = 888, name = "Slayer's Armor" },
     { id = 351, name = "Absolution Regalia" },
     { },
     { id = 870, name = "Skyshatter Regalia" },
@@ -1298,7 +1298,7 @@ tinsert(ns.Sets, {
 -- battle of dazar'alor 169
 tinsert(ns.Sets, {
   id = 169,
-  name = "Battle of Dazar'alor (Raid Finder)", 
+  name = "Battle of Dazar'alor (Raid Finder)",
   release = 8,
   minLevel = 70,
   sets = {
@@ -1318,7 +1318,7 @@ tinsert(ns.Sets, {
 })
 tinsert(ns.Sets, {
   id = 169,
-  name = "Battle of Dazar'alor (Normal)", 
+  name = "Battle of Dazar'alor (Normal)",
   instance = 2070,
   release = 8,
   minLevel = 70,
@@ -1339,7 +1339,7 @@ tinsert(ns.Sets, {
 })
 tinsert(ns.Sets, {
   id = 169,
-  name = "Battle of Dazar'alor (Heroic)", 
+  name = "Battle of Dazar'alor (Heroic)",
   instance = 2070,
   release = 8,
   minLevel = 70,
@@ -1360,7 +1360,7 @@ tinsert(ns.Sets, {
 })
 tinsert(ns.Sets, {
   id = 169,
-  name = "Battle of Dazar'alor (Mythic)", 
+  name = "Battle of Dazar'alor (Mythic)",
   instance = 2070,
   release = 8,
   minLevel = 70,
@@ -1382,7 +1382,7 @@ tinsert(ns.Sets, {
 -- the eternal palace 172
 tinsert(ns.Sets, {
   id = 172,
-  name = "The Eternal Palace (Raid Finder)", 
+  name = "The Eternal Palace (Raid Finder)",
   instance = 2070,
   release = 8,
   minLevel = 70,
@@ -1403,7 +1403,7 @@ tinsert(ns.Sets, {
 })
 tinsert(ns.Sets, {
   id = 172,
-  name = "The Eternal Palace (Normal)", 
+  name = "The Eternal Palace (Normal)",
   instance = 2070,
   release = 8,
   minLevel = 70,
@@ -1424,7 +1424,7 @@ tinsert(ns.Sets, {
 })
 tinsert(ns.Sets, {
   id = 172,
-  name = "The Eternal Palace (Heroic)", 
+  name = "The Eternal Palace (Heroic)",
   instance = 2070,
   release = 8,
   minLevel = 70,
@@ -1445,7 +1445,7 @@ tinsert(ns.Sets, {
 })
 tinsert(ns.Sets, {
   id = 172,
-  name = "The Eternal Palace (Mythic)", 
+  name = "The Eternal Palace (Mythic)",
   instance = 2070,
   release = 8,
   minLevel = 70,
@@ -1548,7 +1548,7 @@ tinsert(ns.Sets, {
     {id = 1993,name="Treacherous Schemer's Leathers"}, -- classmask=3592,Type=13145,Leather
     {id = 1993,name="Treacherous Schemer's Leathers"}, -- classmask=3592,Type=13145,Leather
   },
-})  
+})
 -- release 9
 -- castle nathria 183
 tinsert(ns.Sets, {
@@ -1578,7 +1578,7 @@ tinsert(ns.Sets, {
   instance = 2296,
   release = 9,
   minLevel = 70,
-  sets = {      
+  sets = {
     {id = 2150,name="Grand Sentinel's Greatplate"}, -- classmask=35,Type=13193,Plate
     {id = 2150,name="Grand Sentinel's Greatplate"}, -- classmask=35,Type=13193,Plate
     {id = 2154,name="Inexorable Castigator's Guise"}, -- classmask=4164,Type=13193,Mail
@@ -1592,7 +1592,7 @@ tinsert(ns.Sets, {
     {id = 2162,name="Sin Slayer's Leathers"}, -- classmask=3592,Type=13193,Leather
     {id = 2162,name="Sin Slayer's Leathers"}, -- classmask=3592,Type=13193,Leather
   },
-})  
+})
 tinsert(ns.Sets, {
   id = 183,
   name = "Castle Nathria (Heroic)",
@@ -1634,7 +1634,7 @@ tinsert(ns.Sets, {
     {id = 2165,name="Sin Slayer's Leathers"}, -- classmask=3592,Type=13145,Leather
     {id = 2165,name="Sin Slayer's Leathers"}, -- classmask=3592,Type=13145,Leather
   },
-})  
+})
 
 -- sanctum of domination 190
 tinsert(ns.Sets, {

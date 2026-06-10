@@ -12,8 +12,6 @@ local rgba = ns.Colors.rgba
 
 local UnrestedGradientStart = rgba(88, 0, 145, 0.5)
 local UnrestedGradientEnd = rgba(154, 8, 252, 0.5)
-local RestedGradientStart = rgba(0, 32, 128, 0.5)
-local RestedGradientEnd = rgba(0, 64, 255, 0.5)
 
 local ExpBar = Class(StatusBar, function(self)
   -- darken top edge of bar

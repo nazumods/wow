@@ -33,7 +33,7 @@ ns.Instances.fields = {
       local locks = {}
       local time = GetServerTime()
       local numLocks = GetNumSavedInstances()
-      for i=1,numLocks do 
+      for i=1,numLocks do
         local name, _, resetSeconds, difficultyId, locked, extended, _, isRaid,
           _, _, numEncounters, encounterProgress, _, instanceID = GetSavedInstanceInfo(i)
         if locked then

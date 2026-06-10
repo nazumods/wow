@@ -2,7 +2,7 @@
 local ns = select(2, ...)
 local ui = ns.ui
 local Class = ns.lua.Class
-local Frame, CheckButton, Label = ui.Frame, ui.CheckButton, ui.Label
+local Frame, CheckButton = ui.Frame, ui.CheckButton
 
 local ToggleSetting = Class(Frame, function(self)
   self._toggle = CheckButton:new{

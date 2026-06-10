@@ -2,16 +2,15 @@
 local ns = select(2, ...)
 local isCollected = C_TransmogSets.IsBaseSetCollected
 local getParts = C_TransmogSets.GetSetPrimaryAppearances
-local Colors = ns.Colors.Strings
 
 ns:registerCommand("scan", "", function()
   ns.db.collected = 0
   ns.db.total = 0
   ns.db.sets = {}
-  for g, grp in ipairs(ns.Sets) do
+  for _, grp in ipairs(ns.Sets) do
     ns.db.sets[grp.id] = ns.db.sets[grp.id] or {}
     ns.db.total = ns.db.total + #grp.sets
-    for s, set in ipairs(grp.sets) do
+    for _, set in ipairs(grp.sets) do
       if set.id then
         if isCollected(set.id) then
           ns.db.sets[grp.id][set.id] = true

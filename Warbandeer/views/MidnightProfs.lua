@@ -314,8 +314,8 @@ function MidnightProfs:OnBeforeShow()
       {
         text    = nameText,
         color   = Colors[toon.classKey],
-        onEnter = function(self)
-          ns.ShowCharacterTooltip(toon, self)
+        onEnter = function(cell)
+          ns.ShowCharacterTooltip(toon, cell)
         end,
         onLeave = ns.HideCharacterTooltip,
       },

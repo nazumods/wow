@@ -18,7 +18,7 @@ function lists.values(...)
   for i=1,select("#", ...) do
     t = select(i, ...)
     if t then
-      for k, v in pairs(t) do
+      for _, v in pairs(t) do
         insert(copy, v)
       end
     end

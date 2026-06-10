@@ -51,7 +51,7 @@ local function CaptureSlots(overrides)
         -- subType means it's a temp macro; resolve real index via cursor
         if subType then
           PickupAction(i)
-          _, index = GetCursorInfo()
+          index = select(2, GetCursorInfo())
           PlaceAction(i)
         end
         entry.index = index

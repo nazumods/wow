@@ -216,10 +216,10 @@ local TopAlts = Class(TableFrame, function(self)
     row:SetScript("OnEnter", function() row.backdrop:Color(theme.colors.hover) end)
     row:SetScript("OnLeave", function() row.backdrop:Color(0, 0, 0, 0) end)
     row:SetScript("OnMouseUp", function()
-      local w = ns.MainWindow
-      if not w then return end
-      w.views.detail:Select(toon)
-      w:view("detail")
+      local win = ns.MainWindow
+      if not win then return end
+      win.views.detail:Select(toon)
+      win:view("detail")
     end)
   end
 end, {

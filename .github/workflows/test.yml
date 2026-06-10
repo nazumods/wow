@@ -41,16 +41,5 @@ jobs:
       - name: Install luacheck
         run: luarocks install luacheck
 
-      # Exit code 1 means warnings only — tolerated for now (the repo carries
-      # ~325 pre-existing warnings). Exit code 2+ (syntax/config errors) fails.
       - name: Run luacheck
-        run: |
-          set +e
-          luacheck . --codes
-          code=$?
-          set -e
-          if [ "$code" -eq 1 ]; then
-            echo "::warning::luacheck reported warnings (not failing the build)"
-            exit 0
-          fi
-          exit "$code"
+        run: luacheck . --codes

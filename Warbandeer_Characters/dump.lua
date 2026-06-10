@@ -48,7 +48,8 @@ ns:registerCommand("stat", "", function(self)
   end
 
   self.Print("Warband Statistics:")
-  print(self.db.numCharacters .. " characters, " .. a .. " alliance, " .. h .. " horde. " .. roundTime(p) .. " played, " .. formatTime(pp, TIME_SHORT) .. " this patch.")
+  print(self.db.numCharacters .. " characters, " .. a .. " alliance, " .. h .. " horde. "
+    .. roundTime(p) .. " played, " .. formatTime(pp, TIME_SHORT) .. " this patch.")
   print("Most played: " .. ft .. " (" .. formatTime(mp) .. ")")
   print("Most played class: " .. cn .. " (" .. formatTime(cp) .. ")")
 end, "Dump current character data")

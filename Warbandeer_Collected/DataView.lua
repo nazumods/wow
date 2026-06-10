@@ -70,12 +70,12 @@ end, {
             text = ns.db.sets[grp.id][set.id].total - ns.db.sets[grp.id][set.id].collected,
             justifyH = ui.justify.Center,
             color = shades[max(1,floor(ns.db.sets[grp.id][set.id].collected / ns.db.sets[grp.id][set.id].total * 10))],
-            onEnter = function(self)
-              ui.ShowInfoTip(grp, set, self, {
-                BottomRight = {self, ui.edge.Top, -2, 2},
+            onEnter = function(cell)
+              ui.ShowInfoTip(grp, set, cell, {
+                BottomRight = {cell, ui.edge.Top, -2, 2},
               })
             end,
-            onLeave = function(self) ui.HideInfoTip() end,
+            onLeave = function() ui.HideInfoTip() end,
           }
       end)
       tinsert(r, 1, {

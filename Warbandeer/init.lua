@@ -176,7 +176,7 @@ function ns:MigrateDB()
   end
 end
 
-function ns:onLoad(self)
+function ns:onLoad()
   ns.api.SettingsCategory = ns.settingsCategory
 end
 

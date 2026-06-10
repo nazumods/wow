@@ -2,7 +2,7 @@
 local ns = select(2, ...)
 local ui, api = ns.ui, ns.api
 local Class = ns.lua.Class
-local CleanFrame, Label, TableFrame, ScrollFrame = ui.CleanFrame, ui.Label, ui.TableFrame, ui.ScrollFrame
+local CleanFrame, TableFrame, ScrollFrame = ui.CleanFrame, ui.TableFrame, ui.ScrollFrame
 
 local LockoutView = Class(CleanFrame, function(self)
   self.data = TableFrame:new{
@@ -31,7 +31,7 @@ local LockoutView = Class(CleanFrame, function(self)
     end,
   }
   self:Width(self.data:Width() + 4)
-  
+
   self.scroll = ScrollFrame:new{
     parent = self,
     position = {
@@ -56,7 +56,7 @@ ns.ShowLockoutView = function(grpIdx, parent, position)
     _view:Hide()
     return
   end
-  
+
   local toons = api.GetAllCharacters()
   table.sort(toons, function(c1, c2)
     local l1 = c1.instances.locks and c1.instances.locks[group.instance] and c1.instances.locks[group.instance][group.difficulty]
@@ -69,7 +69,8 @@ ns.ShowLockoutView = function(grpIdx, parent, position)
   for i,toon in ipairs(toons) do
     _view.data.data[i][1] = toon.basic.level
     _view.data.data[i][2].text = toon.name
-    _view.data.data[i][2].color = toon.instances.locks and toon.instances.locks[group.instance] and toon.instances.locks[group.instance][group.difficulty] and DULL_RED_FONT_COLOR or GREEN_FONT_COLOR
+    _view.data.data[i][2].color = toon.instances.locks and toon.instances.locks[group.instance]
+      and toon.instances.locks[group.instance][group.difficulty] and DULL_RED_FONT_COLOR or GREEN_FONT_COLOR
   end
   _view.data:update()
 

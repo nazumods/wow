@@ -2,18 +2,6 @@
 local ns = select(2, ...)
 local ui = ns.ui
 local Class, Frame, TableFrame = ns.lua.Class, ui.Frame, ui.TableFrame
-local Label = ui.Label
-
-local TransparentBackdrop = {color = ns.Colors.TransparentBlack}
-
-local GreenCheck = {
-  atlas = ns.icons.CheckGreen,
-  atlasSize = false,
-  position = {
-    TopLeft = {3, -2},
-    BottomRight = {-3, 2},
-  },
-}
 
 local achievementIds = {
   61467, 42189, 42188, 42187, 61451, 40953, 41186, 41119, 40894, 40859, 40542, 40504, 40210, 20595, 20501, 19719,

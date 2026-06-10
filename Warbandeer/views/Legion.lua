@@ -2,16 +2,9 @@
 local ns = select(2, ...)
 local ui = ns.ui
 local Class, Frame, TableFrame = ns.lua.Class, ui.Frame, ui.TableFrame
-local Label = ui.Label
 
 ---@type WarbandeerAPI
 local api = ns.api
-
----@type Lists
-local lists = ns.lua.lists
-
----@type Maps
-local maps = ns.lua.maps
 
 local TransparentBackdrop = {color = ns.Colors.TransparentBlack}
 
@@ -46,7 +39,9 @@ ns:registerCommand("check", "legion", function()
     print('Duskwood Touched', C_QuestLog.IsQuestFlaggedCompleted(44330) and "\124cff00ff00Yes\124r" or "\124cffff0000No\124r")
   elseif t.classKey == 'Priest' then
     print('Discipline Hidden Appearance Quests:')
-    for k,v in ipairs({44339,44340,44341,44342,44343,44344,44345,44346,44347,44348,44349,44350}) do print(format("%s: %s",k,C_QuestLog.IsQuestFlaggedCompleted(v) and "\124cff00ff00Yes\124r" or "\124cffff0000No\124r")) end
+    for k,v in ipairs({44339,44340,44341,44342,44343,44344,44345,44346,44347,44348,44349,44350}) do
+      print(format("%s: %s",k,C_QuestLog.IsQuestFlaggedCompleted(v) and "\124cff00ff00Yes\124r" or "\124cffff0000No\124r"))
+    end
   end
 end)
 
@@ -63,8 +58,10 @@ local instructions = {
     Arcane = "Portal into Order Hall, look for sheep emote",
   },
   Monk = {
-    Brewmaster = "Tap " .. DARKYELLOW_FONT_COLOR:WrapTextInColorCode("Bubbling Keg") .. " in " .. DARKYELLOW_FONT_COLOR:WrapTextInColorCode("Brewhouse") .. " in Order Hall",
-    Mistweaver = "Kill ".. DARKYELLOW_FONT_COLOR:WrapTextInColorCode("Dragons of Nightmare") .. " in " .. DARKYELLOW_FONT_COLOR:WrapTextInColorCode("Emerald Nightmare") .. " raid",
+    Brewmaster = "Tap " .. DARKYELLOW_FONT_COLOR:WrapTextInColorCode("Bubbling Keg")
+      .. " in " .. DARKYELLOW_FONT_COLOR:WrapTextInColorCode("Brewhouse") .. " in Order Hall",
+    Mistweaver = "Kill ".. DARKYELLOW_FONT_COLOR:WrapTextInColorCode("Dragons of Nightmare")
+      .. " in " .. DARKYELLOW_FONT_COLOR:WrapTextInColorCode("Emerald Nightmare") .. " raid",
     Windwalker = "Withered Army Training",
   },
   Paladin = {
@@ -123,8 +120,8 @@ function Appearances:GetData()
           color = v and DIM_GREEN_FONT_COLOR or DIM_RED_FONT_COLOR,
         }
         if (not v) and instructions[c] and instructions[c][k] then
-          t.onEnter = function(self)
-            ui.tip:AnchorTo(self, "ANCHOR_BOTTOMRIGHT", -10, 10)
+          t.onEnter = function(cell)
+            ui.tip:AnchorTo(cell, "ANCHOR_BOTTOMRIGHT", -10, 10)
             ui.tip:ClearLines()
             ui.tip:AddLine(instructions[c][k])
             ui.tip:Show()

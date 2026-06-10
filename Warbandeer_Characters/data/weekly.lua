@@ -44,7 +44,7 @@ ns.Weekly.fields = {
     ids = Set{87308,91795},
     resetOn = ns.RESET_WEEKLY,
     get = function(self)
-      return { 
+      return {
         eight = IsQuestFlaggedCompleted(87308),
         three = IsQuestFlaggedCompleted(91795)
       }
@@ -67,7 +67,7 @@ ns.Weekly.fields = {
       --82355, -- Special Assignment: Cinderbee Surge
       --82679, -- Archives: Seeking History
       --89294, -- Karesh special assignment Aligned Views
-      --89293, -- Karesh special assignment 
+      --89293, -- Karesh special assignment
       --85460, -- Ecological Succession Cache 1st completion?
       --87419, -- World Soul Weekly (Delves)
       --91855, -- World Soul Weekly (Karesh World Quests)  looks like these all get flagged completed when one is done.

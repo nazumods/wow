@@ -43,10 +43,10 @@ function maps.fill(destination, ...)
     local t = select(i, ...)
     if t then
       for k, v in pairs(t) do
+        -- Shallow on purpose: existing keys (including sub-tables) are left
+        -- untouched; only maps.merge recurses.
         if destination[k] == nil then
           destination[k] = v
-        elseif type(destination[k]) == "table" and type(v) == "table" then
-          --maps.fill(destination[k], v)
         end
       end
     end

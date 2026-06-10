@@ -112,7 +112,8 @@ table.insert(
     justifyH = ui.justify.Right,
     tooltip = {
       "Profession Gear",
-      "% of max profession-gear score across both primaries (current expansion). Per slot: rarity (1-5) + crafted tier (1-3) = 8 max. 3 slots x 2 primaries = 48 points.",
+      "% of max profession-gear score across both primaries (current expansion)."
+        .. " Per slot: rarity (1-5) + crafted tier (1-3) = 8 max. 3 slots x 2 primaries = 48 points.",
     },
     getData = getProfGearScore,
   }

@@ -4,12 +4,10 @@ local ui = ns.ui
 local Class, find, any = ns.lua.Class, ns.lua.lists.find, ns.lua.maps.any
 local CleanFrame, Label, TableFrame = ui.CleanFrame, ui.Label, ui.TableFrame
 local getParts = C_TransmogSets.GetSetPrimaryAppearances
-local RequestLoadItemData = C_Item.RequestLoadItemDataByID
-local GetItemInfo = C_Item.GetItemInfo
 
 local InfoTip = Class(CleanFrame, function(self)
   local h = 4
-  
+
   self.name = Label:new{
     parent = self,
     position = {
@@ -70,8 +68,6 @@ ui.ShowInfoTip = function(group, set, parent, position)
     _tooltip:Hide()
     return
   end
-  local data = ns.db.sets[group.id][set.id]
-
   _tooltip.name:Text(set.name)
 
   local parts = getParts(set.id)

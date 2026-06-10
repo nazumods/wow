@@ -1,9 +1,5 @@
 ---@type Warbandeer_Characters
 local ns = select(2, ...)
-local Set = ns.lua.sets.Set
-local IsQuestFlaggedCompleted = C_QuestLog.IsQuestFlaggedCompleted -- luacheck: globals C_QuestLog
-
-local Dailies = {}
 
 ---@type Broker
 ns.Daily = ns:RegisterBroker("dailies")

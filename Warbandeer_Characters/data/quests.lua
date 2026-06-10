@@ -3,7 +3,6 @@ local ns = select(2, ...)
 local Set = ns.lua.sets.Set
 local Values = ns.lua.sets.values
 local IsQuestFlaggedCompleted = C_QuestLog.IsQuestFlaggedCompleted
-local IsOnQuest = C_QuestLog.IsOnQuest
 local ReadyForTurnIn = C_QuestLog.ReadyForTurnIn
 
 local FIND_LUMBER_SPELL = 1256697

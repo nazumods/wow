@@ -66,8 +66,8 @@ function Broker:Init(toon)
       field.get_live = function() return toon[broker][name] end
       if field.event then
         if not field.eventHandler then
-          field.eventHandler = function(self, ...)
-            if field.eventFilter and not field.eventFilter(self, ...) then return end
+          field.eventHandler = function(f, ...)
+            if field.eventFilter and not field.eventFilter(f, ...) then return end
             if field.eventDelay then
               _delay(field.eventDelay, function()
                 toon[broker][name] = field:get(toon, toon[broker][name])
@@ -85,7 +85,7 @@ function Broker:Init(toon)
           end)
         end
       end
-      
+
       -- auto-reset for simple fields
       if field.resetOn and not field.reset then
         field.reset = function() return nil end
