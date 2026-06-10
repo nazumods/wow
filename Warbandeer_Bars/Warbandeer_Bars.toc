@@ -2,7 +2,7 @@
 ## Title: Warbandeer Bars
 ## Notes: Headless action bar / keybind / macro / outfit profile tracker (per character + spec)
 ## Author: Nazuraki
-## Version: 12.0.5-r1
+## Version: 12.0.5-r2
 ## Dependencies: LibNAddOn
 ## SavedVariables: WarbandeerBarsDB
 ## SavedVariablesPerCharacter: WarbandeerBarsSettings
