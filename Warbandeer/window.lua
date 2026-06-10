@@ -7,8 +7,6 @@ local ui = ns.ui
 local Class, TitleFrame = ns.lua.Class, ui.TitleFrame
 local IconStrip = ns.IconStrip
 
-local viewIdx = {"overview", "races", "summary", "gear", "detail", "roles"}
-
 local MainWindow = Class(TitleFrame, function(self)
   -- add the contents
   self.views = {}
@@ -63,8 +61,8 @@ local MainWindow = Class(TitleFrame, function(self)
   }
 
   local defaultView = ns.db.settings.defaultView
-  if defaultView and viewIdx[defaultView] then
-    self:view(viewIdx[defaultView])
+  if defaultView and ns.viewKeys[defaultView] then
+    self:view(ns.viewKeys[defaultView])
   end
 
   -- Persist position when the user finishes dragging the titlebar. The base
