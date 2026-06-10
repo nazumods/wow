@@ -1,0 +1,12 @@
+return {
+  default = {
+    -- One entry per addon that has specs. Spec dirs live INSIDE the addon
+    -- folder but are excluded from CurseForge zips (publish.yml) and from
+    -- release change-detection (release.sh).
+    ROOT = {
+      "LibNAddOn/spec",
+    },
+    lpath = "?.lua",
+    verbose = true,
+  },
+}

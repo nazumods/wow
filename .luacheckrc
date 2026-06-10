@@ -1,5 +1,6 @@
 -- ignore unused arguments
 ignore = {"212"}
+files["**/spec/**/*.lua"] = {std = "+busted", read_globals = {"loadfile", "assert", "require", "tostring"}, globals = {"Mixin", "_G.Mixin"}}
 max_line_length = 160
 max_comment_line_length = 500
 std = {

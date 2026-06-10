@@ -1,6 +1,12 @@
 {
   "runtime.version": "Lua 5.1",
   "diagnostics.globals": [
+    "describe",
+    "it",
+    "before_each",
+    "assert",
+    "require",
+
     "floor",
     "format",
     "gsub",

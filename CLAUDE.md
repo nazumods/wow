@@ -6,7 +6,7 @@
 
 ## Project Overview
 
-WoW Retail addon suite by Nazuraki (Interface 120000+). No build step, no package manager. All testing is done in-game via `/reload`.
+WoW Retail addon suite by Nazuraki (Interface 120000+). No build step, no package manager. Testing is done in-game via `/reload`, except WoW-API-free modules which have busted unit tests.
 
 Addons: LibNAddOn, LibNUI, LibNUI_Test, Warbandeer (Characters, main UI, Alias, Collected), ShadowsOfUI-XP, HideStanceBar, HideBagBar, CombatOutline, Recycle.
 
@@ -24,7 +24,7 @@ Addons: LibNAddOn, LibNUI, LibNUI_Test, Warbandeer (Characters, main UI, Alias, 
 | LuaLS annotations | `---@class`, `---@field`, `---@param`, `---@return` |
 | No error handling | WoW API errors surface in-game; no defensive nil-checks on internal invariants |
 | No standalone utilities | Everything belongs on a class or the addon namespace |
-| Testing | In-game only via `/reload` and `/nui test [key]` for UI |
+| Testing | In-game via `/reload` and `/nui test [key]` for UI; busted unit tests in `spec/` for pure-Lua modules (see **Unit Tests** below) |
 
 ## Namespace Imports & Typing
 
@@ -87,6 +87,22 @@ The `## Version:` field in each `.toc` uses the format **`MAJOR.MINOR.PATCH-rREV
 ## File Size
 
 Keep individual files to **200–300 lines maximum**. If a file grows beyond that, split it by responsibility (e.g. separate data, view, and controller concerns into distinct files listed in the `.toc`).
+
+## Unit Tests
+
+WoW-API-free code (currently LibNAddOn's `ns.lua.*` modules) has busted specs in `<addon>/spec/` inside each addon folder. Run the whole suite from the AddOns root:
+
+```
+~\.lua51\bin\busted.bat
+```
+
+- Spec roots are listed in `.busted` at the repo root (`ROOT = {...}`) — add the addon's `spec/` dir there when giving a new addon tests.
+- `LibNAddOn/spec/libn.lua` loads LibNAddOn's pure-Lua files into a fresh `ns` with the WoW addon vararg (and stubs `Mixin`); specs call `libn.load()` per test. File paths in loaders are relative to the AddOns root (busted's cwd).
+- `spec/` dirs are excluded from the publish pipeline in two places — keep both in sync: the CurseForge zip (`publish.yml` `--exclude "${ADDON}/spec/*"`) and release change-detection (`release.sh` pathspec), so tests are never shipped and test-only commits never trigger a release.
+- Spec files are never listed in the `.toc`, so WoW never loads them.
+- Specs are linted via the `files["**/spec/**/*.lua"]` override in `.luacheckrc`.
+- Spec files must be saved **without a UTF-8 BOM** (Lua 5.1's `loadfile` rejects it).
+- CI runs the suite on every PR and push to `main` (`.github/workflows/test.yml`, busted on Lua 5.1). A `luacheck` job runs alongside it: lint **errors** fail the build, warnings are tolerated (pre-existing debt) and surfaced as a workflow annotation.
 
 ## In-Game Debugging
 
