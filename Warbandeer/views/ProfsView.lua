@@ -46,7 +46,7 @@ local SELECTED    = { 1, 0.82, 0, 0.16 }
 local DIM         = { 0.82, 0.776, 0.671, 0.35 } -- muted at low alpha (— cells)
 
 -- ─── Column-info factories ────────────────────────────────────────────────────
--- Headers are muted + uppercased; columns stay
+-- Headers are uppercased (the muted color comes from the theme); columns stay
 -- transparent so the void window surface shows through behind the rows.
 
 local function makeGridColInfo()
@@ -54,11 +54,11 @@ local function makeGridColInfo()
     -- cells inset via hPadL; the header label insets via the symmetric `padding`
     -- (left inset only matters under left-justification) so the two line up
     { name = "PROFESSION", width = PROF_COL_W, backdrop = TRANSPARENT,
-      justifyH = ui.justify.Left, color = theme.colors.muted, hPadL = 8, padding = 8 },
+      justifyH = ui.justify.Left, hPadL = 8, padding = 8 },
   }
   for _, abbr in ipairs(EXP_ORDER) do
     insert(cols, { name = abbr:upper(), width = EXP_COL_W, backdrop = TRANSPARENT,
-      justifyH = ui.justify.Left, color = theme.colors.muted })
+      justifyH = ui.justify.Left })
   end
   return cols
 end
@@ -67,11 +67,11 @@ local function makeCharColInfo()
   local cols = {
     { width = ICON_COL_W, backdrop = TRANSPARENT },
     { name = "CHARACTER", width = CHAR_COL_W, backdrop = TRANSPARENT,
-      justifyH = ui.justify.Left, color = theme.colors.muted },
+      justifyH = ui.justify.Left },
   }
   for _, abbr in ipairs(EXP_ORDER) do
     insert(cols, { name = abbr:upper(), width = EXP_COL_W, backdrop = TRANSPARENT,
-      justifyH = ui.justify.Left, color = theme.colors.muted })
+      justifyH = ui.justify.Left })
   end
   return cols
 end

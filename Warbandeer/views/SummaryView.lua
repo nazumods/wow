@@ -12,15 +12,14 @@ local FACTION_COLOR = {
 }
 
 -- Base column layout, built once at load: shallow-copy each column's colInfo with
--- muted, uppercased text headers (icon-only
--- columns have no name and are unaffected). The source colInfo is left untouched.
+-- uppercased text headers (icon-only columns have no name and are unaffected; the
+-- muted header color comes from the theme). The source colInfo is left untouched.
 -- Each ClassSummary instance gets its OWN shallow copy of this list (see :new
 -- below) — addCol mutates self.colInfo in place (the dynamic DMF column), so a
 -- shared table would leak that column into every sibling table built afterwards.
 local BASE_COL_INFO = ns.lua.lists.map(ns.SummaryColumns, function(c, i)
   local info = {}
   for k, v in pairs(c.colInfo) do info[k] = v end
-  info.color = theme.colors.muted
   if info.name and info.name ~= "" then info.name = info.name:upper() end
   -- inset the outer columns' cells so they don't sit against the table edges
   if i == 1 then info.hPadL = 8 end

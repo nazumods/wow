@@ -73,6 +73,7 @@ local MainWindow = Class(TitleFrame, function(self)
 end, {
   name = ADDON_NAME,
   title = ADDON_NAME,
+  theme = ns.theme, -- inherited by every widget in the window (views, tables, tooltips)
   position = {
     Center = {},
   },

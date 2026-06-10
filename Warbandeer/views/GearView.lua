@@ -38,13 +38,13 @@ local BASE_COLS = {
   { name = "OH",   width = 60, justifyH = ui.justify.Center, backdrop = TRANSPARENT },
 }
 
--- Shallow-copy each column with muted, uppercased headers (icon-only columns have
--- no name and are unaffected). Shared across all four armor tables — GearView never
--- mutates colInfo (no addCol/addRow with custom info), so a single list is safe.
+-- Shallow-copy each column with uppercased headers (icon-only columns have no
+-- name and are unaffected; the muted header color comes from the theme). Shared
+-- across all four armor tables — GearView never mutates colInfo (no
+-- addCol/addRow with custom info), so a single list is safe.
 local COL_INFO = ns.lua.lists.map(BASE_COLS, function(c)
   local info = {}
   for k, v in pairs(c) do info[k] = v end
-  info.color = theme.colors.muted
   if info.name and info.name ~= "" then info.name = info.name:upper() end
   return info
 end)

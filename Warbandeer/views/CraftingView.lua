@@ -59,8 +59,7 @@ local function buildColInfo()
       tooltip = "Learned recipe %" },
   }
   for _, c in ipairs(cols) do
-    c.color = theme.colors.muted
-    c.name  = c.name:upper()
+    c.name = c.name:upper()
   end
   return cols
 end

@@ -138,10 +138,9 @@ ns.SummaryColumnsDelayed = function(view)
     }
     insert(ns.SummaryColumns, ns._dmfColumn)
   end
-  -- match the muted header chrome of the other summary columns (SummaryView mutes
-  -- its colInfo copies; this column is added after that map runs, so mute it here)
+  -- shallow-copy so addCol's stored colInfo entry is never the column's shared
+  -- table (the muted header color now comes from the theme)
   local info = {}
   for k, v in pairs(ns._dmfColumn.colInfo) do info[k] = v end
-  info.color = ns.theme.colors.muted
   view:addCol(info)
 end

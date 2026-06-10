@@ -63,15 +63,13 @@ local RaceView = Class(TableFrame, function(self)
   self.offsetY = self.headerHeight
   self.rowArea:TopLeft(0, -self.offsetY)
 
-  -- class columns: muted header (shared new-style header tone) over a faint
-  -- class-tinted backdrop
+  -- class columns: theme-muted header over a faint class-tinted backdrop
   for _, c in ipairs(Classes) do
     local key = classKeyOf(c)
     self:addCol({
       name = c,
       width = 105,
       justifyH = ui.justify.Center,
-      color = theme.colors.muted,
       backdrop = {color = alpha(Colors[key], 0.06)},
     })
   end

@@ -75,7 +75,6 @@ local ClassTable = Class(TableFrame, function(self)
       name = HeaderSpacer .. spec,
       width = 105,
       justifyH = ui.justify.Left,
-      color = theme.colors.muted,
       backdrop = TransparentBackdrop,
     })
   end

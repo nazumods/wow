@@ -6,13 +6,18 @@ local _, ns = ...
 -- Fonts are bundled in media/fonts/ (Hanken Grotesk display, Geist body, JetBrains
 -- Mono numerals/label-caps), matching the mockup's type system.
 -- `fontInfo` is the {path, size} tuple passed to Label via SetFont.
+--
+-- Built as a LibNUI theme (ui.Theme) and passed once on MainWindow, so every
+-- widget in the window inherits it. Tokens that share a name with LibNUI's
+-- slots (window, border, divider, text, muted, header; fonts title/body)
+-- deliberately override the LibNUI dark defaults inside the window; the rest
+-- (module, hover, gold, …) are Warbandeer-specific and resolve the same way
+-- (e.g. `backdropColor("hover")`). Unset LibNUI tokens fall back to dark.
 
 local FONT = "Interface\\AddOns\\Warbandeer\\media\\fonts\\"
 
----@class Theme
----@field colors table<string, number[]>
----@field fonts table<string, table>
-ns.theme = {
+ns.theme = ns.ui.Theme{
+  name = "void-dark",
   colors = {
     window   = {0.05, 0.05, 0.06, 0}, -- main content surface (void dark)
     module   = {1, 1, 1, 0.05},          -- "glass-module" inner panel
@@ -24,6 +29,7 @@ ns.theme = {
 
     text     = {0.90, 0.886, 0.882, 1},  -- on-surface
     muted    = {0.82, 0.776, 0.671, 1},  -- on-surface-variant / label-caps
+    header   = {0.82, 0.776, 0.671, 1},  -- table column headers (= muted)
 
     gold     = {1, 0.82, 0, 1},          -- primary
     orange   = {1, 0.50, 0, 1},          -- legendary / mythic accent
@@ -32,6 +38,8 @@ ns.theme = {
   },
   -- Bundled fonts (media/fonts/, OFL/Apache): Hanken Grotesk display, Geist body,
   -- JetBrains Mono numerals + label-caps. fontInfo = {path, size} for Label:SetFont.
+  -- `title` and `body` double as the LibNUI slots: the window titlebar renders in
+  -- `title`, and Labels with no explicit font default to `body`.
   fonts = {
     headline = {FONT .. "HankenGrotesk-Bold.ttf", 18},
     title    = {FONT .. "HankenGrotesk-SemiBold.ttf", 16},

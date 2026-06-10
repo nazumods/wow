@@ -10,7 +10,7 @@ Main viewer UI. Reads the data layer (`ns.api` ← `WarbandeerApi`) and renders 
 |---|---|
 | `init.lua` | Addon init (table form) + settings (`defaultView`, `tooltipSide`). Defines `ns.views`, `ns.viewOrder` (nav order), class/race arrays, `MigrateDB`, `onLoad` |
 | `data.lua` | `ns.data` — ilvl/gear-tier color helpers (`IlvlColor`, `IlvlColorObj`), faction color/standing override tables, profession-intent helpers (`GetProfIntent`/`SetProfIntent`, `GetMainCrafter`, `GetProfToons`, `FindProf`, `EstimateConcentration`) |
-| `theme.lua` | `ns.theme` — design tokens: `colors` + `fonts` (`{path,size}` tuples) |
+| `theme.lua` | `ns.theme` — a LibNUI `ui.Theme` ("void-dark"): `colors` + `fonts` (`{path,size}` tuples). Passed on MainWindow, so every widget in the window inherits it; `window`/`border`/`divider`/`text`/`muted`/`header` and fonts `title`/`body` override the LibNUI dark defaults, the rest (`module`, `hover`, `gold`, …) are Warbandeer-specific tokens |
 | `media/fonts/` | Bundled fonts (Hanken Grotesk, Geist, JetBrains Mono) + licenses; loaded by path, not listed in `.toc` |
 | `controls/CharacterTooltip.lua` | `ns.CharacterTooltip` + `ns.ShowCharacterTooltip`/`HideCharacterTooltip`; side-aware anchoring via `ns.TooltipSide()` / `ns.AnchorTip(frame)`. Registered on `ns`, not `ui` |
 | `controls/StatCard.lua` | `ns.StatCard` — summary tile (caption + big mono `amount`, optional `sub` + trend `subIcon`). `Amount(text, color?)` |
@@ -60,7 +60,7 @@ armor-type strip are view-local.
 
 ## MainWindow
 
-Subclasses `TitleFrame`; `special=true`, `level=600`.
+Subclasses `TitleFrame`; `special=true`, `level=600`, `theme = ns.theme` (inherited by all window widgets; table headers default to the theme's muted `header` token, so views no longer set header colors explicitly).
 - `self.iconStrip` — `IconStrip` rail docked just left of the window, one glyph per view in `ns.viewOrder` order (unlisted views appended, sorted by title). Clicking a glyph calls `self:view(name)`.
 - `MainWindow:view(name)` — hides current, shows named, updates title+size, calls `iconStrip:SetActive(name)`.
 - Window is anchored by a single **TOPLEFT** point (stored in `db.settings.windowPos`) so view changes grow it down/right instead of re-centering. `SavePosition`/`RestorePosition` persist/apply it; titlebar drag saves on release.
@@ -95,6 +95,7 @@ progress on a darker-faction-colour track**; the value reads green **"paragon"**
 
 ## Gotchas
 
+- **Don't pass `ns.theme` to free-floating CleanFrames** (e.g. `CharacterTooltip`, parented to UIParent). The theme's `window` token is **alpha 0** — views layer it over the MainWindow surface — so a standalone frame using it as its CleanFrame background turns transparent. MainWindow itself keeps an explicit opaque `background` for the same reason.
 - **Decorated table cells must be shallow-copied.** Several `getData` fns return shared table objects (e.g. `faction.lua` → `ns.icons.AllianceLight`); decorating in place chains hover/click wrappers across every row sharing the object and corrupts it globally. SummaryView/GearView/RaceView copy each cell before wrapping.
 - **Row hover/click is cell-driven, not row-driven.** Data cells are mouse-interactive for their per-column tooltips, so a mouse-enabled row would steal those events. `decorateRow` chains onto each cell's `onEnter`/`onLeave`/`onClick`.
 - **`LabeledBar` frame height comes from the body font size, not `nameLabel:GetHeight()`** — a FontString reports `GetHeight()==0` until laid out a frame later, leaving the frame too short to cover/receive mouse over the bar.
