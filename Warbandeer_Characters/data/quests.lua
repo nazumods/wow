@@ -103,8 +103,3 @@ ns.Quests.fields = {
     event = {"QUEST_TURNED_IN", "QUEST_ACCEPTED", "QUEST_REMOVED", "UNIT_QUEST_LOG_CHANGED"},
   },
 }
-
-function ns:QUEST_TURNED_IN(questId)
-  ns.Print("quest turned in " .. questId)
-end
-ns:registerEvent("QUEST_TURNED_IN")
