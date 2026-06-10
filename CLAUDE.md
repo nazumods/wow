@@ -102,7 +102,7 @@ WoW-API-free code (currently LibNAddOn's `ns.lua.*` modules) has busted specs in
 - Spec files are never listed in the `.toc`, so WoW never loads them.
 - Specs are linted via the `files["**/spec/**/*.lua"]` override in `.luacheckrc`.
 - Spec files must be saved **without a UTF-8 BOM** (Lua 5.1's `loadfile` rejects it).
-- CI runs the suite on every PR and push to `main` (`.github/workflows/test.yml`, busted on Lua 5.1). A `luacheck` job runs alongside it: lint **errors** fail the build, warnings are tolerated (pre-existing debt) and surfaced as a workflow annotation.
+- CI runs the suite on every PR and push to `main` (`.github/workflows/test.yml`, busted on Lua 5.1). A `luacheck` job runs alongside it and is **strict**: any warning fails the build (the repo lints clean — keep it that way).
 
 ## In-Game Debugging
 
