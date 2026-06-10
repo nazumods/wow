@@ -6,6 +6,11 @@ local ns = select(2, ...)
 
 local Views = {"Overview", "Races", "Summary", "Gear", "Detail", "Roles", "Professions"}
 
+-- Parallel view-key list: index i in Views maps to the view name ns.viewKeys[i].
+-- Kept adjacent so the two lists stay in sync. Used by MainWindow to resolve
+-- db.settings.defaultView (a 1-based index) to an actual view name.
+ns.viewKeys = {"overview", "races", "summary", "gear", "detail", "roles", "profs"}
+
 -- Index → side for the character-tooltip anchor (see CharacterTooltip.lua).
 ns.TOOLTIP_SIDES = {"Left", "Right"}
 
