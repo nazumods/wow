@@ -3,6 +3,10 @@ ignore = {"212", "21/_.*"}
 max_line_length = 160
 max_comment_line_length = 500
 
+-- CI installs the Lua toolchain into the workspace (leafo/gh-actions-lua and
+-- -luarocks use .lua/.luarocks/.install); keep `luacheck .` off those trees.
+exclude_files = {".lua", ".luarocks", ".install"}
+
 files["**/spec/**/*.lua"] = {std = "+busted", read_globals = {"loadfile", "assert", "require", "tostring"}, globals = {"Mixin", "_G.Mixin"}}
 -- Addons that intentionally define their own globals.
 files["LibNUI/globals.lua"] = {globals = {"LibNUI"}, read_globals = {"LibNUITest"}}
