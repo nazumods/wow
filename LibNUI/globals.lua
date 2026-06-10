@@ -1,5 +1,7 @@
+---@class LibNUI_AddOn: AddOn
 local ns = LibNAddOn(...)
 
+---@class LibNUI
 ns.ui = {}
 LibNUI = ns.ui
 

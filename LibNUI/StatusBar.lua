@@ -1,4 +1,5 @@
-local _, ns = ...
+---@type LibNUI_AddOn
+local ns = select(2, ...)
 
 local ui = ns.ui
 local Class, unpack, Mixin = ns.lua.Class, unpack, Mixin

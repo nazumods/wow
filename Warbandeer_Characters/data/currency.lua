@@ -1,4 +1,5 @@
-local _, ns = ...
+---@type Warbandeer_Characters
+local ns = select(2, ...)
 local GetCurrencyInfo = C_CurrencyInfo.GetCurrencyInfo -- luacheck: globals C_CurrencyInfo
 local GetMoney = GetMoney -- luacheck: globals GetMoney
 

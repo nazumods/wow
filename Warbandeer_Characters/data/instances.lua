@@ -1,4 +1,5 @@
-local _, ns = ...
+---@type Warbandeer_Characters
+local ns = select(2, ...)
 
 ns:registerCommand("refresh", "locks", function(self)
   self.brokers.instances:Update(self.currentData)

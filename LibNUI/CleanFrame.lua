@@ -1,9 +1,14 @@
-local _, ns = ...
+---@type LibNUI_AddOn
+local ns = select(2, ...)
 local ui = ns.ui
 
 local Class, Frame, unpack = ns.lua.Class, ui.Frame, unpack
 local TopLeft, BottomRight = ui.edge.TopLeft, ui.edge.BottomRight
 
+---@class LibNUI
+---@field CleanFrame CleanFrame
+
+---@class CleanFrame: Frame
 local CleanFrame = Class(Frame, function(self)
   self.border = Frame:new{
     parent = self,

@@ -1,4 +1,5 @@
-local _, ns = ...
+---@type Warbandeer
+local ns = select(2, ...)
 local insert = table.insert
 local ui = ns.ui
 -- luacheck: globals DIM_GREEN_FONT_COLOR DIM_RED_FONT_COLOR NORMAL_FONT_COLOR GetAchievementInfo OpenAchievementFrameToAchievement BreakUpLargeNumbers

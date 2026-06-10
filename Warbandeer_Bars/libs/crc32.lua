@@ -1,7 +1,8 @@
 -- CRC32 for WoW. Original from curseforge forums.
 -- Modified by Boshi Lian <farmer1992@gmail.com>
 
-local _, ns = ...
+---@type Warbandeer_Bars
+local ns = select(2, ...)
 ns.crc32 = {}
 local crc32 = ns.crc32
 

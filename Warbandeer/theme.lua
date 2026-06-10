@@ -1,4 +1,5 @@
-local _, ns = ...
+---@type Warbandeer
+local ns = select(2, ...)
 
 -- Void-Dark theme
 -- Uses translucent dark surfaces + luminous rarity accents.

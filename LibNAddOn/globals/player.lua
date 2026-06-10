@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class LibNAddOn
+local ns = select(2, ...)
 -- luacheck: globals UnitXP UnitXPMax GetXPExhaustion GetRestState UnitClassBase GetProfessions GetProfessionInfo
 -- luacheck: globals GetAverageItemLevel PlayerHasToy UseToy IsSpellKnown C_MountJournal CastSpell UnitExists
 -- luacheck: globals UnitHealth UnitHealthMax InCombatLockdown IsResting UnitPower UnitPowerMax UnitPowerType UnitRace

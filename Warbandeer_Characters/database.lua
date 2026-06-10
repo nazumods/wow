@@ -1,5 +1,5 @@
 ---@type Warbandeer_Characters
-local _, ns = ...
+local ns = select(2, ...)
 local gsub = string.gsub
 local Player = ns.wow.Player
 

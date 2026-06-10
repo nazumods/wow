@@ -1,4 +1,5 @@
-local _, ns = ...
+---@type Warbandeer
+local ns = select(2, ...)
 local ui = ns.ui
 local Class, Frame, TableFrame = ns.lua.Class, ui.Frame, ui.TableFrame
 local Label = ui.Label

@@ -1,4 +1,5 @@
-local _, ns = ...
+---@type LibNUI_AddOn
+local ns = select(2, ...)
 -- luacheck: globals NumberFontNormalSmallGray CreateFont GetCursorInfo
 local ui = ns.ui
 local Class, unpack = ns.lua.Class, unpack

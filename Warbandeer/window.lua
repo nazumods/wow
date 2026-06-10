@@ -1,4 +1,6 @@
-local ADDON_NAME, ns = ...
+local ADDON_NAME = ...
+---@type Warbandeer
+local ns = select(2, ...)
 local ui = ns.ui
 
 -- set up the main addon window

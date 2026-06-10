@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class LibNAddOn
+local ns = select(2, ...)
 local Set = ns.lua.sets.Set
 
 local wow = {

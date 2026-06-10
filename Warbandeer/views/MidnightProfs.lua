@@ -1,4 +1,5 @@
-local _, ns = ...
+---@type Warbandeer
+local ns = select(2, ...)
 local ui = ns.ui
 -- luacheck: globals DISABLED_FONT_COLOR GetServerTime
 local insert, sort, concat, floor = table.insert, table.sort, table.concat, math.floor

@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class LibNAddOn
+local ns = select(2, ...)
 -- luacheck: globals GetItemIcon
 local NumSlots = C_Container.GetContainerNumSlots -- luacheck: globals C_Container
 

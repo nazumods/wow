@@ -1,4 +1,5 @@
-local _, ns = ...
+---@type LibNUI_AddOn
+local ns = select(2, ...)
 local max = math.max
 local ui = ns.ui
 

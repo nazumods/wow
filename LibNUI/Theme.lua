@@ -1,6 +1,11 @@
-local _, ns = ...
+---@type LibNUI_AddOn
+local ns = select(2, ...)
 local ui = ns.ui
 local setmetatable = setmetatable
+
+---@class LibNUI
+---@field Theme fun(t: table?): Theme build a theme from partial overrides
+---@field themes table<string, Theme> themes
 
 ---@class Theme
 ---@field name string?

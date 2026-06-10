@@ -1,4 +1,5 @@
-local _, ns = ...
+---@type Warbandeer_Collected
+local ns = select(2, ...)
 local floor, max = math.floor, math.max
 local ui, api, Colors = ns.ui, ns.api, ns.Colors
 local lists, prepend = ns.lua.lists, ns.lua.lists.prepend

@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class LibNAddOn
+local ns = select(2, ...)
 local insert = table.insert
 local lists = ns.lua.lists
 local CreateColor = CreateColor

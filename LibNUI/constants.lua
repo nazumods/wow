@@ -1,6 +1,13 @@
-local _, ns = ...
+---@type LibNUI_AddOn
+local ns = select(2, ...)
 local ui = ns.ui
 local ToMap = ns.lua.maps.toMap
+
+---@class LibNUI
+---@field edge table edge constants
+---@field layer table layer constants
+---@field wrap table wrap constants
+---@field justify table justify constants
 
 ui.edge = ToMap({
   "Top", "Center", "TopLeft", "TopRight",

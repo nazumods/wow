@@ -8,7 +8,7 @@ local G = _G
 ---@field icons table icon utility functions
 ---@field Colors Colors color utility functions
 ---@field api table? API table for add-on to expose functions to other add-ons
----@field ui table? UI utility functions
+---@field ui LibNUI? UI utility functions
 
 ---@class LibNAddOn
 ---@field linkGlobals fun(addOn: AddOn, features: table) link global variables to addOn

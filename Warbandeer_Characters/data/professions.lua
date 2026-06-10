@@ -1,4 +1,5 @@
-local _, ns = ...
+---@type Warbandeer_Characters
+local ns = select(2, ...)
 local API = ns.api
 local insert = table.insert
 -- luacheck: globals C_TradeSkillUI C_ProfSpecs C_Traits C_Timer C_Item Enum

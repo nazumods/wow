@@ -1,4 +1,5 @@
-local _, ns = ...
+---@type LibNUI_AddOn
+local ns = select(2, ...)
 local ui = ns.ui
 local insert = table.insert
 local Class, Frame, Texture = ns.lua.Class, ui.Frame, ui.Texture

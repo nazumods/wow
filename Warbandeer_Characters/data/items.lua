@@ -1,4 +1,5 @@
-local _, ns = ...
+---@type Warbandeer_Characters
+local ns = select(2, ...)
 local BagID = ns.wow.Player.bags.ItemID
 local Find = ns.lua.lists.find
 local GetNumSlots = ns.wow.Items.GetNumSlots

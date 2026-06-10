@@ -1,5 +1,5 @@
 ---@type Warbandeer_Characters
-local _, ns = ...
+local ns = select(2, ...)
 local GetBuildInfo = GetBuildInfo -- luacheck: globals GetBuildInfo
 
 local patch = false

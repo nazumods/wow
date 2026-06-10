@@ -1,4 +1,5 @@
-local _, ns = ...
+---@type Warbandeer_Characters
+local ns = select(2, ...)
 
 -- register onLogin after brokers are initialized
 ns.onLogin = function(self, login, reload)

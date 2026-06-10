@@ -17,6 +17,14 @@ local TitleFrame = LibNUI.TitleFrame
 local TableFrame = LibNUI.TableFrame
 ```
 
+Inside a LibNAddOn-based addon, the same table is exposed as `ns.ui`. Annotate the alias
+with the `LibNUI` class so the language server links the widget classes:
+
+```lua
+---@type LibNUI
+local ui = ns.ui
+```
+
 ## Core Concepts
 
 ### Construction

@@ -1,6 +1,6 @@
----@class Warbandeer
+---@type Warbandeer
 local ns = select(2, ...)
----@class LibNUI
+---@type LibNUI
 local ui = ns.ui
 local NUM_BAG_SLOTS = NUM_BAG_SLOTS -- luacheck: globals NUM_BAG_SLOTS
 

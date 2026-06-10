@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class LibNAddOn
+local ns = select(2, ...)
 -- luacheck: no max line length
 
 ns.icons = {

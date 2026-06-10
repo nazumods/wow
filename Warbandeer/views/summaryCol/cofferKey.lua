@@ -1,6 +1,6 @@
----@class Warbandeer
+---@type Warbandeer
 local ns = select(2, ...)
----@class LibNUI
+---@type LibNUI
 local ui = ns.ui
 
 -- restored coffer keys (+ shards as fractional, 100 shards = 1 key)

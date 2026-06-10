@@ -1,3 +1,4 @@
+---@class ShadowsOfUI_GCD: AddOn
 local ns = LibNAddOn(...)
 local ui, Class = ns.ui, ns.lua.Class
 local StatusBar, Texture = ui.StatusBar, ui.Texture

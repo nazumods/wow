@@ -1,4 +1,5 @@
-local _, ns = ...
+---@type Warbandeer_Bars
+local ns = select(2, ...)
 local insert, sort = table.insert, table.sort
 
 local GetSpec     = (C_SpecializationInfo and C_SpecializationInfo.GetSpecialization)     or _G.GetSpecialization

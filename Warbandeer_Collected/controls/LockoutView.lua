@@ -1,4 +1,5 @@
-local _, ns = ...
+---@type Warbandeer_Collected
+local ns = select(2, ...)
 local ui, api = ns.ui, ns.api
 local Class = ns.lua.Class
 local CleanFrame, Label, TableFrame, ScrollFrame = ui.CleanFrame, ui.Label, ui.TableFrame, ui.ScrollFrame

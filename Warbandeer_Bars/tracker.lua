@@ -1,4 +1,5 @@
-local _, ns = ...
+---@type Warbandeer_Bars
+local ns = select(2, ...)
 
 -- The tracker always captures FULL fidelity so stored profiles can satisfy any
 -- restore filter later. What a restore actually applies is controlled separately

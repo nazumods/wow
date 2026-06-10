@@ -1,4 +1,5 @@
-local _, ns = ...
+---@type Warbandeer_Bars
+local ns = select(2, ...)
 
 -- Headless data layer: these commands are for inspection/testing only.
 -- The UI lives in a separate addon that consumes WarbandeerBarsApi.

@@ -1,4 +1,5 @@
-local _, ns = ...
+---@type Warbandeer_Characters
+local ns = select(2, ...)
 local GetServerTime = GetServerTime -- luacheck: globals C_CurrencyInfo GetServerTime
 
 ---@class ConcentrationEntry

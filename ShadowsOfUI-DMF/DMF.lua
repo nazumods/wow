@@ -1,3 +1,4 @@
+---@class ShadowsOfUI_DMF: AddOn
 local ns = LibNAddOn(...)
 
 ---@type table<integer, { questId: integer, questItems: table<integer,integer>? }>

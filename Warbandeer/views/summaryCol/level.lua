@@ -1,4 +1,4 @@
----@class Warbandeer
+---@type Warbandeer
 local ns = select(2, ...)
 
 -- level

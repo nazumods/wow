@@ -1,4 +1,5 @@
-local _, ns = ...
+---@type LibNUI_AddOn
+local ns = select(2, ...)
 local ui = ns.ui
 local Class, Button, Label, Texture = ns.lua.Class, ui.Button, ui.Label, ui.Texture
 

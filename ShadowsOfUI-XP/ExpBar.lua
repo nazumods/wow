@@ -1,3 +1,4 @@
+---@class ShadowsOfUI_XP: AddOn
 local ns = LibNAddOn(...)
 local floor = math.floor
 local min = math.min

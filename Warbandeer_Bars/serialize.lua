@@ -1,4 +1,5 @@
-local _, ns = ...
+---@type Warbandeer_Bars
+local ns = select(2, ...)
 
 local base64 = ns.base64
 local crc32  = ns.crc32

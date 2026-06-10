@@ -14,7 +14,7 @@ Addons: LibNAddOn, LibNUI, LibNUI_Test, Warbandeer (Characters, main UI, Alias, 
 
 | Convention | Detail |
 |---|---|
-| Namespace | `local _, ns = ...` in every file |
+| Namespace | Typed import in every file — see **Namespace Imports & Typing** below |
 | Class definition | `local Foo = Class(Parent, function(self) ... end, { defaults })` |
 | Addon init | `LibNAddOn{ name=..., addOn=ns, ... }` (table form) or `local ns = LibNAddOn(...)` (assignment form) |
 | DB migration | `MigrateDB()` auto-called by LibNAddOn on version mismatch |
@@ -25,6 +25,33 @@ Addons: LibNAddOn, LibNUI, LibNUI_Test, Warbandeer (Characters, main UI, Alias, 
 | No error handling | WoW API errors surface in-game; no defensive nil-checks on internal invariants |
 | No standalone utilities | Everything belongs on a class or the addon namespace |
 | Testing | In-game only via `/reload` and `/nui test [key]` for UI |
+
+## Namespace Imports & Typing
+
+Every file imports the addon namespace with a LuaLS annotation so fields link across files.
+
+The setup file (the one that calls `LibNAddOn`):
+
+```lua
+---@class Warbandeer_Characters: AddOn
+local ns = LibNAddOn(...)
+```
+
+All other files:
+
+```lua
+---@type Warbandeer_Characters
+local ns = select(2, ...)
+```
+
+Rules:
+
+- The class name is the addon folder name, with hyphens replaced by underscores (e.g. `ShadowsOfUI_XP`).
+- **LibNUI exception**: the class name `LibNUI` belongs to the widget table `ns.ui` (anchored in `LibNUI/globals.lua`); LibNUI's own namespace class is `LibNUI_AddOn`.
+- LibNAddOn's own files use `---@class LibNAddOn` on the import instead of `---@type`, since they incrementally define the class.
+- Files that add fields to `ns` keep the `---@type` import and re-open the class right before the definitions (`---@class Warbandeer` + `---@field ...` — see `Warbandeer/views/SummaryColumns.lua`).
+- Files that also need the addon name keep it on its own line: `local ADDON_NAME = ...` followed by the annotated `select(2, ...)` import (this includes table-form init files like `CombatOutline/core.lua`).
+- Typed widget-table alias where useful: `---@type LibNUI` above `local ui = ns.ui`.
 
 ## Naming Conventions
 

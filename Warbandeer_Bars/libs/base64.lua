@@ -2,7 +2,8 @@
 -- Licensed under the terms of the LGPL2
 -- Modified for WoW by Boshi Lian <farmer1992@gmail.com>
 
-local _, ns = ...
+---@type Warbandeer_Bars
+local ns = select(2, ...)
 ns.base64 = {}
 local base64 = ns.base64
 

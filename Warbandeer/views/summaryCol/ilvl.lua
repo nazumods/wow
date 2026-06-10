@@ -1,6 +1,6 @@
----@class Warbandeer
+---@type Warbandeer
 local ns = select(2, ...)
----@class LibNUI
+---@type LibNUI
 local ui = ns.ui
 local insert = table.insert
 local ITEM_STANDARD_COLOR = ITEM_STANDARD_COLOR -- luacheck: globals ITEM_STANDARD_COLOR

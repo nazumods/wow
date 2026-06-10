@@ -14,7 +14,16 @@ List it in your `.toc`:
 A minimal example:
 
 ```lua
+---@class MyAddOn: AddOn
 local myAddOn = LibNAddOn(...)
+```
+
+The `---@class MyAddOn: AddOn` annotation types your namespace for the Lua language
+server. Files other than the setup file import the namespace with:
+
+```lua
+---@type MyAddOn
+local myAddOn = select(2, ...)
 ```
 
 ## Options
@@ -22,7 +31,9 @@ local myAddOn = LibNAddOn(...)
 Options can be specified by passing them to the function as table values:
 
 ```lua
-local ADDON_NAME, myAddOn = ...
+local ADDON_NAME = ...
+---@class MyAddOn: AddOn
+local myAddOn = select(2, ...)
 LibNAddOn{
   name = ADDON_NAME,
   addOn = myAddOn,

@@ -1,4 +1,5 @@
-local _, ns = ...
+---@type Warbandeer_Characters
+local ns = select(2, ...)
 local Player = ns.wow.Player
 local RequestLoadItemData = C_Item.RequestLoadItemData -- luacheck: globals C_Item
 local GetItemInfo, GetCurrentItemLevel = C_Item.GetItemInfo, C_Item.GetCurrentItemLevel -- luacheck: globals C_Item

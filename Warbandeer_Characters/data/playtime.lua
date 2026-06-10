@@ -1,4 +1,5 @@
-local _, ns = ...
+---@type Warbandeer_Characters
+local ns = select(2, ...)
 local GetBuildInfo = GetBuildInfo -- luacheck: globals GetBuildInfo
 local RequestTimePlayed = RequestTimePlayed -- luacheck: globals RequestTimePlayed
 

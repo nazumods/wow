@@ -1,4 +1,5 @@
-local _, ns = ...
+---@type Warbandeer
+local ns = select(2, ...)
 local ui = ns.ui
 local Class, Frame, Label, StatusBar, Texture = ns.lua.Class, ui.Frame, ui.Label, ui.StatusBar, ui.Texture
 local theme = ns.theme

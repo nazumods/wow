@@ -1,4 +1,5 @@
-local _, ns = ...
+---@type Warbandeer
+local ns = select(2, ...)
 local Strings = ns.Colors.Strings
 
 ns.data = {}

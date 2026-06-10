@@ -1,3 +1,4 @@
+---@class HideStanceBar: AddOn
 local ns = LibNAddOn(...)
 local SettingsFrame = ns.ui.SettingsFrame
 local Player = ns.wow.Player

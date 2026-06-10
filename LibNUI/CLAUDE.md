@@ -12,7 +12,8 @@
 Follow the established pattern exactly:
 
 ```lua
-local _, ns = ...
+---@type LibNUI_AddOn
+local ns = select(2, ...)
 local ui = ns.ui
 local Class = ns.lua.Class
 local Frame = ui.Frame  -- or whichever parent

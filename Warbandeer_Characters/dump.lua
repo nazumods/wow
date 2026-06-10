@@ -1,4 +1,5 @@
-local _, ns = ...
+---@type Warbandeer_Characters
+local ns = select(2, ...)
 local print = print
 local GetBuildInfo = GetBuildInfo -- luacheck: globals GetBuildInfo
 

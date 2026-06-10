@@ -1,10 +1,15 @@
-local _, ns = ...
+---@type LibNUI_AddOn
+local ns = select(2, ...)
 local ui = ns.ui
 
 local Class, Frame, CleanFrame, Label, Texture = ns.lua.Class, ui.Frame, ui.CleanFrame, ui.Label, ui.Texture
 local TopLeft, TopRight = ui.edge.TopLeft, ui.edge.TopRight
 local Left, Right, Center = ui.edge.Left, ui.edge.Right, ui.edge.Center
 
+---@class LibNUI
+---@field TitleFrame TitleFrame
+
+---@class TitleFrame: CleanFrame
 local TitleFrame = Class(CleanFrame, function(o)
   local theme = o:Theme()
   -- title bar

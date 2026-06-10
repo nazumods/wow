@@ -1,4 +1,5 @@
-local _, ns = ...
+---@type Warbandeer
+local ns = select(2, ...)
 local max = math.max
 local ui = ns.ui
 local lists = ns.lua.lists

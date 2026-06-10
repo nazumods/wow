@@ -1,4 +1,5 @@
-local _, ns = ...
+---@type Warbandeer_Bars
+local ns = select(2, ...)
 
 local PickupSpell   = C_Spell and C_Spell.PickupSpell   or _G.PickupSpell
 local PickupItem    = C_Item  and C_Item.PickupItem      or _G.PickupItem

@@ -1,7 +1,8 @@
-local ADDON_NAME, ns = ...
-local TITLE = C_AddOns.GetAddOnMetadata(ADDON_NAME,"Title")
-local min, max = math.min, math.max
+---@type Warbandeer_Collected
+local ns = select(2, ...)
+---@type LibNUI
 local ui = ns.ui
+local min, max = math.min, math.max
 local Class, TitleFrame, ScrollFrame, Label = ns.lua.Class, ui.TitleFrame, ui.ScrollFrame, ui.Label
 local DataView = ns.DataView
 
@@ -46,8 +47,8 @@ local MainWindow = Class(TitleFrame, function(self)
   self:Height(34 + min(500, self.data:Height()))
   self:Width(w)
 end, {
-  name = ADDON_NAME,
-  title = TITLE,
+  name = ns._NAME,
+  title = ns._TITLE,
   position = {
     Center = {},
   },

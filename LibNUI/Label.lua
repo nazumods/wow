@@ -1,9 +1,13 @@
-local _, ns = ...
+---@type LibNUI_AddOn
+local ns = select(2, ...)
 local ui = ns.ui
 
 local unpack = unpack
 local Class = ns.lua.Class
 local Region = ui.Region
+
+---@class LibNUI
+---@field Label Label
 
 -- https://github.com/Gethe/wow-ui-source/blob/5076663b5454de9e7522320994ea7cc15b2a961c/Interface/AddOns/Blizzard_FontStyles_Shared/SharedFontStyles.xml
 -- https://github.com/Gethe/wow-ui-source/blob/5076663b5454de9e7522320994ea7cc15b2a961c/Interface/AddOns/Blizzard_FontStyles_Frame/Mainline/FontStyles.xml
@@ -12,6 +16,7 @@ ui.fonts = ns.lua.maps.toMap({
   "SystemFont_Med2",
 })
 
+---@class Label: Region
 local Label = Class(Region, function(self)
   if self.fontObj then self._widget:SetFontObject(self.fontObj) end
   -- fontInfo accepts a theme font slot name ("title", "header", "body") in

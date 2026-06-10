@@ -1,9 +1,14 @@
-local _, ns = ...
+---@type LibNUI_AddOn
+local ns = select(2, ...)
 
 local ui = ns.ui
 local Class, unpack = ns.lua.Class, unpack
 local Region = ui.Region
 
+---@class LibNUI
+---@field Texture Texture
+
+---@class Texture: Region
 local Texture = Class(Region, function(self)
   if self.atlas then
     -- `X ~= nil and X or true` collapses to `true` when X is false, defeating

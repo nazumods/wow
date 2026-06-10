@@ -1,4 +1,5 @@
-local _, ns = ...
+---@type Warbandeer_Characters
+local ns = select(2, ...)
 local insert = table.insert
 local Class = ns.lua.Class
 local GetServerTime = GetServerTime -- luacheck: globals GetServerTime

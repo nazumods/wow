@@ -1,4 +1,5 @@
-local _, ns = ...
+---@type Warbandeer_Collected
+local ns = select(2, ...)
 local isCollected = C_TransmogSets.IsBaseSetCollected
 local getParts = C_TransmogSets.GetSetPrimaryAppearances
 local Colors = ns.Colors.Strings
