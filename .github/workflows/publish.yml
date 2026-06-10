@@ -87,11 +87,12 @@ jobs:
           echo "game_versions=$GAME_VERSIONS" >> "$GITHUB_OUTPUT"
 
       # Zip just the addon folder so it installs correctly into AddOns/.
+      # spec/ holds busted unit tests — never ship them.
       - name: Package addon zip
         if: steps.toc.outputs.skip != 'true'
         run: |
           ADDON="${{ steps.info.outputs.addon }}"
-          zip -r "${ADDON}.zip" "${ADDON}/" --exclude "*.git*"
+          zip -r "${ADDON}.zip" "${ADDON}/" --exclude "*.git*" "${ADDON}/spec/*"
 
       - name: Upload to CurseForge
         if: steps.toc.outputs.skip != 'true'

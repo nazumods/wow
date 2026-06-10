@@ -74,10 +74,12 @@ for addon in "${ADDONS[@]}"; do
   last_tag=$(git tag -l "${addon}-v*" | sort -V | tail -1 || true)
 
   # Commits since the last tag that touched this addon's directory, excluding
-  # pure-documentation (.md) files — doc-only commits should not trigger a
-  # release or version bump. The :(exclude,glob) pathspec's /**/ spans subdirs
-  # and also matches top-level .md files (e.g. CONTEXT.md).
-  pathspec=("${addon}/" ":(exclude,glob)${addon}/**/*.md")
+  # pure-documentation (.md) files and unit tests (spec/) — doc-only or
+  # test-only commits should not trigger a release or version bump. The
+  # :(exclude,glob) pathspec's /**/ spans subdirs and also matches top-level
+  # .md files (e.g. CONTEXT.md). spec/ is also excluded from the published
+  # zip in publish.yml.
+  pathspec=("${addon}/" ":(exclude,glob)${addon}/**/*.md" ":(exclude,glob)${addon}/spec/**")
   if [[ -n "$last_tag" ]]; then
     commit_log=$(git log "${last_tag}..HEAD" --pretty=format:"%s" -- "${pathspec[@]}" || true)
   else

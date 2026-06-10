@@ -1,0 +1,56 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  busted:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # WoW's interpreter is Lua 5.1-based — test on the same version.
+      - uses: leafo/gh-actions-lua@v10
+        with:
+          luaVersion: "5.1.5"
+
+      - uses: leafo/gh-actions-luarocks@v4
+
+      - name: Install busted
+        run: luarocks install busted
+
+      # Spec roots come from .busted at the repo root.
+      - name: Run unit tests
+        run: busted --output=utfTerminal
+
+  luacheck:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: leafo/gh-actions-lua@v10
+        with:
+          luaVersion: "5.1.5"
+
+      - uses: leafo/gh-actions-luarocks@v4
+
+      - name: Install luacheck
+        run: luarocks install luacheck
+
+      # Exit code 1 means warnings only — tolerated for now (the repo carries
+      # ~325 pre-existing warnings). Exit code 2+ (syntax/config errors) fails.
+      - name: Run luacheck
+        run: |
+          set +e
+          luacheck . --codes
+          code=$?
+          set -e
+          if [ "$code" -eq 1 ]; then
+            echo "::warning::luacheck reported warnings (not failing the build)"
+            exit 0
+          fi
+          exit "$code"
