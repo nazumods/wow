@@ -16,7 +16,7 @@ Data-collection backbone for the suite. Scans the active character each login/re
 | `login.lua` | `ns.onLogin` → `initialize()` once, then `refresh()` |
 | `api.lua` | `WarbandeerApi` public methods (see below) |
 | `data/basic.lua` | Broker `basic`: `level`, `specialization`, `professions` (name summary), `xp` |
-| `data/currency.lua` | Broker `currency`: `RestoredCofferKey`, `gold` (`GetMoney`), `CofferKeyShard`, `Catalyst`, `HeroDawncrest`, `MythDawncrest` |
+| `data/currency.lua` | Broker `currency`: `RestoredCofferKey`, `gold` (`GetMoney`), `CofferKeyShard`, `Catalyst`, `HeroDawncrest`, `MythDawncrest`, `NebulousVoidcore` |
 | `data/warband.lua` | Account-wide (not a broker): `db.warband` bank gold + weekly wealth. `ns:GetWarbandWealth`, `RolloverWarbandWeek`, `InitWarband`; `/wbc dump warband` |
 | `data/items.lua` | Broker `items`: `bags`, `reagentBag`; `/wbc refresh items` |
 | `data/professions.lua` | Broker `professions`: `details` (per-exp skill levels, spec points, learned recipes) + `gear` (tool/accessory slots). Also defines `ns.api.professionInfo` |
@@ -75,6 +75,8 @@ currency = {
   Catalyst       = { quantity, max, capped }?,         -- Dawnlight Manaflux (3378), capped = bank full
   HeroDawncrest  = { quantity, earned, max, capped },
   MythDawncrest  = { quantity, earned, max, capped },
+  NebulousVoidcore = { quantity, earned, max, capped }?,   -- (3418) season cap: totalEarned vs maxQuantity, grows +2/week
+
 }
 items = {
   bags = { [1..N] = {id, slots}, GoblinMiniFridge?, ArathorSatchel?, PortableRefridgerator? },
@@ -129,7 +131,7 @@ playtime = {
 | Broker | Fields | Events | Resets |
 |---|---|---|---|
 | `basic` | level, specialization, professions, xp | `PLAYER_LEVEL_UP` (500ms), `PLAYER_XP_UPDATE`/`UPDATE_EXHAUSTION`/`PLAYER_UPDATE_RESTING` (1000ms) | — |
-| `currency` | RestoredCofferKey, gold, CofferKeyShard, Catalyst, HeroDawncrest, MythDawncrest | `PLAYER_MONEY` (gold), `CURRENCY_DISPLAY_UPDATE` (Catalyst, id-filtered) | CofferKeyShard: `RESET_WEEKLY` |
+| `currency` | RestoredCofferKey, gold, CofferKeyShard, Catalyst, HeroDawncrest, MythDawncrest, NebulousVoidcore | `PLAYER_MONEY` (gold), `CURRENCY_DISPLAY_UPDATE` (Catalyst + NebulousVoidcore, id-filtered) | CofferKeyShard, NebulousVoidcore: `RESET_WEEKLY` |
 | `items` | bags, reagentBag | — | — |
 | `professions` | details, gear | `TRADE_SKILL_SHOW` (details, 0.5s C_Timer); `PLAYER_EQUIPMENT_CHANGED` (gear, 500ms + item load) | — |
 | `concentration` | data | `CURRENCY_DISPLAY_UPDATE` | — |

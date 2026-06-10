@@ -54,6 +54,9 @@ function ns.getMissingFields(toon)
     if not toon.currency or toon.currency.Catalyst == nil then
       table.insert(missing, "catalyst charges")
     end
+    if not toon.currency or toon.currency.NebulousVoidcore == nil then
+      table.insert(missing, "nebulous voidcores")
+    end
   end
 
   if toon.basic and toon.basic.professions then
