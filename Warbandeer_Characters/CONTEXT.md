@@ -11,7 +11,7 @@ Data-collection backbone for the suite. Scans the active character each login/re
 | `init.lua` | Addon bootstrap (assignment form) |
 | `types.lua` | LuaLS aliases: `Specialization`, `SpecializationKey` |
 | `broker.lua` | `Broker` class + `ns:RegisterBroker`/`InitBrokers`; reset constants `RESET_SUNDAY/DAILY/WEEKLY`; reset-boundary timestamps `ns.LAST_DAILY_RESET`/`LAST_RESET`/`LAST_SUNDAY_RESET` |
-| `database.lua` | `ns:MigrateDB` (v8), `ns:initialize` (creates the per-char struct, then `InitBrokers`/`InitWarband`); `/characters list`, `/characters delete <name>` |
+| `database.lua` | `ns:MigrateDB` (v8), `ns:initialize` (creates the per-char struct, then `InitBrokers`/`InitWarband`); `/characters list`, `/characters delete <name>`, `/characters cleanup` (recount numCharacters) |
 | `main.lua` | `ns:refresh` + `ns:refreshQueue` (one **field** scanned per 100ms); `/characters refresh`, `/characters dump` |
 | `login.lua` | `ns.onLogin` → `initialize()` once, then `refresh()` |
 | `api.lua` | `WarbandeerApi` public methods (see below) |

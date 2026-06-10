@@ -74,7 +74,7 @@ LibNUI_Test is a LoadOnDemand visual test harness for LibNUI (`/nui test [key]`)
 |---|---|---|
 | LibNAddOn | `/lib` | `player` |
 | LibNUI | `/nui` | `version`, `test [key]` |
-| Warbandeer_Characters | `/characters`, `/wbc` | `list`, `delete <name>`, `refresh`, `refresh items/locks`, `dump`, `dump bank/gt/locks/artifact/warband`, `missing`, `missing me` |
+| Warbandeer_Characters | `/characters`, `/wbc` | `list`, `delete <name>`, `cleanup`, `refresh`, `refresh items/locks`, `dump`, `dump bank/gt/locks/artifact/warband`, `missing`, `missing me` |
 | Warbandeer | `/warband`, `/wb` | `""` (open), `overview`, `summary`, `gear`, `detail`, `roles`, `races`, `legion`, `midnight`, `profs`, `midnightprofs`, `crafting`, `playtime`, `check legion` |
 | Warbandeer_Collected | `/collected`, `/collect` | `scan` |
 | Recycle | `/recycle` | `clear`, `key CTRL|SHIFT|ALT` |
