@@ -160,7 +160,7 @@ Contains various color-related constants and convenience functions:
 For the purposes of the descriptions below:
 - **List** refers to a table with numeric keys and a size
 - **Map** refers to a table with string keys
-- **Set** refers to a table with string keys with the value `true`, e.g. `if aSet[key] then ...`
+- **Set** refers to a table whose keys are the member values, each mapped to `true`, e.g. `if aSet[key] then ...`
 Generally for Lists the code uses `ipairs`, while Maps use `pairs`.
 
 Includes various convenience methods for working with Lists, Maps, Sets, Strings, and tables in general:
@@ -178,7 +178,7 @@ Includes various convenience methods for working with Lists, Maps, Sets, Strings
 - `maps.toMap(map, func)` - return a new table by mapping each value by the given function
 - `maps.any(map, func)` - return true if the function returns true for any value in the table
 - `maps.anyKey(map, func)` - return true if the function returns true for any key in the table
-- `sets.Set(list)` - create a Set from a list of values, e.g. `Set{123, 456} -- {"123": true, "456": true}`
+- `sets.Set(list)` - create a Set from a list of values, e.g. `Set{123, 456} -- {[123] = true, [456] = true}`
 - `sets.values(tbl)` - return the values of a table as a Set
 - `strings.startsWith(str, start)` - returns true if str starts with start
 - `strings.split(token, str)` - returns a List of the substrings in str that are separated by token

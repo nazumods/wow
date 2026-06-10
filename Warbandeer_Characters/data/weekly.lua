@@ -85,7 +85,7 @@ ns.Weekly.fields = {
     event = "QUEST_TURNED_IN",
     eventHandler = function(self, currentValue, questId)
       if self.ids[questId] then
-        self:set(currentValue + 1)
+        self:set((currentValue or 0) + 1)
       end
     end,
   },

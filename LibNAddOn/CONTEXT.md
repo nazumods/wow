@@ -11,7 +11,7 @@ Bootstrapping factory every other addon depends on. `LibNAddOn(features)` wires 
 | `functions.lua` | `ns.linkCommonFunctions(addOn, name)` → `GetMetadata`, `Print`, `hook`, `_NAME`, `_TITLE`. Self-bootstraps own namespace |
 | `lua/lua.lua` | `ns.lua` root table; `Select(k)` key-extractor higher-order fn |
 | `lua/maps.lua` | `ns.lua.maps` — `merge`, `fill`, `map`, `toMap`, `toList`, `any`, `anyKey` |
-| `lua/sets.lua` | `ns.lua.sets` — `Set(list)`, `values(t)` (numbers coerced to string keys) |
+| `lua/sets.lua` | `ns.lua.sets` — `Set(list)`, `values(t)` (values used as keys verbatim) |
 | `lua/lists.lua` | `ns.lua.lists` — `values`, `generate`, `map`, `filter`, `find`, `fold`, `prepend` |
 | `lua/class.lua` | `ns.lua.Class(parent, fn, defaults, ...)` — OOP class factory |
 | `lua/strings.lua` | `ns.lua.strings` — `startsWith(str, start)`, `split(token, str)` |
@@ -166,6 +166,6 @@ Default callback calls `addOn:settingChanged(key, value, variable, setting)`.
 - **`split(token, str)` takes the token FIRST**, opposite the usual convention; the token is a char class, so each character splits independently.
 - **`delay` keeps only one active timer per addon** — a second `delay` call replaces the pending OnUpdate, dropping the first callback.
 - **`maps.fill` is shallow** — it never recurses into existing sub-tables (the recursive branch is commented out); only `maps.merge` deep-merges.
-- **`sets.Set`/`sets.values` stringify number values** before using them as keys, so numeric IDs become string keys (`set["2744"]`, not `set[2744]`).
+- **`sets.Set` iterates with `ipairs`** — only array-style input works; map-style arguments (`Set{q=123}`) silently produce an empty set.
 - **DB migration runs only when `version ~= db.version` AND `MigrateDB` is defined** — a fresh DB starts with `version == nil`, so the addon's `MigrateDB` must seed it from scratch.
 - **`Print` prefix shortcut**: calling `self:Print(...)` where `self` is a string prepends that string as a sub-prefix; otherwise it prints under the addon's `_TITLE`.

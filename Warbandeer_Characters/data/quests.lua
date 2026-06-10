@@ -45,7 +45,7 @@ local DelveQuests = {
 ns.Quests = ns:RegisterBroker("quests")
 ns.Quests.fields = {
   UndermineStoryMode = {
-    ids = Set{q=86204},
+    ids = Set{86204},
     maxLevel = true,
     get = function(_, _, currentValue)
       return currentValue or IsQuestFlaggedCompleted(86204)

@@ -13,9 +13,6 @@ ns.lua.sets = sets
 function sets.Set(list)
   local set = {}
   for _,v in ipairs(list) do
-    if type(v) == "number" then
-      v = v..""
-    end
     set[v] = true
   end
   return set
@@ -26,9 +23,6 @@ end
 function sets.values(t)
   local r = {}
   for _,v in pairs(t) do
-    if type(v) == "number" then
-      v = v..""
-    end
     r[v] = true
   end
   return r
