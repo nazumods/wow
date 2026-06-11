@@ -62,4 +62,13 @@ describe("ns.lua.Class", function()
     local C = Class(nil, function() end, nil, mixin)
     assert.equal(42, C:new{}:Extra())
   end)
+
+  it("calls parent class-level onLoad exactly once when constructing a subclass", function()
+    local calls = 0
+    local P = Class(nil, function() end)
+    function P:onLoad() calls = calls + 1 end
+    local C = Class(P, function() end)
+    C:new{}
+    assert.equal(1, calls)
+  end)
 end)
