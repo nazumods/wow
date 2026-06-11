@@ -94,6 +94,14 @@ ns.Currency.fields = {
       return {quantity = c.quantity, earned = c.earned, max = c.max, capped = false}
     end,
   },
+  FieldAccolade = {
+    id = 3405,
+    get = function(self) return GetCurrencyInfo(self.id).quantity end,
+  },
+  UnalloyedAbundance = {
+    id = 3377,
+    get = function(self) return GetCurrencyInfo(self.id).quantity end,
+  },
   MythDawncrest = {
     id = 3347,
     get = function(self)
