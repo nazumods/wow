@@ -19,8 +19,8 @@ local function BuildSpellOverrides()
         local spellIndex = info.itemIndexOffset + i
         local spellType, id, spellId = C_SpellBook.GetSpellBookItemType(spellIndex, Enum.SpellBookSpellBank.Player)
         if spellId then
-          local base = C_Spell.GetOverrideSpell(spellId)
-          if base ~= spellId then map[spellId] = base end
+          local ovr = C_Spell.GetOverrideSpell(spellId)
+          if ovr ~= spellId then map[ovr] = spellId end
         elseif spellType == Enum.SpellBookItemType.Flyout then
           local _, _, numSlots, isKnown = GetFlyoutInfo(id)
           if isKnown and numSlots > 0 then
