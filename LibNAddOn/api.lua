@@ -18,7 +18,7 @@ function LibNAddOn(features, o)
       addOn = o,
     }
   end
-  if not features.name then ns.Print("missing field name"); return {} end
+  if not features.name then ns:Print("missing field name"); return {} end
   if not features.addOn then ns.Print("missing field addOn"); return {} end
   local addOn = features.addOn
   local addOnName = features.name

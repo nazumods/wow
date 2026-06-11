@@ -3,6 +3,7 @@ local ns = select(2, ...)
 local _G, insert = _G, table.insert
 local CreateFrame = CreateFrame
 local UISpecialFrames = UISpecialFrames
+local C_Timer = C_Timer
 local Class, unpack = ns.lua.Class, unpack
 local ui = ns.ui
 local Region, Texture = ui.Region, ui.Texture
@@ -145,16 +146,12 @@ end
 
 function Frame:delay(ms, fn)
   local s = self
-  local t = 0
-  self._widget:SetScript("OnUpdate", function(_, elapsed)
-    t = t + (elapsed * 1000)
-    if t < ms then return end
-      s._widget:SetScript("OnUpdate", nil)
-      if type(fn) == "function" then
-        fn()
-      else
-        s[fn](s)
-      end
+  C_Timer.After(ms / 1000, function()
+    if type(fn) == "function" then
+      fn()
+    else
+      s[fn](s)
+    end
   end)
 end
 

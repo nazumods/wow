@@ -26,6 +26,8 @@ local registerSlashCommands = function(addOn, slashCommands)
   ---@field registerCommand fun(self, cmd: string, subcmd: string, handler: fun(self, args: string), description: string) register a slash command
   function addOn:registerCommand(cmd, subcmd, handler, description)
     if not self.commands[cmd] then
+      -- First registration for this cmd sets the base handler, which fires
+      -- as the fallback when no subcommand matches in SlashCmd.
       self.commands[cmd] = {
         handler = handler,
         description = description,
