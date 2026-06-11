@@ -35,10 +35,8 @@ ns.Artifacts.fields = {
   hiddenColors = {
     ids = {wq = 11153, dungeon = 11152, kills = 11154},
     get = function(self, toon)
-      -- Evokers don't have class hall
-      if toon.classId == 13 then
-        return { wq = {goal=0,progress=0}, dungeon = {goal=0,progress=0}, kills = {goal=0,progress=0} }
-      end
+      -- Evokers don't have an artifact weapon
+      if toon.classId == 13 then return false end
       return maps.map(self.ids, function(v)
         local _, _, _, a, g = GetAchievementCriteriaInfo(v, 1)
         return { goal = g, progress = a }
