@@ -42,6 +42,54 @@ ns:registerCommand("restore", nil, function(_, args)
   end
 end, "Restore a stored profile to the current character")
 
+-- Temporary diagnostic for L10: dumps the first few spellbook override pairs
+-- and the first few action-bar spell slots so we can verify map direction.
+ns:registerCommand("overrides", nil, function()
+  local function name(id) return id and (C_Spell.GetSpellName(id) or "?") or "nil" end
+  ns.Print("== spellbook: spellId -> GetOverrideSpell(spellId) ==")
+  local n = 0
+  for idx = 1, C_SpellBook.GetNumSpellBookSkillLines() do
+    local info = C_SpellBook.GetSpellBookSkillLineInfo(idx)
+    if info then
+      for i = 1, info.numSpellBookItems do
+        local si = info.itemIndexOffset + i
+        local _, _, spellId = C_SpellBook.GetSpellBookItemType(si, Enum.SpellBookSpellBank.Player)
+        if spellId then
+          local ovr = C_Spell.GetOverrideSpell(spellId)
+          if ovr ~= spellId then
+            ns.Print(("  %d(%s) -> %d(%s)"):format(spellId, name(spellId), ovr, name(ovr)))
+            n = n + 1; if n >= 4 then break end
+          end
+        end
+      end
+    end
+    if n >= 4 then break end
+  end
+  if n == 0 then ns.Print("  (none)") end
+
+  ns.Print("== action bar slots: bar spell -> GetOverrideSpell ==")
+  n = 0
+  for i = 1, 72 do
+    local t, index = GetActionInfo(i)
+    if t == "spell" and index then
+      local ovr = C_Spell.GetOverrideSpell(index)
+      ns.Print(("  slot%d: %d(%s) -> %d(%s)"):format(i, index, name(index), ovr, name(ovr)))
+      n = n + 1; if n >= 4 then break end
+    end
+  end
+  if n == 0 then ns.Print("  (none)") end
+
+  ns.Print("== flyout slot 1 of first flyout: GetFlyoutSlotInfo(id,1) ==")
+  for i = 1, 72 do
+    local t, id = GetActionInfo(i)
+    if t == "flyout" then
+      local sid, ovr = GetFlyoutSlotInfo(id, 1)
+      ns.Print(("  flyout %d slot1: sid=%d(%s) ovr=%d(%s)"):format(id, sid or 0, name(sid), ovr or 0, name(ovr)))
+      break
+    end
+  end
+end, "Dump spell override maps (L10 diagnostic)")
+
 ns:registerCommand("forget", nil, function(_, args)
   local char, specStr = args:match("^(%S+)%s*(%S*)$")
   if not char or char == "" then
