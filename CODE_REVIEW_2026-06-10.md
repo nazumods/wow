@@ -148,11 +148,16 @@ professions gear handler at `professions.lua:336` correctly does).
 already depends on this accident (unscanned sets pass the raw set table through as cell
 data). Surprising semantics; at minimum document it, ideally make nil mean "skip" explicitly.
 
-### M9. `CheckButton` click handling fights the native toggle
+### M9. `CheckButton` click handling fights the native toggle — **fixed**
 `LibNUI/CheckButton.lua:19-25` — `OnToggle(checked)` then `Checked(not checked)` reverses the
 post-click state, layered on a Button base that registers `"AnyDown", "AnyUp"` (two click
 firings). The double-negation appears to compensate for the double-fire; it works by accident
 and breaks if the click registration changes. Worth simplifying to a single registered click.
+**Update 2026-06-11:** the surviving flaw after the up-only simplification was that the
+class OnClick hook fires from OnMouseUp — *before* the widget auto-toggles — so `OnToggle`
+received the **inverted** (pre-toggle) state. Surfaced in ActionBarMaster as a barFilter
+that filtered out everything after "Uncheck All"; also affected `ToggleSetting` persistence
+suite-wide. Fixed by firing OnToggle from a real OnClick script (post-toggle).
 
 ### M10. `StatusBar:SetValue` horizontal textured branch is an empty stub
 `LibNUI/StatusBar.lua:82-85` — the HORIZONTAL branch is `if dx > 0 then --[[nothing]] end`;
