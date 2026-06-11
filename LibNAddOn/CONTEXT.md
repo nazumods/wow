@@ -63,7 +63,7 @@ addOn._eventListener (Frame), addOn._eventHandlers (table)
 addOn.lua, addOn.wow, addOn.icons, addOn.Colors
 addOn.api (shared global, if configured), addOn.ui (LibNUI global, if configured)
 addOn.db (linked on ADDON_LOADED), addOn.commands, addOn.settingsCategory
-Methods:   GetMetadata, Print, hook, registerEvent, unregisterEvent, delay,
+Methods:   GetMetadata, Print, hook, registerEvent, unregisterEvent, delay, after,
            registerCommand, SlashCmd, usage
 Lifecycle: onLoad, onLogin, MigrateDB, settingChanged, CompartmentClick
 ```
@@ -114,7 +114,7 @@ addOn:registerEvent("EVENT_NAME", handler, idx?)  -- handler list; idx inserts a
 addOn:unregisterEvent("EVENT_NAME", handler?)     -- nil handler clears all
 ```
 
-Dispatch order: the same-named method first, then the handler list in order. `delay(ms, fn)` is a one-shot OnUpdate timer; `fn` may be a function or a method-name string. `onLogin(isLogin, isReload)` fires on `PLAYER_ENTERING_WORLD` only when `onLogin` is defined.
+Dispatch order: the same-named method first, then the handler list in order. `delay(ms, fn)` is a one-shot debounce timer (OnUpdate); `fn` may be a function or a method-name string — a second call replaces the pending callback. `after(ms, fn)` fires `fn` once after `ms` milliseconds via `C_Timer.After`; supports unlimited concurrent calls. `onLogin(isLogin, isReload)` fires on `PLAYER_ENTERING_WORLD` only when `onLogin` is defined.
 
 ## Player API (`ns.wow.Player`)
 
@@ -164,7 +164,7 @@ Default callback calls `addOn:settingChanged(key, value, variable, setting)`.
 ## Gotchas
 
 - **`split(token, str)` takes the token FIRST**, opposite the usual convention; the token is a char class, so each character splits independently.
-- **`delay` keeps only one active timer per addon** — a second `delay` call replaces the pending OnUpdate, dropping the first callback.
+- **`delay` keeps only one active timer per addon** — a second `delay` call replaces the pending OnUpdate, dropping the first callback. Use `after` when multiple concurrent timers are needed.
 - **`maps.fill` is shallow** — it never recurses into existing sub-tables (the recursive branch is commented out); only `maps.merge` deep-merges.
 - **`sets.Set` iterates with `ipairs`** — only array-style input works; map-style arguments (`Set{q=123}`) silently produce an empty set.
 - **DB migration runs only when `version ~= db.version` AND `MigrateDB` is defined** — a fresh DB starts with `version == nil`, so the addon's `MigrateDB` must seed it from scratch.
