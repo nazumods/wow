@@ -11,7 +11,7 @@ local trackColors = {
   Veteran    = ITEM_SUPERIOR_COLOR,
   Champion   = ITEM_EPIC_COLOR,
   Hero       = ITEM_LEGENDARY_COLOR,
-  Mythic     = ITEM_LEGENDARY_COLOR,
+  Mythic     = ITEM_ARTIFACT_COLOR, -- muted gold (#e6cc80)
 }
 
 local getILvlString = function(toon)
