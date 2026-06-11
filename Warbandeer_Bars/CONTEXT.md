@@ -65,7 +65,7 @@ character/spec's setup and import it onto the current character. Profiles are st
 }
 ```
 
-Slot `type` ∈ `spell | item | flyout | companion | summonmount | summonpet | equipmentset | macro`.
+Slot `type` ∈ `spell | item | toy | flyout | companion | summonmount | summonpet | equipmentset | macro`.
 `summonpet` (GUID) and `equipmentset` (set name) use `strindex`; the rest use `index`.
 
 ## SavedVariables
@@ -100,6 +100,11 @@ missing `WarbandeerBarsSettings` keys from `ns.DefaultSettings`.
 | `PLAYER_LOGOUT` (also fires on `/reload`) | none |
 
 ## Gotchas
+
+- **`C_EditMode.GetLayouts()` index offset:** `info.layouts` contains only *saved* layouts, but
+  `info.activeLayout` indexes as if the preset layouts (Modern, Classic) came first —
+  `CaptureLayouts` subtracts `#Enum.EditModePresetLayouts` before lookup. An active preset leaves
+  `profile.layoutName` nil (presets are default 1-row bars).
 
 - **`ns.Snapshot()` is a no-op during combat or mid-drag.** Macro temp-index resolution in capture
   touches protected APIs, and an in-progress cursor drag would be clobbered. Guarded by

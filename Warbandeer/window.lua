@@ -35,7 +35,7 @@ local MainWindow = Class(TitleFrame, function(self)
   local function addNav(v)
     if not v or seen[v.name] then return end
     seen[v.name] = true
-    table.insert(navViews, { name = v.name, title = v._title or v.name })
+    table.insert(navViews, { name = v.name, title = v._title or v.name, iconRotation = v._iconRotation })
   end
   for _, name in ipairs(ns.viewOrder) do addNav(self.views[name]) end
   local leftovers = {}

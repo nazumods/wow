@@ -111,6 +111,9 @@ local function RestoreSlots(slots, overrides, flyouts)
       elseif s.type == "item" then
         PickupItem(s.index)
         if not GetCursorInfo() then Warn("Missing item [" .. s.index .. "]") end
+      elseif s.type == "toy" then
+        C_ToyBox.PickupToyBoxItem(s.index)
+        if not GetCursorInfo() then Warn("Missing toy [" .. tostring(s.index) .. "]") end
       elseif s.type == "macro" then
         -- handled in RestoreMacros pass; skip here
         return

@@ -1,5 +1,6 @@
 ---@type Warbandeer_Bars
 local ns = select(2, ...)
+-- luacheck: globals C_EditMode
 
 local MAX_BARS   = 180
 local MAX_MACROS = MAX_ACCOUNT_MACROS + MAX_CHARACTER_MACROS
@@ -57,7 +58,7 @@ local function CaptureSlots(overrides)
           PlaceAction(i)
         end
         entry.index = index
-      elseif slotType == "item" or slotType == "flyout"
+      elseif slotType == "item" or slotType == "toy" or slotType == "flyout"
           or slotType == "companion" or slotType == "summonmount" then
         entry.index = index
       elseif slotType == "summonpet" then
@@ -147,15 +148,58 @@ local function ProfileMeta()
   end
   local _, class, classID = UnitClass("player")
   return {
-    char     = UnitName("player"),
-    realm    = GetRealmName(),
-    class    = class,                 -- class file token, e.g. "MAGE"
-    classID  = classID,
-    specID   = specID or 0,
-    spec     = specName or "Unknown",
-    specIcon = specIcon,
-    level    = UnitLevel("player"),
+    char       = UnitName("player"),
+    realm      = GetRealmName(),
+    class      = class,                 -- class file token, e.g. "MAGE"
+    classID    = classID,
+    specID     = specID or 0,
+    spec       = specName or "Unknown",
+    specIcon   = specIcon,
+    level      = UnitLevel("player"),
+    bindingSet = GetCurrentBindingSet(),  -- 1=account, 2=per-character
+    layoutName = ns._activeLayoutName,    -- set by ns.CaptureLayouts()
   }
+end
+
+---Snapshot the active Edit Mode layouts into db.layouts and record the active layout name.
+---Safe to call outside combat at any time.
+function ns.CaptureLayouts()
+  if not C_EditMode then return end
+  local info = C_EditMode.GetLayouts()
+  if not info or not info.layouts then return end
+
+  -- info.layouts holds only saved layouts, but activeLayout indexes as if the
+  -- preset layouts (Modern, Classic) came first — subtract them. A preset being
+  -- active leaves _activeLayoutName nil (presets are default 1-row bars anyway).
+  local numPresets = 0
+  for _ in pairs(Enum.EditModePresetLayouts) do numPresets = numPresets + 1 end
+  local al = info.activeLayout and info.layouts[info.activeLayout - numPresets]
+  ns._activeLayoutName = al and al.layoutName
+
+  local layouts = {}
+  for _, layout in ipairs(info.layouts) do
+    if layout.layoutName and layout.systems then
+      local bars = {}
+      for _, sys in ipairs(layout.systems) do
+        if sys.system == Enum.EditModeSystem.ActionBar and sys.systemIndex and sys.settings then
+          local entry = {}
+          for _, s in ipairs(sys.settings) do
+            local sv = s.setting
+            if sv == Enum.EditModeActionBarSetting.NumIcons then
+              entry.numIcons = s.value
+            elseif sv == Enum.EditModeActionBarSetting.NumRows then
+              entry.numRows = s.value
+            elseif sv == Enum.EditModeActionBarSetting.Orientation then
+              entry.orientation = s.value
+            end
+          end
+          if entry.numIcons then bars[sys.systemIndex] = entry end
+        end
+      end
+      layouts[layout.layoutName] = bars
+    end
+  end
+  ns.db.layouts = layouts
 end
 
 ---Capture the current character's setup into a profile table.

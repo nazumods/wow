@@ -30,7 +30,10 @@ end
 
 -- Capture at session boundaries: entering world, spec change, and logout/reload.
 function ns:onLogin()
-  self:delay(LOGIN_SETTLE_MS, ns.Snapshot)
+  self:delay(LOGIN_SETTLE_MS, function()
+    ns.CaptureLayouts()
+    ns.Snapshot()
+  end)
 end
 
 function ns.ACTIVE_TALENT_GROUP_CHANGED()
@@ -39,5 +42,8 @@ end
 
 function ns.PLAYER_LOGOUT() ns.Snapshot() end  -- also fires on /reload
 
+function ns.EDIT_MODE_LAYOUTS_UPDATED() ns.CaptureLayouts() end
+
 ns:registerEvent("ACTIVE_TALENT_GROUP_CHANGED")
 ns:registerEvent("PLAYER_LOGOUT")
+ns:registerEvent("EDIT_MODE_LAYOUTS_UPDATED")

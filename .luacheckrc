@@ -97,6 +97,7 @@ std = {
     "C_SpellBook",
     "C_Timer",
     "C_TimerunningUI",
+    "C_ToyBox",
     "C_TradeSkillUI",
     "C_Traits",
     "C_TransmogSets",
