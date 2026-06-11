@@ -42,11 +42,13 @@ ns:registerCommand("restore", nil, function(_, args)
   end
 end, "Restore a stored profile to the current character")
 
--- Temporary diagnostic for L10: dumps the first few spellbook override pairs
--- and the first few action-bar spell slots so we can verify map direction.
+-- Temporary diagnostic for L10: dumps override map data to clipboard.
 ns:registerCommand("overrides", nil, function()
+  local lines = {}
+  local function out(s) lines[#lines+1] = s end
   local function name(id) return id and (C_Spell.GetSpellName(id) or "?") or "nil" end
-  ns.Print("== spellbook: spellId -> GetOverrideSpell(spellId) ==")
+
+  out("== spellbook: spellId -> GetOverrideSpell(spellId) ==")
   local n = 0
   for idx = 1, C_SpellBook.GetNumSpellBookSkillLines() do
     local info = C_SpellBook.GetSpellBookSkillLineInfo(idx)
@@ -57,38 +59,45 @@ ns:registerCommand("overrides", nil, function()
         if spellId then
           local ovr = C_Spell.GetOverrideSpell(spellId)
           if ovr ~= spellId then
-            ns.Print(("  %d(%s) -> %d(%s)"):format(spellId, name(spellId), ovr, name(ovr)))
-            n = n + 1; if n >= 4 then break end
+            out(("  %d(%s) -> %d(%s)"):format(spellId, name(spellId), ovr, name(ovr)))
+            n = n + 1; if n >= 6 then break end
           end
         end
       end
     end
-    if n >= 4 then break end
+    if n >= 6 then break end
   end
-  if n == 0 then ns.Print("  (none)") end
+  if n == 0 then out("  (none)") end
 
-  ns.Print("== action bar slots: bar spell -> GetOverrideSpell ==")
+  out("== action bar: bar spellId -> GetOverrideSpell ==")
   n = 0
   for i = 1, 72 do
     local t, index = GetActionInfo(i)
     if t == "spell" and index then
       local ovr = C_Spell.GetOverrideSpell(index)
-      ns.Print(("  slot%d: %d(%s) -> %d(%s)"):format(i, index, name(index), ovr, name(ovr)))
-      n = n + 1; if n >= 4 then break end
+      out(("  slot%d: %d(%s) -> %d(%s)"):format(i, index, name(index), ovr, name(ovr)))
+      n = n + 1; if n >= 6 then break end
     end
   end
-  if n == 0 then ns.Print("  (none)") end
+  if n == 0 then out("  (none)") end
 
-  ns.Print("== flyout slot 1 of first flyout: GetFlyoutSlotInfo(id,1) ==")
+  out("== flyout slot 1 of first flyout on bar ==")
+  local found = false
   for i = 1, 72 do
     local t, id = GetActionInfo(i)
     if t == "flyout" then
       local sid, ovr = GetFlyoutSlotInfo(id, 1)
-      ns.Print(("  flyout %d slot1: sid=%d(%s) ovr=%d(%s)"):format(id, sid or 0, name(sid), ovr or 0, name(ovr)))
-      break
+      out(("  flyout %d: sid=%s(%s) ovr=%s(%s)"):format(
+        id, tostring(sid), name(sid), tostring(ovr), name(ovr)))
+      found = true; break
     end
   end
-end, "Dump spell override maps (L10 diagnostic)")
+  if not found then out("  (no flyout on bar)") end
+
+  local text = table.concat(lines, "\n")
+  CopyToClipboard(text)
+  ns.Print("Output copied to clipboard — paste it into chat with Ctrl+V.")
+end, "Dump spell override maps to clipboard (L10 diagnostic)")
 
 ns:registerCommand("forget", nil, function(_, args)
   local char, specStr = args:match("^(%S+)%s*(%S*)$")
