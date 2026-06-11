@@ -71,16 +71,17 @@ end
 ---@param profile table
 ---@param include table? restore filter; defaults to the per-character settings
 ---@param silent boolean?
-function API:Restore(profile, include, silent)
-  ns.Restore(profile, include or ns.settings.include, silent)
+---@param barFilter table? map of internal bar numbers (1-15) to bool; false = leave that bar untouched
+function API:Restore(profile, include, silent, barFilter)
+  ns.Restore(profile, include or ns.settings.include, silent, barFilter)
 end
 
 ---Apply a stored profile (by key) to the current character.
 ---@return boolean ok  false if no such profile exists
-function API:RestoreProfile(char, specID, include, silent)
+function API:RestoreProfile(char, specID, include, silent, barFilter)
   local p = self:GetProfile(char, specID)
   if not p then return false end
-  ns.Restore(p, include or ns.settings.include, silent)
+  ns.Restore(p, include or ns.settings.include, silent, barFilter)
   return true
 end
 

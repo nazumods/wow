@@ -40,6 +40,7 @@ local LIST_Y = HDR_Y - HDR_H - 4
 ---@field _results      table[]
 ---@field _specDD       FilterDropdown?
 ---@field _previewFrame BarsPreviewFrame?
+---@field _applyFrame   BarsApplyFrame?
 local BarsView = Class(Frame, function(self)
   self._classID  = nil
   self._specID   = nil
@@ -229,6 +230,7 @@ function BarsView:_buildResultList()
     if not ok then
       self._selected = nil
       if self._previewFrame then self._previewFrame:Hide() end
+      if self._applyFrame   then self._applyFrame:Hide()   end
     end
   end
 
@@ -260,7 +262,7 @@ function BarsView:_buildResultList()
 
   -- Restore preview for the surviving selection (e.g. after closing and re-opening)
   if self._selected then
-    self:_getPreviewFrame():Set(self._selected)
+    self:_showSelection(self._selected)
   end
 
   self:_resize()
@@ -277,11 +279,28 @@ function BarsView:_getPreviewFrame()
   return self._previewFrame
 end
 
+function BarsView:_getApplyFrame()
+  if not self._applyFrame then
+    -- Parented to the view (shows/hides with it), docked below the main window.
+    self._applyFrame = ns.BarsApplyFrame:new{
+      parent   = self,
+      position = { TopLeft = {ns.MainWindow or self, ui.edge.BottomLeft, 0, -8} },
+    }
+  end
+  return self._applyFrame
+end
+
+-- Show the preview + apply panels for a profile.
+function BarsView:_showSelection(p)
+  self:_getPreviewFrame():Set(p)
+  self:_getApplyFrame():Set(p)
+end
+
 function BarsView:_selectProfile(p)
   if not p then return end
   self._selected = p
   for i = 1, self._numShown do self:_paintRow(self._rows[i]) end
-  self:_getPreviewFrame():Set(p)
+  self:_showSelection(p)
 end
 
 function BarsView:_resize()

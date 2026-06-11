@@ -35,6 +35,9 @@ Main viewer UI. Reads the data layer (`ns.api` ← `WarbandeerApi`) and renders 
 | `views/MidnightProfs.lua` | Profs × characters grid: Midnight skill + concentration |
 | `views/CraftingView.lua` | Crafting profs: main crafter, concentration, learned-recipe %; expansion `BuildFilter` |
 | `views/PlaytimeView.lua` | Per-character playtime breakdown |
+| `views/BarsView.lua` | Action-bar profile browser (class/spec filters + result list); needs `WarbandeerBarsApi` (OptionalDep) |
+| `views/BarsPreview.lua` | `ns.BarsPreviewFrame` — companion box docked right of the window rendering a profile's bars (icons, keybinds, Edit Mode layout) |
+| `views/BarsApply.lua` | `ns.BarsApplyFrame` — companion box below the main window: per-bar muted/red toggles (1-8 / C1-C5 / Bonus, Sky, Pet) + Apply button → `WarbandeerBarsApi:Restore` with a `barFilter` |
 | `window.lua` | `MainWindow` (TitleFrame) + `IconStrip` rail; `ns:Open()`, `ns:view(name)`; `Fit()` grows the window down/right |
 | `commands.lua` | Registers the base open command + one per view (from `ns.views`) |
 
@@ -54,6 +57,7 @@ Main viewer UI. Reads the data layer (`ns.api` ← `WarbandeerApi`) and renders 
 | `legion` | Legion | Frame | Hidden artifacts + achievements | — |
 | `playtime` | Playtime | Frame | Per-character playtime | — |
 | `midnightprofs` | Midnight Profs | Frame | Profs × characters: skill + concentration | — |
+| `bars` | Bars | Frame | Bar-profile browser + docked preview & apply panels | — (view-local dropdowns) |
 
 `BuildFilter(parent)` widgets show in the title bar only while that view is active. The two
 expansion dropdowns share `ns.FilterDropdown`; the faction toggle, character picker, and

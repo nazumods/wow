@@ -61,6 +61,7 @@ views\MidnightProfs.lua
 views\CraftingView.lua
 views\PlaytimeView.lua
 views\BarsPreview.lua
+views\BarsApply.lua
 views\BarsView.lua
 
 window.lua

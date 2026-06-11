@@ -14,7 +14,7 @@ character/spec's setup and import it onto the current character. Profiles are st
 | `init.lua` | Assignment-form bootstrap; `MigrateDB` (seeds `profiles={}`, v1), `DefaultSettings`, `onLoad` per-char settings init |
 | `libs/base64.lua`, `libs/crc32.lua` | Export-string codec primitives (base64 + CRC32 integrity) |
 | `capture.lua` | `ns.Capture(include, accountMacros, charMacros)` → profile table; per-section capture + spell/flyout override resolution |
-| `restore.lua` | `ns.Restore(profile, include, silent?)` — applies a profile, recreating macros on import |
+| `restore.lua` | `ns.Restore(profile, include, silent?, barFilter?)` — applies a profile, recreating macros on import; flyouts-first pre-pass, spellbook fallbacks, per-bar filter |
 | `serialize.lua` | `ns.Encode`/`ns.Decode` — portable export-string transport |
 | `tracker.lua` | `ns.Snapshot()` + auto-capture triggers (login / spec change / logout); combat- & cursor-guarded |
 | `api.lua` | `WarbandeerBarsApi` methods |
@@ -31,14 +31,16 @@ character/spec's setup and import it onto the current character. Profiles are st
 :GetAllProfiles()                          → profile[] (flat)
 :Snapshot()                                → profile?  (capture + store now)
 :DeleteProfile(char, specID)
-:Restore(profile, include?, silent?)
-:RestoreProfile(char, specID, include?, silent?) → boolean  (false if no such profile)
+:Restore(profile, include?, silent?, barFilter?)
+:RestoreProfile(char, specID, include?, silent?, barFilter?) → boolean  (false if no such profile)
 :Capture(include?, accountMacros?, charMacros?)  → profile  (no store)
 :Encode(profile) / :Decode(text)
 :GetIncludeSettings()                      → include table (live; mutate to change)
 ```
 
 `char`/`specID`/`include` args default to the current character / spec / per-char settings.
+`barFilter` maps **internal** bar numbers (1-15, slot id = `(bar-1)*12 + n`) to bool; `false` leaves
+that bar untouched (restore *and* clear pass). `nil` = all bars.
 
 ## Commands (`/wbb`)
 
@@ -110,6 +112,13 @@ missing `WarbandeerBarsSettings` keys from `ns.DefaultSettings`.
   touches protected APIs, and an in-progress cursor drag would be clobbered. Guarded by
   `InCombatLockdown()` / `GetCursorInfo()`. None of the triggers fire in combat anyway.
 - **`ns.Restore` bails in combat** (taint) — it prints a notice and returns.
+- **Flyouts restore FIRST** (`RestoreFlyouts` pre-pass): `PickupSpellBookItem` for flyout-type
+  spellbook items (e.g. the warlock Summon Demon drawer) silently fails after any other protected
+  pickup operation in the same hardware event. Never reorder the restore passes.
+- **`PickupSpell` fails for some known spells** (form-specific druid abilities) — restore falls back
+  to pickup by spellbook index, and only warns when the spell *is* in the book but still failed.
+- **Slots whose content can't be picked up are blanked** (`PickupAction` on the slot), so the result
+  matches the profile rather than keeping stale leftovers.
 - **Spell overrides are resolved both ways.** Capture stores the *base* spellID
   (`C_Spell.GetOverrideSpell` reverse-mapped); restore re-applies via an override map plus name /
   `FindBaseSpellByID` fallbacks, warning on any spell the character doesn't know.
