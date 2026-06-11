@@ -28,6 +28,7 @@ end
 ---@field lastRefresh integer Timestamp of last broker refresh
 
 function ns:refreshQueue()
+  if #queue == 0 then return end
   local entry = remove(queue, 1)
   local brokerName, fieldName = entry[1], entry[2]
   local field = self.brokers[brokerName].fields[fieldName]
