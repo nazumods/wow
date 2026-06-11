@@ -8,6 +8,7 @@ function ns:MigrateDB()
   if not db.hide then
     db.hide = {}
   end
+  db.version = 1
 end
 
 local Hider = CreateFrame("Frame", "StanceHider", UIParent)
