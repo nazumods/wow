@@ -28,7 +28,13 @@ function Cell:Texture()
       if data.coords then self.texture:Coords(unpack(data.coords)) end
       if data.vertexColor then self.texture:SetVertexColor(unpack(data.vertexColor)) end
     end
-    if data.atlas then self.texture:Atlas(data.atlas, data.atlasSize ~= nil and data.atlasSize or true) end
+    if data.atlas then
+      if data.atlasSize == nil then
+        self.texture:Atlas(data.atlas)
+      else
+        self.texture:Atlas(data.atlas, data.atlasSize)
+      end
+    end
     if data.position then self.texture:Position(data.position) end
   else
     self.texture = Texture:new{
