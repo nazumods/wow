@@ -168,7 +168,12 @@ function ns.CaptureLayouts()
   local info = C_EditMode.GetLayouts()
   if not info or not info.layouts then return end
 
-  local al = info.activeLayout and info.layouts[info.activeLayout]
+  -- info.layouts holds only saved layouts, but activeLayout indexes as if the
+  -- preset layouts (Modern, Classic) came first — subtract them. A preset being
+  -- active leaves _activeLayoutName nil (presets are default 1-row bars anyway).
+  local numPresets = 0
+  for _ in pairs(Enum.EditModePresetLayouts) do numPresets = numPresets + 1 end
+  local al = info.activeLayout and info.layouts[info.activeLayout - numPresets]
   ns._activeLayoutName = al and al.layoutName
 
   local layouts = {}

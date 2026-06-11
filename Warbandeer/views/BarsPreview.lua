@@ -3,30 +3,33 @@ local ns = select(2, ...)
 -- luacheck: globals WarbandeerBarsApi NumberFontNormalSmallGray CreateFont
 local ui = ns.ui
 local Class, Frame, Label, Texture = ns.lua.Class, ui.Frame, ui.Label, ui.Texture
-local TitleFrame = ui.TitleFrame
+local CleanFrame = ui.CleanFrame
 local theme = ns.theme
 
 -- ─── Layout ─────────────────────────────────────────────────────────────────────
 local P, GAP  = 12, 8
 local ICON_SZ, ICON_GAP = 22, 2
 local CELL    = ICON_SZ + ICON_GAP   -- 24px per slot including gap
-local BAR_GAP = 6                    -- vertical gap between bar rows
+local BAR_GAP = 6                    -- gap between bar boxes
+local BOX_P   = 6                    -- inner padding of each bar box
 local LBL_W   = 36                   -- width of "Bar N" label
+local LBL_H   = 12                   -- height of "Bar N" label row
+local LBL_GAP = 4                    -- gap between label row and icons
 
--- Edit Mode systemIndex → first action slot.
--- Indices 4/5 are MULTIACTIONBAR1/2 (right bars), 6 is MULTIACTIONBAR3 (bottom-left).
-local BAR_BASE = { 1, 61, 25, 49, 37, 13, 73, 85 }
+-- Edit Mode systemIndex (Enum.EditModeActionBarSystemIndices) → first action
+-- slot and binding command. 2/3 = bottom-left/right, 4/5 = right bars,
+-- 6-8 = MultiBar5/6/7 (slots 145+; 73-144 are stance/possess pages).
+local BAR_BASE = { 1, 61, 49, 25, 37, 145, 157, 169 }
+local BAR_CMD  = {
+  "ACTIONBUTTON",          "MULTIACTIONBAR1BUTTON", "MULTIACTIONBAR2BUTTON",
+  "MULTIACTIONBAR3BUTTON", "MULTIACTIONBAR4BUTTON", "MULTIACTIONBAR5BUTTON",
+  "MULTIACTIONBAR6BUTTON", "MULTIACTIONBAR7BUTTON",
+}
 
--- Slot number → binding command name (standard WoW action slot layout)
+-- Slot number → binding command name
 local SLOT_CMD = {}
-for _n = 1, 12 do
-  SLOT_CMD[_n]      = "ACTIONBUTTON"          .. _n
-  SLOT_CMD[12 + _n] = "MULTIACTIONBAR3BUTTON" .. _n
-  SLOT_CMD[24 + _n] = "MULTIACTIONBAR5BUTTON" .. _n
-  SLOT_CMD[36 + _n] = "MULTIACTIONBAR4BUTTON" .. _n
-  SLOT_CMD[48 + _n] = "MULTIACTIONBAR2BUTTON" .. _n
-  SLOT_CMD[60 + _n] = "MULTIACTIONBAR1BUTTON" .. _n
-  SLOT_CMD[72 + _n] = "MULTIACTIONBAR6BUTTON" .. _n
+for _b, _base in ipairs(BAR_BASE) do
+  for _n = 1, 12 do SLOT_CMD[_base + _n - 1] = BAR_CMD[_b] .. _n end
 end
 
 -- Abbreviate a WoW key name to a compact label (e.g. "SHIFT-1" → "s-1")
@@ -84,14 +87,8 @@ end
 local BarsPreview = Class(Frame, function(self)
   self._barRows = {}
   self._numBars = 0
-  self.header = Label:new{
-    parent = self, fontInfo = theme.fonts.body, color = theme.colors.muted,
-    position = { TopLeft = {P, -P} },
-  }
   self:Height(P + 20 + P)
-end, {
-  background = theme.colors.module,
-})
+end, {})
 ns.BarsPreview = BarsPreview
 
 -- ─── Bar row pool ─────────────────────────────────────────────────────────────
@@ -102,18 +99,19 @@ function BarsPreview:_barRow(i)
   if row then return row end
 
   local rf = Frame:new{
-    parent = self,
-    position = { TopLeft = {P, -P}, Width = 1, Height = 1 },
+    parent     = self,
+    background = theme.colors.module,
+    position   = { TopLeft = {P, -P}, Width = 1, Height = 1 },
   }
   row = { rf = rf, _cells = {} }
 
   row.lbl = Label:new{
     parent = rf, fontInfo = theme.fonts.body, color = theme.colors.muted,
-    position = { Left = {0, 0}, Width = LBL_W, Top = {0, 0} },
+    position = { TopLeft = {BOX_P, -BOX_P}, Width = LBL_W, Height = LBL_H },
   }
   row.iconArea = Frame:new{
     parent = rf,
-    position = { Left = {LBL_W + GAP, 0}, Top = {0, 0} },
+    position = { TopLeft = {BOX_P, -(BOX_P + LBL_H + LBL_GAP)} },
   }
 
   for j = 1, 12 do
@@ -146,10 +144,20 @@ end
 function BarsPreview:_showBar(rowIdx, sysIdx, barLayout, slotMap, macroMap, bindMap)
   local row      = self:_barRow(rowIdx)
   local numIcons = (barLayout and barLayout.numIcons) or 12
-  local numRows  = math.max(1, (barLayout and barLayout.numRows) or 1)
-  local numCols  = math.ceil(numIcons / numRows)
-  local base     = BAR_BASE[sysIdx] or ((sysIdx - 1) * 12 + 1)
+  local stacks   = math.max(1, (barLayout and barLayout.numRows) or 1)
+  local base     = BAR_BASE[sysIdx]
   local isVert   = barLayout and barLayout.orientation == 1
+
+  -- Edit Mode's "rows" setting counts stacks along the bar's short axis: rows
+  -- when horizontal, columns when vertical.
+  local gridRows, gridCols
+  if isVert then
+    gridCols = stacks
+    gridRows = math.ceil(numIcons / stacks)
+  else
+    gridRows = stacks
+    gridCols = math.ceil(numIcons / stacks)
+  end
 
   row.lbl:Text("Bar " .. sysIdx)
 
@@ -159,14 +167,16 @@ function BarsPreview:_showBar(rowIdx, sysIdx, barLayout, slotMap, macroMap, bind
       cell:Hide()
     else
       local slotNum = base + j - 1
-      -- Horizontal: fill left-to-right. Vertical: fill top-to-bottom (column-major).
+      -- Horizontal: fill left-to-right, rows growing upward (slot 1 is the
+      -- bottom row, matching in-game). Vertical: fill top-to-bottom (column-major).
       local r, c
       if isVert then
-        c = math.floor((j - 1) / numRows)
-        r = (j - 1) - c * numRows
+        c = math.floor((j - 1) / gridRows)
+        r = (j - 1) - c * gridRows
       else
-        r = math.floor((j - 1) / numCols)
-        c = (j - 1) - r * numCols
+        r = math.floor((j - 1) / gridCols)
+        c = (j - 1) - r * gridCols
+        r = gridRows - 1 - r
       end
       cell:ClearAllPoints()
       cell:SetPoint("TOPLEFT", row.iconArea, "TOPLEFT", c * CELL, -r * CELL)
@@ -194,12 +204,12 @@ function BarsPreview:_showBar(rowIdx, sysIdx, barLayout, slotMap, macroMap, bind
     end
   end
 
-  local iconW = numCols * CELL - ICON_GAP
-  local iconH = numRows * CELL - ICON_GAP
+  local iconW = gridCols * CELL - ICON_GAP
+  local iconH = gridRows * CELL - ICON_GAP
   row.iconArea:Width(iconW)
   row.iconArea:Height(iconH)
-  row.rf:Width(LBL_W + GAP + iconW)
-  row.rf:Height(iconH)
+  row.rf:Width(BOX_P * 2 + math.max(iconW, LBL_W))
+  row.rf:Height(BOX_P * 2 + LBL_H + LBL_GAP + iconH)
   row.rf:Show()
   return isVert
 end
@@ -228,15 +238,11 @@ function BarsPreview:Set(profile)
   local layoutBars = (barsApi and profile.layoutName
     and barsApi:GetLayout(profile.layoutName)) or {}
 
-  local bindStr = profile.bindingSet == 2 and "  ·  Per-Char Binds" or ""
-  local layStr  = profile.layoutName and ("  ·  " .. profile.layoutName) or ""
-  self.header:Text(profile.spec .. bindStr .. layStr)
-
   -- Render all non-empty bars; track which row indices are vertical
   local n = 0
   local hRows, vRows = {}, {}
-  for sysIdx = 1, 8 do
-    local base = BAR_BASE[sysIdx] or ((sysIdx - 1) * 12 + 1)
+  for sysIdx = 1, #BAR_BASE do
+    local base = BAR_BASE[sysIdx]
     local hasSeen = false
     for slot = base, base + 11 do
       if slotMap[slot] then hasSeen = true; break end
@@ -254,71 +260,68 @@ function BarsPreview:Set(profile)
   for j = n + 1, self._numBars do self._barRows[j].rf:Hide() end
   self._numBars = n
 
-  -- Measure column widths
-  local hMaxW, vMaxW = 0, 0
+  -- Horizontal bars stack top-to-bottom in a left column; vertical bars sit
+  -- side by side to its right (stacking them too would get really tall).
+  local hMaxW = 0
   for _, ri in ipairs(hRows) do hMaxW = math.max(hMaxW, self._barRows[ri].rf:Width()) end
-  for _, ri in ipairs(vRows) do vMaxW = math.max(vMaxW, self._barRows[ri].rf:Width()) end
 
-  -- Absolute-position all rows into two columns anchored to self
-  local headerH   = P + self.header:Height() + GAP
-  local leftX     = P
-  local rightX    = P + hMaxW + (#vRows > 0 and GAP or 0)
-
-  local hy = -headerH
+  local hy = -P
   for _, ri in ipairs(hRows) do
     local rf = self._barRows[ri].rf
     rf:ClearAllPoints()
-    rf._widget:SetPoint("TOPLEFT", self._widget, "TOPLEFT", leftX, hy)
+    rf._widget:SetPoint("TOPLEFT", self._widget, "TOPLEFT", P, hy)
     hy = hy - rf:Height() - BAR_GAP
   end
 
-  local vy = -headerH
+  local vx, vMaxH = P + hMaxW + (#hRows > 0 and GAP or 0), 0
   for _, ri in ipairs(vRows) do
     local rf = self._barRows[ri].rf
     rf:ClearAllPoints()
-    rf._widget:SetPoint("TOPLEFT", self._widget, "TOPLEFT", rightX, vy)
-    vy = vy - rf:Height() - BAR_GAP
+    rf._widget:SetPoint("TOPLEFT", self._widget, "TOPLEFT", vx, -P)
+    vx = vx + rf:Width() + GAP
+    vMaxH = math.max(vMaxH, rf:Height())
   end
 
-  -- Resize self to fit both columns
-  local hColH = math.max(0, -hy - headerH - BAR_GAP)
-  local vColH = math.max(0, -vy - headerH - BAR_GAP)
-  local totalH = headerH + math.max(hColH, vColH)
-  local totalW = P + hMaxW + (#vRows > 0 and GAP + vMaxW or 0) + P
+  -- Resize self to fit both groups
+  local hColH = math.max(0, -hy - P - BAR_GAP)
+  local totalH = P + math.max(hColH, vMaxH)
+  local totalW = (#vRows > 0 and vx - GAP or P + hMaxW) + P
   self:Width(math.max(totalW, P + 80 + P))
   self:Height(totalH + P)
   self:Show()
 end
 
--- ─── BarsPreviewFrame (separate floating window) ─────────────────────────────
+-- ─── BarsPreviewFrame (companion box docked right of the main window) ────────
+-- Plain box like the IconStrip rail: parented to the Bars view so it only shows
+-- while that view does, and inherits the main window's strata/level.
 
-local FRAME_W = 354
-
----@class BarsPreviewFrame: TitleFrame
-local BarsPreviewFrame = Class(TitleFrame, function(self)
+---@class BarsPreviewFrame: CleanFrame
+local BarsPreviewFrame = Class(CleanFrame, function(self)
+  self.title = Label:new{
+    parent   = self, fontInfo = theme.fonts.body, color = theme.colors.muted,
+    position = { TopLeft = {P, -P}, Height = LBL_H },
+    wordWrap = false,
+  }
   self._preview = BarsPreview:new{
     parent   = self,
-    position = { TopLeft = {0, -30}, Width = FRAME_W, Hide = true },
+    position = { TopLeft = {0, -(P + LBL_H)}, Hide = true },
   }
-  self:Width(FRAME_W)
-  self:Height(30)
   self:Hide()
 end, {
-  special    = true,
-  name       = "WarbandeerBarsPreview",
-  title      = "Warbandeer | Bars",
-  theme      = ns.theme,
+  -- anchored to the (already clamped) window — same rule as IconStrip
+  clamped    = false,
   background = {0.11372549019, 0.14117647058, 0.16470588235, 0.92},
 })
 ns.BarsPreviewFrame = BarsPreviewFrame
 
 function BarsPreviewFrame:Set(profile)
   if not profile then self:Hide(); return end
-  self:Title(profile.char .. "  \226\128\148  " .. (profile.spec or "?"))
+  self.title:Text(profile.char .. "  \226\128\148  " .. (profile.spec or "?"))
   self._preview:Set(profile)
   local w = self._preview:Width()
+  self.title:Width(w - 2 * P)
   self:Width(w)
   self._preview._widget:SetWidth(w)
-  self:Height(30 + self._preview:Height())
+  self:Height(P + LBL_H + self._preview:Height())
   self:Show()
 end

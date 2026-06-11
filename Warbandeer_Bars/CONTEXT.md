@@ -101,6 +101,11 @@ missing `WarbandeerBarsSettings` keys from `ns.DefaultSettings`.
 
 ## Gotchas
 
+- **`C_EditMode.GetLayouts()` index offset:** `info.layouts` contains only *saved* layouts, but
+  `info.activeLayout` indexes as if the preset layouts (Modern, Classic) came first —
+  `CaptureLayouts` subtracts `#Enum.EditModePresetLayouts` before lookup. An active preset leaves
+  `profile.layoutName` nil (presets are default 1-row bars).
+
 - **`ns.Snapshot()` is a no-op during combat or mid-drag.** Macro temp-index resolution in capture
   touches protected APIs, and an in-progress cursor drag would be clobbered. Guarded by
   `InCombatLockdown()` / `GetCursorInfo()`. None of the triggers fire in combat anyway.

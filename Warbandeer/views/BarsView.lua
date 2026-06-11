@@ -10,22 +10,18 @@ local theme = ns.theme
 
 -- ─── Layout ───────────────────────────────────────────────────────────────────
 
-local VIEW_W  = 354
+local VIEW_W  = 300
 local P, GAP  = 12, 8
-local LBL_W   = 38           -- "CLASS" / "SPEC" inline label
-local DD_GAP  = 4            -- gap between label and its dropdown
-local DD_W    = math.floor((VIEW_W - 2 * P - 2 * LBL_W - 2 * DD_GAP - GAP) / 2)  -- 119
+local DD_W    = math.floor((VIEW_W - 2 * P - GAP) / 2)  -- 134
 local DD_H    = 20
 local HDR_H   = 14
 local ROW_H   = 22
 local ROW_GAP = 2
 local MAX_ROWS = 12
-local NAME_W  = 170
-local SPEC_W  = VIEW_W - 2 * P - NAME_W - GAP   -- 152
+local NAME_W  = 150
+local SPEC_W  = VIEW_W - 2 * P - NAME_W - GAP   -- 118
 
--- X offset where the spec label/DD pair begins
-local SPEC_LBL_X = P + LBL_W + DD_GAP + DD_W + GAP
-local SPEC_DD_X  = SPEC_LBL_X + LBL_W + DD_GAP
+local SPEC_DD_X = P + DD_W + GAP
 
 -- Absolute Y offsets (negative = down from view top)
 local DD_Y   = -P
@@ -52,12 +48,7 @@ local BarsView = Class(Frame, function(self)
   self._selected = nil
   self._results  = {}
 
-  -- Class selector
-  Label:new{
-    parent   = self, text = "CLASS",
-    fontInfo = theme.fonts.body, color = theme.colors.muted,
-    position = { TopLeft = {P, DD_Y}, Width = LBL_W, Height = DD_H },
-  }
+  -- Class selector (spec selector is rebuilt when class changes; see _buildSpecDD)
   local clsOpts = {{ key = nil, label = "All Classes" }}
   for _, cls in ipairs(ns.CLASSES) do
     insert(clsOpts, { key = cls.id, label = cls.name })
@@ -69,14 +60,7 @@ local BarsView = Class(Frame, function(self)
     width     = DD_W,
     menuWidth = DD_W,
     onSelect  = function(_, key) self:_setClass(key) end,
-    position  = { TopLeft = {P + LBL_W + DD_GAP, DD_Y} },
-  }
-
-  -- Spec selector (rebuilt when class changes; see _buildSpecDD)
-  Label:new{
-    parent   = self, text = "SPEC",
-    fontInfo = theme.fonts.body, color = theme.colors.muted,
-    position = { TopLeft = {SPEC_LBL_X, DD_Y}, Width = LBL_W, Height = DD_H },
+    position  = { TopLeft = {P, DD_Y} },
   }
 
   -- Divider
@@ -115,13 +99,17 @@ ns.views.BarsView = BarsView
 -- ─── Lifecycle ────────────────────────────────────────────────────────────────
 
 function BarsView:OnNavigate()
-  -- Only reset the filter to the current player's class when there is no
-  -- existing selection — preserves a cross-class selection on re-open.
+  -- Only reset the filter to the current player's class — and default the
+  -- selection to the current character/spec profile — when there is no
+  -- existing selection; preserves a cross-class selection on re-open.
   if not self._selected then
     local _, classToken = UnitClass("player")
     self._classID = classToken
     self._specID  = nil
     self.clsDD:Select(classToken)
+    if WarbandeerBarsApi then
+      self._selected = WarbandeerBarsApi:GetProfile()
+    end
   end
 end
 
@@ -272,11 +260,11 @@ end
 
 function BarsView:_getPreviewFrame()
   if not self._previewFrame then
-    self._previewFrame = ns.BarsPreviewFrame:new{}
-    if ns.MainWindow then
-      self._previewFrame:ClearAllPoints()
-      self._previewFrame:SetPoint("TOPLEFT", ns.MainWindow, "TOPRIGHT", 8, 0)
-    end
+    -- Parented to the view (shows/hides with it), docked right of the window.
+    self._previewFrame = ns.BarsPreviewFrame:new{
+      parent   = self,
+      position = { TopLeft = {ns.MainWindow or self, ui.edge.TopRight, 8, 0} },
+    }
   end
   return self._previewFrame
 end
