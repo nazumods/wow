@@ -313,6 +313,7 @@ local Achievements = Class(TableFrame, function(self)
       },
     })
   end
+  self:update()
 end, {
   achievementIds = {},
   headerHeight = 0,

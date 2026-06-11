@@ -27,7 +27,6 @@ function ns.lua.Class(parent, fn, defaults, ...)
     setmetatable(o, self)
     self.__index = self
     fn(o)
-    if parent and parent.onLoad then parent.onLoad(o) end
     if c.onLoad then c.onLoad(o) end
     if onLoad then onLoad(o) end
     return o

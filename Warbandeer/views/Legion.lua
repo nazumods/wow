@@ -92,71 +92,70 @@ end, {
     { name = "Kills" },
     { name = "Class Hall" },
   },
-})
-
-function Appearances:GetData()
-  local data, bc = {}, {}
-  local toons = api.GetAllCharacters()
-  for _,t in ipairs(toons) do
-    if t.artifacts and t.artifacts.hidden and t.artifacts.hiddenColors then
-      if bc[t.classKey] == nil then bc[t.classKey] = { specs = {}, wq = 0, dungeon = 0, kills = 0, ch = false } end
-      local c = bc[t.classKey]
-      for k,v in pairs(t.artifacts.hidden) do
-        if c.specs[k] == nil then c.specs[k] = false end
-        c.specs[k] = c.specs[k] or v
-      end
-      c.wq = math.max(c.wq, t.artifacts.hiddenColors.wq.progress)
-      c.dungeon = math.max(c.dungeon, t.artifacts.hiddenColors.dungeon.progress)
-      c.kills = math.max(c.kills, t.artifacts.hiddenColors.kills.progress)
-      c.ch = c.ch or t.artifacts.classHall
-    end
-  end
-  for _,c in ipairs({'DeathKnight', 'DemonHunter', 'Druid', 'Hunter', 'Mage', 'Monk', 'Paladin', 'Priest', 'Rogue', 'Shaman', 'Warlock', 'Warrior'}) do
-    if bc[c] ~= nil then
-      local s = {{text = c}}
-      for k,v in pairs(bc[c].specs) do
-        local t = {
-          text = k,
-          color = v and DIM_GREEN_FONT_COLOR or DIM_RED_FONT_COLOR,
-        }
-        if (not v) and instructions[c] and instructions[c][k] then
-          t.onEnter = function(cell)
-            ui.tip:AnchorTo(cell, "ANCHOR_BOTTOMRIGHT", -10, 10)
-            ui.tip:ClearLines()
-            ui.tip:AddLine(instructions[c][k])
-            ui.tip:Show()
-          end
-          t.onLeave = function() ui.tip:Hide() end
+  GetData = function(self)
+    local data, bc = {}, {}
+    local toons = api.GetAllCharacters()
+    for _,t in ipairs(toons) do
+      if t.artifacts and t.artifacts.hidden and t.artifacts.hiddenColors then
+        if bc[t.classKey] == nil then bc[t.classKey] = { specs = {}, wq = 0, dungeon = 0, kills = 0, ch = false } end
+        local c = bc[t.classKey]
+        for k,v in pairs(t.artifacts.hidden) do
+          if c.specs[k] == nil then c.specs[k] = false end
+          c.specs[k] = c.specs[k] or v
         end
-        table.insert(s, t)
+        c.wq = math.max(c.wq, t.artifacts.hiddenColors.wq.progress)
+        c.dungeon = math.max(c.dungeon, t.artifacts.hiddenColors.dungeon.progress)
+        c.kills = math.max(c.kills, t.artifacts.hiddenColors.kills.progress)
+        c.ch = c.ch or t.artifacts.classHall
       end
-      if #s < 5 then table.insert(s, { text = "" }) end
-      if #s < 5 then table.insert(s, { text = "" }) end
-      table.insert(s, {
-        text = bc[c].dungeon == 30 and 'DONE' or (30 - bc[c].dungeon) .. " left",
-        justifyH = ui.justify.Right,
-        color = bc[c].dungeon == 30 and DIM_GREEN_FONT_COLOR,
-      })
-      table.insert(s, {
-        text = bc[c].wq == 200 and 'DONE' or (200 - bc[c].wq) .. " left",
-        justifyH = ui.justify.Right,
-        color = bc[c].wq == 200 and DIM_GREEN_FONT_COLOR,
-      })
-      table.insert(s, {
-        text = bc[c].kills == 1000 and 'DONE' or (1000 - bc[c].kills) .. " left",
-        justifyH = ui.justify.Right,
-        color = bc[c].kills == 1000 and DIM_GREEN_FONT_COLOR,
-      })
-      table.insert(s, {
-        text = bc[c].ch and 'DONE' or '',
-        color = bc[c].ch and DIM_GREEN_FONT_COLOR or DIM_RED_FONT_COLOR,
-        justifyH = ui.justify.Center,
-      })
-      table.insert(data, s)
     end
-  end
-  return data
-end
+    for _,c in ipairs({'DeathKnight', 'DemonHunter', 'Druid', 'Hunter', 'Mage', 'Monk', 'Paladin', 'Priest', 'Rogue', 'Shaman', 'Warlock', 'Warrior'}) do
+      if bc[c] ~= nil then
+        local s = {{text = c}}
+        for k,v in pairs(bc[c].specs) do
+          local t = {
+            text = k,
+            color = v and DIM_GREEN_FONT_COLOR or DIM_RED_FONT_COLOR,
+          }
+          if (not v) and instructions[c] and instructions[c][k] then
+            t.onEnter = function(cell)
+              ui.tip:AnchorTo(cell, "ANCHOR_BOTTOMRIGHT", -10, 10)
+              ui.tip:ClearLines()
+              ui.tip:AddLine(instructions[c][k])
+              ui.tip:Show()
+            end
+            t.onLeave = function() ui.tip:Hide() end
+          end
+          table.insert(s, t)
+        end
+        if #s < 5 then table.insert(s, { text = "" }) end
+        if #s < 5 then table.insert(s, { text = "" }) end
+        table.insert(s, {
+          text = bc[c].dungeon == 30 and 'DONE' or (30 - bc[c].dungeon) .. " left",
+          justifyH = ui.justify.Right,
+          color = bc[c].dungeon == 30 and DIM_GREEN_FONT_COLOR,
+        })
+        table.insert(s, {
+          text = bc[c].wq == 200 and 'DONE' or (200 - bc[c].wq) .. " left",
+          justifyH = ui.justify.Right,
+          color = bc[c].wq == 200 and DIM_GREEN_FONT_COLOR,
+        })
+        table.insert(s, {
+          text = bc[c].kills == 1000 and 'DONE' or (1000 - bc[c].kills) .. " left",
+          justifyH = ui.justify.Right,
+          color = bc[c].kills == 1000 and DIM_GREEN_FONT_COLOR,
+        })
+        table.insert(s, {
+          text = bc[c].ch and 'DONE' or '',
+          color = bc[c].ch and DIM_GREEN_FONT_COLOR or DIM_RED_FONT_COLOR,
+          justifyH = ui.justify.Center,
+        })
+        table.insert(data, s)
+      end
+    end
+    return data
+  end,
+})
 
 local achievementIds = {10459, 11160, 11163}
 
@@ -223,4 +222,6 @@ ns.views.Legion = Legion
 function Legion:OnBeforeShow()
   self.collected.data = self.collected:GetData()
   self.collected:update()
+  self.collected:Autosize()
+  self:Width(self.collected:Width() + 4)
 end
