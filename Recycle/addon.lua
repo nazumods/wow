@@ -53,10 +53,13 @@ local function goldStr(copper)
     .. (copper % 100) .. "|cFFCC8890c|r"
 end
 
+local BUYBACK_LIMIT = 12
+
 local function sellItems()
   local count, total = 0, 0
   for bag = 0, 4 do
     for slot = 1, C_Container.GetContainerNumSlots(bag) do
+      if count >= BUYBACK_LIMIT then break end
       local info = C_Container.GetContainerItemInfo(bag, slot)
       if info and shouldSell(info.itemID) then
         local price = select(11, GetItemInfo(info.itemID))
@@ -68,6 +71,7 @@ local function sellItems()
         end
       end
     end
+    if count >= BUYBACK_LIMIT then break end
   end
   if count > 0 and not ns.db.settings.silent then
     print("|cffffcc00Recycle:|r Sold " .. count .. " item(s) for " .. goldStr(total) .. ".")

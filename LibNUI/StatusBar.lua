@@ -77,15 +77,15 @@ function StatusBar:Texture(t) self._widget:SetStatusBarTexture(t) end
 function StatusBar:SetValue(v)
   if not self.texture then self._widget:SetValue(v); return end
   local n, m = self._widget:GetMinMaxValues()
-  local p = 1 - (v / (m-n))
+  local p = 1 - ((v - n) / (m - n))
   local dx, dy = self.Xd * p, self.Yd * p
   local l, r, t, b = self.X1, self.X2, self.Y1, self.Y2
   if self._widget:GetOrientation() == "HORIZONTAL" then
-    if dx > 0 then -- luacheck: ignore
-      --
-    end
+    -- crop from the right: advance the right coord inward by the empty fraction
+    r = r - dx
+    self.texture:Right(self, ui.edge.Right, self:Width() * -dx, 0)
   else -- vertical
-    -- bottom up
+    -- crop from the top: advance the top coord downward by the empty fraction
     t = t + dy
     self.texture:Top(0, self:Height() * -dy)
   end
