@@ -1,7 +1,7 @@
 local ADDON_NAME = ...
 ---@class CombatOutline: AddOn
 local ns = select(2, ...)
--- luacheck: globals LibNAddOn SetCVar
+-- luacheck: globals LibNAddOn GetCVar SetCVar
 
 LibNAddOn{
   name = ADDON_NAME,
@@ -11,13 +11,15 @@ LibNAddOn{
   },
 }
 
+local savedMode
+
 function ns:PLAYER_REGEN_DISABLED()
-  -- todo: save current cvar values and restore them on leave combat
+  savedMode = GetCVar("OutlineEngineMode")
   SetCVar("OutlineEngineMode", 1)
 end
 ns:registerEvent("PLAYER_REGEN_DISABLED")
 
 function ns:PLAYER_REGEN_ENABLED()
-  SetCVar("OutlineEngineMode", 0)
+  SetCVar("OutlineEngineMode", savedMode or "0")
 end
 ns:registerEvent("PLAYER_REGEN_ENABLED")

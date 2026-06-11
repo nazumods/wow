@@ -2,6 +2,7 @@
 local ns = select(2, ...)
 local GetBuildInfo = GetBuildInfo -- luacheck: globals GetBuildInfo
 local RequestTimePlayed = RequestTimePlayed -- luacheck: globals RequestTimePlayed
+-- luacheck: globals ChatFrame_AddMessageEventFilter
 
 ---@class Character
 ---@field playtime PlaytimeBroker
@@ -11,6 +12,12 @@ local RequestTimePlayed = RequestTimePlayed -- luacheck: globals RequestTimePlay
 ---@field byPatch table<string, integer> /played total at first login per WoW patch version
 
 ns.Playtime = ns:RegisterBroker("playtime")
+
+-- Suppress the CHAT_MSG_SYSTEM that fires alongside the automatic login query.
+local suppressTimePlayed = false
+ChatFrame_AddMessageEventFilter("CHAT_MSG_SYSTEM", function(_, _, _)
+  if suppressTimePlayed then suppressTimePlayed = false; return true end
+end)
 
 -- TIME_PLAYED_MSG is async; bypass the field system and handle it directly.
 local parentInit = ns.Playtime.Init
@@ -27,5 +34,6 @@ function ns.Playtime:Init(toon)
     end
   end)
 
+  suppressTimePlayed = true
   RequestTimePlayed()
 end

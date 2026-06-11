@@ -25,7 +25,7 @@ function ns.setupDB(addOnName, addOn, ops)
     -- link to addOn
     self.db = _G[dbName]
     -- migrate if needed
-    if version and self.MigrateDB and version ~= self.db.version then
+    if version and self.MigrateDB and tonumber(version) ~= tonumber(self.db.version) then
       self:MigrateDB()
     end
   end, 1) -- run before addOn.onLoad
