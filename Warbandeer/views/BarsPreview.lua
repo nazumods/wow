@@ -55,27 +55,79 @@ local function kbFont()
   return _kbFont
 end
 
-local GetSpellTex = (C_Spell and C_Spell.GetSpellTexture) or _G.GetSpellTexture
-local GetItemTex  = (C_Item  and C_Item.GetItemIconByID)  or _G.GetItemIcon
+local GetSpellTex  = (C_Spell and C_Spell.GetSpellTexture) or _G.GetSpellTexture
+local GetSpellName = (C_Spell and C_Spell.GetSpellName)    or _G.GetSpellInfo
+local GetItemTex   = (C_Item  and C_Item.GetItemIconByID)  or _G.GetItemIcon
 
 local function slotTex(slot, macroMap)
   if not slot then return nil end
   local t = slot.type
   if t == "spell" then
     return GetSpellTex and GetSpellTex(slot.index) or nil
-  elseif t == "item" then
-    return GetItemTex  and GetItemTex(slot.index)  or nil
+  elseif t == "item" or t == "toy" then
+    return slot.index and GetItemTex and GetItemTex(slot.index) or nil
   elseif t == "macro" then
-    local m = macroMap[slot.index]
-    return m and ("Interface\\Icons\\" .. m.icon) or nil
+    -- Captured macro icons are numeric fileIDs (as strings); legacy ones may be
+    -- bare texture names or full paths.
+    local ic = macroMap[slot.index] and macroMap[slot.index].icon
+    if not ic then return nil end
+    local fileID = tonumber(ic)
+    if fileID then return fileID end
+    if ic:find("\\") or ic:find("/") then return ic end
+    return "Interface\\Icons\\" .. ic
   elseif t == "summonmount" then
-    return "Interface\\Icons\\ability_mount_summonplayersmount"
+    -- Mounts/pets are account-wide, so journal lookups work cross-character.
+    -- The "Random Favorite Mount" pseudo-ID has no journal entry.
+    local _, _, icon = C_MountJournal.GetMountInfoByID(slot.index)
+    return icon or "Interface\\Icons\\achievement_guildperk_mountup"
   elseif t == "summonpet" then
-    return "Interface\\Icons\\inv_pet_achievement_capturer"
+    local icon = slot.strindex and select(9, C_PetJournal.GetPetInfoByPetID(slot.strindex))
+    return icon or "Interface\\Icons\\inv_pet_achievement_capturer"
   elseif t == "equipmentset" then
     return "Interface\\Icons\\inv_misc_enggizmos_19"
   elseif t == "flyout" then
-    return "Interface\\Icons\\ability_hunter_displacement"
+    -- Flyout IDs have no texture of their own; show the first known spell's,
+    -- or any spell's when viewing a character that the player can't match
+    -- (isKnown is evaluated against the logged-in character).
+    local _, _, numSlots = GetFlyoutInfo(slot.index)
+    local fallback
+    for i = 1, numSlots or 0 do
+      local spellID, _, isKnown = GetFlyoutSlotInfo(slot.index, i)
+      if spellID and spellID > 0 then
+        local tex = GetSpellTex(spellID)
+        if tex and isKnown then return tex end
+        fallback = fallback or tex
+      end
+    end
+    return fallback
+  end
+end
+
+-- Display name for the hover tooltip; nil when nothing sensible is known.
+local function slotName(slot, macroMap)
+  if not slot then return nil end
+  local t = slot.type
+  if t == "spell" or t == "companion" then
+    return GetSpellName and GetSpellName(slot.index) or nil
+  elseif t == "item" or t == "toy" then
+    return slot.index and C_Item.GetItemNameByID(slot.index) or nil
+  elseif t == "macro" then
+    local m = macroMap[slot.index]
+    return m and m.name
+  elseif t == "flyout" then
+    return (GetFlyoutInfo(slot.index))
+  elseif t == "summonmount" then
+    local name = C_MountJournal.GetMountInfoByID(slot.index)
+    return name or "Random Favorite Mount"
+  elseif t == "summonpet" then
+    local customName, petName
+    if slot.strindex then
+      customName = select(2, C_PetJournal.GetPetInfoByPetID(slot.strindex))
+      petName    = select(8, C_PetJournal.GetPetInfoByPetID(slot.strindex))
+    end
+    return customName or petName or "Battle Pet"
+  elseif t == "equipmentset" then
+    return slot.strindex
   end
 end
 
@@ -131,6 +183,18 @@ function BarsPreview:_barRow(i)
       position = { TopRight = {-1, -1}, Width = ICON_SZ - 2, Height = 9, Hide = true },
     }
     cell.kb._widget:SetJustifyH("RIGHT")
+
+    -- Hover tooltip with the slot's display name (set per render as _tipText)
+    cell._widget:SetMouseMotionEnabled(true)
+    cell:SetScript("OnEnter", function()
+      if not cell._tipText then return end
+      ui.tip:AnchorTo(cell, "ANCHOR_RIGHT", 4, 0)
+      ui.tip:ClearLines()
+      ui.tip:AddLine(cell._tipText)
+      ui.tip:Show()
+    end)
+    cell:SetScript("OnLeave", function() ui.tip:Hide() end)
+
     row._cells[j] = cell
   end
 
@@ -182,6 +246,7 @@ function BarsPreview:_showBar(rowIdx, sysIdx, barLayout, slotMap, macroMap, bind
       cell:SetPoint("TOPLEFT", row.iconArea, "TOPLEFT", c * CELL, -r * CELL)
 
       local tex = slotTex(slotMap[slotNum], macroMap)
+      cell._tipText = slotName(slotMap[slotNum], macroMap)
       if tex then
         cell.icon:Texture(tex)
         cell.icon:Show()

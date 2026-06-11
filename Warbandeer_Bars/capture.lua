@@ -58,7 +58,7 @@ local function CaptureSlots(overrides)
           PlaceAction(i)
         end
         entry.index = index
-      elseif slotType == "item" or slotType == "flyout"
+      elseif slotType == "item" or slotType == "toy" or slotType == "flyout"
           or slotType == "companion" or slotType == "summonmount" then
         entry.index = index
       elseif slotType == "summonpet" then

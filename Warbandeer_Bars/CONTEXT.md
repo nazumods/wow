@@ -65,7 +65,7 @@ character/spec's setup and import it onto the current character. Profiles are st
 }
 ```
 
-Slot `type` ∈ `spell | item | flyout | companion | summonmount | summonpet | equipmentset | macro`.
+Slot `type` ∈ `spell | item | toy | flyout | companion | summonmount | summonpet | equipmentset | macro`.
 `summonpet` (GUID) and `equipmentset` (set name) use `strindex`; the rest use `index`.
 
 ## SavedVariables
