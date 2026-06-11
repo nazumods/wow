@@ -34,12 +34,6 @@ ns.wow.Armor.types = {Cloth, Leather, Mail, Plate}
 
 ns.wow.ClassKeys = Set{"DeathKnight", "DemonHunter", "Druid", "Evoker", "Hunter", "Mage", "Monk", "Paladin", "Priest", "Rogue", "Shaman", "Warlock", "Warrior"}
 
--- Locale-independent classToken (e.g. "DEATHKNIGHT") → PascalCase classKey
--- ("DeathKnight"). Derived from ClassByKey so it stays in sync automatically.
-ns.wow.ClassKeyByToken = {}
-for k in pairs(ns.wow.ClassByKey) do
-  ns.wow.ClassKeyByToken[k:upper():gsub(" ", "")] = k
-end
 ns.wow.ClassByKey = {
   DeathKnight = "Death Knight",
   DemonHunter = "Demon Hunter",
@@ -55,6 +49,13 @@ ns.wow.ClassByKey = {
   Warlock = "Warlock",
   Warrior = "Warrior",
 }
+
+-- Locale-independent classToken (e.g. "DEATHKNIGHT") → PascalCase classKey
+-- ("DeathKnight"). Derived from ClassByKey so it stays in sync automatically.
+ns.wow.ClassKeyByToken = {}
+for k in pairs(ns.wow.ClassByKey) do
+  ns.wow.ClassKeyByToken[k:upper():gsub(" ", "")] = k
+end
 
 ns.wow.Specializations = {
   DeathKnight = {"Blood", "Frost", "Unholy"},
