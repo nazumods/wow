@@ -46,6 +46,18 @@ function ns.IlvlColor(ilvl)
   return ns.IlvlColorObj(ilvl):WrapTextInColorCode(ilvl)
 end
 
+-- Safe ilvl accessor for sort comparators: fresh alts may not have had an
+-- equipment pass yet, so equipment or equipment.ilvl can be nil.
+function ns.ilvlOf(t) return t.equipment and t.equipment.ilvl or 0 end
+
+-- Standard sort: descending level, then descending ilvl, then ascending name.
+function ns.byLevelIlvl(a, b)
+  if a.basic.level ~= b.basic.level then return a.basic.level > b.basic.level end
+  local ai, bi = ns.ilvlOf(a), ns.ilvlOf(b)
+  if ai ~= bi then return ai > bi end
+  return a.name < b.name
+end
+
 -- Bar colors for factions the API exposes no color for (Delves, Prey, the
 -- Silvermoon Court minor factions, Slayer's Duellum, Valeera). Values match the
 -- palette the Plumber addon uses so the overview reads consistently. {r,g,b} 0..1.

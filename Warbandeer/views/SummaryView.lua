@@ -73,12 +73,7 @@ function ClassSummary:GetCharacters()
   toons = filter(toons, function(t)
     return t.isAlliance == self.isAlliance
   end)
-  -- sort by level, then ilvl, then name
-  table.sort(toons, function(c1, c2)
-    if c1.basic.level ~= c2.basic.level then return c1.basic.level > c2.basic.level end
-    if c1.equipment.ilvl ~= c2.equipment.ilvl then return c1.equipment.ilvl > c2.equipment.ilvl end
-    return c1.name < c2.name
-  end)
+  table.sort(toons, ns.byLevelIlvl)
   return toons
 end
 
