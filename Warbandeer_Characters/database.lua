@@ -2,6 +2,8 @@
 local ns = select(2, ...)
 local gsub = string.gsub
 local Player = ns.wow.Player
+-- luacheck: globals UnitClassBase GetClassInfo
+local UnitClassBase = UnitClassBase
 
 ---@class WarbandeerCharactersDB
 ---@field version integer
@@ -64,7 +66,7 @@ end, "Repair stored data (recount characters)")
 ---@field MigrateDB fun(self) Migrate database to latest version
 function ns:MigrateDB()
   local db = ns.db
-  if db.version == 8 then return end
+  if db.version == 9 then return end
   if not db.characters then db.characters = {} end
   if not db.numCharacters then
     db.numCharacters = countCharacters(db)
@@ -105,8 +107,25 @@ function ns:MigrateDB()
   end
 
   -- v8: account-wide warband bank gold + weekly wealth tracking (non-destructive)
-  if not db.warband then db.warband = { bankGold = 0, history = {} } end
-  db.version = 8
+  if (db.version or 0) < 8 then
+    if not db.warband then db.warband = { bankGold = 0, history = {} } end
+    db.version = 8
+  end
+
+  -- v9: re-derive classKey from the locale-independent class token so that
+  -- characters stored on non-English clients get the correct PascalCase key.
+  -- Non-destructive: keeps the existing value if classId is absent or unknown.
+  if (db.version or 0) < 9 then
+    for _, c in pairs(db.characters) do
+      if c.classId then
+        local _, _, classFile = GetClassInfo(c.classId)
+        if classFile then
+          c.classKey = ns.wow.ClassKeyByToken[classFile] or c.classKey
+        end
+      end
+    end
+    db.version = 9
+  end
 end
 
 ---@class Warbandeer_Characters
@@ -126,7 +145,8 @@ function ns:initialize()
     c.name = self.currentPlayer
     c.classId = Player:GetClassId()
     c.className = Player:GetClassName()
-    c.classKey = gsub(c.className, " ", "")
+    local _, classToken = UnitClassBase("player")
+    c.classKey = ns.wow.ClassKeyByToken[classToken] or gsub(c.className, " ", "")
     local raceFile, raceId = Player:GetRace()
     c.race = raceFile
     c.raceId = raceId
