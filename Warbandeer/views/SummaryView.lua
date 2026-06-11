@@ -43,12 +43,11 @@ local ClassSummary = Class(TableFrame, function(self)
   self:update()
 
   -- The module surface behind the table provides the glass backing; rows stay
-  -- transparent with a thin divider above each one, and still-levelling
-  -- characters are dimmed so the max-level roster reads first.
+  -- transparent with a thin divider above each one. The logged-in character's
+  -- row gets the muted-gold selected wash, and still-levelling characters are
+  -- dimmed so the max-level roster reads first (see restRow).
   for i, row in ipairs(self.rows) do
-    if toons[i].basic.level < ns.wow.maxLevel then
-      row:backdropColor(0, 0, 0, 0.22)
-    end
+    self:restRow(i)
     Texture:new{
       parent = row,
       layer = ui.layer.Overlay,
@@ -75,6 +74,21 @@ function ClassSummary:GetCharacters()
   end)
   table.sort(toons, ns.byLevelIlvl)
   return toons
+end
+
+-- Resting backdrop for row i: muted-gold wash for the logged-in character,
+-- dimmed for still-levelling characters, transparent otherwise.
+---@param i integer  row index
+function ClassSummary:restRow(i)
+  local row, toon = self.rows[i], self._toons[i]
+  if not row then return end
+  if toon and toon.name == ns.api.GetCurrentCharacter() then
+    row:backdropColor(theme.colors.selected)
+  elseif toon and toon.basic.level < ns.wow.maxLevel then
+    row:backdropColor(0, 0, 0, 0.22)
+  else
+    row:backdropColor(0, 0, 0, 0)
+  end
 end
 
 -- One cell per column, by position. A column's getData may return nil (no data);
@@ -112,10 +126,7 @@ function ClassSummary:decorateRow(cells, i)
       if onEnter then onEnter(s) end
     end
     copy.onLeave = function(s)
-      local row, toon = self.rows[i], self._toons[i]
-      if row then
-        row:backdropColor(0, 0, 0, (toon and toon.basic.level < ns.wow.maxLevel) and 0.22 or 0)
-      end
+      self:restRow(i)
       if onLeave then onLeave(s) end
     end
     copy.onClick = function(s)
@@ -150,6 +161,8 @@ function ClassSummary:OnBeforeShow()
   end
   self:update()
   self:setFooter(self:GetFooterData(toons))
+  -- Re-sorting can move characters between rows, so refresh resting backdrops.
+  for i in ipairs(self.rows) do self:restRow(i) end
 end
 
 local SummaryView = Class(ui.Frame, function(self)

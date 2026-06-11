@@ -41,9 +41,9 @@ local CHAR_LIST_H   = 180   -- height of the scrollable character-list area
 local VIEW_WIDTH    = PROF_COL_W + #EXP_ORDER * EXP_COL_W  -- 638
 
 -- Transparent rows/columns let the void window surface show
--- through; the selected grid row reads as a faint gold wash, empty cells dim.
+-- through; the selected grid row reads as a muted-gold wash, empty cells dim.
 local TRANSPARENT = { color = { 0, 0, 0, 0 } }
-local SELECTED    = { 1, 0.82, 0, 0.16 }
+local SELECTED    = theme.colors.selected
 local DIM         = { 0.82, 0.776, 0.671, 0.35 } -- muted at low alpha (— cells)
 
 -- ─── Column-info factories ────────────────────────────────────────────────────

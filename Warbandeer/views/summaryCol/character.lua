@@ -4,14 +4,11 @@ local ns = select(2, ...)
 local ui = ns.ui
 local Left = ui.justify.Left
 
+-- The logged-in character is marked by the row's muted-gold wash (see
+-- ClassSummary:restRow), not by decorating the name cell.
 local function getNameString(toon)
-  local current = ns.api.GetCurrentCharacter()
-  local s = toon.name
-  if s == current then
-    s = s.." |TInterface\\TargetingFrame\\UI-RaidTargetingIcon_1:14:14|t"
-  end
   return {
-    text = s,
+    text = toon.name,
     color = ns.Colors[toon.classKey or toon.className],
     onEnter = function(self)
       ns.ShowCharacterTooltip(toon, self)
