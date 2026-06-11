@@ -13,6 +13,7 @@
     "ipairs",
     "math",
     "max",
+    "next",
     "pairs",
     "print",
     "setmetatable",
@@ -147,7 +148,9 @@
     "UnitRace",
     "UnitXP",
     "UnitXPMax",
-    "UseToy"
+    "UseToy",
+
+    "WarbandeerBarsApi",
   ],
   "workspace.ignoreDir": [
     ".vscode",

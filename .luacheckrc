@@ -58,6 +58,8 @@ std = {
     -- Globals defined by this suite's own addons (cross-addon reads).
     "LibNAddOn",
     "LibNUI",
+    "WarbandeerBarsApi",
+
     "PrimaryResourceBar",
     "SecondaryResourceBar",
 

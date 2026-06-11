@@ -1,6 +1,6 @@
 ---@type Warbandeer_Characters
 local ns = select(2, ...)
-local GetBuildInfo = GetBuildInfo -- luacheck: globals GetBuildInfo
+local GetBuildInfo = GetBuildInfo
 
 local patch = false
 
@@ -15,6 +15,28 @@ local function hasCurrentExpSkill(detail)
     end
   end
   return false
+end
+
+-- Warbandeer_Bars is optional, so its API is reached via the global. A profile
+-- captured since the layout-snapshot upgrade always has bindingSet (1 or 2), so
+-- a nil there means the character hasn't been re-snapshotted (logged in) since.
+-- Returns the missing-report entry, or nil when the bars data is complete
+-- (or Warbandeer_Bars isn't loaded).
+local function missingBars(name)
+  local api = WarbandeerBarsApi
+  if not (api and name) then return end
+  local profiles = api:GetProfiles(name)
+  if not profiles or not next(profiles) then return "bars profile" end
+  local stale
+  for _, profile in pairs(profiles) do
+    if profile.bindingSet == nil then
+      stale = stale or {}
+      table.insert(stale, profile.spec or "Unknown")
+    end
+  end
+  if not stale then return end
+  table.sort(stale)
+  return "bars snapshot (" .. table.concat(stale, ", ") .. ")"
 end
 
 function ns.getMissingFields(toon)
@@ -34,6 +56,9 @@ function ns.getMissingFields(toon)
   end
 
   if not toon.lastRefresh then table.insert(missing, "lastRefresh") end
+
+  local bars = missingBars(toon.name)
+  if bars then table.insert(missing, bars) end
 
   -- LumberAxe is a recorded boolean (has / doesn't have the Find Lumber tracking
   -- spell), so only a nil means the data was never captured. false is real data.
