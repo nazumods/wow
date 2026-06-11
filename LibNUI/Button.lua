@@ -5,7 +5,7 @@ local ui = ns.ui
 local Class, unpack = ns.lua.Class, unpack
 local Frame, Label, Texture = ui.Frame, ui.Label, ui.Texture
 local GameTooltip, SetOverrideBindingClick = GameTooltip, SetOverrideBindingClick
-local GetItemCooldown, GetTime = GetItemCooldown, GetTime
+local GetTime = GetTime
 local GetCursorInfo = GetCursorInfo
 
 local file, _, flags = NumberFontNormalSmallGray:GetFont()
@@ -31,8 +31,9 @@ local function formatCooldown(t)
   end
   if t > 60 then -- > 1m
     local m = math.floor(t / 60)
-    return m..':'..(t - m * 60)
+    return m..':'..string.format("%02d", math.floor(t - m * 60))
   end
+  return math.ceil(t)..'s'
 end
 
 -- https://wowpedia.fandom.com/wiki/UIOBJECT_Button
@@ -148,8 +149,8 @@ function Button:OnMouseUp()
   if self.border then self.border:SetVertexColor(1, 1, 1) end
 
   if self.itemID then
-    local start, duration, enable = GetItemCooldown(self.itemID)
-    if enable == 1 and start > 0 then
+    local start, duration, enable = C_Item.GetItemCooldown(self.itemID)
+    if enable and start > 0 then
       self.cooldownEnd = start + duration
       self._widget:GetNormalTexture():SetDesaturated(true)
       self.cooldown:Text(formatCooldown(duration))
