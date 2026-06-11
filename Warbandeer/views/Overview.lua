@@ -234,19 +234,12 @@ end, {
     local toons = ns.api.GetAllCharacters()
     local top = {}
     for _, toon in pairs(toons) do
-      if not top[toon.classKey] or
-        toon.basic.level > top[toon.classKey].basic.level or
-        (toon.basic.level == top[toon.classKey].basic.level and toon.equipment.ilvl > top[toon.classKey].equipment.ilvl)
-      then
+      if not top[toon.classKey] or ns.byLevelIlvl(toon, top[toon.classKey]) then
         top[toon.classKey] = toon
       end
     end
     top = ns.lua.lists.values(top)
-    table.sort(top, function (c1, c2)
-      if c1.basic.level ~= c2.basic.level then return c1.basic.level > c2.basic.level end
-      if c1.equipment.ilvl ~= c2.equipment.ilvl then return c1.equipment.ilvl > c2.equipment.ilvl end
-      return c1.name < c2.name
-    end)
+    table.sort(top, ns.byLevelIlvl)
     local data = {}
     self._toons = {}
     for _, toon in ipairs(top) do

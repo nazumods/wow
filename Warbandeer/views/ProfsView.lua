@@ -235,11 +235,7 @@ ns.views.ProfsView = ProfsView
 ---@return Character[]
 function ProfsView:GetCharacters()
   local toons = ns.api.GetAllCharacters()
-  sort(toons, function(a, b)
-    if a.basic.level ~= b.basic.level then return a.basic.level > b.basic.level end
-    if a.equipment.ilvl ~= b.equipment.ilvl then return a.equipment.ilvl > b.equipment.ilvl end
-    return a.name < b.name
-  end)
+  sort(toons, ns.byLevelIlvl)
   return toons
 end
 
