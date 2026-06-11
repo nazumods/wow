@@ -58,7 +58,12 @@ local Button = Class(Frame, function(self)
   end
 
   if self.onClick then
-    self._widget:SetScript("OnClick", function() self:onClick() end)
+    -- "AnyDown"+"AnyUp" are both registered (keybind clicks need both regardless
+    -- of the ActionButtonUseKeyDown cvar), so this script fires twice per click;
+    -- run the handler once, on release, matching the OnMouseUp/OnClick hook path.
+    self._widget:SetScript("OnClick", function(_, _, down)
+      if not down then self:onClick() end
+    end)
   end
   self._widget:RegisterForClicks("AnyDown", "AnyUp")
 
