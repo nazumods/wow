@@ -26,12 +26,12 @@ function lists.values(...)
   return copy
 end
 
----generate an list by calling a function 1..n times with the index
+---generate a packed list by calling f(i) for i in [start, n]
 ---@class Lists
 ---@field generate fun(f: fun(i: integer): any, n: integer, start: integer?): table
 function lists.generate(f, n, start)
   local r, a = {}, start or 1
-  for i=a,n do insert(r, i, f(i)) end
+  for i=a,n do insert(r, f(i)) end
   return r
 end
 
@@ -80,7 +80,7 @@ function lists.find(table, value)
   return nil
 end
 
----fold a list into a list of lists, each of size n
+---fold a list into n sub-lists via round-robin distribution
 ---@class Lists
 ---@field fold fun(t: table, n: integer): table
 function lists.fold(t, n)

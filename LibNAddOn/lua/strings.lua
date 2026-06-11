@@ -18,7 +18,7 @@ function strings.startsWith(str, start)
 end
 
 ---@class Strings
----@field split fun(token: string, str: string): table returns a List of the substrings in str that are separated by token
+---@field split fun(token: string, str: string): table splits str on each character in token; token is treated as a char class, so only a single non-magic character is safe (avoid `-`, `%`, `^`)
 function strings.split(token, str)
   local result = {}
   for part in gmatch(str, "[^"..token.."]+") do

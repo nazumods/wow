@@ -110,17 +110,14 @@ function Profession:GetInfo()
 end
 
 function Player:GetProfessions()
-  if not self.professions then
-    local prof1, prof2, arch, fishing, cooking = GetProfessions()
-    self.professions = {
-      prof1 = Mixin({id = prof1}, Profession),
-      prof2 = Mixin({id = prof2}, Profession),
-      archaeology = Mixin({id = arch}, Profession),
-      fishing = Mixin({id = fishing}, Profession),
-      cooking = Mixin({id = cooking}, Profession),
-    }
-  end
-  return self.professions
+  local prof1, prof2, arch, fishing, cooking = GetProfessions()
+  return {
+    prof1 = Mixin({id = prof1}, Profession),
+    prof2 = Mixin({id = prof2}, Profession),
+    archaeology = Mixin({id = arch}, Profession),
+    fishing = Mixin({id = fishing}, Profession),
+    cooking = Mixin({id = cooking}, Profession),
+  }
 end
 
 local ACTIVITY_TYPES = {
