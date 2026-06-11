@@ -7,6 +7,10 @@ local Button = ui.Button
 local CheckButton = Class(Button, function(self)
   self._widget.Text:SetText(self.text or "")
   self._widget:SetHitRectInsets(0, 0, 0, 0)
+  -- Button registers "AnyDown"+"AnyUp", which fires the template's auto-toggle
+  -- twice per click (cancelling out). Restrict to up-only so the template toggles
+  -- exactly once and OnClick can simply read the resulting state.
+  self._widget:RegisterForClicks("LeftButtonUp")
 end, {
   type = "CheckButton",
   template = "ChatConfigCheckButtonTemplate", --"UICheckButtonTemplate",
@@ -19,9 +23,7 @@ ui.CheckButton = CheckButton
 
 function CheckButton:OnClick()
   if self.OnToggle then
-    local checked = self:Checked()
-    self:OnToggle(checked)
-    self:Checked(not checked)
+    self:OnToggle(self:Checked())
   end
 end
 
