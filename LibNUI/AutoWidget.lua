@@ -4,11 +4,14 @@ local ui = ns.ui
 local Class, Button, Label, Texture = ns.lua.Class, ui.Button, ui.Label, ui.Texture
 
 -- A widget that automatically configures itself as a Label, Texture, or Button
--- depending on the options. When updating it will reconfigure itself as necessary.
+-- depending on the options passed at construction time.
 local AutoWidget = Class(nil, function(self)
   if self.onClick then
+    -- label/position/font options are not forwarded to Button; set them on
+    -- self.button after construction if needed.
     self.button = Button:new{
       parent = self.parent,
+      onClick = self.onClick,
     }
   elseif self.path or self.atlas then
     self.texture = Texture:new{
@@ -36,5 +39,6 @@ local AutoWidget = Class(nil, function(self)
 end)
 ui.AutoWidget = AutoWidget
 
-function AutoWidget:update(data)
+-- Stub: reconfiguration on data change is not yet implemented.
+function AutoWidget:update(_data)
 end

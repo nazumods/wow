@@ -26,6 +26,7 @@ LibNAddOn
     +-- LibNUI ──────────────────────────→ LibNUI_Test (LoadOnDemand)
     |     |
     |     +-- ShadowsOfUI-XP
+    |     +-- ShadowsOfUI-GCD
     |     +-- HideStanceBar
     |     +-- Warbandeer_Alias
     |     +-- Recycle
@@ -40,6 +41,7 @@ LibNAddOn
 
 (no LibN dependency):
     HideBagBar  (raw WoW API only)
+    BarNonce    (raw WoW API only)
 ```
 
 ---
@@ -59,6 +61,8 @@ Load the linked `CONTEXT.md` for full file maps, class hierarchies, API surfaces
 | **ShadowsOfUI-XP** | Minimal full-width XP bar at screen bottom (below max level only). Single file, no DB. | [ShadowsOfUI-XP/CONTEXT.md](ShadowsOfUI-XP/CONTEXT.md) |
 | **HideStanceBar** | Hides the stance bar via reparenting, per-class toggles. `HideStanceBarDB` (v1). | [HideStanceBar/CONTEXT.md](HideStanceBar/CONTEXT.md) |
 | **HideBagBar** | Hides backpack/bag slot buttons. Raw WoW API only — no LibNAddOn. | [HideBagBar/CONTEXT.md](HideBagBar/CONTEXT.md) |
+| **ShadowsOfUI-GCD** | Minimal GCD sweep bar anchored between the primary and secondary resource bars. Single file, no DB, no slash commands. | — |
+| **BarNonce** | Removes padding and sets 70% opacity on Action Bars 1 and 2. Raw WoW API only — no LibNAddOn. Single file, no DB, no slash commands. | — |
 | **CombatOutline** | Toggles `OutlineEngineMode` CVar in/out of combat. Single file. | [CombatOutline/CONTEXT.md](CombatOutline/CONTEXT.md) |
 | **Recycle** | Auto-sells grey + marked items at merchants (`/recycle`). Per-character `RecycleDB` (v1). | [Recycle/CONTEXT.md](Recycle/CONTEXT.md) |
 | **ShadowsOfUI-DMF** | Headless Darkmoon Faire helper: merchant material auto-buy + waypoint/map-pin guidance to profession quest givers. `/sdmf` dev command. No UI, no DB. | [ShadowsOfUI-DMF/CONTEXT.md](ShadowsOfUI-DMF/CONTEXT.md) |
