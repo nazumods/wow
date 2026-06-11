@@ -45,7 +45,7 @@ end
 local function UnregisterEvent(self, name, handler)
   if handler then
     local idx
-    for i,h in ipairs(self._eventHandlers) do
+    for i,h in ipairs(self._eventHandlers[name]) do
       if h == handler then idx = i; break end
     end
     if idx then remove(self._eventHandlers[name], idx) end

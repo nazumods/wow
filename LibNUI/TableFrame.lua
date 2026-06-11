@@ -201,7 +201,7 @@ end
 
 function TableFrame:set(row, col, element)
   if #self.cells < row then
-    for i=#self.cells,row do
+    for i=#self.cells+1,row do
       insert(self.cells, i, {})
     end
   end
