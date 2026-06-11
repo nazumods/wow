@@ -55,10 +55,18 @@ ns.Equipment.fields = {
     event = "PLAYER_EQUIPMENT_CHANGED",
     eventDelay = 500,
     eventHandler = function()
-      ns.requests = 16
+      local toLoad = {}
       for _, index in pairs(EquipmentSlots) do
         local link = GetInventoryItemLink("player", index)
-        if link then RequestLoadItemData({equipmentSlotIndex = index}) end
+        if link then toLoad[#toLoad + 1] = index end
+      end
+      if #toLoad == 0 then
+        ns.Equipment:Update(ns.currentData)
+        return
+      end
+      ns.requests = #toLoad
+      for _, index in ipairs(toLoad) do
+        RequestLoadItemData({equipmentSlotIndex = index})
       end
     end,
   },
