@@ -19,16 +19,6 @@ ns.LAST_DAILY_RESET = LAST_DAILY_RESET
 ns.LAST_RESET = LAST_RESET
 ns.LAST_SUNDAY_RESET = LAST_SUNDAY_RESET
 
-local eventListener = CreateFrame("Frame")
-local _delay = function(ms, fn)
-  local timer = 0
-  eventListener:SetScript("OnUpdate", function(_, elapsed)
-    timer = timer + (elapsed * 1000)
-    if timer < ms then return end
-    eventListener:SetScript("OnUpdate", nil)
-    fn()
-  end)
-end
 
 ---@class BrokerField
 ---@field get fun(self: BrokerField, toon: Character, currentValue: any?): any
@@ -69,7 +59,7 @@ function Broker:Init(toon)
           field.eventHandler = function(f, ...)
             if field.eventFilter and not field.eventFilter(f, ...) then return end
             if field.eventDelay then
-              _delay(field.eventDelay, function()
+              ns:after(field.eventDelay, function()
                 toon[broker][name] = field:get(toon, toon[broker][name])
               end)
             else

@@ -64,7 +64,8 @@ end
 ---@field _eventHandlers table<string, function[]> event handlers for registered events
 ---@field registerEvent fun(self: AddOn, name: string, handler: function?, idx: number?) register an event handler for an event
 ---@field unregisterEvent fun(self: AddOn, name: string, handler: function?) unregister an event handler for an event, or all handlers if handler is nil
----@field delay fun(self: AddOn, ms: number, fn: function|string) call a function or method after a delay in milliseconds
+---@field delay fun(self: AddOn, ms: number, fn: function|string) one-shot debounce timer; a second call replaces the pending callback
+---@field after fun(self: AddOn, ms: number, fn: function) fire fn once after ms milliseconds; supports concurrent timers
 ---@field onLoad fun(self: AddOn) called when the add-on is loaded
 ---@field onLogin fun(self: AddOn, isLogin: boolean, isReload: boolean) called when the player logs in or the UI is reloaded
 ---@field ADDON_LOADED Event
@@ -107,5 +108,9 @@ function ns.createEventListener(addOn)
         s[fn](s)
       end
     end)
+  end
+
+  a.after = function(_, ms, fn)
+    C_Timer.After(ms / 1000, fn)
   end
 end
