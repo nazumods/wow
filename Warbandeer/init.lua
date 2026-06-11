@@ -64,6 +64,7 @@ ns.viewOrder = {
   "legion",
   "playtime",
   "midnightprofs",
+  "bars",
 }
 
 -- https://wowpedia.fandom.com/wiki/Category:HOWTOs

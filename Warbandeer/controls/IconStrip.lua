@@ -70,9 +70,10 @@ local IconStrip = Class(CleanFrame, function(self)
     btn.accent:Color(0, 0, 0, 0)
 
     btn.icon = Texture:new{
-      parent = btn,
-      layer = ui.layer.Artwork,
-      path = ICON_PATH .. v.name .. ".tga",
+      parent   = btn,
+      layer    = ui.layer.Artwork,
+      path     = ICON_PATH .. v.name .. ".tga",
+      rotation = v.iconRotation,
       position = { Center = {}, Size = {ICON, ICON} },
     }
     btn.icon:SetVertexColor(c.muted)

@@ -108,3 +108,16 @@ function API:Decode(text) return ns.Decode(text) end
 ---The per-character restore include filter (live table; mutate to change).
 ---@return table
 function API:GetIncludeSettings() return ns.settings.include end
+
+---All stored Edit Mode layout snapshots, keyed by layout name.
+---@return table<string, table>
+function API:GetLayouts()
+  return ns.db.layouts or {}
+end
+
+---Bar settings for a single named Edit Mode layout, or nil if unknown.
+---@param name string?
+---@return table?   { [barIndex] = {numIcons, numRows, orientation} }
+function API:GetLayout(name)
+  return name and (ns.db.layouts or {})[name]
+end

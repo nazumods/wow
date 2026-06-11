@@ -23,6 +23,10 @@ function ns:MigrateDB()
     db.profiles = {}   -- [charName] = { [specID] = profile }
     db.version  = 1
   end
+  if db.version < 2 then
+    db.layouts = db.layouts or {}  -- [layoutName] = { [barIndex] = {numIcons,numRows,orientation} }
+    db.version = 2
+  end
 end
 
 function ns:onLoad()
