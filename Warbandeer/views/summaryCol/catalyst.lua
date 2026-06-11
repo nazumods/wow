@@ -15,11 +15,14 @@ table.insert(
     tooltip = {"Catalyst Charges", "Dawnlight Manaflux held. Red when full — recharge is being wasted."},
     getData = function(t)
       local c = t.currency and t.currency.Catalyst
-      if not c or c.quantity == 0 then return "" end
+      -- always show a count; zero (or not yet captured) reads muted so real
+      -- charge counts stand out
+      local q = c and c.quantity or 0
       return {
-        text     = c.quantity,
+        text     = q,
         justifyH = ui.justify.Center,
-        color    = c.capped and ns.CappedColor or ns.UncappedColor,
+        color    = q == 0 and ns.theme.colors.muted
+          or (c.capped and ns.CappedColor or ns.UncappedColor),
       }
     end,
   }
