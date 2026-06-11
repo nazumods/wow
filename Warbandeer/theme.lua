@@ -24,6 +24,7 @@ ns.theme = ns.ui.Theme{
     module   = {1, 1, 1, 0.05},          -- "glass-module" inner panel
     moduleHi = {1, 1, 1, 0.08},          -- header strip / hover tint
     hover    = {1, 1, 1, 0.10},          -- row hover highlight
+    selected = {0.90, 0.80, 0.50, 0.15}, -- selected-row wash (muted artifact gold #e6cc80)
     track    = {0.5, 0.5, 0.55, 1},      -- progress-bar track (tints the bar texture)
     border   = {0.60, 0.56, 0.46, 0.25}, -- 1px outline
     divider  = {0.60, 0.56, 0.46, 0.20},

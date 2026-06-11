@@ -50,14 +50,11 @@ local COL_INFO = ns.lua.lists.map(BASE_COLS, function(c)
   return info
 end)
 
+-- The logged-in character is marked by the row's muted-gold wash (see
+-- GearTable:restRow), not by decorating the name cell.
 local getNameString = function(toon)
-  local current = ns.api.GetCurrentCharacter()
-  local s = toon.name
-  if s == current then
-    s = s.." |TInterface\\TargetingFrame\\UI-RaidTargetingIcon_1:14:14|t"
-  end
   return {
-    text = s,
+    text = toon.name,
     color = ns.Colors[toon.classKey or toon.className],
     onEnter = function(self)
       ui.tip:AnchorTo(self, "ANCHOR_BOTTOMRIGHT", -10, 10)
@@ -113,9 +110,7 @@ local GearTable = Class(TableFrame, function(self)
   self:update()
 
   for i, row in ipairs(self.rows) do
-    if toons[i].basic.level < ns.wow.maxLevel then
-      row:backdropColor(0, 0, 0, 0.22)
-    end
+    self:restRow(i)
     Texture:new{
       parent = row,
       layer = ui.layer.Overlay,
@@ -131,6 +126,21 @@ end, {
   armorType = "Cloth",
   backdrop = { color = ns.Colors.TransparentBlack },
 })
+
+-- Resting backdrop for row i: muted-gold wash for the logged-in character,
+-- dimmed for still-levelling characters, transparent otherwise.
+---@param i integer  row index
+function GearTable:restRow(i)
+  local row, toon = self.rows[i], self._toons[i]
+  if not row then return end
+  if toon and toon.name == ns.api.GetCurrentCharacter() then
+    row:backdropColor(theme.colors.selected)
+  elseif toon and toon.basic.level < ns.wow.maxLevel then
+    row:backdropColor(0, 0, 0, 0.22)
+  else
+    row:backdropColor(0, 0, 0, 0)
+  end
+end
 
 ---@return table
 function GearTable:GetCharacters()
@@ -187,10 +197,7 @@ function GearTable:decorateRow(cells, i)
       if onEnter then onEnter(s) end
     end
     copy.onLeave = function(s)
-      local row, toon = self.rows[i], self._toons[i]
-      if row then
-        row:backdropColor(0, 0, 0, (toon and toon.basic.level < ns.wow.maxLevel) and 0.22 or 0)
-      end
+      self:restRow(i)
       if onLeave then onLeave(s) end
     end
     copy.onClick = function(s)
@@ -214,6 +221,8 @@ function GearTable:OnBeforeShow()
     self.data[i] = self:decorateRow(self:GetRowData(t), i)
   end
   self:update()
+  -- Re-sorting can move characters between rows, so refresh resting backdrops.
+  for i in ipairs(self.rows) do self:restRow(i) end
 end
 
 -- Armor-type accent colour for the active filter button.

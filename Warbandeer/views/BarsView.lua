@@ -187,16 +187,25 @@ function BarsView:_resultRow(i)
 
   local r = row
   r.OnClick = function() self:_selectProfile(r._profile) end
-  r.OnEnter = function() r.background:Color(1, 1, 1, 0.08) end
-  r.OnLeave = function()
-    if self._selected ~= r._profile then r.background:Color(0, 0, 0, 0) end
+  r.OnEnter = function()
+    if self._selected ~= r._profile then r.background:Color(theme.colors.hover) end
   end
+  r.OnLeave = function() self:_paintRow(r) end
 
   self._rows[i] = row
   return row
 end
 
 -- ─── List & selection ─────────────────────────────────────────────────────────
+
+-- Resting backdrop for a result row: muted-gold wash if selected, transparent otherwise.
+function BarsView:_paintRow(row)
+  if self._selected == row._profile then
+    row.background:Color(theme.colors.selected)
+  else
+    row.background:Color(0, 0, 0, 0)
+  end
+end
 
 function BarsView:_buildResultList()
   self._results = {}
@@ -240,8 +249,7 @@ function BarsView:_buildResultList()
     for _, cls in ipairs(ns.CLASSES) do
       if cls.id == p.class then row.nameLbl:Color(cls.color); break end
     end
-    local sel = self._selected == p
-    row.background:Color(sel and 1 or 0, sel and 1 or 0, sel and 1 or 0, sel and 0.08 or 0)
+    self:_paintRow(row)
     row:ClearAllPoints()
     row:SetPoint("TOPLEFT", self, "TOPLEFT", P, LIST_Y - (i - 1) * (ROW_H + ROW_GAP))
     row:Show()
@@ -272,11 +280,7 @@ end
 function BarsView:_selectProfile(p)
   if not p then return end
   self._selected = p
-  for i = 1, self._numShown do
-    local row = self._rows[i]
-    local sel = row._profile == p
-    row.background:Color(sel and 1 or 0, sel and 1 or 0, sel and 1 or 0, sel and 0.08 or 0)
-  end
+  for i = 1, self._numShown do self:_paintRow(self._rows[i]) end
   self:_getPreviewFrame():Set(p)
 end
 
