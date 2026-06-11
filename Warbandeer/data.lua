@@ -31,9 +31,12 @@ ns.gearSlots = {
   "Legs", "Feet", "Finger1", "Finger2", "Trinket1", "Trinket2", "MainHand", "OffHand",
 }
 
--- ColorMixin for an item level, by gear tier (mirrors IlvlColor's thresholds).
+-- ColorMixin for an item level, by gear tier. Thresholds are by ilvl, not upgrade
+-- track, by design: gear maxed on a lower track counts as the tier its ilvl reaches
+-- (e.g. a fully upgraded Hero item at 272+ reads as mythic gold).
 function ns.IlvlColorObj(ilvl)
-  if ilvl >= gearTiers.hero then return ITEM_LEGENDARY_COLOR
+  if ilvl >= gearTiers.mythic then return ITEM_ARTIFACT_COLOR -- muted gold (#e6cc80)
+  elseif ilvl >= gearTiers.hero then return ITEM_LEGENDARY_COLOR
   elseif ilvl >= gearTiers.champion then return ITEM_EPIC_COLOR
   elseif ilvl >= gearTiers.veteran then return ITEM_SUPERIOR_COLOR
   elseif ilvl >= gearTiers.adventurer then return ITEM_GOOD_COLOR
