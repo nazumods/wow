@@ -35,9 +35,11 @@ function lists.generate(f, n, start)
   return r
 end
 
----return a new table by transforming each value by the given function
+---Return a new list by transforming each value with `f`.
+---If `f` returns nil or false the original value is kept (Lua `or` fallback).
+---Omit `f` for a shallow copy.
 ---@class Lists
----@field map fun(t: table, f: fun(v: any, k: integer): any): table
+---@field map fun(t: table, f: (fun(v: any, k: integer): any)?, ...): table
 function lists.map(t, f)
   local r = {}
   for k,v in ipairs(t) do
