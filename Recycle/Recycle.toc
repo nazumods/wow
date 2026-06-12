@@ -2,7 +2,7 @@
 ## Category: Inventory
 ## Title: Recycle
 ## Author: Nazuraki
-## Version: 12.0.5-r4
+## Version: 12.0.5-r5
 ## IconTexture: Interface\Icons\inv_misc_coin_02
 ## SavedVariablesPerCharacter: RecycleDB
 ## Dependencies: LibNAddOn, LibNUI
