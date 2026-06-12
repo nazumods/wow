@@ -5,6 +5,7 @@
 ## Version: 12.0.5-r0
 ## Dependencies: LibNAddOn, Warbandeer_Characters
 ## OptionalDeps: Warbandeer
+## X-Curse-Project-ID: 1573500
 ## X-NUI-API: WarbandeerApi
 
 core.lua
