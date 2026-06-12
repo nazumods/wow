@@ -84,7 +84,7 @@ local getILvlString = function(toon)
     end
   end
   return {
-    text = toon.basic.level < ns.wow.maxLevel and (ITEM_STANDARD_COLOR:WrapTextInColorCode(toon.equipment.ilvl)) or ns.IlvlColor(toon.equipment.ilvl),
+    text = (toon.basic.level or 0) < ns.wow.maxLevel and ITEM_STANDARD_COLOR:WrapTextInColorCode(ns.ilvlOf(toon)) or ns.IlvlColor(ns.ilvlOf(toon)),
     onEnter = function(self)
       ui.tip:AnchorTo(self, "ANCHOR_BOTTOMRIGHT", -10, 10)
       ui.tip:ClearLines()
@@ -135,7 +135,7 @@ function GearTable:restRow(i)
   if not row then return end
   if toon and toon.name == ns.api.GetCurrentCharacter() then
     row:backdropColor(theme.colors.selected)
-  elseif toon and toon.basic.level < ns.wow.maxLevel then
+  elseif toon and (toon.basic.level or 0) < ns.wow.maxLevel then
     row:backdropColor(0, 0, 0, 0.22)
   else
     row:backdropColor(0, 0, 0, 0)

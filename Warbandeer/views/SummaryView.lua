@@ -84,7 +84,7 @@ function ClassSummary:restRow(i)
   if not row then return end
   if toon and toon.name == ns.api.GetCurrentCharacter() then
     row:backdropColor(theme.colors.selected)
-  elseif toon and toon.basic.level < ns.wow.maxLevel then
+  elseif toon and (toon.basic.level or 0) < ns.wow.maxLevel then
     row:backdropColor(0, 0, 0, 0.22)
   else
     row:backdropColor(0, 0, 0, 0)

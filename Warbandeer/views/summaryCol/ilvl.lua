@@ -31,7 +31,7 @@ local getILvlString = function(toon)
     end
   end
   return {
-    text = toon.basic.level < ns.wow.maxLevel and ITEM_STANDARD_COLOR:WrapTextInColorCode(toon.equipment.ilvl) or ns.IlvlColor(toon.equipment.ilvl),
+    text = (toon.basic.level or 0) < ns.wow.maxLevel and ITEM_STANDARD_COLOR:WrapTextInColorCode(ns.ilvlOf(toon)) or ns.IlvlColor(ns.ilvlOf(toon)),
     justifyH = ui.justify.Right,
     fontInfo = ns.theme.fonts.number,
     onEnter = function(self)

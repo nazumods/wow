@@ -256,7 +256,7 @@ end, {
           color = ns.Colors[toon.classKey]
         },
         {
-          text = ns.IlvlColor(toon.equipment.ilvl),
+          text = ns.IlvlColor(ns.ilvlOf(toon)),
           justifyH = ui.justify.Right,
           fontInfo = ns.theme.fonts.number,
         },
