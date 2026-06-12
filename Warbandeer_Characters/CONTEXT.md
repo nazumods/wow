@@ -152,7 +152,7 @@ A `Broker` (from `broker.lua`) holds a `fields` table; each field is `{ get, eve
 - **`get(self, toon, currentValue)`** computes the new value; `currentValue` lets a field merge into / preserve cached data (e.g. `professions.details`, `concentration.data`).
 - **`event`** (string or list) auto-registers a handler that re-runs `get` after `eventDelay` ms. Provide a custom `eventHandler` for incremental updates (e.g. `quests.WWIRep` decrements `missing` rather than re-scanning).
 - **`maxLevel = true`** skips the field for sub-max-level characters (both in `refreshQueue` and `RefreshCurrentCharacterField`).
-- **`resetOn` / `reset`** clear/seed the field at the matching reset boundary (`InitBrokers` walks all characters at login when a boundary has passed). Fields with `resetOn` but no `reset` are nilled.
+- **`resetOn` / `reset`** clear/seed the field at the matching reset boundary (`InitBrokers` walks all characters at login when a boundary has passed). Fields with `resetOn` but no `reset` are nilled. Boundary anchors are recomputed per login and can jitter (clock skew between the time APIs; Sunday midnight is realm-local, so realms in different timezones disagree by hours) — a reset only fires when the anchor advanced by more than `RESET_SLACK` (12h), preventing spurious mid-week wipes.
 - **`order`** sorts the scan within a broker (e.g. `basic.level` runs first so other fields can read it).
 
 ## Gotchas

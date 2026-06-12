@@ -14,13 +14,13 @@ local DMFQuests = {
   Enchanting = 29510,
   Engineering = 29511,
   Fishing = 29513,
-  Herbalism = 25914,
+  Herbalism = 29514,
   Inscription = 29515,
   Jewelcrafting = 29516,
   LeatherWorking = 29517,
   Mining = 29518,
   Skinning = 29519,
-  Tailoring = 25920,
+  Tailoring = 29520,
 }
 
 ---@class WeeklyBroker: Broker
@@ -38,6 +38,12 @@ ns.Weekly.fields = {
       return any(DMFQuests, function(id)
         return IsQuestFlaggedCompleted(id)
       end) or current
+    end,
+    -- Capture turn-ins live: without this, a completion is only stored if a
+    -- refresh runs before the faire ends and clears the quest flags.
+    event = "QUEST_TURNED_IN",
+    eventHandler = function(self, _, questId)
+      if self.ids[questId] then self:set(true) end
     end,
   },
   preMidnight = {

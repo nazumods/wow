@@ -10,6 +10,14 @@ local time = DateAndTime.GetCurrentCalendarTime()
 local LAST_SUNDAY_RESET = GetServerTime() - ((time.weekday - 1) * 24 * 60 * 60) - (time.hour * 60 * 60) - (time.minute * 60) -- reset to sunday midnight
 LAST_SUNDAY_RESET = LAST_SUNDAY_RESET - (LAST_SUNDAY_RESET % 60) -- zero out seconds
 
+-- The anchors above are recomputed every login from clocks that can disagree
+-- between sessions: GetServerTime() vs the calendar/seconds-until APIs can skew
+-- by a second (shifting the minute-floored Sunday anchor by 60s), and Sunday
+-- midnight is realm-local, so characters on realms in different timezones
+-- compute anchors hours apart. A genuine new boundary advances by at least a
+-- day, so only treat the anchor as "new" when it moved by more than this slack.
+local RESET_SLACK = 12 * 60 * 60
+
 -- expose reset boundaries for non-broker (account-wide) data that resets on the same cadence
 ---@class Warbandeer_Characters
 ---@field LAST_DAILY_RESET integer
@@ -120,7 +128,7 @@ function ns:InitBrokers()
     self.brokers[name]:Init(self.currentData)
   end
 
-  if self.db.lastDailyReset == nil or self.db.lastDailyReset < LAST_DAILY_RESET then
+  if self.db.lastDailyReset == nil or LAST_DAILY_RESET - self.db.lastDailyReset > RESET_SLACK then
     self.db.lastDailyReset = LAST_DAILY_RESET
     for _,t in pairs(self.db.characters) do
       for _,name in ipairs(self.brokerOrder) do
@@ -129,7 +137,7 @@ function ns:InitBrokers()
     end
   end
 
-  if self.db.lastReset == nil or self.db.lastReset < LAST_RESET then
+  if self.db.lastReset == nil or LAST_RESET - self.db.lastReset > RESET_SLACK then
     self.db.lastReset = LAST_RESET
     -- new week, reset data
     for _,t in pairs(self.db.characters) do
@@ -139,7 +147,7 @@ function ns:InitBrokers()
     end
   end
 
-  if self.db.lastSundayReset == nil or self.db.lastSundayReset < LAST_SUNDAY_RESET then
+  if self.db.lastSundayReset == nil or LAST_SUNDAY_RESET - self.db.lastSundayReset > RESET_SLACK then
     self.db.lastSundayReset = LAST_SUNDAY_RESET
     -- new week, reset data
     for _,t in pairs(self.db.characters) do
