@@ -103,7 +103,7 @@ function Tooltip:SetToon(toon)
   self.toon = toon
 
   self.name:Text(toon.name):Color(Colors[toon.classKey])
-  self.specialization:Text(toon.basic.specialization.active or "")
+  self.specialization:Text(toon.basic.specialization and toon.basic.specialization.active or "")
   local raceList = toon.isAlliance and ns.api.ALLIANCE_RACES or ns.api.HORDE_RACES
   self.race:Text(raceList[toon.raceIdx] or toon.race or "")
   self.class:Text(toon.className):Color(Colors[toon.classKey])
