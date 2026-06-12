@@ -23,10 +23,19 @@ table.insert(
       -- max-level characters always show the count — a red 0 means everything
       -- earned and spent; leveling characters only when they hold any
       if c.quantity == 0 and t.basic.level < ns.wow.maxLevel then return "" end
+      local tipLine = c.earned .. "/" .. c.max
+      local tipColor = c.capped and ns.CappedColor or ns.UncappedColor
       return {
         text     = c.quantity,
         justifyH = ui.justify.Center,
         color    = c.capped and ns.CappedColor or ns.UncappedColor,
+        onEnter  = function(self)
+          ns.AnchorTip(self)
+          ui.tip:ClearLines()
+          ui.tip:AddLine(tipLine, tipColor[1], tipColor[2], tipColor[3])
+          ui.tip:Show()
+        end,
+        onLeave  = function() ui.tip:Hide() end,
       }
     end,
   }
