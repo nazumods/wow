@@ -334,20 +334,29 @@ ns.Professions.fields = {
         field:set(field:get(ns.currentData, currentValue))
         return
       end
-      ns.profGearRequests = #toLoad
+      local pending = {}
       for _, invSlot in ipairs(toLoad) do
+        local id = GetItemID({equipmentSlotIndex = invSlot})
+        if id then pending[id] = (pending[id] or 0) + 1 end
         RequestLoadItemData({equipmentSlotIndex = invSlot})
       end
+      ns.profGearPending = pending
     end,
   },
 }
 
 -- Refresh gear once all profession-slot item data has loaded.
-ns:registerEvent("ITEM_DATA_LOAD_RESULT", function(self)
-  if not self.profGearRequests then return end
-  self.profGearRequests = self.profGearRequests - 1
-  if self.profGearRequests == 0 then
-    self.profGearRequests = nil
-    self.Professions:Update(self.currentData)
+ns:registerEvent("ITEM_DATA_LOAD_RESULT", function(self, itemID)
+  if not self.profGearPending then return end
+  local n = self.profGearPending[itemID]
+  if not n then return end
+  if n > 1 then
+    self.profGearPending[itemID] = n - 1
+  else
+    self.profGearPending[itemID] = nil
+    if not next(self.profGearPending) then
+      self.profGearPending = nil
+      self.Professions:Update(self.currentData)
+    end
   end
 end)

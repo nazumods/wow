@@ -2,6 +2,7 @@
 local ns = select(2, ...)
 local Player = ns.wow.Player
 local RequestLoadItemData = C_Item.RequestLoadItemData -- luacheck: globals C_Item
+local GetItemID = C_Item.GetItemID
 local GetItemInfo, GetCurrentItemLevel = C_Item.GetItemInfo, C_Item.GetCurrentItemLevel -- luacheck: globals C_Item
 local GetItemUpgradeInfo = C_Item.GetItemUpgradeInfo
 local GetInventoryItemLink = GetInventoryItemLink -- luacheck: globals GetInventoryItemLink
@@ -64,10 +65,13 @@ ns.Equipment.fields = {
         ns.Equipment:Update(ns.currentData)
         return
       end
-      ns.requests = #toLoad
+      local pending = {}
       for _, index in ipairs(toLoad) do
+        local id = GetItemID({equipmentSlotIndex = index})
+        if id then pending[id] = (pending[id] or 0) + 1 end
         RequestLoadItemData({equipmentSlotIndex = index})
       end
+      ns.equipmentPending = pending
     end,
   },
   ilvl = {
@@ -80,11 +84,18 @@ ns.Equipment.fields = {
   },
 }
 
-function ns:ITEM_DATA_LOAD_RESULT()
-  if not self.requests then return end
-  self.requests = self.requests - 1
-  if self.requests == 0 then
-    self.Equipment:Update(self.currentData) -- updates all fields
+function ns:ITEM_DATA_LOAD_RESULT(itemID)
+  if not self.equipmentPending then return end
+  local n = self.equipmentPending[itemID]
+  if not n then return end
+  if n > 1 then
+    self.equipmentPending[itemID] = n - 1
+  else
+    self.equipmentPending[itemID] = nil
+    if not next(self.equipmentPending) then
+      self.equipmentPending = nil
+      self.Equipment:Update(self.currentData)
+    end
   end
 end
 ns:registerEvent("ITEM_DATA_LOAD_RESULT")
