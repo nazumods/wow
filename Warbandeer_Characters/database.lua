@@ -66,7 +66,7 @@ end, "Repair stored data (recount characters)")
 ---@field MigrateDB fun(self) Migrate database to latest version
 function ns:MigrateDB()
   local db = ns.db
-  if db.version == 9 then return end
+  if db.version == 10 then return end
   if not db.characters then db.characters = {} end
   if not db.numCharacters then
     db.numCharacters = countCharacters(db)
@@ -125,6 +125,14 @@ function ns:MigrateDB()
       end
     end
     db.version = 9
+  end
+
+  -- v10: account-wide recipe → profession-gear cache (non-destructive).  The
+  -- build stamp is left empty so data/recipegear.lua re-stamps and fills it
+  -- lazily against the live client build.
+  if (db.version or 0) < 10 then
+    if not db.recipeGear then db.recipeGear = { build = "", recipes = {} } end
+    db.version = 10
   end
 end
 

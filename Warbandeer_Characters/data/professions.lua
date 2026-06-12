@@ -222,6 +222,13 @@ ns.Professions.fields = {
               end
             end
             profData.recipes = recipes
+            -- Pre-resolve this profession's current-expansion recipes into the
+            -- account-wide prof-gear cache while trade-skill data is hot (see
+            -- data/recipegear.lua); other consumers then hit a warm cache.
+            local current = recipes and recipes[RECIPE_EXP_KEYS[ns.CURRENT_RECIPE_EXP]]
+            for _, r in ipairs(current and current.learned or {}) do
+              API:ResolveRecipeOutput(r.id)
+            end
           end
         end
 
