@@ -204,9 +204,9 @@ local MidnightProfs = Class(Frame, function(self)
   self:Height(40)
 end, {
   name   = "midnightprofs",
-  _title = "Midnight Profs",
 })
 MidnightProfs.name = "midnightprofs"
+MidnightProfs._title = "Midnight Profs"
 ns.views.MidnightProfs = MidnightProfs
 
 function MidnightProfs:BuildTable(profs)

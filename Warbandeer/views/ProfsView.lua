@@ -226,10 +226,10 @@ local ProfsView = Class(Frame, function(self)
   self:Height(self.gridTable:Height() + scrollTop + CHAR_LIST_H)
 end, {
   name   = "profs",
-  _title = "Professions",
   background = theme.colors.window,
 })
 ProfsView.name = "profs"
+ProfsView._title = "Professions"
 ns.views.ProfsView = ProfsView
 
 ---@return Character[]
@@ -381,7 +381,7 @@ function ProfsView:decorateCharRow(cells, i, toon)
       if onClick then onClick(s) end
       local w = ns.MainWindow
       if toon and w then
-        w.views.detail:Select(toon)
+        w:getView("detail"):Select(toon)
         w:view("detail")
       end
     end

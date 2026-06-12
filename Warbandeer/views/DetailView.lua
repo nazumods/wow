@@ -194,10 +194,10 @@ local DetailView = Class(Frame, function(self)
   self:Height(PROF_HEADER_Y + 40)
 end, {
   name   = "detail",
-  _title = "Detail",
   background = theme.colors.window,
 })
 DetailView.name = "detail"
+DetailView._title = "Detail"
 ns.views.DetailView = DetailView
 
 -- ─── Profession rows ─────────────────────────────────────────────────────────

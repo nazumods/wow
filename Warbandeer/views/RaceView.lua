@@ -36,7 +36,7 @@ local function nameCell(toon)
     onClick = function()
       local w = ns.MainWindow
       if w then
-        w.views.detail:Select(toon)
+        w:getView("detail"):Select(toon)
         w:view("detail")
       end
     end,
@@ -143,9 +143,9 @@ local RaceView = Class(TableFrame, function(self)
   end
 end, {
   name = "races",
-  _title = "Races",
   headerWidth = 135,
   data = {},
 })
 RaceView.name = "races"
+RaceView._title = "Races"
 ns.views.RaceView = RaceView

@@ -133,7 +133,7 @@ function ClassSummary:decorateRow(cells, i)
       if onClick then onClick(s) end
       local toon, w = self._toons[i], ns.MainWindow
       if toon and w then
-        w.views.detail:Select(toon)
+        w:getView("detail"):Select(toon)
         w:view("detail")
       end
     end
@@ -193,10 +193,10 @@ local SummaryView = Class(ui.Frame, function(self)
   self:layout()
 end, {
   name   = "summary",
-  _title = "Summary",
   background = theme.colors.window,
 })
 SummaryView.name = "summary"
+SummaryView._title = "Summary"
 ns.views.SummaryView = SummaryView
 
 function SummaryView:layout()

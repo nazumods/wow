@@ -218,7 +218,7 @@ local TopAlts = Class(TableFrame, function(self)
     row:SetScript("OnMouseUp", function()
       local win = ns.MainWindow
       if not win then return end
-      win.views.detail:Select(toon)
+      win:getView("detail"):Select(toon)
       win:view("detail")
     end)
   end
@@ -335,6 +335,7 @@ local function buildTab(panel, expansionLevel, extraFactionIDs, achievementIds)
     achievementIds = achievementIds,
     position = { TopLeft = {achX, -HEAD_H} },
   }
+  panel._ach = ach -- reachable for the cold-session font heal (and /wb cells)
   return bars:Width(), bars:Height(), ach:Width(), ach:Height()
 end
 
@@ -344,6 +345,20 @@ local EXPANSIONS = {
   { key = "midnight", label = "Midnight",       expansionLevel = 11, extraFactionIDs = {}, achievementIds = midnightAchievementIds },
   { key = "wwi",      label = "The War Within", expansionLevel = 10, extraFactionIDs = {}, achievementIds = wwiAchievementIds },
 }
+
+-- Swap every cell label's font away and back (same size/flags) to force the
+-- client to re-rasterize the string. See the cold-session note in the ctor.
+local function healCellFonts(tbl)
+  for _, row in pairs(tbl.cells) do
+    for _, cell in pairs(row) do
+      if cell.label then
+        local f = cell.label:Font()
+        cell.label:Font({"Fonts\\FRIZQT__.TTF", f[2], f[3]})
+        cell.label:Font(f)
+      end
+    end
+  end
+end
 
 -- Overview
 local Overview = Class(Frame, function(self)
@@ -441,12 +456,23 @@ local Overview = Class(Frame, function(self)
   card(3, "Top Item Level", tostring(topIlvl), ns.IlvlColorObj(topIlvl))
 
   self:selectExpansion(EXPANSIONS[1].key)
+
+  -- Cold-session render glitch: cell FontStrings in the two TableFrames above can
+  -- rasterize blank on the first UI load of a client session, even though text,
+  -- size, visibility, and font all report correct (and the rest of the view
+  -- renders fine). A *real* font change forces the client to re-rasterize them —
+  -- a same-params SetFont is a no-op — so one tick after construction every cell
+  -- label's font is swapped away and back. Invisible and idempotent.
+  ns:after(50, function()
+    healCellFonts(self.topAlts)
+    for _, panel in pairs(self._panels) do healCellFonts(panel._ach) end
+  end)
 end, {
   name = "overview",
-  _title = "Overview",
   background = theme.colors.window,
 })
 Overview.name = "overview"
+Overview._title = "Overview"
 ns.views.Overview = Overview
 
 -- Show the panel for `key`, size the reps + achievements boxes and the view to it,

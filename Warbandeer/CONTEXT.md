@@ -66,10 +66,11 @@ armor-type strip are view-local.
 ## MainWindow
 
 Subclasses `TitleFrame`; `special=true`, `level=600`, `theme = ns.theme` (inherited by all window widgets; table headers default to the theme's muted `header` token, so views no longer set header colors explicitly).
+- **Views are constructed lazily**: `MainWindow:getView(name)` builds a view (and wires its `BuildFilter`) on first navigation; only the default view is built when the window opens. The nav rail therefore reads **class-level** metadata — every view class sets `name`, `_title` (and optionally `_iconRotation`) as class fields after `Class(...)`, not (only) in defaults. Row-click cross-navigation must go through `w:getView("detail")`, never `w.views.detail` (may not exist yet).
 - `self.iconStrip` — `IconStrip` rail docked just left of the window, one glyph per view in `ns.viewOrder` order (unlisted views appended, sorted by title). Clicking a glyph calls the view's `OnNavigate()` (if defined) then `self:view(name)`.
-- `MainWindow:view(name)` — hides current, shows named, updates title+size, calls `iconStrip:SetActive(name)`.
+- `MainWindow:view(name)` — hides current, shows named (building it if needed), updates title+size, calls `iconStrip:SetActive(name)`.
 - Window is anchored by a single **TOPLEFT** point (stored in `db.settings.windowPos`) so view changes grow it down/right instead of re-centering. `SavePosition`/`RestorePosition` persist/apply it; titlebar drag saves on release.
-- `ns:Open()` lazy-creates the window; `ns:view(name)` = `Open()` then `OnNavigate()` (if the view defines it) then `view(name)`. Both the icon rail and slash commands count as *direct navigation* and fire `OnNavigate`; row-click paths (`w.views.detail:Select(toon)` + `w:view("detail")`) call `MainWindow:view` directly and skip it, so the clicked character stays selected.
+- `ns:Open()` lazy-creates the window; `ns:view(name)` = `Open()` then `OnNavigate()` (if the view defines it) then `view(name)`. Both the icon rail and slash commands count as *direct navigation* and fire `OnNavigate`; row-click paths (`w:getView("detail"):Select(toon)` + `w:view("detail")`) call `MainWindow:view` directly and skip it, so the clicked character stays selected.
 
 ## Overview — Factions Widget
 
@@ -99,6 +100,8 @@ progress on a darker-faction-colour track**; the value reads green **"paragon"**
 (Left). All migrations are non-destructive. `windowPos` is not migrated — written lazily at runtime.
 
 ## Gotchas
+
+- **Cold-session FontString rasterization glitch.** On the first UI load of a client session (not after `/reload`), cell FontStrings in the Overview's two TableFrames can render blank even though text/size/visibility/font all report correct via the API. A same-params `SetFont`/`SetText` is a client no-op and does NOT heal it; only a *real* font change does. Fix: `healCellFonts` in `Overview.lua` swaps each cell label's font away (FrizQT) and back one tick after construction (`ns:after`). The `/wb cells [heal]` diagnostic in `commands.lua` can probe/heal live if it recurs elsewhere.
 
 - **Don't pass `ns.theme` to free-floating CleanFrames** (e.g. `CharacterTooltip`, parented to UIParent). The theme's `window` token is **alpha 0** — views layer it over the MainWindow surface — so a standalone frame using it as its CleanFrame background turns transparent. MainWindow itself keeps an explicit opaque `background` for the same reason.
 - **Decorated table cells must be shallow-copied.** Several `getData` fns return shared table objects (e.g. `faction.lua` → `ns.icons.AllianceLight`); decorating in place chains hover/click wrappers across every row sharing the object and corrupts it globally. SummaryView/GearView/RaceView copy each cell before wrapping.

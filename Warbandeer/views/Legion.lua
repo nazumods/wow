@@ -211,12 +211,12 @@ local Legion = Class(Frame, function(self)
   self:Height(h + 2)
 end, {
   name = "legion",
-  _title = "Legion",
   onLoad = function(self)
     self:Width(self.collected:Width() + 4)
   end,
 })
 Legion.name = "legion"
+Legion._title = "Legion"
 ns.views.Legion = Legion
 
 function Legion:OnBeforeShow()

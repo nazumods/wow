@@ -8,42 +8,32 @@ local Class, TitleFrame = ns.lua.Class, ui.TitleFrame
 local IconStrip = ns.IconStrip
 
 local MainWindow = Class(TitleFrame, function(self)
-  -- add the contents
+  -- Views are constructed lazily on first navigation (see getView), both to keep
+  -- the first open cheap and because building every view's widget tree in the
+  -- same tick left some FontStrings unrendered on the first UI load of a client
+  -- session. Only class metadata (name/_title/_iconRotation) is read up front.
   self.views = {}
-
+  self._viewClasses = {}
   for _, c in pairs(ns.views) do
-    local v = c:new{
-      parent = self,
-      position = {
-        TopLeft = {3, -30},
-        Hide = true,
-      },
-    }
-    self.views[v.name] = v
-    if v.BuildFilter then
-      v._filter = v:BuildFilter(self.titlebar)
-      v._filter:ClearAllPoints()
-      v._filter:Right(self.closeButton, ui.edge.Left, -4, 0)
-      v._filter:Hide()
-    end
+    self._viewClasses[c.name] = c
   end
 
   -- Navigation-rail order: ns.viewOrder first, any unlisted view appended (sorted
   -- by title) so the rail order is always deterministic.
   local navViews = {}
   local seen = {}
-  local function addNav(v)
-    if not v or seen[v.name] then return end
-    seen[v.name] = true
-    table.insert(navViews, { name = v.name, title = v._title or v.name, iconRotation = v._iconRotation })
+  local function addNav(c)
+    if not c or seen[c.name] then return end
+    seen[c.name] = true
+    table.insert(navViews, { name = c.name, title = c._title or c.name, iconRotation = c._iconRotation })
   end
-  for _, name in ipairs(ns.viewOrder) do addNav(self.views[name]) end
+  for _, name in ipairs(ns.viewOrder) do addNav(self._viewClasses[name]) end
   local leftovers = {}
-  for name, v in pairs(self.views) do
-    if not seen[name] then table.insert(leftovers, v) end
+  for name, c in pairs(self._viewClasses) do
+    if not seen[name] then table.insert(leftovers, c) end
   end
   table.sort(leftovers, function(a, b) return (a._title or a.name) < (b._title or b.name) end)
-  for _, v in ipairs(leftovers) do addNav(v) end
+  for _, c in ipairs(leftovers) do addNav(c) end
 
   -- Floating icon rail docked just left of the window (replaces the old
   -- titlebar-icon dropdown selector). Clicking a glyph switches view.
@@ -53,7 +43,7 @@ local MainWindow = Class(TitleFrame, function(self)
     -- direct navigation: let the view reset itself (e.g. Detail re-resolves the
     -- logged-in character) before it is shown
     onSelect = function(name)
-      local v = self.views[name]
+      local v = self:getView(name)
       if v.OnNavigate then v:OnNavigate() end
       self:view(name)
     end,
@@ -88,12 +78,37 @@ end, {
   background = {0.11372549019, 0.14117647058, 0.16470588235, 0.92},
 })
 
+-- Construct (once) and return the named view. Lazy so opening the window only
+-- builds the view actually shown; the rest are built on first navigation.
+---@param name string
+---@return Frame
+function MainWindow:getView(name)
+  local v = self.views[name]
+  if not v then
+    v = self._viewClasses[name]:new{
+      parent = self,
+      position = {
+        TopLeft = {3, -30},
+        Hide = true,
+      },
+    }
+    self.views[name] = v
+    if v.BuildFilter then
+      v._filter = v:BuildFilter(self.titlebar)
+      v._filter:ClearAllPoints()
+      v._filter:Right(self.closeButton, ui.edge.Left, -4, 0)
+      v._filter:Hide()
+    end
+  end
+  return v
+end
+
 function MainWindow:view(name)
   if self._view then
     self._view:Hide()
     if self._view._filter then self._view._filter:Hide() end
   end
-  self._view = self.views[name]
+  self._view = self:getView(name)
   if self._view._title then
     self:Title(ADDON_NAME.." | "..self._view._title)
   else
@@ -163,7 +178,7 @@ function ns:view(name)
   end
   self:Open()
   -- slash commands are direct navigation too — same view reset as the icon rail
-  local v = self.MainWindow.views[name]
+  local v = self.MainWindow:getView(name)
   if v.OnNavigate then v:OnNavigate() end
   self.MainWindow:view(name)
 end

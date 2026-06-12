@@ -90,10 +90,9 @@ local BarsView = Class(Frame, function(self)
 
   self:Width(VIEW_W)
   self:Height(-LIST_Y + 20 + GAP)
-end, {
-  _title = "Bars",
-})
+end, {})
 BarsView.name = "bars"
+BarsView._title = "Bars"
 BarsView._iconRotation = math.pi / 2
 ns.views.BarsView = BarsView
 

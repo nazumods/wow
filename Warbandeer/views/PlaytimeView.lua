@@ -100,9 +100,9 @@ local PlaytimeView = Class(Frame, function(self)
   self:refresh()
 end, {
   name   = "playtime",
-  _title = "Playtime",
 })
 PlaytimeView.name = "playtime"
+PlaytimeView._title = "Playtime"
 ns.views.PlaytimeView = PlaytimeView
 
 function PlaytimeView:refresh()

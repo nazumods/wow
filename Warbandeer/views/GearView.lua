@@ -204,7 +204,7 @@ function GearTable:decorateRow(cells, i)
       if onClick then onClick(s) end
       local toon, w = self._toons[i], ns.MainWindow
       if toon and w then
-        w.views.detail:Select(toon)
+        w:getView("detail"):Select(toon)
         w:view("detail")
       end
     end
@@ -247,10 +247,10 @@ local GearView = Class(ui.Frame, function(self)
   self:layout()
 end, {
   name   = "gear",
-  _title = "Gear",
   background = theme.colors.window,
 })
 GearView.name = "gear"
+GearView._title = "Gear"
 ns.views.GearView = GearView
 
 function GearView:layout()

@@ -49,11 +49,11 @@ local Midnight = Class(Frame, function(self)
   self:Width(self.achievements:Width())
 end, {
   name = "midnight",
-  _title = "Midnight",
   onLoad = function(self)
     self:Height(self.achievements:Height())
     self:Width(self.achievements:Width())
   end,
 })
 Midnight.name = "midnight"
+Midnight._title = "Midnight"
 ns.views.Midnight = Midnight

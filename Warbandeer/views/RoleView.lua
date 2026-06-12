@@ -43,7 +43,7 @@ local function nameCell(toon)
     onClick = function()
       local w = ns.MainWindow
       if w then
-        w.views.detail:Select(toon)
+        w:getView("detail"):Select(toon)
         w:view("detail")
       end
     end,
@@ -133,9 +133,9 @@ local RoleView = Class(Frame, function(self)
   self:Height(height)
 end, {
   name = "roles",
-  _title = "Roles",
 })
 RoleView.name = "roles"
+RoleView._title = "Roles"
 ns.views.RoleView = RoleView
 
 function RoleView:table(classKey, pos)

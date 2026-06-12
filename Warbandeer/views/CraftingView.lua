@@ -106,10 +106,10 @@ local CraftingView = Class(Frame, function(self)
   self:Height(self.tbl:Height())
 end, {
   name       = "crafting",
-  _title     = "Crafting",
   background = theme.colors.window,
 })
 CraftingView.name = "crafting"
+CraftingView._title = "Crafting"
 ns.views.CraftingView = CraftingView
 
 -- ─── Cell builders ────────────────────────────────────────────────────────────
@@ -264,7 +264,7 @@ function CraftingView:decorateRow(cells, rowIdx, crafter)
       if onClick then onClick(s) end
       local w = ns.MainWindow
       if crafter and w then
-        w.views.detail:Select(crafter)
+        w:getView("detail"):Select(crafter)
         w:view("detail")
       end
     end
