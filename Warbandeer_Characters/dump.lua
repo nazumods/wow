@@ -31,7 +31,7 @@ ns:registerCommand("stat", "", function(self)
     if t.isAlliance then a = a + 1 else h = h + 1 end
     if t.playtime then
       p = p + t.playtime.total
-      pp = pp + t.playtime.byPatch[patch]
+      pp = pp + (t.playtime.byPatch[patch] or 0)
       if t.playtime.total > mp then
         mp = t.playtime.total
         ft = t.name
@@ -50,6 +50,6 @@ ns:registerCommand("stat", "", function(self)
   self.Print("Warband Statistics:")
   print(self.db.numCharacters .. " characters, " .. a .. " alliance, " .. h .. " horde. "
     .. roundTime(p) .. " played, " .. formatTime(pp, TIME_SHORT) .. " this patch.")
-  print("Most played: " .. ft .. " (" .. formatTime(mp) .. ")")
-  print("Most played class: " .. cn .. " (" .. formatTime(cp) .. ")")
-end, "Dump current character data")
+  print("Most played: " .. (ft or "none") .. " (" .. formatTime(mp) .. ")")
+  print("Most played class: " .. (cn or "none") .. " (" .. formatTime(cp) .. ")")
+end, "Print warband playtime statistics")
