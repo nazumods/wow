@@ -21,6 +21,7 @@ data.lua
 theme.lua
 
 controls\CharacterTooltip.lua
+controls\ItemTooltip.lua
 controls\StatCard.lua
 controls\LabeledBar.lua
 controls\FilterDropdown.lua

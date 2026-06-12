@@ -13,6 +13,7 @@ Main viewer UI. Reads the data layer (`ns.api` ← `WarbandeerApi`) and renders 
 | `theme.lua` | `ns.theme` — a LibNUI `ui.Theme` ("void-dark"): `colors` + `fonts` (`{path,size}` tuples). Passed on MainWindow, so every widget in the window inherits it; `window`/`border`/`divider`/`text`/`muted`/`header` and fonts `title`/`body` override the LibNUI dark defaults, the rest (`module`, `hover`, `gold`, …) are Warbandeer-specific tokens |
 | `media/fonts/` | Bundled fonts (Hanken Grotesk, Geist, JetBrains Mono) + licenses; loaded by path, not listed in `.toc` |
 | `controls/CharacterTooltip.lua` | `ns.CharacterTooltip` + `ns.ShowCharacterTooltip`/`HideCharacterTooltip`; side-aware anchoring via `ns.TooltipSide()` / `ns.AnchorTip(frame)`. Registered on `ns`, not `ui` |
+| `controls/ItemTooltip.lua` | `ns.ShowItemTooltip(frame, link)` / `ns.HideItemTooltip()` — shared private `WarbandeerItemTooltip` (GameTooltipTemplate) reskinned (`styleTooltip` → flat black + theme border via `NineSlice`) that `:SetHyperlink`s an item link; no auto-comparison. Used by Detail + Gear gear cells; anchor side per `ns.TooltipSide()` |
 | `controls/StatCard.lua` | `ns.StatCard` — summary tile (caption + big mono `amount`, optional `sub` + trend `subIcon`). `Amount(text, color?)` |
 | `controls/IconStrip.lua` | `ns.IconStrip` — floating left nav rail, one tinted glyph per view; `onSelect(name)`, `SetActive(name)` |
 | `controls/FilterDropdown.lua` | `ns.FilterDropdown` — reusable labelled dropdown filter. `options`/`selected`/`onSelect`; `Select(key)` re-points label without firing |
@@ -25,8 +26,8 @@ Main viewer UI. Reads the data layer (`ns.api` ← `WarbandeerApi`) and renders 
 | `views/SummaryColumns.lua` | `SummaryColumn` specs (`getData`/`getFooter` per column) + `SummaryColumnsDelayed()` (appends the DMF column while the faire is open) |
 | `views/summaryCol/*.lua` | One file per Summary column: faction, role, character, level, ilvl, profs, bags, vault, keystone, crests, catalyst, voidcore, delves, lumber, cofferKey, caches, rested, played, gold |
 | `views/SummaryView.lua` | Dual `ClassSummary` tables (Alliance/Horde) toggled by a faction `BuildFilter`; cells drive row hover + click-to-Detail |
-| `views/GearView.lua` | Four armor-type tables toggled by `BuildFilter` buttons; per-equipment-slot ilvl + upgrade-track columns |
-| `views/DetailView.lua` | Single-character detail: portrait, stat strip, per-profession intent panels (each followed by that profession's equipped tool/accessory list), equipped-gear list. Character-picker `BuildFilter`; `Select(toon)` switches subject; `OnNavigate()` resets to the logged-in character |
+| `views/GearView.lua` | Four armor-type tables toggled by `BuildFilter` buttons; per-equipment-slot ilvl + upgrade-track columns. Each slot cell hovers to the shared item tooltip (`ns.ShowItemTooltip`) |
+| `views/DetailView.lua` | Single-character detail: portrait, stat strip, per-profession intent panels (each followed by that profession's equipped tool/accessory list), equipped-gear list. Gear + prof-gear rows highlight and show the shared item tooltip on hover (`attachItemTip` → row `hover` tint + `ns.ShowItemTooltip(frame, item.link)`; see `controls/ItemTooltip.lua`). Character-picker `BuildFilter`; `Select(toon)` switches subject; `OnNavigate()` resets to the logged-in character |
 | `views/RoleView.lua` | `ClassTable` per class, grouped by spec |
 | `views/RaceView.lua` | 13×29 class/race grid (dynamic build), one character per cell; hover + click-to-Detail |
 | `views/Legion.lua` | Hidden artifact appearances + Legion achievements |

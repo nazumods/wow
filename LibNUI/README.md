@@ -265,6 +265,7 @@ Includes all `Region` options, plus:
 | `stopUpdates()`               | Stop `OnUpdate` loop                                    |
 | `delay(ms, fn)`               | Run `fn` (or method name) after `ms` milliseconds       |
 | `Attribute(name, value)`      | Get/set frame attribute                                 |
+| `EnableMouse(enabled)`        | Toggle mouse interactivity (defaults to true)           |
 | `Level(level)`                | Get/set frame level                                     |
 
 ### Callbacks

@@ -183,6 +183,14 @@ end
 ---@return any  the attribute value when getting
 function Frame:Attribute(name, value) return value == nil and self._widget:GetAttribute(name) or self._widget:SetAttribute(name, value) end
 
+-- Toggle mouse interactivity so the frame can receive OnEnter/OnLeave/OnMouseUp.
+---@param enabled boolean?  defaults to true
+---@return Frame
+function Frame:EnableMouse(enabled)
+  self._widget:EnableMouse(enabled ~= false)
+  return self
+end
+
 -- Getter/setter for the frame level. Always returns the (new) frame level.
 ---@param level number?
 ---@return number

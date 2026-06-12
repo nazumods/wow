@@ -11,6 +11,26 @@ local BottomLeft, BottomRight = ui.edge.BottomLeft, ui.edge.BottomRight
 local BreakUpLargeNumbers = BreakUpLargeNumbers
 local C_TradeSkillUI = C_TradeSkillUI
 
+-- Wire a gear/prof-gear row for hover: a row highlight plus the shared item tooltip
+-- (`ns.ShowItemTooltip`). The row stores its current item link in `frame._itemLink`
+-- (updated each time it's populated), so a single set of scripts survives row
+-- pooling.
+local function attachItemTip(frame)
+  local hi = Texture:new{
+    parent = frame, layer = ui.layer.Background, color = theme.colors.hover,
+    position = { All = true, Hide = true },
+  }
+  frame:EnableMouse(true)
+  frame:SetScript("OnEnter", function()
+    hi:Show()
+    if frame._itemLink then ns.ShowItemTooltip(frame, frame._itemLink) end
+  end)
+  frame:SetScript("OnLeave", function()
+    hi:Hide()
+    ns.HideItemTooltip()
+  end)
+end
+
 -- ─── Layout ─────────────────────────────────────────────────────────────────────
 local P, GAP = 12, 12          -- outer padding / section gap
 local PORTRAIT = 56            -- class-icon portrait edge
@@ -286,6 +306,7 @@ function DetailView:_profGearRow(row, j)
     },
   }
   sub = { frame = frame }
+  attachItemTip(frame)
 
   -- Crafted-quality tier icon pinned right (vertically centred), name fills the rest.
   sub.tier = Texture:new{
@@ -345,6 +366,7 @@ function DetailView:_showProf(i, prof, anchor, gap)
     g = g + 1
     local item = entry.item
     local sub = self:_profGearRow(row, g)
+    sub.frame._itemLink = item.link
     sub.name:Text(item.name or "?"):Color(rarityColor(item.link))
     if item.tier and item.tier > 0 then
       sub.tier:Atlas(tierAtlas(item.tier), false)
@@ -379,6 +401,7 @@ function DetailView:_gearRow(i)
     },
   }
   row = { frame = frame }
+  attachItemTip(frame)
 
   -- Slot icon pinned to the left (blank for non-transmoggable slots; see GEAR_SLOT_ATLAS).
   row.icon = Texture:new{
@@ -419,6 +442,7 @@ function DetailView:_showGear(i, item, slotKey)
   else
     row.icon:Hide()  -- non-transmoggable slot: reserve the column, leave it blank
   end
+  row.frame._itemLink = item.link
   row.name:Text(item.name or ""):Color(rarityColor(item.link))
   local ilvl = item.ilvl or 0
   row.ilvl:Text(tostring(ilvl)):Color(ns.IlvlColorObj(ilvl))

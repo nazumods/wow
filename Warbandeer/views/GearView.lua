@@ -67,13 +67,19 @@ local getNameString = function(toon)
   }
 end
 
-local function slotStr(slot)
-  if not slot then return "" end
-  local text = ns.IlvlColor(slot.ilvl)
-  if slot.track and slot.trackLevel and slot.trackLevel > 0 then
-    text = text .. "(" .. slot.track:sub(1,1) .. slot.trackLevel .. ")"
+local function slotStr(item)
+  if not item then return "" end
+  local text = ns.IlvlColor(item.ilvl)
+  if item.track and item.trackLevel and item.trackLevel > 0 then
+    text = text .. "(" .. item.track:sub(1,1) .. item.trackLevel .. ")"
   end
-  return { text = text, justifyH = ui.justify.Center }
+  return {
+    text = text,
+    justifyH = ui.justify.Center,
+    -- Hover the cell for the equipped item's tooltip (link-rendered, no comparison).
+    onEnter = item.link and function(self) ns.ShowItemTooltip(self, item.link) end or nil,
+    onLeave = item.link and function() ns.HideItemTooltip() end or nil,
+  }
 end
 
 local getILvlString = function(toon)
