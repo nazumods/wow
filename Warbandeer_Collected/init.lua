@@ -2,6 +2,7 @@
 ---@class Warbandeer_Collected: AddOn
 local ns = LibNAddOn(...)
 
+---Migrate the saved DB to the current version (non-destructive; seeds missing keys).
 function ns:MigrateDB()
   local db = self.db
   if not db.sets then db.sets = {} end

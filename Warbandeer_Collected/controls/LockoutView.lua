@@ -4,6 +4,10 @@ local ui, api = ns.ui, ns.api
 local Class = ns.lua.Class
 local CleanFrame, TableFrame, ScrollFrame = ui.CleanFrame, ui.TableFrame, ui.ScrollFrame
 
+---Singleton side panel listing all characters and their lockout status for a set group's instance.
+---@class LockoutView: CleanFrame
+---@field data TableFrame level + character-name rows
+---@field scroll ScrollFrame scroll container for the table's row area
 local LockoutView = Class(CleanFrame, function(self)
   self.data = TableFrame:new{
     parent = self,
@@ -44,9 +48,14 @@ end, {
   background = {0, 0, 0, 0.7},
   inset = 3,
 })
+---@class Warbandeer_Collected
+---@field LockoutView LockoutView
 ns.LockoutView = LockoutView
 
 local _view = nil
+---Show the shared LockoutView for a set group, listing lock status per character.
+---@class Warbandeer_Collected
+---@field ShowLockoutView fun(grpIdx: integer, parent: Frame, position: table) grpIdx indexes ns.Sets; position is a LibNUI position spec
 ns.ShowLockoutView = function(grpIdx, parent, position)
   if not _view then
     _view = LockoutView:new{}
@@ -84,6 +93,9 @@ ns.ShowLockoutView = function(grpIdx, parent, position)
   _view:Level(parent:Level() + 1)
 end
 
+---Hide the shared LockoutView (no-op if never shown).
+---@class Warbandeer_Collected
+---@field HideLockoutView fun()
 ns.HideLockoutView = function()
   if _view then
     _view:Hide()

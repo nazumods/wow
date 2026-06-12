@@ -31,6 +31,10 @@ local BASE_COL_INFO = ns.lua.lists.map(ns.SummaryColumns, function(c, i)
   return info
 end)
 
+-- Per-faction roster table: one row per character, one column per SummaryColumn.
+---@class ClassSummary: TableFrame
+---@field isAlliance boolean   which faction's characters this table shows
+---@field _toons Character[]   row index -> character (refreshed each OnBeforeShow)
 local ClassSummary = Class(TableFrame, function(self)
   ns.SummaryColumnsDelayed(self)
 
@@ -67,6 +71,8 @@ end, {
   footerBackdrop = {color = theme.colors.moduleHi},
 })
 
+-- This table's faction roster, sorted by level/ilvl/name.
+---@return Character[]
 function ClassSummary:GetCharacters()
   local toons = ns.api.GetAllCharacters() -- returns a copy
   toons = filter(toons, function(t)
@@ -94,6 +100,8 @@ end
 -- One cell per column, by position. A column's getData may return nil (no data);
 -- map it to "" so the cell array stays index-aligned with the columns — `lists.map`
 -- would otherwise drop nils and shift every later column left for that row.
+---@param toon Character
+---@return table cells  one cell per column, index-aligned with ns.SummaryColumns
 function ClassSummary:GetRowData(toon)
   local cells = {}
   for n, c in ipairs(ns.SummaryColumns) do
@@ -144,6 +152,8 @@ end
 
 -- per-column footer cell data, keyed by column index (columns without a
 -- getFooter are left absent so they render no footer cell)
+---@param toons Character[]
+---@return table footer  per-column footer cell data, keyed by column index
 function ClassSummary:GetFooterData(toons)
   local footer = {}
   for i,c in ipairs(ns.SummaryColumns) do
@@ -165,6 +175,11 @@ function ClassSummary:OnBeforeShow()
   for i in ipairs(self.rows) do self:restRow(i) end
 end
 
+---@class SummaryView: Frame
+---@field alliance ClassSummary
+---@field horde ClassSummary
+---@field _showAlliance boolean  which faction table is visible
+---@field _filter Frame?         titlebar faction toggle (built by BuildFilter)
 local SummaryView = Class(ui.Frame, function(self)
   -- default to the current character's faction on first open
   local current = ns.api:GetCharacterData()
@@ -221,6 +236,8 @@ end
 
 -- Faction toggle: the current faction's icon + name, tinted blue (Alliance) or
 -- red (Horde) with a matching 1px border. Clicking flips to the other faction.
+---@param parent Frame
+---@return Frame
 function SummaryView:BuildFilter(parent)
   local FW, FH, PAD, ICON, GAP = 80, 20, 5, 14, 5
   local box = ui.Frame:new{

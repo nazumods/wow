@@ -4,6 +4,12 @@ local ui = ns.ui
 local Class = ns.lua.Class
 local Frame, CheckButton = ui.Frame, ui.CheckButton
 
+---@class ToggleSetting: Frame
+---@field label string?  setting label text (shown next to the checkbox)
+---@field table table?  settings table the value is read from / written to
+---@field field string?  key in `table` holding the value
+---@field SettingChanged fun(self: ToggleSetting, state: boolean)  override to handle changes
+---@field _toggle CheckButton  checkbox (internal)
 local ToggleSetting = Class(Frame, function(self)
   self._toggle = CheckButton:new{
     parent = self,
@@ -32,6 +38,11 @@ end, {
 })
 ui.ToggleSetting = ToggleSetting
 
+-- Convenience: build a ToggleSetting bound to table[field] and add it.
+---@param label string  setting label text
+---@param table table  settings table the value is stored in
+---@param field string  key in `table` holding the value
+---@return Frame  the added ToggleSetting
 function ui.SettingsFrame:AddToggleControl(label, table, field)
   return self:AddControl(ToggleSetting:new{
     label = label,

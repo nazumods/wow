@@ -9,6 +9,7 @@ local TopLeft, BottomRight = ui.edge.TopLeft, ui.edge.BottomRight
 ---@field CleanFrame CleanFrame
 
 ---@class CleanFrame: Frame
+---@field border Frame  tooltip-style border frame anchored just outside self
 local CleanFrame = Class(Frame, function(self)
   self.border = Frame:new{
     parent = self,

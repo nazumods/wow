@@ -31,6 +31,9 @@ local shades = {
   {      0, 104/255,  55/255},
 }
 
+---Main grid: one row per set group (lock icon + name), one column per class,
+---cells show missing-piece counts color-shaded by completion.
+---@class DataView: TableFrame
 local DataView = Class(TableFrame, function(self)
   -- autoadjust name width
   local w = 0
@@ -114,4 +117,6 @@ end, {
     end)
   end,
 })
+---@class Warbandeer_Collected
+---@field DataView DataView
 ns.DataView = DataView

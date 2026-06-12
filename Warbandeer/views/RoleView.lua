@@ -50,6 +50,11 @@ local function nameCell(toon)
   }
 end
 
+-- One class's spec-by-spec character table (class-coloured accent on top).
+---@class ClassTable: TableFrame
+---@field classKey string   class token (e.g. "DeathKnight")
+---@field className string  display name (e.g. "Death Knight")
+---@field specs string[]    spec names, one column each
 local ClassTable = Class(TableFrame, function(self)
   Texture:new{
     parent = self,
@@ -102,6 +107,7 @@ local ClassTable = Class(TableFrame, function(self)
 end)
 
 local Classes = {"Priest", "Rogue", "Warrior", "Hunter", "Monk", "Evoker", "Paladin", "DeathKnight", "Mage", "Shaman", "Warlock", "DemonHunter", "Druid"}
+---@class RoleView: Frame
 local RoleView = Class(Frame, function(self)
   local widthMax = 20
   local width = 20
@@ -138,6 +144,9 @@ RoleView.name = "roles"
 RoleView._title = "Roles"
 ns.views.RoleView = RoleView
 
+---@param classKey string  class token (e.g. "DeathKnight")
+---@param pos table        LibNUI TopLeft position spec
+---@return ClassTable
 function RoleView:table(classKey, pos)
   return ClassTable:new{
     parent = self,

@@ -141,6 +141,8 @@ local BarsPreview = Class(Frame, function(self)
   self._numBars = 0
   self:Height(P + 20 + P)
 end, {})
+---@class Warbandeer
+---@field BarsPreview BarsPreview
 ns.BarsPreview = BarsPreview
 
 -- ─── Bar row pool ─────────────────────────────────────────────────────────────
@@ -361,6 +363,8 @@ end
 -- while that view does, and inherits the main window's strata/level.
 
 ---@class BarsPreviewFrame: CleanFrame
+---@field title Label          "<character> — <spec>" heading
+---@field _preview BarsPreview
 local BarsPreviewFrame = Class(CleanFrame, function(self)
   self.title = Label:new{
     parent   = self, fontInfo = theme.fonts.body, color = theme.colors.muted,
@@ -377,8 +381,12 @@ end, {
   clamped    = false,
   background = {0.11372549019, 0.14117647058, 0.16470588235, 0.92},
 })
+---@class Warbandeer
+---@field BarsPreviewFrame BarsPreviewFrame
 ns.BarsPreviewFrame = BarsPreviewFrame
 
+---Point the preview box at a profile and show it; hide if profile is nil.
+---@param profile table?
 function BarsPreviewFrame:Set(profile)
   if not profile then self:Hide(); return end
   self.title:Text(profile.char .. "  \226\128\148  " .. (profile.spec or "?"))

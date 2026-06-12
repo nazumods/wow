@@ -71,6 +71,8 @@ end, {
   width     = 96,
   menuWidth = 120,
 })
+---@class Warbandeer
+---@field FilterDropdown FilterDropdown
 ns.FilterDropdown = FilterDropdown
 
 -- Display label for an option key (empty string if not found).

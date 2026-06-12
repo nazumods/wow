@@ -45,6 +45,8 @@ end, {
 })
 ui.Label = Label
 
+---@param text string?
+---@return string|Label
 function Label:Text(text)
   if not text then return self._widget:GetText() end
   self._widget:SetText(text)
@@ -74,6 +76,12 @@ end
 ---@return number
 function Label:StringWidth() return self._widget:GetStringWidth() end
 
+-- Set the text color: a theme token, a color table / ColorMixin, or channels.
+---@param r string|table|number  theme color token, rgba table, ColorMixin, or red channel (0–1)
+---@param g number?  green channel (0–1)
+---@param b number?  blue channel (0–1)
+---@param a number?  alpha channel (0–1)
+---@return Label
 function Label:Color(r, g, b, a)
   if type(r) == "string" then r = self:Theme().colors[r] end
   if type(r) == "table" then

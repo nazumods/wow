@@ -138,6 +138,7 @@ ui.TableFrame = TableFrame
 
 -- Resize the frame to show exactly n rows, hiding dead space when the active
 -- row count shrinks below the pool size. Safe to call after addRow growth loops.
+---@param n integer  number of visible rows
 function TableFrame:ResizeRows(n)
   local rowH = 0
   for i = 1, math.min(n, #self.rows) do
@@ -186,7 +187,11 @@ function TableFrame:onLoad()
   if self.autosize then self:Autosize() end
 end
 
+---@param n integer
+---@return TableRow
 function TableFrame:row(n) return self.rows[n] end
+---@param n integer
+---@return TableCol
 function TableFrame:col(n) return self.cols[n] end
 
 -- Position table for a cell in column `colN` spanning `rowFrame` vertically.
@@ -211,6 +216,10 @@ function TableFrame:cellPosition(colN, rowFrame)
   }
 end
 
+-- Store an externally-built cell element, growing the cell grid as needed.
+---@param row integer
+---@param col integer
+---@param element table  the cell (or any widget) occupying that grid slot
 function TableFrame:set(row, col, element)
   if #self.cells < row then
     for i=#self.cells+1,row do
@@ -220,6 +229,9 @@ function TableFrame:set(row, col, element)
   self.cells[row][col] = element
 end
 
+-- Append a column, widening the table. `info` matches a colInfo entry.
+---@param info table
+---@return TableFrame
 function TableFrame:addCol(info)
   local n = #self.cols + 1
   self.colInfo[n] = info
@@ -256,6 +268,9 @@ function TableFrame:addCol(info)
   return self
 end
 
+-- Append a row, growing the table. `info` matches a rowInfo entry.
+---@param info table
+---@return TableFrame
 function TableFrame:addRow(info)
   local n = #self.rows + 1
   self.rowInfo[n] = info

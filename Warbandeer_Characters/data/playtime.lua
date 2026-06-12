@@ -21,6 +21,7 @@ end)
 
 -- TIME_PLAYED_MSG is async; bypass the field system and handle it directly.
 local parentInit = ns.Playtime.Init
+---@param toon Character
 function ns.Playtime:Init(toon)
   parentInit(self, toon) -- creates toon.playtime = {} and self.fieldOrder = {}
 

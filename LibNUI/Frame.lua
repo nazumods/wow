@@ -71,12 +71,17 @@ end, {
 })
 ui.Frame = Frame
 
+-- Dispatch a WoW event to the same-named method on self, if defined.
+---@param event string
+---@param ... any  event payload
 function Frame:OnEvent(event, ...)
   if self[event] then
     self[event](self, ...)
   end
 end
 
+---@param login boolean  true on initial login
+---@param reload boolean  true after /reload
 function Frame:PLAYER_ENTERING_WORLD(login, reload)
   if self.OnLogin and (login or reload) then self:OnLogin() end
 end
@@ -87,6 +92,8 @@ local function scriptHandlerFor(c, e)
     if c[e] then c[e](c, ...) end
   end
 end
+-- Bridge script handlers to same-named methods on self.
+---@param ... string  script handler names (e.g. "OnEnter", "OnMouseUp")
 function Frame:RegisterScript(...)
   local e
   for i=1,select("#", ...) do
@@ -94,7 +101,12 @@ function Frame:RegisterScript(...)
     self:SetScript(e, scriptHandlerFor(self, e))
   end
 end
+---@param event string  script handler name
+---@param handler function?
+---@return Frame
 function Frame:SetScript(event, handler) self._widget:SetScript(event, handler); return self end
+---@param event string  script handler name
+---@return Frame
 function Frame:RemoveScript(event) self._widget:SetScript(event, nil); return self end
 function Frame:listenForEvents()
   if self._listening then return end
@@ -102,16 +114,22 @@ function Frame:listenForEvents()
   local o = self
   self:SetScript("OnEvent", function(_, e, ...) o:OnEvent(e, ...) end)
 end
+---@param event string
+---@return Frame
 function Frame:registerEvent(event) self._widget:RegisterEvent(event); return self end
+---@param event string
+---@return Frame
 function Frame:unregisterEvent(event) self._widget:UnregisterEvent(event); return self end
 
 -- https://wowpedia.fandom.com/wiki/Making_draggable_frames
+---@return Frame
 function Frame:makeDraggable()
   self._widget:SetMovable(true)
   self._widget:EnableMouse(true)
   self._widget:RegisterForDrag("LeftButton")
   return self
 end
+---@return Frame
 function Frame:makeContainerDraggable()
   self._widget:SetScript("OnDragStart", function()
     self._widget:StartMoving()
@@ -121,6 +139,7 @@ function Frame:makeContainerDraggable()
   end)
   return self
 end
+---@param target table  raw WoW frame moved when this frame is dragged
 function Frame:setDragTarget(target)
   self._widget:SetScript("OnMouseDown", function()
     target:StartMoving()
@@ -144,6 +163,8 @@ function Frame:stopUpdates()
   self.animating = false
 end
 
+---@param ms number  delay in milliseconds
+---@param fn function|string  callback, or the name of a method on self
 function Frame:delay(ms, fn)
   local s = self
   C_Timer.After(ms / 1000, function()
@@ -157,8 +178,14 @@ end
 
 -- todo, resizable: https://wowpedia.fandom.com/wiki/Making_resizable_frames
 
+---@param name string  attribute name
+---@param value any?
+---@return any  the attribute value when getting
 function Frame:Attribute(name, value) return value == nil and self._widget:GetAttribute(name) or self._widget:SetAttribute(name, value) end
 
+-- Getter/setter for the frame level. Always returns the (new) frame level.
+---@param level number?
+---@return number
 function Frame:Level(level)
   if level then
     self._widget:SetFrameLevel(level)

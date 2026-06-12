@@ -7,6 +7,11 @@ local ui = ns.ui
 local Class, TitleFrame = ns.lua.Class, ui.TitleFrame
 local IconStrip = ns.IconStrip
 
+---@class MainWindow: TitleFrame
+---@field views table<string, Frame>         constructed view instances, by view name
+---@field _viewClasses table<string, table>  registered view classes, by view name
+---@field iconStrip IconStrip                floating navigation rail
+---@field _view Frame?                       the currently shown view
 local MainWindow = Class(TitleFrame, function(self)
   -- Views are constructed lazily on first navigation (see getView), both to keep
   -- the first open cheap and because building every view's widget tree in the
@@ -103,6 +108,9 @@ function MainWindow:getView(name)
   return v
 end
 
+-- Switch the window to the named view (shows it, swaps the titlebar filter,
+-- highlights the rail glyph, refits the window).
+---@param name string
 function MainWindow:view(name)
   if self._view then
     self._view:Hide()
@@ -161,6 +169,10 @@ function MainWindow:RestorePosition()
   end
 end
 
+---@class Warbandeer
+---@field MainWindow MainWindow?  the main window (constructed lazily by Open)
+
+-- Open the main window (constructing it on first use).
 function ns:Open()
   if not self.MainWindow then
     self.MainWindow = MainWindow:new{}
@@ -170,6 +182,9 @@ function ns:Open()
   self.MainWindow._view:Show()
 end
 
+-- Open the window on the named view; toggles the window closed if that view is
+-- already showing.
+---@param name string
 function ns:view(name)
   local w = self.MainWindow
   if w and w._widget:IsShown() and w._view == w.views[name] then

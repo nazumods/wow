@@ -5,6 +5,16 @@ local Colors = ns.Colors
 local Class, CleanFrame = ns.lua.Class, ui.CleanFrame
 local Label = ui.Label
 
+-- Floating character summary card shown when hovering a character cell.
+---@class CharacterTooltip: CleanFrame
+---@field toon Character?       the character being shown (set via SetToon)
+---@field name Label
+---@field race Label
+---@field specialization Label
+---@field class Label
+---@field realm Label
+---@field level Label
+---@field levelNum Label
 local Tooltip = Class(CleanFrame, function(self)
   local h, w = 0, 0
 
@@ -97,8 +107,13 @@ end, {
   toon = nil,
   -- defaults for optional settings
 })
+---@class Warbandeer
+---@field CharacterTooltip CharacterTooltip  the tooltip class (instantiated lazily by ShowCharacterTooltip)
+---@field ShowCharacterTooltip fun(toon: Character, parent: Frame, position: table?)
+---@field HideCharacterTooltip fun()
 ns.CharacterTooltip = Tooltip
 
+---@param toon Character
 function Tooltip:SetToon(toon)
   self.toon = toon
 
@@ -111,6 +126,7 @@ function Tooltip:SetToon(toon)
 end
 
 -- Configured tooltip side (index into ns.TOOLTIP_SIDES): 1=Left, 2=Right.
+---@return integer
 function ns.TooltipSide()
   return ns.db.settings.tooltipSide or 1
 end
@@ -129,6 +145,7 @@ end
 -- column cell tooltips. Mirrors sidePosition via ui.tip's GameTooltip-style
 -- anchors: Left extends the tooltip leftward (clear of the cursor), Right keeps
 -- the original down-right placement.
+---@param frame Frame  the hovered cell/frame to anchor to
 function ns.AnchorTip(frame)
   if ns.TooltipSide() == 2 then
     ui.tip:AnchorTo(frame, "ANCHOR_BOTTOMRIGHT", -10, 10)

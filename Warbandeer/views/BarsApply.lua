@@ -115,6 +115,8 @@ end, {
   clamped    = false,
   background = {0.11372549019, 0.14117647058, 0.16470588235, 0.92},
 })
+---@class Warbandeer
+---@field BarsApplyFrame BarsApplyFrame
 ns.BarsApplyFrame = BarsApplyFrame
 
 -- Flat toggle wash: muted gold when included, red when skipped.

@@ -4,6 +4,10 @@ local ui = ns.ui
 local Class, Frame = ns.lua.Class, ui.Frame
 local Label, Texture = ui.Label, ui.Texture
 
+---@class Cell: Frame
+---@field data table|string  cell data: an options table (text/path/atlas/...) or a plain text string
+---@field texture Texture?  icon content, created on first texture-bearing data
+---@field label Label?  text content, created on first text-bearing data
 local Cell = Class(Frame, function(self)
   -- cells are parented to the view, same as the rows and cols,
   -- so raise it above them
@@ -20,6 +24,7 @@ local Cell = Class(Frame, function(self)
 end)
 ui.Cell = Cell
 
+-- Build (or refresh) the cell's texture content from `self.data`.
 function Cell:Texture()
   local data = self.data
   if self.texture then
@@ -50,6 +55,7 @@ function Cell:Texture()
   end
 end
 
+-- Build (or refresh) the cell's label content from `self.data`.
 function Cell:Label()
   local data = type(self.data) == "table" and self.data or {text = self.data}
   if self.label then
@@ -75,6 +81,7 @@ function Cell:Label()
   end
 end
 
+---@param data table|string  new cell data (same shape as the constructor `data` option)
 function Cell:update(data)
   self.data = data
   if type(data) == "table" and (data.path or data.atlas) then

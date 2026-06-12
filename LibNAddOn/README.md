@@ -137,6 +137,17 @@ If `handlerFn` is provided, removes the specified callback.
 
 If `handlerFn` is _not_ provided, removes **all** callbacks.
 
+#### delay(ms, fn)
+
+One-shot debounce timer: calls `fn` (a function, or the name of a method on the addon)
+after `ms` milliseconds. Only **one** timer is active per addon — a second call replaces
+the pending callback.
+
+#### after(ms, fn)
+
+Fires `fn` once after `ms` milliseconds. Unlike `delay`, supports any number of
+concurrent timers.
+
 ### An event handler for ADDON_LOADED
 
 Calls `myAddOn.onLoad` when the event is fired for `ADDON_NAME`.

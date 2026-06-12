@@ -8,6 +8,9 @@ local Class = ns.lua.Class
 local Frame = ui.Frame
 
 -- dialog with title bar and close button, closable with escape
+---@class Dialog: Frame
+---@field title string?  window title (consumed at construction)
+---@field titleColor number[]?  title text color (rgba, 0–1 channels)
 local Dialog = Class(Frame, function(self)
   local frame = self._widget
   frame:SetFrameStrata("DIALOG")
@@ -26,6 +29,7 @@ local Dialog = Class(Frame, function(self)
 end)
 ui.Dialog = Dialog
 
+---@return Dialog
 function Dialog:makeTitlebarDraggable()
   self._widget.TitleContainer:SetScript("OnMouseDown", function()
     self._widget:StartMoving()

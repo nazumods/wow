@@ -5,6 +5,11 @@ local Class = ns.lua.Class
 local Frame, Label = ui.Frame, ui.Label
 local Settings = Settings
 
+---@class SettingsFrame: Frame
+---@field heading table  heading options: { text, fontObj, color }
+---@field headingText string?  shorthand override for heading.text
+---@field controls Frame[]  added setting controls, in insertion order
+---@field _heading Label  heading label (internal)
 local SettingsFrame = Class(Frame, function(self)
   self._heading = Label:new{
     parent = self,
@@ -28,6 +33,9 @@ end, {
 })
 ui.SettingsFrame = SettingsFrame
 
+-- Append a setting control, stacking it below the previous one.
+---@param control Frame  a setting control (e.g. TextSetting, ToggleSetting)
+---@return Frame  the control, for chaining
 function SettingsFrame:AddControl(control)
   control:Parent(self)
   table.insert(self.controls, control)
@@ -44,6 +52,9 @@ end
 
 -- type = Button, template = UIDropDownListTemplate
 
+-- Register this frame as a top-level canvas category in the Settings panel.
+---@param name string?  category name (defaults to the heading text)
+---@return table  the Settings category object
 function SettingsFrame:RegisterCategory(name)
   local category = Settings.RegisterCanvasLayoutCategory(
     self._widget,
@@ -53,6 +64,10 @@ function SettingsFrame:RegisterCategory(name)
   return category
 end
 
+-- Register this frame as a canvas subcategory under an existing category.
+---@param parentCategory table  the parent Settings category object
+---@param name string?  subcategory name (defaults to the heading text)
+---@return table  the Settings category object
 function SettingsFrame:RegisterSubcategory(parentCategory, name)
   local category = Settings.RegisterCanvasLayoutSubcategory(
     parentCategory,

@@ -190,6 +190,14 @@ end
 -- ─── View ─────────────────────────────────────────────────────────────────────
 
 ---@class MidnightProfs: Frame
+---@field tbl TableFrame?          rebuilt whenever the profession column set changes
+---@field _showAlliance boolean    which faction's characters are listed
+---@field _profKey string?         comma-joined profession IDs of the current table
+---@field _profs table[]?          discovered professions backing the columns
+---@field _numCols integer         column count (for empty-row padding)
+---@field _sortCol integer?        sorted column index (nil = default level/name sort)
+---@field _sortAsc boolean         ascending sort order
+---@field _filter Frame?           titlebar faction toggle
 local MidnightProfs = Class(Frame, function(self)
   -- default to the current character's faction on first open
   local current = ns.api:GetCharacterData()
@@ -209,6 +217,8 @@ MidnightProfs.name = "midnightprofs"
 MidnightProfs._title = "Midnight Profs"
 ns.views.MidnightProfs = MidnightProfs
 
+-- (Re)build the table for the discovered profession column set.
+---@param profs {id: number, abbr: string, name: string, hasCon: boolean}[]
 function MidnightProfs:BuildTable(profs)
   if self.tbl then self.tbl:Hide() end
   self.tbl = TableFrame:new{
@@ -249,6 +259,9 @@ function MidnightProfs:refreshFilterButtons()
   self._filter.horde:Alpha(not self._showAlliance and 1 or 0.3)
 end
 
+-- Titlebar faction toggle: Alliance/Horde crest buttons.
+---@param parent Frame
+---@return Frame
 function MidnightProfs:BuildFilter(parent)
   local box = ui.Frame:new{
     parent = parent,

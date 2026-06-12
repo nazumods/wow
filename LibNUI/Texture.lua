@@ -9,6 +9,15 @@ local Region = ui.Region
 ---@field Texture Texture
 
 ---@class Texture: Region
+---@field atlas string?  atlas name
+---@field atlasSize boolean?  use the atlas's native size (false disables explicitly)
+---@field rotation number?  rotation in radians (consumed at construction)
+---@field color string|number[]?  solid color: theme token or rgba table (0–1 channels)
+---@field vertexColor string|number[]?  vertex color: theme token or rgba table
+---@field blendMode string?  blend mode (e.g. "ADD")
+---@field gradient table?  SetGradient args {orientation, minColor, maxColor}
+---@field path string|number?  texture path or fileID
+---@field coords number[]?  tex coords {left, right, top, bottom}
 local Texture = Class(Region, function(self)
   if self.atlas then
     -- `X ~= nil and X or true` collapses to `true` when X is false, defeating
@@ -35,8 +44,16 @@ end, {
 })
 ui.Texture = Texture
 
+---@param ... any  SetAtlas args: atlasName (string), useAtlasSize (boolean?)
 function Texture:Atlas(...) self._widget:SetAtlas(...) end
+---@param texture string|number  texture path or fileID
 function Texture:Texture(texture) self._widget:SetTexture(texture) end
+-- Set a solid color fill. Accepts a theme token, a color table / ColorMixin,
+-- or individual channels.
+---@param r string|table|number  theme color token, rgba table, ColorMixin, or red channel (0–1)
+---@param g number?  green channel (0–1)
+---@param b number?  blue channel (0–1)
+---@param a number?  alpha channel (0–1)
 function Texture:Color(r, g, b, a)
   if type(r) == "string" then r = self:Theme().colors[r] end
   if type(r) == "table" then
@@ -48,6 +65,10 @@ function Texture:Color(r, g, b, a)
   end
   self._widget:SetColorTexture(r, g, b, a)
 end
+---@param r string|table|number  theme color token, rgba table, ColorMixin, or red channel (0–1)
+---@param g number?  green channel (0–1)
+---@param b number?  blue channel (0–1)
+---@param a number?  alpha channel (0–1)
 function Texture:SetVertexColor(r, g, b, a)
   if type(r) == "string" then r = self:Theme().colors[r] end
   if type(r) == "table" then
@@ -59,7 +80,13 @@ function Texture:SetVertexColor(r, g, b, a)
   end
   self._widget:SetVertexColor(r, g, b, a)
 end
+---@param ... number  SetTexCoord args: left, right, top, bottom (or 8-arg corner form)
 function Texture:Coords(...) self._widget:SetTexCoord(...) end
 -- nine-slice: margins are in source-texture pixels; mode is Enum.UITextureSliceMode
+---@param l number
+---@param t number
+---@param r number
+---@param b number
 function Texture:SliceMargins(l, t, r, b) self._widget:SetTextureSliceMargins(l, t, r, b) end
+---@param mode number  Enum.UITextureSliceMode
 function Texture:SliceMode(mode) self._widget:SetTextureSliceMode(mode) end

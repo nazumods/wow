@@ -7,6 +7,20 @@ local Frame, Texture = ui.Frame, ui.Texture
 
 -- https://wowpedia.fandom.com/wiki/Widget_API#StatusBar
 
+---@class StatusBar: Frame
+---@field backdrop table|Texture?  backdrop options at construction; the built Texture afterwards
+---@field fill table|Texture?  fill texture options ({color, gradient, blend}) at construction; the built Texture afterwards
+---@field color number[]?  initial fill color (rgba, 0–1 channels)
+---@field texture string|table|Texture?  bar texture: a path, or an options table (with optional coords) cropped by SetValue
+---@field orientation string?  "HORIZONTAL"|"VERTICAL"
+---@field min number?  minimum value
+---@field max number?  maximum value
+---@field X1 number  left tex coord of the full texture (internal)
+---@field X2 number  right tex coord (internal)
+---@field Xd number  horizontal coord span (internal)
+---@field Y1 number  top tex coord (internal)
+---@field Y2 number  bottom tex coord (internal)
+---@field Yd number  vertical coord span (internal)
 local StatusBar = Class(Frame, function(self)
   if self.backdrop then
     self.backdrop = Texture:new(Mixin({
@@ -71,9 +85,14 @@ function StatusBar:onLoad()
   end
 end
 
+---@param c number[]  fill color (rgba, 0–1 channels)
 function StatusBar:Color(c) self._widget:SetColorFill(unpack(c)) end
+---@param t string|number  texture path or fileID
 function StatusBar:Texture(t) self._widget:SetStatusBarTexture(t) end
 
+-- Set the bar value. With a coords-aware `texture`, the texture is cropped so
+-- the visible portion matches the filled fraction instead of squashing.
+---@param v number
 function StatusBar:SetValue(v)
   if not self.texture then self._widget:SetValue(v); return end
   local n, m = self._widget:GetMinMaxValues()

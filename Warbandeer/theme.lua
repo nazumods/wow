@@ -17,6 +17,8 @@ local ns = select(2, ...)
 
 local FONT = "Interface\\AddOns\\Warbandeer\\media\\fonts\\"
 
+---@class Warbandeer
+---@field theme Theme  the Void-Dark LibNUI theme, inherited by every widget in the window
 ns.theme = ns.ui.Theme{
   name = "void-dark",
   colors = {

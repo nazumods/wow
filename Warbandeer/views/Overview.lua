@@ -160,6 +160,10 @@ local function gatherFactions(expansionLevel, extraFactionIDs)
 end
 
 -- Stack of reputation progress bars for one expansion.
+---@class FactionBars: Frame
+---@field expansionLevel number    LE_EXPANSION_* level whose major factions are shown
+---@field extraFactionIDs number[] factions to append beyond GetMajorFactionIDs
+---@field width number             bar/row width
 local FactionBars = Class(Frame, function(self)
   local c = theme.colors
   local rows = gatherFactions(self.expansionLevel, self.extraFactionIDs)
@@ -192,6 +196,9 @@ end, {
 })
 
 -- Table of top toon per class
+---@class TopAlts: TableFrame
+---@field _toons Character[]  row index -> character (kept in sync by GetData)
+---@field GetData fun(self: TopAlts): table  builds the top-character rows
 local TopAlts = Class(TableFrame, function(self)
   -- fit col 2 to the widest name
   local w = 0
@@ -284,6 +291,9 @@ local midnightAchievementIds = {
   61864, -- Sojourner of Voidstorm
 }
 
+-- Single-column achievement checklist for one expansion.
+---@class OverviewAchievements: TableFrame
+---@field achievementIds number[]  achievement IDs to list, in display order
 local Achievements = Class(TableFrame, function(self)
   self.data = {}
   for _, achievementId in ipairs(self.achievementIds) do
@@ -361,6 +371,18 @@ local function healCellFonts(tbl)
 end
 
 -- Overview
+---@class Overview: Frame
+---@field topAlts TopAlts
+---@field _panels table<string, Frame>   expansion key -> reps+achievements panel
+---@field _repsH table<string, number>   expansion key -> reputations section height
+---@field _achH table<string, number>    expansion key -> achievements section height
+---@field _altH number                   Top Characters section height
+---@field _contentW number               total content width (excl. outer padding)
+---@field _contentTop number             Y offset where the panels start
+---@field _modReps Texture               reputations module background
+---@field _modAch Texture                achievements module background
+---@field _expansion string?             currently selected expansion key
+---@field _filter FilterDropdown?        titlebar expansion picker
 local Overview = Class(Frame, function(self)
   local c = theme.colors
   local BLEED = 6                        -- module/strip outer bleed (matches module bg padding)

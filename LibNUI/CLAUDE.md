@@ -36,6 +36,7 @@ function MyWidget:SomeMethod(value) end
 - Register on `ui` so it's accessible via `LibNUI.MyWidget`
 - Add the file to `LibNUI.toc` in the appropriate section
 - Add a visual test in the adjacent `LibNUI_Test` add-on (see **Testing** below)
+- Document it: class hierarchy + reference in `CONTEXT.md`, and a section (constructor options, methods, callbacks) in `README.md`
 
 ## Conventions
 

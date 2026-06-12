@@ -1,6 +1,10 @@
 ---@type Warbandeer
 local ns = select(2, ...)
 
+---@class Warbandeer
+---@field data table                          static data + profession/concentration helpers
+---@field factionIcon table<boolean, table>   cell icon spec by isAlliance (path/coords/vertexColor)
+---@field gearSlots string[]                  canonical gear-slot draw order
 ns.data = {}
 
 -- Custom Warbandeer faction art (white TGAs under icons/, tinted at draw time).
@@ -34,6 +38,8 @@ ns.gearSlots = {
 -- ColorMixin for an item level, by gear tier. Thresholds are by ilvl, not upgrade
 -- track, by design: gear maxed on a lower track counts as the tier its ilvl reaches
 -- (e.g. a fully upgraded Hero item at 272+ reads as mythic gold).
+---@param ilvl number
+---@return ColorMixin
 function ns.IlvlColorObj(ilvl)
   if ilvl >= gearTiers.mythic then return ITEM_ARTIFACT_COLOR -- muted gold (#e6cc80)
   elseif ilvl >= gearTiers.hero then return ITEM_LEGENDARY_COLOR
@@ -45,15 +51,23 @@ function ns.IlvlColorObj(ilvl)
   end
 end
 
+-- The ilvl wrapped in its tier's color escape code.
+---@param ilvl number
+---@return string
 function ns.IlvlColor(ilvl)
   return ns.IlvlColorObj(ilvl):WrapTextInColorCode(ilvl)
 end
 
 -- Safe ilvl accessor for sort comparators: fresh alts may not have had an
 -- equipment pass yet, so equipment or equipment.ilvl can be nil.
+---@param t Character
+---@return number
 function ns.ilvlOf(t) return t.equipment and t.equipment.ilvl or 0 end
 
 -- Standard sort: descending level, then descending ilvl, then ascending name.
+---@param a Character
+---@param b Character
+---@return boolean
 function ns.byLevelIlvl(a, b)
   if a.basic.level ~= b.basic.level then return a.basic.level > b.basic.level end
   local ai, bi = ns.ilvlOf(a), ns.ilvlOf(b)
@@ -125,6 +139,10 @@ local insert, sort = table.insert, table.sort
 -- Concentration fill estimate, shared by the Midnight Profs and Crafting views.
 -- Concentration recharges passively; the stored snapshot is projected forward to now.
 -- Returns currentQuantity, maxQuantity, isEstimate.
+---@param entry table  stored concentration snapshot (quantity/maxQuantity/recharge fields)
+---@return number currentQuantity
+---@return number maxQuantity
+---@return boolean isEstimate
 function ns.data.EstimateConcentration(entry)
   local cycleMs  = entry.rechargingCycleDurationMS or 0
   local cycleAmt = entry.rechargingAmountPerCycle  or 0
@@ -139,6 +157,9 @@ end
 local PROF_SLOTS = { "primary", "secondary", "fishing", "cooking" }
 
 -- Returns a character's profession object for a parent skill line ID, or nil.
+---@param toon Character
+---@param skillLineID number
+---@return table?
 function ns.data.FindProf(toon, skillLineID)
   local profs = toon.basic and toon.basic.professions
   if not profs then return nil end
@@ -150,6 +171,9 @@ function ns.data.FindProf(toon, skillLineID)
 end
 
 -- User-assigned intent for a character's profession: "main" | "secondary" | "gatherer" | nil.
+---@param charName string
+---@param skillLineID number
+---@return string?
 function ns.data.GetProfIntent(charName, skillLineID)
   local intents = ns.db and ns.db.profIntent
   local forChar = intents and intents[charName]
@@ -158,6 +182,9 @@ end
 
 -- Assign (or clear, when intent is nil) a character's profession intent.
 -- Persisted to WarbandeerDB.profIntent[charName][skillLineID].
+---@param charName string
+---@param skillLineID number
+---@param intent string?  "main" | "secondary" | "gatherer", or nil to clear
 function ns.data.SetProfIntent(charName, skillLineID, intent)
   local db = ns.db
   db.profIntent = db.profIntent or {}
@@ -173,6 +200,8 @@ local INTENT_ORDER = { main = 1, secondary = 2, gatherer = 3 }
 
 -- Every toon that has the given profession, with intent + skill, for tooltip display.
 -- Sorted main -> secondary -> gatherer -> unset, then by skill descending.
+---@param skillLineID number
+---@param toons Character[]
 ---@return {toon:Character, intent:string?, skill:integer}[]
 function ns.data.GetProfToons(skillLineID, toons)
   local list = {}
@@ -196,6 +225,10 @@ end
 
 -- The designated crafter for a profession: the toon flagged "main", else the
 -- highest-skill toon that has it. Returns toon, isFlaggedMain (toon may be nil).
+---@param skillLineID number
+---@param toons Character[]
+---@return Character? toon
+---@return boolean isFlaggedMain
 function ns.data.GetMainCrafter(skillLineID, toons)
   local best, bestSkill
   for _, toon in ipairs(toons) do

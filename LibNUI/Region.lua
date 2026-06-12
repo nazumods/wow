@@ -40,10 +40,14 @@ function Region:ThemeColor(c)
   return c
 end
 
+---@param parent Region|table  new parent (LibNUI widget or raw WoW frame)
 function Region:Parent(parent)
   self._widget:SetParent(parent._widget or parent)
 end
 
+-- Apply a position table: each key names a method on self, each value its args
+-- (unpacked if a table, passed directly if scalar, skipped if false).
+---@param position table
 function Region:Position(position)
   for k,v in pairs(position) do
     if self[k] then
@@ -56,8 +60,14 @@ function Region:Position(position)
   end
 end
 
+---@return string?
 function Region:GetName() return self._widget:GetName() end
 
+---@param point string  anchor point on this region (ui.edge constant)
+---@param target Region|table|number?  anchor target (defaults to the parent); may be the x offset in the 3-arg form
+---@param edge string|number?  anchor point on the target; may be the y offset in the 3-arg form
+---@param x number?  x offset in pixels
+---@param y number?  y offset in pixels
 function Region:SetPoint(point, target, edge, x, y)
   if type(target) == "table" and target._widget then target = target._widget end
   -- must be called with explicit arguments, passing nil confuses it
@@ -74,19 +84,37 @@ end
 
 function Region:All() self._widget:SetAllPoints() end
 function Region:ClearAllPoints() self._widget:ClearAllPoints() end
+-- Edge anchor shorthands: forward to SetPoint with the matching ui.edge point.
+---@param ... any  SetPoint args after the point: target?, edge?, x?, y?
 function Region:Center(...) self:SetPoint(ui.edge.Center, ...) end
+---@param ... any  SetPoint args after the point: target?, edge?, x?, y?
 function Region:Top(...) self:SetPoint(ui.edge.Top, ...) end
+---@param ... any  SetPoint args after the point: target?, edge?, x?, y?
 function Region:TopLeft(...) self:SetPoint(ui.edge.TopLeft, ...) end
+---@param ... any  SetPoint args after the point: target?, edge?, x?, y?
 function Region:TopRight(...) self:SetPoint(ui.edge.TopRight, ...) end
+---@param ... any  SetPoint args after the point: target?, edge?, x?, y?
 function Region:Bottom(...) self:SetPoint(ui.edge.Bottom, ...) end
+---@param ... any  SetPoint args after the point: target?, edge?, x?, y?
 function Region:BottomLeft(...) self:SetPoint(ui.edge.BottomLeft, ...) end
+---@param ... any  SetPoint args after the point: target?, edge?, x?, y?
 function Region:BottomRight(...) self:SetPoint(ui.edge.BottomRight, ...) end
+---@param ... any  SetPoint args after the point: target?, edge?, x?, y?
 function Region:Left(...) self:SetPoint(ui.edge.Left, ...) end
+---@param ... any  SetPoint args after the point: target?, edge?, x?, y?
 function Region:Right(...) self:SetPoint(ui.edge.Right, ...) end
 
+---@param x number?  width; omit both args to get
+---@param y number?  height
+---@return number? width  when getting
+---@return number? height  when getting
 function Region:Size(x, y) return x == nil and self._widget:GetSize() or self._widget:SetSize(x, y) end
 
+---@param w number?
+---@return number?  the width when getting
 function Region:Width(w) return w == nil and self._widget:GetWidth() or self._widget:SetWidth(w) end
+---@param h number?
+---@return number?  the height when getting
 function Region:Height(h) return h == nil and self._widget:GetHeight() or self._widget:SetHeight(h) end
 
 function Region:Show()
@@ -94,7 +122,10 @@ function Region:Show()
   self._widget:Show()
 end
 function Region:Hide() self._widget:Hide() end
+---@param b boolean
 function Region:SetShown(b) if b then self:Show() else self:Hide() end end
 function Region:Toggle() self:SetShown(not self._widget:IsVisible()) end
 
+---@param a number?  alpha (0–1)
+---@return number?  the alpha when getting
 function Region:Alpha(a) return a == nil and self._widget:GetAlpha() or self._widget:SetAlpha(a) end

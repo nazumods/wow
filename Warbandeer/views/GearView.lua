@@ -229,6 +229,10 @@ end
 local ACTIVE = theme.colors.gold
 
 ---@class GearView: Frame
+---@field _armorType string                    currently shown armor type
+---@field _tables table<string, GearTable>     one table per armor type
+---@field _armorButtons table<string, Frame>?  filter buttons, by armor type
+---@field _filter Frame?                       titlebar armor-type filter strip
 local GearView = Class(ui.Frame, function(self)
   -- default to the current character's armor type on first open
   local current = ns.api:GetCharacterData()
@@ -264,6 +268,7 @@ function GearView:layout()
   self:Height(active:Height())
 end
 
+---@param armorType string  one of Armor.types ("Cloth" | "Leather" | "Mail" | "Plate")
 function GearView:selectArmor(armorType)
   if self._armorType == armorType then return end
   self._armorType = armorType
@@ -276,6 +281,8 @@ end
 -- / Mail / Plate), one active at a time. Replaces the old TabFrame tabs. Each
 -- button is a faint-bordered box with a mono-caps label; the active one is tinted
 -- gold (border + label), inactive ones muted.
+---@param parent Frame
+---@return Frame
 function GearView:BuildFilter(parent)
   local BW, BH, GAP, PAD = 60, 20, 4, 6
   local count = #Armor.types

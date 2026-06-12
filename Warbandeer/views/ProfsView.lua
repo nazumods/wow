@@ -178,6 +178,15 @@ end
 -- ─── View ─────────────────────────────────────────────────────────────────────
 
 ---@class ProfsView: Frame
+---@field gridTable TableFrame        Account Summary grid (professions x expansions)
+---@field charTable TableFrame        per-profession character list
+---@field charScroll ScrollFrame      scroll wrapper over the character-list rows
+---@field emptyHint Label             "select a profession" hint
+---@field _selectedRowIdx integer?    selected grid row, nil when none
+---@field _visibleProfs string[]      profession name per visible grid row
+---@field _toons Character[]?         all characters (refreshed each OnBeforeShow)
+---@field _charToons Character[]      character per char-list row
+---@field _charColCount integer       char-table column count (for empty-row padding)
 local ProfsView = Class(Frame, function(self)
   -- Account Summary grid: rows = professions, columns = expansions.
   self.gridTable = TableFrame:new{
@@ -256,6 +265,7 @@ function ProfsView:SelectRow(rowIdx)
 end
 
 -- Resting backdrop for a grid row: gold wash if selected, otherwise transparent.
+---@param rowIdx integer  index into self.gridTable.rows
 function ProfsView:RestoreGridRow(rowIdx)
   local row = self.gridTable.rows[rowIdx]
   if not row then return end

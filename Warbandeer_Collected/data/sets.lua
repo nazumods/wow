@@ -3,6 +3,9 @@ local ns = select(2, ...)
 -- luacheck: globals tinsert C_TransmogSets
 local tinsert = tinsert
 
+---@class Warbandeer_Collected
+---@field Sets table[] transmog set groups: `{ id, name, release, instance, difficulty, minLevel, sets = { { id, name, classId }... } }`
+---@field Releases string[] expansion names indexed by `release`
 ns.Sets = {}
 
 -- https://warcraft.wiki.gg/wiki/ClassId

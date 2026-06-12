@@ -40,8 +40,12 @@ ns.LAST_SUNDAY_RESET = LAST_SUNDAY_RESET
 ---@field new function constructor
 ---@field name string
 ---@field fields table<string, BrokerField>
+---@field fieldOrder string[] field names sorted by `order` priority, then alphabetically
 local Broker = Class(nil, function() end)
 
+---Prepare the broker for a character: ensure its data table exists, sort the
+---field order, wire field event handlers, and default auto-reset functions.
+---@param toon Character
 function Broker:Init(toon)
   local broker = self.name
   if not toon[self.name] then toon[self.name] = {} end
@@ -94,6 +98,8 @@ function Broker:Init(toon)
 end
 ns.Broker = Broker
 
+---Re-fetch every field's value for a character, in field order.
+---@param toon Character
 function Broker:Update(toon)
   if not self.fields then return end
   for _, name in ipairs(self.fieldOrder) do
@@ -101,6 +107,9 @@ function Broker:Update(toon)
   end
 end
 
+---Reset every field whose `resetOn` matches the given cadence.
+---@param type integer reset cadence: ns.RESET_SUNDAY, ns.RESET_DAILY, or ns.RESET_WEEKLY
+---@param toon Character
 function Broker:Reset(type, toon)
   if self.fields then
     for _,name in ipairs(self.fieldOrder) do
@@ -111,18 +120,32 @@ function Broker:Reset(type, toon)
   end
 end
 
+---@class Warbandeer_Characters
+---@field Broker Broker
+---@field brokers table<string, Broker> registered brokers by name
+---@field brokerOrder string[] broker names in registration order
+---@field RESET_SUNDAY integer reset cadence: Sunday midnight (realm-local)
+---@field RESET_DAILY integer reset cadence: daily reset
+---@field RESET_WEEKLY integer reset cadence: weekly reset
 ns.brokers = {}
 ns.brokerOrder = {}
 ns.RESET_SUNDAY = 0
 ns.RESET_DAILY = 1
 ns.RESET_WEEKLY = 7
 
+---Create and register a named broker; callers then populate its `fields`.
+---@class Warbandeer_Characters
+---@field RegisterBroker fun(self, name: string): Broker
 function ns:RegisterBroker(name)
   self.brokers[name] = Broker:new{name = name}
   insert(self.brokerOrder, name)
   return self.brokers[name]
 end
 
+---Init every broker for the current character, then apply any daily/weekly/
+---Sunday resets that have elapsed since the last login (with clock-skew slack).
+---@class Warbandeer_Characters
+---@field InitBrokers fun(self)
 function ns:InitBrokers()
   for _,name in ipairs(self.brokerOrder) do
     self.brokers[name]:Init(self.currentData)

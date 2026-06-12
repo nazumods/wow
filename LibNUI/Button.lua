@@ -37,7 +37,7 @@ local function formatCooldown(t)
 end
 
 -- https://wowpedia.fandom.com/wiki/UIOBJECT_Button
----@class Button
+---@class Button: Frame
 ---@field _widget table
 ---@field border table
 ---@field cooldown table
@@ -122,6 +122,10 @@ end, {
 })
 ui.Button = Button
 
+-- Getter/setter for the button text. Unlike the standard pattern, the set
+-- path also returns the (new) text rather than self.
+---@param text string?
+---@return string
 function Button:Text(text)
   if text ~= nil then
     self._widget:SetText(text)
@@ -214,6 +218,7 @@ function Button:OnLeave()
   if self.tooltip then (self.tooltip._widget or GameTooltip):Hide() end
 end
 
+---@param elapsed number  milliseconds since the last update
 function Button:onUpdate(elapsed)
   local remaining = self.cooldownEnd - GetTime()
   if remaining < 0 then

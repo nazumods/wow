@@ -66,6 +66,20 @@ position = {
 }
 ```
 
+### Themes
+
+Built-in widget styling lives in `ui.themes.dark` as named tokens (`colors`, `fonts`, `textures`). Widgets resolve styling against the **active theme**: the `theme` constructor option, inherited through the parent widget chain, falling back to `ui.themes.dark`. Pass a theme once on a top-level window and every child widget inherits it.
+
+```lua
+local myTheme = ui.Theme{   -- unlisted tokens fall back to the dark theme
+  colors = { window = {0.05, 0.05, 0.06, 1}, header = {1, 0.6, 0.4, 1} },
+  fonts  = { title = {path, 16}, header = {path, 11}, body = {path, 13} },
+}
+local win = ui.TitleFrame:new{ title = "Mine", theme = myTheme }
+```
+
+Any color option also accepts a token name string (e.g. `background = "window"`), resolved against the widget's active theme. Always build custom themes via `ui.Theme{}` — raw tables miss the dark-theme fallback.
+
 ---
 
 ## Constants
@@ -90,18 +104,21 @@ Region
 └── Frame
     ├── BgFrame
     │   ├── TableCol
-    │   ├── TableRow
-    │   └── CleanFrame
-    │       ├── TitleFrame
-    │       └── Tooltip
+    │   └── TableRow
+    ├── CleanFrame
+    │   ├── TitleFrame
+    │   └── Tooltip
     ├── Button
     │   ├── CheckButton
     │   └── SecureButton
+    ├── Cell
     ├── Dialog
     ├── EditBox
     ├── ScrollFrame
     ├── StatusBar
-    └── TableFrame
+    ├── TabFrame
+    ├── TableFrame
+    └── SettingsFrame / TextSetting / ToggleSetting
 
 AutoWidget  (standalone — creates Label/Texture/Button based on options)
 ```
@@ -317,6 +334,38 @@ Inherits `CleanFrame`. Adds a title bar with icon, title text, and a close butto
 | `titlebar.title`   | Title `Label`               |
 | `titlebar.icon`    | Icon container `Frame`      |
 | `closeButton`      | Close `Button`              |
+
+---
+
+## TabFrame
+
+Inherits `Frame`. A tabbed container: a tab button bar across the top and one content panel per tab. Anchor your widgets inside `frame:Tab(i)`.
+
+### Constructor options
+
+| Option          | Type     | Description                                          |
+|-----------------|----------|------------------------------------------------------|
+| `tabs`          | table    | List of tab label strings                            |
+| `tabHeight`     | number   | Height of the tab bar (default `24`)                 |
+| `tabWidth`      | number   | Width of each tab button (default `80`)              |
+| `activeColor`   | table/str| Background color (or theme token) of the active tab  |
+| `inactiveColor` | table/str| Background color (or theme token) of inactive tabs   |
+| `onSelect`      | func     | `fun(self, index)` called when the selection changes |
+
+### Methods
+
+| Method          | Description                                |
+|-----------------|--------------------------------------------|
+| `Select(index)` | Switch to a tab                            |
+| `Tab(index)`    | Returns the content panel `Frame` for a tab|
+| `Selected()`    | Returns the selected tab index             |
+
+### Sub-frames
+
+| Field     | Description                       |
+|-----------|-----------------------------------|
+| `tabBar`  | The tab button bar `Frame`        |
+| `content` | The content area below the bar    |
 
 ---
 

@@ -5,6 +5,8 @@ local insert = table.insert
 ---@class WarbandeerAPI
 local API = ns.api
 
+---Name of the currently logged-in character.
+---@return string
 function API:GetCurrentCharacter() return ns.currentPlayer end
 
 ---@class WarbandeerAPI
@@ -14,7 +16,11 @@ function API:GetCharacterData(char)
   return ns.db.characters[char or ns.currentPlayer]
 end
 
+---Total number of tracked characters.
+---@return integer
 function API:GetNumCharacters() return ns.db.numCharacters end
+---Number of tracked characters at the level cap.
+---@return integer
 function API:GetNumMaxLevel()
   local n = 0
   for _,c in pairs(ns.db.characters) do
@@ -31,6 +37,8 @@ function API:GetAllCharacters()
   return list
 end
 
+---All tracked Alliance characters (unordered).
+---@return Character[]
 function API:GetAllianceCharacters()
   local c = {}
   for _,t in pairs(ns.db.characters) do
@@ -39,6 +47,8 @@ function API:GetAllianceCharacters()
   return c
 end
 
+---All tracked Horde characters (unordered).
+---@return Character[]
 function API:GetHordeCharacters()
   local c = {}
   for _,t in pairs(ns.db.characters) do

@@ -350,6 +350,9 @@ local function sortedCharacters()
   return toons
 end
 
+-- Titlebar character picker (shown only while the Detail view is active).
+---@param parent Frame
+---@return Frame
 function DetailView:BuildFilter(parent)
   local box = Frame:new{ parent = parent, position = { Height = 20, Width = 130 } }
 

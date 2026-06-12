@@ -73,6 +73,9 @@ raceIdToFactionIndex[85] = {14, true}
 raceIdToFactionIndex[86] = {15, true}
 raceIdToFactionIndex[87] = {15, false}
 
+---Map a WoW raceId to its compact per-faction race index and faction.
+---@class Warbandeer_Characters
+---@field NormalizeRaceId fun(raceId: integer): integer, boolean raceIdx (index into API.ALLIANCE_RACES/HORDE_RACES), isAlliance
 function ns.NormalizeRaceId(raceId)
   return unpack(raceIdToFactionIndex[raceId])
 end

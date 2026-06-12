@@ -21,7 +21,48 @@ local UnitLevel, UnitName = UnitLevel, UnitName
 
 local wow = ns.wow
 
+---Static helpers for the current player ("player" unit). Members defined in the
+---table literal below are plain WoW API wrappers; typed here so callers get
+---param/return info.
 ---@class Player
+---@field Cast fun(spellIndex: number, bookType: string?) cast a spell by spellbook slot
+---@field GetAverageItemLevel fun(): integer overall ilvl, floored
+---@field GetClassId fun(): integer
+---@field GetClassName fun(self: Player): string localized class name
+---@field GetHealth fun(): number
+---@field GetHealthMax fun(): number
+---@field GetHealthPercent fun(self: Player): string e.g. "85%"
+---@field GetHealthValues fun(self: Player): number, number, string health, max, percent
+---@field GetLevel fun(): number
+---@field GetMaxXP fun(): number
+---@field GetMountIcon fun(id: number): number? icon FileID
+---@field GetName fun(): string
+---@field GetPetHealthValues fun(): number, number pet health, max
+---@field GetPower fun(self: Player, idx: number?): number
+---@field GetPowerMax fun(self: Player, idx: number?): number
+---@field GetPowerPercent fun(self: Player, idx: number?): string e.g. "85%"
+---@field GetPowerType fun(): number, string powerType enum, token (e.g. "MANA")
+---@field GetPowerValues fun(self: Player, idx: number?): number, number power, max
+---@field GetShapeshiftFormID fun(): number? form/stance/stealth ID, nil when not shifted
+---@field GetActiveSpecialization fun(): number, string, string, number, string, string, string id, name, description, icon, role, classFile, className
+---@field GetPrimarySpecialization fun(): number, string, string, number, string, string, string id, name, description, icon, role, classFile, className (loot spec)
+---@field GetRace fun(): string, number raceFile, raceId
+---@field GetXP fun(): number
+---@field GetXPExhaustion fun(): number? rested bonus XP remaining, nil if none
+---@field GetXPPercent fun(self: Player): number 0-1 fraction of the level
+---@field HasTarget fun(): boolean
+---@field HasToy fun(toyId: number): boolean
+---@field InCombat fun(): boolean
+---@field IsAFK fun(): boolean
+---@field isMaxLevel fun(self: Player): boolean
+---@field isRested fun(): boolean
+---@field IsResting fun(): boolean
+---@field IsMountUsable fun(id: number): boolean
+---@field IsMountCollected fun(id: number): boolean
+---@field IsSpellKnown fun(spellId: number, isPet: boolean?): boolean
+---@field Mount fun(mountId: number) summon a mount by ID
+---@field UseToy fun(toyId: number)
+---@field bags { ItemID: fun(slot: number): number? } bag helpers (slot is a container ID)
 local Player = {
   Cast = CastSpell,
   GetAverageItemLevel = function() local _, ilvl = GetAverageItemLevel(); return math.floor(ilvl) end,
@@ -83,13 +124,34 @@ local Player = {
 }
 ns.wow.Player = Player
 
+---Rested bonus XP as a fraction of the current level's max XP (0 if not rested).
+---@return number
 function Player:GetRestPercent()
   if not self:isRested() then return 0 end
   local maxXP = self:GetMaxXP()
   return max(0, self:GetXPExhaustion() / maxXP)
 end
 
+---@class ProfessionInfo
+---@field id integer profession index (as returned by GetProfessions)
+---@field name string
+---@field icon number icon FileID
+---@field skillLevel integer current skill level
+---@field maxSkill integer max skill level
+---@field skillID integer trade skill line ID
+---@field skillMod integer skill modifier from gear/buffs
+---@field numAbilities integer number of spellbook abilities
+---@field spellOffset integer spellbook offset of the first ability
+---@field specializationIndex integer
+---@field specializationOffset integer
+
+---One profession slot; `id` is nil when the slot is unlearned.
+---@class Profession
+---@field id integer? profession index, or nil if not learned
+---@field GetInfo fun(self: Profession): ProfessionInfo?
 local Profession = {}
+---Detailed info for this profession, or nil if the slot is unlearned.
+---@return ProfessionInfo?
 function Profession:GetInfo()
   if not self.id then return nil end
   local name, icon, skillLvl, x, abils, offset, skillID, skillMod, specIdx, specOffset = GetProfessionInfo(self.id)
@@ -108,6 +170,8 @@ function Profession:GetInfo()
   }
 end
 
+---All five profession slots as Profession objects (id is nil for unlearned slots).
+---@return { prof1: Profession, prof2: Profession, archaeology: Profession, fishing: Profession, cooking: Profession }
 function Player:GetProfessions()
   local prof1, prof2, arch, fishing, cooking = GetProfessions()
   return {
@@ -126,6 +190,12 @@ local ACTIVITY_TYPES = {
 }
 
 ns.wow.GreatVault = {}
+---Aggregate this week's Great Vault reward options by activity type.
+---@return table rewards currently always empty (reserved)
+---@return table<number, integer> counts reward count per item level
+---@return table<string, { complete: integer, progress: integer, max: integer }> progress per activity type ("Dungeons"/"Raid"/"World")
+---@return number best highest reward item level
+---@return integer bestN number of rewards at the best item level
 function ns.wow.GreatVault.getRewardOptions()
   local rewards = {}
   local counts = {}

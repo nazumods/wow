@@ -91,6 +91,10 @@ end
 -- ─── View ─────────────────────────────────────────────────────────────────────
 
 ---@class CraftingView: Frame
+---@field tbl TableFrame            the profession summary table
+---@field _expansion string         selected expansion key ("df" | "tww" | "midnight")
+---@field _numCols integer          column count (for empty-row padding)
+---@field _filter FilterDropdown?   titlebar expansion picker
 local CraftingView = Class(Frame, function(self)
   self._expansion = "midnight"
   self.tbl = TableFrame:new{
@@ -288,6 +292,9 @@ end
 
 -- ─── Filter ───────────────────────────────────────────────────────────────────
 
+-- Titlebar expansion picker (shown only while the Crafting view is active).
+---@param parent Frame
+---@return FilterDropdown
 function CraftingView:BuildFilter(parent)
   local box = ns.FilterDropdown:new{
     parent   = parent,

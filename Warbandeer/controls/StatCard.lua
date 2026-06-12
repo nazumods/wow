@@ -64,6 +64,8 @@ end, {
   pad = 10,
   amount = "",
 })
+---@class Warbandeer
+---@field StatCard StatCard
 ns.StatCard = StatCard
 
 ---@param text string?

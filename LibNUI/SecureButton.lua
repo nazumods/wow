@@ -5,6 +5,8 @@ local Class = ns.lua.Class
 local Button = ui.Button
 
 -- https://wowpedia.fandom.com/wiki/SecureActionButtonTemplate
+---@class SecureButton: Button
+---@field actions table[]?  secure action descriptors: { type?, target?, spell?, toy? }
 local SecureButton = Class(Button, function(self)
   if self.actions then
     for _,action in pairs(self.actions) do

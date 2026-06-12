@@ -145,6 +145,8 @@ end, {
   barTexture = "Interface\\AddOns\\Warbandeer\\media\\bar-rounded",
   trackTexture = "Interface\\AddOns\\Warbandeer\\media\\bar-rounded",
 })
+---@class Warbandeer
+---@field LabeledBar LabeledBar
 ns.LabeledBar = LabeledBar
 
 ---@param pct number fill fraction (0..1)

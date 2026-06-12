@@ -76,6 +76,10 @@ local instructions = {
   },
 }
 
+-- Hidden artifact appearances per class: one row per class with spec unlock
+-- state and the dungeon/WQ/kills/class-hall color progress.
+---@class LegionAppearances: TableFrame
+---@field GetData fun(self: LegionAppearances): table  builds the per-class appearance rows
 local Appearances = Class(TableFrame, function(self)
 end, {
   autosize = true,
@@ -160,6 +164,8 @@ end, {
 local achievementIds = {10459, 11160, 11163}
 
 -- Achievements Table
+---@class LegionAchievements: TableFrame
+---@field GetData fun(self: LegionAchievements): table  builds the achievement cell grid
 local Achievements = Class(TableFrame, function()
 end, {
   colBackdrop = TransparentBackdrop,
@@ -187,8 +193,8 @@ end, {
 
 
 ---@class Legion: Frame
----@field collected TableFrame
----@field achievements TableFrame
+---@field collected LegionAppearances
+---@field achievements LegionAchievements
 local Legion = Class(Frame, function(self)
   local h = 2
 

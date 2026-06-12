@@ -36,7 +36,7 @@ Captures are always **full fidelity** (bars + binds + macros + pet bar + outfits
 
 ```lua
 WarbandeerBarsDB = {
-  version  = 1,
+  version  = 2,
   profiles = {
     ["Nazuraki"] = {
       [62] = {            -- specID (e.g. 62 = Arcane Mage)
@@ -57,6 +57,9 @@ WarbandeerBarsDB = {
         outfits  = { "Raid", "Mythic+" },
       },
     },
+  },
+  layouts = {            -- Edit Mode layout snapshots (v2), shared across characters
+    ["My Layout"] = { [1] = { numIcons = 12, numRows = 1, orientation = 0 }, ... },
   },
 }
 ```
@@ -97,6 +100,10 @@ Bindings and outfits default **off** so importing buttons doesn't silently rewri
 
 -- Settings
 :GetIncludeSettings()                        --> include table (live; mutate to change)
+
+-- Edit Mode layouts
+:GetLayouts()                                --> { [layoutName] = barSettings }
+:GetLayout(name)                             --> barSettings?  ({ [barIndex] = {numIcons, numRows, orientation} })
 ```
 
 A previewing UI reads `profile.slots` (each `{ id, type, index?/strindex? }`) and resolves

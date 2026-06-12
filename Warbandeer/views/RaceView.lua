@@ -57,6 +57,8 @@ for i, c in ipairs(Classes) do classColIdx[classKeyOf(c)] = i end
 local Races = lists.values(ns.api.ALLIANCE_RACES, ns.api.HORDE_RACES)
 local nAlliance = #ns.api.ALLIANCE_RACES
 
+---@class RaceView: TableFrame
+---@field headerWidth number  width of the race-name header column
 -- 13-class × 29-race grid, built dynamically (like RoleView): the base
 -- TableFrame builds no rows/cols, so we set the header offsets ourselves and
 -- addCol/addRow as we go. One character per cell — a race with several of a

@@ -8,7 +8,25 @@
 
 WoW Retail addon suite by Nazuraki (Interface 120000+). No build step, no package manager. Testing is done in-game via `/reload`, except WoW-API-free modules which have busted unit tests.
 
-Addons: LibNAddOn, LibNUI, LibNUI_Test, Warbandeer (Characters, main UI, Alias, Collected), ShadowsOfUI-XP, HideStanceBar, HideBagBar, CombatOutline, Recycle.
+Addons: LibNAddOn, LibNUI, LibNUI_Test, Warbandeer (Characters, main UI, Alias, Collected, Bars), ShadowsOfUI-XP, ShadowsOfUI-GCD, ShadowsOfUI-DMF, HideStanceBar, HideBagBar, CombatOutline, Recycle, BarNonce. The authoritative list is the root `CONTEXT.md` addon index.
+
+## Documentation
+
+Each doc has a fixed audience — keep them in sync with code changes:
+
+| Doc | Audience | Content |
+|---|---|---|
+| Root `README.md` | Anyone landing on the repo | Suite overview + addon table (one row per addon, linking its README) |
+| `CONTRIBUTING.md` | Contributors | Style, testing, lint, release process |
+| `<addon>/README.md` | **End users** | What it does, commands, settings, dependencies, saved data. Written to be reusable verbatim as the CurseForge page — standalone, no repo-relative links. Exception: library addons (LibNAddOn, LibNUI, Warbandeer_Bars) have developer-facing API READMEs |
+| `CONTEXT.md` + `<addon>/CONTEXT.md` | Claude / code reference | File maps, classes, APIs, data structures, gotchas |
+
+Upkeep rules:
+
+- **New addon** → end-user `README.md`, a row in the root `README.md` table, its own `CONTEXT.md`, and entries in the root `CONTEXT.md` (dependency graph, addon index, slash registry).
+- **Changed slash commands, settings, dependencies, API surface, or DB version** → update the addon's `README.md`, its `CONTEXT.md`, and the root `CONTEXT.md` registry/index in the same change.
+- **New/changed public methods or ns fields** → LuaLS annotations are part of the change, not a follow-up.
+- Use the `doc:` conventional-commit type for doc-only commits — `.md` changes never trigger a release.
 
 ## Coding Conventions
 

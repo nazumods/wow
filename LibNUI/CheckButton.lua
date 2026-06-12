@@ -4,6 +4,9 @@ local ui = ns.ui
 local Class = ns.lua.Class
 local Button = ui.Button
 
+---@class CheckButton: Button
+---@field text string?  label text shown next to the box
+---@field OnToggle fun(self: CheckButton, checked: boolean)?  called after the checked state toggles
 local CheckButton = Class(Button, function(self)
   self._widget.Text:SetText(self.text or "")
   self._widget:SetHitRectInsets(0, 0, 0, 0)
@@ -28,6 +31,10 @@ end, {
 })
 ui.CheckButton = CheckButton
 
+-- Getter/setter for the checked state. Unlike the standard pattern, the set
+-- path also returns the (new) checked state rather than self.
+---@param isChecked boolean?
+---@return boolean
 function CheckButton:Checked(isChecked)
   if isChecked ~= nil then
     self._widget:SetChecked(isChecked)

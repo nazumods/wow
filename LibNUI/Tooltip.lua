@@ -7,6 +7,17 @@ local insert = table.insert
 local Class, CleanFrame, Frame, Label = ns.lua.Class, ui.CleanFrame, ui.Frame, ui.Label
 
 ---@class Tooltip: CleanFrame
+---@field lines Frame[]  line frames (each carries a `.label`); options tables at construction
+---@field inset number  inner padding in pixels
+---@field maxWidth number?  content width cap (see MaxWidth)
+---@field maxHeight number?  height cap; overflowing constructor lines become scrollable
+---@field _lineCount number  number of active lines (internal)
+---@field _w number  widest line width (internal)
+---@field _h number  stacked line height (internal)
+---@field _viewH number?  scroll viewport height (internal)
+---@field _contentH number?  total scrollable content height (internal)
+---@field _scroll number?  current scroll offset in pixels (internal)
+---@field _port Frame?  clipping viewport frame (internal)
 local Tooltip = Class(CleanFrame, function(self)
   self:Hide()
   self._lineCount = 0

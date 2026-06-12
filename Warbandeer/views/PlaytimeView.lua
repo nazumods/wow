@@ -75,6 +75,10 @@ end
 
 local GAP = 20
 
+---@class PlaytimeView: Frame
+---@field alliance TableFrame   Alliance playtime table (left)
+---@field horde TableFrame      Horde playtime table (right)
+---@field totalLabel Label      warband-wide playtime total
 local PlaytimeView = Class(Frame, function(self)
   self.alliance = TableFrame:new{
     parent     = self,

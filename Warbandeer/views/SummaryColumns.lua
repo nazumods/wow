@@ -60,6 +60,10 @@ end, {
 local SummaryColumn = ns.SummaryColumn
 
 -- Shared cell data reused across the summaryCol/ chunk files.
+---@class Warbandeer
+---@field GreenCheck table       shared green check-icon cell data
+---@field CappedColor number[]   cell color for capped/at-max values
+---@field UncappedColor number[] cell color for uncapped values
 ns.GreenCheck = {
   atlas = ns.icons.CheckGreen,
   atlasSize = false,
@@ -129,6 +133,9 @@ end
 -- guard only gates detection + spec insertion, not the per-view addCol. Detection
 -- is NOT cached on a negative result: if the calendar wasn't loaded yet on the
 -- first table build, a later build can still pick the faire up.
+---@class Warbandeer
+---@field SummaryColumnsDelayed fun(view: TableFrame)  appends the DMF column while the faire is open
+---@field _dmfColumn SummaryColumn?  one-shot DMF column spec, created on first detection
 ns.SummaryColumnsDelayed = function(view)
   if not ns._dmfColumn then
     if not isDMF() then return end

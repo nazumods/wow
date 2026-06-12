@@ -10,6 +10,9 @@ local Left, Right, Center = ui.edge.Left, ui.edge.Right, ui.edge.Center
 ---@field TitleFrame TitleFrame
 
 ---@class TitleFrame: CleanFrame
+---@field title string?  initial title text
+---@field titlebar Frame  title strip across the top (carries `.title` Label and `.icon` Frame)
+---@field closeButton Frame  close button in the title bar
 local TitleFrame = Class(CleanFrame, function(o)
   local theme = o:Theme()
   -- title bar
@@ -92,6 +95,7 @@ end, {
 })
 ui.TitleFrame = TitleFrame
 
+---@param text string
 function TitleFrame:Title(text)
   self.titlebar.title:Text(text)
 end

@@ -5,6 +5,10 @@ local Class, find, any = ns.lua.Class, ns.lua.lists.find, ns.lua.maps.any
 local CleanFrame, Label, TableFrame = ui.CleanFrame, ui.Label, ui.TableFrame
 local getParts = C_TransmogSets.GetSetPrimaryAppearances
 
+---Singleton tooltip listing a transmog set's pieces per armor slot, colored by collected status.
+---@class InfoTip: CleanFrame
+---@field name Label set name header
+---@field items TableFrame one row per armor slot (head..hands)
 local InfoTip = Class(CleanFrame, function(self)
   local h = 4
 
@@ -54,10 +58,15 @@ end, {
     TopLeft = {20, -20},
   },
 })
+---@class Warbandeer_Collected
+---@field InfoTip InfoTip
 ns.InfoTip = InfoTip
 
 local _tooltip = nil
 
+---Show the shared InfoTip for a transmog set, positioned relative to a cell.
+---@class Warbandeer_Collected
+---@field ShowInfoTip fun(group: table, set: table, parent: Frame, position: table) group/set are entries from ns.Sets; position is a LibNUI position spec
 ns.ShowInfoTip = function(group, set, parent, position)
   if not _tooltip then
     _tooltip = InfoTip:new{
@@ -110,6 +119,9 @@ end
 -- end
 -- ns:registerEvent("ITEM_DATA_LOAD_RESULT")
 
+---Hide the shared InfoTip (no-op if never shown).
+---@class Warbandeer_Collected
+---@field HideInfoTip fun()
 ns.HideInfoTip = function()
   if _tooltip then
     _tooltip:Hide()
