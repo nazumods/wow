@@ -267,7 +267,8 @@ end
 function Tooltip:ShowForCharacter(toon, position)
   self:ClearLines()
   if toon.realm then self:AddLine(toon.realm) end
-  if toon.specializationActive then self:AddLine(toon.specializationActive) end
+  local spec = toon.basic and toon.basic.specialization and toon.basic.specialization.active
+  if spec then self:AddLine(spec) end
   self._widget:ClearAllPoints()
   self:Position(position)
   self:Show()

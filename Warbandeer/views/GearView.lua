@@ -60,7 +60,7 @@ local getNameString = function(toon)
       ui.tip:AnchorTo(self, "ANCHOR_BOTTOMRIGHT", -10, 10)
       ui.tip:ClearLines()
       ui.tip:AddLine(toon.realm)
-      ui.tip:AddLine(toon.specializationActive)
+      ui.tip:AddLine(toon.basic and toon.basic.specialization and toon.basic.specialization.active)
       ui.tip:Show()
     end,
     onLeave = function(self) ui.tip:Hide() end,
