@@ -68,7 +68,9 @@ function ns.registerSettings(addOn, addOnName, features)
       end
 
       Settings.RegisterAddOnCategory(category)
-      addOn.settingsCategory = category
+      if not addOn.settingsCategories then addOn.settingsCategories = {} end
+      table.insert(addOn.settingsCategories, category)
+      addOn.settingsCategory = addOn.settingsCategories[1]
     end
   end, 2) -- run after db, but before addOn.onLoad
 end

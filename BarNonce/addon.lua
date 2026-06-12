@@ -13,7 +13,7 @@ local function SetupBar(prefix, count)
     bar.GetButtonPadding = function() return 0 end
   end
 
-  -- Apply 80% opacity to individual buttons (avoids dimming unrelated UI on the parent)
+  -- Apply 70% opacity to individual buttons (avoids dimming unrelated UI on the parent)
   local function ApplyAlpha()
     for i = 1, count do
       local btn = _G[prefix .. i]

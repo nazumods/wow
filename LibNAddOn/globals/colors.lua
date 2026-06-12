@@ -63,7 +63,7 @@ ns.Colors.Strings = {
 ---@param r integer The red component (0-255).
 ---@param g integer The green component (0-255).
 ---@param b integer The blue component (0-255).
----@param a integer The alpha component (0-255).
+---@param a number The alpha component (0-1).
 ---@return table A table representing the color in normalized RGBA format.
 ns.Colors.rgba = function(r, g, b, a)
   return CreateColor(r/255, g/255, b/255, a)

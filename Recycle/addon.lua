@@ -171,7 +171,7 @@ function ns.MERCHANT_SHOW()
 end
 
 function ns.BAG_UPDATE()
-  C_Timer.After(0.5, function() ns:refreshMarks() end)
+  ns:delay(500, function() ns:refreshMarks() end)
 end
 
 -- ─── Lifecycle ────────────────────────────────────────────────────────────────

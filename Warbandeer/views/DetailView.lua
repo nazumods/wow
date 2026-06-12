@@ -430,7 +430,8 @@ function DetailView:OnBeforeShow()
   self.portraitBorder:Color(color[1], color[2], color[3], 1)
   self.level:Text(char.basic.level)
   self.heading:Text(char.name):Color(color)
-  self.subtitle:Text(char.race .. " " .. char.className)
+  local raceList = char.isAlliance and ns.api.ALLIANCE_RACES or ns.api.HORDE_RACES
+  self.subtitle:Text((raceList[char.raceIdx] or char.race) .. " " .. char.className)
   self.realm:Text(char.realm)
 
   local ilvl = (char.equipment and char.equipment.ilvl) or 0

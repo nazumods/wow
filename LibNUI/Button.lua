@@ -42,6 +42,7 @@ end
 ---@field border table
 ---@field cooldown table
 ---@field itemID number
+---@field spellID number
 ---@field tooltip table
 ---@field OnChange function
 ---@field OnClick function
@@ -100,7 +101,7 @@ local Button = Class(Frame, function(self)
   end
 
   -- cooldown
-  if self.itemID then
+  if self.itemID or self.spellID then
     self.cooldown = Label:new{
       parent = self,
       position = {
@@ -153,7 +154,17 @@ end
 function Button:OnMouseUp()
   if self.border then self.border:SetVertexColor(1, 1, 1) end
 
-  if self.itemID then
+  if self.spellID then
+    local cd = C_Spell and C_Spell.GetSpellCooldown and C_Spell.GetSpellCooldown(self.spellID)
+    local start, duration = cd and cd.startTime or 0, cd and cd.duration or 0
+    if start > 0 then
+      self.cooldownEnd = start + duration
+      self._widget:GetNormalTexture():SetDesaturated(true)
+      self.cooldown:Text(formatCooldown(duration))
+      self.cooldown:Show()
+      self:startUpdates()
+    end
+  elseif self.itemID then
     local start, duration, enable = C_Item.GetItemCooldown(self.itemID)
     if enable and start > 0 then
       self.cooldownEnd = start + duration

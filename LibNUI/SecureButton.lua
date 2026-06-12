@@ -12,7 +12,7 @@ local SecureButton = Class(Button, function(self)
       if action.target then self:Attribute("unit", action.target) end
       if action.spell then
         self:Attribute("spell", action.spell)
-        self.itemID = action.spell
+        self.spellID = action.spell
       end
       if action.toy then
         self:Attribute("toy", action.toy)

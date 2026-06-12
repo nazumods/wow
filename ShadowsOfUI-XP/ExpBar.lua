@@ -155,7 +155,14 @@ function ExpBar:PLAYER_ENTERING_WORLD(login, reload)
   end
 end
 function ExpBar:PLAYER_XP_UPDATE() self:update() end
-function ExpBar:PLAYER_LEVEL_UP() self:update() end
+function ExpBar:PLAYER_LEVEL_UP()
+  if Player:isMaxLevel() then
+    self:Hide()
+    ns.xpBar = nil
+  else
+    self:update()
+  end
+end
 function ExpBar:UPDATE_EXHAUSTION() self:update() end
 function ExpBar:PLAYER_UPDATE_RESTING() self:update() end
 

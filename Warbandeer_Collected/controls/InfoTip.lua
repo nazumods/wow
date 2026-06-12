@@ -58,7 +58,7 @@ ns.InfoTip = InfoTip
 
 local _tooltip = nil
 
-ui.ShowInfoTip = function(group, set, parent, position)
+ns.ShowInfoTip = function(group, set, parent, position)
   if not _tooltip then
     _tooltip = InfoTip:new{
       position = false,
@@ -110,7 +110,7 @@ end
 -- end
 -- ns:registerEvent("ITEM_DATA_LOAD_RESULT")
 
-ui.HideInfoTip = function()
+ns.HideInfoTip = function()
   if _tooltip then
     _tooltip:Hide()
   end

@@ -90,5 +90,9 @@ function Cell:update(data)
     if data.onClick then self:SetScript("OnMouseUp", function() data.onClick(self) end) else self:RemoveScript("OnMouseUp") end
     if data.onEnter then self:SetScript("OnEnter", function() data.onEnter(self) end) else self:RemoveScript("OnEnter") end
     if data.onLeave then self:SetScript("OnLeave", function() data.onLeave(self) end) else self:RemoveScript("OnLeave") end
+  else
+    self:RemoveScript("OnMouseUp")
+    self:RemoveScript("OnEnter")
+    self:RemoveScript("OnLeave")
   end
 end

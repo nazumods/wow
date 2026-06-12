@@ -116,6 +116,7 @@ ns.Weekly.fields = {
     maxLevel = true,
     resetOn = ns.RESET_WEEKLY,
     get = function() return C_WeeklyRewards.HasAvailableRewards() end,
+    -- depends on vault being reset first; safe because "hasUnclaimedVault" < "vault" in fieldOrder
     reset = function(_, toon) return toon.weeklies and toon.weeklies.vault and toon.weeklies.vault.best > 0 end,
     event = "WEEKLY_REWARDS_UPDATE",
     eventDelay = 1000,

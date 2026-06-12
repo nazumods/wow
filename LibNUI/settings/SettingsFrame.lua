@@ -13,9 +13,9 @@ local SettingsFrame = Class(Frame, function(self)
       TopRight = {0, 0},
       Height = 32,
     },
-    text = self.headingText or self.heading.text,
-    fontObj = self.heading.fontObj,
-    color = self.heading.color,
+    text = self.headingText or self.heading.text or "Settings",
+    fontObj = self.heading.fontObj or "GameFontNormalHuge",
+    color = self.heading.color or NORMAL_FONT_COLOR,
     justifyH = ui.justify.Left,
   }
   self.controls = {}

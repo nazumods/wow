@@ -71,11 +71,11 @@ end, {
             justifyH = ui.justify.Center,
             color = shades[max(1,floor(ns.db.sets[grp.id][set.id].collected / ns.db.sets[grp.id][set.id].total * 10))],
             onEnter = function(cell)
-              ui.ShowInfoTip(grp, set, cell, {
+              ns.ShowInfoTip(grp, set, cell, {
                 BottomRight = {cell, ui.edge.Top, -2, 2},
               })
             end,
-            onLeave = function() ui.HideInfoTip() end,
+            onLeave = function() ns.HideInfoTip() end,
           }
       end)
       tinsert(r, 1, {

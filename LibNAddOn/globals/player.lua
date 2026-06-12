@@ -92,7 +92,7 @@ end
 local Profession = {}
 function Profession:GetInfo()
   if not self.id then return nil end
-  local name, icon, skillLvl, x, abils, offset, skillID, skillMod, specIdx, specOffset, v = GetProfessionInfo(self.id)
+  local name, icon, skillLvl, x, abils, offset, skillID, skillMod, specIdx, specOffset = GetProfessionInfo(self.id)
   return {
     id = self.id,
     name = name,
@@ -105,7 +105,6 @@ function Profession:GetInfo()
     spellOffset = offset,
     specializationIndex = specIdx,
     specializationOffset = specOffset,
-    isKhazAlgar = "Khaz Algar Fishing" == v or "Khaz Algar Cooking" == v
   }
 end
 
@@ -196,7 +195,7 @@ ns:registerCommand("player", nil, function(self, args)
     return
   end
   if type(Player[args]) == "function" then
-    local result = Player[args]()
+    local result = Player[args](Player)
     if type(result) == "table" then
       ns.Print(args..":")
       for k,v in pairs(result) do

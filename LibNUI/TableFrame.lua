@@ -213,6 +213,7 @@ function TableFrame:addCol(info)
   local n = #self.cols + 1
   self.colInfo[n] = info
   local w = self.colInfo and self.colInfo[n].width or self.cellWidth
+  local padLeft = (n > 1 and self.colInfo[n].padLeft) or 0
   insert(self.cols, TableCol:new{
     parent = self,
     name = "$parentCol"..n,
@@ -229,7 +230,7 @@ function TableFrame:addCol(info)
     padding = self.colInfo[n].padding,
     headerHeight = self.headerHeight,
     position = {
-      TopLeft = n == 1 and {self.offsetX, 0} or {self.cols[n-1], TopRight},
+      TopLeft = n == 1 and {self.offsetX, 0} or {self.cols[n-1], TopRight, padLeft, 0},
       Bottom = {},
       Width = w,
     },
@@ -239,8 +240,8 @@ function TableFrame:addCol(info)
     backdrop = self.colInfo and self.colInfo[n].backdrop or self.backdrop or self.colBackdrop or
       {color = math.fmod(n, 2) == 0 and "colEven" or "colOdd"},
   })
-  self:Width(self:Width()+w)
-  self.rowArea:Width(self.rowArea:Width()+w)
+  self:Width(self:Width()+w+padLeft)
+  self.rowArea:Width(self.rowArea:Width()+w+padLeft)
   return self
 end
 

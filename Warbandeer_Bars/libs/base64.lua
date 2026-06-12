@@ -11,7 +11,7 @@ local CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
 
 local function enc(data)
   local t = {}
-  for _, x in pairs(data) do
+  for _, x in ipairs(data) do
     local r, b = '', x
     for i = 8, 1, -1 do
       r = r .. (b % 2^i - b % 2^(i-1) > 0 and '1' or '0')

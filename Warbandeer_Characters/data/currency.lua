@@ -65,6 +65,12 @@ ns.Currency.fields = {
         capped   = max > 0 and earned >= max,
       }
     end,
+    resetOn = ns.RESET_WEEKLY,
+    reset = function(_, toon)
+      local c = toon.currency and toon.currency.HeroDawncrest
+      if not c then return nil end
+      return {quantity = c.quantity, earned = 0, max = c.max, capped = false}
+    end,
   },
   NebulousVoidcore = {
     id = 3418, -- season-total cap (totalEarned vs maxQuantity) grows by 2 each weekly reset
@@ -115,6 +121,12 @@ ns.Currency.fields = {
         max      = max,
         capped   = max > 0 and earned >= max,
       }
+    end,
+    resetOn = ns.RESET_WEEKLY,
+    reset = function(_, toon)
+      local c = toon.currency and toon.currency.MythDawncrest
+      if not c then return nil end
+      return {quantity = c.quantity, earned = 0, max = c.max, capped = false}
     end,
   },
 }
