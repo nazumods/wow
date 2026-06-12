@@ -71,11 +71,12 @@ ns.Quests.fields = {
     event = "QUEST_TURNED_IN",
     eventHandler = function(self, currentValue, questId)
       if not self.ids[questId] then return end
-      currentValue.missing = currentValue.missing and (currentValue.missing - 1) or 0
-      currentValue.complete = currentValue.missing == 0
+      if not currentValue then return end
       local zone = WWIRepQuestsR[questId]
-      if zone ~= nil then
+      if zone and not currentValue[zone] then
         currentValue[zone] = true
+        currentValue.missing = (currentValue.missing or 0) - 1
+        currentValue.complete = currentValue.missing == 0
       end
     end,
   },
