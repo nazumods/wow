@@ -38,6 +38,7 @@ LibNAddOn
     +-- Warbandeer_Bars      (LibNAddOn only — headless data layer, populates WarbandeerBarsApi)
     +-- CombatOutline    (LibNAddOn only, no LibNUI)
     +-- ShadowsOfUI-DMF (LibNAddOn only, no LibNUI)
+    +-- ShadowsOfUI-Known (LibNAddOn + Warbandeer_Characters; optional Warbandeer; no LibNUI)
 
 (no LibN dependency):
     HideBagBar  (raw WoW API only)
@@ -66,6 +67,7 @@ Load the linked `CONTEXT.md` for full file maps, class hierarchies, API surfaces
 | **CombatOutline** | Toggles `OutlineEngineMode` CVar in/out of combat. Single file. | [CombatOutline/CONTEXT.md](CombatOutline/CONTEXT.md) |
 | **Recycle** | Auto-sells grey + marked items at merchants (`/recycle`). Per-character `RecycleDB` (v1). | [Recycle/CONTEXT.md](Recycle/CONTEXT.md) |
 | **ShadowsOfUI-DMF** | Headless Darkmoon Faire helper: merchant material auto-buy + waypoint/map-pin guidance to profession quest givers. `/sdmf` dev command. No UI, no DB. | [ShadowsOfUI-DMF/CONTEXT.md](ShadowsOfUI-DMF/CONTEXT.md) |
+| **ShadowsOfUI-Known** | Headless tooltip addon: adds a "Learnable by:" block to recipe item tooltips (alts with the profession that haven't learned it; red if skill too low). Reads `WarbandeerApi` + optional `WarbandeerDB.profIntent`. `/sknown` dev dump. No UI, no DB. | [ShadowsOfUI-Known/CONTEXT.md](ShadowsOfUI-Known/CONTEXT.md) |
 | **Warbandeer_Bars** | Headless action-bar/keybind/macro profile layer per char+spec; `WarbandeerBarsApi`. `WarbandeerBarsDB` (v2). | [Warbandeer_Bars/CONTEXT.md](Warbandeer_Bars/CONTEXT.md) |
 
 LibNUI_Test is a LoadOnDemand visual test harness for LibNUI (`/nui test [key]`); it has no standalone reference file.
@@ -83,3 +85,4 @@ LibNUI_Test is a LoadOnDemand visual test harness for LibNUI (`/nui test [key]`)
 | Warbandeer_Collected | `/collected`, `/collect` | `scan` |
 | Recycle | `/recycle` | `clear`, `key CTRL|SHIFT|ALT` |
 | Warbandeer_Bars | `/wbbars`, `/wbb` | `""` (status), `snapshot`, `list`, `restore <char> [specID]`, `forget <char> [specID]` |
+| ShadowsOfUI-Known | `/sknown` | `<itemID>` (dev: dump learnable-by list for a recipe item) |
