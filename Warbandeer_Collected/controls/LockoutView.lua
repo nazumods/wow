@@ -66,12 +66,16 @@ ns.ShowLockoutView = function(grpIdx, parent, position)
     elseif c1.basic.level ~= c2.basic.level then return c1.basic.level > c2.basic.level end
     return c1.name < c2.name
   end)
-  for i,toon in ipairs(toons) do
-    _view.data.data[i][1] = toon.basic.level
-    _view.data.data[i][2].text = toon.name
-    _view.data.data[i][2].color = toon.instances.locks and toon.instances.locks[group.instance]
-      and toon.instances.locks[group.instance][group.difficulty] and DULL_RED_FONT_COLOR or GREEN_FONT_COLOR
+  local rows = {}
+  for _, toon in ipairs(toons) do
+    local locked = toon.instances.locks and toon.instances.locks[group.instance]
+      and toon.instances.locks[group.instance][group.difficulty]
+    rows[#rows + 1] = {
+      toon.basic.level,
+      { text = toon.name, color = locked and DULL_RED_FONT_COLOR or GREEN_FONT_COLOR },
+    }
   end
+  _view.data.data = rows
   _view.data:update()
 
   _view:Parent(parent)
