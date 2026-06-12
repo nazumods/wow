@@ -6,6 +6,7 @@
 ## Dependencies: LibNAddOn
 ## SavedVariables: WarbandeerBarsDB
 ## SavedVariablesPerCharacter: WarbandeerBarsSettings
+## X-Curse-Project-ID: 1573332
 ## X-NUI-API: WarbandeerBarsApi
 ## X-NUI-DB: WarbandeerBarsDB
 ## X-NUI-DB-VERSION: 2
