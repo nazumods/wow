@@ -27,8 +27,9 @@ end
 table.insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
-    iconPath = CREST_ICON .. "crest_hero.tga",
-    iconColor = CREST_TINT,
+    iconPath    = CREST_ICON .. "crest_hero.tga",
+    iconColor   = CREST_TINT,
+    iconOffsetX = 8,
     width = 30,
     justifyH = ui.justify.Center,
     tooltip = {"Hero Dawncrest", "Hero Dawncrest held. Red when weekly cap reached."},
@@ -43,8 +44,9 @@ table.insert(
 table.insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
-    iconPath = CREST_ICON .. "crest_myth.tga",
-    iconColor = CREST_TINT,
+    iconPath    = CREST_ICON .. "crest_myth.tga",
+    iconColor   = CREST_TINT,
+    iconOffsetX = 5,
     width = 30,
     justifyH = ui.justify.Center,
     tooltip = {"Myth Dawncrest", "Myth Dawncrest held. Red when weekly cap reached."},

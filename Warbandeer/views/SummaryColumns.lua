@@ -37,6 +37,7 @@ ns.SummaryColumn = Class(nil, function(self)
     path = path,
     coords = coords,
     vertexColor = self.iconColor,
+    iconOffsetX = self.iconOffsetX,
     tooltip = self.tooltip,
   }
   if atlas then self.colInfo.atlasSize = false end
@@ -50,6 +51,7 @@ end, {
   iconPath = nil,   -- explicit texture path; takes precedence over currencyID/icon
   iconCoords = nil, -- optional {l,r,t,b} for iconPath (defaults to full image)
   iconColor = nil,  -- optional vertexColor tint for the header icon (e.g. white crest TGAs -> muted)
+  iconOffsetX = nil, -- optional px nudge right (+) or left (-) from the icon's centered position
   currencyID = nil,
   tooltip = nil,
   getData = function() return "" end, -- function to get data for this column
