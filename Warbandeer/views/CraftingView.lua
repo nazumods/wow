@@ -315,6 +315,7 @@ function CraftingView:OnBeforeShow()
   end
 
   for _ = #self.tbl.rows + 1, #present do self.tbl:addRow({}) end
+  self.tbl:ResizeRows(#present)
 
   local emptyRow = {}
   for _ = 1, self._numCols do insert(emptyRow, "") end

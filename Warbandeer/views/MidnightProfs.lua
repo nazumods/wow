@@ -345,6 +345,7 @@ function MidnightProfs:OnBeforeShow()
   end
 
   for _ = #self.tbl.rows + 1, #entries do self.tbl:addRow({}) end
+  self.tbl:ResizeRows(#entries)
 
   local emptyRow = {}
   for _ = 1, self._numCols do insert(emptyRow, "") end

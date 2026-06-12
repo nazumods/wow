@@ -332,6 +332,7 @@ function ProfsView:RebuildCharList(profName)
   for _ = #self.charTable.rows + 1, #entries do
     self.charTable:addRow({})
   end
+  self.charTable:ResizeRows(#entries)
 
   -- Pad data with empty rows to clear stale cells from a previous (larger) selection.
   local emptyRow = makeEmptyRow(self._charColCount)
@@ -429,6 +430,7 @@ function ProfsView:OnBeforeShow()
   for _ = #self.gridTable.rows + 1, #visibleProfs do
     self.gridTable:addRow({})
   end
+  self.gridTable:ResizeRows(#visibleProfs)
   for i, tblRow in ipairs(self.gridTable.rows) do
     tblRow:backdropColor(0, 0, 0, 0)
     rowDivider(tblRow):SetShown(i <= #visibleProfs)

@@ -136,6 +136,17 @@ end, {
 })
 ui.TableFrame = TableFrame
 
+-- Resize the frame to show exactly n rows, hiding dead space when the active
+-- row count shrinks below the pool size. Safe to call after addRow growth loops.
+function TableFrame:ResizeRows(n)
+  local rowH = 0
+  for i = 1, math.min(n, #self.rows) do
+    rowH = rowH + (self.rowInfo[i] and self.rowInfo[i].height or self.cellHeight)
+  end
+  self.rowArea:Height(rowH)
+  self:Height(self.offsetY + rowH)
+end
+
 function TableFrame:Autosize()
   local s, w = 0, 0
   if self.rowNames then
