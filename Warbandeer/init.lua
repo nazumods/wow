@@ -1,8 +1,6 @@
-local ADDON_NAME = ...
-
----@class Warbandeer: AddOn
-local ns = select(2, ...)
 -- luacheck: globals LibNAddOn LibNUI WarbandeerApi
+---@class Warbandeer: AddOn
+local ns = LibNAddOn(...)
 
 local Views = {"Overview", "Races", "Summary", "Gear", "Detail", "Roles", "Professions"}
 
@@ -14,33 +12,29 @@ ns.viewKeys = {"overview", "races", "summary", "gear", "detail", "roles", "profs
 -- Index → side for the character-tooltip anchor (see CharacterTooltip.lua).
 ns.TOOLTIP_SIDES = {"Left", "Right"}
 
-LibNAddOn{
-  name = ADDON_NAME,
-  addOn = ns,
-  settings = {
-    {
-      title = "Warbandeer",
-      fields = {
-        {
-          name = "Default View",
-          typ = "dropdown",
-          default = 1,
-          table = function(db) return db.settings end,
-          key = "defaultView",
-          label = "default view",
-          tooltip = "View to open by default",
-          options = Views,
-        },
-        {
-          name = "Tooltip Side",
-          typ = "dropdown",
-          default = 1,
-          table = function(db) return db.settings end,
-          key = "tooltipSide",
-          label = "tooltip side",
-          tooltip = "Which side of the hovered cell the character tooltip appears on",
-          options = ns.TOOLTIP_SIDES,
-        },
+ns:RegisterSettings{
+  {
+    title = "Warbandeer",
+    fields = {
+      {
+        name = "Default View",
+        typ = "dropdown",
+        default = 1,
+        table = function(db) return db.settings end,
+        key = "defaultView",
+        label = "default view",
+        tooltip = "View to open by default",
+        options = Views,
+      },
+      {
+        name = "Tooltip Side",
+        typ = "dropdown",
+        default = 1,
+        table = function(db) return db.settings end,
+        key = "tooltipSide",
+        label = "tooltip side",
+        tooltip = "Which side of the hovered cell the character tooltip appears on",
+        options = ns.TOOLTIP_SIDES,
       },
     },
   },

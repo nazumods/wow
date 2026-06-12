@@ -23,7 +23,7 @@ Each doc has a fixed audience — keep them in sync with code changes:
 
 Upkeep rules:
 
-- **New addon** → end-user `README.md`, a row in the root `README.md` table, its own `CONTEXT.md`, and entries in the root `CONTEXT.md` (dependency graph, addon index, slash registry).
+- **New addon** → end-user `README.md`, a row in the root `README.md` table, its own `CONTEXT.md`, entries in the root `CONTEXT.md` (dependency graph, addon index, slash registry), and its dir glob in `.luacheckrc` `include_files` (only suite addons are linted — the local AddOns dir also holds untracked third-party addons).
 - **Changed slash commands, settings, dependencies, API surface, or DB version** → update the addon's `README.md`, its `CONTEXT.md`, and the root `CONTEXT.md` registry/index in the same change.
 - **New/changed public methods or ns fields** → LuaLS annotations are part of the change, not a follow-up.
 - Use the `doc:` conventional-commit type for doc-only commits — `.md` changes never trigger a release.
@@ -34,7 +34,7 @@ Upkeep rules:
 |---|---|
 | Namespace | Typed import in every file — see **Namespace Imports & Typing** below |
 | Class definition | `local Foo = Class(Parent, function(self) ... end, { defaults })` |
-| Addon init | `LibNAddOn{ name=..., addOn=ns, ... }` (table form) or `local ns = LibNAddOn(...)` (assignment form) |
+| Addon init | `local ns = LibNAddOn(...)` (assignment form; db/commands/etc. from `X-NUI-*` toc fields, settings via `ns:RegisterSettings{...}` at file-load time) |
 | DB migration | `MigrateDB()` auto-called by LibNAddOn on version mismatch |
 | Event handling | `ns:registerEvent("EVENT", handler)` or define `function ns.EVENT_NAME(self, ...) end` |
 | UI widget access | Always via `self._widget`; **never access `_widget` from outside a class** |

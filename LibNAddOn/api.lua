@@ -4,6 +4,7 @@ local G = _G
 
 ---@class AddOn
 ---@field CompartmentClick fun(self: AddOn, buttonName: string)?
+---@field RegisterSettings fun(self: AddOn, settings: table) register Settings-panel categories; call at file-load time (before ADDON_LOADED), requires a DB
 
 -- luacheck: globals LibNAddOn
 ---@param features {name: string, addOn: AddOn, [any]: any}|string
@@ -25,6 +26,10 @@ function LibNAddOn(features, o)
 
   ns.linkCommonFunctions(addOn, addOnName)
 
+  function addOn:RegisterSettings(settings)
+    ns.registerSettings(self, addOnName, settings)
+  end
+
   ns.linkGlobals(addOn, features)
 
   ns.createEventListener(addOn)
@@ -41,7 +46,7 @@ function LibNAddOn(features, o)
     ns.setupDB(addOnName, addOn, features.db)
 
     if features.settings then
-      ns.registerSettings(addOn, addOnName, features.settings)
+      addOn:RegisterSettings(features.settings)
     end
   end
 

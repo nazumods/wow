@@ -31,8 +31,11 @@ Bootstrapping factory every other addon depends on. `LibNAddOn(features)` wires 
 
 ```lua
 LibNAddOn{ name = "MyAddon", addOn = ns, db = {...}, settings = {...} }  -- table form
-local ns = LibNAddOn("MyAddon", ns)                                      -- assignment form
+local ns = LibNAddOn(...)                                                -- assignment form (vararg = name, ns)
+ns:RegisterSettings{ {title = ..., fields = {...}}, ... }                -- settings with assignment form (file-load time)
 ```
+
+All suite addons use the assignment form; everything else comes from `X-NUI-*` toc fields, plus `ns:RegisterSettings` for settings (which can't be expressed in toc metadata). The table form remains supported.
 
 ### `features` fields
 
@@ -41,7 +44,7 @@ local ns = LibNAddOn("MyAddon", ns)                                      -- assi
 | `name` | string | Addon name (must match TOC filename) |
 | `addOn` | table | The addon namespace (`ns`) |
 | `db` | table? | `{ name, version }`; auto-built from `X-NUI-DB`/`X-NUI-DB-VERSION` if omitted |
-| `settings` | table? | Settings category definitions (requires `db`) |
+| `settings` | table? | Settings category definitions (requires `db`); or call `addOn:RegisterSettings(settings)` after an assignment-form init, at file-load time |
 | `slashCommands` | table? | Manual `{base = {cmd, ...}}` map; else auto from `X-NUI-COMMANDS` |
 | `compartmentFn` | string? | Global fn name for compartment clicks; else `X-NUI-COMPARTMENT` |
 | `lua`/`wow`/`icons`/`colors` | string? | Override the namespace key for each global table |

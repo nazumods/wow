@@ -96,6 +96,23 @@ Most of the options can also simply be specified in the .toc:
 ## X-NUI-UI: LibNUI
 ```
 
+Settings can't be expressed in the `.toc` either; with the vararg form, register them with
+`RegisterSettings` at file-load time (it queues the registration for `ADDON_LOADED`):
+
+```lua
+---@class MyAddOn: AddOn
+local myAddOn = LibNAddOn(...)
+
+myAddOn:RegisterSettings{
+  {
+    title = "MyAddon",
+    fields = {
+      -- same field definitions as the `settings` option above
+    },
+  },
+}
+```
+
 You can't set database defaults this way, but since it calls `MigrateDB` on load of your addon
 when the database doesn't exist (as the versions don't match), you can initialize your db then:
 

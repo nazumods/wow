@@ -3,6 +3,17 @@ ignore = {"212", "21/_.*"}
 max_line_length = 160
 max_comment_line_length = 500
 
+-- Only lint the suite's own addons: the local AddOns dir also holds installed
+-- third-party addons (untracked, see .gitignore), so an exclude list would
+-- churn with every install. Add new suite addons here.
+include_files = {
+  "BarNonce/**/*.lua", "CombatOutline/**/*.lua", "HideBagBar/**/*.lua", "HideStanceBar/**/*.lua",
+  "LibNAddOn/**/*.lua", "LibNUI/**/*.lua", "LibNUI_Test/**/*.lua", "Recycle/**/*.lua",
+  "ShadowsOfUI-DMF/**/*.lua", "ShadowsOfUI-GCD/**/*.lua", "ShadowsOfUI-XP/**/*.lua",
+  "Warbandeer/**/*.lua", "Warbandeer_Alias/**/*.lua", "Warbandeer_Bars/**/*.lua",
+  "Warbandeer_Characters/**/*.lua", "Warbandeer_Collected/**/*.lua",
+}
+
 -- CI installs the Lua toolchain into the workspace (leafo/gh-actions-lua and
 -- -luarocks use .lua/.luarocks/.install); keep `luacheck .` off those trees.
 exclude_files = {".lua", ".luarocks", ".install"}

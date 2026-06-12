@@ -1,15 +1,6 @@
-local ADDON_NAME = ...
----@class CombatOutline: AddOn
-local ns = select(2, ...)
 -- luacheck: globals LibNAddOn GetCVar SetCVar
-
-LibNAddOn{
-  name = ADDON_NAME,
-  addOn = ns,
-  db = {
-    name = "CombatOutlineDB",
-  },
-}
+---@class CombatOutline: AddOn
+local ns = LibNAddOn(...)
 
 local savedMode
 

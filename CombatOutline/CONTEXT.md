@@ -8,7 +8,7 @@ Toggles the `OutlineEngineMode` CVar on while in combat and off when leaving it,
 
 | File | Purpose |
 |---|---|
-| `core.lua` | Whole addon. Table-form `LibNAddOn` init; `PLAYER_REGEN_DISABLED` sets `OutlineEngineMode` to 1, `PLAYER_REGEN_ENABLED` resets it to 0. |
+| `core.lua` | Whole addon. Assignment-form init (`local ns = LibNAddOn(...)`, DB from `X-NUI-DB`); `PLAYER_REGEN_DISABLED` sets `OutlineEngineMode` to 1, `PLAYER_REGEN_ENABLED` resets it to 0. |
 
 ## Gotchas
 
