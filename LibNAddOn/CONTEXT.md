@@ -19,7 +19,6 @@ Bootstrapping factory every other addon depends on. `LibNAddOn(features)` wires 
 | `globals/colors.lua` | `ns.Colors` — class colors (0–1), `Strings` (color/icon escape codes), `rgba(r255,g255,b255,a01)`, `alpha(color, a)` |
 | `globals/wow.lua` | `ns.wow` — `maxLevel`, `Armor` (+`byClass`/`types`), `ClassKeys`, `ClassByKey`, `Specializations` |
 | `globals/player.lua` | `ns.wow.Player`, `ns.wow.GreatVault`; `/lib player <method>` dump command |
-| `globals/factions.lua` | `ns.wow.Factions` — `Get(id)` lazy-cached faction wrappers; `GetMajorFactionRenownInfo` |
 | `globals/icons.lua` | `ns.icons` — atlas/path constants for classes, roles, specs, factions, common UI |
 | `globals/items.lua` | `ns.wow.Items` — `GetIcon(itemID)`, `GetNumSlots(containerIndex)` |
 | `globals.lua` | `ns.linkGlobals(addOn, features)` — wires `lua`/`wow`/`icons`/`Colors`/`api`/`ui` onto the namespace |

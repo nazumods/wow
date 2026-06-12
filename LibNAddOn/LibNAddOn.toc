@@ -21,7 +21,6 @@ slashCommands.lua
 globals/colors.lua
 globals/wow.lua
 globals/player.lua
-globals/factions.lua
 globals/icons.lua
 globals/items.lua
 globals.lua
