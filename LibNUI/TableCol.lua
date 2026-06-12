@@ -31,7 +31,7 @@ local TableCol = Class(BgFrame, function(self)
     -- native sizing). Pin them to a centered square at the top of the header.
     local size = self.headerHeight - 2 * p
     contentPosition = {
-      Top = {0, -p},
+      Top = {self.iconOffsetX or 0, -p},
       Size = {size, size},
     }
   else

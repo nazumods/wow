@@ -3,11 +3,15 @@ local ns = select(2, ...)
 ---@type LibNUI
 local ui = ns.ui
 
+local ICON_PATH = "Interface\\AddOns\\Warbandeer\\icons\\fieldaccolade.tga"
+
 table.insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
-    currencyID = 3405,
-    width = 30,
+    iconPath    = ICON_PATH,
+    iconColor   = ns.theme.colors.muted,
+    iconOffsetX = 9,
+    width = 42,
     justifyH = ui.justify.Center,
     tooltip = {"Field Accolade", "Field Accolades held."},
     getData = function(t)

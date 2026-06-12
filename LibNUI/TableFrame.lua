@@ -69,6 +69,7 @@ local TableFrame = Class(Frame, function(self)
         path = self.colInfo and self.colInfo[i].path,
         coords = self.colInfo and self.colInfo[i].coords,
         vertexColor = self.colInfo and self.colInfo[i].vertexColor,
+        iconOffsetX = self.colInfo and self.colInfo[i].iconOffsetX,
         headerHeight = self.headerHeight,
         position = {
           TopLeft = i == 1 and {self.offsetX, 0} or {self.cols[i-1], TopRight, padLeft, 0},
@@ -223,6 +224,7 @@ function TableFrame:addCol(info)
     path = self.colInfo[n].path,
     coords = self.colInfo[n].coords,
     vertexColor = self.colInfo[n].vertexColor,
+    iconOffsetX = self.colInfo[n].iconOffsetX,
     color = self.colInfo[n].color,
     padding = self.colInfo[n].padding,
     headerHeight = self.headerHeight,
