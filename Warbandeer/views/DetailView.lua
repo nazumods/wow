@@ -90,6 +90,19 @@ local ICON_Y, BAR_Y, DD_Y = (ROW_H - ICON_W) / 2, 8, (ROW_H - 20) / 2
 local BAR_X = ROW_PAD + ICON_W + ICON_GAP
 local DD_X = BAR_X + BAR_W + DD_GAP
 
+-- Profession-gear sub-rows: the equipped profession tool / accessories listed
+-- beneath each profession panel. Indented to line up under the progress bar, with
+-- the crafted-quality tier icon right-aligned.
+local PG_ROW_H   = 18                            -- one profession-gear row
+local PG_TOP_GAP = 6                             -- panel bottom → first gear row
+local PG_TIER_W  = 16                            -- right-aligned crafted-tier icon edge
+local PG_COL_GAP = 8                             -- gap between name and tier icon
+local PG_INDENT  = BAR_X                         -- left inset within the panel
+local PG_ROW_W   = PANEL_W - ROW_PAD - PG_INDENT -- gear-row content width
+-- Crafted-quality tier icon atlas (1-5 stars). The "-Small" variant is sized for
+-- inline list use; built by string so we don't depend on the LoD Professions UI.
+local function tierAtlas(tier) return ("Professions-Icon-Quality-Tier%d-Small"):format(tier) end
+
 -- Inline down-arrow (atlas markup: |A:atlasName:height:width|a) for the picker.
 local CHEVRON = "  |A:UI-HUD-ActionBar-PageDownArrow-Disabled:12:12|a"
 
@@ -113,10 +126,10 @@ local function intentColor(intent) return INTENT_COLOR[intent] or theme.colors.t
 
 ---@class DetailView: Frame
 ---@field _char Character        currently displayed character
----@field _profRows table[]      pooled profession rows
+---@field _profRows table[]      pooled profession rows (each owns a `gearRows` sub-pool)
 ---@field _numRows integer       number of rows currently visible
----@field _gearRows table[]      pooled gear rows
----@field _numGearRows integer   number of gear rows currently visible
+---@field _gearRows table[]      pooled equipped-gear rows (right column)
+---@field _numGearRows integer   number of equipped-gear rows currently visible
 local DetailView = Class(Frame, function(self)
   local c = theme.colors
   self._char = ns.api:GetCharacterData()
@@ -221,7 +234,7 @@ function DetailView:_profRow(i)
       Height = ROW_H,
     },
   }
-  row = { panel = panel }
+  row = { panel = panel, gearRows = {}, _numGearRows = 0 }
 
   row.icon = Texture:new{
     parent = panel, layer = ui.layer.Artwork,
@@ -252,11 +265,58 @@ function DetailView:_profRow(i)
   return row
 end
 
--- Populate a visible row for a profession.
-function DetailView:_showProf(i, prof)
+-- Grab (or lazily create) a pooled profession-gear sub-row for profession block
+-- `row`: item name (rarity-coloured, truncated) on the left, the crafted-quality
+-- tier icon right-aligned. Parented to the panel, anchored beneath it (or the
+-- previous sub-row).
+---@return table
+function DetailView:_profGearRow(row, j)
+  local sub = row.gearRows[j]
+  if sub then return sub end
+
+  local c = theme.colors
+  local prev = row.gearRows[j - 1]
+  local frame = Frame:new{
+    parent = row.panel,
+    position = {
+      TopLeft = prev and {prev.frame, BottomLeft, 0, 0}
+                     or  {row.panel, BottomLeft, PG_INDENT, -PG_TOP_GAP},
+      Width  = PG_ROW_W,
+      Height = PG_ROW_H,
+    },
+  }
+  sub = { frame = frame }
+
+  -- Crafted-quality tier icon pinned right (vertically centred), name fills the rest.
+  sub.tier = Texture:new{
+    parent = frame, layer = ui.layer.Artwork,
+    position = { Right = {frame, ui.edge.Right, 0, 0}, Width = PG_TIER_W, Height = PG_TIER_W },
+  }
+  sub.name = Label:new{
+    parent = frame, fontInfo = theme.fonts.body, color = c.muted,
+    justifyH = ui.justify.Left, wordWrap = false,
+    position = {
+      Left  = {frame, ui.edge.Left, 0, 0},
+      Right = {sub.tier, ui.edge.Left, -PG_COL_GAP, 0},
+    },
+  }
+
+  row.gearRows[j] = sub
+  return sub
+end
+
+-- Populate a visible row for a profession. The panel re-anchors beneath `anchor`
+-- (the previous panel or the header — both left-aligned) with `gap` above it; for
+-- a panel that follows another, `gap` already includes the previous panel's gear
+-- list height, so the panels stay left-aligned while clearing the gear rows that
+-- hang below them. Lists this profession's equipped gear beneath the panel.
+function DetailView:_showProf(i, prof, anchor, gap)
   local row = self:_profRow(i)
   row._skillID = prof.skillID
   if prof.icon then row.icon:Texture(prof.icon) end
+
+  row.panel:ClearAllPoints()
+  row.panel:TopLeft(anchor, BottomLeft, 0, -gap)
 
   local maxSkill = prof.maxSkill or 0
   local skill = prof.skillLevel or 0
@@ -267,6 +327,35 @@ function DetailView:_showProf(i, prof)
   row.bar:BarColor(intentColor(intent))
   row.dropdown:Select(intent or false)
   row.panel:Show()
+
+  -- Profession gear: the tool + accessories equipped in this profession's slots,
+  -- listed beneath the panel in inventory-slot order (tool first).
+  local profGear = self._char.professions and self._char.professions.gear
+                   and self._char.professions.gear[prof.skillID]
+  local items = {}
+  if profGear and profGear.slots then
+    for invSlot, item in pairs(profGear.slots) do
+      if item.name or item.link then insert(items, { slot = invSlot, item = item }) end
+    end
+    table.sort(items, function(a, b) return a.slot < b.slot end)
+  end
+
+  local g = 0
+  for _, entry in ipairs(items) do
+    g = g + 1
+    local item = entry.item
+    local sub = self:_profGearRow(row, g)
+    sub.name:Text(item.name or "?"):Color(rarityColor(item.link))
+    if item.tier and item.tier > 0 then
+      sub.tier:Atlas(tierAtlas(item.tier), false)
+      sub.tier:Show()
+    else
+      sub.tier:Hide()
+    end
+    sub.frame:Show()
+  end
+  for j = g + 1, row._numGearRows do row.gearRows[j].frame:Hide() end
+  row._numGearRows = g
 end
 
 -- ─── Gear rows ─────────────────────────────────────────────────────────────────
@@ -443,18 +532,31 @@ function DetailView:OnBeforeShow()
   self.playCard:Amount(BreakUpLargeNumbers(hrs) .. " hrs", c.text)
 
   -- The two flexible slots plus Fishing/Cooking, so a main cook/fisher can be set too.
+  -- Each panel re-anchors beneath the previous block (panel + its gear list), so the
+  -- running Y below tracks the left column's content height for sizing.
   local profs = char.basic.professions or {}
   local i = 0
+  local anchor = self.profHeader
+  local pendingGap = 8                            -- gap above the next panel
+  local profsBottomY = PROF_HEADER_Y + self.profHeader:Height()
   for _, slot in ipairs({ "primary", "secondary", "fishing", "cooking" }) do
     local p = profs[slot]
     if p and p.skillID then
       i = i + 1
-      self:_showProf(i, p)
+      self:_showProf(i, p, anchor, pendingGap)
+      profsBottomY = profsBottomY + pendingGap + ROW_H
+      -- The gear list hangs below the panel; fold its height into the next gap so
+      -- the following panel stays left-aligned with this one yet clears the rows.
+      local g = self._profRows[i]._numGearRows
+      local gearExtent = g > 0 and (PG_TOP_GAP + g * PG_ROW_H) or 0
+      profsBottomY = profsBottomY + gearExtent
+      anchor = self._profRows[i].panel
+      pendingGap = ROW_GAP + gearExtent
     end
   end
   self.profHeader:Text(i == 0 and "NO PROFESSIONS" or "PROFESSIONS")
   for j = i + 1, self._numRows do
-    self._profRows[j].panel:Hide()
+    self._profRows[j].panel:Hide()  -- hiding the panel cascades to its gear sub-rows
   end
   self._numRows = i
 
@@ -482,10 +584,9 @@ function DetailView:OnBeforeShow()
   for j = 1, g do self._gearRows[j].frame:Width(innerW) end
   self.gearPanel:Width(gearPanelW(nameW))
 
-  -- Left column height (identity + stats + professions).
-  local leftH = PROF_HEADER_Y + self.profHeader:Height()
-  if i > 0 then leftH = leftH + 8 + i * ROW_H + (i - 1) * ROW_GAP end
-  leftH = leftH + P
+  -- Left column height (identity + stats + professions, including each profession's
+  -- gear list). `profsBottomY` accumulated the content bottom while laying out rows.
+  local leftH = profsBottomY + P
 
   -- Right column height (gear panel).
   local gearH = GEAR_PAD + self.gearHeader:Height()

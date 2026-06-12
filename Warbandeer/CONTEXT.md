@@ -26,7 +26,7 @@ Main viewer UI. Reads the data layer (`ns.api` ← `WarbandeerApi`) and renders 
 | `views/summaryCol/*.lua` | One file per Summary column: faction, role, character, level, ilvl, profs, bags, vault, keystone, crests, catalyst, voidcore, delves, lumber, cofferKey, caches, rested, played, gold |
 | `views/SummaryView.lua` | Dual `ClassSummary` tables (Alliance/Horde) toggled by a faction `BuildFilter`; cells drive row hover + click-to-Detail |
 | `views/GearView.lua` | Four armor-type tables toggled by `BuildFilter` buttons; per-equipment-slot ilvl + upgrade-track columns |
-| `views/DetailView.lua` | Single-character detail: portrait, stat strip, per-profession intent panels, gear list. Character-picker `BuildFilter`; `Select(toon)` switches subject; `OnNavigate()` resets to the logged-in character |
+| `views/DetailView.lua` | Single-character detail: portrait, stat strip, per-profession intent panels (each followed by that profession's equipped tool/accessory list), equipped-gear list. Character-picker `BuildFilter`; `Select(toon)` switches subject; `OnNavigate()` resets to the logged-in character |
 | `views/RoleView.lua` | `ClassTable` per class, grouped by spec |
 | `views/RaceView.lua` | 13×29 class/race grid (dynamic build), one character per cell; hover + click-to-Detail |
 | `views/Legion.lua` | Hidden artifact appearances + Legion achievements |
@@ -47,7 +47,7 @@ Main viewer UI. Reads the data layer (`ns.api` ← `WarbandeerApi`) and renders 
 |---|---|---|---|---|
 | `overview` | Overview | Frame | Stat strip, reputations, achievements, top characters | expansion dropdown |
 | `summary` | Summary | Frame | Dual ClassSummary tables (Alliance/Horde) | faction toggle |
-| `detail` | Detail | Frame | Per-character detail + profession-intent editor | character picker |
+| `detail` | Detail | Frame | Per-character detail + profession-intent editor + per-profession gear list | character picker |
 | `gear` | Gear | Frame | 4 armor-type tables, per-slot columns | armor-type buttons |
 | `roles` | Roles | Frame | ClassTable per class, grouped by spec | — |
 | `races` | Races | TableFrame | 13×29 grid, one character per cell | — |
