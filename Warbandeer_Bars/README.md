@@ -93,10 +93,8 @@ Bindings and outfits default **off** so importing buttons doesn't silently rewri
 :Restore(profile, include?, silent?)
 :RestoreProfile(char, specID, include?, silent?)  --> boolean (false if no such profile)
 
--- Engine passthrough (export/import strings)
+-- Engine passthrough
 :Capture(include?, accountMacros?, charMacros?)   --> profile (does NOT store)
-:Encode(profile)                             --> string
-:Decode(text)                                --> profile?, err?
 
 -- Settings
 :GetIncludeSettings()                        --> include table (live; mutate to change)

@@ -85,9 +85,7 @@ function API:RestoreProfile(char, specID, include, silent, barFilter)
   return true
 end
 
--- ── Engine passthrough (for export/import string transport) ─────────────────────
-
----Capture without storing. Useful for building an export string.
+---Capture without storing.
 ---@return table profile
 function API:Capture(include, accountMacros, charMacros)
   local s = ns.settings
@@ -97,14 +95,6 @@ function API:Capture(include, accountMacros, charMacros)
     charMacros    == nil and s.charMacros    or charMacros
   )
 end
-
----@param profile table
----@return string
-function API:Encode(profile) return ns.Encode(profile) end
-
----@param text string
----@return table|nil profile, string|nil err
-function API:Decode(text) return ns.Decode(text) end
 
 ---The per-character restore include filter (live table; mutate to change).
 ---@return table

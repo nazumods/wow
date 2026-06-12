@@ -12,10 +12,8 @@ character/spec's setup and import it onto the current character. Profiles are st
 | File | Purpose |
 |---|---|
 | `init.lua` | Assignment-form bootstrap; `MigrateDB` (seeds `profiles={}`, v1), `DefaultSettings`, `onLoad` per-char settings init |
-| `libs/base64.lua`, `libs/crc32.lua` | Export-string codec primitives (base64 + CRC32 integrity) |
 | `capture.lua` | `ns.Capture(include, accountMacros, charMacros)` → profile table; per-section capture + spell/flyout override resolution |
 | `restore.lua` | `ns.Restore(profile, include, silent?, barFilter?)` — applies a profile, recreating macros on import; flyouts-first pre-pass, spellbook fallbacks, per-bar filter |
-| `serialize.lua` | `ns.Encode`/`ns.Decode` — portable export-string transport |
 | `tracker.lua` | `ns.Snapshot()` + auto-capture triggers (login / spec change / logout); combat- & cursor-guarded |
 | `api.lua` | `WarbandeerBarsApi` methods |
 | `commands.lua` | `/wbb` inspection sub-commands (no window — data layer only) |
@@ -34,7 +32,6 @@ character/spec's setup and import it onto the current character. Profiles are st
 :Restore(profile, include?, silent?, barFilter?)
 :RestoreProfile(char, specID, include?, silent?, barFilter?) → boolean  (false if no such profile)
 :Capture(include?, accountMacros?, charMacros?)  → profile  (no store)
-:Encode(profile) / :Decode(text)
 :GetIncludeSettings()                      → include table (live; mutate to change)
 ```
 

@@ -11,12 +11,9 @@
 ## X-NUI-DB-VERSION: 2
 ## X-NUI-COMMANDS: /wbbars, /wbb
 
-libs\base64.lua
-libs\crc32.lua
 init.lua
 capture.lua
 restore.lua
-serialize.lua
 tracker.lua
 api.lua
 commands.lua
