@@ -21,21 +21,23 @@ local function BuildSpellbookMaps()
   if not (C_SpellBook and C_SpellBook.GetNumSpellBookSkillLines) then return overrides, flyouts end
   for idx = 1, C_SpellBook.GetNumSpellBookSkillLines() do
     local info = C_SpellBook.GetSpellBookSkillLineInfo(idx)
-    for i = 1, info.numSpellBookItems do
-      local si = info.itemIndexOffset + i
-      local spellType, id, spellId = C_SpellBook.GetSpellBookItemType(si, Enum.SpellBookSpellBank.Player)
-      if spellId then
-        local ovr = C_Spell.GetOverrideSpell(spellId)
-        if ovr and ovr ~= spellId then overrides[spellId] = ovr; overrides[ovr] = spellId end
-      elseif spellType == Enum.SpellBookItemType.Flyout then
-        local _, _, numSlots, isKnown = GetFlyoutInfo(id)
-        if isKnown and numSlots > 0 then
-          for k = 1, numSlots do
-            local sid, ovr = GetFlyoutSlotInfo(id, k)
-            if sid and ovr and ovr ~= sid then overrides[sid] = ovr; overrides[ovr] = sid end
+    if info then
+      for i = 1, info.numSpellBookItems do
+        local si = info.itemIndexOffset + i
+        local spellType, id, spellId = C_SpellBook.GetSpellBookItemType(si, Enum.SpellBookSpellBank.Player)
+        if spellId then
+          local ovr = C_Spell.GetOverrideSpell(spellId)
+          if ovr and ovr ~= spellId then overrides[spellId] = ovr; overrides[ovr] = spellId end
+        elseif spellType == Enum.SpellBookItemType.Flyout then
+          local _, _, numSlots, isKnown = GetFlyoutInfo(id)
+          if isKnown and numSlots > 0 then
+            for k = 1, numSlots do
+              local sid, ovr = GetFlyoutSlotInfo(id, k)
+              if sid and ovr and ovr ~= sid then overrides[sid] = ovr; overrides[ovr] = sid end
+            end
           end
+          if not flyouts[id] then flyouts[id] = { si, Enum.SpellBookSpellBank.Player } end
         end
-        if not flyouts[id] then flyouts[id] = { si, Enum.SpellBookSpellBank.Player } end
       end
     end
   end
@@ -48,12 +50,14 @@ local function PickupSpellFromBook(targetSid)
   if not (C_SpellBook and C_SpellBook.GetNumSpellBookSkillLines) then return end
   for idx = 1, C_SpellBook.GetNumSpellBookSkillLines() do
     local info = C_SpellBook.GetSpellBookSkillLineInfo(idx)
-    for i = 1, info.numSpellBookItems do
-      local si = info.itemIndexOffset + i
-      local _, _, sid = C_SpellBook.GetSpellBookItemType(si, Enum.SpellBookSpellBank.Player)
-      if sid == targetSid then
-        PickupSpellBookItem(si, Enum.SpellBookSpellBank.Player)
-        return true
+    if info then
+      for i = 1, info.numSpellBookItems do
+        local si = info.itemIndexOffset + i
+        local _, _, sid = C_SpellBook.GetSpellBookItemType(si, Enum.SpellBookSpellBank.Player)
+        if sid == targetSid then
+          PickupSpellBookItem(si, Enum.SpellBookSpellBank.Player)
+          return true
+        end
       end
     end
   end
