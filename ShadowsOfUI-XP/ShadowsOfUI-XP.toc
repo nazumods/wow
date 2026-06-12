@@ -5,6 +5,7 @@
 ## Version: 12.0.5-r6
 ## IconTexture: Interface\Icons\inv_icon_shadowcouncilorb_green
 ## Dependencies: LibNAddOn, LibNUI
+## X-Curse-Project-ID: 1573343
 ## X-NUI-UI: LibNUI
 
 ExpBar.lua
