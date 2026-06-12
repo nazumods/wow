@@ -51,6 +51,8 @@ local Classes = {
   "Death Knight", "Paladin", "Warrior"
 }
 local classKeyOf = function(c) return gsub(c, " ", "") end
+local classColIdx = {}
+for i, c in ipairs(Classes) do classColIdx[classKeyOf(c)] = i end
 
 local Races = lists.values(ns.api.ALLIANCE_RACES, ns.api.HORDE_RACES)
 local nAlliance = #ns.api.ALLIANCE_RACES
@@ -82,10 +84,12 @@ local RaceView = Class(TableFrame, function(self)
     -- raceIdx indexes the per-faction race array, so horde toons are offset past
     -- the alliance races to land on the right row group
     local raceIdx = t.raceIdx + (t.isAlliance and 0 or nAlliance)
-    local colIdx = lists.find(Classes, t.className)
-    local b = buckets[raceIdx]
-    b[colIdx] = b[colIdx] or {}
-    insert(b[colIdx], t)
+    local colIdx = classColIdx[t.classKey]
+    if colIdx then
+      local b = buckets[raceIdx]
+      b[colIdx] = b[colIdx] or {}
+      insert(b[colIdx], t)
+    end
   end
 
   -- emit one physical row per stacked character (at least one per race so empty
