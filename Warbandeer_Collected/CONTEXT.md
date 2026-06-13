@@ -1,6 +1,6 @@
 # Warbandeer_Collected
 
-**Deps:** LibNAddOn, LibNUI, Warbandeer_Characters · **SavedVars:** `WarbandeerCollectedDB` (v2) · **Commands:** `/collected`, `/collect` (`scan` subcommand) · **Reads:** `WarbandeerApi` · **UI:** LibNUI · **Compartment:** `WarbandeerCollected_OnAddonCompartmentClick`
+**Deps:** LibNAddOn, LibNUI, Warbandeer_Characters · **SavedVars:** `WarbandeerCollectedDB` (v2) · **Commands:** `/collected`, `/collect` (no-arg opens the window; `scan` subcommand) · **Reads:** `WarbandeerApi` · **UI:** LibNUI · **Compartment:** `WarbandeerCollected_OnAddonCompartmentClick` · **Exposes:** `WarbandeerCollectedApi` (read-only data bridge for Warbandeer's `collected` view)
 
 Transmog set collection tracker. Renders a class × instance-set grid showing, per character, how many appearances of each tier/dungeon set remain uncollected, plus per-character instance lockouts.
 
@@ -9,8 +9,9 @@ Transmog set collection tracker. Renders a class × instance-set grid showing, p
 | File | Purpose |
 |---|---|
 | `init.lua` | Assignment-form init (`local ns = LibNAddOn(...)`); `MigrateDB` seeds `db.sets`/`collected`/`total`, sets `version = 2` |
-| `commands.lua` | `scan` subcommand — rebuilds `db.sets`/`collected`/`total` from `C_TransmogSets` APIs, refreshes the open window |
-| `data/sets.lua` | `ns.Sets` (set-group array) + `ns.Releases` (expansion names, Vanilla→TWW) |
+| `commands.lua` | empty command (`/collected` with no args) → `ns:Open()`; `scan` subcommand — rebuilds `db.sets`/`collected`/`total` from `C_TransmogSets` APIs, refreshes the open window |
+| `data/sets.lua` | `ns.Sets` (set-group array) + `ns.Releases` (expansion names, Vanilla→Midnight) |
+| `api.lua` | Creates the global `WarbandeerCollectedApi` — read-only bridge so sibling addons (Warbandeer) can render the collection without depending on this addon's UI. Exposes `.Sets`/`.Releases` and `Counts()`, `IsScanned()`, `GroupStatus(groupId)`, `SetStatus(groupId, setId)` reading account-wide `ns.db` |
 | `DataView.lua` | `ns.DataView` (TableFrame subclass) — lock + name + 13 class columns; cell value = uncollected count, tinted by a 10-shade red→green gradient; name click opens `LockoutView` |
 | `controls/InfoTip.lua` | `ns.InfoTip` (CleanFrame) + `ui.ShowInfoTip(group, set, parent, pos)` / `ui.HideInfoTip()` — per-slot source list for a hovered set |
 | `controls/LockoutView.lua` | `ns.LockoutView` (CleanFrame) + `ns.ShowLockoutView(grpIdx, parent, pos)` / `ns.HideLockoutView()` — character list, locked toons red and sorted first |

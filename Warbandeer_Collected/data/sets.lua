@@ -22,6 +22,7 @@ ns.Releases = {
   "Shadowlands",
   "Dragonflight",
   "The War Within",
+  "Midnight",
 }
 
 -- find group id: https://wago.tools/db2/TransmogSetGroup?filter%5BName_lang%5D=Black&page=1&sort%5BName_lang%5D=asc
@@ -2287,6 +2288,29 @@ tinsert(ns.Sets, {
   release = 11,
   minLevel = 80,
   sets = {
+{id = 5147,name="Chains of the Living Weapon"}, -- classmask=1,Type=13193,Warrior
+{id = 5127,name="Vows of the Lucent Battalion"}, -- classmask=2,Type=13193,Paladin
+{id = 5115,name="Midnight Herald's Pledge"}, -- classmask=4,Type=13193,Hunter
+{id = 5135,name="Shroud of the Sudden Eclipse"}, -- classmask=8,Type=13193,Rogue
+{id = 5131,name="Eulogy to a Dying Star"}, -- classmask=16,Type=13193,Priest
+{id = 5099,name="Hollow Sentinel's Vigil"}, -- classmask=32,Type=13193,Death Knight
+{id = 5139,name="Howls of Channeled Fury"}, -- classmask=64,Type=13193,Shaman
+{id = 5119,name="Augur's Ephemeral Plumage"}, -- classmask=128,Type=13193,Mage
+{id = 5143,name="Inquisitor's Feast of Madness"}, -- classmask=256,Type=13193,Warlock
+{id = 5123,name="Crash of Fallen Storms"}, -- classmask=512,Type=13193,Monk
+{id = 5107,name="Ornaments of the Mother Eagle"}, -- classmask=1024,Type=13193,Druid
+{id = 5103,name="Charhound's Vicious Hunt"}, -- classmask=2048,Type=13193,Demon Hunter
+{id = 5111,name="Spellweaver's Immaculate Design"}, -- classmask=4096,Type=13193,Evoker
+  },
+})
+
+tinsert(ns.Sets, {
+  id = 330,
+  name = "Manaforge Omega (Heroic)",
+  instance = 16178,
+  release = 11,
+  minLevel = 80,
+  sets = {
 {id = 5145,name="Chains of the Living Weapon"}, -- classmask=1,Type=2015,Warrior
 {id = 5125,name="Vows of the Lucent Battalion"}, -- classmask=2,Type=2015,Paladin
 {id = 5113,name="Midnight Herald's Pledge"}, -- classmask=4,Type=2015,Hunter
@@ -2305,7 +2329,7 @@ tinsert(ns.Sets, {
 
 tinsert(ns.Sets, {
   id = 330,
-  name = "Manaforge Omega (Heroic)",
+  name = "Manaforge Omega (Mythic)",
   instance = 16178,
   release = 11,
   minLevel = 80,
@@ -2326,25 +2350,90 @@ tinsert(ns.Sets, {
   },
 })
 
+-- release 12 (Midnight)
+-- Season 1 tier appearance (TransmogSetGroupID 372); tokens span The Voidspire,
+-- The Dreamrift, and March on Quel'Danas, so no single instance lockout applies.
 tinsert(ns.Sets, {
-  id = 330,
-  name = "Manaforge Omega (Mythic)",
-  instance = 16178,
-  release = 11,
+  id = 372,
+  name = "Voidspire / Dreamrift (Raid Finder)",
+  release = 12,
   minLevel = 80,
   sets = {
-{id = 5147,name="Chains of the Living Weapon"}, -- classmask=1,Type=13193,Warrior
-{id = 5127,name="Vows of the Lucent Battalion"}, -- classmask=2,Type=13193,Paladin
-{id = 5115,name="Midnight Herald's Pledge"}, -- classmask=4,Type=13193,Hunter
-{id = 5135,name="Shroud of the Sudden Eclipse"}, -- classmask=8,Type=13193,Rogue
-{id = 5131,name="Eulogy to a Dying Star"}, -- classmask=16,Type=13193,Priest
-{id = 5099,name="Hollow Sentinel's Vigil"}, -- classmask=32,Type=13193,Death Knight
-{id = 5139,name="Howls of Channeled Fury"}, -- classmask=64,Type=13193,Shaman
-{id = 5119,name="Augur's Ephemeral Plumage"}, -- classmask=128,Type=13193,Mage
-{id = 5143,name="Inquisitor's Feast of Madness"}, -- classmask=256,Type=13193,Warlock
-{id = 5123,name="Crash of Fallen Storms"}, -- classmask=512,Type=13193,Monk
-{id = 5107,name="Ornaments of the Mother Eagle"}, -- classmask=1024,Type=13193,Druid
-{id = 5103,name="Charhound's Vicious Hunt"}, -- classmask=2048,Type=13193,Demon Hunter
-{id = 5111,name="Spellweaver's Immaculate Design"}, -- classmask=4096,Type=13193,Evoker
+    {id = 5465,name="Rage of the Night Ender"}, -- classmask=1,Type=1641,Warrior
+    {id = 5445,name="Luminant Verdict's Vestments"}, -- classmask=2,Type=1641,Paladin
+    {id = 5433,name="Primal Sentry's Camouflage"}, -- classmask=4,Type=1641,Hunter
+    {id = 5453,name="Motley of the Grim Jest"}, -- classmask=8,Type=1641,Rogue
+    {id = 5449,name="Blind Oath's Burden"}, -- classmask=16,Type=1641,Priest
+    {id = 5417,name="Relentless Rider's Lament"}, -- classmask=32,Type=1641,Death Knight
+    {id = 5457,name="Mantle of the Primal Core"}, -- classmask=64,Type=1641,Shaman
+    {id = 5437,name="Voidbreaker's Accordance"}, -- classmask=128,Type=1641,Mage
+    {id = 5461,name="Reign of the Abyssal Immolator"}, -- classmask=256,Type=1641,Warlock
+    {id = 5441,name="Way of Ra-den's Chosen"}, -- classmask=512,Type=1641,Monk
+    {id = 5425,name="Sprouts of the Luminous Bloom"}, -- classmask=1024,Type=1641,Druid
+    {id = 5421,name="Devouring Reaver's Sheathe"}, -- classmask=2048,Type=1641,Demon Hunter
+    {id = 5429,name="Livery of the Black Talon"}, -- classmask=4096,Type=1641,Evoker
+  },
+})
+tinsert(ns.Sets, {
+  id = 372,
+  name = "Voidspire / Dreamrift (Normal)",
+  release = 12,
+  minLevel = 80,
+  sets = {
+    {id = 5466,name="Rage of the Night Ender"}, -- classmask=1,Type=13193,Warrior
+    {id = 5446,name="Luminant Verdict's Vestments"}, -- classmask=2,Type=13193,Paladin
+    {id = 5434,name="Primal Sentry's Camouflage"}, -- classmask=4,Type=13193,Hunter
+    {id = 5454,name="Motley of the Grim Jest"}, -- classmask=8,Type=13193,Rogue
+    {id = 5450,name="Blind Oath's Burden"}, -- classmask=16,Type=13193,Priest
+    {id = 5418,name="Relentless Rider's Lament"}, -- classmask=32,Type=13193,Death Knight
+    {id = 5458,name="Mantle of the Primal Core"}, -- classmask=64,Type=13193,Shaman
+    {id = 5438,name="Voidbreaker's Accordance"}, -- classmask=128,Type=13193,Mage
+    {id = 5462,name="Reign of the Abyssal Immolator"}, -- classmask=256,Type=13193,Warlock
+    {id = 5442,name="Way of Ra-den's Chosen"}, -- classmask=512,Type=13193,Monk
+    {id = 5426,name="Sprouts of the Luminous Bloom"}, -- classmask=1024,Type=13193,Druid
+    {id = 5422,name="Devouring Reaver's Sheathe"}, -- classmask=2048,Type=13193,Demon Hunter
+    {id = 5430,name="Livery of the Black Talon"}, -- classmask=4096,Type=13193,Evoker
+  },
+})
+tinsert(ns.Sets, {
+  id = 372,
+  name = "Voidspire / Dreamrift (Heroic)",
+  release = 12,
+  minLevel = 80,
+  sets = {
+    {id = 5467,name="Rage of the Night Ender"}, -- classmask=1,Type=2015,Warrior
+    {id = 5447,name="Luminant Verdict's Vestments"}, -- classmask=2,Type=2015,Paladin
+    {id = 5435,name="Primal Sentry's Camouflage"}, -- classmask=4,Type=2015,Hunter
+    {id = 5455,name="Motley of the Grim Jest"}, -- classmask=8,Type=2015,Rogue
+    {id = 5451,name="Blind Oath's Burden"}, -- classmask=16,Type=2015,Priest
+    {id = 5419,name="Relentless Rider's Lament"}, -- classmask=32,Type=2015,Death Knight
+    {id = 5459,name="Mantle of the Primal Core"}, -- classmask=64,Type=2015,Shaman
+    {id = 5439,name="Voidbreaker's Accordance"}, -- classmask=128,Type=2015,Mage
+    {id = 5463,name="Reign of the Abyssal Immolator"}, -- classmask=256,Type=2015,Warlock
+    {id = 5443,name="Way of Ra-den's Chosen"}, -- classmask=512,Type=2015,Monk
+    {id = 5427,name="Sprouts of the Luminous Bloom"}, -- classmask=1024,Type=2015,Druid
+    {id = 5423,name="Devouring Reaver's Sheathe"}, -- classmask=2048,Type=2015,Demon Hunter
+    {id = 5431,name="Livery of the Black Talon"}, -- classmask=4096,Type=2015,Evoker
+  },
+})
+tinsert(ns.Sets, {
+  id = 372,
+  name = "Voidspire / Dreamrift (Mythic)",
+  release = 12,
+  minLevel = 80,
+  sets = {
+    {id = 5468,name="Rage of the Night Ender"}, -- classmask=1,Type=13145,Warrior
+    {id = 5448,name="Luminant Verdict's Vestments"}, -- classmask=2,Type=13145,Paladin
+    {id = 5436,name="Primal Sentry's Camouflage"}, -- classmask=4,Type=13145,Hunter
+    {id = 5456,name="Motley of the Grim Jest"}, -- classmask=8,Type=13145,Rogue
+    {id = 5452,name="Blind Oath's Burden"}, -- classmask=16,Type=13145,Priest
+    {id = 5420,name="Relentless Rider's Lament"}, -- classmask=32,Type=13145,Death Knight
+    {id = 5460,name="Mantle of the Primal Core"}, -- classmask=64,Type=13145,Shaman
+    {id = 5440,name="Voidbreaker's Accordance"}, -- classmask=128,Type=13145,Mage
+    {id = 5464,name="Reign of the Abyssal Immolator"}, -- classmask=256,Type=13145,Warlock
+    {id = 5444,name="Way of Ra-den's Chosen"}, -- classmask=512,Type=13145,Monk
+    {id = 5428,name="Sprouts of the Luminous Bloom"}, -- classmask=1024,Type=13145,Druid
+    {id = 5424,name="Devouring Reaver's Sheathe"}, -- classmask=2048,Type=13145,Demon Hunter
+    {id = 5432,name="Livery of the Black Talon"}, -- classmask=4096,Type=13145,Evoker
   },
 })

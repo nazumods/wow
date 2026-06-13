@@ -3,6 +3,10 @@ local ns = select(2, ...)
 local isCollected = C_TransmogSets.IsBaseSetCollected
 local getParts = C_TransmogSets.GetSetPrimaryAppearances
 
+ns:registerCommand("", nil, function(self)
+  self:Open()
+end, "Open the Collected window")
+
 ns:registerCommand("scan", "", function()
   ns.db.collected = 0
   ns.db.total = 0

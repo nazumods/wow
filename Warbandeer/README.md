@@ -23,6 +23,7 @@ Open it with `/warband` or `/wb` and switch views with the icon rail on the left
 | Midnight Professions | Expansion profession progress |
 | Playtime | Time played per character and total |
 | Bars | Action-bar profile previews (requires Warbandeer_Bars) |
+| Collected | Transmog-set collection grid by class and tier (requires Collected) |
 
 Every view is also reachable directly, e.g. `/wb gear`, `/wb profs`, `/wb playtime`.
 
@@ -39,6 +40,7 @@ Found in the Blizzard settings panel:
 - **Warbandeer_Characters** — the data layer that does the actual collecting.
   Warbandeer is only the viewer; without the data layer it has nothing to show.
 - *Optional:* **Warbandeer_Bars** for the Bars view.
+- *Optional:* **Collected** for the Collected view.
 
 ## Saved data
 

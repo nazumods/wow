@@ -19,6 +19,8 @@ commands.lua
 
 data\sets.lua
 
+api.lua
+
 controls\InfoTip.lua
 controls\LockoutView.lua
 
