@@ -232,30 +232,42 @@ DressingRoom = Class(TitleFrame, function(self)
     btn._widget:SetScript("OnLeave", function() GameTooltip:Hide() end)
   end
 
-  -- Set-navigation arrows + class icon in the title bar, left of the close
-  -- button. Step() cycles the current group's class sets (skipping empty slots),
-  -- so a whole tier can be browsed without reopening from the grid.
-  local function navArrow(anchor, dir, glyph)
-    local box = Frame:new{
-      parent = self.titlebar,
-      position = { Right = {anchor, ui.edge.Left, -2, 0}, Width = 22, Height = 20 },
-    }
-    selBox(box)
-    Button:new{ parent = box, position = { All = true }, glow = false,
-      OnClick = function() self:Step(dir) end }
-    Label:new{ parent = box, justifyH = ui.justify.Center, fontObj = "GameFontNormalLarge",
-      position = { Left = {1, 0}, Right = {-1, 0} }, text = glyph }
-    return box
-  end
-  local nextBox = navArrow(self.closeButton, 1, ">")
-  local prevBox = navArrow(nextBox, -1, "<")
+  -- Class icon in the title bar, left of the close button.
   self._classIcon = Texture:new{
     parent = self.titlebar, layer = ui.layer.Artwork,
-    position = { Right = {prevBox, ui.edge.Left, -6, 0}, Size = {20, 20} },
+    position = { Right = {self.closeButton, ui.edge.Left, -6, 0}, Size = {20, 20} },
   }
 
-  -- Left/Right cycle the class sets (mirroring the title-bar nav arrows); Up/Down
-  -- step through the raid's difficulty tiers (StepTier). Every other key is
+  -- Directional nav pad in the model's upper-right corner: Left/Right cycle the
+  -- group's class sets (skipping empty slots), Up/Down cycle the raid's difficulty
+  -- tiers — same as the arrow keys. Parented to self and lifted above the
+  -- mouse-enabled ModelScene (which would otherwise eat the clicks) so the buttons
+  -- are clickable, matching the form buttons / scale slider.
+  local PADB, PADGAP = 24, 2
+  local navLvl = self._model:Level() + 10
+  local function navButton(col, row, glyph, onClick)
+    local box = Frame:new{
+      parent = self,
+      position = {
+        TopRight = {self._model, ui.edge.TopRight,
+          -((2 - col) * (PADB + PADGAP) + 8), -(row * (PADB + PADGAP) + 8)},
+        Width = PADB, Height = PADB,
+      },
+    }
+    selBox(box)
+    Button:new{ parent = box, position = { All = true }, glow = false, OnClick = onClick }
+    Label:new{ parent = box, justifyH = ui.justify.Center, fontObj = "GameFontNormalLarge",
+      position = { Left = {1, 0}, Right = {-1, 0} }, text = glyph }
+    box:Level(navLvl)
+    return box
+  end
+  navButton(1, 0, "^", function() self:StepTier(-1) end)  -- up = previous tier
+  navButton(0, 1, "<", function() self:Step(-1) end)
+  navButton(2, 1, ">", function() self:Step(1) end)
+  navButton(1, 2, "v", function() self:StepTier(1) end)   -- down = next tier
+
+  -- Left/Right cycle the class sets, Up/Down cycle difficulty tiers (mirroring the
+  -- on-model nav pad); Up/Down call StepTier. Every other key is
   -- propagated, so default keybindings (and Escape, via the `special` registration)
   -- keep working.
   self._widget:EnableKeyboard(true)

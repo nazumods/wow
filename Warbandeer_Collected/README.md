@@ -17,11 +17,12 @@ class-themed backdrop, and a scale slider to resize the model. (The model always
 uses your own character's **gender** — the Male/Female toggle is greyed out — because
 a model that can actually wear the set is locked to your gender by the game.) Races with two forms
 (Worgen, Dracthyr) show a form toggle at the top of the model so you can preview
-either one. Use the arrow buttons in the title bar (next to the class icon) — or the **Left/Right
-arrow keys** — to flip through the other classes' sets from the same instance without
-reopening, and the **Up/Down arrow keys** to switch between that raid's difficulty
-tiers (Normal/Heroic/Mythic, etc.) for the same class. The window stays open until
-you close it (Escape or the X); drag to spin the model.
+either one. A directional pad in the model's upper-right corner — `<`/`>` (or the
+**Left/Right arrow keys**) flips through the other classes' sets from the same
+instance, and `^`/`v` (or the **Up/Down arrow keys**) switches between that raid's
+difficulty tiers (Normal/Heroic/Mythic, etc.) for the same class — all without
+reopening. The window stays open until you close it (Escape or the X); drag to spin
+the model.
 
 ## Usage
 
