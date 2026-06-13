@@ -84,7 +84,7 @@ end, "Repair stored data (recount characters)")
 ---@field MigrateDB fun(self) Migrate database to latest version
 function ns:MigrateDB()
   local db = ns.db
-  if db.version == 12 then return end
+  if db.version == 13 then return end
   if not db.characters then db.characters = {} end
   if not db.numCharacters then
     db.numCharacters = countCharacters(db)
@@ -166,6 +166,15 @@ function ns:MigrateDB()
   if (db.version or 0) < 12 then
     if not db.ui then db.ui = {} end
     db.version = 12
+  end
+
+  -- v13: equippable-gear cache.
+  -- Purely additive and filled lazily: the per-character `gearbag` broker records
+  -- bag gear on its own, and data/bank.lua adds an `equip` list to each bank store
+  -- (warband + personal) on the next bank open.  Nothing to seed — old revisions
+  -- simply see empty lists until the next scan, so rollback is lossless.
+  if (db.version or 0) < 13 then
+    db.version = 13
   end
 end
 

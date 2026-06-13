@@ -55,6 +55,24 @@ function API:ClassifyProfGearItem(itemID)
   return SUBCLASS_SKILL[subClassID], equipLoc
 end
 
+-- Equip locations that don't map to a tracked equipment slot (cosmetic only).
+local COSMETIC_EQUIPLOC = { INVTYPE_BODY = true, INVTYPE_TABARD = true }
+
+---Classify an item as equippable gear (armour or weapon filling a real slot) by
+---its static item class/subclass, for the gear-upgrade cache.  Returns nil for
+---anything that can't upgrade an equipment slot (cosmetics, non-gear).  Like
+---ClassifyProfGearItem this is synchronous (GetItemInfoInstant needs no load).
+---@param itemID integer
+---@return string? equipLoc INVTYPE_* the item fills
+---@return integer? classID Enum.ItemClass (Armor | Weapon)
+---@return integer? subClassID armour type / weapon subclass
+function API:ClassifyGearItem(itemID)
+  local _, _, _, equipLoc, _, classID, subClassID = C_Item.GetItemInfoInstant(itemID)
+  if classID ~= Enum.ItemClass.Armor and classID ~= Enum.ItemClass.Weapon then return nil end
+  if not equipLoc or equipLoc == "" or COSMETIC_EQUIPLOC[equipLoc] then return nil end
+  return equipLoc, classID, subClassID
+end
+
 -- The cache's recipes table, recreated empty whenever the client build changes
 -- (patches can rewire recipes and items).
 local function cachedRecipes()

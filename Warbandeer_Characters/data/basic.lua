@@ -20,7 +20,7 @@ ns.Basic.fields = {
     eventDelay = 500, -- delay to allow level up to complete
   },
   ---@class BasicBroker: Broker
-  ---@field specialization {primary:Specialization?, active:Specialization, role:string, key:SpecializationKey}?
+  ---@field specialization {primary:Specialization?, active:Specialization, role:string, key:SpecializationKey, id:integer?}?
   specialization = {
     get = function()
       local pid, primarySpec = Player:GetPrimarySpecialization()
@@ -31,6 +31,8 @@ ns.Basic.fields = {
         active = activeSpec,
         role = specId and GetSpecializationRoleByID(specId),
         key = specId and gsub(primarySpec or activeSpec, " ", ""),
+        -- Numeric global spec ID: locale-independent, persisted so consumers can resolve stat priorities for alts.
+        id = specId,
       }
     end,
   },

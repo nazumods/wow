@@ -33,6 +33,8 @@ data through the `WarbandeerApi` global.
 - Profession gear sitting in a **bank** — the warband bank, any character's bank, or a
   guild bank — is noted whenever you open it, so Warbandeer can tell you when an empty
   profession slot could be filled from one of your banks.
+- Equippable gear in your **bags** and in the **warband / personal banks** is also recorded
+  (whenever those are open).
 
 ## Requirements
 

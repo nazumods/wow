@@ -35,6 +35,7 @@ local GUILD_SLOTS_PER_TAB = MAX_GUILDBANK_SLOTS_PER_TAB or 98
 ---@class BankGearStore
 ---@field scannedAt integer server time of the last scan
 ---@field gear BankGearEntry[]
+---@field equip GearCandidate[]? equippable gear (warband + personal banks only)
 
 ---@class BankData
 ---@field warband BankGearStore? account-wide warband bank
@@ -79,27 +80,51 @@ local function toList(gear)
   return list
 end
 
+-- Accumulate one slot's equippable gear (armour/weapon filling a real slot) into
+-- a GearCandidate list, mirroring data/gearbag.lua so the bank's "held"/"better
+-- elsewhere" gear shares the candidate shape.  Skips non-gear via the shared
+-- classifier.  Bank slots carry the same hyperlink as bags do.
+local function addEquip(equip, info)
+  if not info or not info.itemID then return end
+  local equipLoc, classID, subClassID = API:ClassifyGearItem(info.itemID)
+  if not equipLoc then return end
+  local link = info.hyperlink
+  insert(equip, {
+    link = link,
+    itemID = info.itemID,
+    ilvl = link and C_Item.GetDetailedItemLevelInfo(link) or nil,
+    equipLoc = equipLoc,
+    classID = classID,
+    subClassID = subClassID,
+  })
+end
+
 -- ─── Warband (account) + character banks ─────────────────────────────────────
 -- Both use the modern C_Bank tab model: FetchPurchasedBankTabIDs hands back the
 -- container bag IDs, which C_Container reads slot-by-slot while the bank is open.
 
 local function scanBankType(bankType)
-  local gear = {}
-  if not C_Bank.CanViewBank(bankType) then return toList(gear) end
+  local gear, equip = {}, {}
+  if not C_Bank.CanViewBank(bankType) then return toList(gear), equip end
   for _, bagID in ipairs(C_Bank.FetchPurchasedBankTabIDs(bankType) or {}) do
     for slot = 1, (C_Container.GetContainerNumSlots(bagID) or 0) do
       local info = C_Container.GetContainerItemInfo(bagID, slot)
-      if info then addItem(gear, info.itemID, info.stackCount, info.quality) end
+      if info then
+        addItem(gear, info.itemID, info.stackCount, info.quality)
+        addEquip(equip, info)
+      end
     end
   end
-  return toList(gear)
+  return toList(gear), equip
 end
 
 local function scanPersonalBanks()
   local b = store()
   local now = GetServerTime()
-  b.characters[ns.currentPlayer] = { scannedAt = now, gear = scanBankType(BankType.Character) }
-  b.warband = { scannedAt = now, gear = scanBankType(BankType.Account) }
+  local charGear, charEquip = scanBankType(BankType.Character)
+  local wbGear, wbEquip = scanBankType(BankType.Account)
+  b.characters[ns.currentPlayer] = { scannedAt = now, gear = charGear, equip = charEquip }
+  b.warband = { scannedAt = now, gear = wbGear, equip = wbEquip }
 end
 
 local bankOpen = false

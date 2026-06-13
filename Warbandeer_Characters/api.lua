@@ -78,6 +78,29 @@ end
 ---@return WarbandWeekRecord[]
 function API:GetWealthHistory() return (ns.db.warband and ns.db.warband.history) or {} end
 
+---Equippable gear a character has loose in its own bags + personal bank.  Bags
+---come from the per-character `gearbag` broker; the bank list is the last scan of
+---that character's personal bank (empty until they've opened it).  Both lists are
+---last-seen caches and may be empty.
+---@param charName string?
+---@return { bags: GearCandidate[], bank: GearCandidate[] }
+function API:GetCharacterGearCandidates(charName)
+  local name = charName or ns.currentPlayer
+  local c = ns.db.characters[name]
+  local bank = ns.db.bank and ns.db.bank.characters and ns.db.bank.characters[name]
+  return {
+    bags = (c and c.gearbag and c.gearbag.items) or {},
+    bank = (bank and bank.equip) or {},
+  }
+end
+
+---Equippable gear sitting in the warband (account) bank.  Last-seen; empty until
+---the warband bank has been opened.
+---@return GearCandidate[]
+function API:GetWarbandBankGear()
+  return (ns.db.bank and ns.db.bank.warband and ns.db.bank.warband.equip) or {}
+end
+
 ---Synchronously re-fetch one broker field for the current character.
 ---Safe to call at any time; respects the maxLevel guard.
 ---@param brokerName string

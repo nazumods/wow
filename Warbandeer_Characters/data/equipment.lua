@@ -5,6 +5,7 @@ local RequestLoadItemData = C_Item.RequestLoadItemData -- luacheck: globals C_It
 local GetItemID = C_Item.GetItemID
 local GetItemInfo, GetCurrentItemLevel = C_Item.GetItemInfo, C_Item.GetCurrentItemLevel -- luacheck: globals C_Item
 local GetItemUpgradeInfo = C_Item.GetItemUpgradeInfo
+local GetItemInfoInstant = C_Item.GetItemInfoInstant
 local GetInventoryItemLink = GetInventoryItemLink -- luacheck: globals GetInventoryItemLink
 
 local EquipmentSlots = {
@@ -41,12 +42,17 @@ ns.Equipment.fields = {
           if name then
             local ilvl = GetCurrentItemLevel({equipmentSlotIndex = index})
             local upgradeInfo = GetItemUpgradeInfo(link)
+            -- equipLoc/classID/subClassID are synchronous (instant).
+            local _, _, _, equipLoc, _, classID, subClassID = GetItemInfoInstant(link)
             slots[slot] = {
               name = name,
               link = link,
               ilvl = ilvl,
               track = upgradeInfo and upgradeInfo.trackString or nil,
               trackLevel = upgradeInfo and upgradeInfo.currentLevel or nil,
+              equipLoc = equipLoc,
+              classID = classID,
+              subClassID = subClassID,
             }
           end
         end
