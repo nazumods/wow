@@ -6,16 +6,25 @@ local GetServerTime = GetServerTime -- luacheck: globals GetServerTime
 local DateAndTime = C_DateAndTime -- luacheck: globals C_DateAndTime
 local LAST_DAILY_RESET = GetServerTime() + DateAndTime.GetSecondsUntilDailyReset() - (60*60*24)
 local LAST_RESET = GetServerTime() + DateAndTime.GetSecondsUntilWeeklyReset() - (60*60*24)
-local time = DateAndTime.GetCurrentCalendarTime()
-local LAST_SUNDAY_RESET = GetServerTime() - ((time.weekday - 1) * 24 * 60 * 60) - (time.hour * 60 * 60) - (time.minute * 60) -- reset to sunday midnight
-LAST_SUNDAY_RESET = LAST_SUNDAY_RESET - (LAST_SUNDAY_RESET % 60) -- zero out seconds
+-- Most recent Sunday 00:00 UTC, derived from the epoch ALONE — never from
+-- GetCurrentCalendarTime(). That call is unreliable at addon-load time (the
+-- calendar system isn't warm yet — see Warbandeer's init.lua, which pre-warms it),
+-- and a zeroed read (weekday=0, hour=0, minute=0) turned the old formula's
+-- `-(weekday-1)*day` into `+1 day`, pushing the anchor a day into the FUTURE. That
+-- read as a brand-new boundary and fired a spurious Sunday reset that wiped every
+-- character's Sunday-cadence data (only the active char was re-populated). Epoch
+-- day-of-week is deterministic (1970-01-01 was a Thursday) and needs no calendar
+-- API, so this anchor is always valid and identical across every realm/timezone.
+local SECONDS_PER_DAY = 24 * 60 * 60
+local nowEpoch = GetServerTime()
+local epochDays = math.floor(nowEpoch / SECONDS_PER_DAY)
+local sundayOffset = (epochDays + 4) % 7 -- 0 = Sunday; +4 aligns the Thursday epoch
+local LAST_SUNDAY_RESET = (epochDays - sundayOffset) * SECONDS_PER_DAY
 
--- The anchors above are recomputed every login from clocks that can disagree
--- between sessions: GetServerTime() vs the calendar/seconds-until APIs can skew
--- by a second (shifting the minute-floored Sunday anchor by 60s), and Sunday
--- midnight is realm-local, so characters on realms in different timezones
--- compute anchors hours apart. A genuine new boundary advances by at least a
--- day, so only treat the anchor as "new" when it moved by more than this slack.
+-- The daily/weekly anchors are recomputed every login from the seconds-until APIs,
+-- which can skew by a second between sessions. A genuine new boundary advances by
+-- at least a day, so only treat an anchor as "new" when it moved by more than this
+-- slack. (The Sunday anchor above is now jitter-free, but the same guard applies.)
 local RESET_SLACK = 12 * 60 * 60
 
 -- expose reset boundaries for non-broker (account-wide) data that resets on the same cadence
@@ -178,5 +187,11 @@ function ns:InitBrokers()
         self.brokers[name]:Reset(ns.RESET_SUNDAY, t)
       end
     end
+  elseif self.db.lastSundayReset > LAST_SUNDAY_RESET then
+    -- The Sunday anchor is always a past Sunday midnight; a stored value in the
+    -- future is corrupt (e.g. written by the old formula when a zeroed calendar
+    -- read pushed it a day forward). Correct it down — without resetting — so the
+    -- next genuine boundary still fires on time instead of being skipped.
+    self.db.lastSundayReset = LAST_SUNDAY_RESET
   end
 end
