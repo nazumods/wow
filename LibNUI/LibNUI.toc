@@ -23,6 +23,7 @@ Frame.lua
 BgFrame.lua
 Dialog.lua
 StatusBar.lua
+Model.lua
 Button.lua
 SecureButton.lua
 CheckButton.lua

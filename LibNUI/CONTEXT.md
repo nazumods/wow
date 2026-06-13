@@ -18,6 +18,7 @@ OOP UI widget library. Every widget wraps a backing WoW object (`self._widget`) 
 | `BgFrame.lua` | `BgFrame` — Frame with auto-created backdrop Texture; `backdropColor`/`backdropTexture` |
 | `Dialog.lua` | `Dialog` — DIALOG-strata frame with Blizzard title bar, Escape-to-close; `makeTitlebarDraggable` |
 | `StatusBar.lua` | `StatusBar` — fill bar with backdrop/texture/orientation; `Color`, `Texture`, `SetValue` |
+| `Model.lua` | `Model` — `ModelScene`-backed 3D viewer (borrows dressup scene 596 for camera + a skinnable player actor); `DisplayInfo`/`Unit(token, customRaceID?)`/`TryOn`/`Undress`/`Dress`. Built-in drag-to-rotate. A scene actor skins arbitrary races correctly where a bare `DressUpModel` renders them white |
 | `Button.lua` | `Button` — interactive button: glow, keybind label, item/spell/toy tooltip, `onClick` |
 | `SecureButton.lua` | `SecureButton` — `SecureActionButtonTemplate` for casting spells/toys in combat |
 | `CheckButton.lua` | `CheckButton` — toggle checkbox; `Checked`, `OnToggle` |
@@ -48,6 +49,7 @@ Region
      │   └─ TableRow
      ├─ Dialog
      ├─ StatusBar
+     ├─ Model
      ├─ Button
      │   ├─ SecureButton
      │   └─ CheckButton
@@ -71,6 +73,7 @@ AutoWidget — standalone factory (no parent class)
 | `ui.edge` | `Top`, `Center`, `TopLeft`, `TopRight`, `Bottom`, `BottomLeft`, `BottomRight`, `Left`, `Right` |
 | `ui.layer` | `Background`, `Border`, `Artwork`, `Overlay`, `Highlight` |
 | `ui.justify` | `Left`, `Center`, `Right`, `Top`, `Middle`, `Bottom` |
+| `ui.media` | shared texture paths bundled in `LibNUI/media/` (full-path strings, reachable from any LibNUI-dependent addon): `unresolved` (red ⊗ marker for empty/not-applicable slots) |
 | `ui.wrap` | `Clamp`, `Repeat`, `Mirror` |
 | `ui.fonts` | `GameFontHighlight`, `GameFontHighlightSmall`, `SystemFont_Med2` |
 
@@ -130,6 +133,7 @@ Any key matching a method on the instance is valid; tables are unpacked, scalars
 | `BgFrame` | inherits Frame; default backdrop `{color={0,0,0,0.8}}` |
 | `Dialog` | inherits Frame; `title`, `titleColor` |
 | `StatusBar` | `backdrop`, `fill` (`{color,gradient,blend}`), `color`, `texture` (string or `{...,coords}`), `orientation`, `min`, `max` |
+| `Model` | inherits Frame (`type = "ModelScene"`, `template = "ModelSceneMixinTemplate"`); `rotateSpeed` (0.01 rad/px) |
 | `Button` | `normal` (`{texture,coords}`), `onClick`, `bindLeftClick`, `kbLabel`, `glow` (true), `itemID`, `tooltip`, `OnChange`, `OnClick` |
 | `SecureButton` | `actions` — list of `{type, target, spell, toy}` |
 | `CheckButton` | `text`, `OnToggle` |

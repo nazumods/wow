@@ -18,11 +18,13 @@ init.lua
 commands.lua
 
 data\sets.lua
+data\models.lua
 
 api.lua
 
 controls\InfoTip.lua
 controls\LockoutView.lua
+controls\DressingRoom.lua
 
 DataView.lua
 window.lua

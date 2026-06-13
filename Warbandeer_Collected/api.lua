@@ -59,4 +59,18 @@ function API:HideInfoTip()
   ns.HideInfoTip()
 end
 
+---Open the shared dressing room previewing a set on a selectable race/gender, so
+---sibling addons reuse the identical window. Forwards lazily to `ns.ShowDressingRoom`
+---(defined in `controls/DressingRoom.lua`, after this file loads).
+---@param group table  a group entry from `ns.Sets`
+---@param set table    a set entry within that group
+function API:ShowDressingRoom(group, set)
+  ns.ShowDressingRoom(group, set)
+end
+
+---Hide the shared dressing room (no-op if never opened).
+function API:HideDressingRoom()
+  ns.HideDressingRoom()
+end
+
 _G.WarbandeerCollectedApi = API

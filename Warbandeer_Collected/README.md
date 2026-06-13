@@ -7,6 +7,14 @@ expansion first, hover a set to see its pieces (collected vs missing), and click
 row to see which of your characters are locked out of that instance — so you always
 know who to run it on next.
 
+Hover a set and click **Preview model** in the tooltip to open a 3D dressing room
+showing the set worn by any playable **race and gender** you pick — handy for
+deciding what a transmog will actually look like. Like the character sheet, each
+piece sits in its equipment slot down the sides (green border = collected, red =
+still missing); hover a slot for the in-game item tooltip. There's an **Undress**
+toggle to strip the set off and see the bare race. The window stays open until you
+close it (Escape or the X); drag to spin the model.
+
 ## Usage
 
 | Command | What it does |
