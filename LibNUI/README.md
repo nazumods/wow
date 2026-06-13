@@ -544,14 +544,45 @@ Inherits `Frame`.
 
 ---
 
+## Slider
+
+Inherits `Frame` (backed by a WoW `Slider`). A themed track with a draggable gold
+thumb; drag or click to change the value. `OnChange` fires with the new value and
+whether it came from user input. Set `step` to snap to increments.
+
+### Constructor options
+
+| Option        | Type   | Description                                                  |
+|---------------|--------|--------------------------------------------------------------|
+| `min`         | number | Minimum value (default 0)                                    |
+| `max`         | number | Maximum value (default 1)                                    |
+| `step`        | number | Value step; also snaps while dragging                        |
+| `value`       | number | Initial value                                                |
+| `orientation` | string | `"HORIZONTAL"` (default) or `"VERTICAL"`                     |
+| `thickness`   | number | Track thickness in px (default 4)                            |
+| `OnChange`    | func   | `function(self, value, userInput)` on value change           |
+
+### Methods
+
+| Method            | Description                                            |
+|-------------------|--------------------------------------------------------|
+| `Value(v)`        | Get (no arg) or set the value; setting fires `OnChange` |
+| `MinMax(min,max)` | Set the value range                                     |
+
+---
+
 ## Model
 
 Inherits `Frame` (backed by a `ModelScene`). A 3D viewer that borrows Blizzard's
 dressup scene (id 596) for camera + lighting + a skinnable player actor: set a
 body via a unit, an arbitrary race+gender (creature display ID), or a unit
 re-rendered as another race, then `TryOn` transmog appearance sources. Drag
-horizontally to spin the model. A scene actor skins arbitrary races correctly,
-where a bare `DressUpModel` renders non-player races untextured (white).
+horizontally to spin the model; the dragged angle is preserved when you re-skin
+the actor (`DisplayInfo`/`Unit`), so swapping the body doesn't snap it back to
+front-facing. Note a creature display only textures if it's a **baked** display
+(carries its own textures) — a bare base/`ChrModel` display renders white, since
+the engine can only composite textures for the active player's own race. All
+models render through one player-sized actor, so use `Scale` to size large races.
 
 ### Constructor options
 
@@ -563,10 +594,11 @@ where a bare `DressUpModel` renders non-player races untextured (white).
 
 | Method                | Description                                                      |
 |-----------------------|------------------------------------------------------------------|
-| `DisplayInfo(id)`     | Skin the actor with a creature display ID (a specific race+gender); textured |
+| `DisplayInfo(id, useCustomizations?)` | Skin the actor with a creature display ID. `useCustomizations` defaults **false** — a baked display carries its own race+gender textures; passing true overlays the active player's customizations (only textures the player's own race) |
 | `Unit(token, customRaceID?)` | Skin from a unit (e.g. `"player"`), optionally rendered as another race (`customRaceID` = chrRaceID, keeps the unit's gender). `autoDress` is off |
 | `TryOn(source)`       | Put on an item link or `itemModifiedAppearanceID` (sourceID)     |
 | `Undress()` / `Dress()` | Strip / re-equip the actor's gear                              |
+| `Scale(n)`            | Set the actor scale (1 = natural). One player-sized actor renders every model, so large races need a per-race multiplier. Remembered and re-applied automatically after each async model load |
 
 ---
 
