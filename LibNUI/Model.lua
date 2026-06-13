@@ -45,7 +45,7 @@ end, {
   type = "ModelScene",
   template = "ModelSceneMixinTemplate",
   rotateSpeed = 0.01,
-  facing = math.pi / 2,   -- quarter-turn from the side-on default to face the camera
+  facing = -math.pi / 2,   -- quarter-turn from the side-on default to face the camera
 })
 ui.Model = Model
 
