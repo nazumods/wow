@@ -5,6 +5,9 @@ local unpack = unpack
 local Class = ns.lua.Class
 local Frame = ui.Frame
 
+---@class LibNUI
+---@field EditBox EditBox
+
 ---@class EditBox: Frame
 ---@field multiline boolean? enable multiline mode (skips InputBoxTemplate)
 ---@field fontObj table? WoW font object to apply
@@ -33,7 +36,7 @@ end, {
 ui.EditBox = EditBox
 
 ---@class EditBox
----@field Text fun(text: string?): string|EditBox
+---@field Text fun(self: EditBox, text: string?): string|EditBox
 function EditBox:Text(text)
   if not text then return self._widget:GetText() end
   self._widget:SetText(text)
@@ -49,7 +52,7 @@ function EditBox:CursorPosition(pos)
 end
 
 ---@class EditBox
----@field HighlightText fun(startPos: number?, endPos: number?): EditBox
+---@field HighlightText fun(self: EditBox, startPos: number?, endPos: number?): EditBox
 function EditBox:HighlightText(startPos, endPos)
   self._widget:HighlightText(startPos, endPos)
   return self

@@ -4,6 +4,9 @@ local ui = ns.ui
 local Class = ns.lua.Class
 local Frame = ui.Frame
 
+---@class LibNUI
+---@field ScrollFrame ScrollFrame
+
 ---@class ScrollFrame: Frame
 local ScrollFrame = Class(Frame, function(self)
 end, {

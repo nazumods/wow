@@ -1,6 +1,7 @@
 ---@type Warbandeer
 local ns = select(2, ...)
 local max = math.max
+---@type LibNUI
 local ui = ns.ui
 
 local insert = table.insert

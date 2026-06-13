@@ -54,8 +54,10 @@ function maps.fill(destination, ...)
   return destination
 end
 
----@class Maps
----@field map fun(t: table, f: fun(v: any, k: integer | string): any): table return a new table by transforming each value by the given function
+---return a new table by transforming each value by the given function
+---@param t table
+---@param f fun(v: any, k: integer | string): any
+---@return table
 function maps.map(t, f)
   local r = {}
   for k,v in pairs(t) do
@@ -64,12 +66,14 @@ function maps.map(t, f)
   return r
 end
 
----@class Maps
----@field toMap fun(t: table, f: fun(v: any, k: integer | string): any): table return a new table by mapping each value by the given function
+---return a new table by mapping each value by the given function
+---@param t table
+---@param f? fun(v: any, k: integer): any
+---@return table
 function maps.toMap(t, f)
   local r = {}
   for i,v in ipairs(t) do
-    r[v] = f == nil and v or f(v, i)
+    if f ~= nil then r[v] = f(v, i) else r[v] = v end
   end
   return r
 end

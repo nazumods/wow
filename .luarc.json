@@ -6,6 +6,7 @@
     "before_each",
     "assert",
     "require",
+    "loadfile",
 
     "bit",
     "date",
