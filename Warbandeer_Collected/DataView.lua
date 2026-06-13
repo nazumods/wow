@@ -39,6 +39,7 @@ local shades = {
 ---Main grid: one row per set group (lock icon + name), one column per class,
 ---cells show missing-piece counts color-shaded by completion.
 ---@class DataView: TableFrame
+---@field _reverse boolean? render newest set-group first when set (see ToggleOrder)
 local DataView = Class(TableFrame, function(self)
   -- autoadjust name width
   local w = 0
@@ -68,7 +69,14 @@ end, {
   ),
   GetData = function(self)
     local toon = api:GetCharacterData(api:GetCurrentCharacter())
-    return lists.map(ns.Sets, function(grp, grpIdx)
+    -- Display order: ns.Sets oldest-first by default; _reverse → newest-first.
+    -- `srcIdx` is the real ns.Sets index (the lockout panel keys off it); `dispIdx`
+    -- is the on-screen row position (row/cell highlight + arrow key off that). They
+    -- differ once reversed, so keep them separate.
+    local order = {}
+    for i = 1, #ns.Sets do order[i] = self._reverse and (#ns.Sets - i + 1) or i end
+    return lists.map(order, function(srcIdx, dispIdx)
+      local grp = ns.Sets[srcIdx]
       local lock = toon.instances.locks and toon.instances.locks[grp.instance] and toon.instances.locks[grp.instance][grp.difficulty]
       if not ns.db.sets[grp.id] then return {} end
       local r = lists.map(grp.sets, function(set)
@@ -103,16 +111,16 @@ end, {
       tinsert(r, 2, {
         text = grp.name,
         onClick = function()
-          ns.ShowLockoutView(grpIdx, ns.window, {
+          ns.ShowLockoutView(srcIdx, ns.window, {
             TopRight = {ns.window, ui.edge.TopLeft, -25, 0},
             BottomRight = {ns.window, ui.edge.BottomLeft, -25, 0},
           })
-          local row = self.rows[grpIdx]
+          local row = self.rows[dispIdx]
           if _selectedRow ~= nil then
             self.cells[_selectedRow][2].label:Color(WHITE_FONT_COLOR)
           end
-          _selectedRow = grpIdx
-          self.cells[grpIdx][2].label:Color(NORMAL_FONT_COLOR:GetRGBA())
+          _selectedRow = dispIdx
+          self.cells[dispIdx][2].label:Color(NORMAL_FONT_COLOR:GetRGBA())
           if not _arrow then
             _arrow = Texture:new{
               parent = self,
@@ -133,6 +141,24 @@ end, {
     end)
   end,
 })
+
+---Flip the raid (row) order between oldest-first (ns.Sets order) and newest-first.
+---Clears any active lockout selection first — its row index moves on re-sort — then
+---rebuilds the grid in place.
+---@return boolean reversed  the new order state
+function DataView:ToggleOrder()
+  self._reverse = not self._reverse
+  if _selectedRow and self.cells[_selectedRow] and self.cells[_selectedRow][2] then
+    self.cells[_selectedRow][2].label:Color(WHITE_FONT_COLOR)
+  end
+  _selectedRow = nil
+  if _arrow then _arrow:Hide() end
+  ns.HideLockoutView()
+  self.data = self:GetData()
+  self:update()
+  return self._reverse
+end
+
 ---@class Warbandeer_Collected
 ---@field DataView DataView
 ns.DataView = DataView
