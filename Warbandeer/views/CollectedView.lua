@@ -38,14 +38,22 @@ local shades = {
 local GreenCheck = {
   atlas = ns.icons.CheckGreen,
   atlasSize = false,
-  position = { TopLeft = {3, -2}, BottomRight = {-3, 2} },
+  -- Centered, ~one character wide so it lines up with the numeric count cells.
+  position = { Center = {}, Size = {13, 13} },
 }
+
+-- A class set counts as fully collected when the scan flagged the base set (true)
+-- or every appearance is owned (remaining <= 0). The `or` short-circuits before
+-- indexing `status`, so passing the boolean `true` is safe.
+local function isComplete(status)
+  return status == true or status.collected >= status.total
+end
 
 -- Tooltip shown while hovering a class cell: set name + collection status.
 local function setTip(cell, set, status)
   ui.tip:ClearLines()
   ui.tip:AddLine(set.name)
-  if status == true then
+  if isComplete(status) then
     ui.tip:AddLine("Collected", 0.4, 0.85, 0.4)
   else
     ui.tip:AddLine(status.collected .. " / " .. status.total .. " appearances", 0.7, 0.7, 0.7)
@@ -101,7 +109,7 @@ end, {
         local status = set.id and gstat and gstat[set.id]
         if not status then return {} end
         local cell
-        if status == true then
+        if isComplete(status) then
           cell = {
             atlas = GreenCheck.atlas, atlasSize = GreenCheck.atlasSize,
             position = GreenCheck.position,
