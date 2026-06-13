@@ -525,6 +525,21 @@ function DressingRoom:StepTier(dir)
   end
 end
 
+-- Select the logged-in character's race + gender. Called when the window opens
+-- from a closed state, so each fresh open starts on the current character (while
+-- it's open, the user's race picks stick). Set before _load so its Dress() renders
+-- the right race/gender immediately.
+function DressingRoom:_defaultToPlayer()
+  local _, _, raceID = UnitRace("player")
+  self:_highlightRace(raceID)
+  self._raceID = raceID
+  local sex = UnitSex("player")
+  self:_highlightSex(sex)
+  self._sex = sex
+  self:_setupForms(ns.RaceModels[raceID])
+  self:_syncGenderToggle()
+end
+
 local _room
 
 ---Open the shared dressing room previewing a class set on a selectable race/gender.
@@ -533,18 +548,9 @@ local _room
 ns.ShowDressingRoom = function(group, set)
   if not _room then _room = DressingRoom:new{} end
 
-  -- Default to the logged-in character on first open; keep the user's choice after.
-  -- Set before _load so its Dress() renders the right race/gender immediately.
-  if not _room._raceID then
-    local _, _, raceID = UnitRace("player")
-    _room:_highlightRace(raceID)
-    _room._raceID = raceID
-    local sex = UnitSex("player")
-    _room:_highlightSex(sex)
-    _room._sex = sex
-    _room:_setupForms(ns.RaceModels[raceID])
-    _room:_syncGenderToggle()
-  end
+  -- Reset to the current character's race each time it opens fresh; clicking
+  -- another cell while it's already open keeps the chosen race.
+  if not _room._widget:IsShown() then _room:_defaultToPlayer() end
 
   _room:_load(group, set)
   _room:Show()
