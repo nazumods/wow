@@ -589,7 +589,7 @@ models render through one player-sized actor, so use `Scale` to size large races
 | Option        | Type   | Description                                           |
 |---------------|--------|-------------------------------------------------------|
 | `rotateSpeed` | number | Radians of yaw per screen pixel dragged (default 0.01) |
-| `facing`      | number | Initial yaw (radians) applied on load so the model faces the camera; re-skinned models pose side-on by default (default `-math.pi / 2`) |
+| `facing`      | number | Initial yaw (radians) applied on load so the model faces the camera; re-skinned models pose side-on by default (default `-math.rad(88)`) |
 
 ### Methods
 
