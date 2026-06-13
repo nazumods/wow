@@ -391,6 +391,17 @@ function DressingRoom:Dress()
   -- read [sex] directly off the entry.
   local form = self:_resolvedForm()
   local id = form and form[self._sex]
+
+  -- Decide the outfit BEFORE (re)loading the model. The re-skin loads async and
+  -- resets the actor to its baked default (an NPC display arrives wearing the NPC's
+  -- gear) once the load finishes, so the model re-applies this on its load callback
+  -- (Model:Outfit). An empty list = undressed (bare body for race identification).
+  local sources = {}
+  if not self._undressed then
+    for _, src in ipairs(GetAllSourceIDs(self._set.id)) do sources[#sources + 1] = src end
+  end
+  m:Outfit(sources)
+
   if id then
     m:DisplayInfo(id)
   else
@@ -402,11 +413,6 @@ function DressingRoom:Dress()
   scale = scale or 1
   m:Scale(scale)                  -- per-race/gender size correction; re-apply post re-skin
   self._scaleSlider:Value(scale)  -- reflect the race's scale in the slider/readout
-  m:Undress()   -- baked NPC displays arrive wearing the NPC's gear; strip to bare body
-  if self._undressed then return end   -- bare body for race identification
-  for _, src in ipairs(GetAllSourceIDs(self._set.id)) do
-    m:TryOn(src)
-  end
 end
 
 -- Point the title-bar class icon at the class in column `classId` (hidden if the
