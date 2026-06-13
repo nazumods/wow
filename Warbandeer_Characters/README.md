@@ -22,7 +22,7 @@ data through the `WarbandeerApi` global.
 | `/wbc stat` | Warband-wide playtime/class statistics |
 | `/wbc missing [me]` | Report characters/fields with incomplete data |
 | `/wbc wmissing` | Same report in a copyable window (with a titlebar font-size picker) |
-| `/wbc cleanup`, `/wbc dump …`, `/wbc debug …` | Maintenance/developer tools |
+| `/wbc cleanup`, `/wbc dump …` | Maintenance/developer tools |
 
 ## Notes
 

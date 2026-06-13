@@ -21,6 +21,7 @@ exclude_files = {".lua", ".luarocks", ".install"}
 files["**/spec/**/*.lua"] = {std = "+busted", read_globals = {"loadfile", "assert", "require", "tostring"}, globals = {"Mixin", "_G.Mixin"}}
 -- Addons that intentionally define their own globals.
 files["LibNUI/globals.lua"] = {globals = {"LibNUI"}, read_globals = {"LibNUITest"}}
+files["LibNUI/debug.lua"] = {globals = {"SLASH_WDEBUG1"}}
 files["LibNUI_Test/**/*.lua"] = {globals = {"LibNUITest"}}
 files["ShadowsOfUI-DMF/**/*.lua"] = {globals = {"SLASH_SUI_DMF1"}}
 

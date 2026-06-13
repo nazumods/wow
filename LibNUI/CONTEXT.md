@@ -1,6 +1,6 @@
 # LibNUI
 
-**Deps:** LibNAddOn · **Commands:** `/nui version`, `/nui test [key]` · **Global:** `LibNUI` (= `ns.ui` in consuming addons)
+**Deps:** LibNAddOn · **Commands:** `/nui version`, `/nui test [key]`, `/wdebug <lua>` · **Global:** `LibNUI` (= `ns.ui` in consuming addons) · **DB:** `LibNUIDB` (v1; `copyFontSize`)
 
 OOP UI widget library. Every widget wraps a backing WoW object (`self._widget`) and is built via `Widget:new{ ...options }`. Widgets register themselves on `ui` (e.g. `ui.Frame`, `LibNUI.Frame`). Files live at the addon root; `settings/` holds the WoW Settings-panel controls.
 
@@ -8,7 +8,7 @@ OOP UI widget library. Every widget wraps a backing WoW object (`self._widget`) 
 
 | File | Purpose |
 |---|---|
-| `globals.lua` | Creates `LibNUI`/`ns.ui`; registers `/nui version` and `/nui test` (loads on-demand `LibNUI_Test`) |
+| `globals.lua` | Creates `LibNUI`/`ns.ui`; `MigrateDB` (seeds `LibNUIDB`); registers `/nui version` and `/nui test` (loads on-demand `LibNUI_Test`) |
 | `constants.lua` | Enum tables: `ui.edge`, `ui.layer`, `ui.justify`, `ui.wrap`, `ui.fonts` |
 | `Theme.lua` | `ui.themes.dark` (default styling tokens) + `ui.Theme(overrides)` factory for custom themes |
 | `Region.lua` | `Region` — abstract base; anchoring/size/visibility/alpha + declarative `position` system |
@@ -31,11 +31,13 @@ OOP UI widget library. Every widget wraps a backing WoW object (`self._widget`) 
 | `TableRow.lua` | `TableRow` — row header strip (BgFrame) |
 | `TableFrame.lua` | `TableFrame` — full data grid (headers + cells); `set`, `addCol`/`addRow`, `update`, `setFooter` |
 | `TitleFrame.lua` | `TitleFrame` — windowed CleanFrame with title bar, icon, close button; `Title` |
+| `CopyWindow.lua` | `CopyWindow` — reusable copyable scroll window (TitleFrame + ScrollFrame + multiline EditBox + titlebar font-size picker); `Display(title, text)`. Shared singleton via `ui.ShowCopyWindow(title, text)`. Font size persists in `LibNUIDB.copyFontSize` |
 | `TabFrame.lua` | `TabFrame` — tabbed container; `Select`, `Tab`, `Selected` |
 | `Tooltip.lua` | `Tooltip` — custom tooltip with line pooling + scrolling menus; singleton `ui.tip` |
 | `settings/SettingsFrame.lua` | `SettingsFrame` — WoW Settings panel container; `AddControl`, `Register(Sub)category` |
 | `settings/TextSetting.lua` | `TextSetting` — label + EditBox bound to `table[field]` |
 | `settings/ToggleSetting.lua` | `ToggleSetting` — label + CheckButton bound to `table[field]` |
+| `debug.lua` | `/wdebug <lua>` — eval arbitrary Lua (expression or statement) and show the dump/print output in `ui.ShowCopyWindow`. Registered as a raw slash (`SLASH_WDEBUG1`), not via the `/nui` dispatcher, so the whole arg string is the code |
 
 ## Class Hierarchy
 
@@ -62,6 +64,7 @@ Region
      ├─ ToggleSetting
      └─ CleanFrame
          ├─ TitleFrame
+         │   └─ CopyWindow
          └─ Tooltip
 AutoWidget — standalone factory (no parent class)
 ```
@@ -141,6 +144,7 @@ Any key matching a method on the instance is valid; tables are unpacked, scalars
 | `EditBox` | `fontObj`, `autoFocus`, `text`, `cursorPosition` |
 | `CleanFrame` | `parent` (`UIParent`), `clamped` (true), `strata` (`MEDIUM`), `background` (`{0.114,0.141,0.165,1}`) |
 | `TitleFrame` | inherits CleanFrame; `title`, `drag` (true) |
+| `CopyWindow` | inherits TitleFrame; no options needed (defaults: centered, height 380, `special`). `Display(title, text)` shows + sizes + highlights; prefer the `ui.ShowCopyWindow` singleton |
 | `TabFrame` | `tabs` (string[]), `tabHeight` (24), `tabWidth` (80), `activeColor`, `inactiveColor`, `onSelect` |
 | `Tooltip` | inherits CleanFrame; `lines`, `maxHeight` (clips into scrollable viewport); `strata` (`DIALOG`), `background` (`{0,0,0,0.7}`), `inset` (3) |
 | `SettingsFrame` | `heading` (`{text,fontObj,color}`), `headingText` |

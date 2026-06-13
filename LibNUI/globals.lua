@@ -5,6 +5,19 @@ local ns = LibNAddOn(...)
 ns.ui = {}
 LibNUI = ns.ui
 
+---@class LibNUIDB
+---@field version integer
+---@field copyFontSize integer?  account-wide font size for the shared CopyWindow
+
+---@class LibNUI_AddOn
+---@field db LibNUIDB
+---@field MigrateDB fun(self)
+function ns:MigrateDB()
+  local db = ns.db
+  if db.version == 1 then return end
+  db.version = 1
+end
+
 ns:registerCommand("version", nil, function(self, msg)
   ns.Print("LibNUI version " .. ns:GetMetadata("Version"))
   local v,_,d,n = GetBuildInfo()

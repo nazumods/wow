@@ -54,7 +54,7 @@ Load the linked `CONTEXT.md` for full file maps, class hierarchies, API surfaces
 | Addon | Summary | Reference |
 |---|---|---|
 | **LibNAddOn** | Bootstrapping factory (`LibNAddOn(features)`), class system, lua utils, event/DB/settings wiring. Every addon depends on it. | [LibNAddOn/CONTEXT.md](LibNAddOn/CONTEXT.md) |
-| **LibNUI** | OOP UI widget library; global `LibNUI` / `ns.ui`. Region→Frame hierarchy: Texture, Label, StatusBar, Button, TableFrame, TitleFrame, TabFrame, Tooltip, settings widgets. Themable via `ui.Theme{}` / `ui.themes.dark`. | [LibNUI/CONTEXT.md](LibNUI/CONTEXT.md) |
+| **LibNUI** | OOP UI widget library; global `LibNUI` / `ns.ui`. Region→Frame hierarchy: Texture, Label, StatusBar, Button, TableFrame, TitleFrame, TabFrame, Tooltip, CopyWindow, settings widgets. Themable via `ui.Theme{}` / `ui.themes.dark`. Shared copy window `ui.ShowCopyWindow` + `/wdebug`; `LibNUIDB` (v1). | [LibNUI/CONTEXT.md](LibNUI/CONTEXT.md) |
 | **Warbandeer_Characters** | Data collection backbone; populates `WarbandeerApi`. Broker system, per-character struct, account-wide warband wealth + bank prof-gear cache (warband/character/guild), `WarbandeerCharDB` (v12). | [Warbandeer_Characters/CONTEXT.md](Warbandeer_Characters/CONTEXT.md) |
 | **Warbandeer** | Main viewer UI (`/warband`, `/wb`). 13 views, MainWindow, faction widget, `profIntent`, `WarbandeerDB` (v3). | [Warbandeer/CONTEXT.md](Warbandeer/CONTEXT.md) |
 | **Warbandeer_Alias** | Guild-chat alias prefix hook. Single file; `Warbandeer_AliasDB` (v1). | [Warbandeer_Alias/CONTEXT.md](Warbandeer_Alias/CONTEXT.md) |
@@ -79,7 +79,7 @@ LibNUI_Test is a LoadOnDemand visual test harness for LibNUI (`/nui test [key]`)
 | Addon | Commands | Sub-commands |
 |---|---|---|
 | LibNAddOn | `/lib` | `player` |
-| LibNUI | `/nui` | `version`, `test [key]` |
+| LibNUI | `/nui`, `/wdebug` | `version`, `test [key]`; `/wdebug <lua>` (raw command: eval Lua → copyable window) |
 | Warbandeer_Characters | `/characters`, `/wbc` | `list`, `delete <name>`, `cleanup`, `refresh`, `refresh items/locks`, `dump`, `dump bank/bankgear/gt/locks/artifact/warband/profgear`, `stat`, `missing`, `missing me`, `wmissing` |
 | Warbandeer | `/warband`, `/wb` | `""` (open), `overview`, `summary`, `gear`, `detail`, `roles`, `races`, `legion`, `midnight`, `profs`, `midnightprofs`, `crafting`, `playtime`, `bars`, `collected`, `check legion` |
 | Warbandeer_Collected | `/collected`, `/collect` | `""` (open), `scan` |
