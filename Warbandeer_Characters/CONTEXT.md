@@ -20,7 +20,7 @@ Data-collection backbone for the suite. Scans the active character each login/re
 | `data/warband.lua` | Account-wide (not a broker): `db.warband` bank gold + weekly wealth. `ns:GetWarbandWealth`, `RolloverWarbandWeek`, `InitWarband`; `/wbc dump warband` |
 | `data/bank.lua` | Account-wide (not a broker): `db.bank` profession-gear cache for the warband bank, each character's bank, and guild banks. Scanned on bank/guild-bank open (warband+character via `C_Bank`/`C_Container`, guild via the classic API). `WarbandeerApi:GetBankProfGear(skillID)`; `/wbc dump bankgear`. A character with no `db.bank.characters[name]` entry is flagged "bank contents" by `missing.lua` |
 | `data/items.lua` | Broker `items`: `bags`, `reagentBag`; `/wbc refresh items` |
-| `data/professions.lua` | Broker `professions`: `details` (per-exp skill levels, spec points, learned recipes) + `gear` (tool/accessory slots). Also defines `ns.api.professionInfo`; scans pre-resolve current-exp recipes into the recipe-gear cache |
+| `data/professions.lua` | Broker `professions`: `details` (per-exp skill levels, spec points, learned recipes) + `gear` (tool/accessory slots). Also defines `ns.api.professionInfo`; scans pre-resolve current-exp recipes into the recipe-gear cache and capture each prof-gear recipe's reachable crafting `quality`/`qualityConc` (via `GetCraftingOperationInfo`) |
 | `data/recipegear.lua` | Account-wide `db.recipeGear` cache (recipe → prof-gear output: itemID/rarity/equipLoc/target skillID), build-stamped; `WarbandeerApi:ResolveRecipeOutput`, `WarbandeerApi:ClassifyProfGearItem` (item → prof skillID/equipLoc, shared with the bank scanner) |
 | `data/concentration.lua` | Broker `concentration`: `data` — Midnight concentration currency per crafting prof, keyed by parent skillLineID |
 | `data/races.lua` | `API.ALLIANCE_RACES`, `API.HORDE_RACES`, `ns.NormalizeRaceId(raceId)` → `(raceIdx, isAlliance)` |
@@ -99,7 +99,10 @@ items = {
 professions = {
   details = { [skillLineID] = {
     expansions = { {name, skillLevel, maxSkillLevel} }?, specPoints?,
-    recipes = { [expKey] = { learned = { {id, name} }, total } }?,  -- expKey: midnight/tww/df
+    recipes = { [expKey] = { learned = { {id, name, quality?, qualityConc?} }, total } }?,
+                                                         -- expKey: midnight/tww/df; quality/qualityConc
+                                                         -- = crafting tier reachable now w/o and w/ concentration
+                                                         -- (current-exp prof-gear recipes only)
   } }?,
   gear = { [parentSkillLineID] = { slots = { [invSlot] = {name,link,ilvl,rarity,tier,expacID} } } }?,
 }
@@ -173,6 +176,7 @@ A `Broker` (from `broker.lua`) holds a `fields` table; each field is `{ get, eve
 
 - **`GetCharacterData` returns a live reference, not a copy** — mutating it writes straight into the DB. (A `--todo` in `api.lua` notes this.)
 - **`refreshQueue` paces one *field* (not one broker) per 100ms** via `ns:delay` to avoid a login frame spike. `lastRefresh` is stamped only when the queue drains.
+- **Per-recipe crafting `quality`/`qualityConc` is a conservative skill-floor estimate.** Captured with empty reagents (`GetCraftingOperationInfo(id, {}, nil, false/true)`), so it's the worst-case tier the character reaches on skill alone — better mats only improve on it. Per-character and window-driven like the rest of `details`, so it stays nil until the character reopens that profession window.
 - **`professions.details` scans are window-driven and merge-preserving.** Recipes/spec points are only queryable while a trade-skill window is open; the scan captures the opened profession's ID *before* the 0.5s timer (the player may switch professions meanwhile) and per-field-nil-guards against the API returning empty during load, so partial scans never wipe good cached data.
 - **`professions.gear` and `equipment.slots` pre-request item data.** WoW item APIs return nil until loaded, so both fire `RequestLoadItemData` on `PLAYER_EQUIPMENT_CHANGED` and re-`Update` from `ITEM_DATA_LOAD_RESULT` once the outstanding request count hits zero. Always merge onto cached values.
 - **`playtime` bypasses the field system.** `TIME_PLAYED_MSG` is async, so the broker overrides `Init` to register its own handler and calls `RequestTimePlayed()`; `byPatch[patch]` is written only on the first login of a patch.

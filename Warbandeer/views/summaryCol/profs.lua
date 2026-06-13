@@ -55,7 +55,7 @@ end
 
 local RECIPE_EXP_KEY = "midnight" -- recipe bucket to scan (matches CraftingView)
 
-local craftable       -- [itemID] = { rarity, equipLoc, crafters = {{name, skill, isMain}} }
+local craftable       -- [itemID] = { rarity, equipLoc, crafters = {{name, skill, isMain, quality, qualityConc}} }
 local craftableByProf -- [skillLineID the gear is for] = entry[]
 local craftableDirty  -- some output items weren't in the item cache; rebuild next hover
 
@@ -83,9 +83,13 @@ local function buildCraftable()
           if not known then
             local prof = ns.data.FindProf(toon, craftSkillID)
             insert(entry.crafters, {
-              name   = toon.name,
-              skill  = prof and prof.skillLevel or 0,
-              isMain = ns.data.GetProfIntent(toon.name, craftSkillID) == "main",
+              name    = toon.name,
+              skill   = prof and prof.skillLevel or 0,
+              isMain  = ns.data.GetProfIntent(toon.name, craftSkillID) == "main",
+              -- Crafting quality tier this toon reaches for THIS recipe, captured
+              -- at scan time, with/without concentration (nil until re-scanned).
+              quality     = recipe.quality,
+              qualityConc = recipe.qualityConc,
             })
           end
         end
@@ -107,12 +111,47 @@ local function bestCrafter(entry)
   return best
 end
 
+-- Best crafter who can actually reach a quality tier ABOVE minTier for an entry,
+-- and the tier + whether it needs concentration.  Preference: no concentration
+-- first, then higher tier, then the profession's main, then raw skill.  Also
+-- reports whether ANY crafter carried quality data (nil quality = the recipe
+-- hasn't been re-scanned since quality capture shipped), so callers can fall
+-- back to a plain (un-tiered) suggestion instead of going silent.
+---@return table? crafter, integer? tier, boolean? needsConcentration, boolean hasData
+local function bestQualityCrafter(entry, minTier)
+  local best, bestTier, bestConc, hasData
+  for _, c in ipairs(entry.crafters) do
+    if c.quality or c.qualityConc then hasData = true end
+    local tier, conc
+    if c.quality and c.quality > minTier then tier, conc = c.quality, false
+    elseif c.qualityConc and c.qualityConc > minTier then tier, conc = c.qualityConc, true end
+    if tier and (not best
+      or (bestConc and not conc)
+      or (bestConc == conc and tier > bestTier)
+      or (bestConc == conc and tier == bestTier and c.isMain and not best.isMain)
+      or (bestConc == conc and tier == bestTier and c.isMain == best.isMain and c.skill > best.skill)) then
+      best, bestTier, bestConc = c, tier, conc
+    end
+  end
+  return best, bestTier, bestConc, hasData or false
+end
+
+-- "(T4)" / "(T4, concentration)" quality suffix for a crafter clause.
+local function tierTag(tier, conc)
+  return (" (T%d%s)"):format(tier, conc and ", concentration" or "")
+end
+
 -- Hint line for a worn item, or nil.  A higher-rarity craftable for the same
--- slot type wins over recrafting the worn item to a higher quality tier (we
--- only know the recipe is learned, not the quality the crafter would reach).
+-- slot type wins over recrafting the worn item to a higher quality tier.
 -- Suggestions stop at the rare baseline — epic isn't part of the 100% goal,
 -- so it's never pushed on a character already wearing rare.
 -- Old-expansion items treat any current-expansion craftable as better.
+--
+-- Crafter choice is quality-aware: an alt is only named if they can actually
+-- reach a tier above the worn item's (knowing the recipe ≠ having the skill),
+-- and the line states the tier and whether it needs concentration.  When no
+-- crafter has quality data yet (recipes not re-scanned since capture shipped)
+-- it falls back to a plain "can ..." suggestion rather than going silent.
 local function craftHint(skillID, item, isCurrentExpac)
   if not craftable or craftableDirty then buildCraftable() end
   local itemID = item.link and tonumber(item.link:match("item:(%d+)"))
@@ -128,13 +167,23 @@ local function craftHint(skillID, item, isCurrentExpac)
     end
   end
   if better then
-    local c = bestCrafter(better)
-    if c then return ("    |cffaaaaaa%s can craft a better version.|r"):format(c.name) end
+    local c, tier, conc, hasData = bestQualityCrafter(better, 0)
+    if c then
+      return ("    |cffaaaaaa%s can craft a better version%s.|r"):format(c.name, tierTag(tier, conc))
+    elseif not hasData then
+      local fc = bestCrafter(better)
+      if fc then return ("    |cffaaaaaa%s can craft a better version.|r"):format(fc.name) end
+    end
   end
   local own = craftable[itemID]
   if own and item.tier and item.tier < MAX_TIER then
-    local c = bestCrafter(own)
-    if c then return ("    |cffaaaaaa%s can upgrade this.|r"):format(c.name) end
+    local c, tier, conc, hasData = bestQualityCrafter(own, item.tier)
+    if c then
+      return ("    |cffaaaaaa%s can upgrade this%s.|r"):format(c.name, tierTag(tier, conc))
+    elseif not hasData then
+      local fc = bestCrafter(own)
+      if fc then return ("    |cffaaaaaa%s can upgrade this.|r"):format(fc.name) end
+    end
   end
   return nil
 end
@@ -147,20 +196,26 @@ end
 local function emptyHints(skillID, equipLoc)
   if not craftable or craftableDirty then buildCraftable() end
   local lines = {}
-  -- Best crafter across this profession's recipes for this slot type.
-  local best
+  -- Best crafter (and the tier they'd reach) across this profession's recipes
+  -- for this slot type, preferring no concentration then higher tier.  Falls
+  -- back to a plain suggestion only when no recipe has quality data yet.
+  local best, bestTier, bestConc, anyData, fallback
   for _, entry in ipairs(craftableByProf[skillID] or {}) do
     if entry.equipLoc == equipLoc then
-      local c = bestCrafter(entry)
+      local c, tier, conc, hasData = bestQualityCrafter(entry, 0)
+      if hasData then anyData = true end
       if c and (not best
-        or (c.isMain and not best.isMain)
-        or (c.isMain == best.isMain and c.skill > best.skill)) then
-        best = c
+        or (bestConc and not conc)
+        or (bestConc == conc and tier > bestTier)) then
+        best, bestTier, bestConc = c, tier, conc
       end
+      fallback = fallback or bestCrafter(entry)
     end
   end
   if best then
-    insert(lines, ("    |cffaaaaaa%s can craft one.|r"):format(best.name))
+    insert(lines, ("    |cffaaaaaa%s can craft one%s.|r"):format(best.name, tierTag(bestTier, bestConc)))
+  elseif not anyData and fallback then
+    insert(lines, ("    |cffaaaaaa%s can craft one.|r"):format(fallback.name))
   end
   -- Spares of this slot type in any scanned bank, summed per source (warband
   -- first, then alts, then guild) in the order GetBankProfGear returns them.

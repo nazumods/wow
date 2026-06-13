@@ -104,8 +104,14 @@ local RECIPE_EXP_KEYS = {
 -- uses this to tell "never scanned / capture gap" apart from "just hasn't trained it".
 ns.CURRENT_RECIPE_EXP = "Midnight"
 
+---@class ProfLearnedRecipe
+---@field id integer
+---@field name string
+---@field quality integer? -- crafting quality tier (1-5) reachable at current skill, base reagents, no concentration (prof-gear recipes only)
+---@field qualityConc integer? -- crafting quality tier reachable with concentration applied
+
 ---@class ProfRecipeBucket
----@field learned {id:integer, name:string}[]
+---@field learned ProfLearnedRecipe[]
 ---@field total integer
 
 ---@class ProfDetail
@@ -224,10 +230,21 @@ ns.Professions.fields = {
             profData.recipes = recipes
             -- Pre-resolve this profession's current-expansion recipes into the
             -- account-wide prof-gear cache while trade-skill data is hot (see
-            -- data/recipegear.lua); other consumers then hit a warm cache.
+            -- data/recipegear.lua); other consumers then hit a warm cache.  For
+            -- the ones that craft profession gear, also capture the crafting
+            -- quality THIS character can currently reach — with and without
+            -- concentration — so the gear tooltip can tell whether an alt could
+            -- actually produce an upgrade (knowing the recipe ≠ having the skill).
+            -- Empty reagents ⇒ skill-floor quality, a deliberately conservative
+            -- estimate (better mats only ever improve on it).
             local current = recipes and recipes[RECIPE_EXP_KEYS[ns.CURRENT_RECIPE_EXP]]
             for _, r in ipairs(current and current.learned or {}) do
-              API:ResolveRecipeOutput(r.id)
+              if API:ResolveRecipeOutput(r.id) and C_TradeSkillUI.GetCraftingOperationInfo then
+                local base = C_TradeSkillUI.GetCraftingOperationInfo(r.id, {}, nil, false)
+                local conc = C_TradeSkillUI.GetCraftingOperationInfo(r.id, {}, nil, true)
+                r.quality     = base and base.craftingQuality
+                r.qualityConc = conc and conc.craftingQuality
+              end
             end
           end
         end
