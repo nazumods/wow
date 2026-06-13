@@ -43,4 +43,20 @@ function API:SetStatus(groupId, setId)
   return g and g[setId]
 end
 
+---Show the shared per-slot source InfoTip for a set, so sibling addons render the
+---identical hover tooltip. Forwards lazily to `ns.ShowInfoTip` (defined later in
+---`controls/InfoTip.lua`, after this file loads).
+---@param group table  a group entry from `ns.Sets`
+---@param set table    a set entry within that group
+---@param parent Frame  the hovered cell to anchor against / level above
+---@param position table  LibNUI position spec
+function API:ShowInfoTip(group, set, parent, position)
+  ns.ShowInfoTip(group, set, parent, position)
+end
+
+---Hide the shared InfoTip (no-op if never shown).
+function API:HideInfoTip()
+  ns.HideInfoTip()
+end
+
 _G.WarbandeerCollectedApi = API

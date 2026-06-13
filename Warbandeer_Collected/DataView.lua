@@ -9,11 +9,16 @@ local TableFrame, Texture = ui.TableFrame, ui.Texture
 local GreenCheck = {
   atlas = ns.icons.CheckGreen,
   atlasSize = false,
-  position = {
-    TopLeft = {3, -2},
-    BottomRight = {-3, 2},
-  },
+  -- Centered, ~one character wide so it lines up with the numeric count cells.
+  position = { Center = {}, Size = {13, 13} },
 }
+
+-- A class set counts as fully collected when the scan flagged the base set (true)
+-- or every appearance is owned (remaining <= 0). The `or` short-circuits before
+-- indexing `status`, so passing the boolean `true` is safe.
+local function isComplete(status)
+  return status == true or status.collected >= status.total
+end
 
 local _arrow = nil
 local _selectedRow = nil
@@ -67,18 +72,29 @@ end, {
       local lock = toon.instances.locks and toon.instances.locks[grp.instance] and toon.instances.locks[grp.instance][grp.difficulty]
       if not ns.db.sets[grp.id] then return {} end
       local r = lists.map(grp.sets, function(set)
-        if not ns.db.sets[grp.id][set.id] then return nil end
-        if ns.db.sets[grp.id] and ns.db.sets[grp.id][set.id] == true then return GreenCheck end
+        local status = ns.db.sets[grp.id][set.id]
+        if not status then return nil end
+        -- Same per-slot source tooltip on every cell, complete or partial — for a
+        -- fully-collected set every slot shows green.
+        local onEnter = function(cell)
+          ns.ShowInfoTip(grp, set, cell, {
+            BottomRight = {cell, ui.edge.Top, -2, 2},
+          })
+        end
+        local onLeave = function() ns.HideInfoTip() end
+        if isComplete(status) then
+          return {
+            atlas = GreenCheck.atlas, atlasSize = GreenCheck.atlasSize,
+            position = GreenCheck.position,
+            onEnter = onEnter, onLeave = onLeave,
+          }
+        end
         return {
-            text = ns.db.sets[grp.id][set.id].total - ns.db.sets[grp.id][set.id].collected,
+            text = status.total - status.collected,
             justifyH = ui.justify.Center,
-            color = shades[max(1,floor(ns.db.sets[grp.id][set.id].collected / ns.db.sets[grp.id][set.id].total * 10))],
-            onEnter = function(cell)
-              ns.ShowInfoTip(grp, set, cell, {
-                BottomRight = {cell, ui.edge.Top, -2, 2},
-              })
-            end,
-            onLeave = function() ns.HideInfoTip() end,
+            color = shades[max(1,floor(status.collected / status.total * 10))],
+            onEnter = onEnter,
+            onLeave = onLeave,
           }
       end)
       tinsert(r, 1, {
