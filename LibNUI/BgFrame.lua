@@ -5,6 +5,9 @@ local ui = ns.ui
 local Class = ns.lua.Class
 local Frame, Texture = ui.Frame, ui.Texture
 
+---@class LibNUI
+---@field BgFrame BgFrame
+
 -- frame with a background
 ---@class BgFrame: Frame
 ---@field backdrop Texture  background texture; pass {color = ...} at construction to override the "backdrop" theme token

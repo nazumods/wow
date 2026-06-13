@@ -6,8 +6,11 @@ local ui = ns.ui
 local insert = table.insert
 local Class, CleanFrame, Frame, Label = ns.lua.Class, ui.CleanFrame, ui.Frame, ui.Label
 
+---@class LibNUI
+---@field Tooltip Tooltip
+
 ---@class Tooltip: CleanFrame
----@field lines Frame[]  line frames (each carries a `.label`); options tables at construction
+---@field lines TooltipLine[]  line frames (each carries a `.label`); options tables at construction
 ---@field inset number  inner padding in pixels
 ---@field maxWidth number?  content width cap (see MaxWidth)
 ---@field maxHeight number?  height cap; overflowing constructor lines become scrollable
@@ -151,13 +154,17 @@ function Tooltip:_scrollBy(dy)
   self:_applyScroll()
 end
 
+---@class TooltipLine: Frame
+---@field label Label
+
 -- Grabs the next line frame from the pool, creating one if the pool is exhausted.
 -- Repositions pooled frames to maintain correct stacking order after ClearLines().
----@return Frame
+---@return TooltipLine
 function Tooltip:_acquireLine()
   self._lineCount = self._lineCount + 1
   local i = self._lineCount
   local prev = self.lines[i - 1]
+  ---@type TooltipLine
   local l = self.lines[i]
   if not l then
     l = Frame:new{
@@ -293,6 +300,10 @@ end
 ---@class LibNUI
 ---@field tip Tooltip
 ui.tip = Tooltip:new{}
+
+---@class LibNUI
+---@field ShowCharacterTooltip fun(toon: table, frame: table, position: table)
+---@field HideCharacterTooltip fun()
 
 -- Convenience wrappers for name-cell hover in table views. The position table is a
 -- standard LibNUI position table so each view can choose its own anchor layout.

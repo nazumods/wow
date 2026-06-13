@@ -3,6 +3,9 @@ local ns = select(2, ...)
 local ui = ns.ui
 local Class, BgFrame, Frame = ns.lua.Class, ui.BgFrame, ui.Frame
 
+---@class LibNUI
+---@field TableCol TableCol
+
 ---@class TableCol: BgFrame
 ---@field header Frame   the header strip (a Frame so it can carry tooltip scripts); exposes `.label` / `.texture` / `.button` from its AutoWidget content for compatibility
 ---@field tooltip string|string[]? text (or list of lines) shown when hovering the header

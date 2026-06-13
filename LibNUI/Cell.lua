@@ -4,6 +4,9 @@ local ui = ns.ui
 local Class, Frame = ns.lua.Class, ui.Frame
 local Label, Texture = ui.Label, ui.Texture
 
+---@class LibNUI
+---@field Cell Cell
+
 ---@class Cell: Frame
 ---@field data table|string  cell data: an options table (text/path/atlas/...) or a plain text string
 ---@field texture Texture?  icon content, created on first texture-bearing data

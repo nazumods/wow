@@ -1,5 +1,6 @@
 ---@type LibNUI_AddOn
 local ns = select(2, ...)
+---@type LibNUI
 local ui = ns.ui
 local insert = table.insert
 local Class, Frame, Texture = ns.lua.Class, ui.Frame, ui.Texture
@@ -12,6 +13,7 @@ local Top, Bottom = ui.edge.Top, ui.edge.Bottom
 
 -- making a table: https://www.wowinterface.com/forums/showthread.php?t=58670
 ---@class TableFrame: Frame
+---@field name? string
 ---@field autosize? boolean
 ---@field backdrop? table
 ---@field colBackdrop? table
@@ -20,6 +22,7 @@ local Top, Bottom = ui.edge.Top, ui.edge.Bottom
 ---@field rowInfo? table
 ---@field headerFont? string
 ---@field colHeaderFont? string
+---@field rowHeaderFont? string
 ---@field headerHeight? integer
 ---@field cellHeight? integer
 ---@field cellWidth? integer
@@ -27,6 +30,7 @@ local Top, Bottom = ui.edge.Top, ui.edge.Bottom
 ---@field hPad? integer  horizontal inset (px) applied to both sides of every cell; per-column override via colInfo[i].hPad (or asymmetric colInfo[i].hPadL / hPadR)
 ---@field rowNames table
 ---@field offsetX integer
+---@field offsetY integer
 ---@field rows table
 ---@field cols table
 ---@field cells table

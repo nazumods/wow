@@ -35,6 +35,9 @@ local function formatCooldown(t)
   return math.ceil(t)..'s'
 end
 
+---@class LibNUI
+---@field Button Button
+
 -- https://wowpedia.fandom.com/wiki/UIOBJECT_Button
 ---@class Button: Frame
 ---@field _widget table

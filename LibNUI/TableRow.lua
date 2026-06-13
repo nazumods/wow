@@ -3,6 +3,9 @@ local ns = select(2, ...)
 local ui = ns.ui
 local Class, BgFrame = ns.lua.Class, ui.BgFrame
 
+---@class LibNUI
+---@field TableRow TableRow
+
 ---@class TableRow: BgFrame
 ---@field header AutoWidget  row header content (label or texture)
 ---@field label string?  header text
