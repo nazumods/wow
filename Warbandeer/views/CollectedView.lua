@@ -49,19 +49,14 @@ local function isComplete(status)
   return status == true or status.collected >= status.total
 end
 
--- Tooltip shown while hovering a class cell: set name + collection status.
-local function setTip(cell, set, status)
-  ui.tip:ClearLines()
-  ui.tip:AddLine(set.name)
-  if isComplete(status) then
-    ui.tip:AddLine("Collected", 0.4, 0.85, 0.4)
-  else
-    ui.tip:AddLine(status.collected .. " / " .. status.total .. " appearances", 0.7, 0.7, 0.7)
-    local remaining = status.total - status.collected
-    if remaining > 0 then ui.tip:AddLine(remaining .. " remaining", 1, 0.82, 0) end
+-- Position the shared Collected InfoTip on the user-configured side
+-- (ns.TooltipSide(): 2 = Right, extends rightward from the cell; 1 = Left, extends
+-- leftward), mirroring the side behaviour of Warbandeer's other tooltips.
+local function tipPosition(cell)
+  if ns.TooltipSide() == 2 then
+    return { TopLeft = {cell, ui.edge.TopRight, 4, 0} }
   end
-  ui.tip:AnchorTo(cell, "ANCHOR_RIGHT", 8, 0)
-  ui.tip:Show()
+  return { TopRight = {cell, ui.edge.TopLeft, -4, 0} }
 end
 
 -- ─── Grid (TableFrame) ──────────────────────────────────────────────────────
@@ -103,28 +98,35 @@ end, {
     end
     return lists.map(groups, function(grp)
       local gstat = api:GroupStatus(grp.id)
-      -- One cell per class slot; grp.sets always has 13 positional entries, so the
-      -- columns stay aligned even where a class has no set (blank {} cell).
+      -- One positional cell per class slot (blank {} where a class has no set).
       local r = lists.map(grp.sets, function(set)
         local status = set.id and gstat and gstat[set.id]
         if not status then return {} end
-        local cell
+        -- Same per-slot source tooltip as the /collected window (via the API) on
+        -- every cell — complete or partial; a fully-collected set shows all green.
+        local onEnter = function(c)
+          WarbandeerCollectedApi:ShowInfoTip(grp, set, c, tipPosition(c))
+        end
+        local onLeave = function() WarbandeerCollectedApi:HideInfoTip() end
         if isComplete(status) then
-          cell = {
+          return {
             atlas = GreenCheck.atlas, atlasSize = GreenCheck.atlasSize,
             position = GreenCheck.position,
-          }
-        else
-          cell = {
-            text = status.total - status.collected,
-            justifyH = ui.justify.Center,
-            color = shades[max(1, floor(status.collected / status.total * 10))],
+            onEnter = onEnter, onLeave = onLeave,
           }
         end
-        cell.onEnter = function(c) setTip(c, set, status) end
-        cell.onLeave = function() ui.tip:Hide() end
-        return cell
+        return {
+          text = status.total - status.collected,
+          justifyH = ui.justify.Center,
+          color = shades[max(1, floor(status.collected / status.total * 10))],
+          onEnter = onEnter,
+          onLeave = onLeave,
+        }
       end)
+      -- grp.sets can stop short of the newest classes (no Demon Hunter/Evoker entry
+      -- in older raids), leaving those columns cell-less. Pad to the full class count
+      -- so they blank out instead of keeping another row's value on re-sort.
+      for i = #r + 1, #ns.icons.classes do r[i] = {} end
       table.insert(r, 1, { text = grp.name })
       return r
     end)

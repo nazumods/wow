@@ -4,13 +4,20 @@ local ns = select(2, ...)
 local ui = ns.ui
 local min, max = math.min, math.max
 local Class, TitleFrame, ScrollFrame, Label = ns.lua.Class, ui.TitleFrame, ui.ScrollFrame, ui.Label
+local Frame, Button, Texture = ui.Frame, ui.Button, ui.Texture
 local DataView = ns.DataView
+
+-- Raid-order toggle border: muted when oldest-first, gold once newest-first.
+local SORT_IDLE   = {0.28, 0.28, 0.32, 1}
+local SORT_ACTIVE = {0.85, 0.65, 0.13, 1}
 
 ---Top-level Collected window: titled frame holding the DataView grid and a sets counter.
 ---@class CollectedWindow: TitleFrame
 ---@field data DataView the sets-by-class grid
 ---@field scroll ScrollFrame scroll container for the grid's row area
 ---@field counter Label "collected / total" sets counter
+---@field _sortBorder Texture raid-order toggle border (gold once newest-first)
+---@field _sortLabel Label raid-order toggle caption (OLDEST/NEWEST FIRST)
 local MainWindow = Class(TitleFrame, function(self)
   local w = 110
 
@@ -47,6 +54,37 @@ local MainWindow = Class(TitleFrame, function(self)
     fontObj = "GameFontNormalLarge",
     color = WHITE_FONT_COLOR,
     text = ns.db.collected .. " / " .. ns.db.total,
+  }
+
+  -- Raid-order toggle in the title bar, left of the close button. Mirrors
+  -- Warbandeer's Collected view: flips oldest/newest-first via DataView:ToggleOrder.
+  local box = Frame:new{
+    parent = self.titlebar,
+    position = {
+      Right = {self.closeButton, ui.edge.Left, -4, 0},
+      Width = 96, Height = 20,
+    },
+  }
+  self._sortBorder = Texture:new{
+    parent = box, layer = ui.layer.Background,
+    position = { All = true }, color = SORT_IDLE,
+  }
+  Texture:new{
+    parent = box, layer = ui.layer.Border, color = {0.05, 0.05, 0.06, 0.92},
+    position = { TopLeft = {1, -1}, BottomRight = {-1, 1} },
+  }
+  local btn = Button:new{
+    parent = box, position = { All = true }, glow = false,
+    OnClick = function()
+      local rev = self.data:ToggleOrder()
+      self._sortLabel:Text(rev and "NEWEST FIRST" or "OLDEST FIRST")
+      self._sortBorder:Color(rev and SORT_ACTIVE or SORT_IDLE)
+    end,
+  }
+  self._sortLabel = Label:new{
+    parent = btn, fontObj = "GameFontNormalSmall", justifyH = ui.justify.Center,
+    position = { Left = {6, 0}, Right = {-6, 0} },
+    text = "OLDEST FIRST",
   }
 
   self:Height(34 + min(500, self.data:Height()))

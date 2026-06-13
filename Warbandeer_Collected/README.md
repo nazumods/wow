@@ -2,9 +2,10 @@
 
 A **transmog set tracker** for your whole warband. It shows a grid of instance tier
 sets versus your characters, with the number of appearances each character can still
-collect. Sort by set name or by how much is missing, hover a set to see the missing
-pieces, and click a row to see which of your characters are locked out of that
-instance — so you always know who to run it on next.
+collect. Use the title-bar button to flip the row order between oldest and newest
+expansion first, hover a set to see its pieces (collected vs missing), and click a
+row to see which of your characters are locked out of that instance — so you always
+know who to run it on next.
 
 ## Usage
 
