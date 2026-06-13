@@ -32,8 +32,9 @@ LibNAddOn
     |     +-- Recycle
     |     +-- Warbandeer_Characters  (populates WarbandeerApi)
     |           |
-    |           +-- Warbandeer            (optionally reads WarbandeerBarsApi + WarbandeerCollectedApi)
+    |           +-- Warbandeer            (optionally reads WarbandeerBarsApi + WarbandeerCollectedApi + ShadowsOfUI_UpgradeApi)
     |           +-- Warbandeer_Collected  (also populates WarbandeerCollectedApi for Warbandeer)
+    |           +-- ShadowsOfUI-Upgrade   (publishes ShadowsOfUI_UpgradeApi; consumed by Warbandeer)
     |
     +-- Warbandeer_Bars      (LibNAddOn only — headless data layer, populates WarbandeerBarsApi)
     +-- CombatOutline    (LibNAddOn only, no LibNUI)
@@ -55,7 +56,7 @@ Load the linked `CONTEXT.md` for full file maps, class hierarchies, API surfaces
 |---|---|---|
 | **LibNAddOn** | Bootstrapping factory (`LibNAddOn(features)`), class system, lua utils, event/DB/settings wiring. Every addon depends on it. | [LibNAddOn/CONTEXT.md](LibNAddOn/CONTEXT.md) |
 | **LibNUI** | OOP UI widget library; global `LibNUI` / `ns.ui`. Region→Frame hierarchy: Texture, Label, StatusBar, Button, TableFrame, TitleFrame, TabFrame, Tooltip, CopyWindow, settings widgets. Themable via `ui.Theme{}` / `ui.themes.dark`. Shared copy window `ui.ShowCopyWindow` + `/wdebug`; `LibNUIDB` (v1). | [LibNUI/CONTEXT.md](LibNUI/CONTEXT.md) |
-| **Warbandeer_Characters** | Data collection backbone; populates `WarbandeerApi`. Broker system, per-character struct, account-wide warband wealth + bank prof-gear cache (warband/character/guild), `WarbandeerCharDB` (v12). | [Warbandeer_Characters/CONTEXT.md](Warbandeer_Characters/CONTEXT.md) |
+| **Warbandeer_Characters** | Data collection backbone; populates `WarbandeerApi`. Broker system, per-character struct, account-wide warband wealth + bank prof-gear cache (warband/character/guild) + equippable-gear cache (bags + warband/personal banks), `WarbandeerCharDB` (v13). | [Warbandeer_Characters/CONTEXT.md](Warbandeer_Characters/CONTEXT.md) |
 | **Warbandeer** | Main viewer UI (`/warband`, `/wb`). 13 views, MainWindow, faction widget, `profIntent`, `WarbandeerDB` (v3). | [Warbandeer/CONTEXT.md](Warbandeer/CONTEXT.md) |
 | **Warbandeer_Alias** | Guild-chat alias prefix hook. Single file; `Warbandeer_AliasDB` (v1). | [Warbandeer_Alias/CONTEXT.md](Warbandeer_Alias/CONTEXT.md) |
 | **Warbandeer_Collected** | Transmog set tracker (`/collected`, `/collect`). DataView grid, scan logic, `WarbandeerCollectedDB` (v2); exposes read-only `WarbandeerCollectedApi` (consumed by Warbandeer's `collected` view). | [Warbandeer_Collected/CONTEXT.md](Warbandeer_Collected/CONTEXT.md) |
@@ -68,6 +69,7 @@ Load the linked `CONTEXT.md` for full file maps, class hierarchies, API surfaces
 | **Recycle** | Auto-sells grey + marked items at merchants (`/recycle`). Per-character `RecycleDB` (v1). | [Recycle/CONTEXT.md](Recycle/CONTEXT.md) |
 | **ShadowsOfUI-DMF** | Headless Darkmoon Faire helper: merchant material auto-buy + waypoint/map-pin guidance to profession quest givers. `/sdmf` dev command. No UI, no DB. | [ShadowsOfUI-DMF/CONTEXT.md](ShadowsOfUI-DMF/CONTEXT.md) |
 | **ShadowsOfUI-Known** | Headless tooltip addon: adds a "Learnable by:" block to recipe item tooltips (alts with the profession that haven't learned it; red if skill too low). Reads `WarbandeerApi` + optional `WarbandeerDB.profIntent`. `/sknown` dev dump. No UI, no DB. | [ShadowsOfUI-Known/CONTEXT.md](ShadowsOfUI-Known/CONTEXT.md) |
+| **ShadowsOfUI-Upgrade** | Headless gear-upgrade finder + tooltip addon: ilvl-gated upgrades per character (bags/bank/warband bank), stat-tagged from a small built-in spec stat-priority table (standalone). Reads `WarbandeerApi`, publishes `ShadowsOfUI_UpgradeApi` (consumed by Warbandeer's Summary/Gear/Detail views). `/supgrade` dev dump. No UI, no DB. | [ShadowsOfUI-Upgrade/CONTEXT.md](ShadowsOfUI-Upgrade/CONTEXT.md) |
 | **Warbandeer_Bars** | Headless action-bar/keybind/macro profile layer per char+spec; `WarbandeerBarsApi`. `WarbandeerBarsDB` (v2). | [Warbandeer_Bars/CONTEXT.md](Warbandeer_Bars/CONTEXT.md) |
 
 LibNUI_Test is a LoadOnDemand visual test harness for LibNUI (`/nui test [key]`); it has no standalone reference file.
@@ -86,3 +88,4 @@ LibNUI_Test is a LoadOnDemand visual test harness for LibNUI (`/nui test [key]`)
 | Recycle | `/recycle` | `clear`, `key CTRL|SHIFT|ALT` |
 | Warbandeer_Bars | `/wbbars`, `/wbb` | `""` (status), `snapshot`, `list`, `restore <char> [specID]`, `forget <char> [specID]` |
 | ShadowsOfUI-Known | `/sknown` | `<itemID>` (dev: dump learnable-by list for a recipe item) |
+| ShadowsOfUI-Upgrade | `/supgrade` | `[name]` (dev: dump a character's available gear upgrades) |

@@ -67,12 +67,16 @@ local getNameString = function(toon)
   }
 end
 
-local function slotStr(item)
+-- `charName`/`slot` are used only to append the available-upgrade glyph (green ▲
+-- held / gold ▲ better-in-warband) via ns.UpgradeMark — a no-op unless
+-- ShadowsOfUI-Upgrade is loaded.
+local function slotStr(item, charName, slot)
   if not item then return "" end
   local text = ns.IlvlColor(item.ilvl)
   if item.track and item.trackLevel and item.trackLevel > 0 then
     text = text .. "(" .. item.track:sub(1,1) .. item.trackLevel .. ")"
   end
+  text = text .. ns.UpgradeMark(charName, slot)
   return {
     text = text,
     justifyH = ui.justify.Center,
@@ -178,7 +182,7 @@ function GearTable:GetRowData(toon)
     getILvlString(toon),
   }
   for _, slot in ipairs(ns.gearSlots) do
-    row[#row + 1] = slotStr(toon.equipment.slots[slot])
+    row[#row + 1] = slotStr(toon.equipment.slots[slot], toon.name, slot)
   end
   return row
 end

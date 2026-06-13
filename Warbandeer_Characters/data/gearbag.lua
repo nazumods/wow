@@ -25,7 +25,8 @@ local GetDetailedItemLevelInfo = C_Item.GetDetailedItemLevelInfo
 ---@return GearCandidate[]
 local function scanBags()
   local items = {}
-  for bag = BACKPACK_CONTAINER, NUM_BAG_SLOTS do
+  -- Backpack (0) through the carried bags (NUM_BAG_SLOTS); the reagent bag holds no gear.
+  for bag = 0, NUM_BAG_SLOTS do
     for slot = 1, (C_Container.GetContainerNumSlots(bag) or 0) do
       local info = C_Container.GetContainerItemInfo(bag, slot)
       if info and info.itemID then

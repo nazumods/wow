@@ -36,6 +36,7 @@ Each addon folder has its own `README.md` with end-user documentation.
 | [ShadowsOfUI-GCD](ShadowsOfUI-GCD/README.md) | Slim global-cooldown sweep bar between your resource bars. |
 | [ShadowsOfUI-DMF](ShadowsOfUI-DMF/README.md) | Darkmoon Faire helper: auto-buys profession quest mats and guides you between quest givers. |
 | [ShadowsOfUI-Known](ShadowsOfUI-Known/README.md) | Adds a "Learnable by:" line to recipe tooltips, listing the alts that can still learn it. |
+| [ShadowsOfUI-Upgrade](ShadowsOfUI-Upgrade/README.md) | Finds warband gear upgrades (bags/bank/warband bank) and shows them on item tooltips and in Warbandeer — what to keep vs sell. |
 | [HideStanceBar](HideStanceBar/README.md) | Hides the stance bar, with a per-class toggle. |
 | [HideBagBar](HideBagBar/README.md) | Hides the backpack and bag slot buttons. |
 | [CombatOutline](CombatOutline/README.md) | Enables the character outline rendering mode only while in combat. |

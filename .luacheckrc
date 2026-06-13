@@ -9,7 +9,8 @@ max_comment_line_length = 500
 include_files = {
   "BarNonce/**/*.lua", "CombatOutline/**/*.lua", "HideBagBar/**/*.lua", "HideStanceBar/**/*.lua",
   "LibNAddOn/**/*.lua", "LibNUI/**/*.lua", "LibNUI_Test/**/*.lua", "Recycle/**/*.lua",
-  "ShadowsOfUI-DMF/**/*.lua", "ShadowsOfUI-GCD/**/*.lua", "ShadowsOfUI-Known/**/*.lua", "ShadowsOfUI-XP/**/*.lua",
+  "ShadowsOfUI-DMF/**/*.lua", "ShadowsOfUI-GCD/**/*.lua", "ShadowsOfUI-Known/**/*.lua",
+  "ShadowsOfUI-Upgrade/**/*.lua", "ShadowsOfUI-XP/**/*.lua",
   "Warbandeer/**/*.lua", "Warbandeer_Alias/**/*.lua", "Warbandeer_Bars/**/*.lua",
   "Warbandeer_Characters/**/*.lua", "Warbandeer_Collected/**/*.lua",
 }
@@ -71,6 +72,7 @@ std = {
     "LibNAddOn",
     "LibNUI",
     "WarbandeerBarsApi",
+    "ShadowsOfUI_UpgradeApi",
 
     "PrimaryResourceBar",
     "SecondaryResourceBar",

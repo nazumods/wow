@@ -7,7 +7,7 @@
 ## SavedVariables: WarbandeerDB
 ## AddonCompartmentFunc: Warbandeer_OnAddonCompartmentClick
 ## Dependencies: LibNAddOn, LibNUI, Warbandeer_Characters
-## OptionalDeps: Warbandeer_Bars, Warbandeer_Collected
+## OptionalDeps: Warbandeer_Bars, Warbandeer_Collected, ShadowsOfUI-Upgrade
 ## X-Curse-Project-ID: 1546586
 ## X-NUI-DB: WarbandeerDB
 ## X-NUI-DB-VERSION: 3
@@ -26,6 +26,7 @@ controls\StatCard.lua
 controls\LabeledBar.lua
 controls\FilterDropdown.lua
 controls\IconStrip.lua
+controls\UpgradeMark.lua
 
 views\Overview.lua
 
@@ -35,6 +36,7 @@ views\summaryCol\role.lua
 views\summaryCol\character.lua
 views\summaryCol\level.lua
 views\summaryCol\ilvl.lua
+views\summaryCol\upgrades.lua
 views\summaryCol\profs.lua
 views\summaryCol\bags.lua
 views\summaryCol\vault.lua

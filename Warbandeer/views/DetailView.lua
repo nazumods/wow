@@ -443,7 +443,9 @@ function DetailView:_showGear(i, item, slotKey)
     row.icon:Hide()  -- non-transmoggable slot: reserve the column, leave it blank
   end
   row.frame._itemLink = item.link
-  row.name:Text(item.name or ""):Color(rarityColor(item.link))
+  -- Append the available-upgrade glyph (no-op unless ShadowsOfUI-Upgrade is loaded);
+  -- the embedded colour code overrides the name's rarity vertex colour for the arrow.
+  row.name:Text((item.name or "") .. ns.UpgradeMark(self._char.name, slotKey)):Color(rarityColor(item.link))
   local ilvl = item.ilvl or 0
   row.ilvl:Text(tostring(ilvl)):Color(ns.IlvlColorObj(ilvl))
   if item.track and item.trackLevel and item.trackLevel > 0 then

@@ -1,6 +1,6 @@
 # Warbandeer (Main UI)
 
-**Deps:** LibNAddOn, LibNUI, Warbandeer_Characters · **OptionalDeps:** Warbandeer_Bars (`bars` view), Warbandeer_Collected (`collected` view) · **SavedVars:** `WarbandeerDB` (v3) · **Commands:** `/warband`, `/wb` (+ one per view) · **Reads:** `WarbandeerApi`, `WarbandeerBarsApi`, `WarbandeerCollectedApi` · **UI:** LibNUI
+**Deps:** LibNAddOn, LibNUI, Warbandeer_Characters · **OptionalDeps:** Warbandeer_Bars (`bars` view), Warbandeer_Collected (`collected` view), ShadowsOfUI-Upgrade (gear-upgrade markers) · **SavedVars:** `WarbandeerDB` (v3) · **Commands:** `/warband`, `/wb` (+ one per view) · **Reads:** `WarbandeerApi`, `WarbandeerBarsApi`, `WarbandeerCollectedApi`, `ShadowsOfUI_UpgradeApi` · **UI:** LibNUI
 
 Main viewer UI. Reads the data layer (`ns.api` ← `WarbandeerApi`) and renders it across a set of views switched from a left icon rail.
 
@@ -16,6 +16,7 @@ Main viewer UI. Reads the data layer (`ns.api` ← `WarbandeerApi`) and renders 
 | `controls/ItemTooltip.lua` | `ns.ShowItemTooltip(frame, link)` / `ns.HideItemTooltip()` — shared private `WarbandeerItemTooltip` (GameTooltipTemplate) reskinned (`styleTooltip` → flat black + theme border via `NineSlice`) that `:SetHyperlink`s an item link; no auto-comparison. Used by Detail + Gear gear cells; anchor side per `ns.TooltipSide()` |
 | `controls/StatCard.lua` | `ns.StatCard` — summary tile (caption + big mono `amount`, optional `sub` + trend `subIcon`). `Amount(text, color?)` |
 | `controls/IconStrip.lua` | `ns.IconStrip` — floating left nav rail, one tinted glyph per view; `onSelect(name)`, `SetActive(name)` |
+| `controls/UpgradeMark.lua` | `ns.UpgradeMark(charName, slot)` → cell-text ▲ glyph (green held / gold better-in-warband) and `ns.UpgradeTip(charName, slot)` → hover line, both via `ShadowsOfUI_UpgradeApi` (OptionalDep); no-op "" / nil when that addon is absent |
 | `controls/FilterDropdown.lua` | `ns.FilterDropdown` — reusable labelled dropdown filter. `options`/`selected`/`onSelect`; `Select(key)` re-points label without firing |
 | `controls/LabeledBar.lua` | `ns.LabeledBar` — progress row (name + value + bar beneath). Setters `Fill`/`Label`/`Value`/`BarColor`; optional `onClick`, `hoverValue`/`hoverColor` |
 | `media/bar-rounded.tga` | 16×16 white rounded-rect, nine-sliced as the `LabeledBar` bar texture; tinted at runtime |
@@ -24,10 +25,10 @@ Main viewer UI. Reads the data layer (`ns.api` ← `WarbandeerApi`) and renders 
 | `icons/*.tga` | White 64×64 glyphs for Summary column headers (`crest_hero`, `crest_myth`, `catalyst`, …), tinted muted in-game |
 | `views/Overview.lua` | Stat strip + Reputations / Achievements / Top Characters modules; expansion `BuildFilter`. Rep bars via `FactionBars` (see below); rows click through to Detail |
 | `views/SummaryColumns.lua` | `SummaryColumn` specs (`getData`/`getFooter` per column) + `SummaryColumnsDelayed()` (appends the DMF column while the faire is open) |
-| `views/summaryCol/*.lua` | One file per Summary column: faction, role, character, level, ilvl, profs, bags, vault, keystone, crests, catalyst, voidcore, delves, lumber, cofferKey, caches, rested, played, gold |
+| `views/summaryCol/*.lua` | One file per Summary column: faction, role, character, level, ilvl, upgrades, profs, bags, vault, keystone, crests, catalyst, voidcore, delves, lumber, cofferKey, caches, rested, played, gold. `upgrades.lua` (the "Up" count column) early-returns unless `ShadowsOfUI_UpgradeApi` exists, so its column is only registered when ShadowsOfUI-Upgrade is loaded |
 | `views/SummaryView.lua` | Dual `ClassSummary` tables (Alliance/Horde) toggled by a faction `BuildFilter`; cells drive row hover + click-to-Detail |
-| `views/GearView.lua` | Four armor-type tables toggled by `BuildFilter` buttons; per-equipment-slot ilvl + upgrade-track columns. Each slot cell hovers to the shared item tooltip (`ns.ShowItemTooltip`) |
-| `views/DetailView.lua` | Single-character detail: portrait, stat strip, per-profession intent panels (each followed by that profession's equipped tool/accessory list), equipped-gear list. Gear + prof-gear rows highlight and show the shared item tooltip on hover (`attachItemTip` → row `hover` tint + `ns.ShowItemTooltip(frame, item.link)`; see `controls/ItemTooltip.lua`). Character-picker `BuildFilter`; `Select(toon)` switches subject; `OnNavigate()` resets to the logged-in character |
+| `views/GearView.lua` | Four armor-type tables toggled by `BuildFilter` buttons; per-equipment-slot ilvl + upgrade-track columns. Each slot cell hovers to the shared item tooltip (`ns.ShowItemTooltip`) and appends `ns.UpgradeMark(toon.name, slot)` (the ▲ available-upgrade glyph) |
+| `views/DetailView.lua` | Single-character detail: portrait, stat strip, per-profession intent panels (each followed by that profession's equipped tool/accessory list), equipped-gear list. Gear + prof-gear rows highlight and show the shared item tooltip on hover (`attachItemTip` → row `hover` tint + `ns.ShowItemTooltip(frame, item.link)`; see `controls/ItemTooltip.lua`); equipped-gear rows append `ns.UpgradeMark` to the item name. Character-picker `BuildFilter`; `Select(toon)` switches subject; `OnNavigate()` resets to the logged-in character |
 | `views/RoleView.lua` | `ClassTable` per class, grouped by spec |
 | `views/RaceView.lua` | 13×29 class/race grid (dynamic build), one character per cell; hover + click-to-Detail |
 | `views/Legion.lua` | Hidden artifact appearances + Legion achievements |
