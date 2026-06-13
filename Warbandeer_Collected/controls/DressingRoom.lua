@@ -399,7 +399,9 @@ function DressingRoom:Dress()
   end
   m:Outfit(sources)
 
-  m:Unit("player", self._raceID)
+  -- A form may override the render race (Worgen's "Human" form → race 1, rendered
+  -- as a plain Human); otherwise render the selected race.
+  m:Unit("player", (form and form.race) or self._raceID)
 
   -- `scale` may be a number (both genders) or a per-sex table { [2]=, [3]= }.
   local scale = form and form.scale

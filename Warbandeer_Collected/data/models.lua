@@ -41,7 +41,7 @@ local GetRaceInfo = C_CreatureInfo.GetRaceInfo
 -- model if so. `Dress` calls Undress after loading, since these arrive in the
 -- NPC's gear.
 ---@class Warbandeer_Collected
----@field RaceModels table<number, table>  [raceID] = { [2],[3], scale? } | { forms = {{name,[2],[3],scale?},...} }
+---@field RaceModels table<number, table>  [raceID] = { [2],[3], scale? } | { forms = {{name,[2],[3],scale?,race?},...} }
 ns.RaceModels = {
   -- Allied races (recruitment-screen showcase ids, hand-verified).
   [27] = { [2] = 82708,  [3] = 82709  }, -- Nightborne
@@ -70,10 +70,12 @@ ns.RaceModels = {
   [32] = { [2] = 78517, [3] = 77936, scale = { [2] = 0.9 } }, -- Kul Tiran (♂ runs big)
   [34] = { [2] = 8803,  [3] = 69941, scale = 1.4 }, -- Dark Iron Dwarf (run small)
 
-  -- Worgen: two forms. Human form reuses the Human (race 1) baked displays.
+  -- Worgen: two forms. The Human form just renders the Human race (`race = 1`) —
+  -- same as previewing a Human — since the body is a dressable player unit. The
+  -- Worgen form omits `race`, so it renders the selected race (22).
   [22] = { forms = {
     { name = "Worgen", [2] = 30164, [3] = 31689, scale = 0.95 },
-    { name = "Human",  [2] = 1276,  [3] = 176   },
+    { name = "Human",  [2] = 1276,  [3] = 176,   race = 1 },
   } },
 
   -- Dracthyr (52): no baked display ids yet (its visage ids render white), so it
