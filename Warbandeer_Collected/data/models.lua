@@ -3,10 +3,18 @@ local ns = select(2, ...)
 local GetRaceInfo = C_CreatureInfo.GetRaceInfo
 
 -- Per race+gender creature display IDs for the dressing room. Sex keys follow
--- UnitSex: 2 = male, 3 = female. This is an ENHANCEMENT: a race listed here gets
--- exact race+gender selection (DressingRoom:Dress → DisplayInfo); a race absent
--- here still renders via a customRaceID-overridden player unit, but its gender
--- then follows the logged-in character.
+-- UnitSex: 2 = male, 3 = female.
+--
+-- NOTE: the dressing room now renders the body on a DRESSABLE player unit
+-- (DressingRoom:Dress → Model:Unit) so the previewed set actually shows and Undress
+-- works — that path renders any race textured but its gender follows the logged-in
+-- char. The exact race+gender creature-display ids below (the [2]/[3] keys) are a
+-- static NPC that can't wear transmog or undress, so they are NO LONGER used to
+-- render the body; only each entry's `scale` (and the `forms` shape) is consumed.
+-- The ids are kept for reference and a possible future "exact gender, no dressing"
+-- mode (and the dev `/collected model <id>` preview). When that path WAS active a
+-- race listed here got exact race+gender selection (DressingRoom:Dress →
+-- DisplayInfo); a race absent here rendered via the same unit fallback used now.
 --
 -- These must be PRE-BAKED display ids (a CreatureDisplayInfo whose
 -- ExtendedDisplayInfoID != 0 — it carries the race+gender's own baked textures).
@@ -33,7 +41,7 @@ local GetRaceInfo = C_CreatureInfo.GetRaceInfo
 -- model if so. `Dress` calls Undress after loading, since these arrive in the
 -- NPC's gear.
 ---@class Warbandeer_Collected
----@field RaceModels table<number, table>  [raceID] = { [2],[3], scale? } | { forms = {{name,[2],[3],scale?},...} }
+---@field RaceModels table<number, table>  [raceID] = { [2],[3], scale? } | { forms = {{name,[2],[3],scale?,race?},...} }
 ns.RaceModels = {
   -- Allied races (recruitment-screen showcase ids, hand-verified).
   [27] = { [2] = 82708,  [3] = 82709  }, -- Nightborne
@@ -62,10 +70,12 @@ ns.RaceModels = {
   [32] = { [2] = 78517, [3] = 77936, scale = { [2] = 0.9 } }, -- Kul Tiran (♂ runs big)
   [34] = { [2] = 8803,  [3] = 69941, scale = 1.4 }, -- Dark Iron Dwarf (run small)
 
-  -- Worgen: two forms. Human form reuses the Human (race 1) baked displays.
+  -- Worgen: two forms. The Human form just renders the Human race (`race = 1`) —
+  -- same as previewing a Human — since the body is a dressable player unit. The
+  -- Worgen form omits `race`, so it renders the selected race (22).
   [22] = { forms = {
     { name = "Worgen", [2] = 30164, [3] = 31689, scale = 0.95 },
-    { name = "Human",  [2] = 1276,  [3] = 176   },
+    { name = "Human",  [2] = 1276,  [3] = 176,   race = 1 },
   } },
 
   -- Dracthyr (52): no baked display ids yet (its visage ids render white), so it

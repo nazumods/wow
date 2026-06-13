@@ -19,6 +19,7 @@ local DRESSUP_SCENE = 596
 ---@field _actor table?  the scene's player actor (backing model)
 ---@field _yaw number  accumulated drag yaw in radians (internal)
 ---@field _scale number  intended actor scale, re-applied after each async model load
+---@field _outfit number[]?  remembered transmog sources, re-applied after each async model load (empty = undressed)
 local Model = Class(Frame, function(self)
   -- Borrow the dressup scene so we inherit its camera + a player actor.
   self._widget:TransitionToModelSceneID(
@@ -57,10 +58,34 @@ function Model:_reapply()
     if not self._actor then return end
     self._actor:SetYaw(self._yaw)
     self._actor:SetScale(self._scale)
+    self:_applyOutfit()
   end
   self._actor:SetOnModelLoadedCallback(apply)
   apply()
   self:delay(100, apply)
+end
+
+-- Re-apply the remembered outfit onto the freshly loaded model: strip whatever it
+-- loaded wearing (e.g. a creature display's baked NPC gear), then TryOn each
+-- remembered source. No-op until Outfit is called — so direct TryOn/Undress users
+-- keep the old behavior. Without this the async re-skin would leave the model in
+-- its default dress once the load completes, ignoring the requested outfit.
+function Model:_applyOutfit()
+  if not self._actor or not self._outfit then return end
+  self._actor:Undress()
+  for _, src in ipairs(self._outfit) do self._actor:TryOn(src) end
+end
+
+-- Remember the outfit to (re)apply after every model (re)load: a list of transmog
+-- appearance sources (sourceIDs); an empty list = fully undressed. Applied now and
+-- on each subsequent re-skin, so it survives the async model load. Call before
+-- loading a new model (DisplayInfo/Unit) so the load callback honors it.
+---@param sources number[]  itemModifiedAppearanceIDs; empty table = undressed
+---@return Model
+function Model:Outfit(sources)
+  self._outfit = sources
+  self:_applyOutfit()
+  return self
 end
 
 -- Skin the actor with a creature display ID (a specific race + gender).

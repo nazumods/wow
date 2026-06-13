@@ -16,6 +16,7 @@ local floor, ceil, max = math.floor, math.ceil, math.max
 local SELECTED = {0.85, 0.65, 0.13, 1}
 local IDLE     = {0.20, 0.20, 0.24, 1}
 local PANEL    = {0.05, 0.05, 0.06, 1}
+local DISABLED = {0.40, 0.40, 0.45, 1}   -- toggle label, locked/inert
 
 local COLS  = 13   -- 25 races wrap to two rows
 local CELL  = 40
@@ -46,7 +47,8 @@ end
 ---@class DressingRoom: TitleFrame
 ---@field _model Model  the 3D viewer
 ---@field _race table<number, { border: Texture }>  selection border per raceID
----@field _gender table<number, Texture>  selection border per sex (2/3)
+---@field _gender table<number, { border: Texture, label: Label }>  toggle parts per sex (2/3)
+---@field _genderLocked boolean?  true when the race renders via the player-gender fallback (toggle inert)
 ---@field _raceID number?  selected chrRaceID
 ---@field _sex number?  selected sex (2 = male, 3 = female)
 ---@field _form number  selected form index for multi-form races (Worgen/Dracthyr); 1 = default
@@ -194,11 +196,12 @@ DressingRoom = Class(TitleFrame, function(self)
       parent = controls,
       position = { TopLeft = {(i - 1) * (half + PAD), -TOPGAP}, Width = half, Height = ROWH },
     }
-    self._gender[sex] = selBox(box)
+    local border = selBox(box)
     Button:new{ parent = box, position = { All = true }, glow = false,
       OnClick = function() self:SetSex(sex) end }
-    Label:new{ parent = box, justifyH = ui.justify.Center,
+    local label = Label:new{ parent = box, justifyH = ui.justify.Center,
       position = { Left = {6, 0}, Right = {-6, 0} }, text = text }
+    self._gender[sex] = { border = border, label = label }
   end
 
   -- Race grid below the toggle rows.
@@ -251,6 +254,22 @@ DressingRoom = Class(TitleFrame, function(self)
     position = { Right = {prevBox, ui.edge.Left, -6, 0}, Size = {20, 20} },
   }
 
+  -- Left/Right arrows mirror the title-bar nav arrows while the window is open.
+  -- Every other key is propagated, so default keybindings (and Escape, via the
+  -- `special` registration) keep working.
+  self._widget:EnableKeyboard(true)
+  self._widget:SetScript("OnKeyDown", function(f, key)
+    if key == "LEFT" then
+      f:SetPropagateKeyboardInput(false)
+      self:Step(-1)
+    elseif key == "RIGHT" then
+      f:SetPropagateKeyboardInput(false)
+      self:Step(1)
+    else
+      f:SetPropagateKeyboardInput(true)
+    end
+  end)
+
   self:Width(winW)
   self:Height(30 + PAD + MODELH + PAD + controlsH + 6)
 end, {
@@ -281,8 +300,28 @@ end
 
 ---@param sex number  2 = male, 3 = female
 function DressingRoom:_highlightSex(sex)
-  if self._sex and self._gender[self._sex] then self._gender[self._sex]:Color(IDLE) end
-  if self._gender[sex] then self._gender[sex]:Color(SELECTED) end
+  if self._sex and self._gender[self._sex] then self._gender[self._sex].border:Color(IDLE) end
+  if self._gender[sex] then self._gender[sex].border:Color(SELECTED) end
+end
+
+-- The race's resolved RaceModels entry for the current form (multi-form races
+-- read through the selected form; single-form races are the entry itself).
+---@return table?
+function DressingRoom:_resolvedForm()
+  local entry = ns.RaceModels[self._raceID]
+  return entry and (entry.forms and entry.forms[self._form] or entry)
+end
+
+-- The Male/Female toggle is always inert: a dressable body (needed to show the set
+-- and to undress) renders through the player-unit path, whose gender follows the
+-- logged-in character — and WoW exposes no gender override for it. So the toggle is
+-- pinned to the char's gender and greyed to show it. Kept (greyed) rather than
+-- removed so the constraint is visible. Call on open / race / form change.
+function DressingRoom:_syncGenderToggle()
+  self._genderLocked = true
+  self:_highlightSex(UnitSex("player"))
+  self._sex = UnitSex("player")
+  for _, g in pairs(self._gender) do g.label:Color(DISABLED) end
 end
 
 ---@param raceID number
@@ -291,6 +330,7 @@ function DressingRoom:SetRace(raceID)
   self:_highlightRace(raceID)
   self._raceID = raceID
   self:_setupForms(ns.RaceModels[raceID])
+  self:_syncGenderToggle()
   self:Dress()
 end
 
@@ -318,12 +358,13 @@ function DressingRoom:SetForm(i)
   if self._form == i then return end
   self._form = i
   self:_highlightForm(i)
+  self:_syncGenderToggle()
   self:Dress()
 end
 
 ---@param sex number  2 = male, 3 = female
 function DressingRoom:SetSex(sex)
-  if self._sex == sex then return end
+  if self._genderLocked or self._sex == sex then return end
   self:_highlightSex(sex)
   self._sex = sex
   self:Dress()
@@ -336,35 +377,38 @@ function DressingRoom:SetUndressed(undressed)
   self:Dress()
 end
 
--- Apply the current race/gender to the model, then put on the previewed set.
--- A known race+gender creature display ID is exact (both genders); otherwise we
--- render the race via a customRaceID-overridden player unit — textured and the
--- right race, but the gender follows the logged-in character. Either way no race
--- ever shows white or as the wrong race.
+-- Render the selected race on a DRESSABLE actor, then put on the previewed set.
+-- We always use the customRaceID-overridden player unit: it renders any race
+-- textured AND can wear transmog / undress. The exact-gender creature-display path
+-- (Model:DisplayInfo) is a static NPC whose baked gear can't be removed or dressed
+-- over, so it can't show a set — hence the gender follows the logged-in character
+-- (see _syncGenderToggle). The race's `scale` still corrects sizing.
 function DressingRoom:Dress()
   if not self._set then return end
   local m = self._model
-  local entry = ns.RaceModels[self._raceID]
-  -- Multi-form races (Worgen/Dracthyr) resolve through the selected form; others
-  -- read [sex] directly off the entry.
-  local form = entry and (entry.forms and entry.forms[self._form] or entry)
-  local id = form and form[self._sex]
-  if id then
-    m:DisplayInfo(id)
-  else
-    m:Unit("player", self._raceID)
+  -- Multi-form races resolve through the selected form (for its `scale`); others
+  -- are the entry itself.
+  local form = self:_resolvedForm()
+
+  -- Decide the outfit BEFORE (re)loading the model. The re-skin loads async and
+  -- resets the actor to its default body once the load finishes, so the model
+  -- re-applies this on its load callback (Model:Outfit). Empty = undressed.
+  local sources = {}
+  if not self._undressed then
+    for _, src in ipairs(GetAllSourceIDs(self._set.id)) do sources[#sources + 1] = src end
   end
+  m:Outfit(sources)
+
+  -- A form may override the render race (Worgen's "Human" form → race 1, rendered
+  -- as a plain Human); otherwise render the selected race.
+  m:Unit("player", (form and form.race) or self._raceID)
+
   -- `scale` may be a number (both genders) or a per-sex table { [2]=, [3]= }.
   local scale = form and form.scale
   if type(scale) == "table" then scale = scale[self._sex] end
   scale = scale or 1
-  m:Scale(scale)                  -- per-race/gender size correction; re-apply post re-skin
+  m:Scale(scale)                  -- per-race size correction; re-apply post re-skin
   self._scaleSlider:Value(scale)  -- reflect the race's scale in the slider/readout
-  m:Undress()   -- baked NPC displays arrive wearing the NPC's gear; strip to bare body
-  if self._undressed then return end   -- bare body for race identification
-  for _, src in ipairs(GetAllSourceIDs(self._set.id)) do
-    m:TryOn(src)
-  end
 end
 
 -- Point the title-bar class icon at the class in column `classId` (hidden if the
@@ -460,6 +504,7 @@ ns.ShowDressingRoom = function(group, set)
     _room:_highlightSex(sex)
     _room._sex = sex
     _room:_setupForms(ns.RaceModels[raceID])
+    _room:_syncGenderToggle()
   end
 
   _room:_load(group, set)
