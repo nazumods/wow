@@ -16,6 +16,8 @@ local floor, ceil, max = math.floor, math.ceil, math.max
 local SELECTED = {0.85, 0.65, 0.13, 1}
 local IDLE     = {0.20, 0.20, 0.24, 1}
 local PANEL    = {0.05, 0.05, 0.06, 1}
+local ENABLED  = {1, 1, 1, 1}            -- toggle label, interactive
+local DISABLED = {0.40, 0.40, 0.45, 1}   -- toggle label, locked/inert
 
 local COLS  = 13   -- 25 races wrap to two rows
 local CELL  = 40
@@ -46,7 +48,8 @@ end
 ---@class DressingRoom: TitleFrame
 ---@field _model Model  the 3D viewer
 ---@field _race table<number, { border: Texture }>  selection border per raceID
----@field _gender table<number, Texture>  selection border per sex (2/3)
+---@field _gender table<number, { border: Texture, label: Label }>  toggle parts per sex (2/3)
+---@field _genderLocked boolean?  true when the race renders via the player-gender fallback (toggle inert)
 ---@field _raceID number?  selected chrRaceID
 ---@field _sex number?  selected sex (2 = male, 3 = female)
 ---@field _form number  selected form index for multi-form races (Worgen/Dracthyr); 1 = default
@@ -194,11 +197,12 @@ DressingRoom = Class(TitleFrame, function(self)
       parent = controls,
       position = { TopLeft = {(i - 1) * (half + PAD), -TOPGAP}, Width = half, Height = ROWH },
     }
-    self._gender[sex] = selBox(box)
+    local border = selBox(box)
     Button:new{ parent = box, position = { All = true }, glow = false,
       OnClick = function() self:SetSex(sex) end }
-    Label:new{ parent = box, justifyH = ui.justify.Center,
+    local label = Label:new{ parent = box, justifyH = ui.justify.Center,
       position = { Left = {6, 0}, Right = {-6, 0} }, text = text }
+    self._gender[sex] = { border = border, label = label }
   end
 
   -- Race grid below the toggle rows.
@@ -251,6 +255,22 @@ DressingRoom = Class(TitleFrame, function(self)
     position = { Right = {prevBox, ui.edge.Left, -6, 0}, Size = {20, 20} },
   }
 
+  -- Left/Right arrows mirror the title-bar nav arrows while the window is open.
+  -- Every other key is propagated, so default keybindings (and Escape, via the
+  -- `special` registration) keep working.
+  self._widget:EnableKeyboard(true)
+  self._widget:SetScript("OnKeyDown", function(f, key)
+    if key == "LEFT" then
+      f:SetPropagateKeyboardInput(false)
+      self:Step(-1)
+    elseif key == "RIGHT" then
+      f:SetPropagateKeyboardInput(false)
+      self:Step(1)
+    else
+      f:SetPropagateKeyboardInput(true)
+    end
+  end)
+
   self:Width(winW)
   self:Height(30 + PAD + MODELH + PAD + controlsH + 6)
 end, {
@@ -281,8 +301,29 @@ end
 
 ---@param sex number  2 = male, 3 = female
 function DressingRoom:_highlightSex(sex)
-  if self._sex and self._gender[self._sex] then self._gender[self._sex]:Color(IDLE) end
-  if self._gender[sex] then self._gender[sex]:Color(SELECTED) end
+  if self._sex and self._gender[self._sex] then self._gender[self._sex].border:Color(IDLE) end
+  if self._gender[sex] then self._gender[sex].border:Color(SELECTED) end
+end
+
+-- The race's resolved RaceModels entry for the current form (multi-form races
+-- read through the selected form; single-form races are the entry itself).
+---@return table?
+function DressingRoom:_resolvedForm()
+  local entry = ns.RaceModels[self._raceID]
+  return entry and (entry.forms and entry.forms[self._form] or entry)
+end
+
+-- A race honors the Male/Female toggle only when its resolved form carries baked
+-- display ids for BOTH sexes (the exact DisplayInfo path). Races without them
+-- (e.g. Dracthyr) render through the player-gender fallback, so the toggle is
+-- pinned to the character's gender and greyed to show it's inert. Call whenever
+-- the race or form changes.
+function DressingRoom:_syncGenderToggle()
+  local form = self:_resolvedForm()
+  local locked = not (form and form[2] and form[3])
+  self._genderLocked = locked
+  if locked then self:_highlightSex(UnitSex("player")); self._sex = UnitSex("player") end
+  for _, g in pairs(self._gender) do g.label:Color(locked and DISABLED or ENABLED) end
 end
 
 ---@param raceID number
@@ -291,6 +332,7 @@ function DressingRoom:SetRace(raceID)
   self:_highlightRace(raceID)
   self._raceID = raceID
   self:_setupForms(ns.RaceModels[raceID])
+  self:_syncGenderToggle()
   self:Dress()
 end
 
@@ -318,12 +360,13 @@ function DressingRoom:SetForm(i)
   if self._form == i then return end
   self._form = i
   self:_highlightForm(i)
+  self:_syncGenderToggle()
   self:Dress()
 end
 
 ---@param sex number  2 = male, 3 = female
 function DressingRoom:SetSex(sex)
-  if self._sex == sex then return end
+  if self._genderLocked or self._sex == sex then return end
   self:_highlightSex(sex)
   self._sex = sex
   self:Dress()
@@ -344,10 +387,9 @@ end
 function DressingRoom:Dress()
   if not self._set then return end
   local m = self._model
-  local entry = ns.RaceModels[self._raceID]
   -- Multi-form races (Worgen/Dracthyr) resolve through the selected form; others
   -- read [sex] directly off the entry.
-  local form = entry and (entry.forms and entry.forms[self._form] or entry)
+  local form = self:_resolvedForm()
   local id = form and form[self._sex]
   if id then
     m:DisplayInfo(id)
@@ -460,6 +502,7 @@ ns.ShowDressingRoom = function(group, set)
     _room:_highlightSex(sex)
     _room._sex = sex
     _room:_setupForms(ns.RaceModels[raceID])
+    _room:_syncGenderToggle()
   end
 
   _room:_load(group, set)
