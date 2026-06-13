@@ -2,7 +2,6 @@
 local ns = select(2, ...)
 local API = ns.api
 local insert = table.insert
--- luacheck: globals C_TradeSkillUI C_ProfSpecs C_Traits C_Timer C_Item Enum
 local DoesItemExist     = C_Item.DoesItemExist
 local RequestLoadItemData = C_Item.RequestLoadItemData
 local GetItemID         = C_Item.GetItemID

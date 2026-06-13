@@ -1,8 +1,7 @@
 ---@type Warbandeer_Characters
 local ns = select(2, ...)
-local GetBuildInfo = GetBuildInfo -- luacheck: globals GetBuildInfo
-local RequestTimePlayed = RequestTimePlayed -- luacheck: globals RequestTimePlayed
--- luacheck: globals ChatFrame_AddMessageEventFilter
+local GetBuildInfo = GetBuildInfo
+local RequestTimePlayed = RequestTimePlayed
 
 ---@class Character
 ---@field playtime PlaytimeBroker

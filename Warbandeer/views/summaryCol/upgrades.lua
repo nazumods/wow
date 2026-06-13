@@ -3,7 +3,6 @@ local ns = select(2, ...)
 ---@type LibNUI
 local ui = ns.ui
 local insert = table.insert
--- luacheck: read globals ShadowsOfUI_UpgradeApi
 
 -- Per-character "available gear upgrades" count column.  Only added when
 -- ShadowsOfUI-Upgrade is loaded (OptionalDep — it publishes ShadowsOfUI_UpgradeApi

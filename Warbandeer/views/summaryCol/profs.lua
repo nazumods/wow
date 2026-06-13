@@ -299,7 +299,7 @@ local function getProfGearScore(toon)
   if profs.secondary and profs.secondary.skillID then insert(primaries, profs.secondary.skillID) end
   if #primaries == 0 then return "" end
 
-  local currentExpac = GetExpansionLevel() -- luacheck: globals GetExpansionLevel
+  local currentExpac = GetExpansionLevel()
   local score, maxScore = 0, 0
   local lines = {}
   local hints = {} -- [line index] = {skillID, item, isCurrentExpac}; resolved on hover

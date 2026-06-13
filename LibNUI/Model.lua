@@ -1,6 +1,5 @@
 ---@type LibNUI_AddOn
 local ns = select(2, ...)
--- luacheck: globals GetCursorPosition CAMERA_TRANSITION_TYPE_IMMEDIATE CAMERA_MODIFICATION_TYPE_DISCARD
 local ui = ns.ui
 local Class = ns.lua.Class
 local Frame = ui.Frame

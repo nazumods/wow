@@ -1,8 +1,8 @@
 ---@type Warbandeer_Characters
 local ns = select(2, ...)
 local Player = ns.wow.Player
-local GetSpecializationRoleByID = GetSpecializationRoleByID -- luacheck: globals GetSpecializationRoleByID
-local GetServerTime = GetServerTime -- luacheck: globals GetServerTime
+local GetSpecializationRoleByID = GetSpecializationRoleByID
+local GetServerTime = GetServerTime
 
 ---@class Character
 ---@field basic BasicBroker

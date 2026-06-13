@@ -2,7 +2,6 @@
 local ns = select(2, ...)
 local gsub = string.gsub
 local Player = ns.wow.Player
--- luacheck: globals UnitClassBase GetClassInfo
 local UnitClassBase = UnitClassBase
 
 ---@class WarbandeerCharactersDB

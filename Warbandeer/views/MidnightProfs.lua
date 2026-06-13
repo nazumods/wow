@@ -1,7 +1,6 @@
 ---@type Warbandeer
 local ns = select(2, ...)
 local ui = ns.ui
--- luacheck: globals DISABLED_FONT_COLOR GetServerTime
 local insert, sort, concat, floor = table.insert, table.sort, table.concat, math.floor
 local Class, Frame, TableFrame, Button, Texture = ns.lua.Class, ui.Frame, ui.TableFrame, ui.Button, ui.Texture
 local Colors, ColorS = ns.Colors, ns.Colors.Strings

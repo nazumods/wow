@@ -1,7 +1,5 @@
 ---@type ShadowsOfUI_Known
 local ns = select(2, ...)
--- luacheck: globals SLASH_SUI_KNOWN1
--- luacheck: read globals TooltipDataProcessor RED_FONT_COLOR GRAY_FONT_COLOR GREEN_FONT_COLOR
 
 local floor = math.floor
 local LABEL = NORMAL_FONT_COLOR

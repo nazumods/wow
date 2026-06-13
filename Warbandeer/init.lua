@@ -1,4 +1,3 @@
--- luacheck: globals LibNAddOn LibNUI WarbandeerApi
 ---@class Warbandeer: AddOn
 local ns = LibNAddOn(...)
 

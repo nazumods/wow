@@ -1,6 +1,5 @@
 ---@class LibNAddOn
 local ns = select(2, ...)
--- luacheck: globals MinimalSliderWithSteppersMixin
 local Settings = Settings
 
 ---@class Setting

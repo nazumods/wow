@@ -4,7 +4,7 @@ local ui = ns.ui
 local insert = table.insert
 local Class, Frame, TableFrame, Label = ns.lua.Class, ui.Frame, ui.TableFrame, ui.Label
 local Left = ui.justify.Left
-local RAID_CLASS_COLORS = RAID_CLASS_COLORS -- luacheck: globals RAID_CLASS_COLORS
+local RAID_CLASS_COLORS = RAID_CLASS_COLORS
 
 local transpBk = {color = {0, 0, 0, 0}}
 

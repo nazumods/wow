@@ -2,7 +2,6 @@
 local ns = select(2, ...)
 local insert = table.insert
 local ui = ns.ui
--- luacheck: globals DIM_GREEN_FONT_COLOR DIM_RED_FONT_COLOR NORMAL_FONT_COLOR GetAchievementInfo OpenAchievementFrameToAchievement BreakUpLargeNumbers
 local Class, Frame, TableFrame, Label, Texture = ns.lua.Class, ui.Frame, ui.TableFrame, ui.Label, ui.Texture
 local LabeledBar, StatCard = ns.LabeledBar, ns.StatCard
 local theme = ns.theme

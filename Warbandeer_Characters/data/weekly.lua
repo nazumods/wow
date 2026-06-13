@@ -1,6 +1,5 @@
 ---@type Warbandeer_Characters
 local ns = select(2, ...)
--- luacheck: globals C_WeeklyRewards C_MythicPlus
 local Set, ValueList, any = ns.lua.sets.Set, ns.lua.lists.values, ns.lua.maps.any
 local Player = ns.wow.Player
 local IsQuestFlaggedCompleted = C_QuestLog.IsQuestFlaggedCompleted

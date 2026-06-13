@@ -2,8 +2,8 @@
 local ns = select(2, ...)
 local insert = table.insert
 local Class = ns.lua.Class
-local GetServerTime = GetServerTime -- luacheck: globals GetServerTime
-local DateAndTime = C_DateAndTime -- luacheck: globals C_DateAndTime
+local GetServerTime = GetServerTime
+local DateAndTime = C_DateAndTime
 local LAST_DAILY_RESET = GetServerTime() + DateAndTime.GetSecondsUntilDailyReset() - (60*60*24)
 local LAST_RESET = GetServerTime() + DateAndTime.GetSecondsUntilWeeklyReset() - (60*60*24)
 -- Most recent Sunday 00:00 UTC, derived from the epoch ALONE — never from

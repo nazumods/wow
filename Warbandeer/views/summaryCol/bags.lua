@@ -2,7 +2,7 @@
 local ns = select(2, ...)
 ---@type LibNUI
 local ui = ns.ui
-local NUM_BAG_SLOTS = NUM_BAG_SLOTS -- luacheck: globals NUM_BAG_SLOTS
+local NUM_BAG_SLOTS = NUM_BAG_SLOTS
 
 -- Bag Status
 local getBagStatus = function(toon)

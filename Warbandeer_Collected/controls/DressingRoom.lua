@@ -2,7 +2,6 @@
 local ns = select(2, ...)
 ---@type LibNUI
 local ui = ns.ui
--- luacheck: globals C_TransmogSets C_TransmogCollection C_Texture C_Item C_Timer GameTooltip UnitRace UnitSex
 local Class = ns.lua.Class
 local TitleFrame, Frame, Button = ui.TitleFrame, ui.Frame, ui.Button
 local Texture, Label, Model = ui.Texture, ui.Label, ui.Model

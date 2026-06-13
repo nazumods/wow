@@ -133,7 +133,6 @@ ns.data.minorFactions = minorFactions
 ns.data.minorFactionMaxStanding = minorFactionMaxStanding
 
 -- ─── Profession helpers ───────────────────────────────────────────────────────
--- luacheck: globals GetServerTime
 local insert, sort = table.insert, table.sort
 
 -- Concentration fill estimate, shared by the Midnight Profs and Crafting views.

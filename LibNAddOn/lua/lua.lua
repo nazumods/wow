@@ -1,6 +1,5 @@
 ---@class LibNAddOn
 local ns = select(2, ...)
--- luacheck: globals unpack table CopyTable floor AbbreviateNumbers gsub strsub strmatch strupper strfind
 
 -- table: setn, insert, getn, foreachi, maxn, foreach, concat, create, removemulti, sort, wipe, remove
 -- string: split, match, gmatch, upper, gsub, format, lower, sub, gfind, rep, char, rtgsub, join, reverse, byte, trim, len, find

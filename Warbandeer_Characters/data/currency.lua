@@ -1,7 +1,7 @@
 ---@type Warbandeer_Characters
 local ns = select(2, ...)
-local GetCurrencyInfo = C_CurrencyInfo.GetCurrencyInfo -- luacheck: globals C_CurrencyInfo
-local GetMoney = GetMoney -- luacheck: globals GetMoney
+local GetCurrencyInfo = C_CurrencyInfo.GetCurrencyInfo
+local GetMoney = GetMoney
 
 ---@type Broker
 ns.Currency = ns:RegisterBroker("currency")

@@ -1,6 +1,5 @@
 ---@type ShadowsOfUI_Upgrade
 local ns = select(2, ...)
--- luacheck: globals GetNumClasses GetClassInfo GetNumSpecializationsForClassID GetSpecializationInfoForClassID
 
 -- Resolves a stored character's spec to its stat priority.  Locale-independent: a
 -- character stores its numeric spec ID (basic.specialization.id), which we map to

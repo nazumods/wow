@@ -1,12 +1,12 @@
 ---@type Warbandeer_Characters
 local ns = select(2, ...)
 local Player = ns.wow.Player
-local RequestLoadItemData = C_Item.RequestLoadItemData -- luacheck: globals C_Item
+local RequestLoadItemData = C_Item.RequestLoadItemData
 local GetItemID = C_Item.GetItemID
-local GetItemInfo, GetCurrentItemLevel = C_Item.GetItemInfo, C_Item.GetCurrentItemLevel -- luacheck: globals C_Item
+local GetItemInfo, GetCurrentItemLevel = C_Item.GetItemInfo, C_Item.GetCurrentItemLevel
 local GetItemUpgradeInfo = C_Item.GetItemUpgradeInfo
 local GetItemInfoInstant = C_Item.GetItemInfoInstant
-local GetInventoryItemLink = GetInventoryItemLink -- luacheck: globals GetInventoryItemLink
+local GetInventoryItemLink = GetInventoryItemLink
 
 local EquipmentSlots = {
   Head = 1,

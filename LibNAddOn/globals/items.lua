@@ -1,7 +1,6 @@
 ---@class LibNAddOn
 local ns = select(2, ...)
--- luacheck: globals GetItemIcon
-local NumSlots = C_Container.GetContainerNumSlots -- luacheck: globals C_Container
+local NumSlots = C_Container.GetContainerNumSlots
 
 ---Static item/bag helpers.
 ---@class Items

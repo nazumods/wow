@@ -1,7 +1,6 @@
 ---@type Warbandeer_Characters
 local ns = select(2, ...)
 local API = ns.api
--- luacheck: globals C_TradeSkillUI C_Item Enum GetBuildInfo
 
 -- Account-wide cache of which recipes craft profession gear (recipe →
 -- schematic → output item).  The resolution is static game data — identical

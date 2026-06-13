@@ -1,6 +1,5 @@
 ---@class ShadowsOfUI_Known: AddOn
 local ns = LibNAddOn(...)
--- luacheck: read globals WarbandeerDB
 
 local insert, sort = table.insert, table.sort
 local GetItemInfoInstant = C_Item.GetItemInfoInstant
