@@ -98,8 +98,7 @@ end, {
     end
     return lists.map(groups, function(grp)
       local gstat = api:GroupStatus(grp.id)
-      -- One cell per class slot; grp.sets always has 13 positional entries, so the
-      -- columns stay aligned even where a class has no set (blank {} cell).
+      -- One positional cell per class slot (blank {} where a class has no set).
       local r = lists.map(grp.sets, function(set)
         local status = set.id and gstat and gstat[set.id]
         if not status then return {} end
@@ -124,6 +123,10 @@ end, {
           onLeave = onLeave,
         }
       end)
+      -- grp.sets can stop short of the newest classes (no Demon Hunter/Evoker entry
+      -- in older raids), leaving those columns cell-less. Pad to the full class count
+      -- so they blank out instead of keeping another row's value on re-sort.
+      for i = #r + 1, #ns.icons.classes do r[i] = {} end
       table.insert(r, 1, { text = grp.name })
       return r
     end)

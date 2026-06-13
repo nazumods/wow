@@ -108,6 +108,11 @@ end, {
             onLeave = onLeave,
           }
       end)
+      -- grp.sets can stop short of the newest classes (e.g. no Demon Hunter/Evoker
+      -- entry in a Vanilla raid), leaving those columns without a cell. Pad to the
+      -- full class count so they get a blank cell and don't keep another row's value
+      -- on re-sort.
+      for i = #r + 1, #ns.icons.classes do r[i] = {} end
       tinsert(r, 1, {
         text = lock and Colors.Strings.Icons.Lock or Colors.Strings.Icons.Empty,
       })
