@@ -1,6 +1,7 @@
 ---@type LibNUI_AddOn
 local ns = select(2, ...)
 local ui = ns.ui
+local unpack = unpack
 local Class = ns.lua.Class
 local Frame = ui.Frame
 
@@ -51,5 +52,15 @@ end
 ---@field HighlightText fun(startPos: number?, endPos: number?): EditBox
 function EditBox:HighlightText(startPos, endPos)
   self._widget:HighlightText(startPos, endPos)
+  return self
+end
+
+-- {path, size[, flags]} tuple. Getter returns the current font as the same
+-- tuple. Lets callers resize the text without touching `_widget` directly.
+---@param fontInfo table?
+---@return table|EditBox
+function EditBox:Font(fontInfo)
+  if not fontInfo then return {self._widget:GetFont()} end
+  self._widget:SetFont(unpack(fontInfo))
   return self
 end

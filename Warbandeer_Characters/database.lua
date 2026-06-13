@@ -10,6 +10,7 @@ local UnitClassBase = UnitClassBase
 ---@field characters table<string, Character> Character data indexed by character name
 ---@field numCharacters integer total number of characters
 ---@field warband WarbandData account-wide warband bank gold + weekly wealth tracking
+---@field ui table account-wide UI preferences (e.g. wmissingFontSize)
 
 ---@class Warbandeer_Characters
 ---@field db WarbandeerCharactersDB
@@ -83,7 +84,7 @@ end, "Repair stored data (recount characters)")
 ---@field MigrateDB fun(self) Migrate database to latest version
 function ns:MigrateDB()
   local db = ns.db
-  if db.version == 11 then return end
+  if db.version == 12 then return end
   if not db.characters then db.characters = {} end
   if not db.numCharacters then
     db.numCharacters = countCharacters(db)
@@ -157,6 +158,13 @@ function ns:MigrateDB()
   if (db.version or 0) < 11 then
     if not db.bank then db.bank = { characters = {}, guilds = {} } end
     db.version = 11
+  end
+
+  -- v12: account-wide UI preferences table (non-destructive), filled lazily by
+  -- the views that own a preference (currently the /wbc wmissing font size).
+  if (db.version or 0) < 12 then
+    if not db.ui then db.ui = {} end
+    db.version = 12
   end
 end
 

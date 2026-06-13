@@ -470,9 +470,12 @@ Pre-registered scripts: `OnEditFocusLost`, `OnEnterPressed`, `OnEscapePressed`
 
 ### Methods
 
-| Method       | Description  |
-|--------------|--------------|
-| `Text(text)` | Get/set text |
+| Method               | Description                                       |
+|----------------------|---------------------------------------------------|
+| `Text(text)`         | Get/set text                                      |
+| `CursorPosition(pos)`| Get/set cursor position                           |
+| `HighlightText(s, e)`| Highlight a range (whole text if no args)         |
+| `Font(fontInfo)`     | Get/set the font as a `{path, size[, flags]}` tuple |
 
 ---
 
