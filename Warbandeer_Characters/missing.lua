@@ -60,6 +60,14 @@ function ns.getMissingFields(toon)
   local bars = missingBars(toon.name)
   if bars then table.insert(missing, bars) end
 
+  -- Bank profession gear is captured only when the character opens their bank.
+  -- The store stamps scannedAt even when the bank holds no profession gear, so a
+  -- missing entry (not an empty gear list) is what flags "never scanned".
+  local banks = ns.db.bank and ns.db.bank.characters
+  if not (banks and banks[toon.name]) then
+    table.insert(missing, "bank contents")
+  end
+
   -- LumberAxe is a recorded boolean (has / doesn't have the Find Lumber tracking
   -- spell), so only a nil means the data was never captured. false is real data.
   if not toon.quests or toon.quests.LumberAxe == nil then

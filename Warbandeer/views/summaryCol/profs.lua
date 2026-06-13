@@ -14,6 +14,12 @@ local BASE_RARITY = 3 -- rare (blue)
 local MAX_TIER    = 5
 local PER_SLOT_MAX = BASE_RARITY + MAX_TIER
 
+-- Every profession's gear is one tool + two accessories.  These are the item
+-- equipLocs that distinguish them, so an empty slot can be labelled and its
+-- hints filtered to the matching craftables / bank spares.
+local TOOL_LOC = "INVTYPE_PROFESSION_TOOL"
+local GEAR_LOC = "INVTYPE_PROFESSION_GEAR"
+
 local profInfoBySkill = nil
 local function profNameBySkillID(skillID)
   if not profInfoBySkill then
@@ -133,6 +139,52 @@ local function craftHint(skillID, item, isCurrentExpac)
   return nil
 end
 
+-- Hints for an empty profession slot of a given type (tool vs accessory): who
+-- across the warband could craft a piece for THIS slot, and where any spare for
+-- it is sitting (warband bank, an alt's bank, the guild bank).  Both halves are
+-- filtered to the slot's equipLoc so the suggestions name the right kind of gear.
+-- Returns a (possibly empty) list of tooltip lines.
+local function emptyHints(skillID, equipLoc)
+  if not craftable or craftableDirty then buildCraftable() end
+  local lines = {}
+  -- Best crafter across this profession's recipes for this slot type.
+  local best
+  for _, entry in ipairs(craftableByProf[skillID] or {}) do
+    if entry.equipLoc == equipLoc then
+      local c = bestCrafter(entry)
+      if c and (not best
+        or (c.isMain and not best.isMain)
+        or (c.isMain == best.isMain and c.skill > best.skill)) then
+        best = c
+      end
+    end
+  end
+  if best then
+    insert(lines, ("    |cffaaaaaa%s can craft one.|r"):format(best.name))
+  end
+  -- Spares of this slot type in any scanned bank, summed per source (warband
+  -- first, then alts, then guild) in the order GetBankProfGear returns them.
+  local order, total = {}, {}
+  for _, e in ipairs(ns.api:GetBankProfGear(skillID)) do
+    if e.equipLoc == equipLoc then
+      if not total[e.source] then insert(order, e.source); total[e.source] = 0 end
+      total[e.source] = total[e.source] + (e.count or 1)
+    end
+  end
+  for _, source in ipairs(order) do
+    insert(lines, ("    |cffaaaaaa%d in %s.|r"):format(total[source], source))
+  end
+  return lines
+end
+
+-- The equipLoc of a stored gear item (tool vs accessory), or nil if its link
+-- isn't resolvable yet.  Used to tell which slot types are already filled.
+local function equipLocOf(item)
+  local itemID = item.link and tonumber(item.link:match("item:(%d+)"))
+  if not itemID then return nil end
+  return select(4, C_Item.GetItemInfoInstant(itemID))
+end
+
 local function getProfGearScore(toon)
   if not (toon.basic and toon.basic.professions) then return "" end
   if not (toon.professions and toon.professions.gear) then return "" end
@@ -151,10 +203,9 @@ local function getProfGearScore(toon)
     local profName = profNameBySkillID(skillID) or ("skill "..skillID)
     insert(lines, profName)
     local profGear = toon.professions.gear[skillID]
-    local slotCount = 0
+    local filledTool, filledAcc = 0, 0
     if profGear and profGear.slots then
       for _, item in pairs(profGear.slots) do
-        slotCount = slotCount + 1
         maxScore = maxScore + PER_SLOT_MAX
         local label = item.link or item.name or "item"
         if item.expacID == currentExpac then
@@ -169,12 +220,22 @@ local function getProfGearScore(toon)
           insert(lines, "  "..label.." |cffff5555(old expac)|r")
           hints[#lines] = {skillID, item, false}
         end
+        if equipLocOf(item) == TOOL_LOC then filledTool = filledTool + 1
+        else filledAcc = filledAcc + 1 end
       end
     end
-    -- Pad to 3 expected slots so missing equipment drags the score.
-    for _ = slotCount + 1, 3 do
+    -- A profession's loadout is 1 tool + 2 accessories; the empty slots are
+    -- whatever isn't filled.  Naming the missing type (and padding maxScore so it
+    -- drags the score) lets each empty line's hints target that exact slot.
+    for _ = filledTool + 1, 1 do
       maxScore = maxScore + PER_SLOT_MAX
-      insert(lines, "  |cffff5555(empty slot)|r")
+      insert(lines, "  |cffff5555(empty tool slot)|r")
+      hints[#lines] = {empty = true, skillID = skillID, equipLoc = TOOL_LOC}
+    end
+    for _ = filledAcc + 1, 2 do
+      maxScore = maxScore + PER_SLOT_MAX
+      insert(lines, "  |cffff5555(empty accessory slot)|r")
+      hints[#lines] = {empty = true, skillID = skillID, equipLoc = GEAR_LOC}
     end
   end
 
@@ -198,7 +259,9 @@ local function getProfGearScore(toon)
       for i, l in ipairs(lines) do
         ui.tip:AddLine(l)
         local h = hints[i]
-        if h then
+        if h and h.empty then
+          for _, hl in ipairs(emptyHints(h.skillID, h.equipLoc)) do ui.tip:AddLine(hl) end
+        elseif h then
           local hint = craftHint(h[1], h[2], h[3])
           if hint then ui.tip:AddLine(hint) end
         end

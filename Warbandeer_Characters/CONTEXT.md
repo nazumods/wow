@@ -1,6 +1,6 @@
 # Warbandeer_Characters (Data Layer)
 
-**Deps:** LibNAddOn, LibNUI · **SavedVars:** `WarbandeerCharDB` (v10) · **Commands:** `/characters`, `/wbc` · **API:** `WarbandeerApi`
+**Deps:** LibNAddOn, LibNUI · **SavedVars:** `WarbandeerCharDB` (v11) · **Commands:** `/characters`, `/wbc` · **API:** `WarbandeerApi`
 
 Data-collection backbone for the suite. Scans the active character each login/refresh and stores everything in `WarbandeerCharDB`, exposing it to the rest of the suite through the `WarbandeerApi` global. Per-field scanning is driven by the **broker** system (`broker.lua`).
 
@@ -11,16 +11,17 @@ Data-collection backbone for the suite. Scans the active character each login/re
 | `init.lua` | Addon bootstrap (assignment form) |
 | `types.lua` | LuaLS aliases: `Specialization`, `SpecializationKey` |
 | `broker.lua` | `Broker` class + `ns:RegisterBroker`/`InitBrokers`; reset constants `RESET_SUNDAY/DAILY/WEEKLY`; reset-boundary timestamps `ns.LAST_DAILY_RESET`/`LAST_RESET`/`LAST_SUNDAY_RESET` |
-| `database.lua` | `ns:MigrateDB` (v10), `ns:initialize` (creates the per-char struct, then `InitBrokers`/`InitWarband`); `/characters list`, `/characters delete <name>`, `/characters cleanup` (recount numCharacters) |
+| `database.lua` | `ns:MigrateDB` (v10), `ns:initialize` (creates the per-char struct, then `InitBrokers`/`InitWarband`); `/characters list`, `/characters delete <name>` (also prunes the character's cached bank gear), `/characters cleanup` (recount numCharacters + drop bank gear for untracked characters) |
 | `main.lua` | `ns:refresh` + `ns:refreshQueue` (one **field** scanned per 100ms); `/characters refresh`, `/characters dump` |
 | `login.lua` | `ns.onLogin` → `initialize()` once, then `refresh()` |
 | `api.lua` | `WarbandeerApi` public methods (see below) |
 | `data/basic.lua` | Broker `basic`: `level`, `specialization`, `professions` (name summary), `xp` |
 | `data/currency.lua` | Broker `currency`: `RestoredCofferKey`, `gold` (`GetMoney`), `CofferKeyShard`, `Catalyst`, `HeroDawncrest`, `MythDawncrest`, `NebulousVoidcore` |
 | `data/warband.lua` | Account-wide (not a broker): `db.warband` bank gold + weekly wealth. `ns:GetWarbandWealth`, `RolloverWarbandWeek`, `InitWarband`; `/wbc dump warband` |
+| `data/bank.lua` | Account-wide (not a broker): `db.bank` profession-gear cache for the warband bank, each character's bank, and guild banks. Scanned on bank/guild-bank open (warband+character via `C_Bank`/`C_Container`, guild via the classic API). `WarbandeerApi:GetBankProfGear(skillID)`; `/wbc dump bankgear`. A character with no `db.bank.characters[name]` entry is flagged "bank contents" by `missing.lua` |
 | `data/items.lua` | Broker `items`: `bags`, `reagentBag`; `/wbc refresh items` |
 | `data/professions.lua` | Broker `professions`: `details` (per-exp skill levels, spec points, learned recipes) + `gear` (tool/accessory slots). Also defines `ns.api.professionInfo`; scans pre-resolve current-exp recipes into the recipe-gear cache |
-| `data/recipegear.lua` | Account-wide `db.recipeGear` cache (recipe → prof-gear output: itemID/rarity/equipLoc/target skillID), build-stamped; `WarbandeerApi:ResolveRecipeOutput` |
+| `data/recipegear.lua` | Account-wide `db.recipeGear` cache (recipe → prof-gear output: itemID/rarity/equipLoc/target skillID), build-stamped; `WarbandeerApi:ResolveRecipeOutput`, `WarbandeerApi:ClassifyProfGearItem` (item → prof skillID/equipLoc, shared with the bank scanner) |
 | `data/concentration.lua` | Broker `concentration`: `data` — Midnight concentration currency per crafting prof, keyed by parent skillLineID |
 | `data/races.lua` | `API.ALLIANCE_RACES`, `API.HORDE_RACES`, `ns.NormalizeRaceId(raceId)` → `(raceIdx, isAlliance)` |
 | `data/quests.lua` | Broker `quests`: `UndermineStoryMode`, `WWIRep`, `LumberAxe`, `delves` |
@@ -54,6 +55,14 @@ WarbandeerApi:ResolveRecipeOutput(recipeID) → RecipeGearInfo|false|nil
     -- what prof gear a recipe crafts ({itemID, rarity, equipLoc, skillID}),
     -- from the account-wide cache; false = not prof gear, nil = item not in
     -- the client cache yet (load requested — retry later)
+WarbandeerApi:ClassifyProfGearItem(itemID)  → skillID?, equipLoc?
+    -- static class/subclass test: parent prof skillLineID + INVTYPE the item is
+    -- gear for, or nil if not profession gear (synchronous, no item load)
+WarbandeerApi:GetBankProfGear(skillID)     → BankGearEntry[]
+    -- prof gear for a profession cached across every opened bank — warband,
+    -- character, and guild ({itemID, equipLoc, rarity, count, source,
+    -- sourceType}); source is a display label, sourceType ∈ warband/character/
+    -- guild; empty until a bank is opened
 ```
 
 Also on the API table: `ALLIANCE_RACES`, `HORDE_RACES`, `professionInfo`.
@@ -185,7 +194,14 @@ A `Broker` (from `broker.lua`) holds a `fields` table; each field is `{ get, eve
   recipeGear = {
     build,                                 -- "version-buildNum" the cache was resolved against
     recipes = { [recipeID] = { itemID, rarity, equipLoc, skillID } | false },
+  },
+  -- account-wide bank prof-gear cache (v11); last-seen, scanned on bank open.
+  -- gear entries: { itemID, skillID, equipLoc, rarity, count }
+  bank = {
+    warband    = { scannedAt, gear = {...} },              -- shared account bank
+    characters = { ["Name"]      = { scannedAt, gear = {...} } },
+    guilds     = { ["GuildName"] = { scannedAt, gear = {...} } },
   } }
 ```
 
-`MigrateDB` (all migrations non-destructive): **v7** moves flat fields into `basic`/`instances` sub-tables and nils the old keys; **v8** seeds `warband = { bankGold = 0, history = {} }` (`week` filled lazily by `RolloverWarbandWeek` on first login); **v9** re-derives `classKey` from the locale-independent class token; **v10** seeds `recipeGear = { build = "", recipes = {} }` (re-stamped and filled lazily by `data/recipegear.lua`).
+`MigrateDB` (all migrations non-destructive): **v7** moves flat fields into `basic`/`instances` sub-tables and nils the old keys; **v8** seeds `warband = { bankGold = 0, history = {} }` (`week` filled lazily by `RolloverWarbandWeek` on first login); **v9** re-derives `classKey` from the locale-independent class token; **v10** seeds `recipeGear = { build = "", recipes = {} }` (re-stamped and filled lazily by `data/recipegear.lua`); **v11** seeds `bank = { characters = {}, guilds = {} }` (warband filled lazily; all populated by `data/bank.lua` on bank open).

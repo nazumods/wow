@@ -30,6 +30,9 @@ data through the `WarbandeerApi` global.
 - Learned recipes and profession specialization points are captured when you **open
   the profession window** — open each profession once per character for full data.
 - Warband bank gold is tracked account-wide, with a weekly wealth history.
+- Profession gear sitting in a **bank** — the warband bank, any character's bank, or a
+  guild bank — is noted whenever you open it, so Warbandeer can tell you when an empty
+  profession slot could be filled from one of your banks.
 
 ## Requirements
 

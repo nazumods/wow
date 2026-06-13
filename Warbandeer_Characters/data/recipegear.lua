@@ -42,6 +42,19 @@ local SUBCLASS_SKILL = {
 ---@class WarbandeerCharactersDB
 ---@field recipeGear RecipeGearCache
 
+---Classify an item as profession gear by its static item class/subclass — the
+---bit that's identical for a recipe's output item and the same item sitting in a
+---guild bank.  Returns nil if the item isn't profession gear.  GetItemInfoInstant
+---is synchronous (no item load required), so this never blocks.
+---@param itemID integer
+---@return integer? skillID parent skillLineID of the profession the gear is for
+---@return string? equipLoc INVTYPE_PROFESSION_TOOL | INVTYPE_PROFESSION_GEAR
+function API:ClassifyProfGearItem(itemID)
+  local _, _, _, equipLoc, _, classID, subClassID = C_Item.GetItemInfoInstant(itemID)
+  if classID ~= Enum.ItemClass.Profession then return nil end
+  return SUBCLASS_SKILL[subClassID], equipLoc
+end
+
 -- The cache's recipes table, recreated empty whenever the client build changes
 -- (patches can rewire recipes and items).
 local function cachedRecipes()
@@ -71,8 +84,7 @@ function API:ResolveRecipeOutput(recipeID)
     recipes[recipeID] = false
     return false
   end
-  local _, _, _, equipLoc, _, classID, subClassID = C_Item.GetItemInfoInstant(itemID)
-  local skillID = classID == Enum.ItemClass.Profession and SUBCLASS_SKILL[subClassID]
+  local skillID, equipLoc = self:ClassifyProfGearItem(itemID)
   if not skillID then
     recipes[recipeID] = false
     return false

@@ -35,6 +35,9 @@ ns:registerCommand("delete", "", function(self, args)
   end
   ns.db.characters[args] = nil
   ns.db.numCharacters = ns.db.numCharacters - 1
+  -- Cached bank gear lives in the account-wide store keyed by name, so prune it
+  -- here too or it would orphan (it isn't part of the per-character struct).
+  if ns.db.bank and ns.db.bank.characters then ns.db.bank.characters[args] = nil end
   ns.Print(args .. " deleted.")
 end, "Delete a character")
 
@@ -48,6 +51,20 @@ ns:registerCommand("cleanup", "", function(self)
     ns.Print("numCharacters corrected: " .. tostring(ns.db.numCharacters) .. " -> " .. n)
     ns.db.numCharacters = n
     fixed = fixed + 1
+  end
+  -- Drop cached bank gear for characters no longer tracked (the account-wide
+  -- bank store is keyed by name and isn't pruned when a character vanishes by
+  -- means other than /wbc delete, e.g. a rename or a stale pre-existing entry).
+  local banks = ns.db.bank and ns.db.bank.characters
+  if banks then
+    local orphans = 0
+    for name in pairs(banks) do
+      if not ns.db.characters[name] then banks[name] = nil; orphans = orphans + 1 end
+    end
+    if orphans > 0 then
+      ns.Print("Removed bank gear for " .. orphans .. " untracked character(s).")
+      fixed = fixed + 1
+    end
   end
   if fixed == 0 then ns.Print("Nothing to clean.") end
 end, "Repair stored data (recount characters)")
@@ -66,7 +83,7 @@ end, "Repair stored data (recount characters)")
 ---@field MigrateDB fun(self) Migrate database to latest version
 function ns:MigrateDB()
   local db = ns.db
-  if db.version == 10 then return end
+  if db.version == 11 then return end
   if not db.characters then db.characters = {} end
   if not db.numCharacters then
     db.numCharacters = countCharacters(db)
@@ -133,6 +150,13 @@ function ns:MigrateDB()
   if (db.version or 0) < 10 then
     if not db.recipeGear then db.recipeGear = { build = "", recipes = {} } end
     db.version = 10
+  end
+
+  -- v11: account-wide bank profession-gear cache (non-destructive), filled
+  -- lazily by data/bank.lua whenever a warband/character/guild bank is opened.
+  if (db.version or 0) < 11 then
+    if not db.bank then db.bank = { characters = {}, guilds = {} } end
+    db.version = 11
   end
 end
 
