@@ -55,7 +55,9 @@ end
 ---@field _scaleLabel Label  scale value readout above the slider
 ---@field _bg Texture  class-themed backdrop behind the model
 ---@field _bgBorder Texture  Background-toggle border (gold while active)
----@field _bgEnabled boolean  whether the backdrop is shown
+---@field _bgLabel Label  Background-toggle label (greyed when no backdrop exists)
+---@field _bgEnabled boolean  the user's backdrop on/off preference (kept across classes without one)
+---@field _bgAvailable boolean?  whether the current class has a backdrop atlas (toggle disabled when false)
 ---@field _bgClass string?  current class file for the backdrop (remembered for the toggle)
 ---@field _group table?  the set-group the previewed set belongs to (Step cycles its sets)
 ---@field _set table?  the set entry currently previewed
@@ -183,7 +185,7 @@ DressingRoom = Class(TitleFrame, function(self)
   self._bgBorder:Color(SELECTED)   -- backdrop defaults on
   Button:new{ parent = bgBox, position = { All = true }, glow = false,
     OnClick = function() self:SetBackgroundOn(not self._bgEnabled) end }
-  Label:new{ parent = bgBox, justifyH = ui.justify.Center,
+  self._bgLabel = Label:new{ parent = bgBox, justifyH = ui.justify.Center,
     position = { Left = {6, 0}, Right = {-6, 0} }, text = "Background" }
 
   -- Gender indicator (second row): the dressable body's gender follows the logged-in
@@ -429,26 +431,41 @@ function DressingRoom:_showClass(classId)
   self:_setBackground(lower)   -- class-themed model backdrop
 end
 
--- Point the model backdrop at the class's dressing-room background (hidden when
--- the toggle is off or the class/atlas is unknown). Remembers the class so the
--- Background toggle can re-show it.
+-- Grey out the Background toggle when the current class has no backdrop atlas, so
+-- the button reads as disabled (its click is gated in SetBackgroundOn too). When a
+-- backdrop is available the border tracks the on/off state as usual.
+function DressingRoom:_syncBgButton()
+  if self._bgAvailable then
+    self._bgLabel:Color("text")
+    self._bgBorder:Color(self._bgEnabled and SELECTED or IDLE)
+  else
+    self._bgLabel:Color("muted")
+    self._bgBorder:Color(IDLE)
+  end
+end
+
+-- Point the model backdrop at the class's dressing-room background (hidden when the
+-- toggle is off or the class has no backdrop atlas). Remembers the class so the
+-- Background toggle can re-show it, and refreshes the toggle's enabled state.
 ---@param classFile string?  lowercased class file (e.g. "warrior")
 function DressingRoom:_setBackground(classFile)
   self._bgClass = classFile
   local atlas = classFile and ("dressingroom-background-" .. classFile)
-  if self._bgEnabled and atlas and GetAtlasInfo(atlas) then
+  self._bgAvailable = atlas ~= nil and GetAtlasInfo(atlas) ~= nil
+  if self._bgEnabled and self._bgAvailable then
     self._bg:Atlas(atlas, false)   -- false = stretch to the model rect
     self._bg:Show()
   else
     self._bg:Hide()
   end
+  self:_syncBgButton()
 end
 
 ---@param on boolean  show the class-themed model backdrop
 function DressingRoom:SetBackgroundOn(on)
+  if not self._bgAvailable then return end   -- disabled: no backdrop for this class
   self._bgEnabled = on
-  self._bgBorder:Color(on and SELECTED or IDLE)
-  self:_setBackground(self._bgClass)
+  self:_setBackground(self._bgClass)   -- re-evaluates the backdrop + syncs the toggle
 end
 
 -- Preview a specific set within a group: refresh the title, class icon, slots and
