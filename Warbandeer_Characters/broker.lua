@@ -151,6 +151,11 @@ function ns:RegisterBroker(name)
   return self.brokers[name]
 end
 
+---@class WarbandeerCharactersDB
+---@field lastDailyReset number?
+---@field lastReset number?
+---@field lastSundayReset number?
+
 ---Init every broker for the current character, then apply any daily/weekly/
 ---Sunday resets that have elapsed since the last login (with clock-skew slack).
 ---@class Warbandeer_Characters

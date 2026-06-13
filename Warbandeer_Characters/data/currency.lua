@@ -3,10 +3,10 @@ local ns = select(2, ...)
 local GetCurrencyInfo = C_CurrencyInfo.GetCurrencyInfo
 local GetMoney = GetMoney
 
----@type Broker
-ns.Currency = ns:RegisterBroker("currency")
+---@class CurrencyBroker: Broker
+local Currency = ns:RegisterBroker("currency")
 
-ns.Currency.fields = {
+Currency.fields = {
   RestoredCofferKey = {
     id = 3028,
     get = function(self) return GetCurrencyInfo(self.id).quantity end,

@@ -1,5 +1,6 @@
 ---@type Warbandeer_Characters
 local ns = select(2, ...)
+---@type WarbandeerAPI
 local API = ns.api
 local insert = table.insert
 local C_Item = C_Item
@@ -43,7 +44,7 @@ local GUILD_SLOTS_PER_TAB = MAX_GUILDBANK_SLOTS_PER_TAB or 98
 
 local function store()
   local db = ns.db
-  if not db.bank then db.bank = {} end
+  if not db.bank then db.bank = {characters = {}, guilds = {}} end
   local b = db.bank
   b.characters = b.characters or {}
   b.guilds = b.guilds or {}
@@ -196,12 +197,22 @@ end)
 
 -- ─── Query API ───────────────────────────────────────────────────────────────
 
+---@class ProfGear
+---@field itemID integer
+---@field equipLoc string
+---@field rarity integer
+---@field count integer
+---@field source string
+---@field sourceType string
+
+---@class WarbandeerAPI
+---@field GetBankProfGear fun(self: WarbandeerAPI, skillID: integer): ProfGear[]
 ---Profession-gear items for a profession cached across every bank the account
 ---has opened — warband bank, each character's bank, and each guild bank.  Each
 ---returned entry is tagged with a human-readable `source` and a `sourceType`
 ---("warband" | "character" | "guild").  Empty until a bank has been opened.
 ---@param skillID integer parent skillLineID
----@return {itemID:integer, equipLoc:string, rarity:integer, count:integer, source:string, sourceType:string}[]
+---@return ProfGear[]
 function API:GetBankProfGear(skillID)
   local out = {}
   local b = ns.db.bank

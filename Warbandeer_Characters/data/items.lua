@@ -4,28 +4,11 @@ local BagID = ns.wow.Player.bags.ItemID
 local Find = ns.lua.lists.find
 local GetNumSlots = ns.wow.Items.GetNumSlots
 
-ns:registerCommand("refresh", "items", function(self)
-  ns:scanItems()
-  ns.Print("items scanned.")
-end)
-
-local Items = {
-  GoblinMiniFridge = {
-    id = 220774,
-  },
-  ArathorSatchel = {
-    id = 224578,
-  },
-  PortableRefridgerator = {
-    id = 92748,
-  },
-}
-
----@type Broker
-ns.Items = ns:RegisterBroker("items")
+---@class ItemsBroker: Broker
+local Items = ns:RegisterBroker("items")
 
 local LAST_BAG_IDX = NUM_BAG_SLOTS + 1
-ns.Items.fields = {
+Items.fields = {
   bags = {
     get = function()
       local bags = {}

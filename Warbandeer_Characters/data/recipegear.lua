@@ -1,5 +1,6 @@
 ---@type Warbandeer_Characters
 local ns = select(2, ...)
+---@type WarbandeerAPI
 local API = ns.api
 
 -- Account-wide cache of which recipes craft profession gear (recipe →
@@ -41,6 +42,8 @@ local SUBCLASS_SKILL = {
 ---@class WarbandeerCharactersDB
 ---@field recipeGear RecipeGearCache
 
+---@class WarbandeerAPI
+---@field ClassifyProfGearItem fun(self: WarbandeerAPI, itemID: integer): integer?, string?
 ---Classify an item as profession gear by its static item class/subclass — the
 ---bit that's identical for a recipe's output item and the same item sitting in a
 ---guild bank.  Returns nil if the item isn't profession gear.  GetItemInfoInstant
@@ -57,6 +60,8 @@ end
 -- Equip locations that don't map to a tracked equipment slot (cosmetic only).
 local COSMETIC_EQUIPLOC = { INVTYPE_BODY = true, INVTYPE_TABARD = true }
 
+---@class WarbandeerAPI
+---@field ClassifyGearItem fun(self: WarbandeerAPI, itemID: integer): string?, integer?, integer?
 ---Classify an item as equippable gear (armour or weapon filling a real slot) by
 ---its static item class/subclass, for the gear-upgrade cache.  Returns nil for
 ---anything that can't upgrade an equipment slot (cosmetics, non-gear).  Like
@@ -84,6 +89,8 @@ local function cachedRecipes()
   return db.recipeGear.recipes
 end
 
+---@class WarbandeerAPI
+---@field ResolveRecipeOutput fun(self: WarbandeerAPI, recipeID: integer): RecipeGearInfo | false | nil
 ---What profession gear a recipe crafts, from the account-wide cache (resolving
 ---and persisting on a miss).  Returns false if the recipe doesn't craft
 ---profession gear, nil if the output item isn't in the client item cache yet

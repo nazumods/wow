@@ -4,12 +4,15 @@ local ns = select(2, ...)
 ns:registerCommand("refresh", "locks", function(self)
   self.brokers.instances:Update(self.currentData)
   self.Print("instance locks refreshed.")
-end)
+end, "refresh instance locks")
 
 local difficulties = {}
 difficulties[15] = "Normal"
 difficulties[17] = "Heroic"
 difficulties[16] = "Mythic"
+
+---@class Character
+---@field instances InstancesBroker?
 
 ns:registerCommand("dump", "locks", function(self)
   if ns.currentData.instances.locks then
@@ -22,11 +25,13 @@ ns:registerCommand("dump", "locks", function(self)
   else
     ns.Print("No instance locks found.")
   end
-end)
+end, "dump instance locks")
 
----@type Broker
-ns.Instances = ns:RegisterBroker("instances")
-ns.Instances.fields = {
+---@class InstancesBroker: Broker
+local Instances = ns:RegisterBroker("instances")
+Instances.fields = {
+  ---@class InstancesBroker
+  ---@field locks any -- TODO
   locks = {
     resetOn = ns.RESET_WEEKLY,
     get = function()

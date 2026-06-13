@@ -25,7 +25,7 @@ function ns:refresh()
 end
 
 ---@class Character
----@field lastRefresh integer Timestamp of last broker refresh
+---@field lastRefresh integer? Timestamp of last broker refresh
 
 function ns:refreshQueue()
   if #queue == 0 then return end

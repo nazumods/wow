@@ -4,13 +4,14 @@ local GetBuildInfo = GetBuildInfo
 local RequestTimePlayed = RequestTimePlayed
 
 ---@class Character
----@field playtime PlaytimeBroker
+---@field playtime PlaytimeBroker?
 
 ---@class PlaytimeBroker
 ---@field total integer total /played in seconds
 ---@field byPatch table<string, integer> /played total at first login per WoW patch version
 
-ns.Playtime = ns:RegisterBroker("playtime")
+---@class PlaytimeBroker: Broker
+local Playtime = ns:RegisterBroker("playtime")
 
 -- Suppress the CHAT_MSG_SYSTEM that fires alongside the automatic login query.
 local suppressTimePlayed = false
@@ -19,9 +20,9 @@ ChatFrame_AddMessageEventFilter("CHAT_MSG_SYSTEM", function(_, _, _)
 end)
 
 -- TIME_PLAYED_MSG is async; bypass the field system and handle it directly.
-local parentInit = ns.Playtime.Init
+local parentInit = Playtime.Init
 ---@param toon Character
-function ns.Playtime:Init(toon)
+function Playtime:Init(toon)
   parentInit(self, toon) -- creates toon.playtime = {} and self.fieldOrder = {}
 
   local patch = select(1, GetBuildInfo())

@@ -5,12 +5,12 @@ local GetSpecializationRoleByID = GetSpecializationRoleByID
 local GetServerTime = GetServerTime
 
 ---@class Character
----@field basic BasicBroker
+---@field basic BasicBroker?
 
 ---@class BasicBroker: Broker
-ns.Basic = ns:RegisterBroker("basic")
+local Basic = ns:RegisterBroker("basic")
 
-ns.Basic.fields = {
+Basic.fields = {
   ---@class BasicBroker
   ---@field level integer
   level = {

@@ -12,7 +12,7 @@ local GetServerTime = GetServerTime
 ---@field lastUpdated integer
 
 ---@class Character
----@field concentration ConcentrationBroker
+---@field concentration ConcentrationBroker?
 
 ---@class ConcentrationBroker: Broker
 ---@field data table<integer, ConcentrationEntry>?

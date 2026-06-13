@@ -73,6 +73,7 @@ end, "Repair stored data (recount characters)")
 ---@field name string
 ---@field classId string
 ---@field classKey string
+---@field className string
 ---@field race string
 ---@field raceId string
 ---@field raceIdx integer
@@ -188,21 +189,23 @@ function ns:initialize()
   local c = self.db.characters[self.currentPlayer]
   if not c then
     -- initialize new character
-    c = {}
+    local _, classToken = UnitClassBase("player")
+    local className = Player:GetClassName()
+    local raceFile, raceId = Player:GetRace()
+    local raceIndex, isAlliance = ns.NormalizeRaceId(raceId)
+    c = {
+      name = self.currentPlayer,
+      classId = Player:GetClassId(),
+      className = className,
+      classKey = ns.wow.ClassKeyByToken[classToken] or gsub(className, " ", ""),
+      isAlliance = isAlliance,
+      race = raceFile,
+      raceId = raceId,
+      raceIdx = raceIndex,
+      realm = GetRealmName()
+    }
     self.db.characters[self.currentPlayer] = c
     self.db.numCharacters = self.db.numCharacters + 1
-    c.name = self.currentPlayer
-    c.classId = Player:GetClassId()
-    c.className = Player:GetClassName()
-    local _, classToken = UnitClassBase("player")
-    c.classKey = ns.wow.ClassKeyByToken[classToken] or gsub(c.className, " ", "")
-    local raceFile, raceId = Player:GetRace()
-    c.race = raceFile
-    c.raceId = raceId
-    local raceIndex, isAlliance = ns.NormalizeRaceId(raceId)
-    c.raceIdx = raceIndex
-    c.isAlliance = isAlliance
-    c.realm = GetRealmName()
   end
   self.currentData = c
 

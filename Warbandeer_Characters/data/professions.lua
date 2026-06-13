@@ -130,7 +130,7 @@ ns.CURRENT_RECIPE_EXP = "Midnight"
 ---@field slots table<integer, ProfGearSlot> keyed by inventory slot index
 
 ---@class Character
----@field professions ProfessionsBroker
+---@field professions ProfessionsBroker?
 
 ---@class ProfessionsBroker: Broker
 ---@field details table<integer, ProfDetail>?

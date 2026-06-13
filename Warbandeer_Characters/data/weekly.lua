@@ -23,8 +23,8 @@ local DMFQuests = {
 }
 
 ---@class WeeklyBroker: Broker
-ns.Weekly = ns:RegisterBroker("weeklies")
-ns.Weekly.fields = {
+local Weekly = ns:RegisterBroker("weeklies")
+Weekly.fields = {
   ---@class WeeklyBroker
   ---@field DMF boolean
   DMF = {
@@ -162,7 +162,7 @@ ns:registerCommand("dump", "m+", function(self)
   else
     ns.Print("Dungeons: 0")
   end
-end)
+end, "dump keystone data")
 
 ns:registerCommand("dump", "vault", function(self)
   ---@type VaultRewards
@@ -180,4 +180,4 @@ ns:registerCommand("dump", "vault", function(self)
   for k,v in pairs(vault.progress) do
     print(k, ": " .. v.progress .. "/" .. v.max)
   end
-end)
+end, "dump vault data")

@@ -12,12 +12,12 @@ local data = {}
 ---@field goal integer
 
 ---@class Character
----@field artifacts ArtifactBroker
+---@field artifacts ArtifactBroker?
 
 ---@class ArtifactBroker: Broker
-ns.Artifacts = ns:RegisterBroker("artifacts")
+local Artifacts = ns:RegisterBroker("artifacts")
 
-ns.Artifacts.fields = {
+Artifacts.fields = {
   ---@class ArtifactBroker
   ---@field hidden { SpecializationKey: boolean }
   hidden = {
@@ -67,7 +67,7 @@ ns:registerCommand("dump", "artifact", function()
     local _, _, _, a, g = GetAchievementCriteriaInfo(c[2], 1)
     print(c[1], a, g)
   end
-end)
+end, "dump legion artifacts appearance info")
 
 data.DeathKnight = {
   Blood = { hidden = 43646, },
