@@ -8,6 +8,7 @@ local Button, Label, Tooltip = ui.Button, ui.Label, ui.Tooltip
 local SCROLLBAR_W = 26
 local PADDING     = 20
 local MIN_W       = 200
+local MAX_W       = 1000
 local SIZES       = { 9, 10, 12, 14, 16, 18 }
 
 -- Inline down-arrow (atlas markup: |A:atlasName:height:width|a), matching the
@@ -42,7 +43,7 @@ end
 -- Re-measure and re-apply the cached report at the current font size.
 local function relayout()
   local text, count = window._text, window._count
-  local ebW     = math.max(maxLineWidth(text) + PADDING, MIN_W)
+  local ebW     = math.min(math.max(maxLineWidth(text) + PADDING, MIN_W), MAX_W)
   local windowW = ebW + SCROLLBAR_W
 
   window:Width(windowW)
@@ -102,8 +103,8 @@ local function createWindow()
   fontSize = ns.db.ui.wmissingFontSize or fontSize
 
   local f = TitleFrame:new{
-    name     = "WarbandeerMissingWindow",
-    title    = "Missing Data",
+    name     = "WarbandeerCopyWindow",
+    title    = "",
     special  = true,
     level    = 600,
     position = { Center = {}, Height = 380 },
@@ -132,26 +133,35 @@ local function createWindow()
   return f
 end
 
-ns:registerCommand("wmissing", "", function(self)
-  if not window then
-    window = createWindow()
-  end
-  local missing = self:getMissingReport()
-  local text, count
-  if #missing == 0 then
-    text, count = "All characters have complete data.", 1
-  else
-    local lines = { #missing .. " characters missing data:" }
-    for _, line in ipairs(missing) do
-      table.insert(lines, line)
-    end
-    text  = table.concat(lines, "\n")
-    count = #lines
-  end
+---Show arbitrary multi-line text in a shared, copyable (pre-highlighted) scroll
+---window — sized to the content and re-titled per call.  Used by any command that
+---wants console-style output the user can actually copy/paste.
+---@class Warbandeer_Characters
+---@field ShowCopyWindow fun(self, title: string, text: string)
+function ns:ShowCopyWindow(title, text)
+  if not window then window = createWindow() end
+  local count = 1
+  for _ in text:gmatch("\n") do count = count + 1 end
 
+  window:Title(title)
   window._text  = text
   window._count = count
   relayout()
   window._eb:HighlightText()
   window:Show()
+end
+
+ns:registerCommand("wmissing", "", function(self)
+  local missing = self:getMissingReport()
+  local text
+  if #missing == 0 then
+    text = "All characters have complete data."
+  else
+    local lines = { #missing .. " characters missing data:" }
+    for _, line in ipairs(missing) do
+      table.insert(lines, line)
+    end
+    text = table.concat(lines, "\n")
+  end
+  self:ShowCopyWindow("Missing Data", text)
 end, "Show missing character data in a copyable window")
