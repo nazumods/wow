@@ -16,7 +16,6 @@ local floor, ceil, max = math.floor, math.ceil, math.max
 local SELECTED = {0.85, 0.65, 0.13, 1}
 local IDLE     = {0.20, 0.20, 0.24, 1}
 local PANEL    = {0.05, 0.05, 0.06, 1}
-local DISABLED = {0.40, 0.40, 0.45, 1}   -- toggle label, locked/inert
 
 local COLS  = 13   -- 25 races wrap to two rows
 local CELL  = 40
@@ -47,10 +46,9 @@ end
 ---@class DressingRoom: TitleFrame
 ---@field _model Model  the 3D viewer
 ---@field _race table<number, { border: Texture }>  selection border per raceID
----@field _gender table<number, { border: Texture, label: Label }>  toggle parts per sex (2/3)
----@field _genderLocked boolean?  true when the race renders via the player-gender fallback (toggle inert)
+---@field _genderLabel Label  read-only indicator of the (char-locked) gender
 ---@field _raceID number?  selected chrRaceID
----@field _sex number?  selected sex (2 = male, 3 = female)
+---@field _sex number?  the logged-in character's sex (2 = male, 3 = female); the body can't be re-gendered
 ---@field _form number  selected form index for multi-form races (Worgen/Dracthyr); 1 = default
 ---@field _formButtons table[]  reusable form-toggle button pool ({ box, border, label })
 ---@field _scaleSlider Slider  model size slider (per-race correction + user resize)
@@ -188,23 +186,21 @@ DressingRoom = Class(TitleFrame, function(self)
   Label:new{ parent = bgBox, justifyH = ui.justify.Center,
     position = { Left = {6, 0}, Right = {-6, 0} }, text = "Background" }
 
-  -- Gender toggle (two buttons), second row.
-  self._gender = {}
-  for i, info in ipairs({ {2, "Male"}, {3, "Female"} }) do
-    local sex, text = info[1], info[2]
-    local box = Frame:new{
-      parent = controls,
-      position = { TopLeft = {(i - 1) * (half + PAD), -TOPGAP}, Width = half, Height = ROWH },
-    }
-    local border = selBox(box)
-    Button:new{ parent = box, position = { All = true }, glow = false,
-      OnClick = function() self:SetSex(sex) end }
-    local label = Label:new{ parent = box, justifyH = ui.justify.Center,
-      position = { Left = {6, 0}, Right = {-6, 0} }, text = text }
-    self._gender[sex] = { border = border, label = label }
-  end
+  -- Gender indicator (second row): the dressable body's gender follows the logged-in
+  -- character and can't be overridden, so this is a read-only label (no toggle) that
+  -- just shows which gender is rendered. _syncGenderToggle fills the text.
+  local genderBox = Frame:new{
+    parent = controls,
+    position = { TopLeft = {0, -TOPGAP}, Width = GRIDW, Height = ROWH },
+  }
+  selBox(genderBox):Color(SELECTED)
+  self._genderLabel = Label:new{ parent = genderBox, justifyH = ui.justify.Center,
+    position = { Left = {6, 0}, Right = {-6, 0} } }
 
-  -- Race grid below the toggle rows.
+  -- Race grid below the toggle rows. Icons match the logged-in character's gender
+  -- (the previewed body renders in that gender), falling back to a name stub for any
+  -- race that lacks a gendered raceicon atlas.
+  local iconSex = UnitSex("player") == 3 and "female" or "male"
   self._race = {}
   for idx, race in ipairs(races) do
     local col, row = (idx - 1) % COLS, floor((idx - 1) / COLS)
@@ -214,7 +210,7 @@ DressingRoom = Class(TitleFrame, function(self)
     }
     self._race[race.id] = { border = selBox(box) }
 
-    local atlas = "raceicon-" .. race.file .. "-male"
+    local atlas = "raceicon-" .. race.file .. "-" .. iconSex
     if GetAtlasInfo(atlas) then
       Texture:new{ parent = box, layer = ui.layer.Artwork, atlas = atlas, atlasSize = false,
         position = { TopLeft = {2, -2}, BottomRight = {-2, 2} } }
@@ -317,12 +313,6 @@ function DressingRoom:_highlightRace(raceID)
   if self._race[raceID] then self._race[raceID].border:Color(SELECTED) end
 end
 
----@param sex number  2 = male, 3 = female
-function DressingRoom:_highlightSex(sex)
-  if self._sex and self._gender[self._sex] then self._gender[self._sex].border:Color(IDLE) end
-  if self._gender[sex] then self._gender[sex].border:Color(SELECTED) end
-end
-
 -- The race's resolved RaceModels entry for the current form (multi-form races
 -- read through the selected form; single-form races are the entry itself).
 ---@return table?
@@ -331,16 +321,13 @@ function DressingRoom:_resolvedForm()
   return entry and (entry.forms and entry.forms[self._form] or entry)
 end
 
--- The Male/Female toggle is always inert: a dressable body (needed to show the set
--- and to undress) renders through the player-unit path, whose gender follows the
--- logged-in character — and WoW exposes no gender override for it. So the toggle is
--- pinned to the char's gender and greyed to show it. Kept (greyed) rather than
--- removed so the constraint is visible. Call on open / race / form change.
+-- The previewed body renders through the player-unit path, whose gender follows the
+-- logged-in character (WoW exposes no gender override for it). So gender isn't
+-- selectable: we just track the char's sex (Dress uses it for per-sex scale) and
+-- show it in the read-only indicator. Call on open / race / form change.
 function DressingRoom:_syncGenderToggle()
-  self._genderLocked = true
-  self:_highlightSex(UnitSex("player"))
   self._sex = UnitSex("player")
-  for _, g in pairs(self._gender) do g.label:Color(DISABLED) end
+  self._genderLabel:Text(self._sex == 3 and "Female" or "Male")
 end
 
 ---@param raceID number
@@ -381,13 +368,6 @@ function DressingRoom:SetForm(i)
   self:Dress()
 end
 
----@param sex number  2 = male, 3 = female
-function DressingRoom:SetSex(sex)
-  if self._genderLocked or self._sex == sex then return end
-  self:_highlightSex(sex)
-  self._sex = sex
-  self:Dress()
-end
 
 ---@param undressed boolean  true to strip the set off the model
 function DressingRoom:SetUndressed(undressed)
@@ -545,11 +525,8 @@ function DressingRoom:_defaultToPlayer()
   local _, _, raceID = UnitRace("player")
   self:_highlightRace(raceID)
   self._raceID = raceID
-  local sex = UnitSex("player")
-  self:_highlightSex(sex)
-  self._sex = sex
   self:_setupForms(ns.RaceModels[raceID])
-  self:_syncGenderToggle()
+  self:_syncGenderToggle()   -- tracks the char's sex + fills the gender indicator
 end
 
 local _room

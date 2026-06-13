@@ -8,14 +8,15 @@ row to see which of your characters are locked out of that instance — so you a
 know who to run it on next.
 
 Click a set's cell to open a 3D dressing
-room showing the set worn by any playable **race and gender** you pick — handy for
+room showing the set worn by any playable **race** you pick — handy for
 deciding what a transmog will actually look like. Like the character sheet, each
 piece sits in its equipment slot down the sides (green border = collected, red =
 still missing); hover a slot for the in-game item tooltip. There's an **Undress**
 toggle to strip the set off and see the bare race, a **Background** toggle for a
-class-themed backdrop, and a scale slider to resize the model. (The model always
-uses your own character's **gender** — the Male/Female toggle is greyed out — because
-a model that can actually wear the set is locked to your gender by the game.) Races with two forms
+class-themed backdrop, and a scale slider to resize the model. The model always
+uses your own character's **gender** (a model that can actually wear the set is
+locked to your gender by the game), so the room shows it as a label and the race
+icons match your gender. Races with two forms
 (Worgen, Dracthyr) show a form toggle at the top of the model so you can preview
 either one. A directional pad in the model's upper-right corner — `<`/`>` (or the
 **Left/Right arrow keys**) flips through the other classes' sets from the same
