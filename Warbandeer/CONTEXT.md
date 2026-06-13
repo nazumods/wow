@@ -39,7 +39,7 @@ Main viewer UI. Reads the data layer (`ns.api` ← `WarbandeerApi`) and renders 
 | `views/BarsView.lua` | Action-bar profile browser (class/spec filters + result list); needs `WarbandeerBarsApi` (OptionalDep) |
 | `views/BarsPreview.lua` | `ns.BarsPreviewFrame` — companion box docked right of the window rendering a profile's bars (icons, keybinds, Edit Mode layout) |
 | `views/BarsApply.lua` | `ns.BarsApplyFrame` — companion box below the main window: per-bar muted/red toggles (1-8 / C1-C5 / Bonus, Sky, Pet) + Apply button → `WarbandeerBarsApi:Restore` with a `barFilter` |
-| `views/CollectedView.lua` | Transmog-set collection grid (class × set-group, red→green uncollected counts + green checks) backed by `WarbandeerCollectedApi` (OptionalDep); local `Grid` TableFrame inside a capped `ScrollFrame`, cell hover → `ui.tip` (set name + status). No lockout columns/panel — those stay in Collected's own window |
+| `views/CollectedView.lua` | Transmog-set collection grid (class × set-group, red→green uncollected counts + green checks) backed by `WarbandeerCollectedApi` (OptionalDep); local `Grid` TableFrame inside a capped `ScrollFrame`, cell hover → `ui.tip` (set name + status); `BuildFilter` titlebar toggle flips row order (oldest/newest first, in-place re-sort via `grid._reverse`). No lockout columns/panel — those stay in Collected's own window |
 | `window.lua` | `MainWindow` (TitleFrame) + `IconStrip` rail; `ns:Open()`, `ns:view(name)`; `Fit()` grows the window down/right |
 | `commands.lua` | Registers the base open command + one per view (from `ns.views`) |
 
@@ -60,7 +60,7 @@ Main viewer UI. Reads the data layer (`ns.api` ← `WarbandeerApi`) and renders 
 | `playtime` | Playtime | Frame | Per-character playtime | — |
 | `midnightprofs` | Midnight Profs | Frame | Profs × characters: skill + concentration | — |
 | `bars` | Bars | Frame | Bar-profile browser + docked preview & apply panels | — (view-local dropdowns) |
-| `collected` | Collected | Frame | Transmog-set collection grid (class × set-group) backed by `WarbandeerCollectedApi` | — |
+| `collected` | Collected | Frame | Transmog-set collection grid (class × set-group) backed by `WarbandeerCollectedApi` | raid-order toggle (oldest/newest first) |
 
 `BuildFilter(parent)` widgets show in the title bar only while that view is active. The two
 expansion dropdowns share `ns.FilterDropdown`; the faction toggle, character picker, and

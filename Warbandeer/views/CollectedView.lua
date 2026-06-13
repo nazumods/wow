@@ -8,6 +8,7 @@ local prepend = lists.prepend
 local Colors = ns.Colors
 local theme = ns.theme
 local Class, Frame, Label, TableFrame = ns.lua.Class, ui.Frame, ui.Label, ui.TableFrame
+local Button, Texture = ui.Button, ui.Texture
 
 -- Transmog-set collection grid, sourced from the sibling Collected addon via the
 -- WarbandeerCollectedApi global (OptionalDep). Mirrors that addon's own DataView:
@@ -83,10 +84,16 @@ end, {
     end),
     { width = 0, backdrop = {color = Colors.TransparentBlack} }  -- group-name column
   ),
-  GetData = function()
+  GetData = function(self)
     local api = WarbandeerCollectedApi
     if not api then return {} end
-    return lists.map(api.Sets, function(grp)
+    -- Default order is ns.Sets (oldest expansion first); _reverse flips to newest first.
+    local groups = api.Sets
+    if self._reverse then
+      groups = {}
+      for i = #api.Sets, 1, -1 do groups[#groups + 1] = api.Sets[i] end
+    end
+    return lists.map(groups, function(grp)
       local gstat = api:GroupStatus(grp.id)
       -- One cell per class slot; grp.sets always has 13 positional entries, so the
       -- columns stay aligned even where a class has no set (blank {} cell).
@@ -181,6 +188,42 @@ function CollectedView:OnBeforeShow()
   self.emptyMsg:Hide()
   local collected, total = api:Counts()
   self.counter:Text("Sets: " .. collected .. " / " .. total)
+  self.grid.data = self.grid:GetData()
+  self.grid:update()
+end
+
+-- Titlebar control: a single toggle button flipping raid (row) order between
+-- oldest-first (ns.Sets order) and newest-first. Mirrors GearView's filter chrome.
+function CollectedView:BuildFilter(parent)
+  local BW, BH, PAD = 96, 20, 8
+  local box = Frame:new{ parent = parent, position = { Width = BW, Height = BH } }
+
+  self._sortBorder = Texture:new{
+    parent = box, layer = ui.layer.Background,
+    position = { All = true }, color = theme.colors.divider,
+  }
+  Texture:new{
+    parent = box, layer = ui.layer.Border, color = {0.05, 0.05, 0.06, 0.92},
+    position = { TopLeft = {1, -1}, BottomRight = {-1, 1} },
+  }
+  local btn = Button:new{
+    parent = box, position = { All = true }, glow = false,
+    OnClick = function() self:_toggleSort() end,
+  }
+  self._sortLabel = Label:new{
+    parent = btn, fontInfo = {theme.fonts.caps[1], 10}, justifyH = ui.justify.Center,
+    position = { Left = {PAD, 0}, Right = {-PAD, 0} },
+    text = "OLDEST FIRST",
+  }
+
+  return box
+end
+
+-- Flip the grid's row order in place (cells are reused; see Cell:Label).
+function CollectedView:_toggleSort()
+  self.grid._reverse = not self.grid._reverse
+  self._sortLabel:Text(self.grid._reverse and "NEWEST FIRST" or "OLDEST FIRST")
+  self._sortBorder:Color(self.grid._reverse and theme.colors.gold or theme.colors.divider)
   self.grid.data = self.grid:GetData()
   self.grid:update()
 end
