@@ -32,8 +32,8 @@ LibNAddOn
     |     +-- Recycle
     |     +-- Warbandeer_Characters  (populates WarbandeerApi)
     |           |
-    |           +-- Warbandeer
-    |           +-- Warbandeer_Collected
+    |           +-- Warbandeer            (optionally reads WarbandeerBarsApi + WarbandeerCollectedApi)
+    |           +-- Warbandeer_Collected  (also populates WarbandeerCollectedApi for Warbandeer)
     |
     +-- Warbandeer_Bars      (LibNAddOn only — headless data layer, populates WarbandeerBarsApi)
     +-- CombatOutline    (LibNAddOn only, no LibNUI)
@@ -58,7 +58,7 @@ Load the linked `CONTEXT.md` for full file maps, class hierarchies, API surfaces
 | **Warbandeer_Characters** | Data collection backbone; populates `WarbandeerApi`. Broker system, per-character struct, account-wide warband wealth, `WarbandeerCharDB` (v10). | [Warbandeer_Characters/CONTEXT.md](Warbandeer_Characters/CONTEXT.md) |
 | **Warbandeer** | Main viewer UI (`/warband`, `/wb`). 13 views, MainWindow, faction widget, `profIntent`, `WarbandeerDB` (v3). | [Warbandeer/CONTEXT.md](Warbandeer/CONTEXT.md) |
 | **Warbandeer_Alias** | Guild-chat alias prefix hook. Single file; `Warbandeer_AliasDB` (v1). | [Warbandeer_Alias/CONTEXT.md](Warbandeer_Alias/CONTEXT.md) |
-| **Warbandeer_Collected** | Transmog set tracker (`/collected`, `/collect`). DataView grid, scan logic, `WarbandeerCollectedDB` (v2). | [Warbandeer_Collected/CONTEXT.md](Warbandeer_Collected/CONTEXT.md) |
+| **Warbandeer_Collected** | Transmog set tracker (`/collected`, `/collect`). DataView grid, scan logic, `WarbandeerCollectedDB` (v2); exposes read-only `WarbandeerCollectedApi` (consumed by Warbandeer's `collected` view). | [Warbandeer_Collected/CONTEXT.md](Warbandeer_Collected/CONTEXT.md) |
 | **ShadowsOfUI-XP** | Minimal full-width XP bar at screen bottom (below max level only). Single file, no DB. | [ShadowsOfUI-XP/CONTEXT.md](ShadowsOfUI-XP/CONTEXT.md) |
 | **HideStanceBar** | Hides the stance bar via reparenting, per-class toggles. `HideStanceBarDB` (v1). | [HideStanceBar/CONTEXT.md](HideStanceBar/CONTEXT.md) |
 | **HideBagBar** | Hides backpack/bag slot buttons. Raw WoW API only — no LibNAddOn. | [HideBagBar/CONTEXT.md](HideBagBar/CONTEXT.md) |
@@ -81,8 +81,8 @@ LibNUI_Test is a LoadOnDemand visual test harness for LibNUI (`/nui test [key]`)
 | LibNAddOn | `/lib` | `player` |
 | LibNUI | `/nui` | `version`, `test [key]` |
 | Warbandeer_Characters | `/characters`, `/wbc` | `list`, `delete <name>`, `cleanup`, `refresh`, `refresh items/locks`, `dump`, `dump bank/gt/locks/artifact/warband`, `stat`, `missing`, `missing me`, `wmissing` |
-| Warbandeer | `/warband`, `/wb` | `""` (open), `overview`, `summary`, `gear`, `detail`, `roles`, `races`, `legion`, `midnight`, `profs`, `midnightprofs`, `crafting`, `playtime`, `bars`, `check legion` |
-| Warbandeer_Collected | `/collected`, `/collect` | `scan` |
+| Warbandeer | `/warband`, `/wb` | `""` (open), `overview`, `summary`, `gear`, `detail`, `roles`, `races`, `legion`, `midnight`, `profs`, `midnightprofs`, `crafting`, `playtime`, `bars`, `collected`, `check legion` |
+| Warbandeer_Collected | `/collected`, `/collect` | `""` (open), `scan` |
 | Recycle | `/recycle` | `clear`, `key CTRL|SHIFT|ALT` |
 | Warbandeer_Bars | `/wbbars`, `/wbb` | `""` (status), `snapshot`, `list`, `restore <char> [specID]`, `forget <char> [specID]` |
 | ShadowsOfUI-Known | `/sknown` | `<itemID>` (dev: dump learnable-by list for a recipe item) |

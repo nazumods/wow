@@ -7,7 +7,7 @@
 ## SavedVariables: WarbandeerDB
 ## AddonCompartmentFunc: Warbandeer_OnAddonCompartmentClick
 ## Dependencies: LibNAddOn, LibNUI, Warbandeer_Characters
-## OptionalDeps: Warbandeer_Bars
+## OptionalDeps: Warbandeer_Bars, Warbandeer_Collected
 ## X-Curse-Project-ID: 1546586
 ## X-NUI-DB: WarbandeerDB
 ## X-NUI-DB-VERSION: 3
@@ -65,6 +65,7 @@ views\PlaytimeView.lua
 views\BarsPreview.lua
 views\BarsApply.lua
 views\BarsView.lua
+views\CollectedView.lua
 
 window.lua
 

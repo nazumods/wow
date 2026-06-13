@@ -59,6 +59,7 @@ ns.viewOrder = {
   "playtime",
   "midnightprofs",
   "bars",
+  "collected",
 }
 
 -- https://wowpedia.fandom.com/wiki/Category:HOWTOs
