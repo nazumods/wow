@@ -254,9 +254,10 @@ DressingRoom = Class(TitleFrame, function(self)
     position = { Right = {prevBox, ui.edge.Left, -6, 0}, Size = {20, 20} },
   }
 
-  -- Left/Right arrows mirror the title-bar nav arrows while the window is open.
-  -- Every other key is propagated, so default keybindings (and Escape, via the
-  -- `special` registration) keep working.
+  -- Left/Right cycle the class sets (mirroring the title-bar nav arrows); Up/Down
+  -- step through the raid's difficulty tiers (StepTier). Every other key is
+  -- propagated, so default keybindings (and Escape, via the `special` registration)
+  -- keep working.
   self._widget:EnableKeyboard(true)
   self._widget:SetScript("OnKeyDown", function(f, key)
     if key == "LEFT" then
@@ -265,6 +266,12 @@ DressingRoom = Class(TitleFrame, function(self)
     elseif key == "RIGHT" then
       f:SetPropagateKeyboardInput(false)
       self:Step(1)
+    elseif key == "UP" then
+      f:SetPropagateKeyboardInput(false)
+      self:StepTier(-1)
+    elseif key == "DOWN" then
+      f:SetPropagateKeyboardInput(false)
+      self:StepTier(1)
     else
       f:SetPropagateKeyboardInput(true)
     end
@@ -483,6 +490,38 @@ function DressingRoom:Step(dir)
     cur = (cur - 1 + dir) % n + 1
     local s = sets[cur]
     if s and s.id then return self:_load(self._group, s) end
+  end
+end
+
+-- Switch to the same class set in a sibling difficulty tier of the current raid,
+-- keeping the class column. Sibling tiers are the ns.Sets groups that share this
+-- group's base id (e.g. Hellfire Citadel Normal/Heroic/Mythic all id 28); they sit
+-- in difficulty order in the data. Wraps; no-op for a single-tier raid. Falls back
+-- to the tier's first real set if it lacks the current class column.
+---@param dir number  +1 = next tier, -1 = previous tier
+function DressingRoom:StepTier(dir)
+  if not self._group then return end
+  local sibs, cur = {}, nil
+  for _, g in ipairs(ns.Sets) do
+    if g.id == self._group.id then
+      sibs[#sibs + 1] = g
+      if g == self._group then cur = #sibs end
+    end
+  end
+  if not cur or #sibs < 2 then return end
+
+  -- Current class column = the set's index within its group's positional sets.
+  local col
+  for i = 1, #self._group.sets do if self._group.sets[i] == self._set then col = i; break end end
+
+  for _ = 1, #sibs do
+    cur = (cur - 1 + dir) % #sibs + 1
+    local g = sibs[cur]
+    local s = col and g.sets[col]
+    if not (s and s.id) then
+      for i = 1, #g.sets do if g.sets[i] and g.sets[i].id then s = g.sets[i]; break end end
+    end
+    if s and s.id then return self:_load(g, s) end
   end
 end
 
