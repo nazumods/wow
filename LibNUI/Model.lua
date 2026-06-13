@@ -47,22 +47,20 @@ end, {
 })
 ui.Model = Model
 
--- Restore the intended yaw + scale. A re-skin loads the model asynchronously and
--- resets the actor to its natural values when the load finishes (a frame or more
--- later), so we both (a) re-arm the model-loaded callback — which is ONE-SHOT, so
--- it must be set before every re-skin — and (b) apply now + on a short delay as a
--- backstop for loads that don't fire it.
+-- Restore the intended yaw + scale + outfit after a re-skin. A re-skin loads the
+-- model asynchronously and resets the actor to its natural state when the load
+-- finishes (a frame or more later), so we arm the model-loaded callback — ONE-SHOT,
+-- so it must be re-set before every re-skin. The player-unit path fires it
+-- reliably; applying only here (no immediate/delayed backstop) avoids the
+-- strip-and-redress flicker an extra re-apply caused on the settled model.
 function Model:_reapply()
   if not self._actor then return end
-  local apply = function()
+  self._actor:SetOnModelLoadedCallback(function()
     if not self._actor then return end
     self._actor:SetYaw(self._yaw)
     self._actor:SetScale(self._scale)
     self:_applyOutfit()
-  end
-  self._actor:SetOnModelLoadedCallback(apply)
-  apply()
-  self:delay(100, apply)
+  end)
 end
 
 -- Re-apply the remembered outfit onto the freshly loaded model: strip whatever it
