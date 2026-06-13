@@ -20,6 +20,20 @@ local PER_SLOT_MAX = BASE_RARITY + MAX_TIER
 local TOOL_LOC = "INVTYPE_PROFESSION_TOOL"
 local GEAR_LOC = "INVTYPE_PROFESSION_GEAR"
 
+-- A profession has two *distinct* accessory lines (e.g. Blacksmithing's apron is
+-- made by a leatherworker; its toolbox by a blacksmith), so "any higher-rarity
+-- accessory" is NOT an upgrade — only a higher tier of the SAME line is.  We key
+-- a line by the item name's last word (Apron / Toolbox / Hammer), which stays
+-- consistent within a line across locales (translations keep the family noun).
+-- FAMILY_OVERRIDE pins any item whose suffix the heuristic would get wrong.
+local FAMILY_OVERRIDE = {} ---@type table<integer, string>
+local function familyKey(itemID)
+  if not itemID then return nil end
+  if FAMILY_OVERRIDE[itemID] then return FAMILY_OVERRIDE[itemID] end
+  local name = C_Item.GetItemInfo(itemID)
+  return name and name:match("(%S+)%s*$")
+end
+
 local profInfoBySkill = nil
 local function profNameBySkillID(skillID)
   if not profInfoBySkill then
@@ -55,23 +69,39 @@ end
 
 local RECIPE_EXP_KEY = "midnight" -- recipe bucket to scan (matches CraftingView)
 
-local craftable       -- [itemID] = { rarity, equipLoc, crafters = {{name, skill, isMain, quality, qualityConc}} }
+local craftable       -- [itemID] = { itemID, rarity, equipLoc, crafters = {{name, skill, isMain, quality, qualityConc}} }
 local craftableByProf -- [skillLineID the gear is for] = entry[]
 local craftableDirty  -- some output items weren't in the item cache; rebuild next hover
+
+-- Skill-line IDs of the professions a character CURRENTLY has, from the live
+-- basic.professions summary.  professions.details is merge-preserving and keyed
+-- by skillLineID, so a dropped-and-replaced profession leaves its stale learned
+-- recipes behind — crediting a crafter with recipes they no longer know.  Gating
+-- on the current set fixes that (e.g. a blacksmith who used to be a leatherworker
+-- is no longer credited with the leatherworking-crafted gear).
+local function activeProfessions(toon)
+  local active = {}
+  local profs = toon.basic and toon.basic.professions
+  for _, p in pairs(profs or {}) do
+    if type(p) == "table" and p.skillID then active[p.skillID] = true end
+  end
+  return active
+end
 
 local function buildCraftable()
   craftable, craftableByProf, craftableDirty = {}, {}, false
   for _, toon in ipairs(ns.api:GetAllCharacters()) do
     local details = toon.professions and toon.professions.details
+    local active = activeProfessions(toon)
     for craftSkillID, det in pairs(details or {}) do
-      local bucket = det.recipes and det.recipes[RECIPE_EXP_KEY]
+      local bucket = active[craftSkillID] and det.recipes and det.recipes[RECIPE_EXP_KEY]
       for _, recipe in ipairs(bucket and bucket.learned or {}) do
         local out = ns.api:ResolveRecipeOutput(recipe.id)
         if out == nil then craftableDirty = true end
         if out then
           local entry = craftable[out.itemID]
           if not entry then
-            entry = { rarity = out.rarity, equipLoc = out.equipLoc, crafters = {} }
+            entry = { itemID = out.itemID, rarity = out.rarity, equipLoc = out.equipLoc, crafters = {} }
             craftable[out.itemID] = entry
             craftableByProf[out.skillID] = craftableByProf[out.skillID] or {}
             insert(craftableByProf[out.skillID], entry)
@@ -136,92 +166,112 @@ local function bestQualityCrafter(entry, minTier)
   return best, bestTier, bestConc, hasData or false
 end
 
--- "(T4)" / "(T4, concentration)" quality suffix for a crafter clause.
-local function tierTag(tier, conc)
-  return (" (T%d%s)"):format(tier, conc and ", concentration" or "")
+-- " (R3 T4)" / " (R3 T4, concentration)" suffix for a crafter clause — rarity
+-- AND crafted tier, matching the worn-item lines' R# T# notation so a rarity
+-- upgrade at a low tier (e.g. R2 T3 → R3 T1) doesn't read as a downgrade.
+local function qualityTag(rarity, tier, conc)
+  return (" (R%d T%d%s)"):format(rarity or 0, tier, conc and ", concentration" or "")
 end
 
--- Hint line for a worn item, or nil.  A higher-rarity craftable for the same
--- slot type wins over recrafting the worn item to a higher quality tier.
--- Suggestions stop at the rare baseline — epic isn't part of the 100% goal,
--- so it's never pushed on a character already wearing rare.
--- Old-expansion items treat any current-expansion craftable as better.
---
--- Crafter choice is quality-aware: an alt is only named if they can actually
--- reach a tier above the worn item's (knowing the recipe ≠ having the skill),
--- and the line states the tier and whether it needs concentration.  When no
--- crafter has quality data yet (recipes not re-scanned since capture shipped)
--- it falls back to a plain "can ..." suggestion rather than going silent.
+-- Upgrade hint lines for a worn item (a possibly-empty list).  Both kinds of
+-- upgrade are scoped to the worn item's gear LINE (so a different accessory is
+-- never offered) and are quality-aware — an alt is only named if they can reach
+-- a higher tier (knowing the recipe ≠ having the skill).  Lines, in order:
+--   • a higher-RARITY piece of the same line — "can craft a better version (R3 T1)"
+--   • the SAME piece recrafted to a higher tier — "can upgrade this (R2 T4)",
+--     often the cheaper win, so it's surfaced alongside the rarity jump.
+-- The line is keyed by the item-name's last word (Apron/Toolbox/Hammer), which
+-- works for any worn item — even one no alt can craft, or an old-expansion piece —
+-- unlike an itemID/recipe lookup.  Rarity suggestions stop at the rare baseline
+-- (epic isn't part of the 100% goal).  With no quality data yet (recipes not
+-- re-scanned since capture shipped) it falls back to a plain, un-tiered line.
 local function craftHint(skillID, item, isCurrentExpac)
   if not craftable or craftableDirty then buildCraftable() end
   local itemID = item.link and tonumber(item.link:match("item:(%d+)"))
-  if not itemID then return nil end
+  if not itemID then return {} end
   local equipLoc = select(4, C_Item.GetItemInfoInstant(itemID))
+  local wornFamily = familyKey(itemID)
   local wornRarity = isCurrentExpac and (item.rarity or 0) or 0
-  local better
+  local wornTier = item.tier or 0
+  local lines = {}
+  if not wornFamily then return lines end
+
+  -- Within the worn line: its own recipe (matching rarity) for tier upgrades,
+  -- and the best higher-rarity recipe for a bigger jump.
+  local own, better
   for _, entry in ipairs(craftableByProf[skillID] or {}) do
-    if entry.equipLoc == equipLoc and entry.rarity > wornRarity
-      and entry.rarity <= BASE_RARITY
-      and (not better or entry.rarity > better.rarity) then
-      better = entry
+    if entry.equipLoc == equipLoc and familyKey(entry.itemID) == wornFamily then
+      if entry.rarity == wornRarity then
+        own = entry
+      elseif entry.rarity > wornRarity and entry.rarity <= BASE_RARITY
+        and (not better or entry.rarity > better.rarity) then
+        better = entry
+      end
     end
   end
+
   if better then
     local c, tier, conc, hasData = bestQualityCrafter(better, 0)
     if c then
-      return ("    |cffaaaaaa%s can craft a better version%s.|r"):format(c.name, tierTag(tier, conc))
+      insert(lines, ("    |cffaaaaaa%s can craft a better version%s.|r"):format(c.name, qualityTag(better.rarity, tier, conc)))
     elseif not hasData then
       local fc = bestCrafter(better)
-      if fc then return ("    |cffaaaaaa%s can craft a better version.|r"):format(fc.name) end
+      if fc then insert(lines, ("    |cffaaaaaa%s can craft a better version.|r"):format(fc.name)) end
     end
   end
-  local own = craftable[itemID]
-  if own and item.tier and item.tier < MAX_TIER then
-    local c, tier, conc, hasData = bestQualityCrafter(own, item.tier)
+
+  if own and wornTier < MAX_TIER then
+    local c, tier, conc, hasData = bestQualityCrafter(own, wornTier)
     if c then
-      return ("    |cffaaaaaa%s can upgrade this%s.|r"):format(c.name, tierTag(tier, conc))
+      insert(lines, ("    |cffaaaaaa%s can upgrade this%s.|r"):format(c.name, qualityTag(own.rarity, tier, conc)))
     elseif not hasData then
       local fc = bestCrafter(own)
-      if fc then return ("    |cffaaaaaa%s can upgrade this.|r"):format(fc.name) end
+      if fc then insert(lines, ("    |cffaaaaaa%s can upgrade this.|r"):format(fc.name)) end
     end
   end
-  return nil
+
+  return lines
 end
 
 -- Hints for an empty profession slot of a given type (tool vs accessory): who
 -- across the warband could craft a piece for THIS slot, and where any spare for
--- it is sitting (warband bank, an alt's bank, the guild bank).  Both halves are
--- filtered to the slot's equipLoc so the suggestions name the right kind of gear.
+-- it is sitting (warband bank, an alt's bank, the guild bank).  Suggestions are
+-- filtered to the slot's equipLoc, and — for accessories — to gear lines NOT
+-- already worn in the other accessory slot (wornFamilies), so a character wearing
+-- an apron is pointed at the toolbox line rather than a second apron.
 -- Returns a (possibly empty) list of tooltip lines.
-local function emptyHints(skillID, equipLoc)
+local function emptyHints(skillID, equipLoc, wornFamilies)
   if not craftable or craftableDirty then buildCraftable() end
+  local function wanted(itemID)
+    return not (wornFamilies and wornFamilies[familyKey(itemID)])
+  end
   local lines = {}
   -- Best crafter (and the tier they'd reach) across this profession's recipes
   -- for this slot type, preferring no concentration then higher tier.  Falls
   -- back to a plain suggestion only when no recipe has quality data yet.
-  local best, bestTier, bestConc, anyData, fallback
+  local best, bestTier, bestConc, bestRarity, anyData, fallback
   for _, entry in ipairs(craftableByProf[skillID] or {}) do
-    if entry.equipLoc == equipLoc then
+    if entry.equipLoc == equipLoc and wanted(entry.itemID) then
       local c, tier, conc, hasData = bestQualityCrafter(entry, 0)
       if hasData then anyData = true end
       if c and (not best
         or (bestConc and not conc)
         or (bestConc == conc and tier > bestTier)) then
-        best, bestTier, bestConc = c, tier, conc
+        best, bestTier, bestConc, bestRarity = c, tier, conc, entry.rarity
       end
       fallback = fallback or bestCrafter(entry)
     end
   end
   if best then
-    insert(lines, ("    |cffaaaaaa%s can craft one%s.|r"):format(best.name, tierTag(bestTier, bestConc)))
+    insert(lines, ("    |cffaaaaaa%s can craft one%s.|r"):format(best.name, qualityTag(bestRarity, bestTier, bestConc)))
   elseif not anyData and fallback then
     insert(lines, ("    |cffaaaaaa%s can craft one.|r"):format(fallback.name))
   end
-  -- Spares of this slot type in any scanned bank, summed per source (warband
-  -- first, then alts, then guild) in the order GetBankProfGear returns them.
+  -- Spares of this slot type in any scanned bank (same family filter), summed per
+  -- source (warband first, then alts, then guild) as GetBankProfGear returns them.
   local order, total = {}, {}
   for _, e in ipairs(ns.api:GetBankProfGear(skillID)) do
-    if e.equipLoc == equipLoc then
+    if e.equipLoc == equipLoc and wanted(e.itemID) then
       if not total[e.source] then insert(order, e.source); total[e.source] = 0 end
       total[e.source] = total[e.source] + (e.count or 1)
     end
@@ -259,6 +309,7 @@ local function getProfGearScore(toon)
     insert(lines, profName)
     local profGear = toon.professions.gear[skillID]
     local filledTool, filledAcc = 0, 0
+    local wornAcc = {} -- accessory gear-line families already worn (for empty-slot hints)
     if profGear and profGear.slots then
       for _, item in pairs(profGear.slots) do
         maxScore = maxScore + PER_SLOT_MAX
@@ -275,13 +326,19 @@ local function getProfGearScore(toon)
           insert(lines, "  "..label.." |cffff5555(old expac)|r")
           hints[#lines] = {skillID, item, false}
         end
-        if equipLocOf(item) == TOOL_LOC then filledTool = filledTool + 1
-        else filledAcc = filledAcc + 1 end
+        if equipLocOf(item) == TOOL_LOC then
+          filledTool = filledTool + 1
+        else
+          filledAcc = filledAcc + 1
+          local fam = familyKey(item.link and tonumber(item.link:match("item:(%d+)")))
+          if fam then wornAcc[fam] = true end
+        end
       end
     end
     -- A profession's loadout is 1 tool + 2 accessories; the empty slots are
     -- whatever isn't filled.  Naming the missing type (and padding maxScore so it
-    -- drags the score) lets each empty line's hints target that exact slot.
+    -- drags the score) lets each empty line's hints target that exact slot — and
+    -- the accessory hint steers toward a line you aren't already wearing.
     for _ = filledTool + 1, 1 do
       maxScore = maxScore + PER_SLOT_MAX
       insert(lines, "  |cffff5555(empty tool slot)|r")
@@ -290,7 +347,7 @@ local function getProfGearScore(toon)
     for _ = filledAcc + 1, 2 do
       maxScore = maxScore + PER_SLOT_MAX
       insert(lines, "  |cffff5555(empty accessory slot)|r")
-      hints[#lines] = {empty = true, skillID = skillID, equipLoc = GEAR_LOC}
+      hints[#lines] = {empty = true, skillID = skillID, equipLoc = GEAR_LOC, wornFamilies = wornAcc}
     end
   end
 
@@ -315,10 +372,9 @@ local function getProfGearScore(toon)
         ui.tip:AddLine(l)
         local h = hints[i]
         if h and h.empty then
-          for _, hl in ipairs(emptyHints(h.skillID, h.equipLoc)) do ui.tip:AddLine(hl) end
+          for _, hl in ipairs(emptyHints(h.skillID, h.equipLoc, h.wornFamilies)) do ui.tip:AddLine(hl) end
         elseif h then
-          local hint = craftHint(h[1], h[2], h[3])
-          if hint then ui.tip:AddLine(hint) end
+          for _, hl in ipairs(craftHint(h[1], h[2], h[3])) do ui.tip:AddLine(hl) end
         end
       end
       ui.tip:Show()

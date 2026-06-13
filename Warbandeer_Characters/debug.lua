@@ -1,59 +1,6 @@
 ---@type Warbandeer_Characters
 local ns = select(2, ...)
-local ui = ns.ui
-local TitleFrame, ScrollFrame, EditBox = ui.TitleFrame, ui.ScrollFrame, ui.EditBox
 local insert, concat = table.insert, table.concat
-
-local SCROLLBAR_W = 26
-local LINE_H      = 16
-local PADDING     = 20
-local MIN_W       = 400
-local MAX_W       = 1000
-
-local window    = nil
-local measureFS = nil
-
-local function maxLineWidth(text)
-  if not measureFS then
-    measureFS = UIParent:CreateFontString(nil, "ARTWORK")
-    measureFS:SetFontObject(GameFontHighlightSmall)
-  end
-  local maxW = 0
-  for line in text:gmatch("[^\n]+") do
-    measureFS:SetText(line)
-    local w = measureFS:GetStringWidth()
-    if w > maxW then maxW = w end
-  end
-  return maxW
-end
-
-local function createWindow()
-  local f = TitleFrame:new{
-    name     = "WarbandeerDebugWindow",
-    title    = "Debug",
-    special  = true,
-    level    = 600,
-    position = { Center = {}, Height = 500 },
-  }
-  local scroll = ScrollFrame:new{
-    parent   = f,
-    position = {
-      TopLeft     = {f.titlebar, ui.edge.BottomLeft,  2, -4},
-      BottomRight = {f,          ui.edge.BottomRight, -2,  4},
-    },
-  }
-  local eb = EditBox:new{
-    parent    = scroll,
-    multiline = true,
-    template  = "",
-    fontObj   = GameFontHighlightSmall,
-    position  = {},
-    OnEscapePressed = function() f:Hide() end,
-  }
-  scroll:Child(eb)
-  f._eb = eb
-  return f
-end
 
 -- Recursive table dump. Cycle-safe via `seen`.  Output is roughly Lua-table
 -- literal so it can be re-pasted.
@@ -142,20 +89,7 @@ ns:registerCommand("debug", "", function(self, code)
     ns.Print("usage: /wbc debug <lua code>")
     return
   end
-  if not window then window = createWindow() end
-
   local text = runCode(code)
   if text == "" then text = "(no output)" end
-
-  local ebW     = math.min(math.max(maxLineWidth(text) + PADDING, MIN_W), MAX_W)
-  local windowW = ebW + SCROLLBAR_W
-  local nLines  = 1
-  for _ in text:gmatch("\n") do nLines = nLines + 1 end
-
-  window:Width(windowW)
-  window._eb:Width(ebW)
-  window._eb:Height(math.max(nLines * LINE_H + 10, 50))
-  window._eb:Text(text)
-  window._eb:HighlightText()
-  window:Show()
+  ns:ShowCopyWindow("Debug", text)
 end, "Run lua code and show output in a copyable window")
