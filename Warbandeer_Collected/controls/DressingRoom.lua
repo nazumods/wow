@@ -16,7 +16,6 @@ local floor, ceil, max = math.floor, math.ceil, math.max
 local SELECTED = {0.85, 0.65, 0.13, 1}
 local IDLE     = {0.20, 0.20, 0.24, 1}
 local PANEL    = {0.05, 0.05, 0.06, 1}
-local ENABLED  = {1, 1, 1, 1}            -- toggle label, interactive
 local DISABLED = {0.40, 0.40, 0.45, 1}   -- toggle label, locked/inert
 
 local COLS  = 13   -- 25 races wrap to two rows
@@ -313,17 +312,16 @@ function DressingRoom:_resolvedForm()
   return entry and (entry.forms and entry.forms[self._form] or entry)
 end
 
--- A race honors the Male/Female toggle only when its resolved form carries baked
--- display ids for BOTH sexes (the exact DisplayInfo path). Races without them
--- (e.g. Dracthyr) render through the player-gender fallback, so the toggle is
--- pinned to the character's gender and greyed to show it's inert. Call whenever
--- the race or form changes.
+-- The Male/Female toggle is always inert: a dressable body (needed to show the set
+-- and to undress) renders through the player-unit path, whose gender follows the
+-- logged-in character — and WoW exposes no gender override for it. So the toggle is
+-- pinned to the char's gender and greyed to show it. Kept (greyed) rather than
+-- removed so the constraint is visible. Call on open / race / form change.
 function DressingRoom:_syncGenderToggle()
-  local form = self:_resolvedForm()
-  local locked = not (form and form[2] and form[3])
-  self._genderLocked = locked
-  if locked then self:_highlightSex(UnitSex("player")); self._sex = UnitSex("player") end
-  for _, g in pairs(self._gender) do g.label:Color(locked and DISABLED or ENABLED) end
+  self._genderLocked = true
+  self:_highlightSex(UnitSex("player"))
+  self._sex = UnitSex("player")
+  for _, g in pairs(self._gender) do g.label:Color(DISABLED) end
 end
 
 ---@param raceID number
@@ -379,39 +377,35 @@ function DressingRoom:SetUndressed(undressed)
   self:Dress()
 end
 
--- Apply the current race/gender to the model, then put on the previewed set.
--- A known race+gender creature display ID is exact (both genders); otherwise we
--- render the race via a customRaceID-overridden player unit — textured and the
--- right race, but the gender follows the logged-in character. Either way no race
--- ever shows white or as the wrong race.
+-- Render the selected race on a DRESSABLE actor, then put on the previewed set.
+-- We always use the customRaceID-overridden player unit: it renders any race
+-- textured AND can wear transmog / undress. The exact-gender creature-display path
+-- (Model:DisplayInfo) is a static NPC whose baked gear can't be removed or dressed
+-- over, so it can't show a set — hence the gender follows the logged-in character
+-- (see _syncGenderToggle). The race's `scale` still corrects sizing.
 function DressingRoom:Dress()
   if not self._set then return end
   local m = self._model
-  -- Multi-form races (Worgen/Dracthyr) resolve through the selected form; others
-  -- read [sex] directly off the entry.
+  -- Multi-form races resolve through the selected form (for its `scale`); others
+  -- are the entry itself.
   local form = self:_resolvedForm()
-  local id = form and form[self._sex]
 
   -- Decide the outfit BEFORE (re)loading the model. The re-skin loads async and
-  -- resets the actor to its baked default (an NPC display arrives wearing the NPC's
-  -- gear) once the load finishes, so the model re-applies this on its load callback
-  -- (Model:Outfit). An empty list = undressed (bare body for race identification).
+  -- resets the actor to its default body once the load finishes, so the model
+  -- re-applies this on its load callback (Model:Outfit). Empty = undressed.
   local sources = {}
   if not self._undressed then
     for _, src in ipairs(GetAllSourceIDs(self._set.id)) do sources[#sources + 1] = src end
   end
   m:Outfit(sources)
 
-  if id then
-    m:DisplayInfo(id)
-  else
-    m:Unit("player", self._raceID)
-  end
+  m:Unit("player", self._raceID)
+
   -- `scale` may be a number (both genders) or a per-sex table { [2]=, [3]= }.
   local scale = form and form.scale
   if type(scale) == "table" then scale = scale[self._sex] end
   scale = scale or 1
-  m:Scale(scale)                  -- per-race/gender size correction; re-apply post re-skin
+  m:Scale(scale)                  -- per-race size correction; re-apply post re-skin
   self._scaleSlider:Value(scale)  -- reflect the race's scale in the slider/readout
 end
 

@@ -3,10 +3,18 @@ local ns = select(2, ...)
 local GetRaceInfo = C_CreatureInfo.GetRaceInfo
 
 -- Per race+gender creature display IDs for the dressing room. Sex keys follow
--- UnitSex: 2 = male, 3 = female. This is an ENHANCEMENT: a race listed here gets
--- exact race+gender selection (DressingRoom:Dress → DisplayInfo); a race absent
--- here still renders via a customRaceID-overridden player unit, but its gender
--- then follows the logged-in character.
+-- UnitSex: 2 = male, 3 = female.
+--
+-- NOTE: the dressing room now renders the body on a DRESSABLE player unit
+-- (DressingRoom:Dress → Model:Unit) so the previewed set actually shows and Undress
+-- works — that path renders any race textured but its gender follows the logged-in
+-- char. The exact race+gender creature-display ids below (the [2]/[3] keys) are a
+-- static NPC that can't wear transmog or undress, so they are NO LONGER used to
+-- render the body; only each entry's `scale` (and the `forms` shape) is consumed.
+-- The ids are kept for reference and a possible future "exact gender, no dressing"
+-- mode (and the dev `/collected model <id>` preview). When that path WAS active a
+-- race listed here got exact race+gender selection (DressingRoom:Dress →
+-- DisplayInfo); a race absent here rendered via the same unit fallback used now.
 --
 -- These must be PRE-BAKED display ids (a CreatureDisplayInfo whose
 -- ExtendedDisplayInfoID != 0 — it carries the race+gender's own baked textures).
