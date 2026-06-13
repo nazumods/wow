@@ -60,6 +60,7 @@ local CopyWindow = Class(TitleFrame, function(self)
   self._eb = eb
   self:_createPicker()
 end, {
+  name     = "LibNUICopyWindow",
   title    = "",
   special  = true,
   level    = 600,
