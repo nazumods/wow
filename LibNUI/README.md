@@ -516,6 +516,32 @@ Inherits `Frame`.
 
 ---
 
+## Model
+
+Inherits `Frame` (backed by a `ModelScene`). A 3D viewer that borrows Blizzard's
+dressup scene (id 596) for camera + lighting + a skinnable player actor: set a
+body via a unit, an arbitrary race+gender (creature display ID), or a unit
+re-rendered as another race, then `TryOn` transmog appearance sources. Drag
+horizontally to spin the model. A scene actor skins arbitrary races correctly,
+where a bare `DressUpModel` renders non-player races untextured (white).
+
+### Constructor options
+
+| Option        | Type   | Description                                           |
+|---------------|--------|-------------------------------------------------------|
+| `rotateSpeed` | number | Radians of yaw per screen pixel dragged (default 0.01) |
+
+### Methods
+
+| Method                | Description                                                      |
+|-----------------------|------------------------------------------------------------------|
+| `DisplayInfo(id)`     | Skin the actor with a creature display ID (a specific race+gender); textured |
+| `Unit(token, customRaceID?)` | Skin from a unit (e.g. `"player"`), optionally rendered as another race (`customRaceID` = chrRaceID, keeps the unit's gender). `autoDress` is off |
+| `TryOn(source)`       | Put on an item link or `itemModifiedAppearanceID` (sourceID)     |
+| `Undress()` / `Dress()` | Strip / re-equip the actor's gear                              |
+
+---
+
 ## Dialog
 
 Inherits `Frame`. Uses Blizzard's `DialogButtonFrame` with title bar. DIALOG strata, Escape closes it.

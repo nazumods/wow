@@ -10,4 +10,5 @@ table.lua
 table-dynamic.lua
 tab.lua
 theme.lua
+model.lua
 entry.lua
