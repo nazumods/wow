@@ -138,5 +138,5 @@ ns:registerCommand("dump", "profgear", function(self, args)
       end
     end
   end
-  ns:ShowCopyWindow("Craftable Gear", table.concat(lines, "\n"))
+  ns.ui.ShowCopyWindow("Craftable Gear", table.concat(lines, "\n"))
 end, "Dump resolved craftable profession gear (optional: gear skillLineID)")

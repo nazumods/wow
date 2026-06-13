@@ -338,6 +338,34 @@ Inherits `CleanFrame`. Adds a title bar with icon, title text, and a close butto
 
 ---
 
+## CopyWindow
+
+Inherits `TitleFrame`. A ready-made window for console-style text the user can copy: a scrolling, pre-highlighted multi-line `EditBox` with a titlebar font-size picker. The window auto-sizes to the widest line and shows a fresh title each time you call `Display`. The picked font size persists account-wide (in LibNUI's own saved variables).
+
+Most callers don't construct one — use the shared singleton:
+
+```lua
+LibNUI.ShowCopyWindow("My Report", table.concat(lines, "\n"))
+```
+
+`ShowCopyWindow` lazily builds a single `CopyWindow` on first use and reuses it for every later call.
+
+### Constructor options
+
+`CopyWindow` needs no options — it ships sensible defaults (centered, draggable, Escape-to-close, height 380). Pass `title`/`position` overrides as for any `TitleFrame` if you build your own instance.
+
+### Methods
+
+| Method                 | Description                                                              |
+|------------------------|--------------------------------------------------------------------------|
+| `Display(title, text)` | Re-title, size to the content, select-all the text, and show the window  |
+
+### Commands
+
+`/wdebug <lua>` — a dev console that evaluates an expression or statement and shows the result (tables are dumped recursively, `print(...)` is captured) in a `CopyWindow`.
+
+---
+
 ## TabFrame
 
 Inherits `Frame`. A tabbed container: a tab button bar across the top and one content panel per tab. Anchor your widgets inside `frame:Tab(i)`.

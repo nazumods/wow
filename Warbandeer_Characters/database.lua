@@ -10,7 +10,7 @@ local UnitClassBase = UnitClassBase
 ---@field characters table<string, Character> Character data indexed by character name
 ---@field numCharacters integer total number of characters
 ---@field warband WarbandData account-wide warband bank gold + weekly wealth tracking
----@field ui table account-wide UI preferences (e.g. wmissingFontSize)
+---@field ui table legacy account-wide UI prefs (the wmissing copy-window font size moved to LibNUIDB.copyFontSize; kept for rollback safety)
 
 ---@class Warbandeer_Characters
 ---@field db WarbandeerCharactersDB
@@ -160,8 +160,9 @@ function ns:MigrateDB()
     db.version = 11
   end
 
-  -- v12: account-wide UI preferences table (non-destructive), filled lazily by
-  -- the views that own a preference (currently the /wbc wmissing font size).
+  -- v12: account-wide UI preferences table (non-destructive). Originally held
+  -- the /wbc wmissing font size; that preference now lives in LibNUI's own DB
+  -- (LibNUIDB.copyFontSize). This table is kept for rollback safety.
   if (db.version or 0) < 12 then
     if not db.ui then db.ui = {} end
     db.version = 12

@@ -11,4 +11,5 @@ table-dynamic.lua
 tab.lua
 theme.lua
 model.lua
+copywindow.lua
 entry.lua

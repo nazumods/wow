@@ -4,8 +4,11 @@
 ## Author: Nazuraki
 ## Version: 12.0.5-r20
 ## IconTexture: Interface\Icons\achievement_guildperk_bountifulbags
+## SavedVariables: LibNUIDB
 ## Dependencies: LibNAddOn
 ## X-Curse-Project-ID: 1339496
+## X-NUI-DB: LibNUIDB
+## X-NUI-DB-VERSION: 1
 ## X-NUI-COMMANDS: /nui
 
 # https://wowpedia.fandom.com/wiki/How_the_user_interface_is_rendered
@@ -40,8 +43,12 @@ TableFrame.lua
 TitleFrame.lua
 TabFrame.lua
 Tooltip.lua
+CopyWindow.lua
 
 # Settings
 settings/SettingsFrame.lua
 settings/TextSetting.lua
 settings/ToggleSetting.lua
+
+# Dev tools
+debug.lua

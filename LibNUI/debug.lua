@@ -1,8 +1,9 @@
----@type Warbandeer_Characters
+---@type LibNUI_AddOn
 local ns = select(2, ...)
+local ui = ns.ui
 local insert, concat = table.insert, table.concat
 
--- Recursive table dump. Cycle-safe via `seen`.  Output is roughly Lua-table
+-- Recursive table dump. Cycle-safe via `seen`.  Output is roughly a Lua-table
 -- literal so it can be re-pasted.
 local function escapeString(s)
   return '"' .. s:gsub('\\', '\\\\'):gsub('"', '\\"'):gsub('\n', '\\n') .. '"'
@@ -45,8 +46,6 @@ local function dump(v, indent, seen)
   return concat(lines, "\n")
 end
 
-ns.dump = dump
-
 local function runCode(code)
   local buffer = {}
   local realPrint = _G.print
@@ -60,9 +59,9 @@ local function runCode(code)
 
   -- Try expression first (wraps with `return`), fall back to a statement so
   -- `local x = ...` style code still runs (though local vars vanish).
-  local fn, err = loadstring("return " .. code, "debug")
+  local fn, err = loadstring("return " .. code, "wdebug")
   if not fn then
-    fn, err = loadstring(code, "debug")
+    fn, err = loadstring(code, "wdebug")
   end
 
   if not fn then
@@ -84,12 +83,16 @@ local function runCode(code)
   return concat(buffer, "\n")
 end
 
-ns:registerCommand("debug", "", function(self, code)
+-- `/wdebug <code>` is registered directly (not through the shared `/nui`
+-- dispatcher) so the entire argument string reaches the eval verbatim — the
+-- dispatcher would otherwise strip the first word as a sub-command.
+SLASH_WDEBUG1 = "/wdebug"
+SlashCmdList["WDEBUG"] = function(code)
   if not code or code == "" then
-    ns.Print("usage: /wbc debug <lua code>")
+    ns.Print("usage: /wdebug <lua code>")
     return
   end
   local text = runCode(code)
   if text == "" then text = "(no output)" end
-  ns:ShowCopyWindow("Debug", text)
-end, "Run lua code and show output in a copyable window")
+  ui.ShowCopyWindow("Debug", text)
+end
