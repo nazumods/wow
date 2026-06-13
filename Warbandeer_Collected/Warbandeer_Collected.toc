@@ -25,6 +25,7 @@ api.lua
 controls\InfoTip.lua
 controls\LockoutView.lua
 controls\DressingRoom.lua
+controls\DressingRoomSlots.lua
 
 DataView.lua
 window.lua

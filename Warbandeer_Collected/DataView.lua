@@ -39,7 +39,7 @@ local shades = {
 ---Main grid: one row per set group (lock icon + name), one column per class,
 ---cells show missing-piece counts color-shaded by completion.
 ---@class DataView: TableFrame
----@field _reverse boolean? render newest set-group first when set (see ToggleOrder)
+---@field _reverse boolean? render newest set-group first (defaults true; see ToggleOrder)
 local DataView = Class(TableFrame, function(self)
   -- autoadjust name width
   local w = 0
@@ -53,6 +53,7 @@ local DataView = Class(TableFrame, function(self)
   self:Width(self:Width() + w)
 end, {
   headerHeight = 28,
+  _reverse = true,   -- default to newest set-group first
   colInfo = prepend(
     lists.map(ns.icons.classes, function(icon)
       return {
@@ -93,11 +94,12 @@ end, {
           })
         end
         local onLeave = function() ns.HideInfoTip() end
+        local onClick = function() ns.ShowDressingRoom(grp, set) end
         if isComplete(status) then
           return {
             atlas = GreenCheck.atlas, atlasSize = GreenCheck.atlasSize,
             position = GreenCheck.position,
-            onEnter = onEnter, onLeave = onLeave,
+            onEnter = onEnter, onLeave = onLeave, onClick = onClick,
           }
         end
         return {
@@ -106,6 +108,7 @@ end, {
             color = shades[max(1,floor(status.collected / status.total * 10))],
             onEnter = onEnter,
             onLeave = onLeave,
+            onClick = onClick,
           }
       end)
       -- grp.sets can stop short of the newest classes (e.g. no Demon Hunter/Evoker

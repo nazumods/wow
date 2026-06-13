@@ -7,6 +7,32 @@ ns:registerCommand("", nil, function(self)
   self:Open()
 end, "Open the Collected window")
 
+-- dev: force a raw creature display id into the open preview, to vet candidate
+-- ns.RaceModels ids in-game (open a set's Preview model first).
+ns:registerCommand("model", nil, function(_, args)
+  local idStr, flag = string.match(args or "", "(%d+)%s*(%d*)")
+  local id = tonumber(idStr)
+  if not id then
+    ns.Print("Usage: /collected model <creatureDisplayID> [1]  (open a set's Preview model first;")
+    ns.Print("       append 1 to overlay your own customizations — default off)")
+    return
+  end
+  local useCust = flag == "1"
+  ns.PreviewModelID(id, useCust)
+  ns.Print(("Preview display %d (customizations %s)"):format(id, useCust and "on" or "off"))
+end, "dev: preview a raw creature display id; append 1 to overlay player customizations")
+
+-- dev: live-tune the open preview model's scale, to find a race's `scale` value.
+ns:registerCommand("scale", nil, function(_, args)
+  local n = tonumber(args)
+  if not n then
+    ns.Print("Usage: /collected scale <number>  (e.g. 1.3 — open a set's Preview first)")
+    return
+  end
+  ns.PreviewModelScale(n)
+  ns.Print("Preview scale " .. n)
+end, "dev: set the open preview model's scale (tune RaceModels scale)")
+
 ns:registerCommand("scan", "", function()
   ns.db.collected = 0
   ns.db.total = 0

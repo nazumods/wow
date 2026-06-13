@@ -73,6 +73,7 @@ local Grid = Class(TableFrame, function(self)
   self:Width(self:Width() + w)
 end, {
   headerHeight = 28,
+  _reverse = true,   -- default to newest set-group first
   colInfo = prepend(
     lists.map(ns.icons.classes, function(icon)
       return {
@@ -107,11 +108,12 @@ end, {
           WarbandeerCollectedApi:ShowInfoTip(grp, set, c, tipPosition(c))
         end
         local onLeave = function() WarbandeerCollectedApi:HideInfoTip() end
+        local onClick = function() WarbandeerCollectedApi:ShowDressingRoom(grp, set) end
         if isComplete(status) then
           return {
             atlas = GreenCheck.atlas, atlasSize = GreenCheck.atlasSize,
             position = GreenCheck.position,
-            onEnter = onEnter, onLeave = onLeave,
+            onEnter = onEnter, onLeave = onLeave, onClick = onClick,
           }
         end
         return {
@@ -120,6 +122,7 @@ end, {
           color = shades[max(1, floor(status.collected / status.total * 10))],
           onEnter = onEnter,
           onLeave = onLeave,
+          onClick = onClick,
         }
       end)
       -- grp.sets can stop short of the newest classes (no Demon Hunter/Evoker entry
@@ -209,7 +212,7 @@ function CollectedView:BuildFilter(parent)
 
   self._sortBorder = Texture:new{
     parent = box, layer = ui.layer.Background,
-    position = { All = true }, color = theme.colors.divider,
+    position = { All = true }, color = theme.colors.gold,
   }
   Texture:new{
     parent = box, layer = ui.layer.Border, color = {0.05, 0.05, 0.06, 0.92},
@@ -222,7 +225,7 @@ function CollectedView:BuildFilter(parent)
   self._sortLabel = Label:new{
     parent = btn, fontInfo = {theme.fonts.caps[1], 10}, justifyH = ui.justify.Center,
     position = { Left = {PAD, 0}, Right = {-PAD, 0} },
-    text = "OLDEST FIRST",
+    text = "NEWEST FIRST",
   }
 
   return box
