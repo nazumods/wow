@@ -18,12 +18,14 @@ local DRESSUP_SCENE = 596
 ---@field rotateSpeed number  radians of yaw applied per screen pixel dragged
 ---@field _actor table?  the scene's player actor (backing model)
 ---@field _yaw number  accumulated drag yaw in radians (internal)
+---@field _scale number  intended actor scale, re-applied after each async model load
 local Model = Class(Frame, function(self)
   -- Borrow the dressup scene so we inherit its camera + a player actor.
   self._widget:TransitionToModelSceneID(
     DRESSUP_SCENE, CAMERA_TRANSITION_TYPE_IMMEDIATE, CAMERA_MODIFICATION_TYPE_DISCARD, true)
   self._actor = self._widget:GetPlayerActor()
   self._yaw = 0
+  self._scale = 1
 
   local w = self._widget
   w:EnableMouse(true)
@@ -44,12 +46,32 @@ end, {
 })
 ui.Model = Model
 
--- Skin the actor with a creature display ID (a specific race + gender). Textures
--- correctly; the second arg uses the active player's customizations as a base.
+-- Restore the intended yaw + scale. A re-skin loads the model asynchronously and
+-- resets the actor to its natural values when the load finishes (a frame or more
+-- later), so we both (a) re-arm the model-loaded callback — which is ONE-SHOT, so
+-- it must be set before every re-skin — and (b) apply now + on a short delay as a
+-- backstop for loads that don't fire it.
+function Model:_reapply()
+  if not self._actor then return end
+  local apply = function()
+    if not self._actor then return end
+    self._actor:SetYaw(self._yaw)
+    self._actor:SetScale(self._scale)
+  end
+  self._actor:SetOnModelLoadedCallback(apply)
+  apply()
+  self:delay(100, apply)
+end
+
+-- Skin the actor with a creature display ID (a specific race + gender).
 ---@param creatureDisplayID number
+---@param useCustomizations boolean?  overlay the active player's customizations (default false). Leave false for a pre-baked display (it carries its own race+gender textures); true only textures when the display matches the player's own race.
 ---@return Model
-function Model:DisplayInfo(creatureDisplayID)
-  if self._actor then self._actor:SetModelByCreatureDisplayID(creatureDisplayID, true) end
+function Model:DisplayInfo(creatureDisplayID, useCustomizations)
+  if self._actor then
+    self:_reapply()   -- arm the one-shot load callback BEFORE loading
+    self._actor:SetModelByCreatureDisplayID(creatureDisplayID, useCustomizations or false)
+  end
   return self
 end
 
@@ -61,6 +83,7 @@ end
 ---@return Model
 function Model:Unit(token, customRaceID)
   if self._actor then
+    self:_reapply()   -- arm the one-shot load callback BEFORE loading
     self._actor:SetModelByUnit(token, false, false, false, true, false, customRaceID)
   end
   return self
@@ -70,6 +93,18 @@ end
 ---@return Model
 function Model:TryOn(source)
   if self._actor then self._actor:TryOn(source) end
+  return self
+end
+
+-- Scale the actor. The borrowed dressup scene renders every model through one
+-- player-sized actor, so large races (Tauren, etc.) come out undersized; a per-race
+-- multiplier corrects them. 1 = the actor's natural size. The value is remembered
+-- and re-applied automatically after each async model load.
+---@param scale number
+---@return Model
+function Model:Scale(scale)
+  self._scale = scale   -- remembered so the model-loaded callback can re-apply it
+  if self._actor then self._actor:SetScale(scale) end
   return self
 end
 

@@ -18,7 +18,8 @@ OOP UI widget library. Every widget wraps a backing WoW object (`self._widget`) 
 | `BgFrame.lua` | `BgFrame` — Frame with auto-created backdrop Texture; `backdropColor`/`backdropTexture` |
 | `Dialog.lua` | `Dialog` — DIALOG-strata frame with Blizzard title bar, Escape-to-close; `makeTitlebarDraggable` |
 | `StatusBar.lua` | `StatusBar` — fill bar with backdrop/texture/orientation; `Color`, `Texture`, `SetValue` |
-| `Model.lua` | `Model` — `ModelScene`-backed 3D viewer (borrows dressup scene 596 for camera + a skinnable player actor); `DisplayInfo`/`Unit(token, customRaceID?)`/`TryOn`/`Undress`/`Dress`. Built-in drag-to-rotate. A scene actor skins arbitrary races correctly where a bare `DressUpModel` renders them white |
+| `Slider.lua` | `Slider` — value slider: themed track + draggable gold thumb, `min`/`max`/`step`/`orientation`, `OnChange(value, userInput)`; `Value` getter/setter, `MinMax` |
+| `Model.lua` | `Model` — `ModelScene`-backed 3D viewer (borrows dressup scene 596 for camera + a skinnable player actor); `DisplayInfo(id, useCustomizations?)`/`Unit(token, customRaceID?)`/`TryOn`/`Undress`/`Dress`/`Scale`. `DisplayInfo` defaults customizations **off** (a baked display carries its own textures; on only matches the player's own race). One player-sized actor renders every model, so large races need `Scale` correction. Built-in drag-to-rotate; the dragged yaw and `Scale` are re-applied via a `SetOnModelLoadedCallback` after each async model load (which would otherwise reset the actor), so neither the angle nor the size snaps back. A scene actor skins arbitrary races correctly where a bare `DressUpModel` renders them white |
 | `Button.lua` | `Button` — interactive button: glow, keybind label, item/spell/toy tooltip, `onClick` |
 | `SecureButton.lua` | `SecureButton` — `SecureActionButtonTemplate` for casting spells/toys in combat |
 | `CheckButton.lua` | `CheckButton` — toggle checkbox; `Checked`, `OnToggle` |
@@ -51,6 +52,7 @@ Region
      │   └─ TableRow
      ├─ Dialog
      ├─ StatusBar
+     ├─ Slider
      ├─ Model
      ├─ Button
      │   ├─ SecureButton
@@ -136,6 +138,7 @@ Any key matching a method on the instance is valid; tables are unpacked, scalars
 | `BgFrame` | inherits Frame; default backdrop `{color={0,0,0,0.8}}` |
 | `Dialog` | inherits Frame; `title`, `titleColor` |
 | `StatusBar` | `backdrop`, `fill` (`{color,gradient,blend}`), `color`, `texture` (string or `{...,coords}`), `orientation`, `min`, `max` |
+| `Slider` | inherits Frame (`type = "Slider"`); `min` (0), `max` (1), `step`, `value`, `orientation` (`"HORIZONTAL"`), `thickness` (4), `OnChange(value, userInput)` |
 | `Model` | inherits Frame (`type = "ModelScene"`, `template = "ModelSceneMixinTemplate"`); `rotateSpeed` (0.01 rad/px) |
 | `Button` | `normal` (`{texture,coords}`), `onClick`, `bindLeftClick`, `kbLabel`, `glow` (true), `itemID`, `tooltip`, `OnChange`, `OnClick` |
 | `SecureButton` | `actions` — list of `{type, target, spell, toy}` |

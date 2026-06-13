@@ -3,42 +3,27 @@ local ns = select(2, ...)
 ---@type LibNUI
 local ui = ns.ui
 local Class = ns.lua.Class
-local TitleFrame, Frame, Button = ui.TitleFrame, ui.Frame, ui.Button
-local Texture, Label, Model = ui.Texture, ui.Label, ui.Model
-local GetAllSourceIDs = C_TransmogSets.GetAllSourceIDs
-local GetSourcesForSlot = C_TransmogSets.GetSourcesForSlot
-local getParts = C_TransmogSets.GetSetPrimaryAppearances
-local GetSourceInfo = C_TransmogCollection.GetSourceInfo
-local GetItemIcon = C_Item.GetItemIconByID
-local RequestItem = C_Item.RequestLoadItemDataByID
-local GetAtlasInfo = C_Texture.GetAtlasInfo
-local find, any = ns.lua.lists.find, ns.lua.maps.any
+local GetClassInfo = GetClassInfo
 local GameTooltip = GameTooltip
+local TitleFrame, Frame, Button = ui.TitleFrame, ui.Frame, ui.Button
+local Texture, Label, Model, Slider = ui.Texture, ui.Label, ui.Model, ui.Slider
+local GetAllSourceIDs = C_TransmogSets.GetAllSourceIDs
+local GetAtlasInfo = C_Texture.GetAtlasInfo
 local floor, ceil, max = math.floor, math.ceil, math.max
 
--- selection-border colors, status colors, and panel backing
+-- selection-border colors and panel backing (slot-status colors live in the
+-- companion DressingRoomSlots.lua)
 local SELECTED = {0.85, 0.65, 0.13, 1}
 local IDLE     = {0.20, 0.20, 0.24, 1}
 local PANEL    = {0.05, 0.05, 0.06, 1}
-local GREEN    = {0, 104/255, 55/255, 1}   -- piece collected
-local RED      = {165/255, 0, 38/255, 1}   -- piece missing
-local QUESTION = 134400                    -- inv_misc_questionmark fileID
 
-local COLS  = 9
-local STEP  = 32   -- cell size + 2px gap
-local CELL  = 30
+local COLS  = 13   -- 25 races wrap to two rows
+local CELL  = 40
+local STEP  = CELL + 4   -- cell size + gap
 local PAD   = 6
 local GRIDW = COLS * STEP
 local MODELH = 640
 local WINW   = 640
-
--- Equipment-slot columns flanking the model (paper-doll style). Slot ids are
--- inventory slots, also the GetSourcesForSlot key. Four per side.
-local SLOT     = 44   -- slot button size
-local SLOTGAP  = 16   -- vertical gap between slots
-local COLINSET = 8    -- column distance from the window edge
-local LEFT_SLOTS  = { {1, "Head"},  {3, "Shoulder"}, {15, "Back"}, {5, "Chest"}, {9, "Wrist"} }
-local RIGHT_SLOTS = { {10, "Hands"}, {6, "Waist"},   {7, "Legs"},  {8, "Feet"} }
 
 -- A 1px-framed box: an outer border Texture (recolored IDLE↔SELECTED to show
 -- selection) over a dark inner panel. Returns the outer border to recolor later.
@@ -56,54 +41,6 @@ local function selBox(parent)
   return border
 end
 
--- Build one paper-doll equipment slot: a framed icon that shows the set piece for
--- `slotID` and opens the in-game item tooltip on hover. Registered on room._slots
--- and refreshed per set by UpdateSlots.
----@param room DressingRoom
----@param slotID number  inventory slot id
----@param x number
----@param y number
----@param side string  "left"|"right" — which way the tooltip opens
-local function buildSlot(room, slotID, x, y, side)
-  local box = Frame:new{
-    parent = room,
-    position = { TopLeft = {x, y}, Width = SLOT, Height = SLOT },
-  }
-  local border = selBox(box)
-  local icon = Texture:new{
-    parent = box, layer = ui.layer.Artwork,
-    position = { TopLeft = {2, -2}, BottomRight = {-2, 2}, Hide = true },
-  }
-  local entry = { slotID = slotID, icon = icon, border = border }
-
-  local anchor = side == "left" and "ANCHOR_LEFT" or "ANCHOR_RIGHT"
-  box._widget:EnableMouse(true)
-  box._widget:SetScript("OnEnter", function(f)
-    if not entry.itemID then return end
-    GameTooltip:SetOwner(f, anchor)
-    GameTooltip:SetItemByID(entry.itemID)
-    GameTooltip:Show()
-  end)
-  box._widget:SetScript("OnLeave", function() GameTooltip:Hide() end)
-
-  room._slots[#room._slots + 1] = entry
-end
-
--- Lay out one vertically-centered column of slots at column x (each column is
--- centered independently, so the two sides can hold a different number of slots).
----@param room DressingRoom
----@param slots table[]  { {slotID, label}, ... }
----@param x number
----@param side string  "left"|"right"
-local function layoutColumn(room, slots, x, side)
-  local n = #slots
-  local colH = n * SLOT + (n - 1) * SLOTGAP
-  local startY = -(30 + PAD) - (MODELH - colH) / 2
-  for i, s in ipairs(slots) do
-    buildSlot(room, s[1], x, startY - (i - 1) * (SLOT + SLOTGAP), side)
-  end
-end
-
 ---Persistent dress-up window: a Model viewer plus race + gender selectors. One
 ---instance is shared by both /collected surfaces (see ns.ShowDressingRoom).
 ---@class DressingRoom: TitleFrame
@@ -112,16 +49,29 @@ end
 ---@field _gender table<number, Texture>  selection border per sex (2/3)
 ---@field _raceID number?  selected chrRaceID
 ---@field _sex number?  selected sex (2 = male, 3 = female)
+---@field _form number  selected form index for multi-form races (Worgen/Dracthyr); 1 = default
+---@field _formButtons table[]  reusable form-toggle button pool ({ box, border, label })
+---@field _scaleSlider Slider  model size slider (per-race correction + user resize)
+---@field _scaleLabel Label  scale value readout above the slider
+---@field _bg Texture  class-themed backdrop behind the model
+---@field _bgBorder Texture  Background-toggle border (gold while active)
+---@field _bgEnabled boolean  whether the backdrop is shown
+---@field _bgClass string?  current class file for the backdrop (remembered for the toggle)
+---@field _group table?  the set-group the previewed set belongs to (Step cycles its sets)
 ---@field _set table?  the set entry currently previewed
+---@field _classIcon Texture  title-bar class icon for the current set
 ---@field _undressed boolean?  hide the set to show the bare race body
 ---@field _undressBorder Texture  undress-toggle border (gold while active)
 ---@field _slots table[]  paper-doll slot entries ({ slotID, icon, border, itemID? })
 ---@field _slotTimer table?  cancelable icon-refresh timer
 ---@field _slotRetries number?  remaining icon-refresh attempts
-local ROWH = 22         -- toggle-button height
+local ROWH = 26         -- toggle-button height
 local TOPGAP = ROWH + PAD
 
-local DressingRoom = Class(TitleFrame, function(self)
+-- Forward-declared so the constructor closure can read DressingRoom.MODEL_INSET
+-- (set by the companion DressingRoomSlots.lua) as an upvalue at instantiation.
+local DressingRoom
+DressingRoom = Class(TitleFrame, function(self)
   local races = ns.PlayableRaces()
   local rows = ceil(#races / COLS)
   local gridH = rows * STEP
@@ -140,8 +90,8 @@ local DressingRoom = Class(TitleFrame, function(self)
   }
 
   -- Model sits between the title bar and controls, inset to leave room for the
-  -- equipment-slot columns down each side.
-  local colW = COLINSET + SLOT + PAD
+  -- equipment-slot columns down each side (built by DressingRoomSlots.lua).
+  local colW = DressingRoom.MODEL_INSET
   self._model = Model:new{
     parent = self,
     position = {
@@ -151,16 +101,73 @@ local DressingRoom = Class(TitleFrame, function(self)
     },
   }
 
-  -- Paper-doll slot columns, each vertically centered alongside the model.
-  self._slots = {}
-  layoutColumn(self, LEFT_SLOTS, COLINSET, "left")
-  layoutColumn(self, RIGHT_SLOTS, winW - COLINSET - SLOT, "right")
+  -- Class-themed backdrop behind the model. The ModelScene renders transparent, so
+  -- a Background-layer texture anchored to the model rect shows through. The atlas
+  -- (dressingroom-background-<class>) is chosen per set's class by _showClass and
+  -- toggled by the Background button; hidden until both are set.
+  self._bgEnabled = true
+  self._bg = Texture:new{
+    parent = self, layer = ui.layer.Background,
+    position = {
+      TopLeft = {self._model, ui.edge.TopLeft},
+      BottomRight = {self._model, ui.edge.BottomRight},
+      Hide = true,
+    },
+  }
 
-  -- Undress toggle, top of the controls strip (full width). Strips the set so a
-  -- bare race body is easy to identify; border goes gold while active.
+  -- Paper-doll slot columns, each vertically centered alongside the model.
+  self:_buildSlots(winW)
+
+  -- Form toggle: a small floating button row at the top-left of the model, shown
+  -- only for two-form races (Worgen/Dracthyr). A reusable pool sized to the most
+  -- forms any race has; _setupForms relabels + shows the ones the race uses.
+  self._form = 1
+  self._formButtons = {}
+  local FORMW = 80
+  for i = 1, 2 do
+    local box = Frame:new{
+      parent = self,
+      position = { TopLeft = {self._model, ui.edge.TopLeft, 8 + (i - 1) * (FORMW + 4), -8},
+                   Width = FORMW, Height = ROWH },
+    }
+    local border = selBox(box)
+    Button:new{ parent = box, position = { All = true }, glow = false,
+      OnClick = function() self:SetForm(i) end }
+    local label = Label:new{ parent = box, justifyH = ui.justify.Center,
+      position = { Left = {4, 0}, Right = {-4, 0} } }
+    box:Level(self._model:Level() + 10)   -- above the ModelScene, else hidden behind it
+    box:Hide()
+    self._formButtons[i] = { box = box, border = border, label = label }
+  end
+
+  -- Scale slider: floats at the bottom-left of the model. Corrects the size of
+  -- large races (the borrowed scene renders everything player-sized) and lets the
+  -- user resize the preview. Drives the live model scale; Dress resets it to the
+  -- selected race's configured scale.
+  self._scaleLabel = Label:new{
+    parent = self, fontObj = "GameFontNormalSmall",
+    position = { BottomLeft = {self._model, ui.edge.BottomLeft, 8, 28} },
+    text = "Scale  1.00",
+  }
+  self._scaleSlider = Slider:new{
+    parent = self, min = 0.5, max = 3.0, step = 0.05, value = 1,
+    position = { BottomLeft = {self._model, ui.edge.BottomLeft, 8, 12}, Width = 150, Height = 14 },
+    OnChange = function(_, v)
+      self._model:Scale(v)
+      self._scaleLabel:Text(("Scale  %.2f"):format(v))
+    end,
+  }
+  -- The slider overlaps the model frame; lift it above the mouse-enabled
+  -- ModelScene so the thumb is grabbable instead of rotating the model.
+  self._scaleSlider:Level(self._model:Level() + 10)
+
+  local half = (GRIDW - PAD) / 2
+
+  -- Top control row: Undress (left) + Background toggle (right). Borders go gold
+  -- while active.
   local undressBox = Frame:new{
     parent = controls,
-    position = { TopLeft = {0, 0}, Width = GRIDW, Height = ROWH },
+    position = { TopLeft = {0, 0}, Width = half, Height = ROWH },
   }
   self._undressBorder = selBox(undressBox)
   Button:new{ parent = undressBox, position = { All = true }, glow = false,
@@ -168,9 +175,19 @@ local DressingRoom = Class(TitleFrame, function(self)
   Label:new{ parent = undressBox, justifyH = ui.justify.Center,
     position = { Left = {6, 0}, Right = {-6, 0} }, text = "Undress" }
 
+  local bgBox = Frame:new{
+    parent = controls,
+    position = { TopLeft = {half + PAD, 0}, Width = half, Height = ROWH },
+  }
+  self._bgBorder = selBox(bgBox)
+  self._bgBorder:Color(SELECTED)   -- backdrop defaults on
+  Button:new{ parent = bgBox, position = { All = true }, glow = false,
+    OnClick = function() self:SetBackgroundOn(not self._bgEnabled) end }
+  Label:new{ parent = bgBox, justifyH = ui.justify.Center,
+    position = { Left = {6, 0}, Right = {-6, 0} }, text = "Background" }
+
   -- Gender toggle (two buttons), second row.
   self._gender = {}
-  local half = (GRIDW - PAD) / 2
   for i, info in ipairs({ {2, "Male"}, {3, "Female"} }) do
     local sex, text = info[1], info[2]
     local box = Frame:new{
@@ -202,9 +219,37 @@ local DressingRoom = Class(TitleFrame, function(self)
       Label:new{ parent = box, justifyH = ui.justify.Center,
         position = { All = true }, text = race.name:sub(1, 3) }
     end
-    Button:new{ parent = box, position = { All = true }, glow = false,
+    local btn = Button:new{ parent = box, position = { All = true }, glow = false,
       OnClick = function() self:SetRace(race.id) end }
+    btn._widget:SetScript("OnEnter", function(f)
+      GameTooltip:SetOwner(f, "ANCHOR_RIGHT")
+      GameTooltip:SetText(race.name)
+      GameTooltip:Show()
+    end)
+    btn._widget:SetScript("OnLeave", function() GameTooltip:Hide() end)
   end
+
+  -- Set-navigation arrows + class icon in the title bar, left of the close
+  -- button. Step() cycles the current group's class sets (skipping empty slots),
+  -- so a whole tier can be browsed without reopening from the grid.
+  local function navArrow(anchor, dir, glyph)
+    local box = Frame:new{
+      parent = self.titlebar,
+      position = { Right = {anchor, ui.edge.Left, -2, 0}, Width = 22, Height = 20 },
+    }
+    selBox(box)
+    Button:new{ parent = box, position = { All = true }, glow = false,
+      OnClick = function() self:Step(dir) end }
+    Label:new{ parent = box, justifyH = ui.justify.Center, fontObj = "GameFontNormalLarge",
+      position = { Left = {1, 0}, Right = {-1, 0} }, text = glyph }
+    return box
+  end
+  local nextBox = navArrow(self.closeButton, 1, ">")
+  local prevBox = navArrow(nextBox, -1, "<")
+  self._classIcon = Texture:new{
+    parent = self.titlebar, layer = ui.layer.Artwork,
+    position = { Right = {prevBox, ui.edge.Left, -6, 0}, Size = {20, 20} },
+  }
 
   self:Width(winW)
   self:Height(30 + PAD + MODELH + PAD + controlsH + 6)
@@ -218,6 +263,14 @@ end, {
 ---@class Warbandeer_Collected
 ---@field DressingRoom DressingRoom
 ns.DressingRoom = DressingRoom
+
+-- Layout primitives shared with the companion controls/DressingRoomSlots.lua,
+-- which reopens this class to add :_buildSlots / :UpdateSlots and reads these
+-- back. MODEL_INSET is set there in return (model edge inset = slot column width).
+DressingRoom._selBox = selBox
+DressingRoom._IDLE   = IDLE
+DressingRoom._PAD    = PAD
+DressingRoom._MODELH = MODELH
 
 -- Move the gold selection border to raceID, clearing the previous one.
 ---@param raceID number
@@ -237,6 +290,34 @@ function DressingRoom:SetRace(raceID)
   if self._raceID == raceID then return end
   self:_highlightRace(raceID)
   self._raceID = raceID
+  self:_setupForms(ns.RaceModels[raceID])
+  self:Dress()
+end
+
+-- Highlight the active form button (gold), the rest idle.
+---@param i number
+function DressingRoom:_highlightForm(i)
+  for j, b in ipairs(self._formButtons) do b.border:Color(j == i and SELECTED or IDLE) end
+end
+
+-- Show form-toggle buttons for the selected race's alternate forms (Worgen,
+-- Dracthyr); hide the row for single-form races. Resets to the first form.
+---@param entry table?  the race's RaceModels entry
+function DressingRoom:_setupForms(entry)
+  local forms = entry and entry.forms
+  for i, b in ipairs(self._formButtons) do
+    local f = forms and forms[i]
+    if f then b.label:Text(f.name); b.box:Show() else b.box:Hide() end
+  end
+  self._form = 1
+  if forms then self:_highlightForm(1) end
+end
+
+---@param i number  index into the selected race's forms array
+function DressingRoom:SetForm(i)
+  if self._form == i then return end
+  self._form = i
+  self:_highlightForm(i)
   self:Dress()
 end
 
@@ -263,58 +344,101 @@ end
 function DressingRoom:Dress()
   if not self._set then return end
   local m = self._model
-  local byRace = ns.RaceModels[self._raceID]
-  local id = byRace and byRace[self._sex]
+  local entry = ns.RaceModels[self._raceID]
+  -- Multi-form races (Worgen/Dracthyr) resolve through the selected form; others
+  -- read [sex] directly off the entry.
+  local form = entry and (entry.forms and entry.forms[self._form] or entry)
+  local id = form and form[self._sex]
   if id then
-    m:DisplayInfo(id)           -- creature display starts naked
+    m:DisplayInfo(id)
   else
-    m:Unit("player", self._raceID):Undress()
+    m:Unit("player", self._raceID)
   end
+  -- `scale` may be a number (both genders) or a per-sex table { [2]=, [3]= }.
+  local scale = form and form.scale
+  if type(scale) == "table" then scale = scale[self._sex] end
+  scale = scale or 1
+  m:Scale(scale)                  -- per-race/gender size correction; re-apply post re-skin
+  self._scaleSlider:Value(scale)  -- reflect the race's scale in the slider/readout
+  m:Undress()   -- baked NPC displays arrive wearing the NPC's gear; strip to bare body
   if self._undressed then return end   -- bare body for race identification
   for _, src in ipairs(GetAllSourceIDs(self._set.id)) do
     m:TryOn(src)
   end
 end
 
--- Fill the paper-doll slots with the current set's pieces: icon + status border
--- (green collected / red missing), and the itemID each slot's tooltip shows.
-function DressingRoom:UpdateSlots()
-  local set = self._set
-  if not set then return end
-  local parts = getParts(set.id)
-  local primary = {}
-  for _, p in ipairs(parts) do primary[p.appearanceID] = true end
-
-  local missing = false
-  for _, e in ipairs(self._slots) do
-    local sources = GetSourcesForSlot(set.id, e.slotID)
-    local _, p = find(sources, function(s) return primary[s.sourceID] end)
-    if p then
-      local info = GetSourceInfo(p.sourceID)
-      e.itemID = info and info.itemID
-      local tex = e.itemID and GetItemIcon(e.itemID)
-      if e.itemID and not tex then RequestItem(e.itemID); missing = true end
-      e.icon:Texture(tex or QUESTION)
-      e.icon:Show()
-      e.border:Color(any(sources, function(s) return s.isCollected end) and GREEN or RED)
-    else
-      -- No piece for this slot in the set: show the "unresolved" marker.
-      e.itemID = nil
-      e.icon:Texture(ui.media.unresolved)
-      e.icon:Show()
-      e.border:Color(IDLE)
-    end
+-- Point the title-bar class icon at the class in column `classId` (hidden if the
+-- id is missing or has no class icon). `group.sets` is positional — the array
+-- index is the classId — so callers pass the set's index, not `set.classId`
+-- (which is only populated for the earliest groups).
+---@param classId number?
+function DressingRoom:_showClass(classId)
+  local file
+  if classId then file = select(2, GetClassInfo(classId)) end
+  local lower = file and file:lower()
+  local atlas = lower and ("classicon-" .. lower)
+  if atlas and GetAtlasInfo(atlas) then
+    self._classIcon:Atlas(atlas)
+    self._classIcon:Show()
+  else
+    self._classIcon:Hide()
   end
+  self:_setBackground(lower)   -- class-themed model backdrop
+end
 
-  -- Icons aren't always cached on the first pass; re-run shortly (capped) until
-  -- they resolve.
-  if self._slotTimer then self._slotTimer:Cancel(); self._slotTimer = nil end
-  if missing and (self._slotRetries or 0) < 10 then
-    self._slotRetries = (self._slotRetries or 0) + 1
-    self._slotTimer = C_Timer.NewTimer(0.2, function()
-      self._slotTimer = nil
-      self:UpdateSlots()
-    end)
+-- Point the model backdrop at the class's dressing-room background (hidden when
+-- the toggle is off or the class/atlas is unknown). Remembers the class so the
+-- Background toggle can re-show it.
+---@param classFile string?  lowercased class file (e.g. "warrior")
+function DressingRoom:_setBackground(classFile)
+  self._bgClass = classFile
+  local atlas = classFile and ("dressingroom-background-" .. classFile)
+  if self._bgEnabled and atlas and GetAtlasInfo(atlas) then
+    self._bg:Atlas(atlas, false)   -- false = stretch to the model rect
+    self._bg:Show()
+  else
+    self._bg:Hide()
+  end
+end
+
+---@param on boolean  show the class-themed model backdrop
+function DressingRoom:SetBackgroundOn(on)
+  self._bgEnabled = on
+  self._bgBorder:Color(on and SELECTED or IDLE)
+  self:_setBackground(self._bgClass)
+end
+
+-- Preview a specific set within a group: refresh the title, class icon, slots and
+-- model. Shared by ShowDressingRoom (initial open) and Step (navigation).
+---@param group table  a group entry from ns.Sets
+---@param set table    a set entry within that group
+function DressingRoom:_load(group, set)
+  self._group = group
+  self._set = set
+  self:Title(set.name)
+  -- Class = the set's position in the (positional) group.sets array.
+  local classId
+  for i = 1, #group.sets do if group.sets[i] == set then classId = i; break end end
+  self:_showClass(classId)
+  self._slotRetries = 0
+  self:UpdateSlots()
+  self:Dress()
+end
+
+-- Move to the next/previous class set in the current group, wrapping and skipping
+-- empty class slots (the data has gaps for classes absent from a tier).
+---@param dir number  +1 = next, -1 = previous
+function DressingRoom:Step(dir)
+  local sets = self._group and self._group.sets
+  if not sets then return end
+  local n = #sets
+  local cur
+  for i = 1, n do if sets[i] == self._set then cur = i; break end end
+  if not cur then return end
+  for _ = 1, n do
+    cur = (cur - 1 + dir) % n + 1
+    local s = sets[cur]
+    if s and s.id then return self:_load(self._group, s) end
   end
 end
 
@@ -325,13 +449,9 @@ local _room
 ---@field ShowDressingRoom fun(group: table, set: table)  group/set are entries from ns.Sets
 ns.ShowDressingRoom = function(group, set)
   if not _room then _room = DressingRoom:new{} end
-  _room._group = group
-  _room._set = set
-  _room:Title(set.name)
-  _room._slotRetries = 0
-  _room:UpdateSlots()
 
   -- Default to the logged-in character on first open; keep the user's choice after.
+  -- Set before _load so its Dress() renders the right race/gender immediately.
   if not _room._raceID then
     local _, _, raceID = UnitRace("player")
     _room:_highlightRace(raceID)
@@ -339,9 +459,10 @@ ns.ShowDressingRoom = function(group, set)
     local sex = UnitSex("player")
     _room:_highlightSex(sex)
     _room._sex = sex
+    _room:_setupForms(ns.RaceModels[raceID])
   end
 
-  _room:Dress()
+  _room:_load(group, set)
   _room:Show()
 end
 
@@ -350,4 +471,22 @@ end
 ---@field HideDressingRoom fun()
 ns.HideDressingRoom = function()
   if _room then _room:Hide() end
+end
+
+---Dev/verify helper: force a raw creature display id into the open dressing room
+---model so a candidate RaceModels id can be eyeballed (no-op if not open). The
+---next race/gender/form change reverts to the configured model. Used by
+---`/collected model <id>`.
+---@class Warbandeer_Collected
+---@field PreviewModelID fun(id: number, useCustomizations: boolean?)
+ns.PreviewModelID = function(id, useCustomizations)
+  if _room and _room._widget:IsShown() then _room._model:DisplayInfo(id, useCustomizations) end
+end
+
+---Dev/verify helper: live-set the open preview model's scale, to tune a race's
+---`scale` correction (reverts on the next race/gender/form change). `/collected scale`.
+---@class Warbandeer_Collected
+---@field PreviewModelScale fun(scale: number)
+ns.PreviewModelScale = function(scale)
+  if _room and _room._widget:IsShown() then _room._scaleSlider:Value(scale) end
 end

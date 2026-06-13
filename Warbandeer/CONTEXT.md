@@ -61,7 +61,7 @@ Main viewer UI. Reads the data layer (`ns.api` ← `WarbandeerApi`) and renders 
 | `playtime` | Playtime | Frame | Per-character playtime | — |
 | `midnightprofs` | Midnight Profs | Frame | Profs × characters: skill + concentration | — |
 | `bars` | Bars | Frame | Bar-profile browser + docked preview & apply panels | — (view-local dropdowns) |
-| `collected` | Collected | Frame | Transmog-set collection grid (class × set-group) backed by `WarbandeerCollectedApi` | raid-order toggle (oldest/newest first) |
+| `collected` | Collected | Frame | Transmog-set collection grid (class × set-group) backed by `WarbandeerCollectedApi`; cell hover shows the source `InfoTip`, cell click opens the 3D `DressingRoom` | raid-order toggle (defaults newest-first) |
 
 `BuildFilter(parent)` widgets show in the title bar only while that view is active. The two
 expansion dropdowns share `ns.FilterDropdown`; the faction toggle, character picker, and

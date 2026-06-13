@@ -67,7 +67,7 @@ local MainWindow = Class(TitleFrame, function(self)
   }
   self._sortBorder = Texture:new{
     parent = box, layer = ui.layer.Background,
-    position = { All = true }, color = SORT_IDLE,
+    position = { All = true }, color = SORT_ACTIVE,
   }
   Texture:new{
     parent = box, layer = ui.layer.Border, color = {0.05, 0.05, 0.06, 0.92},
@@ -84,7 +84,7 @@ local MainWindow = Class(TitleFrame, function(self)
   self._sortLabel = Label:new{
     parent = btn, fontObj = "GameFontNormalSmall", justifyH = ui.justify.Center,
     position = { Left = {6, 0}, Right = {-6, 0} },
-    text = "OLDEST FIRST",
+    text = "NEWEST FIRST",
   }
 
   self:Height(34 + min(500, self.data:Height()))
