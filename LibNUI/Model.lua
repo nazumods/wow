@@ -20,6 +20,8 @@ local DRESSUP_SCENE = 596
 ---@field _yaw number  accumulated drag yaw in radians (internal)
 ---@field _scale number  intended actor scale, re-applied after each async model load
 ---@field _outfit number[]?  remembered transmog sources, re-applied after each async model load (empty = undressed)
+---@field _unitToken string?  token of the currently-rendered unit (lets Unit skip a redundant reload)
+---@field _unitRace number?  customRaceID currently rendered (lets Unit skip a redundant reload)
 local Model = Class(Frame, function(self)
   -- Borrow the dressup scene so we inherit its camera + a player actor.
   self._widget:TransitionToModelSceneID(
@@ -74,15 +76,15 @@ function Model:_applyOutfit()
   for _, src in ipairs(self._outfit) do self._actor:TryOn(src) end
 end
 
--- Remember the outfit to (re)apply after every model (re)load: a list of transmog
--- appearance sources (sourceIDs); an empty list = fully undressed. Applied now and
--- on each subsequent re-skin, so it survives the async model load. Call before
--- loading a new model (DisplayInfo/Unit) so the load callback honors it.
+-- Remember the outfit to apply on the next Unit/DisplayInfo call: a list of transmog
+-- appearance sources (sourceIDs); an empty list = fully undressed. Remember-only —
+-- Unit applies it (directly when the body is unchanged, else via the load callback),
+-- so call Outfit immediately before Unit/DisplayInfo. Kept separate so a single
+-- apply happens at the right moment (avoids the re-skin flicker a double-apply caused).
 ---@param sources number[]  itemModifiedAppearanceIDs; empty table = undressed
 ---@return Model
 function Model:Outfit(sources)
   self._outfit = sources
-  self:_applyOutfit()
   return self
 end
 
@@ -92,6 +94,7 @@ end
 ---@return Model
 function Model:DisplayInfo(creatureDisplayID, useCustomizations)
   if self._actor then
+    self._unitToken, self._unitRace = nil, nil   -- model changed out from under Unit's cache
     self:_reapply()   -- arm the one-shot load callback BEFORE loading
     self._actor:SetModelByCreatureDisplayID(creatureDisplayID, useCustomizations or false)
   end
@@ -105,10 +108,18 @@ end
 ---@param customRaceID number?  chrRaceID to render the unit as
 ---@return Model
 function Model:Unit(token, customRaceID)
-  if self._actor then
-    self:_reapply()   -- arm the one-shot load callback BEFORE loading
-    self._actor:SetModelByUnit(token, false, false, false, true, false, customRaceID)
+  if not self._actor then return self end
+  -- Body unchanged (an outfit/undress change, or set navigation within one race):
+  -- re-dress the loaded actor directly. Reloading an unchanged model is what caused
+  -- the re-skin flicker, and a cached reload doesn't fire the load callback — so the
+  -- outfit must be applied here, not awaited.
+  if token == self._unitToken and customRaceID == self._unitRace then
+    self:_applyOutfit()
+    return self
   end
+  self._unitToken, self._unitRace = token, customRaceID
+  self:_reapply()   -- arm the one-shot load callback BEFORE loading (applies on load)
+  self._actor:SetModelByUnit(token, false, false, false, true, false, customRaceID)
   return self
 end
 

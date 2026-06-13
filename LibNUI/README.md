@@ -595,10 +595,10 @@ models render through one player-sized actor, so use `Scale` to size large races
 | Method                | Description                                                      |
 |-----------------------|------------------------------------------------------------------|
 | `DisplayInfo(id, useCustomizations?)` | Skin the actor with a creature display ID. `useCustomizations` defaults **false** — a baked display carries its own race+gender textures; passing true overlays the active player's customizations (only textures the player's own race) |
-| `Unit(token, customRaceID?)` | Skin from a unit (e.g. `"player"`), optionally rendered as another race (`customRaceID` = chrRaceID, keeps the unit's gender). `autoDress` is off |
+| `Unit(token, customRaceID?)` | Skin from a unit (e.g. `"player"`), optionally rendered as another race (`customRaceID` = chrRaceID, keeps the unit's gender). `autoDress` is off. Skips the reload (and just re-dresses) when the token + race are unchanged — a cached reload wouldn't fire the load callback anyway, and reloading an unchanged model flickers |
 | `TryOn(source)`       | Put on an item link or `itemModifiedAppearanceID` (sourceID)     |
 | `Undress()` / `Dress()` | Strip / re-equip the actor's gear                              |
-| `Outfit(sources)`     | Remember a transmog outfit (list of sourceIDs; empty = undressed) and re-apply it after every async model (re)load. Use this instead of one-shot `TryOn`/`Undress` when re-skinning, since the load otherwise resets the actor to its baked default. Call before `DisplayInfo`/`Unit` |
+| `Outfit(sources)`     | Remember a transmog outfit (list of sourceIDs; empty = undressed) to apply on the next `Unit`/`DisplayInfo`. Remember-only — `Unit` applies it (directly when the body is unchanged, else via the load callback). Use this instead of one-shot `TryOn`/`Undress` when re-skinning, since the load otherwise resets the actor to its baked default. Call immediately before `DisplayInfo`/`Unit` |
 | `Scale(n)`            | Set the actor scale (1 = natural). One player-sized actor renders every model, so large races need a per-race multiplier. Remembered and re-applied automatically after each async model load |
 
 ---
