@@ -78,10 +78,13 @@ end, {
     return lists.map(order, function(srcIdx, dispIdx)
       local grp = ns.Sets[srcIdx]
       local lock = toon.instances.locks and toon.instances.locks[grp.instance] and toon.instances.locks[grp.instance][grp.difficulty]
-      if not ns.db.sets[grp.id] then return {} end
+      local gsets = ns.db.sets[grp.id]
+      -- Always emit a positional cell per class (blank {} where there's no set, e.g.
+      -- Evoker in pre-Dragonflight raids). Returning nil would make table.insert drop
+      -- the slot, shifting later classes left and leaving stale cells on re-sort.
       local r = lists.map(grp.sets, function(set)
-        local status = ns.db.sets[grp.id][set.id]
-        if not status then return nil end
+        local status = gsets and gsets[set.id]
+        if not status then return {} end
         -- Same per-slot source tooltip on every cell, complete or partial — for a
         -- fully-collected set every slot shows green.
         local onEnter = function(cell)

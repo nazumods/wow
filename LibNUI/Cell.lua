@@ -59,7 +59,10 @@ end
 function Cell:Label()
   local data = type(self.data) == "table" and self.data or {text = self.data}
   if self.label then
-    self.label:Text(data.text)
+    -- Coerce nil → "" so a reused cell that now has no text is cleared. Label:Text
+    -- treats a falsy arg as a getter, so passing data.text directly would leave the
+    -- previous occupant's text in place when cells are recycled across re-sorts.
+    self.label:Text(data.text or "")
     if data.color then self.label:Color(data.color) end
     -- re-apply font: cells are reused across re-sorts, so a cell that previously
     -- held a value in this column's font must pick it up again (an empty "" cell
