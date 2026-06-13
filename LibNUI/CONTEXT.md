@@ -22,7 +22,7 @@ OOP UI widget library. Every widget wraps a backing WoW object (`self._widget`) 
 | `SecureButton.lua` | `SecureButton` — `SecureActionButtonTemplate` for casting spells/toys in combat |
 | `CheckButton.lua` | `CheckButton` — toggle checkbox; `Checked`, `OnToggle` |
 | `AutoWidget.lua` | `AutoWidget` — standalone factory that builds a Button, Texture, or Label from options |
-| `EditBox.lua` | `EditBox` — text input; `Text` |
+| `EditBox.lua` | `EditBox` — text input; `Text`, `CursorPosition`, `HighlightText`, `Font` (`{path,size[,flags]}` tuple getter/setter) |
 | `ScrollFrame.lua` | `ScrollFrame` — scrollable container; `Child` |
 | `CleanFrame.lua` | `CleanFrame` — styled dark frame with tooltip border (base for windows) |
 | `Cell.lua` | `Cell` — table cell (Frame); renders as Label or Texture, reused across re-sorts via `update`. Label cell-data keys: `text`, `color`, `justifyH`, `font` (font-object name), `fontInfo` (`{path,size}` tuple, re-applied on reuse) |

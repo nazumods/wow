@@ -21,7 +21,7 @@ data through the `WarbandeerApi` global.
 | `/wbc refresh` | Re-scan the current character now |
 | `/wbc stat` | Warband-wide playtime/class statistics |
 | `/wbc missing [me]` | Report characters/fields with incomplete data |
-| `/wbc wmissing` | Same report in a copyable window |
+| `/wbc wmissing` | Same report in a copyable window (with a titlebar font-size picker) |
 | `/wbc cleanup`, `/wbc dump …`, `/wbc debug …` | Maintenance/developer tools |
 
 ## Notes

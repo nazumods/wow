@@ -1,6 +1,6 @@
 # Warbandeer_Characters (Data Layer)
 
-**Deps:** LibNAddOn, LibNUI · **SavedVars:** `WarbandeerCharDB` (v11) · **Commands:** `/characters`, `/wbc` · **API:** `WarbandeerApi`
+**Deps:** LibNAddOn, LibNUI · **SavedVars:** `WarbandeerCharDB` (v12) · **Commands:** `/characters`, `/wbc` · **API:** `WarbandeerApi`
 
 Data-collection backbone for the suite. Scans the active character each login/refresh and stores everything in `WarbandeerCharDB`, exposing it to the rest of the suite through the `WarbandeerApi` global. Per-field scanning is driven by the **broker** system (`broker.lua`).
 
@@ -33,7 +33,7 @@ Data-collection backbone for the suite. Scans the active character each login/re
 | `data/artifacts.lua` | Broker `artifacts`: `hidden`, `hiddenColors`, `classHall`; `/wbc dump artifact` |
 | `dump.lua` | `/wbc stat` — warband-wide playtime/class statistics |
 | `missing.lua` | `/wbc missing`, `/wbc missing me` — lists characters/fields with incomplete data |
-| `wmissing.lua` | `/wbc wmissing` — same report rendered in a copyable scroll window |
+| `wmissing.lua` | `/wbc wmissing` — same report rendered in a copyable scroll window; titlebar font-size picker (`Button`+`Tooltip` menu) re-lays out the cached report via `relayout()` on change, persisting the size to `db.ui.wmissingFontSize` |
 | `debug.lua` | `/wbc debug <lua>` — runs arbitrary Lua for inspection |
 
 ## WarbandeerApi Methods
@@ -205,7 +205,9 @@ A `Broker` (from `broker.lua`) holds a `fields` table; each field is `{ get, eve
     warband    = { scannedAt, gear = {...} },              -- shared account bank
     characters = { ["Name"]      = { scannedAt, gear = {...} } },
     guilds     = { ["GuildName"] = { scannedAt, gear = {...} } },
-  } }
+  },
+  -- account-wide UI preferences (v12); filled lazily by the views that own one
+  ui = { wmissingFontSize } }                              -- /wbc wmissing picker
 ```
 
-`MigrateDB` (all migrations non-destructive): **v7** moves flat fields into `basic`/`instances` sub-tables and nils the old keys; **v8** seeds `warband = { bankGold = 0, history = {} }` (`week` filled lazily by `RolloverWarbandWeek` on first login); **v9** re-derives `classKey` from the locale-independent class token; **v10** seeds `recipeGear = { build = "", recipes = {} }` (re-stamped and filled lazily by `data/recipegear.lua`); **v11** seeds `bank = { characters = {}, guilds = {} }` (warband filled lazily; all populated by `data/bank.lua` on bank open).
+`MigrateDB` (all migrations non-destructive): **v7** moves flat fields into `basic`/`instances` sub-tables and nils the old keys; **v8** seeds `warband = { bankGold = 0, history = {} }` (`week` filled lazily by `RolloverWarbandWeek` on first login); **v9** re-derives `classKey` from the locale-independent class token; **v10** seeds `recipeGear = { build = "", recipes = {} }` (re-stamped and filled lazily by `data/recipegear.lua`); **v11** seeds `bank = { characters = {}, guilds = {} }` (warband filled lazily; all populated by `data/bank.lua` on bank open); **v12** seeds `ui = {}` (account-wide UI prefs, filled lazily — currently `wmissingFontSize`).
