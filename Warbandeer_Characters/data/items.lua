@@ -4,6 +4,18 @@ local BagID = ns.wow.Player.bags.ItemID
 local Find = ns.lua.lists.find
 local GetNumSlots = ns.wow.Items.GetNumSlots
 
+local SpecialItems = {
+  GoblinMiniFridge = {
+    id = 220774,
+  },
+  ArathorSatchel = {
+    id = 224578,
+  },
+  PortableRefridgerator = {
+    id = 92748,
+  },
+}
+
 ---@class ItemsBroker: Broker
 local Items = ns:RegisterBroker("items")
 
@@ -16,7 +28,7 @@ Items.fields = {
         local id = BagID(i)
         bags[i] = { id = id, slots = GetNumSlots(i) }
       end
-      for name,i in pairs(Items) do
+      for name,i in pairs(SpecialItems) do
         bags[name] = Find(bags, function(b) return b.id == i.id end)
       end
       return bags
