@@ -290,6 +290,8 @@ end
 --   ui.tip:ClearLines()
 --   ui.tip:AddLine(text)
 --   ui.tip:Show()  /  ui.tip:Hide()
+---@class LibNUI
+---@field tip Tooltip
 ui.tip = Tooltip:new{}
 
 -- Convenience wrappers for name-cell hover in table views. The position table is a

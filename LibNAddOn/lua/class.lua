@@ -13,7 +13,7 @@ local fill = ns.lua.maps.fill
 ---@param fn function constructor
 ---@param defaults table? default properties
 ---@param ... table? additional table to mixin
----@return table Class
+---@return Class
 function ns.lua.Class(parent, fn, defaults, ...)
   local c, onLoad = {}, defaults and defaults.onLoad
   if defaults then defaults.onLoad = nil end

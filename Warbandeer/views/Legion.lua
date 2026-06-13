@@ -1,5 +1,6 @@
 ---@type Warbandeer
 local ns = select(2, ...)
+---@type LibNUI
 local ui = ns.ui
 local Class, Frame, TableFrame = ns.lua.Class, ui.Frame, ui.TableFrame
 
@@ -43,7 +44,7 @@ ns:registerCommand("check", "legion", function()
       print(format("%s: %s",k,C_QuestLog.IsQuestFlaggedCompleted(v) and "\124cff00ff00Yes\124r" or "\124cffff0000No\124r"))
     end
   end
-end)
+end, "check legion appearance eligibility")
 
 local instructions = {
   DeathKnight = {

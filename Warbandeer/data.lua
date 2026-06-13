@@ -35,6 +35,11 @@ ns.gearSlots = {
   "Legs", "Feet", "Finger1", "Finger2", "Trinket1", "Trinket2", "MainHand", "OffHand",
 }
 
+---@class ColorMixin
+---@field WrapTextInColorCode fun(self: ColorMixin, ilvl: any): string
+
+---@class Warbandeer
+---@field IlvlColorObj fun(iLvl: number): ColorMixin
 -- ColorMixin for an item level, by gear tier. Thresholds are by ilvl, not upgrade
 -- track, by design: gear maxed on a lower track counts as the tier its ilvl reaches
 -- (e.g. a fully upgraded Hero item at 272+ reads as mythic gold).
@@ -51,6 +56,8 @@ function ns.IlvlColorObj(ilvl)
   end
 end
 
+---@class Warbandeer
+---@field IlvlColor fun(ilvl: number): string
 -- The ilvl wrapped in its tier's color escape code.
 ---@param ilvl number
 ---@return string
@@ -58,12 +65,16 @@ function ns.IlvlColor(ilvl)
   return ns.IlvlColorObj(ilvl):WrapTextInColorCode(ilvl)
 end
 
+---@class Warbandeer
+---@field ilvlOf fun(t: Character): number
 -- Safe ilvl accessor for sort comparators: fresh alts may not have had an
 -- equipment pass yet, so equipment or equipment.ilvl can be nil.
 ---@param t Character
 ---@return number
 function ns.ilvlOf(t) return t.equipment and t.equipment.ilvl or 0 end
 
+---@class Warbandeer
+---@field byLevelIlvl fun(a: Character, b: Character): boolean
 -- Standard sort: descending level, then descending ilvl, then ascending name.
 ---@param a Character
 ---@param b Character

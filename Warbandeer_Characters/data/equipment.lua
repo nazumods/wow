@@ -28,10 +28,13 @@ local EquipmentSlots = {
   OffHand = 17,
 }
 
----@type Broker
-ns.Equipment = ns:RegisterBroker("equipment")
+---@class Character
+---@field equipment EquipmentBroker?
 
-ns.Equipment.fields = {
+---@class EquipmentBroker: Broker
+local Equipment = ns:RegisterBroker("equipment")
+
+Equipment.fields = {
   slots = {
     get = function()
       local slots = {}
@@ -68,7 +71,7 @@ ns.Equipment.fields = {
         if link then toLoad[#toLoad + 1] = index end
       end
       if #toLoad == 0 then
-        ns.Equipment:Update(ns.currentData)
+        Equipment:Update(ns.currentData)
         return
       end
       local pending = {}
@@ -80,6 +83,8 @@ ns.Equipment.fields = {
       ns.equipmentPending = pending
     end,
   },
+  ---@class EquipmentBroker
+  ---@field ilvl integer
   ilvl = {
     get = function()
       return Player:GetAverageItemLevel()
@@ -90,6 +95,11 @@ ns.Equipment.fields = {
   },
 }
 
+---@class Warbandeer_Characters
+---@field equipmentPending table
+
+---@class Warbandeer_Characters
+---@field ITEM_DATA_LOAD_RESULT fun(itemID)
 function ns:ITEM_DATA_LOAD_RESULT(itemID)
   if not self.equipmentPending then return end
   local n = self.equipmentPending[itemID]
@@ -100,7 +110,7 @@ function ns:ITEM_DATA_LOAD_RESULT(itemID)
     self.equipmentPending[itemID] = nil
     if not next(self.equipmentPending) then
       self.equipmentPending = nil
-      self.Equipment:Update(self.currentData)
+      Equipment:Update(self.currentData)
     end
   end
 end

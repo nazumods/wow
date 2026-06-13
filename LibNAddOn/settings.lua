@@ -47,6 +47,9 @@ function Setting.dropdown(db, category, data)
   )
 end
 
+---@class AddOn
+---@field settingsCategory table?
+
 ---@class LibNAddOn
 ---@field registerSettings fun(addOn: AddOn, addOnName: string, features: table) register settings for an add-on
 function ns.registerSettings(addOn, addOnName, features)

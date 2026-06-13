@@ -9,11 +9,13 @@ local ns = select(2, ...)
 -- AbbreviateNumbers Interface/AddOns/Blizzard_SharedXMLBase/TableUtil.lua
 
 ---@class LibNAddOn
----@field Lua Lua Lua utility functions
+---@field lua Lua Lua utility functions
 
 ---@class Lua
----@field Select fun(k: integer): fun(...: any): any return a function that transforms a table by selecting the provided key
-ns.lua = {
-  -- return a function that transforms a table by selecting the provided key
-  Select = function(k) return function(t) return t[k] end end,
-}
+local lua = {}
+ns.lua = lua
+
+-- return a function that transforms a table by selecting the provided key
+---@param k integer|string key
+---@return fun(t: table): any
+lua.Select = function(k) return function(t) return t[k] end end

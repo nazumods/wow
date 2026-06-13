@@ -9,7 +9,7 @@ local Class, unpack = ns.lua.Class, unpack
 
 ---@class WoWRegion: table
 
----@class Region
+---@class Region: Class
 ---@field _widget table backing WoW UI widget
 ---@field theme Theme? active theme; inherited from the parent widget when not given
 ---@field OnBeforeShow function

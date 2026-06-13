@@ -27,8 +27,10 @@ function lists.values(...)
 end
 
 ---generate a packed list by calling f(i) for i in [start, n]
----@class Lists
----@field generate fun(f: fun(i: integer): any, n: integer, start: integer?): table
+---@param f fun(i: integer): any
+---@param n integer
+---@param start integer
+---@return table
 function lists.generate(f, n, start)
   local r, a = {}, start or 1
   for i=a,n do insert(r, f(i)) end

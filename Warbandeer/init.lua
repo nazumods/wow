@@ -86,6 +86,13 @@ function ns:settingChanged(key, value) --, setting
   ns.Print("setting changed", key, value)
 end
 
+---@class Warbandeer
+---@field db WarbandeerDB
+
+---@class WarbandeerDB: AddOnDatabase
+---@field settings {defaultView: integer, tooltipSide: integer}
+---@field profIntent table<string,table<integer,string>> map of character name and skillLineID to crafter intent
+
 function ns:MigrateDB()
   local db = self.db
   if not db.version then

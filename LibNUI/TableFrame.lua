@@ -7,6 +7,9 @@ local TableRow, TableCol, Cell = ui.TableRow, ui.TableCol, ui.Cell
 local TopRight, BottomLeft, Right = ui.edge.TopRight, ui.edge.BottomLeft, ui.edge.Right
 local Top, Bottom = ui.edge.Top, ui.edge.Bottom
 
+---@class LibNUI
+---@field TableFrame TableFrame
+
 -- making a table: https://www.wowinterface.com/forums/showthread.php?t=58670
 ---@class TableFrame: Frame
 ---@field autosize? boolean
