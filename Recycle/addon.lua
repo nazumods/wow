@@ -1,4 +1,3 @@
--- luacheck: globals LibNAddOn Baganator HandleModifiedItemClick GetMouseButtonClicked IsControlKeyDown IsShiftKeyDown IsAltKeyDown PickupMerchantItem
 ---@class Recycle: AddOn
 local ns = LibNAddOn(...)
 

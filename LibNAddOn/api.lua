@@ -6,7 +6,6 @@ local G = _G
 ---@field CompartmentClick fun(self: AddOn, buttonName: string)?
 ---@field RegisterSettings fun(self: AddOn, settings: table) register Settings-panel categories; call at file-load time (before ADDON_LOADED), requires a DB
 
--- luacheck: globals LibNAddOn
 ---@param features {name: string, addOn: AddOn, [any]: any}|string
 ---@param o AddOn|nil
 ---@return AddOn addon

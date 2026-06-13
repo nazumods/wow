@@ -3,7 +3,7 @@ local ns = select(2, ...)
 ---@type LibNUI
 local ui = ns.ui
 local insert = table.insert
-local ITEM_STANDARD_COLOR = ITEM_STANDARD_COLOR -- luacheck: globals ITEM_STANDARD_COLOR
+local ITEM_STANDARD_COLOR = ITEM_STANDARD_COLOR
 
 local trackColors = {
   Explorer   = ITEM_STANDARD_COLOR,

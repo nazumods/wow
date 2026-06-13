@@ -1,6 +1,5 @@
 ---@type Warbandeer
 local ns = select(2, ...)
--- luacheck: globals WarbandeerCollectedApi
 local floor, max, min = math.floor, math.max, math.min
 local ui = ns.ui
 local lists = ns.lua.lists

@@ -1,6 +1,5 @@
 ---@type Warbandeer
 local ns = select(2, ...)
--- luacheck: read globals ShadowsOfUI_UpgradeApi
 
 -- Optional integration with ShadowsOfUI-Upgrade (OptionalDep).  When that addon
 -- is loaded it publishes ShadowsOfUI_UpgradeApi; these helpers turn a slot's

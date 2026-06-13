@@ -2,7 +2,7 @@
 local ns = select(2, ...)
 ---@type LibNUI
 local ui = ns.ui
-local BreakUpLargeNumbers = BreakUpLargeNumbers -- luacheck: globals BreakUpLargeNumbers
+local BreakUpLargeNumbers = BreakUpLargeNumbers
 
 -- gold
 table.insert(

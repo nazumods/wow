@@ -6,11 +6,7 @@ local C_Item = C_Item
 local C_Bank = C_Bank
 local C_Container = C_Container
 local BankType = Enum.BankType
--- luacheck: globals GetServerTime
 -- Guild bank (the classic, non-C_Bank API):
--- luacheck: globals GetNumGuildBankTabs GetGuildBankTabInfo GetGuildBankItemLink
--- luacheck: globals GetGuildBankItemInfo QueryGuildBankTab GetCurrentGuildBankTab
--- luacheck: globals SetCurrentGuildBankTab GetGuildInfo MAX_GUILDBANK_SLOTS_PER_TAB
 
 -- Account-wide cache of profession gear sitting in banks, so the prof-gear
 -- tooltip can tell you where an empty slot could be filled from.  Bank contents

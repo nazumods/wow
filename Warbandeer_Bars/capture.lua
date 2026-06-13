@@ -1,6 +1,5 @@
 ---@type Warbandeer_Bars
 local ns = select(2, ...)
--- luacheck: globals C_EditMode
 
 local MAX_BARS   = 180
 local MAX_MACROS = MAX_ACCOUNT_MACROS + MAX_CHARACTER_MACROS

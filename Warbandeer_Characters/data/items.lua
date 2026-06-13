@@ -24,7 +24,7 @@ local Items = {
 ---@type Broker
 ns.Items = ns:RegisterBroker("items")
 
-local LAST_BAG_IDX = NUM_BAG_SLOTS + 1 -- luacheck: globals NUM_BAG_SLOTS
+local LAST_BAG_IDX = NUM_BAG_SLOTS + 1
 ns.Items.fields = {
   bags = {
     get = function()

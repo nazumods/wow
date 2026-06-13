@@ -1,4 +1,3 @@
--- luacheck: globals LibNAddOn GetCVar SetCVar
 ---@class CombatOutline: AddOn
 local ns = LibNAddOn(...)
 

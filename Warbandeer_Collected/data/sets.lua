@@ -1,6 +1,5 @@
 ---@type Warbandeer_Collected
 local ns = select(2, ...)
--- luacheck: globals tinsert C_TransmogSets
 local tinsert = tinsert
 
 ---@class Warbandeer_Collected

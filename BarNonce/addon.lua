@@ -1,4 +1,3 @@
--- luacheck: globals CreateFrame hooksecurefunc
 local frame = CreateFrame("Frame")
 frame:RegisterEvent("PLAYER_ENTERING_WORLD")
 

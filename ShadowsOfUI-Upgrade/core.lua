@@ -1,6 +1,5 @@
 ---@class ShadowsOfUI_Upgrade: AddOn
 local ns = LibNAddOn(...)
--- luacheck: globals ShadowsOfUI_UpgradeApi
 
 -- ShadowsOfUI-Upgrade — gear-upgrade finder.
 --

@@ -1,6 +1,5 @@
 ---@type Warbandeer_Collected
 local ns = select(2, ...)
--- luacheck: globals C_CreatureInfo
 local GetRaceInfo = C_CreatureInfo.GetRaceInfo
 
 -- Per race+gender creature display IDs for the dressing room (sex keys follow

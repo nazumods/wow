@@ -2,8 +2,6 @@
 local ns = select(2, ...)
 local Upgrade = ns.UpgradeApi
 local floor = math.floor
--- luacheck: globals SLASH_SUI_UPGRADE1 TooltipDataProcessor TooltipUtil
--- luacheck: read globals GRAY_FONT_COLOR GREEN_FONT_COLOR NORMAL_FONT_COLOR ITEM_SOULBOUND
 
 local LABEL = NORMAL_FONT_COLOR
 

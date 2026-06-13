@@ -1,9 +1,5 @@
 ---@class LibNAddOn
 local ns = select(2, ...)
--- luacheck: globals UnitXP UnitXPMax GetXPExhaustion GetRestState UnitClassBase GetProfessions GetProfessionInfo
--- luacheck: globals GetAverageItemLevel PlayerHasToy UseToy IsSpellKnown C_MountJournal CastSpell UnitExists
--- luacheck: globals UnitHealth UnitHealthMax InCombatLockdown IsResting UnitPower UnitPowerMax UnitPowerType UnitRace
--- luacheck: globals GetShapeshiftFormID UnitIsAFK GetLootSpecialization GetSpecialization GetSpecializationInfo GetSpecializationInfoByID
 
 local Mixin, max = Mixin, math.max
 local UnitXP, UnitXPMax, GetXPExhaustion, GetRestState = UnitXP, UnitXPMax, GetXPExhaustion, GetRestState

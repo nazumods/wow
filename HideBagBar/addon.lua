@@ -1,6 +1,4 @@
 local ADDON_NAME = ...
--- luacheck: globals CreateFrame MainMenuBarBackpackButton BagBarExpandToggle
--- luacheck: globals CharacterBag0Slot CharacterBag1Slot CharacterBag2Slot CharacterBag3Slot CharacterReagentBag0Slot
 local frame = CreateFrame("Frame")
 frame:RegisterEvent("ADDON_LOADED")
 

@@ -1,7 +1,6 @@
 ---@type Warbandeer_Collected
 local ns = select(2, ...)
 local ui = ns.ui
--- luacheck: globals C_Timer MouseIsOver C_TransmogCollection
 local Class, find, any = ns.lua.Class, ns.lua.lists.find, ns.lua.maps.any
 local CleanFrame, Label, TableFrame = ui.CleanFrame, ui.Label, ui.TableFrame
 local Frame, Button, Texture = ui.Frame, ui.Button, ui.Texture

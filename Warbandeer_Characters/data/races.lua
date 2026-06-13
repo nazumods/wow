@@ -1,6 +1,6 @@
 ---@type Warbandeer_Characters
 local ns = select(2, ...)
-local unpack = unpack -- luacheck: globals unpack
+local unpack = unpack
 local API = ns.api
 
 API.ALLIANCE_RACES = {

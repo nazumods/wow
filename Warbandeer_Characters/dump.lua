@@ -1,7 +1,7 @@
 ---@type Warbandeer_Characters
 local ns = select(2, ...)
 local print = print
-local GetBuildInfo = GetBuildInfo -- luacheck: globals GetBuildInfo
+local GetBuildInfo = GetBuildInfo
 
 local TIME_LONG = "%d days %d hours %d minutes"
 local TIME_SHORT = "%dd %dh %dm"

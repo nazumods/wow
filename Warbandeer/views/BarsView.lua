@@ -1,6 +1,5 @@
 ---@type Warbandeer
 local ns = select(2, ...)
--- luacheck: globals WarbandeerBarsApi UnitClass
 local ui = ns.ui
 local insert, sort = table.insert, table.sort
 local Class, Frame, Label, Texture = ns.lua.Class, ui.Frame, ui.Label, ui.Texture

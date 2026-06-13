@@ -1,6 +1,5 @@
 ---@type Warbandeer
 local ns = select(2, ...)
--- luacheck: globals WarbandeerBarsApi NumberFontNormalSmallGray CreateFont
 local ui = ns.ui
 local Class, Frame, Label, Texture = ns.lua.Class, ui.Frame, ui.Label, ui.Texture
 local CleanFrame = ui.CleanFrame

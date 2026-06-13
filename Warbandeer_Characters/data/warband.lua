@@ -1,7 +1,7 @@
 ---@type Warbandeer_Characters
 local ns = select(2, ...)
 local insert = table.insert
-local FetchDepositedMoney = C_Bank.FetchDepositedMoney -- luacheck: globals C_Bank
+local FetchDepositedMoney = C_Bank.FetchDepositedMoney
 local ACCOUNT = Enum.BankType.Account
 
 -- Account-wide warband data. Unlike per-character brokers, the warband bank is

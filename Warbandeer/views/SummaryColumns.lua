@@ -1,6 +1,5 @@
 ---@type Warbandeer
 local ns = select(2, ...)
--- luacheck: globals CalendarFrame
 local insert = table.insert
 local ui = ns.ui
 local Left = ui.justify.Left
