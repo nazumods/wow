@@ -252,7 +252,7 @@ function Player:GetRewardOptions()
   }
 end
 
-ns:registerCommand("player", nil, function(self, args)
+ns:registerCommand("player", "", function(self, args)
   if args == "" then
     ns.Print("Usage: /lib player <method>")
     for k in pairs(Player) do

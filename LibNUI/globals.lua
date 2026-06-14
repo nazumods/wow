@@ -2,8 +2,8 @@
 local ns = LibNAddOn(...)
 
 ---@class LibNUI
-ns.ui = {}
-LibNUI = ns.ui
+LibNUI = {}
+ns.ui = LibNUI
 
 ---@class LibNUIDB
 ---@field version integer

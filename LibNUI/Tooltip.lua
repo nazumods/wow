@@ -1,13 +1,11 @@
 ---@type LibNUI_AddOn
 local ns = select(2, ...)
 local max = math.max
+---@class LibNUI
 local ui = ns.ui
 
 local insert = table.insert
 local Class, CleanFrame, Frame, Label = ns.lua.Class, ui.CleanFrame, ui.Frame, ui.Label
-
----@class LibNUI
----@field Tooltip Tooltip
 
 ---@class Tooltip: CleanFrame
 ---@field lines TooltipLine[]  line frames (each carries a `.label`); options tables at construction

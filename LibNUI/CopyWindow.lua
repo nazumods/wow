@@ -1,5 +1,6 @@
 ---@type LibNUI_AddOn
 local ns = select(2, ...)
+---@class LibNUI
 local ui = ns.ui
 local Class = ns.lua.Class
 local TitleFrame, ScrollFrame, EditBox = ui.TitleFrame, ui.ScrollFrame, ui.EditBox
@@ -20,10 +21,6 @@ local CHEVRON = "  |A:UI-HUD-ActionBar-PageDownArrow-Disabled:10:10|a"
 -- The chosen size persists account-wide in LibNUI's db.copyFontSize.
 local FONT_PATH, BASE_SIZE, FONT_FLAGS = GameFontHighlightSmall:GetFont()
 local DEFAULT_SIZE = math.floor(BASE_SIZE + 0.5)
-
----@class LibNUI
----@field CopyWindow CopyWindow
----@field ShowCopyWindow fun(title: string, text: string)
 
 ---A reusable, copyable scroll window for console-style text output: a windowed
 ---`TitleFrame` with a scrolling, pre-highlighted `EditBox` and a titlebar

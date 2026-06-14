@@ -1,17 +1,19 @@
 ---@type LibNUI_AddOn
 local ns = select(2, ...)
+---@class LibNUI
 local ui = ns.ui
 
 local Class, Frame, CleanFrame, Label, Texture = ns.lua.Class, ui.Frame, ui.CleanFrame, ui.Label, ui.Texture
 local TopLeft, TopRight = ui.edge.TopLeft, ui.edge.TopRight
 local Left, Right, Center = ui.edge.Left, ui.edge.Right, ui.edge.Center
 
----@class LibNUI
----@field TitleFrame TitleFrame
+---@class TitleBar: Frame
+---@field title Label
+---@field icon Frame
 
 ---@class TitleFrame: CleanFrame
 ---@field title string?  initial title text
----@field titlebar Frame  title strip across the top (carries `.title` Label and `.icon` Frame)
+---@field titlebar TitleBar  title strip across the top (carries `.title` Label and `.icon` Frame)
 ---@field closeButton Frame  close button in the title bar
 local TitleFrame = Class(CleanFrame, function(o)
   local theme = o:Theme()

@@ -1,5 +1,6 @@
 ---@type LibNUI_AddOn
 local ns = select(2, ...)
+---@class LibNUI
 local ui = ns.ui
 local Class = ns.lua.Class
 local Frame = ui.Frame

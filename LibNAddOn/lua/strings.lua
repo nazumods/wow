@@ -11,14 +11,18 @@ local insert = table.insert
 local strings = {}
 ns.lua.strings = strings
 
----@class Strings
----@field startsWith fun(str: string, start: string): boolean returns true if str starts with start
+---returns true if str starts with start
+---@param str string
+---@param start string
+---@return boolean
 function strings.startsWith(str, start)
   return str and sub(str, 1, #start) == start
 end
 
----@class Strings
----@field split fun(token: string, str: string): table splits str on each character in token; token is treated as a char class, so only a single non-magic character is safe (avoid `-`, `%`, `^`)
+---splits str on each character in token; token is treated as a char class, so only a single non-magic character is safe (avoid `-`, `%`, `^`)
+---@param token string
+---@param str string
+---@return table
 function strings.split(token, str)
   local result = {}
   for part in gmatch(str, "[^"..token.."]+") do

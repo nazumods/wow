@@ -10,8 +10,8 @@ local lists = {}
 ns.lua.lists = lists
 
 ---create a list from the values of multiple tables
----@class Lists
----@field values fun(...: table): table
+---@param ... any
+---@return table
 function lists.values(...)
   local copy = {}
   local t
@@ -40,8 +40,9 @@ end
 ---Return a new list by transforming each value with `f`.
 ---If `f` returns nil or false the original value is kept (Lua `or` fallback).
 ---Omit `f` for a shallow copy.
----@class Lists
----@field map fun(t: table, f: (fun(v: any, k: integer): any)?, ...): table
+---@param t table
+---@param f? fun(v: any, k: integer): any
+---@return table
 function lists.map(t, f)
   local r = {}
   for k,v in ipairs(t) do
@@ -50,8 +51,9 @@ function lists.map(t, f)
   return r
 end
 
----@class Lists
----@field filter fun(t: table, f: fun(v:any, k: integer): any): table
+---@param t table
+---@param f fun(v: any, k: integer): any
+---@return table
 function lists.filter(t, f)
   local r = {}
   for k,v in ipairs(t) do
@@ -64,8 +66,9 @@ end
 
 ---find a value in a list, returning the index
 ---if value is a function, it will be called for each value, and the matching value will be returned after the index
----@class Lists
----@field find fun(t: table, value: any | fun(v: any): boolean): integer | nil
+---@param table table
+---@param value any | fun(v: any): boolean
+---@return integer | nil
 function lists.find(table, value)
   if type(value) == "function" then
     for i,v in ipairs(table) do
@@ -83,8 +86,9 @@ function lists.find(table, value)
 end
 
 ---fold a list into n sub-lists via round-robin distribution
----@class Lists
----@field fold fun(t: table, n: integer): table
+---@param t table
+---@param n integer
+---@return table
 function lists.fold(t, n)
   local r = {}
   local c = math.ceil(#t / n)
@@ -101,8 +105,9 @@ function lists.fold(t, n)
 end
 
 ---prepend values to a list
----@class Lists
----@field prepend fun(t: table, ...: any): table
+---@param t table
+---@param ... any
+---@return table
 function lists.prepend(t, ...)
   local arg = {...}
   for i=#arg, 1, -1 do

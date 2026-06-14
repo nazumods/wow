@@ -1,11 +1,9 @@
 ---@type LibNUI_AddOn
 local ns = select(2, ...)
+---@class LibNUI
 local ui = ns.ui
 local Class = ns.lua.Class
 local Frame, Texture = ui.Frame, ui.Texture
-
----@class LibNUI
----@field Slider Slider
 
 -- https://warcraft.wiki.gg/wiki/UIOBJECT_Slider
 -- A value slider: a themed track with a draggable gold thumb. Drag or click to

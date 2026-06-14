@@ -1,12 +1,9 @@
 ---@type LibNUI_AddOn
 local ns = select(2, ...)
-
+---@class LibNUI
 local ui = ns.ui
 local Class, unpack = ns.lua.Class, unpack
 local Region = ui.Region
-
----@class LibNUI
----@field Texture Texture
 
 ---@class Texture: Region
 ---@field atlas string?  atlas name

@@ -16,8 +16,10 @@ local select, pairs, insert = select, pairs, table.insert
 local maps = {}
 ns.lua.maps = maps
 
----@class Maps
----@field merge fun(dest: table, ...): table merge multiple tables into the first one, overwriting existing keys
+---merge multiple tables into the first one, overwriting existing keys
+---@param destination table
+---@param ... any
+---@return table
 function maps.merge(destination, ...)
   for i=1,select("#", ...) do
     local t = select(i, ...)
@@ -36,8 +38,10 @@ function maps.merge(destination, ...)
   return destination
 end
 
----@class Maps
----@field fill fun(destination: table, ...): table fill the destination table from the source tables, without overwriting existing keys
+---fill the destination table from the source tables, without overwriting existing keys
+---@param destination table
+---@param ... any
+---@return table
 function maps.fill(destination, ...)
   for i=1,select("#", ...) do
     local t = select(i, ...)
@@ -78,8 +82,10 @@ function maps.toMap(t, f)
   return r
 end
 
----@class Maps
----@field toList fun(t: table, f: fun(k: integer | string, v: any): any): table return a list by transforming the key/value pairs of the map
+---return a list by transforming the key/value pairs of the map
+---@param t table
+---@param f fun(k: integer | string, v: any): any
+---@return table
 function maps.toList(t, f)
   local r = {}
   for k,v in pairs(t) do
@@ -88,8 +94,10 @@ function maps.toList(t, f)
   return r
 end
 
----@class Maps
----@field any fun(t: table, f: fun(v: any): boolean): boolean return true if the function returns true for any value in the table
+---return true if the function returns true for any value in the table
+---@param t table
+---@param f fun(v: any): boolean
+---@return boolean
 function maps.any(t, f)
   for _,v in pairs(t) do
     if f(v) then
@@ -99,8 +107,10 @@ function maps.any(t, f)
   return false
 end
 
----@class Maps
----@field anyKey fun(t: table, f: fun(k: integer | string): boolean): boolean return true if the function returns true for any key in the table
+---return true if the function returns true for any key in the table
+---@param t table
+---@param f fun(k: integer | string): boolean
+---@return boolean
 function maps.anyKey(t, f)
   for k,_ in pairs(t) do
     if f(k) then

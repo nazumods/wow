@@ -1,5 +1,6 @@
 ---@type LibNUI_AddOn
 local ns = select(2, ...)
+---@class LibNUI
 local ui = ns.ui
 local Class, unpack = ns.lua.Class, unpack
 local Frame, Label, Texture = ui.Frame, ui.Label, ui.Texture
@@ -34,9 +35,6 @@ local function formatCooldown(t)
   end
   return math.ceil(t)..'s'
 end
-
----@class LibNUI
----@field Button Button
 
 -- https://wowpedia.fandom.com/wiki/UIOBJECT_Button
 ---@class Button: Frame

@@ -1,17 +1,15 @@
 ---@type LibNUI_AddOn
 local ns = select(2, ...)
+---@class LibNUI
 local ui = ns.ui
 
 local unpack = unpack
 local Class = ns.lua.Class
 local Region = ui.Region
 
----@class LibNUI
----@field Label Label
----@field fonts table<string,string>
-
 -- https://github.com/Gethe/wow-ui-source/blob/5076663b5454de9e7522320994ea7cc15b2a961c/Interface/AddOns/Blizzard_FontStyles_Shared/SharedFontStyles.xml
 -- https://github.com/Gethe/wow-ui-source/blob/5076663b5454de9e7522320994ea7cc15b2a961c/Interface/AddOns/Blizzard_FontStyles_Frame/Mainline/FontStyles.xml
+---@type table<string,string>
 ui.fonts = ns.lua.maps.toMap({
   "GameFontHighlight", "GameFontHighlightSmall",
   "SystemFont_Med2",

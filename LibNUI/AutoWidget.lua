@@ -1,10 +1,8 @@
 ---@type LibNUI_AddOn
 local ns = select(2, ...)
+---@class LibNUI
 local ui = ns.ui
 local Class, Button, Label, Texture = ns.lua.Class, ui.Button, ui.Label, ui.Texture
-
----@class LibNUI
----@field AutoWidget AutoWidget
 
 -- A widget that automatically configures itself as a Label, Texture, or Button
 -- depending on the options passed at construction time.

@@ -1,11 +1,9 @@
 ---@type LibNUI_AddOn
 local ns = select(2, ...)
+---@class LibNUI
 local ui = ns.ui
 local Class, Frame = ns.lua.Class, ui.Frame
 local Label, Texture = ui.Label, ui.Texture
-
----@class LibNUI
----@field Cell Cell
 
 ---@class Cell: Frame
 ---@field data table|string  cell data: an options table (text/path/atlas/...) or a plain text string
@@ -65,6 +63,7 @@ function Cell:Label()
     -- Coerce nil → "" so a reused cell that now has no text is cleared. Label:Text
     -- treats a falsy arg as a getter, so passing data.text directly would leave the
     -- previous occupant's text in place when cells are recycled across re-sorts.
+    ---@cast data table
     self.label:Text(data.text or "")
     if data.color then self.label:Color(data.color) end
     -- re-apply font: cells are reused across re-sorts, so a cell that previously

@@ -1,11 +1,9 @@
 ---@type LibNUI_AddOn
 local ns = select(2, ...)
+---@class LibNUI
 local ui = ns.ui
 
 local Class, unpack = ns.lua.Class, unpack
-
----@class LibNUI
----@field Region Region
 
 ---@class WoWRegion: table
 

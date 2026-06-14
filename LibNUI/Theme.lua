@@ -1,11 +1,8 @@
 ---@type LibNUI_AddOn
 local ns = select(2, ...)
+---@class LibNUI
 local ui = ns.ui
 local setmetatable = setmetatable
-
----@class LibNUI
----@field Theme fun(t: table?): Theme build a theme from partial overrides
----@field themes table<string, Theme> themes
 
 ---@class Theme
 ---@field name string?
@@ -55,6 +52,7 @@ local dark = {
   },
 }
 
+---@type table<string, Theme> themes
 ui.themes = { dark = dark }
 
 -- Build a theme from partial overrides: any color/font/texture token not given

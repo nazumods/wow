@@ -8,8 +8,9 @@ local ns = select(2, ...)
 local sets = {}
 ns.lua.sets = sets
 
----@class Sets
----@field Set fun(list: table): table create a Set from a list of values
+---create a Set from a list of values
+---@param list table
+---@return table
 function sets.Set(list)
   local set = {}
   for _,v in ipairs(list) do
@@ -18,8 +19,9 @@ function sets.Set(list)
   return set
 end
 
----@class Sets
----@field values fun(t: table): table return the values of a table as a Set
+---return the values of a table as a Set
+---@param t table
+---@return table
 function sets.values(t)
   local r = {}
   for _,v in pairs(t) do

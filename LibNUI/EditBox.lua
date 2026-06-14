@@ -1,12 +1,10 @@
 ---@type LibNUI_AddOn
 local ns = select(2, ...)
+---@class LibNUI
 local ui = ns.ui
 local unpack = unpack
 local Class = ns.lua.Class
 local Frame = ui.Frame
-
----@class LibNUI
----@field EditBox EditBox
 
 ---@class EditBox: Frame
 ---@field multiline boolean? enable multiline mode (skips InputBoxTemplate)

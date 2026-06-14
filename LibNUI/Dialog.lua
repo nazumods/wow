@@ -3,6 +3,7 @@ local ns = select(2, ...)
 local _G, insert = _G, table.insert
 local UISpecialFrames = UISpecialFrames
 
+---@class LibNUI
 local ui = ns.ui
 local Class = ns.lua.Class
 local Frame = ui.Frame

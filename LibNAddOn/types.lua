@@ -1,6 +1,7 @@
 ---@meta types
 
 ---@class string
+---@field match fun(self: string, pattern: string) boolean
 ---@field gmatch fun(self: string, pattern: string): boolean
 ---@field format fun(self: string, ...): string
 

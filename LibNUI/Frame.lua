@@ -5,11 +5,9 @@ local CreateFrame = CreateFrame
 local UISpecialFrames = UISpecialFrames
 local C_Timer = C_Timer
 local Class, unpack = ns.lua.Class, unpack
+---@class LibNUI
 local ui = ns.ui
 local Region, Texture = ui.Region, ui.Texture
-
----@class LibNUI
----@field Frame Frame
 
 -- https://www.reddit.com/r/wowaddondev/comments/1cc2qgj/creating_a_wow_addon_part_2_creating_a_frame/
 -- frame/UI control templates: https://www.wowinterface.com/forums/showthread.php?t=40444

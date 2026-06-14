@@ -1,12 +1,10 @@
 ---@type LibNUI_AddOn
 local ns = select(2, ...)
+---@class LibNUI
 local ui = ns.ui
 
 local Class, Frame, unpack = ns.lua.Class, ui.Frame, unpack
 local TopLeft, BottomRight = ui.edge.TopLeft, ui.edge.BottomRight
-
----@class LibNUI
----@field CleanFrame CleanFrame
 
 ---@class CleanFrame: Frame
 ---@field border Frame  tooltip-style border frame anchored just outside self

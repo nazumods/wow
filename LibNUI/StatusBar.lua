@@ -1,6 +1,6 @@
 ---@type LibNUI_AddOn
 local ns = select(2, ...)
-
+---@class LibNUI
 local ui = ns.ui
 local Class, unpack, Mixin = ns.lua.Class, unpack, Mixin
 local Frame, Texture = ui.Frame, ui.Texture
@@ -99,14 +99,16 @@ function StatusBar:SetValue(v)
   local p = 1 - ((v - n) / (m - n))
   local dx, dy = self.Xd * p, self.Yd * p
   local l, r, t, b = self.X1, self.X2, self.Y1, self.Y2
+  local tex = self.texture
+  ---@cast tex Texture
   if self._widget:GetOrientation() == "HORIZONTAL" then
     -- crop from the right: advance the right coord inward by the empty fraction
     r = r - dx
-    self.texture:Right(self, ui.edge.Right, self:Width() * -dx, 0)
+    tex:Right(self, ui.edge.Right, self:Width() * -dx, 0)
   else -- vertical
     -- crop from the top: advance the top coord downward by the empty fraction
     t = t + dy
-    self.texture:Top(0, self:Height() * -dy)
+    tex:Top(0, self:Height() * -dy)
   end
-  self.texture:Coords(l, r, t, b)
+  tex:Coords(l, r, t, b)
 end
