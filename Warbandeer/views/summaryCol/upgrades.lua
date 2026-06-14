@@ -20,14 +20,19 @@ local getUpgrades = function(toon)
   -- no upgrades available reads as a muted em-dash (n/a)
   if n == 0 then return ns.ZeroDash end
 
-  -- Pre-build hover lines: "Slot  +N (where[, stats])", best gains first.
+  -- Pre-build hover lines, best gains first.  Each names the actual upgrade item
+  -- (its link renders as the quality-coloured [Item Name]) and its ilvl, so the
+  -- hover says *what* the upgrade is, not just which slot:
+  --   "Neck:  [Amulet of the Naaru]  +95 ilvl  (i720, held, good stats)"
   local lines = {}
   for _, r in ipairs(list) do
     local where = r.betterElsewhere and "warband (better)"
       or (r.where == "warband" and "warband" or "held")
-    local stat = r.statTag and (", " .. r.statTag) or ""
-    local swap = r.pairSwap and ", swap" or ""
-    insert(lines, ("%s  +%d (%s%s%s)"):format(r.slot, r.ilvlGain, where, stat, swap))
+    local tag = r.statTag == "good" and ", good stats"
+      or (r.statTag == "off" and ", off-stats" or "")
+    local swap = r.pairSwap and ", weapon swap" or ""
+    insert(lines, ("%s:  %s  +%d ilvl  (i%d, %s%s%s)"):format(
+      r.slot, r.link, r.ilvlGain, r.ilvl, where, tag, swap))
   end
 
   return {
