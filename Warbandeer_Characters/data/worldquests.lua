@@ -3,7 +3,6 @@ local ns = select(2, ...)
 ---@type WarbandeerAPI
 local API = ns.api
 local insert = table.insert
-local GetTime = GetTime
 local GetServerTime = GetServerTime
 local C_Map = C_Map
 local C_TaskQuest = C_TaskQuest
@@ -37,8 +36,13 @@ local WQ_CONTINENTS = { 2537 } -- Quel'Thalas (Midnight); zone children = Everso
 -- any world quest, so the (map-walking) scan is skipped for them entirely.
 local WQ_ILVL_CEILING = 220
 
--- Don't re-scan more often than this on the noisy QUEST_LOG_UPDATE stream.
-local SCAN_THROTTLE = 60 -- seconds
+-- Collapse a burst of QUEST_LOG_UPDATE events into one scan once it settles.
+local SCAN_DEBOUNCE = 1000 -- ms
+-- World-quest reward data loads asynchronously; a scan that ran before it was ready
+-- skips that quest.  When that happens we re-scan after this delay, up to a bounded
+-- number of attempts (in case some reward data never loads).
+local RETRY_DELAY = 1500 -- ms
+local MAX_RETRIES = 8
 
 ---@class WorldQuestReward: GearCandidate
 ---@field questID integer source world quest
@@ -106,17 +110,37 @@ local function gearReward(questID)
   }
 end
 
+-- Reward-data loads asynchronously, so a scan can find quests before their rewards
+-- are ready.  When that happens we re-scan after RETRY_DELAY, bounded by MAX_RETRIES
+-- (the budget resets on each fresh login/event trigger).  `retries` counts only the
+-- consecutive auto-retries; `retryPending` stops us from stacking timers.
+local retries = 0
+local retryPending = false
+local function scheduleRetry()
+  if retryPending or retries >= MAX_RETRIES then return end
+  retryPending = true
+  retries = retries + 1
+  ns:after(RETRY_DELAY, function()
+    retryPending = false
+    API:RefreshCurrentCharacterField("worldquests", "rewards")
+  end)
+end
+
 -- Scan every current WQ zone for active gear-reward quests.  Returns the qualifying
--- rewards (cache replaces the stored list wholesale — last-seen).  Quests whose
--- reward data isn't loaded yet are preloaded and picked up on the next scan.
+-- rewards (last-seen: a completed scan replaces the stored list wholesale).  Quests
+-- whose reward data isn't loaded yet are preloaded and a retry is scheduled; until
+-- it completes we keep the previous list rather than caching a partial/empty one,
+-- so a scan that simply ran too early never wipes good data.
 ---@param toon Character
+---@param currentValue WorldQuestReward[]?
 ---@return WorldQuestReward[]
-local function scanWorldQuests(_, toon)
+local function scanWorldQuests(_, toon, currentValue)
   -- Fully geared past the reward ceiling → nothing a world quest could improve.
   if lowestEquippedIlvl(toon) >= WQ_ILVL_CEILING then return {} end
 
   local rewards, seen = {}, {}
   local now = GetServerTime()
+  local pending = false
   for _, mapID in ipairs(wqZones()) do
     for _, poi in ipairs(C_TaskQuest.GetQuestsOnMap(mapID) or {}) do
       local questID = poi.questID or poi.questId
@@ -139,9 +163,19 @@ local function scanWorldQuests(_, toon)
           end
         else
           C_TaskQuest.RequestPreloadRewardData(questID)
+          pending = true
         end
       end
     end
+  end
+
+  if pending then
+    scheduleRetry()
+    -- Don't flash empty while reward data is still loading: keep the last-seen list
+    -- until a complete scan can replace it.
+    if #rewards == 0 and currentValue and #currentValue > 0 then return currentValue end
+  else
+    retries = 0 -- a complete scan: reset the retry budget for the next cycle
   end
   return rewards
 end
@@ -152,7 +186,7 @@ end
 ---@class WorldQuests: Broker
 ns.WorldQuests = ns:RegisterBroker("worldquests")
 
-local lastScan = 0
+local debounceGen = 0
 ns.WorldQuests.fields = {
   ---@type BrokerField
   rewards = {
@@ -161,14 +195,19 @@ ns.WorldQuests.fields = {
     -- ceiling in scanWorldQuests instead.
     get = scanWorldQuests,
     event = { "QUEST_LOG_UPDATE", "ZONE_CHANGED_NEW_AREA" },
-    -- QUEST_LOG_UPDATE is very noisy, so throttle the re-scan hard.
-    eventHandler = function(field, currentValue)
+    -- QUEST_LOG_UPDATE fires in bursts as quest data streams in, so debounce: only
+    -- the last event in a burst runs the scan (a fresh trigger, so reset the retry
+    -- budget).  This also catches reward data that finished loading mid-burst.
+    eventHandler = function(field)
       local toon = ns.currentData
       if not toon then return end
-      local now = GetTime()
-      if now - lastScan < SCAN_THROTTLE then return end
-      lastScan = now
-      field:set(field:get(toon, currentValue))
+      debounceGen = debounceGen + 1
+      local gen = debounceGen
+      ns:after(SCAN_DEBOUNCE, function()
+        if gen ~= debounceGen then return end -- superseded by a later event in the burst
+        retries = 0
+        field:set(field:get(toon, field.get_live()))
+      end)
     end,
   },
 }
