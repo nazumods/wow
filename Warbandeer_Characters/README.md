@@ -36,7 +36,7 @@ data through the `WarbandeerApi` global.
 - Equippable gear in your **bags** and in the **warband / personal banks** is also recorded
   (whenever those are open).
 - Active **world-quest gear rewards** that would upgrade one of your equipped slots are noted
-  for each max-level character while it's logged in, so Warbandeer can suggest them later.
+  for each character while it's logged in, so Warbandeer can suggest them later.
 
 ## Requirements
 

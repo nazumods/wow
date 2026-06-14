@@ -150,14 +150,15 @@ local lastScan = 0
 ns.WorldQuests.fields = {
   ---@type BrokerField
   rewards = {
-    maxLevel = true, -- world quests are max-level content
+    -- Not maxLevel-gated: some world quests (and their gear rewards) are available
+    -- before the level cap.  Fully-geared characters are skipped by the ilvl
+    -- ceiling in scanWorldQuests instead.
     get = scanWorldQuests,
     event = { "QUEST_LOG_UPDATE", "ZONE_CHANGED_NEW_AREA" },
-    -- QUEST_LOG_UPDATE is very noisy and the maxLevel guard isn't applied to events,
-    -- so throttle hard and gate on level here ourselves.
+    -- QUEST_LOG_UPDATE is very noisy, so throttle the re-scan hard.
     eventHandler = function(field, currentValue)
       local toon = ns.currentData
-      if not toon or toon.basic.level < ns.wow.maxLevel then return end
+      if not toon then return end
       local now = GetTime()
       if now - lastScan < SCAN_THROTTLE then return end
       lastScan = now
