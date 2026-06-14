@@ -35,7 +35,14 @@ local Model = Class(Frame, function(self)
   w:SetScript("OnMouseDown", function() dragging = true; lastX = (GetCursorPosition()) end)
   w:SetScript("OnMouseUp", function() dragging = false end)
   w:SetScript("OnUpdate", function()
-    if not dragging or not self._actor then return end
+    if not self._actor then return end
+    -- Re-assert the intended scale every frame. An async re-skin resets the actor's
+    -- scale when the load finishes, and on a cold first load that reset lands AFTER
+    -- _reapply's backstop fires — wiping the per-race correction (the model would
+    -- show at default size until the next race change). Polling here makes it stick
+    -- regardless of load timing; it's idempotent and corrects within a frame.
+    self._actor:SetScale(self._scale)
+    if not dragging then return end
     local x = GetCursorPosition()
     self._yaw = self._yaw + (x - lastX) / w:GetEffectiveScale() * self.rotateSpeed
     lastX = x
@@ -64,7 +71,7 @@ function Model:_reapply()
   end
   self._actor:SetOnModelLoadedCallback(apply)
   apply()
-  self:delay(90, apply)
+  self:delay(80, apply)
 end
 
 -- Re-apply the remembered outfit by TryOn-ing each source onto the model. No-op
