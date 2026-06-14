@@ -20,15 +20,18 @@ local PANEL    = {0.05, 0.05, 0.06, 1}
 -- Raid difficulty → ilvl/quality color + alpha range for the slot-column backdrop
 -- bars, so the bar reads like gear quality: LFR green, Normal blue, Heroic purple,
 -- Mythic gold. Returns the color and the outer/inner edge alphas (the bar fades from
--- outer at the window edge to inner at the model edge). Most tiers fade BARALPHA→0;
--- Mythic's gold reads brown at low alpha over the dark window, so it gets a brighter,
--- non-zero range. The difficulty is encoded in the group name's parenthetical suffix
--- (e.g. "Hellfire Citadel (Mythic)"); pre-LFR/no-difficulty raids fall back to purple.
+-- outer at the window edge to inner at the model edge). All tiers fade BARALPHA→0.
+-- The difficulty is encoded in the group name's parenthetical suffix (e.g. "Hellfire
+-- Citadel (Mythic)"); pre-LFR/no-difficulty raids fall back to purple.
 local BARALPHA = 0.2    -- default alpha at the outer (window) edge; fades to 0 inward
+-- Custom Mythic gold: ITEM_ARTIFACT_COLOR (e6cc80 = 0.902, 0.800, 0.502) blended
+-- toward pure yellow (1, 1, 0) in two 10% steps (~19% total) so it reads warmer/
+-- less brown at low alpha.
+local MYTHIC_GOLD = CreateColor(0.921, 0.838, 0.407)
 local function tierBar(groupName)
   if groupName then
     if groupName:find("Raid Finder") then return ITEM_GOOD_COLOR,     BARALPHA, 0   -- LFR
-    elseif groupName:find("Mythic")    then return ITEM_ARTIFACT_COLOR, 0.4,      0.2
+    elseif groupName:find("Mythic")    then return MYTHIC_GOLD,         BARALPHA, 0
     elseif groupName:find("Heroic")    then return ITEM_EPIC_COLOR,     BARALPHA, 0
     elseif groupName:find("Normal")    then return ITEM_SUPERIOR_COLOR, BARALPHA, 0
     end
