@@ -81,9 +81,9 @@ local calendarNotified = false
 
 local function checkForDMF()
     local now = C_DateAndTime.GetCurrentCalendarTime()
+    now.day = now.monthDay
+    local epoch = time(now)
     if startTime > 0 and endTime > 0 then
-        now.day = now.monthDay
-        local epoch = time(now)
         if epoch >= startTime and epoch <= endTime then return true end
         startTime, endTime = 0, 0
     end
@@ -105,7 +105,9 @@ local function checkForDMF()
             startTime = time(holiday.startTime)
             endTime   = time(holiday.endTime)
             if savedMonth then C_Calendar.SetAbsMonth(savedMonth, savedYear) end
-            return true
+            -- The calendar still lists the holiday event on its final day after the
+            -- faire has actually closed (~3am), so honour the window's end time.
+            return epoch >= startTime and epoch <= endTime
         end
     end
 

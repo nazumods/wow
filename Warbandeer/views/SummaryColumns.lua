@@ -119,6 +119,8 @@ local DMF_TEXTURES = {[235448] = true, [235447] = true, [235446] = true}
 -- so we never disturb an open CalendarFrame.
 local isDMF = function()
   local now = C_DateAndTime.GetCurrentCalendarTime()
+  now.day = now.monthDay
+  local epoch = time(now)
   local savedMonth, savedYear
   if CalendarFrame and CalendarFrame:IsShown() then
     local info = C_Calendar.GetMonthInfo()
@@ -129,9 +131,15 @@ local isDMF = function()
   local found = false
   for i = 1, C_Calendar.GetNumDayEvents(0, now.monthDay) do
     local info = C_Calendar.GetHolidayInfo(0, now.monthDay, i)
+    -- The calendar still lists the holiday on its final day after the faire has
+    -- actually closed (~3am), so honour the event's end time, not just its presence.
     if info and DMF_TEXTURES[info.texture] then
-      found = true
-      break
+      info.startTime.day = info.startTime.monthDay
+      info.endTime.day   = info.endTime.monthDay
+      if epoch >= time(info.startTime) and epoch <= time(info.endTime) then
+        found = true
+        break
+      end
     end
   end
 
