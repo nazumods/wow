@@ -160,11 +160,25 @@ end
 ---@return integer?
 function D.reqLevel(link) return link and select(5, GetItemInfo(link)) or nil end
 
--- Race-icon atlas for a character, gender-aware. `char.sex` is 2=male / 3=female
--- (captured by Warbandeer_Characters for the logged-in character; defaults to male
--- for alts not yet seen since the field was added). `char.race` is the race file
--- token (e.g. "Human", "HighmountainTauren"); GetRaceAtlas lower-cases it.
+-- Race-file token → race-icon atlas token where the two differ (the file token
+-- from UnitRace isn't always the atlas spelling).
+local RACE_ATLAS_FIX = {
+  scourge            = "undead",
+  highmountaintauren = "highmountain",
+  lightforgeddraenei = "lightforged",
+  zandalaritroll     = "zandalari",
+  harronir           = "haranir",
+  earthendwarf       = "earthen",
+}
+
+-- Gender-aware race-icon atlas for a character. `char.race` is the race file token
+-- (e.g. "Human", "HighmountainTauren"); `char.sex` is 2=male / 3=female (captured by
+-- Warbandeer_Characters for the logged-in character; defaults to male for alts not
+-- yet seen since the field was added). Atlas tokens are the lowercased race file,
+-- with a handful of exceptions (RACE_ATLAS_FIX); we use the 128px hi-res variant.
 ---@return string
 function D.raceAtlas(char)
-  return GetRaceAtlas(char.race, char.sex == 3 and "female" or "male")
+  local race = (char.race or ""):lower()
+  race = RACE_ATLAS_FIX[race] or race
+  return ("raceicon128-%s-%s"):format(race, char.sex == 3 and "female" or "male")
 end
