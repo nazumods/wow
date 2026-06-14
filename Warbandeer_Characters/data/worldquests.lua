@@ -44,6 +44,7 @@ local SCAN_THROTTLE = 60 -- seconds
 ---@field questID integer source world quest
 ---@field title string world-quest title
 ---@field zone string? zone (map) name the quest is in
+---@field mapID integer zone uiMapID the quest is on (for opening the world map)
 ---@field endTime integer? server time the quest expires (nil = unknown / no timer)
 
 -- Resolved WQ zone map IDs, cached after the first build (map topology is static
@@ -128,6 +129,7 @@ local function scanWorldQuests(_, toon)
             cand.questID = questID
             cand.title = C_TaskQuest.GetQuestInfoByQuestID(questID) or ("Quest " .. questID)
             cand.zone = mapName(mapID)
+            cand.mapID = mapID
             cand.endTime = (secs and secs > 0) and (now + secs) or nil
             insert(rewards, cand)
           end

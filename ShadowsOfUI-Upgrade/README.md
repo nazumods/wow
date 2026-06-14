@@ -50,6 +50,7 @@ are a small built-in table (derived from current PvE secondary-stat weightings),
     box lists active **world-quest** rewards that would upgrade a slot (the quest's gear, the
     item-level gain, and where to find it) alongside the ready upgrades — world quests are
     scanned while each character is logged in, so the suggestions persist when you view an alt.
+    **Click a world-quest suggestion to open the map to it** (and start tracking the quest).
 
 `/supgrade [name]` prints a character's available upgrades to chat (defaults to the
 logged-in character) — a debugging aid; you won't normally need it.

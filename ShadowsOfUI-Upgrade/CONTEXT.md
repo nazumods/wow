@@ -38,8 +38,9 @@ ShadowsOfUI_UpgradeApi:WorldQuestUpgrades(charName)     → WorldQuestUpgrade[]
     -- per-character WQ cache, already expiry-filtered) and runs each reward through
     -- the same `evaluate` the held/warband finder uses (proficiency, primary-stat,
     -- multi-slot targeting, two-hand guard, statTag).  WorldQuestUpgrade = UpgradeResult
-    -- + { questID, title, zone } (no `where`/`betterElsewhere`).  Empty on an older
-    -- data layer without GetWorldQuestRewards.
+    -- + { questID, title, zone, mapID } (no `where`/`betterElsewhere`); mapID drives
+    -- the Suggested box's click-to-open-map.  Empty on an older data layer without
+    -- GetWorldQuestRewards.
 ShadowsOfUI_UpgradeApi:ItemUpgrades(link, boundTo?, ilvl?)  → ItemUpgradeEntry[]|nil
     -- which characters a specific item would upgrade (drives the tooltip).
     -- boundTo = the holder's name for a soulbound item (restricts to that one

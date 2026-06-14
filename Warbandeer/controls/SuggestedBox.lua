@@ -7,6 +7,8 @@ local theme = ns.theme
 local select = select
 local GetItemInfo = C_Item.GetItemInfo
 local GetItemIcon = (C_Item and C_Item.GetItemIconByID) or _G.GetItemIcon
+local OpenWorldMap = C_Map and C_Map.OpenWorldMap
+local SetSuperTrackedQuestID = C_SuperTrack and C_SuperTrack.SetSuperTrackedQuestID
 
 -- Suggested box: a priority-ordered to-do list of the cheapest, highest-value
 -- gear actions a character can take *right now* — ready upgrades it already owns
@@ -98,7 +100,8 @@ ns.SuggestedBox = SuggestedBox
 -- Grab (or lazily create) a pooled suggestion row: a hover-highlighting frame whose
 -- label fills it, carrying the equipped item (`_itemLink`) and the suggested upgrade
 -- (`_compareLink`) so the shared item tooltip lays the upgrade beside the equipped
--- piece (or shows the upgrade alone when the slot is empty).
+-- piece (or shows the upgrade alone when the slot is empty).  World-quest rows also
+-- carry `_questID`/`_mapID`: clicking opens the world map to the quest and super-tracks it.
 ---@return table
 function SuggestedBox:_row(i)
   local row = self._rows[i]
@@ -129,6 +132,14 @@ function SuggestedBox:_row(i)
   frame:SetScript("OnLeave", function()
     hi:Hide()
     ns.HideItemTooltip()
+  end)
+  -- World-quest rows open the map to the quest (and super-track it) on click; ready
+  -- upgrades carry no _mapID, so a click is a no-op for them.
+  frame:SetScript("OnMouseUp", function(_, button)
+    if button == "LeftButton" and frame._mapID and OpenWorldMap then
+      OpenWorldMap(frame._mapID)
+      if frame._questID and SetSuperTrackedQuestID then SetSuperTrackedQuestID(frame._questID) end
+    end
   end)
 
   row.label = Label:new{
@@ -172,6 +183,8 @@ function SuggestedBox:Populate(char)
     else
       row.frame._itemLink, row.frame._compareLink = r.link, nil
     end
+    -- nil for ready upgrades; a WorldQuestUpgrade carries these → row becomes clickable.
+    row.frame._questID, row.frame._mapID = r.questID, r.mapID
     row.label:Text(text)
     row.frame:Show()
     return n < MAX_ROWS

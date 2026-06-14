@@ -342,12 +342,13 @@ describe("ShadowsOfUI-Upgrade upgrade calc", function()
       item.questID = meta.questID
       item.title = meta.title
       item.zone = meta.zone
+      item.mapID = meta.mapID
       return item
     end
 
     it("returns a qualifying reward with slot, gain, and quest metadata", function()
       h.addChar(warrior("Conan", { Chest = { ilvl = 580 } }))
-      h.addWQ("Conan", wqChest(1, 620, { questID = 100, title = "Defend the Spire", zone = "Eversong" }))
+      h.addWQ("Conan", wqChest(1, 620, { questID = 100, title = "Defend the Spire", zone = "Eversong", mapID = 2395 }))
       local list = h.Api:WorldQuestUpgrades("Conan")
       assert.equals(1, #list)
       assert.equals("Chest", list[1].slot)
@@ -355,6 +356,7 @@ describe("ShadowsOfUI-Upgrade upgrade calc", function()
       assert.equals(100, list[1].questID)
       assert.equals("Defend the Spire", list[1].title)
       assert.equals("Eversong", list[1].zone)
+      assert.equals(2395, list[1].mapID)        -- carried through for click-to-open-map
     end)
 
     it("excludes a reward at or below the equipped ilvl", function()

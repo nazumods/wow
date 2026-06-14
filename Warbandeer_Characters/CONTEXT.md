@@ -75,7 +75,7 @@ WarbandeerApi:GetWarbandBankGear()         → GearCandidate[]
     -- elsewhere" pool; empty until the warband bank has been opened
 WarbandeerApi:GetWorldQuestRewards(char?)  → WorldQuestReward[]
     -- a character's cached active world-quest gear rewards (GearCandidate +
-    -- {questID, title, zone, endTime}); captured while that char was logged in,
+    -- {questID, title, zone, mapID, endTime}); captured while that char was logged in,
     -- last-seen.  Expired quests (endTime passed) are dropped on read.  Consumed
     -- by ShadowsOfUI-Upgrade's WorldQuestUpgrades; empty until the char has scanned
 ```
@@ -144,7 +144,7 @@ quests = {
 worldquests = {                                        -- v14
   rewards = { {                                        -- GearCandidate + quest metadata
     link, itemID, ilvl, equipLoc, classID, subClassID, -- GearCandidate fields
-    questID, title, zone, endTime,                     -- source quest + expiry (server time)
+    questID, title, zone, mapID, endTime,              -- source quest + zone uiMapID + expiry (server time)
   } }?,
 }
 dailies = {}

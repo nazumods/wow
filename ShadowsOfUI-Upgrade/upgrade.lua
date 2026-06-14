@@ -312,6 +312,7 @@ end
 ---@field questID integer source world quest
 ---@field title string world-quest title
 ---@field zone string? zone the quest is in
+---@field mapID integer? zone uiMapID (for opening the world map to the quest)
 
 ---Active world-quest rewards that would upgrade an equipped slot for a character,
 ---sorted by ilvl gained.  Reads the per-character world-quest reward cache from the
@@ -343,7 +344,7 @@ function Upgrade:WorldQuestUpgrades(charName)
       insert(out, {
         slot = slot, link = rw.link, ilvl = ilvl, ilvlGain = gain,
         statTag = statTag(rw.link, ranks),
-        questID = rw.questID, title = rw.title, zone = rw.zone,
+        questID = rw.questID, title = rw.title, zone = rw.zone, mapID = rw.mapID,
       })
     end
   end
