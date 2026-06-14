@@ -42,7 +42,7 @@ D.ROW_H, D.ROW_GAP = 44, 8       -- profession panel height / gap between panels
 
 -- Header identity icons inserted left of the class portrait: a race icon, and
 -- left of that a faction icon stacked over a role icon.
-D.RACE_W = 36                    -- race icon edge (left of the class portrait)
+D.RACE_W = D.PORTRAIT            -- race icon edge (matches the class portrait)
 D.FR_W = 24                      -- faction / role icon edge (stacked column)
 D.HEADER_GAP = 6                 -- gap between header icon columns
 
