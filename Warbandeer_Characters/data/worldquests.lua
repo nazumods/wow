@@ -126,10 +126,14 @@ local function scanWorldQuests(_, toon)
           local cand = gearReward(questID)
           if cand then
             local secs = C_TaskQuest.GetQuestTimeLeftSeconds(questID)
+            -- A WQ can be listed on a parent/overview map (e.g. Eversong) while it
+            -- physically sits in a sub-zone (e.g. Zul'aman), so use the quest's own
+            -- authoritative zone, not whichever map we happened to find it on.
+            local zoneID = C_TaskQuest.GetQuestZoneID(questID) or mapID
             cand.questID = questID
             cand.title = C_TaskQuest.GetQuestInfoByQuestID(questID) or ("Quest " .. questID)
-            cand.zone = mapName(mapID)
-            cand.mapID = mapID
+            cand.zone = mapName(zoneID)
+            cand.mapID = zoneID
             cand.endTime = (secs and secs > 0) and (now + secs) or nil
             insert(rewards, cand)
           end
