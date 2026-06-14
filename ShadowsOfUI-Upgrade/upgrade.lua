@@ -1,6 +1,8 @@
----@type ShadowsOfUI_Upgrade
+---@class ShadowsOfUI_Upgrade
 local ns = select(2, ...)
+---@type WarbandeerAPI
 local API = ns.api               -- WarbandeerApi (data layer we read)
+---@class ShadowsOfUI_UpgradeApi
 local Upgrade = ns.UpgradeApi    -- ShadowsOfUI_UpgradeApi (what we publish)
 local insert, sort = table.insert, table.sort
 local GetItemInfoInstant = C_Item.GetItemInfoInstant

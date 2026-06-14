@@ -1,4 +1,4 @@
----@type Warbandeer
+---@class Warbandeer
 local ns = select(2, ...)
 
 -- Optional integration with ShadowsOfUI-Upgrade (OptionalDep).  When that addon

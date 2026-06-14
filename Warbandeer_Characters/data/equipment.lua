@@ -35,6 +35,8 @@ local EquipmentSlots = {
 local Equipment = ns:RegisterBroker("equipment")
 
 Equipment.fields = {
+  ---@class EquipmentBroker
+  ---@field slots any -- TODO
   slots = {
     get = function()
       local slots = {}

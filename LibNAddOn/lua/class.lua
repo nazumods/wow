@@ -7,7 +7,7 @@ local fill = ns.lua.maps.fill
 ---@field Class fun(parent: table?, fn: function, defaults: table?, ...: table?): table create a class with optional parent class, constructor function, default properties and mixins
 
 ---@class Class
----@field new fun(self: Class, o: table?) constructor
+---@field new fun(self: Class, o: table?): any constructor
 
 ---@param parent table? Parent Class
 ---@param fn function constructor

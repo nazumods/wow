@@ -44,7 +44,9 @@ local function nameCell(toon)
     onClick = function()
       local w = ns.MainWindow
       if w then
-        w:getView("detail"):Select(toon)
+        local d = w:getView("detail")
+        ---@cast d DetailView
+        d:Select(toon)
         w:view("detail")
       end
     end,

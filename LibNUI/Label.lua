@@ -46,7 +46,7 @@ end, {
 })
 ui.Label = Label
 
----@param text string?
+---@param text? string|number
 ---@return string|Label
 function Label:Text(text)
   if not text then return self._widget:GetText() end

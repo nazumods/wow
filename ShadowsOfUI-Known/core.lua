@@ -83,11 +83,11 @@ end
 ---@return integer knownCount  characters that already know the recipe
 function ns.BuildLearnable(itemID, reqSkill, itemName)
   local _, _, _, _, _, classID, subClassID = GetItemInfoInstant(itemID)
-  if classID ~= Enum.ItemClass.Recipe then return nil end
+  if classID ~= Enum.ItemClass.Recipe then return nil, -1 end
   local skillLineID = RECIPE_SUBCLASS_TO_SKILL[subClassID]
-  if not skillLineID then return nil end
+  if not skillLineID then return nil, -1 end
   local api = ns.api
-  if not api or not api.GetAllCharacters then return nil end
+  if not api or not api.GetAllCharacters then return nil, -1 end
 
   local recipe = craftedName(itemName)
   local list, knownCount = {}, 0

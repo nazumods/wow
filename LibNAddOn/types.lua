@@ -2,6 +2,7 @@
 
 ---@class string
 ---@field gmatch fun(self: string, pattern: string): boolean
+---@field format fun(self: string, ...): string
 
 ---@class FontString
 ---@field SetFont fun(self: FontString, path: string, size: number, flags?: string)

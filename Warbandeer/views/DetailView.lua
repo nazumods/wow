@@ -1,5 +1,6 @@
 ---@type Warbandeer
 local ns = select(2, ...)
+---@type LibNUI
 local ui = ns.ui
 local insert = table.insert
 local Class, Frame, Label, Texture = ns.lua.Class, ui.Frame, ui.Label, ui.Texture
@@ -150,6 +151,18 @@ local function intentColor(intent) return INTENT_COLOR[intent] or theme.colors.t
 ---@field _numRows integer       number of rows currently visible
 ---@field _gearRows table[]      pooled equipped-gear rows (right column)
 ---@field _numGearRows integer   number of equipped-gear rows currently visible
+---@field portraitBorder Texture
+---@field portrait Texture
+---@field badge Texture
+---@field level Label
+---@field heading Label
+---@field subtitle Label
+---@field realm Label
+---@field ilvlCard StatCard
+---@field playCard StatCard
+---@field profHeader Label
+---@field gearPanel Frame
+---@field gearHeader Label
 local DetailView = Class(Frame, function(self)
   local c = theme.colors
   self._char = ns.api:GetCharacterData()
@@ -547,7 +560,9 @@ function DetailView:OnBeforeShow()
   if atlas then self.portrait:Atlas(atlas, false) end
   self.portraitBorder:Color(color[1], color[2], color[3], 1)
   self.level:Text(char.basic.level)
-  self.heading:Text(char.name):Color(color)
+  local h = self.heading:Text(char.name)
+  ---@cast h Label
+  h:Color(color)
   local raceList = char.isAlliance and ns.api.ALLIANCE_RACES or ns.api.HORDE_RACES
   self.subtitle:Text((raceList[char.raceIdx] or char.race) .. " " .. char.className)
   self.realm:Text(char.realm)

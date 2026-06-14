@@ -23,6 +23,8 @@ ns.StatPriority = {}
 -- Our published read-only API; methods are added in upgrade.lua.
 ---@class ShadowsOfUI_UpgradeApi
 ShadowsOfUI_UpgradeApi = ShadowsOfUI_UpgradeApi or {}
+
 ---@class ShadowsOfUI_Upgrade
 ---@field UpgradeApi ShadowsOfUI_UpgradeApi
+
 ns.UpgradeApi = ShadowsOfUI_UpgradeApi

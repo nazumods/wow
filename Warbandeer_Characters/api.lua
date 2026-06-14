@@ -9,8 +9,8 @@ local API = ns.api
 ---@return string
 function API:GetCurrentCharacter() return ns.currentPlayer end
 
----@class WarbandeerAPI
----@field GetCharacterData fun(string?): Character
+---@param char? string
+---@return Character
 function API:GetCharacterData(char)
   -- todo: return a copy so it is immutable
   return ns.db.characters[char or ns.currentPlayer]
