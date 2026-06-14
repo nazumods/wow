@@ -128,6 +128,7 @@ WoW-API-free code (currently LibNAddOn's `ns.lua.*` modules) has busted specs in
 - Specs are linted via the `files["**/spec/**/*.lua"]` override in `.luacheckrc`.
 - Spec files must be saved **without a UTF-8 BOM** (Lua 5.1's `loadfile` rejects it).
 - CI runs the suite on every PR and push to `main` (`.github/workflows/test.yml`, busted on Lua 5.1). A `luacheck` job runs alongside it and is **strict**: any warning fails the build (the repo lints clean — keep it that way).
+- **Keep `.luacheckrc` and `.luarc.json` in sync.** When you add a WoW global (API namespace or function) to `.luacheckrc`'s `read_globals`, add the same entry to `.luarc.json`'s `diagnostics.globals` (the LuaLS/editor config mirrors the same list) — otherwise the editor flags it as undefined even though luacheck passes.
 
 ## In-Game Debugging
 
