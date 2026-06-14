@@ -444,6 +444,12 @@ end
 -- (see _syncGenderToggle). The race's `scale` still corrects sizing.
 function DressingRoom:Dress()
   if not self._set then return end
+  -- The body always renders as the logged-in character's gender (it can't be
+  -- overridden), and the race defaults to theirs until one is picked. Seed both
+  -- here so a per-sex / per-race `scale` always resolves, regardless of how Dress
+  -- was reached (the open path doesn't always run _defaultToPlayer).
+  if not self._raceID then self._raceID = select(3, UnitRace("player")) end
+  self._sex = UnitSex("player")
   local m = self._model
   -- Multi-form races resolve through the selected form (for its `scale`); others
   -- are the entry itself.
