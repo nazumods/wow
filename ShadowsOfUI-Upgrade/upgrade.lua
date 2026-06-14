@@ -27,6 +27,7 @@ local VERS_MODS = { "ITEM_MOD_VERSATILITY", "ITEM_MOD_CR_VERSATILITY_DAMAGE_DONE
 ---@field statTag string? "good" (a top-priority secondary) | "off" | nil (unknown)
 ---@field where string? "held" (own bags/bank) | "warband" (account bank)
 ---@field betterElsewhere boolean? a warband-bank copy beats the best held upgrade
+---@field pairSwap boolean? part of a 2H → (main-hand + off-hand) swap, not a lone-slot upgrade
 
 -- Tag how well an item's secondaries fit the spec priority: "good" if it carries
 -- a top-tier stat, else "off".  nil when stats or priority aren't known yet.
@@ -82,6 +83,97 @@ local function evaluate(charData, cand)
   return worstSlot, candIlvl - worstIlvl, candIlvl
 end
 
+-- Prefer a held copy; a strictly-higher warband copy wins and flags betterElsewhere.
+-- `b` carries `held` / `wb` candidate tables (each at least { link, ilvl }).
+---@return table? pick, string? where, boolean? betterElsewhere
+local function pickHeadline(b)
+  local held, wb = b.held, b.wb
+  if held and wb then
+    if wb.ilvl > held.ilvl then return wb, "warband", true end
+    return held, "held", false
+  end
+  if held then return held, "held", false end
+  if wb then return wb, "warband", false end
+  return nil
+end
+
+-- equipLoc of an equipped slot.  Cached alt equipment from before equipLoc was
+-- stored only carries the link, so derive it on the fly (GetItemInfoInstant is
+-- synchronous and works from any link, cached or not).
+local function slotEquipLoc(item)
+  if not item then return nil end
+  if item.equipLoc and item.equipLoc ~= "" then return item.equipLoc end
+  if item.link then return (select(4, GetItemInfoInstant(item.link))) end
+  return nil
+end
+
+-- Whether the character currently wields a two-hander (so the off-hand is occupied
+-- by it, not genuinely empty).
+---@param charData Character
+---@return boolean
+local function equippedTwoHand(charData)
+  local eq = charData.equipment and charData.equipment.slots
+  return (eq and ns.IsTwoHand(slotEquipLoc(eq.MainHand))) == true
+end
+
+-- Two-hand reconciliation.  A two-hander fills both weapon slots' worth of stats,
+-- so the off-hand isn't really empty and a lone off-hand (or lone main-hand 1H)
+-- isn't an upgrade — only a *better two-hander*, or a main-hand-1H + off-hand pair
+-- whose combined budget beats the 2H, is.  Writes the resolved MainHand/OffHand
+-- entries straight into `out` (the per-slot pass skipped them for this character).
+local function resolveTwoHand(charData, pools, warband, equipped, ranks, out)
+  local mhIlvl = equipped.MainHand.ilvl or 0
+
+  -- Best equippable candidate per weapon role, held vs warband.
+  local acc = { mh1h = {}, mh2h = {}, off = {} }
+  local function scan(cands, where)
+    local k = where == "warband" and "wb" or "held"
+    for _, cand in ipairs(cands) do
+      local equipLoc, classID, subClassID = candInfo(cand)
+      local role = equipLoc and ns.WeaponRole(equipLoc)
+      if role and ns.CanEquip(charData.classKey, equipLoc, classID, subClassID) then
+        local ilvl = cand.ilvl or (cand.link and GetDetailedItemLevelInfo(cand.link))
+        local b = acc[role]
+        if ilvl and (not b[k] or ilvl > b[k].ilvl) then b[k] = { link = cand.link, ilvl = ilvl } end
+      end
+    end
+  end
+  scan(pools.bags, "held")
+  scan(pools.bank, "held")
+  scan(warband, "warband")
+
+  local newMH, mhWhere, mhBetter = pickHeadline(acc.mh2h)
+  local oneH, mh1hWhere, mh1hBetter = pickHeadline(acc.mh1h)
+  local offH, offWhere, offBetter = pickHeadline(acc.off)
+
+  -- Score configs in a shared "doubled ilvl" budget so a 2H (one item ≈ two hands)
+  -- compares to a 1H + off-hand pair.  Current setup = 2 × the equipped 2H ilvl.
+  local cur = 2 * mhIlvl
+  local twoBudget  = newMH and 2 * newMH.ilvl or nil               -- swap to a better 2H
+  local pairBudget = (oneH and offH) and (oneH.ilvl + offH.ilvl) or nil  -- 2H → 1H + off-hand
+
+  if twoBudget and twoBudget > cur and (not pairBudget or twoBudget >= pairBudget) then
+    out.MainHand = {
+      slot = "MainHand", link = newMH.link, ilvl = newMH.ilvl, ilvlGain = newMH.ilvl - mhIlvl,
+      where = mhWhere, betterElsewhere = mhBetter, statTag = statTag(newMH.link, ranks),
+    }
+  elseif pairBudget and pairBudget > cur then
+    -- Net budget gain is shared across both hands; show the average per-hand gain on
+    -- each mark (≥ 1) so neither off-by-itself piece reads as a loss.
+    local gain = math.max(1, math.floor((pairBudget - cur) / 2 + 0.5))
+    out.MainHand = {
+      slot = "MainHand", link = oneH.link, ilvl = oneH.ilvl, ilvlGain = gain,
+      where = mh1hWhere, betterElsewhere = mh1hBetter, statTag = statTag(oneH.link, ranks),
+      pairSwap = true,
+    }
+    out.OffHand = {
+      slot = "OffHand", link = offH.link, ilvl = offH.ilvl, ilvlGain = gain,
+      where = offWhere, betterElsewhere = offBetter, statTag = statTag(offH.link, ranks),
+      pairSwap = true,
+    }
+  end
+end
+
 -- Best upgrade per slot for a character across its held + warband pools.
 ---@param charData Character
 ---@return table<string, UpgradeResult>
@@ -89,42 +181,40 @@ local function computeUpgrades(charData)
   if not charData or not charData.classKey then return {} end
   local ranks = ns.StatRanks(charData)
   local pools = API:GetCharacterGearCandidates(charData.name)
+  local warband = API:GetWarbandBankGear()
+  local equipped = charData.equipment and charData.equipment.slots
   local out = {}
+
+  -- A two-hander leaves the off-hand nominally empty; route both weapon slots through
+  -- resolveTwoHand instead of the per-slot pass, so a bare off-hand (or 1H) doesn't
+  -- masquerade as an upgrade against the empty slot.
+  local twoHander = equippedTwoHand(charData)
 
   -- Record the best (highest ilvl) candidate for each slot, per source.
   local function consider(cand, where)
     local slot, gain, ilvl = evaluate(charData, cand)
     if not slot then return end
+    if twoHander and (slot == "MainHand" or slot == "OffHand") then return end
     local r = out[slot]
-    if not r then
-      r = { slot = slot }
-      out[slot] = r
-    end
-    if where == "held" and (not r._heldIlvl or ilvl > r._heldIlvl) then
-      r._heldIlvl, r._held = ilvl, { link = cand.link, ilvl = ilvl, gain = gain }
-    elseif where == "warband" and (not r._wbIlvl or ilvl > r._wbIlvl) then
-      r._wbIlvl, r._wb = ilvl, { link = cand.link, ilvl = ilvl, gain = gain }
-    end
+    if not r then r = {} ; out[slot] = r end
+    local k = where == "warband" and "wb" or "held"
+    if not r[k] or ilvl > r[k].ilvl then r[k] = { link = cand.link, ilvl = ilvl, gain = gain } end
   end
 
   for _, c in ipairs(pools.bags) do consider(c, "held") end
   for _, c in ipairs(pools.bank) do consider(c, "held") end
-  for _, c in ipairs(API:GetWarbandBankGear()) do consider(c, "warband") end
+  for _, c in ipairs(warband) do consider(c, "warband") end
 
   -- Resolve each slot's headline: prefer held; flag a strictly-better warband copy.
   for slot, r in pairs(out) do
-    local held, wb = r._held, r._wb
-    local pick, where, better
-    if held and wb then
-      if wb.ilvl > held.ilvl then pick, where, better = wb, "warband", true
-      else pick, where = held, "held" end
-    elseif held then pick, where = held, "held"
-    else pick, where = wb, "warband" end
+    local pick, where, better = pickHeadline(r)
     out[slot] = {
       slot = slot, link = pick.link, ilvl = pick.ilvl, ilvlGain = pick.gain,
       where = where, betterElsewhere = better, statTag = statTag(pick.link, ranks),
     }
   end
+
+  if twoHander then resolveTwoHand(charData, pools, warband, equipped, ranks, out) end
   return out
 end
 
@@ -210,6 +300,12 @@ function Upgrade:ItemUpgrades(link, boundTo)
   local out = {}
   for _, charData in ipairs(chars) do
     local slot, gain = evaluate(charData, cand)
+    -- A single item can't establish the main-hand + off-hand pair a 2H wielder would
+    -- need, so a lone off-hand or 1H isn't an upgrade for them — only a 2H is.
+    if slot and equippedTwoHand(charData)
+        and (slot == "OffHand" or (slot == "MainHand" and not ns.IsTwoHand(cand.equipLoc))) then
+      slot = nil
+    end
     if slot then
       insert(out, {
         name = charData.name, classKey = charData.classKey, slot = slot, ilvlGain = gain,

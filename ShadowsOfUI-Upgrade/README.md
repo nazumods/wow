@@ -16,6 +16,11 @@ An item is an upgrade for a character when:
 - its **item level beats** what they currently have in that slot (for rings and trinkets,
   it's compared against the *weaker* of the two — the one you'd replace).
 
+**Two-handers** are handled specially: if a character is wielding a two-hander their off-hand
+isn't really empty, so a stray off-hand or one-hander on its own is **not** counted as an upgrade
+for them. Only a **better two-hander**, or a **main-hand + off-hand pair** whose combined item
+level beats the two-hander, is suggested (both halves are marked as part of the swap).
+
 Item level is the gate. On top of that, the item's secondary stats are checked against the
 character's spec stat priority and tagged **good stats** (it carries a top-priority stat) or
 **off-stats**. The stat priorities are a small built-in table (derived from current PvE
@@ -63,4 +68,3 @@ logged-in character) — a debugging aid; you won't normally need it.
 - The class weapon/armour proficiency table is a baseline approximation; a rare spec-only
   quirk may add or drop a single suggestion.
 - There is no window, no settings, and no saved data of its own.
-</content>

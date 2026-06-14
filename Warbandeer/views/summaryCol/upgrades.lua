@@ -25,7 +25,8 @@ local getUpgrades = function(toon)
     local where = r.betterElsewhere and "warband (better)"
       or (r.where == "warband" and "warband" or "held")
     local stat = r.statTag and (", " .. r.statTag) or ""
-    insert(lines, ("%s  +%d (%s%s)"):format(r.slot, r.ilvlGain, where, stat))
+    local swap = r.pairSwap and ", swap" or ""
+    insert(lines, ("%s  +%d (%s%s%s)"):format(r.slot, r.ilvlGain, where, stat, swap))
   end
 
   return {

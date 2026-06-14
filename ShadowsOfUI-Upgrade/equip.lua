@@ -44,12 +44,43 @@ local BODY_ARMOR = {
   INVTYPE_FEET = true, INVTYPE_WRIST = true, INVTYPE_HAND = true,
 }
 
+-- INVTYPEs that occupy BOTH weapon hands (a true two-hander or a 2H ranged), and
+-- the off-hand items.  Used by the two-hand reconciliation in upgrade.lua to tell
+-- a real weapon upgrade from a spurious "empty off-hand" one.
+local TWO_HAND = {
+  INVTYPE_2HWEAPON = true, INVTYPE_RANGED = true, INVTYPE_RANGEDRIGHT = true,
+}
+local OFF_HAND = {
+  INVTYPE_WEAPONOFFHAND = true, INVTYPE_SHIELD = true, INVTYPE_HOLDABLE = true,
+}
+
 ---Equipment slot names a candidate item contests, or nil if its type maps to no
 ---tracked slot.
 ---@param equipLoc string
 ---@return string[]?
 function ns.CompetingSlots(equipLoc)
   return SLOTS_FOR[equipLoc]
+end
+
+---Whether an equipLoc occupies both weapon hands (a two-hander or 2H ranged).
+---@param equipLoc string?
+---@return boolean
+function ns.IsTwoHand(equipLoc)
+  return equipLoc ~= nil and TWO_HAND[equipLoc] == true
+end
+
+---Weapon role of a candidate's equipLoc for the 2H ↔ dual-wield comparison:
+---`"mh2h"` (two-hander), `"mh1h"` (one-hand main weapon), `"off"` (off-hand item),
+---or nil when the item isn't a weapon/off-hand at all (armour, rings, …).
+---@param equipLoc string
+---@return string?
+function ns.WeaponRole(equipLoc)
+  if OFF_HAND[equipLoc] then return "off" end
+  local slots = SLOTS_FOR[equipLoc]
+  if slots and slots[1] == "MainHand" then
+    return TWO_HAND[equipLoc] and "mh2h" or "mh1h"
+  end
+  return nil
 end
 
 ---Whether a class can equip an item, from its static class/subclass.  Armour-type

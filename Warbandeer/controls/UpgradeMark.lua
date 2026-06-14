@@ -41,5 +41,6 @@ function ns.UpgradeTip(charName, slot)
   local where = r.betterElsewhere and "better one in warband bank"
     or (r.where == "warband" and "in warband bank" or "held in bags/bank")
   local stat = r.statTag and (", " .. r.statTag .. " stats") or ""
-  return ("Upgrade: +%d ilvl (%s%s)"):format(r.ilvlGain, where, stat)
+  local swap = r.pairSwap and " — main-hand + off-hand vs 2H" or ""
+  return ("Upgrade: +%d ilvl (%s%s)%s"):format(r.ilvlGain, where, stat, swap)
 end
