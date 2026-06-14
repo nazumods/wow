@@ -5,6 +5,7 @@ return {
     -- release change-detection (release.sh).
     ROOT = {
       "LibNAddOn/spec",
+      "ShadowsOfUI-Upgrade/spec",
     },
     lpath = "?.lua",
     verbose = true,
