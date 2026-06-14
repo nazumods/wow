@@ -649,9 +649,11 @@ ns.ShowDressingRoom = function(group, set, reverse)
   -- Track the grid's sort direction so the tier arrows match what the user sees.
   _room._reverse = reverse ~= false
 
-  -- Reset to the current character's race each time it opens fresh; clicking
-  -- another cell while it's already open keeps the chosen race.
-  if not _room._widget:IsShown() then _room:_defaultToPlayer() end
+  -- Reset to the current character's race on a fresh open — the first ever (no race
+  -- picked yet) or a reopen after closing; clicking another cell while it's already
+  -- open keeps the chosen race. The IsShown check alone misses the first open (the
+  -- frame is shown on creation), so also seed when `_raceID` is still unset.
+  if not _room._raceID or not _room._widget:IsShown() then _room:_defaultToPlayer() end
 
   _room:_load(group, set)
   _room:Show()
@@ -680,4 +682,17 @@ end
 ---@field PreviewModelScale fun(scale: number)
 ns.PreviewModelScale = function(scale)
   if _room and _room._widget:IsShown() then _room._scaleSlider:Value(scale) end
+end
+
+---Dev: dump the open preview's scale state, to tell a wrong value from a wrong
+---application (`/collected scale` with no arg).
+---@class Warbandeer_Collected
+---@field DebugDressScale fun()
+ns.DebugDressScale = function()
+  if not _room then ns.Print("dressing room not opened yet"); return end
+  local form = _room:_resolvedForm()
+  ns.Print(("raceID=%s sex=%s form.scale=%s | model:Scale()=%s | slider=%s | shown=%s"):format(
+    tostring(_room._raceID), tostring(_room._sex), tostring(form and form.scale),
+    tostring(_room._model:Scale()), tostring(_room._scaleSlider:Value()),
+    tostring(_room._widget:IsShown())))
 end
