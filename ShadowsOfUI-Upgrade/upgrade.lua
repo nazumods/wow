@@ -308,6 +308,49 @@ function Upgrade:CharacterUpgradeCount(charName)
   return n
 end
 
+---@class WorldQuestUpgrade: UpgradeResult
+---@field questID integer source world quest
+---@field title string world-quest title
+---@field zone string? zone the quest is in
+
+---Active world-quest rewards that would upgrade an equipped slot for a character,
+---sorted by ilvl gained.  Reads the per-character world-quest reward cache from the
+---data layer (`WarbandeerApi:GetWorldQuestRewards`, which already drops expired
+---quests) and runs each reward through the same evaluation the held/warband finder
+---uses — class/primary proficiency, multi-slot targeting, the two-hand guard, and
+---the stat tag — so a WQ reward is held to the same bar as loose gear.  Each result
+---carries its quest metadata so the consumer can say "do <title> in <zone>".  Empty
+---when the data layer exposes no cache, or nothing qualifies.
+---@param charName string
+---@return WorldQuestUpgrade[]
+function Upgrade:WorldQuestUpgrades(charName)
+  local charData = API:GetCharacterData(charName)
+  if not charData or not charData.classKey then return {} end
+  if not API.GetWorldQuestRewards then return {} end  -- older data layer
+  local ranks = ns.StatRanks(charData)
+  local twoHander = equippedTwoHand(charData)
+  local out = {}
+  for _, rw in ipairs(API:GetWorldQuestRewards(charName)) do
+    local slot, gain, ilvl = evaluate(charData, rw)
+    -- A single reward can't establish the 1H + off-hand pair a 2H wielder needs,
+    -- so a lone off-hand or 1H isn't an upgrade for them — only a 2H is (mirrors
+    -- ItemUpgrades' tooltip guard).
+    if slot and twoHander
+        and (slot == "OffHand" or (slot == "MainHand" and not ns.IsTwoHand(rw.equipLoc))) then
+      slot = nil
+    end
+    if slot then
+      insert(out, {
+        slot = slot, link = rw.link, ilvl = ilvl, ilvlGain = gain,
+        statTag = statTag(rw.link, ranks),
+        questID = rw.questID, title = rw.title, zone = rw.zone,
+      })
+    end
+  end
+  sort(out, function(a, b) return a.ilvlGain > b.ilvlGain end)
+  return out
+end
+
 ---@class ItemUpgradeEntry
 ---@field name string character name
 ---@field classKey string
