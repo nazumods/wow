@@ -88,6 +88,7 @@ Also on the API table: `ALLIANCE_RACES`, `HORDE_RACES`, `professionInfo`.
 ```lua
 -- Top-level (set once at creation in initialize):
 name, classId, className, classKey, race, raceId, raceIdx, isAlliance, realm
+sex           -- UnitSex code (2=male, 3=female); refreshed each login for the active char (alts seen before this field default to male at render time)
 lastRefresh   -- set by refreshQueue when a full scan completes
 
 -- Sub-tables (one per broker, populated by their fields):
