@@ -49,7 +49,7 @@ local MODELH = 640
 -- Race-selector faction panels: Alliance | Neutral | Horde, each in a colored
 -- border. Alliance/Horde wrap at AHCOLS columns; Neutral is an inverted pyramid.
 local AHCOLS   = 4          -- columns in the Alliance / Horde panels
-local PBORDER  = 5          -- faction-panel border thickness (px)
+local PBORDER  = 3          -- faction-panel border thickness (px)
 local PINPAD   = 5          -- gap between the border and the icons
 local PANELPAD = PBORDER + PINPAD
 local PANELGAP = 12         -- gap between the three panels
@@ -322,8 +322,13 @@ DressingRoom = Class(TitleFrame, function(self)
   end
 
   local function fillGrid(panel, list, cols)
+    local rem = #list % cols                 -- icons in a short final row (0 = full)
+    local lastRow = ceil(#list / cols) - 1
     for i, race in ipairs(list) do
-      raceIcon(panel, race, PANELPAD + ((i - 1) % cols) * STEP, PANELPAD + floor((i - 1) / cols) * STEP)
+      local col, row = (i - 1) % cols, floor((i - 1) / cols)
+      -- Center the final row when it doesn't fill all columns.
+      local xshift = (rem > 0 and row == lastRow) and (cols - rem) * STEP / 2 or 0
+      raceIcon(panel, race, PANELPAD + col * STEP + xshift, PANELPAD + row * STEP)
     end
   end
 
