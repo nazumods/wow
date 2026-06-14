@@ -17,6 +17,25 @@ local SELECTED = {0.85, 0.65, 0.13, 1}
 local IDLE     = {0.20, 0.20, 0.24, 1}
 local PANEL    = {0.05, 0.05, 0.06, 1}
 
+-- Raid difficulty → ilvl/quality color + alpha range for the slot-column backdrop
+-- bars, so the bar reads like gear quality: LFR green, Normal blue, Heroic purple,
+-- Mythic gold. Returns the color and the outer/inner edge alphas (the bar fades from
+-- outer at the window edge to inner at the model edge). Most tiers fade BARALPHA→0;
+-- Mythic's gold reads brown at low alpha over the dark window, so it gets a brighter,
+-- non-zero range. The difficulty is encoded in the group name's parenthetical suffix
+-- (e.g. "Hellfire Citadel (Mythic)"); pre-LFR/no-difficulty raids fall back to purple.
+local BARALPHA = 0.2    -- default alpha at the outer (window) edge; fades to 0 inward
+local function tierBar(groupName)
+  if groupName then
+    if groupName:find("Raid Finder") then return ITEM_GOOD_COLOR,     BARALPHA, 0   -- LFR
+    elseif groupName:find("Mythic")    then return ITEM_ARTIFACT_COLOR, 0.4,      0.2
+    elseif groupName:find("Heroic")    then return ITEM_EPIC_COLOR,     BARALPHA, 0
+    elseif groupName:find("Normal")    then return ITEM_SUPERIOR_COLOR, BARALPHA, 0
+    end
+  end
+  return ITEM_EPIC_COLOR, BARALPHA, 0   -- default: no parsed difficulty
+end
+
 local COLS  = 13   -- 25 races wrap to two rows
 local CELL  = 40
 local STEP  = CELL + 4   -- cell size + gap
@@ -53,6 +72,8 @@ end
 ---@field _scaleSlider Slider  model size slider (per-race correction + user resize)
 ---@field _scaleLabel Label  scale value readout above the slider
 ---@field _bg Texture  class-themed backdrop behind the model
+---@field _tierBarL Texture  left slot-column difficulty-color gradient bar
+---@field _tierBarR Texture  right slot-column difficulty-color gradient bar
 ---@field _bgBorder Texture  Background-toggle border (gold while active)
 ---@field _bgEnabled boolean  whether the backdrop is shown
 ---@field _bgClass string?  current class file for the backdrop (remembered for the toggle)
@@ -113,6 +134,36 @@ DressingRoom = Class(TitleFrame, function(self)
       TopLeft = {self._model, ui.edge.TopLeft},
       BottomRight = {self._model, ui.edge.BottomRight},
       Hide = true,
+    },
+  }
+
+  -- Tier-color backdrop bars down each slot column: a quality-colored gradient
+  -- (reusing the ilvl palette) fading from BARALPHA at the window edge to 0 at the
+  -- model edge, keyed to the raid's difficulty. Hosted on their own frame lifted
+  -- above the window backdrop (a plain Background texture on self gets buried under
+  -- it) but built before the slot columns and held at their frame level, so it draws
+  -- beneath the slots — the bars sit behind the slot icons. The white fill is the
+  -- base the gradient tints; gradient set per set by _setTierBars. The top anchors to
+  -- the title bar (not the model, which sits 6px lower) and the bottom to the frame
+  -- bottom, so the bar fills the whole column edge-to-edge with no corner gaps. inset
+  -- == one slot column's width, so the inner edge meets the model edge.
+  local inset = DressingRoom.MODEL_INSET
+  local barLayer = Frame:new{ parent = self, position = { All = true } }
+  barLayer:Level(self._model:Level())
+  self._tierBarL = Texture:new{
+    parent = barLayer, layer = ui.layer.Background, color = {1, 1, 1, 1},
+    position = {
+      TopRight = {self.titlebar, ui.edge.BottomLeft, inset, 0},
+      BottomRight = {self, ui.edge.BottomLeft, inset, 0},
+      Width = inset, Hide = true,
+    },
+  }
+  self._tierBarR = Texture:new{
+    parent = barLayer, layer = ui.layer.Background, color = {1, 1, 1, 1},
+    position = {
+      TopLeft = {self.titlebar, ui.edge.BottomRight, -inset, 0},
+      BottomLeft = {self, ui.edge.BottomRight, -inset, 0},
+      Width = inset, Hide = true,
     },
   }
 
@@ -473,6 +524,20 @@ function DressingRoom:_applyBackground(classFile)
   end
 end
 
+-- Color the slot-column backdrop bars for the raid's difficulty tier (parsed from
+-- the group name). Each bar fades from BARALPHA at its outer window edge to 0 at the
+-- inner model edge.
+---@param groupName string?  the set-group's name (carries the "(Difficulty)" suffix)
+function DressingRoom:_setTierBars(groupName)
+  local c, outerA, innerA = tierBar(groupName)
+  local outer = CreateColor(c.r, c.g, c.b, outerA)
+  local inner = CreateColor(c.r, c.g, c.b, innerA)
+  self._tierBarL:Gradient("HORIZONTAL", outer, inner)   -- window edge → model edge
+  self._tierBarR:Gradient("HORIZONTAL", inner, outer)   -- model edge → window edge
+  self._tierBarL:Show()
+  self._tierBarR:Show()
+end
+
 ---@param on boolean  show the class-themed model backdrop
 function DressingRoom:SetBackgroundOn(on)
   self._bgEnabled = on
@@ -492,6 +557,7 @@ function DressingRoom:_load(group, set)
   local classId
   for i = 1, #group.sets do if group.sets[i] == set then classId = i; break end end
   self:_showClass(classId)
+  self:_setTierBars(group.name)
   self._slotRetries = 0
   self:UpdateSlots()
   self:Dress()

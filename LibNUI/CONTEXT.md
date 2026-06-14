@@ -12,7 +12,7 @@ OOP UI widget library. Every widget wraps a backing WoW object (`self._widget`) 
 | `constants.lua` | Enum tables: `ui.edge`, `ui.layer`, `ui.justify`, `ui.wrap`, `ui.fonts` |
 | `Theme.lua` | `ui.themes.dark` (default styling tokens) + `ui.Theme(overrides)` factory for custom themes |
 | `Region.lua` | `Region` — abstract base; anchoring/size/visibility/alpha + declarative `position` system |
-| `Texture.lua` | `Texture` — wraps WoW Texture (atlas, color, coords, nine-slice) |
+| `Texture.lua` | `Texture` — wraps WoW Texture (atlas, color, coords, nine-slice, runtime `Gradient`) |
 | `Label.lua` | `Label` — wraps FontString; `Text`, `Color`, `JustifyH`, `StringWidth` |
 | `Frame.lua` | `Frame` — core frame wrapper: events, dragging, per-frame `onUpdate`, `delay` |
 | `BgFrame.lua` | `BgFrame` — Frame with auto-created backdrop Texture; `backdropColor`/`backdropTexture` |
