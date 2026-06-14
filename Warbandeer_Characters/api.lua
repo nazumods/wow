@@ -1,6 +1,7 @@
 ---@type Warbandeer_Characters
 local ns = select(2, ...)
 local insert = table.insert
+local GetServerTime = GetServerTime
 
 ---@class WarbandeerAPI
 local API = ns.api
@@ -99,6 +100,25 @@ end
 ---@return GearCandidate[]
 function API:GetWarbandBankGear()
   return (ns.db.bank and ns.db.bank.warband and ns.db.bank.warband.equip) or {}
+end
+
+---Active world-quest gear rewards cached for a character that could upgrade an
+---equipped slot.  Captured while that character was logged in (world-quest reward
+---data isn't readable for alts), last-seen.  Expired quests are dropped here on
+---read, since an alt's cache can't be refreshed live.  Each entry is a
+---GearCandidate plus `questID`, `title`, `zone`, `endTime`.
+---@param charName string?
+---@return WorldQuestReward[]
+function API:GetWorldQuestRewards(charName)
+  local c = ns.db.characters[charName or ns.currentPlayer]
+  local list = c and c.worldquests and c.worldquests.rewards
+  if not list then return {} end
+  local now = GetServerTime()
+  local out = {}
+  for _, r in ipairs(list) do
+    if not r.endTime or r.endTime > now then insert(out, r) end
+  end
+  return out
 end
 
 ---Synchronously re-fetch one broker field for the current character.
