@@ -74,8 +74,11 @@ WarbandeerApi:GetWarbandBankGear()         → GearCandidate[]
     -- elsewhere" pool; empty until the warband bank has been opened
 ```
 
-`GearCandidate` = `{ link, itemID, ilvl?, equipLoc, classID, subClassID }` (ilvl is the scaled
-level captured when warm; recompute from `link` if nil).
+`GearCandidate` = `{ link, itemID, ilvl?, equipLoc, classID, subClassID }` (ilvl is the
+**effective** (context-scaled) level via `C_Item.GetCurrentItemLevel(ItemLocation)`, captured when
+warm; recompute from `link` if nil). Effective, not the link's unscaled `GetDetailedItemLevelInfo`,
+so it matches how `equipment.slots` measures equipped ilvl — else a downscaled item over-reports and
+the upgrade finder fakes a huge gain.
 
 Also on the API table: `ALLIANCE_RACES`, `HORDE_RACES`, `professionInfo`.
 (`SettingsCategory` / `AliasSettingsCategory` are set on this same table by **Warbandeer** and **Warbandeer_Alias**, not here.)

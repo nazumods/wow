@@ -8,7 +8,17 @@ local insert, sort = table.insert, table.sort
 local GetItemInfoInstant = C_Item.GetItemInfoInstant
 local GetDetailedItemLevelInfo = C_Item.GetDetailedItemLevelInfo
 local GetItemStats = C_Item.GetItemStats
+local GetItemQualityByID = C_Item.GetItemQualityByID
 local GetTime = GetTime
+local ARTIFACT = Enum.ItemQuality.Artifact
+
+-- Artifact-quality items (the Heart of Azeroth, Legion artifact weapons) scale by
+-- their own systems, so GetDetailedItemLevelInfo reports an inflated effective
+-- ilvl — a legacy Heart sitting in a bank otherwise "upgrades" a real neck.  They
+-- can never be a current-content upgrade, so drop them outright.
+local function isArtifact(itemID)
+  return itemID ~= nil and GetItemQualityByID(itemID) == ARTIFACT
+end
 
 -- Secondary-stat → GetItemStats key.  Versatility has reported under more than one
 -- key across builds, so it's summed over a small candidate set.
@@ -91,6 +101,7 @@ local function evaluate(charData, cand)
   -- so don't guess (else every warband item "upgrades" a barely-logged alt).
   local equipped = charData.equipment and charData.equipment.slots
   if not equipped then return nil end
+  if isArtifact(cand.itemID) then return nil end
 
   local equipLoc, classID, subClassID = candInfo(cand)
   if not equipLoc then return nil end
@@ -161,7 +172,8 @@ local function resolveTwoHand(charData, pools, warband, equipped, ranks, out)
     for _, cand in ipairs(cands) do
       local equipLoc, classID, subClassID = candInfo(cand)
       local role = equipLoc and ns.WeaponRole(equipLoc)
-      if role and ns.CanEquip(charData.classKey, equipLoc, classID, subClassID)
+      if role and not isArtifact(cand.itemID)
+          and ns.CanEquip(charData.classKey, equipLoc, classID, subClassID)
           and primaryFits(cand.link, primary) then
         local ilvl = cand.ilvl or (cand.link and GetDetailedItemLevelInfo(cand.link))
         local b = acc[role]
@@ -310,15 +322,22 @@ end
 ---`boundTo` restricts the check to a single character: pass the holder's name for
 ---a soulbound item (only useful to whoever it's already bound to), or nil for an
 ---unbound item (BoE / Warbound until equipped) that any character could use.
+---
+---`ilvl` is the item's *effective* (context-scaled) level, which the caller should
+---supply when known (the tooltip reads it off the displayed "Item Level" line) so
+---a downscaled item is measured the same way equipped slots are.  Without it we
+---fall back to the link's unscaled `GetDetailedItemLevelInfo`, which over-reports
+---an item the player sees downscaled (true 655 shown as 102) and fakes an upgrade.
 ---@param link string item link or id
 ---@param boundTo string? character the item is soulbound to, or nil if unbound
+---@param ilvl integer? effective item level (preferred over the link's unscaled ilvl)
 ---@return ItemUpgradeEntry[]?
-function Upgrade:ItemUpgrades(link, boundTo)
+function Upgrade:ItemUpgrades(link, boundTo, ilvl)
   local itemID, _, _, equipLoc, _, classID, subClassID = GetItemInfoInstant(link)
   if not itemID or not ns.CompetingSlots(equipLoc or "") then return nil end
   local cand = {
     link = link, itemID = itemID, equipLoc = equipLoc, classID = classID,
-    subClassID = subClassID, ilvl = GetDetailedItemLevelInfo(link),
+    subClassID = subClassID, ilvl = ilvl or GetDetailedItemLevelInfo(link),
   }
   -- Soulbound → only the holder; unbound → every character.
   local chars

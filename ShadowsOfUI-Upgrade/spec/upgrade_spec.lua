@@ -12,6 +12,7 @@ local AGI  = "ITEM_MOD_AGILITY_SHORT"
 local CRIT = "ITEM_MOD_CRIT_RATING_SHORT"
 local HASTE = "ITEM_MOD_HASTE_RATING_SHORT"
 
+local ARTIFACT = 6                     -- Enum.ItemQuality.Artifact
 local ARMS = 71                        -- arms warrior: primary str, crit tier-1, haste tier-2
 
 -- A warrior with the given equipped slots ({ slot = { ilvl, equipLoc?, link? } }).
@@ -251,6 +252,35 @@ describe("ShadowsOfUI-Upgrade upgrade calc", function()
     end)
   end)
 
+  describe("artifact exclusion (Heart of Azeroth regression)", function()
+    -- An artifact's GetDetailedItemLevelInfo reports an inflated effective ilvl,
+    -- so without the quality gate a legacy Heart of Azeroth in a bank "upgrades"
+    -- a real neck.  Artifact-quality items must never count as upgrades.
+    it("never reports an artifact neck as a slot upgrade despite a huge ilvl", function()
+      h.addChar(warrior("Conan", { Neck = { ilvl = 600 } }))
+      h.pools.Conan = { bags = { h.defItem{ link = "heart", itemID = 158075,
+        equipLoc = "INVTYPE_NECK", classID = ARMOR, subClassID = MISC,
+        ilvl = 9999, rarity = ARTIFACT } }, bank = {} }
+      assert.is_nil(h.Api:SlotUpgrade("Conan", "Neck"))
+      assert.equals(0, h.Api:CharacterUpgradeCount("Conan"))
+    end)
+
+    it("never reports an artifact weapon as an upgrade for a two-hand wielder", function()
+      h.addChar(warrior("Conan", { MainHand = { ilvl = 600, equipLoc = "INVTYPE_2HWEAPON" } }))
+      h.pools.Conan = { bags = { h.defItem{ link = "ashbringer", itemID = 120978,
+        equipLoc = "INVTYPE_2HWEAPON", classID = WEAPON, subClassID = SWORD2H,
+        ilvl = 9999, rarity = ARTIFACT } }, bank = {} }
+      assert.is_nil(h.Api:SlotUpgrade("Conan", "MainHand"))
+    end)
+
+    it("excludes an artifact from the ItemUpgrades tooltip path", function()
+      h.addChar(warrior("Conan", { Neck = { ilvl = 600 } }))
+      local heart = h.defItem{ link = "heart", itemID = 158075, equipLoc = "INVTYPE_NECK",
+        classID = ARMOR, subClassID = MISC, ilvl = 9999, rarity = ARTIFACT }
+      assert.is_nil(h.Api:ItemUpgrades(heart.link))
+    end)
+  end)
+
   describe("ItemUpgrades (tooltip path)", function()
     local function chestItem(id, ilvl, stats)
       return h.defItem{ link = "chest:" .. id, itemID = id, equipLoc = "INVTYPE_CHEST",
@@ -281,6 +311,19 @@ describe("ShadowsOfUI-Upgrade upgrade calc", function()
       local out = h.Api:ItemUpgrades(item.link, "Kull")
       assert.equals(1, #out)
       assert.equals("Kull", out[1].name)
+    end)
+
+    it("measures the item by the caller's effective ilvl, not the link's", function()
+      -- An item downscaled in the player's context: the link's unscaled ilvl reads
+      -- 655, but the player only gets the effective 102.  Passing the effective ilvl
+      -- must win, so a 102 ring is not a +553 upgrade over a 102 slot (the bug).
+      h.addChar(warrior("Conan", { Chest = { ilvl = 102 } }))
+      local item = chestItem(1, 655)  -- link/GetDetailedItemLevelInfo says 655
+      assert.is_nil(h.Api:ItemUpgrades(item.link, nil, 102))
+      -- With no effective ilvl supplied it falls back to the link's 655 (an upgrade).
+      local out = h.Api:ItemUpgrades(item.link)
+      assert.equals(1, #out)
+      assert.equals(553, out[1].ilvlGain)
     end)
 
     it("does not list a lone off-hand as an upgrade for a 2H wielder", function()

@@ -81,7 +81,7 @@ end
 -- a GearCandidate list, mirroring data/gearbag.lua so the bank's "held"/"better
 -- elsewhere" gear shares the candidate shape.  Skips non-gear via the shared
 -- classifier.  Bank slots carry the same hyperlink as bags do.
-local function addEquip(equip, info)
+local function addEquip(equip, info, bagID, slot)
   if not info or not info.itemID then return end
   local equipLoc, classID, subClassID = API:ClassifyGearItem(info.itemID)
   if not equipLoc then return end
@@ -89,7 +89,10 @@ local function addEquip(equip, info)
   insert(equip, {
     link = link,
     itemID = info.itemID,
-    ilvl = link and C_Item.GetDetailedItemLevelInfo(link) or nil,
+    -- Effective (context-scaled) ilvl via the bank location, matching how
+    -- equipped slots are measured (data/gearbag.lua carries the same note); the
+    -- link's unscaled GetDetailedItemLevelInfo would over-report a downscaled item.
+    ilvl = C_Item.GetCurrentItemLevel(ItemLocation:CreateFromBagAndSlot(bagID, slot)),
     equipLoc = equipLoc,
     classID = classID,
     subClassID = subClassID,
@@ -108,7 +111,7 @@ local function scanBankType(bankType)
       local info = C_Container.GetContainerItemInfo(bagID, slot)
       if info then
         addItem(gear, info.itemID, info.stackCount, info.quality)
-        addEquip(equip, info)
+        addEquip(equip, info, bagID, slot)
       end
     end
   end

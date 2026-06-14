@@ -4,7 +4,8 @@ local ns = select(2, ...)
 local API = ns.api
 local insert = table.insert
 local C_Container = C_Container
-local GetDetailedItemLevelInfo = C_Item.GetDetailedItemLevelInfo
+local GetCurrentItemLevel = C_Item.GetCurrentItemLevel
+local ItemLocation = ItemLocation
 
 -- Per-character cache of equippable gear sitting in the character's bags, so
 -- consumers can tell which loose items would upgrade a
@@ -16,7 +17,7 @@ local GetDetailedItemLevelInfo = C_Item.GetDetailedItemLevelInfo
 ---@class GearCandidate
 ---@field link string item hyperlink
 ---@field itemID integer
----@field ilvl integer? scaled item level when warm (nil → recompute from link)
+---@field ilvl integer? effective (context-scaled) item level, matching equipped slots (nil → recompute from link)
 ---@field equipLoc string INVTYPE_* the item fills
 ---@field classID integer Enum.ItemClass (Armor|Weapon)
 ---@field subClassID integer armour type / weapon subclass
@@ -34,10 +35,15 @@ local function scanBags()
         local equipLoc, classID, subClassID = API:ClassifyGearItem(info.itemID)
         if equipLoc then
           local link = info.hyperlink
+          -- Effective (context-scaled) ilvl via the bag location, NOT the link's
+          -- unscaled GetDetailedItemLevelInfo: equipped slots are measured with
+          -- GetCurrentItemLevel, so a candidate must use the same basis or an item
+          -- downscaled in Chromie Time / a scaled zone (true ilvl 655 shown as 102)
+          -- reads hundreds of levels too high and fakes a massive upgrade.
           insert(items, {
             link = link,
             itemID = info.itemID,
-            ilvl = link and GetDetailedItemLevelInfo(link) or nil,
+            ilvl = GetCurrentItemLevel(ItemLocation:CreateFromBagAndSlot(bag, slot)),
             equipLoc = equipLoc,
             classID = classID,
             subClassID = subClassID,

@@ -32,10 +32,13 @@ ShadowsOfUI_UpgradeApi:SlotUpgrade(charName, slot)      → UpgradeResult|nil
     -- best available upgrade for one equipment slot (Head, Finger1, MainHand, …)
 ShadowsOfUI_UpgradeApi:CharacterUpgrades(charName)      → UpgradeResult[]   (sorted by ilvlGain desc)
 ShadowsOfUI_UpgradeApi:CharacterUpgradeCount(charName)  → integer
-ShadowsOfUI_UpgradeApi:ItemUpgrades(link, boundTo?)    → ItemUpgradeEntry[]|nil
+ShadowsOfUI_UpgradeApi:ItemUpgrades(link, boundTo?, ilvl?)  → ItemUpgradeEntry[]|nil
     -- which characters a specific item would upgrade (drives the tooltip).
     -- boundTo = the holder's name for a soulbound item (restricts to that one
-    -- character); nil for an unbound item (BoE / Warbound) that any char could use
+    -- character); nil for an unbound item (BoE / Warbound) that any char could use.
+    -- ilvl = the item's effective (context-scaled) level; the tooltip reads it off
+    -- the displayed "Item Level" line so a downscaled item is measured the same way
+    -- equipped slots are (falls back to the link's unscaled ilvl when omitted)
 ```
 
 `UpgradeResult` = `{ slot, link, ilvl, ilvlGain, statTag?, where, betterElsewhere?, pairSwap? }`
@@ -98,6 +101,18 @@ off-hand / 1H is not listed as an upgrade for a 2H wielder (only another 2H is).
   `GetItemInfoInstant(link)` when an equipped slot has no stored `equipLoc` (alt scanned before
   that field existed) — otherwise alts viewed from the warband would slip back to the bogus lone
   off-hand upgrade.
+- **Artifact-quality items are excluded outright** (`isArtifact` in `upgrade.lua`, gating both
+  `evaluate` and the `resolveTwoHand` scan). The Heart of Azeroth and Legion artifact weapons
+  scale by their own systems, so `GetDetailedItemLevelInfo` returns an inflated effective ilvl —
+  a legacy Heart in a bank would otherwise "upgrade" a real neck. Gate is `C_Item.GetItemQualityByID(itemID) == Enum.ItemQuality.Artifact`.
+- **Effective vs. detailed ilvl** — equipped slots are measured with `C_Item.GetCurrentItemLevel`
+  (effective / context-scaled), so candidates MUST be too, or an item the player sees downscaled
+  (e.g. a true ilvl-655 ring shown at 102 in Chromie Time / a scaled zone) reads hundreds of levels
+  too high via the link's unscaled `GetDetailedItemLevelInfo` and fakes a massive upgrade. The
+  held/warband caches store effective ilvl (`data/gearbag.lua`, `data/bank.lua` build an
+  `ItemLocation` per slot); the tooltip passes the displayed effective ilvl into `ItemUpgrades`
+  (`tooltip.lua` parses the `ITEM_LEVEL` line). Residual edge: a warband-bank item scanned in one
+  character's scaled context, then compared against another character's slots, is still cross-context.
 - **ilvl-first** means tier-set breaks / unique-equipped duplicates can show as upgrades; the
   stat tag and class-proficiency gate trim the obvious noise but it's documented, not perfect.
 - **`ns.ClassGear` weapon matrix is a class-granularity approximation** — refresh on weapon-

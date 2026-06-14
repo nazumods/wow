@@ -16,6 +16,22 @@ local function isSoulbound(data)
   return false
 end
 
+-- The hovered item's *effective* (context-scaled) item level, read off the
+-- displayed "Item Level NNN" line.  This is what GetCurrentItemLevel reports for
+-- equipped gear, so the candidate is compared on the same basis; the link's
+-- GetDetailedItemLevelInfo gives the unscaled level instead, so an item downscaled
+-- in Chromie Time / a scaled zone (true 655 shown as 102) would fake a huge upgrade.
+-- ITEM_LEVEL is the localised "Item Level %d" format; turn its %d into a capture.
+local ILVL_PATTERN = (ITEM_LEVEL or "Item Level %d"):gsub("%%d", "(%%d+)")
+local function effectiveIlvl(data)
+  if not data.lines then return nil end
+  for _, line in ipairs(data.lines) do
+    local n = line.leftText and line.leftText:match(ILVL_PATTERN)
+    if n then return tonumber(n) end
+  end
+  return nil
+end
+
 -- A character name wrapped in its class colour (ns.Colors keys are PascalCase,
 -- matching Character.classKey).
 local function colorName(name, classKey)
@@ -75,7 +91,7 @@ local function onItemTooltip(tooltip, data)
   if not link then return end
   -- Soulbound items can only ever help their holder (the current character).
   local boundTo = isSoulbound(data) and ns.api:GetCurrentCharacter() or nil
-  local list = Upgrade:ItemUpgrades(link, boundTo)
+  local list = Upgrade:ItemUpgrades(link, boundTo, effectiveIlvl(data))
   if list then render(tooltip, list) end
 end
 

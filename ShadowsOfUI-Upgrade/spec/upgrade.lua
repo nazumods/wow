@@ -61,7 +61,10 @@ function up.harness()
   }
 
   -- ----- WoW global stubs (captured by the addon files at load) ------------
-  _G.Enum = { ItemClass = { Weapon = 2, Armor = 4 } }
+  _G.Enum = {
+    ItemClass = { Weapon = 2, Armor = 4 },
+    ItemQuality = { Artifact = 6 },
+  }
 
   local function lookup(linkOrId) return h.items[linkOrId] end
 
@@ -78,6 +81,10 @@ function up.harness()
     GetItemStats = function(linkOrId)
       local i = lookup(linkOrId)
       return i and i.stats
+    end,
+    GetItemQualityByID = function(linkOrId)
+      local i = lookup(linkOrId)
+      return i and i.rarity
     end,
   }
 
