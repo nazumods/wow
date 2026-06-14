@@ -9,7 +9,7 @@ Main viewer UI. Reads the data layer (`ns.api` ← `WarbandeerApi`) and renders 
 | File | Purpose |
 |---|---|
 | `init.lua` | Addon init (assignment form) + `ns:RegisterSettings` (`defaultView`, `tooltipSide`). Defines `ns.views`, `ns.viewOrder` (nav order), class/race arrays, `MigrateDB`, `onLoad` |
-| `data.lua` | `ns.data` — ilvl/gear-tier color helpers (`IlvlColor`, `IlvlColorObj`), faction color/standing override tables, profession-intent helpers (`GetProfIntent`/`SetProfIntent`, `GetMainCrafter`, `GetProfToons`, `FindProf`, `EstimateConcentration`) |
+| `data.lua` | `ns.data` — ilvl/gear-tier color helpers (`IlvlColor`, `IlvlColorObj`), faction color/standing override tables, profession-intent helpers (`GetProfIntent`/`SetProfIntent`, `GetMainCrafter`, `GetProfToons`, `FindProf`, `EstimateConcentration`). Also `ns.gearSlots` (draw order), `ns.factionIcon`, and `ns.gearSlotIcon` (per-slot `{path,coords}` into the `icons/gearslots.tga` atlas — a 4×4 grid of 256px cells; Finger1/2 alias the ring cell, Trinket1/2 the trinket cell) |
 | `theme.lua` | `ns.theme` — a LibNUI `ui.Theme` ("void-dark"): `colors` + `fonts` (`{path,size}` tuples). Passed on MainWindow, so every widget in the window inherits it; `window`/`border`/`divider`/`text`/`muted`/`header` and fonts `title`/`body` override the LibNUI dark defaults, the rest (`module`, `hover`, `gold`, …) are Warbandeer-specific tokens |
 | `media/fonts/` | Bundled fonts (Hanken Grotesk, Geist, JetBrains Mono) + licenses; loaded by path, not listed in `.toc` |
 | `controls/CharacterTooltip.lua` | `ns.CharacterTooltip` + `ns.ShowCharacterTooltip`/`HideCharacterTooltip`; side-aware anchoring via `ns.TooltipSide()` / `ns.AnchorTip(frame)`. Registered on `ns`, not `ui` |

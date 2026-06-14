@@ -12,6 +12,12 @@ local Armor = ns.wow.Armor
 -- muted, uppercased headers; the first column inset off the table edge. Columns
 -- stay transparent so the void window surface shows through behind the rows.
 local TRANSPARENT = { color = ns.Colors.TransparentBlack }
+
+-- Five leading columns (faction, role, name, level, ilvl), then one icon column
+-- per gear slot. The slot columns carry an icon header (Warbandeer's gear atlas
+-- via ns.gearSlotIcon) with the slot name as a hover tooltip, in place of the
+-- old abbreviated text headers; built from ns.gearSlots so header order always
+-- tracks the row data.
 local BASE_COLS = {
   -- faction
   { width = 20, justifyH = ui.justify.Left, backdrop = TRANSPARENT },
@@ -20,24 +26,14 @@ local BASE_COLS = {
   { name = "Character", width = 105, justifyH = ui.justify.Left, backdrop = TRANSPARENT, padLeft = 2 },
   { name = "Lvl",  width = 30, justifyH = ui.justify.Left, backdrop = TRANSPARENT },
   { name = "iLvl", width = 35, justifyH = ui.justify.Left, backdrop = TRANSPARENT },
-  --
-  { name = "Head", width = 60, justifyH = ui.justify.Center, backdrop = TRANSPARENT },
-  { name = "Neck", width = 60, justifyH = ui.justify.Center, backdrop = TRANSPARENT },
-  { name = "Shdr", width = 60, justifyH = ui.justify.Center, backdrop = TRANSPARENT },
-  { name = "Back", width = 60, justifyH = ui.justify.Center, backdrop = TRANSPARENT },
-  { name = "Chst", width = 60, justifyH = ui.justify.Center, backdrop = TRANSPARENT },
-  { name = "Wrst", width = 60, justifyH = ui.justify.Center, backdrop = TRANSPARENT },
-  { name = "Hand", width = 60, justifyH = ui.justify.Center, backdrop = TRANSPARENT },
-  { name = "Wast", width = 60, justifyH = ui.justify.Center, backdrop = TRANSPARENT },
-  { name = "Legs", width = 60, justifyH = ui.justify.Center, backdrop = TRANSPARENT },
-  { name = "Feet", width = 60, justifyH = ui.justify.Center, backdrop = TRANSPARENT },
-  { name = "Fgr1", width = 60, justifyH = ui.justify.Center, backdrop = TRANSPARENT },
-  { name = "Fgr2", width = 60, justifyH = ui.justify.Center, backdrop = TRANSPARENT },
-  { name = "Tnk1", width = 60, justifyH = ui.justify.Center, backdrop = TRANSPARENT },
-  { name = "Tnk2", width = 60, justifyH = ui.justify.Center, backdrop = TRANSPARENT },
-  { name = "MH",   width = 60, justifyH = ui.justify.Center, backdrop = TRANSPARENT },
-  { name = "OH",   width = 60, justifyH = ui.justify.Center, backdrop = TRANSPARENT },
 }
+for _, slot in ipairs(ns.gearSlots) do
+  local spec = ns.gearSlotIcon[slot]
+  insert(BASE_COLS, {
+    width = 60, justifyH = ui.justify.Center, backdrop = TRANSPARENT,
+    path = spec.path, coords = spec.coords, tooltip = slot,
+  })
+end
 
 -- Shallow-copy each column with uppercased headers (icon-only columns have no
 -- name and are unaffected; the muted header color comes from the theme). Shared
@@ -254,6 +250,7 @@ local GearView = Class(ui.Frame, function(self)
       parent = self,
       position = { TopLeft = {0, 0} },
       colInfo = COL_INFO,
+      headerHeight = 30,  -- taller header so the slot icons read clearly
       armorType = armorType,
     }
   end

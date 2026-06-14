@@ -5,6 +5,7 @@ local ns = select(2, ...)
 ---@field data table                          static data + profession/concentration helpers
 ---@field factionIcon table<boolean, table>   cell icon spec by isAlliance (path/coords/vertexColor)
 ---@field gearSlots string[]                  canonical gear-slot draw order
+---@field gearSlotIcon table<string, table>   cell icon spec by gear-slot name (path/coords)
 ns.data = {}
 
 -- Custom Warbandeer faction art (white TGAs under icons/, tinted at draw time).
@@ -34,6 +35,31 @@ ns.gearSlots = {
   "Head", "Neck", "Shoulder", "Back", "Chest", "Wrist", "Hands", "Waist",
   "Legs", "Feet", "Finger1", "Finger2", "Trinket1", "Trinket2", "MainHand", "OffHand",
 }
+
+-- Gear-slot art: one 1024x1024 atlas (icons/gearslots.tga), a 4x4 grid of 256px
+-- cells in this reading order. Each spec is {path, coords} so it drops straight
+-- into a LibNUI Texture/Cell (same shape as factionIcon). The 14 distinct icons
+-- cover all 16 gearSlots: Finger1/2 share the ring cell and Trinket1/2 share the
+-- trinket cell. Cell -> normalized texcoords are derived, not hand-typed.
+local GEAR_ATLAS = FACTION_ICONS.."gearslots.tga"
+local ATLAS_COLS, ATLAS_ROWS = 4, 4
+local atlasCells = {
+  "Head", "Shoulder", "Back", "Neck", "Chest", "Wrist", "Hands", "Waist",
+  "Legs", "Feet", "Ring", "Trinket", "MainHand", "OffHand",
+}
+-- gearSlots whose art is not a 1:1 named cell point at the cell that holds it.
+local cellAlias = { Finger1 = "Ring", Finger2 = "Ring", Trinket1 = "Trinket", Trinket2 = "Trinket" }
+
+local cellCoords = {}
+for i, name in ipairs(atlasCells) do
+  local col, row = (i - 1) % ATLAS_COLS, math.floor((i - 1) / ATLAS_COLS)
+  cellCoords[name] = { col / ATLAS_COLS, (col + 1) / ATLAS_COLS, row / ATLAS_ROWS, (row + 1) / ATLAS_ROWS }
+end
+
+ns.gearSlotIcon = {}
+for _, slot in ipairs(ns.gearSlots) do
+  ns.gearSlotIcon[slot] = { path = GEAR_ATLAS, coords = cellCoords[cellAlias[slot] or slot] }
+end
 
 ---@class ColorMixin
 ---@field WrapTextInColorCode fun(self: ColorMixin, ilvl: any): string

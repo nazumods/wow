@@ -4,6 +4,7 @@ local ns = select(2, ...)
 local ui = ns.ui
 local insert = table.insert
 local Class, Frame, Label, Texture = ns.lua.Class, ui.Frame, ui.Label, ui.Texture
+local unpack = unpack
 local Button, Tooltip = ui.Button, ui.Tooltip
 local LabeledBar, StatCard, FilterDropdown = ns.LabeledBar, ns.StatCard, ns.FilterDropdown
 local theme = ns.theme
@@ -62,23 +63,6 @@ local GEAR_LEAD_W = GEAR_ICON_W + GEAR_ICON_GAP
 local GEAR_EXTRAS_W = GEAR_COL_GAP + GEAR_ILVL_W + GEAR_COL_GAP + GEAR_TRACK_W
 local function gearInnerW(nameW) return GEAR_LEAD_W + nameW + GEAR_EXTRAS_W end
 local function gearPanelW(nameW) return gearInnerW(nameW) + 2 * GEAR_PAD end
-
--- Slot → transmog-nav-slot atlas. Only appearance slots have these atlases, so the
--- non-transmoggable slots (Neck/Finger/Trinket) map to nil and render a blank icon
--- column (space still reserved so the name column stays aligned across rows).
-local GEAR_SLOT_ATLAS = {
-  Head     = "transmog-nav-slot-head",
-  Shoulder = "transmog-nav-slot-shoulder",
-  Back     = "transmog-nav-slot-back",
-  Chest    = "transmog-nav-slot-chest",
-  Wrist    = "transmog-nav-slot-wrist",
-  Hands    = "transmog-nav-slot-hands",
-  Waist    = "transmog-nav-slot-waist",
-  Legs     = "transmog-nav-slot-legs",
-  Feet     = "transmog-nav-slot-feet",
-  MainHand = "transmog-nav-slot-mainhand",
-  OffHand  = "transmog-nav-slot-secondaryhand",
-}
 
 -- Rarity color pulled straight from the stored item link's color prefix, so it works
 -- for any character without relying on the item being in this client's cache. Modern
@@ -417,7 +401,7 @@ function DetailView:_gearRow(i)
   row = { frame = frame }
   attachItemTip(frame)
 
-  -- Slot icon pinned to the left (blank for non-transmoggable slots; see GEAR_SLOT_ATLAS).
+  -- Slot icon pinned to the left (Warbandeer gear atlas; see _showGear).
   row.icon = Texture:new{
     parent = frame, layer = ui.layer.Artwork,
     position = { Left = {frame, ui.edge.Left, 0, 0}, Width = GEAR_ICON_W, Height = GEAR_ICON_W },
@@ -449,13 +433,11 @@ end
 -- Populate a visible gear row for an equipped item. `slotKey` selects the slot icon.
 function DetailView:_showGear(i, item, slotKey)
   local row = self:_gearRow(i)
-  local atlas = GEAR_SLOT_ATLAS[slotKey]
-  if atlas then
-    row.icon:Atlas(atlas, false)
-    row.icon:Show()
-  else
-    row.icon:Hide()  -- non-transmoggable slot: reserve the column, leave it blank
-  end
+  -- Slot art from Warbandeer's gear atlas (one cell per slot, all slots covered).
+  local spec = ns.gearSlotIcon[slotKey]
+  row.icon:Texture(spec.path)
+  row.icon:Coords(unpack(spec.coords))
+  row.icon:Show()
   row.frame._itemLink = item.link
   -- Append the available-upgrade glyph (no-op unless ShadowsOfUI-Upgrade is loaded);
   -- the embedded colour code overrides the name's rarity vertex colour for the arrow.
