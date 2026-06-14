@@ -7,6 +7,7 @@ local Class, Frame, Label, Texture = ns.lua.Class, ui.Frame, ui.Label, ui.Textur
 local unpack = unpack
 local Button, Tooltip = ui.Button, ui.Tooltip
 local LabeledBar, StatCard, FilterDropdown = ns.LabeledBar, ns.StatCard, ns.FilterDropdown
+local SuggestedBox = ns.SuggestedBox
 local theme = ns.theme
 local Colors = ns.Colors
 local BottomLeft, BottomRight = ui.edge.BottomLeft, ui.edge.BottomRight
@@ -157,6 +158,7 @@ local function intentColor(intent) return INTENT_COLOR[intent] or theme.colors.m
 ---@field profHeader Label
 ---@field gearPanel Frame
 ---@field gearHeader Label
+---@field suggestBox SuggestedBox
 local DetailView = Class(Frame, function(self)
   local c = theme.colors
   self._char = ns.api:GetCharacterData()
@@ -228,6 +230,12 @@ local DetailView = Class(Frame, function(self)
     parent = self.gearPanel, fontInfo = theme.fonts.caps, color = c.muted,
     text = "GEAR",
     position = { TopLeft = {GEAR_PAD, -GEAR_PAD} },
+  }
+
+  -- Suggested actions, anchored beneath the professions block in OnBeforeShow.
+  self.suggestBox = SuggestedBox:new{
+    parent = self,
+    position = { TopLeft = {P, -PROF_HEADER_Y}, Width = PANEL_W, Height = STRIP_H },
   }
 
   self:Width(VIEW_WIDTH)
@@ -658,9 +666,20 @@ function DetailView:OnBeforeShow()
   for j = 1, g do self._gearRows[j].frame:Width(innerW) end
   self.gearPanel:Width(gearPanelW(nameW))
 
+  -- Suggested box at the bottom of the left column: actionable gear upgrades the
+  -- character can equip right now (held / warband bank), priority-ordered. It re-
+  -- anchors where the next profession panel would go (`anchor`/`pendingGap`); its
+  -- visible gap above the professions content is ROW_GAP (or 8 with no professions).
+  self.suggestBox:ClearAllPoints()
+  self.suggestBox:TopLeft(anchor, BottomLeft, 0, -pendingGap)
+  self.suggestBox:Width(PANEL_W)
+  local suggH = self.suggestBox:Populate(char)
+  local suggExtent = suggH > 0 and ((i > 0 and ROW_GAP or 8) + suggH) or 0
+
   -- Left column height (identity + stats + professions, including each profession's
-  -- gear list). `profsBottomY` accumulated the content bottom while laying out rows.
-  local leftH = profsBottomY + P
+  -- gear list, plus the suggested box). `profsBottomY` accumulated the professions'
+  -- content bottom while laying out rows.
+  local leftH = profsBottomY + suggExtent + P
 
   -- Right column height (gear panel).
   local gearH = GEAR_PAD + self.gearHeader:Height()
