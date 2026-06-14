@@ -26,12 +26,12 @@ end, "dev: preview a raw creature display id; append 1 to overlay player customi
 ns:registerCommand("scale", nil, function(_, args)
   local n = tonumber(args)
   if not n then
-    ns.Print("Usage: /collected scale <number>  (e.g. 1.3 — open a set's Preview first)")
+    ns.DebugDressScale()   -- no arg → dump current scale state
     return
   end
   ns.PreviewModelScale(n)
   ns.Print("Preview scale " .. n)
-end, "dev: set the open preview model's scale (tune RaceModels scale)")
+end, "dev: set the open preview model's scale (no arg dumps scale state)")
 
 ns:registerCommand("scan", "", function()
   ns.db.collected = 0

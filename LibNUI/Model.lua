@@ -138,10 +138,11 @@ end
 -- player-sized actor, so large races (Tauren, etc.) come out undersized; a per-race
 -- multiplier corrects them. 1 = the actor's natural size. The value is remembered
 -- and re-applied automatically after each async model load.
----@param scale number
----@return Model
+---@param scale number?
+---@return number|Model
 function Model:Scale(scale)
-  self._scale = scale   -- remembered so the model-loaded callback can re-apply it
+  if scale == nil then return self._scale end
+  self._scale = scale   -- remembered so OnUpdate re-asserts it every frame
   if self._actor then self._actor:SetScale(scale) end
   return self
 end

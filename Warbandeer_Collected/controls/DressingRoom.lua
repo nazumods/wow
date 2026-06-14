@@ -39,12 +39,23 @@ local function tierBar(groupName)
   return ITEM_EPIC_COLOR, BARALPHA, 0   -- default: no parsed difficulty
 end
 
-local COLS  = 13   -- 25 races wrap to two rows
+local COLS  = 13   -- overall controls width is still keyed to this
 local CELL  = 40
 local STEP  = CELL + 4   -- cell size + gap
 local PAD   = 6
 local GRIDW = COLS * STEP
 local MODELH = 640
+
+-- Race-selector faction panels: Alliance | Neutral | Horde, each in a colored
+-- border. Alliance/Horde wrap at AHCOLS columns; Neutral is an inverted pyramid.
+local AHCOLS   = 4          -- columns in the Alliance / Horde panels
+local PBORDER  = 1          -- faction-panel border thickness (px)
+local PINPAD   = 5          -- gap between the border and the icons
+local PANELPAD = PBORDER + PINPAD
+local PANELGAP = 12         -- gap between the three panels
+local ALLIANCE_COLOR = {0.08, 0.40, 0.83, 1}   -- Alliance blue
+local HORDE_COLOR    = {0.74, 0.12, 0.18, 1}   -- Horde red
+local NEUTRAL_COLOR  = {0.20, 0.68, 0.58, 1}   -- jade/teal (distinct from the gold selection border)
 local WINW   = 640
 
 -- A 1px-framed box: an outer border Texture (recolored IDLE↔SELECTED to show
@@ -98,15 +109,28 @@ local TOPGAP = ROWH + PAD
 -- (set by the companion DressingRoomSlots.lua) as an upvalue at instantiation.
 local DressingRoom
 DressingRoom = Class(TitleFrame, function(self)
-  local races = ns.PlayableRaces()
-  local rows = ceil(#races / COLS)
-  local gridH = rows * STEP
-  -- one toggle row (Undress / Background) above the race grid
-  local controlsH = TOPGAP + gridH
+  -- Split the playable races into the three faction panels (built far below).
+  local alliance, neutral, horde = {}, {}, {}
+  for _, r in ipairs(ns.PlayableRaces()) do
+    local t = (r.faction == "alliance" and alliance) or (r.faction == "horde" and horde) or neutral
+    t[#t + 1] = r
+  end
+  -- Panel content + border footprint. Alliance/Horde wrap at AHCOLS; Neutral is a
+  -- fixed 2-wide inverted pyramid (2 over 1).
+  local function panelDims(n, cols)
+    local rws = ceil(n / cols)
+    return (cols - 1) * STEP + CELL + 2 * PANELPAD, (rws - 1) * STEP + CELL + 2 * PANELPAD
+  end
+  local aW, aH = panelDims(#alliance, AHCOLS)
+  local hW, hH = panelDims(#horde, AHCOLS)
+  local nW, nH = STEP + CELL + 2 * PANELPAD, STEP + CELL + 2 * PANELPAD
+  local panelsH = max(aH, hH, nH)
+  -- one toggle row (Undress / Background) above the faction panels
+  local controlsH = TOPGAP + panelsH + 4
   local winW = max(WINW, GRIDW + 12)
 
-  -- Bottom controls strip: toggle rows + wrapped race-icon grid, centered under
-  -- the (wider) model.
+  -- Bottom controls strip: toggle row + the three faction race panels, centered
+  -- under the (wider) model.
   local controls = Frame:new{
     parent = self,
     position = {
@@ -252,19 +276,19 @@ DressingRoom = Class(TitleFrame, function(self)
   Label:new{ parent = bgBox, justifyH = ui.justify.Center,
     position = { Left = {6, 0}, Right = {-6, 0} }, text = "Background" }
 
-  -- Race grid below the toggle row. Icons match the logged-in character's gender
-  -- (the previewed body renders in that gender), falling back to a name stub for any
-  -- race that lacks a gendered raceicon atlas.
+  -- Race selector: three faction panels (Alliance | Neutral | Horde), each in a
+  -- 5px colored border, centered as a unit below the toggle row. Icons match the
+  -- logged-in character's gender (the body renders in that gender), with a name-stub
+  -- fallback for any race lacking a gendered raceicon atlas.
   local iconSex = UnitSex("player") == 3 and "female" or "male"
   self._race = {}
-  for idx, race in ipairs(races) do
-    local col, row = (idx - 1) % COLS, floor((idx - 1) / COLS)
+
+  -- One race icon at panel-relative (xoff, yoff).
+  local function raceIcon(panel, race, xoff, yoff)
     local box = Frame:new{
-      parent = controls,
-      position = { TopLeft = {col * STEP, -(TOPGAP + row * STEP)}, Width = CELL, Height = CELL },
+      parent = panel, position = { TopLeft = {xoff, -yoff}, Width = CELL, Height = CELL },
     }
     self._race[race.id] = { border = selBox(box) }
-
     local atlas = "raceicon-" .. race.file .. "-" .. iconSex
     if GetAtlasInfo(atlas) then
       Texture:new{ parent = box, layer = ui.layer.Artwork, atlas = atlas, atlasSize = false,
@@ -282,6 +306,47 @@ DressingRoom = Class(TitleFrame, function(self)
     end)
     btn._widget:SetScript("OnLeave", function() GameTooltip:Hide() end)
   end
+
+  -- A faction panel: a frame with a PBORDER-thick colored outline (four edge
+  -- textures) at (x, y) in `controls`.
+  local function factionPanel(x, y, w, h, color)
+    local panel = Frame:new{
+      parent = controls, position = { TopLeft = {x, -y}, Width = w, Height = h },
+    }
+    local function edge(pos) Texture:new{ parent = panel, layer = ui.layer.Border, color = color, position = pos } end
+    edge{ TopLeft = {0, 0}, TopRight = {0, 0}, Height = PBORDER }
+    edge{ BottomLeft = {0, 0}, BottomRight = {0, 0}, Height = PBORDER }
+    edge{ TopLeft = {0, 0}, BottomLeft = {0, 0}, Width = PBORDER }
+    edge{ TopRight = {0, 0}, BottomRight = {0, 0}, Width = PBORDER }
+    return panel
+  end
+
+  local function fillGrid(panel, list, cols)
+    local rem = #list % cols                 -- icons in a short final row (0 = full)
+    local lastRow = ceil(#list / cols) - 1
+    for i, race in ipairs(list) do
+      local col, row = (i - 1) % cols, floor((i - 1) / cols)
+      -- Center the final row when it doesn't fill all columns.
+      local xshift = (rem > 0 and row == lastRow) and (cols - rem) * STEP / 2 or 0
+      raceIcon(panel, race, PANELPAD + col * STEP + xshift, PANELPAD + row * STEP)
+    end
+  end
+
+  local leftX = (GRIDW - (aW + PANELGAP + nW + PANELGAP + hW)) / 2
+
+  local aPanel = factionPanel(leftX, TOPGAP + (panelsH - aH) / 2, aW, aH, ALLIANCE_COLOR)
+  fillGrid(aPanel, alliance, AHCOLS)
+
+  -- Neutral: inverted pyramid — 2 on top, 1 centered below.
+  local nPanel = factionPanel(leftX + aW + PANELGAP, TOPGAP + (panelsH - nH) / 2, nW, nH, NEUTRAL_COLOR)
+  local pyramid = { {0, 0}, {1, 0}, {0.5, 1} }
+  for i, race in ipairs(neutral) do
+    local p = pyramid[i] or {i - 1, 0}
+    raceIcon(nPanel, race, PANELPAD + p[1] * STEP, PANELPAD + p[2] * STEP)
+  end
+
+  local hPanel = factionPanel(leftX + aW + PANELGAP + nW + PANELGAP, TOPGAP + (panelsH - hH) / 2, hW, hH, HORDE_COLOR)
+  fillGrid(hPanel, horde, AHCOLS)
 
   -- Class icon in the model's upper-left, mirroring the directional nav pad's
   -- upper-right placement and overall size. Boxed in a frame at navLvl so it draws
@@ -444,6 +509,12 @@ end
 -- (see _syncGenderToggle). The race's `scale` still corrects sizing.
 function DressingRoom:Dress()
   if not self._set then return end
+  -- The body always renders as the logged-in character's gender (it can't be
+  -- overridden), and the race defaults to theirs until one is picked. Seed both
+  -- here so a per-sex / per-race `scale` always resolves, regardless of how Dress
+  -- was reached (the open path doesn't always run _defaultToPlayer).
+  if not self._raceID then self._raceID = select(3, UnitRace("player")) end
+  self._sex = UnitSex("player")
   local m = self._model
   -- Multi-form races resolve through the selected form (for its `scale`); others
   -- are the entry itself.
@@ -649,9 +720,11 @@ ns.ShowDressingRoom = function(group, set, reverse)
   -- Track the grid's sort direction so the tier arrows match what the user sees.
   _room._reverse = reverse ~= false
 
-  -- Reset to the current character's race each time it opens fresh; clicking
-  -- another cell while it's already open keeps the chosen race.
-  if not _room._widget:IsShown() then _room:_defaultToPlayer() end
+  -- Reset to the current character's race on a fresh open — the first ever (no race
+  -- picked yet) or a reopen after closing; clicking another cell while it's already
+  -- open keeps the chosen race. The IsShown check alone misses the first open (the
+  -- frame is shown on creation), so also seed when `_raceID` is still unset.
+  if not _room._raceID or not _room._widget:IsShown() then _room:_defaultToPlayer() end
 
   _room:_load(group, set)
   _room:Show()
@@ -680,4 +753,17 @@ end
 ---@field PreviewModelScale fun(scale: number)
 ns.PreviewModelScale = function(scale)
   if _room and _room._widget:IsShown() then _room._scaleSlider:Value(scale) end
+end
+
+---Dev: dump the open preview's scale state, to tell a wrong value from a wrong
+---application (`/collected scale` with no arg).
+---@class Warbandeer_Collected
+---@field DebugDressScale fun()
+ns.DebugDressScale = function()
+  if not _room then ns.Print("dressing room not opened yet"); return end
+  local form = _room:_resolvedForm()
+  ns.Print(("raceID=%s sex=%s form.scale=%s | model:Scale()=%s | slider=%s | shown=%s"):format(
+    tostring(_room._raceID), tostring(_room._sex), tostring(form and form.scale),
+    tostring(_room._model:Scale()), tostring(_room._scaleSlider:Value()),
+    tostring(_room._widget:IsShown())))
 end
