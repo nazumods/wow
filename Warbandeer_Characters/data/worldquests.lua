@@ -30,7 +30,7 @@ local HaveQuestRewardData = HaveQuestRewardData
 -- zone children at scan time, so every current WQ zone is covered no matter which
 -- one the player stands in; older expansions are different continents and never
 -- scanned (their rewards can't be current-content upgrades anyway).
-local WQ_CONTINENTS = { 2274 } -- TODO confirm in-game: the Midnight WQ continent map ID
+local WQ_CONTINENTS = { 2537 } -- Quel'Thalas (Midnight); zone children = Eversong, Silvermoon, …
 
 -- World-quest gear tops out around the Adventurer reward track (ilvl ~220).  A
 -- character whose every equipped slot already meets that cap can't be upgraded by
