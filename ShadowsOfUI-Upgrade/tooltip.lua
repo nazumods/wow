@@ -81,6 +81,10 @@ end
 local function onItemTooltip(tooltip, data)
   if not data then return end
   if tooltip.IsForbidden and tooltip:IsForbidden() then return end
+  -- Opt-out hook: a consumer can set `tooltip.SkipUpgradeBlock = true` on its own
+  -- GameTooltip frame to suppress the block (e.g. Warbandeer's Detail view, which
+  -- shows the suggested upgrade as a side-by-side comparison instead).
+  if tooltip.SkipUpgradeBlock then return end
   if isEmbedded(tooltip) then return end
   -- Prefer the displayed link (carries bonus IDs → correct scaled ilvl).
   local link

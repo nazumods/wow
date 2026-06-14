@@ -50,6 +50,7 @@ ns.theme = ns.ui.Theme{
     caps     = {FONT .. "JetBrainsMono-Bold.ttf", 11}, -- rendered UPPERCASE for label-caps
     subcaps  = {FONT .. "JetBrainsMono-Bold.ttf", 8},  -- smaller label-caps for sub-lines
     body     = {FONT .. "Geist-Regular.ttf", 13},
+    bodySmall = {FONT .. "Geist-Regular.ttf", 11}, -- smaller body for sub-lines (e.g. gear upgrade hint)
     number   = {FONT .. "JetBrainsMono-SemiBold.ttf", 12}, -- fixed-width numerals for table columns
     statBig  = {FONT .. "JetBrainsMono-SemiBold.ttf", 20},
     stat     = {FONT .. "JetBrainsMono-SemiBold.ttf", 10},

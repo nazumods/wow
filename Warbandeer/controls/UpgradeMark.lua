@@ -31,6 +31,19 @@ function ns.UpgradeMark(charName, slot)
   return (r.where == "warband" or r.betterElsewhere) and WARBAND_ARROW or HELD_ARROW
 end
 
+---Suggested upgrade item for a slot, for display under the equipped item: its
+---link (carries name + rarity colour), the item-level gain over what's equipped,
+---and whether the best copy lives in the warband bank (gold) vs the character's
+---own bags/bank (green). Returns nil when there's no upgrade (or the addon's gone).
+---@param charName string
+---@param slot string
+---@return string? link, integer? ilvlGain, boolean? warband
+function ns.UpgradeSuggestion(charName, slot)
+  local r = slotUpgrade(charName, slot)
+  if not r then return nil end
+  return r.link, r.ilvlGain, (r.where == "warband" or r.betterElsewhere) or false
+end
+
 ---One-line hover description of a slot's available upgrade, or nil when none.
 ---@param charName string
 ---@param slot string

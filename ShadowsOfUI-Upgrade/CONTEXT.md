@@ -75,6 +75,11 @@ off-hand / 1H is not listed as an upgrade for a 2H wielder (only another 2H is).
 
 ## Gotchas
 
+- **`SkipUpgradeBlock` opt-out.** `tooltip.lua`'s post-call bails when the hovered
+  `GameTooltip` frame has `SkipUpgradeBlock = true`, so a consumer can suppress the
+  "Upgrade for:" block on its own private tooltip. Warbandeer's Detail view sets it on
+  `WarbandeerItemTooltip`/`WarbandeerItemCompareTooltip` (it shows the suggestion as a
+  side-by-side comparison instead). The standard `GameTooltip`/`ItemRefTooltip` never set it.
 - **Embedded reward tooltips are skipped.** `tooltip.lua`'s `isEmbedded` guard bails when
   `tooltip:GetParent().Tooltip == tooltip` — the signature of an `EmbeddedItemTooltip` container
   (it parents its inner tooltip back onto itself). This suppresses the "Upgrade for:" block on

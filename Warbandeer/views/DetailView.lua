@@ -12,11 +12,14 @@ local Colors = ns.Colors
 local BottomLeft, BottomRight = ui.edge.BottomLeft, ui.edge.BottomRight
 local BreakUpLargeNumbers = BreakUpLargeNumbers
 local C_TradeSkillUI = C_TradeSkillUI
+local GetItemInfo, select = GetItemInfo, select
 
 -- Wire a gear/prof-gear row for hover: a row highlight plus the shared item tooltip
 -- (`ns.ShowItemTooltip`). The row stores its current item link in `frame._itemLink`
--- (updated each time it's populated), so a single set of scripts survives row
--- pooling.
+-- and, for an equipped slot with a suggested upgrade, that upgrade's link in
+-- `frame._upgradeLink` (both updated each time it's populated), so a single set of
+-- scripts survives row pooling. We always suppress the "Upgrade for:" block here
+-- (the suggestion is shown as a side-by-side comparison instead).
 local function attachItemTip(frame)
   local hi = Texture:new{
     parent = frame, layer = ui.layer.Background, color = theme.colors.hover,
@@ -25,7 +28,7 @@ local function attachItemTip(frame)
   frame:EnableMouse(true)
   frame:SetScript("OnEnter", function()
     hi:Show()
-    if frame._itemLink then ns.ShowItemTooltip(frame, frame._itemLink) end
+    if frame._itemLink then ns.ShowItemTooltip(frame, frame._itemLink, frame._upgradeLink, true) end
   end)
   frame:SetScript("OnLeave", function()
     hi:Hide()
@@ -49,7 +52,8 @@ local PROF_HEADER_Y = CONTENT_TOP + STRIP_H + GAP -- professions header top
 
 -- ─── Gear list (right column) ─────────────────────────────────────────────────
 local GEAR_PAD = 12                             -- gear panel inner padding
-local GEAR_ROW_H = 20                           -- one gear row
+local GEAR_ROW_H = 20                           -- gear row head line (icon + name + ilvl + track)
+local GEAR_UP_H = 14                            -- extra height for the suggested-upgrade sub-line
 local GEAR_HEADER_GAP = 8                       -- header → first row
 local GEAR_ICON_W, GEAR_ICON_GAP = 18, 8        -- left slot-icon column / gap to name
 local GEAR_ILVL_W, GEAR_TRACK_W = 30, 28        -- right-aligned ilvl / track columns
@@ -87,6 +91,11 @@ local function rarityColor(link)
   local t = theme.colors.text
   return t[1], t[2], t[3]
 end
+
+-- Required character level of an item link (5th GetItemInfo return), or nil when
+-- the item isn't cached on this client (alt's bank/warband gear may not be).
+---@return integer?
+local function reqLevel(link) return link and select(5, GetItemInfo(link)) or nil end
 
 local VIEW_WIDTH = GEAR_X + gearPanelW(GEAR_NAME_MIN) + P
 
@@ -401,16 +410,19 @@ function DetailView:_gearRow(i)
   row = { frame = frame }
   attachItemTip(frame)
 
+  -- Head-line elements are centred on the top GEAR_ROW_H band of the frame, so a
+  -- row that grows taller for its upgrade sub-line keeps the item line at the top.
+  local headY = -GEAR_ROW_H / 2
   -- Slot icon pinned to the left (Warbandeer gear atlas; see _showGear).
   row.icon = Texture:new{
     parent = frame, layer = ui.layer.Artwork,
-    position = { Left = {frame, ui.edge.Left, 0, 0}, Width = GEAR_ICON_W, Height = GEAR_ICON_W },
+    position = { Left = {frame, ui.edge.TopLeft, 0, headY}, Width = GEAR_ICON_W, Height = GEAR_ICON_W },
   }
   -- Track badge pinned to the right, ilvl left of it, name fills the remaining space.
   row.track = Label:new{
     parent = frame, fontInfo = theme.fonts.stat, color = c.gold,
     justifyH = ui.justify.Right,
-    position = { Right = {frame, ui.edge.Right, 0, 0}, Width = GEAR_TRACK_W },
+    position = { Right = {frame, ui.edge.TopRight, 0, headY}, Width = GEAR_TRACK_W },
   }
   row.ilvl = Label:new{
     parent = frame, fontInfo = theme.fonts.stat,
@@ -425,12 +437,25 @@ function DetailView:_gearRow(i)
       Right = {row.ilvl, ui.edge.Left, -GEAR_COL_GAP, 0},
     },
   }
+  -- Suggested upgrade, smaller, beneath the item name (hidden when none). Spans the
+  -- name column out to the frame's right edge (name right + the ilvl/track extras),
+  -- both points level with the name's bottom so the line isn't vertically stretched.
+  row.upgrade = Label:new{
+    parent = frame, fontInfo = theme.fonts.bodySmall,
+    justifyH = ui.justify.Left, wordWrap = false,
+    position = {
+      TopLeft  = {row.name, BottomLeft, 0, -2},
+      TopRight = {row.name, BottomRight, GEAR_EXTRAS_W, -2},
+    },
+  }
 
   self._gearRows[i] = row
   return row
 end
 
 -- Populate a visible gear row for an equipped item. `slotKey` selects the slot icon.
+-- Returns the row's content height (taller when a suggested-upgrade sub-line shows).
+---@return number
 function DetailView:_showGear(i, item, slotKey)
   local row = self:_gearRow(i)
   -- Slot art from Warbandeer's gear atlas (one cell per slot, all slots covered).
@@ -439,9 +464,7 @@ function DetailView:_showGear(i, item, slotKey)
   row.icon:Coords(unpack(spec.coords))
   row.icon:Show()
   row.frame._itemLink = item.link
-  -- Append the available-upgrade glyph (no-op unless ShadowsOfUI-Upgrade is loaded);
-  -- the embedded colour code overrides the name's rarity vertex colour for the arrow.
-  row.name:Text((item.name or "") .. ns.UpgradeMark(self._char.name, slotKey)):Color(rarityColor(item.link))
+  row.name:Text(item.name or ""):Color(rarityColor(item.link))
   local ilvl = item.ilvl or 0
   row.ilvl:Text(tostring(ilvl)):Color(ns.IlvlColorObj(ilvl))
   if item.track and item.trackLevel and item.trackLevel > 0 then
@@ -449,7 +472,30 @@ function DetailView:_showGear(i, item, slotKey)
   else
     row.track:Text("")
   end
+
+  -- Suggested upgrade for this slot, on a smaller line beneath the item name,
+  -- mirroring the tooltip: the item link's own appearance ([Name] in rarity colour)
+  -- + the ilvl gain (tinted green held / gold warband-bank) + "@ lvl N" in red when
+  -- the item needs a level this character hasn't reached yet. The link is stashed on
+  -- the frame so the hover tooltip can show it beside the equipped item.
+  local upLink, upGain, upWarband = ns.UpgradeSuggestion(self._char.name, slotKey)
+  row.frame._upgradeLink = upLink
+  local h = GEAR_ROW_H
+  if upLink then
+    local text = upLink .. ("  +%d ilvl"):format(upGain or 0)
+    local req = reqLevel(upLink)
+    if req and req > (self._char.basic.level or 0) then
+      text = text .. ("  |cffff4040@ lvl %d|r"):format(req)
+    end
+    row.upgrade:Text(text):Color(upWarband and theme.colors.gold or theme.colors.green)
+    row.upgrade:Show()
+    h = h + GEAR_UP_H
+  else
+    row.upgrade:Text(""):Hide()  -- clear so a pooled row's stale width doesn't skew autosize
+  end
+  row.frame:Height(h)
   row.frame:Show()
+  return h
 end
 
 -- ─── Filter (character picker) ──────────────────────────────────────────────
@@ -587,14 +633,18 @@ function DetailView:OnBeforeShow()
   -- Gear list (right column): one row per equipped slot, in slot order. The name
   -- column autosizes to the longest equipped item name (clamped to a min/max).
   local slots = (char.equipment and char.equipment.slots) or {}
-  local g, maxNameW = 0, 0
+  local g, maxNameW, gearRowsH = 0, 0, 0
   for _, slotKey in ipairs(ns.gearSlots) do
     local item = slots[slotKey]
     if item then
       g = g + 1
-      self:_showGear(g, item, slotKey)
+      gearRowsH = gearRowsH + self:_showGear(g, item, slotKey)
       local w = self._gearRows[g].name:StringWidth()
       if w > maxNameW then maxNameW = w end
+      -- The upgrade sub-line starts under the name but may run into the ilvl/track
+      -- columns; widen the name column so it isn't truncated.
+      local uw = self._gearRows[g].upgrade:StringWidth() - GEAR_EXTRAS_W
+      if uw > maxNameW then maxNameW = uw end
     end
   end
   for j = g + 1, self._numGearRows do
@@ -614,7 +664,7 @@ function DetailView:OnBeforeShow()
 
   -- Right column height (gear panel).
   local gearH = GEAR_PAD + self.gearHeader:Height()
-  if g > 0 then gearH = gearH + GEAR_HEADER_GAP + g * GEAR_ROW_H end
+  if g > 0 then gearH = gearH + GEAR_HEADER_GAP + gearRowsH end
   gearH = gearH + GEAR_PAD
   self.gearPanel:Height(gearH)
   local rightH = CONTENT_TOP + gearH + P
