@@ -134,14 +134,15 @@ local INTENT_OPTIONS = {
   { key = "gatherer",  label = "Gatherer"     },
   { key = false,       label = "Unset"        },
 }
--- Bar fill tint per intent, so picking an intent recolours the bar. Unset reads as
--- a neutral grey track.
+-- Bar fill tint per intent, so picking an intent recolours the bar. Progression is
+-- independent of intent: an unset profession still shows a filled, warm-neutral bar
+-- (muted tan) so real skill reads as progressed; intent only overrides the tint.
 local INTENT_COLOR = {
   main      = theme.colors.orange,
   secondary = theme.colors.gold,
   gatherer  = theme.colors.green,
 }
-local function intentColor(intent) return INTENT_COLOR[intent] or theme.colors.track end
+local function intentColor(intent) return INTENT_COLOR[intent] or theme.colors.muted end
 
 -- ─── View ─────────────────────────────────────────────────────────────────────
 
