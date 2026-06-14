@@ -13,5 +13,5 @@ ns:registerCommand("wmissing", "", function(self)
     end
     text = table.concat(lines, "\n")
   end
-  ns.ui.ShowCopyWindow("Missing Data", text)
+  ns.ui.ToggleCopyWindow("Missing Data", text)
 end, "Show missing character data in a copyable window")

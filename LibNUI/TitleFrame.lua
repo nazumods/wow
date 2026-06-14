@@ -34,7 +34,7 @@ local TitleFrame = Class(CleanFrame, function(o)
     font = ui.fonts.SystemFont_Med2,
     fontInfo = theme.fonts.title,
     position = {
-      Left = {o.titlebar, 28, 0},
+      Left = {o.titlebar, 33, 0},   -- clear the 20px title icon (ends at x=26) with a small gap
     },
     text = o.title,
     justifyH = Left,

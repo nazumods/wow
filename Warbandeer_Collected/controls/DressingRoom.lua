@@ -16,7 +16,6 @@ local floor, ceil, max = math.floor, math.ceil, math.max
 local SELECTED = {0.85, 0.65, 0.13, 1}
 local IDLE     = {0.20, 0.20, 0.24, 1}
 local PANEL    = {0.05, 0.05, 0.06, 1}
-local DISABLED = {0.40, 0.40, 0.45, 1}   -- toggle label, locked/inert
 
 local COLS  = 13   -- 25 races wrap to two rows
 local CELL  = 40
@@ -47,10 +46,8 @@ end
 ---@class DressingRoom: TitleFrame
 ---@field _model Model  the 3D viewer
 ---@field _race table<number, { border: Texture }>  selection border per raceID
----@field _gender table<number, { border: Texture, label: Label }>  toggle parts per sex (2/3)
----@field _genderLocked boolean?  true when the race renders via the player-gender fallback (toggle inert)
 ---@field _raceID number?  selected chrRaceID
----@field _sex number?  selected sex (2 = male, 3 = female)
+---@field _sex number?  the logged-in character's sex (2 = male, 3 = female); the body can't be re-gendered
 ---@field _form number  selected form index for multi-form races (Worgen/Dracthyr); 1 = default
 ---@field _formButtons table[]  reusable form-toggle button pool ({ box, border, label })
 ---@field _scaleSlider Slider  model size slider (per-race correction + user resize)
@@ -59,9 +56,11 @@ end
 ---@field _bgBorder Texture  Background-toggle border (gold while active)
 ---@field _bgEnabled boolean  whether the backdrop is shown
 ---@field _bgClass string?  current class file for the backdrop (remembered for the toggle)
+---@field _bgRetries number?  remaining backdrop-atlas load retries
 ---@field _group table?  the set-group the previewed set belongs to (Step cycles its sets)
 ---@field _set table?  the set entry currently previewed
----@field _classIcon Texture  title-bar class icon for the current set
+---@field _classIcon Texture  class icon in the model's upper-left (mirrors the nav pad)
+---@field _className string?  localized class name for the icon's hover tooltip
 ---@field _undressed boolean?  hide the set to show the bare race body
 ---@field _undressBorder Texture  undress-toggle border (gold while active)
 ---@field _slots table[]  paper-doll slot entries ({ slotID, icon, border, itemID? })
@@ -77,8 +76,8 @@ DressingRoom = Class(TitleFrame, function(self)
   local races = ns.PlayableRaces()
   local rows = ceil(#races / COLS)
   local gridH = rows * STEP
-  -- two stacked toggle rows (undress, gender) above the race grid
-  local controlsH = 2 * TOPGAP + gridH
+  -- one toggle row (Undress / Background) above the race grid
+  local controlsH = TOPGAP + gridH
   local winW = max(WINW, GRIDW + 12)
 
   -- Bottom controls strip: toggle rows + wrapped race-icon grid, centered under
@@ -120,16 +119,26 @@ DressingRoom = Class(TitleFrame, function(self)
   -- Paper-doll slot columns, each vertically centered alongside the model.
   self:_buildSlots(winW)
 
-  -- Form toggle: a small floating button row at the top-left of the model, shown
-  -- only for two-form races (Worgen/Dracthyr). A reusable pool sized to the most
-  -- forms any race has; _setupForms relabels + shows the ones the race uses.
+  -- Shared on-model overlay geometry: the directional nav pad (upper-right) is a
+  -- PADB cross; the class icon (upper-left) mirrors its NAVSPAN footprint, and both
+  -- sit at navLvl so the mouse-enabled ModelScene doesn't hide/eat them. The form
+  -- buttons tuck just under the class icon.
+  local PADB, PADGAP = 24, 2
+  local NAVSPAN = 3 * PADB + 2 * PADGAP   -- nav-cross bounding box (mirrored by the class icon)
+  local INSET = 8                          -- corner inset from the model edge
+  local navLvl = self._model:Level() + 10
+
+  -- Form toggle: a small floating button row under the class icon, shown only for
+  -- two-form races (Worgen/Dracthyr). A reusable pool sized to the most forms any
+  -- race has; _setupForms relabels + shows the ones the race uses.
   self._form = 1
   self._formButtons = {}
   local FORMW = 80
   for i = 1, 2 do
     local box = Frame:new{
       parent = self,
-      position = { TopLeft = {self._model, ui.edge.TopLeft, 8 + (i - 1) * (FORMW + 4), -8},
+      position = { TopLeft = {self._model, ui.edge.TopLeft,
+                     INSET + (i - 1) * (FORMW + 4), -(INSET + NAVSPAN + 4)},
                    Width = FORMW, Height = ROWH },
     }
     local border = selBox(box)
@@ -188,33 +197,20 @@ DressingRoom = Class(TitleFrame, function(self)
   Label:new{ parent = bgBox, justifyH = ui.justify.Center,
     position = { Left = {6, 0}, Right = {-6, 0} }, text = "Background" }
 
-  -- Gender toggle (two buttons), second row.
-  self._gender = {}
-  for i, info in ipairs({ {2, "Male"}, {3, "Female"} }) do
-    local sex, text = info[1], info[2]
-    local box = Frame:new{
-      parent = controls,
-      position = { TopLeft = {(i - 1) * (half + PAD), -TOPGAP}, Width = half, Height = ROWH },
-    }
-    local border = selBox(box)
-    Button:new{ parent = box, position = { All = true }, glow = false,
-      OnClick = function() self:SetSex(sex) end }
-    local label = Label:new{ parent = box, justifyH = ui.justify.Center,
-      position = { Left = {6, 0}, Right = {-6, 0} }, text = text }
-    self._gender[sex] = { border = border, label = label }
-  end
-
-  -- Race grid below the toggle rows.
+  -- Race grid below the toggle row. Icons match the logged-in character's gender
+  -- (the previewed body renders in that gender), falling back to a name stub for any
+  -- race that lacks a gendered raceicon atlas.
+  local iconSex = UnitSex("player") == 3 and "female" or "male"
   self._race = {}
   for idx, race in ipairs(races) do
     local col, row = (idx - 1) % COLS, floor((idx - 1) / COLS)
     local box = Frame:new{
       parent = controls,
-      position = { TopLeft = {col * STEP, -(2 * TOPGAP + row * STEP)}, Width = CELL, Height = CELL },
+      position = { TopLeft = {col * STEP, -(TOPGAP + row * STEP)}, Width = CELL, Height = CELL },
     }
     self._race[race.id] = { border = selBox(box) }
 
-    local atlas = "raceicon-" .. race.file .. "-male"
+    local atlas = "raceicon-" .. race.file .. "-" .. iconSex
     if GetAtlasInfo(atlas) then
       Texture:new{ parent = box, layer = ui.layer.Artwork, atlas = atlas, atlasSize = false,
         position = { TopLeft = {2, -2}, BottomRight = {-2, 2} } }
@@ -232,31 +228,59 @@ DressingRoom = Class(TitleFrame, function(self)
     btn._widget:SetScript("OnLeave", function() GameTooltip:Hide() end)
   end
 
-  -- Set-navigation arrows + class icon in the title bar, left of the close
-  -- button. Step() cycles the current group's class sets (skipping empty slots),
-  -- so a whole tier can be browsed without reopening from the grid.
-  local function navArrow(anchor, dir, glyph)
+  -- Class icon in the model's upper-left, mirroring the directional nav pad's
+  -- upper-right placement and overall size. Boxed in a frame at navLvl so it draws
+  -- above the ModelScene (a bare titlebar/self texture would sit behind it).
+  local classBox = Frame:new{
+    parent = self,
+    position = { TopLeft = {self._model, ui.edge.TopLeft, INSET, -INSET}, Size = {NAVSPAN, NAVSPAN} },
+  }
+  classBox:Level(navLvl)
+  self._classIcon = Texture:new{
+    parent = classBox, layer = ui.layer.Artwork,
+    position = { All = true },
+  }
+  -- Hover tooltip naming the class (matches the race icons). _className is set by
+  -- _showClass; skip when there's no class icon to describe.
+  classBox._widget:EnableMouse(true)
+  classBox._widget:SetScript("OnEnter", function(f)
+    if not self._className then return end
+    GameTooltip:SetOwner(f, "ANCHOR_RIGHT")
+    GameTooltip:SetText(self._className)
+    GameTooltip:Show()
+  end)
+  classBox._widget:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+  -- Directional nav pad in the model's upper-right corner: Left/Right cycle the
+  -- group's class sets (skipping empty slots), Up/Down cycle the raid's difficulty
+  -- tiers — same as the arrow keys. Parented to self and lifted above the
+  -- mouse-enabled ModelScene (which would otherwise eat the clicks) so the buttons
+  -- are clickable, matching the form buttons / scale slider.
+  local function navButton(col, row, glyph, onClick)
     local box = Frame:new{
-      parent = self.titlebar,
-      position = { Right = {anchor, ui.edge.Left, -2, 0}, Width = 22, Height = 20 },
+      parent = self,
+      position = {
+        TopRight = {self._model, ui.edge.TopRight,
+          -((2 - col) * (PADB + PADGAP) + INSET), -(row * (PADB + PADGAP) + INSET)},
+        Width = PADB, Height = PADB,
+      },
     }
     selBox(box)
-    Button:new{ parent = box, position = { All = true }, glow = false,
-      OnClick = function() self:Step(dir) end }
+    Button:new{ parent = box, position = { All = true }, glow = false, OnClick = onClick }
     Label:new{ parent = box, justifyH = ui.justify.Center, fontObj = "GameFontNormalLarge",
       position = { Left = {1, 0}, Right = {-1, 0} }, text = glyph }
+    box:Level(navLvl)
     return box
   end
-  local nextBox = navArrow(self.closeButton, 1, ">")
-  local prevBox = navArrow(nextBox, -1, "<")
-  self._classIcon = Texture:new{
-    parent = self.titlebar, layer = ui.layer.Artwork,
-    position = { Right = {prevBox, ui.edge.Left, -6, 0}, Size = {20, 20} },
-  }
+  navButton(1, 0, "^", function() self:StepTier(-1) end)  -- up = previous tier
+  navButton(0, 1, "<", function() self:Step(-1) end)
+  navButton(2, 1, ">", function() self:Step(1) end)
+  navButton(1, 2, "v", function() self:StepTier(1) end)   -- down = next tier
 
-  -- Left/Right arrows mirror the title-bar nav arrows while the window is open.
-  -- Every other key is propagated, so default keybindings (and Escape, via the
-  -- `special` registration) keep working.
+  -- Left/Right cycle the class sets, Up/Down cycle difficulty tiers (mirroring the
+  -- on-model nav pad); Up/Down call StepTier. Every other key is
+  -- propagated, so default keybindings (and Escape, via the `special` registration)
+  -- keep working.
   self._widget:EnableKeyboard(true)
   self._widget:SetScript("OnKeyDown", function(f, key)
     if key == "LEFT" then
@@ -265,6 +289,12 @@ DressingRoom = Class(TitleFrame, function(self)
     elseif key == "RIGHT" then
       f:SetPropagateKeyboardInput(false)
       self:Step(1)
+    elseif key == "UP" then
+      f:SetPropagateKeyboardInput(false)
+      self:StepTier(-1)
+    elseif key == "DOWN" then
+      f:SetPropagateKeyboardInput(false)
+      self:StepTier(1)
     else
       f:SetPropagateKeyboardInput(true)
     end
@@ -298,12 +328,6 @@ function DressingRoom:_highlightRace(raceID)
   if self._race[raceID] then self._race[raceID].border:Color(SELECTED) end
 end
 
----@param sex number  2 = male, 3 = female
-function DressingRoom:_highlightSex(sex)
-  if self._sex and self._gender[self._sex] then self._gender[self._sex].border:Color(IDLE) end
-  if self._gender[sex] then self._gender[sex].border:Color(SELECTED) end
-end
-
 -- The race's resolved RaceModels entry for the current form (multi-form races
 -- read through the selected form; single-form races are the entry itself).
 ---@return table?
@@ -312,25 +336,12 @@ function DressingRoom:_resolvedForm()
   return entry and (entry.forms and entry.forms[self._form] or entry)
 end
 
--- The Male/Female toggle is always inert: a dressable body (needed to show the set
--- and to undress) renders through the player-unit path, whose gender follows the
--- logged-in character — and WoW exposes no gender override for it. So the toggle is
--- pinned to the char's gender and greyed to show it. Kept (greyed) rather than
--- removed so the constraint is visible. Call on open / race / form change.
-function DressingRoom:_syncGenderToggle()
-  self._genderLocked = true
-  self:_highlightSex(UnitSex("player"))
-  self._sex = UnitSex("player")
-  for _, g in pairs(self._gender) do g.label:Color(DISABLED) end
-end
-
 ---@param raceID number
 function DressingRoom:SetRace(raceID)
   if self._raceID == raceID then return end
   self:_highlightRace(raceID)
   self._raceID = raceID
   self:_setupForms(ns.RaceModels[raceID])
-  self:_syncGenderToggle()
   self:Dress()
 end
 
@@ -358,17 +369,9 @@ function DressingRoom:SetForm(i)
   if self._form == i then return end
   self._form = i
   self:_highlightForm(i)
-  self:_syncGenderToggle()
   self:Dress()
 end
 
----@param sex number  2 = male, 3 = female
-function DressingRoom:SetSex(sex)
-  if self._genderLocked or self._sex == sex then return end
-  self:_highlightSex(sex)
-  self._sex = sex
-  self:Dress()
-end
 
 ---@param undressed boolean  true to strip the set off the model
 function DressingRoom:SetUndressed(undressed)
@@ -399,16 +402,21 @@ function DressingRoom:Dress()
   end
   m:Outfit(sources)
 
-  -- A form may override the render race (Worgen's "Human" form → race 1, rendered
-  -- as a plain Human); otherwise render the selected race.
-  m:Unit("player", (form and form.race) or self._raceID)
-
-  -- `scale` may be a number (both genders) or a per-sex table { [2]=, [3]= }.
+  -- Set the scale BEFORE the re-skin: `Model:Unit` arms the re-apply machinery
+  -- (load callback + backstop) right then, and a synchronous load (e.g. the
+  -- logged-in character's own race on first open, already in memory) re-applies
+  -- immediately — so `_scale` must already be correct or the model renders at the
+  -- previous/default size until the next race change. `scale` may be a number (both
+  -- genders) or a per-sex table { [2]=, [3]= }.
   local scale = form and form.scale
   if type(scale) == "table" then scale = scale[self._sex] end
   scale = scale or 1
-  m:Scale(scale)                  -- per-race size correction; re-apply post re-skin
+  m:Scale(scale)                  -- per-race size correction; re-applied post re-skin
   self._scaleSlider:Value(scale)  -- reflect the race's scale in the slider/readout
+
+  -- A form may override the render race (Worgen's "Human" form → race 1, rendered
+  -- as a plain Human); otherwise render the selected race.
+  m:Unit("player", (form and form.race) or self._raceID)
 end
 
 -- Point the title-bar class icon at the class in column `classId` (hidden if the
@@ -417,8 +425,9 @@ end
 -- (which is only populated for the earliest groups).
 ---@param classId number?
 function DressingRoom:_showClass(classId)
-  local file
-  if classId then file = select(2, GetClassInfo(classId)) end
+  local name, file
+  if classId then name, file = GetClassInfo(classId) end
+  self._className = name   -- localized class name for the icon's hover tooltip
   local lower = file and file:lower()
   local atlas = lower and ("classicon-" .. lower)
   if atlas and GetAtlasInfo(atlas) then
@@ -430,18 +439,37 @@ function DressingRoom:_showClass(classId)
   self:_setBackground(lower)   -- class-themed model backdrop
 end
 
--- Point the model backdrop at the class's dressing-room background (hidden when
--- the toggle is off or the class/atlas is unknown). Remembers the class so the
--- Background toggle can re-show it.
+-- Point the model backdrop at the class's dressing-room background (hidden when the
+-- toggle is off). Setting the atlas once on a class change is hit-or-miss — it
+-- renders blank while the texture streams in (and `GetAtlasInfo` can briefly read
+-- nil) — so `_applyBackground` re-asserts it on a short timer across a ~0.6s window
+-- (each `Atlas` call forces a render refresh), catching it whenever it resolves.
 ---@param classFile string?  lowercased class file (e.g. "warrior")
 function DressingRoom:_setBackground(classFile)
   self._bgClass = classFile
-  local atlas = classFile and ("dressingroom-background-" .. classFile)
-  if self._bgEnabled and atlas and GetAtlasInfo(atlas) then
-    self._bg:Atlas(atlas, false)   -- false = stretch to the model rect
-    self._bg:Show()
+  if self._bgEnabled and classFile then
+    self._bgRetries = 12               -- ~0.6s of re-asserts while the texture loads
+    self:_applyBackground(classFile)
   else
     self._bg:Hide()
+  end
+end
+
+-- Re-assert the class backdrop, re-running on a 50ms timer across the retry window
+-- (not stopping at the first success — the texture can still render blank for a
+-- frame or two after the atlas resolves). Bails if the class changed underneath us
+-- or the toggle went off, so a stale tick can't reveal the wrong/old backdrop.
+---@param classFile string  lowercased class file
+function DressingRoom:_applyBackground(classFile)
+  if self._bgClass ~= classFile or not self._bgEnabled then return end
+  local atlas = "dressingroom-background-" .. classFile
+  if GetAtlasInfo(atlas) then
+    self._bg:Atlas(atlas, false)   -- false = stretch to the model rect; re-assert forces a refresh
+    self._bg:Show()
+  end
+  if self._bgRetries > 0 then
+    self._bgRetries = self._bgRetries - 1
+    self:delay(50, function() self:_applyBackground(classFile) end)
   end
 end
 
@@ -486,6 +514,50 @@ function DressingRoom:Step(dir)
   end
 end
 
+-- Switch to the same class set in a sibling difficulty tier of the current raid,
+-- keeping the class column. Sibling tiers are the ns.Sets groups that share this
+-- group's base id (e.g. Hellfire Citadel Normal/Heroic/Mythic all id 28); they sit
+-- in difficulty order in the data. Wraps; no-op for a single-tier raid. Falls back
+-- to the tier's first real set if it lacks the current class column.
+---@param dir number  +1 = next tier, -1 = previous tier
+function DressingRoom:StepTier(dir)
+  if not self._group then return end
+  local sibs, cur = {}, nil
+  for _, g in ipairs(ns.Sets) do
+    if g.id == self._group.id then
+      sibs[#sibs + 1] = g
+      if g == self._group then cur = #sibs end
+    end
+  end
+  if not cur or #sibs < 2 then return end
+
+  -- Current class column = the set's index within its group's positional sets.
+  local col
+  for i = 1, #self._group.sets do if self._group.sets[i] == self._set then col = i; break end end
+
+  for _ = 1, #sibs do
+    cur = (cur - 1 + dir) % #sibs + 1
+    local g = sibs[cur]
+    local s = col and g.sets[col]
+    if not (s and s.id) then
+      for i = 1, #g.sets do if g.sets[i] and g.sets[i].id then s = g.sets[i]; break end end
+    end
+    if s and s.id then return self:_load(g, s) end
+  end
+end
+
+-- Select the logged-in character's race + gender. Called when the window opens
+-- from a closed state, so each fresh open starts on the current character (while
+-- it's open, the user's race picks stick). Set before _load so its Dress() renders
+-- the right race/gender immediately.
+function DressingRoom:_defaultToPlayer()
+  local _, _, raceID = UnitRace("player")
+  self:_highlightRace(raceID)
+  self._raceID = raceID
+  self._sex = UnitSex("player")   -- body gender is locked to the char; used for per-sex scale
+  self:_setupForms(ns.RaceModels[raceID])
+end
+
 local _room
 
 ---Open the shared dressing room previewing a class set on a selectable race/gender.
@@ -494,18 +566,9 @@ local _room
 ns.ShowDressingRoom = function(group, set)
   if not _room then _room = DressingRoom:new{} end
 
-  -- Default to the logged-in character on first open; keep the user's choice after.
-  -- Set before _load so its Dress() renders the right race/gender immediately.
-  if not _room._raceID then
-    local _, _, raceID = UnitRace("player")
-    _room:_highlightRace(raceID)
-    _room._raceID = raceID
-    local sex = UnitSex("player")
-    _room:_highlightSex(sex)
-    _room._sex = sex
-    _room:_setupForms(ns.RaceModels[raceID])
-    _room:_syncGenderToggle()
-  end
+  -- Reset to the current character's race each time it opens fresh; clicking
+  -- another cell while it's already open keeps the chosen race.
+  if not _room._widget:IsShown() then _room:_defaultToPlayer() end
 
   _room:_load(group, set)
   _room:Show()
