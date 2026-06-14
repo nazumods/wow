@@ -64,8 +64,9 @@ end
 ---(defined in `controls/DressingRoom.lua`, after this file loads).
 ---@param group table  a group entry from `ns.Sets`
 ---@param set table    a set entry within that group
-function API:ShowDressingRoom(group, set)
-  ns.ShowDressingRoom(group, set)
+---@param reverse boolean?  the caller's grid sort (newest-first when true) so the tier Up/Down nav matches the on-screen order
+function API:ShowDressingRoom(group, set, reverse)
+  ns.ShowDressingRoom(group, set, reverse)
 end
 
 ---Hide the shared dressing room (no-op if never opened).

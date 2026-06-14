@@ -94,7 +94,7 @@ end, {
           })
         end
         local onLeave = function() ns.HideInfoTip() end
-        local onClick = function() ns.ShowDressingRoom(grp, set) end
+        local onClick = function() ns.ShowDressingRoom(grp, set, self._reverse) end
         if isComplete(status) then
           return {
             atlas = GreenCheck.atlas, atlasSize = GreenCheck.atlasSize,
