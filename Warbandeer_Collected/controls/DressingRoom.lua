@@ -377,16 +377,21 @@ function DressingRoom:Dress()
   end
   m:Outfit(sources)
 
-  -- A form may override the render race (Worgen's "Human" form → race 1, rendered
-  -- as a plain Human); otherwise render the selected race.
-  m:Unit("player", (form and form.race) or self._raceID)
-
-  -- `scale` may be a number (both genders) or a per-sex table { [2]=, [3]= }.
+  -- Set the scale BEFORE the re-skin: `Model:Unit` arms the re-apply machinery
+  -- (load callback + backstop) right then, and a synchronous load (e.g. the
+  -- logged-in character's own race on first open, already in memory) re-applies
+  -- immediately — so `_scale` must already be correct or the model renders at the
+  -- previous/default size until the next race change. `scale` may be a number (both
+  -- genders) or a per-sex table { [2]=, [3]= }.
   local scale = form and form.scale
   if type(scale) == "table" then scale = scale[self._sex] end
   scale = scale or 1
-  m:Scale(scale)                  -- per-race size correction; re-apply post re-skin
+  m:Scale(scale)                  -- per-race size correction; re-applied post re-skin
   self._scaleSlider:Value(scale)  -- reflect the race's scale in the slider/readout
+
+  -- A form may override the render race (Worgen's "Human" form → race 1, rendered
+  -- as a plain Human); otherwise render the selected race.
+  m:Unit("player", (form and form.race) or self._raceID)
 end
 
 -- Point the title-bar class icon at the class in column `classId` (hidden if the
