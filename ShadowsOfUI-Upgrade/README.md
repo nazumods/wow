@@ -21,10 +21,12 @@ isn't really empty, so a stray off-hand or one-hander on its own is **not** coun
 for them. Only a **better two-hander**, or a **main-hand + off-hand pair** whose combined item
 level beats the two-hander, is suggested (both halves are marked as part of the swap).
 
-Item level is the gate. On top of that, the item's secondary stats are checked against the
-character's spec stat priority and tagged **good stats** (it carries a top-priority stat) or
-**off-stats**. The stat priorities are a small built-in table (derived from current PvE
-secondary-stat weightings), so this addon is **fully standalone** — no other addon is needed.
+Item level is the gate, but gear carrying the **wrong primary stat** for the spec is skipped
+first — an Intellect dagger is rogue-equippable but useless, so it's never offered as an upgrade.
+On top of that, the item's secondary stats are checked against the character's spec stat priority
+and tagged **good stats** (it carries a top-priority stat) or **off-stats**. The stat priorities
+are a small built-in table (derived from current PvE secondary-stat weightings), so this addon is
+**fully standalone** — no other addon is needed.
 
 ## Held vs. better elsewhere
 

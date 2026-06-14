@@ -39,3 +39,20 @@ function ns.StatRanks(charData)
   local byClass = ns.StatPriority[hit.token]
   return byClass and byClass[hit.index]
 end
+
+---Primary stat token ("str" | "agi" | "int") for a character's spec, or nil if its
+---spec/primary isn't known (no stored spec ID, or a spec absent from
+---ns.ClassPrimary).  Used to gate out wrong-primary-stat gear (an Intellect dagger
+---for a Rogue, etc.).
+---@param charData Character
+---@return string?
+function ns.PrimaryStat(charData)
+  local specID = charData and charData.basic and charData.basic.specialization
+                 and charData.basic.specialization.id
+  if not specID then return nil end
+  specIdMap = specIdMap or buildSpecMap()
+  local hit = specIdMap[specID]
+  if not hit then return nil end
+  local byClass = ns.ClassPrimary[hit.token]
+  return byClass and byClass[hit.index]
+end

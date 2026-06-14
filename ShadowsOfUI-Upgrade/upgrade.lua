@@ -19,6 +19,34 @@ local STAT_MOD = {
 }
 local VERS_MODS = { "ITEM_MOD_VERSATILITY", "ITEM_MOD_CR_VERSATILITY_DAMAGE_DONE_SHORT" }
 
+-- Primary-stat → GetItemStats key.  ITEM_MOD_AGI_STR_INT_SHORT is the flexible
+-- "to your highest stat" primary, which fits every spec.
+local PRIMARY_MOD = {
+  str = "ITEM_MOD_STRENGTH_SHORT",
+  agi = "ITEM_MOD_AGILITY_SHORT",
+  int = "ITEM_MOD_INTELLECT_SHORT",
+}
+local FLEX_PRIMARY = "ITEM_MOD_AGI_STR_INT_SHORT"
+
+-- Reject an item carrying the wrong primary stat for the spec (the gap class
+-- proficiency leaves open — e.g. an Intellect dagger is rogue-equippable but
+-- useless).  Permissive on the unknowns: passes when the spec's primary is
+-- unknown, the item's stats aren't loaded, it carries no primary at all
+-- (rings/necks/cloaks/off-hands — universal), it has the flexible all-stat
+-- primary, or it carries the wanted one.  Only an item with some OTHER primary
+-- and not the wanted one is rejected.
+local function primaryFits(link, want)
+  if not want or not link or not GetItemStats then return true end
+  local stats = GetItemStats(link)
+  if not stats then return true end
+  if (stats[FLEX_PRIMARY] or 0) > 0 then return true end
+  if (stats[PRIMARY_MOD[want]] or 0) > 0 then return true end
+  for stat, mod in pairs(PRIMARY_MOD) do
+    if stat ~= want and (stats[mod] or 0) > 0 then return false end
+  end
+  return true
+end
+
 ---@class UpgradeResult
 ---@field slot string equipment slot the item would replace (the weaker one for rings/trinkets)
 ---@field link string candidate item link
@@ -69,6 +97,7 @@ local function evaluate(charData, cand)
   local slots = ns.CompetingSlots(equipLoc)
   if not slots then return nil end
   if not ns.CanEquip(charData.classKey, equipLoc, classID, subClassID) then return nil end
+  if not primaryFits(cand.link, ns.PrimaryStat(charData)) then return nil end
 
   local candIlvl = cand.ilvl or (cand.link and GetDetailedItemLevelInfo(cand.link))
   if not candIlvl then return nil end
@@ -123,6 +152,7 @@ end
 -- entries straight into `out` (the per-slot pass skipped them for this character).
 local function resolveTwoHand(charData, pools, warband, equipped, ranks, out)
   local mhIlvl = equipped.MainHand.ilvl or 0
+  local primary = ns.PrimaryStat(charData)
 
   -- Best equippable candidate per weapon role, held vs warband.
   local acc = { mh1h = {}, mh2h = {}, off = {} }
@@ -131,7 +161,8 @@ local function resolveTwoHand(charData, pools, warband, equipped, ranks, out)
     for _, cand in ipairs(cands) do
       local equipLoc, classID, subClassID = candInfo(cand)
       local role = equipLoc and ns.WeaponRole(equipLoc)
-      if role and ns.CanEquip(charData.classKey, equipLoc, classID, subClassID) then
+      if role and ns.CanEquip(charData.classKey, equipLoc, classID, subClassID)
+          and primaryFits(cand.link, primary) then
         local ilvl = cand.ilvl or (cand.link and GetDetailedItemLevelInfo(cand.link))
         local b = acc[role]
         if ilvl and (not b[k] or ilvl > b[k].ilvl) then b[k] = { link = cand.link, ilvl = ilvl } end

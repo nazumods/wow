@@ -9,6 +9,7 @@
 core.lua
 
 data/statpriority.lua
+data/primarystat.lua
 data/classgear.lua
 
 resolve.lua

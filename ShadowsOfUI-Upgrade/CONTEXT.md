@@ -14,8 +14,9 @@ addon is fully standalone.
 |---|---|
 | `core.lua` | Bootstrap. `ns.api` = `WarbandeerApi` (X-NUI-API, consumed); creates + publishes the global `ShadowsOfUI_UpgradeApi` (`ns.UpgradeApi`); seeds `ns.StatPriority` |
 | `data/statpriority.lua` | `ns.StatPriority[classToken] = { [specIndex] = { crit, haste, mastery, versatility } }` = stat→tier (1 = top), each class an array in `GetSpecialization()` index order. Precomputed offline from PvE secondary-stat weightings (ties within ~15% share a tier); the only stat data the addon carries |
+| `data/primarystat.lua` | `ns.ClassPrimary[classToken] = { [specIndex] = "str"\|"agi"\|"int" }` — primary stat per spec, same array layout as `ns.StatPriority`. Gates out wrong-primary gear (an Intellect dagger for a Rogue) that class proficiency alone lets through |
 | `data/classgear.lua` | `ns.ClassGear[classKey] = { shield, weapons = {[subClassID]=true} }` — bundled weapon/shield proficiency baseline (armour *type* comes from `ns.wow.Armor.byClass`, not repeated here) |
-| `resolve.lua` | `ns.StatRanks(charData)` → the spec's `{stat=tier}` table (or nil), via a lazily-built `specID → {token, index}` map (`GetSpecializationInfoForClassID`) indexing straight into `ns.StatPriority` |
+| `resolve.lua` | `ns.StatRanks(charData)` → the spec's `{stat=tier}` table (or nil); `ns.PrimaryStat(charData)` → `"str"`/`"agi"`/`"int"` (or nil). Both via a lazily-built `specID → {token, index}` map (`GetSpecializationInfoForClassID`) indexing into `ns.StatPriority` / `ns.ClassPrimary` |
 | `equip.lua` | `ns.CompetingSlots(equipLoc)` → equipment-slot names an item contests; `ns.CanEquip(classKey, equipLoc, classID, subClassID)` → armour-type / shield / weapon-proficiency check; `ns.IsTwoHand(equipLoc)` + `ns.WeaponRole(equipLoc)` → `"mh1h"`/`"mh2h"`/`"off"`/nil for the 2H ↔ dual-wield reconciliation |
 | `upgrade.lua` | Core logic + the published `ShadowsOfUI_UpgradeApi` methods |
 | `tooltip.lua` | `TooltipDataProcessor.AddTooltipPostCall(Item)` "Upgrade for:" block; `/supgrade [name]` dev dump |
@@ -42,9 +43,12 @@ MainHand/OffHand result is half of a 2H → (1H + off-hand) swap (see Algorithm)
 ## Algorithm (`upgrade.lua`)
 
 Per (character, candidate item): `WarbandeerApi:ClassifyGearItem`/stored fields give
-equipLoc/classID/subClassID → `CanEquip` (class proficiency) → `CompetingSlots` → upgrade iff
-candidate ilvl > the **lowest** equipped ilvl among competing slots (an empty slot = 0, so
-always an upgrade). Stat tag is lazy: `C_Item.GetItemStats(link)` mapped to crit/haste/mastery/
+equipLoc/classID/subClassID → `CanEquip` (class proficiency) → `primaryFits` (primary-stat
+match via `ns.PrimaryStat`) → `CompetingSlots` → upgrade iff candidate ilvl > the **lowest**
+equipped ilvl among competing slots (an empty slot = 0, so always an upgrade). `primaryFits`
+reads `GetItemStats` and rejects only an item that carries some *other* primary (str/agi/int) and
+not the spec's — items with no primary (rings/necks/cloaks/most off-hands), the flexible all-stat
+primary, or unknown spec/stats pass through. Stat tag is lazy: `C_Item.GetItemStats(link)` mapped to crit/haste/mastery/
 vers, looked up against the spec's `ns.StatPriority` tiers (`ns.StatRanks`); the item is `good`
 if it carries a tier-1 secondary, else `off`. `computeUpgrades` aggregates the best held vs
 warband candidate per slot (via `pickHeadline`); the warband one wins (and sets `betterElsewhere`)

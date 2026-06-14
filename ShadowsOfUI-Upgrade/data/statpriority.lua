@@ -1,4 +1,4 @@
----@type ShadowsOfUI_Upgrade
+---@class ShadowsOfUI_Upgrade
 local ns = select(2, ...)
 
 -- Secondary-stat priority per spec, as tiers (1 = highest priority).  This is all
@@ -8,6 +8,7 @@ local ns = select(2, ...)
 -- at runtime.  Each class is an array in GetSpecialization() index order, so a
 -- character resolves by (classToken, spec index) — no spec-name lookup table is
 -- needed (the trailing comment is just for humans).  Refresh each season.
+---@type table<string, table<string, integer>[]>
 ns.StatPriority = {}
 
 ns.StatPriority["DEATHKNIGHT"] = {
