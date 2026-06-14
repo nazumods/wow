@@ -49,6 +49,7 @@ views\summaryCol\lumber.lua
 views\summaryCol\cofferKey.lua
 views\summaryCol\fieldaccolade.lua
 views\summaryCol\caches.lua
+views\summaryCol\xp.lua
 views\summaryCol\rested.lua
 views\summaryCol\played.lua
 views\summaryCol\gold.lua
