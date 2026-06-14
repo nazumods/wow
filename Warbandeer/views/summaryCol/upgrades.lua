@@ -17,7 +17,8 @@ local WARBAND = theme.colors.gold
 local getUpgrades = function(toon)
   local list = ShadowsOfUI_UpgradeApi:CharacterUpgrades(toon.name)
   local n = #list
-  if n == 0 then return { text = "", justifyH = ui.justify.Right } end
+  -- no upgrades available reads as a muted em-dash (n/a)
+  if n == 0 then return ns.ZeroDash end
 
   -- Pre-build hover lines: "Slot  +N (where[, stats])", best gains first.
   local lines = {}

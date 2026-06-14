@@ -16,7 +16,8 @@ table.insert(
     },
     getData = function(t)
       local k = t.weeklies and t.weeklies.keystone
-      if not k then return "" end
+      -- no key at max level reads as a muted em-dash; below-max stays empty
+      if not k then return t.basic.level >= ns.wow.maxLevel and ns.ZeroDash or "" end
       return {text = "+"..k, justifyH = ui.justify.Right}
     end,
   }

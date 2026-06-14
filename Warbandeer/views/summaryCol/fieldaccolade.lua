@@ -16,7 +16,8 @@ table.insert(
     tooltip = {"Field Accolade", "Field Accolades held."},
     getData = function(t)
       local qty = t.currency and t.currency.FieldAccolade or 0
-      if qty == 0 then return "" end
+      -- known 0 at max level reads as a muted em-dash; below-max stays empty
+      if qty == 0 then return t.basic.level >= ns.wow.maxLevel and ns.ZeroDash or "" end
       return {
         text     = qty,
         justifyH = ui.justify.Right,

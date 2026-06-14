@@ -7,13 +7,16 @@ local CREST_ICON = "Interface\\AddOns\\Warbandeer\\icons\\"
 -- match the muted tan of the other (text) column headers
 local CREST_TINT = ns.theme.colors.muted
 
-local function formatCrest(c)
-  if not c then return "" end
+local function formatCrest(c, t)
+  -- max-level characters show a muted em-dash for a genuine 0; below-max characters
+  -- (the column doesn't apply yet) stay empty
+  local zero = t.basic.level >= ns.wow.maxLevel and ns.ZeroDash or ""
+  if not c then return zero end
   -- stale DB entries from before the table migration store a bare number
   if type(c) == "number" then
-    return c > 0 and {text = c, justifyH = ui.justify.Right} or ""
+    return c > 0 and {text = c, justifyH = ui.justify.Right} or zero
   end
-  if c.quantity == 0 then return "" end
+  if c.quantity == 0 then return zero end
   -- No cell tooltip: the count + cap color already convey everything the
   -- per-cell breakdown did. Header tooltip still explains the column.
   return {
@@ -35,7 +38,7 @@ table.insert(
     tooltip = {"Hero Dawncrest", "Hero Dawncrest held. Red when weekly cap reached."},
     getData = function(t)
       if not t.currency then return "" end
-      return formatCrest(t.currency.HeroDawncrest)
+      return formatCrest(t.currency.HeroDawncrest, t)
     end,
   }
 )
@@ -52,7 +55,7 @@ table.insert(
     tooltip = {"Myth Dawncrest", "Myth Dawncrest held. Red when weekly cap reached."},
     getData = function(t)
       if not t.currency then return "" end
-      return formatCrest(t.currency.MythDawncrest)
+      return formatCrest(t.currency.MythDawncrest, t)
     end,
   }
 )

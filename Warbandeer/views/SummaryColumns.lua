@@ -73,6 +73,21 @@ ns.GreenCheck = {
 ns.CappedColor = {1, 0.2, 0.2, 1}
 ns.UncappedColor = {1, 1, 1, 1}
 
+-- "Known zero / n-a" cell: an em-dash in the muted column-header colour. Weekly
+-- currency columns (crests, field accolades, M+, caches, coffer keys) return it
+-- for a max-level character that genuinely holds 0 — distinguishing it from a
+-- below-max character the column doesn't apply to, which stays empty (""). The
+-- upgrades column returns it for its flat n/a (no upgrades) case. Returned shared:
+-- SummaryView:decorateRow copies every cell before wrapping, so it's never mutated.
+-- Right-aligned to sit where each column renders its numbers.
+---@class Warbandeer
+---@field ZeroDash table  shared muted em-dash cell for known-zero / n-a values
+ns.ZeroDash = {
+  text = "—",
+  justifyH = ui.justify.Right,
+  color = ns.theme.colors.muted,
+}
+
 -- Cell data for a small square icon (faction, role) that should sit centered in
 -- its cell rather than stretching to fill it: a fixed 16px size leaves ~2px above
 -- and below the 20px row and keeps an hPad inset from squishing the icon. Returns
