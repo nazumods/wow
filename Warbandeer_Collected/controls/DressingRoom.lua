@@ -80,6 +80,7 @@ end
 ---@field _bgRetries number?  remaining backdrop-atlas load retries
 ---@field _group table?  the set-group the previewed set belongs to (Step cycles its sets)
 ---@field _set table?  the set entry currently previewed
+---@field _reverse boolean  grid sort direction at open: true = newest-first, so Up/Down tier nav matches the on-screen order
 ---@field _classIcon Texture  class icon in the model's upper-left (mirrors the nav pad)
 ---@field _className string?  localized class name for the icon's hover tooltip
 ---@field _undressed boolean?  hide the set to show the bare race body
@@ -323,10 +324,10 @@ DressingRoom = Class(TitleFrame, function(self)
     box:Level(navLvl)
     return box
   end
-  navButton(1, 0, "^", function() self:StepTier(-1) end)  -- up = previous tier
+  navButton(1, 0, "^", function() self:StepTierVisual(-1) end)  -- up = tier above in the grid
   navButton(0, 1, "<", function() self:Step(-1) end)
   navButton(2, 1, ">", function() self:Step(1) end)
-  navButton(1, 2, "v", function() self:StepTier(1) end)   -- down = next tier
+  navButton(1, 2, "v", function() self:StepTierVisual(1) end)   -- down = tier below in the grid
 
   -- Left/Right cycle the class sets, Up/Down cycle difficulty tiers (mirroring the
   -- on-model nav pad); Up/Down call StepTier. Every other key is
@@ -342,10 +343,10 @@ DressingRoom = Class(TitleFrame, function(self)
       self:Step(1)
     elseif key == "UP" then
       f:SetPropagateKeyboardInput(false)
-      self:StepTier(-1)
+      self:StepTierVisual(-1)
     elseif key == "DOWN" then
       f:SetPropagateKeyboardInput(false)
-      self:StepTier(1)
+      self:StepTierVisual(1)
     else
       f:SetPropagateKeyboardInput(true)
     end
@@ -359,6 +360,7 @@ end, {
   special = true,
   strata = "HIGH",
   position = { Center = {} },
+  _reverse = true,   -- matches DataView's newest-first default until ShowDressingRoom says otherwise
 })
 ---@class Warbandeer_Collected
 ---@field DressingRoom DressingRoom
@@ -612,6 +614,15 @@ function DressingRoom:StepTier(dir)
   end
 end
 
+-- Step tiers by on-screen direction (-1 = the row above, +1 = below). The grid
+-- can render newest-first (ns.Sets order reversed), so a visual "up" is a forward
+-- data step there; mirror DataView's current `_reverse` so the arrows track what
+-- the user sees.
+---@param vdir number  -1 = move to the tier shown above, +1 = below
+function DressingRoom:StepTierVisual(vdir)
+  self:StepTier(self._reverse and -vdir or vdir)
+end
+
 -- Select the logged-in character's race + gender. Called when the window opens
 -- from a closed state, so each fresh open starts on the current character (while
 -- it's open, the user's race picks stick). Set before _load so its Dress() renders
@@ -628,9 +639,12 @@ local _room
 
 ---Open the shared dressing room previewing a class set on a selectable race/gender.
 ---@class Warbandeer_Collected
----@field ShowDressingRoom fun(group: table, set: table)  group/set are entries from ns.Sets
-ns.ShowDressingRoom = function(group, set)
+---@field ShowDressingRoom fun(group: table, set: table, reverse: boolean?)  group/set are entries from ns.Sets; reverse mirrors the grid sort so Up/Down tier nav matches the on-screen order
+ns.ShowDressingRoom = function(group, set, reverse)
   if not _room then _room = DressingRoom:new{} end
+
+  -- Track the grid's sort direction so the tier arrows match what the user sees.
+  _room._reverse = reverse ~= false
 
   -- Reset to the current character's race each time it opens fresh; clicking
   -- another cell while it's already open keeps the chosen race.
