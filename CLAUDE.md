@@ -67,7 +67,9 @@ Rules:
 - The class name is the addon folder name, with hyphens replaced by underscores (e.g. `ShadowsOfUI_XP`).
 - **LibNUI exception**: the class name `LibNUI` belongs to the widget table `ns.ui` (anchored in `LibNUI/globals.lua`); LibNUI's own namespace class is `LibNUI_AddOn`.
 - LibNAddOn's own files use `---@class LibNAddOn` on the import instead of `---@type`, since they incrementally define the class.
-- Files that add fields to `ns` keep the `---@type` import and re-open the class right before the definitions (`---@class Warbandeer` + `---@field ...` — see `Warbandeer/views/SummaryColumns.lua`).
+- Files that **add a field** to `ns` re-open the class instead of importing with `---@type`. Two equivalent forms:
+  - **Direct-assignment field** (e.g. a bundled data table) — put `---@class <Addon>` on the `local ns = select(2, ...)` import line itself, and annotate the assignment with `---@type` (e.g. `---@type table<string, string[]>` above `ns.ClassPrimary = {}`). See `ShadowsOfUI-Upgrade/data/*.lua`.
+  - **Several fields / methods defined inline** — keep the `---@type` import and re-open the class right before the definitions with a `---@class <Addon>` + `---@field ...` block. See `Warbandeer/views/SummaryColumns.lua`.
 - Files that also need the addon name keep it on its own line: `local ADDON_NAME = ...` followed by the annotated `select(2, ...)` import (this includes table-form init files like `CombatOutline/core.lua`).
 - Typed widget-table alias where useful: `---@type LibNUI` above `local ui = ns.ui`.
 
