@@ -192,6 +192,7 @@ Inherits `Region`. Wraps a Blizzard `Texture` widget.
 | `Color(r,g,b,a)`         | `SetColorTexture` — accepts table     |
 | `SetVertexColor(r,g,b,a)`| Vertex tint — accepts table           |
 | `Coords(l,r,t,b)`        | `SetTexCoord`                         |
+| `Gradient(orient,min,max)`| `SetGradient` — re-apply a vertex gradient (ColorMixin min/max, alpha interpolated) over the base texture |
 
 ---
 

@@ -79,6 +79,15 @@ function Texture:SetVertexColor(r, g, b, a)
 end
 ---@param ... number  SetTexCoord args: left, right, top, bottom (or 8-arg corner form)
 function Texture:Coords(...) self._widget:SetTexCoord(...) end
+-- Apply (or re-apply) a vertex gradient over the texture. minColor sits at the
+-- left/top edge, maxColor at the right/bottom; both are ColorMixins, so their
+-- alpha is interpolated too. Needs a base texture (e.g. a solid color fill).
+---@param orientation string  "HORIZONTAL" | "VERTICAL"
+---@param minColor table  ColorMixin at the min edge
+---@param maxColor table  ColorMixin at the max edge
+function Texture:Gradient(orientation, minColor, maxColor)
+  self._widget:SetGradient(orientation, minColor, maxColor)
+end
 -- nine-slice: margins are in source-texture pixels; mode is Enum.UITextureSliceMode
 ---@param l number
 ---@param t number
