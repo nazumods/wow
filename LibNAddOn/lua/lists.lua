@@ -68,7 +68,7 @@ end
 ---if value is a function, it will be called for each value, and the matching value will be returned after the index
 ---@param table table
 ---@param value any | fun(v: any): boolean
----@return integer | nil
+---@return integer | nil, any
 function lists.find(table, value)
   if type(value) == "function" then
     for i,v in ipairs(table) do

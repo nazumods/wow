@@ -1,17 +1,16 @@
----@type Warbandeer
+---@class Warbandeer
 local ns = select(2, ...)
 local insert = table.insert
+---@class LibNUI
 local ui = ns.ui
 local Left = ui.justify.Left
 local Colors = ns.Colors
 local Class = ns.lua.Class
 
----@class Warbandeer
----@field SummaryColumn fun():SummaryColumn
-
----@class SummaryColumn
+---@class SummaryColumn: Class
 ---@field getData fun(toon:Character):any  cell data builder for a single character row
 ---@field getFooter? fun(toons:Character[]):any  optional footer cell data builder, given all rows
+---@field colInfo table
 ns.SummaryColumn = Class(nil, function(self)
   local path, coords
   if self.iconPath then

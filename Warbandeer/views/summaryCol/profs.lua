@@ -2,7 +2,7 @@
 local ns = select(2, ...)
 ---@type LibNUI
 local ui = ns.ui
-local insert = table.insert
+local insert, fmt = table.insert, string.format
 
 -- Profession gear % (current expansion).  Per slot, score = rarity + crafted
 -- tier against a baseline of rare at max tier (R3+T5 = 8); 3 slots * 2
@@ -170,7 +170,7 @@ end
 -- AND crafted tier, matching the worn-item lines' R# T# notation so a rarity
 -- upgrade at a low tier (e.g. R2 T3 → R3 T1) doesn't read as a downgrade.
 local function qualityTag(rarity, tier, conc)
-  return (" (R%d T%d%s)"):format(rarity or 0, tier, conc and ", concentration" or "")
+  return fmt(" (R%d T%d%s)", rarity or 0, tier, conc and ", concentration" or "")
 end
 
 -- Upgrade hint lines for a worn item (a possibly-empty list).  Both kinds of
@@ -213,20 +213,20 @@ local function craftHint(skillID, item, isCurrentExpac)
   if better then
     local c, tier, conc, hasData = bestQualityCrafter(better, 0)
     if c then
-      insert(lines, ("    |cffaaaaaa%s can craft a better version%s.|r"):format(c.name, qualityTag(better.rarity, tier, conc)))
+      insert(lines, fmt("    |cffaaaaaa%s can craft a better version%s.|r", c.name, qualityTag(better.rarity, tier, conc)))
     elseif not hasData then
       local fc = bestCrafter(better)
-      if fc then insert(lines, ("    |cffaaaaaa%s can craft a better version.|r"):format(fc.name)) end
+      if fc then insert(lines, fmt("    |cffaaaaaa%s can craft a better version.|r", fc.name)) end
     end
   end
 
   if own and wornTier < MAX_TIER then
     local c, tier, conc, hasData = bestQualityCrafter(own, wornTier)
     if c then
-      insert(lines, ("    |cffaaaaaa%s can upgrade this%s.|r"):format(c.name, qualityTag(own.rarity, tier, conc)))
+      insert(lines, fmt("    |cffaaaaaa%s can upgrade this%s.|r", c.name, qualityTag(own.rarity, tier, conc)))
     elseif not hasData then
       local fc = bestCrafter(own)
-      if fc then insert(lines, ("    |cffaaaaaa%s can upgrade this.|r"):format(fc.name)) end
+      if fc then insert(lines, fmt("    |cffaaaaaa%s can upgrade this.|r", fc.name)) end
     end
   end
 
@@ -263,9 +263,9 @@ local function emptyHints(skillID, equipLoc, wornFamilies)
     end
   end
   if best then
-    insert(lines, ("    |cffaaaaaa%s can craft one%s.|r"):format(best.name, qualityTag(bestRarity, bestTier, bestConc)))
+    insert(lines, fmt("    |cffaaaaaa%s can craft one%s.|r", best.name, qualityTag(bestRarity, bestTier, bestConc)))
   elseif not anyData and fallback then
-    insert(lines, ("    |cffaaaaaa%s can craft one.|r"):format(fallback.name))
+    insert(lines, fmt("    |cffaaaaaa%s can craft one.|r", fallback.name))
   end
   -- Spares of this slot type in any scanned bank (same family filter), summed per
   -- source (warband first, then alts, then guild) as GetBankProfGear returns them.
@@ -277,7 +277,7 @@ local function emptyHints(skillID, equipLoc, wornFamilies)
     end
   end
   for _, source in ipairs(order) do
-    insert(lines, ("    |cffaaaaaa%d in %s.|r"):format(total[source], source))
+    insert(lines, fmt("    |cffaaaaaa%d in %s.|r", total[source], source))
   end
   return lines
 end
@@ -320,7 +320,7 @@ local function getProfGearScore(toon)
           local t = clamp(item.tier, 0, MAX_TIER)
           score = score + r + t
           local rc = RarityColors[r] or ""
-          insert(lines, ("  %s %sR%d|r T%d   (%d/%d)"):format(label, rc, r, t, r + t, PER_SLOT_MAX))
+          insert(lines, fmt("  %s %sR%d|r T%d   (%d/%d)", label, rc, r, t, r + t, PER_SLOT_MAX))
           hints[#lines] = {skillID, item, true}
         else
           insert(lines, "  "..label.." |cffff5555(old expac)|r")
