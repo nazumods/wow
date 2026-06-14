@@ -39,18 +39,34 @@ end
 -- the item isn't cached on this client (an alt's warband gear may not be).
 local function reqLevel(link) return link and select(5, GetItemInfo(link)) or nil end
 
--- One row's label: the item's own [Name] (rarity-coloured) + the ilvl gain (green
--- when held in the character's own bags/bank, gold when it lives in the warband
--- bank) + the slot, with the item's icon inline.
+-- The item's icon as an inline texture escape, or "" when unavailable.
+local function iconTex(link)
+  local icon = GetItemIcon and GetItemIcon(link)
+  return icon and ("|T%d:0|t "):format(icon) or ""
+end
+
+-- One ready-upgrade row's label: the item's own [Name] (rarity-coloured) + the ilvl
+-- gain (green when held in the character's own bags/bank, gold when it lives in the
+-- warband bank) + the slot, with the item's icon inline.
 ---@param r UpgradeResult
 ---@param warband boolean
 local function lineText(r, warband)
-  local icon = GetItemIcon and GetItemIcon(r.link)
-  local tex = icon and ("|T%d:0|t "):format(icon) or ""
   local gainHex = hex(warband and theme.colors.gold or theme.colors.green)
   local mutedHex = hex(theme.colors.muted)
   return ("%s%s  |cff%s+%d ilvl|r  |cff%s%s|r"):format(
-    tex, r.link, gainHex, r.ilvlGain, mutedHex, prettySlot(r.slot))
+    iconTex(r.link), r.link, gainHex, r.ilvlGain, mutedHex, prettySlot(r.slot))
+end
+
+-- One world-quest row's label: the reward [Name] + ilvl gain in orange (a future
+-- action, distinct from the green/gold ready upgrades) + the source quest, so it
+-- reads "this WQ reward would upgrade you — go do it".
+---@param r WorldQuestUpgrade
+local function wqLineText(r)
+  local gainHex = hex(theme.colors.orange)
+  local mutedHex = hex(theme.colors.muted)
+  local where = r.zone and ("%s — %s"):format(r.title, r.zone) or r.title
+  return ("%s%s  |cff%s+%d ilvl|r  |cff%sWQ: %s|r"):format(
+    iconTex(r.link), r.link, gainHex, r.ilvlGain, mutedHex, where)
 end
 
 ---@class SuggestedBox: Frame
@@ -126,9 +142,11 @@ function SuggestedBox:_row(i)
 end
 
 -- Fill the box for `char` and return its content height (0 when the upgrade addon
--- is absent — the box hides and reserves no space).  Lists at most MAX_ROWS ready
--- upgrades the character can equip right now (priority order = ilvl gain), or the
--- empty state when there are none.  Caller sets the box width before calling.
+-- is absent — the box hides and reserves no space).  Lists at most MAX_ROWS rows:
+-- the ready upgrades the character can equip right now (priority order = ilvl gain)
+-- first, then active world-quest rewards that would upgrade a slot (a future action,
+-- orange) if there's room, or the empty state when there are none.  Caller sets the
+-- box width before calling.
 ---@param char Character
 ---@return number height
 function SuggestedBox:Populate(char)
@@ -141,23 +159,42 @@ function SuggestedBox:Populate(char)
   local innerW = self:Width() - 2 * PAD
 
   local n = 0
+  -- Populate one row from an upgrade result + its rendered label, wiring the hover
+  -- comparison (upgrade beside the equipped piece, or the upgrade alone for an
+  -- empty slot).  Returns false once the row cap is hit.
+  local function addRow(r, text)
+    n = n + 1
+    local row = self:_row(n)
+    row.frame:Width(innerW)
+    local eq = slots[r.slot] and slots[r.slot].link
+    if eq then
+      row.frame._itemLink, row.frame._compareLink = eq, r.link
+    else
+      row.frame._itemLink, row.frame._compareLink = r.link, nil
+    end
+    row.label:Text(text)
+    row.frame:Show()
+    return n < MAX_ROWS
+  end
+
   for _, r in ipairs(api:CharacterUpgrades(char.name)) do
     local req = reqLevel(r.link)
     if not (req and req > level) then  -- skip what the character can't equip yet
-      n = n + 1
-      local row = self:_row(n)
-      row.frame:Width(innerW)
-      local eq = slots[r.slot] and slots[r.slot].link
-      if eq then
-        row.frame._itemLink, row.frame._compareLink = eq, r.link
-      else
-        row.frame._itemLink, row.frame._compareLink = r.link, nil
-      end
-      row.label:Text(lineText(r, (r.where == "warband" or r.betterElsewhere) or false))
-      row.frame:Show()
-      if n >= MAX_ROWS then break end
+      if not addRow(r, lineText(r, (r.where == "warband" or r.betterElsewhere) or false)) then break end
     end
   end
+
+  -- World-quest rewards fill any remaining rows (degrades to nothing on an older
+  -- ShadowsOfUI-Upgrade without the method).
+  if n < MAX_ROWS and api.WorldQuestUpgrades then
+    for _, r in ipairs(api:WorldQuestUpgrades(char.name)) do
+      local req = reqLevel(r.link)
+      if not (req and req > level) then
+        if not addRow(r, wqLineText(r)) then break end
+      end
+    end
+  end
+
   for i = n + 1, self._n do self._rows[i].frame:Hide() end
   self._n = n
 
