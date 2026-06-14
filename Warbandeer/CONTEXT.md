@@ -23,7 +23,7 @@ Main viewer UI. Reads the data layer (`ns.api` ← `WarbandeerApi`) and renders 
 | `icons/views/*.tga` | White per-view glyphs (+ `logo.tga`) tinted in-game by `IconStrip` |
 | `icons/trending_{up,down}.tga` | White up/down trend arrows for the Overview weekly-gold card |
 | `icons/*.tga` | White 64×64 glyphs for Summary column headers (`crest_hero`, `crest_myth`, `catalyst`, …), tinted muted in-game |
-| `views/Overview.lua` | Stat strip + Reputations / Achievements / Top Characters modules; expansion `BuildFilter`. Rep bars via `FactionBars` (see below); rows click through to Detail |
+| `views/Overview.lua` | Stat strip + Reputations / Achievements / Top Characters modules; titlebar `BuildFilter` carries a raid picker + an expansion picker. Rep bars via `FactionBars` (see below); rows click through to Detail. The `TopAlts` table appends one column per raid difficulty (RF/N/H/M) showing the selected raid's per-class transmog-set completion — uncollected piece count (red→green shaded) or a green check — read from `WarbandeerCollectedApi` (OptionalDep) via `SetStatus`; `RAIDS`/`DIFFS` drive the raid dropdown + columns, `TopAlts:SetRaid`/`Refresh` re-render, and `Overview:OnBeforeShow` refreshes on each open |
 | `views/SummaryColumns.lua` | `SummaryColumn` specs (`getData`/`getFooter` per column) + `SummaryColumnsDelayed()` (appends the DMF column while the faire is open) |
 | `views/summaryCol/*.lua` | One file per Summary column: faction, role, character, level, ilvl, upgrades, profs, bags, vault, keystone, crests, catalyst, voidcore, delves, lumber, cofferKey, caches, rested, played, gold. `upgrades.lua` (the "Up" count column) early-returns unless `ShadowsOfUI_UpgradeApi` exists, so its column is only registered when ShadowsOfUI-Upgrade is loaded |
 | `views/SummaryView.lua` | Dual `ClassSummary` tables (Alliance/Horde) toggled by a faction `BuildFilter`; cells drive row hover + click-to-Detail |
@@ -48,7 +48,7 @@ Main viewer UI. Reads the data layer (`ns.api` ← `WarbandeerApi`) and renders 
 
 | name | _title | Parent | Key feature | `BuildFilter` |
 |---|---|---|---|---|
-| `overview` | Overview | Frame | Stat strip, reputations, achievements, top characters | expansion dropdown |
+| `overview` | Overview | Frame | Stat strip, reputations, achievements, top characters (per-raid RF/N/H/M set completion) | raid + expansion dropdowns |
 | `summary` | Summary | Frame | Dual ClassSummary tables (Alliance/Horde) | faction toggle |
 | `detail` | Detail | Frame | Per-character detail + profession-intent editor + per-profession gear list | character picker |
 | `gear` | Gear | Frame | 4 armor-type tables, per-slot columns | armor-type buttons |
@@ -64,8 +64,9 @@ Main viewer UI. Reads the data layer (`ns.api` ← `WarbandeerApi`) and renders 
 | `collected` | Collected | Frame | Transmog-set collection grid (class × set-group) backed by `WarbandeerCollectedApi`; cell hover shows the source `InfoTip`, cell click opens the 3D `DressingRoom` | raid-order toggle (defaults newest-first) |
 
 `BuildFilter(parent)` widgets show in the title bar only while that view is active. The two
-expansion dropdowns share `ns.FilterDropdown`; the faction toggle, character picker, and
-armor-type strip are view-local.
+expansion dropdowns + the Overview raid picker share `ns.FilterDropdown` (Overview returns a
+container holding both its raid and expansion pickers); the faction toggle, character picker,
+and armor-type strip are view-local.
 
 ## MainWindow
 

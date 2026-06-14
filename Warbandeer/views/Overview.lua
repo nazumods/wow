@@ -1,6 +1,7 @@
 ---@type Warbandeer
 local ns = select(2, ...)
 local insert = table.insert
+local floor, max = math.floor, math.max
 local ui = ns.ui
 local Class, Frame, TableFrame, Label, Texture = ns.lua.Class, ui.Frame, ui.TableFrame, ui.Label, ui.Texture
 local LabeledBar, StatCard = ns.LabeledBar, ns.StatCard
@@ -194,10 +195,117 @@ end, {
   width = 230,
 })
 
+-- ─── Top Characters gear columns ────────────────────────────────────────────
+-- The Top Characters table appends one column per raid difficulty (RF/N/H/M)
+-- showing how many appearance pieces of the selected raid's class set that class
+-- still needs, mirroring the Collected view (number missing, or a green check
+-- when complete). Data is read from the sibling Collected addon via the
+-- WarbandeerCollectedApi global (OptionalDep). The four difficulty variants of a
+-- raid are sibling Collected groups that share one group id and differ only by the
+-- difficulty suffix in their name (see Warbandeer_Collected/data/sets.lua).
+
+-- Raids selectable via the titlebar dropdown; `key` is the shared Collected group id.
+local RAIDS = {
+  { key = 372, label = "Voidspire" },
+}
+local DEFAULT_RAID = RAIDS[1].key
+
+-- Difficulty columns in display order; `suffix` matches the Collected group-name suffix.
+local DIFFS = {
+  { label = "RF", suffix = "Raid Finder" },
+  { label = "N",  suffix = "Normal" },
+  { label = "H",  suffix = "Heroic" },
+  { label = "M",  suffix = "Mythic" },
+}
+local GEAR_W = 26   -- width of each difficulty column
+
+-- 10-shade red→green gradient keyed by collected fraction (matches CollectedView/Collected).
+local shades = {
+  {165/255,   0/255,  38/255, 1},
+  {215/255,  48/255,  39/255, 1},
+  {244/255, 109/255,  67/255},
+  {253/255, 174/255,  97/255},
+  {254/255, 224/255, 139/255},
+  {217/255, 239/255, 139/255},
+  {166/255, 217/255, 106/255},
+  {102/255, 189/255,  99/255},
+  { 26/255, 152/255,  80/255},
+  {      0, 104/255,  55/255},
+}
+
+local GreenCheck = {
+  atlas = ns.icons.CheckGreen,
+  atlasSize = false,
+  position = { Center = {}, Size = {13, 13} },
+}
+
+-- Resolve a raid id to its four difficulty groups, keyed by difficulty suffix.
+---@param api table?  WarbandeerCollectedApi (nil when Collected isn't loaded)
+---@param raidId number
+---@return table<string, table>  suffix -> Collected group
+local function raidGroups(api, raidId)
+  local out = {}
+  if not api then return out end
+  for _, grp in ipairs(api.Sets) do
+    if grp.id == raidId then
+      for _, d in ipairs(DIFFS) do
+        if grp.name:find(d.suffix, 1, true) then out[d.suffix] = grp end
+      end
+    end
+  end
+  return out
+end
+
+-- Cell data for one class's set in one difficulty: green check when complete, the
+-- uncollected count (red→green shaded) otherwise, "–" when unscanned, blank when
+-- the class has no set or Collected isn't available.
+---@param api table?  WarbandeerCollectedApi
+---@param grp table?  the difficulty group, or nil
+---@param classId number
+---@return table  cell data
+local function gearCell(api, grp, classId)
+  if not (api and grp) then return {} end
+  local set = grp.sets[classId]
+  if not (set and set.id) then return {} end
+  local status = api:SetStatus(grp.id, set.id)
+  if not status then
+    return { text = "–", justifyH = ui.justify.Center, color = theme.colors.muted }
+  end
+  if status == true or status.collected >= status.total then
+    return {
+      atlas = GreenCheck.atlas, atlasSize = GreenCheck.atlasSize,
+      position = GreenCheck.position,
+    }
+  end
+  return {
+    text = status.total - status.collected,
+    justifyH = ui.justify.Center,
+    color = shades[max(1, floor(status.collected / status.total * 10))],
+    fontInfo = ns.theme.fonts.number,
+  }
+end
+
+-- Static + difficulty columns for the Top Characters table (level / name / ilvl,
+-- then one centered column per RF/N/H/M difficulty).
+local topAltsCols = {
+  {width = 20, backdrop = TransparentBackdrop},
+  {width = 100, backdrop = TransparentBackdrop},
+  {width = 30, backdrop = TransparentBackdrop},
+}
+for _, d in ipairs(DIFFS) do
+  insert(topAltsCols, {
+    width = GEAR_W, name = d.label,
+    justifyH = ui.justify.Center, backdrop = TransparentBackdrop,
+  })
+end
+
 -- Table of top toon per class
 ---@class TopAlts: TableFrame
 ---@field _toons Character[]  row index -> character (kept in sync by GetData)
+---@field _raidId number      currently selected raid (Collected group id)
 ---@field GetData fun(self: TopAlts): table  builds the top-character rows
+---@field SetRaid fun(self: TopAlts, raidId: number)  re-render gear cells for a raid
+---@field Refresh fun(self: TopAlts)  rebuild rows from current data + raid
 local TopAlts = Class(TableFrame, function(self)
   -- fit col 2 to the widest name
   local w = 0
@@ -216,26 +324,23 @@ local TopAlts = Class(TableFrame, function(self)
   -- brighten the row on hover (rows are transparent at rest); click to open that
   -- character in the Detail view.
   for i, row in ipairs(self.rows) do
-    local toon = self._toons[i]
     row._widget:SetMouseMotionEnabled(true)
     row._widget:SetMouseClickEnabled(true)
     row:SetScript("OnEnter", function() row.backdrop:Color(theme.colors.hover) end)
     row:SetScript("OnLeave", function() row.backdrop:Color(0, 0, 0, 0) end)
     row:SetScript("OnMouseUp", function()
       local win = ns.MainWindow
-      if not win then return end
+      local toon = self._toons[i]
+      if not (win and toon) then return end
       win:getView("detail"):Select(toon)
       win:view("detail")
     end)
   end
 end, {
-  headerHeight = 0,
+  headerHeight = 18,
   headerWidth = 0,
-  colInfo = {
-    {width = 20, backdrop = TransparentBackdrop},
-    {width = 100, backdrop = TransparentBackdrop},
-    {width = 30, backdrop = TransparentBackdrop},
-  },
+  _raidId = DEFAULT_RAID,
+  colInfo = topAltsCols,
   GetData = function(self)
     local toons = ns.api.GetAllCharacters()
     local top = {}
@@ -246,12 +351,16 @@ end, {
     end
     top = ns.lua.lists.values(top)
     table.sort(top, ns.byLevelIlvl)
+    local api = WarbandeerCollectedApi
+    local groups = raidGroups(api, self._raidId)
     local data = {}
     self._toons = {}
-    for _, toon in ipairs(top) do
-      self:addRow({backdrop = TransparentBackdrop})
+    for idx, toon in ipairs(top) do
+      -- addRow only for genuinely new rows so GetData is re-runnable (raid change /
+      -- OnBeforeShow) without duplicating rows; update() reuses the existing cells.
+      if not self.rows[idx] then self:addRow({backdrop = TransparentBackdrop}) end
       insert(self._toons, toon)
-      insert(data, {
+      local row = {
         {
           text = toon.basic.level,
           color = NORMAL_FONT_COLOR,
@@ -266,11 +375,29 @@ end, {
           justifyH = ui.justify.Right,
           fontInfo = ns.theme.fonts.number,
         },
-      })
+      }
+      for _, d in ipairs(DIFFS) do
+        insert(row, gearCell(api, groups[d.suffix], toon.classId))
+      end
+      insert(data, row)
     end
     return data
   end,
 })
+
+-- Rebuild rows + cells from current character data and the selected raid.
+function TopAlts:Refresh()
+  self.data = self:GetData()
+  self:update()
+end
+
+-- Switch the gear columns to a different raid and re-render.
+---@param raidId number
+function TopAlts:SetRaid(raidId)
+  if self._raidId == raidId then return end
+  self._raidId = raidId
+  self:Refresh()
+end
 
 local wwiAchievementIds     = {20597, 40791, 20596, 40309, 40360, 41052, 40618, 41818, 41970, 41808, 61017}
 local midnightAchievementIds = {
@@ -512,18 +639,40 @@ function Overview:selectExpansion(key)
   if self.parent and self.parent.Fit then self.parent:Fit() end
 end
 
--- Titlebar expansion picker (shown only while the Overview is active).
+-- Refresh the Top Characters gear columns each time the view shows, so a
+-- /collected scan run after the view was built is reflected on next open.
+function Overview:OnBeforeShow()
+  if self.topAlts then self.topAlts:Refresh() end
+end
+
+-- Titlebar pickers (shown only while the Overview is active): a raid picker for the
+-- Top Characters gear columns (left) and the reps/achievements expansion picker
+-- (right). Both sit in one container anchored by its right edge to the close button.
 ---@param parent Frame
----@return FilterDropdown
+---@return Frame
 function Overview:BuildFilter(parent)
-  local box = ns.FilterDropdown:new{
-    parent    = parent,
+  local box = Frame:new{ parent = parent, position = { Height = 20 } }
+
+  local raid = ns.FilterDropdown:new{
+    parent    = box,
+    options   = RAIDS,
+    selected  = self.topAlts._raidId,
+    width     = 110,
+    menuWidth = 120,
+    onSelect  = function(_, key) self.topAlts:SetRaid(key) end,
+    position  = { TopLeft = {0, 0} },
+  }
+  local exp = ns.FilterDropdown:new{
+    parent    = box,
     options   = EXPANSIONS,
     selected  = self._expansion,
     width     = 112,
     menuWidth = 130,
     onSelect  = function(_, key) self:selectExpansion(key) end,
+    position  = { TopLeft = {raid, ui.edge.TopRight, GAP, 0} },
   }
+
+  box:Width(raid:Width() + GAP + exp:Width())
   self._filter = box
   return box
 end

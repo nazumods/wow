@@ -11,7 +11,7 @@ Open it with `/warband` or `/wb` and switch views with the icon rail on the left
 
 | View | What it shows |
 |---|---|
-| Overview | Warband-wide summary: wealth, top alts, faction progress, achievements |
+| Overview | Warband-wide summary: wealth, top alts (with per-raid RF/N/H/M tier-set completion), faction progress, achievements |
 | Summary | One row per character: level, ilvl, gold, professions |
 | Detail | Deep-dive on a single character: gear, profession crafting intents, and each profession's equipped tool/accessories |
 | Gear | Equipped item levels piece-by-piece across the warband |
