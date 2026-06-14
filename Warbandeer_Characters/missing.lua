@@ -128,14 +128,26 @@ local getMissingFields = ns.getMissingFields
 ---@class Warbandeer_Characters
 ---@field getMissingReport fun(self): string[] Report of missing character data
 function ns:getMissingReport()
+  local current = self.currentPlayer
+  local currentLine
   local missing = {}
   for name, toon in pairs(self.db.characters) do
     local issues = getMissingFields(toon)
     if #issues > 0 then
-      table.insert(missing, name .. " - missing " .. table.concat(issues, ", "))
+      local line = name .. " - missing " .. table.concat(issues, ", ")
+      if name == current then
+        currentLine = line
+      else
+        table.insert(missing, line)
+      end
     end
   end
   table.sort(missing)
+  -- The logged-in character, when it has missing data, is pinned to the very top
+  -- ahead of the alphabetically-sorted rest.
+  if currentLine then
+    table.insert(missing, 1, currentLine)
+  end
   return missing
 end
 
