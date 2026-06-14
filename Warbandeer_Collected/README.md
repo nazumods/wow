@@ -13,8 +13,7 @@ deciding what a transmog will actually look like. Like the character sheet, each
 piece sits in its equipment slot down the sides (green border = collected, red =
 still missing); hover a slot for the in-game item tooltip. There's an **Undress**
 toggle to strip the set off and see the bare race, a **Background** toggle for a
-class-themed backdrop (greyed out for the few classes without one), and a scale
-slider to resize the model. The model always
+class-themed backdrop, and a scale slider to resize the model. The model always
 uses your own character's **gender** (a model that can actually wear the set is
 locked to your gender by the game), and the race icons match your gender. Races with two forms
 (Worgen, Dracthyr) show a form toggle at the top of the model so you can preview
