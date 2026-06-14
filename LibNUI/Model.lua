@@ -64,7 +64,7 @@ function Model:_reapply()
   end
   self._actor:SetOnModelLoadedCallback(apply)
   apply()
-  self:delay(100, apply)
+  self:delay(90, apply)
 end
 
 -- Re-apply the remembered outfit by TryOn-ing each source onto the model. No-op
