@@ -13,7 +13,7 @@ Open it with `/warband` or `/wb` and switch views with the icon rail on the left
 |---|---|
 | Overview | Warband-wide summary: wealth, top alts (with per-raid RF/N/H/M tier-set completion), faction progress, achievements |
 | Summary | One row per character: level, ilvl, gold, professions |
-| Detail | Deep-dive on a single character: gear, profession crafting intents, and each profession's equipped tool/accessories |
+| Detail | Deep-dive on a single character: gear, profession crafting intents, each profession's equipped tool/accessories, and a Suggested box of ready gear upgrades the character can equip right now |
 | Gear | Equipped item levels piece-by-piece across the warband |
 | Roles | Tank/healer/DPS coverage by class |
 | Races | Race coverage across your characters |
@@ -41,6 +41,7 @@ Found in the Blizzard settings panel:
   Warbandeer is only the viewer; without the data layer it has nothing to show.
 - *Optional:* **Warbandeer_Bars** for the Bars view.
 - *Optional:* **Collected** for the Collected view.
+- *Optional:* **ShadowsOfUI-Upgrade** for gear-upgrade markers and the Detail view's Suggested box.
 
 ## Saved data
 

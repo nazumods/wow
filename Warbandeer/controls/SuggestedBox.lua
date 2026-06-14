@@ -1,0 +1,175 @@
+---@class Warbandeer
+local ns = select(2, ...)
+---@type LibNUI
+local ui = ns.ui
+local Class, Frame, Label, Texture = ns.lua.Class, ui.Frame, ui.Label, ui.Texture
+local theme = ns.theme
+local select = select
+local GetItemInfo = C_Item.GetItemInfo
+local GetItemIcon = (C_Item and C_Item.GetItemIconByID) or _G.GetItemIcon
+
+-- Suggested box: a priority-ordered to-do list of the cheapest, highest-value
+-- gear actions a character can take *right now* — ready upgrades it already owns
+-- (held in bags / personal bank) or can pull from the warband bank, computed by
+-- ShadowsOfUI-Upgrade (OptionalDep, via ShadowsOfUI_UpgradeApi).  Each row is one
+-- actionable line (icon + item + ilvl gain + slot); hovering compares the upgrade
+-- against the equipped piece.  Items the character can't equip yet (required level
+-- above its own) are excluded — this is "what to do immediately", not a wishlist.
+-- Degrades to a hidden, zero-height box when the upgrade addon isn't loaded.
+
+local PAD = 12             -- panel inner padding (matches the gear panel)
+local HEADER_GAP = 8       -- header → first row
+local ROW_H = 20           -- one suggestion row
+local MAX_ROWS = 5         -- cap; the rest are implied by the gear list's ▲ marks
+
+-- |cff hex for an embedded colour escape from a {r,g,b} (0–1) theme colour.
+local function hex(c)
+  return ("%02x%02x%02x"):format(
+    math.floor((c[1] or 1) * 255 + 0.5),
+    math.floor((c[2] or 1) * 255 + 0.5),
+    math.floor((c[3] or 1) * 255 + 0.5))
+end
+
+-- Human-friendly slot name: "MainHand" → "Main Hand", "Finger1" → "Finger 1".
+local function prettySlot(s)
+  return (s:gsub("(%l)(%u)", "%1 %2"):gsub("(%a)(%d)", "%1 %2"))
+end
+
+-- Required character level of an item link (5th GetItemInfo return), or nil when
+-- the item isn't cached on this client (an alt's warband gear may not be).
+local function reqLevel(link) return link and select(5, GetItemInfo(link)) or nil end
+
+-- One row's label: the item's own [Name] (rarity-coloured) + the ilvl gain (green
+-- when held in the character's own bags/bank, gold when it lives in the warband
+-- bank) + the slot, with the item's icon inline.
+---@param r UpgradeResult
+---@param warband boolean
+local function lineText(r, warband)
+  local icon = GetItemIcon and GetItemIcon(r.link)
+  local tex = icon and ("|T%d:0|t "):format(icon) or ""
+  local gainHex = hex(warband and theme.colors.gold or theme.colors.green)
+  local mutedHex = hex(theme.colors.muted)
+  return ("%s%s  |cff%s+%d ilvl|r  |cff%s%s|r"):format(
+    tex, r.link, gainHex, r.ilvlGain, mutedHex, prettySlot(r.slot))
+end
+
+---@class SuggestedBox: Frame
+---@field _rows table[]   pooled suggestion rows
+---@field _n integer       number of rows currently visible
+---@field header Label
+---@field empty Label
+local SuggestedBox = Class(Frame, function(self)
+  local c = theme.colors
+  self._rows = {}
+  self._n = 0
+
+  self.header = Label:new{
+    parent = self, fontInfo = theme.fonts.caps, color = c.muted,
+    text = "SUGGESTED",
+    position = { TopLeft = {PAD, -PAD} },
+  }
+  self.empty = Label:new{
+    parent = self, fontInfo = theme.fonts.body, color = c.muted,
+    justifyH = ui.justify.Left, wordWrap = false,
+    text = "Nothing pressing — looking good!",
+    position = { TopLeft = {self.header, ui.edge.BottomLeft, 0, -HEADER_GAP} },
+  }
+end, {
+  background = theme.colors.module,
+})
+ns.SuggestedBox = SuggestedBox
+
+-- Grab (or lazily create) a pooled suggestion row: a hover-highlighting frame whose
+-- label fills it, carrying the equipped item (`_itemLink`) and the suggested upgrade
+-- (`_compareLink`) so the shared item tooltip lays the upgrade beside the equipped
+-- piece (or shows the upgrade alone when the slot is empty).
+---@return table
+function SuggestedBox:_row(i)
+  local row = self._rows[i]
+  if row then return row end
+
+  local c = theme.colors
+  local prev = self._rows[i - 1]
+  local frame = Frame:new{
+    parent = self,
+    position = {
+      TopLeft = prev and {prev.frame, ui.edge.BottomLeft, 0, 0}
+                     or  {self.header, ui.edge.BottomLeft, 0, -HEADER_GAP},
+      Width  = PAD,  -- resized to the panel's inner width in Populate
+      Height = ROW_H,
+    },
+  }
+  row = { frame = frame }
+
+  local hi = Texture:new{
+    parent = frame, layer = ui.layer.Background, color = c.hover,
+    position = { All = true, Hide = true },
+  }
+  frame:EnableMouse(true)
+  frame:SetScript("OnEnter", function()
+    hi:Show()
+    if frame._itemLink then ns.ShowItemTooltip(frame, frame._itemLink, frame._compareLink, true) end
+  end)
+  frame:SetScript("OnLeave", function()
+    hi:Hide()
+    ns.HideItemTooltip()
+  end)
+
+  row.label = Label:new{
+    parent = frame, fontInfo = theme.fonts.body,
+    justifyH = ui.justify.Left, wordWrap = false,
+    position = { Left = {frame, ui.edge.Left, 0, 0}, Right = {frame, ui.edge.Right, 0, 0} },
+  }
+
+  self._rows[i] = row
+  return row
+end
+
+-- Fill the box for `char` and return its content height (0 when the upgrade addon
+-- is absent — the box hides and reserves no space).  Lists at most MAX_ROWS ready
+-- upgrades the character can equip right now (priority order = ilvl gain), or the
+-- empty state when there are none.  Caller sets the box width before calling.
+---@param char Character
+---@return number height
+function SuggestedBox:Populate(char)
+  local api = ShadowsOfUI_UpgradeApi
+  if not api then self:Hide(); return 0 end
+  self:Show()
+
+  local slots = (char.equipment and char.equipment.slots) or {}
+  local level = char.basic.level or 0
+  local innerW = self:Width() - 2 * PAD
+
+  local n = 0
+  for _, r in ipairs(api:CharacterUpgrades(char.name)) do
+    local req = reqLevel(r.link)
+    if not (req and req > level) then  -- skip what the character can't equip yet
+      n = n + 1
+      local row = self:_row(n)
+      row.frame:Width(innerW)
+      local eq = slots[r.slot] and slots[r.slot].link
+      if eq then
+        row.frame._itemLink, row.frame._compareLink = eq, r.link
+      else
+        row.frame._itemLink, row.frame._compareLink = r.link, nil
+      end
+      row.label:Text(lineText(r, (r.where == "warband" or r.betterElsewhere) or false))
+      row.frame:Show()
+      if n >= MAX_ROWS then break end
+    end
+  end
+  for i = n + 1, self._n do self._rows[i].frame:Hide() end
+  self._n = n
+
+  local h = PAD + self.header:Height() + HEADER_GAP
+  if n > 0 then
+    self.empty:Hide()
+    h = h + n * ROW_H
+  else
+    self.empty:Show()
+    h = h + self.empty:Height()
+  end
+  h = h + PAD
+  self:Height(h)
+  return h
+end
