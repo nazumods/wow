@@ -56,9 +56,11 @@ end
 ---@field _bgBorder Texture  Background-toggle border (gold while active)
 ---@field _bgEnabled boolean  whether the backdrop is shown
 ---@field _bgClass string?  current class file for the backdrop (remembered for the toggle)
+---@field _bgRetries number?  remaining backdrop-atlas load retries
 ---@field _group table?  the set-group the previewed set belongs to (Step cycles its sets)
 ---@field _set table?  the set entry currently previewed
----@field _classIcon Texture  title-bar class icon for the current set
+---@field _classIcon Texture  class icon in the model's upper-left (mirrors the nav pad)
+---@field _className string?  localized class name for the icon's hover tooltip
 ---@field _undressed boolean?  hide the set to show the bare race body
 ---@field _undressBorder Texture  undress-toggle border (gold while active)
 ---@field _slots table[]  paper-doll slot entries ({ slotID, icon, border, itemID? })
@@ -117,16 +119,26 @@ DressingRoom = Class(TitleFrame, function(self)
   -- Paper-doll slot columns, each vertically centered alongside the model.
   self:_buildSlots(winW)
 
-  -- Form toggle: a small floating button row at the top-left of the model, shown
-  -- only for two-form races (Worgen/Dracthyr). A reusable pool sized to the most
-  -- forms any race has; _setupForms relabels + shows the ones the race uses.
+  -- Shared on-model overlay geometry: the directional nav pad (upper-right) is a
+  -- PADB cross; the class icon (upper-left) mirrors its NAVSPAN footprint, and both
+  -- sit at navLvl so the mouse-enabled ModelScene doesn't hide/eat them. The form
+  -- buttons tuck just under the class icon.
+  local PADB, PADGAP = 24, 2
+  local NAVSPAN = 3 * PADB + 2 * PADGAP   -- nav-cross bounding box (mirrored by the class icon)
+  local INSET = 8                          -- corner inset from the model edge
+  local navLvl = self._model:Level() + 10
+
+  -- Form toggle: a small floating button row under the class icon, shown only for
+  -- two-form races (Worgen/Dracthyr). A reusable pool sized to the most forms any
+  -- race has; _setupForms relabels + shows the ones the race uses.
   self._form = 1
   self._formButtons = {}
   local FORMW = 80
   for i = 1, 2 do
     local box = Frame:new{
       parent = self,
-      position = { TopLeft = {self._model, ui.edge.TopLeft, 8 + (i - 1) * (FORMW + 4), -8},
+      position = { TopLeft = {self._model, ui.edge.TopLeft,
+                     INSET + (i - 1) * (FORMW + 4), -(INSET + NAVSPAN + 4)},
                    Width = FORMW, Height = ROWH },
     }
     local border = selBox(box)
@@ -216,25 +228,40 @@ DressingRoom = Class(TitleFrame, function(self)
     btn._widget:SetScript("OnLeave", function() GameTooltip:Hide() end)
   end
 
-  -- Class icon in the title bar, left of the close button.
-  self._classIcon = Texture:new{
-    parent = self.titlebar, layer = ui.layer.Artwork,
-    position = { Right = {self.closeButton, ui.edge.Left, -6, 0}, Size = {20, 20} },
+  -- Class icon in the model's upper-left, mirroring the directional nav pad's
+  -- upper-right placement and overall size. Boxed in a frame at navLvl so it draws
+  -- above the ModelScene (a bare titlebar/self texture would sit behind it).
+  local classBox = Frame:new{
+    parent = self,
+    position = { TopLeft = {self._model, ui.edge.TopLeft, INSET, -INSET}, Size = {NAVSPAN, NAVSPAN} },
   }
+  classBox:Level(navLvl)
+  self._classIcon = Texture:new{
+    parent = classBox, layer = ui.layer.Artwork,
+    position = { All = true },
+  }
+  -- Hover tooltip naming the class (matches the race icons). _className is set by
+  -- _showClass; skip when there's no class icon to describe.
+  classBox._widget:EnableMouse(true)
+  classBox._widget:SetScript("OnEnter", function(f)
+    if not self._className then return end
+    GameTooltip:SetOwner(f, "ANCHOR_RIGHT")
+    GameTooltip:SetText(self._className)
+    GameTooltip:Show()
+  end)
+  classBox._widget:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
   -- Directional nav pad in the model's upper-right corner: Left/Right cycle the
   -- group's class sets (skipping empty slots), Up/Down cycle the raid's difficulty
   -- tiers — same as the arrow keys. Parented to self and lifted above the
   -- mouse-enabled ModelScene (which would otherwise eat the clicks) so the buttons
   -- are clickable, matching the form buttons / scale slider.
-  local PADB, PADGAP = 24, 2
-  local navLvl = self._model:Level() + 10
   local function navButton(col, row, glyph, onClick)
     local box = Frame:new{
       parent = self,
       position = {
         TopRight = {self._model, ui.edge.TopRight,
-          -((2 - col) * (PADB + PADGAP) + 8), -(row * (PADB + PADGAP) + 8)},
+          -((2 - col) * (PADB + PADGAP) + INSET), -(row * (PADB + PADGAP) + INSET)},
         Width = PADB, Height = PADB,
       },
     }
@@ -398,8 +425,9 @@ end
 -- (which is only populated for the earliest groups).
 ---@param classId number?
 function DressingRoom:_showClass(classId)
-  local file
-  if classId then file = select(2, GetClassInfo(classId)) end
+  local name, file
+  if classId then name, file = GetClassInfo(classId) end
+  self._className = name   -- localized class name for the icon's hover tooltip
   local lower = file and file:lower()
   local atlas = lower and ("classicon-" .. lower)
   if atlas and GetAtlasInfo(atlas) then
@@ -412,21 +440,36 @@ function DressingRoom:_showClass(classId)
 end
 
 -- Point the model backdrop at the class's dressing-room background (hidden when the
--- toggle is off). Every class has a backdrop atlas, but setting + showing it the
--- same frame as the model re-skin is hit-or-miss (it sometimes renders blank), so
--- we set the atlas now and Show it after a short delay — guarded so a class change
--- mid-delay doesn't reveal a stale backdrop. Remembers the class for the toggle.
+-- toggle is off). Setting the atlas once on a class change is hit-or-miss — it
+-- renders blank while the texture streams in (and `GetAtlasInfo` can briefly read
+-- nil) — so `_applyBackground` re-asserts it on a short timer across a ~0.6s window
+-- (each `Atlas` call forces a render refresh), catching it whenever it resolves.
 ---@param classFile string?  lowercased class file (e.g. "warrior")
 function DressingRoom:_setBackground(classFile)
   self._bgClass = classFile
-  local atlas = classFile and ("dressingroom-background-" .. classFile)
-  if self._bgEnabled and atlas then
-    self._bg:Atlas(atlas, false)   -- false = stretch to the model rect
-    self:delay(60, function()
-      if self._bgEnabled and self._bgClass == classFile then self._bg:Show() end
-    end)
+  if self._bgEnabled and classFile then
+    self._bgRetries = 12               -- ~0.6s of re-asserts while the texture loads
+    self:_applyBackground(classFile)
   else
     self._bg:Hide()
+  end
+end
+
+-- Re-assert the class backdrop, re-running on a 50ms timer across the retry window
+-- (not stopping at the first success — the texture can still render blank for a
+-- frame or two after the atlas resolves). Bails if the class changed underneath us
+-- or the toggle went off, so a stale tick can't reveal the wrong/old backdrop.
+---@param classFile string  lowercased class file
+function DressingRoom:_applyBackground(classFile)
+  if self._bgClass ~= classFile or not self._bgEnabled then return end
+  local atlas = "dressingroom-background-" .. classFile
+  if GetAtlasInfo(atlas) then
+    self._bg:Atlas(atlas, false)   -- false = stretch to the model rect; re-assert forces a refresh
+    self._bg:Show()
+  end
+  if self._bgRetries > 0 then
+    self._bgRetries = self._bgRetries - 1
+    self:delay(50, function() self:_applyBackground(classFile) end)
   end
 end
 
