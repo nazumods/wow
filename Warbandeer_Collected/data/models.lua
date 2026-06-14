@@ -88,8 +88,16 @@ ns.RaceModels = {
 -- collapse their faction variants into the neutral group). Any id GetRaceInfo
 -- doesn't recognise on this client is skipped, so newer races degrade gracefully.
 local FACTIONS = {
-  { faction = "alliance", ids = { 1, 3, 4, 7, 11, 22, 29, 30, 32, 34, 37 } },
-  { faction = "horde",    ids = { 2, 5, 6, 8, 9, 10, 27, 28, 31, 35, 36 } },
+  -- Alliance ordered (4-wide) to keep kin together:
+  --   Night Elf+Void Elf | Gnome+Mechagnome
+  --   Draenei+Lightforged Draenei | Dwarf+Dark Iron
+  --   Human+Worgen+Kul Tiran   (the three humans, centered bottom row)
+  { faction = "alliance", ids = { 4, 29, 7, 37, 11, 30, 3, 34, 1, 22, 32 } },
+  -- Horde ordered (4-wide) to keep kin together (Nightborne are elves → Blood Elf):
+  --   Orc+Mag'har Orc | Tauren+Highmountain Tauren
+  --   Troll+Zandalari Troll | Blood Elf+Nightborne
+  --   Undead+Goblin+Vulpera   (the kinless three, centered bottom row)
+  { faction = "horde",    ids = { 2, 36, 6, 28, 8, 31, 10, 27, 5, 9, 35 } },
   { faction = "neutral",  ids = { 25, 52, 84 } },   -- Pandaren, Dracthyr, Earthen
 }
 

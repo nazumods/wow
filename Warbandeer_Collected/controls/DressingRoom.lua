@@ -49,7 +49,7 @@ local MODELH = 640
 -- Race-selector faction panels: Alliance | Neutral | Horde, each in a colored
 -- border. Alliance/Horde wrap at AHCOLS columns; Neutral is an inverted pyramid.
 local AHCOLS   = 4          -- columns in the Alliance / Horde panels
-local PBORDER  = 3          -- faction-panel border thickness (px)
+local PBORDER  = 1          -- faction-panel border thickness (px)
 local PINPAD   = 5          -- gap between the border and the icons
 local PANELPAD = PBORDER + PINPAD
 local PANELGAP = 12         -- gap between the three panels
