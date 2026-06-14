@@ -19,7 +19,20 @@ local SECONDS_PER_DAY = 24 * 60 * 60
 local nowEpoch = GetServerTime()
 local epochDays = math.floor(nowEpoch / SECONDS_PER_DAY)
 local sundayOffset = (epochDays + 4) % 7 -- 0 = Sunday; +4 aligns the Thursday epoch
-local LAST_SUNDAY_RESET = (epochDays - sundayOffset) * SECONDS_PER_DAY
+-- DMF doesn't reset at Sunday 00:00 UTC: it resets at midnight US Pacific, which is
+-- 08:00 UTC under PST (07:00 under PDT). Anchoring at 00:00 UTC fired the reset 7-8h
+-- early — during that Sunday-morning window the quests are still flagged complete, so
+-- logging in wiped every stored character's DMF completion and only the active toon
+-- (re-read live) showed complete again. Anchor at the LATEST real reset (midnight PST,
+-- 08:00 UTC): in summer this fires up to an hour late, which is harmless (it only shows
+-- a stale "complete" briefly) — whereas firing early destroys good data. The candidate
+-- below is this week's Sunday 08:00 UTC; if that's still in the future, fall back a week
+-- so the anchor stays a PAST Sunday reset (the invariant the InitBrokers logic relies on).
+local SUNDAY_RESET_OFFSET = 8 * 60 * 60 -- midnight US Pacific (PST) in UTC
+local LAST_SUNDAY_RESET = (epochDays - sundayOffset) * SECONDS_PER_DAY + SUNDAY_RESET_OFFSET
+if LAST_SUNDAY_RESET > nowEpoch then
+  LAST_SUNDAY_RESET = LAST_SUNDAY_RESET - 7 * SECONDS_PER_DAY
+end
 
 -- The daily/weekly anchors are recomputed every login from the seconds-until APIs,
 -- which can skew by a second between sessions. A genuine new boundary advances by
@@ -133,7 +146,7 @@ end
 ---@field Broker Broker
 ---@field brokers table<string, Broker> registered brokers by name
 ---@field brokerOrder string[] broker names in registration order
----@field RESET_SUNDAY integer reset cadence: Sunday midnight (realm-local)
+---@field RESET_SUNDAY integer reset cadence: Sunday DMF reset (midnight US Pacific / 08:00 UTC)
 ---@field RESET_DAILY integer reset cadence: daily reset
 ---@field RESET_WEEKLY integer reset cadence: weekly reset
 ns.brokers = {}
