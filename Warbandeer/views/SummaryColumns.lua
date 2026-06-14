@@ -58,10 +58,7 @@ end, {
 local SummaryColumn = ns.SummaryColumn
 
 -- Shared cell data reused across the summaryCol/ chunk files.
----@class Warbandeer
----@field GreenCheck table       shared green check-icon cell data
----@field CappedColor number[]   cell color for capped/at-max values
----@field UncappedColor number[] cell color for uncapped values
+---@type table shared green check-icon cell data
 ns.GreenCheck = {
   atlas = ns.icons.CheckGreen,
   atlasSize = false,
@@ -70,7 +67,9 @@ ns.GreenCheck = {
     Size = {16, 16},
   },
 }
+---@type number[] cell color for capped/at-max values
 ns.CappedColor = {1, 0.2, 0.2, 1}
+---@type number[] cell color for uncapped values
 ns.UncappedColor = {1, 1, 1, 1}
 
 -- "Known zero / n-a" cell: an em-dash in the muted column-header colour. Weekly
@@ -80,13 +79,14 @@ ns.UncappedColor = {1, 1, 1, 1}
 -- upgrades column returns it for its flat n/a (no upgrades) case. Returned shared:
 -- SummaryView:decorateRow copies every cell before wrapping, so it's never mutated.
 -- Right-aligned to sit where each column renders its numbers.
----@class Warbandeer
----@field ZeroDash table  shared muted em-dash cell for known-zero / n-a values
+---@type table shared muted em-dash cell for known-zero / n-a values
 ns.ZeroDash = {
   text = "—",
   justifyH = ui.justify.Right,
-  color = ns.theme.colors.muted,
+  color = ns.theme.colors.faded,
 }
+---@type table ZeroDash for centered data
+ns.ZeroDashC = ns.lua.maps.merge({}, ns.ZeroDash, {justifyH = ui.justify.Center})
 
 -- Cell data for a small square icon (faction, role) that should sit centered in
 -- its cell rather than stretching to fill it: a fixed 16px size leaves ~2px above
@@ -105,8 +105,7 @@ function ns.SummaryIconCell(icon)
   }
 end
 
----@class Warbandeer
----@field SummaryColumns SummaryColumn[]
+---@type SummaryColumn[]
 ns.SummaryColumns = {}
 
 -- The Darkmoon Faire holiday uses three calendar textures across its run:
