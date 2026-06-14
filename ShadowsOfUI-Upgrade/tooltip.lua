@@ -53,9 +53,19 @@ local function render(tooltip, list)
   end
 end
 
+-- Embedded item tooltips (quest / world-quest reward previews) parent their inner
+-- tooltip back onto the container as `container.Tooltip`.  The standalone
+-- GameTooltip / ItemRefTooltip are nobody's `.Tooltip`, so this skips reward
+-- blocks (WQ map pins, quest log) while keeping normal item hovers.
+local function isEmbedded(tooltip)
+  local parent = tooltip.GetParent and tooltip:GetParent()
+  return parent and parent.Tooltip == tooltip
+end
+
 local function onItemTooltip(tooltip, data)
   if not data then return end
   if tooltip.IsForbidden and tooltip:IsForbidden() then return end
+  if isEmbedded(tooltip) then return end
   -- Prefer the displayed link (carries bonus IDs → correct scaled ilvl).
   local link
   if TooltipUtil and TooltipUtil.GetDisplayedItem then

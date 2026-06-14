@@ -64,6 +64,11 @@ off-hand / 1H is not listed as an upgrade for a 2H wielder (only another 2H is).
 
 ## Gotchas
 
+- **Embedded reward tooltips are skipped.** `tooltip.lua`'s `isEmbedded` guard bails when
+  `tooltip:GetParent().Tooltip == tooltip` — the signature of an `EmbeddedItemTooltip` container
+  (it parents its inner tooltip back onto itself). This suppresses the "Upgrade for:" block on
+  world-quest map-pin rewards and quest-log reward previews, while the standalone `GameTooltip` /
+  `ItemRefTooltip` (bag hovers, chat item links) — nobody's `.Tooltip` — keep it.
 - **Soulbound items are holder-only in the tooltip.** `tooltip.lua` detects a `Soulbound`
   binding line (`ITEM_SOULBOUND`) and passes `boundTo = current character` to `ItemUpgrades`,
   so a soulbound item only lists the character it's already bound to; BoE / Warbound-until-
