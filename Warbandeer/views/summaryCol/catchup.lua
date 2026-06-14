@@ -8,13 +8,13 @@ local insert = table.insert
 -- (Head, Neck, Hands, Waist) are below item level 180. These are the slots a
 -- fresh max-level alt fills first, so the count flags characters still short on
 -- the baseline gear. Only reported for level 81+ characters (the catch-up band);
--- below that the column stays empty. A green check means all four are >= 180.
+-- below that the cell reads a muted em-dash. A green check means all four are >= 180.
 local SLOTS = {"Head", "Neck", "Hands", "Waist"}
 local MIN_ILVL = 180
 local MIN_LEVEL = 81
 
 local getData = function(toon)
-  if (toon.basic.level or 0) < MIN_LEVEL then return "" end
+  if (toon.basic.level or 0) < MIN_LEVEL then return ns.ZeroDashC end
 
   local below = {}
   for _, name in ipairs(SLOTS) do
