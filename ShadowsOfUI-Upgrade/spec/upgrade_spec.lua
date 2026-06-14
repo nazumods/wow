@@ -333,4 +333,92 @@ describe("ShadowsOfUI-Upgrade upgrade calc", function()
       assert.is_nil(h.Api:ItemUpgrades(off.link))
     end)
   end)
+
+  describe("WorldQuestUpgrades", function()
+    -- A world-quest reward candidate carries GearCandidate fields plus quest metadata.
+    local function wqChest(id, ilvl, meta, stats)
+      local item = h.defItem{ link = "chest:" .. id, itemID = id, equipLoc = "INVTYPE_CHEST",
+        classID = ARMOR, subClassID = PLATE, ilvl = ilvl, stats = stats }
+      item.questID = meta.questID
+      item.title = meta.title
+      item.zone = meta.zone
+      item.mapID = meta.mapID
+      return item
+    end
+
+    it("returns a qualifying reward with slot, gain, and quest metadata", function()
+      h.addChar(warrior("Conan", { Chest = { ilvl = 580 } }))
+      h.addWQ("Conan", wqChest(1, 620, { questID = 100, title = "Defend the Spire", zone = "Eversong", mapID = 2395 }))
+      local list = h.Api:WorldQuestUpgrades("Conan")
+      assert.equals(1, #list)
+      assert.equals("Chest", list[1].slot)
+      assert.equals(40, list[1].ilvlGain)
+      assert.equals(100, list[1].questID)
+      assert.equals("Defend the Spire", list[1].title)
+      assert.equals("Eversong", list[1].zone)
+      assert.equals(2395, list[1].mapID)        -- carried through for click-to-open-map
+    end)
+
+    it("excludes a reward at or below the equipped ilvl", function()
+      h.addChar(warrior("Conan", { Chest = { ilvl = 620 } }))
+      h.addWQ("Conan", wqChest(1, 600, { questID = 100, title = "Lowbie WQ" }))
+      assert.same({}, h.Api:WorldQuestUpgrades("Conan"))
+    end)
+
+    it("excludes a reward the class cannot equip (wrong armour type)", function()
+      h.addChar(warrior("Conan", { Chest = { ilvl = 500 } }))
+      local cloth = h.defItem{ link = "cloth:1", itemID = 5, equipLoc = "INVTYPE_CHEST",
+        classID = ARMOR, subClassID = CLOTH, ilvl = 620 }
+      cloth.questID, cloth.title = 100, "Cloth WQ"
+      h.addWQ("Conan", cloth)
+      assert.same({}, h.Api:WorldQuestUpgrades("Conan"))
+    end)
+
+    it("excludes a reward carrying the wrong primary stat for the spec", function()
+      h.addChar(warrior("Conan", { Chest = { ilvl = 500 } }))
+      h.addWQ("Conan", wqChest(1, 620, { questID = 100, title = "Agi WQ" }, { [AGI] = 50 }))
+      assert.same({}, h.Api:WorldQuestUpgrades("Conan"))
+    end)
+
+    it("targets the weaker of two finger slots for a ring reward", function()
+      h.addChar(warrior("Conan", { Finger1 = { ilvl = 600 }, Finger2 = { ilvl = 580 } }))
+      local ring = h.defItem{ link = "ring:1", itemID = 7, equipLoc = "INVTYPE_FINGER",
+        classID = ARMOR, subClassID = MISC, ilvl = 590 }
+      ring.questID, ring.title = 100, "Ring WQ"
+      h.addWQ("Conan", ring)
+      local list = h.Api:WorldQuestUpgrades("Conan")
+      assert.equals(1, #list)
+      assert.equals("Finger2", list[1].slot)
+      assert.equals(10, list[1].ilvlGain)         -- 590 − 580
+    end)
+
+    it("sorts multiple rewards by ilvl gain, descending, and tags stats", function()
+      h.addChar(warrior("Conan", { Chest = { ilvl = 580 }, Head = { ilvl = 610 } }))
+      h.addWQ("Conan", wqChest(1, 620, { questID = 100, title = "Big", zone = "A" },
+        { [STR] = 10, [CRIT] = 20 }))                                          -- +40, good
+      local head = h.defItem{ link = "head:1", itemID = 9, equipLoc = "INVTYPE_HEAD",
+        classID = ARMOR, subClassID = PLATE, ilvl = 620 }
+      head.questID, head.title, head.zone = 101, "Small", "B"
+      h.addWQ("Conan", head)                                                   -- +10
+      local list = h.Api:WorldQuestUpgrades("Conan")
+      assert.equals(2, #list)
+      assert.equals("Chest", list[1].slot)        -- +40 first
+      assert.equals("good", list[1].statTag)
+      assert.equals("Head", list[2].slot)         -- +10 second
+    end)
+
+    it("never reports a lone off-hand reward for a two-hand wielder", function()
+      h.addChar(warrior("Conan", { MainHand = { ilvl = 600, equipLoc = "INVTYPE_2HWEAPON" } }))
+      local off = h.defItem{ link = "off:1", itemID = 30, equipLoc = "INVTYPE_HOLDABLE",
+        classID = ARMOR, subClassID = MISC, ilvl = 999 }
+      off.questID, off.title = 100, "Off WQ"
+      h.addWQ("Conan", off)
+      assert.same({}, h.Api:WorldQuestUpgrades("Conan"))
+    end)
+
+    it("returns empty when the character has no cached rewards", function()
+      h.addChar(warrior("Conan", { Chest = { ilvl = 580 } }))
+      assert.same({}, h.Api:WorldQuestUpgrades("Conan"))
+    end)
+  end)
 end)

@@ -85,7 +85,7 @@ end, "Repair stored data (recount characters)")
 ---@field MigrateDB fun(self) Migrate database to latest version
 function ns:MigrateDB()
   local db = ns.db
-  if db.version == 13 then return end
+  if db.version == 14 then return end
   if not db.characters then db.characters = {} end
   if not db.numCharacters then
     db.numCharacters = countCharacters(db)
@@ -176,6 +176,14 @@ function ns:MigrateDB()
   -- simply see empty lists until the next scan, so rollback is lossless.
   if (db.version or 0) < 13 then
     db.version = 13
+  end
+
+  -- v14: per-character world-quest gear-reward cache (non-destructive).  Filled
+  -- lazily by data/worldquests.lua when a max-level character logs in and scans
+  -- its active world quests; nothing to seed — old revisions simply see empty
+  -- lists until the next scan, so rollback is lossless.
+  if (db.version or 0) < 14 then
+    db.version = 14
   end
 end
 

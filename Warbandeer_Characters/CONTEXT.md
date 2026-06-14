@@ -1,6 +1,6 @@
 # Warbandeer_Characters (Data Layer)
 
-**Deps:** LibNAddOn, LibNUI · **SavedVars:** `WarbandeerCharDB` (v13) · **Commands:** `/characters`, `/wbc` · **API:** `WarbandeerApi`
+**Deps:** LibNAddOn, LibNUI · **SavedVars:** `WarbandeerCharDB` (v14) · **Commands:** `/characters`, `/wbc` · **API:** `WarbandeerApi`
 
 Data-collection backbone for the suite. Scans the active character each login/refresh and stores everything in `WarbandeerCharDB`, exposing it to the rest of the suite through the `WarbandeerApi` global. Per-field scanning is driven by the **broker** system (`broker.lua`).
 
@@ -26,6 +26,7 @@ Data-collection backbone for the suite. Scans the active character each login/re
 | `data/concentration.lua` | Broker `concentration`: `data` — Midnight concentration currency per crafting prof, keyed by parent skillLineID |
 | `data/races.lua` | `API.ALLIANCE_RACES`, `API.HORDE_RACES`, `ns.NormalizeRaceId(raceId)` → `(raceIdx, isAlliance)` |
 | `data/quests.lua` | Broker `quests`: `UndermineStoryMode`, `WWIRep`, `LumberAxe`, `delves` |
+| `data/worldquests.lua` | Broker `worldquests`: `rewards` — the logged-in character's active world-quest **gear** rewards that could upgrade an equipped slot, cached per-character (last-seen; reward data is only readable for the active char). Not max-level-gated — some WQs are available before the cap. Each entry is a `GearCandidate` + `{questID, title, zone, endTime}`. Scans the current expansion's WQ continent zones (`WQ_CONTINENTS` → `GetMapChildrenInfo`), keeps only equippable gear (`API:ClassifyGearItem`), gated by an ilvl ceiling (no scan when every slot ≥ `WQ_ILVL_CEILING` 220). Debounced on `QUEST_LOG_UPDATE`/`ZONE_CHANGED_NEW_AREA`; since reward data loads async, a scan that finds quests before their rewards are ready preloads them and schedules a bounded retry (`RefreshCurrentCharacterField`), keeping the last-seen list instead of caching empty. `WarbandeerApi:GetWorldQuestRewards`; `/wbc dump wq`. The upgrade *evaluation* lives in ShadowsOfUI-Upgrade (consumes the raw cache) |
 | `data/daily.lua` | Broker `dailies`: empty (template for future daily tracking) |
 | `data/playtime.lua` | Broker `playtime`: `total` seconds + `byPatch` baseline; async via `TIME_PLAYED_MSG` |
 | `data/weekly.lua` | Broker `weeklies`: `DMF`, `preMidnight`, `caches`, `vault`, `hasUnclaimedVault`, `keystone`, `dungeons`; `/wbc dump m+`, `/wbc dump vault` |
@@ -72,6 +73,11 @@ WarbandeerApi:GetCharacterGearCandidates(char?) → { bags: GearCandidate[], ban
 WarbandeerApi:GetWarbandBankGear()         → GearCandidate[]
     -- equippable gear in the warband (account) bank; the shared "better
     -- elsewhere" pool; empty until the warband bank has been opened
+WarbandeerApi:GetWorldQuestRewards(char?)  → WorldQuestReward[]
+    -- a character's cached active world-quest gear rewards (GearCandidate +
+    -- {questID, title, zone, mapID, endTime}); captured while that char was logged in,
+    -- last-seen.  Expired quests (endTime passed) are dropped on read.  Consumed
+    -- by ShadowsOfUI-Upgrade's WorldQuestUpgrades; empty until the char has scanned
 ```
 
 `GearCandidate` = `{ link, itemID, ilvl?, equipLoc, classID, subClassID }` (ilvl is the
@@ -135,6 +141,12 @@ quests = {
   LumberAxe,                                           -- has Find-Lumber tracking spell
   delves = { complete, missing, [label] = bool },
 }
+worldquests = {                                        -- v14
+  rewards = { {                                        -- GearCandidate + quest metadata
+    link, itemID, ilvl, equipLoc, classID, subClassID, -- GearCandidate fields
+    questID, title, zone, mapID, endTime,              -- source quest + zone uiMapID + expiry (server time)
+  } }?,
+}
 dailies = {}
 weeklies = {
   DMF,                                                 -- RESET_SUNDAY
@@ -173,6 +185,7 @@ playtime = {
 | `professions` | details, gear | `TRADE_SKILL_SHOW` (details, 0.5s C_Timer); `PLAYER_EQUIPMENT_CHANGED` (gear, 500ms + item load) | — |
 | `concentration` | data | `CURRENCY_DISPLAY_UPDATE` | — |
 | `quests` | UndermineStoryMode, WWIRep, LumberAxe, delves | `QUEST_TURNED_IN`, `QUEST_ACCEPTED`, `QUEST_REMOVED`, `UNIT_QUEST_LOG_CHANGED`, `SPELLS_CHANGED` | — |
+| `worldquests` | rewards | `QUEST_LOG_UPDATE`, `ZONE_CHANGED_NEW_AREA` (debounced; retries while reward data loads) | — |
 | `dailies` | (empty) | — | — |
 | `weeklies` | DMF, preMidnight, caches, vault, hasUnclaimedVault, keystone, dungeons | `QUEST_TURNED_IN`, `WEEKLY_REWARDS_UPDATE` (1000ms), `CHALLENGE_MODE_COMPLETED` | DMF: `RESET_SUNDAY`; rest: `RESET_WEEKLY` |
 | `instances` | locks | `INSTANCE_LOCK_STOP` | `RESET_WEEKLY` |
@@ -202,11 +215,12 @@ A `Broker` (from `broker.lua`) holds a `fields` table; each field is `{ get, eve
 - **`playtime` bypasses the field system.** `TIME_PLAYED_MSG` is async, so the broker overrides `Init` to register its own handler and calls `RequestTimePlayed()`; `byPatch[patch]` is written only on the first login of a patch.
 - **Warband wealth is account-wide, stored once at `db.warband`** (the bank is shared), not duplicated per character. `GetWarbandWealth` = `bankGold` + last-known `currency.gold` of every character. `RolloverWarbandWeek` closes elapsed weeks at the `ns.LAST_RESET` boundary, using last-seen wealth as the closing figure.
 - **Evokers (classId 13) have no class hall** — `artifacts.classHall`/`hiddenColors` short-circuit for them.
+- **World-quest scanning is bundled-continent, any level.** `data/worldquests.lua`'s `WQ_CONTINENTS` is the current expansion's WQ continent map ID(s) (expanded to zone children at scan time, so all zones are covered regardless of where the player stands); **update it each expansion**. Not max-level-gated — some WQs reward gear before the cap. Reward data is only readable for the logged-in character, so alts keep their last-seen cache (expired entries dropped on read by `endTime`). `WQ_ILVL_CEILING` (220) skips the map walk for fully-geared characters (the only level-related guard). The reward ilvl is the value scaled to the character that scanned it, so it's only ever compared against that same character's slots.
 
 ## SavedVariables (`WarbandeerCharDB`)
 
 ```lua
-{ version = 13, numCharacters, lastDailyReset, lastReset, lastSundayReset,
+{ version = 14, numCharacters, lastDailyReset, lastReset, lastSundayReset,
   characters = { ["Name"] = Character },
   -- account-wide warband wealth (v8); not per-character
   warband = {
@@ -233,4 +247,4 @@ A `Broker` (from `broker.lua`) holds a `fields` table; each field is `{ get, eve
   ui = { wmissingFontSize } }                              -- legacy (stale)
 ```
 
-`MigrateDB` (all migrations non-destructive): **v7** moves flat fields into `basic`/`instances` sub-tables and nils the old keys; **v8** seeds `warband = { bankGold = 0, history = {} }` (`week` filled lazily by `RolloverWarbandWeek` on first login); **v9** re-derives `classKey` from the locale-independent class token; **v10** seeds `recipeGear = { build = "", recipes = {} }` (re-stamped and filled lazily by `data/recipegear.lua`); **v11** seeds `bank = { characters = {}, guilds = {} }` (warband filled lazily; all populated by `data/bank.lua` on bank open); **v12** seeds `ui = {}` (account-wide UI prefs; originally held `wmissingFontSize`, now legacy — the copy-window font size moved to `LibNUIDB.copyFontSize`, this table left in place for rollback safety). **v13** is a version bump only — the equippable-gear cache (`bank.*.equip`, per-char `gearbag.items`, `basic.specialization.id`) is purely additive and filled lazily, so older revisions just see empty lists.
+`MigrateDB` (all migrations non-destructive): **v7** moves flat fields into `basic`/`instances` sub-tables and nils the old keys; **v8** seeds `warband = { bankGold = 0, history = {} }` (`week` filled lazily by `RolloverWarbandWeek` on first login); **v9** re-derives `classKey` from the locale-independent class token; **v10** seeds `recipeGear = { build = "", recipes = {} }` (re-stamped and filled lazily by `data/recipegear.lua`); **v11** seeds `bank = { characters = {}, guilds = {} }` (warband filled lazily; all populated by `data/bank.lua` on bank open); **v12** seeds `ui = {}` (account-wide UI prefs; originally held `wmissingFontSize`, now legacy — the copy-window font size moved to `LibNUIDB.copyFontSize`, this table left in place for rollback safety). **v13** is a version bump only — the equippable-gear cache (`bank.*.equip`, per-char `gearbag.items`, `basic.specialization.id`) is purely additive and filled lazily, so older revisions just see empty lists. **v14** is a version bump only — the per-character world-quest reward cache (`worldquests.rewards`) is additive and filled lazily on the next scan, so rollback is lossless.

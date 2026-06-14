@@ -57,6 +57,7 @@ function up.harness()
     allChars = {},     -- array, drives GetAllCharacters()
     pools = {},        -- name → { bags = {...}, bank = {...} }
     warband = {},      -- array of candidates
+    wq = {},           -- name → array of world-quest reward candidates
     clock = 1000,      -- GetTime() seconds; advance with h:advance(n)
   }
 
@@ -117,6 +118,7 @@ function up.harness()
     return h.pools[name] or { bags = {}, bank = {} }
   end
   function api:GetWarbandBankGear() return h.warband end
+  function api:GetWorldQuestRewards(name) return h.wq[name] or {} end
   h.api = api
 
   -- ----- seed the ns fields core.lua would, then load the logic ------------
@@ -144,6 +146,16 @@ function up.harness()
   function h.addChar(char)
     h.chars[char.name] = char
     table.insert(h.allChars, char)
+  end
+
+  ---Add a world-quest reward candidate for a character (drives GetWorldQuestRewards).
+  ---@param name string character name
+  ---@param reward table reward candidate ({ link, itemID, equipLoc, ..., questID, title, zone })
+  ---@return table reward the same table (for inline use)
+  function h.addWQ(name, reward)
+    h.wq[name] = h.wq[name] or {}
+    table.insert(h.wq[name], reward)
+    return reward
   end
 
   ---Advance the GetTime() clock (for the per-character memo TTL).
