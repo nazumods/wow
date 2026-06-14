@@ -46,7 +46,10 @@ are a small built-in table (derived from current PvE secondary-stat weightings),
   - the **Summary** view gains an **"Up"** column counting each character's available upgrades
     (hover for the list),
   - the **Gear** view marks each slot that has an upgrade with a ▲,
-  - the **Detail** view marks each equipped item that can be upgraded.
+  - the **Detail** view marks each equipped item that can be upgraded, and its **Suggested**
+    box lists active **world-quest** rewards that would upgrade a slot (the quest's gear, the
+    item-level gain, and where to find it) alongside the ready upgrades — world quests are
+    scanned while each character is logged in, so the suggestions persist when you view an alt.
 
 `/supgrade [name]` prints a character's available upgrades to chat (defaults to the
 logged-in character) — a debugging aid; you won't normally need it.

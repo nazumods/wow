@@ -23,7 +23,7 @@ addon is fully standalone.
 | `spec/upgrade.lua` | Busted harness: loads data + `resolve`/`equip`/`upgrade` into a fresh `ns` with stubbed WoW globals (`C_Item`, `Enum`, `GetTime`, spec-info fns) and a fake `WarbandeerApi`. `up.harness()` returns `{ ns, Api, api, defItem, addChar, pools, warband, advance }`. Skips `core.lua` (LibNAddOn bootstrap) + `tooltip.lua` (frames) |
 | `spec/equip_spec.lua` | `CompetingSlots` / `IsTwoHand` / `WeaponRole` / `CanEquip` (armour-type, shield, weapon-proficiency gating) |
 | `spec/resolve_spec.lua` | `StatRanks` / `PrimaryStat` spec-ID → tier/primary resolution |
-| `spec/upgrade_spec.lua` | End-to-end published API: ilvl gating, equip/primary filters, multi-slot weaker-slot targeting, held-vs-warband (`betterElsewhere`), `statTag` good/off, sort/count, memo TTL, two-hand reconciliation, `ItemUpgrades` (soulbound `boundTo`, 2H lone-off-hand exclusion) |
+| `spec/upgrade_spec.lua` | End-to-end published API: ilvl gating, equip/primary filters, multi-slot weaker-slot targeting, held-vs-warband (`betterElsewhere`), `statTag` good/off, sort/count, memo TTL, two-hand reconciliation, `ItemUpgrades` (soulbound `boundTo`, 2H lone-off-hand exclusion), `WorldQuestUpgrades` (ilvl gating, equip/primary filters, multi-slot, 2H guard, sort + quest metadata; harness `addWQ` / fake `GetWorldQuestRewards`) |
 
 ## `ShadowsOfUI_UpgradeApi`
 
@@ -32,6 +32,14 @@ ShadowsOfUI_UpgradeApi:SlotUpgrade(charName, slot)      → UpgradeResult|nil
     -- best available upgrade for one equipment slot (Head, Finger1, MainHand, …)
 ShadowsOfUI_UpgradeApi:CharacterUpgrades(charName)      → UpgradeResult[]   (sorted by ilvlGain desc)
 ShadowsOfUI_UpgradeApi:CharacterUpgradeCount(charName)  → integer
+ShadowsOfUI_UpgradeApi:WorldQuestUpgrades(charName)     → WorldQuestUpgrade[]
+    -- active world-quest gear rewards that would upgrade an equipped slot, sorted
+    -- by ilvl gain.  Reads WarbandeerApi:GetWorldQuestRewards (the data layer's
+    -- per-character WQ cache, already expiry-filtered) and runs each reward through
+    -- the same `evaluate` the held/warband finder uses (proficiency, primary-stat,
+    -- multi-slot targeting, two-hand guard, statTag).  WorldQuestUpgrade = UpgradeResult
+    -- + { questID, title, zone } (no `where`/`betterElsewhere`).  Empty on an older
+    -- data layer without GetWorldQuestRewards.
 ShadowsOfUI_UpgradeApi:ItemUpgrades(link, boundTo?, ilvl?)  → ItemUpgradeEntry[]|nil
     -- which characters a specific item would upgrade (drives the tooltip).
     -- boundTo = the holder's name for a soulbound item (restricts to that one

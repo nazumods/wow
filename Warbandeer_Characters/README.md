@@ -35,6 +35,8 @@ data through the `WarbandeerApi` global.
   profession slot could be filled from one of your banks.
 - Equippable gear in your **bags** and in the **warband / personal banks** is also recorded
   (whenever those are open).
+- Active **world-quest gear rewards** that would upgrade one of your equipped slots are noted
+  for each max-level character while it's logged in, so Warbandeer can suggest them later.
 
 ## Requirements
 

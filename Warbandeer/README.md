@@ -13,7 +13,7 @@ Open it with `/warband` or `/wb` and switch views with the icon rail on the left
 |---|---|
 | Overview | Warband-wide summary: wealth, top alts (with per-raid RF/N/H/M tier-set completion), faction progress, achievements |
 | Summary | One row per character: level, ilvl, gold, professions |
-| Detail | Deep-dive on a single character: gear, profession crafting intents, each profession's equipped tool/accessories, and a Suggested box of ready gear upgrades the character can equip right now |
+| Detail | Deep-dive on a single character: gear, profession crafting intents, each profession's equipped tool/accessories, and a Suggested box of gear upgrades — ready items the character can equip right now, plus active world-quest rewards that would upgrade a slot |
 | Gear | Equipped item levels piece-by-piece across the warband |
 | Roles | Tank/healer/DPS coverage by class |
 | Races | Race coverage across your characters |

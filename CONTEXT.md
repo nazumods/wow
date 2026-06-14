@@ -56,7 +56,7 @@ Load the linked `CONTEXT.md` for full file maps, class hierarchies, API surfaces
 |---|---|---|
 | **LibNAddOn** | Bootstrapping factory (`LibNAddOn(features)`), class system, lua utils, event/DB/settings wiring. Every addon depends on it. | [LibNAddOn/CONTEXT.md](LibNAddOn/CONTEXT.md) |
 | **LibNUI** | OOP UI widget library; global `LibNUI` / `ns.ui`. Region→Frame hierarchy: Texture, Label, StatusBar, Button, TableFrame, TitleFrame, TabFrame, Tooltip, CopyWindow, settings widgets. Themable via `ui.Theme{}` / `ui.themes.dark`. Shared copy window `ui.ShowCopyWindow` + `/wdebug`; `LibNUIDB` (v1). | [LibNUI/CONTEXT.md](LibNUI/CONTEXT.md) |
-| **Warbandeer_Characters** | Data collection backbone; populates `WarbandeerApi`. Broker system, per-character struct, account-wide warband wealth + bank prof-gear cache (warband/character/guild) + equippable-gear cache (bags + warband/personal banks), `WarbandeerCharDB` (v13). | [Warbandeer_Characters/CONTEXT.md](Warbandeer_Characters/CONTEXT.md) |
+| **Warbandeer_Characters** | Data collection backbone; populates `WarbandeerApi`. Broker system, per-character struct, account-wide warband wealth + bank prof-gear cache (warband/character/guild) + equippable-gear cache (bags + warband/personal banks) + per-character world-quest gear-reward cache, `WarbandeerCharDB` (v14). | [Warbandeer_Characters/CONTEXT.md](Warbandeer_Characters/CONTEXT.md) |
 | **Warbandeer** | Main viewer UI (`/warband`, `/wb`). 13 views, MainWindow, faction widget, `profIntent`, `WarbandeerDB` (v3). | [Warbandeer/CONTEXT.md](Warbandeer/CONTEXT.md) |
 | **Warbandeer_Alias** | Guild-chat alias prefix hook. Single file; `Warbandeer_AliasDB` (v1). | [Warbandeer_Alias/CONTEXT.md](Warbandeer_Alias/CONTEXT.md) |
 | **Warbandeer_Collected** | Transmog set tracker (`/collected`, `/collect`). DataView grid, scan logic, `WarbandeerCollectedDB` (v2); exposes read-only `WarbandeerCollectedApi` (consumed by Warbandeer's `collected` view). | [Warbandeer_Collected/CONTEXT.md](Warbandeer_Collected/CONTEXT.md) |
@@ -82,7 +82,7 @@ LibNUI_Test is a LoadOnDemand visual test harness for LibNUI (`/nui test [key]`)
 |---|---|---|
 | LibNAddOn | `/lib` | `player` |
 | LibNUI | `/nui`, `/wdebug` | `version`, `test [key]`; `/wdebug <lua>` (raw command: eval Lua → copyable window) |
-| Warbandeer_Characters | `/characters`, `/wbc` | `list`, `delete <name>`, `cleanup`, `refresh`, `refresh items/locks`, `dump`, `dump bank/bankgear/gt/locks/artifact/warband/profgear`, `stat`, `missing`, `missing me`, `wmissing` |
+| Warbandeer_Characters | `/characters`, `/wbc` | `list`, `delete <name>`, `cleanup`, `refresh`, `refresh items/locks`, `dump`, `dump bank/bankgear/gt/locks/artifact/warband/profgear/wq`, `stat`, `missing`, `missing me`, `wmissing` |
 | Warbandeer | `/warband`, `/wb` | `""` (open), `overview`, `summary`, `gear`, `detail`, `roles`, `races`, `legion`, `midnight`, `profs`, `midnightprofs`, `crafting`, `playtime`, `bars`, `collected`, `check legion` |
 | Warbandeer_Collected | `/collected`, `/collect` | `""` (open), `scan`, `model <id>` (dev: preview a raw display id), `scale <n>` (dev: tune model scale; no arg dumps scale state) |
 | Recycle | `/recycle` | `clear`, `key CTRL|SHIFT|ALT` |
