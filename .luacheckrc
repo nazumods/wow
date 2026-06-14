@@ -246,6 +246,7 @@ std = {
     "GetPetActionInfo",
     "GetProfessionInfo",
     "GetProfessions",
+    "GetRaceAtlas",
     "GetRealmName",
     "GetRestState",
     "GetSavedInstanceInfo",
