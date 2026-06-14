@@ -20,7 +20,10 @@ table.insert(
       local keys = t.currency.RestoredCofferKey or 0
       local shards = t.currency.CofferKeyShard
       local shardQty = shards and shards.quantity or 0
-      if keys == 0 and shardQty == 0 then return "" end
+      -- known 0 at max level reads as a muted em-dash; below-max stays empty
+      if keys == 0 and shardQty == 0 then
+        return t.basic.level >= ns.wow.maxLevel and ns.ZeroDash or ""
+      end
       return {
         text = ("%.2f"):format(keys + shardQty / 100),
         justifyH = ui.justify.Right,

@@ -1,4 +1,4 @@
----@type Warbandeer
+---@class Warbandeer
 local ns = select(2, ...)
 
 -- Void-Dark theme
@@ -17,8 +17,7 @@ local ns = select(2, ...)
 
 local FONT = "Interface\\AddOns\\Warbandeer\\media\\fonts\\"
 
----@class Warbandeer
----@field theme Theme  the Void-Dark LibNUI theme, inherited by every widget in the window
+---@type Theme  the Void-Dark LibNUI theme, inherited by every widget in the window
 ns.theme = ns.ui.Theme{
   name = "void-dark",
   colors = {
@@ -33,6 +32,7 @@ ns.theme = ns.ui.Theme{
 
     text     = {0.90, 0.886, 0.882, 1},  -- on-surface
     muted    = {0.82, 0.776, 0.671, 1},  -- on-surface-variant / label-caps
+    faded    = {0.82, 0.776, 0.671, 0.6},-- on-surface-variant
     header   = {0.82, 0.776, 0.671, 1},  -- table column headers (= muted)
 
     gold     = {1, 0.82, 0, 1},          -- primary

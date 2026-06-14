@@ -16,8 +16,10 @@ table.insert(
       "Count of weekly activities completed that reward a cache.",
     },
     getData = function(t)
-      return t.weeklies and t.weeklies.caches and t.weeklies.caches > 0
-        and {text = t.weeklies.caches, justifyH = ui.justify.Center} or ""
+      local n = t.weeklies and t.weeklies.caches or 0
+      -- known 0 at max level reads as a muted em-dash; below-max stays empty
+      if n == 0 then return t.basic.level >= ns.wow.maxLevel and ns.ZeroDashC or "" end
+      return {text = n, justifyH = ui.justify.Center}
     end,
   }
 )
