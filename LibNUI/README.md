@@ -350,6 +350,8 @@ LibNUI.ShowCopyWindow("My Report", table.concat(lines, "\n"))
 
 `ShowCopyWindow` lazily builds a single `CopyWindow` on first use and reuses it for every later call.
 
+`ToggleCopyWindow(title, text)` is the open/close variant: if the shared window is already open showing that same `title` it closes it, otherwise it shows `text` — so a slash command that re-runs toggles the window (and still switches content when a *different* title is requested).
+
 ### Constructor options
 
 `CopyWindow` needs no options — it ships sensible defaults (centered, draggable, Escape-to-close, height 380). Pass `title`/`position` overrides as for any `TitleFrame` if you build your own instance.

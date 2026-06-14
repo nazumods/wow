@@ -32,7 +32,7 @@ OOP UI widget library. Every widget wraps a backing WoW object (`self._widget`) 
 | `TableRow.lua` | `TableRow` — row header strip (BgFrame) |
 | `TableFrame.lua` | `TableFrame` — full data grid (headers + cells); `set`, `addCol`/`addRow`, `update`, `setFooter` |
 | `TitleFrame.lua` | `TitleFrame` — windowed CleanFrame with title bar, icon, close button; `Title` |
-| `CopyWindow.lua` | `CopyWindow` — reusable copyable scroll window (TitleFrame + ScrollFrame + multiline EditBox + titlebar font-size picker); `Display(title, text)`. Shared singleton via `ui.ShowCopyWindow(title, text)`. Font size persists in `LibNUIDB.copyFontSize` |
+| `CopyWindow.lua` | `CopyWindow` — reusable copyable scroll window (TitleFrame + ScrollFrame + multiline EditBox + titlebar font-size picker); `Display(title, text)`. Shared singleton via `ui.ShowCopyWindow(title, text)`; `ui.ToggleCopyWindow(title, text)` closes it if already open on the same title (caches `_title`), else shows — for slash commands that should toggle. Font size persists in `LibNUIDB.copyFontSize` |
 | `TabFrame.lua` | `TabFrame` — tabbed container; `Select`, `Tab`, `Selected` |
 | `Tooltip.lua` | `Tooltip` — custom tooltip with line pooling + scrolling menus; singleton `ui.tip` |
 | `settings/SettingsFrame.lua` | `SettingsFrame` — WoW Settings panel container; `AddControl`, `Register(Sub)category` |
