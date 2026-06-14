@@ -79,6 +79,7 @@ end, "Repair stored data (recount characters)")
 ---@field raceIdx integer
 ---@field isAlliance boolean
 ---@field realm string
+---@field sex integer  UnitSex code (2=male, 3=female); refreshed each login for the active character
 
 ---@class Warbandeer_Characters
 ---@field MigrateDB fun(self) Migrate database to latest version
@@ -208,6 +209,9 @@ function ns:initialize()
     self.db.numCharacters = self.db.numCharacters + 1
   end
   self.currentData = c
+  -- Refresh each login so characters created before `sex` existed are backfilled
+  -- the next time they log in (alts not yet seen default to male at render time).
+  c.sex = UnitSex("player")
 
   self:InitBrokers()
   self:InitWarband()

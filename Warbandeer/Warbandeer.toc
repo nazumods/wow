@@ -58,7 +58,13 @@ views\summaryCol\gold.lua
 
 views\SummaryView.lua
 views\GearView.lua
+
+views\detail\Layout.lua
 views\DetailView.lua
+views\detail\Professions.lua
+views\detail\Gear.lua
+views\detail\Filter.lua
+
 views\RoleView.lua
 views\RaceView.lua
 views\Legion.lua
