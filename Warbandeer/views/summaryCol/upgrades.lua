@@ -13,6 +13,7 @@ if not ShadowsOfUI_UpgradeApi then return end
 
 local theme = ns.theme
 local WARBAND = theme.colors.gold
+local GetItemTex = (C_Item and C_Item.GetItemIconByID) or _G.GetItemIcon
 
 local getUpgrades = function(toon)
   local list = ShadowsOfUI_UpgradeApi:CharacterUpgrades(toon.name)
@@ -20,10 +21,13 @@ local getUpgrades = function(toon)
   -- no upgrades available reads as a muted em-dash (n/a)
   if n == 0 then return ns.ZeroDash end
 
-  -- Pre-build hover lines, best gains first.  Each names the actual upgrade item
-  -- (its link renders as the quality-coloured [Item Name]) and its ilvl, so the
-  -- hover says *what* the upgrade is, not just which slot:
-  --   "Neck:  [Amulet of the Naaru]  +95 ilvl  (i720, held, good stats)"
+  -- Pre-build hover lines, best gains first.  Each leads with the item's icon and
+  -- its link (the quality-coloured [Item Name]) — not the slot — so the hover says
+  -- *what* the upgrade is, plus its ilvl.  An item whose required level is above
+  -- this character's gets a trailing "@ <reqLevel>" so it's clear it isn't
+  -- equippable yet:
+  --   "[icon] [Amulet of the Naaru]  +95 ilvl  (i720, held, good stats) @ 80"
+  local level = toon.basic.level or 0
   local lines = {}
   for _, r in ipairs(list) do
     local where = r.betterElsewhere and "warband (better)"
@@ -31,8 +35,12 @@ local getUpgrades = function(toon)
     local tag = r.statTag == "good" and ", good stats"
       or (r.statTag == "off" and ", off-stats" or "")
     local swap = r.pairSwap and ", weapon swap" or ""
-    insert(lines, ("%s:  %s  +%d ilvl  (i%d, %s%s%s)"):format(
-      r.slot, r.link, r.ilvlGain, r.ilvl, where, tag, swap))
+    local icon = GetItemTex and GetItemTex(r.link)
+    local tex = icon and ("|T%d:14:14|t "):format(icon) or ""
+    local reqLevel = select(5, C_Item.GetItemInfo(r.link))
+    local req = (reqLevel and reqLevel > level) and (" @ %d"):format(reqLevel) or ""
+    insert(lines, ("%s%s  +%d ilvl  (i%d, %s%s%s)%s"):format(
+      tex, r.link, r.ilvlGain, r.ilvl, where, tag, swap, req))
   end
 
   return {
