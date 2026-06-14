@@ -9,8 +9,13 @@ local RestHighColor = {1, 0.82, 0, 1}
 local RestMidColor  = {1, 1, 1, 1}
 local RestLowColor  = {0.7, 0.7, 0.7, 1}
 local REST_CAP = 1.5
+local REST_CAP_PANDAREN = 3.0  -- Inner Peace racial doubles the rested cap
 local REST_RATE_RESTING = 0.05 / (8 * 3600)    -- 5% per 8h logged off in inn/city
 local REST_RATE_AWAY    = 0.0125 / (8 * 3600)  -- 1.25% per 8h logged off elsewhere
+
+local function restCap(toon)
+  return toon.race == "Pandaren" and REST_CAP_PANDAREN or REST_CAP
+end
 
 local function formatElapsed(s)
   if s < 60 then return s.."s ago" end
@@ -19,7 +24,7 @@ local function formatElapsed(s)
   return math.floor(s / 86400).."d ago"
 end
 
-local function projectedRest(xp, isCurrent)
+local function projectedRest(xp, isCurrent, cap)
   if not xp then return nil end
   local rest = xp.restPercent
   local elapsed = 0
@@ -27,7 +32,7 @@ local function projectedRest(xp, isCurrent)
     elapsed = GetServerTime() - xp.recordedAt
     if elapsed > 0 then
       local rate = xp.isResting and REST_RATE_RESTING or REST_RATE_AWAY
-      rest = math.min(REST_CAP, rest + elapsed * rate)
+      rest = math.min(cap, rest + elapsed * rate)
     end
   end
   return rest, elapsed
@@ -38,11 +43,13 @@ local function getRestPercent(toon)
   local xp = toon.basic.xp
   if not xp then return "" end
   local isCurrent = toon.name == ns.api.GetCurrentCharacter()
-  local rest, elapsed = projectedRest(xp, isCurrent)
+  local cap = restCap(toon)
+  local rest, elapsed = projectedRest(xp, isCurrent, cap)
   local pct = math.floor(rest * 100 + 0.5)
   if pct == 0 then return "" end
+  local capPct = math.floor(cap * 100 + 0.5)
   local color
-  if pct >= 149 then color = RestCapColor
+  if pct >= capPct - 1 then color = RestCapColor
   elseif pct >= 100 then color = RestHighColor
   elseif pct >= 50 then color = RestMidColor
   else color = RestLowColor end
@@ -58,9 +65,9 @@ local function getRestPercent(toon)
       ui.tip:AddLine("Rest XP")
       ui.tip:AddLine(("XP: %d%%"):format(xpPct))
       if isCurrent or elapsed == 0 then
-        ui.tip:AddLine(("Rest: %d%% of max XP (cap 150%%)"):format(pct))
+        ui.tip:AddLine(("Rest: %d%% of max XP (cap %d%%)"):format(pct, capPct))
       else
-        ui.tip:AddLine(("Rest: %d%% (projected, cap 150%%)"):format(pct))
+        ui.tip:AddLine(("Rest: %d%% (projected, cap %d%%)"):format(pct, capPct))
         local where = xp.isResting and "in rested area" or "outside rested area"
         ui.tip:AddLine(("Recorded: %d%% %s, %s"):format(recordedPct, where, formatElapsed(elapsed)))
       end
