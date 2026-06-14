@@ -84,14 +84,13 @@ ns.RaceModels = {
   [52] = { scale = 0.7 }, -- Dracthyr (fallback render)
 }
 
--- Display order for the selector, grouped Alliance → Horde → neutral. One id per
--- distinct model (Pandaren/Dracthyr/Earthen collapse their faction variants).
--- Any id GetRaceInfo doesn't recognise on this client is skipped, so newer races
--- degrade gracefully instead of erroring.
-local ORDER = {
-  1, 3, 4, 7, 11, 22, 29, 30, 32, 34, 37,   -- Alliance + allied
-  2, 5, 6, 8, 9, 10, 27, 28, 31, 35, 36,    -- Horde + allied
-  25, 52, 84,                               -- Pandaren, Dracthyr, Earthen
+-- Selector races by faction (one id per distinct model — Pandaren/Dracthyr/Earthen
+-- collapse their faction variants into the neutral group). Any id GetRaceInfo
+-- doesn't recognise on this client is skipped, so newer races degrade gracefully.
+local FACTIONS = {
+  { faction = "alliance", ids = { 1, 3, 4, 7, 11, 22, 29, 30, 32, 34, 37 } },
+  { faction = "horde",    ids = { 2, 5, 6, 8, 9, 10, 27, 28, 31, 35, 36 } },
+  { faction = "neutral",  ids = { 25, 52, 84 } },   -- Pandaren, Dracthyr, Earthen
 }
 
 -- The race-icon atlas suffix (raceicon-<suffix>-male) doesn't always match the
@@ -105,16 +104,18 @@ local ICON_ATLAS = {
   EarthenDwarf       = "earthen",
 }
 
----Ordered playable-race list for the dressing-room selector.
+---Ordered playable-race list for the dressing-room selector, tagged by faction.
 ---@class Warbandeer_Collected
----@field PlayableRaces fun(): table[]  list of { id, name, file } (file = race-icon atlas suffix)
+---@field PlayableRaces fun(): table[]  list of { id, name, file, faction } (file = race-icon atlas suffix; faction = "alliance"|"horde"|"neutral")
 ns.PlayableRaces = function()
   local out = {}
-  for _, id in ipairs(ORDER) do
-    local info = GetRaceInfo(id)
-    if info and info.clientFileString and info.clientFileString ~= "" then
-      local file = (ICON_ATLAS[info.clientFileString] or info.clientFileString):lower()
-      out[#out + 1] = { id = id, name = info.raceName, file = file }
+  for _, grp in ipairs(FACTIONS) do
+    for _, id in ipairs(grp.ids) do
+      local info = GetRaceInfo(id)
+      if info and info.clientFileString and info.clientFileString ~= "" then
+        local file = (ICON_ATLAS[info.clientFileString] or info.clientFileString):lower()
+        out[#out + 1] = { id = id, name = info.raceName, file = file, faction = grp.faction }
+      end
     end
   end
   return out
