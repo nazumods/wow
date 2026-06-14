@@ -16,8 +16,7 @@ toggle to strip the set off and see the bare race, a **Background** toggle for a
 class-themed backdrop (greyed out for the few classes without one), and a scale
 slider to resize the model. The model always
 uses your own character's **gender** (a model that can actually wear the set is
-locked to your gender by the game), so the room shows it as a label and the race
-icons match your gender. Races with two forms
+locked to your gender by the game), and the race icons match your gender. Races with two forms
 (Worgen, Dracthyr) show a form toggle at the top of the model so you can preview
 either one. A directional pad in the model's upper-right corner — `<`/`>` (or the
 **Left/Right arrow keys**) flips through the other classes' sets from the same

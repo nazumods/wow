@@ -46,7 +46,6 @@ end
 ---@class DressingRoom: TitleFrame
 ---@field _model Model  the 3D viewer
 ---@field _race table<number, { border: Texture }>  selection border per raceID
----@field _genderLabel Label  read-only indicator of the (char-locked) gender
 ---@field _raceID number?  selected chrRaceID
 ---@field _sex number?  the logged-in character's sex (2 = male, 3 = female); the body can't be re-gendered
 ---@field _form number  selected form index for multi-form races (Worgen/Dracthyr); 1 = default
@@ -77,8 +76,8 @@ DressingRoom = Class(TitleFrame, function(self)
   local races = ns.PlayableRaces()
   local rows = ceil(#races / COLS)
   local gridH = rows * STEP
-  -- two stacked toggle rows (undress, gender) above the race grid
-  local controlsH = 2 * TOPGAP + gridH
+  -- one toggle row (Undress / Background) above the race grid
+  local controlsH = TOPGAP + gridH
   local winW = max(WINW, GRIDW + 12)
 
   -- Bottom controls strip: toggle rows + wrapped race-icon grid, centered under
@@ -188,18 +187,7 @@ DressingRoom = Class(TitleFrame, function(self)
   self._bgLabel = Label:new{ parent = bgBox, justifyH = ui.justify.Center,
     position = { Left = {6, 0}, Right = {-6, 0} }, text = "Background" }
 
-  -- Gender indicator (second row): the dressable body's gender follows the logged-in
-  -- character and can't be overridden, so this is a read-only label (no toggle) that
-  -- just shows which gender is rendered. _syncGenderToggle fills the text.
-  local genderBox = Frame:new{
-    parent = controls,
-    position = { TopLeft = {0, -TOPGAP}, Width = GRIDW, Height = ROWH },
-  }
-  selBox(genderBox):Color(SELECTED)
-  self._genderLabel = Label:new{ parent = genderBox, justifyH = ui.justify.Center,
-    position = { Left = {6, 0}, Right = {-6, 0} } }
-
-  -- Race grid below the toggle rows. Icons match the logged-in character's gender
+  -- Race grid below the toggle row. Icons match the logged-in character's gender
   -- (the previewed body renders in that gender), falling back to a name stub for any
   -- race that lacks a gendered raceicon atlas.
   local iconSex = UnitSex("player") == 3 and "female" or "male"
@@ -208,7 +196,7 @@ DressingRoom = Class(TitleFrame, function(self)
     local col, row = (idx - 1) % COLS, floor((idx - 1) / COLS)
     local box = Frame:new{
       parent = controls,
-      position = { TopLeft = {col * STEP, -(2 * TOPGAP + row * STEP)}, Width = CELL, Height = CELL },
+      position = { TopLeft = {col * STEP, -(TOPGAP + row * STEP)}, Width = CELL, Height = CELL },
     }
     self._race[race.id] = { border = selBox(box) }
 
@@ -323,22 +311,12 @@ function DressingRoom:_resolvedForm()
   return entry and (entry.forms and entry.forms[self._form] or entry)
 end
 
--- The previewed body renders through the player-unit path, whose gender follows the
--- logged-in character (WoW exposes no gender override for it). So gender isn't
--- selectable: we just track the char's sex (Dress uses it for per-sex scale) and
--- show it in the read-only indicator. Call on open / race / form change.
-function DressingRoom:_syncGenderToggle()
-  self._sex = UnitSex("player")
-  self._genderLabel:Text(self._sex == 3 and "Female" or "Male")
-end
-
 ---@param raceID number
 function DressingRoom:SetRace(raceID)
   if self._raceID == raceID then return end
   self:_highlightRace(raceID)
   self._raceID = raceID
   self:_setupForms(ns.RaceModels[raceID])
-  self:_syncGenderToggle()
   self:Dress()
 end
 
@@ -366,7 +344,6 @@ function DressingRoom:SetForm(i)
   if self._form == i then return end
   self._form = i
   self:_highlightForm(i)
-  self:_syncGenderToggle()
   self:Dress()
 end
 
@@ -542,8 +519,8 @@ function DressingRoom:_defaultToPlayer()
   local _, _, raceID = UnitRace("player")
   self:_highlightRace(raceID)
   self._raceID = raceID
+  self._sex = UnitSex("player")   -- body gender is locked to the char; used for per-sex scale
   self:_setupForms(ns.RaceModels[raceID])
-  self:_syncGenderToggle()   -- tracks the char's sex + fills the gender indicator
 end
 
 local _room
