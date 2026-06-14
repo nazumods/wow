@@ -34,7 +34,7 @@ Data-collection backbone for the suite. Scans the active character each login/re
 | `data/artifacts.lua` | Broker `artifacts`: `hidden`, `hiddenColors`, `classHall`; `/wbc dump artifact` |
 | `dump.lua` | `/wbc stat` — warband-wide playtime/class statistics |
 | `missing.lua` | `/wbc missing`, `/wbc missing me` — lists characters/fields with incomplete data |
-| `wmissing.lua` | `/wbc wmissing` — same report rendered in a copyable scroll window via the shared `ui.ShowCopyWindow` (LibNUI's `CopyWindow`); window/picker logic no longer lives here |
+| `wmissing.lua` | `/wbc wmissing` — same report rendered in a copyable scroll window via the shared `ui.ToggleCopyWindow` (LibNUI's `CopyWindow`), so re-running the command closes the window; window/picker logic no longer lives here |
 
 ## WarbandeerApi Methods
 

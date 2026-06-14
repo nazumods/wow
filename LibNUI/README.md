@@ -350,6 +350,8 @@ LibNUI.ShowCopyWindow("My Report", table.concat(lines, "\n"))
 
 `ShowCopyWindow` lazily builds a single `CopyWindow` on first use and reuses it for every later call.
 
+`ToggleCopyWindow(title, text)` is the open/close variant: if the shared window is already open showing that same `title` it closes it, otherwise it shows `text` — so a slash command that re-runs toggles the window (and still switches content when a *different* title is requested).
+
 ### Constructor options
 
 `CopyWindow` needs no options — it ships sensible defaults (centered, draggable, Escape-to-close, height 380). Pass `title`/`position` overrides as for any `TitleFrame` if you build your own instance.
@@ -589,6 +591,7 @@ models render through one player-sized actor, so use `Scale` to size large races
 | Option        | Type   | Description                                           |
 |---------------|--------|-------------------------------------------------------|
 | `rotateSpeed` | number | Radians of yaw per screen pixel dragged (default 0.01) |
+| `facing`      | number | Initial yaw (radians) applied on load so the model faces the camera; re-skinned models pose side-on by default (default `-math.rad(88)`) |
 
 ### Methods
 
@@ -599,7 +602,7 @@ models render through one player-sized actor, so use `Scale` to size large races
 | `TryOn(source)`       | Put on an item link or `itemModifiedAppearanceID` (sourceID)     |
 | `Undress()` / `Dress()` | Strip / re-equip the actor's gear                              |
 | `Outfit(sources)`     | Remember a transmog outfit (list of sourceIDs; empty = undressed) and re-apply it after every async model (re)load. Use this instead of one-shot `TryOn`/`Undress` when re-skinning, since the load otherwise resets the actor to its baked default. Call before `DisplayInfo`/`Unit` |
-| `Scale(n)`            | Set the actor scale (1 = natural). One player-sized actor renders every model, so large races need a per-race multiplier. Remembered and re-applied automatically after each async model load |
+| `Scale(n)`            | Set the actor scale (1 = natural). One player-sized actor renders every model, so large races need a per-race multiplier. Remembered and re-asserted every frame, so it survives an async re-skin's scale reset regardless of load timing |
 
 ---
 

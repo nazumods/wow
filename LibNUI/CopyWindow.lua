@@ -22,6 +22,11 @@ local CHEVRON = "  |A:UI-HUD-ActionBar-PageDownArrow-Disabled:10:10|a"
 local FONT_PATH, BASE_SIZE, FONT_FLAGS = GameFontHighlightSmall:GetFont()
 local DEFAULT_SIZE = math.floor(BASE_SIZE + 0.5)
 
+---@class LibNUI
+---@field CopyWindow CopyWindow
+---@field ShowCopyWindow fun(title: string, text: string)
+---@field ToggleCopyWindow fun(title: string, text: string)
+
 ---A reusable, copyable scroll window for console-style text output: a windowed
 ---`TitleFrame` with a scrolling, pre-highlighted `EditBox` and a titlebar
 ---font-size picker.  Sized to its content and re-titled per `Display` call.  Most
@@ -33,6 +38,7 @@ local DEFAULT_SIZE = math.floor(BASE_SIZE + 0.5)
 ---@field _measureFS FontString  hidden string used to measure content width
 ---@field _text string      cached body text (re-applied on font change)
 ---@field _count integer     cached line count
+---@field _title string      current titlebar text (so ToggleCopyWindow can match it)
 local CopyWindow = Class(TitleFrame, function(self)
   self._fontSize = ns.db.copyFontSize or DEFAULT_SIZE
 
@@ -149,6 +155,7 @@ function CopyWindow:Display(title, text)
   for _ in text:gmatch("\n") do count = count + 1 end
 
   self:Title(title)
+  self._title = title
   self._text  = text
   self._count = count
   self:_relayout()
@@ -168,4 +175,18 @@ local shared
 function ui.ShowCopyWindow(title, text)
   if not shared then shared = CopyWindow:new{} end
   shared:Display(title, text)
+end
+
+---Toggle the shared copy window for a given `title`: if it's already open showing
+---that same title, close it; otherwise show `text` under it. Lets a slash command
+---that re-runs act as an open/close toggle (matching the suite's window convention),
+---while still switching content when a *different* title is requested.
+---@param title string
+---@param text string
+function ui.ToggleCopyWindow(title, text)
+  if shared and shared._widget:IsShown() and shared._title == title then
+    shared:Hide()
+    return
+  end
+  ui.ShowCopyWindow(title, text)
 end

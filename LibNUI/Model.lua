@@ -17,8 +17,9 @@ local DRESSUP_SCENE = 596
 -- appearance sources. Drag horizontally to rotate.
 ---@class Model: Frame
 ---@field rotateSpeed number  radians of yaw applied per screen pixel dragged
+---@field facing number  initial yaw (radians) applied on load so the model faces the camera; re-skinned models default to a side-on pose, so we quarter-turn it
 ---@field _actor table?  the scene's player actor (backing model)
----@field _yaw number  accumulated drag yaw in radians (internal)
+---@field _yaw number  accumulated drag yaw in radians (internal); seeded from `facing`
 ---@field _scale number  intended actor scale, re-applied after each async model load
 ---@field _outfit number[]?  remembered transmog sources, re-applied after each async model load (empty = undressed)
 local Model = Class(Frame, function(self)
@@ -26,7 +27,7 @@ local Model = Class(Frame, function(self)
   self._widget:TransitionToModelSceneID(
     DRESSUP_SCENE, CAMERA_TRANSITION_TYPE_IMMEDIATE, CAMERA_MODIFICATION_TYPE_DISCARD, true)
   self._actor = self._widget:GetPlayerActor()
-  self._yaw = 0
+  self._yaw = self.facing   -- seed so the model faces the camera, not side-on, on load
   self._scale = 1
 
   local w = self._widget
@@ -35,7 +36,14 @@ local Model = Class(Frame, function(self)
   w:SetScript("OnMouseDown", function() dragging = true; lastX = (GetCursorPosition()) end)
   w:SetScript("OnMouseUp", function() dragging = false end)
   w:SetScript("OnUpdate", function()
-    if not dragging or not self._actor then return end
+    if not self._actor then return end
+    -- Re-assert the intended scale every frame. An async re-skin resets the actor's
+    -- scale when the load finishes, and on a cold first load that reset lands AFTER
+    -- _reapply's backstop fires — wiping the per-race correction (the model would
+    -- show at default size until the next race change). Polling here makes it stick
+    -- regardless of load timing; it's idempotent and corrects within a frame.
+    self._actor:SetScale(self._scale)
+    if not dragging then return end
     local x = GetCursorPosition()
     self._yaw = self._yaw + (x - lastX) / w:GetEffectiveScale() * self.rotateSpeed
     lastX = x
@@ -45,6 +53,7 @@ end, {
   type = "ModelScene",
   template = "ModelSceneMixinTemplate",
   rotateSpeed = 0.01,
+  facing = -math.rad(88),   -- just shy of a quarter-turn from the side-on default, facing the camera
 })
 ui.Model = Model
 
@@ -63,17 +72,20 @@ function Model:_reapply()
   end
   self._actor:SetOnModelLoadedCallback(apply)
   apply()
-  self:delay(100, apply)
+  self:delay(80, apply)
 end
 
--- Re-apply the remembered outfit onto the freshly loaded model: strip whatever it
--- loaded wearing (e.g. a creature display's baked NPC gear), then TryOn each
--- remembered source. No-op until Outfit is called — so direct TryOn/Undress users
--- keep the old behavior. Without this the async re-skin would leave the model in
--- its default dress once the load completes, ignoring the requested outfit.
+-- Re-apply the remembered outfit by TryOn-ing each source onto the model. No-op
+-- until Outfit is called — so direct TryOn/Undress users keep the old behavior.
+-- Without this the async re-skin would leave the model in its default dress once
+-- the load completes, ignoring the requested outfit.
+--
+-- Deliberately does NOT Undress() first: the Unit re-skin loads with autoDress off
+-- (an already-bare body), so an empty outfit is undressed and a re-apply just
+-- re-TryOns the same sources — which is a visual no-op. Stripping here instead made
+-- every backstop re-apply flash the settled model bare before redressing it.
 function Model:_applyOutfit()
   if not self._actor or not self._outfit then return end
-  self._actor:Undress()
   for _, src in ipairs(self._outfit) do self._actor:TryOn(src) end
 end
 
