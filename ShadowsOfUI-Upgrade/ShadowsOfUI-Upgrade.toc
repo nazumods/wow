@@ -11,6 +11,7 @@ core.lua
 data/statpriority.lua
 data/primarystat.lua
 data/classgear.lua
+data/vendorgear.lua
 
 resolve.lua
 equip.lua

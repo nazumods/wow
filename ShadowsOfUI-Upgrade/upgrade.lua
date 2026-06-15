@@ -156,6 +156,24 @@ local function equippedTwoHand(charData)
   return (eq and ns.IsTwoHand(slotEquipLoc(eq.MainHand))) == true
 end
 
+-- Evaluate one candidate from an *external* source (a world quest, a vendor) the
+-- same way the held/warband finder does, then apply the guard a single lone item
+-- can't satisfy for a two-hand wielder: with the off-hand occupied by the 2H, a
+-- bare off-hand or 1H isn't an upgrade — only another 2H is (mirrors ItemUpgrades'
+-- tooltip guard).  Returns (slot, ilvlGain, candIlvl) or nil.  `cand` must carry
+-- `equipLoc` for the 2H test (external candidates always store it).
+---@param charData Character
+---@param cand table GearCandidate-shaped
+---@param twoHander boolean whether the character currently wields a two-hander
+local function evaluateExternal(charData, cand, twoHander)
+  local slot, gain, ilvl = evaluate(charData, cand)
+  if not slot then return nil end
+  if twoHander and (slot == "OffHand" or (slot == "MainHand" and not ns.IsTwoHand(cand.equipLoc))) then
+    return nil
+  end
+  return slot, gain, ilvl
+end
+
 -- Two-hand reconciliation.  A two-hander fills both weapon slots' worth of stats,
 -- so the off-hand isn't really empty and a lone off-hand (or lone main-hand 1H)
 -- isn't an upgrade — only a *better two-hander*, or a main-hand-1H + off-hand pair
@@ -332,20 +350,78 @@ function Upgrade:WorldQuestUpgrades(charName)
   local twoHander = equippedTwoHand(charData)
   local out = {}
   for _, rw in ipairs(API:GetWorldQuestRewards(charName)) do
-    local slot, gain, ilvl = evaluate(charData, rw)
-    -- A single reward can't establish the 1H + off-hand pair a 2H wielder needs,
-    -- so a lone off-hand or 1H isn't an upgrade for them — only a 2H is (mirrors
-    -- ItemUpgrades' tooltip guard).
-    if slot and twoHander
-        and (slot == "OffHand" or (slot == "MainHand" and not ns.IsTwoHand(rw.equipLoc))) then
-      slot = nil
-    end
+    local slot, gain, ilvl = evaluateExternal(charData, rw, twoHander)
     if slot then
       insert(out, {
         slot = slot, link = rw.link, ilvl = ilvl, ilvlGain = gain,
         statTag = statTag(rw.link, ranks),
         questID = rw.questID, title = rw.title, zone = rw.zone, mapID = rw.mapID,
       })
+    end
+  end
+  sort(out, function(a, b) return a.ilvlGain > b.ilvlGain end)
+  return out
+end
+
+---@class VendorUpgrade: UpgradeResult
+---@field quartermaster string vendor NPC to buy the piece from
+---@field zone string? zone the quartermaster is in
+---@field mapID integer? zone uiMapID (for opening the world map to the quartermaster)
+---@field cost string human-readable price ("25 Voidlight Marl")
+
+-- Best equippable option for a vendor-gear entry: keep only the options the
+-- character can equip (CanEquip selects the right armour type for body slots and
+-- passes every option for armour-type-less slots like necks), then prefer one with
+-- a top-priority stat (statTag "good") over an off-stat one — so a neck's two
+-- variants collapse to the better-fitting single suggestion.  nil when the
+-- character can equip none of the options.
+---@param charData Character
+---@param entry VendorGearEntry
+---@param ranks table<string, integer>?
+---@return VendorGearOption?
+local function pickVendorOption(charData, entry, ranks)
+  local best, bestRank
+  for _, opt in ipairs(entry.options) do
+    if ns.CanEquip(charData.classKey, entry.equipLoc, entry.classID, opt.subClassID) then
+      local rank = statTag(opt.link, ranks) == "good" and 1 or 2
+      if not best or rank < bestRank then best, bestRank = opt, rank end
+    end
+  end
+  return best
+end
+
+---Faction-quartermaster gear pieces that would upgrade an equipped slot for a
+---character, sorted by ilvl gained.  Reads the bundled `ns.VendorGear` list (fixed
+---game data — no data-layer cache) and runs the best equippable option per slot
+---through the same evaluation the held/warband/world-quest finders use (class/
+---primary proficiency, multi-slot targeting, the two-hand guard, the stat tag).
+---Each result carries its purchase metadata so the consumer can say "buy <item>
+---from <quartermaster> for <cost>".  A character already wearing equal-or-better
+---in every slot yields nothing.
+---@param charName string
+---@return VendorUpgrade[]
+function Upgrade:VendorUpgrades(charName)
+  local charData = API:GetCharacterData(charName)
+  if not charData or not charData.classKey then return {} end
+  local ranks = ns.StatRanks(charData)
+  local twoHander = equippedTwoHand(charData)
+  local out = {}
+  for _, entry in ipairs(ns.VendorGear or {}) do
+    local opt = pickVendorOption(charData, entry, ranks)
+    if opt then
+      local cand = {
+        link = opt.link, itemID = opt.itemID, ilvl = entry.ilvl,
+        equipLoc = entry.equipLoc, classID = entry.classID, subClassID = opt.subClassID,
+      }
+      local slot, gain, ilvl = evaluateExternal(charData, cand, twoHander)
+      if slot then
+        insert(out, {
+          slot = slot, link = opt.link, ilvl = ilvl, ilvlGain = gain,
+          statTag = statTag(opt.link, ranks),
+          quartermaster = entry.quartermaster, zone = entry.zone,
+          mapID = entry.mapID, cost = entry.cost,
+        })
+      end
     end
   end
   sort(out, function(a, b) return a.ilvlGain > b.ilvlGain end)

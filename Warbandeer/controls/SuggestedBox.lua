@@ -71,6 +71,18 @@ local function wqLineText(r)
     iconTex(r.link), r.link, gainHex, r.ilvlGain, mutedHex, where)
 end
 
+-- One vendor row's label: the piece [Name] + ilvl gain in cyan (a purchase action,
+-- distinct from the held/warband/WQ sources) + "Buy from <quartermaster> — <cost>",
+-- so it reads "this quartermaster sells an upgrade — go buy it".
+---@param r VendorUpgrade
+local function vendorLineText(r)
+  local gainHex = hex(theme.colors.cyan)
+  local mutedHex = hex(theme.colors.muted)
+  local where = r.zone and ("%s (%s)"):format(r.quartermaster, r.zone) or r.quartermaster
+  return ("%s%s  |cff%s+%d ilvl|r  |cff%sBuy: %s — %s|r"):format(
+    iconTex(r.link), r.link, gainHex, r.ilvlGain, mutedHex, where, r.cost)
+end
+
 ---@class SuggestedBox: Frame
 ---@field _rows table[]   pooled suggestion rows
 ---@field _n integer       number of rows currently visible
@@ -100,8 +112,9 @@ ns.SuggestedBox = SuggestedBox
 -- Grab (or lazily create) a pooled suggestion row: a hover-highlighting frame whose
 -- label fills it, carrying the equipped item (`_itemLink`) and the suggested upgrade
 -- (`_compareLink`) so the shared item tooltip lays the upgrade beside the equipped
--- piece (or shows the upgrade alone when the slot is empty).  World-quest rows also
--- carry `_questID`/`_mapID`: clicking opens the world map to the quest and super-tracks it.
+-- piece (or shows the upgrade alone when the slot is empty).  World-quest and vendor
+-- rows also carry `_mapID` (WQ rows a `_questID` too): clicking opens the world map to
+-- the quest / quartermaster's zone, and super-tracks the quest when there is one.
 ---@return table
 function SuggestedBox:_row(i)
   local row = self._rows[i]
@@ -206,6 +219,17 @@ function SuggestedBox:Populate(char)
       local req = reqLevel(r.link)
       if not (req and req > level) then
         if not addRow(r, wqLineText(r)) then break end
+      end
+    end
+  end
+
+  -- Faction-quartermaster pieces fill any remaining rows (a buy action, cyan;
+  -- degrades to nothing on an older ShadowsOfUI-Upgrade without the method).
+  if n < MAX_ROWS and api.VendorUpgrades then
+    for _, r in ipairs(api:VendorUpgrades(char.name)) do
+      local req = reqLevel(r.link)
+      if not (req and req > level) then
+        if not addRow(r, vendorLineText(r)) then break end
       end
     end
   end
