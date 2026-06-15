@@ -34,11 +34,48 @@ local EquipmentSlots = {
 ---@class EquipmentBroker: Broker
 local Equipment = ns:RegisterBroker("equipment")
 
+-- A just-equipped item's data isn't necessarily cached when PLAYER_EQUIPMENT_CHANGED
+-- fires, so the scan can read nil for it.  We RequestLoadItemData and re-Update once
+-- ITEM_DATA_LOAD_RESULT drains the pending set — but that event does NOT fire for an
+-- item whose data is already cached (the common case: equipping straight from your
+-- bags), which strands the pending set and leaves the cache showing the pre-swap gear
+-- until the next /reload or refresh.  So we also schedule a bounded fallback re-scan;
+-- whichever lands first refreshes the cache and a second Update is idempotent.  The
+-- generation guard lets a newer equip event supersede an in-flight fallback.
+local FALLBACK_DELAY = 800 -- ms; outlasts a typical item-data load
+local MAX_FALLBACKS = 5
+local fallbackGen = 0
+
+-- True while any equipped slot still holds an item whose data hasn't loaded (so a
+-- fresh scan would preserve the stale value rather than read the real one).
+local function anyUnloaded()
+  for _, index in pairs(EquipmentSlots) do
+    local link = GetInventoryItemLink("player", index)
+    if link and not GetItemInfo(link) then return true end
+  end
+  return false
+end
+
+local function scheduleFallback()
+  fallbackGen = fallbackGen + 1
+  local gen, attempt = fallbackGen, 0
+  local function tick()
+    if gen ~= fallbackGen then return end -- a newer equip event took over
+    attempt = attempt + 1
+    Equipment:Update(ns.currentData)
+    if attempt < MAX_FALLBACKS and anyUnloaded() then
+      ns:after(FALLBACK_DELAY, tick)
+    end
+  end
+  ns:after(FALLBACK_DELAY, tick)
+end
+
 Equipment.fields = {
   ---@class EquipmentBroker
   ---@field slots any -- TODO
   slots = {
-    get = function()
+    get = function(_, _, currentValue)
+      local existing = currentValue or {}
       local slots = {}
       for slot, index in pairs(EquipmentSlots) do
         local link = GetInventoryItemLink("player", index)
@@ -59,6 +96,11 @@ Equipment.fields = {
               classID = classID,
               subClassID = subClassID,
             }
+          elseif existing[slot] then
+            -- Item present but its data isn't loaded yet — keep the prior value
+            -- rather than dropping the slot; a fallback re-scan refines it once
+            -- loaded.  (An unequipped slot has no link and is correctly omitted.)
+            slots[slot] = existing[slot]
           end
         end
       end
@@ -83,6 +125,9 @@ Equipment.fields = {
         RequestLoadItemData({equipmentSlotIndex = index})
       end
       ns.equipmentPending = pending
+      -- ITEM_DATA_LOAD_RESULT may never fire for already-cached items, which would
+      -- strand `pending`; schedule a bounded fallback so the scan lands regardless.
+      scheduleFallback()
     end,
   },
   ---@class EquipmentBroker
