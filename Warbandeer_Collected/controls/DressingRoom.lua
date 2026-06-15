@@ -289,10 +289,18 @@ DressingRoom = Class(TitleFrame, function(self)
       parent = panel, position = { TopLeft = {xoff, -yoff}, Width = CELL, Height = CELL },
     }
     self._race[race.id] = { border = selBox(box) }
-    local atlas = "raceicon-" .. race.file .. "-" .. iconSex
+    -- Prefer the borderless raceicon128 variant (sits cleaner inside our own selBox
+    -- border); fall back to the framed raceicon atlas, then a name stub, for any race
+    -- that only ships the framed version (issue #114).
+    local atlas = "raceicon128-" .. race.file .. "-" .. iconSex
+    if not GetAtlasInfo(atlas) then
+      atlas = "raceicon-" .. race.file .. "-" .. iconSex
+    end
     if GetAtlasInfo(atlas) then
+      -- inset to 1px (just inside the selBox border) — the borderless icon has no
+      -- built-in frame, so it can fill closer to the edge than the framed one did
       Texture:new{ parent = box, layer = ui.layer.Artwork, atlas = atlas, atlasSize = false,
-        position = { TopLeft = {2, -2}, BottomRight = {-2, 2} } }
+        position = { TopLeft = {1, -1}, BottomRight = {-1, 1} } }
     else
       Label:new{ parent = box, justifyH = ui.justify.Center,
         position = { All = true }, text = race.name:sub(1, 3) }
