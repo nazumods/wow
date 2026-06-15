@@ -41,6 +41,7 @@ end
 
 local COLS  = 13   -- overall controls width is still keyed to this
 local CELL  = 40
+local RACEICON_CROP = 0.08   -- fraction cropped off each raceicon edge to hide its baked ring
 local STEP  = CELL + 4   -- cell size + gap
 local PAD   = 6
 local GRIDW = COLS * STEP
@@ -289,10 +290,25 @@ DressingRoom = Class(TitleFrame, function(self)
       parent = panel, position = { TopLeft = {xoff, -yoff}, Width = CELL, Height = CELL },
     }
     self._race[race.id] = { border = selBox(box) }
-    local atlas = "raceicon-" .. race.file .. "-" .. iconSex
-    if GetAtlasInfo(atlas) then
-      Texture:new{ parent = box, layer = ui.layer.Artwork, atlas = atlas, atlasSize = false,
-        position = { TopLeft = {2, -2}, BottomRight = {-2, 2} } }
+    -- Prefer the higher-fidelity raceicon128 atlas, falling back to the standard
+    -- raceicon, then a name stub. Both bake in a white/metal ring, so crop the outer
+    -- RACEICON_CROP fraction off each edge (a texcoord inset) to show only the face
+    -- inside our own selBox border — no ring (issue #114).
+    local atlas = "raceicon128-" .. race.file .. "-" .. iconSex
+    if not GetAtlasInfo(atlas) then
+      atlas = "raceicon-" .. race.file .. "-" .. iconSex
+    end
+    local info = GetAtlasInfo(atlas)
+    if info then
+      -- Draw the atlas's sheet region directly (SetTexture + SetTexCoord) rather than
+      -- SetAtlas — SetTexCoord after SetAtlas doesn't crop reliably. Then inset the
+      -- coords by RACEICON_CROP to drop the baked ring.
+      local l, r, t, b = info.leftTexCoord, info.rightTexCoord, info.topTexCoord, info.bottomTexCoord
+      local cx, cy = (r - l) * RACEICON_CROP, (b - t) * RACEICON_CROP
+      local tex = Texture:new{ parent = box, layer = ui.layer.Artwork,
+        position = { TopLeft = {1, -1}, BottomRight = {-1, 1} } }
+      tex:Texture(info.file or info.filename)
+      tex:Coords(l + cx, r - cx, t + cy, b - cy)
     else
       Label:new{ parent = box, justifyH = ui.justify.Center,
         position = { All = true }, text = race.name:sub(1, 3) }
