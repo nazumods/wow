@@ -581,22 +581,25 @@ function DressingRoom:_showClass(classId)
   self:_setBackground(lower)   -- class-themed model backdrop
 end
 
--- Point the model backdrop at the class's dressing-room background (hidden when the
--- toggle is off). `SetAtlas("dressingroom-background-<class>")` is unreliable here: it
--- records the atlas name + texcoords but doesn't always bind/stream the underlying sheet
--- file, so for an unwarmed class the texture is shown at full alpha yet draws nothing —
--- and re-asserting the same atlas is a no-op, so it never recovers (blank forever). Bind
--- the sheet FILE directly instead (`SetTexture(fileID)` + the atlas's texcoords from
--- `GetAtlasInfo`, which resolves reliably), which forces that specific file to load — the
--- same fix used for the race icons (#114).
+-- Remember the class for the model backdrop and (re)apply it. The atlas
+-- (`dressingroom-background-<class>`) is a managed atlas sheet that only streams in when
+-- `SetAtlas` runs on a *shown* texture — so a class set during `_load` (before the frame
+-- is Show()n on a fresh open) never queues the load. `_applyBackground` does the actual
+-- work and is re-run after Show() (see ShowDressingRoom) to catch that case.
 ---@param classFile string?  lowercased class file (e.g. "warrior")
 function DressingRoom:_setBackground(classFile)
   self._bgClass = classFile
-  local info = (self._bgEnabled and classFile)
-    and GetAtlasInfo("dressingroom-background-" .. classFile)
-  if info then
-    self._bg:Texture(info.file or info.filename)
-    self._bg:Coords(info.leftTexCoord, info.rightTexCoord, info.topTexCoord, info.bottomTexCoord)
+  self:_applyBackground()
+end
+
+-- Apply the remembered class backdrop (or hide it when the toggle is off / no class).
+-- `SetAtlas` is a no-op when the atlas is unchanged and won't re-queue a sheet that
+-- failed to stream the first time (e.g. set while the frame was hidden), so clear the
+-- texture first to force a fresh load every time this runs on a shown frame.
+function DressingRoom:_applyBackground()
+  if self._bgEnabled and self._bgClass then
+    self._bg:Texture(nil)   -- force SetAtlas to re-trigger the sheet stream
+    self._bg:Atlas("dressingroom-background-" .. self._bgClass, false)   -- false = stretch to the model rect
     self._bg:Show()
   else
     self._bg:Hide()
@@ -731,6 +734,7 @@ ns.ShowDressingRoom = function(group, set, reverse)
 
   _room:_load(group, set)
   _room:Show()
+  _room:_applyBackground()   -- re-trigger the atlas-sheet stream now the frame is shown (a set made while hidden never queues the load)
 end
 
 ---Hide the shared dressing room (no-op if never opened).
