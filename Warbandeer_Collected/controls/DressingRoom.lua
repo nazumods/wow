@@ -582,17 +582,21 @@ function DressingRoom:_showClass(classId)
 end
 
 -- Point the model backdrop at the class's dressing-room background (hidden when the
--- toggle is off). `dressingroom-background-<class>` lives in an on-demand atlas group,
--- so `GetAtlasInfo` reads nil until it streams in — but `SetAtlas` by NAME registers
--- interest and renders the moment the group resolves, however long that takes (this is
--- exactly how Blizzard's own DressUpFrame sets it: one call, no gate, no retry). An
--- earlier version gated on `GetAtlasInfo` + a bounded retry, which could give up having
--- never called `SetAtlas` on a slow cold load, leaving the backdrop blank forever.
+-- toggle is off). `SetAtlas("dressingroom-background-<class>")` is unreliable here: it
+-- records the atlas name + texcoords but doesn't always bind/stream the underlying sheet
+-- file, so for an unwarmed class the texture is shown at full alpha yet draws nothing —
+-- and re-asserting the same atlas is a no-op, so it never recovers (blank forever). Bind
+-- the sheet FILE directly instead (`SetTexture(fileID)` + the atlas's texcoords from
+-- `GetAtlasInfo`, which resolves reliably), which forces that specific file to load — the
+-- same fix used for the race icons (#114).
 ---@param classFile string?  lowercased class file (e.g. "warrior")
 function DressingRoom:_setBackground(classFile)
   self._bgClass = classFile
-  if self._bgEnabled and classFile then
-    self._bg:Atlas("dressingroom-background-" .. classFile, false)   -- false = stretch to the model rect
+  local info = (self._bgEnabled and classFile)
+    and GetAtlasInfo("dressingroom-background-" .. classFile)
+  if info then
+    self._bg:Texture(info.file or info.filename)
+    self._bg:Coords(info.leftTexCoord, info.rightTexCoord, info.topTexCoord, info.bottomTexCoord)
     self._bg:Show()
   else
     self._bg:Hide()
