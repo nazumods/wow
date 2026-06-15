@@ -14,11 +14,14 @@ local DRESSUP_SCENE = 596
 
 -- A ModelScene-backed 3D viewer: skin the actor (a unit, an arbitrary race via a
 -- creature display ID, or a unit rendered as another race), then TryOn transmog
--- appearance sources. Drag horizontally to rotate.
+-- appearance sources. Left-drag rotates (actor yaw), right-drag pans, wheel zooms.
 ---@class Model: Frame
 ---@field rotateSpeed number  radians of yaw applied per screen pixel dragged
 ---@field facing number  initial yaw (radians) applied on load so the model faces the camera; re-skinned models default to a side-on pose, so we quarter-turn it
+---@field minZoom number  closest the camera may zoom in (scene units); widens the borrowed scene's tight 6–10 range so the wheel actually does something
+---@field maxZoom number  farthest the camera may zoom out (scene units)
 ---@field _actor table?  the scene's player actor (backing model)
+---@field _cam table?  the scene's active OrbitCamera (drives right-drag pan + wheel zoom)
 ---@field _yaw number  accumulated drag yaw in radians (internal); seeded from `facing`
 ---@field _scale number  intended actor scale, re-applied after each async model load
 ---@field _outfit number[]?  remembered transmog sources, re-applied after each async model load (empty = undressed)
@@ -30,12 +33,44 @@ local Model = Class(Frame, function(self)
   self._yaw = self.facing   -- seed so the model faces the camera, not side-on, on load
   self._scale = 1
 
+  -- The OrbitCamera owns pan (right-drag) and zoom (wheel). We keep yaw on the ACTOR
+  -- (left-drag) instead of the camera so re-skins don't disturb the framing. So: left
+  -- mouse drives nothing on the camera; right drives pan; wheel drives zoom. (Y on the
+  -- left/right is the snap arg; the modes themselves are unchanged from the defaults of
+  -- leftY/rightY = NOTHING, wheel = ZOOM — we set them explicitly to be self-documenting.)
+  local cam = self._widget:GetActiveCamera()
+  self._cam = cam
+  cam:SetLeftMouseButtonXMode(ORBIT_CAMERA_MOUSE_MODE_NOTHING)
+  cam:SetLeftMouseButtonYMode(ORBIT_CAMERA_MOUSE_MODE_NOTHING)
+  cam:SetRightMouseButtonXMode(ORBIT_CAMERA_MOUSE_PAN_HORIZONTAL)
+  cam:SetRightMouseButtonYMode(ORBIT_CAMERA_MOUSE_PAN_VERTICAL)
+  cam:SetMouseWheelMode(ORBIT_CAMERA_MOUSE_MODE_ZOOM)
+  -- The dressup scene's camera info pins zoom to a tight 6–10, leaving the wheel barely
+  -- any travel; widen it so the user can zoom in on the face / out to full body. Zoom is
+  -- stored as a PERCENT of the min–max range, so widening alone re-maps the scene's
+  -- starting percent to a much larger distance (the model loads way too far out). Capture
+  -- the scene's natural distance first and restore it after, to keep the default framing.
+  local naturalZoom = cam:GetZoomDistance()
+  cam:SetMinZoomDistance(self.minZoom)
+  cam:SetMaxZoomDistance(self.maxZoom)
+  cam:SetZoomDistance(naturalZoom)
+
   local w = self._widget
   w:EnableMouse(true)
+  w:EnableMouseWheel(true)
   local dragging, lastX
-  w:SetScript("OnMouseDown", function() dragging = true; lastX = (GetCursorPosition()) end)
-  w:SetScript("OnMouseUp", function() dragging = false end)
-  w:SetScript("OnUpdate", function()
+  w:SetScript("OnMouseDown", function(_, button)
+    -- Forward to the mixin so it tracks button state for the camera (pan needs to know
+    -- the right button is held). Only the LEFT button drives our actor-yaw drag.
+    w:OnMouseDown(button)
+    if button == "LeftButton" then dragging = true; lastX = (GetCursorPosition()) end
+  end)
+  w:SetScript("OnMouseUp", function(_, button)
+    w:OnMouseUp(button)
+    if button == "LeftButton" then dragging = false end
+  end)
+  w:SetScript("OnMouseWheel", function(_, delta) w:OnMouseWheel(delta) end)
+  w:SetScript("OnUpdate", function(_, elapsed)
     if not self._actor then return end
     -- Re-assert the intended scale every frame. An async re-skin resets the actor's
     -- scale when the load finishes, and on a cold first load that reset lands AFTER
@@ -43,17 +78,24 @@ local Model = Class(Frame, function(self)
     -- show at default size until the next race change). Polling here makes it stick
     -- regardless of load timing; it's idempotent and corrects within a frame.
     self._actor:SetScale(self._scale)
-    if not dragging then return end
-    local x = GetCursorPosition()
-    self._yaw = self._yaw + (x - lastX) / w:GetEffectiveScale() * self.rotateSpeed
-    lastX = x
-    self._actor:SetYaw(self._yaw)
+    if dragging then
+      local x = GetCursorPosition()
+      self._yaw = self._yaw + (x - lastX) / w:GetEffectiveScale() * self.rotateSpeed
+      lastX = x
+      self._actor:SetYaw(self._yaw)
+    end
+    -- Drive the camera ourselves: our SetScript replaced the template's OnUpdate, so the
+    -- mixin's per-frame camera step (pan/zoom interpolation) no longer runs unless we call
+    -- it. With leftX = NOTHING this can't fight our left-drag actor yaw.
+    w:OnUpdate(elapsed)
   end)
 end, {
   type = "ModelScene",
   template = "ModelSceneMixinTemplate",
   rotateSpeed = 0.01,
   facing = -math.rad(88),   -- just shy of a quarter-turn from the side-on default, facing the camera
+  minZoom = 2,
+  maxZoom = 16,
 })
 ui.Model = Model
 

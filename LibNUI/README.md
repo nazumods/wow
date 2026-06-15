@@ -579,13 +579,15 @@ whether it came from user input. Set `step` to snap to increments.
 Inherits `Frame` (backed by a `ModelScene`). A 3D viewer that borrows Blizzard's
 dressup scene (id 596) for camera + lighting + a skinnable player actor: set a
 body via a unit, an arbitrary race+gender (creature display ID), or a unit
-re-rendered as another race, then `TryOn` transmog appearance sources. Drag
-horizontally to spin the model; the dragged angle is preserved when you re-skin
-the actor (`DisplayInfo`/`Unit`), so swapping the body doesn't snap it back to
-front-facing. Note a creature display only textures if it's a **baked** display
-(carries its own textures) — a bare base/`ChrModel` display renders white, since
-the engine can only composite textures for the active player's own race. All
-models render through one player-sized actor, so use `Scale` to size large races.
+re-rendered as another race, then `TryOn` transmog appearance sources.
+**Left-drag** spins the model (actor yaw), **right-drag** pans the camera, and the
+**mouse wheel** zooms. The dragged angle is preserved when you re-skin the actor
+(`DisplayInfo`/`Unit`), so swapping the body doesn't snap it back to front-facing;
+pan/zoom live on the camera and likewise persist across re-skins. Note a creature
+display only textures if it's a **baked** display (carries its own textures) — a
+bare base/`ChrModel` display renders white, since the engine can only composite
+textures for the active player's own race. All models render through one
+player-sized actor, so use `Scale` to size large races.
 
 ### Constructor options
 
@@ -593,6 +595,8 @@ models render through one player-sized actor, so use `Scale` to size large races
 |---------------|--------|-------------------------------------------------------|
 | `rotateSpeed` | number | Radians of yaw per screen pixel dragged (default 0.01) |
 | `facing`      | number | Initial yaw (radians) applied on load so the model faces the camera; re-skinned models pose side-on by default (default `-math.rad(88)`) |
+| `minZoom`     | number | Closest the wheel may zoom in, in scene units (default 2). The borrowed scene pins zoom to 6–10, so this widens the usable range |
+| `maxZoom`     | number | Farthest the wheel may zoom out, in scene units (default 16) |
 
 ### Methods
 
