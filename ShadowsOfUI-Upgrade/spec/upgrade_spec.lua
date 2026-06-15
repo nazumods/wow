@@ -435,7 +435,7 @@ describe("ShadowsOfUI-Upgrade upgrade calc", function()
       end
       return h.addVendor{
         quartermaster = meta.quartermaster or "QM", zone = meta.zone, mapID = meta.mapID,
-        cost = meta.cost or "25 Voidlight Marl", ilvl = meta.ilvl or 180,
+        cost = meta.cost or "25 Voidlight Marl", ilvl = meta.ilvl or 180, reqLevel = meta.reqLevel,
         equipLoc = meta.equipLoc, classID = ARMOR, options = options,
       }
     end
@@ -521,6 +521,22 @@ describe("ShadowsOfUI-Upgrade upgrade calc", function()
     it("returns empty when there are no vendor entries", function()
       h.addChar(warrior("Conan", { Head = { ilvl = 150 } }))
       assert.same({}, h.Api:VendorUpgrades("Conan"))
+    end)
+
+    it("excludes a piece whose required level the character hasn't reached", function()
+      local char = warrior("Conan", { Head = { ilvl = 150 } })
+      char.basic.level = 80
+      h.addChar(char)
+      vendorEntry({ equipLoc = "INVTYPE_HEAD", reqLevel = 81 }, { { itemID = 1, subClassID = PLATE } })
+      assert.same({}, h.Api:VendorUpgrades("Conan"))
+    end)
+
+    it("includes a required-level piece once the character meets it", function()
+      local char = warrior("Conan", { Head = { ilvl = 150 } })
+      char.basic.level = 81
+      h.addChar(char)
+      vendorEntry({ equipLoc = "INVTYPE_HEAD", reqLevel = 81 }, { { itemID = 1, subClassID = PLATE } })
+      assert.equals(1, #h.Api:VendorUpgrades("Conan"))
     end)
   end)
 end)

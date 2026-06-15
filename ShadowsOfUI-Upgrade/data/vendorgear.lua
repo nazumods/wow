@@ -32,6 +32,7 @@ local ns = select(2, ...)
 ---@field mapID integer zone uiMapID (opens the world map to the quartermaster)
 ---@field cost string human-readable price ("25 Voidlight Marl")
 ---@field ilvl integer item level every option in this entry is
+---@field reqLevel integer? required *player* level to equip (gates out characters below it)
 ---@field equipLoc string INVTYPE_* the slot the pieces fill
 ---@field classID integer Enum.ItemClass (Armor for all current pieces)
 ---@field options VendorGearOption[] purchasable variants (armour types / stat alternatives)
@@ -40,7 +41,7 @@ local ns = select(2, ...)
 ns.VendorGear = {
   { -- Eversong head — Caeris Fairdawn
     quartermaster = "Caeris Fairdawn", zone = "Eversong", mapID = 2395,
-    cost = "25 Voidlight Marl", ilvl = 180, equipLoc = "INVTYPE_HEAD", classID = 4,
+    cost = "25 Voidlight Marl", ilvl = 180, reqLevel = 81, equipLoc = "INVTYPE_HEAD", classID = 4,
     options = {
       { itemID = 267638, subClassID = 1, -- cloth
         link = "|cnIQ3:|Hitem:267638::::::::82:265::25:3:13578:13649:12667:1:28:3085:::::|h[Tarnished Silvermoon Sunspire]|h|r" },
@@ -54,7 +55,7 @@ ns.VendorGear = {
   },
   { -- Harandar waist — Naynar
     quartermaster = "Naynar", zone = "Harandar", mapID = 2413,
-    cost = "25 Voidlight Marl", ilvl = 180, equipLoc = "INVTYPE_WAIST", classID = 4,
+    cost = "25 Voidlight Marl", ilvl = 180, reqLevel = 81, equipLoc = "INVTYPE_WAIST", classID = 4,
     options = {
       { itemID = 267479, subClassID = 1, -- cloth
         link = "|cnIQ3:|Hitem:267479::::::::85:258::25:3:13578:13649:12667:1:28:3087:::::|h[Aspiring Hara'ti Defender's Sash]|h|r" },
@@ -68,7 +69,7 @@ ns.VendorGear = {
   },
   { -- Voidstorm hands — Void Researcher Anomander
     quartermaster = "Void Researcher Anomander", zone = "Voidstorm", mapID = 2405,
-    cost = "25 Voidlight Marl", ilvl = 180, equipLoc = "INVTYPE_HAND", classID = 4,
+    cost = "25 Voidlight Marl", ilvl = 180, reqLevel = 81, equipLoc = "INVTYPE_HAND", classID = 4,
     options = {
       { itemID = 267607, subClassID = 1, -- cloth
         link = "|cnIQ3:|Hitem:267607::::::::85:258::25:2:13578:13649:1:28:3084:::::|h[Hazy Penumbral Handwraps]|h|r" },
@@ -82,7 +83,7 @@ ns.VendorGear = {
   },
   { -- Zul'aman neck — Magovu (two stat variants; necks have no armour type)
     quartermaster = "Magovu", zone = "Zul'aman", mapID = 2437,
-    cost = "25 Voidlight Marl", ilvl = 180, equipLoc = "INVTYPE_NECK", classID = 4,
+    cost = "25 Voidlight Marl", ilvl = 180, reqLevel = 81, equipLoc = "INVTYPE_NECK", classID = 4,
     options = {
       { itemID = 267642, subClassID = 0,
         link = "|cnIQ3:|Hitem:267642::::::::84:70::25:2:13649:13668:1:28:3086:::::|h[Worn Amani Heartstring Pendant]|h|r" },

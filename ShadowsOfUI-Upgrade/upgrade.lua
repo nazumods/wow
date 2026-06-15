@@ -395,9 +395,10 @@ end
 ---game data — no data-layer cache) and runs the best equippable option per slot
 ---through the same evaluation the held/warband/world-quest finders use (class/
 ---primary proficiency, multi-slot targeting, the two-hand guard, the stat tag).
----Each result carries its purchase metadata so the consumer can say "buy <item>
----from <quartermaster> for <cost>".  A character already wearing equal-or-better
----in every slot yields nothing.
+---A piece gated above the character's level (`entry.reqLevel`) is skipped — it
+---isn't a viable upgrade until they ding into it.  Each result carries its purchase
+---metadata so the consumer can say "buy <item> from <quartermaster> for <cost>".  A
+---character already wearing equal-or-better in every slot yields nothing.
 ---@param charName string
 ---@return VendorUpgrade[]
 function Upgrade:VendorUpgrades(charName)
@@ -405,9 +406,13 @@ function Upgrade:VendorUpgrades(charName)
   if not charData or not charData.classKey then return {} end
   local ranks = ns.StatRanks(charData)
   local twoHander = equippedTwoHand(charData)
+  local charLevel = charData.basic and charData.basic.level
   local out = {}
   for _, entry in ipairs(ns.VendorGear or {}) do
-    local opt = pickVendorOption(charData, entry, ranks)
+    -- Skip a piece the character can't yet equip: a quartermaster item gated above
+    -- the character's level isn't a viable upgrade until they ding into it.
+    local belowLevel = entry.reqLevel and charLevel and charLevel < entry.reqLevel
+    local opt = not belowLevel and pickVendorOption(charData, entry, ranks)
     if opt then
       local cand = {
         link = opt.link, itemID = opt.itemID, ilvl = entry.ilvl,
