@@ -5,6 +5,7 @@ local ui = ns.ui
 local Class, Frame, Label, Texture = ns.lua.Class, ui.Frame, ui.Label, ui.Texture
 local theme = ns.theme
 local select = select
+local insert, sort = table.insert, table.sort
 local GetItemInfo = C_Item.GetItemInfo
 local GetItemIcon = (C_Item and C_Item.GetItemIconByID) or _G.GetItemIcon
 local OpenWorldMap = C_Map and C_Map.OpenWorldMap
@@ -168,11 +169,13 @@ function SuggestedBox:_row(i)
 end
 
 -- Fill the box for `char` and return its content height (0 when the upgrade addon
--- is absent — the box hides and reserves no space).  Lists at most MAX_ROWS rows:
--- the ready upgrades the character can equip right now (priority order = ilvl gain)
--- first, then active world-quest rewards that would upgrade a slot (a future action,
--- orange) if there's room, or the empty state when there are none.  Caller sets the
--- box width before calling.
+-- is absent — the box hides and reserves no space).  Gathers upgrade candidates from
+-- every source — ready gear the character owns (held green / warband gold), active
+-- world-quest rewards (orange), buyable faction-quartermaster gear (cyan) — keeps the
+-- single biggest upgrade per slot, and orders them by ilvl gain so the most impactful
+-- action leads regardless of source (no point doing a world quest or pulling from the
+-- bank when a vendor sells a better piece).  Lists at most MAX_ROWS rows, or the empty
+-- state when there are none.  Caller sets the box width before calling.
 ---@param char Character
 ---@return number height
 function SuggestedBox:Populate(char)
@@ -205,33 +208,45 @@ function SuggestedBox:Populate(char)
     return n < MAX_ROWS
   end
 
-  for _, r in ipairs(api:CharacterUpgrades(char.name)) do
-    local req = reqLevel(r.link)
-    if not (req and req > level) then  -- skip what the character can't equip yet
-      if not addRow(r, lineText(r, (r.where == "warband" or r.betterElsewhere) or false)) then break end
-    end
-  end
-
-  -- World-quest rewards fill any remaining rows (degrades to nothing on an older
-  -- ShadowsOfUI-Upgrade without the method).
-  if n < MAX_ROWS and api.WorldQuestUpgrades then
-    for _, r in ipairs(api:WorldQuestUpgrades(char.name)) do
+  -- Collect candidates from every source, each tagged with its upgrade size (the
+  -- priority) and a source rank used only to break ties — at equal gain prefer the
+  -- cheapest action: gear already owned (held/warband) > a world quest > a vendor buy.
+  -- Items the character can't equip yet (required level too high) are dropped here.
+  local cands = {}
+  local function collect(list, render, srcRank)
+    for _, r in ipairs(list) do
       local req = reqLevel(r.link)
       if not (req and req > level) then
-        if not addRow(r, wqLineText(r)) then break end
+        insert(cands, { slot = r.slot, gain = r.ilvlGain, link = r.link,
+          text = render(r), srcRank = srcRank, questID = r.questID, mapID = r.mapID })
       end
     end
   end
+  collect(api:CharacterUpgrades(char.name),
+    function(r) return lineText(r, (r.where == "warband" or r.betterElsewhere) or false) end, 0)
+  -- World-quest + vendor sources degrade to nothing on an older ShadowsOfUI-Upgrade.
+  if api.WorldQuestUpgrades then collect(api:WorldQuestUpgrades(char.name), wqLineText, 1) end
+  if api.VendorUpgrades then collect(api:VendorUpgrades(char.name), vendorLineText, 2) end
 
-  -- Faction-quartermaster pieces fill any remaining rows (a buy action, cyan;
-  -- degrades to nothing on an older ShadowsOfUI-Upgrade without the method).
-  if n < MAX_ROWS and api.VendorUpgrades then
-    for _, r in ipairs(api:VendorUpgrades(char.name)) do
-      local req = reqLevel(r.link)
-      if not (req and req > level) then
-        if not addRow(r, vendorLineText(r)) then break end
-      end
+  -- One row per slot: keep the biggest upgrade for each (a better vendor piece
+  -- replaces a smaller bank/world-quest one rather than both showing), then order the
+  -- slots by gain so the most impactful action leads.
+  local bySlot = {}
+  for _, c in ipairs(cands) do
+    local cur = bySlot[c.slot]
+    if not cur or c.gain > cur.gain or (c.gain == cur.gain and c.srcRank < cur.srcRank) then
+      bySlot[c.slot] = c
     end
+  end
+  local ranked = {}
+  for _, c in pairs(bySlot) do insert(ranked, c) end
+  sort(ranked, function(a, b)
+    if a.gain ~= b.gain then return a.gain > b.gain end
+    return a.srcRank < b.srcRank
+  end)
+
+  for _, c in ipairs(ranked) do
+    if not addRow(c, c.text) then break end
   end
 
   for i = n + 1, self._n do self._rows[i].frame:Hide() end
