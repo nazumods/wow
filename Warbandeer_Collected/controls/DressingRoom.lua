@@ -41,7 +41,7 @@ end
 
 local COLS  = 13   -- overall controls width is still keyed to this
 local CELL  = 40
-local RACEICON_CROP = 0.05   -- fraction cropped off each raceicon edge to hide its baked ring
+local RACEICON_CROP = 0.06   -- fraction cropped off each raceicon edge to hide its baked ring
 local STEP  = CELL + 4   -- cell size + gap
 local PAD   = 6
 local GRIDW = COLS * STEP
