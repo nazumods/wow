@@ -22,7 +22,9 @@ local SetSuperTrackedQuestID = C_SuperTrack and C_SuperTrack.SetSuperTrackedQues
 
 local PAD = 12             -- panel inner padding (matches the gear panel)
 local HEADER_GAP = 8       -- header → first row
-local ROW_H = 20           -- one suggestion row
+local ROW_HEAD_H = 18      -- headline line (item + ilvl gain)
+local ROW_SUB_H = 13       -- source sub-line (smaller font)
+local ROW_H = ROW_HEAD_H + ROW_SUB_H  -- one suggestion row spans two lines
 local MAX_ROWS = 5         -- cap; the rest are implied by the gear list's ▲ marks
 
 -- |cff hex for an embedded colour escape from a {r,g,b} (0–1) theme colour.
@@ -48,40 +50,32 @@ local function iconTex(link)
   return icon and ("|T%d:0|t "):format(icon) or ""
 end
 
--- One ready-upgrade row's label: the item's own [Name] (rarity-coloured) + the ilvl
--- gain (green when held in the character's own bags/bank, gold when it lives in the
--- warband bank) + the slot, with the item's icon inline.
+-- A row's headline (top line): the item's own [Name] (rarity-coloured) + the ilvl
+-- gain, tinted by source — green held in the character's own bags/bank, gold from the
+-- warband bank, orange a world-quest reward, cyan a vendor purchase — with the item's
+-- icon inline.  Where the upgrade comes from is spelled out on the sub-line below.
+---@param r table an upgrade result of any source (carries link + ilvlGain)
+---@param gainColor number[] theme colour for the "+N ilvl" gain
+local function headline(r, gainColor)
+  return ("%s%s  |cff%s+%d ilvl|r"):format(iconTex(r.link), r.link, hex(gainColor), r.ilvlGain)
+end
+
+-- The smaller sub-line: what to do / where the upgrade comes from.  Rendered muted in
+-- its own (bodySmall) Label, so the full text has the row's width instead of sharing
+-- the headline and truncating.
+--   ready  → the slot it fills ("Main Hand")
+--   WQ     → "WQ: <title> — <zone>" (go do this quest)
+--   vendor → "Buy: <quartermaster> (<zone>) — <cost>" (go buy this piece)
 ---@param r UpgradeResult
----@param warband boolean
-local function lineText(r, warband)
-  local gainHex = hex(warband and theme.colors.gold or theme.colors.green)
-  local mutedHex = hex(theme.colors.muted)
-  return ("%s%s  |cff%s+%d ilvl|r  |cff%s%s|r"):format(
-    iconTex(r.link), r.link, gainHex, r.ilvlGain, mutedHex, prettySlot(r.slot))
-end
-
--- One world-quest row's label: the reward [Name] + ilvl gain in orange (a future
--- action, distinct from the green/gold ready upgrades) + the source quest, so it
--- reads "this WQ reward would upgrade you — go do it".
+local function readySub(r) return prettySlot(r.slot) end
 ---@param r WorldQuestUpgrade
-local function wqLineText(r)
-  local gainHex = hex(theme.colors.orange)
-  local mutedHex = hex(theme.colors.muted)
-  local where = r.zone and ("%s — %s"):format(r.title, r.zone) or r.title
-  return ("%s%s  |cff%s+%d ilvl|r  |cff%sWQ: %s|r"):format(
-    iconTex(r.link), r.link, gainHex, r.ilvlGain, mutedHex, where)
+local function wqSub(r)
+  return r.zone and ("WQ: %s — %s"):format(r.title, r.zone) or ("WQ: %s"):format(r.title)
 end
-
--- One vendor row's label: the piece [Name] + ilvl gain in cyan (a purchase action,
--- distinct from the held/warband/WQ sources) + "Buy from <quartermaster> — <cost>",
--- so it reads "this quartermaster sells an upgrade — go buy it".
 ---@param r VendorUpgrade
-local function vendorLineText(r)
-  local gainHex = hex(theme.colors.cyan)
-  local mutedHex = hex(theme.colors.muted)
+local function vendorSub(r)
   local where = r.zone and ("%s (%s)"):format(r.quartermaster, r.zone) or r.quartermaster
-  return ("%s%s  |cff%s+%d ilvl|r  |cff%sBuy: %s — %s|r"):format(
-    iconTex(r.link), r.link, gainHex, r.ilvlGain, mutedHex, where, r.cost)
+  return ("Buy: %s — %s"):format(where, r.cost)
 end
 
 ---@class SuggestedBox: Frame
@@ -110,12 +104,13 @@ end, {
 })
 ns.SuggestedBox = SuggestedBox
 
--- Grab (or lazily create) a pooled suggestion row: a hover-highlighting frame whose
--- label fills it, carrying the equipped item (`_itemLink`) and the suggested upgrade
--- (`_compareLink`) so the shared item tooltip lays the upgrade beside the equipped
--- piece (or shows the upgrade alone when the slot is empty).  World-quest and vendor
--- rows also carry `_mapID` (WQ rows a `_questID` too): clicking opens the world map to
--- the quest / quartermaster's zone, and super-tracks the quest when there is one.
+-- Grab (or lazily create) a pooled suggestion row: a hover-highlighting frame with a
+-- headline label (item + ilvl gain) and a smaller sub-line beneath it (the slot / the
+-- quest / the vendor).  Carries the equipped item (`_itemLink`) and the suggested
+-- upgrade (`_compareLink`) so the shared item tooltip lays the upgrade beside the
+-- equipped piece (or shows the upgrade alone when the slot is empty).  World-quest and
+-- vendor rows also carry `_mapID` (WQ rows a `_questID` too): clicking opens the world
+-- map to the quest / quartermaster's zone, and super-tracks the quest when there is one.
 ---@return table
 function SuggestedBox:_row(i)
   local row = self._rows[i]
@@ -158,10 +153,23 @@ function SuggestedBox:_row(i)
     if frame._questID and SetSuperTrackedQuestID then SetSuperTrackedQuestID(frame._questID) end
   end)
 
+  -- Headline (item + ilvl gain) on the top band; source detail on a smaller muted
+  -- line beneath, each spanning the row's full width so neither truncates the other.
   row.label = Label:new{
     parent = frame, fontInfo = theme.fonts.body,
     justifyH = ui.justify.Left, wordWrap = false,
-    position = { Left = {frame, ui.edge.Left, 0, 0}, Right = {frame, ui.edge.Right, 0, 0} },
+    position = {
+      TopLeft = {frame, ui.edge.TopLeft, 0, 0},
+      Right   = {frame, ui.edge.Right, 0, 0}, Height = ROW_HEAD_H,
+    },
+  }
+  row.sub = Label:new{
+    parent = frame, fontInfo = theme.fonts.bodySmall, color = c.muted,
+    justifyH = ui.justify.Left, wordWrap = false,
+    position = {
+      TopLeft = {row.label, ui.edge.BottomLeft, 0, 0},
+      Right   = {frame, ui.edge.Right, 0, 0}, Height = ROW_SUB_H,
+    },
   }
 
   self._rows[i] = row
@@ -188,22 +196,23 @@ function SuggestedBox:Populate(char)
   local innerW = self:Width() - 2 * PAD
 
   local n = 0
-  -- Populate one row from an upgrade result + its rendered label, wiring the hover
-  -- comparison (upgrade beside the equipped piece, or the upgrade alone for an
-  -- empty slot).  Returns false once the row cap is hit.
-  local function addRow(r, text)
+  -- Populate one row from a candidate (its headline + sub-line already rendered),
+  -- wiring the hover comparison (upgrade beside the equipped piece, or the upgrade
+  -- alone for an empty slot).  Returns false once the row cap is hit.
+  local function addRow(c)
     n = n + 1
     local row = self:_row(n)
     row.frame:Width(innerW)
-    local eq = slots[r.slot] and slots[r.slot].link
+    local eq = slots[c.slot] and slots[c.slot].link
     if eq then
-      row.frame._itemLink, row.frame._compareLink = eq, r.link
+      row.frame._itemLink, row.frame._compareLink = eq, c.link
     else
-      row.frame._itemLink, row.frame._compareLink = r.link, nil
+      row.frame._itemLink, row.frame._compareLink = c.link, nil
     end
-    -- nil for ready upgrades; a WorldQuestUpgrade carries these → row becomes clickable.
-    row.frame._questID, row.frame._mapID = r.questID, r.mapID
-    row.label:Text(text)
+    -- nil for ready upgrades; a WorldQuest/Vendor candidate carries _mapID → clickable.
+    row.frame._questID, row.frame._mapID = c.questID, c.mapID
+    row.label:Text(c.text)
+    row.sub:Text(c.sub)
     row.frame:Show()
     return n < MAX_ROWS
   end
@@ -212,21 +221,31 @@ function SuggestedBox:Populate(char)
   -- priority) and a source rank used only to break ties — at equal gain prefer the
   -- cheapest action: gear already owned (held/warband) > a world quest > a vendor buy.
   -- Items the character can't equip yet (required level too high) are dropped here.
+  -- `head`/`sub` render the row's two lines (headline + source detail).
   local cands = {}
-  local function collect(list, render, srcRank)
+  local function collect(list, head, sub, srcRank)
     for _, r in ipairs(list) do
       local req = reqLevel(r.link)
       if not (req and req > level) then
         insert(cands, { slot = r.slot, gain = r.ilvlGain, link = r.link,
-          text = render(r), srcRank = srcRank, questID = r.questID, mapID = r.mapID })
+          text = head(r), sub = sub(r), srcRank = srcRank, questID = r.questID, mapID = r.mapID })
       end
     end
   end
   collect(api:CharacterUpgrades(char.name),
-    function(r) return lineText(r, (r.where == "warband" or r.betterElsewhere) or false) end, 0)
+    function(r)
+      local wb = (r.where == "warband" or r.betterElsewhere) or false
+      return headline(r, wb and theme.colors.gold or theme.colors.green)
+    end, readySub, 0)
   -- World-quest + vendor sources degrade to nothing on an older ShadowsOfUI-Upgrade.
-  if api.WorldQuestUpgrades then collect(api:WorldQuestUpgrades(char.name), wqLineText, 1) end
-  if api.VendorUpgrades then collect(api:VendorUpgrades(char.name), vendorLineText, 2) end
+  if api.WorldQuestUpgrades then
+    collect(api:WorldQuestUpgrades(char.name),
+      function(r) return headline(r, theme.colors.orange) end, wqSub, 1)
+  end
+  if api.VendorUpgrades then
+    collect(api:VendorUpgrades(char.name),
+      function(r) return headline(r, theme.colors.cyan) end, vendorSub, 2)
+  end
 
   -- One row per slot: keep the biggest upgrade for each (a better vendor piece
   -- replaces a smaller bank/world-quest one rather than both showing), then order the
@@ -246,7 +265,7 @@ function SuggestedBox:Populate(char)
   end)
 
   for _, c in ipairs(ranked) do
-    if not addRow(c, c.text) then break end
+    if not addRow(c) then break end
   end
 
   for i = n + 1, self._n do self._rows[i].frame:Hide() end
