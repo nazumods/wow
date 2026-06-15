@@ -58,6 +58,7 @@ function up.harness()
     pools = {},        -- name → { bags = {...}, bank = {...} }
     warband = {},      -- array of candidates
     wq = {},           -- name → array of world-quest reward candidates
+    vendor = {},        -- array of VendorGear entries (mirrors ns.VendorGear)
     clock = 1000,      -- GetTime() seconds; advance with h:advance(n)
   }
 
@@ -129,6 +130,10 @@ function up.harness()
     assert(loadfile("ShadowsOfUI-Upgrade/" .. f))("ShadowsOfUI-Upgrade", h.ns)
   end
   h.Api = h.ns.UpgradeApi
+  -- The bundled quartermaster list (data/vendorgear.lua) isn't loaded — its real
+  -- 14 item links don't resolve against the stub item table — so VendorUpgrades
+  -- reads this synthetic list the tests build via h.addVendor.
+  h.ns.VendorGear = h.vendor
 
   -- ----- test helpers -------------------------------------------------------
 
@@ -156,6 +161,14 @@ function up.harness()
     h.wq[name] = h.wq[name] or {}
     table.insert(h.wq[name], reward)
     return reward
+  end
+
+  ---Add a quartermaster-gear entry (drives VendorUpgrades via ns.VendorGear).
+  ---@param entry table VendorGearEntry ({ quartermaster, zone, mapID, cost, ilvl, equipLoc, classID, options })
+  ---@return table entry the same table (for inline use)
+  function h.addVendor(entry)
+    table.insert(h.vendor, entry)
+    return entry
   end
 
   ---Advance the GetTime() clock (for the per-character memo TTL).

@@ -113,8 +113,37 @@ function ns:MigrateDB()
   end
 end
 
+-- Live-refresh the open Detail view when the logged-in character's equipment changes,
+-- so a suggestion clears the instant the gear it's about does. The Suggested box's
+-- faction-quartermaster entries come from a fixed bundled list (unlike held/world-quest
+-- ones, they never drop out of an inventory cache), so they're gated *only* by the
+-- equipped-ilvl comparison — without this, a piece you just equipped keeps showing as
+-- "buy it" until you reopen the view, because the box was populated before the data
+-- layer rescanned your gear. The equipment broker rescans on PLAYER_EQUIPMENT_CHANGED
+-- (asynchronously, as item data loads), so debounce long enough to read fresh data.
+local DETAIL_REFRESH_DELAY = 750  -- ms; must outlast the equipment broker's rescan
+local refreshGen = 0
+local function isDetailShownForCurrentChar()
+  local view = ns.MainWindow and ns.MainWindow:ShownView()
+  return view and view.name == "detail" and view._char == ns.api:GetCharacterData() and view or nil
+end
+local function refreshDetailOnGearChange()
+  if not isDetailShownForCurrentChar() then return end
+  refreshGen = refreshGen + 1
+  local gen = refreshGen
+  ns:after(DETAIL_REFRESH_DELAY, function()
+    if gen ~= refreshGen then return end          -- superseded by a later gear change
+    local view = isDetailShownForCurrentChar()
+    if view then
+      view:OnBeforeShow()
+      ns.MainWindow:Fit()
+    end
+  end)
+end
+
 function ns:onLoad()
   ns.api.SettingsCategory = ns.settingsCategory
+  ns:registerEvent("PLAYER_EQUIPMENT_CHANGED", refreshDetailOnGearChange)
 end
 
 function ns:onLogin()

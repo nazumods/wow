@@ -38,6 +38,7 @@ ns.theme = ns.ui.Theme{
     gold     = {1, 0.82, 0, 1},          -- primary
     orange   = {1, 0.50, 0, 1},          -- legendary / mythic accent
     green    = {0.45, 0.85, 0.45, 1},    -- success
+    cyan     = {0.40, 0.80, 0.90, 1},    -- vendor / quartermaster accent
     red      = {0.86, 0.15, 0.15, 1},    -- danger
   },
   -- Bundled fonts (media/fonts/, OFL/Apache): Hanken Grotesk display, Geist body,

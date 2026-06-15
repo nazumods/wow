@@ -421,4 +421,106 @@ describe("ShadowsOfUI-Upgrade upgrade calc", function()
       assert.same({}, h.Api:WorldQuestUpgrades("Conan"))
     end)
   end)
+
+  describe("VendorUpgrades", function()
+    -- Build a quartermaster entry for one slot, registering each option item so the
+    -- stubs resolve its stats/quality.  `opts` = { { itemID, subClassID, ilvl?, stats? } };
+    -- entry ilvl defaults to 180 and each option inherits it unless overridden.
+    local function vendorEntry(meta, opts)
+      local options = {}
+      for _, o in ipairs(opts) do
+        h.defItem{ link = "vend:" .. o.itemID, itemID = o.itemID, equipLoc = meta.equipLoc,
+          classID = ARMOR, subClassID = o.subClassID, ilvl = o.ilvl or meta.ilvl or 180, stats = o.stats }
+        table.insert(options, { itemID = o.itemID, subClassID = o.subClassID, link = "vend:" .. o.itemID })
+      end
+      return h.addVendor{
+        quartermaster = meta.quartermaster or "QM", zone = meta.zone, mapID = meta.mapID,
+        cost = meta.cost or "25 Voidlight Marl", ilvl = meta.ilvl or 180,
+        equipLoc = meta.equipLoc, classID = ARMOR, options = options,
+      }
+    end
+
+    it("returns a qualifying piece with slot, gain, and purchase metadata", function()
+      h.addChar(warrior("Conan", { Head = { ilvl = 150 } }))
+      vendorEntry({ quartermaster = "Caeris Fairdawn", zone = "Eversong", mapID = 2395,
+        equipLoc = "INVTYPE_HEAD" }, { { itemID = 1, subClassID = PLATE } })
+      local list = h.Api:VendorUpgrades("Conan")
+      assert.equals(1, #list)
+      assert.equals("Head", list[1].slot)
+      assert.equals(30, list[1].ilvlGain)             -- 180 − 150
+      assert.equals("Caeris Fairdawn", list[1].quartermaster)
+      assert.equals("Eversong", list[1].zone)
+      assert.equals(2395, list[1].mapID)              -- carried through for click-to-open-map
+      assert.equals("25 Voidlight Marl", list[1].cost)
+    end)
+
+    it("excludes a piece at or below the equipped ilvl", function()
+      h.addChar(warrior("Conan", { Head = { ilvl = 180 } }))
+      vendorEntry({ equipLoc = "INVTYPE_HEAD" }, { { itemID = 1, subClassID = PLATE } })
+      assert.same({}, h.Api:VendorUpgrades("Conan"))
+    end)
+
+    it("picks the option matching the class's armour type", function()
+      h.addChar(warrior("Conan", { Head = { ilvl = 150 } }))  -- warrior = plate
+      vendorEntry({ equipLoc = "INVTYPE_HEAD" }, {
+        { itemID = 1, subClassID = CLOTH },
+        { itemID = 2, subClassID = 2 },                        -- leather
+        { itemID = 3, subClassID = 3 },                        -- mail
+        { itemID = 4, subClassID = PLATE },
+      })
+      local list = h.Api:VendorUpgrades("Conan")
+      assert.equals(1, #list)
+      assert.equals("vend:4", list[1].link)                    -- the plate option
+    end)
+
+    it("excludes a slot whose options the class cannot equip", function()
+      h.addChar(warrior("Conan", { Head = { ilvl = 150 } }))   -- plate-wearer
+      vendorEntry({ equipLoc = "INVTYPE_HEAD" }, {
+        { itemID = 1, subClassID = CLOTH }, { itemID = 2, subClassID = 2 },
+      })                                                        -- no plate option
+      assert.same({}, h.Api:VendorUpgrades("Conan"))
+    end)
+
+    it("collapses an armour-type-less slot's options to the best stat fit", function()
+      h.addChar(warrior("Conan", { Neck = { ilvl = 150 } }))   -- arms: crit tier-1, haste tier-2
+      vendorEntry({ equipLoc = "INVTYPE_NECK" }, {
+        { itemID = 1, subClassID = MISC, stats = { [HASTE] = 20 } },  -- off-stat
+        { itemID = 2, subClassID = MISC, stats = { [CRIT] = 20 } },   -- top-priority
+      })
+      local list = h.Api:VendorUpgrades("Conan")
+      assert.equals(1, #list)                                  -- one row, not two
+      assert.equals("vend:2", list[1].link)                   -- the good-stat neck
+      assert.equals("good", list[1].statTag)
+    end)
+
+    it("targets the weaker of two finger slots for a ring entry", function()
+      h.addChar(warrior("Conan", { Finger1 = { ilvl = 175 }, Finger2 = { ilvl = 150 } }))
+      vendorEntry({ equipLoc = "INVTYPE_FINGER" }, { { itemID = 1, subClassID = MISC } })
+      local list = h.Api:VendorUpgrades("Conan")
+      assert.equals(1, #list)
+      assert.equals("Finger2", list[1].slot)
+      assert.equals(30, list[1].ilvlGain)                     -- 180 − 150
+    end)
+
+    it("sorts multiple entries by ilvl gain, descending", function()
+      h.addChar(warrior("Conan", { Head = { ilvl = 150 }, Waist = { ilvl = 175 } }))
+      vendorEntry({ equipLoc = "INVTYPE_HEAD" }, { { itemID = 1, subClassID = PLATE } })   -- +30
+      vendorEntry({ equipLoc = "INVTYPE_WAIST" }, { { itemID = 2, subClassID = PLATE } })  -- +5
+      local list = h.Api:VendorUpgrades("Conan")
+      assert.equals(2, #list)
+      assert.equals("Head", list[1].slot)                     -- +30 first
+      assert.equals("Waist", list[2].slot)                    -- +5 second
+    end)
+
+    it("never reports a lone off-hand piece for a two-hand wielder", function()
+      h.addChar(warrior("Conan", { MainHand = { ilvl = 150, equipLoc = "INVTYPE_2HWEAPON" } }))
+      vendorEntry({ equipLoc = "INVTYPE_HOLDABLE" }, { { itemID = 1, subClassID = MISC, ilvl = 999 } })
+      assert.same({}, h.Api:VendorUpgrades("Conan"))
+    end)
+
+    it("returns empty when there are no vendor entries", function()
+      h.addChar(warrior("Conan", { Head = { ilvl = 150 } }))
+      assert.same({}, h.Api:VendorUpgrades("Conan"))
+    end)
+  end)
 end)
