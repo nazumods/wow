@@ -84,7 +84,7 @@ LibNUI_Test is a LoadOnDemand visual test harness for LibNUI (`/nui test [key]`)
 | LibNUI | `/nui`, `/wdebug` | `version`, `test [key]`; `/wdebug <lua>` (raw command: eval Lua → copyable window) |
 | Warbandeer_Characters | `/characters`, `/wbc` | `list`, `delete <name>`, `cleanup`, `refresh`, `refresh items/locks`, `dump`, `dump bank/bankgear/gt/locks/artifact/warband/profgear/wq`, `stat`, `missing`, `missing me`, `wmissing` |
 | Warbandeer | `/warband`, `/wb` | `""` (open), `overview`, `summary`, `gear`, `detail`, `roles`, `races`, `legion`, `midnight`, `profs`, `midnightprofs`, `crafting`, `playtime`, `bars`, `collected`, `check legion` |
-| Warbandeer_Collected | `/collected`, `/collect` | `""` (open), `scan`, `model <id>` (dev: preview a raw display id), `scale <n>` (dev: tune model scale; no arg dumps scale state) |
+| Warbandeer_Collected | `/collected`, `/collect` | `""` (open), `scan`, `model <id>` (dev: preview a raw display id), `scale <n>` (dev: user scale multiplier; no arg dumps scale state), `normalize <0..1>` (dev: tune a race's normalization override) |
 | Recycle | `/recycle` | `clear`, `key CTRL|SHIFT|ALT` |
 | Warbandeer_Bars | `/wbbars`, `/wbb` | `""` (status), `snapshot`, `list`, `restore <char> [specID]`, `forget <char> [specID]` |
 | ShadowsOfUI-Known | `/sknown` | `<itemID>` (dev: dump learnable-by list for a recipe item) |

@@ -22,7 +22,8 @@ ns:registerCommand("model", nil, function(_, args)
   ns.Print(("Preview display %d (customizations %s)"):format(id, useCust and "on" or "off"))
 end, "dev: preview a raw creature display id; append 1 to overlay player customizations")
 
--- dev: live-tune the open preview model's scale, to find a race's `scale` value.
+-- dev: live-tune the open preview model's user scale multiplier (on top of the
+-- automatic normalization), or dump the scale state with no arg.
 ns:registerCommand("scale", nil, function(_, args)
   local n = tonumber(args)
   if not n then
@@ -31,7 +32,16 @@ ns:registerCommand("scale", nil, function(_, args)
   end
   ns.PreviewModelScale(n)
   ns.Print("Preview scale " .. n)
-end, "dev: set the open preview model's scale (no arg dumps scale state)")
+end, "dev: set the open preview model's user scale multiplier (no arg dumps scale state)")
+
+-- dev: live-tune the open preview model's bounding-box normalization strength (0..1),
+-- to find a race's `normalize` override value.
+ns:registerCommand("normalize", nil, function(_, args)
+  local n = tonumber(args)
+  if not n then ns.Print("Usage: /collected normalize <0..1>  (open a set's Preview model first)"); return end
+  ns.PreviewNormalize(n)
+  ns.Print(("Preview normalization %.2f"):format(n))
+end, "dev: set the open preview model's normalization strength 0..1 (find a race's override)")
 
 ns:registerCommand("scan", "", function()
   ns.db.collected = 0
