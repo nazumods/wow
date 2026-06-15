@@ -23,7 +23,8 @@ local DRESSUP_SCENE = 596
 ---@field _actor table?  the scene's player actor (backing model)
 ---@field _cam table?  the scene's active OrbitCamera (drives right-drag pan + wheel zoom)
 ---@field _yaw number  accumulated drag yaw in radians (internal); seeded from `facing`
----@field _scale number  intended actor scale, re-applied after each async model load
+---@field _scale number  user scale multiplier, re-applied after each async model load (1 = the normalized size)
+---@field _aggressiveness number  bounding-box normalization strength 0..1 (0 = the model's natural size, 1 = forced to ~human-male size); default 0 (opt-in)
 ---@field _outfit number[]?  remembered transmog sources, re-applied after each async model load (empty = undressed)
 local Model = Class(Frame, function(self)
   -- Borrow the dressup scene so we inherit its camera + a player actor.
@@ -32,6 +33,7 @@ local Model = Class(Frame, function(self)
   self._actor = self._widget:GetPlayerActor()
   self._yaw = self.facing   -- seed so the model faces the camera, not side-on, on load
   self._scale = 1
+  self._aggressiveness = 0   -- no normalization unless the caller opts in via Aggressiveness
 
   -- The OrbitCamera owns pan (right-drag) and zoom (wheel). We keep yaw on the ACTOR
   -- (left-drag) instead of the camera so re-skins don't disturb the framing. So: left
@@ -77,7 +79,7 @@ local Model = Class(Frame, function(self)
     -- _reapply's backstop fires — wiping the per-race correction (the model would
     -- show at default size until the next race change). Polling here makes it stick
     -- regardless of load timing; it's idempotent and corrects within a frame.
-    self._actor:SetScale(self._scale)
+    self:_applyScale()
     if dragging then
       local x = GetCursorPosition()
       self._yaw = self._yaw + (x - lastX) / w:GetEffectiveScale() * self.rotateSpeed
@@ -109,7 +111,7 @@ function Model:_reapply()
   local apply = function()
     if not self._actor then return end
     self._actor:SetYaw(self._yaw)
-    self._actor:SetScale(self._scale)
+    self:_applyScale()
     self:_applyOutfit()
   end
   self._actor:SetOnModelLoadedCallback(apply)
@@ -176,16 +178,43 @@ function Model:TryOn(source)
   return self
 end
 
--- Scale the actor. The borrowed dressup scene renders every model through one
--- player-sized actor, so large races (Tauren, etc.) come out undersized; a per-race
--- multiplier corrects them. 1 = the actor's natural size. The value is remembered
--- and re-applied automatically after each async model load.
+-- Scale the actor as a user multiplier on top of the normalized size (see
+-- Aggressiveness): 1 = the normalized size, >1 zooms in, <1 out. Remembered and
+-- re-applied automatically after each async model load.
 ---@param scale number?
 ---@return number|Model
 function Model:Scale(scale)
   if scale == nil then return self._scale end
   self._scale = scale   -- remembered so OnUpdate re-asserts it every frame
-  if self._actor then self._actor:SetScale(scale) end
+  self:_applyScale()
+  return self
+end
+
+-- Apply the actor scale through the engine's bounding-box normalization. The borrowed
+-- dressup scene renders every model through one player-sized actor, so races at their
+-- natural size come out wildly inconsistent; SetNormalizedScaleAggressiveness fits each
+-- model toward ~human-male dimensions instead, with _aggressiveness controlling how
+-- strongly (0 = natural size, 1 = forced). _scale rides on top as a user multiplier.
+-- UpdateScale recomputes effectiveScale = requestedScale * (1/maxBoundingBoxScale) and
+-- calls SetScale itself; the setters only mark dirty when a value changes, so per-frame
+-- calls are no-ops once settled, and an async re-skin's OnModelLoaded re-marks dirty and
+-- re-normalizes automatically.
+function Model:_applyScale()
+  if not self._actor then return end
+  self._actor:SetNormalizedScaleAggressiveness(self._aggressiveness)
+  self._actor:SetRequestedScale(self._scale)
+  self._actor:UpdateScale()
+end
+
+-- Set the bounding-box normalization strength (0 = the model's natural size, 1 = forced
+-- to ~human-male size). A mid value keeps some racial size character while bounding the
+-- extremes. Remembered and re-applied after each async model load.
+---@param v number?
+---@return number|Model
+function Model:Aggressiveness(v)
+  if v == nil then return self._aggressiveness end
+  self._aggressiveness = v
+  self:_applyScale()
   return self
 end
 

@@ -84,7 +84,7 @@ end
 ---@field _sex number?  the logged-in character's sex (2 = male, 3 = female); the body can't be re-gendered
 ---@field _form number  selected form index for multi-form races (Worgen/Dracthyr); 1 = default
 ---@field _formButtons table[]  reusable form-toggle button pool ({ box, border, label })
----@field _scaleSlider Slider  model size slider (per-race correction + user resize)
+---@field _scaleSlider Slider  user resize slider (multiplier on top of the normalized size)
 ---@field _scaleLabel Label  scale value readout above the slider
 ---@field _bg Texture  class-themed backdrop behind the model
 ---@field _tierBarL Texture  left slot-column difficulty-color gradient bar
@@ -230,10 +230,9 @@ DressingRoom = Class(TitleFrame, function(self)
     self._formButtons[i] = { box = box, border = border, label = label }
   end
 
-  -- Scale slider: floats at the bottom-left of the model. Corrects the size of
-  -- large races (the borrowed scene renders everything player-sized) and lets the
-  -- user resize the preview. Drives the live model scale; Dress resets it to the
-  -- selected race's configured scale.
+  -- Scale slider: floats at the bottom-left of the model. A user resize multiplier on
+  -- top of the automatic per-race normalization (see Dress); Dress resets it to 1 on
+  -- each race change.
   self._scaleLabel = Label:new{
     parent = self, fontObj = "GameFontNormalSmall",
     position = { BottomLeft = {self._model, ui.edge.BottomLeft, 8, 28} },
@@ -521,18 +520,18 @@ end
 -- textured AND can wear transmog / undress. The exact-gender creature-display path
 -- (Model:DisplayInfo) is a static NPC whose baked gear can't be removed or dressed
 -- over, so it can't show a set — hence the gender follows the logged-in character
--- (see _syncGenderToggle). The race's `scale` still corrects sizing.
+-- (see _syncGenderToggle). Sizing is handled by the model's bounding-box normalization.
 function DressingRoom:Dress()
   if not self._set then return end
   -- The body always renders as the logged-in character's gender (it can't be
-  -- overridden), and the race defaults to theirs until one is picked. Seed both
-  -- here so a per-sex / per-race `scale` always resolves, regardless of how Dress
-  -- was reached (the open path doesn't always run _defaultToPlayer).
+  -- overridden), and the race defaults to theirs until one is picked. Seed the race
+  -- here so it always resolves regardless of how Dress was reached (the open path
+  -- doesn't always run _defaultToPlayer); _sex is tracked for reference/debug only.
   if not self._raceID then self._raceID = select(3, UnitRace("player")) end
   self._sex = UnitSex("player")
   local m = self._model
-  -- Multi-form races resolve through the selected form (for its `scale`); others
-  -- are the entry itself.
+  -- Multi-form races resolve through the selected form (for its `normalize` override);
+  -- others are the entry itself.
   local form = self:_resolvedForm()
 
   -- Decide the outfit BEFORE (re)loading the model. The re-skin loads async and
@@ -544,17 +543,16 @@ function DressingRoom:Dress()
   end
   m:Outfit(sources)
 
-  -- Set the scale BEFORE the re-skin: `Model:Unit` arms the re-apply machinery
-  -- (load callback + backstop) right then, and a synchronous load (e.g. the
-  -- logged-in character's own race on first open, already in memory) re-applies
-  -- immediately — so `_scale` must already be correct or the model renders at the
-  -- previous/default size until the next race change. `scale` may be a number (both
-  -- genders) or a per-sex table { [2]=, [3]= }.
-  local scale = form and form.scale
-  if type(scale) == "table" then scale = scale[self._sex] end
-  scale = scale or 1
-  m:Scale(scale)                  -- per-race size correction; re-applied post re-skin
-  self._scaleSlider:Value(scale)  -- reflect the race's scale in the slider/readout
+  -- Set normalization BEFORE the re-skin: `Model:Unit` arms the re-apply machinery
+  -- (load callback + backstop) right then, and a synchronous load (e.g. the logged-in
+  -- character's own race on first open, already in memory) re-applies immediately — so
+  -- the strength must already be correct or the model renders at the previous one until
+  -- the next race change. Per-race sizing is automatic; an optional `normalize` override
+  -- (entry or form) replaces the global strength for exceptions (Dracthyr's wingspan).
+  -- The user scale slider rides on top as a multiplier, reset to 1 per race.
+  m:Aggressiveness(form and form.normalize or ns.NORMALIZE_AGGRESSIVENESS)
+  m:Scale(1)
+  self._scaleSlider:Value(1)
 
   -- A form may override the render race (Worgen's "Human" form → race 1, rendered
   -- as a plain Human); otherwise render the selected race.
@@ -711,7 +709,7 @@ function DressingRoom:_defaultToPlayer()
   local _, _, raceID = UnitRace("player")
   self:_highlightRace(raceID)
   self._raceID = raceID
-  self._sex = UnitSex("player")   -- body gender is locked to the char; used for per-sex scale
+  self._sex = UnitSex("player")   -- body gender is locked to the char; tracked for reference/debug
   self:_setupForms(ns.RaceModels[raceID])
 end
 
@@ -762,6 +760,15 @@ ns.PreviewModelScale = function(scale)
   if _room and _room._widget:IsShown() then _room._scaleSlider:Value(scale) end
 end
 
+---Dev: live-set the open preview model's normalization strength (0..1), to tune a
+---race's `normalize` override (reverts on the next race/gender/form change).
+---`/collected normalize`.
+---@class Warbandeer_Collected
+---@field PreviewNormalize fun(v: number)
+ns.PreviewNormalize = function(v)
+  if _room and _room._widget:IsShown() then _room._model:Aggressiveness(v) end
+end
+
 ---Dev: dump the open preview's scale state, to tell a wrong value from a wrong
 ---application (`/collected scale` with no arg).
 ---@class Warbandeer_Collected
@@ -769,8 +776,8 @@ end
 ns.DebugDressScale = function()
   if not _room then ns.Print("dressing room not opened yet"); return end
   local form = _room:_resolvedForm()
-  ns.Print(("raceID=%s sex=%s form.scale=%s | model:Scale()=%s | slider=%s | shown=%s"):format(
-    tostring(_room._raceID), tostring(_room._sex), tostring(form and form.scale),
-    tostring(_room._model:Scale()), tostring(_room._scaleSlider:Value()),
-    tostring(_room._widget:IsShown())))
+  ns.Print(("raceID=%s sex=%s form.normalize=%s | aggressiveness=%s | scale=%s | slider=%s | shown=%s"):format(
+    tostring(_room._raceID), tostring(_room._sex), tostring(form and form.normalize),
+    tostring(_room._model:Aggressiveness()), tostring(_room._model:Scale()),
+    tostring(_room._scaleSlider:Value()), tostring(_room._widget:IsShown())))
 end

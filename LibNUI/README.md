@@ -587,7 +587,9 @@ pan/zoom live on the camera and likewise persist across re-skins. Note a creatur
 display only textures if it's a **baked** display (carries its own textures) — a
 bare base/`ChrModel` display renders white, since the engine can only composite
 textures for the active player's own race. All models render through one
-player-sized actor, so use `Scale` to size large races.
+player-sized actor, so races at their natural size come out wildly inconsistent; use
+`Aggressiveness` to normalize every model toward a common (~human-male) size, with
+`Scale` as a user multiplier on top.
 
 ### Constructor options
 
@@ -607,7 +609,8 @@ player-sized actor, so use `Scale` to size large races.
 | `TryOn(source)`       | Put on an item link or `itemModifiedAppearanceID` (sourceID)     |
 | `Undress()` / `Dress()` | Strip / re-equip the actor's gear                              |
 | `Outfit(sources)`     | Remember a transmog outfit (list of sourceIDs; empty = undressed) and re-apply it after every async model (re)load. Use this instead of one-shot `TryOn`/`Undress` when re-skinning, since the load otherwise resets the actor to its baked default. Call before `DisplayInfo`/`Unit` |
-| `Scale(n)`            | Set the actor scale (1 = natural). One player-sized actor renders every model, so large races need a per-race multiplier. Remembered and re-asserted every frame, so it survives an async re-skin's scale reset regardless of load timing |
+| `Aggressiveness(n)`   | Set the bounding-box normalization strength (0 = the model's natural size, **default**; 1 = forced to ~human-male size). A mid value (e.g. 0.5) keeps races consistent while preserving some racial size character. Remembered and re-applied after each async re-skin |
+| `Scale(n)`            | Set the user scale multiplier on top of the normalized size (1 = the normalized size). Remembered and re-asserted every frame, so it survives an async re-skin's scale reset regardless of load timing |
 
 ---
 
