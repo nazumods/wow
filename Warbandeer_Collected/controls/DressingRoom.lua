@@ -41,6 +41,7 @@ end
 
 local COLS  = 13   -- overall controls width is still keyed to this
 local CELL  = 40
+local RACEICON_CROP = 0.12   -- fraction cropped off each raceicon edge to hide its baked ring
 local STEP  = CELL + 4   -- cell size + gap
 local PAD   = 6
 local GRIDW = COLS * STEP
@@ -289,18 +290,21 @@ DressingRoom = Class(TitleFrame, function(self)
       parent = panel, position = { TopLeft = {xoff, -yoff}, Width = CELL, Height = CELL },
     }
     self._race[race.id] = { border = selBox(box) }
-    -- Prefer the borderless raceicon128 variant (sits cleaner inside our own selBox
-    -- border); fall back to the framed raceicon atlas, then a name stub, for any race
-    -- that only ships the framed version (issue #114).
+    -- Prefer the higher-fidelity raceicon128 atlas, falling back to the standard
+    -- raceicon, then a name stub. Both bake in a white/metal ring, so crop the outer
+    -- RACEICON_CROP fraction off each edge (a texcoord inset) to show only the face
+    -- inside our own selBox border — no ring (issue #114).
     local atlas = "raceicon128-" .. race.file .. "-" .. iconSex
     if not GetAtlasInfo(atlas) then
       atlas = "raceicon-" .. race.file .. "-" .. iconSex
     end
-    if GetAtlasInfo(atlas) then
-      -- inset to 1px (just inside the selBox border) — the borderless icon has no
-      -- built-in frame, so it can fill closer to the edge than the framed one did
-      Texture:new{ parent = box, layer = ui.layer.Artwork, atlas = atlas, atlasSize = false,
+    local info = GetAtlasInfo(atlas)
+    if info then
+      local cx = (info.rightTexCoord - info.leftTexCoord) * RACEICON_CROP
+      local cy = (info.bottomTexCoord - info.topTexCoord) * RACEICON_CROP
+      local tex = Texture:new{ parent = box, layer = ui.layer.Artwork, atlas = atlas, atlasSize = false,
         position = { TopLeft = {1, -1}, BottomRight = {-1, 1} } }
+      tex:Coords(info.leftTexCoord + cx, info.rightTexCoord - cx, info.topTexCoord + cy, info.bottomTexCoord - cy)
     else
       Label:new{ parent = box, justifyH = ui.justify.Center,
         position = { All = true }, text = race.name:sub(1, 3) }
