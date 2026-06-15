@@ -128,6 +128,13 @@ function MainWindow:view(name)
   self:Fit()
 end
 
+-- The currently-displayed view, or nil when the window is hidden. Lets event-driven
+-- refreshers (e.g. live gear updates) act only when their view is actually visible.
+---@return table?
+function MainWindow:ShownView()
+  if self._widget:IsShown() then return self._view end
+end
+
 function MainWindow:Fit()
   if not self._view then return end
   -- Capture the top-left corner *before* resizing so the window grows down/right
