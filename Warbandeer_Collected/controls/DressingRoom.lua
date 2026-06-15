@@ -92,7 +92,6 @@ end
 ---@field _bgBorder Texture  Background-toggle border (gold while active)
 ---@field _bgEnabled boolean  whether the backdrop is shown
 ---@field _bgClass string?  current class file for the backdrop (remembered for the toggle)
----@field _bgRetries number?  remaining backdrop-atlas load retries
 ---@field _group table?  the set-group the previewed set belongs to (Step cycles its sets)
 ---@field _set table?  the set entry currently previewed
 ---@field _reverse boolean  grid sort direction at open: true = newest-first, so Up/Down tier nav matches the on-screen order
@@ -582,37 +581,28 @@ function DressingRoom:_showClass(classId)
   self:_setBackground(lower)   -- class-themed model backdrop
 end
 
--- Point the model backdrop at the class's dressing-room background (hidden when the
--- toggle is off). Setting the atlas once on a class change is hit-or-miss — it
--- renders blank while the texture streams in (and `GetAtlasInfo` can briefly read
--- nil) — so `_applyBackground` re-asserts it on a short timer across a ~0.6s window
--- (each `Atlas` call forces a render refresh), catching it whenever it resolves.
+-- Remember the class for the model backdrop and (re)apply it. The atlas
+-- (`dressingroom-background-<class>`) is a managed atlas sheet that only streams in when
+-- `SetAtlas` runs on a *shown* texture — so a class set during `_load` (before the frame
+-- is Show()n on a fresh open) never queues the load. `_applyBackground` does the actual
+-- work and is re-run after Show() (see ShowDressingRoom) to catch that case.
 ---@param classFile string?  lowercased class file (e.g. "warrior")
 function DressingRoom:_setBackground(classFile)
   self._bgClass = classFile
-  if self._bgEnabled and classFile then
-    self._bgRetries = 12               -- ~0.6s of re-asserts while the texture loads
-    self:_applyBackground(classFile)
-  else
-    self._bg:Hide()
-  end
+  self:_applyBackground()
 end
 
--- Re-assert the class backdrop, re-running on a 50ms timer across the retry window
--- (not stopping at the first success — the texture can still render blank for a
--- frame or two after the atlas resolves). Bails if the class changed underneath us
--- or the toggle went off, so a stale tick can't reveal the wrong/old backdrop.
----@param classFile string  lowercased class file
-function DressingRoom:_applyBackground(classFile)
-  if self._bgClass ~= classFile or not self._bgEnabled then return end
-  local atlas = "dressingroom-background-" .. classFile
-  if GetAtlasInfo(atlas) then
-    self._bg:Atlas(atlas, false)   -- false = stretch to the model rect; re-assert forces a refresh
+-- Apply the remembered class backdrop (or hide it when the toggle is off / no class).
+-- `SetAtlas` is a no-op when the atlas is unchanged and won't re-queue a sheet that
+-- failed to stream the first time (e.g. set while the frame was hidden), so clear the
+-- texture first to force a fresh load every time this runs on a shown frame.
+function DressingRoom:_applyBackground()
+  if self._bgEnabled and self._bgClass then
+    self._bg:Texture(nil)   -- force SetAtlas to re-trigger the sheet stream
+    self._bg:Atlas("dressingroom-background-" .. self._bgClass, false)   -- false = stretch to the model rect
     self._bg:Show()
-  end
-  if self._bgRetries > 0 then
-    self._bgRetries = self._bgRetries - 1
-    self:delay(50, function() self:_applyBackground(classFile) end)
+  else
+    self._bg:Hide()
   end
 end
 
@@ -744,6 +734,7 @@ ns.ShowDressingRoom = function(group, set, reverse)
 
   _room:_load(group, set)
   _room:Show()
+  _room:_applyBackground()   -- re-trigger the atlas-sheet stream now the frame is shown (a set made while hidden never queues the load)
 end
 
 ---Hide the shared dressing room (no-op if never opened).
