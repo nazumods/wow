@@ -300,11 +300,15 @@ DressingRoom = Class(TitleFrame, function(self)
     end
     local info = GetAtlasInfo(atlas)
     if info then
-      local cx = (info.rightTexCoord - info.leftTexCoord) * RACEICON_CROP
-      local cy = (info.bottomTexCoord - info.topTexCoord) * RACEICON_CROP
-      local tex = Texture:new{ parent = box, layer = ui.layer.Artwork, atlas = atlas, atlasSize = false,
+      -- Draw the atlas's sheet region directly (SetTexture + SetTexCoord) rather than
+      -- SetAtlas — SetTexCoord after SetAtlas doesn't crop reliably. Then inset the
+      -- coords by RACEICON_CROP to drop the baked ring.
+      local l, r, t, b = info.leftTexCoord, info.rightTexCoord, info.topTexCoord, info.bottomTexCoord
+      local cx, cy = (r - l) * RACEICON_CROP, (b - t) * RACEICON_CROP
+      local tex = Texture:new{ parent = box, layer = ui.layer.Artwork,
         position = { TopLeft = {1, -1}, BottomRight = {-1, 1} } }
-      tex:Coords(info.leftTexCoord + cx, info.rightTexCoord - cx, info.topTexCoord + cy, info.bottomTexCoord - cy)
+      tex:Texture(info.file or info.filename)
+      tex:Coords(l + cx, r - cx, t + cy, b - cy)
     else
       Label:new{ parent = box, justifyH = ui.justify.Center,
         position = { All = true }, text = race.name:sub(1, 3) }
