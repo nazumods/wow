@@ -137,6 +137,55 @@ ns.CURRENT_RECIPE_EXP = "Midnight"
 ---@field gear table<integer, ProfGear>? keyed by parent skillLineID
 
 ns.Professions = ns:RegisterBroker("professions")
+
+-- A just-equipped profession tool/accessory's data isn't necessarily cached when
+-- PLAYER_EQUIPMENT_CHANGED fires, so we RequestLoadItemData and re-Update once
+-- ITEM_DATA_LOAD_RESULT drains the pending set.  But that event does NOT fire for
+-- an item whose data is already cached (the common case: equipping straight from
+-- your bags), which strands the pending set and leaves the gear cache showing the
+-- pre-swap tool until the next /reload or refresh.  So we also schedule a bounded
+-- fallback re-scan; whichever lands first refreshes the cache and a second Update is
+-- idempotent.  The generation guard lets a newer equip event supersede an in-flight
+-- fallback.  (Mirrors data/equipment.lua.)
+local FALLBACK_DELAY = 800 -- ms; outlasts a typical item-data load
+local MAX_FALLBACKS = 5
+local fallbackGen = 0
+
+-- True while any profession slot still holds an item whose data hasn't loaded (so a
+-- fresh scan would preserve the stale value rather than read the real one).
+local function anyUnloaded()
+  if not C_TradeSkillUI or not C_TradeSkillUI.GetProfessionSlots then return false end
+  for _, profEnum in pairs(Enum.Profession or {}) do
+    local skillID = C_TradeSkillUI.GetProfessionSkillLineID
+      and C_TradeSkillUI.GetProfessionSkillLineID(profEnum)
+    if skillID and skillID > 0 then
+      for _, invSlot in ipairs(C_TradeSkillUI.GetProfessionSlots(profEnum) or {}) do
+        local loc = {equipmentSlotIndex = invSlot}
+        if DoesItemExist(loc) then
+          local link = GetItemLink and GetItemLink(loc)
+          local id = GetItemID(loc)
+          if not GetItemInfo(link or id) then return true end
+        end
+      end
+    end
+  end
+  return false
+end
+
+local function scheduleFallback()
+  fallbackGen = fallbackGen + 1
+  local gen, attempt = fallbackGen, 0
+  local function tick()
+    if gen ~= fallbackGen then return end -- a newer equip event took over
+    attempt = attempt + 1
+    ns.Professions:Update(ns.currentData)
+    if attempt < MAX_FALLBACKS and anyUnloaded() then
+      ns:after(FALLBACK_DELAY, tick)
+    end
+  end
+  ns:after(FALLBACK_DELAY, tick)
+end
+
 ns.Professions.fields = {
   details = {
     -- On login/refresh, preserve whatever was cached from prior TRADE_SKILL_SHOW scans.
@@ -364,6 +413,9 @@ ns.Professions.fields = {
         RequestLoadItemData({equipmentSlotIndex = invSlot})
       end
       ns.profGearPending = pending
+      -- ITEM_DATA_LOAD_RESULT may never fire for already-cached items, which would
+      -- strand `pending`; schedule a bounded fallback so the scan lands regardless.
+      scheduleFallback()
     end,
   },
 }
