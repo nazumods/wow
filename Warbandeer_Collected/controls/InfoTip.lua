@@ -94,19 +94,34 @@ local function render(group, set, parent, position)
   local primary = {}
   for _,p in ipairs(parts) do primary[p.appearanceID] = true end
 
+  local fallback   -- built lazily when a slot's per-slot source lookup is empty
   local incomplete = false
   for i,slot in ipairs({1,3,5,6,7,8,9,10}) do
     local sources = C_TransmogSets.GetSourcesForSlot(set.id, slot)
-    local isCollected = any(sources, function(s) return s.isCollected end)
     local _, p = find(sources, function(s) return primary[s.sourceID] end)
-    if p and (not p.name or p.name == "") then
-      -- Name not cached yet: nudge the item to load and flag a re-render.
-      incomplete = true
-      local info = C_TransmogCollection.GetSourceInfo(p.sourceID)
-      if info and info.itemID then C_Item.RequestLoadItemDataByID(info.itemID) end
+    local name, isCollected
+    if p then
+      isCollected = any(sources, function(s) return s.isCollected end)
+      name = p.name
+      if not name or name == "" then
+        -- Name not cached yet: nudge the item to load and flag a re-render.
+        incomplete = true
+        local info = C_TransmogCollection.GetSourceInfo(p.sourceID)
+        if info and info.itemID then C_Item.RequestLoadItemDataByID(info.itemID) end
+      end
+    else
+      -- Per-slot API gave nothing (Trading Post / variant set): bucket the set's
+      -- pieces by equip location, matching the dressing-room slots.
+      fallback = fallback or ns.SetSlotPieces(set.id)
+      local fb = fallback[slot]
+      if fb then
+        isCollected = fb.isCollected
+        name = C_Item.GetItemNameByID(fb.itemID)
+        if not name or name == "" then incomplete = true; C_Item.RequestLoadItemDataByID(fb.itemID) end
+      end
     end
-    _tooltip.items.data[i][1] = p and {
-      text = p.name,
+    _tooltip.items.data[i][1] = name and {
+      text = name,
       color = isCollected and { 0, 104/255, 55/255} or {165/255, 0, 38/255},
      } or ""
   end
