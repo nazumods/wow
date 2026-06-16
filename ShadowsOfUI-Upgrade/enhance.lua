@@ -12,10 +12,12 @@ local WEAPON_EQUIPLOC = {
   INVTYPE_WEAPON = true, INVTYPE_WEAPONOFFHAND = true, INVTYPE_WEAPONMAINHAND = true,
 }
 
--- Equipped slots checked for a missing permanent enchant, in a stable order so the
--- output is deterministic.  Gated per slot by slotTakesEnchant.
+-- Equipped slots checked for a missing permanent enchant, in a stable (top-down) order
+-- so the output is deterministic.  Gated per slot by slotTakesEnchant (which consults
+-- ns.EnchantableSlots), so a slot listed here that isn't currently enchantable is simply
+-- skipped — keep this a superset and let the data file decide.
 local ENCHANT_ORDER = {
-  "Back", "Chest", "Wrist", "Legs", "Feet", "Finger1", "Finger2", "MainHand", "OffHand",
+  "Head", "Shoulder", "Chest", "Legs", "Feet", "Finger1", "Finger2", "MainHand", "OffHand",
 }
 
 -- equipLoc of an equipped item, falling back to the link when the data layer didn't

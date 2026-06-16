@@ -75,7 +75,7 @@ end
 local ENCH_INV = {}
 do
   local names = {
-    Back = "BackSlot", Chest = "ChestSlot", Wrist = "WristSlot", Legs = "LegsSlot",
+    Head = "HeadSlot", Shoulder = "ShoulderSlot", Chest = "ChestSlot", Legs = "LegsSlot",
     Feet = "FeetSlot", Finger1 = "Finger0Slot", Finger2 = "Finger1Slot",
     MainHand = "MainHandSlot", OffHand = "SecondaryHandSlot",
   }
