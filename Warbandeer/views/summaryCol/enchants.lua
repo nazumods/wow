@@ -22,12 +22,15 @@ local getData = function(toon)
   if n == 0 then return ns.GreenCheck end
 
   -- Pre-build hover lines: each leads with the unenchanted item's icon + its link
-  -- (the quality-coloured [Item Name]) and the slot it sits in.
+  -- (the quality-coloured [Item Name]) and the slot it sits in, plus the recommended
+  -- enchant for that slot/spec when known ("→ Enchant Ring – …").
   local lines = {}
   for _, e in ipairs(list) do
     local icon = GetItemTex and GetItemTex(e.link)
     local tex = icon and ("|T%d:14:14|t "):format(icon) or ""
-    insert(lines, ("%s%s  %s"):format(tex, e.link, e.slot))
+    local rec = ns.RecommendedEnchant(toon.name, e.slot)
+    local recText = rec and ("  |cff808080→|r |cffb0b0b0%s|r"):format(rec) or ""
+    insert(lines, ("%s%s  %s%s"):format(tex, e.link, e.slot, recText))
   end
 
   return {

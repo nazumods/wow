@@ -13,6 +13,7 @@ data/primarystat.lua
 data/classgear.lua
 data/vendorgear.lua
 data/enchantslots.lua
+data/enchants.lua
 
 resolve.lua
 equip.lua

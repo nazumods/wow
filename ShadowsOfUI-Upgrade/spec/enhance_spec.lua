@@ -82,6 +82,58 @@ describe("ShadowsOfUI-Upgrade enhance", function()
     end)
   end)
 
+  describe("RecommendedEnchant", function()
+    -- A Frost Mage (spec 64 = MAGE index 3). Tests set ns.StatPriority.MAGE[3]
+    -- explicitly so the top stat is deterministic regardless of the shipped table.
+    local function mage()
+      return { name = "Frost", classKey = "Mage",
+               basic = { specialization = { id = 64 } } }
+    end
+
+    before_each(function()
+      ns.StatPriority.MAGE[3] = { haste = 1, crit = 2, mastery = 3, versatility = 4 }
+      ns.Enchants = {
+        Finger = { byStat = { haste = 11, crit = 12, mastery = 13, versatility = 14 } },
+        Weapon = { fixed = 99 },
+      }
+    end)
+
+    it("picks the stat-variant matching the character's top secondary", function()
+      local id, stat = ns.RecommendedEnchant(mage(), "Finger1")
+      assert.equals(11, id)        -- haste is tier 1
+      assert.equals("haste", stat)
+    end)
+
+    it("maps both rings onto the shared Finger family", function()
+      assert.equals(11, (ns.RecommendedEnchant(mage(), "Finger2")))
+    end)
+
+    it("maps both weapon slots onto the shared fixed Weapon enchant", function()
+      assert.equals(99, (ns.RecommendedEnchant(mage(), "MainHand")))
+      assert.equals(99, (ns.RecommendedEnchant(mage(), "OffHand")))
+    end)
+
+    it("returns the fixed recipe regardless of spec", function()
+      assert.equals(99, (ns.RecommendedEnchant({ name = "NoSpec" }, "MainHand")))
+    end)
+
+    it("is nil for a stat-variant slot when the spec is unknown", function()
+      assert.is_nil(ns.RecommendedEnchant({ name = "NoSpec" }, "Finger1"))
+    end)
+
+    it("is nil for a slot with no bundled recommendation", function()
+      assert.is_nil(ns.RecommendedEnchant(mage(), "Back"))
+    end)
+
+    it("falls to the next-best stat when the top one has no variant", function()
+      ns.StatPriority.MAGE[3] = { mastery = 1, haste = 2, crit = 3, versatility = 4 }
+      ns.Enchants.Finger = { byStat = { haste = 11, crit = 12 } }  -- no mastery variant
+      local id, stat = ns.RecommendedEnchant(mage(), "Finger1")
+      assert.equals(11, id)        -- haste is the best stat that has a variant
+      assert.equals("haste", stat)
+    end)
+  end)
+
   describe("Upgrade:MissingEnchants (published)", function()
     it("resolves the character by name through the data layer", function()
       h.addChar({ name = "Toon", classKey = "Mage", equipment = { slots = {

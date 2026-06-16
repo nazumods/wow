@@ -109,8 +109,14 @@ function DetailView:_showGear(i, item, slotKey)
   local upLink, upGain, upWarband = ns.UpgradeSuggestion(self._char.name, slotKey)
   row.frame._upgradeLink = upLink
   -- "Missing enchant" flag for this slot (orange, via an inline colour code so it
-  -- reads the same on the green/gold upgrade line and on its own muted line below).
+  -- reads the same on the green/gold upgrade line and on its own muted line below),
+  -- with the recommended enchant name appended ("→ Enchant Ring – …") when known.
   local noEnchant = self._missingEnch[slotKey]
+  local enchSuffix = ""
+  if noEnchant then
+    local rec = ns.RecommendedEnchant(self._char.name, slotKey)
+    if rec then enchSuffix = ("  |cff808080\226\134\146|r |cffb0b0b0%s|r"):format(rec) end
+  end
   local h = D.GEAR_ROW_H
   if upLink then
     local text = upLink .. ("  +%d ilvl"):format(upGain or 0)
@@ -118,12 +124,12 @@ function DetailView:_showGear(i, item, slotKey)
     if req and req > (self._char.basic.level or 0) then
       text = text .. ("  |cffff4040@ lvl %d|r"):format(req)
     end
-    if noEnchant then text = text .. NO_ENCHANT_APPEND end
+    if noEnchant then text = text .. NO_ENCHANT_APPEND .. enchSuffix end
     row.upgrade:Text(text):Color(upWarband and theme.colors.gold or theme.colors.green)
     row.upgrade:Show()
     h = h + D.GEAR_UP_H
   elseif noEnchant then
-    row.upgrade:Text(NO_ENCHANT):Color(theme.colors.muted)
+    row.upgrade:Text(NO_ENCHANT .. enchSuffix):Color(theme.colors.muted)
     row.upgrade:Show()
     h = h + D.GEAR_UP_H
   else

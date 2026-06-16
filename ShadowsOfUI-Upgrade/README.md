@@ -35,7 +35,12 @@ It also flags equipped gear that's **missing a permanent enchant** — the head,
 legs, boots, rings and weapon(s) that take one this season but don't have it. Because the enchant
 is read straight from the item, this works for **every character in the warband**, not just the
 one you're logged into, so you can spot the alt whose rings still aren't enchanted without logging
-over. (It reports the gap only — not which enchant to apply.)
+over.
+
+For most slots it also tells you **which enchant to apply**: rings are matched to the character's
+**top secondary stat** (so a Haste spec is pointed at the Haste ring enchant), the chest gets the
+universal primary-stat enchant, and weapons get a stat-matched enchant. The recommendation shows
+up next to the "missing enchant" flag everywhere it appears.
 
 ## Held vs. better elsewhere
 
@@ -52,14 +57,14 @@ over. (It reports the gap only — not which enchant to apply.)
   against every character, since they can be moved freely; **Soulbound** items only list the
   character they're already bound to; and **Bind-on-Pickup** items that aren't bound yet get
   no block at all, since whoever loots one is stuck with it. Separately, hovering one of **your
-  own equipped** pieces that's missing its enchant adds a **"Missing enchant"** reminder.
+  own equipped** pieces that's missing its enchant adds a **"Missing enchant — recommend …"** reminder.
 - **Warbandeer** *(optional)* — when Warbandeer is installed:
   - the **Summary** view gains an **"Up"** column counting each character's available upgrades
     (hover for the list) and an **"Ench"** column counting equipped slots missing an enchant
-    (green check when fully enchanted),
+    (green check when fully enchanted; the hover names the enchant to apply per slot),
   - the **Gear** view marks each slot that has an upgrade with a ▲,
   - the **Detail** view marks each equipped item that can be upgraded — and notes any slot
-    **missing its enchant** beneath the item — and its **Suggested**
+    **missing its enchant** (with the recommended enchant) beneath the item — and its **Suggested**
     box lists active **world-quest** rewards that would upgrade a slot (the quest's gear, the
     item-level gain, and where to find it) alongside the ready upgrades — world quests are
     scanned while each character is logged in, so the suggestions persist when you view an alt.

@@ -66,6 +66,52 @@ function ns.MissingEnchants(charData)
 end
 
 -------------------------------------------------------------------------------
+-- Recommended enchant (which enchant to apply to a missing slot).
+-------------------------------------------------------------------------------
+
+-- An equipped slot → its canonical key in ns.Enchants (the two rings share one ring
+-- enchant family, the weapons one weapon enchant). Unlisted slots key by their own name.
+local ENCHANT_KEY = {
+  Finger1 = "Finger", Finger2 = "Finger",
+  MainHand = "Weapon", OffHand = "Weapon",
+}
+
+-- Secondary stats in tie-break order: the character's best (lowest-tier) stat that
+-- actually has an enchant variant wins; equal tiers resolve by this order.
+local STAT_ORDER = { "haste", "crit", "mastery", "versatility" }
+
+-- The stat variant to recommend for a character: their top secondary among those the
+-- slot offers a variant for, or nil when none of the offered stats are ranked.
+local function pickStat(ranks, byStat)
+  local best, bestTier
+  for _, s in ipairs(STAT_ORDER) do
+    local tier = byStat[s] and ranks[s]
+    if tier and (not bestTier or tier < bestTier) then best, bestTier = s, tier end
+  end
+  return best
+end
+
+---Recommended enchant for a slot: the enchanting recipe spellID to apply (its name
+---resolves live via GetSpellInfo at the surface), plus the stat it was picked for on a
+---variant slot. nil when the slot has no bundled recommendation, or a stat-variant
+---slot whose character spec/priority is unknown (so we can't choose a variant). A
+---`fixed` slot always returns its single recipe regardless of spec.
+---@param charData Character
+---@param slot string
+---@return number? enchantID, string? stat
+function ns.RecommendedEnchant(charData, slot)
+  local rec = ns.Enchants[ENCHANT_KEY[slot] or slot]
+  if not rec then return nil end
+  if rec.fixed then return rec.fixed end
+  if not rec.byStat then return nil end
+  local ranks = ns.StatRanks(charData)
+  if not ranks then return nil end
+  local stat = pickStat(ranks, rec.byStat)
+  if not stat then return nil end
+  return rec.byStat[stat], stat
+end
+
+-------------------------------------------------------------------------------
 -- Published API (ShadowsOfUI_UpgradeApi) — consumed by Warbandeer (OptionalDep).
 -------------------------------------------------------------------------------
 
@@ -76,4 +122,15 @@ end
 ---@return { slot: string, link: string }[]
 function Upgrade:MissingEnchants(charName)
   return ns.MissingEnchants(API:GetCharacterData(charName))
+end
+
+---Recommended enchant for a character's slot: the enchanting recipe spellID to apply
+---(resolve its name with GetSpellInfo) and the stat it suits, or nil when no
+---recommendation applies. Stat-variant slots are chosen from the character's spec
+---priority, so this is character-specific; fixed slots return their single recipe.
+---@param charName string
+---@param slot string
+---@return number? enchantID, string? stat
+function Upgrade:RecommendedEnchant(charName, slot)
+  return ns.RecommendedEnchant(API:GetCharacterData(charName), slot)
 end

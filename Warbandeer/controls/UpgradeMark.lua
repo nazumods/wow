@@ -60,6 +60,23 @@ function ns.MissingEnchantSlots(charName)
   return set
 end
 
+-- Resolve an enchanting recipe spellID to its localized name (live, so nothing is
+-- hardcoded). The Bars views use the same `C_Spell.GetSpellName or GetSpellInfo` shim.
+local GetSpellName = (C_Spell and C_Spell.GetSpellName) or _G.GetSpellInfo
+
+---Recommended enchant name for a character's slot — the enchant they should apply,
+---chosen for their spec's top stat (variant slots) — or nil when there's none (or the
+---upgrade addon / its bundled table has nothing for this slot/spec).
+---@param charName string
+---@param slot string
+---@return string?
+function ns.RecommendedEnchant(charName, slot)
+  local api = ShadowsOfUI_UpgradeApi
+  if not (api and api.RecommendedEnchant and GetSpellName) then return nil end
+  local id = api:RecommendedEnchant(charName, slot)
+  return id and GetSpellName(id) or nil
+end
+
 ---One-line hover description of a slot's available upgrade, or nil when none.
 ---@param charName string
 ---@param slot string
