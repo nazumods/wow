@@ -43,6 +43,18 @@ ns:registerCommand("normalize", nil, function(_, args)
   ns.Print(("Preview normalization %.2f"):format(n))
 end, "dev: set the open preview model's normalization strength 0..1 (find a race's override)")
 
+-- dev: force an expansion badge into the open preview by release index, to vet each
+-- icon texture in-game (open any set's Preview model first).
+ns:registerCommand("release", nil, function(_, args)
+  local n = tonumber(args)
+  if not n or not ns.Releases[n] then
+    ns.Print("Usage: /collected release <1..12>  (1=Vanilla .. 12=Midnight; open a set's Preview model first)")
+    return
+  end
+  ns.PreviewRelease(n)
+  ns.Print(("Preview release %d (%s)"):format(n, ns.Releases[n]))
+end, "dev: preview an expansion badge by release index 1..12 (eyeball each icon)")
+
 ns:registerCommand("scan", "", function()
   ns.db.collected = 0
   ns.db.total = 0

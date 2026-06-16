@@ -23,7 +23,9 @@ instance, and `^`/`v` (or the **Up/Down arrow keys**) switches between that raid
 difficulty tiers (Normal/Heroic/Mythic, etc.) for the same class — all without
 reopening. The slot columns down each side are tinted by the raid's difficulty,
 reusing the familiar item-quality colors (LFR green, Normal blue, Heroic purple,
-Mythic gold), so you can tell at a glance which tier you're previewing. The window stays open until you close it (Escape or the X); drag to spin
+Mythic gold), so you can tell at a glance which tier you're previewing. A badge in
+the model's lower-right corner shows which **expansion** the set is from (hover it
+for the expansion name). The window stays open until you close it (Escape or the X); drag to spin
 the model.
 
 ## Usage
