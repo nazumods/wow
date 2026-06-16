@@ -4,12 +4,42 @@ local ns = select(2, ...)
 local ui = ns.ui
 local Frame, Texture = ui.Frame, ui.Texture
 local GetSourcesForSlot = C_TransmogSets.GetSourcesForSlot
+local GetAllSourceIDs = C_TransmogSets.GetAllSourceIDs
 local getParts = C_TransmogSets.GetSetPrimaryAppearances
 local GetSourceInfo = C_TransmogCollection.GetSourceInfo
 local GetItemIcon = C_Item.GetItemIconByID
+local GetItemInfoInstant = C_Item.GetItemInfoInstant
 local RequestItem = C_Item.RequestLoadItemDataByID
 local find, any = ns.lua.lists.find, ns.lua.maps.any
 local GameTooltip = GameTooltip
+
+-- Equip-location string → paper-doll slot id, for bucketing a set's pieces by item
+-- when the per-slot source API yields nothing (see ns.SetSlotPieces). Cloak folds
+-- into the Back slot; robes into Chest.
+local EQUIP_SLOT = {
+  INVTYPE_HEAD = 1, INVTYPE_SHOULDER = 3, INVTYPE_CLOAK = 15,
+  INVTYPE_CHEST = 5, INVTYPE_ROBE = 5, INVTYPE_WAIST = 6,
+  INVTYPE_LEGS = 7, INVTYPE_FEET = 8, INVTYPE_WRIST = 9, INVTYPE_HAND = 10,
+}
+
+-- Bucket a set's appearance sources into paper-doll slots by each piece's equip
+-- location, with collected status + itemID from GetSourceInfo. A fallback for sets
+-- (e.g. Trading Post recolors) where C_TransmogSets.GetSourcesForSlot returns
+-- nothing per slot even though GetAllSourceIDs still has all the pieces (and the
+-- model wears them). Shared by the dressing-room slots and the hover InfoTip.
+---@param setID number
+---@return table<number, { itemID: number, isCollected: boolean }>  keyed by slot id
+function ns.SetSlotPieces(setID)
+  local out = {}
+  for _, sourceID in ipairs(GetAllSourceIDs(setID)) do
+    local info = GetSourceInfo(sourceID)
+    local itemID = info and info.itemID
+    local loc = itemID and select(4, GetItemInfoInstant(itemID))
+    local slot = loc and EQUIP_SLOT[loc]
+    if slot then out[slot] = { itemID = itemID, isCollected = info.isCollected } end
+  end
+  return out
+end
 
 -- Reopen the class and borrow the layout primitives DressingRoom.lua shares with
 -- us (it loads first; see the explicit exports just after its class definition).
@@ -100,18 +130,33 @@ function DressingRoom:UpdateSlots()
   local primary = {}
   for _, p in ipairs(parts) do primary[p.appearanceID] = true end
 
+  -- Built lazily, only if a slot's per-slot source lookup comes up empty.
+  local fallback
+
   local missing = false
   for _, e in ipairs(self._slots) do
     local sources = GetSourcesForSlot(set.id, e.slotID)
     local _, p = find(sources, function(s) return primary[s.sourceID] end)
+    local itemID, collected
     if p then
       local info = GetSourceInfo(p.sourceID)
-      e.itemID = info and info.itemID
-      local tex = e.itemID and GetItemIcon(e.itemID)
-      if e.itemID and not tex then RequestItem(e.itemID); missing = true end
+      itemID = info and info.itemID
+      collected = any(sources, function(s) return s.isCollected end)
+    else
+      -- Per-slot API gave nothing (Trading Post / variant set): bucket the set's
+      -- pieces by equip location instead.
+      fallback = fallback or ns.SetSlotPieces(set.id)
+      local fb = fallback[e.slotID]
+      if fb then itemID, collected = fb.itemID, fb.isCollected end
+    end
+
+    if itemID then
+      e.itemID = itemID
+      local tex = GetItemIcon(itemID)
+      if not tex then RequestItem(itemID); missing = true end
       e.icon:Texture(tex or QUESTION)
       e.icon:Show()
-      e.border:Color(any(sources, function(s) return s.isCollected end) and GREEN or RED)
+      e.border:Color(collected and GREEN or RED)
     else
       -- No piece for this slot in the set: show the "unresolved" marker.
       e.itemID = nil
