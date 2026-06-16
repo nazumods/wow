@@ -12,8 +12,10 @@ data/statpriority.lua
 data/primarystat.lua
 data/classgear.lua
 data/vendorgear.lua
+data/enchantslots.lua
 
 resolve.lua
 equip.lua
 upgrade.lua
+enhance.lua
 tooltip.lua

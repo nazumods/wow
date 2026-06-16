@@ -17,9 +17,11 @@ local FILES = {
   "data/statpriority.lua",
   "data/primarystat.lua",
   "data/classgear.lua",
+  "data/enchantslots.lua",
   "resolve.lua",
   "equip.lua",
   "upgrade.lua",
+  "enhance.lua",
 }
 
 -- Armour type per class (the real ns.wow.Armor.byClass the addon reads in-game).
