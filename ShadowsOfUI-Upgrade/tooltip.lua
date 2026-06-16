@@ -69,6 +69,44 @@ local function render(tooltip, list)
   end
 end
 
+-- Enchantable equipped slots → their inventory slot id (resolved once). The
+-- off-hand is included but only counts when it currently holds a weapon (a shield /
+-- holdable can't be enchanted), matching enhance.lua's slotTakesEnchant.
+local ENCH_INV = {}
+do
+  local names = {
+    Back = "BackSlot", Chest = "ChestSlot", Wrist = "WristSlot", Legs = "LegsSlot",
+    Feet = "FeetSlot", Finger1 = "Finger0Slot", Finger2 = "Finger1Slot",
+    MainHand = "MainHandSlot", OffHand = "SecondaryHandSlot",
+  }
+  for slot, invName in pairs(names) do
+    if ns.EnchantableSlots[slot] or slot == "OffHand" then
+      ENCH_INV[slot] = GetInventorySlotInfo(invName)
+    end
+  end
+end
+local WEAPON_EQUIPLOC = {
+  INVTYPE_WEAPON = true, INVTYPE_WEAPONOFFHAND = true, INVTYPE_WEAPONMAINHAND = true,
+}
+local GetItemInfoInstant = C_Item and C_Item.GetItemInfoInstant
+local NO_ENCHANT = "|cffff8000Missing enchant|r"
+
+-- True when `link` is one of the player's own currently-equipped items, sitting in
+-- an enchantable slot, with no permanent enchant. A pure equipped-gear reminder —
+-- it never fires on a loose bag / vendor copy (those aren't in an equipped slot).
+local function equippedMissingEnchant(link)
+  for slot, invSlot in pairs(ENCH_INV) do
+    if GetInventoryItemLink("player", invSlot) == link then
+      if slot == "OffHand" then
+        local equipLoc = GetItemInfoInstant and select(4, GetItemInfoInstant(link))
+        if not WEAPON_EQUIPLOC[equipLoc] then return false end
+      end
+      return ns.ItemEnchantID(link) == 0
+    end
+  end
+  return false
+end
+
 -- Embedded item tooltips (quest / world-quest reward previews) parent their inner
 -- tooltip back onto the container as `container.Tooltip`.  The standalone
 -- GameTooltip / ItemRefTooltip are nobody's `.Tooltip`, so this skips reward
@@ -93,6 +131,8 @@ local function onItemTooltip(tooltip, data)
   end
   if not link and data.id then link = "item:" .. data.id end
   if not link then return end
+  -- Reminder line for your own equipped gear that's missing its permanent enchant.
+  if equippedMissingEnchant(link) then tooltip:AddLine(NO_ENCHANT) end
   -- Soulbound items can only ever help their holder (the current character).
   local boundTo = isSoulbound(data) and ns.api:GetCurrentCharacter() or nil
   local list = Upgrade:ItemUpgrades(link, boundTo, effectiveIlvl(data))

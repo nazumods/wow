@@ -10,6 +10,13 @@ local D = ns.detail
 local DetailView = ns.views.DetailView
 local BottomLeft, BottomRight = ui.edge.BottomLeft, ui.edge.BottomRight
 
+-- Orange "Missing enchant" sub-line note. NO_ENCHANT is the standalone form (slot
+-- has no upgrade); NO_ENCHANT_APPEND tacks it onto an upgrade line after a muted
+-- middot separator. Orange is baked into the colour code so the surrounding line's
+-- colour (green/gold for an upgrade, muted on its own) doesn't override it.
+local NO_ENCHANT = "|cffff8000Missing enchant|r"
+local NO_ENCHANT_APPEND = "  |cff808080\194\183|r " .. NO_ENCHANT
+
 -- Grab (or lazily create) a pooled gear row: item name (truncated) on the left,
 -- with the item level and upgrade-track badge right-aligned.
 ---@return table
@@ -101,6 +108,9 @@ function DetailView:_showGear(i, item, slotKey)
   -- the frame so the hover tooltip can show it beside the equipped item.
   local upLink, upGain, upWarband = ns.UpgradeSuggestion(self._char.name, slotKey)
   row.frame._upgradeLink = upLink
+  -- "Missing enchant" flag for this slot (orange, via an inline colour code so it
+  -- reads the same on the green/gold upgrade line and on its own muted line below).
+  local noEnchant = self._missingEnch[slotKey]
   local h = D.GEAR_ROW_H
   if upLink then
     local text = upLink .. ("  +%d ilvl"):format(upGain or 0)
@@ -108,7 +118,12 @@ function DetailView:_showGear(i, item, slotKey)
     if req and req > (self._char.basic.level or 0) then
       text = text .. ("  |cffff4040@ lvl %d|r"):format(req)
     end
+    if noEnchant then text = text .. NO_ENCHANT_APPEND end
     row.upgrade:Text(text):Color(upWarband and theme.colors.gold or theme.colors.green)
+    row.upgrade:Show()
+    h = h + D.GEAR_UP_H
+  elseif noEnchant then
+    row.upgrade:Text(NO_ENCHANT):Color(theme.colors.muted)
     row.upgrade:Show()
     h = h + D.GEAR_UP_H
   else
