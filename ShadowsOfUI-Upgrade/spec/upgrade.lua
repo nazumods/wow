@@ -18,6 +18,7 @@ local FILES = {
   "data/primarystat.lua",
   "data/classgear.lua",
   "data/enchantslots.lua",
+  "data/enchants.lua",
   "resolve.lua",
   "equip.lua",
   "upgrade.lua",

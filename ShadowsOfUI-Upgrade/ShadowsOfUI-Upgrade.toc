@@ -4,6 +4,7 @@
 ## Author: Nazuraki
 ## Version: 12.0.5-r3
 ## Dependencies: LibNAddOn, Warbandeer_Characters
+## OptionalDeps: ClassCodex
 ## X-NUI-API: WarbandeerApi
 
 core.lua
@@ -13,6 +14,7 @@ data/primarystat.lua
 data/classgear.lua
 data/vendorgear.lua
 data/enchantslots.lua
+data/enchants.lua
 
 resolve.lua
 equip.lua
