@@ -16,6 +16,17 @@ local function isSoulbound(data)
   return false
 end
 
+-- Whether the tooltip's item is Bind-on-Pickup but not yet bound (a "Binds when
+-- picked up" line).  Such an item can't be moved between characters, so the
+-- cross-character "Upgrade for:" block is noise — skip it entirely.
+local function isBindOnPickup(data)
+  if not data.lines then return false end
+  for _, line in ipairs(data.lines) do
+    if line.leftText == ITEM_BIND_ON_PICKUP then return true end
+  end
+  return false
+end
+
 -- The hovered item's *effective* (context-scaled) item level, read off the
 -- displayed "Item Level NNN" line.  This is what GetCurrentItemLevel reports for
 -- equipped gear, so the candidate is compared on the same basis; the link's
@@ -124,6 +135,9 @@ local function onItemTooltip(tooltip, data)
   -- shows the suggested upgrade as a side-by-side comparison instead).
   if tooltip.SkipUpgradeBlock then return end
   if isEmbedded(tooltip) then return end
+  -- Bind-on-Pickup gear (not yet bound) can't move between characters, so there's
+  -- no point recommending it for the warband.
+  if isBindOnPickup(data) then return end
   -- Prefer the displayed link (carries bonus IDs → correct scaled ilvl).
   local link
   if TooltipUtil and TooltipUtil.GetDisplayedItem then

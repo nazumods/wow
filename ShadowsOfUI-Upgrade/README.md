@@ -47,11 +47,12 @@ over. (It reports the gap only — not which enchant to apply.)
 ## Where it shows up
 
 - **Item tooltips** — hovering any equippable item adds an **"Upgrade for:"** line listing
-  the characters it would upgrade, with the item-level gain and the stat tag. **Soulbound**
-  items only list the character they're already bound to; **Binds-when-equipped** and
-  **Warbound-until-equipped** items are checked against every character, since they can be
-  moved. Hovering one of **your own equipped** pieces that's missing its enchant adds a
-  **"Missing enchant"** reminder.
+  the characters it would upgrade, with the item-level gain and the stat tag. How binding
+  affects this: **Binds-when-equipped** and **Warbound-until-equipped** items are checked
+  against every character, since they can be moved freely; **Soulbound** items only list the
+  character they're already bound to; and **Bind-on-Pickup** items that aren't bound yet get
+  no block at all, since whoever loots one is stuck with it. Separately, hovering one of **your
+  own equipped** pieces that's missing its enchant adds a **"Missing enchant"** reminder.
 - **Warbandeer** *(optional)* — when Warbandeer is installed:
   - the **Summary** view gains an **"Up"** column counting each character's available upgrades
     (hover for the list) and an **"Ench"** column counting equipped slots missing an enchant

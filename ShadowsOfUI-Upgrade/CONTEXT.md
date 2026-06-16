@@ -124,6 +124,10 @@ off-hand / 1H is not listed as an upgrade for a 2H wielder (only another 2H is).
   equipped items (different binding line) stay viable for everyone. The per-character views
   need no binding check — they only draw from a character's own bags/bank (soulbound there is
   legitimately theirs) plus the warband bank (which can't hold soulbound items).
+- **Bind-on-Pickup gear is skipped in the tooltip.** `tooltip.lua` detects a `Binds when picked
+  up` line (`ITEM_BIND_ON_PICKUP`) and bails before building the "Upgrade for:" block — a
+  not-yet-bound BoP item can't move between characters, so a cross-character recommendation is
+  misleading. (Already-bound BoP shows `Soulbound` instead and takes the holder-only path above.)
 - **Spec resolution is by numeric spec ID** (`charData.basic.specialization.id`, persisted by
   Warbandeer_Characters v13) — locale-independent. A character never logged in since that DB
   version has no `id` and gets no stat tag (ilvl upgrades still report).
