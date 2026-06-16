@@ -97,6 +97,8 @@ end
 ---@field _reverse boolean  grid sort direction at open: true = newest-first, so Up/Down tier nav matches the on-screen order
 ---@field _classIcon Texture  class icon in the model's upper-left (mirrors the nav pad)
 ---@field _className string?  localized class name for the icon's hover tooltip
+---@field _expIcon Texture  expansion badge in the model's bottom-right (mirrors the class icon)
+---@field _expName string?  expansion name for the badge's hover tooltip
 ---@field _undressed boolean?  hide the set to show the bare race body
 ---@field _undressBorder Texture  undress-toggle border (gold while active)
 ---@field _slots table[]  paper-doll slot entries ({ slotID, icon, border, itemID? })
@@ -385,6 +387,26 @@ DressingRoom = Class(TitleFrame, function(self)
   end)
   classBox._widget:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
+  -- Expansion badge in the model's bottom-right corner, mirroring the class icon's
+  -- upper-left placement and footprint. Boxed at navLvl so it draws above the
+  -- ModelScene. Set per set's `release` by _showRelease.
+  local expBox = Frame:new{
+    parent = self,
+    position = { BottomRight = {self._model, ui.edge.BottomRight, -INSET, INSET}, Size = {NAVSPAN, NAVSPAN} },
+  }
+  expBox:Level(navLvl)
+  self._expIcon = Texture:new{
+    parent = expBox, layer = ui.layer.Artwork, position = { All = true },
+  }
+  expBox._widget:EnableMouse(true)
+  expBox._widget:SetScript("OnEnter", function(f)
+    if not self._expName then return end
+    GameTooltip:SetOwner(f, "ANCHOR_LEFT")
+    GameTooltip:SetText(self._expName)
+    GameTooltip:Show()
+  end)
+  expBox._widget:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
   -- Directional nav pad in the model's upper-right corner: Left/Right cycle the
   -- group's class sets (skipping empty slots), Up/Down cycle the raid's difficulty
   -- tiers — same as the arrow keys. Parented to self and lifted above the
@@ -594,6 +616,20 @@ function DressingRoom:_showClass(classId)
   self:_setBackground(lower)   -- class-themed model backdrop
 end
 
+-- Point the bottom-right expansion badge at the set-group's release (hidden if the
+-- index is missing or has no icon). `release` indexes ns.Releases / ns.ReleaseIcons.
+---@param release number?
+function DressingRoom:_showRelease(release)
+  local path = release and ns.ReleaseIcons[release]
+  self._expName = release and ns.Releases[release]
+  if path then
+    self._expIcon:Texture(path)
+    self._expIcon:Show()
+  else
+    self._expIcon:Hide()
+  end
+end
+
 -- Remember the class for the model backdrop and (re)apply it. The atlas
 -- (`dressingroom-background-<class>`) is a managed atlas sheet that only streams in when
 -- `SetAtlas` runs on a *shown* texture — so a class set during `_load` (before the frame
@@ -652,6 +688,7 @@ function DressingRoom:_load(group, set)
   local classId
   for i = 1, #group.sets do if group.sets[i] == set then classId = i; break end end
   self:_showClass(classId)
+  self:_showRelease(group.release)
   self:_setTierBars(group.name)
   self._slotRetries = 0
   self:UpdateSlots()
@@ -765,6 +802,16 @@ end
 ---@field PreviewModelID fun(id: number, useCustomizations: boolean?)
 ns.PreviewModelID = function(id, useCustomizations)
   if _room and _room._widget:IsShown() then _room._model:DisplayInfo(id, useCustomizations) end
+end
+
+---Dev/verify helper: force an expansion badge into the open dressing room by
+---release index (1=Vanilla .. 12=Midnight), to eyeball each icon without
+---navigating to a set from that expansion. Reverts on the next set load.
+---`/collected release <n>`.
+---@class Warbandeer_Collected
+---@field PreviewRelease fun(release: number)
+ns.PreviewRelease = function(release)
+  if _room and _room._widget:IsShown() then _room:_showRelease(release) end
 end
 
 ---Dev/verify helper: live-set the open preview model's scale, to tune a race's

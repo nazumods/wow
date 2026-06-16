@@ -5,6 +5,7 @@ local tinsert = tinsert
 ---@class Warbandeer_Collected
 ---@field Sets table[] transmog set groups: `{ id, name, release, instance, difficulty, minLevel, sets = { { id, name, classId }... } }`
 ---@field Releases string[] expansion names indexed by `release`
+---@field ReleaseIcons string[] expansion badge textures (64x64 TGA), parallel to Releases
 ns.Sets = {}
 
 -- https://warcraft.wiki.gg/wiki/ClassId
@@ -22,6 +23,23 @@ ns.Releases = {
   "Dragonflight",
   "The War Within",
   "Midnight",
+}
+
+-- Expansion badge textures (64x64 TGA), indexed by `release` (parallel to ns.Releases).
+local ICONS = [[Interface\AddOns\Warbandeer_Collected\textures\expansions\]]
+ns.ReleaseIcons = {
+  ICONS .. "vanilla",
+  ICONS .. "tbc",
+  ICONS .. "wrath",
+  ICONS .. "cataclysm",
+  ICONS .. "mop",
+  ICONS .. "wod",
+  ICONS .. "legion",
+  ICONS .. "bfa",
+  ICONS .. "shadowlands",
+  ICONS .. "dragonflight",
+  ICONS .. "tww",
+  ICONS .. "midnight",
 }
 
 -- find group id: https://wago.tools/db2/TransmogSetGroup?filter%5BName_lang%5D=Black&page=1&sort%5BName_lang%5D=asc
