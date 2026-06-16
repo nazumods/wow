@@ -581,9 +581,11 @@ dressup scene (id 596) for camera + lighting + a skinnable player actor: set a
 body via a unit, an arbitrary race+gender (creature display ID), or a unit
 re-rendered as another race, then `TryOn` transmog appearance sources.
 **Left-drag** spins the model (actor yaw), **right-drag** pans the camera, and the
-**mouse wheel** zooms. The dragged angle is preserved when you re-skin the actor
-(`DisplayInfo`/`Unit`), so swapping the body doesn't snap it back to front-facing;
-pan/zoom live on the camera and likewise persist across re-skins. Note a creature
+**mouse wheel** zooms — pan and zoom glide smoothly (the camera eases them itself),
+and a left-drag **flick** keeps the model spinning and coasts to a stop. The dragged
+angle is preserved when you re-skin the actor (`DisplayInfo`/`Unit`), so swapping the
+body doesn't snap it back to front-facing; pan/zoom live on the camera and likewise
+persist across re-skins. Note a creature
 display only textures if it's a **baked** display (carries its own textures) — a
 bare base/`ChrModel` display renders white, since the engine can only composite
 textures for the active player's own race. All models render through one
@@ -599,6 +601,8 @@ player-sized actor, so races at their natural size come out wildly inconsistent;
 | `facing`      | number | Initial yaw (radians) applied on load so the model faces the camera; re-skinned models pose side-on by default (default `-math.rad(88)`) |
 | `minZoom`     | number | Closest the wheel may zoom in, in scene units (default 2). The borrowed scene pins zoom to 6–10, so this widens the usable range |
 | `maxZoom`     | number | Farthest the wheel may zoom out, in scene units (default 16) |
+| `spinFriction`| number | How fast a left-drag flick decays to a stop (DeltaLerp amount per ideal frame; default 0.05 ≈ a 1s glide). Lower = longer coast |
+| `spinTracking`| number | How closely the tracked throw speed follows the cursor while dragging (default 0.5). Smooths out spikes so carefully placing the model doesn't fling it on release |
 
 ### Methods
 
@@ -611,6 +615,7 @@ player-sized actor, so races at their natural size come out wildly inconsistent;
 | `Outfit(sources)`     | Remember a transmog outfit (list of sourceIDs; empty = undressed) and re-apply it after every async model (re)load. Use this instead of one-shot `TryOn`/`Undress` when re-skinning, since the load otherwise resets the actor to its baked default. Call before `DisplayInfo`/`Unit` |
 | `Aggressiveness(n)`   | Set the bounding-box normalization strength (0 = the model's natural size, **default**; 1 = forced to ~human-male size). A mid value (e.g. 0.5) keeps races consistent while preserving some racial size character. Remembered and re-applied after each async re-skin |
 | `Scale(n)`            | Set the user scale multiplier on top of the normalized size (1 = the normalized size). Remembered and re-asserted every frame, so it survives an async re-skin's scale reset regardless of load timing |
+| `Spin(v)`             | Get/set the model's rotation speed in radians/sec. A non-zero value spins it with the same inertia as a mouse flick (handy for a showcase spin); `Spin(0)` halts. No-arg reads the live speed |
 
 ---
 
