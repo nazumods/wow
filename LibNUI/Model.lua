@@ -159,14 +159,18 @@ end
 
 -- Skin the actor from a unit, optionally rendered as another race (customRaceID,
 -- a chrRaceID — keeps the unit's gender). autoDress is off so the caller controls
--- what's worn via TryOn.
+-- what's worn via TryOn. `useNativeForm` is the unit's native vs altered form (Worgen
+-- human, Dracthyr visage); it follows the unit's own alternate-form state, so it only
+-- has an effect when the *unit* (not customRaceID) has one. Defaults to native (true).
 ---@param token string  unit token (e.g. "player")
 ---@param customRaceID number?  chrRaceID to render the unit as
+---@param useNativeForm boolean?  unit native (true, default) vs altered form
 ---@return Model
-function Model:Unit(token, customRaceID)
+function Model:Unit(token, customRaceID, useNativeForm)
   if self._actor then
+    if useNativeForm == nil then useNativeForm = true end
     self:_reapply()   -- arm the one-shot load callback BEFORE loading
-    self._actor:SetModelByUnit(token, false, false, false, true, false, customRaceID)
+    self._actor:SetModelByUnit(token, false, false, false, useNativeForm, false, customRaceID)
   end
   return self
 end

@@ -33,8 +33,12 @@ local GetRaceInfo = C_CreatureInfo.GetRaceInfo
 --
 -- Entry shapes:
 --   single form  → { [2] = maleID, [3] = femaleID, normalize? }
---   multi form   → { forms = { { name, [2], [3], race?, normalize? }, ... } }  (Worgen)
--- The dressing room shows a form toggle when `forms` is present.
+--   multi form   → { forms = { { name, race?|useNativeForm?, normalize? }, ... }, selfFormOnly? }
+-- The dressing room shows a form toggle when `forms` is present. A form renders either as
+-- another race (`race`, e.g. Worgen's Human form → 1; works for any player) or via the
+-- unit's native/altered form (`useNativeForm`, e.g. Dracthyr dragon/visage). `selfFormOnly`
+-- gates the toggle to when the player is previewing their own race with an alternate form —
+-- needed for the altered form (visage), which only textures for the actual race.
 --
 -- The [2]/[3] creature-display ids are NOT used for rendering (see the NOTE above);
 -- they're kept for reference and the dev `/collected model <id>` preview. Hand-
@@ -44,7 +48,7 @@ local GetRaceInfo = C_CreatureInfo.GetRaceInfo
 -- sharing that ModelID with CreatureModelScale == 1. They must be PRE-BAKED ids (see
 -- the NOTE above on white renders).
 ---@class Warbandeer_Collected
----@field RaceModels table<number, table>  [raceID] = { [2],[3], normalize? } | { forms = {{name,[2],[3],race?,normalize?},...} }
+---@field RaceModels table<number, table>  [raceID] = { [2],[3], normalize? } | { forms = {{name,race?,useNativeForm?,normalize?},...}, selfFormOnly? }
 ns.RaceModels = {
   -- Allied races (recruitment-screen showcase ids, hand-verified).
   [27] = { [2] = 82708,  [3] = 82709  }, -- Nightborne
@@ -81,11 +85,17 @@ ns.RaceModels = {
     { name = "Human",  [2] = 1276,  [3] = 176, race = 1 },
   } },
 
-  -- Dracthyr (52): no baked display ids yet (its visage ids render white), so it uses
-  -- the textured player fallback (gender follows the char). Its wide wingspan dominates
-  -- the bounding box, so it over-shrinks at the global normalize strength — a much
-  -- gentler per-race override sizes it naturally. Baked ids + form toggle (visage/dragon) TBD.
-  [52] = { normalize = 0.2 }, -- Dracthyr (fallback render; wingspan needs a gentler normalize)
+  -- Dracthyr (52): two forms via the unit's NATIVE alternate form (useNativeForm), not a
+  -- race override. The dragon (native) renders textured for everyone; the visage (altered)
+  -- only composites textures for an actual Dracthyr player, so its toggle is gated by
+  -- `selfFormOnly` — shown only when a Dracthyr is previewing Dracthyr. Everyone else just
+  -- sees the dragon. The dragon's wide wingspan over-shrinks at the global normalize
+  -- strength, so it carries a gentler per-form override; the humanoid visage sizes fine
+  -- at the global value.
+  [52] = { selfFormOnly = true, forms = {
+    { name = "Dracthyr", useNativeForm = true,  normalize = 0.2 },  -- dragon (native; renders for all)
+    { name = "Visage",   useNativeForm = false },                   -- humanoid (altered; Dracthyr players only)
+  } },
 }
 
 -- Global bounding-box normalization strength for the dressing-room model (0 = natural

@@ -486,17 +486,31 @@ function DressingRoom:_highlightForm(i)
   for j, b in ipairs(self._formButtons) do b.border:Color(j == i and SELECTED or IDLE) end
 end
 
--- Show form-toggle buttons for the selected race's alternate forms (Worgen,
--- Dracthyr); hide the row for single-form races. Resets to the first form.
+-- Show form-toggle buttons for the selected race's alternate forms (Worgen always;
+-- Dracthyr only for a Dracthyr player, see selfFormOnly); hide the row otherwise.
+-- Resets to the first (native) form.
 ---@param entry table?  the race's RaceModels entry
 function DressingRoom:_setupForms(entry)
   local forms = entry and entry.forms
+  -- `selfFormOnly` entries (Dracthyr) carry an altered form (visage) that only textures
+  -- for the actual race, so the toggle is hidden unless the player is previewing their own
+  -- race + has an alternate form. The buttons hide but `forms` still drives form 1 (the
+  -- native form, which renders for everyone), so others just see the default body.
+  local show = forms and (not entry.selfFormOnly or self:_isSelfWithAltForm())
   for i, b in ipairs(self._formButtons) do
-    local f = forms and forms[i]
+    local f = show and forms[i]
     if f then b.label:Text(f.name); b.box:Show() else b.box:Hide() end
   end
   self._form = 1
-  if forms then self:_highlightForm(1) end
+  if show then self:_highlightForm(1) end
+end
+
+-- True when the selected race is the player's own and the player has an alternate form
+-- (Worgen/Dracthyr) — the only case where the altered form renders textured.
+---@return boolean
+function DressingRoom:_isSelfWithAltForm()
+  local _, _, playerRace = UnitRace("player")
+  return self._raceID == playerRace and (C_PlayerInfo.GetAlternateFormInfo()) or false
 end
 
 ---@param i number  index into the selected race's forms array
@@ -554,9 +568,10 @@ function DressingRoom:Dress()
   m:Scale(1)
   self._scaleSlider:Value(1)
 
-  -- A form may override the render race (Worgen's "Human" form → race 1, rendered
-  -- as a plain Human); otherwise render the selected race.
-  m:Unit("player", (form and form.race) or self._raceID)
+  -- A form may override the render race (Worgen's "Human" form → race 1, rendered as a
+  -- plain Human) or the unit's native/altered form (Dracthyr dragon/visage via
+  -- `useNativeForm`); otherwise render the selected race in its native form.
+  m:Unit("player", (form and form.race) or self._raceID, form and form.useNativeForm)
 end
 
 -- Point the title-bar class icon at the class in column `classId` (hidden if the

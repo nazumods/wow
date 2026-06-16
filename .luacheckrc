@@ -124,6 +124,7 @@ std = {
     "C_MountJournal",
     "C_MythicPlus",
     "C_PetJournal",
+    "C_PlayerInfo",
     "C_ProfSpecs",
     "C_QuestLog",
     "C_Reputation",

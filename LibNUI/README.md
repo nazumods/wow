@@ -605,7 +605,7 @@ player-sized actor, so races at their natural size come out wildly inconsistent;
 | Method                | Description                                                      |
 |-----------------------|------------------------------------------------------------------|
 | `DisplayInfo(id, useCustomizations?)` | Skin the actor with a creature display ID. `useCustomizations` defaults **false** — a baked display carries its own race+gender textures; passing true overlays the active player's customizations (only textures the player's own race) |
-| `Unit(token, customRaceID?)` | Skin from a unit (e.g. `"player"`), optionally rendered as another race (`customRaceID` = chrRaceID, keeps the unit's gender). `autoDress` is off |
+| `Unit(token, customRaceID?, useNativeForm?)` | Skin from a unit (e.g. `"player"`), optionally rendered as another race (`customRaceID` = chrRaceID, keeps the unit's gender). `useNativeForm` (default true) is the unit's native vs altered form (Worgen human, Dracthyr visage) — only effective when the *unit* has an alternate form. `autoDress` is off |
 | `TryOn(source)`       | Put on an item link or `itemModifiedAppearanceID` (sourceID)     |
 | `Undress()` / `Dress()` | Strip / re-equip the actor's gear                              |
 | `Outfit(sources)`     | Remember a transmog outfit (list of sourceIDs; empty = undressed) and re-apply it after every async model (re)load. Use this instead of one-shot `TryOn`/`Undress` when re-skinning, since the load otherwise resets the actor to its baked default. Call before `DisplayInfo`/`Unit` |
