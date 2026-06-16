@@ -24,7 +24,7 @@ LibNUI. The stat-priority and quartermaster-gear tables are small built-ins (`ns
 | `equip.lua` | `ns.CompetingSlots(equipLoc)` → equipment-slot names an item contests; `ns.CanEquip(classKey, equipLoc, classID, subClassID)` → armour-type / shield / weapon-proficiency check; `ns.IsTwoHand(equipLoc)` + `ns.WeaponRole(equipLoc)` → `"mh1h"`/`"mh2h"`/`"off"`/nil for the 2H ↔ dual-wield reconciliation |
 | `upgrade.lua` | Core logic + the published `ShadowsOfUI_UpgradeApi` methods |
 | `enhance.lua` | Missing-enchant detection + the published `MissingEnchants` method. `ns.ItemEnchantID(link)` parses field 2 of the itemString (0 = unenchanted); `ns.MissingEnchants(charData)` walks the equipped slots in a stable order and returns `{ slot, link }` for each enchantable slot whose link carries no enchant. Pure string parse → works from any stored alt link (warband-wide); the off-hand counts only when it holds a weapon (`WEAPON_EQUIPLOC`) |
-| `tooltip.lua` | `TooltipDataProcessor.AddTooltipPostCall(Item)` "Upgrade for:" block; `/supgrade [name]` dev dump |
+| `tooltip.lua` | `TooltipDataProcessor.AddTooltipPostCall(Item)` "Upgrade for:" block + an orange "Missing enchant" line when the hovered item is one of the **player's own equipped** enchantable items with no enchant (`equippedMissingEnchant` — matches the displayed link against the live `GetInventoryItemLink` of each enchantable inventory slot, so it never fires on a loose bag/vendor copy; off-hand gated on holding a weapon); `/supgrade [name]` dev dump |
 | `spec/upgrade.lua` | Busted harness: loads data + `resolve`/`equip`/`upgrade` into a fresh `ns` with stubbed WoW globals (`C_Item`, `Enum`, `GetTime`, spec-info fns) and a fake `WarbandeerApi`. `up.harness()` returns `{ ns, Api, api, defItem, addChar, pools, warband, advance }`. Skips `core.lua` (LibNAddOn bootstrap) + `tooltip.lua` (frames) |
 | `spec/equip_spec.lua` | `CompetingSlots` / `IsTwoHand` / `WeaponRole` / `CanEquip` (armour-type, shield, weapon-proficiency gating) |
 | `spec/resolve_spec.lua` | `StatRanks` / `PrimaryStat` spec-ID → tier/primary resolution |
@@ -62,8 +62,9 @@ ShadowsOfUI_UpgradeApi:MissingEnchants(charName)       → { slot, link }[]
     -- equipped slots that should carry a permanent enchant but don't, in a stable
     -- slot order.  Reads only the stored item link (enchant id is encoded in it), so
     -- it works warband-wide for every character, not just the one logged in.  The
-    -- off-hand counts only when it holds a weapon.  No consumer yet (headless API;
-    -- a Warbandeer surface + tooltip line are the follow-up).
+    -- off-hand counts only when it holds a weapon.  Consumers: Warbandeer's Detail
+    -- gear-row "Missing enchant" note + Summary "Ench" column (warband-wide, via
+    -- ns.MissingEnchantSlots), and this addon's own tooltip line (live equipped).
 ShadowsOfUI_UpgradeApi:ItemUpgrades(link, boundTo?, ilvl?)  → ItemUpgradeEntry[]|nil
     -- which characters a specific item would upgrade (drives the tooltip).
     -- boundTo = the holder's name for a soulbound item (restricts to that one

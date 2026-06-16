@@ -1,7 +1,8 @@
 # ShadowsOfUI-Upgrade
 
-Finds **gear upgrades** for your whole warband and shows them where you make keep-or-sell
-decisions: on item tooltips, and across Warbandeer's Summary, Gear and Detail views.
+Finds **gear upgrades** (and flags gear **missing its enchant**) for your whole warband and
+shows them where you make keep-or-sell decisions: on item tooltips, and across Warbandeer's
+Summary, Gear and Detail views.
 
 The point is to stop hoarding. Instead of holding onto ten intellect one-handers "just in
 case", you can see at a glance which characters an item actually upgrades — and which copy
@@ -28,6 +29,14 @@ and tagged **good stats** (it carries a top-priority stat) or **off-stats**. The
 are a small built-in table (derived from current PvE secondary-stat weightings), so this addon is
 **fully standalone** — no other addon is needed.
 
+## Missing enchants
+
+It also flags equipped gear that's **missing a permanent enchant** — the back, chest, bracers,
+legs, boots, rings and weapon(s) that should carry one but don't. Because the enchant is read
+straight from the item, this works for **every character in the warband**, not just the one
+you're logged into, so you can spot the alt whose rings still aren't enchanted without logging
+over. (It reports the gap only — not which enchant to apply.)
+
 ## Held vs. better elsewhere
 
 - An upgrade sitting in a character's **own bags or personal bank** is **held** for them
@@ -41,12 +50,15 @@ are a small built-in table (derived from current PvE secondary-stat weightings),
   the characters it would upgrade, with the item-level gain and the stat tag. **Soulbound**
   items only list the character they're already bound to; **Binds-when-equipped** and
   **Warbound-until-equipped** items are checked against every character, since they can be
-  moved.
+  moved. Hovering one of **your own equipped** pieces that's missing its enchant adds a
+  **"Missing enchant"** reminder.
 - **Warbandeer** *(optional)* — when Warbandeer is installed:
   - the **Summary** view gains an **"Up"** column counting each character's available upgrades
-    (hover for the list),
+    (hover for the list) and an **"Ench"** column counting equipped slots missing an enchant
+    (green check when fully enchanted),
   - the **Gear** view marks each slot that has an upgrade with a ▲,
-  - the **Detail** view marks each equipped item that can be upgraded, and its **Suggested**
+  - the **Detail** view marks each equipped item that can be upgraded — and notes any slot
+    **missing its enchant** beneath the item — and its **Suggested**
     box lists active **world-quest** rewards that would upgrade a slot (the quest's gear, the
     item-level gain, and where to find it) alongside the ready upgrades — world quests are
     scanned while each character is logged in, so the suggestions persist when you view an alt.

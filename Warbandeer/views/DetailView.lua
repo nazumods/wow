@@ -34,6 +34,7 @@ end
 
 ---@class DetailView: Frame
 ---@field _char Character        currently displayed character
+---@field _missingEnch table<string, boolean>  slots missing a permanent enchant (per-render)
 ---@field _profRows table[]      pooled profession rows (each owns a `gearRows` sub-pool)
 ---@field _numRows integer       number of rows currently visible
 ---@field _gearRows table[]      pooled equipped-gear rows (right column)
@@ -245,6 +246,7 @@ function DetailView:OnBeforeShow()
   -- Gear list (right column): one row per equipped slot, in slot order. The name
   -- column autosizes to the longest equipped item name (clamped to a min/max).
   local slots = (char.equipment and char.equipment.slots) or {}
+  self._missingEnch = ns.MissingEnchantSlots(char.name)
   local g, maxNameW, gearRowsH = 0, 0, 0
   for _, slotKey in ipairs(ns.gearSlots) do
     local item = slots[slotKey]

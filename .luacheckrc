@@ -232,6 +232,7 @@ std = {
     "GetGuildInfo",
     "GetInventoryItemID",
     "GetInventoryItemLink",
+    "GetInventorySlotInfo",
     "GetItemCooldown",
     "GetItemIcon",
     "GetItemInfo",

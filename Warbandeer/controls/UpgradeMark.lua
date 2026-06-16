@@ -44,6 +44,22 @@ function ns.UpgradeSuggestion(charName, slot)
   return r.link, r.ilvlGain, (r.where == "warband" or r.betterElsewhere) or false
 end
 
+---Set of equipped slots missing a permanent enchant for a character, keyed by
+---slot name (`{ Back = true, Finger1 = true, ... }`). Empty when the character is
+---fully enchanted, or when the upgrade addon isn't loaded. Built once per Detail
+---render so the per-slot lookup in `_showGear` is a cheap table read.
+---@param charName string
+---@return table<string, boolean>
+function ns.MissingEnchantSlots(charName)
+  local set = {}
+  local api = ShadowsOfUI_UpgradeApi
+  if not api then return set end
+  for _, e in ipairs(api:MissingEnchants(charName)) do
+    set[e.slot] = true
+  end
+  return set
+end
+
 ---One-line hover description of a slot's available upgrade, or nil when none.
 ---@param charName string
 ---@param slot string
