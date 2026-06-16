@@ -92,6 +92,7 @@ std = {
     "CopyToClipboard",
     "CreateColor",
     "CreateFont",
+    "DeltaLerp",
     "CreateFrame",
     "GetCursorPosition",
     "IsAddOnLoaded",

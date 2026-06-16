@@ -12,17 +12,29 @@ local GetCursorPosition = GetCursorPosition
 -- renders untextured/white) — only a ModelScene actor does it correctly.
 local DRESSUP_SCENE = 596
 
+-- Rotation-inertia bounds (rad/sec). SPIN_CUTOFF is where a glide is considered
+-- stopped; SPIN_MAX clamps a single throw so a cursor warp can't launch the model.
+local SPIN_CUTOFF = 0.04
+local SPIN_MAX = 12
+
 -- A ModelScene-backed 3D viewer: skin the actor (a unit, an arbitrary race via a
 -- creature display ID, or a unit rendered as another race), then TryOn transmog
--- appearance sources. Left-drag rotates (actor yaw), right-drag pans, wheel zooms.
+-- appearance sources. Left-drag rotates (actor yaw) with release inertia, right-drag
+-- pans, wheel zooms. Pan + zoom are eased by the borrowed OrbitCamera's own DeltaLerp
+-- interpolation; the actor-yaw rotation isn't routed through the camera, so we give
+-- it the same feel ourselves (track throw speed while dragging, glide to a stop on
+-- release via the engine's DeltaLerp).
 ---@class Model: Frame
 ---@field rotateSpeed number  radians of yaw applied per screen pixel dragged
 ---@field facing number  initial yaw (radians) applied on load so the model faces the camera; re-skinned models default to a side-on pose, so we quarter-turn it
 ---@field minZoom number  closest the camera may zoom in (scene units); widens the borrowed scene's tight 6–10 range so the wheel actually does something
 ---@field maxZoom number  farthest the camera may zoom out (scene units)
+---@field spinFriction number  inertia decay per ideal 60fps frame (DeltaLerp amount toward 0); lower = longer glide after a flick
+---@field spinTracking number  how quickly the tracked throw speed follows the cursor while dragging (DeltaLerp amount); de-spikes so placing the model still doesn't fling it
 ---@field _actor table?  the scene's player actor (backing model)
 ---@field _cam table?  the scene's active OrbitCamera (drives right-drag pan + wheel zoom)
 ---@field _yaw number  accumulated drag yaw in radians (internal); seeded from `facing`
+---@field _yawVel number  current rotation speed in rad/sec (internal); carries the flick on release and decays to 0
 ---@field _scale number  user scale multiplier, re-applied after each async model load (1 = the normalized size)
 ---@field _aggressiveness number  bounding-box normalization strength 0..1 (0 = the model's natural size, 1 = forced to ~human-male size); default 0 (opt-in)
 ---@field _outfit number[]?  remembered transmog sources, re-applied after each async model load (empty = undressed)
@@ -32,6 +44,7 @@ local Model = Class(Frame, function(self)
     DRESSUP_SCENE, CAMERA_TRANSITION_TYPE_IMMEDIATE, CAMERA_MODIFICATION_TYPE_DISCARD, true)
   self._actor = self._widget:GetPlayerActor()
   self._yaw = self.facing   -- seed so the model faces the camera, not side-on, on load
+  self._yawVel = 0          -- no spin until the user flicks it
   self._scale = 1
   self._aggressiveness = 0   -- no normalization unless the caller opts in via Aggressiveness
 
@@ -65,7 +78,11 @@ local Model = Class(Frame, function(self)
     -- Forward to the mixin so it tracks button state for the camera (pan needs to know
     -- the right button is held). Only the LEFT button drives our actor-yaw drag.
     w:OnMouseDown(button)
-    if button == "LeftButton" then dragging = true; lastX = (GetCursorPosition()) end
+    if button == "LeftButton" then
+      dragging = true
+      lastX = (GetCursorPosition())
+      self._yawVel = 0   -- grabbing the model halts any ongoing inertia glide
+    end
   end)
   w:SetScript("OnMouseUp", function(_, button)
     w:OnMouseUp(button)
@@ -82,9 +99,24 @@ local Model = Class(Frame, function(self)
     self:_applyScale()
     if dragging then
       local x = GetCursorPosition()
-      self._yaw = self._yaw + (x - lastX) / w:GetEffectiveScale() * self.rotateSpeed
+      local dyaw = (x - lastX) / w:GetEffectiveScale() * self.rotateSpeed
       lastX = x
+      self._yaw = self._yaw + dyaw
       self._actor:SetYaw(self._yaw)
+      -- Track the throw speed (rad/sec), DeltaLerp-smoothed so a cursor held still at
+      -- the end of a drag decays toward zero — placing the model precisely doesn't
+      -- fling it on release, only an actual flick carries inertia. Clamped so a cursor
+      -- warp can't impart a runaway spin.
+      local instant = elapsed > 0 and dyaw / elapsed or 0
+      instant = math.max(-SPIN_MAX, math.min(SPIN_MAX, instant))
+      self._yawVel = DeltaLerp(self._yawVel, instant, self.spinTracking, elapsed)
+    elseif self._yawVel ~= 0 then
+      -- Inertia: keep rotating after release, easing to a stop via the same DeltaLerp
+      -- the OrbitCamera uses for zoom/pan, then snap to rest under the cutoff.
+      self._yaw = self._yaw + self._yawVel * elapsed
+      self._actor:SetYaw(self._yaw)
+      self._yawVel = DeltaLerp(self._yawVel, 0, self.spinFriction, elapsed)
+      if math.abs(self._yawVel) < SPIN_CUTOFF then self._yawVel = 0 end
     end
     -- Drive the camera ourselves: our SetScript replaced the template's OnUpdate, so the
     -- mixin's per-frame camera step (pan/zoom interpolation) no longer runs unless we call
@@ -98,6 +130,8 @@ end, {
   facing = -math.rad(88),   -- just shy of a quarter-turn from the side-on default, facing the camera
   minZoom = 2,
   maxZoom = 16,
+  spinFriction = 0.05,      -- ~1s glide to rest after a flick
+  spinTracking = 0.5,       -- responsive throw-speed tracking while dragging
 })
 ui.Model = Model
 
@@ -219,6 +253,17 @@ function Model:Aggressiveness(v)
   if v == nil then return self._aggressiveness end
   self._aggressiveness = v
   self:_applyScale()
+  return self
+end
+
+-- Impart (or read) the model's rotation speed in radians/sec. A non-zero value spins
+-- the model and eases to a stop with the same inertia as a mouse flick — handy for a
+-- programmatic showcase spin or to stop one (Spin(0)). Read returns the live speed.
+---@param v number?
+---@return number|Model
+function Model:Spin(v)
+  if v == nil then return self._yawVel end
+  self._yawVel = v
   return self
 end
 
