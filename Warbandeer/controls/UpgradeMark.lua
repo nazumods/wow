@@ -60,21 +60,27 @@ function ns.MissingEnchantSlots(charName)
   return set
 end
 
--- Resolve an enchanting recipe spellID to its localized name (live, so nothing is
--- hardcoded). The Bars views use the same `C_Spell.GetSpellName or GetSpellInfo` shim.
+-- Resolve an EnchantSuggestion to a display name (live, so nothing is hardcoded): a
+-- ClassCodex pick carries its own `name`; a bundled recipe resolves via GetSpellName;
+-- an item id falls back to GetItemInfo. The Bars views use the same GetSpellName shim.
 local GetSpellName = (C_Spell and C_Spell.GetSpellName) or _G.GetSpellInfo
+local GetItemName = (C_Item and C_Item.GetItemInfo) or _G.GetItemInfo
 
----Recommended enchant name for a character's slot — the enchant they should apply,
----chosen for their spec's top stat (variant slots) — or nil when there's none (or the
----upgrade addon / its bundled table has nothing for this slot/spec).
+---Recommended enchant name for a character's slot — the enchant they should apply (per
+---spec from ClassCodex when installed, else our bundled stat pick) — or nil when there's
+---none (or the upgrade addon isn't loaded).
 ---@param charName string
 ---@param slot string
 ---@return string?
 function ns.RecommendedEnchant(charName, slot)
   local api = ShadowsOfUI_UpgradeApi
-  if not (api and api.RecommendedEnchant and GetSpellName) then return nil end
-  local id = api:RecommendedEnchant(charName, slot)
-  return id and GetSpellName(id) or nil
+  if not (api and api.RecommendedEnchant) then return nil end
+  local s = api:RecommendedEnchant(charName, slot)
+  if not s then return nil end
+  if s.name then return s.name end
+  if s.kind == "spell" and GetSpellName then return GetSpellName(s.id) end
+  if s.kind == "item" and s.id and GetItemName then return (GetItemName(s.id)) end
+  return nil
 end
 
 ---One-line hover description of a slot's available upgrade, or nil when none.

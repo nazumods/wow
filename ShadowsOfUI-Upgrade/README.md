@@ -37,10 +37,12 @@ is read straight from the item, this works for **every character in the warband*
 one you're logged into, so you can spot the alt whose rings still aren't enchanted without logging
 over.
 
-For most slots it also tells you **which enchant to apply**: rings are matched to the character's
-**top secondary stat** (so a Haste spec is pointed at the Haste ring enchant), the chest gets the
-universal primary-stat enchant, and weapons get a stat-matched enchant. The recommendation shows
-up next to the "missing enchant" flag everywhere it appears.
+It also tells you **which enchant to apply**. If you have the **ClassCodex** addon installed, the
+recommendation is its per-spec best enchant (from Wowhead) for every slot. Without it, a built-in
+fallback is used: rings are matched to the character's **top secondary stat** (so a Haste spec is
+pointed at the Haste ring enchant), the chest gets the universal primary-stat enchant, and weapons
+get a stat-matched enchant. The recommendation shows up next to the "missing enchant" flag
+everywhere it appears.
 
 ## Held vs. better elsewhere
 
@@ -81,6 +83,9 @@ logged-in character) — a debugging aid; you won't normally need it.
   their loose gear is scanned.
 - **Warbandeer** *(optional)* — for the Summary/Gear/Detail markers. The tooltip line works
   without it.
+- **ClassCodex** *(optional)* — when installed, its per-spec best enchant (from Wowhead) is used
+  for the "which enchant to apply" recommendation, for every slot. Without it, a built-in
+  fallback is used. Either way the missing-enchant detection itself works.
 
 ## Notes
 

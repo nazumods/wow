@@ -1,6 +1,6 @@
 # ShadowsOfUI-Upgrade
 
-**Deps:** LibNAddOn, Warbandeer_Characters · **SavedVars:** none · **Commands:** `/supgrade [name]` (dev dump) · **API:** reads `WarbandeerApi`, publishes `ShadowsOfUI_UpgradeApi`
+**Deps:** LibNAddOn, Warbandeer_Characters · **OptionalDeps:** ClassCodex (per-spec enchant source) · **SavedVars:** none · **Commands:** `/supgrade [name]` (dev dump) · **API:** reads `WarbandeerApi` (+ ClassCodex's global `ClassCodexGearData` when present), publishes `ShadowsOfUI_UpgradeApi`
 
 Headless logic + tooltip addon. Computes per-character gear upgrades from the data layer
 (equipped gear + loose gear in bags / personal bank / warband bank), plus future-action sources
@@ -20,16 +20,16 @@ LibNUI. The stat-priority and quartermaster-gear tables are small built-ins (`ns
 | `data/classgear.lua` | `ns.ClassGear[classKey] = { shield, weapons = {[subClassID]=true} }` — bundled weapon/shield proficiency baseline (armour *type* comes from `ns.wow.Armor.byClass`, not repeated here) |
 | `data/vendorgear.lua` | `ns.VendorGear` = bundled list of the expansion's faction-quartermaster gear pieces (`VendorGearEntry[]`); one entry per slot/quartermaster, each carrying `options` (armour-type variants / stat alternatives) + `quartermaster`/`zone`/`mapID`/`cost`/`ilvl`/`reqLevel`/`equipLoc`. Static game data, **regenerate each season** (note in-file) |
 | `data/enchantslots.lua` | `ns.EnchantableSlots` = set of equipment-slot names that take a permanent enchant this expansion. Midnight (12.0.x): Head/Shoulder/Chest/Legs/Feet/Finger1/Finger2/MainHand — **Head/Shoulder are in, Back(cloak)/Wrist(bracer) are out** (Enchanting has no recipe for them); Legs stays (its enchant is a Tailoring/LW spellthread, not an Enchanting recipe). **Verify each expansion** — the set drifts. OffHand is deliberately absent (enhance.lua gates it on the equipped item being a weapon, not a shield/holdable). `enhance.lua`'s `ENCHANT_ORDER` is a top-down superset (Head→OffHand) gated against this set, so a listed-but-unenchantable slot is simply skipped |
-| `data/enchants.lua` | `ns.Enchants` = recommended enchant per **canonical** enchant slot (both rings → `Finger`, both weapons → `Weapon`; `enhance.lua`'s `ENCHANT_KEY` maps equipped slots onto these). Each row is either `byStat = { haste=id, crit=id, mastery=id, versatility=id }` (resolver picks the variant for the character's top secondary via `ns.StatRanks`) or `fixed = id` (non-variant slots — weapon proc/utility enchants, a primary-stat leg kit). `id` is the **enchanting recipe spellID**; names resolve live (`GetSpellInfo`) at the surface, so nothing is hardcoded/locale-bound. **Regenerate each season** — harvest live recipe ids in-game (see Gotchas → "Refreshing `ns.Enchants`"). A slot absent here yields no recommendation |
+| `data/enchants.lua` | `ns.Enchants` = the **fallback** recommended enchant per **canonical** enchant slot (used only when ClassCodex isn't installed; CC's per-spec data is preferred — see `enhance.lua`). (both rings → `Finger`, both weapons → `Weapon`; `enhance.lua`'s `ENCHANT_KEY` maps equipped slots onto these). Each row is either `byStat = { haste=id, crit=id, mastery=id, versatility=id }` (resolver picks the variant for the character's top secondary via `ns.StatRanks`) or `fixed = id` (non-variant slots — weapon proc/utility enchants, a primary-stat leg kit). `id` is the **enchanting recipe spellID**; names resolve live (`GetSpellInfo`) at the surface, so nothing is hardcoded/locale-bound. **Regenerate each season** — harvest live recipe ids in-game (see Gotchas → "Refreshing `ns.Enchants`"). A slot absent here yields no recommendation |
 | `resolve.lua` | `ns.StatRanks(charData)` → the spec's `{stat=tier}` table (or nil); `ns.PrimaryStat(charData)` → `"str"`/`"agi"`/`"int"` (or nil). Both via a lazily-built `specID → {token, index}` map (`GetSpecializationInfoForClassID`) indexing into `ns.StatPriority` / `ns.ClassPrimary` |
 | `equip.lua` | `ns.CompetingSlots(equipLoc)` → equipment-slot names an item contests; `ns.CanEquip(classKey, equipLoc, classID, subClassID)` → armour-type / shield / weapon-proficiency check; `ns.IsTwoHand(equipLoc)` + `ns.WeaponRole(equipLoc)` → `"mh1h"`/`"mh2h"`/`"off"`/nil for the 2H ↔ dual-wield reconciliation |
 | `upgrade.lua` | Core logic + the published `ShadowsOfUI_UpgradeApi` methods |
-| `enhance.lua` | Missing-enchant detection + recommendation + the published `MissingEnchants`/`RecommendedEnchant` methods. `ns.ItemEnchantID(link)` parses field 2 of the itemString (0 = unenchanted); `ns.MissingEnchants(charData)` walks the equipped slots in a stable order and returns `{ slot, link }` for each enchantable slot whose link carries no enchant (pure string parse → works from any stored alt link, warband-wide; off-hand counts only when it holds a weapon, `WEAPON_EQUIPLOC`). `ns.RecommendedEnchant(charData, slot)` → `enchantID, stat?`: maps the slot onto `ns.Enchants` via `ENCHANT_KEY`, returns a `fixed` recipe outright or picks the `byStat` variant for the character's top secondary (`pickStat` over `ns.StatRanks`, `STAT_ORDER` tie-break; nil when the spec/priority is unknown). Returns the recipe id only — names resolve at the surface |
+| `enhance.lua` | Missing-enchant detection + recommendation + the published `MissingEnchants`/`RecommendedEnchant` methods. `ns.ItemEnchantID(link)` parses field 2 of the itemString (0 = unenchanted); `ns.MissingEnchants(charData)` walks the equipped slots in a stable order and returns `{ slot, link }` for each enchantable slot whose link carries no enchant (pure string parse → works from any stored alt link, warband-wide; off-hand counts only when it holds a weapon, `WEAPON_EQUIPLOC`). `ns.RecommendedEnchant(charData, slot)` → `EnchantSuggestion?` `{ kind="item"\|"spell", id, name?, stat? }`. **Prefers ClassCodex** (`classCodexEnchant`): when the global `_G.ClassCodexGearData[CLASSTOKEN][specKey].enchants` exists it returns that per-spec pick (`kind="item"`, carries `name`+`itemId`) — `ccClassSpec` builds the keys (classKey upper-cased; spec name lower-cased, spaces→hyphens, via `GetSpecializationInfoByID` so locale-dependent), `CC_SLOT`+`ccNormalize` map/dedupe slot names ("Ring"/"Rings"/"Boots"…). Every CC read is defensive → falls back. **Fallback** = the bundled recipe: maps the slot via `ENCHANT_KEY`, returns a `fixed` recipe or the `byStat` variant for the top secondary (`pickStat` over `ns.StatRanks`, `STAT_ORDER` tie-break; `kind="spell"`). nil when neither source has one. Names resolve at the surface (CC carries its own; a spell via `GetSpellName`, an item via `GetItemInfo`) |
 | `tooltip.lua` | `TooltipDataProcessor.AddTooltipPostCall(Item)` "Upgrade for:" block + an orange "Missing enchant" line when the hovered item is one of the **player's own equipped** enchantable items with no enchant (`equippedMissingSlot` — matches the displayed link against the live `GetInventoryItemLink` of each enchantable inventory slot, returning that slot; never fires on a loose bag/vendor copy; off-hand gated on holding a weapon). The line gains a "— recommend `<enchant>`" tail (`missingEnchantLine` → `ns.RecommendedEnchant` for the logged-in char, name via `GetSpellName`) when the bundled table has a pick. `/supgrade [name]` dev dump |
 | `spec/upgrade.lua` | Busted harness: loads data + `resolve`/`equip`/`upgrade` into a fresh `ns` with stubbed WoW globals (`C_Item`, `Enum`, `GetTime`, spec-info fns) and a fake `WarbandeerApi`. `up.harness()` returns `{ ns, Api, api, defItem, addChar, pools, warband, advance }`. Skips `core.lua` (LibNAddOn bootstrap) + `tooltip.lua` (frames) |
 | `spec/equip_spec.lua` | `CompetingSlots` / `IsTwoHand` / `WeaponRole` / `CanEquip` (armour-type, shield, weapon-proficiency gating) |
 | `spec/resolve_spec.lua` | `StatRanks` / `PrimaryStat` spec-ID → tier/primary resolution |
-| `spec/enhance_spec.lua` | `ItemEnchantID` link parsing (enchant id / 0 / nil / bare itemString), `MissingEnchants` (slot-order output, non-enchantable slots ignored, empty slots skipped, off-hand weapon flagged but shield/holdable not), the published `Upgrade:MissingEnchants` name resolution, and `RecommendedEnchant` (stat-variant pick from spec priority, Finger1/2 + MainHand/OffHand canonical-key mapping, `fixed` spec-independent, nil for unknown-spec variant slot / unbundled slot, next-best-stat fallback) |
+| `spec/enhance_spec.lua` | `ItemEnchantID` link parsing (enchant id / 0 / nil / bare itemString), `MissingEnchants` (slot-order output, non-enchantable slots ignored, empty slots skipped, off-hand weapon flagged but shield/holdable not), the published `Upgrade:MissingEnchants` name resolution, and `RecommendedEnchant` — the bundled path (stat-variant pick from spec priority, Finger1/2 + MainHand/OffHand canonical-key mapping, `fixed` spec-independent, nil for unknown-spec variant slot / unbundled slot, next-best-stat fallback) **and** the ClassCodex source (per-spec pick overrides bundled, singular/plural slot tolerance, weapon mapping, graceful fallback when CC's global is absent or malformed) |
 | `spec/upgrade_spec.lua` | End-to-end published API: ilvl gating, equip/primary filters, multi-slot weaker-slot targeting, held-vs-warband (`betterElsewhere`), `statTag` good/off, sort/count, memo TTL, two-hand reconciliation, `ItemUpgrades` (soulbound `boundTo`, 2H lone-off-hand exclusion), `WorldQuestUpgrades` (ilvl gating, equip/primary filters, multi-slot, 2H guard, sort + quest metadata; harness `addWQ` / fake `GetWorldQuestRewards`), `VendorUpgrades` (ilvl gating, `reqLevel` player-level gating, armour-type/neck option pick, multi-slot, 2H guard, statTag, sort + purchase metadata; harness `addVendor` / synthetic `ns.VendorGear`) |
 
 ## `ShadowsOfUI_UpgradeApi`
@@ -66,17 +66,15 @@ ShadowsOfUI_UpgradeApi:MissingEnchants(charName)       → { slot, link }[]
     -- off-hand counts only when it holds a weapon.  Consumers: Warbandeer's Detail
     -- gear-row "Missing enchant" note + Summary "Ench" column (warband-wide, via
     -- ns.MissingEnchantSlots), and this addon's own tooltip line (live equipped).
-ShadowsOfUI_UpgradeApi:RecommendedEnchant(charName, slot)  → enchantID?, stat?
-    -- which enchant to apply to a slot: the enchanting recipe spellID (resolve its
-    -- name with GetSpellName/GetSpellInfo) plus the stat it was picked for on a
-    -- variant slot.  Stat-variant slots (rings, etc.) are chosen from the character's
-    -- spec stat priority, so this is character-specific; fixed slots (weapons) return
-    -- their single recipe regardless of spec.  nil when ns.Enchants has no row for the
-    -- slot, or a variant slot whose spec/priority is unknown.  Pairs with
-    -- MissingEnchants (which slots are bare) to say which enchant to put on each.
-    -- Consumers: the tooltip "— recommend <enchant>" tail + Warbandeer's Detail note
-    -- and Summary "Ench" hover (both via Warbandeer's ns.RecommendedEnchant, which
-    -- resolves the id to a name).
+ShadowsOfUI_UpgradeApi:RecommendedEnchant(charName, slot)  → EnchantSuggestion?
+    -- which enchant to apply to a slot, as { kind="item"|"spell", id, name?, stat? }.
+    -- Prefers ClassCodex's per-spec pick (OptionalDep, read live from its global) and
+    -- falls back to the bundled stat-derived recipe; nil when neither has one.  Resolve
+    -- a display name from `.name` (ClassCodex carries it) else `.id` via GetSpellName
+    -- (spell) / GetItemInfo (item).  Pairs with MissingEnchants (which slots are bare)
+    -- to say which enchant to put on each.  Consumers: the tooltip "— recommend
+    -- <enchant>" tail + Warbandeer's Detail note and Summary "Ench" hover (via
+    -- Warbandeer's ns.RecommendedEnchant, which resolves the suggestion to a name).
 ShadowsOfUI_UpgradeApi:ItemUpgrades(link, boundTo?, ilvl?)  → ItemUpgradeEntry[]|nil
     -- which characters a specific item would upgrade (drives the tooltip).
     -- boundTo = the holder's name for a soulbound item (restricts to that one
@@ -191,9 +189,18 @@ off-hand / 1H is not listed as an upgrade for a 2H wielder (only another 2H is).
   character's spec priority (`ns.StatRanks`), so the same small table serves every spec and the
   logic is ours. Only the IDs are data, and names render live — but the IDs still drift, so
   `data/enchants.lua` is a **regenerate-each-season** file like `vendorgear`/`statpriority`.
-- **Refreshing `ns.Enchants`.** Open the Enchanting profession window in-game on an enchanter,
-  then run this `/wdebug` probe (copyable output) to dump every enchant recipe id + name:
+- **Refreshing `ns.Enchants`** (the *fallback* only — ClassCodex covers installed users).
+  Open the Enchanting profession window in-game on an enchanter, then run this `/wdebug` probe
+  (copyable output) to dump every enchant recipe id + name:
   `local t={} for _,id in ipairs(C_TradeSkillUI.GetAllRecipeIDs() or {}) do local i=C_TradeSkillUI.GetRecipeInfo(id) if i and i.name and i.name:find("Enchant") then t[#t+1]=id.."\t"..i.name end end table.sort(t) return table.concat(t,"\n")`
-  Map the names onto canonical slots (`Finger`/`Weapon`/`Back`/…) and the stat variants, then
+  Map the names onto canonical slots (`Finger`/`Weapon`/`Chest`/…) and the stat variants, then
   bake the recipe spellIDs into `data/enchants.lua`. A row is `byStat` if the enchant has
   Crit/Haste/Mastery/Versatility variants, else `fixed`.
+- **ClassCodex is an undocumented internal global, read defensively.** `ClassCodexGearData`
+  (and `ClassCodexIcyVeinsData`) are plain globals a young (v0.x) addon assigns; there's no
+  published API, so the shape could change on any update. `classCodexEnchant` type-checks every
+  level and silently falls back to `ns.Enchants` on a miss, so the worst case is "reverts to the
+  bundled pick," never an error. Two known data quirks handled: spec keys are lower-with-hyphens
+  (`beast-mastery`) and slot strings are inconsistent (`Ring` vs `Rings`, `Boots` for feet) —
+  `ccNormalize` collapses the latter. The spec key is read from the *localized* spec name, so a
+  non-enUS client misses the lookup and falls back (acceptable; CC itself is English-keyed).

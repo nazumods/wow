@@ -120,11 +120,22 @@ local function equippedMissingSlot(link)
   return nil
 end
 
--- The "Missing enchant" line, with a "— recommend <enchant>" tail when the bundled
--- table has a pick for this slot + the player's spec (name resolved live).
+-- Display name for an EnchantSuggestion: ClassCodex carries its own name; a bundled
+-- recipe (spell) resolves via GetSpellName; an item id falls back to GetItemInfo.
+local GetItemName = (C_Item and C_Item.GetItemInfo) or _G.GetItemInfo
+local function suggestionName(s)
+  if not s then return nil end
+  if s.name then return s.name end
+  if s.kind == "spell" and GetSpellName then return GetSpellName(s.id) end
+  if s.kind == "item" and s.id and GetItemName then return (GetItemName(s.id)) end
+  return nil
+end
+
+-- The "Missing enchant" line, with a "— recommend <enchant>" tail when we have a pick
+-- for this slot + the player's spec (ClassCodex when installed, else the bundled recipe).
 local function missingEnchantLine(slot)
-  local recID = ns.RecommendedEnchant(ns.api:GetCharacterData(ns.api:GetCurrentCharacter()), slot)
-  local name = recID and GetSpellName and GetSpellName(recID)
+  local s = ns.RecommendedEnchant(ns.api:GetCharacterData(ns.api:GetCurrentCharacter()), slot)
+  local name = suggestionName(s)
   if name then
     return NO_ENCHANT .. GRAY_FONT_COLOR:WrapTextInColorCode(" — recommend ") .. name
   end

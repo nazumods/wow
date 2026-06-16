@@ -91,24 +91,84 @@ local function pickStat(ranks, byStat)
   return best
 end
 
----Recommended enchant for a slot: the enchanting recipe spellID to apply (its name
----resolves live via GetSpellInfo at the surface), plus the stat it was picked for on a
----variant slot. nil when the slot has no bundled recommendation, or a stat-variant
----slot whose character spec/priority is unknown (so we can't choose a variant). A
----`fixed` slot always returns its single recipe regardless of spec.
+-- ClassCodex (OptionalDep) publishes per-spec gearing recommendations as the global
+-- ClassCodexGearData[CLASSTOKEN][specKey].enchants = { { slot, best = { itemId, name } } },
+-- scraped from Wowhead. When present it's authoritative — per spec, every slot, and kept
+-- current by that addon's own updates — so we prefer it over our bundled stat heuristic.
+-- It's an undocumented internal global of a young (v0.x) addon, so every read is defensive
+-- and falls back to ns.Enchants on any shape mismatch.
+
+-- our slot name → normalized ClassCodex slot token. CC's slot strings are inconsistent
+-- ("Ring" vs "Rings", "Boots" for feet), so we compare against a lowercased, trailing-'s'-
+-- stripped form (ccNormalize) — "Ring"/"Rings"/"Shoulders"/"Boots"/"Legs" all collapse.
+local CC_SLOT = {
+  Head = "head", Shoulder = "shoulder", Chest = "chest", Legs = "leg",
+  Feet = "boot", Finger1 = "ring", Finger2 = "ring", MainHand = "weapon", OffHand = "weapon",
+}
+local function ccNormalize(s)
+  return type(s) == "string" and (s:lower():gsub("s$", "")) or nil
+end
+
+-- (classToken, specKey) for a stored character, matching ClassCodex's English data keys:
+-- classKey upper-cased (Mage → MAGE) and the spec name lower-cased with spaces → hyphens
+-- (Beast Mastery → beast-mastery). specKey reads the *localized* spec name, so on a non-
+-- enUS client the lookup simply misses and we fall back to the bundled recipe.
+local function ccClassSpec(charData)
+  local getInfo = (C_SpecializationInfo and C_SpecializationInfo.GetSpecializationInfoByID)
+    or _G.GetSpecializationInfoByID
+  local token = charData and charData.classKey and charData.classKey:upper()
+  local specID = charData and charData.basic and charData.basic.specialization
+                 and charData.basic.specialization.id
+  if not (token and specID and getInfo) then return nil end
+  local name = select(2, getInfo(specID))
+  if not name then return nil end
+  return token, (name:lower():gsub("%s+", "-"))
+end
+
+-- ClassCodex's per-spec best enchant for a slot → name, itemId (or nil).
+local function classCodexEnchant(charData, slot)
+  local data = _G.ClassCodexGearData
+  local ccSlot = CC_SLOT[slot]
+  if type(data) ~= "table" or not ccSlot then return nil end
+  local token, specKey = ccClassSpec(charData)
+  if not token then return nil end
+  local spec = data[token] and data[token][specKey]
+  local list = spec and spec.enchants
+  if type(list) ~= "table" then return nil end
+  for _, e in ipairs(list) do
+    if type(e) == "table" and ccNormalize(e.slot) == ccSlot and type(e.best) == "table" then
+      if e.best.name or e.best.itemId then return e.best.name, e.best.itemId end
+    end
+  end
+  return nil
+end
+
+---@class EnchantSuggestion
+---@field kind "item"|"spell"  item = a ClassCodex pick (id is an itemId), spell = a bundled enchanting recipe
+---@field id number?           item / recipe-spell id (resolve a name with GetItemInfo / GetSpellName)
+---@field name string?         display name when the source already carries it (ClassCodex always does)
+---@field stat string?         the stat a bundled variant was picked for (nil for ClassCodex / fixed)
+
+---Recommended enchant for a slot. Prefers ClassCodex's per-spec pick (OptionalDep, read
+---live) and falls back to the bundled stat-derived recipe: a `fixed` slot's single recipe,
+---or the `byStat` variant for the character's top secondary stat. nil when neither source
+---has one (or a stat-variant slot whose character spec/priority is unknown).
 ---@param charData Character
 ---@param slot string
----@return number? enchantID, string? stat
+---@return EnchantSuggestion?
 function ns.RecommendedEnchant(charData, slot)
+  local ccName, ccItem = classCodexEnchant(charData, slot)
+  if ccName or ccItem then return { kind = "item", id = ccItem, name = ccName } end
+
   local rec = ns.Enchants[ENCHANT_KEY[slot] or slot]
   if not rec then return nil end
-  if rec.fixed then return rec.fixed end
+  if rec.fixed then return { kind = "spell", id = rec.fixed } end
   if not rec.byStat then return nil end
   local ranks = ns.StatRanks(charData)
   if not ranks then return nil end
   local stat = pickStat(ranks, rec.byStat)
   if not stat then return nil end
-  return rec.byStat[stat], stat
+  return { kind = "spell", id = rec.byStat[stat], stat = stat }
 end
 
 -------------------------------------------------------------------------------
@@ -124,13 +184,12 @@ function Upgrade:MissingEnchants(charName)
   return ns.MissingEnchants(API:GetCharacterData(charName))
 end
 
----Recommended enchant for a character's slot: the enchanting recipe spellID to apply
----(resolve its name with GetSpellInfo) and the stat it suits, or nil when no
----recommendation applies. Stat-variant slots are chosen from the character's spec
----priority, so this is character-specific; fixed slots return their single recipe.
+---Recommended enchant for a character's slot as an `EnchantSuggestion` (resolve a display
+---name from `.name` / `.id`), or nil when no recommendation applies. Prefers ClassCodex's
+---per-spec pick when that addon is installed, else the bundled stat-derived recipe.
 ---@param charName string
 ---@param slot string
----@return number? enchantID, string? stat
+---@return EnchantSuggestion?
 function Upgrade:RecommendedEnchant(charName, slot)
   return ns.RecommendedEnchant(API:GetCharacterData(charName), slot)
 end
