@@ -5,7 +5,8 @@
 Headless logic + tooltip addon. Computes per-character gear upgrades from the data layer
 (equipped gear + loose gear in bags / personal bank / warband bank), plus future-action sources
 — active world-quest rewards and bundled faction-quartermaster gear — gated by item level and
-annotated with spec stat-priority fit. Assignment-form init (`local ns = LibNAddOn(...)`); no
+annotated with spec stat-priority fit. Also flags **missing permanent enchants** on equipped
+gear (parsed from the stored item link, so it works warband-wide). Assignment-form init (`local ns = LibNAddOn(...)`); no
 LibNUI. The stat-priority and quartermaster-gear tables are small built-ins (`ns.StatPriority`,
 `ns.VendorGear`), so the addon is fully standalone.
 
@@ -18,13 +19,16 @@ LibNUI. The stat-priority and quartermaster-gear tables are small built-ins (`ns
 | `data/primarystat.lua` | `ns.ClassPrimary[classToken] = { [specIndex] = "str"\|"agi"\|"int" }` — primary stat per spec, same array layout as `ns.StatPriority`. Gates out wrong-primary gear (an Intellect dagger for a Rogue) that class proficiency alone lets through |
 | `data/classgear.lua` | `ns.ClassGear[classKey] = { shield, weapons = {[subClassID]=true} }` — bundled weapon/shield proficiency baseline (armour *type* comes from `ns.wow.Armor.byClass`, not repeated here) |
 | `data/vendorgear.lua` | `ns.VendorGear` = bundled list of the expansion's faction-quartermaster gear pieces (`VendorGearEntry[]`); one entry per slot/quartermaster, each carrying `options` (armour-type variants / stat alternatives) + `quartermaster`/`zone`/`mapID`/`cost`/`ilvl`/`reqLevel`/`equipLoc`. Static game data, **regenerate each season** (note in-file) |
+| `data/enchantslots.lua` | `ns.EnchantableSlots` = set of equipment-slot names that take a permanent enchant this expansion (Back/Chest/Wrist/Legs/Feet/Finger1/Finger2/MainHand). **Verify each expansion** — the set drifts. OffHand is deliberately absent (enhance.lua gates it on the equipped item being a weapon, not a shield/holdable) |
 | `resolve.lua` | `ns.StatRanks(charData)` → the spec's `{stat=tier}` table (or nil); `ns.PrimaryStat(charData)` → `"str"`/`"agi"`/`"int"` (or nil). Both via a lazily-built `specID → {token, index}` map (`GetSpecializationInfoForClassID`) indexing into `ns.StatPriority` / `ns.ClassPrimary` |
 | `equip.lua` | `ns.CompetingSlots(equipLoc)` → equipment-slot names an item contests; `ns.CanEquip(classKey, equipLoc, classID, subClassID)` → armour-type / shield / weapon-proficiency check; `ns.IsTwoHand(equipLoc)` + `ns.WeaponRole(equipLoc)` → `"mh1h"`/`"mh2h"`/`"off"`/nil for the 2H ↔ dual-wield reconciliation |
 | `upgrade.lua` | Core logic + the published `ShadowsOfUI_UpgradeApi` methods |
+| `enhance.lua` | Missing-enchant detection + the published `MissingEnchants` method. `ns.ItemEnchantID(link)` parses field 2 of the itemString (0 = unenchanted); `ns.MissingEnchants(charData)` walks the equipped slots in a stable order and returns `{ slot, link }` for each enchantable slot whose link carries no enchant. Pure string parse → works from any stored alt link (warband-wide); the off-hand counts only when it holds a weapon (`WEAPON_EQUIPLOC`) |
 | `tooltip.lua` | `TooltipDataProcessor.AddTooltipPostCall(Item)` "Upgrade for:" block; `/supgrade [name]` dev dump |
 | `spec/upgrade.lua` | Busted harness: loads data + `resolve`/`equip`/`upgrade` into a fresh `ns` with stubbed WoW globals (`C_Item`, `Enum`, `GetTime`, spec-info fns) and a fake `WarbandeerApi`. `up.harness()` returns `{ ns, Api, api, defItem, addChar, pools, warband, advance }`. Skips `core.lua` (LibNAddOn bootstrap) + `tooltip.lua` (frames) |
 | `spec/equip_spec.lua` | `CompetingSlots` / `IsTwoHand` / `WeaponRole` / `CanEquip` (armour-type, shield, weapon-proficiency gating) |
 | `spec/resolve_spec.lua` | `StatRanks` / `PrimaryStat` spec-ID → tier/primary resolution |
+| `spec/enhance_spec.lua` | `ItemEnchantID` link parsing (enchant id / 0 / nil / bare itemString), `MissingEnchants` (slot-order output, non-enchantable slots ignored, empty slots skipped, off-hand weapon flagged but shield/holdable not), and the published `Upgrade:MissingEnchants` name resolution |
 | `spec/upgrade_spec.lua` | End-to-end published API: ilvl gating, equip/primary filters, multi-slot weaker-slot targeting, held-vs-warband (`betterElsewhere`), `statTag` good/off, sort/count, memo TTL, two-hand reconciliation, `ItemUpgrades` (soulbound `boundTo`, 2H lone-off-hand exclusion), `WorldQuestUpgrades` (ilvl gating, equip/primary filters, multi-slot, 2H guard, sort + quest metadata; harness `addWQ` / fake `GetWorldQuestRewards`), `VendorUpgrades` (ilvl gating, `reqLevel` player-level gating, armour-type/neck option pick, multi-slot, 2H guard, statTag, sort + purchase metadata; harness `addVendor` / synthetic `ns.VendorGear`) |
 
 ## `ShadowsOfUI_UpgradeApi`
@@ -54,6 +58,12 @@ ShadowsOfUI_UpgradeApi:VendorUpgrades(charName)         → VendorUpgrade[]
     -- VendorUpgrade = UpgradeResult + { quartermaster, zone, mapID, cost } (no
     -- `where`/`betterElsewhere`); mapID drives the Suggested box's click-to-open-map.
     -- A character already equal-or-better in every slot yields nothing.
+ShadowsOfUI_UpgradeApi:MissingEnchants(charName)       → { slot, link }[]
+    -- equipped slots that should carry a permanent enchant but don't, in a stable
+    -- slot order.  Reads only the stored item link (enchant id is encoded in it), so
+    -- it works warband-wide for every character, not just the one logged in.  The
+    -- off-hand counts only when it holds a weapon.  No consumer yet (headless API;
+    -- a Warbandeer surface + tooltip line are the follow-up).
 ShadowsOfUI_UpgradeApi:ItemUpgrades(link, boundTo?, ilvl?)  → ItemUpgradeEntry[]|nil
     -- which characters a specific item would upgrade (drives the tooltip).
     -- boundTo = the holder's name for a soulbound item (restricts to that one
@@ -150,3 +160,11 @@ off-hand / 1H is not listed as an upgrade for a 2H wielder (only another 2H is).
   secondary-stat weightings; regenerate it when those shift (it only affects the good/off tag).
 - **Stat tag needs only the tier map** — no rating numbers or content-type (M+/Raid) are stored;
   the priority is collapsed to tiers offline, so there's nothing to rank at runtime.
+- **Missing-enchant detection is link-only** (`enhance.lua`) — the permanent enchant id is field 2
+  of the itemString, so it's read with a pure string parse from the stored link and works for
+  every alt without the item being loaded (unlike sockets/gems, which need the live item — a
+  possible follow-up). `ns.EnchantableSlots` is the static enchantable-slot set (**verify each
+  expansion**); the off-hand is gated on the equipped item being a weapon so a shield/holdable
+  is never flagged. The curated gem/enchant *suggestion* tables (which enchant to apply) are
+  deliberately **not** bundled — they drift every patch and are high-maintenance; this only
+  reports the gap.
