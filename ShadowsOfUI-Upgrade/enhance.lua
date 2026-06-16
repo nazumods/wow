@@ -111,16 +111,22 @@ end
 
 -- (classToken, specKey) for a stored character, matching ClassCodex's English data keys:
 -- classKey upper-cased (Mage → MAGE) and the spec name lower-cased with spaces → hyphens
--- (Beast Mastery → beast-mastery). specKey reads the *localized* spec name, so on a non-
--- enUS client the lookup simply misses and we fall back to the bundled recipe.
+-- (Beast Mastery → beast-mastery). The spec name comes from the persisted numeric id when
+-- present, else the stored spec-name string — an alt not logged in since the id was added
+-- (v13) carries only `primary`/`active` names, but those are exactly what we key on, so the
+-- recommendation still resolves. specKey is the *localized* name, so a non-enUS client
+-- simply misses and falls back to the bundled recipe.
 local function ccClassSpec(charData)
-  local getInfo = (C_SpecializationInfo and C_SpecializationInfo.GetSpecializationInfoByID)
-    or _G.GetSpecializationInfoByID
+  local spec = charData and charData.basic and charData.basic.specialization
   local token = charData and charData.classKey and charData.classKey:upper()
-  local specID = charData and charData.basic and charData.basic.specialization
-                 and charData.basic.specialization.id
-  if not (token and specID and getInfo) then return nil end
-  local name = select(2, getInfo(specID))
+  if not (spec and token) then return nil end
+  local name
+  if spec.id then
+    local getInfo = (C_SpecializationInfo and C_SpecializationInfo.GetSpecializationInfoByID)
+      or _G.GetSpecializationInfoByID
+    name = getInfo and select(2, getInfo(spec.id))
+  end
+  name = name or spec.primary or spec.active   -- primary mirrors what `id` would resolve to
   if not name then return nil end
   return token, (name:lower():gsub("%s+", "-"))
 end

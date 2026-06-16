@@ -158,6 +158,15 @@ describe("ShadowsOfUI-Upgrade enhance", function()
         assert.equals("Enchant Weapon - CC Pick", ns.RecommendedEnchant(mage(), "OffHand").name)
       end)
 
+      it("resolves the spec from the stored name when the numeric id is missing", function()
+        -- an alt scanned before the numeric id was persisted carries only spec-name strings
+        local stale = { name = "Stale", classKey = "Mage",
+                        basic = { specialization = { primary = "Frost", active = "Frost" } } }
+        local s = ns.RecommendedEnchant(stale, "Finger1")
+        assert.equals("item", s.kind)
+        assert.equals(500, s.id)          -- ClassCodexGearData.MAGE.frost
+      end)
+
       it("falls back to the bundled recipe when CC has no row for the slot", function()
         local s = ns.RecommendedEnchant(mage(), "Chest")  -- not in the CC stub
         -- bundled has no Chest row here either, so nil — proves it didn't error on CC
