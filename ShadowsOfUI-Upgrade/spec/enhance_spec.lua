@@ -46,21 +46,22 @@ describe("ShadowsOfUI-Upgrade enhance", function()
 
     it("flags an enchantable slot with no enchant, in slot order", function()
       local res = ns.MissingEnchants(char({
-        Chest = slot(1, nil),
-        Back  = slot(2, 0),
-        Legs  = slot(3, 7900),   -- enchanted: not flagged
+        Chest    = slot(1, nil),
+        Shoulder = slot(2, 0),
+        Legs     = slot(3, 7900),   -- enchanted: not flagged
       }))
       assert.equals(2, #res)
-      assert.equals("Back", res[1].slot)    -- ENCHANT_ORDER puts Back before Chest
+      assert.equals("Shoulder", res[1].slot)  -- ENCHANT_ORDER puts Shoulder before Chest
       assert.equals("Chest", res[2].slot)
     end)
 
-    it("ignores slots that never take an enchant (Head/Neck/Waist/Hands)", function()
+    it("ignores slots that never take an enchant (Neck/Waist/Hands, and Midnight's Back/Wrist)", function()
       local res = ns.MissingEnchants(char({
-        Head  = slot(1, nil),
-        Neck  = slot(2, nil),
-        Waist = slot(3, nil),
-        Hands = slot(4, nil),
+        Neck  = slot(1, nil),
+        Waist = slot(2, nil),
+        Hands = slot(3, nil),
+        Back  = slot(4, nil),   -- cloak: not enchantable in Midnight
+        Wrist = slot(5, nil),   -- bracer: not enchantable in Midnight
       }))
       assert.same({}, res)
     end)

@@ -31,10 +31,10 @@ are a small built-in table (derived from current PvE secondary-stat weightings),
 
 ## Missing enchants
 
-It also flags equipped gear that's **missing a permanent enchant** — the back, chest, bracers,
-legs, boots, rings and weapon(s) that should carry one but don't. Because the enchant is read
-straight from the item, this works for **every character in the warband**, not just the one
-you're logged into, so you can spot the alt whose rings still aren't enchanted without logging
+It also flags equipped gear that's **missing a permanent enchant** — the head, shoulders, chest,
+legs, boots, rings and weapon(s) that take one this season but don't have it. Because the enchant
+is read straight from the item, this works for **every character in the warband**, not just the
+one you're logged into, so you can spot the alt whose rings still aren't enchanted without logging
 over. (It reports the gap only — not which enchant to apply.)
 
 ## Held vs. better elsewhere
