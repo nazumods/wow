@@ -93,6 +93,9 @@ function ns.getMissingFields(toon)
     if not toon.currency or toon.currency.FieldAccolade == nil then
       table.insert(missing, "field accolade")
     end
+    if not toon.stats or toon.stats.secondary == nil then
+      table.insert(missing, "secondary stats")
+    end
   end
 
   if toon.basic and toon.basic.professions then

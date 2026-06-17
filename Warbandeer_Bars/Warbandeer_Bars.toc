@@ -1,8 +1,8 @@
-## Interface: 120001
+## Interface: 120007
 ## Title: Warbandeer Bars
 ## Notes: Headless action bar / keybind / macro / outfit profile tracker (per character + spec)
 ## Author: Nazuraki
-## Version: 12.0.5-r6
+## Version: 12.0.7-r0
 ## Dependencies: LibNAddOn
 ## SavedVariables: WarbandeerBarsDB
 ## SavedVariablesPerCharacter: WarbandeerBarsSettings
