@@ -23,6 +23,7 @@ Bootstrapping factory every other addon depends on. `LibNAddOn(features)` wires 
 | `globals/items.lua` | `ns.wow.Items` — `GetIcon(itemID)`, `GetNumSlots(containerIndex)` |
 | `globals.lua` | `ns.linkGlobals(addOn, features)` — wires `lua`/`wow`/`icons`/`Colors`/`api`/`ui` onto the namespace |
 | `eventListener.lua` | `ns.createEventListener(addOn)` — event frame, `registerEvent`/`unregisterEvent`/`delay`, `onLoad`/`onLogin` hooks |
+| `cvar.lua` | `ns.linkCVarHelpers(addOn)` — `SetTemporaryCVar(cvar, value)` (backs up the user's original once, sets the new value, arms a `PLAYER_LOGOUT` restore), `RestoreCVar(cvar)` / `RestoreCVars()` (put originals back now; logout runs `RestoreCVars` automatically). Guards a transient override from getting stuck if the addon is disabled/uninstalled mid-override |
 | `database.lua` | `ns.setupDB(name, addOn, ops)` — links `_G[dbName]` → `addOn.db`, triggers `MigrateDB` on version mismatch |
 | `settings.lua` | `ns.registerSettings(addOn, name, features)` — Blizzard Settings API (checkbox/slider/dropdown) |
 | `api.lua` | `LibNAddOn(features, o)` — top-level factory function (global) |
@@ -53,7 +54,7 @@ All suite addons use the assignment form; everything else comes from `X-NUI-*` t
 
 ### Wiring order
 
-`linkCommonFunctions` → `linkGlobals` → `createEventListener` → `setupDB` (if db) → `registerSettings` (if settings) → `registerSlashCommands` → compartment handler.
+`linkCommonFunctions` → `linkGlobals` → `createEventListener` → `linkCVarHelpers` → `setupDB` (if db) → `registerSettings` (if settings) → `registerSlashCommands` → compartment handler.
 
 `setupDB`/`registerSettings` register `ADDON_LOADED` handlers at positions **1** and **2** (db links + migrates, then settings register) so both run before `onLoad`.
 
@@ -61,12 +62,12 @@ All suite addons use the assignment form; everything else comes from `X-NUI-*` t
 
 ```
 addOn._NAME, addOn._TITLE
-addOn._eventListener (Frame), addOn._eventHandlers (table)
+addOn._eventListener (Frame), addOn._eventHandlers (table), addOn._cvarBackup (table)
 addOn.lua, addOn.wow, addOn.icons, addOn.Colors
 addOn.api (shared global, if configured), addOn.ui (LibNUI global, if configured)
 addOn.db (linked on ADDON_LOADED), addOn.commands, addOn.settingsCategory
 Methods:   GetMetadata, Print, hook, registerEvent, unregisterEvent, delay, after,
-           registerCommand, SlashCmd, usage
+           registerCommand, SlashCmd, usage, SetTemporaryCVar, RestoreCVar, RestoreCVars
 Lifecycle: onLoad, onLogin, MigrateDB, settingChanged, CompartmentClick
 ```
 

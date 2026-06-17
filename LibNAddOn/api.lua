@@ -33,6 +33,8 @@ function LibNAddOn(features, o)
 
   ns.createEventListener(addOn)
 
+  ns.linkCVarHelpers(addOn)
+
   local dbName = addOn:GetMetadata("X-NUI-DB")
   if not features.db and dbName then
     features.db = {

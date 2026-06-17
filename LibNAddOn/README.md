@@ -165,6 +165,23 @@ the pending callback.
 Fires `fn` once after `ms` milliseconds. Unlike `delay`, supports any number of
 concurrent timers.
 
+### Temporary CVar overrides
+
+For an addon that flips a console variable for the duration of some state (e.g. forcing a
+CVar on in combat), these back up the user's original value and **guarantee it is restored
+on logout** — so disabling or uninstalling the addon while an override is live can never
+leave the CVar stuck at the addon's value.
+
+#### SetTemporaryCVar(cvar, value)
+
+Sets `cvar` to `value`, remembering the user's original value the first time (a repeated
+call won't overwrite the remembered original) and arming a `PLAYER_LOGOUT` restore.
+
+#### RestoreCVar(cvar) / RestoreCVars()
+
+Restore one / all overridden CVars to their original values now (logout calls
+`RestoreCVars` for you). A CVar the addon never set is left untouched.
+
 ### An event handler for ADDON_LOADED
 
 Calls `myAddOn.onLoad` when the event is fired for `ADDON_NAME`.
