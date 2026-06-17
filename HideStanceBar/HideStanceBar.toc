@@ -1,7 +1,7 @@
 ## Interface: 120007
 ## Category: Shadows of UI
 ## Title: Hide Stance Bar
-## Version: 12.0.7-r0
+## Version: 12.0.7-r1
 ## Author: nazuraki
 ## IconTexture: Interface\Icons\inv_misc_bag_10_black
 ## SavedVariables: HideStanceBarDB

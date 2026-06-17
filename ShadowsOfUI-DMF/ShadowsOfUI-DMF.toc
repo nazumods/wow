@@ -2,7 +2,7 @@
 ## Category: Shadows of UI
 ## Title: Darkmoon Faire
 ## Author: Nazuraki
-## Version: 12.0.7-r0
+## Version: 12.0.7-r1
 ## Dependencies: LibNAddOn
 
 DMF.lua
