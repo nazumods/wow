@@ -8,14 +8,17 @@ local theme = ns.theme
 local D = ns.detail
 
 local DetailView = ns.views.DetailView
+local floor = math.floor
 local BottomLeft, BottomRight = ui.edge.BottomLeft, ui.edge.BottomRight
 
--- Orange sub-line issue-notes (missing enchant / empty socket). Orange is baked into
--- the colour code so the surrounding line's colour (green/gold for an upgrade, muted on
--- its own) doesn't override it. NOTE_SEP is the muted middot between notes; NOTE_ARROW
--- the "→ <recommendation>" tail.
+-- The suggested upgrade and each issue-note (missing enchant, empty socket) render on
+-- their own stacked sub-line (joined with "\n"), so a slot with several never truncates.
+-- Every line is fully inline-coloured — the shared sub-line label keeps one base colour,
+-- so the upgrade line carries its own green (held) / gold (warband) code and the notes
+-- their orange. NOTE_ARROW is the "→ <recommendation>" tail.
+local function colorCode(c) return ("|cff%02x%02x%02x"):format(floor(c[1] * 255 + 0.5), floor(c[2] * 255 + 0.5), floor(c[3] * 255 + 0.5)) end
+local GREEN_CODE, GOLD_CODE = colorCode(theme.colors.green), colorCode(theme.colors.gold)
 local NO_ENCHANT = "|cffff8000Missing enchant|r"
-local NOTE_SEP = "  |cff808080\194\183|r "
 local NOTE_ARROW = "|cff808080\226\134\146|r |cffb0b0b0%s|r"
 
 -- Grab (or lazily create) a pooled gear row: item name (truncated) on the left,
@@ -109,37 +112,34 @@ function DetailView:_showGear(i, item, slotKey)
   -- the frame so the hover tooltip can show it beside the equipped item.
   local upLink, upGain, upWarband = ns.UpgradeSuggestion(self._char.name, slotKey)
   row.frame._upgradeLink = upLink
-  -- Issue-notes for this slot: missing enchant and/or empty gem socket(s), each with its
-  -- recommendation appended ("→ Enchant Ring – …" / "→ <gem>"). Composed into a muted
-  -- sub-line on its own, or tacked onto the upgrade line after a middot.
-  local segs = {}
+  -- One stacked sub-line each: the suggested upgrade, then a missing-enchant note, then
+  -- an empty-socket note — each with its recommendation appended ("→ Enchant Ring – …" /
+  -- "→ <gem>"). The upgrade line is inline-coloured (green held / gold warband); the
+  -- notes carry their own orange. The row grows one GEAR_UP_H per line present.
+  local lines = {}
+  if upLink then
+    local req = D.reqLevel(upLink)
+    local reqTail = (req and req > (self._char.basic.level or 0))
+      and ("  |cffff4040@ lvl %d|r"):format(req) or ""
+    lines[#lines + 1] = upLink
+      .. (upWarband and GOLD_CODE or GREEN_CODE) .. ("  +%d ilvl"):format(upGain or 0) .. "|r" .. reqTail
+  end
   if self._missingEnch[slotKey] then
     local rec = ns.RecommendedEnchant(self._char.name, slotKey)
-    segs[#segs + 1] = NO_ENCHANT .. (rec and ("  " .. NOTE_ARROW:format(rec)) or "")
+    lines[#lines + 1] = NO_ENCHANT .. (rec and ("  " .. NOTE_ARROW:format(rec)) or "")
   end
   local sockets = self._emptySockets[slotKey]
   if sockets then
     local label = sockets > 1 and ("Empty sockets ×%d"):format(sockets) or "Empty socket"
-    segs[#segs + 1] = ("|cffff8000%s|r"):format(label)
+    lines[#lines + 1] = ("|cffff8000%s|r"):format(label)
       .. (self._gemRec and ("  " .. NOTE_ARROW:format(self._gemRec)) or "")
   end
-  local notes = table.concat(segs, NOTE_SEP)
 
   local h = D.GEAR_ROW_H
-  if upLink then
-    local text = upLink .. ("  +%d ilvl"):format(upGain or 0)
-    local req = D.reqLevel(upLink)
-    if req and req > (self._char.basic.level or 0) then
-      text = text .. ("  |cffff4040@ lvl %d|r"):format(req)
-    end
-    if notes ~= "" then text = text .. NOTE_SEP .. notes end
-    row.upgrade:Text(text):Color(upWarband and theme.colors.gold or theme.colors.green)
+  if #lines > 0 then
+    row.upgrade:Text(table.concat(lines, "\n")):Color(theme.colors.muted)
     row.upgrade:Show()
-    h = h + D.GEAR_UP_H
-  elseif notes ~= "" then
-    row.upgrade:Text(notes):Color(theme.colors.muted)
-    row.upgrade:Show()
-    h = h + D.GEAR_UP_H
+    h = h + D.GEAR_UP_H * #lines
   else
     row.upgrade:Text(""):Hide()  -- clear so a pooled row's stale width doesn't skew autosize
   end
