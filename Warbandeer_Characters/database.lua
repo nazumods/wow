@@ -85,7 +85,7 @@ end, "Repair stored data (recount characters)")
 ---@field MigrateDB fun(self) Migrate database to latest version
 function ns:MigrateDB()
   local db = ns.db
-  if db.version == 15 then return end
+  if db.version == 16 then return end
   if not db.characters then db.characters = {} end
   if not db.numCharacters then
     db.numCharacters = countCharacters(db)
@@ -192,6 +192,14 @@ function ns:MigrateDB()
   -- character next logs in and re-scans its gear, so rollback is lossless.
   if (db.version or 0) < 15 then
     db.version = 15
+  end
+
+  -- v16: per-character secondary-stats snapshot (non-destructive).  Captured by
+  -- data/stats.lua's broker at scan time; nothing to seed — old revisions just lack
+  -- `stats.secondary` (the Detail panel shows blanks) until the character next logs
+  -- in and re-scans, so rollback is lossless.
+  if (db.version or 0) < 16 then
+    db.version = 16
   end
 end
 

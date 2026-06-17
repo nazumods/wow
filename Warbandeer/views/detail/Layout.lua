@@ -48,7 +48,12 @@ D.HEADER_GAP = 6                 -- gap between header icon columns
 
 D.PANEL_W = D.ROW_PAD + D.ICON_W + D.ICON_GAP + D.BAR_W + D.DD_GAP + D.DD_W + D.ROW_PAD
 D.CONTENT_TOP = D.P + D.PORTRAIT + D.GAP            -- stat strip top
-D.PROF_HEADER_Y = D.CONTENT_TOP + D.STRIP_H + D.GAP -- professions header top
+-- Secondary-stat 2×2 grid, slotted between the Item Level/Playtime cards and the
+-- professions block (Crit + Mastery on top, Haste + Versatility below).
+D.STATS_TOP = D.CONTENT_TOP + D.STRIP_H + D.GAP     -- stat grid top
+D.STATS_ROW_H = 38                                  -- one grid row (pitch)
+D.STATS_H = 2 * D.STATS_ROW_H                        -- 2×2 grid height
+D.PROF_HEADER_Y = D.STATS_TOP + D.STATS_H + D.GAP   -- professions header top (below the grid)
 
 -- ─── Gear list (right column) ─────────────────────────────────────────────────
 D.GEAR_PAD = 12                             -- gear panel inner padding
