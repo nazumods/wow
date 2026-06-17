@@ -58,7 +58,7 @@ D.GEAR_HEADER_GAP = 8                       -- header → first row
 D.GEAR_ICON_W, D.GEAR_ICON_GAP = 18, 8      -- left slot-icon column / gap to name
 D.GEAR_ILVL_W, D.GEAR_TRACK_W = 30, 28      -- right-aligned ilvl / track columns
 D.GEAR_COL_GAP = 8                          -- gap between name/ilvl/track
-D.GEAR_NAME_MIN, D.GEAR_NAME_MAX = 150, 280 -- autosize clamp for the name column
+D.GEAR_NAME_MIN, D.GEAR_NAME_MAX = 150, 320 -- autosize clamp for the name column. Sub-line notes (upgrade / missing-enchant / empty-socket) each render on their own line, so this only needs to fit the widest single note (~one recommendation), not several joined
 D.GEAR_X = D.P + D.PANEL_W + D.GAP          -- gear panel left edge
 
 -- Width left of the name column (slot icon + gap).
