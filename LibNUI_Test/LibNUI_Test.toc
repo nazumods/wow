@@ -1,4 +1,4 @@
-## Interface: 120005
+## Interface: 120007
 ## Category: Lib
 ## Title: LibNUI Test
 ## Author: Nazuraki
