@@ -34,14 +34,34 @@ local function topStats(charName)
   return set
 end
 
--- Inline colour for the rating's status vs its Archon target (within 5% = on-target green,
--- over = blue, under = red), mirroring ClassCodex's classification. nil = no target/coloring.
-local DELTA_CODE = { at = "|cff73d973", above = "|cff66b3ff", below = "|cffe67373" }
-local function deltaCode(current, target)
+-- The rating's status vs its Archon target (within 5% = on-target, over, under), mirroring
+-- ClassCodex's classification — each carries an inline colour `code` (for the "571 / 869"
+-- number) and the matching `label` (for the hover). nil = no target.
+local DELTA = {
+  at    = { code = "|cff73d973", label = "In target range" },
+  above = { code = "|cff66b3ff", label = "Over target" },
+  below = { code = "|cffe67373", label = "Under target" },
+}
+local function deltaState(current, target)
   if not (current and target and target > 0) then return nil end
   local pct = (current - target) / target * 100
-  if math.abs(pct) < 5 then return DELTA_CODE.at end
-  return pct > 0 and DELTA_CODE.above or DELTA_CODE.below
+  if math.abs(pct) < 5 then return "at" end
+  return pct > 0 and "above" or "below"
+end
+
+-- Hover tooltip for a stat cell that has an Archon target: the stat name, the colour-matched
+-- status line + signed delta, and the current/target ratings. No-op when the cell has no target.
+local function showStatTip(cell)
+  local t = cell._tip
+  if not t then return end
+  local d = DELTA[t.state]
+  ns.AnchorTip(cell)
+  ui.tip:ClearLines()
+  ui.tip:AddLine(t.label)
+  local diff = t.current - t.target
+  ui.tip:AddLine(("%s%s|r |cffb0b0b0(%s%d)|r"):format(d.code, d.label, diff >= 0 and "+" or "−", math.abs(diff)))
+  ui.tip:AddLine(("|cff808080%d / %d target|r"):format(t.current, t.target))
+  ui.tip:Show()
 end
 
 -- Lazily build the 4-cell grid (fixed layout; values filled by `_showStats`).
@@ -75,7 +95,11 @@ function DetailView:_buildStatGrid()
       parent = cell, fontInfo = theme.fonts.stat, color = c.muted, justifyH = ui.justify.Right,
       position = { BottomRight = {cell, BottomRight, -8, 6} },
     }
-    self._statCells[i] = { key = spec.key, name = name, pct = pct, rating = rating }
+    -- Hover shows the target status (only armed in `_showStats` when a target exists).
+    cell:EnableMouse(true)
+    cell:SetScript("OnEnter", function() showStatTip(cell) end)
+    cell:SetScript("OnLeave", function() ui.tip:Hide() end)
+    self._statCells[i] = { key = spec.key, label = spec.label, name = name, pct = pct, rating = rating, frame = cell }
   end
 end
 
@@ -93,12 +117,13 @@ function DetailView:_showStats()
     local s = sec and sec[cell.key]
     local hot = top[cell.key]
     cell.name:Color(hot and c.gold or c.muted)
+    local target = s and targets and targets[cell.key]
+    local state = s and deltaState(s.rating, target)
+    cell.frame._tip = state and { label = cell.label, state = state, current = s.rating, target = target } or nil
     if s then
       cell.pct:Text(("%.2f%%"):format(s.pct or 0)):Color(hot and c.gold or c.text)
-      local target = targets and targets[cell.key]
-      local code = s.rating and deltaCode(s.rating, target)
-      if code then
-        cell.rating:Text(("%s%d|r |cff808080/ %d|r"):format(code, s.rating, target))
+      if state then
+        cell.rating:Text(("%s%d|r |cff808080/ %d|r"):format(DELTA[state].code, s.rating, target))
       else
         cell.rating:Text(s.rating and tostring(s.rating) or "")
       end
