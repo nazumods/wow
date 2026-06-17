@@ -34,6 +34,16 @@ local function topStats(charName)
   return set
 end
 
+-- Inline colour for the rating's status vs its Archon target (within 5% = on-target green,
+-- over = blue, under = red), mirroring ClassCodex's classification. nil = no target/coloring.
+local DELTA_CODE = { at = "|cff73d973", above = "|cff66b3ff", below = "|cffe67373" }
+local function deltaCode(current, target)
+  if not (current and target and target > 0) then return nil end
+  local pct = (current - target) / target * 100
+  if math.abs(pct) < 5 then return DELTA_CODE.at end
+  return pct > 0 and DELTA_CODE.above or DELTA_CODE.below
+end
+
 -- Lazily build the 4-cell grid (fixed layout; values filled by `_showStats`).
 function DetailView:_buildStatGrid()
   if self._statCells then return end
@@ -69,19 +79,29 @@ function DetailView:_buildStatGrid()
   end
 end
 
--- Fill the grid from the character's stored secondary stats, tinting its top-priority stat.
+-- Fill the grid from the character's stored secondary stats, tinting its top-priority stat
+-- and showing each rating against its Archon target ("571 / 869", status-coloured) when
+-- ClassCodex supplies one.
 function DetailView:_showStats()
   self:_buildStatGrid()
   local c = theme.colors
   local sec = self._char.stats and self._char.stats.secondary
   local top = topStats(self._char.name)
+  local api = ShadowsOfUI_UpgradeApi
+  local targets = api and api.StatTargets and api:StatTargets(self._char.name)
   for _, cell in ipairs(self._statCells) do
     local s = sec and sec[cell.key]
     local hot = top[cell.key]
     cell.name:Color(hot and c.gold or c.muted)
     if s then
       cell.pct:Text(("%.2f%%"):format(s.pct or 0)):Color(hot and c.gold or c.text)
-      cell.rating:Text(s.rating and tostring(s.rating) or "")
+      local target = targets and targets[cell.key]
+      local code = s.rating and deltaCode(s.rating, target)
+      if code then
+        cell.rating:Text(("%s%d|r |cff808080/ %d|r"):format(code, s.rating, target))
+      else
+        cell.rating:Text(s.rating and tostring(s.rating) or "")
+      end
     else
       cell.pct:Text("—"):Color(c.muted)
       cell.rating:Text("")

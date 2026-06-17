@@ -281,6 +281,35 @@ function Upgrade:MissingGems(charName)
   return ns.MissingGems(API:GetCharacterData(charName))
 end
 
+-- ClassCodex's Archon stat-rating *targets* for a character's spec + context, as
+-- `{ crit, haste, mastery, versatility }` ratings, or nil. Default context is Mythic+,
+-- falling back to Raid. Read defensively from the `ClassCodexArchonStats` global (OptionalDep).
+local STAT_TARGET_CONTEXTS = { "Mythic+", "Raid" }
+function ns.StatTargets(charData, context)
+  local data = _G.ClassCodexArchonStats
+  if type(data) ~= "table" then return nil end
+  local token, specKey = ccClassSpec(charData)
+  if not token then return nil end
+  local spec = data[token] and data[token][specKey]
+  if type(spec) ~= "table" then return nil end
+  local ctx = context and spec[context]
+  if not ctx then
+    for _, c in ipairs(STAT_TARGET_CONTEXTS) do ctx = ctx or spec[c] end
+  end
+  local targets = ctx and ctx.targets
+  return type(targets) == "table" and targets or nil
+end
+
+---Archon stat-rating targets for a character's spec (`{ crit, haste, mastery, versatility }`
+---ratings), or nil. `context` is "Mythic+" (default) or "Raid". From ClassCodex (OptionalDep);
+---compare against the stored combat rating to show how a character stacks up to the meta.
+---@param charName string
+---@param context string?
+---@return table<string, integer>?
+function Upgrade:StatTargets(charName, context)
+  return ns.StatTargets(API:GetCharacterData(charName), context)
+end
+
 ---Secondary-stat priority for a character's spec as a `{ stat = tier }` map (tier 1 = top),
 ---or nil when the spec/priority isn't known. Lets a consumer highlight the character's most-
 ---valued secondary (e.g. Warbandeer's Detail stat grid).
