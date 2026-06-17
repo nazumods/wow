@@ -66,6 +66,17 @@ end
 local GetSpellName = (C_Spell and C_Spell.GetSpellName) or _G.GetSpellInfo
 local GetItemName = (C_Item and C_Item.GetItemInfo) or _G.GetItemInfo
 
+-- Resolve an EnchantSuggestion descriptor (shared by the enchant + gem recommenders).
+---@param s table?
+---@return string?
+local function suggestionName(s)
+  if not s then return nil end
+  if s.name then return s.name end
+  if s.kind == "spell" and GetSpellName then return GetSpellName(s.id) end
+  if s.kind == "item" and s.id and GetItemName then return (GetItemName(s.id)) end
+  return nil
+end
+
 ---Recommended enchant name for a character's slot — the enchant they should apply (per
 ---spec from ClassCodex when installed, else our bundled stat pick) — or nil when there's
 ---none (or the upgrade addon isn't loaded).
@@ -75,12 +86,34 @@ local GetItemName = (C_Item and C_Item.GetItemInfo) or _G.GetItemInfo
 function ns.RecommendedEnchant(charName, slot)
   local api = ShadowsOfUI_UpgradeApi
   if not (api and api.RecommendedEnchant) then return nil end
-  local s = api:RecommendedEnchant(charName, slot)
-  if not s then return nil end
-  if s.name then return s.name end
-  if s.kind == "spell" and GetSpellName then return GetSpellName(s.id) end
-  if s.kind == "item" and s.id and GetItemName then return (GetItemName(s.id)) end
-  return nil
+  return suggestionName(api:RecommendedEnchant(charName, slot))
+end
+
+---Set of equipped slots with one or more empty gem sockets for a character, keyed by
+---slot name → socket count (`{ Neck = 1, Finger1 = 1, ... }`). Empty when none, or the
+---upgrade addon isn't loaded. Built once per Detail render (warband-wide from the stored
+---socket count) — the gem sibling of ns.MissingEnchantSlots.
+---@param charName string
+---@return table<string, integer>
+function ns.EmptySocketSlots(charName)
+  local set = {}
+  local api = ShadowsOfUI_UpgradeApi
+  if not (api and api.MissingGems) then return set end
+  for _, e in ipairs(api:MissingGems(charName)) do
+    set[e.slot] = e.sockets
+  end
+  return set
+end
+
+---Recommended gem name for a character (per spec from ClassCodex when installed, else our
+---bundled top-stat pick) — or nil when there's none. Gems take any prismatic socket, so
+---it's one recommendation per character, not per slot.
+---@param charName string
+---@return string?
+function ns.RecommendedGem(charName)
+  local api = ShadowsOfUI_UpgradeApi
+  if not (api and api.RecommendedGem) then return nil end
+  return suggestionName(api:RecommendedGem(charName))
 end
 
 ---One-line hover description of a slot's available upgrade, or nil when none.

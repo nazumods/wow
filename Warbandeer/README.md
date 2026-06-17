@@ -41,7 +41,7 @@ Found in the Blizzard settings panel:
   Warbandeer is only the viewer; without the data layer it has nothing to show.
 - *Optional:* **Warbandeer_Bars** for the Bars view.
 - *Optional:* **Collected** for the Collected view.
-- *Optional:* **ShadowsOfUI-Upgrade** for gear-upgrade markers, missing-enchant flags (Summary "Ench" column + Detail notes), and the Detail view's Suggested box.
+- *Optional:* **ShadowsOfUI-Upgrade** for gear-upgrade markers, missing-enchant + empty-socket flags (Summary "Ench"/"Gem" columns + Detail notes), and the Detail view's Suggested box.
 
 ## Saved data
 

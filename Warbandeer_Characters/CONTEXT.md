@@ -1,6 +1,6 @@
 # Warbandeer_Characters (Data Layer)
 
-**Deps:** LibNAddOn, LibNUI · **SavedVars:** `WarbandeerCharDB` (v14) · **Commands:** `/characters`, `/wbc` · **API:** `WarbandeerApi`
+**Deps:** LibNAddOn, LibNUI · **SavedVars:** `WarbandeerCharDB` (v15) · **Commands:** `/characters`, `/wbc` · **API:** `WarbandeerApi`
 
 Data-collection backbone for the suite. Scans the active character each login/refresh and stores everything in `WarbandeerCharDB`, exposing it to the rest of the suite through the `WarbandeerApi` global. Per-field scanning is driven by the **broker** system (`broker.lua`).
 
@@ -31,7 +31,7 @@ Data-collection backbone for the suite. Scans the active character each login/re
 | `data/playtime.lua` | Broker `playtime`: `total` seconds + `byPatch` baseline; async via `TIME_PLAYED_MSG` |
 | `data/weekly.lua` | Broker `weeklies`: `DMF`, `preMidnight`, `caches`, `vault`, `hasUnclaimedVault`, `keystone`, `dungeons`; `/wbc dump m+`, `/wbc dump vault` |
 | `data/instances.lua` | Broker `instances`: `locks`; `/wbc refresh locks`, `/wbc dump locks` |
-| `data/equipment.lua` | Broker `equipment`: `slots`, `ilvl`, `trackScanned`; loads item data before reading |
+| `data/equipment.lua` | Broker `equipment`: `slots`, `ilvl`, `trackScanned`; loads item data before reading. Each slot also records `emptySockets` (v15) — `emptySocketCount(link)` sums the `EMPTY_SOCKET_*` keys from `C_Item.GetItemStats`, captured here while the item is loaded so it persists + reads warband-wide |
 | `data/artifacts.lua` | Broker `artifacts`: `hidden`, `hiddenColors`, `classHall`; `/wbc dump artifact` |
 | `dump.lua` | `/wbc stat` — warband-wide playtime/class statistics |
 | `missing.lua` | `/wbc missing`, `/wbc missing me` — lists characters/fields with incomplete data |
@@ -160,7 +160,7 @@ instances = {
   locks = { [instanceID] = { [difficultyID] = { name, total, progress, reset, extended, isRaid } } },
 }
 equipment = {
-  slots = { Head/Neck/.../OffHand = { name, link, ilvl, track?, trackLevel? } },
+  slots = { Head/Neck/.../OffHand = { name, link, ilvl, track?, trackLevel?, equipLoc, classID, subClassID, emptySockets } },  -- emptySockets (v15): count of unfilled gem sockets, from GetItemStats EMPTY_SOCKET_*
   ilvl, trackScanned,
 }
 artifacts = {
@@ -247,4 +247,4 @@ A `Broker` (from `broker.lua`) holds a `fields` table; each field is `{ get, eve
   ui = { wmissingFontSize } }                              -- legacy (stale)
 ```
 
-`MigrateDB` (all migrations non-destructive): **v7** moves flat fields into `basic`/`instances` sub-tables and nils the old keys; **v8** seeds `warband = { bankGold = 0, history = {} }` (`week` filled lazily by `RolloverWarbandWeek` on first login); **v9** re-derives `classKey` from the locale-independent class token; **v10** seeds `recipeGear = { build = "", recipes = {} }` (re-stamped and filled lazily by `data/recipegear.lua`); **v11** seeds `bank = { characters = {}, guilds = {} }` (warband filled lazily; all populated by `data/bank.lua` on bank open); **v12** seeds `ui = {}` (account-wide UI prefs; originally held `wmissingFontSize`, now legacy — the copy-window font size moved to `LibNUIDB.copyFontSize`, this table left in place for rollback safety). **v13** is a version bump only — the equippable-gear cache (`bank.*.equip`, per-char `gearbag.items`, `basic.specialization.id`) is purely additive and filled lazily, so older revisions just see empty lists. **v14** is a version bump only — the per-character world-quest reward cache (`worldquests.rewards`) is additive and filled lazily on the next scan, so rollback is lossless.
+`MigrateDB` (all migrations non-destructive): **v7** moves flat fields into `basic`/`instances` sub-tables and nils the old keys; **v8** seeds `warband = { bankGold = 0, history = {} }` (`week` filled lazily by `RolloverWarbandWeek` on first login); **v9** re-derives `classKey` from the locale-independent class token; **v10** seeds `recipeGear = { build = "", recipes = {} }` (re-stamped and filled lazily by `data/recipegear.lua`); **v11** seeds `bank = { characters = {}, guilds = {} }` (warband filled lazily; all populated by `data/bank.lua` on bank open); **v12** seeds `ui = {}` (account-wide UI prefs; originally held `wmissingFontSize`, now legacy — the copy-window font size moved to `LibNUIDB.copyFontSize`, this table left in place for rollback safety). **v13** is a version bump only — the equippable-gear cache (`bank.*.equip`, per-char `gearbag.items`, `basic.specialization.id`) is purely additive and filled lazily, so older revisions just see empty lists. **v14** is a version bump only — the per-character world-quest reward cache (`worldquests.rewards`) is additive and filled lazily on the next scan, so rollback is lossless. **v15** is a version bump only — the per-slot `equipment.slots.*.emptySockets` count is additive and filled lazily on the next equipment scan, so older revisions just lack the field (treated as none) and rollback is lossless.

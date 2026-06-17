@@ -178,6 +178,67 @@ function ns.RecommendedEnchant(charData, slot)
 end
 
 -------------------------------------------------------------------------------
+-- Empty gem sockets + recommended gem.
+-------------------------------------------------------------------------------
+
+-- Equipped slots scanned for empty sockets, in a stable top-down order. Any slot can
+-- carry a socket, so this is the full set (vs the enchantable subset).
+local GEM_ORDER = {
+  "Head", "Neck", "Shoulder", "Back", "Chest", "Wrist", "Hands", "Waist",
+  "Legs", "Feet", "Finger1", "Finger2", "Trinket1", "Trinket2", "MainHand", "OffHand",
+}
+
+-- ClassCodex's per-spec primary gem (name, itemId) when installed, or nil.
+local function classCodexGem(charData)
+  local data = _G.ClassCodexGearData
+  if type(data) ~= "table" then return nil end
+  local token, specKey = ccClassSpec(charData)
+  if not token then return nil end
+  local spec = data[token] and data[token][specKey]
+  local primary = spec and spec.gems and spec.gems.primary
+  if type(primary) == "table" and (primary.name or primary.itemId) then
+    return primary.name, primary.itemId
+  end
+  return nil
+end
+
+---Recommended gem for a character (sockets take any gem, so it's not per-slot): prefers
+---ClassCodex's per-spec primary gem, else the bundled secondary-stat gem for the top stat.
+---Both are items (resolve a name via GetItemInfo). nil when neither source applies.
+---@param charData Character
+---@return EnchantSuggestion?
+function ns.RecommendedGem(charData)
+  local ccName, ccItem = classCodexGem(charData)
+  if ccName or ccItem then return { kind = "item", id = ccItem, name = ccName } end
+  local byStat = ns.Gems and ns.Gems.byStat
+  if not byStat then return nil end
+  local ranks = ns.StatRanks(charData)
+  if not ranks then return nil end
+  local stat = pickStat(ranks, byStat)
+  if not stat then return nil end
+  return { kind = "item", id = byStat[stat], stat = stat }
+end
+
+---Equipped slots with one or more empty gem sockets, in a stable slot order. Reads the
+---data layer's stored `emptySockets` count (captured at scan time when the item is
+---loaded), so it works for every scanned character — though a slot socketed since that
+---character last logged in won't reflect until its next scan.
+---@param charData Character
+---@return { slot: string, link: string, sockets: integer }[]
+function ns.MissingGems(charData)
+  local slots = charData and charData.equipment and charData.equipment.slots
+  if not slots then return {} end
+  local out = {}
+  for _, slot in ipairs(GEM_ORDER) do
+    local item = slots[slot]
+    if item and item.link and (item.emptySockets or 0) > 0 then
+      out[#out + 1] = { slot = slot, link = item.link, sockets = item.emptySockets }
+    end
+  end
+  return out
+end
+
+-------------------------------------------------------------------------------
 -- Published API (ShadowsOfUI_UpgradeApi) — consumed by Warbandeer (OptionalDep).
 -------------------------------------------------------------------------------
 
@@ -198,4 +259,20 @@ end
 ---@return EnchantSuggestion?
 function Upgrade:RecommendedEnchant(charName, slot)
   return ns.RecommendedEnchant(API:GetCharacterData(charName), slot)
+end
+
+---Equipped slots with empty gem sockets for a character (warband-wide from the stored
+---socket count), each `{ slot, link, sockets }`. See ns.MissingGems for the freshness caveat.
+---@param charName string
+---@return { slot: string, link: string, sockets: integer }[]
+function Upgrade:MissingGems(charName)
+  return ns.MissingGems(API:GetCharacterData(charName))
+end
+
+---Recommended gem for a character as an `EnchantSuggestion` (an item — resolve a name from
+---`.name`/`.id`), or nil. ClassCodex's per-spec gem when installed, else the bundled pick.
+---@param charName string
+---@return EnchantSuggestion?
+function Upgrade:RecommendedGem(charName)
+  return ns.RecommendedGem(API:GetCharacterData(charName))
 end

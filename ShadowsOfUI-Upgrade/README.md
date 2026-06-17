@@ -44,6 +44,15 @@ pointed at the Haste ring enchant), the chest gets the universal primary-stat en
 get a stat-matched enchant. The recommendation shows up next to the "missing enchant" flag
 everywhere it appears.
 
+## Empty gem sockets
+
+It likewise flags equipped gear with an **empty gem socket** and recommends a gem to fill it.
+Whether a slot has an unfilled socket is recorded while each character is logged in (the game only
+exposes it for loaded items), so once a character has been seen it's known **warband-wide** — a
+slot you socket later just won't update until that character next logs in. The recommended gem is
+**ClassCodex**'s per-spec gem when installed, otherwise a built-in secondary-stat gem matched to
+the character's top stat.
+
 ## Held vs. better elsewhere
 
 - An upgrade sitting in a character's **own bags or personal bank** is **held** for them
@@ -59,14 +68,17 @@ everywhere it appears.
   against every character, since they can be moved freely; **Soulbound** items only list the
   character they're already bound to; and **Bind-on-Pickup** items that aren't bound yet get
   no block at all, since whoever loots one is stuck with it. Separately, hovering one of **your
-  own equipped** pieces that's missing its enchant adds a **"Missing enchant — recommend …"** reminder.
+  own equipped** pieces that's missing its enchant or has an empty socket adds a
+  **"Missing enchant — recommend …"** / **"Empty socket — recommend …"** reminder.
 - **Warbandeer** *(optional)* — when Warbandeer is installed:
   - the **Summary** view gains an **"Up"** column counting each character's available upgrades
-    (hover for the list) and an **"Ench"** column counting equipped slots missing an enchant
-    (green check when fully enchanted; the hover names the enchant to apply per slot),
+    (hover for the list), an **"Ench"** column counting equipped slots missing an enchant, and a
+    **"Gem"** column counting empty gem sockets (each a green check when there's nothing to do;
+    the hovers name the enchant/gem to apply),
   - the **Gear** view marks each slot that has an upgrade with a ▲,
   - the **Detail** view marks each equipped item that can be upgraded — and notes any slot
-    **missing its enchant** (with the recommended enchant) beneath the item — and its **Suggested**
+    **missing its enchant** or with an **empty socket** (with the recommendation) beneath the
+    item — and its **Suggested**
     box lists active **world-quest** rewards that would upgrade a slot (the quest's gear, the
     item-level gain, and where to find it) alongside the ready upgrades — world quests are
     scanned while each character is logged in, so the suggestions persist when you view an alt.
@@ -83,14 +95,16 @@ logged-in character) — a debugging aid; you won't normally need it.
   their loose gear is scanned.
 - **Warbandeer** *(optional)* — for the Summary/Gear/Detail markers. The tooltip line works
   without it.
-- **ClassCodex** *(optional)* — when installed, its per-spec best enchant (from Wowhead) is used
-  for the "which enchant to apply" recommendation, for every slot. Without it, a built-in
-  fallback is used. Either way the missing-enchant detection itself works.
+- **ClassCodex** *(optional)* — when installed, its per-spec best enchant **and gem** (from
+  Wowhead) are used for the "which to apply" recommendations, for every slot. Without it, a
+  built-in fallback is used. Either way the missing-enchant and empty-socket detection itself works.
 
 ## Notes
 
 - Bag, bank and warband-bank contents are a **last-seen** cache: a character's loose gear is
-  only known after you've had that bank/those bags open on the relevant character.
+  only known after you've had that bank/those bags open on the relevant character. Empty gem
+  sockets are likewise recorded per character at login, so a socket you fill on an alt won't clear
+  until that alt logs in again.
 - Item level is the only gate, so a genuine sidegrade (e.g. a higher-ilvl piece that breaks a
   tier-set bonus, or a duplicate unique-equipped item) can still show as an upgrade — use the
   stat tag and your judgement.

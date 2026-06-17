@@ -182,6 +182,67 @@ describe("ShadowsOfUI-Upgrade enhance", function()
     end)
   end)
 
+  describe("MissingGems", function()
+    local function char(slots)
+      return { name = "Toon", classKey = "Mage", equipment = { slots = slots } }
+    end
+    local function gearedSlot(empty)
+      return { link = link(1, nil), ilvl = 600, emptySockets = empty }
+    end
+
+    it("flags slots with one or more empty sockets, in slot order", function()
+      local res = ns.MissingGems(char({
+        Finger1 = gearedSlot(1),
+        Neck    = gearedSlot(2),
+        Chest   = gearedSlot(0),   -- socketed / no socket: not flagged
+      }))
+      assert.equals(2, #res)
+      assert.equals("Neck", res[1].slot)      -- GEM_ORDER puts Neck before Finger1
+      assert.equals(2, res[1].sockets)
+      assert.equals("Finger1", res[2].slot)
+    end)
+
+    it("ignores slots with no empty-socket data", function()
+      assert.same({}, ns.MissingGems(char({ Chest = { link = link(1, nil) } })))
+    end)
+
+    it("returns nothing without scanned equipment", function()
+      assert.same({}, ns.MissingGems({ name = "Toon" }))
+    end)
+  end)
+
+  describe("RecommendedGem", function()
+    local function mage()
+      return { name = "Frost", classKey = "Mage", basic = { specialization = { id = 64 } } }
+    end
+    before_each(function()
+      _G.ClassCodexGearData = nil
+      ns.StatPriority.MAGE[3] = { haste = 1, crit = 2, mastery = 3, versatility = 4 }
+    end)
+
+    it("uses the bundled secondary-stat gem for the top stat", function()
+      local s = ns.RecommendedGem(mage())
+      assert.equals("item", s.kind)
+      assert.equals(ns.Gems.byStat.haste, s.id)   -- haste is tier 1
+      assert.equals("haste", s.stat)
+    end)
+
+    it("prefers ClassCodex's per-spec primary gem when installed", function()
+      _G.GetSpecializationInfoByID = function(id) return id, "Frost" end
+      _G.ClassCodexGearData = { MAGE = { frost = { gems = {
+        primary = { itemId = 777, name = "CC Primary Gem" },
+      } } } }
+      local s = ns.RecommendedGem(mage())
+      _G.GetSpecializationInfoByID = nil
+      assert.equals(777, s.id)
+      assert.equals("CC Primary Gem", s.name)
+    end)
+
+    it("is nil when the spec is unknown and ClassCodex is absent", function()
+      assert.is_nil(ns.RecommendedGem({ name = "NoSpec", classKey = "Mage" }))
+    end)
+  end)
+
   describe("Upgrade:MissingEnchants (published)", function()
     it("resolves the character by name through the data layer", function()
       h.addChar({ name = "Toon", classKey = "Mage", equipment = { slots = {

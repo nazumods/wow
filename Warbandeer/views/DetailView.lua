@@ -35,6 +35,8 @@ end
 ---@class DetailView: Frame
 ---@field _char Character        currently displayed character
 ---@field _missingEnch table<string, boolean>  slots missing a permanent enchant (per-render)
+---@field _emptySockets table<string, integer>  slots → empty-socket count (per-render)
+---@field _gemRec string?  the character's recommended gem name (per-render)
 ---@field _profRows table[]      pooled profession rows (each owns a `gearRows` sub-pool)
 ---@field _numRows integer       number of rows currently visible
 ---@field _gearRows table[]      pooled equipped-gear rows (right column)
@@ -247,6 +249,8 @@ function DetailView:OnBeforeShow()
   -- column autosizes to the longest equipped item name (clamped to a min/max).
   local slots = (char.equipment and char.equipment.slots) or {}
   self._missingEnch = ns.MissingEnchantSlots(char.name)
+  self._emptySockets = ns.EmptySocketSlots(char.name)
+  self._gemRec = ns.RecommendedGem(char.name)  -- one gem for the character (sockets are slot-agnostic)
   local g, maxNameW, gearRowsH = 0, 0, 0
   for _, slotKey in ipairs(ns.gearSlots) do
     local item = slots[slotKey]
