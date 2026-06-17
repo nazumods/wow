@@ -188,35 +188,47 @@ local GEM_ORDER = {
   "Legs", "Feet", "Finger1", "Finger2", "Trinket1", "Trinket2", "MainHand", "OffHand",
 }
 
--- ClassCodex's per-spec primary gem (name, itemId) when installed, or nil.
-local function classCodexGem(charData)
+-- ClassCodex's per-spec gems block (its `.gems` table) when installed, or nil.
+local function classCodexGems(charData)
   local data = _G.ClassCodexGearData
   if type(data) ~= "table" then return nil end
   local token, specKey = ccClassSpec(charData)
   if not token then return nil end
   local spec = data[token] and data[token][specKey]
-  local primary = spec and spec.gems and spec.gems.primary
-  if type(primary) == "table" and (primary.name or primary.itemId) then
-    return primary.name, primary.itemId
+  local gems = spec and spec.gems
+  return type(gems) == "table" and gems or nil
+end
+
+-- An EnchantSuggestion (kind="item") from a ClassCodex gem entry { itemId, name }, or nil.
+local function ccGem(g)
+  if type(g) == "table" and (g.name or g.itemId) then
+    return { kind = "item", id = g.itemId, name = g.name }
   end
   return nil
 end
 
----Recommended gem for a character (sockets take any gem, so it's not per-slot): prefers
----ClassCodex's per-spec primary gem, else the bundled secondary-stat gem for the top stat.
----Both are items (resolve a name via GetItemInfo). nil when neither source applies.
+---Recommended gems for a character, as two `EnchantSuggestion`s: the **primary** gem (the
+---"diamond" — primary stat, **unique-equipped so you socket exactly one**) and a **secondary**
+---stat gem to fill every other socket. ClassCodex supplies both per spec; the bundled
+---fallback has only the secondary (the role-specific diamond isn't bundled). Either may be nil.
 ---@param charData Character
----@return EnchantSuggestion?
-function ns.RecommendedGem(charData)
-  local ccName, ccItem = classCodexGem(charData)
-  if ccName or ccItem then return { kind = "item", id = ccItem, name = ccName } end
+---@return EnchantSuggestion? primary, EnchantSuggestion? secondary
+function ns.RecommendedGems(charData)
+  local gems = classCodexGems(charData)
+  if gems then
+    local list = gems.secondary
+    local primary = ccGem(gems.primary)
+    local secondary = ccGem(type(list) == "table" and list[1] or nil)
+    if primary or secondary then return primary, secondary end
+  end
+  -- Bundled fallback: a secondary-stat gem by top stat (no unique diamond bundled).
   local byStat = ns.Gems and ns.Gems.byStat
-  if not byStat then return nil end
-  local ranks = ns.StatRanks(charData)
-  if not ranks then return nil end
-  local stat = pickStat(ranks, byStat)
-  if not stat then return nil end
-  return { kind = "item", id = byStat[stat], stat = stat }
+  if byStat then
+    local ranks = ns.StatRanks(charData)
+    local stat = ranks and pickStat(ranks, byStat)
+    if stat then return nil, { kind = "item", id = byStat[stat], stat = stat } end
+  end
+  return nil, nil
 end
 
 ---Equipped slots with one or more empty gem sockets, in a stable slot order. Reads the
@@ -269,10 +281,11 @@ function Upgrade:MissingGems(charName)
   return ns.MissingGems(API:GetCharacterData(charName))
 end
 
----Recommended gem for a character as an `EnchantSuggestion` (an item — resolve a name from
----`.name`/`.id`), or nil. ClassCodex's per-spec gem when installed, else the bundled pick.
+---Recommended gems for a character: a `primary` (unique-equipped "diamond", socket one) and a
+---`secondary` (fill the other sockets), each an `EnchantSuggestion` item (resolve a name from
+---`.name`/`.id`) or nil. ClassCodex's per-spec pair when installed, else just the bundled secondary.
 ---@param charName string
----@return EnchantSuggestion?
-function Upgrade:RecommendedGem(charName)
-  return ns.RecommendedGem(API:GetCharacterData(charName))
+---@return EnchantSuggestion? primary, EnchantSuggestion? secondary
+function Upgrade:RecommendedGems(charName)
+  return ns.RecommendedGems(API:GetCharacterData(charName))
 end

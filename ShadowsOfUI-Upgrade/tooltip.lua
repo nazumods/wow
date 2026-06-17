@@ -165,11 +165,12 @@ local function equippedEmptySockets(link)
   return n
 end
 
--- The "Empty socket" line, with a "— recommend <gem>" tail when we have a gem for the
--- player's spec (ClassCodex when installed, else the bundled stat pick).
+-- The "Empty socket" line, with a "— recommend <gem>" tail. Uses the **secondary** (fill)
+-- gem, not the unique diamond: a single item's socket has no idea whether the one diamond is
+-- already placed elsewhere, and a secondary gem is always safe to add.
 local function emptySocketLine()
-  local s = ns.RecommendedGem(ns.api:GetCharacterData(ns.api:GetCurrentCharacter()))
-  local name = suggestionName(s)
+  local _, secondary = ns.RecommendedGems(ns.api:GetCharacterData(ns.api:GetCurrentCharacter()))
+  local name = suggestionName(secondary)
   if name then
     return EMPTY_SOCKET .. GRAY_FONT_COLOR:WrapTextInColorCode(" — recommend ") .. name
   end

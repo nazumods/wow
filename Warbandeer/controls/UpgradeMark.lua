@@ -105,15 +105,16 @@ function ns.EmptySocketSlots(charName)
   return set
 end
 
----Recommended gem name for a character (per spec from ClassCodex when installed, else our
----bundled top-stat pick) — or nil when there's none. Gems take any prismatic socket, so
----it's one recommendation per character, not per slot.
+---Recommended gem names for a character: the **primary** (the unique-equipped "diamond" — one
+---per character) and a **secondary** (fills every other socket). Per spec from ClassCodex when
+---installed, else just the bundled top-stat secondary. Either may be nil.
 ---@param charName string
----@return string?
-function ns.RecommendedGem(charName)
+---@return string? primary, string? secondary
+function ns.RecommendedGems(charName)
   local api = ShadowsOfUI_UpgradeApi
-  if not (api and api.RecommendedGem) then return nil end
-  return suggestionName(api:RecommendedGem(charName))
+  if not (api and api.RecommendedGems) then return nil, nil end
+  local primary, secondary = api:RecommendedGems(charName)
+  return suggestionName(primary), suggestionName(secondary)
 end
 
 ---One-line hover description of a slot's available upgrade, or nil when none.
