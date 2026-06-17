@@ -18,7 +18,10 @@ local BottomLeft, BottomRight = ui.edge.BottomLeft, ui.edge.BottomRight
 -- their orange. NOTE_ARROW is the "→ <recommendation>" tail.
 local function colorCode(c) return ("|cff%02x%02x%02x"):format(floor(c[1] * 255 + 0.5), floor(c[2] * 255 + 0.5), floor(c[3] * 255 + 0.5)) end
 local GREEN_CODE, GOLD_CODE = colorCode(theme.colors.green), colorCode(theme.colors.gold)
+-- Distinct colours so the two issue-notes don't blur together: enchant = orange,
+-- empty socket = cyan (reads as a gem slot).
 local NO_ENCHANT = "|cffff8000Missing enchant|r"
+local SOCKET_CODE = "|cff4fc3f7"
 local NOTE_ARROW = "|cff808080\226\134\146|r |cffb0b0b0%s|r"
 local GEAR_MAX_SUBS = 3   -- most sub-lines a row can show: upgrade + missing-enchant + empty-socket
 
@@ -139,7 +142,7 @@ function DetailView:_showGear(i, item, slotKey)
   local sockets = self._emptySockets[slotKey]
   if sockets then
     local label = sockets > 1 and ("Empty sockets ×%d"):format(sockets) or "Empty socket"
-    lines[#lines + 1] = ("|cffff8000%s|r"):format(label)
+    lines[#lines + 1] = SOCKET_CODE .. label .. "|r"
       .. (self._gemRec and ("  " .. NOTE_ARROW:format(self._gemRec)) or "")
   end
 

@@ -143,7 +143,8 @@ local function missingEnchantLine(slot)
 end
 
 local GetItemStats = C_Item and C_Item.GetItemStats
-local EMPTY_SOCKET = "|cffff8000Empty socket|r"
+-- Cyan (vs the orange "Missing enchant") so the two reminders read as different things.
+local EMPTY_SOCKET = "|cff4fc3f7Empty socket|r"
 
 -- Empty gem sockets on `link` only when it's one of the player's own equipped items
 -- (any slot), so we never nag about loose / vendor gear. Empty sockets show up as
