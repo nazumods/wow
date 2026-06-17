@@ -142,8 +142,16 @@ function DetailView:_showGear(i, item, slotKey)
   local sockets = self._emptySockets[slotKey]
   if sockets then
     local label = sockets > 1 and ("Empty sockets ×%d"):format(sockets) or "Empty socket"
+    -- The unique diamond goes on the first empty socket; every other socket gets the
+    -- secondary fill gem.
+    local rec
+    if not self._gemPlaced and self._gemPrimary then
+      rec, self._gemPlaced = self._gemPrimary, true
+    else
+      rec = self._gemSecondary
+    end
     lines[#lines + 1] = SOCKET_CODE .. label .. "|r"
-      .. (self._gemRec and ("  " .. NOTE_ARROW:format(self._gemRec)) or "")
+      .. (rec and ("  " .. NOTE_ARROW:format(rec)) or "")
   end
 
   local h = D.GEAR_ROW_H

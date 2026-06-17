@@ -49,9 +49,13 @@ everywhere it appears.
 It likewise flags equipped gear with an **empty gem socket** and recommends a gem to fill it.
 Whether a slot has an unfilled socket is recorded while each character is logged in (the game only
 exposes it for loaded items), so once a character has been seen it's known **warband-wide** — a
-slot you socket later just won't update until that character next logs in. The recommended gem is
-**ClassCodex**'s per-spec gem when installed, otherwise a built-in secondary-stat gem matched to
-the character's top stat.
+slot you socket later just won't update until that character next logs in.
+
+The recommendation respects that the primary-stat **gem ("diamond") is unique-equipped** — you can
+only socket one. So it suggests the diamond for a single socket and a **secondary-stat gem to fill
+the rest**. With **ClassCodex** installed both are its per-spec picks; without it, a built-in
+secondary-stat gem matched to the character's top stat is used (the role-specific diamond isn't
+bundled).
 
 ## Held vs. better elsewhere
 

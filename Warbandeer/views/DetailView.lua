@@ -36,7 +36,9 @@ end
 ---@field _char Character        currently displayed character
 ---@field _missingEnch table<string, boolean>  slots missing a permanent enchant (per-render)
 ---@field _emptySockets table<string, integer>  slots → empty-socket count (per-render)
----@field _gemRec string?  the character's recommended gem name (per-render)
+---@field _gemPrimary string?  recommended unique diamond name (per-render; one socket only)
+---@field _gemSecondary string?  recommended fill-gem name (per-render; the other sockets)
+---@field _gemPlaced boolean  whether the one diamond has been recommended yet this render
 ---@field _profRows table[]      pooled profession rows (each owns a `gearRows` sub-pool)
 ---@field _numRows integer       number of rows currently visible
 ---@field _gearRows table[]      pooled equipped-gear rows (right column)
@@ -250,7 +252,11 @@ function DetailView:OnBeforeShow()
   local slots = (char.equipment and char.equipment.slots) or {}
   self._missingEnch = ns.MissingEnchantSlots(char.name)
   self._emptySockets = ns.EmptySocketSlots(char.name)
-  self._gemRec = ns.RecommendedGem(char.name)  -- one gem for the character (sockets are slot-agnostic)
+  -- The unique-equipped diamond (primary) goes on the *first* empty socket only; every other
+  -- socket gets the repeatable secondary gem. `_gemPlaced` tracks the one-diamond placement
+  -- across the gear loop below.
+  self._gemPrimary, self._gemSecondary = ns.RecommendedGems(char.name)
+  self._gemPlaced = false
   local g, maxNameW, gearRowsH = 0, 0, 0
   for _, slotKey in ipairs(ns.gearSlots) do
     local item = slots[slotKey]

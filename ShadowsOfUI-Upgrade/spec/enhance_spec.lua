@@ -211,7 +211,7 @@ describe("ShadowsOfUI-Upgrade enhance", function()
     end)
   end)
 
-  describe("RecommendedGem", function()
+  describe("RecommendedGems", function()
     local function mage()
       return { name = "Frost", classKey = "Mage", basic = { specialization = { id = 64 } } }
     end
@@ -220,26 +220,31 @@ describe("ShadowsOfUI-Upgrade enhance", function()
       ns.StatPriority.MAGE[3] = { haste = 1, crit = 2, mastery = 3, versatility = 4 }
     end)
 
-    it("uses the bundled secondary-stat gem for the top stat", function()
-      local s = ns.RecommendedGem(mage())
-      assert.equals("item", s.kind)
-      assert.equals(ns.Gems.byStat.haste, s.id)   -- haste is tier 1
-      assert.equals("haste", s.stat)
+    it("bundled fallback: no diamond, secondary-stat gem for the top stat", function()
+      local primary, secondary = ns.RecommendedGems(mage())
+      assert.is_nil(primary)                        -- the role-specific diamond isn't bundled
+      assert.equals(ns.Gems.byStat.haste, secondary.id)   -- haste is tier 1
+      assert.equals("haste", secondary.stat)
     end)
 
-    it("prefers ClassCodex's per-spec primary gem when installed", function()
+    it("ClassCodex: primary diamond + first secondary gem", function()
       _G.GetSpecializationInfoByID = function(id) return id, "Frost" end
       _G.ClassCodexGearData = { MAGE = { frost = { gems = {
-        primary = { itemId = 777, name = "CC Primary Gem" },
+        primary = { itemId = 777, name = "CC Diamond" },
+        secondary = { { itemId = 888, name = "CC Fill Gem" } },
       } } } }
-      local s = ns.RecommendedGem(mage())
+      local primary, secondary = ns.RecommendedGems(mage())
       _G.GetSpecializationInfoByID = nil
-      assert.equals(777, s.id)
-      assert.equals("CC Primary Gem", s.name)
+      assert.equals(777, primary.id)
+      assert.equals("CC Diamond", primary.name)
+      assert.equals(888, secondary.id)
+      assert.equals("CC Fill Gem", secondary.name)
     end)
 
-    it("is nil when the spec is unknown and ClassCodex is absent", function()
-      assert.is_nil(ns.RecommendedGem({ name = "NoSpec", classKey = "Mage" }))
+    it("is nil/nil when the spec is unknown and ClassCodex is absent", function()
+      local primary, secondary = ns.RecommendedGems({ name = "NoSpec", classKey = "Mage" })
+      assert.is_nil(primary)
+      assert.is_nil(secondary)
     end)
   end)
 

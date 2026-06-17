@@ -30,8 +30,8 @@ local getData = function(toon)
     local count = e.sockets > 1 and (" ×%d"):format(e.sockets) or ""
     insert(lines, ("%s%s  %s%s"):format(tex, e.link, e.slot, count))
   end
-  -- One recommended gem for the character, shown once under the slot list.
-  local rec = ns.RecommendedGem(toon.name)
+  -- Recommended gems, shown once under the slot list: the unique diamond (one) + a fill gem.
+  local gemPrimary, gemSecondary = ns.RecommendedGems(toon.name)
 
   return {
     text = tostring(empty),
@@ -43,7 +43,11 @@ local getData = function(toon)
       ui.tip:ClearLines()
       ui.tip:AddLine(("%d empty gem socket%s"):format(empty, empty == 1 and "" or "s"))
       for _, l in ipairs(lines) do ui.tip:AddLine(l) end
-      if rec then ui.tip:AddLine(("|cff808080Recommended:|r |cffb0b0b0%s|r"):format(rec)) end
+      if gemPrimary then
+        ui.tip:AddLine(("|cff808080Recommended:|r |cff4fc3f7%s|r ×1, then |cffb0b0b0%s|r"):format(gemPrimary, gemSecondary or "?"))
+      elseif gemSecondary then
+        ui.tip:AddLine(("|cff808080Recommended:|r |cffb0b0b0%s|r"):format(gemSecondary))
+      end
       ui.tip:Show()
     end,
     onLeave = function() ui.tip:Hide() end,
