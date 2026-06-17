@@ -20,6 +20,7 @@ local function colorCode(c) return ("|cff%02x%02x%02x"):format(floor(c[1] * 255 
 local GREEN_CODE, GOLD_CODE = colorCode(theme.colors.green), colorCode(theme.colors.gold)
 local NO_ENCHANT = "|cffff8000Missing enchant|r"
 local NOTE_ARROW = "|cff808080\226\134\146|r |cffb0b0b0%s|r"
+local GEAR_MAX_SUBS = 3   -- most sub-lines a row can show: upgrade + missing-enchant + empty-socket
 
 -- Grab (or lazily create) a pooled gear row: item name (truncated) on the left,
 -- with the item level and upgrade-track badge right-aligned.
@@ -69,17 +70,24 @@ function DetailView:_gearRow(i)
       Right = {row.ilvl, ui.edge.Left, -D.GEAR_COL_GAP, 0},
     },
   }
-  -- Suggested upgrade, smaller, beneath the item name (hidden when none). Spans the
-  -- name column out to the frame's right edge (name right + the ilvl/track extras),
-  -- both points level with the name's bottom so the line isn't vertically stretched.
-  row.upgrade = Label:new{
-    parent = frame, fontInfo = theme.fonts.bodySmall,
-    justifyH = ui.justify.Left, wordWrap = false,
-    position = {
-      TopLeft  = {row.name, BottomLeft, 0, -2},
-      TopRight = {row.name, BottomRight, D.GEAR_EXTRAS_W, -2},
-    },
-  }
+  -- Stacked sub-lines beneath the item name (the suggested upgrade, a missing-enchant
+  -- note, an empty-socket note). One label per line — a single multi-line label doesn't
+  -- work here (`wordWrap = false` collapses "\n" to one truncated line). Each spans the
+  -- name column out to the frame's right edge (name right + the ilvl/track extras) and
+  -- sits GEAR_UP_H lower than the one above; hidden until `_showGear` fills it.
+  row.subs = {}
+  for s = 1, GEAR_MAX_SUBS do
+    local y = -2 - (s - 1) * D.GEAR_UP_H
+    row.subs[s] = Label:new{
+      parent = frame, fontInfo = theme.fonts.bodySmall,
+      justifyH = ui.justify.Left, wordWrap = false, color = theme.colors.muted,
+      position = {
+        TopLeft  = {row.name, BottomLeft, 0, y},
+        TopRight = {row.name, BottomRight, D.GEAR_EXTRAS_W, y},
+        Hide     = true,
+      },
+    }
+  end
 
   self._gearRows[i] = row
   return row
@@ -136,12 +144,13 @@ function DetailView:_showGear(i, item, slotKey)
   end
 
   local h = D.GEAR_ROW_H
-  if #lines > 0 then
-    row.upgrade:Text(table.concat(lines, "\n")):Color(theme.colors.muted)
-    row.upgrade:Show()
-    h = h + D.GEAR_UP_H * #lines
-  else
-    row.upgrade:Text(""):Hide()  -- clear so a pooled row's stale width doesn't skew autosize
+  for s, sub in ipairs(row.subs) do
+    if lines[s] then
+      sub:Text(lines[s]):Show()       -- lines are inline-coloured; label base stays muted
+      h = h + D.GEAR_UP_H
+    else
+      sub:Text(""):Hide()             -- clear so a pooled row's stale width doesn't skew autosize
+    end
   end
   row.frame:Height(h)
   row.frame:Show()

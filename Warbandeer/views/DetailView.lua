@@ -259,10 +259,12 @@ function DetailView:OnBeforeShow()
       gearRowsH = gearRowsH + self:_showGear(g, item, slotKey)
       local w = self._gearRows[g].name:StringWidth()
       if w > maxNameW then maxNameW = w end
-      -- The upgrade sub-line starts under the name but may run into the ilvl/track
-      -- columns; widen the name column so it isn't truncated.
-      local uw = self._gearRows[g].upgrade:StringWidth() - D.GEAR_EXTRAS_W
-      if uw > maxNameW then maxNameW = uw end
+      -- Each sub-line (upgrade / enchant / socket note) starts under the name but runs
+      -- toward the ilvl/track columns; widen the name column to the widest so none truncate.
+      for _, sub in ipairs(self._gearRows[g].subs) do
+        local uw = sub:StringWidth() - D.GEAR_EXTRAS_W
+        if uw > maxNameW then maxNameW = uw end
+      end
     end
   end
   for j = g + 1, self._numGearRows do
