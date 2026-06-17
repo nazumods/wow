@@ -78,6 +78,10 @@ ShadowsOfUI_UpgradeApi:RecommendedEnchant(charName, slot)  → EnchantSuggestion
     -- to say which enchant to put on each.  Consumers: the tooltip "— recommend
     -- <enchant>" tail + Warbandeer's Detail note and Summary "Ench" hover (via
     -- Warbandeer's ns.RecommendedEnchant, which resolves the suggestion to a name).
+ShadowsOfUI_UpgradeApi:StatRanks(charName)             → { stat = tier }?
+    -- the spec's secondary-stat priority map (tier 1 = top), or nil when unknown.
+    -- Lets a consumer highlight a character's best secondary (Warbandeer's Detail
+    -- stat grid tints the tier-1 stat gold).
 ShadowsOfUI_UpgradeApi:MissingGems(charName)           → { slot, link, sockets }[]
     -- equipped slots with empty gem sockets, from the data layer's stored per-slot
     -- count (captured at scan time while the item is loaded).  Warband-wide, but a

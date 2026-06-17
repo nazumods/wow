@@ -65,6 +65,7 @@ views\detail\Layout.lua
 views\DetailView.lua
 views\detail\Professions.lua
 views\detail\Gear.lua
+views\detail\Stats.lua
 views\detail\Filter.lua
 
 views\RoleView.lua

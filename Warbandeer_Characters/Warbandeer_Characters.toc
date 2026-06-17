@@ -8,7 +8,7 @@
 ## Dependencies: LibNAddOn, LibNUI
 ## X-Curse-Project-ID: 1546588
 ## X-NUI-DB: WarbandeerCharDB
-## X-NUI-DB-VERSION: 15
+## X-NUI-DB-VERSION: 16
 ## X-NUI-COMMANDS: /characters, /wbc
 ## X-NUI-API: WarbandeerApi
 ## X-NUI-UI: LibNUI
@@ -40,6 +40,7 @@ data/playtime.lua
 data/weekly.lua
 data/instances.lua
 data/equipment.lua
+data/stats.lua
 data/artifacts.lua
 data/concentration.lua
 

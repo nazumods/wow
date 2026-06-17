@@ -1,6 +1,6 @@
 # Warbandeer_Characters (Data Layer)
 
-**Deps:** LibNAddOn, LibNUI · **SavedVars:** `WarbandeerCharDB` (v15) · **Commands:** `/characters`, `/wbc` · **API:** `WarbandeerApi`
+**Deps:** LibNAddOn, LibNUI · **SavedVars:** `WarbandeerCharDB` (v16) · **Commands:** `/characters`, `/wbc` · **API:** `WarbandeerApi`
 
 Data-collection backbone for the suite. Scans the active character each login/refresh and stores everything in `WarbandeerCharDB`, exposing it to the rest of the suite through the `WarbandeerApi` global. Per-field scanning is driven by the **broker** system (`broker.lua`).
 
@@ -32,6 +32,7 @@ Data-collection backbone for the suite. Scans the active character each login/re
 | `data/weekly.lua` | Broker `weeklies`: `DMF`, `preMidnight`, `caches`, `vault`, `hasUnclaimedVault`, `keystone`, `dungeons`; `/wbc dump m+`, `/wbc dump vault` |
 | `data/instances.lua` | Broker `instances`: `locks`; `/wbc refresh locks`, `/wbc dump locks` |
 | `data/equipment.lua` | Broker `equipment`: `slots`, `ilvl`, `trackScanned`; loads item data before reading. Each slot also records `emptySockets` (v15) — `emptySocketCount(link)` sums the `EMPTY_SOCKET_*` keys from `C_Item.GetItemStats`, captured here while the item is loaded so it persists + reads warband-wide |
+| `data/stats.lua` | Broker `stats`: `secondary` (v16) — `{ crit, haste, mastery, versatility }`, each `{ pct, rating }` (effective % + gear combat rating) from the live `GetCritChance`/`GetHaste`/`GetMasteryEffect`/`GetCombatRatingBonus` + `GetCombatRating` APIs (logged-in char only), so it's a last-seen snapshot read warband-wide. Refreshes on `COMBAT_RATING_UPDATE`. Drives Warbandeer's Detail stat grid |
 | `data/artifacts.lua` | Broker `artifacts`: `hidden`, `hiddenColors`, `classHall`; `/wbc dump artifact` |
 | `dump.lua` | `/wbc stat` — warband-wide playtime/class statistics |
 | `missing.lua` | `/wbc missing`, `/wbc missing me` — lists characters/fields with incomplete data |
@@ -103,6 +104,9 @@ basic = {
   specialization = { primary, active, role, key, id },  -- id = numeric spec ID (locale-independent; v13)
   professions    = { primary, secondary, fishing, cooking },  -- {name, skillID, ...} each
   xp             = { percent, restPercent, isResting, recordedAt }?,
+}
+stats = {                                              -- v16
+  secondary = { crit, haste, mastery, versatility },   -- each { pct, rating }
 }
 currency = {
   RestoredCofferKey,                                   -- quantity (currency 3028)
@@ -190,6 +194,7 @@ playtime = {
 | `weeklies` | DMF, preMidnight, caches, vault, hasUnclaimedVault, keystone, dungeons | `QUEST_TURNED_IN`, `WEEKLY_REWARDS_UPDATE` (1000ms), `CHALLENGE_MODE_COMPLETED` | DMF: `RESET_SUNDAY`; rest: `RESET_WEEKLY` |
 | `instances` | locks | `INSTANCE_LOCK_STOP` | `RESET_WEEKLY` |
 | `equipment` | slots, ilvl, trackScanned | `PLAYER_EQUIPMENT_CHANGED` (`ITEM_DATA_LOAD_RESULT` + bounded fallback re-scan) | — |
+| `stats` | secondary (crit/haste/mastery/versatility {pct,rating}) | `COMBAT_RATING_UPDATE` | — |
 | `artifacts` | hidden, hiddenColors, classHall | `QUEST_TURNED_IN` | — |
 | `playtime` | total, byPatch | `TIME_PLAYED_MSG` (via `RequestTimePlayed()` on Init) | — |
 
@@ -247,4 +252,4 @@ A `Broker` (from `broker.lua`) holds a `fields` table; each field is `{ get, eve
   ui = { wmissingFontSize } }                              -- legacy (stale)
 ```
 
-`MigrateDB` (all migrations non-destructive): **v7** moves flat fields into `basic`/`instances` sub-tables and nils the old keys; **v8** seeds `warband = { bankGold = 0, history = {} }` (`week` filled lazily by `RolloverWarbandWeek` on first login); **v9** re-derives `classKey` from the locale-independent class token; **v10** seeds `recipeGear = { build = "", recipes = {} }` (re-stamped and filled lazily by `data/recipegear.lua`); **v11** seeds `bank = { characters = {}, guilds = {} }` (warband filled lazily; all populated by `data/bank.lua` on bank open); **v12** seeds `ui = {}` (account-wide UI prefs; originally held `wmissingFontSize`, now legacy — the copy-window font size moved to `LibNUIDB.copyFontSize`, this table left in place for rollback safety). **v13** is a version bump only — the equippable-gear cache (`bank.*.equip`, per-char `gearbag.items`, `basic.specialization.id`) is purely additive and filled lazily, so older revisions just see empty lists. **v14** is a version bump only — the per-character world-quest reward cache (`worldquests.rewards`) is additive and filled lazily on the next scan, so rollback is lossless. **v15** is a version bump only — the per-slot `equipment.slots.*.emptySockets` count is additive and filled lazily on the next equipment scan, so older revisions just lack the field (treated as none) and rollback is lossless.
+`MigrateDB` (all migrations non-destructive): **v7** moves flat fields into `basic`/`instances` sub-tables and nils the old keys; **v8** seeds `warband = { bankGold = 0, history = {} }` (`week` filled lazily by `RolloverWarbandWeek` on first login); **v9** re-derives `classKey` from the locale-independent class token; **v10** seeds `recipeGear = { build = "", recipes = {} }` (re-stamped and filled lazily by `data/recipegear.lua`); **v11** seeds `bank = { characters = {}, guilds = {} }` (warband filled lazily; all populated by `data/bank.lua` on bank open); **v12** seeds `ui = {}` (account-wide UI prefs; originally held `wmissingFontSize`, now legacy — the copy-window font size moved to `LibNUIDB.copyFontSize`, this table left in place for rollback safety). **v13** is a version bump only — the equippable-gear cache (`bank.*.equip`, per-char `gearbag.items`, `basic.specialization.id`) is purely additive and filled lazily, so older revisions just see empty lists. **v14** is a version bump only — the per-character world-quest reward cache (`worldquests.rewards`) is additive and filled lazily on the next scan, so rollback is lossless. **v15** is a version bump only — the per-slot `equipment.slots.*.emptySockets` count is additive and filled lazily on the next equipment scan, so older revisions just lack the field (treated as none) and rollback is lossless. **v16** is a version bump only — the `stats.secondary` snapshot is additive and filled lazily on the next scan, so older revisions just lack it (the Detail grid shows blanks) and rollback is lossless.

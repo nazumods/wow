@@ -55,6 +55,7 @@ end
 ---@field realm Label
 ---@field ilvlCard StatCard
 ---@field playCard StatCard
+---@field _statCells table[]?  secondary-stat grid cells (lazily built; { key, name, pct, rating })
 ---@field profHeader Label
 ---@field gearPanel Frame
 ---@field gearHeader Label
@@ -217,6 +218,8 @@ function DetailView:OnBeforeShow()
   self.ilvlCard:Amount(string.format("%.1f", ilvl), ns.IlvlColorObj(ilvl))
   local hrs = (char.playtime and char.playtime.total and math.floor(char.playtime.total / 3600)) or 0
   self.playCard:Amount(BreakUpLargeNumbers(hrs) .. " hrs", c.text)
+
+  self:_showStats()  -- secondary-stat grid under the cards
 
   -- The two flexible slots plus Fishing/Cooking, so a main cook/fisher can be set too.
   -- Each panel re-anchors beneath the previous block (panel + its gear list), so the

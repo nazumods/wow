@@ -281,6 +281,15 @@ function Upgrade:MissingGems(charName)
   return ns.MissingGems(API:GetCharacterData(charName))
 end
 
+---Secondary-stat priority for a character's spec as a `{ stat = tier }` map (tier 1 = top),
+---or nil when the spec/priority isn't known. Lets a consumer highlight the character's most-
+---valued secondary (e.g. Warbandeer's Detail stat grid).
+---@param charName string
+---@return table<string, integer>?
+function Upgrade:StatRanks(charName)
+  return ns.StatRanks(API:GetCharacterData(charName))
+end
+
 ---Recommended gems for a character: a `primary` (unique-equipped "diamond", socket one) and a
 ---`secondary` (fill the other sockets), each an `EnchantSuggestion` item (resolve a name from
 ---`.name`/`.id`) or nil. ClassCodex's per-spec pair when installed, else just the bundled secondary.
