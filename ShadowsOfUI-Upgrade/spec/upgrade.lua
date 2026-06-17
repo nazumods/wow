@@ -19,6 +19,7 @@ local FILES = {
   "data/classgear.lua",
   "data/enchantslots.lua",
   "data/enchants.lua",
+  "data/gems.lua",
   "resolve.lua",
   "equip.lua",
   "upgrade.lua",

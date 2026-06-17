@@ -142,6 +142,39 @@ local function missingEnchantLine(slot)
   return NO_ENCHANT
 end
 
+local GetItemStats = C_Item and C_Item.GetItemStats
+local EMPTY_SOCKET = "|cffff8000Empty socket|r"
+
+-- Empty gem sockets on `link` only when it's one of the player's own equipped items
+-- (any slot), so we never nag about loose / vendor gear. Empty sockets show up as
+-- EMPTY_SOCKET_* stat keys; a filled socket contributes its gem's stats instead.
+local function equippedEmptySockets(link)
+  if not GetItemStats then return 0 end
+  local equipped = false
+  for slot = 1, 17 do
+    if GetInventoryItemLink("player", slot) == link then equipped = true; break end
+  end
+  if not equipped then return 0 end
+  local stats = GetItemStats(link)
+  if not stats then return 0 end
+  local n = 0
+  for key, value in pairs(stats) do
+    if key:find("EMPTY_SOCKET") then n = n + value end
+  end
+  return n
+end
+
+-- The "Empty socket" line, with a "— recommend <gem>" tail when we have a gem for the
+-- player's spec (ClassCodex when installed, else the bundled stat pick).
+local function emptySocketLine()
+  local s = ns.RecommendedGem(ns.api:GetCharacterData(ns.api:GetCurrentCharacter()))
+  local name = suggestionName(s)
+  if name then
+    return EMPTY_SOCKET .. GRAY_FONT_COLOR:WrapTextInColorCode(" — recommend ") .. name
+  end
+  return EMPTY_SOCKET
+end
+
 -- Embedded item tooltips (quest / world-quest reward previews) parent their inner
 -- tooltip back onto the container as `container.Tooltip`.  The standalone
 -- GameTooltip / ItemRefTooltip are nobody's `.Tooltip`, so this skips reward
@@ -173,6 +206,8 @@ local function onItemTooltip(tooltip, data)
   -- with the recommended enchant when we have one for the slot.
   local missSlot = equippedMissingSlot(link)
   if missSlot then tooltip:AddLine(missingEnchantLine(missSlot)) end
+  -- Reminder for your own equipped gear with an empty gem socket.
+  if equippedEmptySockets(link) > 0 then tooltip:AddLine(emptySocketLine()) end
   -- Soulbound items can only ever help their holder (the current character).
   local boundTo = isSoulbound(data) and ns.api:GetCurrentCharacter() or nil
   local list = Upgrade:ItemUpgrades(link, boundTo, effectiveIlvl(data))

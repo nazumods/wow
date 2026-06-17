@@ -6,7 +6,23 @@ local GetItemID = C_Item.GetItemID
 local GetItemInfo, GetCurrentItemLevel = C_Item.GetItemInfo, C_Item.GetCurrentItemLevel
 local GetItemUpgradeInfo = C_Item.GetItemUpgradeInfo
 local GetItemInfoInstant = C_Item.GetItemInfoInstant
+local GetItemStats = C_Item.GetItemStats
 local GetInventoryItemLink = GetInventoryItemLink
+
+-- Number of *empty* gem sockets on an item, from its stat table: an unfilled socket
+-- shows up as an EMPTY_SOCKET_* key (PRISMATIC, META, …) whose value is the count; a
+-- filled socket contributes its gem's stats instead, so it isn't counted. Needs the
+-- item loaded (the broker only builds a slot once GetItemInfo resolves), so it's
+-- captured here at scan time and persisted — making it readable warband-wide later.
+local function emptySocketCount(link)
+  local stats = GetItemStats(link)
+  if not stats then return 0 end
+  local n = 0
+  for key, value in pairs(stats) do
+    if key:find("EMPTY_SOCKET") then n = n + value end
+  end
+  return n
+end
 
 local EquipmentSlots = {
   Head = 1,
@@ -95,6 +111,7 @@ Equipment.fields = {
               equipLoc = equipLoc,
               classID = classID,
               subClassID = subClassID,
+              emptySockets = emptySocketCount(link),
             }
           elseif existing[slot] then
             -- Item present but its data isn't loaded yet — keep the prior value

@@ -15,6 +15,7 @@ data/classgear.lua
 data/vendorgear.lua
 data/enchantslots.lua
 data/enchants.lua
+data/gems.lua
 
 resolve.lua
 equip.lua

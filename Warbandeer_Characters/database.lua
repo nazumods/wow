@@ -85,7 +85,7 @@ end, "Repair stored data (recount characters)")
 ---@field MigrateDB fun(self) Migrate database to latest version
 function ns:MigrateDB()
   local db = ns.db
-  if db.version == 14 then return end
+  if db.version == 15 then return end
   if not db.characters then db.characters = {} end
   if not db.numCharacters then
     db.numCharacters = countCharacters(db)
@@ -184,6 +184,14 @@ function ns:MigrateDB()
   -- lists until the next scan, so rollback is lossless.
   if (db.version or 0) < 14 then
     db.version = 14
+  end
+
+  -- v15: per-equipped-slot empty-socket count (non-destructive).  Added to each
+  -- equipment slot record by data/equipment.lua's broker at scan time; nothing to
+  -- seed — old revisions simply lack the field (treated as "unknown / none") until a
+  -- character next logs in and re-scans its gear, so rollback is lossless.
+  if (db.version or 0) < 15 then
+    db.version = 15
   end
 end
 

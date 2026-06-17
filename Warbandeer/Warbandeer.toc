@@ -39,6 +39,7 @@ views\summaryCol\level.lua
 views\summaryCol\ilvl.lua
 views\summaryCol\upgrades.lua
 views\summaryCol\enchants.lua
+views\summaryCol\gems.lua
 views\summaryCol\catchup.lua
 views\summaryCol\profs.lua
 views\summaryCol\bags.lua
