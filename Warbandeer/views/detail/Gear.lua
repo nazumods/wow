@@ -23,6 +23,9 @@ local GREEN_CODE, GOLD_CODE = colorCode(theme.colors.green), colorCode(theme.col
 local NO_ENCHANT = "|cffff8000Missing enchant|r"
 local SOCKET_CODE = "|cff4fc3f7"
 local NOTE_ARROW = "|cff808080\226\134\146|r |cffb0b0b0%s|r"
+-- Red "[UP] →" tag prepended to the suggested-upgrade line, mirroring the enchant /
+-- socket note prefixes (\226\134\146 is the → arrow).
+local UP_PREFIX = "|cffff4040[UP] \226\134\146|r "
 local GEAR_MAX_SUBS = 3   -- most sub-lines a row can show: upgrade + missing-enchant + empty-socket
 
 -- Grab (or lazily create) a pooled gear row: item name (truncated) on the left,
@@ -132,7 +135,7 @@ function DetailView:_showGear(i, item, slotKey)
     local req = D.reqLevel(upLink)
     local reqTail = (req and req > (self._char.basic.level or 0))
       and ("  |cffff4040@ lvl %d|r"):format(req) or ""
-    lines[#lines + 1] = upLink
+    lines[#lines + 1] = UP_PREFIX .. upLink
       .. (upWarband and GOLD_CODE or GREEN_CODE) .. ("  +%d ilvl"):format(upGain or 0) .. "|r" .. reqTail
   end
   if self._missingEnch[slotKey] then
