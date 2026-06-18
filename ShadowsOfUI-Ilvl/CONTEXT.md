@@ -30,7 +30,7 @@ Flat keys, all defaulting on: `bags`, `bank`, `loot`, `guildbank`, `baganator`, 
 
 | Table | Key → Value | Notes |
 |---|---|---|
-| `ns.InsetPositions` | slot button name → `{point, relativePoint, x, y, justifyH}` | Character*/Inspect* slots; left column anchors label to the icon's RIGHT, right column to the LEFT, weapons toward centre. Also the "is this a gear slot" gate for the paperdoll hooks |
+| `ns.InsetPositions` | slot button name → `{point, relativePoint, x, y, justifyH}` | Character*/Inspect* slots; left column anchors label to the icon's RIGHT, right column to the LEFT. Weapons (bottom centre) follow the same convention vertically centred — main hand left, off hand right — so they drop below the wrist / trinket-2 labels instead of overlapping. Also the "is this a gear slot" gate for the paperdoll hooks |
 
 ## Gotchas
 
