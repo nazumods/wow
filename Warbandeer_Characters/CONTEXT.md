@@ -88,7 +88,7 @@ so it matches how `equipment.slots` measures equipped ilvl — else a downscaled
 the upgrade finder fakes a huge gain.
 
 Also on the API table: `ALLIANCE_RACES`, `HORDE_RACES`, `professionInfo`.
-(`SettingsCategory` / `AliasSettingsCategory` are set on this same table by **Warbandeer** and **Warbandeer_Alias**, not here.)
+(`AliasSettingsCategory` is set on this same table by **Warbandeer_Alias**, not here. Settings-panel nesting now goes through LibNAddOn's shared parent registry — `ns:GetSettingsParent("Warbandeer")` — rather than a published `SettingsCategory` field.)
 
 ## Per-Character Struct (`db.characters[name]`)
 

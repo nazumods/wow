@@ -50,5 +50,5 @@ function ns:onLoad()
   settings:AddToggleControl("Druid", ns.db.hide, 11).SettingChanged = function(_, state)
     update(11, state)
   end
-  settings:RegisterCategory("Shadows of UI")
+  settings:RegisterSubcategory(ns:GetSettingsParent("Shadows of UI"), ns._TITLE)
 end

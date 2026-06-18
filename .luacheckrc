@@ -9,8 +9,8 @@ max_comment_line_length = 500
 include_files = {
   "BarNonce/**/*.lua", "CombatOutline/**/*.lua", "HideBagBar/**/*.lua", "HideStanceBar/**/*.lua",
   "LibNAddOn/**/*.lua", "LibNUI/**/*.lua", "LibNUI_Test/**/*.lua", "Recycle/**/*.lua",
-  "ShadowsOfUI-DMF/**/*.lua", "ShadowsOfUI-GCD/**/*.lua", "ShadowsOfUI-Known/**/*.lua",
-  "ShadowsOfUI-Upgrade/**/*.lua", "ShadowsOfUI-XP/**/*.lua",
+  "ShadowsOfUI-DMF/**/*.lua", "ShadowsOfUI-GCD/**/*.lua", "ShadowsOfUI-Ilvl/**/*.lua",
+  "ShadowsOfUI-Known/**/*.lua", "ShadowsOfUI-Upgrade/**/*.lua", "ShadowsOfUI-XP/**/*.lua",
   "Warbandeer/**/*.lua", "Warbandeer_Alias/**/*.lua", "Warbandeer_Bars/**/*.lua",
   "Warbandeer_Characters/**/*.lua", "Warbandeer_Collected/**/*.lua",
 }
@@ -27,6 +27,7 @@ files["LibNUI_Test/**/*.lua"] = {globals = {"LibNUITest"}}
 files["LibNAddOn/api.lua"] = {globals = {"LibNAddOn"}}
 files["Recycle/addon.lua"] = {globals = {"HandleModifiedItemClick"}}
 files["ShadowsOfUI-DMF/**/*.lua"] = {globals = {"SLASH_SUI_DMF1"}}
+files["ShadowsOfUI-Ilvl/**/*.lua"] = {globals = {"SLASH_SUI_ILVL1"}}
 files["ShadowsOfUI-Known/**/*.lua"] = {globals = {"SLASH_SUI_KNOWN1"}}
 files["ShadowsOfUI-Upgrade/**/*.lua"] = {globals = {"SLASH_SUI_UPGRADE1", "ShadowsOfUI_UpgradeApi"}}
 files["Warbandeer_Bars/init.lua"] = {globals = {"WarbandeerBarsSettings"}}
@@ -94,6 +95,8 @@ std = {
     "CreateFont",
     "DeltaLerp",
     "CreateFrame",
+    "EventUtil",
+    "Item",
     "GetCursorPosition",
     "GetCritChance",
     "GetHaste",
@@ -246,6 +249,7 @@ std = {
     "GetItemCooldown",
     "GetItemIcon",
     "GetItemInfo",
+    "GetLootSlotLink",
     "GetLootSpecialization",
     "GetMacroInfo",
     "GetMaxLevelForPlayerExpansion",

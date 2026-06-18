@@ -1,0 +1,15 @@
+## Interface: 120007
+## Category: Shadows of UI
+## Title: Item Level
+## Author: Nazuraki
+## Version: 12.0.7-r0
+## IconTexture: Interface\Icons\inv_misc_armorkit_17
+## SavedVariables: ShadowsOfUI_IlvlDB
+## Dependencies: LibNAddOn
+## X-NUI-DB: ShadowsOfUI_IlvlDB
+## X-NUI-DB-VERSION: 1
+
+core.lua
+render.lua
+surfaces.lua
+baganator.lua

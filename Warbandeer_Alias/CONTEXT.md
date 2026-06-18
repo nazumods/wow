@@ -12,7 +12,7 @@ Prepends an `(alias)` prefix to your outgoing **guild** chat when your real char
 
 ## How it works
 
-- `onLoad` builds a `SettingsFrame` with a text control (`alias`) and toggle (`startsWith`), registered as a subcategory under `ns.api.SettingsCategory` (or standalone if absent) and exposed as `ns.api.AliasSettingsCategory`.
+- `onLoad` builds a `SettingsFrame` with a text control (`alias`) and toggle (`startsWith`), nested as a subcategory under the shared **Warbandeer** parent via `settings:RegisterSubcategory(ns:GetSettingsParent("Warbandeer"))` (LibNAddOn's shared parent registry — Warbandeer's own settings carry that group; an empty parent is created on demand if Warbandeer isn't loaded). Exposed as `ns.api.AliasSettingsCategory`.
 - `hookEditBox` hooks each edit box's **`OnKeyDown`**. On ENTER/NUMPADENTER, if the message is `GUILD` chat and `ShouldPrefix()` is true, it `SetText`s the prefixed message in place.
 - `ShouldPrefix()`: false when alias is empty; with `startsWith` off → prefix when `ns.player ~= alias`; with it on → prefix when player name does **not** start with the alias.
 - Messages starting with `/ ! # @ ?` (after leading whitespace) are skipped.

@@ -5,6 +5,7 @@ local G = _G
 ---@class AddOn
 ---@field CompartmentClick fun(self: AddOn, buttonName: string)?
 ---@field RegisterSettings fun(self: AddOn, settings: table) register Settings-panel categories; call at file-load time (before ADDON_LOADED), requires a DB
+---@field GetSettingsParent fun(self: AddOn, name: string): table get-or-create a shared parent Settings category to nest under (e.g. for a LibNUI SettingsFrame subcategory)
 
 ---@param features {name: string, addOn: AddOn, [any]: any}|string
 ---@param o AddOn|nil
@@ -27,6 +28,10 @@ function LibNAddOn(features, o)
 
   function addOn:RegisterSettings(settings)
     ns.registerSettings(self, addOnName, settings)
+  end
+
+  function addOn:GetSettingsParent(name)
+    return ns.getSettingsParent(name)
   end
 
   ns.linkGlobals(addOn, features)

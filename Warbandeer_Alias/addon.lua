@@ -61,11 +61,9 @@ function ns:onLoad()
   local settings = SettingsFrame:new{ headingText = ns._TITLE }
   settings:AddTextControl("Alias", ns.db.settings, "alias").SettingChanged = nil
   settings:AddToggleControl("Suppress if character name starts with alias", ns.db.settings, "startsWith").SettingChanged = nil
-  if ns.api.SettingsCategory then
-    ns.api.AliasSettingsCategory = settings:RegisterSubcategory(ns.api.SettingsCategory)
-  else
-    ns.api.AliasSettingsCategory = settings:RegisterCategory()
-  end
+  -- Nest under the shared "Warbandeer" group (Warbandeer's own settings carry it;
+  -- if Warbandeer isn't loaded, an empty parent is created on demand).
+  ns.api.AliasSettingsCategory = settings:RegisterSubcategory(ns:GetSettingsParent("Warbandeer"))
 
   local numFrames = NUM_CHAT_WINDOWS or 10
   for i = 1, numFrames do

@@ -6,8 +6,9 @@ stance-using class (Warrior, Paladin, Druid, etc.), applied live.
 
 ## Settings
 
-Found in the Blizzard settings panel: one **show/hide toggle per class** that has a
-stance bar. Toggles take effect immediately, no reload needed.
+Found in the Blizzard settings panel under **Shadows of UI → Hide Stance Bar**: one
+**show/hide toggle per class** that has a stance bar. Toggles take effect immediately,
+no reload needed.
 
 Settings are account-wide and keyed by class, so hiding the bar for Druids hides it on
 all your Druids.

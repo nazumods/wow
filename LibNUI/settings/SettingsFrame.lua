@@ -69,11 +69,12 @@ end
 ---@param name string?  subcategory name (defaults to the heading text)
 ---@return table  the Settings category object
 function SettingsFrame:RegisterSubcategory(parentCategory, name)
+  -- RegisterCanvasLayoutSubcategory already links this under the parent; calling
+  -- RegisterAddOnCategory as well would also surface it as a top-level entry.
   local category = Settings.RegisterCanvasLayoutSubcategory(
     parentCategory,
     self._widget,
     name or self.headingText or self.heading.text
   )
-  Settings.RegisterAddOnCategory(category)
   return category
 end

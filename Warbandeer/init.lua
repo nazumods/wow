@@ -142,7 +142,6 @@ local function refreshDetailOnGearChange()
 end
 
 function ns:onLoad()
-  ns.api.SettingsCategory = ns.settingsCategory
   ns:registerEvent("PLAYER_EQUIPMENT_CHANGED", refreshDetailOnGearChange)
 end
 

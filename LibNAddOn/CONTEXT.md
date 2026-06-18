@@ -67,7 +67,8 @@ addOn.lua, addOn.wow, addOn.icons, addOn.Colors
 addOn.api (shared global, if configured), addOn.ui (LibNUI global, if configured)
 addOn.db (linked on ADDON_LOADED), addOn.commands, addOn.settingsCategory
 Methods:   GetMetadata, Print, hook, registerEvent, unregisterEvent, delay, after,
-           registerCommand, SlashCmd, usage, SetTemporaryCVar, RestoreCVar, RestoreCVars
+           registerCommand, SlashCmd, usage, SetTemporaryCVar, RestoreCVar, RestoreCVars,
+           RegisterSettings, GetSettingsParent
 Lifecycle: onLoad, onLogin, MigrateDB, settingChanged, CompartmentClick
 ```
 
@@ -140,7 +141,9 @@ Dot functions (no self): `GetAverageItemLevel`, `GetClassId`, `GetHealth`, `GetH
 
 ```lua
 features.settings = {
-  { title = "Category Title", fields = {
+  { title = "Category Title",
+    parent = "Shadows of UI", -- optional: nest as a subcategory under a shared parent group
+    fields = {
     { typ = "checkbox", name = "settingName", key = "dbKey",
       table = function(db) return db end,
       label = "Display Label", default = true, tooltip = "Help text",
@@ -150,6 +153,8 @@ features.settings = {
   } },
 }
 ```
+
+A category with `parent = "<name>"` registers as a Settings **subcategory** under a shared parent group (created+registered once). The parent is keyed by name in a LibNAddOn-global table, so every addon (and every category) using the same name converges on one group. `addOn:GetSettingsParent(name)` exposes the same get-or-create for addons that build their panel another way (e.g. a LibNUI `SettingsFrame:RegisterSubcategory(parent, ...)`).
 
 Default callback calls `addOn:settingChanged(key, value, variable, setting)`.
 
