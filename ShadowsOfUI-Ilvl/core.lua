@@ -14,6 +14,7 @@ local Defaults = {
     loot = true,
     guildbank = true,
     baganator = true,
+    bagnon = true,
     character = true,
     characterInset = true,
     inspect = true,
@@ -26,7 +27,7 @@ function ns:MigrateDB()
     for k, v in pairs(Defaults) do
         if db[k] == nil then db[k] = v end -- non-destructive: only add missing keys
     end
-    db.version = 1
+    db.version = 2
 end
 
 -- Re-tag every currently-visible surface. Surfaces register a refresher here so
@@ -61,6 +62,8 @@ ns:RegisterSettings{
               label = "guild bank", table = dbTable, tooltip = "Show on guild-bank icons." },
             { typ = "checkbox", key = "baganator", default = true, name = "Baganator",
               label = "Baganator", table = dbTable, tooltip = "Show the upgrade-track badge as a Baganator corner widget (if installed)." },
+            { typ = "checkbox", key = "bagnon", default = true, name = "Bagnon",
+              label = "Bagnon", table = dbTable, tooltip = "Show on Bagnon / Bagnonium item icons (if installed)." },
             { typ = "checkbox", key = "character", default = true, name = "Character pane",
               label = "character pane", table = dbTable, tooltip = "Show on the character paperdoll." },
             { typ = "checkbox", key = "characterInset", default = true, name = "Character: inset",
