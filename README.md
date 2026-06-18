@@ -35,7 +35,7 @@ Each addon folder has its own `README.md` with end-user documentation.
 | [ShadowsOfUI-XP](ShadowsOfUI-XP/README.md) | Minimal full-width XP bar at the bottom of the screen (below max level only). |
 | [ShadowsOfUI-GCD](ShadowsOfUI-GCD/README.md) | Slim global-cooldown sweep bar between your resource bars. |
 | [ShadowsOfUI-DMF](ShadowsOfUI-DMF/README.md) | Darkmoon Faire helper: auto-buys profession quest mats and guides you between quest givers. |
-| [ShadowsOfUI-Ilvl](ShadowsOfUI-Ilvl/README.md) | Item level + upgrade-track badge on gear icons (bags, bank, loot, Baganator); inset beside each slot on the character/inspect panels. Per-place toggles. |
+| [ShadowsOfUI-Ilvl](ShadowsOfUI-Ilvl/README.md) | Item level + upgrade-track badge on gear icons (bags, bank, loot, Baganator, Bagnon); inset beside each slot on the character/inspect panels. Per-place toggles. |
 | [ShadowsOfUI-Known](ShadowsOfUI-Known/README.md) | Adds a "Learnable by:" line to recipe tooltips, listing the alts that can still learn it. |
 | [ShadowsOfUI-Upgrade](ShadowsOfUI-Upgrade/README.md) | Finds warband gear upgrades (bags/bank/warband bank) and shows them on item tooltips and in Warbandeer — what to keep vs sell. |
 | [HideStanceBar](HideStanceBar/README.md) | Hides the stance bar, with a per-class toggle. |

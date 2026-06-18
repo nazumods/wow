@@ -6,6 +6,8 @@ read at a glance how far an upgradeable piece has been crafted up.
 
 - **Bags, bank, loot, guild bank** — the item level is drawn on top of the icon
   (top-right), with the track badge in the bottom-left corner.
+- **Bagnon / Bagnonium** (if installed) — the same on-icon overlay is drawn on its
+  bag, bank and guild-bank item buttons.
 - **Baganator** (if installed) — adds an **Upgrade Track** corner widget (use
   Baganator's own Item Level widget for the ilvl).
 - **Character & inspect panels** — by default the item level and track sit *next
@@ -22,7 +24,7 @@ The track letters are **A**dventurer, **V**eteran, **C**hampion, **H**ero and
 Options are under **Game Menu → Options → AddOns → Shadows of UI → Item Level**:
 
 - A toggle for each place it can appear: bags, bank, loot, guild bank, Baganator
-  (track widget), character pane, inspect pane.
+  (track widget), Bagnon, character pane, inspect pane.
 - **Character: inset** / **Inspect: inset** — beside the icon (on) vs over the
   icon (off).
 - **Minimum quality** — only tag gear of this quality or better (Poor, Common,
@@ -37,8 +39,8 @@ Changes apply immediately to anything already on screen.
 
 ## Requirements
 
-**LibNAddOn**. Baganator is optional — its corner widgets appear automatically
-when it's installed.
+**LibNAddOn**. Baganator and Bagnon (or Bagnonium) are optional — their integrations
+appear automatically when installed.
 
 ## Saved data
 

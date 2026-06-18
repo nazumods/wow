@@ -26,10 +26,13 @@ do
         InsetPositions["Character" .. slot .. "Slot"] = ONLEFT
         InsetPositions["Inspect" .. slot .. "Slot"]   = ONLEFT
     end
-    InsetPositions["CharacterMainHandSlot"]      = { "TOPRIGHT", "TOPLEFT", -6, 0, "RIGHT" }
-    InsetPositions["InspectMainHandSlot"]        = { "TOPRIGHT", "TOPLEFT", -6, 0, "RIGHT" }
-    InsetPositions["CharacterSecondaryHandSlot"] = { "TOPLEFT", "TOPRIGHT", 6, 0, "LEFT" }
-    InsetPositions["InspectSecondaryHandSlot"]   = { "TOPLEFT", "TOPRIGHT", 6, 0, "LEFT" }
+    -- Weapons sit at the bottom centre; label them like the columns (main hand to
+    -- its left, off hand to its right) but vertically centred so they drop below
+    -- the wrist / trinket-2 labels at the column bottoms instead of overlapping.
+    InsetPositions["CharacterMainHandSlot"]      = ONLEFT
+    InsetPositions["InspectMainHandSlot"]        = ONLEFT
+    InsetPositions["CharacterSecondaryHandSlot"] = ONRIGHT
+    InsetPositions["InspectSecondaryHandSlot"]   = ONRIGHT
 end
 
 -- Compact upgrade-track code (e.g. "C2" = Champion 2, "H6" = Hero 6) from a full
