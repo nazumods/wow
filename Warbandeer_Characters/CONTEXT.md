@@ -11,7 +11,7 @@ Data-collection backbone for the suite. Scans the active character each login/re
 | `init.lua` | Addon bootstrap (assignment form) |
 | `types.lua` | LuaLS aliases: `Specialization`, `SpecializationKey` |
 | `broker.lua` | `Broker` class + `ns:RegisterBroker`/`InitBrokers`; reset constants `RESET_SUNDAY/DAILY/WEEKLY`; reset-boundary timestamps `ns.LAST_DAILY_RESET`/`LAST_RESET`/`LAST_SUNDAY_RESET` |
-| `database.lua` | `ns:MigrateDB` (v13), `ns:initialize` (creates the per-char struct, then `InitBrokers`/`InitWarband`); `/characters list`, `/characters delete <name>` (also prunes the character's cached bank gear), `/characters cleanup` (recount numCharacters + drop bank gear for untracked characters) |
+| `database.lua` | `ns:MigrateDB` (v16), `ns:initialize` (creates the per-char struct, then `InitBrokers`/`InitWarband`); `/characters list`, `/characters delete <name>` (also prunes the character's cached bank gear), `/characters cleanup` (recount numCharacters + drop bank gear for untracked characters) |
 | `main.lua` | `ns:refresh` + `ns:refreshQueue` (one **field** scanned per 100ms); `/characters refresh`, `/characters dump` |
 | `login.lua` | `ns.onLogin` → `initialize()` once, then `refresh()` |
 | `api.lua` | `WarbandeerApi` public methods (see below) |
@@ -225,7 +225,7 @@ A `Broker` (from `broker.lua`) holds a `fields` table; each field is `{ get, eve
 ## SavedVariables (`WarbandeerCharDB`)
 
 ```lua
-{ version = 14, numCharacters, lastDailyReset, lastReset, lastSundayReset,
+{ version = 16, numCharacters, lastDailyReset, lastReset, lastSundayReset,
   characters = { ["Name"] = Character },
   -- account-wide warband wealth (v8); not per-character
   warband = {
