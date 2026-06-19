@@ -5,6 +5,7 @@ local API = ns.api
 local insert = table.insert
 local C_Container = C_Container
 local GetCurrentItemLevel = C_Item.GetCurrentItemLevel
+local GetDetailedItemLevelInfo = C_Item.GetDetailedItemLevelInfo
 local ItemLocation = ItemLocation
 
 -- Per-character cache of equippable gear sitting in the character's bags, so
@@ -39,11 +40,15 @@ local function scanBags()
           -- unscaled GetDetailedItemLevelInfo: equipped slots are measured with
           -- GetCurrentItemLevel, so a candidate must use the same basis or an item
           -- downscaled in Chromie Time / a scaled zone (true ilvl 655 shown as 102)
-          -- reads hundreds of levels too high and fakes a massive upgrade.
+          -- reads hundreds of levels too high and fakes a massive upgrade. Fall back to
+          -- the link's ilvl only when the item is cold (GetCurrentItemLevel nil) so the
+          -- candidate still ranks instead of being dropped (the scaled value refreshes on
+          -- the next BAG_UPDATE_DELAYED once it loads).
+          local loc = ItemLocation:CreateFromBagAndSlot(bag, slot)
           insert(items, {
             link = link,
             itemID = info.itemID,
-            ilvl = GetCurrentItemLevel(ItemLocation:CreateFromBagAndSlot(bag, slot)),
+            ilvl = GetCurrentItemLevel(loc) or (link and GetDetailedItemLevelInfo(link)) or nil,
             equipLoc = equipLoc,
             classID = classID,
             subClassID = subClassID,
