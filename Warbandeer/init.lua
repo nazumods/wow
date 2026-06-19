@@ -147,8 +147,44 @@ local function refreshDetailOnGearChange()
   end)
 end
 
+-- Live-refresh the open Summary / Gear view when the warband (account) bank changes,
+-- so a cross-character upgrade marker clears the moment its item is withdrawn. An item
+-- pulled out of the warband bank and put on one character stops being an upgrade for
+-- every *offline* alt it was suggested for (and a remaining duplicate keeps showing —
+-- the data layer rebuilds db.bank.warband.equip from scratch, so a second copy is still
+-- in the list). Without this, those other characters' rows stay stale until the view is
+-- reopened or each alt is logged in, because the table was built before the bank rescan.
+-- The data layer (Warbandeer_Characters) rebuilds the warband equip list on these same
+-- events; ShadowsOfUI-Upgrade then memoizes per character for ~2s. The debounce must
+-- outlast BOTH so OnBeforeShow re-reads the fresh bank list, not a cached upgrade result.
+local BANK_REFRESH_DELAY = 2100  -- ms; > the data layer's bank rescan AND the upgrade ~2s memo TTL
+local bankRefreshGen = 0
+local WARBAND_VIEWS = { summary = true, gear = true }  -- views carrying cross-character upgrade markers
+local function shownWarbandView()
+  local view = ns.MainWindow and ns.MainWindow:ShownView()
+  return view and WARBAND_VIEWS[view.name] and view or nil
+end
+local function refreshViewOnWarbandBankChange()
+  if not shownWarbandView() then return end
+  bankRefreshGen = bankRefreshGen + 1
+  local gen = bankRefreshGen
+  ns:after(BANK_REFRESH_DELAY, function()
+    if gen ~= bankRefreshGen then return end          -- superseded by a later bank change
+    local view = shownWarbandView()
+    if view then
+      view:OnBeforeShow()
+      ns.MainWindow:Fit()
+    end
+  end)
+end
+
 function ns:onLoad()
   ns:registerEvent("PLAYER_EQUIPMENT_CHANGED", refreshDetailOnGearChange)
+  -- PLAYER_ACCOUNT_BANK_TAB_SLOTS_CHANGED covers a live withdrawal; BANKFRAME_CLOSED is the
+  -- belt-and-suspenders final capture (the data layer rescans there too). Both coalesce into
+  -- a single refresh via the generation-guarded debounce.
+  ns:registerEvent("PLAYER_ACCOUNT_BANK_TAB_SLOTS_CHANGED", refreshViewOnWarbandBankChange)
+  ns:registerEvent("BANKFRAME_CLOSED", refreshViewOnWarbandBankChange)
 end
 
 function ns:onLogin()
