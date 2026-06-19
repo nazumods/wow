@@ -142,15 +142,21 @@ function SuggestedBox:_row(i)
     hi:Hide()
     ns.HideItemTooltip()
   end)
-  -- World-quest rows open the map to the quest (and super-track it) on click; ready
-  -- upgrades carry no _mapID, so a click is a no-op for them.
+  -- World-quest / vendor rows open the map to the quest / quartermaster (and
+  -- super-track the quest) on click; ready upgrades carry no _mapID and instead
+  -- flash the held item across the open bags / bank (the upgrade link is _compareLink
+  -- for an equipped slot, else _itemLink when the slot is empty).
   frame:SetScript("OnMouseUp", function(_, button)
-    if button ~= "LeftButton" or not frame._mapID then return end
-    if OpenWorldMap then OpenWorldMap(frame._mapID) end
-    -- OpenWorldMap defaults the canvas to the player's *current* zone, so a WQ in a
-    -- different zone wouldn't show — force the quest's zone once the frame is up.
-    if WorldMapFrame and WorldMapFrame.SetMapID then WorldMapFrame:SetMapID(frame._mapID) end
-    if frame._questID and SetSuperTrackedQuestID then SetSuperTrackedQuestID(frame._questID) end
+    if button ~= "LeftButton" then return end
+    if frame._mapID then
+      if OpenWorldMap then OpenWorldMap(frame._mapID) end
+      -- OpenWorldMap defaults the canvas to the player's *current* zone, so a WQ in a
+      -- different zone wouldn't show — force the quest's zone once the frame is up.
+      if WorldMapFrame and WorldMapFrame.SetMapID then WorldMapFrame:SetMapID(frame._mapID) end
+      if frame._questID and SetSuperTrackedQuestID then SetSuperTrackedQuestID(frame._questID) end
+    else
+      ns.FlashItem(frame._compareLink or frame._itemLink)
+    end
   end)
 
   -- Headline (item + ilvl gain) on the top band; source detail on a smaller muted

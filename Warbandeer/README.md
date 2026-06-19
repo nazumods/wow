@@ -13,7 +13,7 @@ Open it with `/warband` or `/wb` and switch views with the icon rail on the left
 |---|---|
 | Overview | Warband-wide summary: wealth, top alts (with per-raid RF/N/H/M tier-set completion), faction progress, achievements |
 | Summary | One row per character: level, ilvl, gold, professions |
-| Detail | Deep-dive on a single character: gear, a secondary-stats panel (Crit/Haste/Mastery/Versatility, with the spec's best stat highlighted and — with ClassCodex — each rating shown against its recommended target, colour-coded over/at/under), profession crafting intents, each profession's equipped tool/accessories, and a Suggested box of gear upgrades — ready items the character can equip right now, plus active world-quest rewards and buyable faction-quartermaster gear that would upgrade a slot (click to open the map to the quest/vendor) |
+| Detail | Deep-dive on a single character: gear, a secondary-stats panel (Crit/Haste/Mastery/Versatility, with the spec's best stat highlighted and — with ClassCodex — each rating shown against its recommended target, colour-coded over/at/under), profession crafting intents, each profession's equipped tool/accessories, and a Suggested box of gear upgrades — ready items the character can equip right now, plus active world-quest rewards and buyable faction-quartermaster gear that would upgrade a slot (click to open the map to the quest/vendor, or click a ready upgrade — in the Suggested box or beneath a gear row — to flash it in your open bags/bank) |
 | Gear | Equipped item levels piece-by-piece across the warband |
 | Roles | Tank/healer/DPS coverage by class |
 | Races | Race coverage across your characters |
