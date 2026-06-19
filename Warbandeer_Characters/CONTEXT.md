@@ -31,7 +31,7 @@ Data-collection backbone for the suite. Scans the active character each login/re
 | `data/playtime.lua` | Broker `playtime`: `total` seconds + `byPatch` baseline; async via `TIME_PLAYED_MSG` |
 | `data/weekly.lua` | Broker `weeklies`: `DMF`, `preMidnight`, `caches`, `vault`, `hasUnclaimedVault`, `keystone`, `dungeons`; `/wbc dump m+`, `/wbc dump vault` |
 | `data/instances.lua` | Broker `instances`: `locks`; `/wbc refresh locks`, `/wbc dump locks` |
-| `data/equipment.lua` | Broker `equipment`: `slots`, `ilvl`, `trackScanned`; loads item data before reading. Each slot also records `emptySockets` (v15) — `emptySocketCount(link)` sums the `EMPTY_SOCKET_*` keys from `C_Item.GetItemStats`, captured here while the item is loaded so it persists + reads warband-wide |
+| `data/equipment.lua` | Broker `equipment`: `slots`, `ilvl`, `trackScanned`; loads item data before reading. Each slot also records `emptySockets` (v15) — `emptySocketCount(link)` = `C_Item.GetItemNumSockets` minus the sockets that hold a gem (`C_Item.GetItemGemID` per socket, mirroring Blizzard's paperdoll socket display). **Not** the `GetItemStats` `EMPTY_SOCKET_*` keys: the Midnight Gem Manager applies gems outside the stat block, so a gemmed item still reports those keys and would falsely read as needing a gem. Captured here while the item is loaded so it persists + reads warband-wide |
 | `data/stats.lua` | Broker `stats`: `secondary` (v16) — `{ crit, haste, mastery, versatility }`, each `{ pct, rating }` (effective % + gear combat rating) from the live `GetCritChance`/`GetHaste`/`GetMasteryEffect`/`GetCombatRatingBonus` + `GetCombatRating` APIs (logged-in char only), so it's a last-seen snapshot read warband-wide. Refreshes on `COMBAT_RATING_UPDATE`. Drives Warbandeer's Detail stat grid |
 | `data/artifacts.lua` | Broker `artifacts`: `hidden`, `hiddenColors`, `classHall`; `/wbc dump artifact` |
 | `dump.lua` | `/wbc stat` — warband-wide playtime/class statistics |
@@ -164,7 +164,7 @@ instances = {
   locks = { [instanceID] = { [difficultyID] = { name, total, progress, reset, extended, isRaid } } },
 }
 equipment = {
-  slots = { Head/Neck/.../OffHand = { name, link, ilvl, track?, trackLevel?, equipLoc, classID, subClassID, emptySockets } },  -- emptySockets (v15): count of unfilled gem sockets, from GetItemStats EMPTY_SOCKET_*
+  slots = { Head/Neck/.../OffHand = { name, link, ilvl, track?, trackLevel?, equipLoc, classID, subClassID, emptySockets } },  -- emptySockets (v15): count of unfilled gem sockets, via GetItemNumSockets − gemmed sockets (GetItemGemID); NOT GetItemStats EMPTY_SOCKET_* (stale under the Midnight Gem Manager)
   ilvl, trackScanned,
 }
 artifacts = {

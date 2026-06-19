@@ -142,25 +142,25 @@ local function missingEnchantLine(slot)
   return NO_ENCHANT
 end
 
-local GetItemStats = C_Item and C_Item.GetItemStats
+local GetItemNumSockets = C_Item and C_Item.GetItemNumSockets
+local GetItemGemID = C_Item and C_Item.GetItemGemID
 -- Cyan (vs the orange "Missing enchant") so the two reminders read as different things.
 local EMPTY_SOCKET = "|cff4fc3f7Empty socket|r"
 
 -- Empty gem sockets on `link` only when it's one of the player's own equipped items
--- (any slot), so we never nag about loose / vendor gear. Empty sockets show up as
--- EMPTY_SOCKET_* stat keys; a filled socket contributes its gem's stats instead.
+-- (any slot), so we never nag about loose / vendor gear. Count sockets without a gem via
+-- GetItemGemID — NOT the GetItemStats EMPTY_SOCKET_* keys, which the Midnight Gem Manager
+-- leaves set on items it has gemmed (the manager applies gems outside the stat block).
 local function equippedEmptySockets(link)
-  if not GetItemStats then return 0 end
+  if not GetItemNumSockets then return 0 end
   local equipped = false
   for slot = 1, 17 do
     if GetInventoryItemLink("player", slot) == link then equipped = true; break end
   end
   if not equipped then return 0 end
-  local stats = GetItemStats(link)
-  if not stats then return 0 end
   local n = 0
-  for key, value in pairs(stats) do
-    if key:find("EMPTY_SOCKET") then n = n + value end
+  for i = 1, (GetItemNumSockets(link) or 0) do
+    if GetItemGemID(link, i) == nil then n = n + 1 end
   end
   return n
 end

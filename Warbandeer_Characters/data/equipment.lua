@@ -6,22 +6,25 @@ local GetItemID = C_Item.GetItemID
 local GetItemInfo, GetCurrentItemLevel = C_Item.GetItemInfo, C_Item.GetCurrentItemLevel
 local GetItemUpgradeInfo = C_Item.GetItemUpgradeInfo
 local GetItemInfoInstant = C_Item.GetItemInfoInstant
-local GetItemStats = C_Item.GetItemStats
+local GetItemNumSockets = C_Item.GetItemNumSockets
+local GetItemGemID = C_Item.GetItemGemID
 local GetInventoryItemLink = GetInventoryItemLink
 
--- Number of *empty* gem sockets on an item, from its stat table: an unfilled socket
--- shows up as an EMPTY_SOCKET_* key (PRISMATIC, META, …) whose value is the count; a
--- filled socket contributes its gem's stats instead, so it isn't counted. Needs the
--- item loaded (the broker only builds a slot once GetItemInfo resolves), so it's
--- captured here at scan time and persisted — making it readable warband-wide later.
+-- Number of *empty* gem sockets on an item: its socket count minus the sockets that
+-- hold a gem. We must NOT derive this from GetItemStats' EMPTY_SOCKET_* keys — the
+-- Midnight Gem Manager applies gems outside the item's stat block, so a socketed item
+-- still reports EMPTY_SOCKET there (and showed as "needs a gem" when it doesn't). Mirror
+-- Blizzard's own paperdoll socket display: GetItemGemID reads the actually-socketed gem
+-- (and resolves even when the gem item isn't loaded, unlike GetItemGem). Needs the host
+-- item loaded (the broker only builds a slot once GetItemInfo resolves), so it's captured
+-- here at scan time and persisted — making it readable warband-wide later.
 local function emptySocketCount(link)
-  local stats = GetItemStats(link)
-  if not stats then return 0 end
-  local n = 0
-  for key, value in pairs(stats) do
-    if key:find("EMPTY_SOCKET") then n = n + value end
+  local numSockets = GetItemNumSockets(link) or 0
+  local empty = 0
+  for i = 1, numSockets do
+    if GetItemGemID(link, i) == nil then empty = empty + 1 end
   end
-  return n
+  return empty
 end
 
 local EquipmentSlots = {
