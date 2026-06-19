@@ -129,4 +129,25 @@ Currency.fields = {
       return {quantity = c.quantity, earned = 0, max = c.max, capped = false}
     end,
   },
+  UntaintedManaCrystal = {
+    id = 3356, -- weekly earn cap (maxWeeklyQuantity 250); hard cap 1000
+    get = function(self)
+      local info = GetCurrencyInfo(self.id)
+      if not info then return {quantity = 0, earned = 0, max = 0, capped = false} end
+      local earned = info.quantityEarnedThisWeek or 0
+      local max    = info.maxWeeklyQuantity or 0
+      return {
+        quantity = info.quantity or 0,
+        earned   = earned,
+        max      = max,
+        capped   = max > 0 and earned >= max,
+      }
+    end,
+    resetOn = ns.RESET_WEEKLY,
+    reset = function(_, toon)
+      local c = toon.currency and toon.currency.UntaintedManaCrystal
+      if not c then return nil end
+      return {quantity = c.quantity, earned = 0, max = c.max, capped = false}
+    end,
+  },
 }
