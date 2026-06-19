@@ -90,6 +90,9 @@ function ns.getMissingFields(toon)
     if not toon.currency or toon.currency.NebulousVoidcore == nil then
       table.insert(missing, "nebulous voidcores")
     end
+    if not toon.currency or toon.currency.UntaintedManaCrystal == nil then
+      table.insert(missing, "untainted mana-crystals")
+    end
     if not toon.currency or toon.currency.FieldAccolade == nil then
       table.insert(missing, "field accolade")
     end
