@@ -78,6 +78,12 @@ function ns.getMissingFields(toon)
     if toon.equipment and toon.equipment.slots and not toon.equipment.trackScanned then
       table.insert(missing, "upgrade track data")
     end
+    -- Alts last scanned before the GetItemGemID empty-socket fix carry stale socket
+    -- counts (the old GetItemStats parse over-counted gemmed items under the Midnight
+    -- Gem Manager); flag until they re-log and rescan with the corrected logic.
+    if toon.equipment and toon.equipment.slots and not toon.equipment.socketScanned then
+      table.insert(missing, "gem socket data")
+    end
     if not toon.currency or toon.currency.HeroDawncrest == nil then
       table.insert(missing, "hero dawncrest")
     end
