@@ -28,6 +28,7 @@ controls\FilterDropdown.lua
 controls\IconStrip.lua
 controls\UpgradeMark.lua
 controls\SuggestedBox.lua
+controls\FlashItem.lua
 
 views\Overview.lua
 

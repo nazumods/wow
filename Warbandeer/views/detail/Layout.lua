@@ -134,6 +134,12 @@ function D.attachItemTip(frame)
     hi:Hide()
     ns.HideItemTooltip()
   end)
+  -- Left-click a row carrying a suggested upgrade → flash that item in the open
+  -- bags / bank (the upgrade is held gear; the equipped piece itself is never in a
+  -- bag, so only `_upgradeLink` is flashable). No-op on rows without an upgrade.
+  frame:SetScript("OnMouseUp", function(_, button)
+    if button == "LeftButton" and frame._upgradeLink then ns.FlashItem(frame._upgradeLink) end
+  end)
 end
 
 -- Rarity color pulled straight from the stored item link's color prefix, so it works
