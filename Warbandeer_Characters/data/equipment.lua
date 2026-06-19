@@ -160,6 +160,14 @@ Equipment.fields = {
   trackScanned = {
     get = function() return true end,
   },
+  -- Set once a character's gear has been scanned with the GetItemGemID-based empty-socket
+  -- count (vs the old GetItemStats parse the Midnight Gem Manager broke). Absent on an alt
+  -- last scanned before that fix, so its stored `slots.*.emptySockets` are unreliable —
+  -- `missing.lua` flags "gem socket data" until it re-logs and rescans. Marker only (no
+  -- migration): nil = not yet rescanned.
+  socketScanned = {
+    get = function() return true end,
+  },
 }
 
 ---@class Warbandeer_Characters
