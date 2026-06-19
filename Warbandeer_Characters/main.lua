@@ -34,7 +34,14 @@ function ns:refreshQueue()
   local field = self.brokers[brokerName].fields[fieldName]
   local toon = self.currentData
   if not (field.maxLevel and toon.basic.level < maxLevel) then
-    toon[brokerName][fieldName] = field:get(toon, toon[brokerName][fieldName])
+    -- A field's get reads live WoW APIs that can momentarily return nil (an
+    -- undiscovered currency, an item not yet loaded), so a throw here must not kill
+    -- the rest of the queue: ns:delay clears its OnUpdate before invoking us, so an
+    -- error would skip the re-arm below and silently strand every field after this
+    -- one (and never stamp lastRefresh). pcall and keep the cached value on failure
+    -- so the chain always continues to the next field.
+    local ok, value = pcall(field.get, field, toon, toon[brokerName][fieldName])
+    if ok then toon[brokerName][fieldName] = value end
   end
   if #queue == 0 then
     toon.lastRefresh = time()

@@ -9,7 +9,12 @@ local Currency = ns:RegisterBroker("currency")
 Currency.fields = {
   RestoredCofferKey = {
     id = 3028,
-    get = function(self) return GetCurrencyInfo(self.id).quantity end,
+    -- GetCurrencyInfo returns nil for a currency the character hasn't discovered yet,
+    -- so guard the index (consumers coalesce nil → 0).
+    get = function(self)
+      local info = GetCurrencyInfo(self.id)
+      return info and info.quantity
+    end,
   },
   gold = {
     get = function() return GetMoney() end,
@@ -102,11 +107,17 @@ Currency.fields = {
   },
   FieldAccolade = {
     id = 3405,
-    get = function(self) return GetCurrencyInfo(self.id).quantity end,
+    get = function(self)
+      local info = GetCurrencyInfo(self.id)
+      return info and info.quantity
+    end,
   },
   UnalloyedAbundance = {
     id = 3377,
-    get = function(self) return GetCurrencyInfo(self.id).quantity end,
+    get = function(self)
+      local info = GetCurrencyInfo(self.id)
+      return info and info.quantity
+    end,
   },
   MythDawncrest = {
     id = 3347,
