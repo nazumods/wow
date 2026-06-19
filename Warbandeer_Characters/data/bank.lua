@@ -7,6 +7,13 @@ local C_Item = C_Item
 local C_Bank = C_Bank
 local C_Container = C_Container
 local BankType = Enum.BankType
+local GetCurrentItemLevel = C_Item.GetCurrentItemLevel
+local GetDetailedItemLevelInfo = C_Item.GetDetailedItemLevelInfo
+local RequestLoadItemData = C_Item.RequestLoadItemData
+
+-- Bank slots whose item data wasn't loaded during the in-progress scan (collected by
+-- addEquip; consumed by scanPersonalBanks to request a load + re-scan). nil between scans.
+local cold
 -- Guild bank (the classic, non-C_Bank API):
 
 -- Account-wide cache of profession gear sitting in banks, so the prof-gear
@@ -86,13 +93,22 @@ local function addEquip(equip, info, bagID, slot)
   local equipLoc, classID, subClassID = API:ClassifyGearItem(info.itemID)
   if not equipLoc then return end
   local link = info.hyperlink
+  -- Effective (context-scaled) ilvl via the bank location, matching how equipped slots
+  -- are measured (data/gearbag.lua carries the same note). It needs the item loaded,
+  -- though, and a fresh bank-open scan reads many slots cold → nil. A nil ilvl makes the
+  -- upgrade finder drop the candidate, so a worse but already-loaded piece gets
+  -- recommended first; fall back to the link's unscaled ilvl so it still ranks, and flag
+  -- the slot so scanPersonalBanks requests a load + re-scan for the exact scaled value.
+  local loc = ItemLocation:CreateFromBagAndSlot(bagID, slot)
+  local ilvl = GetCurrentItemLevel(loc)
+  if not ilvl then
+    ilvl = link and GetDetailedItemLevelInfo(link) or nil
+    if cold then cold[#cold + 1] = loc end
+  end
   insert(equip, {
     link = link,
     itemID = info.itemID,
-    -- Effective (context-scaled) ilvl via the bank location, matching how
-    -- equipped slots are measured (data/gearbag.lua carries the same note); the
-    -- link's unscaled GetDetailedItemLevelInfo would over-report a downscaled item.
-    ilvl = C_Item.GetCurrentItemLevel(ItemLocation:CreateFromBagAndSlot(bagID, slot)),
+    ilvl = ilvl,
     equipLoc = equipLoc,
     classID = classID,
     subClassID = subClassID,
@@ -118,29 +134,61 @@ local function scanBankType(bankType)
   return toList(gear), equip
 end
 
+-- Scan both personal banks; returns true if any slot was still cold (so a re-scan is
+-- worthwhile once its data loads). Requests a load for every cold slot before returning.
 local function scanPersonalBanks()
   local b = store()
   local now = GetServerTime()
+  cold = {}
   local charGear, charEquip = scanBankType(BankType.Character)
   local wbGear, wbEquip = scanBankType(BankType.Account)
   b.characters[ns.currentPlayer] = { scannedAt = now, gear = charGear, equip = charEquip }
   b.warband = { scannedAt = now, gear = wbGear, equip = wbEquip }
+  local pending = cold
+  cold = nil
+  for _, loc in ipairs(pending) do RequestLoadItemData(loc) end
+  return #pending > 0
 end
 
 local bankOpen = false
+
+local BANK_RESCAN_DELAY = 800 -- ms; outlasts a typical item-data load
+local MAX_BANK_RESCANS = 5
+local bankRescanGen = 0
+
+-- A fresh bank-open scan reads cold (unloaded) slots as nil ilvl; once their data is
+-- requested, re-scan a few times until it's all loaded — so the upgrade finder ranks
+-- every piece by its real ilvl, not whichever happened to be cached first. Generation-
+-- guarded (a newer scan supersedes an in-flight chain), attempt-capped (a never-loading
+-- item can't loop forever), gated on the bank still being open. Mirrors data/equipment.lua.
+local function scheduleBankRescan()
+  bankRescanGen = bankRescanGen + 1
+  local gen, attempt = bankRescanGen, 0
+  local function tick()
+    if gen ~= bankRescanGen or not bankOpen then return end
+    attempt = attempt + 1
+    if scanPersonalBanks() and attempt < MAX_BANK_RESCANS then ns:after(BANK_RESCAN_DELAY, tick) end
+  end
+  ns:after(BANK_RESCAN_DELAY, tick)
+end
+
+local function refreshBanks()
+  if scanPersonalBanks() then scheduleBankRescan() end
+end
+
 ns:registerEvent("BANKFRAME_OPENED", function()
   bankOpen = true
-  scanPersonalBanks()
+  refreshBanks()
 end)
 ns:registerEvent("BANKFRAME_CLOSED", function()
   if bankOpen then scanPersonalBanks() end -- final capture before it closes
   bankOpen = false
 end)
 ns:registerEvent("PLAYERBANKSLOTS_CHANGED", function()
-  if bankOpen then scanPersonalBanks() end
+  if bankOpen then refreshBanks() end
 end)
 ns:registerEvent("PLAYER_ACCOUNT_BANK_TAB_SLOTS_CHANGED", function()
-  if bankOpen then scanPersonalBanks() end
+  if bankOpen then refreshBanks() end
 end)
 
 -- ─── Guild bank ──────────────────────────────────────────────────────────────
