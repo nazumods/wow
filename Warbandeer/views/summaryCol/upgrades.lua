@@ -63,6 +63,7 @@ end
 insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
+    key = "upgrades", label = "Upgrades",
     name = "Up",
     width = 26,
     justifyH = ui.justify.Right,

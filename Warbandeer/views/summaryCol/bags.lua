@@ -56,6 +56,7 @@ end
 table.insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
+    key = "bags", label = "Bag Space",
     iconPath = "Interface\\AddOns\\Warbandeer\\icons\\bag.tga",
     iconColor = ns.theme.colors.muted,
     width = 30,

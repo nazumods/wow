@@ -8,6 +8,7 @@ local ICON_PATH = "Interface\\AddOns\\Warbandeer\\icons\\fieldaccolade.tga"
 table.insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
+    key = "fieldAccolade", label = "Field Accolade",
     iconPath    = ICON_PATH,
     iconColor   = ns.theme.colors.muted,
     iconOffsetX = 9,

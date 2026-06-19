@@ -7,6 +7,7 @@ local ui = ns.ui
 table.insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
+    key = "cofferKey", label = "Coffer Keys",
     iconPath = "Interface\\AddOns\\Warbandeer\\icons\\key.tga",
     iconColor = ns.theme.colors.muted,
     width = 40,

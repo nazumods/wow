@@ -40,6 +40,7 @@ end
 table.insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
+    key = "vault", label = "Great Vault",
     name = "Vault",
     width = 50,
     getData = function(t)

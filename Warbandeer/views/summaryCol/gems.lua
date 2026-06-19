@@ -58,6 +58,7 @@ end
 insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
+    key = "gems", label = "Empty Sockets",
     name = "Gem",
     width = 32,
     justifyH = ui.justify.Center,

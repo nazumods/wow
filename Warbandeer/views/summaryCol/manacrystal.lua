@@ -8,6 +8,7 @@ local ui = ns.ui
 table.insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
+    key = "manaCrystal", label = "Untainted Mana-Crystals",
     iconPath = "Interface\\AddOns\\Warbandeer\\icons\\manacrystal.tga",
     iconColor = ns.theme.colors.muted,
     width = 30,

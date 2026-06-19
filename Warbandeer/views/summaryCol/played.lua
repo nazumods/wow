@@ -17,6 +17,7 @@ end
 table.insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
+    key = "played", label = "Played Time",
     name = "Played",
     width = 100,
     justifyH = ui.justify.Right,
