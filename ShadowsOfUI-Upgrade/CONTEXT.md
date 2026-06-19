@@ -33,7 +33,7 @@ LibNUI. The stat-priority and quartermaster-gear tables are small built-ins (`ns
 | `spec/equip_spec.lua` | `CompetingSlots` / `IsTwoHand` / `WeaponRole` / `CanEquip` (armour-type, shield, weapon-proficiency gating) |
 | `spec/resolve_spec.lua` | `StatRanks` / `PrimaryStat` spec-ID → tier/primary resolution |
 | `spec/enhance_spec.lua` | `ItemEnchantID` link parsing (enchant id / 0 / nil / bare itemString), `MissingEnchants` (slot-order output, non-enchantable slots ignored, empty slots skipped, off-hand weapon flagged but shield/holdable not), the published `Upgrade:MissingEnchants` name resolution, and `RecommendedEnchant` — the bundled path (stat-variant pick from spec priority, Finger1/2 + MainHand/OffHand canonical-key mapping, `fixed` spec-independent, nil for unknown-spec variant slot / unbundled slot, next-best-stat fallback) **and** the ClassCodex source (per-spec pick overrides bundled, singular/plural slot tolerance, weapon mapping, graceful fallback when CC's global is absent or malformed); plus `MissingGems` (empty-socket slot list from stored counts, order, ignores no-data slots) and `RecommendedGems` (bundled → nil primary + top-stat secondary; ClassCodex → primary diamond + first secondary; nil/nil when spec unknown + no CC) |
-| `spec/upgrade_spec.lua` | End-to-end published API: ilvl gating, equip/primary filters, multi-slot weaker-slot targeting, held-vs-warband (`betterElsewhere`), `statTag` good/off, sort/count, memo TTL, two-hand reconciliation, `ItemUpgrades` (soulbound `boundTo`, 2H lone-off-hand exclusion), `WorldQuestUpgrades` (ilvl gating, equip/primary filters, multi-slot, 2H guard, sort + quest metadata; harness `addWQ` / fake `GetWorldQuestRewards`), `VendorUpgrades` (ilvl gating, `reqLevel` player-level gating, armour-type/neck option pick, multi-slot, 2H guard, statTag, sort + purchase metadata; harness `addVendor` / synthetic `ns.VendorGear`) |
+| `spec/upgrade_spec.lua` | End-to-end published API: ilvl gating, equip/primary filters, multi-slot weaker-slot targeting, held-vs-warband (`betterElsewhere`), `statTag` good/off, sort/count, memo TTL, two-hand reconciliation, the one-hander guard (off-hand wielder never offered a 2H; 1H still upgrades; tooltip path), `ItemUpgrades` (soulbound `boundTo`, 2H lone-off-hand exclusion), `WorldQuestUpgrades` (ilvl gating, equip/primary filters, multi-slot, 2H guard, sort + quest metadata; harness `addWQ` / fake `GetWorldQuestRewards`), `VendorUpgrades` (ilvl gating, `reqLevel` player-level gating, armour-type/neck option pick, multi-slot, 2H guard, statTag, sort + purchase metadata; harness `addVendor` / synthetic `ns.VendorGear`) |
 
 ## `ShadowsOfUI_UpgradeApi`
 
@@ -138,6 +138,15 @@ better 2H emits one normal MainHand result; a pair that beats both current and t
 MainHand **and** OffHand results flagged `pairSwap`, each showing the average per-hand gain. The
 tooltip path (`ItemUpgrades`) applies the same gate: a single item can't form a pair, so a lone
 off-hand / 1H is not listed as an upgrade for a 2H wielder (only another 2H is).
+
+**One-hander guard** (the mirror, in `evaluate`): when the character has an **off-hand equipped**
+(`equipped.OffHand`) — a shield tank (Prot Paladin/Warrior) or a dual-wielder (DW Frost DK,
+Enhancement, rogues) — a two-hander (`ns.IsTwoHand`) is rejected outright, since equipping it would
+drop the off-hand the spec relies on (the per-slot ilvl compare would otherwise flag a higher-ilvl
+2H against the equipped 1H main hand). It's keyed off the **equipped weapon config**, not a spec
+table, so it tracks the character's actual build (DW vs 2H Frost, SMF vs Titan's-Grip Fury) for free;
+a true 2H wielder has an empty off-hand and falls to `resolveTwoHand` instead. One gate in `evaluate`
+covers every source (held/warband, world-quest, vendor, and the `ItemUpgrades` tooltip).
 
 ## Gotchas
 

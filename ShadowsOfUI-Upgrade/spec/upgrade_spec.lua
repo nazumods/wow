@@ -252,6 +252,48 @@ describe("ShadowsOfUI-Upgrade upgrade calc", function()
     end)
   end)
 
+  -- A shield tank (Prot Paladin/Warrior) or dual-wielder (DW Frost DK, Enhancement,
+  -- rogues) holds an off-hand; a two-hander would drop it, so it's never an upgrade
+  -- for them however high its ilvl — only one-handers are. Keyed off the equipped
+  -- off-hand, not the spec.
+  describe("one-hander guard (off-hand wielder)", function()
+    -- Warrior with a one-hander + shield (an occupied off-hand slot).
+    local function shieldWarrior(mhIlvl)
+      return warrior("Garrosh", {
+        MainHand = { ilvl = mhIlvl, equipLoc = "INVTYPE_WEAPON" },
+        OffHand  = { ilvl = mhIlvl, equipLoc = "INVTYPE_SHIELD" },
+      })
+    end
+    local function sword2h(id, ilvl)
+      return h.defItem{ link = "2h:" .. id, itemID = id, equipLoc = "INVTYPE_2HWEAPON",
+        classID = WEAPON, subClassID = SWORD2H, ilvl = ilvl }
+    end
+    local function sword1h(id, ilvl)
+      return h.defItem{ link = "1h:" .. id, itemID = id, equipLoc = "INVTYPE_WEAPON",
+        classID = WEAPON, subClassID = SWORD1H, ilvl = ilvl }
+    end
+
+    it("never reports a two-hander as an upgrade while an off-hand is equipped", function()
+      h.addChar(shieldWarrior(600))
+      h.pools.Garrosh = { bags = { sword2h(1, 700) }, bank = {} }   -- far higher ilvl
+      assert.is_nil(h.Api:SlotUpgrade("Garrosh", "MainHand"))
+    end)
+
+    it("still reports a higher-ilvl one-hander as a MainHand upgrade", function()
+      h.addChar(shieldWarrior(600))
+      h.pools.Garrosh = { bags = { sword1h(1, 620) }, bank = {} }
+      local mh = h.Api:SlotUpgrade("Garrosh", "MainHand")
+      assert.is_not_nil(mh)
+      assert.equals(20, mh.ilvlGain)
+    end)
+
+    it("excludes a two-hander from the ItemUpgrades tooltip for an off-hand wielder", function()
+      h.addChar(shieldWarrior(600))
+      local twoH = sword2h(1, 700)
+      assert.is_nil(h.Api:ItemUpgrades(twoH.link, nil, 700))
+    end)
+  end)
+
   describe("artifact exclusion (Heart of Azeroth regression)", function()
     -- An artifact's GetDetailedItemLevelInfo reports an inflated effective ilvl,
     -- so without the quality gate a legacy Heart of Azeroth in a bank "upgrades"
