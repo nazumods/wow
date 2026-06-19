@@ -22,6 +22,7 @@ local ItemLocation = ItemLocation
 ---@field equipLoc string INVTYPE_* the item fills
 ---@field classID integer Enum.ItemClass (Armor|Weapon)
 ---@field subClassID integer armour type / weapon subclass
+---@field quality integer? Enum.ItemQuality, captured at scan time so the artifact gate works on cold/offline items (nil for entries cached before v17)
 
 ---Scan the active character's bags for equippable gear.
 ---@return GearCandidate[]
@@ -52,6 +53,9 @@ local function scanBags()
             equipLoc = equipLoc,
             classID = classID,
             subClassID = subClassID,
+            -- Captured now (item warm), so the upgrade finder's artifact gate fires for
+            -- this candidate even when later read for an offline alt with the item cold.
+            quality = info.quality,
           })
         end
       end

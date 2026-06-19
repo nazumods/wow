@@ -112,6 +112,9 @@ local function addEquip(equip, info, bagID, slot)
     equipLoc = equipLoc,
     classID = classID,
     subClassID = subClassID,
+    -- Captured now (item warm in the open bank), so the upgrade finder's artifact gate
+    -- fires for this candidate even when later read for an offline alt with the item cold.
+    quality = info.quality,
   })
 end
 
