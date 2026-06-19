@@ -321,6 +321,19 @@ describe("ShadowsOfUI-Upgrade upgrade calc", function()
         classID = ARMOR, subClassID = MISC, ilvl = 9999, rarity = ARTIFACT }
       assert.is_nil(h.Api:ItemUpgrades(heart.link))
     end)
+
+    -- The real-world bug: an offline alt's bank gear is cold, so GetItemQualityByID
+    -- returns nil and the live quality lookup can't see it's an artifact.  The scan-time
+    -- `quality` captured on the candidate must still gate it out.  Here the item carries
+    -- no `rarity` (so the GetItemQualityByID stub returns nil) but a stored quality.
+    it("excludes an artifact via stored quality when its quality is uncached", function()
+      h.addChar(warrior("Conan", { Neck = { ilvl = 600 } }))
+      h.pools.Conan = { bags = { h.defItem{ link = "heart", itemID = 158075,
+        equipLoc = "INVTYPE_NECK", classID = ARMOR, subClassID = MISC,
+        ilvl = 9999, quality = ARTIFACT } }, bank = {} }
+      assert.is_nil(h.Api:SlotUpgrade("Conan", "Neck"))
+      assert.equals(0, h.Api:CharacterUpgradeCount("Conan"))
+    end)
   end)
 
   describe("ItemUpgrades (tooltip path)", function()

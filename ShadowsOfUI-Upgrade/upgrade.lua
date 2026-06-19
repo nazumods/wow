@@ -15,9 +15,17 @@ local ARTIFACT = Enum.ItemQuality.Artifact
 -- Artifact-quality items (the Heart of Azeroth, Legion artifact weapons) scale by
 -- their own systems, so GetDetailedItemLevelInfo reports an inflated effective
 -- ilvl — a legacy Heart sitting in a bank otherwise "upgrades" a real neck.  They
--- can never be a current-content upgrade, so drop them outright.
-local function isArtifact(itemID)
-  return itemID ~= nil and GetItemQualityByID(itemID) == ARTIFACT
+-- can never be a current-content upgrade, so drop them outright.  Prefer the quality
+-- captured at scan time (data/gearbag.lua, data/bank.lua store it on the candidate):
+-- GetItemQualityByID returns nil for an item not in the client cache, which is the
+-- common case for an *offline* alt's stored bank/bag gear — so without the stored
+-- quality a legacy Heart slips past this gate and gets recommended.  Falls back to the
+-- live lookup for candidates without a stored quality (a loaded tooltip item, etc.).
+local function isArtifact(cand)
+  if not cand or not cand.itemID then return false end
+  local q = cand.quality
+  if q == nil then q = GetItemQualityByID(cand.itemID) end
+  return q == ARTIFACT
 end
 
 -- Secondary-stat → GetItemStats key.  Versatility has reported under more than one
@@ -101,7 +109,7 @@ local function evaluate(charData, cand)
   -- so don't guess (else every warband item "upgrades" a barely-logged alt).
   local equipped = charData.equipment and charData.equipment.slots
   if not equipped then return nil end
-  if isArtifact(cand.itemID) then return nil end
+  if isArtifact(cand) then return nil end
 
   local equipLoc, classID, subClassID = candInfo(cand)
   if not equipLoc then return nil end
@@ -199,7 +207,7 @@ local function resolveTwoHand(charData, pools, warband, equipped, ranks, out)
     for _, cand in ipairs(cands) do
       local equipLoc, classID, subClassID = candInfo(cand)
       local role = equipLoc and ns.WeaponRole(equipLoc)
-      if role and not isArtifact(cand.itemID)
+      if role and not isArtifact(cand)
           and ns.CanEquip(charData.classKey, equipLoc, classID, subClassID)
           and primaryFits(cand.link, primary) then
         local ilvl = cand.ilvl or (cand.link and GetDetailedItemLevelInfo(cand.link))

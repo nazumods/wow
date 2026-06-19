@@ -201,6 +201,16 @@ function ns:MigrateDB()
   if (db.version or 0) < 16 then
     db.version = 16
   end
+
+  -- v17: per-candidate item quality on cached bag/bank equippable gear (non-destructive).
+  -- Stored by data/gearbag.lua + data/bank.lua at scan time so ShadowsOfUI-Upgrade's
+  -- artifact gate fires for an offline alt's cold gear (GetItemQualityByID is nil for an
+  -- uncached item, which let a legacy Heart of Azeroth read as a neck upgrade).  Nothing
+  -- to seed — old entries just lack `quality` (the gate falls back to the live lookup)
+  -- until the relevant bag/bank is next scanned, so rollback is lossless.
+  if (db.version or 0) < 17 then
+    db.version = 17
+  end
 end
 
 ---@class Warbandeer_Characters

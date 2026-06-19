@@ -188,7 +188,11 @@ covers every source (held/warband, world-quest, vendor, and the `ItemUpgrades` t
 - **Artifact-quality items are excluded outright** (`isArtifact` in `upgrade.lua`, gating both
   `evaluate` and the `resolveTwoHand` scan). The Heart of Azeroth and Legion artifact weapons
   scale by their own systems, so `GetDetailedItemLevelInfo` returns an inflated effective ilvl —
-  a legacy Heart in a bank would otherwise "upgrade" a real neck. Gate is `C_Item.GetItemQualityByID(itemID) == Enum.ItemQuality.Artifact`.
+  a legacy Heart in a bank would otherwise "upgrade" a real neck. Gate prefers the candidate's
+  **scan-time `quality`** (captured by the data layer's `gearbag`/`bank` scanners, v17) and falls back
+  to `C_Item.GetItemQualityByID(itemID)`. The stored quality is essential for **offline alts**:
+  `GetItemQualityByID` returns nil for an item not in the client cache, so without it a cold legacy
+  Heart slipped the gate and was recommended as a neck upgrade. Gate is `quality == Enum.ItemQuality.Artifact`.
 - **Effective vs. detailed ilvl** — equipped slots are measured with `C_Item.GetCurrentItemLevel`
   (effective / context-scaled), so candidates MUST be too, or an item the player sees downscaled
   (e.g. a true ilvl-655 ring shown at 102 in Chromie Time / a scaled zone) reads hundreds of levels
