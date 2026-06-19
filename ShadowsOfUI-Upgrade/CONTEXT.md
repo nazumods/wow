@@ -141,7 +141,7 @@ off-hand / 1H is not listed as an upgrade for a 2H wielder (only another 2H is).
 
 **One-hander guard** (the mirror, in `evaluate`): when the character has an **off-hand equipped**
 (`equipped.OffHand`) — a shield tank (Prot Paladin/Warrior) or a dual-wielder (DW Frost DK,
-Enhancement, rogues) — a two-hander (`ns.IsTwoHand`) is rejected outright, since equipping it would
+Enhancement, Windwalker, rogues) — a two-hander (`ns.IsTwoHand`) is rejected outright, since equipping it would
 drop the off-hand the spec relies on (the per-slot ilvl compare would otherwise flag a higher-ilvl
 2H against the equipped 1H main hand). It's keyed off the **equipped weapon config**, not a spec
 table, so it tracks the character's actual build (DW vs 2H Frost, SMF vs Titan's-Grip Fury) for free;

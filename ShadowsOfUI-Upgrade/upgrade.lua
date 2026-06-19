@@ -106,8 +106,9 @@ local function evaluate(charData, cand)
   local equipLoc, classID, subClassID = candInfo(cand)
   if not equipLoc then return nil end
   -- A character holding an off-hand (a shield tank — Prot Paladin/Warrior — or a
-  -- dual-wielder — DW Frost DK, Enhancement, rogues) must keep it: a two-hander is
-  -- never an upgrade for them, since equipping it drops the off-hand the spec needs.
+  -- dual-wielder — DW Frost DK, Enhancement, Windwalker, rogues) must keep it: a
+  -- two-hander is never an upgrade for them, since equipping it drops the off-hand
+  -- the spec needs.
   -- Mirror of the two-hand wielder's guard (which rejects a lone 1H/off-hand). Keyed
   -- off the equipped off-hand, so it follows the character's actual build (DW vs 2H
   -- Frost) with no spec table; a true 2H wielder has an empty off-hand and is handled
