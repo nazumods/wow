@@ -48,6 +48,7 @@ end
 insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
+    key = "catchup", label = "Catch-Up (<180)",
     name = "<180",
     width = 30,
     padLeft = 7,

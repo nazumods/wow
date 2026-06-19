@@ -12,30 +12,38 @@ local FACTION_COLOR = {
   horde    = {1.0,  0.125, 0.125, 1},
 }
 
--- Base column layout, built once at load: shallow-copy each column's colInfo with
--- uppercased text headers (icon-only columns have no name and are unaffected; the
--- muted header color comes from the theme). The source colInfo is left untouched.
--- Each ClassSummary instance gets its OWN shallow copy of this list (see :new
--- below) — addCol mutates self.colInfo in place (the dynamic DMF column), so a
--- shared table would leak that column into every sibling table built afterwards.
-local BASE_COL_INFO = ns.lua.lists.map(ns.SummaryColumns, function(c, i)
-  local info = {}
-  for k, v in pairs(c.colInfo) do info[k] = v end
-  if info.name and info.name ~= "" then info.name = info.name:upper() end
-  -- inset the outer columns' cells so they don't sit against the table edges
-  if i == 1 then info.hPadL = 8 end
-  -- the right-aligned Gold column also insets its header to match its cells:
-  -- cells use hPadR, headers use the symmetric `padding`, so set both (the
-  -- header's left inset is invisible under right-justification)
-  if i == #ns.SummaryColumns then info.hPadR = 8; info.padding = 8 end
-  return info
-end)
+-- Build the colInfo list for a given (visible) column set: shallow-copy each
+-- column's colInfo with uppercased text headers (icon-only columns have no name
+-- and are unaffected; the muted header color comes from the theme). The source
+-- colInfo is left untouched, and a fresh list is returned each call — addCol
+-- mutates colInfo in place (the dynamic DMF column), so each ClassSummary needs
+-- its own copy or that column would leak into every sibling table.
+---@param cols SummaryColumn[]
+---@return table[]
+local function buildColInfo(cols)
+  return ns.lua.lists.map(cols, function(c, i)
+    local info = {}
+    for k, v in pairs(c.colInfo) do info[k] = v end
+    if info.name and info.name ~= "" then info.name = info.name:upper() end
+    -- inset the outer columns' cells so they don't sit against the table edges
+    if i == 1 then info.hPadL = 8 end
+    -- the right-aligned Gold column also insets its header to match its cells:
+    -- cells use hPadR, headers use the symmetric `padding`, so set both (the
+    -- header's left inset is invisible under right-justification)
+    if i == #cols then info.hPadR = 8; info.padding = 8 end
+    return info
+  end)
+end
 
 -- Per-faction roster table: one row per character, one column per SummaryColumn.
 ---@class ClassSummary: TableFrame
----@field isAlliance boolean   which faction's characters this table shows
----@field _toons Character[]   row index -> character (refreshed each OnBeforeShow)
+---@field isAlliance boolean      which faction's characters this table shows
+---@field columns SummaryColumn[] the visible columns this table renders (passed in)
+---@field _columns SummaryColumn[] row-iteration list (columns + any dynamic DMF column)
+---@field _toons Character[]      row index -> character (refreshed each OnBeforeShow)
 local ClassSummary = Class(TableFrame, function(self)
+  -- the row builders walk _columns; SummaryColumnsDelayed may append the DMF column
+  self._columns = self.columns
   ns.SummaryColumnsDelayed(self)
 
   local toons = self:GetCharacters()
@@ -101,10 +109,10 @@ end
 -- map it to "" so the cell array stays index-aligned with the columns — `lists.map`
 -- would otherwise drop nils and shift every later column left for that row.
 ---@param toon Character
----@return table cells  one cell per column, index-aligned with ns.SummaryColumns
+---@return table cells  one cell per column, index-aligned with self._columns
 function ClassSummary:GetRowData(toon)
   local cells = {}
-  for n, c in ipairs(ns.SummaryColumns) do
+  for n, c in ipairs(self._columns) do
     cells[n] = c.getData(toon) or ""
   end
   return cells
@@ -156,7 +164,7 @@ end
 ---@return table footer  per-column footer cell data, keyed by column index
 function ClassSummary:GetFooterData(toons)
   local footer = {}
-  for i,c in ipairs(ns.SummaryColumns) do
+  for i,c in ipairs(self._columns) do
     if c.getFooter then footer[i] = c.getFooter(toons) end
   end
   return footer
@@ -191,18 +199,23 @@ local SummaryView = Class(ui.Frame, function(self)
   --   position = { TopLeft = {0, 0}, Width = 12, Height = 12 },
   -- }
 
-  -- Each table gets its own shallow copy of the base columns; addCol (the dynamic
-  -- DMF column) mutates self.colInfo in place, so a shared list would double-add.
+  -- The user-visible column set (identity columns + non-hidden toggleable ones),
+  -- resolved fresh each build so a settings toggle is reflected on rebuild. Each
+  -- table gets its OWN column list + colInfo copy: SummaryColumnsDelayed appends the
+  -- dynamic DMF column to both (via _columns / addCol), so a shared list would double-add.
+  local cols = ns.VisibleSummaryColumns()
   self.alliance = ClassSummary:new{
     parent = self,
     position = { TopLeft = {0, 0} },
-    colInfo = ns.lua.lists.map(BASE_COL_INFO),
+    columns = ns.lua.lists.map(cols),
+    colInfo = buildColInfo(cols),
   }
   self.horde = ClassSummary:new{
     parent = self,
     position = { TopLeft = {0, 0} },
     isAlliance = false,
-    colInfo = ns.lua.lists.map(BASE_COL_INFO),
+    columns = ns.lua.lists.map(cols),
+    colInfo = buildColInfo(cols),
   }
 
   self:layout()

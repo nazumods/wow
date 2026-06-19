@@ -7,6 +7,7 @@ local ui = ns.ui
 table.insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
+    key = "caches", label = "Caches",
     iconPath = "Interface\\AddOns\\Warbandeer\\icons\\chest.tga",
     iconColor = ns.theme.colors.muted,
     width = 30,

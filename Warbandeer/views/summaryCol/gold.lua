@@ -8,6 +8,7 @@ local BreakUpLargeNumbers = BreakUpLargeNumbers
 table.insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
+    key = "gold", label = "Gold",
     name = "Gold",
     width = 85,
     justifyH = ui.justify.Right,

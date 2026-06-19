@@ -8,6 +8,7 @@ local ui = ns.ui
 table.insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
+    key = "catalyst", label = "Catalyst Charges",
     iconPath = "Interface\\AddOns\\Warbandeer\\icons\\catalyst.tga",
     iconColor = ns.theme.colors.muted,
     width = 30,

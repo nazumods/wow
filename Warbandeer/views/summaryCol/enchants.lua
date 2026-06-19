@@ -53,6 +53,7 @@ end
 insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
+    key = "enchants", label = "Missing Enchants",
     name = "Ench",
     width = 32,
     justifyH = ui.justify.Center,

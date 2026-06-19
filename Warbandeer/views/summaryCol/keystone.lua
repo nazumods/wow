@@ -7,6 +7,7 @@ local ui = ns.ui
 table.insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
+    key = "keystone", label = "Mythic+",
     name = "M+",
     width = 28,
     justifyH = ui.justify.Right,

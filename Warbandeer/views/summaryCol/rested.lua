@@ -80,6 +80,7 @@ end
 table.insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
+    key = "rested", label = "Rested",
     iconPath = "Interface\\AddOns\\Warbandeer\\icons\\views\\midnight.tga",
     iconColor = ns.theme.colors.muted,
     width = 40,

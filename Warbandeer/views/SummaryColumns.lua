@@ -10,6 +10,8 @@ local Class = ns.lua.Class
 ---@class SummaryColumn: Class
 ---@field getData fun(toon:Character):any  cell data builder for a single character row
 ---@field getFooter? fun(toons:Character[]):any  optional footer cell data builder, given all rows
+---@field key? string   stable id for the show/hide setting; nil = always-on identity column
+---@field label? string display name in the "Summary Columns" settings panel
 ---@field colInfo table
 ns.SummaryColumn = Class(nil, function(self)
   local path, coords
@@ -41,6 +43,8 @@ ns.SummaryColumn = Class(nil, function(self)
   if atlas then self.colInfo.atlasSize = false end
 end, {
   -- default options
+  key = nil,         -- stable id; a column with a key is user-toggleable, nil = always-on
+  label = nil,       -- settings-panel display name (for toggleable columns)
   name = nil,
   width = 20,
   justifyH = Left,
@@ -108,6 +112,23 @@ end
 ---@type SummaryColumn[]
 ns.SummaryColumns = {}
 
+-- The visible columns in display order: every always-on identity column (no `key`)
+-- plus each toggleable column the user hasn't hidden. Visibility lives in
+-- db.settings.summaryColumns[key] (missing/true = shown, false = hidden). Built
+-- fresh each Summary (re)build so a settings toggle takes effect on the next render.
+---@class Warbandeer
+---@field VisibleSummaryColumns fun(): SummaryColumn[]
+function ns.VisibleSummaryColumns()
+  local shown = ns.db.settings.summaryColumns or {}
+  local out = {}
+  for _, c in ipairs(ns.SummaryColumns) do
+    if not c.key or shown[c.key] ~= false then
+      out[#out + 1] = c
+    end
+  end
+  return out
+end
+
 -- The Darkmoon Faire holiday uses three calendar textures across its run:
 -- 235448 (begins), 235447 (in progress), 235446 (ends) — match all three so the
 -- column is present on the first and last days too.
@@ -166,11 +187,16 @@ ns.SummaryColumnsDelayed = function(view)
         return toon.weeklies.DMF and ns.GreenCheck or ""
       end,
     }
-    insert(ns.SummaryColumns, ns._dmfColumn)
+    -- Not inserted into ns.SummaryColumns (and so not user-toggleable): it's a
+    -- dynamic, faire-only column appended per-table below. Keeping it out of the
+    -- global list also keeps VisibleSummaryColumns + the settings panel stable.
   end
   -- shallow-copy so addCol's stored colInfo entry is never the column's shared
   -- table (the muted header color now comes from the theme)
   local info = {}
   for k, v in pairs(ns._dmfColumn.colInfo) do info[k] = v end
   view:addCol(info)
+  -- keep the table's row-iteration list (self._columns) aligned with its rendered
+  -- columns: the row builders walk _columns, so DMF must be appended there too
+  insert(view._columns, ns._dmfColumn)
 end

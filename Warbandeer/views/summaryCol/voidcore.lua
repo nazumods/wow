@@ -8,6 +8,7 @@ local ui = ns.ui
 table.insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
+    key = "voidcore", label = "Nebulous Voidcore",
     iconPath = "Interface\\AddOns\\Warbandeer\\icons\\voidcore.tga",
     iconColor = ns.theme.colors.muted,
     width = 30,

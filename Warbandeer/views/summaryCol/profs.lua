@@ -386,6 +386,7 @@ end
 table.insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
+    key = "profs", label = "Professions",
     iconPath = "Interface\\AddOns\\Warbandeer\\icons\\views\\profs.tga",
     iconColor = ns.theme.colors.muted,
     width = 36,

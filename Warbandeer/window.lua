@@ -208,3 +208,21 @@ end
 function ns:CompartmentClick() -- buttonName = (LeftButton | RightButton | MiddleButton)
   self:Open()
 end
+
+-- Rebuild the Summary view so a column show/hide setting takes effect. The view is
+-- forgotten so getView reconstructs it fresh against the new VisibleSummaryColumns
+-- set. If Summary is the current view (`_view`, even while the window is hidden) it's
+-- rebuilt immediately and re-pointed so a later Open shows fresh content; otherwise
+-- the next navigation to it picks it up lazily. No-op until the window + view exist.
+---@class Warbandeer
+---@field RefreshSummaryColumns fun()
+function ns.RefreshSummaryColumns()
+  local w = ns.MainWindow
+  local view = w and w.views and w.views.summary
+  if not view then return end
+  local wasCurrent = w._view == view
+  view:Hide()
+  if view._filter then view._filter:Hide() end
+  w.views.summary = nil
+  if wasCurrent then w:view("summary") end
+end

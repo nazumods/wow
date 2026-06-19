@@ -19,6 +19,7 @@ end
 table.insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
+    key = "xp", label = "XP",
     name = "XP",
     width = 35,
     justifyH = ui.justify.Right,

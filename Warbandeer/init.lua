@@ -90,7 +90,7 @@ end
 ---@field db WarbandeerDB
 
 ---@class WarbandeerDB: AddOnDatabase
----@field settings {defaultView: integer, tooltipSide: integer}
+---@field settings {defaultView: integer, tooltipSide: integer, summaryColumns: table<string, boolean>}
 ---@field profIntent table<string,table<integer,string>> map of character name and skillLineID to crafter intent
 
 function ns:MigrateDB()
@@ -110,6 +110,12 @@ function ns:MigrateDB()
     -- Character-tooltip anchor side (index into ns.TOOLTIP_SIDES): 1=Left, 2=Right.
     db.settings.tooltipSide = db.settings.tooltipSide or 1
     db.version = 3
+  end
+  if db.version < 4 then
+    -- Per-column Summary visibility: summaryColumns[columnKey] = false hides it.
+    -- Absent/true = shown, so an empty table means every column visible (default).
+    db.settings.summaryColumns = db.settings.summaryColumns or {}
+    db.version = 4
   end
 end
 

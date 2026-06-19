@@ -30,6 +30,7 @@ end
 table.insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
+    key = "heroCrest", label = "Hero Dawncrest",
     iconPath    = CREST_ICON .. "crest_hero.tga",
     iconColor   = CREST_TINT,
     iconOffsetX = 8,
@@ -47,6 +48,7 @@ table.insert(
 table.insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
+    key = "mythCrest", label = "Myth Dawncrest",
     iconPath    = CREST_ICON .. "crest_myth.tga",
     iconColor   = CREST_TINT,
     iconOffsetX = 5,
