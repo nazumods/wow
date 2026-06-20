@@ -132,7 +132,7 @@ local function ccClassSpec(charData)
       or _G.GetSpecializationInfoByID
     name = getInfo and select(2, getInfo(spec.id))
   end
-  name = name or spec.primary or spec.active   -- primary mirrors what `id` would resolve to
+  name = name or spec.active or spec.primary   -- prefer the played spec; `primary` is the loot spec
   if not name then return nil end
   return token, (name:lower():gsub("%s+", "-"))
 end

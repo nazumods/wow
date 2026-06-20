@@ -103,7 +103,7 @@ lastRefresh   -- set by refreshQueue when a full scan completes
 -- Sub-tables (one per broker, populated by their fields):
 basic = {
   level,
-  specialization = { primary, active, role, key, id },  -- id = numeric spec ID (locale-independent; v13)
+  specialization = { primary, active, role, key, id },  -- active = PLAYED spec, primary = LOOT spec; role/key/id follow the played (active) spec; id = numeric spec ID (locale-independent; v13)
   professions    = { primary, secondary, fishing, cooking },  -- {name, skillID, ...} each
   xp             = { percent, restPercent, isResting, recordedAt }?,
 }
@@ -184,7 +184,7 @@ playtime = {
 
 | Broker | Fields | Events | Resets |
 |---|---|---|---|
-| `basic` | level, specialization, professions, xp | `PLAYER_LEVEL_UP` (500ms), `PLAYER_XP_UPDATE`/`UPDATE_EXHAUSTION`/`PLAYER_UPDATE_RESTING` (1000ms) | — |
+| `basic` | level, specialization, professions, xp | `PLAYER_LEVEL_UP` (500ms), `PLAYER_SPECIALIZATION_CHANGED` (specialization), `PLAYER_XP_UPDATE`/`UPDATE_EXHAUSTION`/`PLAYER_UPDATE_RESTING` (1000ms) | — |
 | `currency` | RestoredCofferKey, gold, CofferKeyShard, Catalyst, HeroDawncrest, MythDawncrest, NebulousVoidcore, UntaintedManaCrystal | `PLAYER_MONEY` (gold), `CURRENCY_DISPLAY_UPDATE` (Catalyst + NebulousVoidcore, id-filtered) | CofferKeyShard, NebulousVoidcore, UntaintedManaCrystal: `RESET_WEEKLY` |
 | `items` | bags, reagentBag | — | — |
 | `gearbag` | items | `BAG_UPDATE_DELAYED` (500ms) | — |

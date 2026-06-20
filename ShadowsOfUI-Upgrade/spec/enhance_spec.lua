@@ -166,13 +166,14 @@ describe("ShadowsOfUI-Upgrade enhance", function()
         assert.equals("Enchant Helm - CC Pick", s.name)
       end)
 
-      it("resolves the spec from the stored name when the numeric id is missing", function()
-        -- an alt scanned before the numeric id was persisted carries only spec-name strings
+      it("resolves the played (active) spec from the stored name when the numeric id is missing", function()
+        -- an alt scanned before the numeric id was persisted carries only spec-name strings;
+        -- the active (played) spec wins over primary (the loot spec, here a different spec)
         local stale = { name = "Stale", classKey = "Mage",
-                        basic = { specialization = { primary = "Frost", active = "Frost" } } }
+                        basic = { specialization = { primary = "Fire", active = "Frost" } } }
         local s = ns.RecommendedEnchant(stale, "Finger1")
         assert.equals("item", s.kind)
-        assert.equals(500, s.id)          -- ClassCodexGearData.MAGE.frost
+        assert.equals(500, s.id)          -- ClassCodexGearData.MAGE.frost (active), not fire (loot)
       end)
 
       it("falls back to the bundled recipe when CC has no row for the slot", function()

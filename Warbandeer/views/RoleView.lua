@@ -94,7 +94,7 @@ local ClassTable = Class(TableFrame, function(self)
   local toons = ns.api.GetAllCharacters()
   for _,t in pairs(toons) do
     if t.classKey == self.classKey and t.basic and t.basic.specialization then
-      local spec = t.basic.specialization.primary or t.basic.specialization.active
+      local spec = t.basic.specialization.active or t.basic.specialization.primary
       local idx = specIdx[spec]
       if idx then
         counts[idx] = (counts[idx] or 0) + 1
