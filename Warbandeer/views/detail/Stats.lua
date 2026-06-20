@@ -2,7 +2,7 @@
 local ns = select(2, ...)
 ---@type LibNUI
 local ui = ns.ui
-local Frame, Label = ui.Frame, ui.Label
+local Frame, Label, StatChart = ui.Frame, ui.Label, ns.StatChart
 local theme = ns.theme
 local D = ns.detail
 
@@ -68,17 +68,26 @@ end
 function DetailView:_buildStatGrid()
   if self._statCells then return end
   local c = theme.colors
-  local cellW = (D.PANEL_W - D.GAP) / 2
+  -- Two narrower columns with the radar centred in the gap between them.
+  local cellW = (D.PANEL_W - D.STATS_CHART - 2 * D.GAP) / 2
   local grid = Frame:new{
     parent = self,
     position = { TopLeft = {D.P, -D.STATS_TOP}, Width = D.PANEL_W, Height = D.STATS_H },
+  }
+  -- Radar chart filling the centre channel, vertically centred over the grid.
+  self._statChart = StatChart:new{
+    parent = grid, radius = D.STATS_CHART / 2 - 4,
+    position = {
+      TopLeft = {(D.PANEL_W - D.STATS_CHART) / 2, -(D.STATS_H - D.STATS_CHART) / 2},
+      Width = D.STATS_CHART, Height = D.STATS_CHART,
+    },
   }
   self._statCells = {}
   for i, spec in ipairs(CELLS) do
     local cell = Frame:new{
       parent = grid, background = c.module,
       position = {
-        TopLeft = {spec.col * (cellW + D.GAP), -spec.row * D.STATS_ROW_H},
+        TopLeft = {spec.col == 0 and 0 or (D.PANEL_W - cellW), -spec.row * D.STATS_ROW_H},
         Width = cellW, Height = D.STATS_ROW_H - 6,
       },
     }
@@ -132,4 +141,7 @@ function DetailView:_showStats()
       cell.rating:Text("")
     end
   end
+  -- Feed the centre radar the four gear ratings (0 when unscanned), tinting tier-1 gold.
+  local function rating(key) local s = sec and sec[key]; return s and s.rating or 0 end
+  self._statChart:Set(rating("crit"), rating("haste"), rating("mastery"), rating("versatility"), top)
 end
