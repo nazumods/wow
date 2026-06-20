@@ -9,6 +9,7 @@ local C_Container = C_Container
 local BankType = Enum.BankType
 local GetCurrentItemLevel = C_Item.GetCurrentItemLevel
 local GetDetailedItemLevelInfo = C_Item.GetDetailedItemLevelInfo
+local GetItemInfo = C_Item.GetItemInfo
 local RequestLoadItemData = C_Item.RequestLoadItemData
 
 -- Bank slots whose item data wasn't loaded during the in-progress scan (collected by
@@ -115,6 +116,9 @@ local function addEquip(equip, info, bagID, slot)
     -- Captured now (item warm in the open bank), so the upgrade finder's artifact gate
     -- fires for this candidate even when later read for an offline alt with the item cold.
     quality = info.quality,
+    -- Required level (static per-item), captured warm so a consumer's "can equip now?"
+    -- gate doesn't fall back to a cold live lookup when read for an offline alt.
+    reqLevel = link and (select(5, GetItemInfo(link))) or nil,
   })
 end
 

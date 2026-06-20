@@ -48,6 +48,14 @@ describe("ShadowsOfUI-Upgrade upgrade calc", function()
       assert.is_falsy(r.betterElsewhere)
     end)
 
+    it("passes the candidate's required level through onto the result", function()
+      h.addChar(warrior("Conan", { Chest = { ilvl = 580 } }))
+      h.pools.Conan = { bags = { h.defItem{ link = "chest:rl", itemID = 42,
+        equipLoc = "INVTYPE_CHEST", classID = ARMOR, subClassID = PLATE, ilvl = 620,
+        reqLevel = 80 } }, bank = {} }
+      assert.equals(80, h.Api:SlotUpgrade("Conan", "Chest").reqLevel)
+    end)
+
     it("does not report an equal or lower ilvl item", function()
       h.addChar(warrior("Conan", { Chest = { ilvl = 620 } }))
       h.pools.Conan = { bags = { plateChest(1, 620), plateChest(2, 600) }, bank = {} }
