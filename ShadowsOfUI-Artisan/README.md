@@ -1,14 +1,18 @@
 # ShadowsOfUI-Artisan
 
-Adds a small **currency badge** to each profession on the spellbook's **Professions** page,
-showing how much of that profession's **expansion crafting currency** (the "Artisan's … Moxie"
-family) the current character holds — right where you look at your professions, without opening
-the crafting window.
+Adds a small **currency badge** to the **profession (crafting) window**, right beside Blizzard's
+own Concentration readout, showing how much of that profession's **expansion crafting currency**
+(the "Artisan's … Moxie" family) the current character holds — so you see your Moxie next to your
+Concentration without digging into the currency tracker.
 
-Open your spellbook (default **P**) and switch to the **Professions** tab. Each profession —
-the crafting ones *and* the gathering ones (Herbalism, Mining, Skinning), since every
-profession has its own Moxie — gains a little icon + amount. Only the secondary slots (Cooking,
-Fishing, Archaeology) have no such currency, so they show nothing.
+Open any profession's window and the badge sits at the top, just to the right of the
+Concentration count, with the Moxie's own icon and amount. It follows whichever profession you
+have open. Every profession has its own Moxie — the gathering ones (Herbalism, Mining, Skinning)
+included.
+
+It also appears on the **spellbook's Professions page** (open the spellbook, **Professions**
+tab): each profession there gets the same badge tucked beneath its spell-button labels, so you
+can read every profession's Moxie at a glance.
 
 **Hover the badge** for an account-wide breakdown: every character that has this profession,
 class-coloured, with how much of the currency each one holds — your **main crafter** first,

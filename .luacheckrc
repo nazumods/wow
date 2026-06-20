@@ -221,6 +221,7 @@ std = {
     "GameTooltip",
     "MainMenuBarBackpackButton",
     "ProfessionsBookFrame",
+    "ProfessionsFrame",
     "StanceBar",
     "StatusTrackingBarManager",
     "UIParent",

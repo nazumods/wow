@@ -2,17 +2,18 @@
 
 **Deps:** LibNAddOn, Warbandeer_Characters · **OptionalDeps:** Warbandeer · **SavedVars:** none · **Commands:** `/sartisan [name]` (dev dump) · **API:** reads `WarbandeerApi` + `WarbandeerDB` · **UI:** none (raw WoW frames, no LibNUI)
 
-Adds a currency badge to each crafting profession on the spellbook's professions page
-(`ProfessionsBookFrame`), showing the current expansion's artisan crafting currency (the
-"Artisan's …" family, e.g. Acuity) for the logged-in character, with an account-wide hover
-breakdown. Assignment-form init (`local ns = LibNAddOn(...)`); no LibNUI.
+Adds a currency badge — the current expansion's artisan crafting currency (Midnight's
+per-profession "Artisan's … Moxie") for the logged-in character, with an account-wide hover
+breakdown — on **two surfaces**: the crafting window (`ProfessionsFrame`, beside Blizzard's
+Concentration readout) and the spellbook professions page (`ProfessionsBookFrame`, under each
+profession's spell-button labels). Assignment-form init (`local ns = LibNAddOn(...)`); no LibNUI.
 
 ## Files
 
 | File | Purpose |
 |---|---|
 | `core.lua` | Bootstrap + data. `ns.ARTISAN_CURRENCIES` (parent skillLineID → currencyId, current expansion) and `ns.BuildBreakdown(skillLineID)` → sorted `ArtisanEntry[]`. Manual `/sartisan` dev command. |
-| `badge.lua` | `Blizzard_ProfessionsBook` hook: lazily attaches the badge (icon + amount) per profession frame and renders the breakdown tooltip; refreshes on currency change while the page is shown. |
+| `badge.lua` | Shared `makeBadge`/`applyBadge`/`onEnter` + two surfaces: `ns.UpdateBadge` (crafting window, one badge by the concentration readout) and `ns.UpdateBookBadges` (spellbook page, one badge per profession under its spell label). Both refresh on profession switch + currency change while shown. |
 
 ## `ns.ARTISAN_CURRENCIES`
 
@@ -37,20 +38,27 @@ else 3). Sorted by `rank ↑`, `quantity ↓`, `name ↑`.
 
 ## Rendering (`badge.lua`)
 
-- **Attach surface:** `EventUtil.ContinueOnAddOnLoaded("Blizzard_ProfessionsBook", …)` (the
-  LoD addon for the spellbook page), then `hooksecurefunc("ProfessionsBookFrame_Update",
-  ns.UpdateBadges)`. Blizzard's `FormatProfession` stamps `frame.skillLine` (parent skillLineID)
-  on `PrimaryProfession1/2` and `SecondaryProfession1/2/3`; we iterate all five and gate on
-  `ARTISAN_CURRENCIES` so secondary/gathering profs show nothing.
-- **Badge:** a mouse-enabled `Frame` (`frame.soiArtisanBadge`, 5 frame levels above the
-  profession frame) anchored `TOPRIGHT`, holding the currency `iconFileID` texture + amount
-  (`BreakUpLargeNumbers`); width grows to cover the text so the whole thing is hoverable. Hidden
-  (not destroyed) when the profession has no mapped currency, so a profession swap leaves no
-  stale badge.
-- **Tooltip** (`onEnter`): header = currency icon + name; one `AddDoubleLine` per `BuildBreakdown`
-  entry — class-coloured name (current char tagged `(here)`) + amount.
-- **Refresh:** a driver frame registers `CURRENCY_DISPLAY_UPDATE` between the EventRegistry
-  `ProfessionsBookFrame.Show`/`.Hide` callbacks; the `ProfessionsBookFrame_Update` hook covers
+Shared helpers: `makeBadge(parent, levelOffset)` builds a mouse-enabled `Frame` (currency
+`iconFileID` texture + amount `FontString`); `applyBadge(badge, skillLineID, currencyId)` sets the
+icon/amount (`BreakUpLargeNumbers`), grows the width to cover the text, stamps `skillLineID`/
+`currencyId` for the tooltip, and hides+returns false when the currency has no mapped id / isn't
+known yet; `onEnter` renders the breakdown tooltip (header = currency icon + name; one
+`AddDoubleLine` per `BuildBreakdown` entry — class-coloured name, current char tagged `(here)`).
+
+- **Crafting window** (`ns.UpdateBadge`): `ContinueOnAddOnLoaded("Blizzard_Professions")` →
+  `hooksecurefunc(ProfessionsFrame.CraftingPage, "Refresh", …)`, which fires on open + every
+  profession switch with the shown `professionInfo`; key off `professionInfo.parentProfessionID`
+  (parent skill line, e.g. Enchanting 333), falling back to `professionID`. One badge
+  (`ns.craftBadge`) anchored `LEFT` of `page.ConcentrationDisplay`'s `RIGHT` when shown, else the
+  page `TOPLEFT (120,-35)` (the concentration slot).
+- **Spellbook page** (`ns.UpdateBookBadges`): `ContinueOnAddOnLoaded("Blizzard_ProfessionsBook")`
+  → `hooksecurefunc("ProfessionsBookFrame_Update", …)`. Iterates `PrimaryProfession1/2` +
+  `SecondaryProfession1/2/3`, reads `frame.skillLine` (stamped by Blizzard's `FormatProfession`),
+  one badge per frame (`frame.soiArtisanBadge`) anchored under the lowest shown spell button's
+  `spellString` label; gated on `ARTISAN_CURRENCIES` so Cooking/Fishing/Archaeology show nothing.
+- **Refresh:** each surface has a driver frame registering `CURRENCY_DISPLAY_UPDATE` only while
+  its window is shown (crafting via `ProfessionsFrame` `OnShow`/`OnHide`; book via the EventRegistry
+  `ProfessionsBookFrame.Show`/`.Hide` callbacks). The respective `Refresh`/`_Update` hook covers
   profession changes.
 
 ## Gotchas
@@ -62,5 +70,6 @@ else 3). Sorted by `rank ↑`, `quantity ↓`, `name ↑`.
   is live-readable).
 - **A wrong/missing currency id fails safe** — `GetCurrencyInfo` returns nil → no badge for
   that profession, rather than erroring.
-- **Badge position (`TOPRIGHT -10,-12`) is a first cut** — tune against the live page if it
-  collides with the rank text / unlearn button.
+- **Badge positions are first cuts** — crafting window: `LEFT` of ConcentrationDisplay +18 (move
+  below it if it collides with the skill/rank bar); spellbook page: under the lowest spell-button
+  `spellString` (offset 0,-3). Tune against the live frames.
