@@ -9,6 +9,31 @@ local GetItemInfoInstant = C_Item.GetItemInfoInstant
 local GetItemNumSockets = C_Item.GetItemNumSockets
 local GetItemGemID = C_Item.GetItemGemID
 local GetInventoryItemLink = GetInventoryItemLink
+local GetTooltipInventoryItem = C_TooltipInfo and C_TooltipInfo.GetInventoryItem
+
+-- The literal "Enchanted: " prefix of the tooltip enchant line, locale-resolved from the
+-- global format string (e.g. "Enchanted: %s" → "Enchanted: ").
+local ENCHANT_PREFIX = (ENCHANTED_TOOLTIP_LINE or "Enchanted: %s"):format("")
+
+-- The applied permanent-enchant *name* on an equipped slot, read from its live tooltip's
+-- "Enchanted: <name>" line, with the trailing quality-tier atlas markup stripped (e.g.
+-- "Enchant Helm - Rune of Avoidance |A:...Tier2...|a" → "Enchant Helm - Rune of Avoidance").
+-- nil when the slot is unenchanted or the tooltip API/line isn't available. The name is in
+-- the same "Enchant <Slot> - <X>" form as our recommendations, so a consumer can compare
+-- them directly. Captured here (needs the item live) and persisted for warband-wide use; the
+-- applied enchant *id* still lives in the link (parsed by consumers for the ignore key).
+local function enchantName(index)
+  if not GetTooltipInventoryItem then return nil end
+  local data = GetTooltipInventoryItem("player", index)
+  if not (data and data.lines) then return nil end
+  for _, line in ipairs(data.lines) do
+    local text = line.leftText
+    if text and text:find(ENCHANT_PREFIX, 1, true) == 1 then
+      return (text:sub(#ENCHANT_PREFIX + 1):gsub("%s*|A.-|a%s*$", ""):gsub("%s+$", ""))
+    end
+  end
+  return nil
+end
 
 -- Number of *empty* gem sockets on an item: its socket count minus the sockets that
 -- hold a gem. We must NOT derive this from GetItemStats' EMPTY_SOCKET_* keys — the
@@ -115,6 +140,7 @@ Equipment.fields = {
               classID = classID,
               subClassID = subClassID,
               emptySockets = emptySocketCount(link),
+              enchant = enchantName(index),
             }
           elseif existing[slot] then
             -- Item present but its data isn't loaded yet — keep the prior value

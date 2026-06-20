@@ -138,8 +138,21 @@ function D.attachItemTip(frame)
   -- Left-click a row carrying a suggested upgrade → flash that item in the open
   -- bags / bank (the upgrade is held gear; the equipped piece itself is never in a
   -- bag, so only `_upgradeLink` is flashable). No-op on rows without an upgrade.
+  -- Right-click a row flagged with a wrong enchant → accept/un-accept that enchant on
+  -- this specific item (toggles the per-item ignore), then re-render the Detail view so
+  -- the note clears/returns. Works on an already-accepted row too (to undo). No-op
+  -- otherwise (`_enchMismatch` is set per render only for slots with a mismatch).
   frame:SetScript("OnMouseUp", function(_, button)
     if button == "LeftButton" and frame._upgradeLink then ns.FlashItem(frame._upgradeLink) end
+    if button == "RightButton" and frame._enchMismatch then
+      local m = frame._enchMismatch
+      local accepted = ns.ToggleEnchantIgnore(m.itemID, m.enchantID)
+      ns.Print(accepted
+        and ("accepting the enchant on %s (right-click again to undo)"):format(frame._itemLink or "this item")
+        or  ("flagging the enchant on %s again"):format(frame._itemLink or "this item"))
+      local view = ns.MainWindow and ns.MainWindow:ShownView()
+      if view and view.name == "detail" then view:OnBeforeShow(); ns.MainWindow:Fit() end
+    end
   end)
 end
 

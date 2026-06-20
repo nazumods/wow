@@ -92,6 +92,7 @@ end
 ---@class WarbandeerDB: AddOnDatabase
 ---@field settings {defaultView: integer, tooltipSide: integer, summaryColumns: table<string, boolean>}
 ---@field profIntent table<string,table<integer,string>> map of character name and skillLineID to crafter intent
+---@field ignoredEnchants table<string, boolean> per-item accepted wrong-enchants, key "<itemID>:<enchantID>"
 
 function ns:MigrateDB()
   local db = self.db
@@ -116,6 +117,13 @@ function ns:MigrateDB()
     -- Absent/true = shown, so an empty table means every column visible (default).
     db.settings.summaryColumns = db.settings.summaryColumns or {}
     db.version = 4
+  end
+  if db.version < 5 then
+    -- Per-item accepted wrong-enchants: ignoredEnchants["<itemID>:<enchantID>"] = true means
+    -- "the (non-recommended) enchant on this specific item is fine — don't flag it." Keyed by
+    -- the applied enchant too, so re-enchanting differently re-flags. Account-wide.
+    db.ignoredEnchants = db.ignoredEnchants or {}
+    db.version = 5
   end
 end
 

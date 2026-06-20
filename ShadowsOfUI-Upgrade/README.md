@@ -44,6 +44,14 @@ pointed at the Haste ring enchant), the chest gets the universal primary-stat en
 get a stat-matched enchant. The recommendation shows up next to the "missing enchant" flag
 everywhere it appears.
 
+## Wrong enchants
+
+It also flags equipped gear that **has an enchant, but not the recommended one** — handy when a
+piece is still carrying an enchant for a different spec or an older, cheaper choice. The applied
+enchant name is recorded while each character is logged in, so (like the other flags) this works
+warband-wide, and the note shows what you have alongside the recommended swap. Because which enchant
+is "right" follows your **played** spec, this naturally re-evaluates when you change specs.
+
 ## Empty gem sockets
 
 It likewise flags equipped gear with an **empty gem socket** and recommends a gem to fill it.

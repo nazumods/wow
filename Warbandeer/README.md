@@ -42,7 +42,7 @@ Found in the Blizzard settings panel:
   Warbandeer is only the viewer; without the data layer it has nothing to show.
 - *Optional:* **Warbandeer_Bars** for the Bars view.
 - *Optional:* **Collected** for the Collected view.
-- *Optional:* **ShadowsOfUI-Upgrade** for gear-upgrade markers, missing-enchant + empty-socket flags (Summary "Ench"/"Gem" columns + Detail notes), and the Detail view's Suggested box.
+- *Optional:* **ShadowsOfUI-Upgrade** for gear-upgrade markers, missing-enchant + wrong-enchant + empty-socket flags (Summary "Ench"/"Gem" columns + Detail notes), and the Detail view's Suggested box. In the Detail gear list, a piece carrying the *wrong* (non-recommended) enchant shows a yellow "Wrong enchant" note; **right-click that row to accept the enchant on that item** (it stops flagging — right-click again to undo).
 
 ## Saved data
 

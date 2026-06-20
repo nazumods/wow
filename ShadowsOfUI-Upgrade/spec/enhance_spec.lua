@@ -191,6 +191,55 @@ describe("ShadowsOfUI-Upgrade enhance", function()
     end)
   end)
 
+  describe("EnchantMismatches", function()
+    -- Frost Mage with ClassCodex helm + ring picks (rec carries `.name`, so comparison is
+    -- deterministic without a GetSpellName stub).
+    local function mage(slots)
+      return { name = "Frost", classKey = "Mage",
+               basic = { specialization = { id = 64 } },
+               equipment = { slots = slots } }
+    end
+    before_each(function()
+      _G.GetSpecializationInfoByID = function(id) return id, "Frost" end
+      _G.ClassCodexGearData = { MAGE = { frost = { enchants = {
+        { slot = "Helm", best = { itemId = 600, name = "Enchant Helm - Best" } },
+        { slot = "Ring", best = { itemId = 601, name = "Enchant Ring - Best" } },
+      } } } }
+    end)
+    after_each(function() _G.GetSpecializationInfoByID = nil; _G.ClassCodexGearData = nil end)
+
+    -- a slot as the data layer stores it: link (carries the enchant id) + applied enchant name
+    local function ench(itemID, enchantID, name)
+      return { link = link(itemID, enchantID), ilvl = 600, enchant = name }
+    end
+
+    it("flags a slot whose applied enchant differs from the recommendation", function()
+      local res = ns.EnchantMismatches(mage({ Head = ench(10, 555, "Enchant Helm - Wrong") }))
+      assert.equals(1, #res)
+      assert.equals("Head", res[1].slot)
+      assert.equals("Enchant Helm - Wrong", res[1].applied)
+      assert.equals("Enchant Helm - Best", res[1].recommended)
+      assert.equals(555, res[1].enchantID)   -- ignore-key component, parsed from the link
+    end)
+
+    it("does not flag the recommended enchant (case/space-insensitive match)", function()
+      assert.same({}, ns.EnchantMismatches(mage({ Head = ench(10, 555, "enchant helm -  Best") })))
+    end)
+
+    it("skips a bare slot (no applied enchant) — MissingEnchants' job", function()
+      assert.same({}, ns.EnchantMismatches(mage({ Head = ench(10, 0, nil) })))
+    end)
+
+    it("skips a slot with no recommendation to compare against", function()
+      -- Feet has no CC entry here and no bundled row → can't judge
+      assert.same({}, ns.EnchantMismatches(mage({ Feet = ench(10, 555, "Enchant Boots - Whatever") })))
+    end)
+
+    it("ignores a non-enchantable slot even if it carries an enchant string", function()
+      assert.same({}, ns.EnchantMismatches(mage({ Neck = ench(10, 555, "Enchant Neck - Nope") })))
+    end)
+  end)
+
   describe("MissingGems", function()
     local function char(slots)
       return { name = "Toon", classKey = "Mage", equipment = { slots = slots } }

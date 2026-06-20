@@ -77,6 +77,51 @@ local function suggestionName(s)
   return nil
 end
 
+-- Per-item accepted wrong-enchants (account-wide), keyed by "<itemID>:<enchantID>" so that
+-- accepting a wrong enchant is specific to *that* enchant on *that* item — re-enchanting it
+-- differently re-flags. Stored in WarbandeerDB.ignoredEnchants.
+local function ignoreKey(itemID, enchantID)
+  if not (itemID and enchantID) then return nil end
+  return ("%d:%d"):format(itemID, enchantID)
+end
+
+---Whether the (wrong) enchant on a specific item is on the user's accept list.
+---@param itemID integer?
+---@param enchantID integer?
+---@return boolean
+function ns.IsEnchantIgnored(itemID, enchantID)
+  local key = ignoreKey(itemID, enchantID)
+  return key ~= nil and ns.db.ignoredEnchants[key] == true
+end
+
+---Toggle whether a specific item's current (wrong) enchant is accepted; returns the new state.
+---@param itemID integer?
+---@param enchantID integer?
+---@return boolean ignored
+function ns.ToggleEnchantIgnore(itemID, enchantID)
+  local key = ignoreKey(itemID, enchantID)
+  if not key then return false end
+  local store = ns.db.ignoredEnchants
+  store[key] = (not store[key]) or nil
+  return store[key] == true
+end
+
+---Equipped slots whose applied enchant differs from the recommendation, keyed by slot →
+---`{ applied, recommended, itemID, enchantID }`. This is the RAW set (does not filter the
+---accept list — the view decides per slot via `ns.IsEnchantIgnored`, so it can still offer
+---an un-accept on an already-accepted row). Empty when none, or the upgrade addon's absent.
+---@param charName string
+---@return table<string, {applied:string, recommended:string, itemID:integer?, enchantID:integer}>
+function ns.EnchantMismatchSlots(charName)
+  local set = {}
+  local api = ShadowsOfUI_UpgradeApi
+  if not (api and api.EnchantMismatches) then return set end
+  for _, e in ipairs(api:EnchantMismatches(charName)) do
+    set[e.slot] = { applied = e.applied, recommended = e.recommended, itemID = e.itemID, enchantID = e.enchantID }
+  end
+  return set
+end
+
 ---Recommended enchant name for a character's slot — the enchant they should apply (per
 ---spec from ClassCodex when installed, else our bundled stat pick) — or nil when there's
 ---none (or the upgrade addon isn't loaded).

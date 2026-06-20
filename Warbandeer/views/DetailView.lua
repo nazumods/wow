@@ -35,6 +35,7 @@ end
 ---@class DetailView: Frame
 ---@field _char Character        currently displayed character
 ---@field _missingEnch table<string, boolean>  slots missing a permanent enchant (per-render)
+---@field _enchMismatch table<string, {applied:string, recommended:string, itemID:integer?, enchantID:integer}>  slots with a wrong (non-recommended) enchant, raw incl. accepted (per-render)
 ---@field _emptySockets table<string, integer>  slots → empty-socket count (per-render)
 ---@field _gemPrimary string?  recommended unique diamond name (per-render; one socket only)
 ---@field _gemSecondary string?  recommended fill-gem name (per-render; the other sockets)
@@ -259,6 +260,10 @@ function DetailView:OnBeforeShow()
   local slots = (char.equipment and char.equipment.slots) or {}
   self._missingEnch = ns.MissingEnchantSlots(char.name)
   self._emptySockets = ns.EmptySocketSlots(char.name)
+  -- Slots whose applied enchant ≠ the recommendation (raw — includes accepted ones); the
+  -- gear row shows the note only when not on the accept list, but keeps the right-click
+  -- toggle on accepted rows too so an accept can be undone.
+  self._enchMismatch = ns.EnchantMismatchSlots(char.name)
   -- The unique-equipped diamond (primary) goes on the *first* empty socket only; every other
   -- socket gets the repeatable secondary gem. `_gemPlaced` tracks the one-diamond placement
   -- across the gear loop below.
