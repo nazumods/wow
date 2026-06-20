@@ -38,6 +38,10 @@ one you're logged into, so you can spot the alt whose rings still aren't enchant
 over. An item that's **too low item level to take the enchant** isn't flagged — you can't enchant
 it, so it's not treated as missing one (and gets no recommendation).
 
+Characters **below max level** are skipped entirely: while you're still levelling, gear is
+replaced constantly, so enchanting or gemming it is a waste. No enchant/gem flags or
+recommendations (missing, wrong, or empty-socket) appear for a character until they hit max level.
+
 It also tells you **which enchant to apply**. If you have the **ClassCodex** addon installed, the
 recommendation is its per-spec best enchant (from Wowhead) for every slot. Without it, a built-in
 fallback is used: rings are matched to the character's **top secondary stat** (so a Haste spec is
