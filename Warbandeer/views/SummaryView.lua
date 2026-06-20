@@ -20,11 +20,20 @@ local FACTION_COLOR = {
 -- its own copy or that column would leak into every sibling table.
 ---@param cols SummaryColumn[]
 ---@return table[]
+-- A consistent gutter inserted to the LEFT of every column but the first, so
+-- adjacent columns always keep a gap regardless of which the user has hidden.
+-- Unlike a cell inset (hPad), this spaces the column *frames* apart and so never
+-- shrinks a column's content area — the tightly-sized number columns keep their
+-- full width. Added on top of any padLeft a column declares itself (e.g. the
+-- catch-up column's larger group spacer).
+local COL_GUTTER = 5
+
 local function buildColInfo(cols)
   return ns.lua.lists.map(cols, function(c, i)
     local info = {}
     for k, v in pairs(c.colInfo) do info[k] = v end
     if info.name and info.name ~= "" then info.name = info.name:upper() end
+    if i > 1 then info.padLeft = (info.padLeft or 0) + COL_GUTTER end
     -- inset the outer columns' cells so they don't sit against the table edges
     if i == 1 then info.hPadL = 8 end
     -- the right-aligned Gold column also insets its header to match its cells:

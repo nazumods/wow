@@ -55,7 +55,7 @@ insert(
   ns.SummaryColumn:new{
     key = "enchants", label = "Missing Enchants",
     name = "Ench",
-    width = 32,
+    width = 42,
     justifyH = ui.justify.Center,
     tooltip = "Equipped slots missing a permanent enchant",
     getData = getData,
