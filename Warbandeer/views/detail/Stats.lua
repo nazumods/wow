@@ -141,7 +141,8 @@ function DetailView:_showStats()
       cell.rating:Text("")
     end
   end
-  -- Feed the centre radar the four gear ratings (0 when unscanned), tinting tier-1 gold.
+  -- Feed the centre radar the four gear ratings (0 when unscanned), plotted as
+  -- fulfilment vs each stat's Archon target, tinting tier-1 gold.
   local function rating(key) local s = sec and sec[key]; return s and s.rating or 0 end
-  self._statChart:Set(rating("crit"), rating("haste"), rating("mastery"), rating("versatility"), top)
+  self._statChart:Set(rating("crit"), rating("haste"), rating("mastery"), rating("versatility"), top, targets)
 end

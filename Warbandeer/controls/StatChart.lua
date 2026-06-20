@@ -3,7 +3,7 @@ local ns = select(2, ...)
 local ui = ns.ui
 local Class, Frame, Texture = ns.lua.Class, ui.Frame, ui.Texture
 local theme = ns.theme
-local max = math.max
+local max, min = math.max, math.min
 
 -- A compact secondary-stat radar: four vertices — Crit (top-left), Haste
 -- (bottom-left), Versatility (bottom-right), Mastery (top-right) — placed along the
@@ -72,16 +72,21 @@ end, {
 ---@field StatChart StatChart
 ns.StatChart = StatChart
 
--- Plot the four ratings (each scaled against the largest of them) and tint the dots
--- of any stats in `hot` (tier-1 priority) gold. Zero/absent ratings collapse to the
--- centre; an all-zero set hides the polygon (no scanned stats yet).
+-- Plot the four ratings and tint the dots of any stats in `hot` (tier-1 priority)
+-- gold. Each vertex's distance is the stat's **fulfilment vs its target** (the guide
+-- square = on/over target), so an under-target stat pulls toward the centre and a
+-- met/over one reaches the edge — matching the red/blue target cells beside it. When
+-- a stat has no target the chart falls back to its rating relative to the largest of
+-- the four, so a target-less spec still reads as a balance plot. Zero/absent ratings
+-- collapse to the centre; an all-zero set hides the polygon (no scanned stats yet).
 ---@param crit number?
 ---@param haste number?
 ---@param mastery number?
 ---@param vers number?
 ---@param hot table<string, boolean>?  stats to highlight gold
+---@param targets table<string, number>?  per-stat goal ratings (guide edge = target met); absent → balance vs the largest rating
 ---@return StatChart
-function StatChart:Set(crit, haste, mastery, vers, hot)
+function StatChart:Set(crit, haste, mastery, vers, hot, targets)
   local c = theme.colors
   local w = self._widget
   local R = self.radius
@@ -91,7 +96,11 @@ function StatChart:Set(crit, haste, mastery, vers, hot)
 
   local pt = {}
   for _, key in ipairs(KEYS) do
-    local r = (val[key] / peak) * R
+    -- fulfilment vs target (clamped at the guide edge); fall back to the largest
+    -- rating when this stat has no target, so a fully target-less chart still plots.
+    local t = targets and targets[key]
+    local denom = (t and t > 0) and t or peak
+    local r = min(val[key] / denom, 1) * R
     local d = DIR[key]
     pt[key] = { d[1] * r, d[2] * r }
   end
