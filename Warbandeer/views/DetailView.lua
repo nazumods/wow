@@ -211,7 +211,11 @@ function DetailView:OnBeforeShow()
   ---@cast h Label
   h:Color(color)
   local raceList = char.isAlliance and ns.api.ALLIANCE_RACES or ns.api.HORDE_RACES
-  self.subtitle:Text((raceList[char.raceIdx] or char.race) .. " " .. char.className)
+  -- "Human Shadow Priest": race + active spec (when stored) + class. Falls back to
+  -- "Human Priest" for an alt scanned before the spec was captured.
+  local spec = char.basic.specialization and char.basic.specialization.active
+  self.subtitle:Text(("%s %s%s"):format(
+    raceList[char.raceIdx] or char.race, spec and (spec .. " ") or "", char.className))
   self.realm:Text(char.realm)
 
   local ilvl = (char.equipment and char.equipment.ilvl) or 0
