@@ -24,6 +24,7 @@ Data-collection backbone for the suite. Scans the active character each login/re
 | `data/professions.lua` | Broker `professions`: `details` (per-exp skill levels, spec points, learned recipes) + `gear` (tool/accessory slots). Also defines `ns.api.professionInfo`; scans pre-resolve current-exp recipes into the recipe-gear cache and capture each prof-gear recipe's reachable crafting `quality`/`qualityConc` (via `GetCraftingOperationInfo`) |
 | `data/recipegear.lua` | Account-wide `db.recipeGear` cache (recipe → prof-gear output: itemID/rarity/equipLoc/target skillID), build-stamped; `WarbandeerApi:ResolveRecipeOutput`, `WarbandeerApi:ClassifyProfGearItem` (item → prof skillID/equipLoc, shared with the bank scanner), `WarbandeerApi:ClassifyGearItem` (item → equippable equipLoc/classID/subClassID, shared by `gearbag`/`bank`) |
 | `data/concentration.lua` | Broker `concentration`: `data` — Midnight concentration currency per crafting prof, keyed by parent skillLineID |
+| `data/artisancurrency.lua` | Broker `artisanCurrency`: `data` — current-expansion artisan crafting currency (Midnight's per-profession "Artisan's … Moxie", every prof incl. gathering), keyed by parent skillLineID. Consumed by ShadowsOfUI-Artisan |
 | `data/races.lua` | `API.ALLIANCE_RACES`, `API.HORDE_RACES`, `ns.NormalizeRaceId(raceId)` → `(raceIdx, isAlliance)` |
 | `data/quests.lua` | Broker `quests`: `UndermineStoryMode`, `WWIRep`, `LumberAxe`, `delves` |
 | `data/worldquests.lua` | Broker `worldquests`: `rewards` — the logged-in character's active world-quest **gear** rewards that could upgrade an equipped slot, cached per-character (last-seen; reward data is only readable for the active char). Not max-level-gated — some WQs are available before the cap. Each entry is a `GearCandidate` + `{questID, title, zone, endTime}`. Scans the current expansion's WQ continent zones (`WQ_CONTINENTS` → `GetMapChildrenInfo`), keeps only equippable gear (`API:ClassifyGearItem`), gated by an ilvl ceiling (no scan when every slot ≥ `WQ_ILVL_CEILING` 220). Debounced on `QUEST_LOG_UPDATE`/`ZONE_CHANGED_NEW_AREA`; since reward data loads async, a scan that finds quests before their rewards are ready preloads them and schedules a bounded retry (`RefreshCurrentCharacterField`), keeping the last-seen list instead of caching empty. `WarbandeerApi:GetWorldQuestRewards`; `/wbc dump wq`. The upgrade *evaluation* lives in ShadowsOfUI-Upgrade (consumes the raw cache) |
@@ -141,6 +142,10 @@ concentration = {
   data = { [skillLineID] = { name, currencyId, quantity, maxQuantity,
                              rechargingAmountPerCycle, rechargingCycleDurationMS, lastUpdated } }?,
 }
+artisanCurrency = {
+  data = { [skillLineID] = { name, currencyId, quantity, maxQuantity, lastUpdated } }?,
+                                                       -- current-expansion artisan crafting currency per crafting prof
+}
 quests = {
   UndermineStoryMode,
   WWIRep = { complete, missing, Dornogal, Assembly, Hallowfall, Azjkahet, Undermine, Arathi, Karesh },
@@ -190,6 +195,7 @@ playtime = {
 | `gearbag` | items | `BAG_UPDATE_DELAYED` (500ms) | — |
 | `professions` | details, gear | `TRADE_SKILL_SHOW` (details, 0.5s C_Timer); `PLAYER_EQUIPMENT_CHANGED` (gear, 500ms + item load) | — |
 | `concentration` | data | `CURRENCY_DISPLAY_UPDATE` | — |
+| `artisanCurrency` | data | `CURRENCY_DISPLAY_UPDATE` | — |
 | `quests` | UndermineStoryMode, WWIRep, LumberAxe, delves | `QUEST_TURNED_IN`, `QUEST_ACCEPTED`, `QUEST_REMOVED`, `UNIT_QUEST_LOG_CHANGED`, `SPELLS_CHANGED` | — |
 | `worldquests` | rewards | `QUEST_LOG_UPDATE`, `ZONE_CHANGED_NEW_AREA` (debounced; retries while reward data loads) | — |
 | `dailies` | (empty) | — | — |
