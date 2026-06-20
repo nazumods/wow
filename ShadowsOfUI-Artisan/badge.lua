@@ -33,16 +33,21 @@ local function onEnter(badge)
 end
 
 -- A reusable badge (currency icon + amount), mouse-enabled for the breakdown tooltip.
-local function makeBadge(parent, levelOffset)
+-- opts: iconSize, font, textX (icon→text gap), textY. Defaults suit the small spellbook badge;
+-- the crafting badge passes 24px + GameFontNormal to match Blizzard's concentration readout.
+local function makeBadge(parent, levelOffset, opts)
+  opts = opts or {}
+  local iconSize, gapX = opts.iconSize or 16, opts.textX or 3
   local badge = CreateFrame("Frame", nil, parent)
   badge:SetFrameLevel(parent:GetFrameLevel() + levelOffset)
-  badge:SetSize(16, 16)
+  badge:SetSize(iconSize, iconSize)
   badge:EnableMouse(true)
+  badge.iconSize, badge.gapX = iconSize, gapX
   badge.icon = badge:CreateTexture(nil, "ARTWORK")
-  badge.icon:SetSize(16, 16)
+  badge.icon:SetSize(iconSize, iconSize)
   badge.icon:SetPoint("LEFT")
-  badge.text = badge:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-  badge.text:SetPoint("LEFT", badge.icon, "RIGHT", 3, 0)
+  badge.text = badge:CreateFontString(nil, "ARTWORK", opts.font or "GameFontHighlight")
+  badge.text:SetPoint("LEFT", badge.icon, "RIGHT", gapX, opts.textY or 0)
   badge:SetScript("OnEnter", onEnter)
   badge:SetScript("OnLeave", GameTooltip_Hide)
   return badge
@@ -57,27 +62,50 @@ local function applyBadge(badge, skillLineID, currencyId)
   badge.currencyId = currencyId
   if info.iconFileID then badge.icon:SetTexture(info.iconFileID) end
   badge.text:SetText(BreakUpLargeNumbers(info.quantity or 0))
-  badge:SetWidth(19 + badge.text:GetStringWidth())
+  badge:SetWidth(badge.iconSize + badge.gapX + badge.text:GetStringWidth())
   badge:Show()
   return true
 end
 
 -- ── Crafting window (Blizzard_Professions) ──────────────────────────────────────────────
--- One badge beside the concentration readout, for the currently open profession.
+-- One badge beside the concentration readout, for the currently open profession. Sized to
+-- match the concentration display, and the two are centered horizontally across the page as a
+-- pair (so we re-anchor Blizzard's ConcentrationDisplay too, after its own Refresh positions it).
+local CRAFT_GAP = 24          -- space between the concentration amount and our badge
+local CRAFT_SECTION_LEFT = 64 -- left edge of the header "section" (just right of the info button)
 function ns.UpdateBadge()
   local page = ProfessionsFrame and ProfessionsFrame.CraftingPage
   if not page then return end
   local skillLineID = ns.currentSkill
   local currencyId = skillLineID and ns.ARTISAN_CURRENCIES[skillLineID]
-  ns.craftBadge = ns.craftBadge or makeBadge(page, 10)
-  if not applyBadge(ns.craftBadge, skillLineID, currencyId) then return end
-  -- Sit just right of the concentration display; fall back to its slot when it's hidden.
-  ns.craftBadge:ClearAllPoints()
+  ns.craftBadge = ns.craftBadge
+    or makeBadge(page, 10, { iconSize = 24, font = "GameFontNormal", textX = 6, textY = 2 })
+  local badge = ns.craftBadge
+  if not applyBadge(badge, skillLineID, currencyId) then return end
+  badge.text:SetTextColor(WHITE_FONT_COLOR:GetRGB())  -- match the white concentration amount
+
+  badge:ClearAllPoints()
   local conc = page.ConcentrationDisplay
-  if conc and conc:IsShown() then
-    ns.craftBadge:SetPoint("LEFT", conc, "RIGHT", 18, 0)
+  local list = page.RecipeList
+  if conc and conc:IsShown() and list and list:IsShown() then
+    -- Center the [concentration][gap][moxie] pair within the header section it lives in: from
+    -- just right of the info button (CRAFT_SECTION_LEFT) to the rank bar that owns the strip to
+    -- its right — not the whole page. Use the concentration's *visible* width (its frame is a
+    -- fixed 110 but the icon+amount are left-aligned) so the pair centers on what's drawn.
+    local concVis = 24 + 6 + (conc.Amount and conc.Amount:GetStringWidth() or 0)
+    local total = concVis + CRAFT_GAP + badge:GetWidth()
+    local rightBound = 280
+    if page.RankBar then local _, _, _, rx = page.RankBar:GetPoint(1); rightBound = rx or rightBound end
+    local centerX = (CRAFT_SECTION_LEFT + rightBound) / 2
+    local _, _, _, _, y = conc:GetPoint(1)
+    conc:ClearAllPoints()
+    conc:SetPoint("TOPLEFT", page, "TOPLEFT", centerX - total / 2, y or -35)
+    badge:SetPoint("LEFT", conc, "LEFT", concVis + CRAFT_GAP, 0)
+  elseif conc and conc:IsShown() then
+    -- Minimized view (no recipe list): leave Blizzard's concentration where it is, sit beside it.
+    badge:SetPoint("LEFT", conc, "RIGHT", 12, 0)
   else
-    ns.craftBadge:SetPoint("TOPLEFT", page, "TOPLEFT", 120, -35)
+    badge:SetPoint("TOP", page, "TOP", 0, -35)
   end
 end
 
