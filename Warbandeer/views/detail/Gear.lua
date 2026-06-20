@@ -100,6 +100,16 @@ function DetailView:_gearRow(i)
     }
   end
 
+  -- Transparent mouse-catcher parked over the missing-enchant sub-line (repositioned each
+  -- render in _showGear). Hovering it shows the recommended enchant's own tooltip — what it
+  -- grants — instead of the equipped-item tooltip the row frame carries. Pooled with the row.
+  row.enchHover = Frame:new{ parent = frame, position = { Hide = true } }
+  row.enchHover:EnableMouse(true)
+  row.enchHover:SetScript("OnEnter", function()
+    if row.enchHover._suggestion then ns.ShowEnchantTooltip(row.enchHover, row.enchHover._suggestion) end
+  end)
+  row.enchHover:SetScript("OnLeave", function() ns.HideItemTooltip() end)
+
   self._gearRows[i] = row
   return row
 end
@@ -143,9 +153,13 @@ function DetailView:_showGear(i, item, slotKey)
     lines[#lines + 1] = UP_PREFIX .. upLink
       .. (upWarband and GOLD_CODE or GREEN_CODE) .. ("  +%d ilvl"):format(upGain or 0) .. "|r" .. reqTail
   end
+  local enchSub, enchInfo
   if self._missingEnch[slotKey] then
     local rec = ns.RecommendedEnchant(self._char.name, slotKey)
     lines[#lines + 1] = NO_ENCHANT .. (rec and ("  " .. NOTE_ARROW:format(rec)) or "")
+    -- Remember which sub-line this note lands on + its raw suggestion, so the hover
+    -- overlay (below) can sit over it and show the enchant's own tooltip.
+    enchSub, enchInfo = #lines, rec and ns.RecommendedEnchantInfo(self._char.name, slotKey) or nil
   end
   -- Wrong (non-recommended) enchant: distinct from "missing" (the slot IS enchanted, just
   -- not with the recommended one). Mutually exclusive with the missing-enchant note. Hidden
@@ -182,6 +196,22 @@ function DetailView:_showGear(i, item, slotKey)
       sub:Text(""):Hide()             -- clear so a pooled row's stale width doesn't skew autosize
     end
   end
+  -- Park the enchant-detail hover over the missing-enchant sub-line (only when it's shown
+  -- and we have a recommendation to detail); hidden otherwise. ClearAllPoints first so a
+  -- pooled row re-anchors cleanly when the note moves to a different sub-line.
+  local hover = row.enchHover
+  if enchSub and enchInfo and lines[enchSub] then
+    local sub = row.subs[enchSub]
+    hover._suggestion = enchInfo
+    hover:ClearAllPoints()
+    hover:SetPoint(ui.edge.TopLeft, sub, ui.edge.TopLeft, 0, 0)
+    hover:SetPoint(ui.edge.BottomRight, sub, ui.edge.BottomRight, 0, 0)
+    hover:Show()
+  else
+    hover._suggestion = nil
+    hover:Hide()
+  end
+
   row.frame:Height(h)
   row.frame:Show()
   return h

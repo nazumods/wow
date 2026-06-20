@@ -134,6 +134,19 @@ function ns.RecommendedEnchant(charName, slot)
   return suggestionName(api:RecommendedEnchant(charName, slot))
 end
 
+---Raw recommended-enchant suggestion for a slot — the EnchantSuggestion descriptor
+---(`{ kind="item"|"spell", id, name?, stat? }`) rather than just its name, so a consumer
+---can render the actual enchant's item/spell tooltip (what it grants). nil when there's no
+---recommendation (or the upgrade addon isn't loaded). Sibling of ns.RecommendedEnchant.
+---@param charName string
+---@param slot string
+---@return table?
+function ns.RecommendedEnchantInfo(charName, slot)
+  local api = ShadowsOfUI_UpgradeApi
+  if not (api and api.RecommendedEnchant) then return nil end
+  return api:RecommendedEnchant(charName, slot)
+end
+
 ---Set of equipped slots with one or more empty gem sockets for a character, keyed by
 ---slot name → socket count (`{ Neck = 1, Finger1 = 1, ... }`). Empty when none, or the
 ---upgrade addon isn't loaded. Built once per Detail render (warband-wide from the stored

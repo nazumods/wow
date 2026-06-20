@@ -16,6 +16,7 @@ local CreateFrame, UIParent = CreateFrame, UIParent
 ---@class Warbandeer
 ---@field ShowItemTooltip fun(frame: table, link: string, compareLink?: string, noUpgradeBlock?: boolean)
 ---@field HideItemTooltip fun()                             hide it
+---@field ShowEnchantTooltip fun(frame: table, suggestion: table)  recommended-enchant detail
 
 -- Dark, near-black border for these item tooltips (the theme's tan `border` token
 -- reads too bright here) — matches the look of a darkened-UI tooltip.
@@ -126,6 +127,54 @@ function ns.ShowItemTooltip(frame, link, compareLink, noUpgradeBlock)
 
   if gt._equippedTab then gt._equippedTab:Hide() end
   getEquippedTab(ct):Show()
+end
+
+local GetSpellName = (C_Spell and C_Spell.GetSpellName) or _G.GetSpellInfo
+local GetItemName = (C_Item and C_Item.GetItemInfo) or _G.GetItemInfo
+local GetSpellDescription = (C_Spell and C_Spell.GetSpellDescription) or _G.GetSpellDescription
+local GetItemSpell = (C_Item and C_Item.GetItemSpell) or _G.GetItemSpell
+
+-- Resolve an EnchantSuggestion to (name, effect-description). The description is the line
+-- that says what the enchant *grants* — for a spell id (bundled enchanting recipe) it's the
+-- spell's own description; for an item id (ClassCodex scroll) it's the item's use-spell
+-- description (`GetItemSpell` → the enchant the scroll applies). Either may be nil/empty when
+-- the spell/item data isn't cached yet (the name still shows; the body fills on next hover).
+---@param suggestion table  EnchantSuggestion { kind, id, name? }
+---@return string? name, string? description
+local function enchantText(suggestion)
+  local name, desc = suggestion.name, nil
+  if suggestion.kind == "spell" and suggestion.id then
+    name = name or GetSpellName(suggestion.id)
+    desc = GetSpellDescription and GetSpellDescription(suggestion.id)
+  elseif suggestion.kind == "item" and suggestion.id then
+    name = name or (GetItemName(suggestion.id))
+    local _, spellID = GetItemSpell(suggestion.id)
+    desc = spellID and GetSpellDescription and GetSpellDescription(spellID)
+  end
+  return name, desc
+end
+
+-- Hover detail for a recommended enchant (the "Missing enchant → …" note in the Detail gear
+-- list): a focused tooltip on the shared private item frame — the enchant's name plus a
+-- wrapped description of what it grants (not the scroll/recipe's full item tooltip, which
+-- carries reagents/sell price the player doesn't need here). `suggestion` is
+-- ShadowsOfUI-Upgrade's EnchantSuggestion. Reuses `itemTip`, so ns.HideItemTooltip hides it.
+---@param frame table       LibNUI widget or raw frame to anchor against
+---@param suggestion table  EnchantSuggestion { kind, id, name? }
+function ns.ShowEnchantTooltip(frame, suggestion)
+  local right = ns.TooltipSide() == 2
+  local gt = getItemTip()
+  gt.SkipUpgradeBlock = true
+  gt:SetOwner(frame._widget or frame, right and "ANCHOR_RIGHT" or "ANCHOR_LEFT")
+  gt:ClearLines()
+  local name, desc = enchantText(suggestion)
+  gt:AddLine(name or "Recommended enchant", 1, 0.82, 0)   -- gold header, like a spell name
+  if desc and desc ~= "" then
+    local g = theme.colors.green
+    gt:AddLine(desc, g[1], g[2], g[3], true)              -- green effect text, wrapped
+  end
+  gt:Show()
+  styleTooltip(gt)
 end
 
 function ns.HideItemTooltip()
