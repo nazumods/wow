@@ -252,6 +252,23 @@ DressingRoom = Class(TitleFrame, function(self)
   -- ModelScene so the thumb is grabbable instead of rotating the model.
   self._scaleSlider:Level(self._model:Level() + 10)
 
+  -- Reset View: floats just above the scale slider/label at the model's bottom-left.
+  -- Restores the camera to its load defaults (facing, zoom, pan) and the scale slider
+  -- to 1 — undoing any drag-rotate, pan, wheel-zoom, or resize the user applied.
+  local resetBox = Frame:new{
+    parent = self,
+    position = { BottomLeft = {self._model, ui.edge.BottomLeft, 8, 48}, Width = 100, Height = ROWH },
+  }
+  selBox(resetBox)
+  Button:new{ parent = resetBox, position = { All = true }, glow = false,
+    OnClick = function()
+      self._model:ResetView()
+      self._scaleSlider:Value(1)   -- fires OnChange → resets model scale + label
+    end }
+  Label:new{ parent = resetBox, justifyH = ui.justify.Center,
+    position = { Left = {6, 0}, Right = {-6, 0} }, text = "Reset View" }
+  resetBox:Level(self._model:Level() + 10)
+
   local half = (GRIDW - PAD) / 2
 
   -- Top control row: Undress (left) + Background toggle (right). Borders go gold
@@ -532,7 +549,7 @@ end
 ---@return boolean
 function DressingRoom:_isSelfWithAltForm()
   local _, _, playerRace = UnitRace("player")
-  return self._raceID == playerRace and (C_PlayerInfo.GetAlternateFormInfo()) or false
+  return self._raceID == ns.CanonRace(playerRace) and (C_PlayerInfo.GetAlternateFormInfo()) or false
 end
 
 ---@param i number  index into the selected race's forms array
@@ -563,7 +580,7 @@ function DressingRoom:Dress()
   -- overridden), and the race defaults to theirs until one is picked. Seed the race
   -- here so it always resolves regardless of how Dress was reached (the open path
   -- doesn't always run _defaultToPlayer); _sex is tracked for reference/debug only.
-  if not self._raceID then self._raceID = select(3, UnitRace("player")) end
+  if not self._raceID then self._raceID = ns.CanonRace(select(3, UnitRace("player"))) end
   self._sex = UnitSex("player")
   local m = self._model
   -- Multi-form races resolve through the selected form (for its `normalize` override);
@@ -591,9 +608,20 @@ function DressingRoom:Dress()
   self._scaleSlider:Value(1)
 
   -- A form may override the render race (Worgen's "Human" form → race 1, rendered as a
-  -- plain Human) or the unit's native/altered form (Dracthyr dragon/visage via
+  -- plain Human) or select the unit's native/altered form (Dracthyr dragon/visage via
   -- `useNativeForm`); otherwise render the selected race in its native form.
-  m:Unit("player", (form and form.race) or self._raceID, form and form.useNativeForm)
+  --
+  -- When the resolved race is the player's OWN race, pass NO customRaceID: the visage
+  -- (altered form) is customization-driven and only textures when rendered as the player's
+  -- actual unit. A customRaceID override — even the matching id — loads a base race with no
+  -- customizations, so the visage comes out untextured (white); the baked native dragon
+  -- survives it, which is why only the visage breaks. nil renders the player's real race +
+  -- customizations, and lets `useNativeForm` actually take effect (it's a no-op under an
+  -- override). Other races keep the customRaceID override.
+  local _, _, playerRace = UnitRace("player")
+  local renderRace = (form and form.race) or self._raceID
+  if renderRace == ns.CanonRace(playerRace) then renderRace = nil end
+  m:Unit("player", renderRace, form and form.useNativeForm)
 end
 
 -- Point the title-bar class icon at the class in column `classId` (hidden if the
@@ -759,6 +787,7 @@ end
 -- the right race/gender immediately.
 function DressingRoom:_defaultToPlayer()
   local _, _, raceID = UnitRace("player")
+  raceID = ns.CanonRace(raceID)   -- off-faction variant → the shown selector id (e.g. Horde Dracthyr 70 → 52)
   self:_highlightRace(raceID)
   self._raceID = raceID
   self._sex = UnitSex("player")   -- body gender is locked to the char; tracked for reference/debug
