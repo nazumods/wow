@@ -29,17 +29,20 @@ local DIR = {
 }
 
 ---@class StatChart: Frame
----@field radius    number  half-extent (px) a max-rating vertex reaches from centre
+---@field radius    number  half-extent (px) a fully-overshot vertex reaches from centre (the frame corner)
+---@field overshoot number  max fulfilment a vertex plots (1 = on the guide square; reaches `radius` at this value)
 ---@field thickness number  polygon line thickness
 ---@field dotSize   number  vertex marker edge
 local StatChart = Class(Frame, function(self)
   local c = theme.colors
   local w = self._widget
-  local R = self.radius
+  -- The guide square marks "target met"; vertices may overshoot it up to `overshoot`×
+  -- (which reaches the frame corner `radius`), so the guide sits inset from the edge.
+  local gR = self.radius / self.overshoot
 
-  -- faint square guide at the max extent (the four diagonal corners)
+  -- faint square guide at the target line (the four diagonal corners)
   local g = c.divider
-  local gc = { {-R, R}, {-R, -R}, {R, -R}, {R, R} } -- TL, BL, BR, TR
+  local gc = { {-gR, gR}, {-gR, -gR}, {gR, -gR}, {gR, gR} } -- TL, BL, BR, TR
   for i = 1, 4 do
     local line = w:CreateLine()
     line:SetThickness(1)
@@ -65,6 +68,7 @@ local StatChart = Class(Frame, function(self)
   end
 end, {
   radius = 26,
+  overshoot = 1.2,
   thickness = 1.5,
   dotSize = 7,
 })
@@ -94,13 +98,15 @@ function StatChart:Set(crit, haste, mastery, vers, hot, targets)
   local val = { crit = crit or 0, haste = haste or 0, mastery = mastery or 0, versatility = vers or 0 }
   local peak = max(val.crit, val.haste, val.mastery, val.versatility, 1)
 
+  local over = self.overshoot
   local pt = {}
   for _, key in ipairs(KEYS) do
-    -- fulfilment vs target (clamped at the guide edge); fall back to the largest
-    -- rating when this stat has no target, so a fully target-less chart still plots.
+    -- fulfilment vs target — 1.0 lands on the guide square, capped at `overshoot`×
+    -- (which reaches the corner) so an over-target stat pokes a little past the guide.
+    -- Fall back to the largest rating when this stat has no target.
     local t = targets and targets[key]
     local denom = (t and t > 0) and t or peak
-    local r = min(val[key] / denom, 1) * R
+    local r = min(val[key] / denom, over) / over * R
     local d = DIR[key]
     pt[key] = { d[1] * r, d[2] * r }
   end
