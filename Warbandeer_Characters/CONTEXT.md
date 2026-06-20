@@ -1,6 +1,6 @@
 # Warbandeer_Characters (Data Layer)
 
-**Deps:** LibNAddOn, LibNUI · **SavedVars:** `WarbandeerCharDB` (v17) · **Commands:** `/characters`, `/wbc` · **API:** `WarbandeerApi`
+**Deps:** LibNAddOn, LibNUI · **SavedVars:** `WarbandeerCharDB` (v18) · **Commands:** `/characters`, `/wbc` · **API:** `WarbandeerApi`
 
 Data-collection backbone for the suite. Scans the active character each login/refresh and stores everything in `WarbandeerCharDB`, exposing it to the rest of the suite through the `WarbandeerApi` global. Per-field scanning is driven by the **broker** system (`broker.lua`).
 
@@ -11,7 +11,7 @@ Data-collection backbone for the suite. Scans the active character each login/re
 | `init.lua` | Addon bootstrap (assignment form) |
 | `types.lua` | LuaLS aliases: `Specialization`, `SpecializationKey` |
 | `broker.lua` | `Broker` class + `ns:RegisterBroker`/`InitBrokers`; reset constants `RESET_SUNDAY/DAILY/WEEKLY`; reset-boundary timestamps `ns.LAST_DAILY_RESET`/`LAST_RESET`/`LAST_SUNDAY_RESET` |
-| `database.lua` | `ns:MigrateDB` (v17), `ns:initialize` (creates the per-char struct, then `InitBrokers`/`InitWarband`); `/characters list`, `/characters delete <name>` (also prunes the character's cached bank gear), `/characters cleanup` (recount numCharacters + drop bank gear for untracked characters) |
+| `database.lua` | `ns:MigrateDB` (v18), `ns:initialize` (creates the per-char struct, then `InitBrokers`/`InitWarband`); `/characters list`, `/characters delete <name>` (also prunes the character's cached bank gear), `/characters cleanup` (recount numCharacters + drop bank gear for untracked characters) |
 | `main.lua` | `ns:refresh` + `ns:refreshQueue` (one **field** scanned per 100ms); `/characters refresh`, `/characters dump` |
 | `login.lua` | `ns.onLogin` → `initialize()` once, then `refresh()` |
 | `api.lua` | `WarbandeerApi` public methods (see below) |
@@ -82,11 +82,14 @@ WarbandeerApi:GetWorldQuestRewards(char?)  → WorldQuestReward[]
     -- by ShadowsOfUI-Upgrade's WorldQuestUpgrades; empty until the char has scanned
 ```
 
-`GearCandidate` = `{ link, itemID, ilvl?, equipLoc, classID, subClassID, quality? }` (ilvl is the
+`GearCandidate` = `{ link, itemID, ilvl?, equipLoc, classID, subClassID, quality?, reqLevel? }` (ilvl is the
 **effective** (context-scaled) level via `C_Item.GetCurrentItemLevel(ItemLocation)`, captured when
 warm; recompute from `link` if nil). `quality` (v17, Enum.ItemQuality) is captured at scan time so the
 upgrade finder's artifact gate fires even when the candidate is later read for an offline alt with the
-item cold (`GetItemQualityByID` is nil for an uncached item); absent on entries cached before v17. Effective, not the link's unscaled `GetDetailedItemLevelInfo`,
+item cold (`GetItemQualityByID` is nil for an uncached item); absent on entries cached before v17. `reqLevel`
+(v18) is the required character level, also captured at scan time (item warm) so a consumer's "can equip
+now?" gate reads consistently for an offline alt's cold gear instead of falling back to a live (cold, →nil)
+`GetItemInfo` lookup; absent on entries cached before v18. Effective, not the link's unscaled `GetDetailedItemLevelInfo`,
 so it matches how `equipment.slots` measures equipped ilvl — else a downscaled item over-reports and
 the upgrade finder fakes a huge gain.
 
@@ -233,7 +236,7 @@ A `Broker` (from `broker.lua`) holds a `fields` table; each field is `{ get, eve
 ## SavedVariables (`WarbandeerCharDB`)
 
 ```lua
-{ version = 17, numCharacters, lastDailyReset, lastReset, lastSundayReset,
+{ version = 18, numCharacters, lastDailyReset, lastReset, lastSundayReset,
   characters = { ["Name"] = Character },
   -- account-wide warband wealth (v8); not per-character
   warband = {
@@ -260,4 +263,4 @@ A `Broker` (from `broker.lua`) holds a `fields` table; each field is `{ get, eve
   ui = { wmissingFontSize } }                              -- legacy (stale)
 ```
 
-`MigrateDB` (all migrations non-destructive): **v7** moves flat fields into `basic`/`instances` sub-tables and nils the old keys; **v8** seeds `warband = { bankGold = 0, history = {} }` (`week` filled lazily by `RolloverWarbandWeek` on first login); **v9** re-derives `classKey` from the locale-independent class token; **v10** seeds `recipeGear = { build = "", recipes = {} }` (re-stamped and filled lazily by `data/recipegear.lua`); **v11** seeds `bank = { characters = {}, guilds = {} }` (warband filled lazily; all populated by `data/bank.lua` on bank open); **v12** seeds `ui = {}` (account-wide UI prefs; originally held `wmissingFontSize`, now legacy — the copy-window font size moved to `LibNUIDB.copyFontSize`, this table left in place for rollback safety). **v13** is a version bump only — the equippable-gear cache (`bank.*.equip`, per-char `gearbag.items`, `basic.specialization.id`) is purely additive and filled lazily, so older revisions just see empty lists. **v14** is a version bump only — the per-character world-quest reward cache (`worldquests.rewards`) is additive and filled lazily on the next scan, so rollback is lossless. **v15** is a version bump only — the per-slot `equipment.slots.*.emptySockets` count is additive and filled lazily on the next equipment scan, so older revisions just lack the field (treated as none) and rollback is lossless. **v16** is a version bump only — the `stats.secondary` snapshot is additive and filled lazily on the next scan, so older revisions just lack it (the Detail grid shows blanks) and rollback is lossless. **v17** is a version bump only — the per-candidate `quality` (Enum.ItemQuality) on cached bag/bank equippable gear is additive and filled lazily on the next bag/bank scan, so older entries just lack it (the upgrade addon's artifact gate falls back to the live `GetItemQualityByID` lookup) and rollback is lossless.
+`MigrateDB` (all migrations non-destructive): **v7** moves flat fields into `basic`/`instances` sub-tables and nils the old keys; **v8** seeds `warband = { bankGold = 0, history = {} }` (`week` filled lazily by `RolloverWarbandWeek` on first login); **v9** re-derives `classKey` from the locale-independent class token; **v10** seeds `recipeGear = { build = "", recipes = {} }` (re-stamped and filled lazily by `data/recipegear.lua`); **v11** seeds `bank = { characters = {}, guilds = {} }` (warband filled lazily; all populated by `data/bank.lua` on bank open); **v12** seeds `ui = {}` (account-wide UI prefs; originally held `wmissingFontSize`, now legacy — the copy-window font size moved to `LibNUIDB.copyFontSize`, this table left in place for rollback safety). **v13** is a version bump only — the equippable-gear cache (`bank.*.equip`, per-char `gearbag.items`, `basic.specialization.id`) is purely additive and filled lazily, so older revisions just see empty lists. **v14** is a version bump only — the per-character world-quest reward cache (`worldquests.rewards`) is additive and filled lazily on the next scan, so rollback is lossless. **v15** is a version bump only — the per-slot `equipment.slots.*.emptySockets` count is additive and filled lazily on the next equipment scan, so older revisions just lack the field (treated as none) and rollback is lossless. **v16** is a version bump only — the `stats.secondary` snapshot is additive and filled lazily on the next scan, so older revisions just lack it (the Detail grid shows blanks) and rollback is lossless. **v17** is a version bump only — the per-candidate `quality` (Enum.ItemQuality) on cached bag/bank equippable gear is additive and filled lazily on the next bag/bank scan, so older entries just lack it (the upgrade addon's artifact gate falls back to the live `GetItemQualityByID` lookup) and rollback is lossless. **v18** is a version bump only — the per-candidate `reqLevel` (required character level) on cached bag/bank equippable gear is additive and filled lazily on the next bag/bank scan, so older entries just lack it (the consumer's level gate falls back to the live `GetItemInfo` lookup) and rollback is lossless.

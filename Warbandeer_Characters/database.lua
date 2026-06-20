@@ -85,7 +85,7 @@ end, "Repair stored data (recount characters)")
 ---@field MigrateDB fun(self) Migrate database to latest version
 function ns:MigrateDB()
   local db = ns.db
-  if db.version == 16 then return end
+  if db.version == 18 then return end
   if not db.characters then db.characters = {} end
   if not db.numCharacters then
     db.numCharacters = countCharacters(db)
@@ -210,6 +210,16 @@ function ns:MigrateDB()
   -- until the relevant bag/bank is next scanned, so rollback is lossless.
   if (db.version or 0) < 17 then
     db.version = 17
+  end
+
+  -- v18: per-candidate required character level on cached bag/bank equippable gear
+  -- (non-destructive).  Stored by data/gearbag.lua + data/bank.lua at scan time (item
+  -- warm) so a consumer's "can equip now?" gate reads consistently for an offline alt's
+  -- cold gear instead of falling back to a live lookup that returns nil right after a
+  -- reload.  Nothing to seed — old entries just lack `reqLevel` (the consumer falls back
+  -- to the live lookup) until the relevant bag/bank is next scanned, so rollback is lossless.
+  if (db.version or 0) < 18 then
+    db.version = 18
   end
 end
 

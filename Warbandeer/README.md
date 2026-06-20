@@ -42,7 +42,7 @@ Found in the Blizzard settings panel:
   Warbandeer is only the viewer; without the data layer it has nothing to show.
 - *Optional:* **Warbandeer_Bars** for the Bars view.
 - *Optional:* **Collected** for the Collected view.
-- *Optional:* **ShadowsOfUI-Upgrade** for gear-upgrade markers, missing-enchant + wrong-enchant + empty-socket flags (Summary "Ench"/"Gem" columns + Detail notes), and the Detail view's Suggested box. In the Detail gear list, a piece carrying the *wrong* (non-recommended) enchant shows a yellow "Wrong enchant" note; **right-click that row to accept the enchant on that item** (it asks to confirm, then stops flagging — right-click again to undo). `/wb enchants` lists everything you've accepted and `/wb enchants clear` resets the list.
+- *Optional:* **ShadowsOfUI-Upgrade** for gear-upgrade markers, missing-enchant + wrong-enchant + empty-socket flags (Summary "Up"/"Ench"/"Gem" columns + Detail notes), and the Detail view's Suggested box. The Summary "Up" column counts how many slots have an available upgrade and is coloured **green** when at least one of them can be equipped right now (at or below the character's level — a warband-bank copy counts, since you can withdraw it), or **gold** when every available upgrade is still gated above the character's level. In the Detail gear list, a piece carrying the *wrong* (non-recommended) enchant shows a yellow "Wrong enchant" note; **right-click that row to accept the enchant on that item** (it asks to confirm, then stops flagging — right-click again to undo). `/wb enchants` lists everything you've accepted and `/wb enchants clear` resets the list.
 
 ## Saved data
 

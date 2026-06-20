@@ -29,6 +29,11 @@ local getUpgrades = function(toon)
   --   "[icon] [Amulet of the Naaru]  +95 ilvl  (i720, held, good stats) @ 80"
   local level = toon.basic.level or 0
   local lines = {}
+  -- Track whether any listed upgrade is equippable *right now* — at or below the
+  -- character's level (location doesn't matter: a warband-bank copy can be
+  -- withdrawn and equipped) — so the count can read green ("act on this now")
+  -- rather than the default gold (every upgrade still gated above their level).
+  local readyNow = false
   for _, r in ipairs(list) do
     local where = r.betterElsewhere and "warband (better)"
       or (r.where == "warband" and "warband" or "held")
@@ -37,15 +42,20 @@ local getUpgrades = function(toon)
     local swap = r.pairSwap and ", weapon swap" or ""
     local icon = GetItemTex and GetItemTex(r.link)
     local tex = icon and ("|T%d:14:14|t "):format(icon) or ""
-    local reqLevel = select(5, C_Item.GetItemInfo(r.link))
-    local req = (reqLevel and reqLevel > level) and (" @ %d"):format(reqLevel) or ""
+    -- Required level comes from the data layer's scan-time capture (reliable for
+    -- cold/offline alts + right after a reload); fall back to the live lookup only
+    -- for candidates cached before that field existed.
+    local reqLevel = r.reqLevel or select(5, C_Item.GetItemInfo(r.link))
+    local belowReq = reqLevel and reqLevel > level
+    local req = belowReq and (" @ %d"):format(reqLevel) or ""
+    if not belowReq then readyNow = true end
     insert(lines, ("%s%s  +%d ilvl  (i%d, %s%s%s)%s"):format(
       tex, r.link, r.ilvlGain, r.ilvl, where, tag, swap, req))
   end
 
   return {
     text = tostring(n),
-    color = WARBAND,
+    color = readyNow and theme.colors.green or WARBAND,
     justifyH = ui.justify.Right,
     fontInfo = theme.fonts.number,
     onEnter = function(self)

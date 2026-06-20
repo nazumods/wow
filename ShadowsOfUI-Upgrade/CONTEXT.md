@@ -115,8 +115,10 @@ ShadowsOfUI_UpgradeApi:ItemUpgrades(link, boundTo?, ilvl?)  → ItemUpgradeEntry
     -- equipped slots are (falls back to the link's unscaled ilvl when omitted)
 ```
 
-`UpgradeResult` = `{ slot, link, ilvl, ilvlGain, statTag?, where, betterElsewhere?, pairSwap? }`
-where `statTag` ∈ `"good"`/`"off"`/nil, `where` ∈ `"held"`/`"warband"`,
+`UpgradeResult` = `{ slot, link, ilvl, ilvlGain, statTag?, where, betterElsewhere?, pairSwap?, reqLevel? }`
+where `statTag` ∈ `"good"`/`"off"`/nil, `where` ∈ `"held"`/`"warband"`, `reqLevel` is the candidate's
+required character level (from the data layer's scan-time capture, nil when unknown — lets a consumer
+gate "equippable now?" without a cold live lookup; Warbandeer's Summary "Up" column reads it),
 `betterElsewhere` = a warband-bank copy beats the best held upgrade, `pairSwap` = the
 MainHand/OffHand result is half of a 2H → (1H + off-hand) swap (see Algorithm).
 `ItemUpgradeEntry` = `{ name, classKey, slot, ilvlGain, statTag? }`.

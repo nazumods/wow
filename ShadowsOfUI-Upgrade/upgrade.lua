@@ -74,6 +74,7 @@ end
 ---@field where string? "held" (own bags/bank) | "warband" (account bank)
 ---@field betterElsewhere boolean? a warband-bank copy beats the best held upgrade
 ---@field pairSwap boolean? part of a 2H → (main-hand + off-hand) swap, not a lone-slot upgrade
+---@field reqLevel integer? candidate's required character level (from the data layer's scan-time capture; nil when unknown)
 
 -- Tag how well an item's secondaries fit the spec priority: "good" if it carries
 -- a top-tier stat, else "off".  nil when stats or priority aren't known yet.
@@ -212,7 +213,9 @@ local function resolveTwoHand(charData, pools, warband, equipped, ranks, out)
           and primaryFits(cand.link, primary) then
         local ilvl = cand.ilvl or (cand.link and GetDetailedItemLevelInfo(cand.link))
         local b = acc[role]
-        if ilvl and (not b[k] or ilvl > b[k].ilvl) then b[k] = { link = cand.link, ilvl = ilvl } end
+        if ilvl and (not b[k] or ilvl > b[k].ilvl) then
+          b[k] = { link = cand.link, ilvl = ilvl, reqLevel = cand.reqLevel }
+        end
       end
     end
   end
@@ -234,6 +237,7 @@ local function resolveTwoHand(charData, pools, warband, equipped, ranks, out)
     out.MainHand = {
       slot = "MainHand", link = newMH.link, ilvl = newMH.ilvl, ilvlGain = newMH.ilvl - mhIlvl,
       where = mhWhere, betterElsewhere = mhBetter, statTag = statTag(newMH.link, ranks),
+      reqLevel = newMH.reqLevel,
     }
   elseif pairBudget and pairBudget > cur then
     -- Net budget gain is shared across both hands; show the average per-hand gain on
@@ -242,12 +246,12 @@ local function resolveTwoHand(charData, pools, warband, equipped, ranks, out)
     out.MainHand = {
       slot = "MainHand", link = oneH.link, ilvl = oneH.ilvl, ilvlGain = gain,
       where = mh1hWhere, betterElsewhere = mh1hBetter, statTag = statTag(oneH.link, ranks),
-      pairSwap = true,
+      pairSwap = true, reqLevel = oneH.reqLevel,
     }
     out.OffHand = {
       slot = "OffHand", link = offH.link, ilvl = offH.ilvl, ilvlGain = gain,
       where = offWhere, betterElsewhere = offBetter, statTag = statTag(offH.link, ranks),
-      pairSwap = true,
+      pairSwap = true, reqLevel = offH.reqLevel,
     }
   end
 end
@@ -276,7 +280,9 @@ local function computeUpgrades(charData)
     local r = out[slot]
     if not r then r = {} ; out[slot] = r end
     local k = where == "warband" and "wb" or "held"
-    if not r[k] or ilvl > r[k].ilvl then r[k] = { link = cand.link, ilvl = ilvl, gain = gain } end
+    if not r[k] or ilvl > r[k].ilvl then
+      r[k] = { link = cand.link, ilvl = ilvl, gain = gain, reqLevel = cand.reqLevel }
+    end
   end
 
   for _, c in ipairs(pools.bags) do consider(c, "held") end
@@ -289,6 +295,7 @@ local function computeUpgrades(charData)
     out[slot] = {
       slot = slot, link = pick.link, ilvl = pick.ilvl, ilvlGain = pick.gain,
       where = where, betterElsewhere = better, statTag = statTag(pick.link, ranks),
+      reqLevel = pick.reqLevel,
     }
   end
 
