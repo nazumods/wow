@@ -115,6 +115,35 @@ local INTENT_COLOR = {
 }
 function D.intentColor(intent) return INTENT_COLOR[intent] or theme.colors.muted end
 
+-- Re-render the open Detail view (after an enchant accept toggle) so the affected note
+-- clears or returns immediately.
+local function refreshDetail()
+  local view = ns.MainWindow and ns.MainWindow:ShownView()
+  if view and view.name == "detail" then view:OnBeforeShow(); ns.MainWindow:Fit() end
+end
+
+-- Flip the per-item enchant accept and report the new state, then refresh. Direction-
+-- agnostic: prints/behaves per the resulting state.
+local function applyEnchantToggle(itemID, enchantID, itemLink)
+  local accepted = ns.ToggleEnchantIgnore(itemID, enchantID)
+  ns.Print(accepted
+    and ("accepting the enchant on %s (right-click again to undo)"):format(itemLink or "this item")
+    or  ("flagging the enchant on %s again"):format(itemLink or "this item"))
+  refreshDetail()
+end
+
+-- Accepting a wrong enchant silences the flag, so confirm it (an accidental right-click
+-- shouldn't quietly hide a real issue). Un-accepting needs no confirm — it only re-flags.
+StaticPopupDialogs["WARBANDEER_ACCEPT_ENCHANT"] = {
+  text = "Accept the current enchant on %s?\nWarbandeer will stop flagging it as the wrong enchant.",
+  button1 = YES,
+  button2 = NO,
+  OnAccept = function(self) local d = self.data; applyEnchantToggle(d.itemID, d.enchantID, d.link) end,
+  timeout = 0,
+  whileDead = true,
+  hideOnEscape = true,
+}
+
 -- Wire a gear/prof-gear row for hover: a row highlight plus the shared item tooltip
 -- (`ns.ShowItemTooltip`). The row stores its current item link in `frame._itemLink`
 -- and, for an equipped slot with a suggested upgrade, that upgrade's link in
@@ -138,20 +167,20 @@ function D.attachItemTip(frame)
   -- Left-click a row carrying a suggested upgrade → flash that item in the open
   -- bags / bank (the upgrade is held gear; the equipped piece itself is never in a
   -- bag, so only `_upgradeLink` is flashable). No-op on rows without an upgrade.
-  -- Right-click a row flagged with a wrong enchant → accept/un-accept that enchant on
-  -- this specific item (toggles the per-item ignore), then re-render the Detail view so
-  -- the note clears/returns. Works on an already-accepted row too (to undo). No-op
-  -- otherwise (`_enchMismatch` is set per render only for slots with a mismatch).
+  -- Right-click a row flagged with a wrong enchant → accept/un-accept that enchant on this
+  -- specific item (toggles the per-item ignore), then re-render so the note clears/returns.
+  -- Accepting (silencing) asks for confirmation; un-accepting (re-flagging) is immediate.
+  -- No-op otherwise (`_enchMismatch` is set per render only for slots with a mismatch).
   frame:SetScript("OnMouseUp", function(_, button)
     if button == "LeftButton" and frame._upgradeLink then ns.FlashItem(frame._upgradeLink) end
     if button == "RightButton" and frame._enchMismatch then
       local m = frame._enchMismatch
-      local accepted = ns.ToggleEnchantIgnore(m.itemID, m.enchantID)
-      ns.Print(accepted
-        and ("accepting the enchant on %s (right-click again to undo)"):format(frame._itemLink or "this item")
-        or  ("flagging the enchant on %s again"):format(frame._itemLink or "this item"))
-      local view = ns.MainWindow and ns.MainWindow:ShownView()
-      if view and view.name == "detail" then view:OnBeforeShow(); ns.MainWindow:Fit() end
+      if ns.IsEnchantIgnored(m.itemID, m.enchantID) then
+        applyEnchantToggle(m.itemID, m.enchantID, frame._itemLink) -- un-accept, no confirm
+      else
+        local dialog = StaticPopup_Show("WARBANDEER_ACCEPT_ENCHANT", frame._itemLink or "this item")
+        if dialog then dialog.data = { itemID = m.itemID, enchantID = m.enchantID, link = frame._itemLink } end
+      end
     end
   end)
 end
