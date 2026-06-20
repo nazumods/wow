@@ -33,6 +33,34 @@ local function shortEnchant(name) return (name:gsub("^.- %- ", "")) end
 local UP_PREFIX = "|cffff4040[UP] \226\134\146|r "
 local GEAR_MAX_SUBS = 3   -- most sub-lines a row can show: upgrade + missing-enchant + empty-socket
 
+-- A transparent mouse-catcher overlaid on one issue-note sub-line (missing enchant / empty
+-- socket). Hovering it shows that recommendation's own tooltip (`show(hover, suggestion)`,
+-- via the suggestion stashed on it each render) in place of the row's equipped-item tooltip;
+-- leaving it hides the shared tooltip. Pooled with the row, repositioned by `parkHover`.
+local function noteHover(parent, show)
+  local h = Frame:new{ parent = parent, position = { Hide = true } }
+  h:EnableMouse(true)
+  h:SetScript("OnEnter", function() if h._suggestion then show(h, h._suggestion) end end)
+  h:SetScript("OnLeave", function() ns.HideItemTooltip() end)
+  return h
+end
+
+-- Park a note-hover overlay exactly over its sub-line label (when both the line and a
+-- suggestion to detail are present), else hide it. ClearAllPoints first so a pooled row
+-- re-anchors cleanly when the note moves to a different sub-line between renders.
+local function parkHover(hover, sub, suggestion)
+  if sub and suggestion then
+    hover._suggestion = suggestion
+    hover:ClearAllPoints()
+    hover:SetPoint(ui.edge.TopLeft, sub, ui.edge.TopLeft, 0, 0)
+    hover:SetPoint(ui.edge.BottomRight, sub, ui.edge.BottomRight, 0, 0)
+    hover:Show()
+  else
+    hover._suggestion = nil
+    hover:Hide()
+  end
+end
+
 -- Grab (or lazily create) a pooled gear row: item name (truncated) on the left,
 -- with the item level and upgrade-track badge right-aligned.
 ---@return table
@@ -100,6 +128,13 @@ function DetailView:_gearRow(i)
     }
   end
 
+  -- Mouse-catchers parked over the missing-enchant / empty-socket sub-lines (repositioned
+  -- each render in _showGear). Hovering one shows that recommendation's own tooltip — the
+  -- enchant's effect / the gem's stat — in place of the row's equipped-item tooltip. A slot
+  -- can carry both notes at once (e.g. a ring), so each gets its own overlay.
+  row.enchHover = noteHover(frame, ns.ShowEnchantTooltip)
+  row.gemHover = noteHover(frame, ns.ShowGemTooltip)
+
   self._gearRows[i] = row
   return row
 end
@@ -143,9 +178,13 @@ function DetailView:_showGear(i, item, slotKey)
     lines[#lines + 1] = UP_PREFIX .. upLink
       .. (upWarband and GOLD_CODE or GREEN_CODE) .. ("  +%d ilvl"):format(upGain or 0) .. "|r" .. reqTail
   end
+  local enchSub, enchInfo
   if self._missingEnch[slotKey] then
     local rec = ns.RecommendedEnchant(self._char.name, slotKey)
     lines[#lines + 1] = NO_ENCHANT .. (rec and ("  " .. NOTE_ARROW:format(rec)) or "")
+    -- Remember which sub-line this note lands on + its raw suggestion, so the hover
+    -- overlay (below) can sit over it and show the enchant's own tooltip.
+    enchSub, enchInfo = #lines, rec and ns.RecommendedEnchantInfo(self._char.name, slotKey) or nil
   end
   -- Wrong (non-recommended) enchant: distinct from "missing" (the slot IS enchanted, just
   -- not with the recommended one). Mutually exclusive with the missing-enchant note. Hidden
@@ -158,19 +197,21 @@ function DetailView:_showGear(i, item, slotKey)
       .. ("  |cff808080(%s)|r"):format(shortEnchant(mis.applied))
       .. "  " .. NOTE_ARROW:format(shortEnchant(mis.recommended))
   end
+  local gemSub, gemInfo
   local sockets = self._emptySockets[slotKey]
   if sockets then
     local label = sockets > 1 and ("Empty sockets ×%d"):format(sockets) or "Empty socket"
     -- The unique diamond goes on the first empty socket; every other socket gets the
-    -- secondary fill gem.
-    local rec
+    -- secondary fill gem. Take the matching raw suggestion alongside the name for the hover.
+    local rec, info
     if not self._gemPlaced and self._gemPrimary then
-      rec, self._gemPlaced = self._gemPrimary, true
+      rec, info, self._gemPlaced = self._gemPrimary, self._gemPrimaryInfo, true
     else
-      rec = self._gemSecondary
+      rec, info = self._gemSecondary, self._gemSecondaryInfo
     end
     lines[#lines + 1] = SOCKET_CODE .. label .. "|r"
       .. (rec and ("  " .. NOTE_ARROW:format(rec)) or "")
+    gemSub, gemInfo = #lines, rec and info or nil
   end
 
   local h = D.GEAR_ROW_H
@@ -182,6 +223,11 @@ function DetailView:_showGear(i, item, slotKey)
       sub:Text(""):Hide()             -- clear so a pooled row's stale width doesn't skew autosize
     end
   end
+  -- Park each note-detail hover over its sub-line (missing-enchant / empty-socket), or hide
+  -- it when that note isn't shown this render. A slot may have both at once.
+  parkHover(row.enchHover, enchSub and lines[enchSub] and row.subs[enchSub], enchInfo)
+  parkHover(row.gemHover, gemSub and lines[gemSub] and row.subs[gemSub], gemInfo)
+
   row.frame:Height(h)
   row.frame:Show()
   return h
