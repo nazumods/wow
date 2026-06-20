@@ -43,6 +43,7 @@ data/equipment.lua
 data/stats.lua
 data/artifacts.lua
 data/concentration.lua
+data/artisancurrency.lua
 
 login.lua
 

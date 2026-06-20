@@ -11,6 +11,7 @@ include_files = {
   "LibNAddOn/**/*.lua", "LibNUI/**/*.lua", "LibNUI_Test/**/*.lua", "Recycle/**/*.lua",
   "ShadowsOfUI-DMF/**/*.lua", "ShadowsOfUI-GCD/**/*.lua", "ShadowsOfUI-Ilvl/**/*.lua",
   "ShadowsOfUI-Known/**/*.lua", "ShadowsOfUI-Upgrade/**/*.lua", "ShadowsOfUI-XP/**/*.lua",
+  "ShadowsOfUI-Artisan/**/*.lua",
   "Warbandeer/**/*.lua", "Warbandeer_Alias/**/*.lua", "Warbandeer_Bars/**/*.lua",
   "Warbandeer_Characters/**/*.lua", "Warbandeer_Collected/**/*.lua",
 }
@@ -26,6 +27,7 @@ files["LibNUI/debug.lua"] = {globals = {"SLASH_WDEBUG1"}}
 files["LibNUI_Test/**/*.lua"] = {globals = {"LibNUITest"}}
 files["LibNAddOn/api.lua"] = {globals = {"LibNAddOn"}}
 files["Recycle/addon.lua"] = {globals = {"HandleModifiedItemClick"}}
+files["ShadowsOfUI-Artisan/**/*.lua"] = {globals = {"SLASH_SUI_ARTISAN1"}}
 files["ShadowsOfUI-DMF/**/*.lua"] = {globals = {"SLASH_SUI_DMF1"}}
 files["ShadowsOfUI-Ilvl/**/*.lua"] = {globals = {"SLASH_SUI_ILVL1"}}
 files["ShadowsOfUI-Known/**/*.lua"] = {globals = {"SLASH_SUI_KNOWN1"}}
@@ -96,7 +98,9 @@ std = {
     "CreateFont",
     "DeltaLerp",
     "CreateFrame",
+    "EventRegistry",
     "EventUtil",
+    "GameTooltip_Hide",
     "Item",
     "GetCursorPosition",
     "GetCritChance",
@@ -173,6 +177,7 @@ std = {
     "DULL_RED_FONT_COLOR",
     "GRAY_FONT_COLOR",
     "GREEN_FONT_COLOR",
+    "HIGHLIGHT_FONT_COLOR",
     "ENCHANTED_TOOLTIP_LINE",
     "ITEM_ARTIFACT_COLOR",
     "ITEM_EPIC_COLOR",
@@ -215,6 +220,7 @@ std = {
     "DEFAULT_CHAT_FRAME",
     "GameTooltip",
     "MainMenuBarBackpackButton",
+    "ProfessionsBookFrame",
     "StanceBar",
     "StatusTrackingBarManager",
     "UIParent",
