@@ -35,6 +35,7 @@ local SPIN_MAX = 12
 ---@field _cam table?  the scene's active OrbitCamera (drives right-drag pan + wheel zoom)
 ---@field _yaw number  accumulated drag yaw in radians (internal); seeded from `facing`
 ---@field _yawVel number  current rotation speed in rad/sec (internal); carries the flick on release and decays to 0
+---@field _naturalZoom number  the scene's natural zoom distance captured at construction; restored by ResetView
 ---@field _scale number  user scale multiplier, re-applied after each async model load (1 = the normalized size)
 ---@field _aggressiveness number  bounding-box normalization strength 0..1 (0 = the model's natural size, 1 = forced to ~human-male size); default 0 (opt-in)
 ---@field _outfit number[]?  remembered transmog sources, re-applied after each async model load (empty = undressed)
@@ -65,10 +66,10 @@ local Model = Class(Frame, function(self)
   -- stored as a PERCENT of the min–max range, so widening alone re-maps the scene's
   -- starting percent to a much larger distance (the model loads way too far out). Capture
   -- the scene's natural distance first and restore it after, to keep the default framing.
-  local naturalZoom = cam:GetZoomDistance()
+  self._naturalZoom = cam:GetZoomDistance()
   cam:SetMinZoomDistance(self.minZoom)
   cam:SetMaxZoomDistance(self.maxZoom)
-  cam:SetZoomDistance(naturalZoom)
+  cam:SetZoomDistance(self._naturalZoom)
 
   local w = self._widget
   w:EnableMouse(true)
@@ -264,6 +265,22 @@ end
 function Model:Spin(v)
   if v == nil then return self._yawVel end
   self._yawVel = v
+  return self
+end
+
+-- Restore the view to its load defaults: the facing yaw (cancelling any spin), the
+-- scene's natural zoom, and no pan. The user scale multiplier is a separate control
+-- (see Scale) and is left untouched. No-op until the actor/camera exist.
+---@return Model
+function Model:ResetView()
+  self._yaw = self.facing
+  self._yawVel = 0
+  if self._actor then self._actor:SetYaw(self._yaw) end
+  if self._cam then
+    self._cam.panningXOffset = 0
+    self._cam.panningYOffset = 0
+    self._cam:SetZoomDistance(self._naturalZoom)
+  end
   return self
 end
 

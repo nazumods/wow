@@ -616,6 +616,7 @@ player-sized actor, so races at their natural size come out wildly inconsistent;
 | `Aggressiveness(n)`   | Set the bounding-box normalization strength (0 = the model's natural size, **default**; 1 = forced to ~human-male size). A mid value (e.g. 0.5) keeps races consistent while preserving some racial size character. Remembered and re-applied after each async re-skin |
 | `Scale(n)`            | Set the user scale multiplier on top of the normalized size (1 = the normalized size). Remembered and re-asserted every frame, so it survives an async re-skin's scale reset regardless of load timing |
 | `Spin(v)`             | Get/set the model's rotation speed in radians/sec. A non-zero value spins it with the same inertia as a mouse flick (handy for a showcase spin); `Spin(0)` halts. No-arg reads the live speed |
+| `ResetView()`         | Restore the view to its load defaults: the facing yaw (cancelling any spin), the scene's natural zoom, and no pan. Undoes the user's drag-rotate / right-drag pan / wheel-zoom. The user scale multiplier (`Scale`) is a separate control and is left untouched |
 
 ---
 

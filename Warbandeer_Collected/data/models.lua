@@ -98,6 +98,26 @@ ns.RaceModels = {
   } },
 }
 
+-- Faction/neutral variants of a race that share one selector entry → its canonical
+-- (selector) id. A race like Pandaren/Dracthyr/Earthen has a distinct chrRaceID per
+-- faction (and Pandaren a neutral one too), but the selector lists only one icon and
+-- keys `RaceModels` under it; without this, the logged-in char's own race wouldn't
+-- resolve to the icon we show (so it'd never highlight, and a Dracthyr's visage toggle
+-- — gated to "previewing own race" — would never appear for the off-faction variant).
+-- Pandaren 24 (neutral) / 26 (Horde) → 25; Dracthyr 70 (Horde) → 52; Earthen 85
+-- (Alliance) → 84. Verified against ns.NormalizeRaceId's faction table.
+---@class Warbandeer_Collected
+---@field RaceAlias table<number, number>
+ns.RaceAlias = { [24] = 25, [26] = 25, [70] = 52, [85] = 84 }
+
+---Resolve a chrRaceID to its canonical selector id (an alias variant → the shown id,
+---otherwise unchanged). Used to match the logged-in char against the selector.
+---@class Warbandeer_Collected
+---@field CanonRace fun(raceID: number): number
+ns.CanonRace = function(raceID)
+  return ns.RaceAlias[raceID] or raceID
+end
+
 -- Global bounding-box normalization strength for the dressing-room model (0 = natural
 -- size, 1 = forced to ~human-male). 0.5 keeps races consistent while preserving some
 -- racial size character; per-race `normalize` overrides it for exceptions (Dracthyr).
