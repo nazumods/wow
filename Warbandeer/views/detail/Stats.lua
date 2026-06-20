@@ -8,7 +8,7 @@ local D = ns.detail
 
 local DetailView = ns.views.DetailView
 local Top, Left, Right = ui.edge.Top, ui.edge.Left, ui.edge.Right
-local BottomLeft, BottomRight = ui.edge.BottomLeft, ui.edge.BottomRight
+local TopLeft, BottomLeft, BottomRight = ui.edge.TopLeft, ui.edge.BottomLeft, ui.edge.BottomRight
 
 -- The secondary-stat 2×2 grid under the Item Level / Playtime cards: Crit + Mastery on
 -- top, Haste + Versatility below — each cell the effective % (incl. base, as the paperdoll
@@ -49,6 +49,28 @@ local function deltaState(current, target)
   return pct > 0 and "above" or "below"
 end
 
+-- Plain-language description of what each cell's bold percentage means in game (the
+-- effective stat percentage, base included — as the paperdoll shows). Shown on the
+-- percentage's own hover, separate from the cell's target tooltip.
+local EXPLAIN = {
+  crit        = "Your chance for an attack or spell to critically strike for increased damage or healing.",
+  haste       = "Speeds up your attacks, spell casts, and many periodic effects and resource generation.",
+  mastery     = "Improves a bonus specific to your specialization; what it boosts depends on your spec.",
+  versatility = "Increases the damage and healing you deal, and reduces damage you take (at half the listed value).",
+}
+
+-- Hover tooltip over just the percentage value: the stat name + a plain-language note
+-- on what the percent means. Armed on every cell, regardless of whether a target exists.
+local function showPctTip(frame, key, label)
+  local m = theme.colors.muted
+  ns.AnchorTip(frame)
+  ui.tip:MaxWidth(240)
+  ui.tip:ClearLines()
+  ui.tip:AddLine(label)
+  ui.tip:AddLine(EXPLAIN[key], m[1], m[2], m[3])
+  ui.tip:Show()
+end
+
 -- Hover tooltip for a stat cell that has an Archon target: the stat name, the colour-matched
 -- status line + signed delta, and the current/target ratings. No-op when the cell has no target.
 local function showStatTip(cell)
@@ -56,6 +78,7 @@ local function showStatTip(cell)
   if not t then return end
   local d = DELTA[t.state]
   ns.AnchorTip(cell)
+  ui.tip:MaxWidth(nil)
   ui.tip:ClearLines()
   ui.tip:AddLine(t.label)
   local diff = t.current - t.target
@@ -108,6 +131,16 @@ function DetailView:_buildStatGrid()
     cell:EnableMouse(true)
     cell:SetScript("OnEnter", function() showStatTip(cell) end)
     cell:SetScript("OnLeave", function() ui.tip:Hide() end)
+    -- A hit area over just the percentage value (tracks the label as its text resizes):
+    -- hovering it explains what the percent means. As a child frame it captures the
+    -- hover in place of the cell's target tooltip, leaving the rest of the cell on it.
+    local pctHit = Frame:new{
+      parent = cell,
+      position = { TopLeft = {pct, TopLeft, -3, 3}, BottomRight = {pct, BottomRight, 3, -3} },
+    }
+    pctHit:EnableMouse(true)
+    pctHit:SetScript("OnEnter", function() showPctTip(pctHit, spec.key, spec.label) end)
+    pctHit:SetScript("OnLeave", function() ui.tip:Hide() end)
     self._statCells[i] = { key = spec.key, label = spec.label, name = name, pct = pct, rating = rating, frame = cell }
   end
 end
