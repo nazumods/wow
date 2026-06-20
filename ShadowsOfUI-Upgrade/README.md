@@ -35,7 +35,8 @@ It also flags equipped gear that's **missing a permanent enchant** — the head,
 legs, boots, rings and weapon(s) that take one this season but don't have it. Because the enchant
 is read straight from the item, this works for **every character in the warband**, not just the
 one you're logged into, so you can spot the alt whose rings still aren't enchanted without logging
-over.
+over. An item that's **too low item level to take the enchant** isn't flagged — you can't enchant
+it, so it's not treated as missing one (and gets no recommendation).
 
 It also tells you **which enchant to apply**. If you have the **ClassCodex** addon installed, the
 recommendation is its per-spec best enchant (from Wowhead) for every slot. Without it, a built-in

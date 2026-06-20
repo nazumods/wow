@@ -19,6 +19,15 @@ local ns = select(2, ...)
 ---@field byStat table<string, number>?  secondary-stat token → recipe spellID
 ---@field fixed number?                  single recipe spellID (non-variant slots)
 
+-- The lowest item level *any* permanent enchant will apply to this expansion. An equipped
+-- item below it can't be enchanted at all, so `enhance.lua` neither flags it as "missing an
+-- enchant" nor recommends one — and this gate covers **every** enchantable slot, including
+-- the utility-only ones we carry no stat recommendation for (Head / Shoulder / Legs / Feet),
+-- not just the families in `ns.Enchants` below. Midnight: a single shared floor of 120.
+-- **Bump this one value per expansion** (the threshold moves with the enchant tier).
+---@type number
+ns.EnchantMinIlvl = 120
+
 -- Season note (Midnight, 12.0.x): ring enchants come in Crit/Haste/Mastery/Versatility,
 -- each at a weaker (+22) and stronger (+27) rank across three themes — we take the +27.
 -- Chest's best is Mark of the Worldsoul (+36 to *Primary*, class-agnostic), so it's a

@@ -80,6 +80,36 @@ describe("ShadowsOfUI-Upgrade enhance", function()
       assert.same({}, ns.MissingEnchants(char({ OffHand = slot(1, nil, "INVTYPE_SHIELD") })))
       assert.same({}, ns.MissingEnchants(char({ OffHand = slot(2, nil, "INVTYPE_HOLDABLE") })))
     end)
+
+    it("does not flag an item below the enchant minimum ilvl", function()
+      ns.EnchantMinIlvl = 120
+      local lo = { link = link(1, nil), ilvl = 100, equipLoc = "INVTYPE_FINGER" }
+      assert.same({}, ns.MissingEnchants(char({ Finger1 = lo })))
+      -- at/above the threshold it's flagged again
+      lo.ilvl = 120
+      local res = ns.MissingEnchants(char({ Finger1 = lo }))
+      assert.equals(1, #res)
+      assert.equals("Finger1", res[1].slot)
+    end)
+
+    it("gates slots we carry no recommendation for too (Head/Legs below the floor)", function()
+      ns.EnchantMinIlvl = 120
+      -- Head/Legs take an enchant this season but have no bundled stat pick; they must
+      -- still drop out below the floor (the original bug — only Finger/Chest/Weapon gated).
+      assert.same({}, ns.MissingEnchants(char({
+        Head = { link = link(1, nil), ilvl = 71 },
+        Legs = { link = link(2, nil), ilvl = 77 },
+      })))
+    end)
+
+    it("still flags an item with unknown ilvl (ungated)", function()
+      ns.EnchantMinIlvl = 120
+      local res = ns.MissingEnchants(char({
+        Finger1 = { link = link(1, nil), equipLoc = "INVTYPE_FINGER" },  -- no stored ilvl
+      }))
+      assert.equals(1, #res)
+      assert.equals("Finger1", res[1].slot)
+    end)
   end)
 
   describe("RecommendedEnchant", function()
@@ -127,6 +157,16 @@ describe("ShadowsOfUI-Upgrade enhance", function()
 
     it("is nil for a slot with no bundled recommendation", function()
       assert.is_nil(ns.RecommendedEnchant(mage(), "Back"))
+    end)
+
+    it("is nil when the equipped item is below the enchant minimum ilvl", function()
+      ns.EnchantMinIlvl = 120
+      local m = mage()
+      m.equipment = { slots = { Finger1 = { link = "x", ilvl = 100 } } }
+      assert.is_nil(ns.RecommendedEnchant(m, "Finger1"))
+      -- at the threshold it recommends again
+      m.equipment.slots.Finger1.ilvl = 120
+      assert.equals(11, ns.RecommendedEnchant(m, "Finger1").id)
     end)
 
     it("falls to the next-best stat when the top one has no variant", function()

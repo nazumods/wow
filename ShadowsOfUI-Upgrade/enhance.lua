@@ -49,6 +49,14 @@ local function slotTakesEnchant(slot, item)
   return false
 end
 
+-- Whether an equipped item is below the minimum item level any enchant applies to this
+-- expansion (ns.EnchantMinIlvl) — too low to enchant at all, so it's neither flagged as
+-- missing nor recommended, for every enchantable slot. Only gates when the item's ilvl is
+-- known; an unknown ilvl (alt scanned before ilvl was stored) is left ungated, as before.
+local function belowEnchantMinIlvl(item)
+  return (ns.EnchantMinIlvl and item.ilvl and item.ilvl < ns.EnchantMinIlvl) or false
+end
+
 ---Equipped slots that should carry a permanent enchant but don't, in a stable slot
 ---order.  Reads only the stored item link (the enchant id is encoded in it), so it
 ---works warband-wide for every character — not just the one logged in.
@@ -60,7 +68,8 @@ function ns.MissingEnchants(charData)
   local out = {}
   for _, slot in ipairs(ENCHANT_ORDER) do
     local item = slots[slot]
-    if item and item.link and slotTakesEnchant(slot, item) and ns.ItemEnchantID(item.link) == 0 then
+    if item and item.link and slotTakesEnchant(slot, item)
+       and not belowEnchantMinIlvl(item) and ns.ItemEnchantID(item.link) == 0 then
       out[#out + 1] = { slot = slot, link = item.link }
     end
   end
@@ -166,11 +175,16 @@ end
 ---Recommended enchant for a slot. Prefers ClassCodex's per-spec pick (OptionalDep, read
 ---live) and falls back to the bundled stat-derived recipe: a `fixed` slot's single recipe,
 ---or the `byStat` variant for the character's top secondary stat. nil when neither source
----has one (or a stat-variant slot whose character spec/priority is unknown).
+---has one (or a stat-variant slot whose character spec/priority is unknown), and nil when
+---the equipped item is below the slot enchant's minimum item level (can't be enchanted).
 ---@param charData Character
 ---@param slot string
 ---@return EnchantSuggestion?
 function ns.RecommendedEnchant(charData, slot)
+  local slots = charData and charData.equipment and charData.equipment.slots
+  local item = slots and slots[slot]
+  if item and belowEnchantMinIlvl(item) then return nil end  -- item too low to enchant
+
   local ccName, ccItem = classCodexEnchant(charData, slot)
   if ccName or ccItem then return { kind = "item", id = ccItem, name = ccName } end
 
