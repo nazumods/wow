@@ -177,6 +177,43 @@ function ns.RecommendedEnchant(charData, slot)
   return { kind = "spell", id = rec.byStat[stat], stat = stat }
 end
 
+-- Dev dump: why a character does / doesn't get a recommendation for each missing-enchant
+-- slot. Reuses the real CC helpers above (ccClassSpec/ccNormalize/CC_SLOT) so it reflects
+-- exactly what `RecommendedEnchant` resolves — showing the raw ClassCodex slot strings
+-- (and their normalized form) so a slot present in CC under an unmatched name is obvious.
+-- Returned as a text block for a copyable window (see /supgrade enchants).
+---@param charData Character
+---@return string
+function ns.DumpEnchants(charData)
+  local out = {}
+  local token, specKey = ccClassSpec(charData)
+  out[#out + 1] = ("%s — class=%s spec=%s"):format(charData.name or "?", tostring(token), tostring(specKey))
+
+  local cc = _G.ClassCodexGearData
+  out[#out + 1] = "ClassCodex global: " .. (type(cc) == "table" and "present" or "ABSENT (using bundled fallback)")
+  local spec = type(cc) == "table" and token and cc[token] and cc[token][specKey]
+  if type(spec) == "table" and type(spec.enchants) == "table" then
+    out[#out + 1] = "CC enchant entries (raw slot → normalized → pick):"
+    for _, e in ipairs(spec.enchants) do
+      if type(e) == "table" then
+        out[#out + 1] = ("  %q → %s → %s"):format(
+          tostring(e.slot), tostring(ccNormalize(e.slot)),
+          tostring(e.best and (e.best.name or e.best.itemId) or "?"))
+      end
+    end
+  elseif type(cc) == "table" then
+    out[#out + 1] = ("CC has no enchants list for %s/%s"):format(tostring(token), tostring(specKey))
+  end
+
+  out[#out + 1] = "Missing-enchant slots → recommendation (CC slot key in []):"
+  for _, m in ipairs(ns.MissingEnchants(charData)) do
+    local rec = ns.RecommendedEnchant(charData, m.slot)
+    local got = rec and (rec.name or ("%s id %s"):format(rec.kind, tostring(rec.id))) or "NONE"
+    out[#out + 1] = ("  %s [%s] → %s"):format(m.slot, tostring(CC_SLOT[m.slot]), got)
+  end
+  return table.concat(out, "\n")
+end
+
 -------------------------------------------------------------------------------
 -- Empty gem sockets + recommended gem.
 -------------------------------------------------------------------------------
