@@ -282,6 +282,7 @@ std = {
     "GetShapeshiftFormID",
     "GetSpecialization",
     "GetSpecializationInfo",
+    "GetSpecializationMasterySpells",
     "GetSpecializationInfoByID",
     "GetSpecializationInfoForClassID",
     "GetSpecializationRoleByID",

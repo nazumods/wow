@@ -32,7 +32,7 @@ Data-collection backbone for the suite. Scans the active character each login/re
 | `data/weekly.lua` | Broker `weeklies`: `DMF`, `preMidnight`, `caches`, `vault`, `hasUnclaimedVault`, `keystone`, `dungeons`; `/wbc dump m+`, `/wbc dump vault` |
 | `data/instances.lua` | Broker `instances`: `locks`; `/wbc refresh locks`, `/wbc dump locks` |
 | `data/equipment.lua` | Broker `equipment`: `slots`, `ilvl`, `trackScanned`, `socketScanned` (marker set once gear is scanned with the GetItemGemID socket count — `missing.lua` flags "gem socket data" for alts last scanned before that fix); loads item data before reading. Each slot also records `emptySockets` (v15) — `emptySocketCount(link)` = `C_Item.GetItemNumSockets` minus the sockets that hold a gem (`C_Item.GetItemGemID` per socket, mirroring Blizzard's paperdoll socket display). **Not** the `GetItemStats` `EMPTY_SOCKET_*` keys: the Midnight Gem Manager applies gems outside the stat block, so a gemmed item still reports those keys and would falsely read as needing a gem. Captured here while the item is loaded so it persists + reads warband-wide |
-| `data/stats.lua` | Broker `stats`: `secondary` (v16) — `{ crit, haste, mastery, versatility }`, each `{ pct, rating }` (effective % + gear combat rating) from the live `GetCritChance`/`GetHaste`/`GetMasteryEffect`/`GetCombatRatingBonus` + `GetCombatRating` APIs (logged-in char only), so it's a last-seen snapshot read warband-wide. Refreshes on `COMBAT_RATING_UPDATE`. Drives Warbandeer's Detail stat grid |
+| `data/stats.lua` | Broker `stats`: `secondary` (v16) — `{ crit, haste, mastery, versatility }`, each `{ pct, rating }` (effective % + gear combat rating) from the live `GetCritChance`/`GetHaste`/`GetMasteryEffect`/`GetCombatRatingBonus` + `GetCombatRating` APIs (logged-in char only), so it's a last-seen snapshot read warband-wide. `mastery` also carries its active-spec passive `spell` id (`GetSpecializationMasterySpells`), letting Detail name the mastery + show its spec-specific effect. Refreshes on `COMBAT_RATING_UPDATE`. Drives Warbandeer's Detail stat grid |
 | `data/artifacts.lua` | Broker `artifacts`: `hidden`, `hiddenColors`, `classHall`; `/wbc dump artifact` |
 | `dump.lua` | `/wbc stat` — warband-wide playtime/class statistics |
 | `missing.lua` | `/wbc missing`, `/wbc missing me` — lists characters/fields with incomplete data |
@@ -108,7 +108,7 @@ basic = {
   xp             = { percent, restPercent, isResting, recordedAt }?,
 }
 stats = {                                              -- v16
-  secondary = { crit, haste, mastery, versatility },   -- each { pct, rating }
+  secondary = { crit, haste, mastery, versatility },   -- each { pct, rating }; mastery also { spell } (active-spec passive id)
 }
 currency = {
   RestoredCofferKey,                                   -- quantity (currency 3028)

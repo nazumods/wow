@@ -8,7 +8,7 @@ local D = ns.detail
 
 local DetailView = ns.views.DetailView
 local Top, Left, Right = ui.edge.Top, ui.edge.Left, ui.edge.Right
-local BottomLeft, BottomRight = ui.edge.BottomLeft, ui.edge.BottomRight
+local TopLeft, BottomLeft, BottomRight = ui.edge.TopLeft, ui.edge.BottomLeft, ui.edge.BottomRight
 
 -- The secondary-stat 2×2 grid under the Item Level / Playtime cards: Crit + Mastery on
 -- top, Haste + Versatility below — each cell the effective % (incl. base, as the paperdoll
@@ -49,6 +49,44 @@ local function deltaState(current, target)
   return pct > 0 and "above" or "below"
 end
 
+-- Plain-language description of what each cell's bold percentage means in game (the
+-- effective stat percentage, base included — as the paperdoll shows). Shown on the
+-- percentage's own hover, separate from the cell's target tooltip.
+local EXPLAIN = {
+  crit        = "Your chance for an attack or spell to critically strike for increased damage or healing.",
+  haste       = "Speeds up your attacks, spell casts, and many periodic effects and resource generation.",
+  mastery     = "Improves a bonus specific to your specialization; what it boosts depends on your spec.",
+  versatility = "Increases the damage and healing you deal, and reduces damage you take (at half the listed value).",
+}
+
+-- Hover tooltip over just the percentage value: the stat name + a plain-language note
+-- on what the percent means. Armed on every cell, regardless of whether a target exists.
+-- A cell may carry a per-character override title/body (mastery → its spec's named
+-- passive + effect, set in `_showStats`); otherwise the static stat name + `EXPLAIN`.
+local function showPctTip(frame, entry)
+  local m = theme.colors.muted
+  ns.AnchorTip(frame)
+  ui.tip:MaxWidth(240)
+  ui.tip:ClearLines()
+  ui.tip:AddLine(entry._pctTitle or entry.label)
+  ui.tip:AddLine(entry._pctBody or EXPLAIN[entry.key], m[1], m[2], m[3])
+  ui.tip:Show()
+end
+
+-- Resolve the mastery cell's per-character override from the captured passive spell id
+-- (`stats.secondary.mastery.spell`): "Mastery: <name>" as the title and the spell's own
+-- description as the body. Returns nil,nil to fall back to the generic note when the
+-- character has no stored spell (not yet re-scanned) or it doesn't resolve yet.
+local function masteryOverride(sec)
+  local m = sec and sec.mastery
+  local spellID = m and m.spell
+  if not spellID then return nil, nil end
+  local name = C_Spell.GetSpellName(spellID)
+  local desc = C_Spell.GetSpellDescription(spellID)
+  if not name then return nil, nil end
+  return name, (desc ~= nil and desc ~= "") and desc or nil
+end
+
 -- Hover tooltip for a stat cell that has an Archon target: the stat name, the colour-matched
 -- status line + signed delta, and the current/target ratings. No-op when the cell has no target.
 local function showStatTip(cell)
@@ -56,6 +94,7 @@ local function showStatTip(cell)
   if not t then return end
   local d = DELTA[t.state]
   ns.AnchorTip(cell)
+  ui.tip:MaxWidth(nil)
   ui.tip:ClearLines()
   ui.tip:AddLine(t.label)
   local diff = t.current - t.target
@@ -108,7 +147,18 @@ function DetailView:_buildStatGrid()
     cell:EnableMouse(true)
     cell:SetScript("OnEnter", function() showStatTip(cell) end)
     cell:SetScript("OnLeave", function() ui.tip:Hide() end)
-    self._statCells[i] = { key = spec.key, label = spec.label, name = name, pct = pct, rating = rating, frame = cell }
+    -- A hit area over just the percentage value (tracks the label as its text resizes):
+    -- hovering it explains what the percent means. As a child frame it captures the
+    -- hover in place of the cell's target tooltip, leaving the rest of the cell on it.
+    local pctHit = Frame:new{
+      parent = cell,
+      position = { TopLeft = {pct, TopLeft, -3, 3}, BottomRight = {pct, BottomRight, 3, -3} },
+    }
+    local entry = { key = spec.key, label = spec.label, name = name, pct = pct, rating = rating, frame = cell }
+    self._statCells[i] = entry
+    pctHit:EnableMouse(true)
+    pctHit:SetScript("OnEnter", function() showPctTip(pctHit, entry) end)
+    pctHit:SetScript("OnLeave", function() ui.tip:Hide() end)
   end
 end
 
@@ -126,6 +176,8 @@ function DetailView:_showStats()
     local s = sec and sec[cell.key]
     local hot = top[cell.key]
     cell.name:Color(hot and c.gold or c.muted)
+    -- Mastery's meaning is spec-specific: name it from the captured passive spell.
+    if cell.key == "mastery" then cell._pctTitle, cell._pctBody = masteryOverride(sec) end
     local target = s and targets and targets[cell.key]
     local state = s and deltaState(s.rating, target)
     cell.frame._tip = state and { label = cell.label, state = state, current = s.rating, target = target } or nil
@@ -141,7 +193,8 @@ function DetailView:_showStats()
       cell.rating:Text("")
     end
   end
-  -- Feed the centre radar the four gear ratings (0 when unscanned), tinting tier-1 gold.
+  -- Feed the centre radar the four gear ratings (0 when unscanned), plotted as
+  -- fulfilment vs each stat's Archon target, tinting tier-1 gold.
   local function rating(key) local s = sec and sec[key]; return s and s.rating or 0 end
-  self._statChart:Set(rating("crit"), rating("haste"), rating("mastery"), rating("versatility"), top)
+  self._statChart:Set(rating("crit"), rating("haste"), rating("mastery"), rating("versatility"), top, targets)
 end
