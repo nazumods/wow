@@ -175,6 +175,18 @@ function ns.RecommendedGems(charName)
   return suggestionName(primary), suggestionName(secondary)
 end
 
+---Raw recommended-gem suggestions for a character — the `primary`/`secondary`
+---EnchantSuggestion descriptors (`{ kind="item", id, name? }`) rather than their names, so a
+---consumer can render the gem's own item tooltip (its stat bonus = what it does). Either may
+---be nil. Sibling of ns.RecommendedGems (the name form).
+---@param charName string
+---@return table? primary, table? secondary
+function ns.RecommendedGemsInfo(charName)
+  local api = ShadowsOfUI_UpgradeApi
+  if not (api and api.RecommendedGems) then return nil, nil end
+  return api:RecommendedGems(charName)
+end
+
 ---One-line hover description of a slot's available upgrade, or nil when none.
 ---@param charName string
 ---@param slot string

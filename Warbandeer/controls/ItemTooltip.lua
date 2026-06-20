@@ -177,6 +177,27 @@ function ns.ShowEnchantTooltip(frame, suggestion)
   styleTooltip(gt)
 end
 
+-- Hover detail for a recommended gem (Detail's "Empty socket → …" note). A gem has no
+-- use-spell — its effect is the stat line on its own (short) item tooltip — so this shows
+-- that directly. `suggestion` is ShadowsOfUI-Upgrade's EnchantSuggestion `{kind="item", id,
+-- name?}`. Reuses `itemTip`, so ns.HideItemTooltip hides it.
+---@param frame table       LibNUI widget or raw frame to anchor against
+---@param suggestion table  EnchantSuggestion { kind="item", id, name? }
+function ns.ShowGemTooltip(frame, suggestion)
+  local right = ns.TooltipSide() == 2
+  local gt = getItemTip()
+  gt.SkipUpgradeBlock = true
+  gt:SetOwner(frame._widget or frame, right and "ANCHOR_RIGHT" or "ANCHOR_LEFT")
+  if suggestion.id then
+    gt:SetItemByID(suggestion.id)
+  else
+    gt:ClearLines()
+    gt:AddLine(suggestion.name or "Recommended gem", 1, 0.82, 0)
+  end
+  gt:Show()
+  styleTooltip(gt)
+end
+
 function ns.HideItemTooltip()
   if itemTip then
     itemTip:Hide()
