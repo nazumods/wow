@@ -21,20 +21,26 @@ Basic.fields = {
   },
   ---@class BasicBroker: Broker
   ---@field specialization {primary:Specialization?, active:Specialization, role:string, key:SpecializationKey, id:integer?}?
+  -- `active` = the spec actually being played (GetSpecialization); `primary` = the LOOT
+  -- spec (GetLootSpecialization), which a player can deliberately set to a different spec.
+  -- All spec-derived data (id/role/key, which downstream drive stat priorities, enchant /
+  -- gem / mastery recommendations and the role icon) must follow the PLAYED spec, so it
+  -- prefers `active` over the loot spec. Refreshes when the player swaps spec.
   specialization = {
     get = function()
       local pid, primarySpec = Player:GetPrimarySpecialization()
       local aid, activeSpec = Player:GetActiveSpecialization()
-      local specId = pid or aid
+      local specId = aid or pid
       return {
         primary = primarySpec,
         active = activeSpec,
         role = specId and GetSpecializationRoleByID(specId),
-        key = specId and gsub(primarySpec or activeSpec, " ", ""),
+        key = specId and gsub(activeSpec or primarySpec, " ", ""),
         -- Numeric global spec ID: locale-independent, persisted so consumers can resolve stat priorities for alts.
         id = specId,
       }
     end,
+    event = "PLAYER_SPECIALIZATION_CHANGED",
   },
   ---@class BasicBroker: Broker
   ---@field professions {primary:any?, secondary:any?, fishing:any?, cooking:any?}?

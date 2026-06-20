@@ -89,7 +89,10 @@ bundled).
     **Click a world-quest suggestion to open the map to it** (and start tracking the quest).
 
 `/supgrade [name]` prints a character's available upgrades to chat (defaults to the
-logged-in character) — a debugging aid; you won't normally need it.
+logged-in character) — a debugging aid; you won't normally need it. `/supgrade enchants
+[name]` opens a copyable window explaining how each missing-enchant slot resolves (which
+source supplied the recommendation, or why none did) — useful when a slot shows "Missing
+enchant" with no suggested enchant.
 
 ## Requirements
 

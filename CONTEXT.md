@@ -91,4 +91,4 @@ LibNUI_Test is a LoadOnDemand visual test harness for LibNUI (`/nui test [key]`)
 | Warbandeer_Bars | `/wbbars`, `/wbb` | `""` (status), `snapshot`, `list`, `restore <char> [specID]`, `forget <char> [specID]` |
 | ShadowsOfUI-Ilvl | `/silvl` | `<itemID\|link>` (dev: dump an item's ilvl/quality/track) |
 | ShadowsOfUI-Known | `/sknown` | `<itemID>` (dev: dump learnable-by list for a recipe item) |
-| ShadowsOfUI-Upgrade | `/supgrade` | `[name]` (dev: dump a character's available gear upgrades) |
+| ShadowsOfUI-Upgrade | `/supgrade` | `[name]` (dev: dump a character's available gear upgrades), `enchants [name]` (dev: copyable enchant-resolution dump — why a slot has no suggested enchant) |

@@ -143,6 +143,7 @@ describe("ShadowsOfUI-Upgrade enhance", function()
         _G.ClassCodexGearData = { MAGE = { frost = { enchants = {
           { slot = "Ring",   best = { itemId = 500, name = "Enchant Ring - CC Pick" } },
           { slot = "Weapon", best = { itemId = 501, name = "Enchant Weapon - CC Pick" } },
+          { slot = "Helm",   best = { itemId = 502, name = "Enchant Helm - CC Pick" } },
         } } } }
       end)
       after_each(function() _G.GetSpecializationInfoByID = nil end)
@@ -158,13 +159,21 @@ describe("ShadowsOfUI-Upgrade enhance", function()
         assert.equals("Enchant Weapon - CC Pick", ns.RecommendedEnchant(mage(), "OffHand").name)
       end)
 
-      it("resolves the spec from the stored name when the numeric id is missing", function()
-        -- an alt scanned before the numeric id was persisted carries only spec-name strings
+      it("matches CC's \"Helm\" synonym onto the Head slot", function()
+        local s = ns.RecommendedEnchant(mage(), "Head")
+        assert.equals("item", s.kind)
+        assert.equals(502, s.id)
+        assert.equals("Enchant Helm - CC Pick", s.name)
+      end)
+
+      it("resolves the played (active) spec from the stored name when the numeric id is missing", function()
+        -- an alt scanned before the numeric id was persisted carries only spec-name strings;
+        -- the active (played) spec wins over primary (the loot spec, here a different spec)
         local stale = { name = "Stale", classKey = "Mage",
-                        basic = { specialization = { primary = "Frost", active = "Frost" } } }
+                        basic = { specialization = { primary = "Fire", active = "Frost" } } }
         local s = ns.RecommendedEnchant(stale, "Finger1")
         assert.equals("item", s.kind)
-        assert.equals(500, s.id)          -- ClassCodexGearData.MAGE.frost
+        assert.equals(500, s.id)          -- ClassCodexGearData.MAGE.frost (active), not fire (loot)
       end)
 
       it("falls back to the bundled recipe when CC has no row for the slot", function()

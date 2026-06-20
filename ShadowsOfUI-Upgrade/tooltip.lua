@@ -220,11 +220,30 @@ if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall then
   TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, onItemTooltip)
 end
 
--- /supgrade [name] — dump the available upgrades for a character (defaults to the
--- logged-in one).  Testing aid, since tooltip text can't be copied.
+-- /supgrade [name]            — dump the available upgrades for a character
+-- /supgrade enchants [name]   — dump enchant resolution (why a slot has no recommendation)
+-- Defaults to the logged-in character.  Testing aid, since tooltip text can't be copied.
 SLASH_SUI_UPGRADE1 = "/supgrade"
 SlashCmdList["SUI_UPGRADE"] = function(msg)
-  local name = msg and msg:gsub("^%s+", ""):gsub("%s+$", "")
+  local arg = (msg or ""):gsub("^%s+", ""):gsub("%s+$", "")
+
+  -- enchant-resolution dump → copyable window (LibNUI is loaded transitively via
+  -- Warbandeer_Characters, even though we don't declare it; fall back to chat if not).
+  local sub, rest = arg:match("^(%S+)%s*(.-)$")
+  if sub == "enchants" then
+    local name = (rest ~= "" and rest) or ns.api:GetCurrentCharacter()
+    local charData = ns.api:GetCharacterData(name)
+    if not charData then ns.Print(("No data for %s."):format(name)) return end
+    local text = ns.DumpEnchants(charData)
+    if _G.LibNUI and _G.LibNUI.ShowCopyWindow then
+      _G.LibNUI.ShowCopyWindow(("Enchant debug — %s"):format(name), text)
+    else
+      for line in text:gmatch("[^\n]+") do ns.Print(line) end
+    end
+    return
+  end
+
+  local name = arg
   if not name or name == "" then name = ns.api:GetCurrentCharacter() end
   local list = Upgrade:CharacterUpgrades(name)
   if #list == 0 then
