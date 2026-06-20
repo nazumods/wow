@@ -23,6 +23,7 @@ theme.lua
 controls\CharacterTooltip.lua
 controls\ItemTooltip.lua
 controls\StatCard.lua
+controls\StatChart.lua
 controls\LabeledBar.lua
 controls\FilterDropdown.lua
 controls\IconStrip.lua

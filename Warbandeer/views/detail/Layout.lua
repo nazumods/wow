@@ -53,6 +53,7 @@ D.CONTENT_TOP = D.P + D.PORTRAIT + D.GAP            -- stat strip top
 D.STATS_TOP = D.CONTENT_TOP + D.STRIP_H + D.GAP     -- stat grid top
 D.STATS_ROW_H = 38                                  -- one grid row (pitch)
 D.STATS_H = 2 * D.STATS_ROW_H                        -- 2×2 grid height
+D.STATS_CHART = 64                                  -- secondary-stat radar edge (centred between the two cell columns)
 D.PROF_HEADER_Y = D.STATS_TOP + D.STATS_H + D.GAP   -- professions header top (below the grid)
 
 -- ─── Gear list (right column) ─────────────────────────────────────────────────
