@@ -51,7 +51,7 @@ Main viewer UI. Reads the data layer (`ns.api` ← `WarbandeerApi`) and renders 
 | `views/BarsApply.lua` | `ns.BarsApplyFrame` — companion box below the main window: per-bar muted/red toggles (1-8 / C1-C5 / Bonus, Sky, Pet) + Apply button → `WarbandeerBarsApi:Restore` with a `barFilter` |
 | `views/CollectedView.lua` | Transmog-set collection grid (class × set-group, red→green uncollected counts + green checks) backed by `WarbandeerCollectedApi` (OptionalDep); local `Grid` TableFrame inside a capped `ScrollFrame`, cell hover → the shared per-slot source InfoTip via `WarbandeerCollectedApi:ShowInfoTip`/`HideInfoTip` (same tooltip as `/collected`, including its **Preview model** button → the shared 3D dressing room — inherited for free since the InfoTip is one shared singleton), anchored on the configured side via `tipPosition` (`ns.TooltipSide()`); `BuildFilter` titlebar toggle flips row order (oldest/newest first, in-place re-sort via `grid._reverse`). No lockout columns/panel — those stay in Collected's own window |
 | `window.lua` | `MainWindow` (TitleFrame) + `IconStrip` rail; `ns:Open()`, `ns:view(name)`; `Fit()` grows the window down/right. `ns.RefreshSummaryColumns()` forgets+rebuilds the Summary view (re-showing it if visible) when a column show/hide setting changes |
-| `commands.lua` | Registers the base open command + one per view (from `ns.views`) |
+| `commands.lua` | Registers the base open command + one per view (from `ns.views`), plus `enchants` (list accepted wrong-enchants from `WarbandeerDB.ignoredEnchants`, resolving item names) and `enchants clear` (wipe the accept list + re-render the open Detail view) |
 
 ## Views
 
