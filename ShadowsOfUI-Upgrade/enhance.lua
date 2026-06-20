@@ -105,8 +105,14 @@ local CC_SLOT = {
   Head = "head", Shoulder = "shoulder", Chest = "chest", Legs = "leg",
   Feet = "boot", Finger1 = "ring", Finger2 = "ring", MainHand = "weapon", OffHand = "weapon",
 }
+-- CC also varies by *synonym*, not just plural: the head slot is labelled "Helm" in its
+-- data (Wowhead's term) even though the equipment slot is "Head". Fold such synonyms onto
+-- our canonical token after the lower/de-plural pass, so "Helm" matches CC_SLOT.Head.
+local CC_ALIAS = { helm = "head" }
 local function ccNormalize(s)
-  return type(s) == "string" and (s:lower():gsub("s$", "")) or nil
+  if type(s) ~= "string" then return nil end
+  local n = s:lower():gsub("s$", "")
+  return CC_ALIAS[n] or n
 end
 
 -- (classToken, specKey) for a stored character, matching ClassCodex's English data keys:

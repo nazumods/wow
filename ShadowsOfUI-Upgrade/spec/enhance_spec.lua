@@ -143,6 +143,7 @@ describe("ShadowsOfUI-Upgrade enhance", function()
         _G.ClassCodexGearData = { MAGE = { frost = { enchants = {
           { slot = "Ring",   best = { itemId = 500, name = "Enchant Ring - CC Pick" } },
           { slot = "Weapon", best = { itemId = 501, name = "Enchant Weapon - CC Pick" } },
+          { slot = "Helm",   best = { itemId = 502, name = "Enchant Helm - CC Pick" } },
         } } } }
       end)
       after_each(function() _G.GetSpecializationInfoByID = nil end)
@@ -156,6 +157,13 @@ describe("ShadowsOfUI-Upgrade enhance", function()
 
       it("tolerates singular/plural slot strings and maps weapons", function()
         assert.equals("Enchant Weapon - CC Pick", ns.RecommendedEnchant(mage(), "OffHand").name)
+      end)
+
+      it("matches CC's \"Helm\" synonym onto the Head slot", function()
+        local s = ns.RecommendedEnchant(mage(), "Head")
+        assert.equals("item", s.kind)
+        assert.equals(502, s.id)
+        assert.equals("Enchant Helm - CC Pick", s.name)
       end)
 
       it("resolves the spec from the stored name when the numeric id is missing", function()
