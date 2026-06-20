@@ -57,6 +57,19 @@ local function belowEnchantMinIlvl(item)
   return (ns.EnchantMinIlvl and item.ilvl and item.ilvl < ns.EnchantMinIlvl) or false
 end
 
+-- A sub-max-level character is still levelling — gear churns constantly, so enchanting or
+-- gemming it is wasted. Suppress every enchant/gem surface (missing flags AND recommendations)
+-- until they ding max. A nil maxLevel (the pure-Lua tests don't seed ns.wow) or an unknown
+-- character level leaves them ungated, matching belowEnchantMinIlvl's unknown-data stance.
+---@param charData Character
+---@return boolean
+local function belowMaxLevel(charData)
+  local level = charData and charData.basic and charData.basic.level
+  local maxLevel = ns.wow and ns.wow.maxLevel
+  return (maxLevel and level and level < maxLevel) or false
+end
+ns.BelowMaxLevel = belowMaxLevel
+
 ---Equipped slots that should carry a permanent enchant but don't, in a stable slot
 ---order.  Reads only the stored item link (the enchant id is encoded in it), so it
 ---works warband-wide for every character — not just the one logged in.
@@ -64,7 +77,7 @@ end
 ---@return { slot: string, link: string }[]
 function ns.MissingEnchants(charData)
   local slots = charData and charData.equipment and charData.equipment.slots
-  if not slots then return {} end
+  if not slots or belowMaxLevel(charData) then return {} end
   local out = {}
   for _, slot in ipairs(ENCHANT_ORDER) do
     local item = slots[slot]
@@ -181,6 +194,7 @@ end
 ---@param slot string
 ---@return EnchantSuggestion?
 function ns.RecommendedEnchant(charData, slot)
+  if belowMaxLevel(charData) then return nil end           -- still levelling: don't enchant yet
   local slots = charData and charData.equipment and charData.equipment.slots
   local item = slots and slots[slot]
   if item and belowEnchantMinIlvl(item) then return nil end  -- item too low to enchant
@@ -263,7 +277,7 @@ end
 ---@return { slot: string, link: string, itemID: integer?, enchantID: integer, applied: string, recommended: string }[]
 function ns.EnchantMismatches(charData)
   local slots = charData and charData.equipment and charData.equipment.slots
-  if not slots then return {} end
+  if not slots or belowMaxLevel(charData) then return {} end
   local out = {}
   for _, slot in ipairs(ENCHANT_ORDER) do
     local item = slots[slot]
@@ -321,6 +335,7 @@ end
 ---@param charData Character
 ---@return EnchantSuggestion? primary, EnchantSuggestion? secondary
 function ns.RecommendedGems(charData)
+  if belowMaxLevel(charData) then return nil, nil end       -- still levelling: don't gem yet
   local gems = classCodexGems(charData)
   if gems then
     local list = gems.secondary
@@ -346,7 +361,7 @@ end
 ---@return { slot: string, link: string, sockets: integer }[]
 function ns.MissingGems(charData)
   local slots = charData and charData.equipment and charData.equipment.slots
-  if not slots then return {} end
+  if not slots or belowMaxLevel(charData) then return {} end
   local out = {}
   for _, slot in ipairs(GEM_ORDER) do
     local item = slots[slot]

@@ -204,12 +204,18 @@ local function onItemTooltip(tooltip, data)
   end
   if not link and data.id then link = "item:" .. data.id end
   if not link then return end
-  -- Reminder line for your own equipped gear that's missing its permanent enchant,
-  -- with the recommended enchant when we have one for the slot.
-  local missSlot = equippedMissingSlot(link)
-  if missSlot then tooltip:AddLine(missingEnchantLine(missSlot)) end
-  -- Reminder for your own equipped gear with an empty gem socket.
-  if equippedEmptySockets(link) > 0 then tooltip:AddLine(emptySocketLine()) end
+  -- Enchant/gem reminders only once the character is max level — a still-levelling
+  -- char churns gear too fast to bother enchanting/gemming (mirrors enhance.lua's gate
+  -- on the ns.* surfaces). The cross-character "Upgrade for:" block below is unaffected.
+  local meData = ns.api:GetCharacterData(ns.api:GetCurrentCharacter())
+  if not ns.BelowMaxLevel(meData) then
+    -- Reminder line for your own equipped gear that's missing its permanent enchant,
+    -- with the recommended enchant when we have one for the slot.
+    local missSlot = equippedMissingSlot(link)
+    if missSlot then tooltip:AddLine(missingEnchantLine(missSlot)) end
+    -- Reminder for your own equipped gear with an empty gem socket.
+    if equippedEmptySockets(link) > 0 then tooltip:AddLine(emptySocketLine()) end
+  end
   -- Soulbound items can only ever help their holder (the current character).
   local boundTo = isSoulbound(data) and ns.api:GetCurrentCharacter() or nil
   local list = Upgrade:ItemUpgrades(link, boundTo, effectiveIlvl(data))

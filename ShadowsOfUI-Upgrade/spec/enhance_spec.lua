@@ -346,6 +346,60 @@ describe("ShadowsOfUI-Upgrade enhance", function()
     end)
   end)
 
+  describe("max-level gating", function()
+    -- A still-levelling character gets no enchant/gem surfaces until max level. The
+    -- pure-Lua harness leaves ns.wow.maxLevel unset (so the gate is inert in every other
+    -- test); set it here to exercise the gate. ClassCodex supplies the picks so the
+    -- recommendations carry their own names (no GetSpellName stub needed).
+    before_each(function()
+      ns.wow.maxLevel = 80
+      _G.GetSpecializationInfoByID = function(id) return id, "Frost" end
+      _G.ClassCodexGearData = { MAGE = { frost = {
+        enchants = { { slot = "Ring", best = { itemId = 500, name = "Enchant Ring - Best" } } },
+        gems = { primary = { itemId = 777, name = "CC Diamond" },
+                 secondary = { { itemId = 888, name = "CC Fill" } } },
+      } } }
+    end)
+    after_each(function() _G.GetSpecializationInfoByID = nil; _G.ClassCodexGearData = nil end)
+
+    local function mage(level)
+      return {
+        name = "Frost", classKey = "Mage",
+        basic = { level = level, specialization = { id = 64 } },
+        equipment = { slots = {
+          Finger1 = { link = link(1, nil), ilvl = 600, equipLoc = "INVTYPE_FINGER", emptySockets = 1 },
+          Finger2 = { link = link(2, 555), ilvl = 600, equipLoc = "INVTYPE_FINGER",
+                      enchant = "Enchant Ring - Wrong" },
+        } },
+      }
+    end
+
+    it("suppresses every enchant/gem surface below max level", function()
+      local m = mage(79)
+      assert.same({}, ns.MissingEnchants(m))
+      assert.is_nil(ns.RecommendedEnchant(m, "Finger1"))
+      assert.same({}, ns.EnchantMismatches(m))
+      assert.same({}, ns.MissingGems(m))
+      local primary, secondary = ns.RecommendedGems(m)
+      assert.is_nil(primary)
+      assert.is_nil(secondary)
+    end)
+
+    it("exposes them again at max level", function()
+      local m = mage(80)
+      assert.equals(1, #ns.MissingEnchants(m))             -- Finger1 is bare
+      assert.equals(500, ns.RecommendedEnchant(m, "Finger1").id)
+      assert.equals(1, #ns.EnchantMismatches(m))           -- Finger2's applied enchant is wrong
+      assert.equals(1, #ns.MissingGems(m))                 -- Finger1 has an empty socket
+      local primary = ns.RecommendedGems(m)
+      assert.equals(777, primary.id)
+    end)
+
+    it("leaves an unknown character level ungated", function()
+      assert.equals(1, #ns.MissingEnchants(mage(nil)))     -- no stored level → not gated
+    end)
+  end)
+
   describe("Upgrade:MissingEnchants (published)", function()
     it("resolves the character by name through the data layer", function()
       h.addChar({ name = "Toon", classKey = "Mage", equipment = { slots = {
