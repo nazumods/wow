@@ -10,7 +10,7 @@
 ## OptionalDeps: Warbandeer_Bars, Warbandeer_Collected, ShadowsOfUI-Upgrade
 ## X-Curse-Project-ID: 1546586
 ## X-NUI-DB: WarbandeerDB
-## X-NUI-DB-VERSION: 4
+## X-NUI-DB-VERSION: 5
 ## X-NUI-COMMANDS: /warband, /wb
 ## X-NUI-COMPARTMENT: Warbandeer_OnAddonCompartmentClick
 ## X-NUI-API: WarbandeerApi

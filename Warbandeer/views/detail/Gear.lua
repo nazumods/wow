@@ -18,11 +18,16 @@ local BottomLeft, BottomRight = ui.edge.BottomLeft, ui.edge.BottomRight
 -- their orange. NOTE_ARROW is the "→ <recommendation>" tail.
 local function colorCode(c) return ("|cff%02x%02x%02x"):format(floor(c[1] * 255 + 0.5), floor(c[2] * 255 + 0.5), floor(c[3] * 255 + 0.5)) end
 local GREEN_CODE, GOLD_CODE = colorCode(theme.colors.green), colorCode(theme.colors.gold)
--- Distinct colours so the two issue-notes don't blur together: enchant = orange,
--- empty socket = cyan (reads as a gem slot).
+-- Distinct colours so the issue-notes don't blur together: missing enchant = orange,
+-- wrong enchant = yellow (a milder "consider swapping"), empty socket = cyan (a gem slot).
 local NO_ENCHANT = "|cffff8000Missing enchant|r"
+local WRONG_ENCHANT = "|cffffe066Wrong enchant|r"
 local SOCKET_CODE = "|cff4fc3f7"
 local NOTE_ARROW = "|cff808080\226\134\146|r |cffb0b0b0%s|r"
+
+-- Trim the "Enchant <Slot> - " prefix for a compact note (recipe names carry it; spellthread
+-- / kit names don't have the " - " and pass through unchanged).
+local function shortEnchant(name) return (name:gsub("^.- %- ", "")) end
 -- Red "[UP] →" tag prepended to the suggested-upgrade line, mirroring the enchant /
 -- socket note prefixes (\226\134\146 is the → arrow).
 local UP_PREFIX = "|cffff4040[UP] \226\134\146|r "
@@ -141,6 +146,17 @@ function DetailView:_showGear(i, item, slotKey)
   if self._missingEnch[slotKey] then
     local rec = ns.RecommendedEnchant(self._char.name, slotKey)
     lines[#lines + 1] = NO_ENCHANT .. (rec and ("  " .. NOTE_ARROW:format(rec)) or "")
+  end
+  -- Wrong (non-recommended) enchant: distinct from "missing" (the slot IS enchanted, just
+  -- not with the recommended one). Mutually exclusive with the missing-enchant note. Hidden
+  -- when the user has accepted this item's enchant; the right-click toggle (wired below) is
+  -- armed for any slot with a raw mismatch so an accept can be undone.
+  local mis = self._enchMismatch[slotKey]
+  row.frame._enchMismatch = mis   -- {itemID, enchantID} for the right-click accept toggle
+  if mis and not ns.IsEnchantIgnored(mis.itemID, mis.enchantID) then
+    lines[#lines + 1] = WRONG_ENCHANT
+      .. ("  |cff808080(%s)|r"):format(shortEnchant(mis.applied))
+      .. "  " .. NOTE_ARROW:format(shortEnchant(mis.recommended))
   end
   local sockets = self._emptySockets[slotKey]
   if sockets then

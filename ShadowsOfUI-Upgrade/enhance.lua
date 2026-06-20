@@ -5,6 +5,8 @@ local API = ns.api               -- WarbandeerApi (data layer we read)
 ---@class ShadowsOfUI_UpgradeApi
 local Upgrade = ns.UpgradeApi    -- ShadowsOfUI_UpgradeApi (what we publish)
 local GetItemInfoInstant = C_Item and C_Item.GetItemInfoInstant
+local GetItemInfo = C_Item and C_Item.GetItemInfo
+local GetSpellName = C_Spell and C_Spell.GetSpellName
 
 -- Off-hand item types that take a *weapon* enchant.  A shield, frill, or holdable
 -- in the off-hand can't be enchanted, so it must never be flagged as "missing one".
@@ -220,6 +222,54 @@ function ns.DumpEnchants(charData)
   return table.concat(out, "\n")
 end
 
+-- A recommendation's display name: ClassCodex carries `.name`; a bundled spell resolves
+-- via GetSpellName, a bundled item via GetItemInfo. nil when it can't resolve yet (uncached).
+local function suggestionName(rec)
+  if rec.name and rec.name ~= "" then return rec.name end
+  if rec.kind == "spell" then return GetSpellName and GetSpellName(rec.id) end
+  if rec.kind == "item" then return GetItemInfo and (GetItemInfo(rec.id)) end
+  return nil
+end
+
+-- Normalize an enchant name for comparison: lowercase + collapse/trim whitespace. The
+-- stored applied name and the resolved recommendation are both in "Enchant <Slot> - <X>"
+-- form, so this is an exact (case/space-insensitive) match. Rank/quality-tier variants of
+-- the same enchant share a name (the tier is a separate tooltip icon, stripped at capture),
+-- so they are NOT flagged; only a genuinely different enchant is.
+local function normEnchant(name)
+  return (name:lower():gsub("%s+", " "):gsub("^ ", ""):gsub(" $", ""))
+end
+
+---Equipped slots whose APPLIED enchant differs from the recommended one — a *wrong* (not
+---missing) enchant — in stable slot order. Skips slots that are bare (those are
+---`MissingEnchants`), carry no stored applied-enchant name (an alt not rescanned since the
+---name was captured), or have no recommendation to compare against. Each entry carries the
+---`itemID` + `enchantID` for a per-item ignore key (both parsed from the link).
+---@param charData Character
+---@return { slot: string, link: string, itemID: integer?, enchantID: integer, applied: string, recommended: string }[]
+function ns.EnchantMismatches(charData)
+  local slots = charData and charData.equipment and charData.equipment.slots
+  if not slots then return {} end
+  local out = {}
+  for _, slot in ipairs(ENCHANT_ORDER) do
+    local item = slots[slot]
+    local applied = item and item.enchant
+    if item and item.link and applied and slotTakesEnchant(slot, item) then
+      local rec = ns.RecommendedEnchant(charData, slot)
+      local recName = rec and suggestionName(rec)
+      if recName and normEnchant(applied) ~= normEnchant(recName) then
+        out[#out + 1] = {
+          slot = slot, link = item.link,
+          itemID = GetItemInfoInstant and (GetItemInfoInstant(item.link)),
+          enchantID = ns.ItemEnchantID(item.link),
+          applied = applied, recommended = recName,
+        }
+      end
+    end
+  end
+  return out
+end
+
 -------------------------------------------------------------------------------
 -- Empty gem sockets + recommended gem.
 -------------------------------------------------------------------------------
@@ -322,6 +372,17 @@ end
 ---@return { slot: string, link: string, sockets: integer }[]
 function Upgrade:MissingGems(charName)
   return ns.MissingGems(API:GetCharacterData(charName))
+end
+
+---Equipped slots whose applied enchant differs from the recommendation (a *wrong*, not
+---missing, enchant), each `{ slot, link, itemID, enchantID, applied, recommended }`. Uses
+---the applied-enchant name captured at scan time, so it's warband-wide but only as fresh as
+---the character's last scan. `itemID`+`enchantID` give a stable per-item ignore key for a
+---consumer (the logic addon holds no ignore state). See ns.EnchantMismatches.
+---@param charName string
+---@return { slot: string, link: string, itemID: integer?, enchantID: integer, applied: string, recommended: string }[]
+function Upgrade:EnchantMismatches(charName)
+  return ns.EnchantMismatches(API:GetCharacterData(charName))
 end
 
 -- ClassCodex's Archon stat-rating *targets* for a character's spec + context, as
