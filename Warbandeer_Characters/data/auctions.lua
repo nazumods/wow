@@ -40,6 +40,8 @@ local function scan()
 end
 
 ns:registerEvent("AUCTION_HOUSE_SHOW", function()
-  if C_AuctionHouse.QueryOwnedAuctions then C_AuctionHouse.QueryOwnedAuctions() end
+  -- `sorts` is a required (non-nilable) AuctionHouseSortType[]; an empty table means
+  -- no specific ordering (we sort the expiries ourselves in scan()).
+  if C_AuctionHouse.QueryOwnedAuctions then C_AuctionHouse.QueryOwnedAuctions({}) end
 end)
 ns:registerEvent("OWNED_AUCTIONS_UPDATED", scan)
