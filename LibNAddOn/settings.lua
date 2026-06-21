@@ -5,35 +5,55 @@ local Settings = Settings
 ---@class Setting
 local Setting = {}
 
----@class Setting
----@field checkbox fun(db: table, category: table, data: table) create a checkbox setting
-function Setting.checkbox(db, category, data)
+-- Register the backing setting shared by every control type. The Settings registry
+-- keys each setting by a GLOBALLY-unique `variable` string; passing a human label
+-- (e.g. "Auctions", "Bank") risks colliding with another addon's — or Blizzard's —
+-- registered variable, so we namespace it per-addon. The saved value lives in
+-- variableTbl[variableKey], so the variable is only an id: renaming it does not
+-- touch saved data. A nil variableTbl makes Settings throw a cryptic batch of
+-- errors during registration, so skip with a clear message if the caller's `table`
+-- closure doesn't yield one.
+---@param db table
+---@param category table
+---@param data table
+---@param addOnName string
+---@return table? setting nil when the backing table is missing (caller then skips the control)
+local function register(db, category, data, addOnName)
+  local variable = addOnName .. "." .. (data.key or data.name)
+  local tbl = data.table(db)
+  if type(tbl) ~= "table" then
+    ns:Print(("settings: %q (%s) has no backing table; skipping"):format(variable, addOnName))
+    return nil
+  end
   local setting = Settings.RegisterAddOnSetting(
-    category, data.name, data.key, data.table(db), type(data.default), data.label, data.default
+    category, variable, data.key, tbl, type(data.default), data.label, data.default
   )
   setting:SetValueChangedCallback(data.callback)
-  Settings.CreateCheckbox(category, setting, data.tooltip)
+  return setting
 end
 
 ---@class Setting
----@field slider fun(db: table, category: table, data: table) create a slider setting
-function Setting.slider(db, category, data)
-  local setting = Settings.RegisterAddOnSetting(
-    category, data.name, data.key, data.table(db), type(data.default), data.label, data.default
-  )
-  setting:SetValueChangedCallback(data.callback)
+---@field checkbox fun(db: table, category: table, data: table, addOnName: string) create a checkbox setting
+function Setting.checkbox(db, category, data, addOnName)
+  local setting = register(db, category, data, addOnName)
+  if setting then Settings.CreateCheckbox(category, setting, data.tooltip) end
+end
+
+---@class Setting
+---@field slider fun(db: table, category: table, data: table, addOnName: string) create a slider setting
+function Setting.slider(db, category, data, addOnName)
+  local setting = register(db, category, data, addOnName)
+  if not setting then return end
   local options = Settings.CreateSliderOptions(data.min, data.max, data.step)
   options:SetLabelFormatter(MinimalSliderWithSteppersMixin.Label.Right)
   Settings.CreateSlider(category, setting, options, data.tooltip)
 end
 
 ---@class Setting
----@field dropdown fun(db: table, category: table, data: table) create a dropdown setting
-function Setting.dropdown(db, category, data)
-  local setting = Settings.RegisterAddOnSetting(
-    category, data.name, data.key, data.table(db), type(data.default), data.label, data.default
-  )
-  setting:SetValueChangedCallback(data.callback)
+---@field dropdown fun(db: table, category: table, data: table, addOnName: string) create a dropdown setting
+function Setting.dropdown(db, category, data, addOnName)
+  local setting = register(db, category, data, addOnName)
+  if not setting then return end
   Settings.CreateDropdown(
     category, setting,
     function()
@@ -91,7 +111,7 @@ function ns.registerSettings(addOn, addOnName, features)
 
       for _,data in ipairs(cat.fields) do
         if not data.callback then data.callback = cb end
-        Setting[data.typ](db, category, data)
+        Setting[data.typ](db, category, data, addOnName)
       end
 
       if not addOn.settingsCategories then addOn.settingsCategories = {} end

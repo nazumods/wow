@@ -12,7 +12,13 @@ for _, c in ipairs(ns.SummaryColumns) do
       name = c.label,
       typ = "checkbox",
       default = true,
-      table = function(db) return db.settings.summaryColumns end,
+      -- Ensure-and-persist the backing table: MigrateDB only creates it on a version
+      -- bump (DB v4), so a DB already at the current version but missing the table
+      -- would otherwise hand Settings a nil variableTbl. Mirrors VisibleSummaryColumns' `or {}`.
+      table = function(db)
+        db.settings.summaryColumns = db.settings.summaryColumns or {}
+        return db.settings.summaryColumns
+      end,
       key = c.key,
       label = c.label,
       tooltip = "Show the " .. c.label .. " column in the Summary view",
