@@ -243,6 +243,28 @@ function API:GetAuctions(charName)
   return c and c.auctions or nil
 end
 
+---Which tracked characters are on / have completed a quest.  Each list holds
+---`{ name, classKey }` (sorted by name); nil when no character is on or has completed it.
+---@param questID integer
+---@return { active: { name: string, classKey: string }[], completed: { name: string, classKey: string }[] }?
+function API:GetQuestStatus(questID)
+  if not questID then return nil end
+  local active, completed = {}, {}
+  for name, c in pairs(ns.db.characters) do
+    local q = c.questlog
+    if q then
+      local who = { name = name, classKey = c.classKey }
+      if q.active and q.active[questID] then insert(active, who) end
+      if ns.IsQuestCompleted(q.completed, questID) then insert(completed, who) end
+    end
+  end
+  if #active == 0 and #completed == 0 then return nil end
+  local byName = function(a, b) return a.name < b.name end
+  sort(active, byName)
+  sort(completed, byName)
+  return { active = active, completed = completed }
+end
+
 ---Synchronously re-fetch one broker field for the current character.
 ---Safe to call at any time; respects the maxLevel guard.
 ---@param brokerName string

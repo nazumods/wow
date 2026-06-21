@@ -41,6 +41,7 @@ Each addon folder has its own `README.md` with end-user documentation.
 | [ShadowsOfUI-Artisan](ShadowsOfUI-Artisan/README.md) | Shows each profession's crafting currency (Artisan's … Moxie) — beside the Concentration readout in the crafting window and on the spellbook's Professions page — plus an account-wide hover breakdown. |
 | [ShadowsOfUI-WarbandInventory](ShadowsOfUI-WarbandInventory/README.md) | Adds a "Warband stock" block to item tooltips: how many of an item each character holds (bags + bank), plus the warband and guild banks. Hold Shift to hide. |
 | [ShadowsOfUI-Reputations](ShadowsOfUI-Reputations/README.md) | Shows every character's standing with a faction — on the Reputation tab and on faction-tied item tooltips (which alt to mail that rep token to). |
+| [ShadowsOfUI-Quests](ShadowsOfUI-Quests/README.md) | Adds a cross-alt "Also on this quest / Completed by" block to quest-log tooltips, so you can see which character still needs a quest. |
 | [HideStanceBar](HideStanceBar/README.md) | Hides the stance bar, with a per-class toggle. |
 | [HideBagBar](HideBagBar/README.md) | Hides the backpack and bag slot buttons. |
 | [CombatOutline](CombatOutline/README.md) | Enables the character outline rendering mode only while in combat. |

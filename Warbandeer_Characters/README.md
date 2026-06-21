@@ -49,6 +49,9 @@ data through the `WarbandeerApi` global.
 - **Auctions** are recorded when you open the Auction House (active auction count, when each
   expires, and gold tied up), so Warbandeer's Summary view can show — with a live count that
   drops expired ones — which characters have auctions about to lapse.
+- **Quests** are captured each login — your active quests and your completed-quest history —
+  so **ShadowsOfUI-Quests** can show, on a quest's tooltip, which other characters are on it or
+  have already completed it. (The completed history is the largest thing tracked per character.)
 
 ## Requirements
 
