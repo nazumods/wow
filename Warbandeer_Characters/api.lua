@@ -233,6 +233,16 @@ function API:GetFactionStandings(factionID)
   return out
 end
 
+---A character's last-seen owned-auction cache (active auction count, absolute expiry
+---stamps, gold tied up, bid count).  Captured while that character was at the auction
+---house; nil until it has visited one.  See `AuctionData`.
+---@param charName string?
+---@return AuctionData?
+function API:GetAuctions(charName)
+  local c = ns.db.characters[charName or ns.currentPlayer]
+  return c and c.auctions or nil
+end
+
 ---Synchronously re-fetch one broker field for the current character.
 ---Safe to call at any time; respects the maxLevel guard.
 ---@param brokerName string

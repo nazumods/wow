@@ -85,7 +85,7 @@ end, "Repair stored data (recount characters)")
 ---@field MigrateDB fun(self) Migrate database to latest version
 function ns:MigrateDB()
   local db = ns.db
-  if db.version == 21 then return end
+  if db.version == 22 then return end
   if not db.characters then db.characters = {} end
   if not db.numCharacters then
     db.numCharacters = countCharacters(db)
@@ -248,6 +248,14 @@ function ns:MigrateDB()
   -- that character) until its next login, so rollback is lossless.
   if (db.version or 0) < 21 then
     db.version = 21
+  end
+
+  -- v22: per-character owned-auction cache (`auctions`: active count, absolute expiry
+  -- stamps, gold tied up, bid count) (non-destructive).  Filled lazily by data/auctions.lua
+  -- whenever the character opens the auction house; old revisions simply lack it (the
+  -- Summary auctions column is blank) until the next AH visit, so rollback is lossless.
+  if (db.version or 0) < 22 then
+    db.version = 22
   end
 end
 

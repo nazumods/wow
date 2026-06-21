@@ -127,6 +127,7 @@ std = {
 
     "C_AddOns",
     "C_AssistedCombat",
+    "C_AuctionHouse",
     "C_Bank",
     "C_Calendar",
     "C_ChatInfo",
