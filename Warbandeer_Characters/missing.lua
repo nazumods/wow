@@ -68,6 +68,14 @@ function ns.getMissingFields(toon)
     table.insert(missing, "bank contents")
   end
 
+  -- Bag item counts (the warband-stock tooltip's per-character totals) are captured
+  -- by the `inventory` broker, which only runs while the character is logged in. The
+  -- broker always returns a table, so a nil counts means the character hasn't been
+  -- seen since the index was added (its stock won't show in the tooltip until it logs in).
+  if not toon.inventory or toon.inventory.counts == nil then
+    table.insert(missing, "bag contents")
+  end
+
   -- LumberAxe is a recorded boolean (has / doesn't have the Find Lumber tracking
   -- spell), so only a nil means the data was never captured. false is real data.
   if not toon.quests or toon.quests.LumberAxe == nil then
