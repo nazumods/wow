@@ -41,6 +41,7 @@ Each addon folder has its own `README.md` with end-user documentation.
 | [ShadowsOfUI-WarbandInventory](ShadowsOfUI-WarbandInventory/README.md) | Adds a "Warband Inventory" block to item tooltips: how many of an item each character holds (bags + bank), plus the warband and guild banks. Hold Shift to hide. |
 | [ShadowsOfUI-Reputations](ShadowsOfUI-Reputations/README.md) | Shows every character's standing with a faction — on the Reputation tab and on faction-tied item tooltips (which alt to mail that rep token to). |
 | [ShadowsOfUI-Quests](ShadowsOfUI-Quests/README.md) | Adds a cross-alt "Also on this quest / Completed by" block to quest-log tooltips, so you can see which character still needs a quest. |
+| [ShadowsOfUI-Compartment](ShadowsOfUI-Compartment/README.md) | Makes the minimap's addon-compartment button movable (ALT+drag) and swaps its count for a clean icon. |
 
 ### Quality of life
 

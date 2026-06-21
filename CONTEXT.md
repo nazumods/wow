@@ -27,6 +27,7 @@ LibNAddOn
     |     |
     |     +-- ShadowsOfUI-XP
     |     +-- ShadowsOfUI-GCD
+    |     +-- ShadowsOfUI-Compartment
     |     +-- HideStanceBar
     |     +-- Warbandeer_Alias
     |     +-- Recycle
@@ -66,6 +67,7 @@ Load the linked `CONTEXT.md` for full file maps, class hierarchies, API surfaces
 | **Warbandeer_Alias** | Guild-chat alias prefix hook. Single file; `Warbandeer_AliasDB` (v1). | [Warbandeer_Alias/CONTEXT.md](Warbandeer_Alias/CONTEXT.md) |
 | **Warbandeer_Collected** | Transmog set tracker (`/collected`, `/collect`). DataView grid, scan logic, per-set **wanted** flag + **S–F tier ranking** (global baseline w/ per-race overrides) edited from the grid (shift-click) + dressing room, `WarbandeerCollectedDB` (v3); exposes `WarbandeerCollectedApi` (read scan data + read/write ratings; consumed by Warbandeer's `collected` view). | [Warbandeer_Collected/CONTEXT.md](Warbandeer_Collected/CONTEXT.md) |
 | **ShadowsOfUI-XP** | Minimal full-width XP bar at screen bottom (below max level only). Single file, no DB. | [ShadowsOfUI-XP/CONTEXT.md](ShadowsOfUI-XP/CONTEXT.md) |
+| **ShadowsOfUI-Compartment** | Makes Blizzard's `AddonCompartmentFrame` (minimap addon-count button) movable via ALT+left-drag and swaps its count number for a custom icon. Settings toggle + `/scompartment` (`reset`); `ShadowsOfUI_CompartmentDB` (v1). | [ShadowsOfUI-Compartment/CONTEXT.md](ShadowsOfUI-Compartment/CONTEXT.md) |
 | **HideStanceBar** | Hides the stance bar via reparenting, per-class toggles. `HideStanceBarDB` (v1). | [HideStanceBar/CONTEXT.md](HideStanceBar/CONTEXT.md) |
 | **HideBagBar** | Hides backpack/bag slot buttons. Raw WoW API only — no LibNAddOn. | [HideBagBar/CONTEXT.md](HideBagBar/CONTEXT.md) |
 | **ShadowsOfUI-GCD** | Minimal GCD sweep bar anchored between the primary and secondary resource bars. Single file, no DB, no slash commands. | — |
@@ -103,4 +105,5 @@ LibNUI_Test is a LoadOnDemand visual test harness for LibNUI (`/nui test [key]`)
 | ShadowsOfUI-WarbandInventory | `/swinv` | `<itemID\|link>` (dev/find: dump an item's warband-wide count breakdown — per character, warband bank, guild banks) |
 | ShadowsOfUI-Reputations | `/sreps` | `<factionID\|name>` (dev/lookup: dump every character's standing with a faction) |
 | ShadowsOfUI-Quests | `/squests` | `<questID>` (dev/lookup: dump which characters are on / have completed a quest) |
+| ShadowsOfUI-Compartment | `/scompartment` | `""` (open settings), `reset` (restore the compartment button's default position) |
 | ShadowsOfUI-Upgrade | `/supgrade` | `[name]` (dev: dump a character's available gear upgrades), `enchants [name]` (dev: copyable enchant-resolution dump — why a slot has no suggested enchant) |
