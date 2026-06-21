@@ -59,6 +59,7 @@ ns.viewOrder = {
   "midnightprofs",
   "bars",
   "collected",
+  "reputations",
 }
 
 -- https://wowpedia.fandom.com/wiki/Category:HOWTOs

@@ -8,12 +8,18 @@ local ns = select(2, ...)
 -- WarbandeerBarsApi pattern: a plain global table consumed via OptionalDeps.
 
 ---@class WarbandeerCollectedApi
+---@field Sets table[] transmog set groups (see `ns.Sets`)
+---@field Releases string[] expansion names indexed by `release`
+---@field ReleaseIcons string[] expansion badge textures (64x64 TGA), parallel to `Releases`
 local API = {}
 
--- Static set-group definitions (rows) and release names. Same tables the
--- in-addon DataView reads; safe to share since consumers only read them.
+-- Static set-group definitions (rows), release names, and the parallel expansion
+-- badge texture paths. Same tables the in-addon DataView / DressingRoom read; safe
+-- to share since consumers only read them. (Warbandeer's Reputations view labels its
+-- expansion pages with the badges via `ReleaseIcons`.)
 API.Sets = ns.Sets
 API.Releases = ns.Releases
+API.ReleaseIcons = ns.ReleaseIcons
 
 ---Account-wide collected/total counts from the last scan.
 ---@return number collected, number total

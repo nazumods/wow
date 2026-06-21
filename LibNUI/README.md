@@ -516,9 +516,10 @@ Inherits `Frame`. Uses `UIPanelScrollFrameTemplate`.
 
 ### Methods
 
-| Method         | Description              |
-|----------------|--------------------------|
-| `Child(child)` | Get/set scroll child     |
+| Method                  | Description                                                      |
+|-------------------------|------------------------------------------------------------------|
+| `Child(child)`          | Get/set scroll child                                             |
+| `VerticalScroll(offset)`| Get/set vertical offset (pixels); clamped to range when setting  |
 
 ---
 
