@@ -6,6 +6,16 @@ local GetCombatRating, GetCombatRatingBonus = GetCombatRating, GetCombatRatingBo
 local GetSpecialization, GetSpecializationMasterySpells = GetSpecialization, GetSpecializationMasterySpells
 local CR_CRIT, CR_HASTE = CR_CRIT_MELEE, CR_HASTE_MELEE
 local CR_MASTERY_, CR_VERS = CR_MASTERY, CR_VERSATILITY_DAMAGE_DONE
+local canaccessvalue = canaccessvalue
+
+-- Combat-rating / stat APIs can return "secret" numbers that tainted addon code can't do
+-- arithmetic on. The Detail view computes deltas vs Archon targets and feeds the radar, so
+-- store nil instead of a value it can't use (and that can't be safely serialized).
+-- canaccessvalue is retail-only — on classic builds (no secret values) every value passes.
+local function safe(v)
+  if canaccessvalue and not canaccessvalue(v) then return nil end
+  return v
+end
 
 -- The active spec's mastery passive spell, so the Detail view can name the mastery
 -- ("Mastery: Razor Claws") and describe its spec-specific effect. Captured here (the
@@ -19,7 +29,7 @@ end
 ---@field stats StatsBroker?
 
 ---@class StatsBroker
----@field secondary table<string, {pct: number, rating: number, spell: integer?}>  crit/haste/mastery/versatility: effective % + combat rating (mastery also carries its passive `spell` id)
+---@field secondary table<string, {pct: number?, rating: number?, spell: integer?}>  crit/haste/mastery/versatility: effective % + combat rating (nil when the API returns a secret value; mastery also carries its passive `spell` id)
 
 ---@class StatsBroker: Broker
 local Stats = ns:RegisterBroker("stats")
@@ -34,10 +44,10 @@ Stats.fields = {
   secondary = {
     get = function()
       return {
-        crit        = { pct = GetCritChance(),    rating = GetCombatRating(CR_CRIT) },
-        haste       = { pct = GetHaste(),         rating = GetCombatRating(CR_HASTE) },
-        mastery     = { pct = GetMasteryEffect(), rating = GetCombatRating(CR_MASTERY_), spell = masterySpell() },
-        versatility = { pct = GetCombatRatingBonus(CR_VERS), rating = GetCombatRating(CR_VERS) },
+        crit        = { pct = safe(GetCritChance()),    rating = safe(GetCombatRating(CR_CRIT)) },
+        haste       = { pct = safe(GetHaste()),         rating = safe(GetCombatRating(CR_HASTE)) },
+        mastery     = { pct = safe(GetMasteryEffect()), rating = safe(GetCombatRating(CR_MASTERY_)), spell = masterySpell() },
+        versatility = { pct = safe(GetCombatRatingBonus(CR_VERS)), rating = safe(GetCombatRating(CR_VERS)) },
       }
     end,
     event = "COMBAT_RATING_UPDATE",

@@ -9,6 +9,7 @@
     "loadfile",
 
     "bit",
+    "canaccessvalue",
     "date",
     "floor",
     "format",
