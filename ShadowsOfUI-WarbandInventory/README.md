@@ -1,6 +1,6 @@
 # ShadowsOfUI-WarbandInventory
 
-Adds a **"Warband stock"** block to item tooltips, telling you at a glance how many of an
+Adds a **"Warband Inventory"** block to item tooltips, telling you at a glance how many of an
 item your whole account is holding — and where.
 
 Hover any item — in your bags, at a vendor, in the Auction House, in a chat link — and the

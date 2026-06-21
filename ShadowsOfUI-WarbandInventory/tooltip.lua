@@ -36,13 +36,13 @@ local function charLabel(e)
   return ns.ColorName(name, e.classKey)
 end
 
--- Append the "Warband stock" block: a header with the grand total, one
+-- Append the "Warband Inventory" block: a header, one
 -- right-aligned class-coloured line per character (bags + personal bank), then
 -- the shared warband bank and any guild banks.
 ---@param report ItemCountReport
 ---@param itemID integer
 local function render(tooltip, report, itemID)
-  tooltip:AddLine(LABEL:WrapTextInColorCode("Warband stock"))
+  tooltip:AddLine(LABEL:WrapTextInColorCode("Warband Inventory"))
 
   local chars = report.characters
   local shown = #chars
