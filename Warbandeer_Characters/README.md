@@ -46,6 +46,9 @@ data through the `WarbandeerApi` global.
 - **Reputations** are captured each login and whenever they change — every faction's standing
   for each character, so **ShadowsOfUI-Reputations** can show who's Exalted (or still grinding)
   with a faction, on the Reputation tab and on faction-tied item tooltips.
+- **Auctions** are recorded when you open the Auction House (active auction count, when each
+  expires, and gold tied up), so Warbandeer's Summary view can show — with a live count that
+  drops expired ones — which characters have auctions about to lapse.
 
 ## Requirements
 
