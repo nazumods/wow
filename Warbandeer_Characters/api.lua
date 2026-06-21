@@ -1,6 +1,7 @@
 ---@type Warbandeer_Characters
 local ns = select(2, ...)
 local insert = table.insert
+local sort = table.sort
 local GetServerTime = GetServerTime
 
 ---@class WarbandeerAPI
@@ -119,6 +120,74 @@ function API:GetWorldQuestRewards(charName)
     if not r.endTime or r.endTime > now then insert(out, r) end
   end
   return out
+end
+
+---@class ItemCountEntry
+---@field name string character name
+---@field classKey string PascalCase class key (for class colouring)
+---@field realm string? the character's realm, set only when it differs from the current character's realm
+---@field bags integer copies in the character's bags + reagent bag
+---@field bank integer copies in the character's personal bank
+---@field total integer bags + bank
+
+---@class GuildItemCount
+---@field name string guild key (name, -realm if cross-realm)
+---@field count integer copies in that guild bank
+
+---@class ItemCountReport
+---@field total integer grand total across every source
+---@field warband integer copies in the shared warband (account) bank, counted once
+---@field characters ItemCountEntry[] per-character (bags + personal bank), sorted by total desc
+---@field guilds GuildItemCount[] per-guild bank, sorted by count desc
+
+---Account-wide counts of an item across every tracked character's bags + personal
+---bank, the shared warband bank, and each known guild bank.  Bag counts are live for
+---the logged-in character and last-seen for alts (a character's bag map only updates
+---while it's logged in); bank/guild counts are last-seen, captured when that bank was
+---last opened.  Returns nil when no copies are tracked anywhere.
+---@param itemID integer
+---@return ItemCountReport?
+function API:GetItemCounts(itemID)
+  if not itemID then return nil end
+  local bankStore = ns.db.bank
+  local charBanks = (bankStore and bankStore.characters) or {}
+  local myRealm = ns.currentData and ns.currentData.realm
+  local chars, total = {}, 0
+  for name, c in pairs(ns.db.characters) do
+    local bags = (c.inventory and c.inventory.counts and c.inventory.counts[itemID]) or 0
+    local bankData = charBanks[name]
+    local bank = (bankData and bankData.items and bankData.items[itemID]) or 0
+    local sum = bags + bank
+    if sum > 0 then
+      insert(chars, {
+        name = name,
+        classKey = c.classKey,
+        realm = (c.realm and c.realm ~= myRealm) and c.realm or nil,
+        bags = bags, bank = bank, total = sum,
+      })
+      total = total + sum
+    end
+  end
+  local warband = (bankStore and bankStore.warband and bankStore.warband.items and bankStore.warband.items[itemID]) or 0
+  total = total + warband
+  local guilds = {}
+  for gname, g in pairs((bankStore and bankStore.guilds) or {}) do
+    local n = g.items and g.items[itemID]
+    if n and n > 0 then
+      insert(guilds, { name = gname, count = n })
+      total = total + n
+    end
+  end
+  if total == 0 then return nil end
+  sort(chars, function(a, b)
+    if a.total ~= b.total then return a.total > b.total end
+    return a.name < b.name
+  end)
+  sort(guilds, function(a, b)
+    if a.count ~= b.count then return a.count > b.count end
+    return a.name < b.name
+  end)
+  return { total = total, warband = warband, characters = chars, guilds = guilds }
 end
 
 ---Synchronously re-fetch one broker field for the current character.

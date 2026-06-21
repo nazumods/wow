@@ -85,7 +85,7 @@ end, "Repair stored data (recount characters)")
 ---@field MigrateDB fun(self) Migrate database to latest version
 function ns:MigrateDB()
   local db = ns.db
-  if db.version == 18 then return end
+  if db.version == 19 then return end
   if not db.characters then db.characters = {} end
   if not db.numCharacters then
     db.numCharacters = countCharacters(db)
@@ -220,6 +220,16 @@ function ns:MigrateDB()
   -- to the live lookup) until the relevant bag/bank is next scanned, so rollback is lossless.
   if (db.version or 0) < 18 then
     db.version = 18
+  end
+
+  -- v19: per-character bag item-count index + personal/warband/guild bank
+  -- item-count maps (non-destructive).  Filled lazily — bag counts by the new
+  -- `inventory` broker on BAG_UPDATE_DELAYED, bank/guild counts by data/bank.lua on
+  -- the next bank open.  Nothing to seed; old revisions simply see empty counts (the
+  -- warband-stock tooltip shows fewer sources) until the next scan, so rollback is
+  -- lossless.
+  if (db.version or 0) < 19 then
+    db.version = 19
   end
 end
 
