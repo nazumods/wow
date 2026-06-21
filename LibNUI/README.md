@@ -324,9 +324,10 @@ Inherits `CleanFrame`. Adds a title bar with icon, title text, and a close butto
 
 ### Methods
 
-| Method          | Description       |
-|-----------------|-------------------|
-| `Title(text)`   | Update title text |
+| Method                   | Description                                                                                                                                                                                |
+|--------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `Title(text)`            | Update title text                                                                                                                                                                         |
+| `RememberPosition(store)`| Persist the window's dragged position into `store` (typically a saved-variables table). Restores the saved point on the spot and writes it back on every drag-stop, so the window doesn't re-center after a `/reload`. `store` is mutated in place: `{ point, relPoint, x, y }`. |
 
 ### Sub-frames
 

@@ -915,7 +915,10 @@ local _room
 ---@class Warbandeer_Collected
 ---@field ShowDressingRoom fun(group: table, set: table, reverse: boolean?)  group/set are entries from ns.Sets; reverse mirrors the grid sort so Up/Down tier nav matches the on-screen order
 ns.ShowDressingRoom = function(group, set, reverse)
-  if not _room then _room = DressingRoom:new{} end
+  if not _room then
+    _room = DressingRoom:new{}
+    _room:RememberPosition(ns.db.dressPos)   -- restore + persist the user's dragged position
+  end
 
   -- Track the grid's sort direction so the tier arrows match what the user sees.
   _room._reverse = reverse ~= false

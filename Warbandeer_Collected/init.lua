@@ -13,5 +13,10 @@ function ns:MigrateDB()
   if not db.wanted then db.wanted = {} end       -- [setId] = true   target list
   if not db.rank then db.rank = {} end           -- [setId] = "S".."F"  baseline tier
   if not db.raceRank then db.raceRank = {} end   -- [setId] = { [raceId] = tier }  per-race overrides
-  db.version = 3
+  -- v4: remembered window positions, written on drag-stop and restored on open
+  -- (shape { point, relPoint, x, y }), so a window doesn't re-center after a
+  -- /reload. Seeded empty; populated by TitleFrame:RememberPosition.
+  if not db.dressPos then db.dressPos = {} end   -- set-preview (dressing room) window
+  if not db.windowPos then db.windowPos = {} end -- main collection window
+  db.version = 4
 end

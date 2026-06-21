@@ -137,6 +137,7 @@ ns.window = nil
 function ns:Open()
   if not ns.window then
     ns.window = MainWindow:new{}
+    ns.window:RememberPosition(ns.db.windowPos)   -- restore + persist the user's dragged position
   else
     ns.window:Show()
   end
