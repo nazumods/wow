@@ -128,7 +128,8 @@ end
 ---@field realm string? the character's realm, set only when it differs from the current character's realm
 ---@field bags integer copies in the character's bags + reagent bag
 ---@field bank integer copies in the character's personal bank
----@field total integer bags + bank
+---@field mail integer copies attached to the character's mail
+---@field total integer bags + bank + mail
 
 ---@class GuildItemCount
 ---@field name string guild key (name, -realm if cross-realm)
@@ -157,13 +158,14 @@ function API:GetItemCounts(itemID)
     local bags = (c.inventory and c.inventory.counts and c.inventory.counts[itemID]) or 0
     local bankData = charBanks[name]
     local bank = (bankData and bankData.items and bankData.items[itemID]) or 0
-    local sum = bags + bank
+    local mail = (c.mail and c.mail.items and c.mail.items[itemID]) or 0
+    local sum = bags + bank + mail
     if sum > 0 then
       insert(chars, {
         name = name,
         classKey = c.classKey,
         realm = (c.realm and c.realm ~= myRealm) and c.realm or nil,
-        bags = bags, bank = bank, total = sum,
+        bags = bags, bank = bank, mail = mail, total = sum,
       })
       total = total + sum
     end
@@ -188,6 +190,16 @@ function API:GetItemCounts(itemID)
     return a.name < b.name
   end)
   return { total = total, warband = warband, characters = chars, guilds = guilds }
+end
+
+---A character's last-seen mail cache (inbox count, attachment item counts, attached
+---gold, and ascending absolute expiry timestamps).  Captured while that character was
+---at a mailbox; nil until it has visited one.  See `MailData`.
+---@param charName string?
+---@return MailData?
+function API:GetMail(charName)
+  local c = ns.db.characters[charName or ns.currentPlayer]
+  return c and c.mail or nil
 end
 
 ---Synchronously re-fetch one broker field for the current character.

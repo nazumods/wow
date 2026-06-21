@@ -76,6 +76,13 @@ function ns.getMissingFields(toon)
     table.insert(missing, "bag contents")
   end
 
+  -- Mail is captured only while the character has a mailbox open. The scan stamps a
+  -- record even for an empty inbox, so a nil mail means "never visited a mailbox" — its
+  -- expiries can't warn and its attachments are absent from the stock tooltip.
+  if not toon.mail then
+    table.insert(missing, "mail")
+  end
+
   -- LumberAxe is a recorded boolean (has / doesn't have the Find Lumber tracking
   -- spell), so only a nil means the data was never captured. false is real data.
   if not toon.quests or toon.quests.LumberAxe == nil then

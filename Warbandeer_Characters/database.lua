@@ -85,7 +85,7 @@ end, "Repair stored data (recount characters)")
 ---@field MigrateDB fun(self) Migrate database to latest version
 function ns:MigrateDB()
   local db = ns.db
-  if db.version == 19 then return end
+  if db.version == 20 then return end
   if not db.characters then db.characters = {} end
   if not db.numCharacters then
     db.numCharacters = countCharacters(db)
@@ -230,6 +230,15 @@ function ns:MigrateDB()
   -- lossless.
   if (db.version or 0) < 19 then
     db.version = 19
+  end
+
+  -- v20: per-character mail cache (`mail`: inbox count, attachment item counts,
+  -- attached gold, absolute expiry stamps) (non-destructive).  Filled lazily by
+  -- data/mail.lua whenever the character opens a mailbox; nothing to seed — old
+  -- revisions simply lack it (the Summary mail column is blank and the tooltip shows
+  -- no mail source) until the next mailbox visit, so rollback is lossless.
+  if (db.version or 0) < 20 then
+    db.version = 20
   end
 end
 
