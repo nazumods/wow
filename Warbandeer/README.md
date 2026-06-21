@@ -24,6 +24,7 @@ Open it with `/warband` or `/wb` and switch views with the icon rail on the left
 | Playtime | Time played per character and total |
 | Bars | Action-bar profile previews (requires Warbandeer_Bars) |
 | Collected | Transmog-set collection grid by class and tier (requires Collected) |
+| Reputations | Faction standings across your whole warband, one page per expansion: each faction shows the highest standing any character reached (and an Alliance/Horde marker for side-locked reps); hover a faction to see every character's standing. Switch expansions with the pulldown or the Up/Down arrow keys, and move between factions with Left/Right |
 
 Every view is also reachable directly, e.g. `/wb gear`, `/wb profs`, `/wb playtime`.
 
@@ -41,7 +42,7 @@ Found in the Blizzard settings panel:
 - **Warbandeer_Characters** — the data layer that does the actual collecting.
   Warbandeer is only the viewer; without the data layer it has nothing to show.
 - *Optional:* **Warbandeer_Bars** for the Bars view.
-- *Optional:* **Collected** for the Collected view.
+- *Optional:* **Collected** for the Collected view (it also supplies the expansion badges that label the Reputations view's pages; without it those pages fall back to plain text).
 - *Optional:* **ShadowsOfUI-Upgrade** for gear-upgrade markers, missing-enchant + wrong-enchant + empty-socket flags (Summary "Up"/"Ench"/"Gem" columns + Detail notes), and the Detail view's Suggested box. The Summary "Up" column counts how many slots have an available upgrade and is coloured **green** when at least one of them can be equipped right now (at or below the character's level — a warband-bank copy counts, since you can withdraw it), or **gold** when every available upgrade is still gated above the character's level. In the Detail gear list, a piece carrying the *wrong* (non-recommended) enchant shows a yellow "Wrong enchant" note; **right-click that row to accept the enchant on that item** (it asks to confirm, then stops flagging — right-click again to undo). `/wb enchants` lists everything you've accepted and `/wb enchants clear` resets the list.
 
 ## Saved data

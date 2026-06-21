@@ -85,7 +85,7 @@ end, "Repair stored data (recount characters)")
 ---@field MigrateDB fun(self) Migrate database to latest version
 function ns:MigrateDB()
   local db = ns.db
-  if db.version == 23 then return end
+  if db.version == 24 then return end
   if not db.characters then db.characters = {} end
   if not db.numCharacters then
     db.numCharacters = countCharacters(db)
@@ -265,6 +265,15 @@ function ns:MigrateDB()
   -- `/wbc cleanup` extension could drop it if a user wants the space back (none today).
   if (db.version or 0) < 23 then
     db.version = 23
+  end
+
+  -- v24: per-faction expansion category (`reputations.factions[*].categoryId`: the
+  -- top-level reputation header's factionID, locale-proof) (non-destructive).  Stamped
+  -- by data/reputations.lua's broker at scan time; nothing to seed — old entries just
+  -- lack it (Warbandeer's Reputations view groups them onto the "Other" page) until the
+  -- character next logs in and re-scans, so rollback is lossless.
+  if (db.version or 0) < 24 then
+    db.version = 24
   end
 end
 
