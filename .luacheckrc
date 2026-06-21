@@ -11,7 +11,7 @@ include_files = {
   "LibNAddOn/**/*.lua", "LibNUI/**/*.lua", "LibNUI_Test/**/*.lua", "Recycle/**/*.lua",
   "ShadowsOfUI-DMF/**/*.lua", "ShadowsOfUI-GCD/**/*.lua", "ShadowsOfUI-Ilvl/**/*.lua",
   "ShadowsOfUI-Known/**/*.lua", "ShadowsOfUI-Upgrade/**/*.lua", "ShadowsOfUI-XP/**/*.lua",
-  "ShadowsOfUI-Artisan/**/*.lua",
+  "ShadowsOfUI-Artisan/**/*.lua", "ShadowsOfUI-WarbandInventory/**/*.lua",
   "Warbandeer/**/*.lua", "Warbandeer_Alias/**/*.lua", "Warbandeer_Bars/**/*.lua",
   "Warbandeer_Characters/**/*.lua", "Warbandeer_Collected/**/*.lua",
 }
@@ -32,6 +32,7 @@ files["ShadowsOfUI-DMF/**/*.lua"] = {globals = {"SLASH_SUI_DMF1"}}
 files["ShadowsOfUI-Ilvl/**/*.lua"] = {globals = {"SLASH_SUI_ILVL1"}}
 files["ShadowsOfUI-Known/**/*.lua"] = {globals = {"SLASH_SUI_KNOWN1"}}
 files["ShadowsOfUI-Upgrade/**/*.lua"] = {globals = {"SLASH_SUI_UPGRADE1", "ShadowsOfUI_UpgradeApi"}}
+files["ShadowsOfUI-WarbandInventory/**/*.lua"] = {globals = {"SLASH_SUI_WINV1"}}
 files["Warbandeer_Bars/init.lua"] = {globals = {"WarbandeerBarsSettings"}}
 
 std = {

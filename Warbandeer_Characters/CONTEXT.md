@@ -1,6 +1,6 @@
 # Warbandeer_Characters (Data Layer)
 
-**Deps:** LibNAddOn, LibNUI · **SavedVars:** `WarbandeerCharDB` (v18) · **Commands:** `/characters`, `/wbc` · **API:** `WarbandeerApi`
+**Deps:** LibNAddOn, LibNUI · **SavedVars:** `WarbandeerCharDB` (v19) · **Commands:** `/characters`, `/wbc` · **API:** `WarbandeerApi`
 
 Data-collection backbone for the suite. Scans the active character each login/refresh and stores everything in `WarbandeerCharDB`, exposing it to the rest of the suite through the `WarbandeerApi` global. Per-field scanning is driven by the **broker** system (`broker.lua`).
 
@@ -18,8 +18,9 @@ Data-collection backbone for the suite. Scans the active character each login/re
 | `data/basic.lua` | Broker `basic`: `level`, `specialization`, `professions` (name summary), `xp` |
 | `data/currency.lua` | Broker `currency`: `RestoredCofferKey`, `gold` (`GetMoney`), `CofferKeyShard`, `Catalyst`, `HeroDawncrest`, `MythDawncrest`, `NebulousVoidcore`, `UntaintedManaCrystal` |
 | `data/warband.lua` | Account-wide (not a broker): `db.warband` bank gold + weekly wealth. `ns:GetWarbandWealth`, `RolloverWarbandWeek`, `InitWarband`; `/wbc dump warband` |
-| `data/bank.lua` | Account-wide (not a broker): `db.bank` profession-gear cache for the warband bank, each character's bank, and guild banks. Also records each store's equippable gear (`equip` = `GearCandidate[]`) for the warband + personal banks (not guild). Scanned on bank/guild-bank open (warband+character via `C_Bank`/`C_Container`, guild via the classic API). **Load-then-rescan** for the `equip` ilvls: a fresh bank-open scan reads many slots cold, so `addEquip` falls back to the link's ilvl (never nil — a nil ilvl makes the upgrade finder drop the item, recommending a worse already-loaded piece first) and flags the slot; `scanPersonalBanks` requests a load and `scheduleBankRescan` re-scans (gen-guarded, `MAX_BANK_RESCANS`×`BANK_RESCAN_DELAY`, gated on the bank still open) until every slot reports its real scaled ilvl — mirrors `data/equipment.lua`. `WarbandeerApi:GetBankProfGear(skillID)`; `/wbc dump bankgear`. A character with no `db.bank.characters[name]` entry is flagged "bank contents" by `missing.lua` |
+| `data/bank.lua` | Account-wide (not a broker): `db.bank` profession-gear cache for the warband bank, each character's bank, and guild banks. Also records each store's equippable gear (`equip` = `GearCandidate[]`) for the warband + personal banks (not guild). Scanned on bank/guild-bank open (warband+character via `C_Bank`/`C_Container`, guild via the classic API). Each store also records `items` (v19) — a full `{[itemID]=count}` map of *everything* in that bank (not just prof gear), accumulated in the same slot loop via `addCount`; drives `WarbandeerApi:GetItemCounts` (warband-stock tooltip). The warband bank's map is account-wide (stored once). **Load-then-rescan** for the `equip` ilvls: a fresh bank-open scan reads many slots cold, so `addEquip` falls back to the link's ilvl (never nil — a nil ilvl makes the upgrade finder drop the item, recommending a worse already-loaded piece first) and flags the slot; `scanPersonalBanks` requests a load and `scheduleBankRescan` re-scans (gen-guarded, `MAX_BANK_RESCANS`×`BANK_RESCAN_DELAY`, gated on the bank still open) until every slot reports its real scaled ilvl — mirrors `data/equipment.lua`. `WarbandeerApi:GetBankProfGear(skillID)`; `/wbc dump bankgear`. A character with no `db.bank.characters[name]` entry is flagged "bank contents" by `missing.lua` |
 | `data/items.lua` | Broker `items`: `bags`, `reagentBag`; `/wbc refresh items` |
+| `data/inventory.lua` | Broker `inventory`: `counts` — `{[itemID]=qty}` summed across the active character's bags + reagent bag (container IDs 0..NUM_BAG_SLOTS+1 via `C_Container`). Rescanned on `BAG_UPDATE_DELAYED` (500ms). Last-seen per character (only refreshable while logged in). Consumed by `WarbandeerApi:GetItemCounts` → ShadowsOfUI-WarbandInventory's stock tooltip |
 | `data/gearbag.lua` | Broker `gearbag`: `items` — the active character's equippable bag gear (`GearCandidate[]`) for the upgrade finder (ShadowsOfUI-Upgrade). Filtered via `WarbandeerApi:ClassifyGearItem`; rescanned on `BAG_UPDATE_DELAYED` (a cold slot falls back to the link's ilvl rather than a nil that would drop the candidate; the scaled value refreshes on the next bag update) |
 | `data/professions.lua` | Broker `professions`: `details` (per-exp skill levels, spec points, learned recipes) + `gear` (tool/accessory slots). Also defines `ns.api.professionInfo`; scans pre-resolve current-exp recipes into the recipe-gear cache and capture each prof-gear recipe's reachable crafting `quality`/`qualityConc` (via `GetCraftingOperationInfo`) |
 | `data/recipegear.lua` | Account-wide `db.recipeGear` cache (recipe → prof-gear output: itemID/rarity/equipLoc/target skillID), build-stamped; `WarbandeerApi:ResolveRecipeOutput`, `WarbandeerApi:ClassifyProfGearItem` (item → prof skillID/equipLoc, shared with the bank scanner), `WarbandeerApi:ClassifyGearItem` (item → equippable equipLoc/classID/subClassID, shared by `gearbag`/`bank`) |
@@ -75,6 +76,12 @@ WarbandeerApi:GetCharacterGearCandidates(char?) → { bags: GearCandidate[], ban
 WarbandeerApi:GetWarbandBankGear()         → GearCandidate[]
     -- equippable gear in the warband (account) bank; the shared "better
     -- elsewhere" pool; empty until the warband bank has been opened
+WarbandeerApi:GetItemCounts(itemID)        → ItemCountReport?
+    -- account-wide counts of an item: { total, warband, characters =
+    -- {{name, classKey, bags, bank, total}} (sorted total desc), guilds =
+    -- {{name, count}} }.  Per-char = bags (inventory broker) + personal bank
+    -- (db.bank.characters[name].items); warband = db.bank.warband.items (once);
+    -- guilds = db.bank.guilds[*].items.  All last-seen; nil when nothing is held
 WarbandeerApi:GetWorldQuestRewards(char?)  → WorldQuestReward[]
     -- a character's cached active world-quest gear rewards (GearCandidate +
     -- {questID, title, zone, mapID, endTime}); captured while that char was logged in,
@@ -127,6 +134,9 @@ currency = {
 items = {
   bags = { [1..N] = {id, slots}, GoblinMiniFridge?, ArathorSatchel?, PortableRefridgerator? },
   reagentBag = { id, slots },
+}
+inventory = {                                          -- v19
+  counts = { [itemID] = qty }?,                        -- every item in bags + reagent bag, summed; last-seen
 }
 gearbag = {
   items = { {link, itemID, ilvl?, equipLoc, classID, subClassID} }?,  -- equippable bag gear (v13)
@@ -195,6 +205,7 @@ playtime = {
 | `basic` | level, specialization, professions, xp | `PLAYER_LEVEL_UP` (500ms), `PLAYER_SPECIALIZATION_CHANGED` (specialization), `PLAYER_XP_UPDATE`/`UPDATE_EXHAUSTION`/`PLAYER_UPDATE_RESTING` (1000ms) | — |
 | `currency` | RestoredCofferKey, gold, CofferKeyShard, Catalyst, HeroDawncrest, MythDawncrest, NebulousVoidcore, UntaintedManaCrystal | `PLAYER_MONEY` (gold), `CURRENCY_DISPLAY_UPDATE` (Catalyst + NebulousVoidcore, id-filtered) | CofferKeyShard, NebulousVoidcore, UntaintedManaCrystal: `RESET_WEEKLY` |
 | `items` | bags, reagentBag | — | — |
+| `inventory` | counts | `BAG_UPDATE_DELAYED` (500ms) | — |
 | `gearbag` | items | `BAG_UPDATE_DELAYED` (500ms) | — |
 | `professions` | details, gear | `TRADE_SKILL_SHOW` (details, 0.5s C_Timer); `PLAYER_EQUIPMENT_CHANGED` (gear, 500ms + item load) | — |
 | `concentration` | data | `CURRENCY_DISPLAY_UPDATE` | — |
@@ -249,13 +260,14 @@ A `Broker` (from `broker.lua`) holds a `fields` table; each field is `{ get, eve
     build,                                 -- "version-buildNum" the cache was resolved against
     recipes = { [recipeID] = { itemID, rarity, equipLoc, skillID } | false },
   },
-  -- account-wide bank gear cache (v11; equippable `equip` lists added v13); last-seen,
-  -- scanned on bank open.  prof-gear entries: { itemID, skillID, equipLoc, rarity, count };
-  -- equip entries (warband + personal banks only): GearCandidate
+  -- account-wide bank gear cache (v11; equippable `equip` lists added v13; full
+  -- `items` count maps added v19); last-seen, scanned on bank open.  prof-gear
+  -- entries: { itemID, skillID, equipLoc, rarity, count }; equip entries (warband +
+  -- personal banks only): GearCandidate; items: { [itemID] = count } over everything
   bank = {
-    warband    = { scannedAt, gear = {...}, equip = {...} },   -- shared account bank
-    characters = { ["Name"]      = { scannedAt, gear = {...}, equip = {...} } },
-    guilds     = { ["GuildName"] = { scannedAt, gear = {...} } },  -- no equip (not an upgrade source)
+    warband    = { scannedAt, gear = {...}, equip = {...}, items = {...} },   -- shared account bank
+    characters = { ["Name"]      = { scannedAt, gear = {...}, equip = {...}, items = {...} } },
+    guilds     = { ["GuildName"] = { scannedAt, gear = {...}, items = {...} } },  -- no equip (not an upgrade source)
   },
   -- account-wide UI preferences (v12); now legacy/unused — the wmissing copy-
   -- window font size moved to LibNUI's own DB (LibNUIDB.copyFontSize). Kept per
@@ -263,4 +275,4 @@ A `Broker` (from `broker.lua`) holds a `fields` table; each field is `{ get, eve
   ui = { wmissingFontSize } }                              -- legacy (stale)
 ```
 
-`MigrateDB` (all migrations non-destructive): **v7** moves flat fields into `basic`/`instances` sub-tables and nils the old keys; **v8** seeds `warband = { bankGold = 0, history = {} }` (`week` filled lazily by `RolloverWarbandWeek` on first login); **v9** re-derives `classKey` from the locale-independent class token; **v10** seeds `recipeGear = { build = "", recipes = {} }` (re-stamped and filled lazily by `data/recipegear.lua`); **v11** seeds `bank = { characters = {}, guilds = {} }` (warband filled lazily; all populated by `data/bank.lua` on bank open); **v12** seeds `ui = {}` (account-wide UI prefs; originally held `wmissingFontSize`, now legacy — the copy-window font size moved to `LibNUIDB.copyFontSize`, this table left in place for rollback safety). **v13** is a version bump only — the equippable-gear cache (`bank.*.equip`, per-char `gearbag.items`, `basic.specialization.id`) is purely additive and filled lazily, so older revisions just see empty lists. **v14** is a version bump only — the per-character world-quest reward cache (`worldquests.rewards`) is additive and filled lazily on the next scan, so rollback is lossless. **v15** is a version bump only — the per-slot `equipment.slots.*.emptySockets` count is additive and filled lazily on the next equipment scan, so older revisions just lack the field (treated as none) and rollback is lossless. **v16** is a version bump only — the `stats.secondary` snapshot is additive and filled lazily on the next scan, so older revisions just lack it (the Detail grid shows blanks) and rollback is lossless. **v17** is a version bump only — the per-candidate `quality` (Enum.ItemQuality) on cached bag/bank equippable gear is additive and filled lazily on the next bag/bank scan, so older entries just lack it (the upgrade addon's artifact gate falls back to the live `GetItemQualityByID` lookup) and rollback is lossless. **v18** is a version bump only — the per-candidate `reqLevel` (required character level) on cached bag/bank equippable gear is additive and filled lazily on the next bag/bank scan, so older entries just lack it (the consumer's level gate falls back to the live `GetItemInfo` lookup) and rollback is lossless.
+`MigrateDB` (all migrations non-destructive): **v7** moves flat fields into `basic`/`instances` sub-tables and nils the old keys; **v8** seeds `warband = { bankGold = 0, history = {} }` (`week` filled lazily by `RolloverWarbandWeek` on first login); **v9** re-derives `classKey` from the locale-independent class token; **v10** seeds `recipeGear = { build = "", recipes = {} }` (re-stamped and filled lazily by `data/recipegear.lua`); **v11** seeds `bank = { characters = {}, guilds = {} }` (warband filled lazily; all populated by `data/bank.lua` on bank open); **v12** seeds `ui = {}` (account-wide UI prefs; originally held `wmissingFontSize`, now legacy — the copy-window font size moved to `LibNUIDB.copyFontSize`, this table left in place for rollback safety). **v13** is a version bump only — the equippable-gear cache (`bank.*.equip`, per-char `gearbag.items`, `basic.specialization.id`) is purely additive and filled lazily, so older revisions just see empty lists. **v14** is a version bump only — the per-character world-quest reward cache (`worldquests.rewards`) is additive and filled lazily on the next scan, so rollback is lossless. **v15** is a version bump only — the per-slot `equipment.slots.*.emptySockets` count is additive and filled lazily on the next equipment scan, so older revisions just lack the field (treated as none) and rollback is lossless. **v16** is a version bump only — the `stats.secondary` snapshot is additive and filled lazily on the next scan, so older revisions just lack it (the Detail grid shows blanks) and rollback is lossless. **v17** is a version bump only — the per-candidate `quality` (Enum.ItemQuality) on cached bag/bank equippable gear is additive and filled lazily on the next bag/bank scan, so older entries just lack it (the upgrade addon's artifact gate falls back to the live `GetItemQualityByID` lookup) and rollback is lossless. **v18** is a version bump only — the per-candidate `reqLevel` (required character level) on cached bag/bank equippable gear is additive and filled lazily on the next bag/bank scan, so older entries just lack it (the consumer's level gate falls back to the live `GetItemInfo` lookup) and rollback is lossless. **v19** is a version bump only — the per-character bag count index (`inventory.counts`) and the per-bank `items` count maps (`bank.*.items`) are additive and filled lazily (bag counts on the next `BAG_UPDATE_DELAYED`, bank counts on the next bank open), so older revisions just see empty counts (the warband-stock tooltip shows fewer sources) and rollback is lossless.

@@ -41,6 +41,7 @@ local GUILD_SLOTS_PER_TAB = MAX_GUILDBANK_SLOTS_PER_TAB or 98
 ---@field scannedAt integer server time of the last scan
 ---@field gear BankGearEntry[]
 ---@field equip GearCandidate[]? equippable gear (warband + personal banks only)
+---@field items table<integer, integer>? itemID -> total count of every item in this bank (drives the warband-stock tooltip)
 
 ---@class BankData
 ---@field warband BankGearStore? account-wide warband bank
@@ -85,6 +86,13 @@ local function toList(gear)
   return list
 end
 
+-- Accumulate one slot into a full itemID -> count map (everything, not just prof
+-- gear), so the warband-stock tooltip can report total copies held in this bank.
+local function addCount(counts, itemID, count)
+  if not itemID then return end
+  counts[itemID] = (counts[itemID] or 0) + (count or 1)
+end
+
 -- Accumulate one slot's equippable gear (armour/weapon filling a real slot) into
 -- a GearCandidate list, mirroring data/gearbag.lua so the bank's "held"/"better
 -- elsewhere" gear shares the candidate shape.  Skips non-gear via the shared
@@ -127,18 +135,19 @@ end
 -- container bag IDs, which C_Container reads slot-by-slot while the bank is open.
 
 local function scanBankType(bankType)
-  local gear, equip = {}, {}
-  if not C_Bank.CanViewBank(bankType) then return toList(gear), equip end
+  local gear, equip, counts = {}, {}, {}
+  if not C_Bank.CanViewBank(bankType) then return toList(gear), equip, counts end
   for _, bagID in ipairs(C_Bank.FetchPurchasedBankTabIDs(bankType) or {}) do
     for slot = 1, (C_Container.GetContainerNumSlots(bagID) or 0) do
       local info = C_Container.GetContainerItemInfo(bagID, slot)
       if info then
         addItem(gear, info.itemID, info.stackCount, info.quality)
         addEquip(equip, info, bagID, slot)
+        addCount(counts, info.itemID, info.stackCount)
       end
     end
   end
-  return toList(gear), equip
+  return toList(gear), equip, counts
 end
 
 -- Scan both personal banks; returns true if any slot was still cold (so a re-scan is
@@ -147,10 +156,10 @@ local function scanPersonalBanks()
   local b = store()
   local now = GetServerTime()
   cold = {}
-  local charGear, charEquip = scanBankType(BankType.Character)
-  local wbGear, wbEquip = scanBankType(BankType.Account)
-  b.characters[ns.currentPlayer] = { scannedAt = now, gear = charGear, equip = charEquip }
-  b.warband = { scannedAt = now, gear = wbGear, equip = wbEquip }
+  local charGear, charEquip, charCounts = scanBankType(BankType.Character)
+  local wbGear, wbEquip, wbCounts = scanBankType(BankType.Account)
+  b.characters[ns.currentPlayer] = { scannedAt = now, gear = charGear, equip = charEquip, items = charCounts }
+  b.warband = { scannedAt = now, gear = wbGear, equip = wbEquip, items = wbCounts }
   local pending = cold
   cold = nil
   for _, loc in ipairs(pending) do RequestLoadItemData(loc) end
@@ -214,7 +223,7 @@ end
 local function scanGuildBank()
   local key = currentGuildKey()
   if not key then return end
-  local gear = {}
+  local gear, counts = {}, {}
   for tab = 1, (GetNumGuildBankTabs() or 0) do
     local _, _, isViewable = GetGuildBankTabInfo(tab)
     if isViewable then
@@ -224,11 +233,12 @@ local function scanGuildBank()
         if itemID then
           local _, count, _, _, quality = GetGuildBankItemInfo(tab, slot)
           addItem(gear, itemID, count, quality)
+          addCount(counts, itemID, count)
         end
       end
     end
   end
-  store().guilds[key] = { scannedAt = GetServerTime(), gear = toList(gear) }
+  store().guilds[key] = { scannedAt = GetServerTime(), gear = toList(gear), items = counts }
 end
 
 -- Request item data for every tab so a subsequent scan sees populated slots.

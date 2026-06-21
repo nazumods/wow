@@ -37,6 +37,9 @@ data through the `WarbandeerApi` global.
   (whenever those are open).
 - Active **world-quest gear rewards** that would upgrade one of your equipped slots are noted
   for each character while it's logged in, so Warbandeer can suggest them later.
+- A per-character **item-count index** (everything in your bags, plus full counts for the
+  personal/warband/guild banks when opened) is kept so **ShadowsOfUI-WarbandInventory** can
+  show account-wide "how many do I have?" totals on item tooltips.
 
 ## Requirements
 
