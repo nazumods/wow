@@ -99,6 +99,42 @@ end
 ---@return number
 function ns.ilvlOf(t) return t.equipment and t.equipment.ilvl or 0 end
 
+-- Upgrade-track tier colors for the per-slot ilvl breakdown lines: the track
+-- letter + level is wrapped in its tier color. Keyed by full track name.
+local trackColors = {
+  Explorer   = ITEM_STANDARD_COLOR,
+  Adventurer = ITEM_GOOD_COLOR,
+  Veteran    = ITEM_SUPERIOR_COLOR,
+  Champion   = ITEM_EPIC_COLOR,
+  Hero       = ITEM_LEGENDARY_COLOR,
+  Mythic     = ITEM_ARTIFACT_COLOR, -- muted gold (#e6cc80)
+}
+
+---@class Warbandeer
+---@field IlvlTooltipLines fun(t: Character): string[]
+-- Per-slot item-level breakdown lines ("Head 272 (M3)", ...) in gearSlots draw
+-- order, each ilvl tier-colored with the upgrade-track letter+level suffix. Drives
+-- the hover tooltip on both the Summary iLvl column and the Overview ilvl cell.
+---@param t Character
+---@return string[]
+function ns.IlvlTooltipLines(t)
+  local lines = {}
+  if not t.equipment then return lines end
+  for _, slotName in ipairs(ns.gearSlots) do
+    local slot = t.equipment.slots and t.equipment.slots[slotName]
+    if slot then
+      local suffix = ""
+      if slot.track and slot.trackLevel and slot.trackLevel > 0 then
+        local letter = slot.track:sub(1, 1)
+        local color  = trackColors[slot.track]
+        suffix = " (" .. (color and color:WrapTextInColorCode(letter) or letter) .. slot.trackLevel .. ")"
+      end
+      table.insert(lines, slotName .. " " .. ns.IlvlColor(slot.ilvl) .. suffix)
+    end
+  end
+  return lines
+end
+
 ---@class Warbandeer
 ---@field byLevelIlvl fun(a: Character, b: Character): boolean
 -- Standard sort: descending level, then descending ilvl, then ascending name.

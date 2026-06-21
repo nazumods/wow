@@ -258,7 +258,10 @@ end
 
 -- Cell data for one class's set in one difficulty: green check when complete, the
 -- uncollected count (red→green shaded) otherwise, "–" when unscanned, blank when
--- the class has no set or Collected isn't available.
+-- the class has no set or Collected isn't available. A scanned cell carries the
+-- Collected view's own hover/click — hover shows the shared per-slot source InfoTip,
+-- click opens the 3D dressing room. GetData's decorate() wraps these to also drive
+-- the row highlight (and to fall back to opening Detail where there's no set click).
 ---@param api table?  WarbandeerCollectedApi
 ---@param grp table?  the difficulty group, or nil
 ---@param classId number
@@ -271,10 +274,14 @@ local function gearCell(api, grp, classId)
   if not status then
     return { text = "–", justifyH = ui.justify.Center, color = theme.colors.muted }
   end
+  local onEnter = function(c) api:ShowInfoTip(grp, set, c, ns.InfoTipPosition(c)) end
+  local onLeave = function() api:HideInfoTip() end
+  local onClick = function() api:ShowDressingRoom(grp, set) end
   if status == true or status.collected >= status.total then
     return {
       atlas = GreenCheck.atlas, atlasSize = GreenCheck.atlasSize,
       position = GreenCheck.position,
+      onEnter = onEnter, onLeave = onLeave, onClick = onClick,
     }
   end
   return {
@@ -282,6 +289,7 @@ local function gearCell(api, grp, classId)
     justifyH = ui.justify.Center,
     color = shades[max(1, floor(status.collected / status.total * 10))],
     fontInfo = ns.theme.fonts.number,
+    onEnter = onEnter, onLeave = onLeave, onClick = onClick,
   }
 end
 
@@ -320,22 +328,8 @@ local TopAlts = Class(TableFrame, function(self)
     self.rowArea:Width(self.rowArea:Width() + delta)
     self:Width(self:Width() + delta)
   end
-
-  -- brighten the row on hover (rows are transparent at rest); click to open that
-  -- character in the Detail view.
-  for i, row in ipairs(self.rows) do
-    row._widget:SetMouseMotionEnabled(true)
-    row._widget:SetMouseClickEnabled(true)
-    row:SetScript("OnEnter", function() row.backdrop:Color(theme.colors.hover) end)
-    row:SetScript("OnLeave", function() row.backdrop:Color(0, 0, 0, 0) end)
-    row:SetScript("OnMouseUp", function()
-      local win = ns.MainWindow
-      local toon = self._toons[i]
-      if not (win and toon) then return end
-      win:getView("detail"):Select(toon)
-      win:view("detail")
-    end)
-  end
+  -- Hover/click is driven per-cell (see GetData's decorate), not by a mouse-enabled
+  -- row: an interactive row sits above the cells and swallows their tooltips/clicks.
 end, {
   headerHeight = 18,
   headerWidth = 0,
@@ -360,30 +354,74 @@ end, {
       -- OnBeforeShow) without duplicating rows; update() reuses the existing cells.
       if not self.rows[idx] then self:addRow({backdrop = TransparentBackdrop}) end
       insert(self._toons, toon)
+
+      -- Cells drive hover + click (the row isn't mouse-enabled): like
+      -- SummaryView:decorateRow, every cell chains the row highlight onto its hover
+      -- and opens Detail on click unless it carries its own (ilvl → Gear, set →
+      -- dressing room). idx is resolved lazily so the closures survive re-sorts.
+      local function decorate(cell, defaultClick)
+        local onEnter, onLeave, onClick = cell.onEnter, cell.onLeave, cell.onClick
+        cell.onEnter = function(c) self:_hover(idx, true);  if onEnter then onEnter(c) end end
+        cell.onLeave = function(c) self:_hover(idx, false); if onLeave then onLeave(c) end end
+        cell.onClick = onClick or defaultClick
+        return cell
+      end
+      local function openDetail() self:_openDetail(idx) end
+
+      -- Per-slot ilvl breakdown for the ilvl-cell tooltip (matches the Summary column).
+      local ilvlLines = ns.IlvlTooltipLines(toon)
       local row = {
-        {
+        decorate({
           text = toon.basic.level,
           color = NORMAL_FONT_COLOR,
           fontInfo = ns.theme.fonts.number,
-        },
-        {
+        }, openDetail),
+        decorate({
           text = toon.name,
-          color = ns.Colors[toon.classKey]
-        },
-        {
+          color = ns.Colors[toon.classKey],
+        }, openDetail),
+        decorate({
           text = ns.IlvlColor(ns.ilvlOf(toon)),
           justifyH = ui.justify.Right,
           fontInfo = ns.theme.fonts.number,
-        },
+          onEnter = function(c)
+            if #ilvlLines == 0 then return end
+            ns.AnchorTip(c)
+            ui.tip:ClearLines()
+            for _, l in ipairs(ilvlLines) do ui.tip:AddLine(l) end
+            ui.tip:Show()
+          end,
+          onLeave = function() ui.tip:Hide() end,
+          onClick = function() ns:view("gear") end,
+        }, openDetail),
       }
       for _, d in ipairs(DIFFS) do
-        insert(row, gearCell(api, groups[d.suffix], toon.classId))
+        insert(row, decorate(gearCell(api, groups[d.suffix], toon.classId), openDetail))
       end
       insert(data, row)
     end
     return data
   end,
 })
+
+-- Highlight (or clear) row `i` — transparent at rest, theme hover on enter. Called
+-- from every cell's hover (the row itself isn't mouse-enabled; cells drive it).
+---@param i integer  row index
+---@param on boolean
+function TopAlts:_hover(i, on)
+  local row = self.rows[i]
+  if not row then return end
+  if on then row.backdrop:Color(theme.colors.hover) else row.backdrop:Color(0, 0, 0, 0) end
+end
+
+-- Open row `i`'s character in the Detail view.
+---@param i integer  row index
+function TopAlts:_openDetail(i)
+  local win, toon = ns.MainWindow, self._toons[i]
+  if not (win and toon) then return end
+  win:getView("detail"):Select(toon)
+  win:view("detail")
+end
 
 -- Rebuild rows + cells from current character data and the selected raid.
 function TopAlts:Refresh()

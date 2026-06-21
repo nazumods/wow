@@ -153,6 +153,18 @@ function ns.AnchorTip(frame)
   end
 end
 
+-- Side-aware anchor for the shared Collected InfoTip (a LibNUI position spec, not
+-- a GameTooltip anchor): Right extends the tip rightward from the cell, Left
+-- leftward. Shared by the Collected grid and the Overview Top Characters set cells.
+---@param parent Frame  the hovered cell to anchor the InfoTip beside
+---@return table  LibNUI position table
+function ns.InfoTipPosition(parent)
+  if ns.TooltipSide() == 2 then
+    return { TopLeft = {parent, ui.edge.TopRight, 4, 0} }
+  end
+  return { TopRight = {parent, ui.edge.TopLeft, -4, 0} }
+end
+
 local _tooltip = nil
 -- `position` overrides the side setting when supplied (LibNUI position table).
 ns.ShowCharacterTooltip = function(toon, parent, position)

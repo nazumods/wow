@@ -48,16 +48,6 @@ local function isComplete(status)
   return status == true or status.collected >= status.total
 end
 
--- Position the shared Collected InfoTip on the user-configured side
--- (ns.TooltipSide(): 2 = Right, extends rightward from the cell; 1 = Left, extends
--- leftward), mirroring the side behaviour of Warbandeer's other tooltips.
-local function tipPosition(cell)
-  if ns.TooltipSide() == 2 then
-    return { TopLeft = {cell, ui.edge.TopRight, 4, 0} }
-  end
-  return { TopRight = {cell, ui.edge.TopLeft, -4, 0} }
-end
-
 -- ─── Grid (TableFrame) ──────────────────────────────────────────────────────
 
 ---@class CollectedGrid: TableFrame
@@ -111,7 +101,7 @@ end, {
         -- Same per-slot source tooltip as the /collected window (via the API) on
         -- every cell — complete or partial; a fully-collected set shows all green.
         local onEnter = function(c)
-          WarbandeerCollectedApi:ShowInfoTip(grp, set, c, tipPosition(c))
+          WarbandeerCollectedApi:ShowInfoTip(grp, set, c, ns.InfoTipPosition(c))
         end
         local onLeave = function() WarbandeerCollectedApi:HideInfoTip() end
         -- Left-click previews the set; Shift-click flags/unflags it as wanted.
