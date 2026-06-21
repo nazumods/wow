@@ -254,15 +254,15 @@ playtime = {
 | `questlog` | active, completed | active: `QUEST_ACCEPTED`/`QUEST_REMOVED`/`QUEST_TURNED_IN` (1000ms); completed: `QUEST_TURNED_IN` (3000ms) | — |
 | `gearbag` | items | `BAG_UPDATE_DELAYED` (500ms) | — |
 | `professions` | details, gear | `TRADE_SKILL_SHOW` (details, 0.5s C_Timer); `PLAYER_EQUIPMENT_CHANGED` (gear, 500ms + item load) | — |
-| `concentration` | data | `CURRENCY_DISPLAY_UPDATE` | — |
-| `artisanCurrency` | data | `CURRENCY_DISPLAY_UPDATE` | — |
+| `concentration` | data | `CURRENCY_DISPLAY_UPDATE` (1000ms debounce; unfiltered) | — |
+| `artisanCurrency` | data | `CURRENCY_DISPLAY_UPDATE` (1000ms debounce; unfiltered) | — |
 | `quests` | UndermineStoryMode, WWIRep, LumberAxe, delves | `QUEST_TURNED_IN`, `QUEST_ACCEPTED`, `QUEST_REMOVED`, `UNIT_QUEST_LOG_CHANGED`, `SPELLS_CHANGED` | — |
 | `worldquests` | rewards | `QUEST_LOG_UPDATE`, `ZONE_CHANGED_NEW_AREA` (debounced; retries while reward data loads) | — |
 | `dailies` | (empty) | — | — |
 | `weeklies` | DMF, preMidnight, caches, vault, hasUnclaimedVault, keystone, dungeons | `QUEST_TURNED_IN`, `WEEKLY_REWARDS_UPDATE` (1000ms), `CHALLENGE_MODE_COMPLETED` | DMF: `RESET_SUNDAY`; rest: `RESET_WEEKLY` |
 | `instances` | locks | `INSTANCE_LOCK_STOP` | `RESET_WEEKLY` |
 | `equipment` | slots, ilvl, trackScanned | `PLAYER_EQUIPMENT_CHANGED` (`ITEM_DATA_LOAD_RESULT` + bounded fallback re-scan) | — |
-| `stats` | secondary (crit/haste/mastery/versatility {pct,rating}) | `COMBAT_RATING_UPDATE` | — |
+| `stats` | secondary (crit/haste/mastery/versatility {pct,rating}) | `COMBAT_RATING_UPDATE` (1000ms debounce — fires constantly in combat) | — |
 | `artifacts` | hidden, hiddenColors, classHall | `QUEST_TURNED_IN` | — |
 | `playtime` | total, byPatch | `TIME_PLAYED_MSG` (via `RequestTimePlayed()` on Init) | — |
 
@@ -273,7 +273,7 @@ Reset constants: `RESET_SUNDAY = 0`, `RESET_DAILY = 1`, `RESET_WEEKLY = 7`.
 A `Broker` (from `broker.lua`) holds a `fields` table; each field is `{ get, event?, eventDelay?, eventHandler?, eventFilter?, maxLevel?, order?, resetOn?, reset? }`.
 
 - **`get(self, toon, currentValue)`** computes the new value; `currentValue` lets a field merge into / preserve cached data (e.g. `professions.details`, `concentration.data`).
-- **`event`** (string or list) auto-registers a handler that re-runs `get` after `eventDelay` ms. Provide a custom `eventHandler` for incremental updates (e.g. `quests.WWIRep` decrements `missing` rather than re-scanning).
+- **`event`** (string or list) auto-registers a handler that re-runs `get`. With `eventDelay` set, that re-run is **debounced** (generation-guarded in `broker.lua`): a burst of the event collapses to a single `get` once it settles after `eventDelay` ms — not one scan per event. Without `eventDelay` the `get` runs synchronously on every event (only do this for rare events or behind an `eventFilter`). Provide a custom `eventHandler` for incremental updates (e.g. `quests.WWIRep` decrements `missing` rather than re-scanning) or tighter rate-limiting (e.g. `reputations`' self-trigger suppression + throttle).
 - **`maxLevel = true`** skips the field for sub-max-level characters (both in `refreshQueue` and `RefreshCurrentCharacterField`).
 - **`resetOn` / `reset`** clear/seed the field at the matching reset boundary (`InitBrokers` walks all characters at login when a boundary has passed). Fields with `resetOn` but no `reset` are nilled. The daily/weekly anchors are recomputed per login from the seconds-until APIs and can jitter by a second, so a reset only fires when the anchor advanced by more than `RESET_SLACK` (12h). The **Sunday** anchor (`RESET_SUNDAY`, used by `weeklies.DMF`) is derived from the epoch alone (`GetServerTime()` → UTC day-of-week math), never from `GetCurrentCalendarTime()` — that call returns a zeroed struct (`weekday=0`) when the calendar isn't warm yet at addon-load, which turned the old formula's `-(weekday-1)*day` into `+1 day` and pushed the anchor into the future, firing a spurious Sunday reset that wiped every character's DMF flag. The epoch-only anchor needs no calendar API, so it's always valid and identical across all realms/timezones. `InitBrokers` also clamps a stored future Sunday anchor (left by the old bug) back down without resetting, so the next genuine boundary still fires on schedule.
 - **`order`** sorts the scan within a broker (e.g. `basic.level` runs first so other fields can read it).

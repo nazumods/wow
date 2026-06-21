@@ -90,10 +90,20 @@ function Broker:Init(toon)
       field.get_live = function() return toon[broker][name] end
       if field.event then
         if not field.eventHandler then
+          -- `eventDelay` is a DEBOUNCE, not a plain delay: a burst of events (e.g.
+          -- BAG_UPDATE_DELAYED, COMBAT_RATING_UPDATE, CURRENCY_DISPLAY_UPDATE) collapses
+          -- to a single get() once it settles, via a per-field generation guard.
+          -- Without this every event scheduled its own full scan — N events → N scans,
+          -- which pegged the CPU for heavy fields. A field needing tighter control (e.g.
+          -- reputations' self-trigger suppression) supplies its own eventHandler instead.
+          local debounceGen = 0
           field.eventHandler = function(f, ...)
             if field.eventFilter and not field.eventFilter(f, ...) then return end
             if field.eventDelay then
+              debounceGen = debounceGen + 1
+              local gen = debounceGen
               ns:after(field.eventDelay, function()
+                if gen ~= debounceGen then return end -- superseded by a later event in the burst
                 toon[broker][name] = field:get(toon, toon[broker][name])
               end)
             else
