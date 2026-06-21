@@ -8,6 +8,8 @@ The cross-alt standings appear in two places:
 - **On the Reputation tab** (character pane → Reputation): hover any faction and the tooltip
   gains a "Standing across your warband:" block — one line per character, highest standing
   first, the value **green when maxed** and marked **Paragon** when earning paragon rewards.
+  Account-wide factions (shared across your whole warband) show a single **Warband Wide** line
+  instead of repeating the same standing for every character.
 - **On faction-tied item tooltips**: hover a commendation, reputation token, tabard or
   paragon cache and the same block appears — so you can tell at a glance **which alt to mail
   that rep token to** (one that isn't Exalted yet).

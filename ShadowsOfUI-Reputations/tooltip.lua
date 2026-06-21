@@ -33,6 +33,10 @@ SlashCmdList["SUI_REPS"] = function(msg)
   if not fid then ns.Print("Usage: /sreps <factionID or faction name>") return end
   local list = ns.api:GetFactionStandings(fid)
   if not list then ns.Print("No tracked standings for faction", fid, "(log alts in to populate).") return end
+  if list[1].accountWide then
+    ns.Print(("Faction %d (warband-wide): %s%s"):format(fid, list[1].label, list[1].paragon and " (Paragon)" or ""))
+    return
+  end
   ns.Print(("Standings for faction %d:"):format(fid))
   for _, e in ipairs(list) do
     ns.Print(("  %s: %s%s"):format(e.name, e.label, e.paragon and " (Paragon)" or ""))

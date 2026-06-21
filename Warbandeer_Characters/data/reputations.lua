@@ -11,6 +11,7 @@ local GetFriendshipReputation, GetFriendshipReputationRanks = C_GossipInfo.GetFr
 ---@field rank integer normalized standing for sorting (reaction 1-8 / renown level / friendship level)
 ---@field done boolean at the cap (Exalted / max renown / max friendship)
 ---@field paragon boolean? earning paragon rewards past the cap
+---@field accountWide boolean? the standing is shared across the whole warband (show once, not per character)
 
 ---@class ReputationsBroker
 ---@field factions table<integer, FactionStanding>  per-faction standing, keyed by factionID
@@ -42,6 +43,7 @@ local function resolve(data)
     end
   end
   if IsFactionParagon(fid) then e.paragon = true end
+  if data.isAccountWide then e.accountWide = true end
   return e
 end
 

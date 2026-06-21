@@ -24,16 +24,25 @@ end
 -- a blue "Paragon" marker when earning paragon rewards. Returns false (no block) when no
 -- character has any standing with the faction. Shared by the item + reputation-panel hooks.
 ---@return boolean appended
+local function standingVal(e)
+  local val = (e.done and DONE or VAL):WrapTextInColorCode(e.label)
+  if e.paragon then val = val .. " " .. PARAGON end
+  return val
+end
+
 function ns.AppendStandings(tooltip, factionID)
   local list = ns.api:GetFactionStandings(factionID)
   if not list then return false end
+  -- Account-wide factions share one standing across the whole warband — show it once.
+  if list[1].accountWide then
+    tooltip:AddDoubleLine(LABEL:WrapTextInColorCode("Warband Wide"), standingVal(list[1]))
+    return true
+  end
   tooltip:AddLine(LABEL:WrapTextInColorCode("Standing across your warband:"))
   local shown = #list > MAX and MAX - 1 or #list
   for i = 1, shown do
     local e = list[i]
-    local val = (e.done and DONE or VAL):WrapTextInColorCode(e.label)
-    if e.paragon then val = val .. " " .. PARAGON end
-    tooltip:AddDoubleLine("  " .. ns.ColorName(e.name, e.classKey), val)
+    tooltip:AddDoubleLine("  " .. ns.ColorName(e.name, e.classKey), standingVal(e))
   end
   if #list > shown then
     tooltip:AddLine(MUTED:WrapTextInColorCode(("  +%d more"):format(#list - shown)))

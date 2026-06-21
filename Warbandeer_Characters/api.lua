@@ -215,14 +215,14 @@ end
 ---character's `FactionStanding` plus `name`/`classKey` (for class colouring).  nil when no
 ---character has any standing with that faction.
 ---@param factionID integer
----@return { name: string, classKey: string, label: string, rank: integer, done: boolean, paragon: boolean? }[]?
+---@return { name: string, classKey: string, label: string, rank: integer, done: boolean, paragon: boolean?, accountWide: boolean? }[]?
 function API:GetFactionStandings(factionID)
   if not factionID then return nil end
   local out = {}
   for name, c in pairs(ns.db.characters) do
     local f = c.reputations and c.reputations.factions and c.reputations.factions[factionID]
     if f then
-      insert(out, { name = name, classKey = c.classKey, label = f.label, rank = f.rank, done = f.done, paragon = f.paragon })
+      insert(out, { name = name, classKey = c.classKey, label = f.label, rank = f.rank, done = f.done, paragon = f.paragon, accountWide = f.accountWide })
     end
   end
   if #out == 0 then return nil end

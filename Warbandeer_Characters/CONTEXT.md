@@ -160,6 +160,7 @@ reputations = {                                         -- v21; per-faction stan
     name, label,                                        -- "Exalted" / "Renown 12" / "Best Friend"
     rank, done,                                          -- rank = reaction/renown/friendship level; done = at cap
     paragon,                                             -- earning paragon rewards past the cap
+    accountWide,                                         -- shared warband-wide (rendered once, not per character)
   } }?,
 }?
 gearbag = {
