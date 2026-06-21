@@ -15,6 +15,7 @@ local Left, Right, Center = ui.edge.Left, ui.edge.Right, ui.edge.Center
 ---@field title string?  initial title text
 ---@field titlebar TitleBar  title strip across the top (carries `.title` Label and `.icon` Frame)
 ---@field closeButton Frame  close button in the title bar
+---@field _posStore table?  DB-backed store for the remembered drag position (set by RememberPosition)
 local TitleFrame = Class(CleanFrame, function(o)
   local theme = o:Theme()
   -- title bar
@@ -100,4 +101,31 @@ ui.TitleFrame = TitleFrame
 ---@param text string
 function TitleFrame:Title(text)
   self.titlebar.title:Text(text)
+end
+
+-- Persist this window's dragged position into `store` (typically a DB-backed
+-- table, so the position survives /reload and relog — a fresh frame otherwise
+-- re-centers, discarding wherever the user dragged it). Restores the saved point
+-- now when `store` already holds one, then writes the point back whenever the
+-- user finishes dragging. `store` is mutated in place: { point, relPoint, x, y }.
+-- Anchors are relative to UIParent (top-level windows), so only the point names
+-- and offsets are stored.
+---@param store table  the table to read/write the remembered point into
+---@return TitleFrame
+function TitleFrame:RememberPosition(store)
+  self._posStore = store
+  if store.point then
+    self:ClearAllPoints()
+    self._widget:SetPoint(store.point, UIParent, store.relPoint, store.x, store.y)
+  end
+  local function save()
+    local point, _, relPoint, x, y = self._widget:GetPoint(1)
+    store.point, store.relPoint, store.x, store.y = point, relPoint, x, y
+  end
+  -- Two drag paths move the window (see Frame:makeContainerDraggable +
+  -- setDragTarget): the body's OnDragStop and the title bar's OnMouseUp. Hook
+  -- both so the point is saved no matter which the user grabbed.
+  self._widget:HookScript("OnDragStop", save)
+  self.titlebar._widget:HookScript("OnMouseUp", save)
+  return self
 end

@@ -64,4 +64,6 @@ right-click to scan.
 
 `WarbandeerCollectedDB` (account-wide): scanned set/appearance counts, plus your
 wanted flags and tier ranks (baseline + per-race). Ratings are kept separately from
-the scan data, so re-scanning never clears them.
+the scan data, so re-scanning never clears them. The collection window and the set
+preview window also remember where you last dragged them, so they reopen in place
+instead of re-centering.

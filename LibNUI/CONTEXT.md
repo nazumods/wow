@@ -31,7 +31,7 @@ OOP UI widget library. Every widget wraps a backing WoW object (`self._widget`) 
 | `TableCol.lua` | `TableCol` — column header (BgFrame); content surfaced as `header.label`/`header.texture` |
 | `TableRow.lua` | `TableRow` — row header strip (BgFrame) |
 | `TableFrame.lua` | `TableFrame` — full data grid (headers + cells); `set`, `addCol`/`addRow`, `update`, `setFooter` |
-| `TitleFrame.lua` | `TitleFrame` — windowed CleanFrame with title bar, icon, close button; `Title` |
+| `TitleFrame.lua` | `TitleFrame` — windowed CleanFrame with title bar, icon, close button; `Title`; `RememberPosition(store)` — opt-in drag-position persistence: restores the saved point from `store` and writes `{ point, relPoint, x, y }` back on drag-stop (hooks both drag paths — the body `OnDragStop` + the title bar's `OnMouseUp`), so a DB-backed `store` survives `/reload`/relog instead of re-centering |
 | `CopyWindow.lua` | `CopyWindow` — reusable copyable scroll window (TitleFrame + ScrollFrame + multiline EditBox + titlebar font-size picker); `Display(title, text)`. Shared singleton via `ui.ShowCopyWindow(title, text)`; `ui.ToggleCopyWindow(title, text)` closes it if already open on the same title (caches `_title`), else shows — for slash commands that should toggle. Font size persists in `LibNUIDB.copyFontSize` |
 | `TabFrame.lua` | `TabFrame` — tabbed container; `Select`, `Tab`, `Selected` |
 | `Tooltip.lua` | `Tooltip` — custom tooltip with line pooling + scrolling menus; singleton `ui.tip` |
@@ -174,7 +174,7 @@ Methods: `onLoad()`, `row(n)`, `col(n)`, `set(row, col, element)`, `addCol(info)
 
 ## TitleFrame / TabFrame sub-fields
 
-- **TitleFrame**: `self.titlebar` (Frame) → `.title` (Label), `.icon` (Frame with `.icon` Texture); `self.closeButton` (Frame with `.icon` Texture). `Title(text)` setter.
+- **TitleFrame**: `self.titlebar` (Frame) → `.title` (Label), `.icon` (Frame with `.icon` Texture); `self.closeButton` (Frame with `.icon` Texture). `Title(text)` setter; `RememberPosition(store)` persists the dragged point into `store` (`{ point, relPoint, x, y }`, anchored to UIParent), restoring it immediately and re-saving on drag-stop.
 - **TabFrame**: `self.tabBar`, `self.content`, `self._tabs` (button Frame[]), `self._panels` (Frame[]), `self._selected`.
 
 ## Tooltip
