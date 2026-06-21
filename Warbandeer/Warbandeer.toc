@@ -45,6 +45,7 @@ views\summaryCol\gems.lua
 views\summaryCol\catchup.lua
 views\summaryCol\profs.lua
 views\summaryCol\bags.lua
+views\summaryCol\mail.lua
 views\summaryCol\vault.lua
 views\summaryCol\keystone.lua
 views\summaryCol\crests.lua

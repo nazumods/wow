@@ -203,6 +203,7 @@ std = {
     "GameFontHighlightSmall",
     "NumberFontNormalSmallGray",
 
+    "ATTACHMENTS_MAX_RECEIVE",
     "MAX_ACCOUNT_MACROS",
     "MAX_CHARACTER_MACROS",
     "MAX_GUILDBANK_SLOTS_PER_TAB",
@@ -258,6 +259,9 @@ std = {
     "GetGuildBankItemLink",
     "GetGuildBankTabInfo",
     "GetGuildInfo",
+    "GetInboxHeaderInfo",
+    "GetInboxItem",
+    "GetInboxNumItems",
     "GetInventoryItemID",
     "GetInventoryItemLink",
     "GetInventorySlotInfo",

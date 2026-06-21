@@ -40,6 +40,9 @@ data through the `WarbandeerApi` global.
 - A per-character **item-count index** (everything in your bags, plus full counts for the
   personal/warband/guild banks when opened) is kept so **ShadowsOfUI-WarbandInventory** can
   show account-wide "how many do I have?" totals on item tooltips.
+- **Mail** is recorded whenever you open a mailbox (count, attached items + gold, and when
+  each piece expires). On login you get a one-line warning naming any character whose mail
+  expires within 3 days, and Warbandeer's Summary view gains a Mail column.
 
 ## Requirements
 

@@ -24,6 +24,7 @@ local function sources(e)
   local parts = {}
   if e.bags > 0 then parts[#parts + 1] = "Bags: " .. abbr(e.bags) end
   if e.bank > 0 then parts[#parts + 1] = "Bank: " .. abbr(e.bank) end
+  if e.mail > 0 then parts[#parts + 1] = "Mail: " .. abbr(e.mail) end
   return "(" .. concat(parts, ", ") .. ")"
 end
 
@@ -108,7 +109,7 @@ SlashCmdList["SUI_WINV"] = function(msg)
   ns.Print(("%s — %d total across the warband:"):format(tostring(name), report.total))
   for _, e in ipairs(report.characters) do
     local who = e.realm and (e.name .. " (" .. e.realm .. ")") or e.name
-    ns.Print(("  %s: %d (bags %d, bank %d)"):format(who, e.total, e.bags, e.bank))
+    ns.Print(("  %s: %d (bags %d, bank %d, mail %d)"):format(who, e.total, e.bags, e.bank, e.mail))
   end
   if report.warband > 0 then ns.Print(("  Warband bank: %d"):format(report.warband)) end
   for _, g in ipairs(report.guilds) do ns.Print(("  %s: %d"):format(g.name, g.count)) end

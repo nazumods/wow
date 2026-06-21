@@ -22,7 +22,8 @@ LibNUI, no DB. Surfaces data only — all counting lives in Warbandeer_Character
 - **Per character**: one `AddDoubleLine` — `charLabel(e)` (class-coloured name, left, with a
   ` (Realm)` suffix when the entry's `realm` is set — i.e. a different realm than the current
   character) + `total` then a muted inline source breakdown `(Bags: B, Bank: K)` (right,
-  `sources()`, non-zero locations only), matching Altoholic's `Name  N (Bags: …)` style.
+  `sources()` → `(Bags: B, Bank: K, Mail: M)`, non-zero locations only; the Mail source is
+  populated when Warbandeer_Characters' mail scanner is present), matching Altoholic's `Name  N (Bags: …)` style.
   Capped at `MAX_CHARS` (16); past it, the first 15 then a muted
   `+N more — /swinv <itemID> for the full list` hint (render takes the itemID so the hint
   names it). The report's `characters` list is already sorted by total desc, name asc.

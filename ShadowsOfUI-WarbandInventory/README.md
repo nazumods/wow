@@ -6,9 +6,9 @@ item your whole account is holding — and where.
 Hover any item — in your bags, at a vendor, in the Auction House, in a chat link — and the
 tooltip gains a short breakdown:
 
-- one **class-coloured line per character** that has any, with a `(Bags: N, Bank: N)` source
-  breakdown (only the places they actually hold it). Characters on a **different realm** get
-  their realm name appended, e.g. `Kurorin (Norgannon)`,
+- one **class-coloured line per character** that has any, with a `(Bags: N, Bank: N, Mail: N)`
+  source breakdown (only the places they actually hold it). Characters on a **different realm**
+  get their realm name appended, e.g. `Kurorin (Norgannon)`,
 - the shared **warband (account) bank**,
 - each **guild bank** you can see,
 - and a **Total owned** grand total on the bottom line.
