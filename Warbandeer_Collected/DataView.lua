@@ -40,6 +40,8 @@ local shades = {
 ---cells show missing-piece counts color-shaded by completion.
 ---@class DataView: TableFrame
 ---@field _reverse boolean? render newest set-group first (defaults true; see ToggleOrder)
+---@field _wantedOnly boolean? blank cells for sets that aren't flagged wanted (see ToggleWantedOnly)
+---@field _playerRace number? cached canonical race id the rank pips resolve against
 local DataView = Class(TableFrame, function(self)
   -- autoadjust name width
   local w = 0
@@ -51,9 +53,11 @@ local DataView = Class(TableFrame, function(self)
   self.cols[2]:Width(w)
   self.rowArea:Width(self.rowArea:Width() + w)
   self:Width(self:Width() + w)
+  self:_refreshMarks()   -- the constructor-time update() ran before our override was mixed in
 end, {
   headerHeight = 28,
   _reverse = true,   -- default to newest set-group first
+  _wantedOnly = false,
   colInfo = prepend(
     lists.map(ns.icons.classes, function(icon)
       return {
@@ -86,6 +90,9 @@ end, {
       local r = lists.map(grp.sets, function(set)
         local status = gsets and gsets[set.id]
         if not status then return {} end
+        -- "Wanted only" blanks the cell (no content/click/marks) for sets that
+        -- aren't flagged, so the grid shows just the target list in context.
+        if self._wantedOnly and not ns:IsWanted(set.id) then return {} end
         -- Same per-slot source tooltip on every cell, complete or partial — for a
         -- fully-collected set every slot shows green.
         local onEnter = function(cell)
@@ -94,15 +101,31 @@ end, {
           })
         end
         local onLeave = function() ns.HideInfoTip() end
-        local onClick = function() ns.ShowDressingRoom(grp, set, self._reverse) end
+        -- Left-click previews the set; Shift-click flags/unflags it as wanted.
+        local onClick = function(cell)
+          if IsShiftKeyDown() then
+            local nowWanted = ns:ToggleWanted(set.id)
+            if self._wantedOnly and not nowWanted then
+              self.data = self:GetData(); self:update()   -- it left the filtered view
+            else
+              self:_applyCellMarks(cell, set.id)
+            end
+            if ns.window then ns.window:RefreshWanted() end
+            ns.RefreshInfoTip()
+          else
+            ns.ShowDressingRoom(grp, set, self._reverse)
+          end
+        end
         if isComplete(status) then
           return {
+            setId = set.id,
             atlas = GreenCheck.atlas, atlasSize = GreenCheck.atlasSize,
             position = GreenCheck.position,
             onEnter = onEnter, onLeave = onLeave, onClick = onClick,
           }
         end
         return {
+            setId = set.id,
             text = status.total - status.collected,
             justifyH = ui.justify.Center,
             color = shades[max(1,floor(status.collected / status.total * 10))],
@@ -168,6 +191,74 @@ function DataView:ToggleOrder()
   self.data = self:GetData()
   self:update()
   return self._reverse
+end
+
+---Toggle the "wanted only" filter, rebuilding the grid so non-wanted cells blank out.
+---@return boolean wantedOnly  the new filter state
+function DataView:ToggleWantedOnly()
+  self._wantedOnly = not self._wantedOnly
+  self.data = self:GetData()
+  self:update()
+  return self._wantedOnly
+end
+
+-- Per-cell rating overlays: a gold "wanted" star (top-left) and a small
+-- tier-colored rank pip (top-right), both lazily created on the cell and reused.
+-- Driven entirely by live DB state, so re-applying after any toggle / re-sort is
+-- enough — the cell data carries only the setId to look them up by.
+local STAR, PIP = 11, 7
+
+---@param cell Cell
+---@param setId number?
+function DataView:_applyCellMarks(cell, setId)
+  if setId and ns:IsWanted(setId) then
+    if not cell._wantStar then
+      cell._wantStar = Texture:new{
+        parent = cell, layer = ui.layer.Overlay,
+        atlas = ns.WantedIcon, atlasSize = false,
+        position = { TopLeft = {1, -1}, Size = {STAR, STAR} },
+      }
+    end
+    cell._wantStar:Show()
+  elseif cell._wantStar then
+    cell._wantStar:Hide()
+  end
+
+  local rank = setId and ns:EffectiveRank(setId, self._playerRace)
+  if rank then
+    if not cell._rankPip then
+      cell._rankPip = Texture:new{
+        parent = cell, layer = ui.layer.Overlay,
+        position = { TopRight = {-1, -1}, Size = {PIP, PIP} },
+      }
+    end
+    cell._rankPip:Color(ns.RankColors[rank])
+    cell._rankPip:Show()
+  elseif cell._rankPip then
+    cell._rankPip:Hide()
+  end
+end
+
+-- Re-apply every cell's overlays from current DB state. Cheap enough to run on
+-- every update()/re-sort; cells persist across re-sorts so their overlays do too.
+function DataView:_refreshMarks()
+  self._playerRace = ns:PlayerRace()
+  for r = 1, #self.cells do
+    local row = self.cells[r]
+    for c = 1, #self.cols do
+      local cell = row[c]
+      if cell then
+        local data = cell.data
+        self:_applyCellMarks(cell, type(data) == "table" and data.setId or nil)
+      end
+    end
+  end
+end
+
+-- Refresh overlays after the base table (re)builds its cells.
+function DataView:update()
+  TableFrame.update(self)
+  self:_refreshMarks()
 end
 
 ---@class Warbandeer_Collected

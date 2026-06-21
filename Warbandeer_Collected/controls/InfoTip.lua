@@ -7,12 +7,14 @@ local C_Timer = C_Timer
 local getParts = C_TransmogSets.GetSetPrimaryAppearances
 
 -- The singleton tip and the set it currently describes. _group/_set guard the
--- async name-load re-render against a stale set.
-local _tooltip, _group, _set
+-- async name-load re-render against a stale set; _parent/_position are kept so
+-- RefreshInfoTip can re-render in place after a rating change.
+local _tooltip, _group, _set, _parent, _position
 
 ---Singleton tooltip listing a transmog set's pieces per armor slot, colored by collected status.
 ---@class InfoTip: CleanFrame
 ---@field name Label set name header
+---@field status Label wanted/rank line (inline-colored), set per-set in render
 ---@field items TableFrame one row per armor slot (head..hands)
 local InfoTip = Class(CleanFrame, function(self)
   local h = 4
@@ -26,10 +28,22 @@ local InfoTip = Class(CleanFrame, function(self)
   }
   h = h + self.name:Height()
 
+  -- Wanted/rank line just under the name. Seeded with the shift-click hint so it
+  -- reserves a line's height here; render() rewrites it per set.
+  self.status = Label:new{
+    parent = self,
+    fontObj = "GameFontNormalSmall",
+    position = {
+      TopLeft = {self.name, ui.edge.BottomLeft, 0, -2},
+    },
+    text = "Shift-click to mark wanted",
+  }
+  h = h + self.status:Height() + 2
+
   self.items = TableFrame:new{
     parent = self,
     position = {
-      TopLeft = {self.name, ui.edge.BottomLeft, 0, -2},
+      TopLeft = {self.status, ui.edge.BottomLeft, 0, -2},
     },
     headerHeight = 0,
     headerWidth = 60,
@@ -87,8 +101,20 @@ local function render(group, set, parent, position)
     _tooltip:Hide()
     return
   end
-  _group, _set = group, set
+  _group, _set, _parent, _position = group, set, parent, position
   _tooltip.name:Text(set.name)
+
+  -- Wanted/rank line. Inline color codes let one Label carry the gold star and a
+  -- tier-colored letter; falls back to the shift-click hint when unrated.
+  local race = ns:PlayerRace()
+  local rank = ns:EffectiveRank(set.id, race)
+  local bits = {}
+  if ns:IsWanted(set.id) then bits[#bits + 1] = "|cffffd100★ Wanted|r" end
+  if rank then
+    local tag = ns:RaceRank(set.id, race) and ("Tier " .. rank .. " (race)") or ("Tier " .. rank)
+    bits[#bits + 1] = "|cff" .. ns.RankHex(rank) .. tag .. "|r"
+  end
+  _tooltip.status:Text(#bits > 0 and table.concat(bits, "   ") or "|cff808080Shift-click to mark wanted|r")
 
   local parts = getParts(set.id)
   local primary = {}
@@ -140,6 +166,7 @@ local function render(group, set, parent, position)
 
   _tooltip:Width(4 + max(
     _tooltip.name:Width(),
+    _tooltip.status:Width(),
     4 + _tooltip.items.headerWidth + w
   ))
 
@@ -172,4 +199,14 @@ end
 ns.HideInfoTip = function()
   cancelRetry()
   if _tooltip then _tooltip:Hide() end
+end
+
+---Re-render the currently shown tip in place, so a wanted/rank change made while
+---hovering (e.g. shift-click) updates the status line immediately. No-op if hidden.
+---@class Warbandeer_Collected
+---@field RefreshInfoTip fun()
+ns.RefreshInfoTip = function()
+  if _tooltip and _tooltip._widget:IsVisible() and _group and _set then
+    render(_group, _set, _parent, _position)
+  end
 end

@@ -2,10 +2,25 @@
 
 A **transmog set tracker** for your whole warband. It shows a grid of instance tier
 sets versus your characters, with the number of appearances each character can still
-collect. Use the title-bar button to flip the row order between oldest and newest
+collect. Use the title-bar buttons to flip the row order between oldest and newest
 expansion first, hover a set to see its pieces (collected vs missing), and click a
 row to see which of your characters are locked out of that instance — so you always
 know who to run it on next.
+
+## Wanted & ranking
+
+Mark the sets you're chasing and rate how they look:
+
+- **Wanted** — **Shift-click** any set's cell (or use the **Wanted** button in the
+  dressing room) to flag it. Wanted sets show a gold star in the grid, the header
+  keeps a running `★` count, and the **Wanted only** title-bar button filters the
+  grid down to just your target list. `/collected wanted` lists them all in chat.
+- **Tier rank** — give a set an **S / A / B / C / F** rating in the dressing room.
+  Set a single baseline rank, or turn on **This race** to rank it for the specific
+  race you're previewing (some sets look better on some races). The grid shows a
+  small tier-colored dot — for your current character's race — and hovering shows
+  the letter. Both are saved account-wide and are independent of whether you've
+  collected the set.
 
 Click a set's cell to open a 3D dressing
 room showing the set worn by any playable **race** you pick — handy for
@@ -35,6 +50,7 @@ the model.
 |---|---|
 | `/collected` or `/collect` | Open/close the window |
 | `/collected scan` | Rebuild collection data from the game's transmog APIs |
+| `/collected wanted` | List the sets you've flagged as wanted |
 
 The addon compartment button (next to the minimap) also works: click to open,
 right-click to scan.
@@ -46,4 +62,6 @@ right-click to scan.
 
 ## Saved data
 
-`WarbandeerCollectedDB` (account-wide): scanned set/appearance counts.
+`WarbandeerCollectedDB` (account-wide): scanned set/appearance counts, plus your
+wanted flags and tier ranks (baseline + per-race). Ratings are kept separately from
+the scan data, so re-scanning never clears them.

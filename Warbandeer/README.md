@@ -23,7 +23,7 @@ Open it with `/warband` or `/wb` and switch views with the icon rail on the left
 | Midnight Professions | Expansion profession progress |
 | Playtime | Time played per character and total |
 | Bars | Action-bar profile previews (requires Warbandeer_Bars) |
-| Collected | Transmog-set collection grid by class and tier (requires Collected) |
+| Collected | Transmog-set collection grid by class and tier, with wanted-set stars and tier-rank markers (requires Collected) |
 | Reputations | Faction standings across your whole warband, one page per expansion: each faction shows the highest standing any character reached (and an Alliance/Horde marker for side-locked reps); hover a faction to see every character's standing. Switch expansions with the pulldown or the Up/Down arrow keys, and move between factions with Left/Right |
 
 Every view is also reachable directly, e.g. `/wb gear`, `/wb profs`, `/wb playtime`.

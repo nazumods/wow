@@ -101,11 +101,16 @@ end
 ---@field _expName string?  expansion name for the badge's hover tooltip
 ---@field _undressed boolean?  hide the set to show the bare race body
 ---@field _undressBorder Texture  undress-toggle border (gold while active)
+---@field _wantedBorder Texture  wanted-toggle border (gold while the set is wanted)
+---@field _rankBtns table<string, { border: Texture }>  tier buttons keyed by letter
+---@field _raceOnly boolean  edit/show the per-race override instead of the baseline
+---@field _raceOnlyBorder Texture  per-race-override toggle border (gold while active)
 ---@field _slots table[]  paper-doll slot entries ({ slotID, icon, border, itemID? })
 ---@field _slotTimer table?  cancelable icon-refresh timer
 ---@field _slotRetries number?  remaining icon-refresh attempts
 local ROWH = 26         -- toggle-button height
 local TOPGAP = ROWH + PAD
+local PANELSTOP = TOPGAP + ROWH + PAD   -- faction panels sit below TWO control rows (toggles + ratings)
 
 -- Forward-declared so the constructor closure can read DressingRoom.MODEL_INSET
 -- (set by the companion DressingRoomSlots.lua) as an upvalue at instantiation.
@@ -127,8 +132,8 @@ DressingRoom = Class(TitleFrame, function(self)
   local hW, hH = panelDims(#horde, AHCOLS)
   local nW, nH = STEP + CELL + 2 * PANELPAD, STEP + CELL + 2 * PANELPAD
   local panelsH = max(aH, hH, nH)
-  -- one toggle row (Undress / Background) above the faction panels
-  local controlsH = TOPGAP + panelsH + 4
+  -- two control rows (Undress/Background + ratings) above the faction panels
+  local controlsH = PANELSTOP + panelsH + 4
   local winW = max(WINW, GRIDW + 12)
 
   -- Bottom controls strip: toggle row + the three faction race panels, centered
@@ -294,6 +299,60 @@ DressingRoom = Class(TitleFrame, function(self)
   Label:new{ parent = bgBox, justifyH = ui.justify.Center,
     position = { Left = {6, 0}, Right = {-6, 0} }, text = "Background" }
 
+  -- ── Ratings row (second control row): Wanted star + tier buttons + per-race
+  -- override toggle. All act on the currently-previewed set (self._set); the tier
+  -- buttons write the per-race override when "This race" is active, else the
+  -- baseline. _refreshRatings (from _load / SetRace) syncs the gold highlights.
+  self._raceOnly = false
+
+  local wantBox = Frame:new{
+    parent = controls, position = { TopLeft = {0, -TOPGAP}, Width = 86, Height = ROWH },
+  }
+  self._wantedBorder = selBox(wantBox)
+  Texture:new{ parent = wantBox, layer = ui.layer.Artwork, atlas = ns.WantedIcon, atlasSize = false,
+    position = { Left = {6, 0}, Size = {14, 14} } }
+  Button:new{ parent = wantBox, position = { All = true }, glow = false,
+    OnClick = function() self:ToggleWanted() end }
+  Label:new{ parent = wantBox, justifyH = ui.justify.Center,
+    position = { Left = {24, 0}, Right = {-4, 0} }, text = "Wanted" }
+
+  -- Tier buttons S A B C F, each tinted its tier color; gold border on the active.
+  local TW, tx = 30, 96
+  self._rankBtns = {}
+  for _, letter in ipairs(ns.Ranks) do
+    local box = Frame:new{
+      parent = controls, position = { TopLeft = {tx, -TOPGAP}, Width = TW, Height = ROWH },
+    }
+    self._rankBtns[letter] = { border = selBox(box) }
+    Texture:new{ parent = box, layer = ui.layer.Artwork, color = ns.RankColors[letter],
+      position = { TopLeft = {2, -2}, BottomRight = {-2, 2} } }
+    Button:new{ parent = box, position = { All = true }, glow = false,
+      OnClick = function() self:SetRank(letter) end }
+    Label:new{ parent = box, justifyH = ui.justify.Center, position = { All = true },
+      color = {0.08, 0.08, 0.08}, text = letter }
+    tx = tx + TW + 3
+  end
+
+  -- Clear tier.
+  local clearBox = Frame:new{
+    parent = controls, position = { TopLeft = {tx, -TOPGAP}, Width = 24, Height = ROWH },
+  }
+  selBox(clearBox)
+  Button:new{ parent = clearBox, position = { All = true }, glow = false,
+    OnClick = function() self:SetRank(nil) end }
+  Label:new{ parent = clearBox, justifyH = ui.justify.Center, position = { All = true }, text = "–" }
+
+  -- Per-race override toggle (right-aligned): while gold, tier edits/displays the
+  -- override for the selected race instead of the baseline.
+  local raceBox = Frame:new{
+    parent = controls, position = { TopLeft = {GRIDW - 104, -TOPGAP}, Width = 104, Height = ROWH },
+  }
+  self._raceOnlyBorder = selBox(raceBox)
+  Button:new{ parent = raceBox, position = { All = true }, glow = false,
+    OnClick = function() self:SetRaceOnly(not self._raceOnly) end }
+  Label:new{ parent = raceBox, justifyH = ui.justify.Center,
+    position = { Left = {4, 0}, Right = {-4, 0} }, text = "This race" }
+
   -- Race selector: three faction panels (Alliance | Neutral | Horde), each in a
   -- 5px colored border, centered as a unit below the toggle row. Icons match the
   -- logged-in character's gender (the body renders in that gender), with a name-stub
@@ -367,18 +426,18 @@ DressingRoom = Class(TitleFrame, function(self)
 
   local leftX = (GRIDW - (aW + PANELGAP + nW + PANELGAP + hW)) / 2
 
-  local aPanel = factionPanel(leftX, TOPGAP + (panelsH - aH) / 2, aW, aH, ALLIANCE_COLOR)
+  local aPanel = factionPanel(leftX, PANELSTOP + (panelsH - aH) / 2, aW, aH, ALLIANCE_COLOR)
   fillGrid(aPanel, alliance, AHCOLS)
 
   -- Neutral: inverted pyramid — 2 on top, 1 centered below.
-  local nPanel = factionPanel(leftX + aW + PANELGAP, TOPGAP + (panelsH - nH) / 2, nW, nH, NEUTRAL_COLOR)
+  local nPanel = factionPanel(leftX + aW + PANELGAP, PANELSTOP + (panelsH - nH) / 2, nW, nH, NEUTRAL_COLOR)
   local pyramid = { {0, 0}, {1, 0}, {0.5, 1} }
   for i, race in ipairs(neutral) do
     local p = pyramid[i] or {i - 1, 0}
     raceIcon(nPanel, race, PANELPAD + p[1] * STEP, PANELPAD + p[2] * STEP)
   end
 
-  local hPanel = factionPanel(leftX + aW + PANELGAP + nW + PANELGAP, TOPGAP + (panelsH - hH) / 2, hW, hH, HORDE_COLOR)
+  local hPanel = factionPanel(leftX + aW + PANELGAP + nW + PANELGAP, PANELSTOP + (panelsH - hH) / 2, hW, hH, HORDE_COLOR)
   fillGrid(hPanel, horde, AHCOLS)
 
   -- Class icon in the model's upper-left, mirroring the directional nav pad's
@@ -517,6 +576,7 @@ function DressingRoom:SetRace(raceID)
   self._raceID = raceID
   self:_setupForms(ns.RaceModels[raceID])
   self:Dress()
+  self:_refreshRatings()   -- per-race override display tracks the selected race
 end
 
 -- Highlight the active form button (gold), the rest idle.
@@ -566,6 +626,64 @@ function DressingRoom:SetUndressed(undressed)
   self._undressed = undressed
   self._undressBorder:Color(undressed and SELECTED or IDLE)
   self:Dress()
+end
+
+-- ── Ratings ────────────────────────────────────────────────────────────────--
+
+-- Sync the ratings row to the current set, race, and edit layer: the wanted star,
+-- and the gold highlight on the active tier (the per-race override when "This race"
+-- is on, else the baseline). Called from _load (set change) and SetRace.
+function DressingRoom:_refreshRatings()
+  if not self._set then return end
+  local setId = self._set.id
+  self._wantedBorder:Color(ns:IsWanted(setId) and SELECTED or IDLE)
+  local shown
+  if self._raceOnly then shown = ns:RaceRank(setId, self._raceID)
+  else shown = ns:BaselineRank(setId) end
+  for letter, b in pairs(self._rankBtns) do
+    b.border:Color(letter == shown and SELECTED or IDLE)
+  end
+end
+
+-- Reflect a rating change in the in-addon grid right away (if open). The shared
+-- dressing room is also used by Warbandeer's grid, which refreshes on its next open.
+function DressingRoom:_ratingsChanged()
+  if not ns.window then return end
+  local grid = ns.window.data
+  if grid._wantedOnly then grid.data = grid:GetData(); grid:update()   -- re-filter
+  else grid:_refreshMarks() end
+  ns.window:RefreshWanted()
+end
+
+function DressingRoom:ToggleWanted()
+  if not self._set then return end
+  ns:ToggleWanted(self._set.id)
+  self:_refreshRatings()
+  self:_ratingsChanged()
+end
+
+-- Set the tier (or clear it when nil, or when re-clicking the active one). Writes
+-- the per-race override while "This race" is on, else the baseline.
+---@param letter string?  a tier from ns.Ranks, or nil to clear
+function DressingRoom:SetRank(letter)
+  if not self._set then return end
+  local setId = self._set.id
+  if self._raceOnly then
+    if ns:RaceRank(setId, self._raceID) == letter then letter = nil end
+    ns:SetRaceRank(setId, self._raceID, letter)
+  else
+    if ns:BaselineRank(setId) == letter then letter = nil end
+    ns:SetBaselineRank(setId, letter)
+  end
+  self:_refreshRatings()
+  self:_ratingsChanged()
+end
+
+---@param on boolean  edit/display the per-race override instead of the baseline
+function DressingRoom:SetRaceOnly(on)
+  self._raceOnly = on
+  self._raceOnlyBorder:Color(on and SELECTED or IDLE)
+  self:_refreshRatings()
 end
 
 -- Render the selected race on a DRESSABLE actor, then put on the previewed set.
@@ -721,6 +839,7 @@ function DressingRoom:_load(group, set)
   self._slotRetries = 0
   self:UpdateSlots()
   self:Dress()
+  self:_refreshRatings()
 end
 
 -- Move to the next/previous class set in the current group, wrapping and skipping

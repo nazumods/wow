@@ -23,7 +23,7 @@ Each addon folder has its own `README.md` with end-user documentation.
 |---|---|
 | [Warbandeer_Characters](Warbandeer_Characters/README.md) | Data layer: scans and stores every character you log into (gear, professions, gold, currencies, lockouts, playtime…). No UI. |
 | [Warbandeer](Warbandeer/README.md) | The main viewer UI (`/wb`): 13 views over your whole warband. |
-| [Warbandeer_Collected](Warbandeer_Collected/README.md) | Transmog set collection tracker (`/collected`). |
+| [Warbandeer_Collected](Warbandeer_Collected/README.md) | Transmog set collection tracker (`/collected`) with wanted flags and S–F tier ranking. |
 | [Warbandeer_Bars](Warbandeer_Bars/README.md) | Headless action-bar/keybind/macro profile layer, per character + spec. |
 | [Warbandeer_Alias](Warbandeer_Alias/README.md) | Prefixes your guild chat messages with an alias so guildmates recognize your alts. |
 

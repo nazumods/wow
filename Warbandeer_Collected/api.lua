@@ -11,6 +11,9 @@ local ns = select(2, ...)
 ---@field Sets table[] transmog set groups (see `ns.Sets`)
 ---@field Releases string[] expansion names indexed by `release`
 ---@field ReleaseIcons string[] expansion badge textures (64x64 TGA), parallel to `Releases`
+---@field Ranks string[] ordered tier letters, best → worst (see `ns.Ranks`)
+---@field RankColors table<string, number[]> tier letter → 0–1 rgb
+---@field WantedIcon string atlas for the "wanted" marker
 local API = {}
 
 -- Static set-group definitions (rows), release names, and the parallel expansion
@@ -20,6 +23,12 @@ local API = {}
 API.Sets = ns.Sets
 API.Releases = ns.Releases
 API.ReleaseIcons = ns.ReleaseIcons
+
+-- Rating presentation shared with consumers so their grids render identical
+-- markers (same tier order, colors, and wanted-star atlas).
+API.Ranks = ns.Ranks
+API.RankColors = ns.RankColors
+API.WantedIcon = ns.WantedIcon
 
 ---Account-wide collected/total counts from the last scan.
 ---@return number collected, number total
@@ -79,5 +88,50 @@ end
 function API:HideDressingRoom()
   ns.HideDressingRoom()
 end
+
+-- ─── Ratings (read + write) ─────────────────────────────────────────────────-
+-- The wanted/rank DB is account-wide, so consumers mutate it through here (the
+-- shared dressing room and Warbandeer's own grid both edit the same data).
+
+---@param setId number
+---@return boolean
+function API:IsWanted(setId) return ns:IsWanted(setId) end
+
+---@param setId number
+---@param wanted boolean
+function API:SetWanted(setId, wanted) ns:SetWanted(setId, wanted) end
+
+---Flip the wanted flag; returns the new state.
+---@param setId number
+---@return boolean
+function API:ToggleWanted(setId) return ns:ToggleWanted(setId) end
+
+---Tier as seen by a race (race override → baseline → nil). Omit raceId for the baseline.
+---@param setId number
+---@param raceId number?
+---@return string?
+function API:EffectiveRank(setId, raceId) return ns:EffectiveRank(setId, raceId) end
+
+---@param setId number
+---@return string?
+function API:BaselineRank(setId) return ns:BaselineRank(setId) end
+
+---@param setId number
+---@param raceId number
+---@return string?
+function API:RaceRank(setId, raceId) return ns:RaceRank(setId, raceId) end
+
+---@param setId number
+---@param rank string?
+function API:SetBaselineRank(setId, rank) ns:SetBaselineRank(setId, rank) end
+
+---@param setId number
+---@param raceId number
+---@param rank string?
+function API:SetRaceRank(setId, raceId, rank) ns:SetRaceRank(setId, raceId, rank) end
+
+---The logged-in character's canonical race id (the key per-race overrides use).
+---@return number
+function API:PlayerRace() return ns:PlayerRace() end
 
 _G.WarbandeerCollectedApi = API

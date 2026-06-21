@@ -16,8 +16,10 @@ local SORT_ACTIVE = {0.85, 0.65, 0.13, 1}
 ---@field data DataView the sets-by-class grid
 ---@field scroll ScrollFrame scroll container for the grid's row area
 ---@field counter Label "collected / total" sets counter
+---@field wantedCount Label running "★ N" wanted-set count
 ---@field _sortBorder Texture raid-order toggle border (gold once newest-first)
 ---@field _sortLabel Label raid-order toggle caption (OLDEST/NEWEST FIRST)
+---@field _wantedBorder Texture "wanted only" filter border (gold while active)
 local MainWindow = Class(TitleFrame, function(self)
   local w = 110
 
@@ -55,38 +57,52 @@ local MainWindow = Class(TitleFrame, function(self)
     color = WHITE_FONT_COLOR,
     text = ns.db.collected .. " / " .. ns.db.total,
   }
-
-  -- Raid-order toggle in the title bar, left of the close button. Mirrors
-  -- Warbandeer's Collected view: flips oldest/newest-first via DataView:ToggleOrder.
-  local box = Frame:new{
-    parent = self.titlebar,
+  -- Running wanted-set count, gold, to the right of the sets counter.
+  self.wantedCount = Label:new{
+    parent = self,
     position = {
-      Right = {self.closeButton, ui.edge.Left, -4, 0},
-      Width = 96, Height = 20,
+      Left = {self.counter, ui.edge.Right, 16, 0},
     },
-  }
-  self._sortBorder = Texture:new{
-    parent = box, layer = ui.layer.Background,
-    position = { All = true }, color = SORT_ACTIVE,
-  }
-  Texture:new{
-    parent = box, layer = ui.layer.Border, color = {0.05, 0.05, 0.06, 0.92},
-    position = { TopLeft = {1, -1}, BottomRight = {-1, 1} },
-  }
-  local btn = Button:new{
-    parent = box, position = { All = true }, glow = false,
-    OnClick = function()
-      local rev = self.data:ToggleOrder()
-      self._sortLabel:Text(rev and "NEWEST FIRST" or "OLDEST FIRST")
-      self._sortBorder:Color(rev and SORT_ACTIVE or SORT_IDLE)
-    end,
-  }
-  self._sortLabel = Label:new{
-    parent = btn, fontObj = "GameFontNormalSmall", justifyH = ui.justify.Center,
-    position = { Left = {6, 0}, Right = {-6, 0} },
-    text = "NEWEST FIRST",
+    fontObj = "GameFontNormalLarge",
+    color = SORT_ACTIVE,
   }
 
+  -- Title-bar toggles, right-to-left from the close button: raid-order, then a
+  -- "wanted only" filter. A small framed button each; gold border when active.
+  local function titleToggle(rightOf, text, active, onClick)
+    local box = Frame:new{
+      parent = self.titlebar,
+      position = { Right = {rightOf, ui.edge.Left, -4, 0}, Width = 96, Height = 20 },
+    }
+    local border = Texture:new{
+      parent = box, layer = ui.layer.Background,
+      position = { All = true }, color = active and SORT_ACTIVE or SORT_IDLE,
+    }
+    Texture:new{
+      parent = box, layer = ui.layer.Border, color = {0.05, 0.05, 0.06, 0.92},
+      position = { TopLeft = {1, -1}, BottomRight = {-1, 1} },
+    }
+    local btn = Button:new{ parent = box, position = { All = true }, glow = false, OnClick = onClick }
+    local label = Label:new{
+      parent = btn, fontObj = "GameFontNormalSmall", justifyH = ui.justify.Center,
+      position = { Left = {6, 0}, Right = {-6, 0} }, text = text,
+    }
+    return border, label, box
+  end
+
+  local sortBox
+  self._sortBorder, self._sortLabel, sortBox = titleToggle(self.closeButton, "NEWEST FIRST", true, function()
+    local rev = self.data:ToggleOrder()
+    self._sortLabel:Text(rev and "NEWEST FIRST" or "OLDEST FIRST")
+    self._sortBorder:Color(rev and SORT_ACTIVE or SORT_IDLE)
+  end)
+
+  self._wantedBorder = titleToggle(sortBox, "WANTED ONLY", false, function()
+    local on = self.data:ToggleWantedOnly()
+    self._wantedBorder:Color(on and SORT_ACTIVE or SORT_IDLE)
+  end)
+
+  self:RefreshWanted()
   self:Height(34 + min(500, self.data:Height()))
   self:Width(w)
 end, {
@@ -98,6 +114,11 @@ end, {
   special = true,
   level = 580,
 })
+
+---Refresh the running wanted-set count in the header.
+function MainWindow:RefreshWanted()
+  self.wantedCount:Text("★ " .. ns:WantedCount())
+end
 
 ---@class Warbandeer_Collected
 ---@field window CollectedWindow? main window (nil until first opened)

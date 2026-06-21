@@ -61,6 +61,8 @@ end
 -- ─── Grid (TableFrame) ──────────────────────────────────────────────────────
 
 ---@class CollectedGrid: TableFrame
+---@field _wantedOnly boolean? blank cells for sets that aren't flagged wanted
+---@field _playerRace number? cached canonical race id the rank pips resolve against
 local Grid = Class(TableFrame, function(self)
   -- Auto-size the (zero-width) name column to the widest group label, then grow
   -- the row area + frame to match (the base table built it at width 0).
@@ -71,9 +73,11 @@ local Grid = Class(TableFrame, function(self)
   self.cols[1]:Width(w)
   self.rowArea:Width(self.rowArea:Width() + w)
   self:Width(self:Width() + w)
+  self:_refreshMarks()   -- the constructor-time update() ran before our override was mixed in
 end, {
   headerHeight = 28,
   _reverse = true,   -- default to newest set-group first
+  _wantedOnly = false,
   colInfo = prepend(
     lists.map(ns.icons.classes, function(icon)
       return {
@@ -102,21 +106,37 @@ end, {
       local r = lists.map(grp.sets, function(set)
         local status = set.id and gstat and gstat[set.id]
         if not status then return {} end
+        -- "Wanted only" blanks non-wanted cells, mirroring the /collected window.
+        if self._wantedOnly and not WarbandeerCollectedApi:IsWanted(set.id) then return {} end
         -- Same per-slot source tooltip as the /collected window (via the API) on
         -- every cell — complete or partial; a fully-collected set shows all green.
         local onEnter = function(c)
           WarbandeerCollectedApi:ShowInfoTip(grp, set, c, tipPosition(c))
         end
         local onLeave = function() WarbandeerCollectedApi:HideInfoTip() end
-        local onClick = function() WarbandeerCollectedApi:ShowDressingRoom(grp, set, self._reverse) end
+        -- Left-click previews the set; Shift-click flags/unflags it as wanted.
+        local onClick = function(c)
+          if IsShiftKeyDown() then
+            local nowWanted = WarbandeerCollectedApi:ToggleWanted(set.id)
+            if self._wantedOnly and not nowWanted then
+              self.data = self:GetData(); self:update()
+            else
+              self:_applyCellMarks(c, set.id)
+            end
+          else
+            WarbandeerCollectedApi:ShowDressingRoom(grp, set, self._reverse)
+          end
+        end
         if isComplete(status) then
           return {
+            setId = set.id,
             atlas = GreenCheck.atlas, atlasSize = GreenCheck.atlasSize,
             position = GreenCheck.position,
             onEnter = onEnter, onLeave = onLeave, onClick = onClick,
           }
         end
         return {
+          setId = set.id,
           text = status.total - status.collected,
           justifyH = ui.justify.Center,
           color = shades[max(1, floor(status.collected / status.total * 10))],
@@ -135,6 +155,72 @@ end, {
   end,
 })
 
+-- Per-cell rating overlays (gold wanted star top-left, tier-colored rank pip
+-- top-right), mirroring Collected's own grid. Driven by live API state, so a
+-- refresh after any update()/re-sort/toggle is enough.
+local STAR, PIP = 11, 7
+
+---@param cell Cell
+---@param setId number?
+function Grid:_applyCellMarks(cell, setId)
+  local api = WarbandeerCollectedApi
+  if api and setId and api:IsWanted(setId) then
+    if not cell._wantStar then
+      cell._wantStar = Texture:new{
+        parent = cell, layer = ui.layer.Overlay,
+        atlas = api.WantedIcon, atlasSize = false,
+        position = { TopLeft = {1, -1}, Size = {STAR, STAR} },
+      }
+    end
+    cell._wantStar:Show()
+  elseif cell._wantStar then
+    cell._wantStar:Hide()
+  end
+
+  local rank = api and setId and api:EffectiveRank(setId, self._playerRace)
+  if rank then
+    if not cell._rankPip then
+      cell._rankPip = Texture:new{
+        parent = cell, layer = ui.layer.Overlay,
+        position = { TopRight = {-1, -1}, Size = {PIP, PIP} },
+      }
+    end
+    cell._rankPip:Color(api.RankColors[rank])
+    cell._rankPip:Show()
+  elseif cell._rankPip then
+    cell._rankPip:Hide()
+  end
+end
+
+function Grid:_refreshMarks()
+  local api = WarbandeerCollectedApi
+  self._playerRace = api and api:PlayerRace()
+  for r = 1, #self.cells do
+    local row = self.cells[r]
+    for c = 1, #self.cols do
+      local cell = row[c]
+      if cell then
+        local data = cell.data
+        self:_applyCellMarks(cell, type(data) == "table" and data.setId or nil)
+      end
+    end
+  end
+end
+
+function Grid:update()
+  TableFrame.update(self)
+  self:_refreshMarks()
+end
+
+---Toggle the "wanted only" filter, rebuilding the grid so non-wanted cells blank out.
+---@return boolean wantedOnly  the new filter state
+function Grid:ToggleWantedOnly()
+  self._wantedOnly = not self._wantedOnly
+  self.data = self:GetData()
+  self:update()
+  return self._wantedOnly
+end
+
 -- ─── CollectedView ──────────────────────────────────────────────────────────
 
 ---@class CollectedView: Frame
@@ -142,6 +228,9 @@ end, {
 ---@field scroll ScrollFrame
 ---@field counter Label
 ---@field emptyMsg Label
+---@field _wantedBorder Texture "wanted only" filter border (gold while active)
+---@field _sortBorder Texture raid-order toggle border (gold once newest-first)
+---@field _sortLabel Label raid-order toggle caption
 local CollectedView = Class(Frame, function(self)
   self.counter = Label:new{
     parent = self, fontInfo = theme.fonts.body, color = theme.colors.muted,
@@ -204,29 +293,38 @@ function CollectedView:OnBeforeShow()
   self.grid:update()
 end
 
--- Titlebar control: a single toggle button flipping raid (row) order between
--- oldest-first (ns.Sets order) and newest-first. Mirrors GearView's filter chrome.
+-- Titlebar control: two toggle buttons — a "wanted only" filter and a raid (row)
+-- order flip (oldest/newest-first). Mirrors GearView's filter chrome and the
+-- /collected window's own title-bar toggles.
 function CollectedView:BuildFilter(parent)
-  local BW, BH, PAD = 96, 20, 8
-  local box = Frame:new{ parent = parent, position = { Width = BW, Height = BH } }
+  local BW, BH, PAD, GAP = 96, 20, 8, 6
+  local box = Frame:new{ parent = parent, position = { Width = BW * 2 + GAP, Height = BH } }
 
-  self._sortBorder = Texture:new{
-    parent = box, layer = ui.layer.Background,
-    position = { All = true }, color = theme.colors.gold,
-  }
-  Texture:new{
-    parent = box, layer = ui.layer.Border, color = {0.05, 0.05, 0.06, 0.92},
-    position = { TopLeft = {1, -1}, BottomRight = {-1, 1} },
-  }
-  local btn = Button:new{
-    parent = box, position = { All = true }, glow = false,
-    OnClick = function() self:_toggleSort() end,
-  }
-  self._sortLabel = Label:new{
-    parent = btn, fontInfo = {theme.fonts.caps[1], 10}, justifyH = ui.justify.Center,
-    position = { Left = {PAD, 0}, Right = {-PAD, 0} },
-    text = "NEWEST FIRST",
-  }
+  -- One framed toggle at x; returns its (recolorable) border and caption.
+  local function toggle(xoff, text, active, onClick)
+    local b = Frame:new{ parent = box, position = { TopLeft = {xoff, 0}, Width = BW, Height = BH } }
+    local border = Texture:new{
+      parent = b, layer = ui.layer.Background,
+      position = { All = true }, color = active and theme.colors.gold or theme.colors.divider,
+    }
+    Texture:new{
+      parent = b, layer = ui.layer.Border, color = {0.05, 0.05, 0.06, 0.92},
+      position = { TopLeft = {1, -1}, BottomRight = {-1, 1} },
+    }
+    local btn = Button:new{ parent = b, position = { All = true }, glow = false, OnClick = onClick }
+    local label = Label:new{
+      parent = btn, fontInfo = {theme.fonts.caps[1], 10}, justifyH = ui.justify.Center,
+      position = { Left = {PAD, 0}, Right = {-PAD, 0} }, text = text,
+    }
+    return border, label
+  end
+
+  self._wantedBorder = (toggle(0, "WANTED", false, function()
+    local on = self.grid:ToggleWantedOnly()
+    self._wantedBorder:Color(on and theme.colors.gold or theme.colors.divider)
+  end))
+
+  self._sortBorder, self._sortLabel = toggle(BW + GAP, "NEWEST FIRST", true, function() self:_toggleSort() end)
 
   return box
 end

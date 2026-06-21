@@ -7,6 +7,26 @@ ns:registerCommand("", nil, function(self)
   self:Open()
 end, "Open the Collected window")
 
+-- List every set flagged wanted (group — set [tier]), so the target list is
+-- readable from chat without opening the window.
+ns:registerCommand("wanted", nil, function()
+  local race, n = ns:PlayerRace(), 0
+  for _, grp in ipairs(ns.Sets) do
+    for _, set in ipairs(grp.sets) do
+      if set.id and ns:IsWanted(set.id) then
+        n = n + 1
+        local rank = ns:EffectiveRank(set.id, race)
+        ns.Print(("%s — %s%s"):format(grp.name, set.name, rank and (" [" .. rank .. "]") or ""))
+      end
+    end
+  end
+  if n == 0 then
+    ns.Print("No sets flagged wanted — Shift-click a grid cell, or use the dressing room.")
+  else
+    ns.Print(n .. " wanted set(s).")
+  end
+end, "List sets flagged as wanted")
+
 -- dev: force a raw creature display id into the open preview, to vet candidate
 -- ns.RaceModels ids in-game (open a set's Preview model first).
 ns:registerCommand("model", nil, function(_, args)

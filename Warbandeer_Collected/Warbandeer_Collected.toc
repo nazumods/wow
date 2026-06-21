@@ -8,7 +8,7 @@
 ## AddonCompartmentFunc: WarbandeerCollected_OnAddonCompartmentClick
 ## Dependencies: LibNAddOn, LibNUI, Warbandeer_Characters
 ## X-NUI-DB: WarbandeerCollectedDB
-## X-NUI-DB-VERSION: 2
+## X-NUI-DB-VERSION: 3
 ## X-NUI-COMMANDS: /collected, /collect
 ## X-NUI-COMPARTMENT: WarbandeerCollected_OnAddonCompartmentClick
 ## X-NUI-API: WarbandeerApi
@@ -20,6 +20,7 @@ commands.lua
 data\sets.lua
 data\models.lua
 
+ratings.lua
 api.lua
 
 controls\InfoTip.lua
