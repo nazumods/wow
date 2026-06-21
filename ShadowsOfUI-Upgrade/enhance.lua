@@ -268,6 +268,67 @@ local function normEnchant(name)
   return (name:lower():gsub("%s+", " "):gsub("^ ", ""):gsub(" $", ""))
 end
 
+-- A *stat-line* enchant renders its granted stats instead of a name — leg enchants are
+-- spellthreads, whose "Enchanted:" tooltip line reads "+41 Intellect & +115 Stamina" rather
+-- than "Enchant Legs - <X>". Such a line can't be name-matched to the recommendation (which
+-- is the spellthread's *name*), so it's detected by carrying a digit and lacking the
+-- "Enchant <Slot> - " naming separator, and compared on stat magnitudes instead.
+local function isStatLine(name)
+  return name:find("%d") ~= nil and name:find(" %- ") == nil
+end
+
+-- The integers embedded in a string ("+41 Intellect & +115 Stamina" → { 41, 115 }).
+local function statNumbers(text)
+  local nums = {}
+  for n in text:gmatch("%d+") do nums[#nums + 1] = tonumber(n) end
+  return nums
+end
+
+-- Whether a tooltip line contains every number in `want` as a standalone integer (frontier
+-- patterns so 41 doesn't match inside 415) — i.e. that one line grants all the applied stats.
+local function lineHasAll(line, want)
+  for _, n in ipairs(want) do
+    if not line:find("%f[%d]" .. n .. "%f[%D]") then return false end
+  end
+  return true
+end
+
+-- The recommended enchant's descriptive tooltip lines: a ClassCodex item's full item
+-- tooltip, or a bundled recipe spell's description (one line). Read dynamically off the live
+-- globals (so the busted harness can stub them); nil when neither resolves yet.
+local function recTooltipLines(rec)
+  local TI = _G.C_TooltipInfo
+  if rec.kind == "item" and rec.id and TI and TI.GetItemByID then
+    local data = TI.GetItemByID(rec.id)
+    if data and data.lines then
+      local out = {}
+      for _, ln in ipairs(data.lines) do out[#out + 1] = ln.leftText or "" end
+      return out
+    end
+  end
+  local Spell = _G.C_Spell
+  if rec.kind == "spell" and rec.id and Spell and Spell.GetSpellDescription then
+    local desc = Spell.GetSpellDescription(rec.id)
+    if desc and desc ~= "" then return { desc } end
+  end
+  return nil
+end
+
+-- For a stat-line (spellthread) applied enchant: true = the recommendation grants the same
+-- stats (a single tooltip line carries every applied stat number — not a mismatch); false =
+-- it genuinely grants different stats; nil = the recommendation has no resolvable tooltip yet,
+-- so we can't judge it (caller must NOT flag — never re-introduce a false "wrong enchant").
+local function statLineMatches(applied, rec)
+  local want = statNumbers(applied)
+  if #want == 0 then return nil end
+  local lines = recTooltipLines(rec)
+  if not lines then return nil end
+  for _, line in ipairs(lines) do
+    if lineHasAll(line, want) then return true end
+  end
+  return false
+end
+
 ---Equipped slots whose APPLIED enchant differs from the recommended one — a *wrong* (not
 ---missing) enchant — in stable slot order. Skips slots that are bare (those are
 ---`MissingEnchants`), carry no stored applied-enchant name (an alt not rescanned since the
@@ -285,7 +346,16 @@ function ns.EnchantMismatches(charData)
     if item and item.link and applied and slotTakesEnchant(slot, item) then
       local rec = ns.RecommendedEnchant(charData, slot)
       local recName = rec and suggestionName(rec)
-      if recName and normEnchant(applied) ~= normEnchant(recName) then
+      -- A spellthread (stat-line) enchant can't be name-matched — compare it on stat
+      -- magnitudes; everything else is the case/space-insensitive name compare. Either
+      -- path treats an unresolvable recommendation as "can't judge" → not a mismatch.
+      local mismatch
+      if rec and isStatLine(applied) then
+        mismatch = statLineMatches(applied, rec) == false
+      elseif recName then
+        mismatch = normEnchant(applied) ~= normEnchant(recName)
+      end
+      if mismatch then
         out[#out + 1] = {
           slot = slot, link = item.link,
           itemID = GetItemInfoInstant and (GetItemInfoInstant(item.link)),

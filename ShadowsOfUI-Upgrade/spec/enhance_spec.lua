@@ -278,6 +278,59 @@ describe("ShadowsOfUI-Upgrade enhance", function()
     it("ignores a non-enchantable slot even if it carries an enchant string", function()
       assert.same({}, ns.EnchantMismatches(mage({ Neck = ench(10, 555, "Enchant Neck - Nope") })))
     end)
+
+    -- Leg enchants are spellthreads: the applied "enchant" is captured as a stat line
+    -- ("+41 Intellect & +115 Stamina"), not an "Enchant Legs - X" name, so it's compared
+    -- on stat magnitudes against the recommended enchant's tooltip rather than by name.
+    describe("stat-line (spellthread) enchants", function()
+      before_each(function()
+        -- CC recommends a legs spellthread (an item we resolve a tooltip for).
+        _G.ClassCodexGearData.MAGE.frost.enchants[#_G.ClassCodexGearData.MAGE.frost.enchants + 1] =
+          { slot = "Legs", best = { itemId = 700, name = "Daybreak Spellthread" } }
+      end)
+      after_each(function() _G.C_TooltipInfo = nil end)
+
+      -- Stub the recommended item's tooltip lines.
+      local function tooltip(lines)
+        _G.C_TooltipInfo = { GetItemByID = function()
+          local out = {}
+          for _, t in ipairs(lines) do out[#out + 1] = { leftText = t } end
+          return { lines = out }
+        end }
+      end
+
+      it("does not flag when the recommendation grants the same stats", function()
+        tooltip({ "Daybreak Spellthread", "Use: increasing Intellect by 41 and Stamina by 115." })
+        assert.same({}, ns.EnchantMismatches(mage({
+          Legs = ench(20, 7935, "+41 Intellect & +115 Stamina"),
+        })))
+      end)
+
+      it("flags when the recommendation grants different stats", function()
+        tooltip({ "Daybreak Spellthread", "Use: increasing Intellect by 50 and Stamina by 140." })
+        local res = ns.EnchantMismatches(mage({
+          Legs = ench(20, 7935, "+41 Intellect & +115 Stamina"),
+        }))
+        assert.equals(1, #res)
+        assert.equals("Legs", res[1].slot)
+        assert.equals("+41 Intellect & +115 Stamina", res[1].applied)
+      end)
+
+      it("does not flag when the recommendation's tooltip can't be resolved yet", function()
+        -- no C_TooltipInfo stub → can't judge → must not re-introduce a false positive
+        assert.same({}, ns.EnchantMismatches(mage({
+          Legs = ench(20, 7935, "+41 Intellect & +115 Stamina"),
+        })))
+      end)
+
+      it("requires one line to carry all stats (a coincidental single match isn't enough)", function()
+        tooltip({ "Item Level 115", "Requires Level 80", "Increases Intellect by 41." })
+        local res = ns.EnchantMismatches(mage({
+          Legs = ench(20, 7935, "+41 Intellect & +115 Stamina"),
+        }))
+        assert.equals(1, #res)   -- no single line has both 41 and 115
+      end)
+    end)
   end)
 
   describe("MissingGems", function()
