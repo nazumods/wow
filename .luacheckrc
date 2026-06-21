@@ -45,6 +45,7 @@ std = {
   },
   read_globals = {
     "bit",
+    "canaccessvalue",
     "date",
     "floor",
     "format",

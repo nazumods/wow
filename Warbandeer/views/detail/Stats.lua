@@ -6,6 +6,18 @@ local Frame, Label, StatChart = ui.Frame, ui.Label, ns.StatChart
 local theme = ns.theme
 local D = ns.detail
 
+local canaccessvalue = canaccessvalue
+
+-- Treat a "secret" combat value (one tainted code can't do arithmetic on) as absent, so a
+-- rating/percent captured before the data layer began filtering them — or any future secret
+-- value — can't crash the delta/radar math. The data layer (data/stats.lua) already drops
+-- them at capture; this guards values already in the DB.
+local function safeNum(v)
+  if v == nil then return nil end
+  if canaccessvalue and not canaccessvalue(v) then return nil end
+  return v
+end
+
 local DetailView = ns.views.DetailView
 local Top, Left, Right = ui.edge.Top, ui.edge.Left, ui.edge.Right
 local TopLeft, BottomLeft, BottomRight = ui.edge.TopLeft, ui.edge.BottomLeft, ui.edge.BottomRight
@@ -175,18 +187,21 @@ function DetailView:_showStats()
   for _, cell in ipairs(self._statCells) do
     local s = sec and sec[cell.key]
     local hot = top[cell.key]
+    -- Secret values (combat ratings/percentages) read back as nil so the math below is safe.
+    local ratingVal = s and safeNum(s.rating)
+    local pctVal = s and safeNum(s.pct)
     cell.name:Color(hot and c.gold or c.muted)
     -- Mastery's meaning is spec-specific: name it from the captured passive spell.
     if cell.key == "mastery" then cell._pctTitle, cell._pctBody = masteryOverride(sec) end
     local target = s and targets and targets[cell.key]
-    local state = s and deltaState(s.rating, target)
-    cell.frame._tip = state and { label = cell.label, state = state, current = s.rating, target = target } or nil
+    local state = (ratingVal and target) and deltaState(ratingVal, target) or nil
+    cell.frame._tip = state and { label = cell.label, state = state, current = ratingVal, target = target } or nil
     if s then
-      cell.pct:Text(("%.2f%%"):format(s.pct or 0)):Color(hot and c.gold or c.text)
+      cell.pct:Text(pctVal and ("%.2f%%"):format(pctVal) or "—"):Color(hot and c.gold or c.text)
       if state then
-        cell.rating:Text(("%s%d|r |cff808080/ %d|r"):format(DELTA[state].code, s.rating, target))
+        cell.rating:Text(("%s%d|r |cff808080/ %d|r"):format(DELTA[state].code, ratingVal, target))
       else
-        cell.rating:Text(s.rating and tostring(s.rating) or "")
+        cell.rating:Text(ratingVal and tostring(ratingVal) or "")
       end
     else
       cell.pct:Text("—"):Color(c.muted)
@@ -195,6 +210,6 @@ function DetailView:_showStats()
   end
   -- Feed the centre radar the four gear ratings (0 when unscanned), plotted as
   -- fulfilment vs each stat's Archon target, tinting tier-1 gold.
-  local function rating(key) local s = sec and sec[key]; return s and s.rating or 0 end
+  local function rating(key) local s = sec and sec[key]; return (s and safeNum(s.rating)) or 0 end
   self._statChart:Set(rating("crit"), rating("haste"), rating("mastery"), rating("versatility"), top, targets)
 end
