@@ -1,0 +1,40 @@
+---@type ShadowsOfUI_Reputations
+local ns = select(2, ...)
+local concat = table.concat
+
+-- Append the cross-alt standing block to an item tooltip when the item is tied to a tracked
+-- faction. There's no item->faction API, so match a cached faction name appearing anywhere in
+-- the tooltip text (a rep token's "increases your reputation with X", a tabard's name, etc.) —
+-- locale-consistent since the cached names and the live tooltip share the client locale.
+local function onItemTooltip(tooltip, data)
+  if not data or not data.lines then return end
+  if tooltip.IsForbidden and tooltip:IsForbidden() then return end
+  local buf = {}
+  for i = 1, #data.lines do
+    local t = data.lines[i].leftText
+    if t then buf[#buf + 1] = t:lower() end
+  end
+  local fid = ns.FactionIDByName(concat(buf, "\n"))
+  if not fid then return end
+  ns.AppendStandings(tooltip, fid) -- item tooltips auto-show after post-calls; no Show() needed
+end
+
+if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall then
+  TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, onItemTooltip)
+end
+
+-- /sreps <factionID | faction name> — print the cross-alt standings for a faction (testing
+-- aid + a quick "who's exalted with X?" lookup, since tooltip text can't be copied).
+SLASH_SUI_REPS1 = "/sreps"
+SlashCmdList["SUI_REPS"] = function(msg)
+  msg = msg and msg:match("^%s*(.-)%s*$") or ""
+  local fid = tonumber(msg:match("^%d+$"))
+  if not fid and msg ~= "" then fid = ns.FactionIDByName(msg:lower()) end
+  if not fid then ns.Print("Usage: /sreps <factionID or faction name>") return end
+  local list = ns.api:GetFactionStandings(fid)
+  if not list then ns.Print("No tracked standings for faction", fid, "(log alts in to populate).") return end
+  ns.Print(("Standings for faction %d:"):format(fid))
+  for _, e in ipairs(list) do
+    ns.Print(("  %s: %s%s"):format(e.name, e.label, e.paragon and " (Paragon)" or ""))
+  end
+end

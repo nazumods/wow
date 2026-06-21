@@ -59,6 +59,7 @@
     "WarbandeerDB",
 
     "PrimaryResourceBar",
+    "ReputationEntryMixin",
     "SecondaryResourceBar",
 
     "CopyToClipboard",
@@ -159,6 +160,7 @@
     "PLAYER_FACTION_COLOR_HORDE",
     "RAID_CLASS_COLORS",
     "RED_FONT_COLOR",
+    "RENOWN_LEVEL_LABEL",
     "TRADESKILL_EXPERIENCE_COLOR",
     "YES",
     "WHITE_FONT_COLOR",
