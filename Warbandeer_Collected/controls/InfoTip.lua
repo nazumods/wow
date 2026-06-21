@@ -50,6 +50,7 @@ local InfoTip = Class(CleanFrame, function(self)
     rowInfo = {
       { name = "Head", backdrop = {color = ns.Colors.TransparentBlack} },
       { name = "Shoulder", backdrop = {color = ns.Colors.TransparentBlack} },
+      { name = "Back", backdrop = {color = ns.Colors.TransparentBlack} },
       { name = "Chest", backdrop = {color = ns.Colors.TransparentBlack} },
       { name = "Waist", backdrop = {color = ns.Colors.TransparentBlack} },
       { name = "Legs", backdrop = {color = ns.Colors.TransparentBlack} },
@@ -60,7 +61,7 @@ local InfoTip = Class(CleanFrame, function(self)
     colInfo = {
       { backdrop = {color = ns.Colors.TransparentBlack} }
     },
-    data = {{""}, {""}, {""}, {""}, {""}, {""}, {""}, {""}},
+    data = {{""}, {""}, {""}, {""}, {""}, {""}, {""}, {""}, {""}},
   }
   h = h + self.items:Height() + 2
 
@@ -122,7 +123,7 @@ local function render(group, set, parent, position)
 
   local fallback   -- built lazily when a slot's per-slot source lookup is empty
   local incomplete = false
-  for i,slot in ipairs({1,3,5,6,7,8,9,10}) do
+  for i,slot in ipairs({1,3,15,5,6,7,8,9,10}) do
     local sources = C_TransmogSets.GetSourcesForSlot(set.id, slot)
     local _, p = find(sources, function(s) return primary[s.sourceID] end)
     local name, isCollected
