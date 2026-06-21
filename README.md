@@ -2,8 +2,8 @@
 
 A monorepo of World of Warcraft (Retail) addons by Nazuraki. The suite is built on two
 shared libraries — **LibNAddOn** (addon bootstrapping) and **LibNUI** (OOP UI widgets) —
-with the **Warbandeer** family providing warband-wide character tracking, plus a handful
-of small quality-of-life addons.
+with the **Warbandeer** family providing warband-wide character tracking, plus the
+**Shadows of UI** custom-UI tweaks and a handful of small quality-of-life addons.
 
 Each addon folder has its own `README.md` with end-user documentation.
 
@@ -27,11 +27,10 @@ Each addon folder has its own `README.md` with end-user documentation.
 | [Warbandeer_Bars](Warbandeer_Bars/README.md) | Headless action-bar/keybind/macro profile layer, per character + spec. |
 | [Warbandeer_Alias](Warbandeer_Alias/README.md) | Prefixes your guild chat messages with an alias so guildmates recognize your alts. |
 
-### Quality of life
+### Custom UI
 
 | Addon | Description |
 |---|---|
-| [Recycle](Recycle/README.md) | Auto-sells grey items and anything you mark, whenever you visit a merchant. |
 | [ShadowsOfUI-XP](ShadowsOfUI-XP/README.md) | Minimal full-width XP bar at the bottom of the screen (below max level only). |
 | [ShadowsOfUI-GCD](ShadowsOfUI-GCD/README.md) | Slim global-cooldown sweep bar between your resource bars. |
 | [ShadowsOfUI-DMF](ShadowsOfUI-DMF/README.md) | Darkmoon Faire helper: auto-buys profession quest mats and guides you between quest givers. |
@@ -42,6 +41,12 @@ Each addon folder has its own `README.md` with end-user documentation.
 | [ShadowsOfUI-WarbandInventory](ShadowsOfUI-WarbandInventory/README.md) | Adds a "Warband Inventory" block to item tooltips: how many of an item each character holds (bags + bank), plus the warband and guild banks. Hold Shift to hide. |
 | [ShadowsOfUI-Reputations](ShadowsOfUI-Reputations/README.md) | Shows every character's standing with a faction — on the Reputation tab and on faction-tied item tooltips (which alt to mail that rep token to). |
 | [ShadowsOfUI-Quests](ShadowsOfUI-Quests/README.md) | Adds a cross-alt "Also on this quest / Completed by" block to quest-log tooltips, so you can see which character still needs a quest. |
+
+### Quality of life
+
+| Addon | Description |
+|---|---|
+| [Recycle](Recycle/README.md) | Auto-sells grey items and anything you mark, whenever you visit a merchant. |
 | [HideStanceBar](HideStanceBar/README.md) | Hides the stance bar, with a per-class toggle. |
 | [HideBagBar](HideBagBar/README.md) | Hides the backpack and bag slot buttons. |
 | [CombatOutline](CombatOutline/README.md) | Enables the character outline rendering mode only while in combat. |
