@@ -2,7 +2,7 @@
 
 **Deps:** LibNAddOn, Warbandeer_Characters · **OptionalDeps:** Warbandeer · **SavedVars:** none · **Commands:** `/swinv <itemID|link>` (dev/find dump) · **API:** reads `WarbandeerApi`
 
-Headless tooltip addon. Adds a "Warband stock" block to item tooltips listing how many of
+Headless tooltip addon. Adds a "Warband Inventory" block to item tooltips listing how many of
 the item each character holds (bags + personal bank), the shared warband bank, and each
 guild bank, with a grand total. Assignment-form init (`local ns = LibNAddOn(...)`); no
 LibNUI, no DB. Surfaces data only — all counting lives in Warbandeer_Characters.
@@ -18,7 +18,7 @@ LibNUI, no DB. Surfaces data only — all counting lives in Warbandeer_Character
 
 - Calls `API:GetItemCounts(itemID)` (`ns.api` = `WarbandeerApi`, bound via `X-NUI-API`);
   returns nil when nothing is held → no block.
-- **Header**: a plain `AddLine("Warband stock")` label (the total moved to the bottom).
+- **Header**: a plain `AddLine("Warband Inventory")` label (the total moved to the bottom).
 - **Per character**: one `AddDoubleLine` — `charLabel(e)` (class-coloured name, left, with a
   ` (Realm)` suffix when the entry's `realm` is set — i.e. a different realm than the current
   character) + `total` then a muted inline source breakdown `(Bags: B, Bank: K)` (right,
