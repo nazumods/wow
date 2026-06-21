@@ -43,6 +43,9 @@ data through the `WarbandeerApi` global.
 - **Mail** is recorded whenever you open a mailbox (count, attached items + gold, and when
   each piece expires). On login you get a one-line warning naming any character whose mail
   expires within 3 days, and Warbandeer's Summary view gains a Mail column.
+- **Reputations** are captured each login and whenever they change — every faction's standing
+  for each character, so **ShadowsOfUI-Reputations** can show who's Exalted (or still grinding)
+  with a faction, on the Reputation tab and on faction-tied item tooltips.
 
 ## Requirements
 

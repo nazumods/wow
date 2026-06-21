@@ -83,6 +83,13 @@ function ns.getMissingFields(toon)
     table.insert(missing, "mail")
   end
 
+  -- Reputations are captured each login (and on change), so a nil means the character
+  -- hasn't been seen since the cache was added — its standings won't appear in
+  -- ShadowsOfUI-Reputations' cross-alt block.
+  if not toon.reputations then
+    table.insert(missing, "reputations")
+  end
+
   -- LumberAxe is a recorded boolean (has / doesn't have the Find Lumber tracking
   -- spell), so only a nil means the data was never captured. false is real data.
   if not toon.quests or toon.quests.LumberAxe == nil then

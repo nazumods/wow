@@ -202,6 +202,37 @@ function API:GetMail(charName)
   return c and c.mail or nil
 end
 
+---A character's cached faction standings, keyed by factionID (last-seen; captured each
+---login + on reputation change).  nil until the character has been seen since v21.
+---@param charName string?
+---@return table<integer, FactionStanding>?
+function API:GetReputations(charName)
+  local c = ns.db.characters[charName or ns.currentPlayer]
+  return c and c.reputations and c.reputations.factions or nil
+end
+
+---Every tracked character's standing with one faction, highest first.  Each entry is the
+---character's `FactionStanding` plus `name`/`classKey` (for class colouring).  nil when no
+---character has any standing with that faction.
+---@param factionID integer
+---@return { name: string, classKey: string, label: string, rank: integer, done: boolean, paragon: boolean?, accountWide: boolean? }[]?
+function API:GetFactionStandings(factionID)
+  if not factionID then return nil end
+  local out = {}
+  for name, c in pairs(ns.db.characters) do
+    local f = c.reputations and c.reputations.factions and c.reputations.factions[factionID]
+    if f then
+      insert(out, { name = name, classKey = c.classKey, label = f.label, rank = f.rank, done = f.done, paragon = f.paragon, accountWide = f.accountWide })
+    end
+  end
+  if #out == 0 then return nil end
+  sort(out, function(a, b)
+    if (a.rank or 0) ~= (b.rank or 0) then return (a.rank or 0) > (b.rank or 0) end
+    return a.name < b.name
+  end)
+  return out
+end
+
 ---Synchronously re-fetch one broker field for the current character.
 ---Safe to call at any time; respects the maxLevel guard.
 ---@param brokerName string

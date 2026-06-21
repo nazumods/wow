@@ -85,7 +85,7 @@ end, "Repair stored data (recount characters)")
 ---@field MigrateDB fun(self) Migrate database to latest version
 function ns:MigrateDB()
   local db = ns.db
-  if db.version == 20 then return end
+  if db.version == 21 then return end
   if not db.characters then db.characters = {} end
   if not db.numCharacters then
     db.numCharacters = countCharacters(db)
@@ -239,6 +239,15 @@ function ns:MigrateDB()
   -- no mail source) until the next mailbox visit, so rollback is lossless.
   if (db.version or 0) < 20 then
     db.version = 20
+  end
+
+  -- v21: per-character reputation cache (`reputations.factions`: factionID -> standing
+  -- label/rank/done/paragon for every faction the character has a standing with)
+  -- (non-destructive).  Filled lazily by data/reputations.lua each login + on reputation
+  -- change; old revisions simply lack it (ShadowsOfUI-Reputations shows no standings for
+  -- that character) until its next login, so rollback is lossless.
+  if (db.version or 0) < 21 then
+    db.version = 21
   end
 end
 
