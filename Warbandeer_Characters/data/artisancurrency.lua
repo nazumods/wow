@@ -65,5 +65,8 @@ ns.ArtisanCurrency.fields = {
     end,
 
     event = "CURRENCY_DISPLAY_UPDATE",
+    -- Unfiltered (several profession currencies), so it fires on every currency change
+    -- all session. Debounce a burst into one profession scan.
+    eventDelay = 1000,
   },
 }

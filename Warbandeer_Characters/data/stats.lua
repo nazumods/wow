@@ -51,5 +51,9 @@ Stats.fields = {
       }
     end,
     event = "COMBAT_RATING_UPDATE",
+    -- Fires constantly in combat (every proc/buff/gear rating tick). Debounce so a
+    -- burst rebuilds this snapshot once it settles instead of on every event — it's a
+    -- last-seen snapshot, so coalescing loses nothing.
+    eventDelay = 1000,
   },
 }
