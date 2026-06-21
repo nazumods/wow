@@ -85,7 +85,7 @@ end, "Repair stored data (recount characters)")
 ---@field MigrateDB fun(self) Migrate database to latest version
 function ns:MigrateDB()
   local db = ns.db
-  if db.version == 22 then return end
+  if db.version == 23 then return end
   if not db.characters then db.characters = {} end
   if not db.numCharacters then
     db.numCharacters = countCharacters(db)
@@ -256,6 +256,15 @@ function ns:MigrateDB()
   -- Summary auctions column is blank) until the next AH visit, so rollback is lossless.
   if (db.version or 0) < 22 then
     db.version = 22
+  end
+
+  -- v23: per-character quest log (`questlog`: active-quest set + completed-quest bitmap)
+  -- (non-destructive).  Filled lazily each login (and on quest events); old revisions just
+  -- lack it (ShadowsOfUI-Quests shows no cross-alt status) until the next login, so rollback
+  -- is lossless.  The completed bitmap is the suite's largest per-character field — a
+  -- `/wbc cleanup` extension could drop it if a user wants the space back (none today).
+  if (db.version or 0) < 23 then
+    db.version = 23
   end
 end
 

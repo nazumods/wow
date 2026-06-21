@@ -12,7 +12,7 @@ include_files = {
   "ShadowsOfUI-DMF/**/*.lua", "ShadowsOfUI-GCD/**/*.lua", "ShadowsOfUI-Ilvl/**/*.lua",
   "ShadowsOfUI-Known/**/*.lua", "ShadowsOfUI-Upgrade/**/*.lua", "ShadowsOfUI-XP/**/*.lua",
   "ShadowsOfUI-Artisan/**/*.lua", "ShadowsOfUI-WarbandInventory/**/*.lua",
-  "ShadowsOfUI-Reputations/**/*.lua",
+  "ShadowsOfUI-Reputations/**/*.lua", "ShadowsOfUI-Quests/**/*.lua",
   "Warbandeer/**/*.lua", "Warbandeer_Alias/**/*.lua", "Warbandeer_Bars/**/*.lua",
   "Warbandeer_Characters/**/*.lua", "Warbandeer_Collected/**/*.lua",
 }
@@ -35,6 +35,7 @@ files["ShadowsOfUI-Known/**/*.lua"] = {globals = {"SLASH_SUI_KNOWN1"}}
 files["ShadowsOfUI-Upgrade/**/*.lua"] = {globals = {"SLASH_SUI_UPGRADE1", "ShadowsOfUI_UpgradeApi"}}
 files["ShadowsOfUI-WarbandInventory/**/*.lua"] = {globals = {"SLASH_SUI_WINV1"}}
 files["ShadowsOfUI-Reputations/**/*.lua"] = {globals = {"SLASH_SUI_REPS1"}}
+files["ShadowsOfUI-Quests/**/*.lua"] = {globals = {"SLASH_SUI_QUESTS1"}}
 files["Warbandeer_Bars/init.lua"] = {globals = {"WarbandeerBarsSettings"}}
 
 std = {

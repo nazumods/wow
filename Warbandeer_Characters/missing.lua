@@ -90,6 +90,13 @@ function ns.getMissingFields(toon)
     table.insert(missing, "reputations")
   end
 
+  -- Quest log (active + completed history) is captured each login; a nil means the
+  -- character hasn't been seen since the cache was added, so it won't appear in
+  -- ShadowsOfUI-Quests' "also on / completed by" block.
+  if not toon.questlog then
+    table.insert(missing, "quest history")
+  end
+
   -- LumberAxe is a recorded boolean (has / doesn't have the Find Lumber tracking
   -- spell), so only a nil means the data was never captured. false is real data.
   if not toon.quests or toon.quests.LumberAxe == nil then
