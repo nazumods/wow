@@ -27,15 +27,21 @@ local function sources(e)
   return "(" .. concat(parts, ", ") .. ")"
 end
 
+-- Class-coloured character name, with " (Realm)" appended when the character is on a
+-- different realm than the current one (the API sets `realm` only in that case).
+---@param e ItemCountEntry
+local function charLabel(e)
+  local name = e.realm and (e.name .. " (" .. e.realm .. ")") or e.name
+  return ns.ColorName(name, e.classKey)
+end
+
 -- Append the "Warband stock" block: a header with the grand total, one
 -- right-aligned class-coloured line per character (bags + personal bank), then
 -- the shared warband bank and any guild banks.
 ---@param report ItemCountReport
 ---@param itemID integer
 local function render(tooltip, report, itemID)
-  tooltip:AddDoubleLine(
-    LABEL:WrapTextInColorCode("Warband stock"),
-    TOTAL:WrapTextInColorCode(abbr(report.total)))
+  tooltip:AddLine(LABEL:WrapTextInColorCode("Warband stock"))
 
   local chars = report.characters
   local shown = #chars
@@ -47,7 +53,7 @@ local function render(tooltip, report, itemID)
   for i = 1, shown do
     local e = chars[i]
     tooltip:AddDoubleLine(
-      "  " .. ns.ColorName(e.name, e.classKey),
+      "  " .. charLabel(e),
       COUNT:WrapTextInColorCode(abbr(e.total)) .. "  " .. MUTED:WrapTextInColorCode(sources(e)))
   end
   if capped then
@@ -65,6 +71,11 @@ local function render(tooltip, report, itemID)
       MUTED:WrapTextInColorCode("  " .. g.name),
       COUNT:WrapTextInColorCode(abbr(g.count)))
   end
+
+  -- Grand total across every source, at the very bottom (Altoholic's "Total owned").
+  tooltip:AddDoubleLine(
+    LABEL:WrapTextInColorCode("Total owned"),
+    TOTAL:WrapTextInColorCode(abbr(report.total)))
 end
 
 local function onItemTooltip(tooltip, data)
@@ -96,7 +107,8 @@ SlashCmdList["SUI_WINV"] = function(msg)
   end
   ns.Print(("%s — %d total across the warband:"):format(tostring(name), report.total))
   for _, e in ipairs(report.characters) do
-    ns.Print(("  %s: %d (bags %d, bank %d)"):format(e.name, e.total, e.bags, e.bank))
+    local who = e.realm and (e.name .. " (" .. e.realm .. ")") or e.name
+    ns.Print(("  %s: %d (bags %d, bank %d)"):format(who, e.total, e.bags, e.bank))
   end
   if report.warband > 0 then ns.Print(("  Warband bank: %d"):format(report.warband)) end
   for _, g in ipairs(report.guilds) do ns.Print(("  %s: %d"):format(g.name, g.count)) end

@@ -78,8 +78,9 @@ WarbandeerApi:GetWarbandBankGear()         → GearCandidate[]
     -- elsewhere" pool; empty until the warband bank has been opened
 WarbandeerApi:GetItemCounts(itemID)        → ItemCountReport?
     -- account-wide counts of an item: { total, warband, characters =
-    -- {{name, classKey, bags, bank, total}} (sorted total desc), guilds =
-    -- {{name, count}} }.  Per-char = bags (inventory broker) + personal bank
+    -- {{name, classKey, realm?, bags, bank, total}} (sorted total desc), guilds =
+    -- {{name, count}} }.  realm is set only when it differs from the current
+    -- character's realm (cross-realm note).  Per-char = bags (inventory broker) + personal bank
     -- (db.bank.characters[name].items); warband = db.bank.warband.items (once);
     -- guilds = db.bank.guilds[*].items.  All last-seen; nil when nothing is held
 WarbandeerApi:GetWorldQuestRewards(char?)  → WorldQuestReward[]

@@ -125,6 +125,7 @@ end
 ---@class ItemCountEntry
 ---@field name string character name
 ---@field classKey string PascalCase class key (for class colouring)
+---@field realm string? the character's realm, set only when it differs from the current character's realm
 ---@field bags integer copies in the character's bags + reagent bag
 ---@field bank integer copies in the character's personal bank
 ---@field total integer bags + bank
@@ -150,6 +151,7 @@ function API:GetItemCounts(itemID)
   if not itemID then return nil end
   local bankStore = ns.db.bank
   local charBanks = (bankStore and bankStore.characters) or {}
+  local myRealm = ns.currentData and ns.currentData.realm
   local chars, total = {}, 0
   for name, c in pairs(ns.db.characters) do
     local bags = (c.inventory and c.inventory.counts and c.inventory.counts[itemID]) or 0
@@ -157,7 +159,12 @@ function API:GetItemCounts(itemID)
     local bank = (bankData and bankData.items and bankData.items[itemID]) or 0
     local sum = bags + bank
     if sum > 0 then
-      insert(chars, { name = name, classKey = c.classKey, bags = bags, bank = bank, total = sum })
+      insert(chars, {
+        name = name,
+        classKey = c.classKey,
+        realm = (c.realm and c.realm ~= myRealm) and c.realm or nil,
+        bags = bags, bank = bank, total = sum,
+      })
       total = total + sum
     end
   end

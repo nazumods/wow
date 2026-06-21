@@ -18,14 +18,17 @@ LibNUI, no DB. Surfaces data only — all counting lives in Warbandeer_Character
 
 - Calls `API:GetItemCounts(itemID)` (`ns.api` = `WarbandeerApi`, bound via `X-NUI-API`);
   returns nil when nothing is held → no block.
-- **Header**: `AddDoubleLine("Warband stock", total)` (total in `HIGHLIGHT_FONT_COLOR`).
-- **Per character**: one `AddDoubleLine` — class-coloured name (left) + `total` then a muted
-  inline source breakdown `(Bags: B, Bank: K)` (right, `sources()`, non-zero locations only),
-  matching Altoholic's `Name  N (Bags: …)` style. Capped at `MAX_CHARS` (16); past it, the
-  first 15 then a muted `+N more — /swinv <itemID> for the full list` hint (render takes the
-  itemID so the hint names it). The report's `characters` list is already sorted by total
-  desc, name asc.
+- **Header**: a plain `AddLine("Warband stock")` label (the total moved to the bottom).
+- **Per character**: one `AddDoubleLine` — `charLabel(e)` (class-coloured name, left, with a
+  ` (Realm)` suffix when the entry's `realm` is set — i.e. a different realm than the current
+  character) + `total` then a muted inline source breakdown `(Bags: B, Bank: K)` (right,
+  `sources()`, non-zero locations only), matching Altoholic's `Name  N (Bags: …)` style.
+  Capped at `MAX_CHARS` (16); past it, the first 15 then a muted
+  `+N more — /swinv <itemID> for the full list` hint (render takes the itemID so the hint
+  names it). The report's `characters` list is already sorted by total desc, name asc.
 - **Warband bank** (if > 0) and each **guild bank**: muted left label + count.
+- **Footer**: `AddDoubleLine("Total owned", report.total)` at the very bottom — the grand
+  total across every source (Altoholic's "Total owned").
 - Counts run through `BreakUpLargeNumbers` (`abbr`).
 
 ## `/swinv <itemID | item link>`

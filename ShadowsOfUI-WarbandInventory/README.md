@@ -7,10 +7,11 @@ Hover any item — in your bags, at a vendor, in the Auction House, in a chat li
 tooltip gains a short breakdown:
 
 - one **class-coloured line per character** that has any, with a `(Bags: N, Bank: N)` source
-  breakdown (only the places they actually hold it),
+  breakdown (only the places they actually hold it). Characters on a **different realm** get
+  their realm name appended, e.g. `Kurorin (Norgannon)`,
 - the shared **warband (account) bank**,
 - each **guild bank** you can see,
-- and a **grand total** on the header.
+- and a **Total owned** grand total on the bottom line.
 
 Characters are listed most-first, capped so the tooltip stays small: up to sixteen names,
 then a `+N more — /swinv <itemID> for the full list` hint pointing at the slash command below.
