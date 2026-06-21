@@ -4,7 +4,7 @@ local floor, max = math.floor, math.max
 local ui, api, Colors = ns.ui, ns.api, ns.Colors
 local lists, prepend = ns.lua.lists, ns.lua.lists.prepend
 local Class = ns.lua.Class
-local TableFrame, Texture = ui.TableFrame, ui.Texture
+local TableFrame, Texture, Label = ui.TableFrame, ui.Texture, ui.Label
 
 local GreenCheck = {
   atlas = ns.icons.CheckGreen,
@@ -202,11 +202,11 @@ function DataView:ToggleWantedOnly()
   return self._wantedOnly
 end
 
--- Per-cell rating overlays: a gold "wanted" star (top-left) and a small
--- tier-colored rank pip (top-right), both lazily created on the cell and reused.
+-- Per-cell rating overlays: a gold "wanted" star (top-left) and the tier letter
+-- in its tier color (top-right), both lazily created on the cell and reused.
 -- Driven entirely by live DB state, so re-applying after any toggle / re-sort is
 -- enough — the cell data carries only the setId to look them up by.
-local STAR, PIP = 11, 7
+local STAR = 11
 
 ---@param cell Cell
 ---@param setId number?
@@ -227,11 +227,12 @@ function DataView:_applyCellMarks(cell, setId)
   local rank = setId and ns:EffectiveRank(setId, self._playerRace)
   if rank then
     if not cell._rankPip then
-      cell._rankPip = Texture:new{
-        parent = cell, layer = ui.layer.Overlay,
-        position = { TopRight = {-1, -1}, Size = {PIP, PIP} },
+      cell._rankPip = Label:new{
+        parent = cell, layer = ui.layer.Overlay, fontObj = "GameFontNormalSmall",
+        position = { TopRight = {-1, 0} },
       }
     end
+    cell._rankPip:Text(rank)
     cell._rankPip:Color(ns.RankColors[rank])
     cell._rankPip:Show()
   elseif cell._rankPip then

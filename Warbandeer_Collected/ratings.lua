@@ -127,3 +127,22 @@ end
 function ns:PlayerRace()
   return ns.CanonRace(select(3, UnitRace("player")))
 end
+
+-- ─── Change notification ─────────────────────────────────────────────────────
+-- The dressing room is shared by multiple grids (Collected's own window and
+-- Warbandeer's `collected` view, each its own frame), so a rating edit there can't
+-- know which grid to poke. Grids register a refresher here instead; the dressing
+-- room just fires NotifyRatingsChanged after any change.
+---@type fun()[]
+ns._ratingListeners = {}
+
+---Register a callback run after any wanted/rank change.
+---@param fn fun()
+function ns:OnRatingsChanged(fn)
+  self._ratingListeners[#self._ratingListeners + 1] = fn
+end
+
+---Fire every registered ratings-changed callback.
+function ns:NotifyRatingsChanged()
+  for _, fn in ipairs(self._ratingListeners) do fn() end
+end

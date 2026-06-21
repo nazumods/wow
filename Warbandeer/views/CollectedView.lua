@@ -155,10 +155,10 @@ end, {
   end,
 })
 
--- Per-cell rating overlays (gold wanted star top-left, tier-colored rank pip
--- top-right), mirroring Collected's own grid. Driven by live API state, so a
+-- Per-cell rating overlays (gold wanted star top-left, tier letter in its tier
+-- color top-right), mirroring Collected's own grid. Driven by live API state, so a
 -- refresh after any update()/re-sort/toggle is enough.
-local STAR, PIP = 11, 7
+local STAR = 11
 
 ---@param cell Cell
 ---@param setId number?
@@ -180,11 +180,12 @@ function Grid:_applyCellMarks(cell, setId)
   local rank = api and setId and api:EffectiveRank(setId, self._playerRace)
   if rank then
     if not cell._rankPip then
-      cell._rankPip = Texture:new{
-        parent = cell, layer = ui.layer.Overlay,
-        position = { TopRight = {-1, -1}, Size = {PIP, PIP} },
+      cell._rankPip = Label:new{
+        parent = cell, layer = ui.layer.Overlay, fontObj = "GameFontNormalSmall",
+        position = { TopRight = {-1, 0} },
       }
     end
+    cell._rankPip:Text(rank)
     cell._rankPip:Color(api.RankColors[rank])
     cell._rankPip:Show()
   elseif cell._rankPip then
@@ -231,7 +232,11 @@ end
 ---@field _wantedBorder Texture "wanted only" filter border (gold while active)
 ---@field _sortBorder Texture raid-order toggle border (gold once newest-first)
 ---@field _sortLabel Label raid-order toggle caption
+-- The live view instance, captured so the ratings-changed listener (registered
+-- once, below) refreshes whichever grid currently exists.
+local _view
 local CollectedView = Class(Frame, function(self)
+  _view = self
   self.counter = Label:new{
     parent = self, fontInfo = theme.fonts.body, color = theme.colors.muted,
     position = { TopLeft = {2, -2}, Height = HDR_H },
@@ -269,6 +274,16 @@ end, {})
 CollectedView.name = "collected"
 CollectedView._title = "Collected"
 ns.views.CollectedView = CollectedView
+
+-- Live-refresh this view's grid when a rating changes in the shared dressing room
+-- (registered once at load; Collected loads first via the OptionalDep order).
+if WarbandeerCollectedApi and WarbandeerCollectedApi.OnRatingsChanged then
+  WarbandeerCollectedApi:OnRatingsChanged(function()
+    local g = _view and _view.grid
+    if not g then return end
+    if g._wantedOnly then g.data = g:GetData(); g:update() else g:_refreshMarks() end
+  end)
+end
 
 -- Refresh counts, grid data, and the empty-state message each time the view shows
 -- (so a /collected scan run after the view was built is reflected on next open).

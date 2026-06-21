@@ -120,6 +120,16 @@ function MainWindow:RefreshWanted()
   self.wantedCount:Text("★ " .. ns:WantedCount())
 end
 
+-- Live-refresh this window's grid + wanted counter when a rating changes anywhere
+-- (e.g. via the shared dressing room). No-op until the window has been opened.
+ns:OnRatingsChanged(function()
+  if not ns.window then return end
+  local grid = ns.window.data
+  if grid._wantedOnly then grid.data = grid:GetData(); grid:update()   -- re-filter
+  else grid:_refreshMarks() end
+  ns.window:RefreshWanted()
+end)
+
 ---@class Warbandeer_Collected
 ---@field window CollectedWindow? main window (nil until first opened)
 ns.window = nil

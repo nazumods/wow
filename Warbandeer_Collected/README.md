@@ -17,10 +17,10 @@ Mark the sets you're chasing and rate how they look:
   grid down to just your target list. `/collected wanted` lists them all in chat.
 - **Tier rank** — give a set an **S / A / B / C / F** rating in the dressing room.
   Set a single baseline rank, or turn on **This race** to rank it for the specific
-  race you're previewing (some sets look better on some races). The grid shows a
-  small tier-colored dot — for your current character's race — and hovering shows
-  the letter. Both are saved account-wide and are independent of whether you've
-  collected the set.
+  race you're previewing (some sets look better on some races). The grid shows the
+  tier letter, in its tier color, in the corner of the cell — for your current
+  character's race. Both are saved account-wide and are independent of whether
+  you've collected the set.
 
 Click a set's cell to open a 3D dressing
 room showing the set worn by any playable **race** you pick — handy for

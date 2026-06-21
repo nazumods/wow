@@ -645,14 +645,10 @@ function DressingRoom:_refreshRatings()
   end
 end
 
--- Reflect a rating change in the in-addon grid right away (if open). The shared
--- dressing room is also used by Warbandeer's grid, which refreshes on its next open.
+-- Reflect a rating change in every registered grid right away (Collected's window
+-- + Warbandeer's collected view), wherever the dressing room was opened from.
 function DressingRoom:_ratingsChanged()
-  if not ns.window then return end
-  local grid = ns.window.data
-  if grid._wantedOnly then grid.data = grid:GetData(); grid:update()   -- re-filter
-  else grid:_refreshMarks() end
-  ns.window:RefreshWanted()
+  ns:NotifyRatingsChanged()
 end
 
 function DressingRoom:ToggleWanted()

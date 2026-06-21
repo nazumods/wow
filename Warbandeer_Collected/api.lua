@@ -134,4 +134,9 @@ function API:SetRaceRank(setId, raceId, rank) ns:SetRaceRank(setId, raceId, rank
 ---@return number
 function API:PlayerRace() return ns:PlayerRace() end
 
+---Register a callback fired after any wanted/rank change, so a consumer grid can
+---live-refresh when the shared dressing room edits a rating.
+---@param fn fun()
+function API:OnRatingsChanged(fn) ns:OnRatingsChanged(fn) end
+
 _G.WarbandeerCollectedApi = API
