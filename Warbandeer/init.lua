@@ -187,8 +187,27 @@ local function refreshViewOnWarbandBankChange()
   end)
 end
 
+-- Live-refresh the open collected view when the sibling Collected addon finishes a
+-- scan (e.g. after learning an appearance), keeping this grid in sync with the
+-- standalone /collected window. The callback fires after Collected's DB is already
+-- fresh, so a plain re-read suffices — no debounce needed here.
+local function shownCollectedView()
+  local view = ns.MainWindow and ns.MainWindow:ShownView()
+  return view and view.name == "collected" and view or nil
+end
+local function refreshCollectedOnScan()
+  local view = shownCollectedView()
+  if view then
+    view:OnBeforeShow()
+    ns.MainWindow:Fit()
+  end
+end
+
 function ns:onLoad()
   ns:registerEvent("PLAYER_EQUIPMENT_CHANGED", refreshDetailOnGearChange)
+  if WarbandeerCollectedApi and WarbandeerCollectedApi.OnScanned then
+    WarbandeerCollectedApi:OnScanned(refreshCollectedOnScan)
+  end
   -- PLAYER_ACCOUNT_BANK_TAB_SLOTS_CHANGED covers a live withdrawal; BANKFRAME_CLOSED is the
   -- belt-and-suspenders final capture (the data layer rescans there too). Both coalesce into
   -- a single refresh via the generation-guarded debounce.

@@ -14,6 +14,7 @@ local ns = select(2, ...)
 ---@field Ranks string[] ordered tier letters, best → worst (see `ns.Ranks`)
 ---@field RankColors table<string, number[]> tier letter → 0–1 rgb
 ---@field WantedIcon string atlas for the "wanted" marker
+---@field OnScanned fun(self, fn: fun()) register a callback fired after each scan refreshes the data
 local API = {}
 
 -- Static set-group definitions (rows), release names, and the parallel expansion
@@ -40,6 +41,18 @@ end
 ---@return boolean
 function API:IsScanned()
   return (ns.db.total or 0) > 0
+end
+
+-- Scan-complete subscribers. Consumers (e.g. Warbandeer's collected view) register
+-- to be refreshed after a scan rewrites the counts, so their grid stays in sync with
+-- the /collected window. `ns:Scan()` fires these once the DB is fresh, so callbacks
+-- read up-to-date data with no debounce race.
+ns._scanned = {}
+
+---Register a callback fired after each scan refreshes the collection data.
+---@param fn fun()
+function API:OnScanned(fn)
+  ns._scanned[#ns._scanned + 1] = fn
 end
 
 ---Scan table for one group, or nil if the group was never scanned.

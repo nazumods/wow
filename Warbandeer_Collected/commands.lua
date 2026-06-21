@@ -75,25 +75,28 @@ ns:registerCommand("release", nil, function(_, args)
   ns.Print(("Preview release %d (%s)"):format(n, ns.Releases[n]))
 end, "dev: preview an expansion badge by release index 1..12 (eyeball each icon)")
 
-ns:registerCommand("scan", "", function()
-  ns.db.collected = 0
-  ns.db.total = 0
-  ns.db.sets = {}
+-- Rebuild db.sets/collected/total from the live transmog APIs and refresh the open
+-- window. Leaves the rating keys (wanted/rank/raceRank) untouched. Silent so the
+-- collection-change event can call it without chat spam; the command prints.
+function ns:Scan()
+  self.db.collected = 0
+  self.db.total = 0
+  self.db.sets = {}
   for _, grp in ipairs(ns.Sets) do
-    ns.db.sets[grp.id] = ns.db.sets[grp.id] or {}
-    ns.db.total = ns.db.total + #grp.sets
+    self.db.sets[grp.id] = self.db.sets[grp.id] or {}
+    self.db.total = self.db.total + #grp.sets
     for _, set in ipairs(grp.sets) do
       if set.id then
         if isCollected(set.id) then
-          ns.db.sets[grp.id][set.id] = true
-          ns.db.collected = ns.db.collected + 1
+          self.db.sets[grp.id][set.id] = true
+          self.db.collected = self.db.collected + 1
         else
           local parts = getParts(set.id)
           local n = 0
           for _,p in ipairs(parts) do
             if p.collected then n = n + 1 end
           end
-          ns.db.sets[grp.id][set.id] = {
+          self.db.sets[grp.id][set.id] = {
             collected = n,
             parts = parts,
             total = #parts,
@@ -103,9 +106,26 @@ ns:registerCommand("scan", "", function()
     end
   end
   if ns.window then
-    ns.window.counter:Text(ns.db.collected .. " / " .. ns.db.total)
+    ns.window.counter:Text(self.db.collected .. " / " .. self.db.total)
     ns.window.data.data = ns.window.data:GetData()
     ns.window.data:update()
   end
+  -- Notify consumers (Warbandeer's collected view) now the DB is fresh, so both
+  -- grids stay in sync (see api.lua OnScanned).
+  if ns._scanned then
+    for _, fn in ipairs(ns._scanned) do fn() end
+  end
+end
+
+ns:registerCommand("scan", "", function(self)
+  self:Scan()
   ns.Print("Scanned sets, collected sets updated.")
 end, "Scan all sets for collected status")
+
+-- Learning a new appearance changes the per-set collected counts, so re-scan when
+-- the collection updates. This event fires in bursts (e.g. login), so debounce
+-- through ns.delay; only rescan once the user has scanned at least once.
+ns:registerEvent("TRANSMOG_COLLECTION_UPDATED", function(self)
+  if self.db.total == 0 then return end
+  self:delay(500, function() self:Scan() end)
+end)
