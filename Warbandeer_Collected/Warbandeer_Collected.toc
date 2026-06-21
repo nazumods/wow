@@ -2,7 +2,7 @@
 ## Category: Warband
 ## Title: Collected
 ## Author: Nazuraki
-## Version: 12.0.7-r1
+## Version: 12.0.7-r2
 ## IconTexture: Interface\Icons\inv_10_tailoring2_banner_green
 ## SavedVariables: WarbandeerCollectedDB
 ## AddonCompartmentFunc: WarbandeerCollected_OnAddonCompartmentClick
