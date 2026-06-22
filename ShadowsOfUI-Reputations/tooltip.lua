@@ -6,15 +6,29 @@ local concat = table.concat
 -- faction. There's no item->faction API, so match a cached faction name appearing anywhere in
 -- the tooltip text (a rep token's "increases your reputation with X", a tabard's name, etc.) —
 -- locale-consistent since the cached names and the live tooltip share the client locale.
+--
+-- Item tooltips re-fire constantly (mouseover refreshes, comparison toggles) for the same item,
+-- so memoize the resolved faction per itemID (false = "no faction", a negative result worth
+-- caching too) and wipe the whole memo whenever the name index is rebuilt.
+local memo = {}
+local memoGen
 local function onItemTooltip(tooltip, data)
   if not data or not data.lines then return end
   if tooltip.IsForbidden and tooltip:IsForbidden() then return end
-  local buf = {}
-  for i = 1, #data.lines do
-    local t = data.lines[i].leftText
-    if t then buf[#buf + 1] = t:lower() end
+  if memoGen ~= ns._factionIndexGen then
+    wipe(memo)
+    memoGen = ns._factionIndexGen
   end
-  local fid = ns.FactionIDByName(concat(buf, "\n"))
+  local fid = memo[data.id]
+  if fid == nil then
+    local buf = {}
+    for i = 1, #data.lines do
+      local t = data.lines[i].leftText
+      if t then buf[#buf + 1] = t:lower() end
+    end
+    fid = ns.FactionIDByName(concat(buf, "\n")) or false
+    memo[data.id] = fid
+  end
   if not fid then return end
   ns.AppendStandings(tooltip, fid) -- item tooltips auto-show after post-calls; no Show() needed
 end
