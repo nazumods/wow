@@ -53,7 +53,10 @@ insert(
     width = 30,
     padLeft = 7,
     justifyH = ui.justify.Center,
-    tooltip = "Midnight reputation Items needed",
+    tooltip = {
+      "Catch-Up Gear",
+      "Slots (Head / Neck / Hands / Waist) still below item level 180. Green check when all four are at or above it.",
+    },
     getData = getData,
   }
 )
