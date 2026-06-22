@@ -3,9 +3,10 @@ local ns = select(2, ...)
 ---@type LibNUI
 local ui = ns.ui
 
--- Shard of Dundun (currency 3376): weekly earn cap of 8, used to empower the
--- Abundance world event. Red when the week's cap is earned — done until weekly
--- reset. Hover shows earned/cap.
+-- Shard of Dundun (currency 3376): hard cap of 8, used to empower the Abundance
+-- world event. Red when holding the cap — done until some are spent (the
+-- earned-this-week API reads 0 even at the cap, so "done" is held >= cap, not
+-- earned). Hover shows held/cap.
 table.insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
@@ -14,7 +15,7 @@ table.insert(
     iconColor = ns.theme.colors.muted,
     width = 30,
     justifyH = ui.justify.Center,
-    tooltip = {"Shard of Dundun", "Shards held. Red when the weekly cap is earned — resets at weekly reset."},
+    tooltip = {"Shard of Dundun", "Shards held. Red when holding the cap of 8 — spend at Chel the Chip to earn more."},
     getData = function(t)
       if not t.currency then return "" end
       local c = t.currency.ShardOfDundun
@@ -26,7 +27,7 @@ table.insert(
       if not c or c.quantity == 0 then
         return t.basic.level >= ns.wow.maxLevel and ns.ZeroDashC or ""
       end
-      local tipLine  = c.earned .. "/" .. c.max
+      local tipLine  = c.quantity .. "/" .. c.max
       local tipColor = c.capped and ns.CappedColor or ns.UncappedColor
       return {
         text     = c.quantity,

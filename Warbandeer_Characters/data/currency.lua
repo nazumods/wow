@@ -162,24 +162,21 @@ Currency.fields = {
     end,
   },
   ShardOfDundun = {
-    id = 3376, -- weekly earn cap (maxWeeklyQuantity 8); empowers the Abundance world event
+    -- (3376) Hard cap 8 (maxQuantity); empowers the Abundance world event. In-game
+    -- quantityEarnedThisWeek reads 0 even while holding the full 8, so "done this week"
+    -- can't come from earned-this-week — derive it from holding the cap, like Catalyst.
+    id = 3376,
     get = function(self)
       local info = GetCurrencyInfo(self.id)
-      if not info then return {quantity = 0, earned = 0, max = 0, capped = false} end
-      local earned = info.quantityEarnedThisWeek or 0
-      local max    = info.maxWeeklyQuantity or 0
+      if not info then return {quantity = 0, max = 0, capped = false} end
+      local max = info.maxQuantity or 0
       return {
         quantity = info.quantity or 0,
-        earned   = earned,
         max      = max,
-        capped   = max > 0 and earned >= max,
+        capped   = max > 0 and (info.quantity or 0) >= max,
       }
     end,
-    resetOn = ns.RESET_WEEKLY,
-    reset = function(_, toon)
-      local c = toon.currency and toon.currency.ShardOfDundun
-      if not c then return nil end
-      return {quantity = c.quantity, earned = 0, max = c.max, capped = false}
-    end,
+    event = "CURRENCY_DISPLAY_UPDATE",
+    eventFilter = function(self, _, currencyID) return currencyID == self.id end,
   },
 }
