@@ -64,15 +64,17 @@ local function openSelector()
     -- Launch button, centred vertically within the row
     local btnTopY = rowTopY - math.floor((ROW_H - 22) / 2)
     local runFn = test.run
-    local btn = LibNUI.Button:new{
-      parent  = f,
-      onClick = function() runFn() end,
+    local btn = LibNUI.Frame:new{
+      type     = "Button",
+      template = "UIPanelButtonTemplate",
+      parent   = f,
       position = {
         TopRight = {f, LibNUI.edge.TopRight, -10, btnTopY},
         Width    = BTN_W,
         Height   = 22,
       },
     }
+    btn:SetScript("OnClick", function() runFn() end)
     LibNUI.Label:new{
       parent   = btn,
       text     = "Launch",
