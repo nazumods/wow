@@ -27,7 +27,7 @@ OOP UI widget library. Every widget wraps a backing WoW object (`self._widget`) 
 | `EditBox.lua` | `EditBox` — text input; `Text`, `CursorPosition`, `HighlightText`, `Font` (`{path,size[,flags]}` tuple getter/setter) |
 | `ScrollFrame.lua` | `ScrollFrame` — scrollable container; `Child`, `VerticalScroll` (get/set offset, clamped to range — for scroll-into-view) |
 | `CleanFrame.lua` | `CleanFrame` — styled dark frame with tooltip border (base for windows) |
-| `Cell.lua` | `Cell` — table cell (Frame); renders as Label or Texture, reused across re-sorts via `update`. Label cell-data keys: `text`, `color`, `justifyH`, `font` (font-object name), `fontInfo` (`{path,size}` tuple, re-applied on reuse) |
+| `Cell.lua` | `Cell` — table cell (Frame); renders as Label, Texture, or **both** (icon+text combo), reused across re-sorts via `update`. Label cell-data keys: `text`, `color`, `justifyH`, `font` (font-object name), `fontInfo` (`{path,size}` tuple, re-applied on reuse). **Combo**: when data has an icon (`path`/`atlas`) AND `text`, the icon is pinned by `iconPosition` (e.g. `{Left={2,0}, Size={14,14}}`) and a filling label is added, so icon and text justify independently (e.g. a left status icon beside a right-aligned number) |
 | `TableCol.lua` | `TableCol` — column header (BgFrame); content surfaced as `header.label`/`header.texture` |
 | `TableRow.lua` | `TableRow` — row header strip (BgFrame) |
 | `TableFrame.lua` | `TableFrame` — full data grid (headers + cells); `set`, `addCol`/`addRow`, `update`, `setFooter` |
