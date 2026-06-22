@@ -5,12 +5,14 @@ local ui = ns.ui
 
 -- Catalyst column. Shows two things per max-level character: a left-pinned ✓/✗ for
 -- "Midnight Season 1: Catalyst Unbound" (achievement 61519 — class set bonuses
--- unlocked, captured per-character via quests.CatalystUnbound) and the right-aligned
--- Dawnlight Manaflux charge count. Charges recharge 1 every two weeks up to 8, so a
--- full bank (red) means further recharge is wasted. Uses the Cell icon+text combo
--- so the icon left-justifies and the number right-justifies independently.
-local CHECK_POS = { Left = {2, 0}, Size = {13, 13} }
-local CROSS_POS = { Left = {2, 0}, Size = {14, 14} }
+-- unlocked, captured per-character via quests.CatalystUnbound) and the Dawnlight
+-- Manaflux charge count pushed to the right. Charges recharge 1 every two weeks up
+-- to 8, so a full bank (red) means further recharge is wasted. The ✓/✗ is an inline
+-- atlas (so the cell stays a single label); GAP pushes the count toward the right
+-- edge while the icon stays left-justified — tune GAP if the spacing needs nudging.
+local CHECK = ("|A:%s:13:13|a"):format(ns.icons.CheckGreen)
+local CROSS = ("|A:%s:14:14|a"):format(ns.icons.RedX)
+local GAP = "    "
 table.insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
@@ -39,15 +41,14 @@ table.insert(
       end
 
       local unbound = t.quests and t.quests.CatalystUnbound or false
+      local mark = unbound and CHECK or CROSS
       return {
-        atlas        = unbound and ns.icons.CheckGreen or ns.icons.RedX,
-        atlasSize    = false,
-        iconPosition = unbound and CHECK_POS or CROSS_POS,
-        text         = tostring(q),
-        justifyH     = ui.justify.Right,
-        color        = color,
-        fontInfo     = ns.theme.fonts.number,
-        onEnter      = function(self)
+        -- inline atlas keeps its own green/red; the number takes `color`
+        text     = mark .. GAP .. q,
+        justifyH = ui.justify.Left,
+        color    = color,
+        fontInfo = ns.theme.fonts.number,
+        onEnter  = function(self)
           ns.AnchorTip(self)
           ui.tip:ClearLines()
           local sc = unbound and ns.theme.colors.green or ns.theme.colors.red
@@ -56,7 +57,7 @@ table.insert(
           ui.tip:AddLine("Manaflux charges: " .. q .. (c and c.capped and " (full)" or ""), 1, 1, 1)
           ui.tip:Show()
         end,
-        onLeave      = function() ui.tip:Hide() end,
+        onLeave  = function() ui.tip:Hide() end,
       }
     end,
   }
