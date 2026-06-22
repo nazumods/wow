@@ -149,7 +149,7 @@ currency = {
   MythDawncrest  = { quantity, earned, max, capped },
   NebulousVoidcore = { quantity, earned, max, capped }?,   -- (3418) season cap: totalEarned vs maxQuantity, grows +2/week
   UntaintedManaCrystal = { quantity, earned, max, capped }?, -- (3356) weekly-earn cap 250 (hard cap 1000); RESET_WEEKLY
-  ShardOfDundun = { quantity, max, capped }?,               -- (3376) hard cap 8 (capped = quantity >= maxQuantity, like Catalyst — earned-this-week reads 0 at cap); empowers the Abundance world event
+  ShardOfDundun = { quantity, earned, max, weeklyMax, capped }?, -- (3376) earn 8/wk + hold 8 (both caps 8); capped = held >= max OR earned >= weeklyMax; empowers the Abundance world event; RESET_WEEKLY
 }
 items = {
   bags = { [1..N] = {id, slots}, GoblinMiniFridge?, ArathorSatchel?, PortableRefridgerator? },
@@ -248,7 +248,7 @@ playtime = {
 | Broker | Fields | Events | Resets |
 |---|---|---|---|
 | `basic` | level, specialization, professions, xp | `PLAYER_LEVEL_UP` (500ms), `PLAYER_SPECIALIZATION_CHANGED` (specialization), `PLAYER_XP_UPDATE`/`UPDATE_EXHAUSTION`/`PLAYER_UPDATE_RESTING` (1000ms) | — |
-| `currency` | RestoredCofferKey, gold, CofferKeyShard, Catalyst, HeroDawncrest, MythDawncrest, NebulousVoidcore, UntaintedManaCrystal, ShardOfDundun | `PLAYER_MONEY` (gold), `CURRENCY_DISPLAY_UPDATE` (Catalyst + NebulousVoidcore + ShardOfDundun, id-filtered) | CofferKeyShard, NebulousVoidcore, UntaintedManaCrystal: `RESET_WEEKLY` |
+| `currency` | RestoredCofferKey, gold, CofferKeyShard, Catalyst, HeroDawncrest, MythDawncrest, NebulousVoidcore, UntaintedManaCrystal, ShardOfDundun | `PLAYER_MONEY` (gold), `CURRENCY_DISPLAY_UPDATE` (Catalyst + NebulousVoidcore + ShardOfDundun, id-filtered) | CofferKeyShard, NebulousVoidcore, UntaintedManaCrystal, ShardOfDundun: `RESET_WEEKLY` |
 | `items` | bags, reagentBag | — | — |
 | `inventory` | counts | `BAG_UPDATE_DELAYED` (500ms) | — |
 | `reputations` | factions | `UPDATE_FACTION` (rate-limited: self-trigger suppression + gen-guarded debounce 2s + 6s throttle — full faction walk too heavy per-event) | — |

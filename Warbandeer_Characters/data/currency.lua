@@ -162,21 +162,41 @@ Currency.fields = {
     end,
   },
   ShardOfDundun = {
-    -- (3376) Hard cap 8 (maxQuantity); empowers the Abundance world event. In-game
-    -- quantityEarnedThisWeek reads 0 even while holding the full 8, so "done this week"
-    -- can't come from earned-this-week — derive it from holding the cap, like Catalyst.
+    -- (3376) Empowers the Abundance world event. Earn up to 8 per week
+    -- (maxWeeklyQuantity) and hold at most 8 (maxQuantity) — you can't earn while
+    -- full. "Done this week" is therefore EITHER constraint hit: holding the cap, OR
+    -- having earned the week's 8 (held < 8 after spending). Both caps are 8.
     id = 3376,
     get = function(self)
       local info = GetCurrencyInfo(self.id)
-      if not info then return {quantity = 0, max = 0, capped = false} end
-      local max = info.maxQuantity or 0
+      if not info then return {quantity = 0, earned = 0, max = 0, weeklyMax = 0, capped = false} end
+      local q      = info.quantity or 0
+      local earned = info.quantityEarnedThisWeek or 0
+      local max    = info.maxQuantity or 0
+      local weekly = info.maxWeeklyQuantity or 0
       return {
-        quantity = info.quantity or 0,
-        max      = max,
-        capped   = max > 0 and (info.quantity or 0) >= max,
+        quantity  = q,
+        earned    = earned,
+        max       = max,
+        weeklyMax = weekly,
+        capped    = (max > 0 and q >= max) or (weekly > 0 and earned >= weekly),
       }
     end,
     event = "CURRENCY_DISPLAY_UPDATE",
     eventFilter = function(self, _, currencyID) return currencyID == self.id end,
+    resetOn = ns.RESET_WEEKLY,
+    reset = function(_, toon)
+      local c = toon.currency and toon.currency.ShardOfDundun
+      if not c then return nil end
+      -- the week's earn allowance refreshes; held shards carry over, so re-derive
+      -- capped from the hold cap alone (earned is 0 for the new week).
+      return {
+        quantity  = c.quantity,
+        earned    = 0,
+        max       = c.max,
+        weeklyMax = c.weeklyMax,
+        capped    = c.max > 0 and c.quantity >= c.max,
+      }
+    end,
   },
 }
