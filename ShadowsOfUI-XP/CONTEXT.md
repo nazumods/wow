@@ -2,7 +2,7 @@
 
 **Deps:** LibNAddOn, LibNUI · **SavedVars:** none · **Commands:** none · **UI:** LibNUI
 
-Minimal full-width XP bar pinned to the screen bottom. Hides Blizzard's `StatusTrackingBarManager`; the custom bar is only created while the player is below max level.
+Minimal full-width XP bar pinned to the screen bottom. Hides Blizzard's `StatusTrackingBarManager` **unconditionally and permanently** (by design — see Gotchas); the custom bar is only created while the player is below max level, so at max level the screen is clean (no XP bar, no rep/honor/azerite tracking bars).
 
 ## Files
 
@@ -31,5 +31,6 @@ Anchored full-width along screen bottom (`BottomLeft`/`BottomRight` of `UIParent
 
 ## Gotchas
 
+- **`StatusTrackingBarManager:Hide()` in `onLoad` is intentionally unconditional.** It is *not* scoped to "below max" and is never re-shown — at max level the addon wants a fully clean screen (no XP bar **and** no Blizzard tracking bars). Do not "fix" it by gating on level or re-showing on `PLAYER_LEVEL_UP`; that would resurrect the rep/honor bar at max, contradicting the README ("Hidden entirely at max level (and Blizzard's bar stays hidden with it)").
 - Labels start at alpha 0 — they're invisible until hover, then fade back out.
 - `RestedGradientStart`/`End` and the `secondary` gradient are defined but commented out; the rested overlay is currently a flat blue.
