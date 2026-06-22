@@ -83,10 +83,12 @@ function ns:Scan()
   self.db.total = 0
   self.db.sets = {}
   for _, grp in ipairs(ns.Sets) do
+    -- Difficulty rows of one raid share a grp.id, each contributing its own
+    -- set ids to the shared table — so merge, don't reset, per group.
     self.db.sets[grp.id] = self.db.sets[grp.id] or {}
-    self.db.total = self.db.total + #grp.sets
     for _, set in ipairs(grp.sets) do
       if set.id then
+        self.db.total = self.db.total + 1
         if isCollected(set.id) then
           self.db.sets[grp.id][set.id] = true
           self.db.collected = self.db.collected + 1
