@@ -53,6 +53,7 @@ views\summaryCol\crests.lua
 views\summaryCol\catalyst.lua
 views\summaryCol\voidcore.lua
 views\summaryCol\manacrystal.lua
+views\summaryCol\dundun.lua
 views\summaryCol\delves.lua
 views\summaryCol\lumber.lua
 views\summaryCol\cofferKey.lua
