@@ -184,7 +184,7 @@ ns.SummaryColumnsDelayed = function(view)
       name = "DMF",
       width = 30,
       getData = function(toon)
-        return toon.weeklies.DMF and ns.GreenCheck or ""
+        return toon.weeklies and toon.weeklies.DMF and ns.GreenCheck or ""
       end,
     }
     -- Not inserted into ns.SummaryColumns (and so not user-toggleable): it's a
