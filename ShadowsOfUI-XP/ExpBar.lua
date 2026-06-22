@@ -167,6 +167,11 @@ function ExpBar:UPDATE_EXHAUSTION() self:update() end
 function ExpBar:PLAYER_UPDATE_RESTING() self:update() end
 
 function ns:onLoad()
+  -- Hide Blizzard's manager unconditionally, by design: below max our bar
+  -- replaces it; at/after max we want a clean screen with no tracking bars at
+  -- all (so the rep/honor/azerite bars stay hidden too). Do not gate this on
+  -- level or re-show it on PLAYER_LEVEL_UP -- see README "Hidden entirely at
+  -- max level (and Blizzard's bar stays hidden with it)".
   StatusTrackingBarManager:Hide()
   if not self.wow.Player:isMaxLevel() then
     self.xpBar = ExpBar:new{}
