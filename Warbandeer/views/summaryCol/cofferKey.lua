@@ -25,11 +25,23 @@ table.insert(
       if keys == 0 and shardQty == 0 then
         return t.basic.level >= ns.wow.maxLevel and ns.ZeroDash or ""
       end
+      local tipColor   = shards and shards.capped and ns.CappedColor or ns.UncappedColor
+      local heldLine   = keys .. " keys, " .. shardQty .. " shards"
+      local earnedLine = "Earned this week: " .. (shards and shards.earned or 0)
+        .. "/" .. (shards and shards.weeklyMax or 600)
       return {
         text = ("%.2f"):format(keys + shardQty / 100),
         justifyH = ui.justify.Right,
         fontInfo = ns.theme.fonts.number,
-        color = shards and shards.capped and ns.CappedColor or ns.UncappedColor,
+        color = tipColor,
+        onEnter = function(self)
+          ns.AnchorTip(self)
+          ui.tip:ClearLines()
+          ui.tip:AddLine(heldLine, tipColor[1], tipColor[2], tipColor[3])
+          ui.tip:AddLine(earnedLine, tipColor[1], tipColor[2], tipColor[3])
+          ui.tip:Show()
+        end,
+        onLeave = function() ui.tip:Hide() end,
       }
     end,
   }

@@ -28,16 +28,21 @@ Currency.fields = {
       local cap = info.maxWeeklyQuantity or 0
       local earned = info.quantityEarnedThisWeek or 0
       return {
-        quantity = info.quantity,
-        capped = cap > 0 and earned >= cap,
+        quantity  = info.quantity,
+        earned    = earned,
+        weeklyMax = cap,
+        capped    = cap > 0 and earned >= cap,
       }
     end,
     resetOn = ns.RESET_WEEKLY,
     reset = function(_, toon)
-      if not toon.currency or not toon.currency.CofferKeyShard then return nil end
+      local c = toon.currency and toon.currency.CofferKeyShard
+      if not c then return nil end
       return {
-        quantity = toon.currency.CofferKeyShard.quantity,
-        capped = false,
+        quantity  = c.quantity,
+        earned    = 0,
+        weeklyMax = c.weeklyMax,
+        capped    = false,
       }
     end,
   },
@@ -159,6 +164,44 @@ Currency.fields = {
       local c = toon.currency and toon.currency.UntaintedManaCrystal
       if not c then return nil end
       return {quantity = c.quantity, earned = 0, max = c.max, capped = false}
+    end,
+  },
+  ShardOfDundun = {
+    -- (3376) Empowers the Abundance world event. Earn up to 8 per week
+    -- (maxWeeklyQuantity) and hold at most 8 (maxQuantity) — you can't earn while
+    -- full. "Done this week" is therefore EITHER constraint hit: holding the cap, OR
+    -- having earned the week's 8 (held < 8 after spending). Both caps are 8.
+    id = 3376,
+    get = function(self)
+      local info = GetCurrencyInfo(self.id)
+      if not info then return {quantity = 0, earned = 0, max = 0, weeklyMax = 0, capped = false} end
+      local q      = info.quantity or 0
+      local earned = info.quantityEarnedThisWeek or 0
+      local max    = info.maxQuantity or 0
+      local weekly = info.maxWeeklyQuantity or 0
+      return {
+        quantity  = q,
+        earned    = earned,
+        max       = max,
+        weeklyMax = weekly,
+        capped    = (max > 0 and q >= max) or (weekly > 0 and earned >= weekly),
+      }
+    end,
+    event = "CURRENCY_DISPLAY_UPDATE",
+    eventFilter = function(self, _, currencyID) return currencyID == self.id end,
+    resetOn = ns.RESET_WEEKLY,
+    reset = function(_, toon)
+      local c = toon.currency and toon.currency.ShardOfDundun
+      if not c then return nil end
+      -- the week's earn allowance refreshes; held shards carry over, so re-derive
+      -- capped from the hold cap alone (earned is 0 for the new week).
+      return {
+        quantity  = c.quantity,
+        earned    = 0,
+        max       = c.max,
+        weeklyMax = c.weeklyMax,
+        capped    = c.max > 0 and c.quantity >= c.max,
+      }
     end,
   },
 }
