@@ -203,6 +203,9 @@ end, {
 -- WarbandeerCollectedApi global (OptionalDep). The four difficulty variants of a
 -- raid are sibling Collected groups that share one group id and differ only by the
 -- difficulty suffix in their name (see Warbandeer_Collected/data/sets.lua).
+-- Like the Collected view, each set cell also carries the wanted-star + tier-letter
+-- overlays (TopAlts:_refreshMarks/_applyCellMarks), a Shift-click wanted toggle, and a
+-- live refresh on dressing-room rating edits (the OnRatingsChanged listener below).
 
 -- Raids selectable via the titlebar dropdown; `key` is the shared Collected group id.
 local RAIDS = {
@@ -218,6 +221,7 @@ local DIFFS = {
   { label = "M",  suffix = "Mythic" },
 }
 local GEAR_W = 26   -- width of each difficulty column
+local STAR = 11     -- wanted-star overlay size (matches Collected/CollectedView)
 
 -- 10-shade red→green gradient keyed by collected fraction (matches CollectedView/Collected).
 local shades = {
@@ -260,31 +264,45 @@ end
 -- uncollected count (red→green shaded) otherwise, "–" when unscanned, blank when
 -- the class has no set or Collected isn't available. A scanned cell carries the
 -- Collected view's own hover/click — hover shows the shared per-slot source InfoTip,
--- click opens the 3D dressing room. GetData's decorate() wraps these to also drive
--- the row highlight (and to fall back to opening Detail where there's no set click).
+-- left-click opens the 3D dressing room, Shift-click toggles the set's wanted flag.
+-- Every real set cell carries its setId so _refreshMarks can draw the wanted-star +
+-- tier-letter overlays. GetData's decorate() wraps the hover to also drive the row
+-- highlight (and falls back to opening Detail where there's no set click).
+---@param tbl TopAlts  owning table (for _applyCellMarks on the wanted toggle)
 ---@param api table?  WarbandeerCollectedApi
 ---@param grp table?  the difficulty group, or nil
 ---@param classId number
 ---@return table  cell data
-local function gearCell(api, grp, classId)
+local function gearCell(tbl, api, grp, classId)
   if not (api and grp) then return {} end
   local set = grp.sets[classId]
   if not (set and set.id) then return {} end
   local status = api:SetStatus(grp.id, set.id)
   if not status then
-    return { text = "–", justifyH = ui.justify.Center, color = theme.colors.muted }
+    return { setId = set.id, text = "–", justifyH = ui.justify.Center, color = theme.colors.muted }
   end
   local onEnter = function(c) api:ShowInfoTip(grp, set, c, ns.InfoTipPosition(c)) end
   local onLeave = function() api:HideInfoTip() end
-  local onClick = function() api:ShowDressingRoom(grp, set) end
+  -- Left-click previews the set; Shift-click flags/unflags it wanted (button-agnostic,
+  -- matching the Collected view) and re-applies this cell's overlays from live state.
+  local onClick = function(c)
+    if IsShiftKeyDown() then
+      api:ToggleWanted(set.id)
+      tbl:_applyCellMarks(c, set.id)
+    else
+      api:ShowDressingRoom(grp, set)
+    end
+  end
   if status == true or status.collected >= status.total then
     return {
+      setId = set.id,
       atlas = GreenCheck.atlas, atlasSize = GreenCheck.atlasSize,
       position = GreenCheck.position,
       onEnter = onEnter, onLeave = onLeave, onClick = onClick,
     }
   end
   return {
+    setId = set.id,
     text = status.total - status.collected,
     justifyH = ui.justify.Center,
     color = shades[max(1, floor(status.collected / status.total * 10))],
@@ -311,9 +329,11 @@ end
 ---@class TopAlts: TableFrame
 ---@field _toons Character[]  row index -> character (kept in sync by GetData)
 ---@field _raidId number      currently selected raid (Collected group id)
+---@field _playerRace number? cached canonical race id the tier-letter overlays resolve against
 ---@field GetData fun(self: TopAlts): table  builds the top-character rows
 ---@field SetRaid fun(self: TopAlts, raidId: number)  re-render gear cells for a raid
 ---@field Refresh fun(self: TopAlts)  rebuild rows from current data + raid
+---@field _refreshMarks fun(self: TopAlts)  re-apply every set cell's wanted/tier overlays
 local TopAlts = Class(TableFrame, function(self)
   -- fit col 2 to the widest name
   local w = 0
@@ -330,6 +350,7 @@ local TopAlts = Class(TableFrame, function(self)
   end
   -- Hover/click is driven per-cell (see GetData's decorate), not by a mouse-enabled
   -- row: an interactive row sits above the cells and swallows their tooltips/clicks.
+  self:_refreshMarks()   -- the constructor-time update() ran before our override was mixed in
 end, {
   headerHeight = 18,
   headerWidth = 0,
@@ -396,7 +417,7 @@ end, {
         }, openDetail),
       }
       for _, d in ipairs(DIFFS) do
-        insert(row, decorate(gearCell(api, groups[d.suffix], toon.classId), openDetail))
+        insert(row, decorate(gearCell(self, api, groups[d.suffix], toon.classId), openDetail))
       end
       insert(data, row)
     end
@@ -421,6 +442,67 @@ function TopAlts:_openDetail(i)
   if not (win and toon) then return end
   win:getView("detail"):Select(toon)
   win:view("detail")
+end
+
+-- Apply (or clear) one cell's rating overlays from live Collected DB state: a gold
+-- wanted star top-left, the tier letter in its tier color top-right. Cells carry only
+-- their setId, so a re-apply after any toggle / re-sort / rating edit is enough; the
+-- overlay children are created lazily and reused (shown/hidden), like the Collected grid.
+---@param cell Cell
+---@param setId number?
+function TopAlts:_applyCellMarks(cell, setId)
+  local api = WarbandeerCollectedApi
+  if api and setId and api:IsWanted(setId) then
+    if not cell._wantStar then
+      cell._wantStar = Texture:new{
+        parent = cell, layer = ui.layer.Overlay,
+        atlas = api.WantedIcon, atlasSize = false,
+        position = { TopLeft = {1, -1}, Size = {STAR, STAR} },
+      }
+    end
+    cell._wantStar:Show()
+  elseif cell._wantStar then
+    cell._wantStar:Hide()
+  end
+
+  local rank = api and setId and api:EffectiveRank(setId, self._playerRace)
+  if rank then
+    if not cell._rankPip then
+      cell._rankPip = Label:new{
+        parent = cell, layer = ui.layer.Overlay, fontObj = "GameFontNormalSmall",
+        position = { TopRight = {-1, 0} },
+      }
+    end
+    cell._rankPip:Text(rank)
+    cell._rankPip:Color(api.RankColors[rank])
+    cell._rankPip:Show()
+  elseif cell._rankPip then
+    cell._rankPip:Hide()
+  end
+end
+
+-- Re-apply every cell's overlays from current Collected DB state (non-set cells carry
+-- no setId, so they blank). Cheap enough to run on every update()/re-sort and the
+-- ratings-changed refresher; cells persist across re-sorts so their overlays do too.
+function TopAlts:_refreshMarks()
+  local api = WarbandeerCollectedApi
+  self._playerRace = api and api:PlayerRace()
+  for r = 1, #self.cells do
+    local row = self.cells[r]
+    for c = 1, #self.cols do
+      local cell = row[c]
+      if cell then
+        local data = cell.data
+        self:_applyCellMarks(cell, type(data) == "table" and data.setId or nil)
+      end
+    end
+  end
+end
+
+-- Refresh overlays after the base table (re)builds its cells.
+function TopAlts:update()
+  TableFrame.update(self)
+  self:_refreshMarks()
 end
 
 -- Rebuild rows + cells from current character data and the selected raid.
@@ -547,7 +629,11 @@ end
 ---@field _modAch Texture                achievements module background
 ---@field _expansion string?             currently selected expansion key
 ---@field _filter FilterDropdown?        titlebar expansion picker
+-- The live view instance, captured so the ratings-changed listener (registered once,
+-- below) refreshes whichever Top Characters table currently exists.
+local _view
 local Overview = Class(Frame, function(self)
+  _view = self
   local c = theme.colors
   local BLEED = 6                        -- module/strip outer bleed (matches module bg padding)
   local contentTop = P + STRIP_H + GAP
@@ -660,6 +746,17 @@ end, {
 Overview.name = "overview"
 Overview._title = "Overview"
 ns.views.Overview = Overview
+
+-- Live-refresh the Top Characters rating overlays when a rating changes in the shared
+-- dressing room (registered once at load; Collected loads first via the OptionalDep
+-- order). Mirrors CollectedView's own ratings-changed refresher. The Overview has no
+-- wanted-only filter, so a mark re-apply is always enough.
+if WarbandeerCollectedApi and WarbandeerCollectedApi.OnRatingsChanged then
+  WarbandeerCollectedApi:OnRatingsChanged(function()
+    local t = _view and _view.topAlts
+    if t then t:_refreshMarks() end
+  end)
+end
 
 -- Show the panel for `key`, size the reps + achievements boxes and the view to it,
 -- and refit the window so the shorter expansion doesn't leave dead space below.
