@@ -3,27 +3,48 @@ local ns = select(2, ...)
 ---@type LibNUI
 local ui = ns.ui
 
--- Catalyst charges (Dawnlight Manaflux): the bank recharges 1 every two weeks
--- up to 8, so a full bank means further recharge is wasted — show it red.
+-- Catalyst column. Shows two things per character: a ✓/✗ for "Midnight Season 1:
+-- Catalyst Unbound" (achievement 61519 — class set bonuses unlocked, captured
+-- per-character via quests.CatalystUnbound), then the Dawnlight Manaflux charge
+-- count. Charges recharge 1 every two weeks up to 8, so a full bank (red) means
+-- further recharge is wasted. The check/x is an inline atlas so both stay visible.
+local CHECK = ("|A:%s:13:13|a"):format(ns.icons.CheckGreen)
+local CROSS = ("|A:%s:12:12|a"):format(ns.icons.RedX)
 table.insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
-    key = "catalyst", label = "Catalyst Charges",
+    key = "catalyst", label = "Catalyst",
     iconPath = "Interface\\AddOns\\Warbandeer\\icons\\catalyst.tga",
     iconColor = ns.theme.colors.muted,
-    width = 30,
+    width = 44,
     justifyH = ui.justify.Center,
-    tooltip = {"Catalyst Charges", "Dawnlight Manaflux held. Red when full — recharge is being wasted."},
+    tooltip = {
+      "Catalyst",
+      "Green check = this character has earned Catalyst Unbound (class set bonuses unlocked). "
+        .. "Number = Dawnlight Manaflux charges held (red when full — recharge is being wasted).",
+    },
     getData = function(t)
       local c = t.currency and t.currency.Catalyst
-      -- always show a count; zero (or not yet captured) reads muted so real
-      -- charge counts stand out
       local q = c and c.quantity or 0
+      local unbound = t.quests and t.quests.CatalystUnbound or false
+      local mark = unbound and CHECK or CROSS
       return {
-        text     = q,
+        text     = mark .. " " .. q,
         justifyH = ui.justify.Center,
+        -- the number's colour still encodes the charge state; the mark carries its
+        -- own atlas colours (green check / red x), independent of the count.
         color    = q == 0 and ns.theme.colors.muted
           or (c.capped and ns.CappedColor or ns.UncappedColor),
+        onEnter  = function(self)
+          ns.AnchorTip(self)
+          ui.tip:ClearLines()
+          local sc = unbound and ns.theme.colors.green or ns.theme.colors.red
+          ui.tip:AddLine(unbound and "Catalyst Unbound — earned"
+            or "Catalyst Unbound — not earned", sc[1], sc[2], sc[3])
+          ui.tip:AddLine("Manaflux charges: " .. q .. (c and c.capped and " (full)" or ""), 1, 1, 1)
+          ui.tip:Show()
+        end,
+        onLeave  = function() ui.tip:Hide() end,
       }
     end,
   }
