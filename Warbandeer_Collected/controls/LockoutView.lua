@@ -81,7 +81,7 @@ ns.ShowLockoutView = function(grpIdx, parent, position)
       and toon.instances.locks[group.instance][group.difficulty]
     rows[#rows + 1] = {
       toon.basic.level,
-      { text = toon.name, color = locked and DULL_RED_FONT_COLOR or GREEN_FONT_COLOR },
+      { text = toon.name, color = locked and DIM_RED_FONT_COLOR or GREEN_FONT_COLOR },
     }
   end
   _view.data.data = rows
