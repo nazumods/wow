@@ -38,27 +38,48 @@ local function openSelector()
     local rowTopY = -(38 + (i - 1) * ROW_H)
 
     -- Test name
-    local nameLabel = f._widget:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    nameLabel:SetPoint("TOPLEFT", f._widget, "TOPLEFT", 10, rowTopY - 5)
-    nameLabel:SetSize(WIN_W - BTN_W - 30, 18)
-    nameLabel:SetJustifyH("LEFT")
-    nameLabel:SetText(test.name)
+    LibNUI.Label:new{
+      parent   = f,
+      text     = test.name,
+      fontObj  = "GameFontNormal",
+      justifyH = LibNUI.edge.Left,
+      position = {
+        TopLeft = {10, rowTopY - 5},
+        Width   = WIN_W - BTN_W - 30,
+      },
+    }
 
     -- Description
-    local descLabel = f._widget:CreateFontString(nil, "OVERLAY", "GameFontDisable")
-    descLabel:SetPoint("TOPLEFT", f._widget, "TOPLEFT", 10, rowTopY - 23)
-    descLabel:SetSize(WIN_W - BTN_W - 30, 16)
-    descLabel:SetJustifyH("LEFT")
-    descLabel:SetText(test.desc)
+    LibNUI.Label:new{
+      parent   = f,
+      text     = test.desc,
+      fontObj  = "GameFontDisable",
+      justifyH = LibNUI.edge.Left,
+      position = {
+        TopLeft = {10, rowTopY - 23},
+        Width   = WIN_W - BTN_W - 30,
+      },
+    }
 
     -- Launch button, centred vertically within the row
     local btnTopY = rowTopY - math.floor((ROW_H - 22) / 2)
-    local btn = CreateFrame("Button", "LibNUITest_Btn_" .. test.key, f._widget, "UIPanelButtonTemplate")
-    btn:SetSize(BTN_W, 22)
-    btn:SetPoint("TOPRIGHT", f._widget, "TOPRIGHT", -10, btnTopY)
-    btn:SetText("Launch")
     local runFn = test.run
+    local btn = LibNUI.Frame:new{
+      type     = "Button",
+      template = "UIPanelButtonTemplate",
+      parent   = f,
+      position = {
+        TopRight = {f, LibNUI.edge.TopRight, -10, btnTopY},
+        Width    = BTN_W,
+        Height   = 22,
+      },
+    }
     btn:SetScript("OnClick", function() runFn() end)
+    LibNUI.Label:new{
+      parent   = btn,
+      text     = "Launch",
+      position = { Center = {} },
+    }
   end
 end
 
