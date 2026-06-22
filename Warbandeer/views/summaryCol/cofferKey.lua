@@ -26,7 +26,7 @@ table.insert(
         return t.basic.level >= ns.wow.maxLevel and ns.ZeroDash or ""
       end
       local tipColor   = shards and shards.capped and ns.CappedColor or ns.UncappedColor
-      local heldLine   = "Shards held: " .. shardQty
+      local heldLine   = keys .. " keys, " .. shardQty .. " shards"
       local earnedLine = "Earned this week: " .. (shards and shards.earned or 0)
         .. "/" .. (shards and shards.weeklyMax or 600)
       return {
