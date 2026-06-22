@@ -127,9 +127,11 @@ function ClassSummary:GetRowData(toon)
   return cells
 end
 
--- Make every cell in row `i` drive the row's hover highlight and open that
--- character in the Detail view on click, chaining onto any existing cell
--- onEnter/onLeave/onClick (so the per-column tooltips keep working). Each cell is
+-- Make every cell in row `i` drive the row's hover highlight, chaining onto any
+-- existing cell onEnter/onLeave (so the per-column tooltips keep working). On
+-- click, a cell that carries its own onClick (e.g. iLvl/Upgrades/Catch-up → Gear,
+-- enchants/gems → Detail) keeps it; cells with none open the row's character in
+-- the Detail view as a fallback (mirrors Overview's TopAlts). Each cell is
 -- a shallow COPY of the source data — several getData functions return shared
 -- table objects (e.g. ns.factionIcon[...] for the faction icon), so mutating
 -- them in place would chain wrappers across every row that shares the object (and
@@ -155,7 +157,7 @@ function ClassSummary:decorateRow(cells, i)
       if onLeave then onLeave(s) end
     end
     copy.onClick = function(s)
-      if onClick then onClick(s) end
+      if onClick then onClick(s); return end
       local toon, w = self._toons[i], ns.MainWindow
       if toon and w then
         w:getView("detail"):Select(toon)
