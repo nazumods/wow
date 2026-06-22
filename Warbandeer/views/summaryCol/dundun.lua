@@ -16,7 +16,7 @@ table.insert(
     iconColor = ns.theme.colors.muted,
     width = 30,
     justifyH = ui.justify.Center,
-    tooltip = {"Shard of Dundun", "Shards held. Red when full (8) or the week's 8 are earned — spend at Chel the Chip to earn more."},
+    tooltip = {"Shard of Dundun", "Shards held. Red when full (8) or the week's 8 are earned — spend at Chel the Chip."},
     getData = function(t)
       if not t.currency then return "" end
       local c = t.currency.ShardOfDundun
