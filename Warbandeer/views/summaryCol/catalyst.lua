@@ -8,20 +8,21 @@ local ui = ns.ui
 -- unlocked, captured per-character via quests.CatalystUnbound) and the Dawnlight
 -- Manaflux charge count pushed to the right. Charges recharge 1 every two weeks up
 -- to 8, so a full bank (red) means further recharge is wasted. The ✓/✗ is an inline
--- atlas (so the cell stays a single label); GAP pushes the count toward the right
--- while the icon stays left-justified. The `:0:-N` markup offset lowers the icon
--- onto the text baseline. Tune GAP / width / the offset if the spacing needs work
--- (too wide a GAP truncates the count with an ellipsis).
+-- atlas (so the cell stays a single label). Both the icon+count and the below-max
+-- count are RIGHT-justified, so every count lines up on the same right edge and the
+-- group sits away from the column on the left. GAP is the icon→count spacing; the
+-- `:0:-N` markup offset lowers the icon onto the text baseline. Tune GAP / width /
+-- offset to taste.
 local CHECK = ("|A:%s:13:13:0:-3|a"):format(ns.icons.CheckGreen)
 local CROSS = ("|A:%s:14:14:0:-3|a"):format(ns.icons.RedX)
-local GAP = "   "
+local GAP = " "
 table.insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
     key = "catalyst", label = "Catalyst",
     iconPath = "Interface\\AddOns\\Warbandeer\\icons\\catalyst.tga",
     iconColor = ns.theme.colors.muted,
-    width = 54,
+    width = 48,
     justifyH = ui.justify.Center,
     tooltip = {
       "Catalyst",
