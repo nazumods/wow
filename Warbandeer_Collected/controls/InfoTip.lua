@@ -153,6 +153,11 @@ local function render(group, set, parent, position)
      } or ""
   end
   _tooltip.items:update()
+  -- Clear the previous hover's anchor before re-pointing: the tip is a reused
+  -- singleton, and InfoTipPosition flips between a TopLeft/TopRight cell anchor
+  -- by screen side, so stacking points would anchor it to two cells at once
+  -- (retail rejects that as an "anchor family connection").
+  _tooltip:ClearAllPoints()
   _tooltip:Position(position)
   _tooltip:Show()
   _tooltip:Level(parent:Level() + 1)
