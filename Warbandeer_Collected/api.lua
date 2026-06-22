@@ -43,6 +43,10 @@ function API:IsScanned()
   return (ns.db.total or 0) > 0
 end
 
+---Number of sets currently flagged wanted (for the header counter).
+---@return number
+function API:WantedCount() return ns:WantedCount() end
+
 -- Scan-complete subscribers. Consumers (e.g. Warbandeer's collected view) register
 -- to be refreshed after a scan rewrites the counts, so their grid stays in sync with
 -- the /collected window. `ns:Scan()` fires these once the DB is fresh, so callbacks

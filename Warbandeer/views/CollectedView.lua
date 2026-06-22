@@ -16,7 +16,6 @@ local Button, Texture = ui.Button, ui.Texture
 -- Lockout columns/side-panel are intentionally omitted here — see Collected's own
 -- /collected window for those.
 
-local HDR_H        = 18   -- counter strip above the grid
 local MAX_GRID_H   = 460  -- cap the scrollable row area; window stays usable
 local SCROLLBAR_W  = 20
 
@@ -47,6 +46,10 @@ local GreenCheck = {
 local function isComplete(status)
   return status == true or status.collected >= status.total
 end
+
+-- The live view instance, captured in CollectedView's constructor so the grid's
+-- Shift-click handler and the ratings-changed listener can refresh its header.
+local _view
 
 -- ─── Grid (TableFrame) ──────────────────────────────────────────────────────
 
@@ -113,6 +116,7 @@ end, {
             else
               self:_applyCellMarks(c, set.id)
             end
+            if _view then _view:RefreshWanted() end
           else
             WarbandeerCollectedApi:ShowDressingRoom(grp, set, self._reverse)
           end
@@ -218,24 +222,17 @@ end
 ---@field grid CollectedGrid
 ---@field scroll ScrollFrame
 ---@field counter Label
+---@field wantedCount Label running "★ N" wanted-set count (mirrors the /collected window)
 ---@field emptyMsg Label
 ---@field _wantedBorder Texture "wanted only" filter border (gold while active)
 ---@field _sortBorder Texture raid-order toggle border (gold once newest-first)
 ---@field _sortLabel Label raid-order toggle caption
--- The live view instance, captured so the ratings-changed listener (registered
--- once, below) refreshes whichever grid currently exists.
-local _view
 local CollectedView = Class(Frame, function(self)
   _view = self
-  self.counter = Label:new{
-    parent = self, fontInfo = theme.fonts.body, color = theme.colors.muted,
-    position = { TopLeft = {2, -2}, Height = HDR_H },
-    text = "",
-  }
 
   self.grid = Grid:new{
     parent = self,
-    position = { TopLeft = {0, -HDR_H} },
+    position = { TopLeft = {0, 0} },
   }
 
   local rowsH = self.grid.rowArea:Height()
@@ -245,21 +242,36 @@ local CollectedView = Class(Frame, function(self)
   self.scroll = ui.ScrollFrame:new{
     parent = self,
     position = {
-      TopLeft = {0, -HDR_H - self.grid.headerHeight},
+      TopLeft = {0, -self.grid.headerHeight},
       Width   = gridW,
       Height  = capH,
     },
   }
   self.scroll:Child(self.grid.rowArea)
 
+  -- Counter rides the grid's header row, over the empty group-name column and in
+  -- line with the class icons (mirrors the /collected window). Created after the
+  -- grid so it draws above the header cells; vertically centred in the header.
+  local hdrPad = (self.grid.headerHeight - theme.fonts.title[2]) / 2
+  self.counter = Label:new{
+    parent = self, fontInfo = theme.fonts.title, color = theme.colors.text,
+    position = { TopLeft = {2, -hdrPad} },
+    text = "",
+  }
+  self.wantedCount = Label:new{
+    parent = self, fontInfo = theme.fonts.title, color = theme.colors.gold,
+    position = { Left = {self.counter, ui.edge.Right, 16, 0} },
+    text = "",
+  }
+
   -- Shown when there's nothing to render (Collected not installed / never scanned).
   self.emptyMsg = Label:new{
     parent = self, fontInfo = theme.fonts.body, color = theme.colors.muted,
-    position = { TopLeft = {2, -HDR_H - 6}, Width = 280, Height = 20, Hide = true },
+    position = { TopLeft = {2, -self.grid.headerHeight - 6}, Width = 280, Height = 20, Hide = true },
   }
 
   self:Width(gridW + SCROLLBAR_W)
-  self:Height(HDR_H + self.grid.headerHeight + capH + 4)
+  self:Height(self.grid.headerHeight + capH + 4)
 end, {})
 CollectedView.name = "collected"
 CollectedView._title = "Collected"
@@ -272,6 +284,7 @@ if WarbandeerCollectedApi and WarbandeerCollectedApi.OnRatingsChanged then
     local g = _view and _view.grid
     if not g then return end
     if g._wantedOnly then g.data = g:GetData(); g:update() else g:_refreshMarks() end
+    _view:RefreshWanted()
   end)
 end
 
@@ -281,12 +294,14 @@ function CollectedView:OnBeforeShow()
   local api = WarbandeerCollectedApi
   if not api then
     self.counter:Text("")
+    self.wantedCount:Text("")
     self.emptyMsg:Text("Collected add-on not loaded")
     self.emptyMsg:Show()
     return
   end
   if not api:IsScanned() then
     self.counter:Text("")
+    self.wantedCount:Text("")
     self.emptyMsg:Text("Run /collected scan to populate")
     self.emptyMsg:Show()
     return
@@ -294,8 +309,17 @@ function CollectedView:OnBeforeShow()
   self.emptyMsg:Hide()
   local collected, total = api:Counts()
   self.counter:Text("Sets: " .. collected .. " / " .. total)
+  self:RefreshWanted()
   self.grid.data = self.grid:GetData()
   self.grid:update()
+end
+
+-- Refresh the running wanted-set count in the header (gold star + N), matching the
+-- /collected window. The star is drawn from the shared WantedIcon atlas rather than
+-- a literal glyph so it renders in the body font.
+function CollectedView:RefreshWanted()
+  local api = WarbandeerCollectedApi
+  self.wantedCount:Text(api and (("|A:%s:14:14|a %d"):format(api.WantedIcon, api:WantedCount())) or "")
 end
 
 -- Titlebar control: two toggle buttons — a "wanted only" filter and a raid (row)
@@ -324,7 +348,7 @@ function CollectedView:BuildFilter(parent)
     return border, label
   end
 
-  self._wantedBorder = (toggle(0, "WANTED", false, function()
+  self._wantedBorder = (toggle(0, "WANTED ONLY", false, function()
     local on = self.grid:ToggleWantedOnly()
     self._wantedBorder:Color(on and theme.colors.gold or theme.colors.divider)
   end))

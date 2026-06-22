@@ -115,9 +115,10 @@ end, {
   level = 580,
 })
 
----Refresh the running wanted-set count in the header.
+---Refresh the running wanted-set count in the header. The star is drawn from the
+---shared WantedIcon atlas (not a literal glyph, which the header font can't render).
 function MainWindow:RefreshWanted()
-  self.wantedCount:Text("★ " .. ns:WantedCount())
+  self.wantedCount:Text(("|A:%s:14:14|a %d"):format(ns.WantedIcon, ns:WantedCount()))
 end
 
 -- Live-refresh this window's grid + wanted counter when a rating changes anywhere
