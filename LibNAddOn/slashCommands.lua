@@ -65,11 +65,11 @@ local registerSlashCommands = function(addOn, slashCommands)
   ---@class AddOn
   ---@field SlashCmd fun(self, base: string, msg: string) handle a slash command
   function addOn:SlashCmd(_, msg) -- slashCmd
-    local _, _, cmd, args = string.find(msg, "(%w+) ?(.*)")
+    local _, _, cmd, args = string.find(msg, "(%S+) ?(.*)")
     if cmd == nil then cmd = "" end
     if self.commands[cmd] then
       if self.commands[cmd].subcommands then
-        local _, _, target, options = string.find(args, "(%w+) ?(.*)")
+        local _, _, target, options = string.find(args, "(%S+) ?(.*)")
         if self.commands[cmd].subcommands[target] then
           self.commands[cmd].subcommands[target].handler(self, options)
           return
