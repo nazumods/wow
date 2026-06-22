@@ -104,7 +104,7 @@ Reputations.fields = {
     end,
     event = "UPDATE_FACTION",
     eventHandler = function(field)
-      local toon = ns.currentData
+      local toon = field._toon or ns.currentData
       if not toon then return end
       local now = GetTime()
 

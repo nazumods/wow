@@ -118,6 +118,8 @@ function Broker:Init(toon)
             field.eventHandler(field, toon[broker][name], ...)
           end)
         end
+        -- Store toon reference so custom eventHandlers (like reputations) can access it
+        field._toon = toon
       end
 
       -- auto-reset for simple fields
