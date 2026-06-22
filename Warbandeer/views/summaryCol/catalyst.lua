@@ -9,7 +9,7 @@ local ui = ns.ui
 -- count. Charges recharge 1 every two weeks up to 8, so a full bank (red) means
 -- further recharge is wasted. The check/x is an inline atlas so both stay visible.
 local CHECK = ("|A:%s:13:13|a"):format(ns.icons.CheckGreen)
-local CROSS = ("|A:%s:12:12|a"):format(ns.icons.RedX)
+local CROSS = ("|A:%s:14:14|a"):format(ns.icons.RedX)
 table.insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
