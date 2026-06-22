@@ -432,7 +432,7 @@ ns:registerCommand("repsdebug", "", function(self)
   local lines = { ("Uncategorized (\"Other\") reputations: %d"):format(#rows), "" }
   for _, e in ipairs(rows) do
     local hdr = e.categoryId > 0 and C_Reputation.GetFactionDataByID(e.categoryId)
-    local cat = e.categoryId == 0 and "0 (not re-scanned)"
+    local cat = e.categoryId == 0 and "0 (uncategorized)"
       or (e.categoryId .. (hdr and hdr.name and (" " .. hdr.name) or " (unknown header)"))
     insert(lines, ("%s\t[fid %d]\tcat=%s\t(%d chars)"):format(e.name or "?", e.fid, cat, e.n))
   end
