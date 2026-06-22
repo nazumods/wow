@@ -43,7 +43,7 @@ SLASH_SUI_REPS1 = "/sreps"
 SlashCmdList["SUI_REPS"] = function(msg)
   msg = msg and msg:match("^%s*(.-)%s*$") or ""
   local fid = tonumber(msg:match("^%d+$"))
-  if not fid and msg ~= "" then fid = ns.FactionIDByName(msg:lower()) end
+  if not fid and msg ~= "" then fid = ns.FactionIDByQuery(msg:lower()) end
   if not fid then ns.Print("Usage: /sreps <factionID or faction name>") return end
   local list = ns.api:GetFactionStandings(fid)
   if not list then ns.Print("No tracked standings for faction", fid, "(log alts in to populate).") return end
