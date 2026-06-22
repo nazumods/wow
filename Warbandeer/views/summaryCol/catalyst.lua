@@ -26,15 +26,24 @@ table.insert(
     getData = function(t)
       local c = t.currency and t.currency.Catalyst
       local q = c and c.quantity or 0
+      -- the number's colour encodes the charge state regardless of level
+      local color = q == 0 and ns.theme.colors.muted
+        or (c.capped and ns.CappedColor or ns.UncappedColor)
+
+      -- Catalyst Unbound is an endgame achievement, so only show the ✓/✗ for
+      -- max-level characters; leveling alts show just the Manaflux charge count.
+      if (t.basic.level or 0) < ns.wow.maxLevel then
+        return { text = tostring(q), justifyH = ui.justify.Center, color = color }
+      end
+
       local unbound = t.quests and t.quests.CatalystUnbound or false
       local mark = unbound and CHECK or CROSS
       return {
         text     = mark .. " " .. q,
         justifyH = ui.justify.Center,
-        -- the number's colour still encodes the charge state; the mark carries its
-        -- own atlas colours (green check / red x), independent of the count.
-        color    = q == 0 and ns.theme.colors.muted
-          or (c.capped and ns.CappedColor or ns.UncappedColor),
+        -- the mark carries its own atlas colours (green check / red x), independent
+        -- of the count colour above.
+        color    = color,
         onEnter  = function(self)
           ns.AnchorTip(self)
           ui.tip:ClearLines()
