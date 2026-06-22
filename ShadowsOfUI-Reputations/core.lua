@@ -1,4 +1,5 @@
 ---@class ShadowsOfUI_Reputations: AddOn
+---@field _factionIndexGen integer? bumped whenever the faction name index is rebuilt (tooltip memo invalidation)
 local ns = LibNAddOn(...)
 
 local floor = math.floor
@@ -64,6 +65,8 @@ function ns.RebuildFactionIndex()
       end
     end
   end
+  -- Bump so per-item tooltip memos (tooltip.lua) know the index changed and invalidate.
+  ns._factionIndexGen = (ns._factionIndexGen or 0) + 1
 end
 
 -- The factionID of a tracked faction whose name appears in the given (lowercased) text, or
