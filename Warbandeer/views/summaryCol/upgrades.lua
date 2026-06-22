@@ -2,7 +2,7 @@
 local ns = select(2, ...)
 ---@type LibNUI
 local ui = ns.ui
-local insert = table.insert
+local insert, remove = table.insert, table.remove
 
 -- Per-character "available gear upgrades" count column.  Only added when
 -- ShadowsOfUI-Upgrade is loaded (OptionalDep — it publishes ShadowsOfUI_UpgradeApi
@@ -15,18 +15,37 @@ local theme = ns.theme
 local WARBAND = theme.colors.gold
 local GetItemTex = (C_Item and C_Item.GetItemIconByID) or _G.GetItemIcon
 
-local getUpgrades = function(toon)
+-- Building a character's upgrade list scans its bags/bank + the warband bank and
+-- evaluates every candidate — far too heavy to run for *every* character while the
+-- Summary view renders.  Done synchronously it trips the "script ran too long"
+-- watchdog, especially when the window is opened from a secure path (an action
+-- button / macro → UseAction), which runs on a tighter budget.  So the column
+-- computes lazily off the render frame: a cold cell shows a muted placeholder and
+-- enqueues a compute (one character per tick); when the queue drains the view
+-- refreshes once with the real counts.  Results are cached per character and reused
+-- until the data layer rescans that character (keyed on `lastRefresh`).
+local PLACEHOLDER = {
+  text = "…", color = theme.colors.muted,
+  justifyH = ui.justify.Right, fontInfo = theme.fonts.number,
+}
+
+local cache = {}      -- [name] = { refresh = number, payload = cell }
+local pending = {}    -- [name] = true while queued / computing
+local queue = {}      -- FIFO of character names awaiting a compute
+local pumping = false
+local refreshQueued = false
+local STEP = 30       -- ms between per-character computes (one char per ~2 frames)
+
+-- The expensive part: resolve a character's upgrade list and pre-build its hover
+-- lines.  Each line leads with the item's icon + quality-coloured link (what the
+-- upgrade *is*), its ilvl, and a trailing "@ <reqLevel>" when it isn't equippable
+-- yet:  "[icon] [Amulet of the Naaru]  +95 ilvl  (i720, held, good stats) @ 80".
+local function buildPayload(toon)
   local list = ShadowsOfUI_UpgradeApi:CharacterUpgrades(toon.name)
   local n = #list
   -- no upgrades available reads as a muted em-dash (n/a)
   if n == 0 then return ns.ZeroDash end
 
-  -- Pre-build hover lines, best gains first.  Each leads with the item's icon and
-  -- its link (the quality-coloured [Item Name]) — not the slot — so the hover says
-  -- *what* the upgrade is, plus its ilvl.  An item whose required level is above
-  -- this character's gets a trailing "@ <reqLevel>" so it's clear it isn't
-  -- equippable yet:
-  --   "[icon] [Amulet of the Naaru]  +95 ilvl  (i720, held, good stats) @ 80"
   local level = toon.basic.level or 0
   local lines = {}
   -- Track whether any listed upgrade is equippable *right now* — at or below the
@@ -68,6 +87,48 @@ local getUpgrades = function(toon)
     onLeave = function() ui.tip:Hide() end,
     onClick = function() ns:view("gear") end,
   }
+end
+
+-- Coalesce the post-compute refresh into a single next-frame rebuild of the open
+-- Summary view (mirrors init.lua's bank/gear refreshers).
+local function scheduleRefresh()
+  if refreshQueued then return end
+  refreshQueued = true
+  ns:after(0, function()
+    refreshQueued = false
+    local v = ns.MainWindow and ns.MainWindow:ShownView()
+    if v and v.name == "summary" then
+      v:OnBeforeShow()
+      ns.MainWindow:Fit()
+    end
+  end)
+end
+
+-- Compute one queued character per tick, then refresh once the queue drains.
+local function pump()
+  local name = remove(queue, 1)
+  if not name then
+    pumping = false
+    scheduleRefresh()
+    return
+  end
+  local data = ns.api:GetCharacterData(name)
+  if data then cache[name] = { refresh = data.lastRefresh, payload = buildPayload(data) } end
+  pending[name] = nil
+  ns:after(STEP, pump)
+end
+
+local getUpgrades = function(toon)
+  local c = cache[toon.name]
+  if c and c.refresh == toon.lastRefresh then return c.payload end
+  -- Cold (or stale after a rescan): enqueue an off-frame compute and show a
+  -- placeholder for now.
+  if not pending[toon.name] then
+    pending[toon.name] = true
+    insert(queue, toon.name)
+    if not pumping then pumping = true; ns:after(0, pump) end
+  end
+  return PLACEHOLDER
 end
 
 insert(
