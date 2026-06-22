@@ -17,6 +17,7 @@ local CreateFrame, UIParent = CreateFrame, UIParent
 ---@field ShowItemTooltip fun(frame: table, link: string, compareLink?: string, noUpgradeBlock?: boolean)
 ---@field HideItemTooltip fun()                             hide it
 ---@field ShowEnchantTooltip fun(frame: table, suggestion: table)  recommended-enchant detail
+---@field ShowGemTooltip fun(frame: table, suggestion: table)  recommended-gem detail
 
 -- Dark, near-black border for these item tooltips (the theme's tan `border` token
 -- reads too bright here) — matches the look of a darkened-UI tooltip.
