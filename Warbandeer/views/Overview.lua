@@ -584,15 +584,16 @@ local function buildTab(panel, expansionLevel, extraFactionIDs, achievementIds)
     extraFactionIDs = extraFactionIDs,
     position = { TopLeft = {0, -HEAD_H} },
   }
-  local achX = bars:Width() + GAP * 2
-  capsHeader(panel, "Achievements", { TopLeft = {achX, 0} })
+  -- Achievements is moved into its own equal-thirds column by the caller once the
+  -- shared column width is known; the X here is a placeholder.
+  local achHead = capsHeader(panel, "Achievements", { TopLeft = {0, 0} })
   local ach = Achievements:new{
     parent = panel,
     achievementIds = achievementIds,
-    position = { TopLeft = {achX, -HEAD_H} },
+    position = { TopLeft = {0, -HEAD_H} },
   }
   panel._ach = ach -- reachable for the cold-session font heal (and /wb cells)
-  return bars:Width(), bars:Height(), ach:Width(), ach:Height()
+  return bars:Width(), bars:Height(), ach:Width(), ach:Height(), achHead
 end
 
 -- Expansions selectable via the titlebar dropdown. Each builds its own
@@ -645,55 +646,83 @@ local Overview = Class(Frame, function(self)
   -- panels and resize to the active expansion's section heights.
   self._panels, self._repsH, self._achH = {}, {}, {}
   local repsW, achW = 0, 0
+  local achHeads = {}                    -- expansion key -> achievements caps header
   for _, e in ipairs(EXPANSIONS) do
     local panel = Frame:new{
       parent = self,
       position = { TopLeft = {P, -contentTop}, Hide = true },
     }
-    local bw, bh, aw, ah = buildTab(panel, e.expansionLevel, e.extraFactionIDs, e.achievementIds)
-    panel:Width(bw + GAP * 2 + aw)
+    local bw, bh, aw, ah, achHead = buildTab(panel, e.expansionLevel, e.extraFactionIDs, e.achievementIds)
     panel:Height(HEAD_H + math.max(bh, ah))
     self._panels[e.key] = panel
     self._repsH[e.key] = HEAD_H + bh
     self._achH[e.key]  = HEAD_H + ah
     repsW = math.max(repsW, bw)
     achW  = math.max(achW, aw)
+    achHeads[e.key] = achHead
   end
 
-  -- box X positions: achievements a box-gap right of reputations, Top Characters a
-  -- box-gap right of that (beside the future detail card).
-  local achX = P + repsW + GAP * 2
-  local altX = achX + achW + GAP * 2
-  capsHeader(self, "Top Characters", { TopLeft = {altX, -contentTop} })
+  -- Top Characters header + table — built at a placeholder X, moved to its column below.
+  local topHead = capsHeader(self, "Top Characters", { TopLeft = {P, -contentTop} })
   self.topAlts = TopAlts:new{
     parent = self,
-    position = { TopLeft = {altX, -(contentTop + HEAD_H)} },
+    position = { TopLeft = {P, -(contentTop + HEAD_H)} },
   }
   self._altH = HEAD_H + self.topAlts:Height()
-  self._contentW = (altX - P) + self.topAlts:Width()
 
-  -- module backgrounds (parent textures render behind the child content frames);
-  -- reps + achievements each get their own box, resized per selection.
+  -- Equal thirds: every section gets the same box width — the widest natural column —
+  -- laid out left→right with a box-gap between, so the three sections line up as a clean
+  -- grid (each content frame left-aligned in its column) instead of staggering to its
+  -- own content width.
+  local colW = math.max(repsW, achW, self.topAlts:Width())
+  local col0, col1, col2 = P, P + colW + GAP * 2, P + 2 * (colW + GAP * 2)
+
+  -- shift each expansion's achievements box into column 1 (local X relative to the
+  -- panel, which is anchored at col0); the panel spans columns 0–1 (reps + ach).
+  for key, panel in pairs(self._panels) do
+    local achHead = achHeads[key]
+    achHead:ClearAllPoints();    achHead:TopLeft(col1 - P, 0)
+    panel._ach:ClearAllPoints(); panel._ach:TopLeft(col1 - P, -HEAD_H)
+    panel:Width(2 * colW + GAP * 2)
+  end
+
+  -- move Top Characters into column 2.
+  topHead:ClearAllPoints();      topHead:TopLeft(col2, -contentTop)
+  self.topAlts:ClearAllPoints(); self.topAlts:TopLeft(col2, -(contentTop + HEAD_H))
+
+  self._contentW = (col2 - P) + colW
+
+  -- module backgrounds (parent textures render behind the child content frames); each
+  -- section gets an equal-width box. Reps + ach are resized per selection (height only).
   self._modReps = Texture:new{
     parent = self, layer = ui.layer.Artwork, color = c.module,
-    position = { TopLeft = {P - 6, -(contentTop - 6)}, Width = repsW + 12, Height = 12 },
+    position = { TopLeft = {col0 - 6, -(contentTop - 6)}, Width = colW + 12, Height = 12 },
   }
   self._modAch = Texture:new{
     parent = self, layer = ui.layer.Artwork, color = c.module,
-    position = { TopLeft = {achX - 6, -(contentTop - 6)}, Width = achW + 12, Height = 12 },
+    position = { TopLeft = {col1 - 6, -(contentTop - 6)}, Width = colW + 12, Height = 12 },
   }
   Texture:new{
     parent = self, layer = ui.layer.Artwork, color = c.module,
-    position = { TopLeft = {altX - 6, -(contentTop - 6)}, Width = self.topAlts:Width() + 12, Height = self._altH + 12 },
+    position = { TopLeft = {col2 - 6, -(contentTop - 6)}, Width = colW + 12, Height = self._altH + 12 },
   }
 
-  -- Stat strip — aligned to the same outer extent as the module panels below
-  local cardW = (self._contentW + BLEED * 2 - GAP * 2) / 3
+  -- Stat strip — one card per content column, each overlaying its column's box.
+  local cardX = {col0, col1, col2}
 
-  local playSecs, topIlvl, count = 0, 0, 0
+  -- this-patch played time = each char's total minus its /played snapshot taken at
+  -- first login on the current patch (PlaytimeBroker.byPatch); chars that never logged
+  -- in this patch have no snapshot and contribute nothing.
+  local patch = GetBuildInfo()
+  local playSecs, patchSecs, topIlvl, count = 0, 0, 0, 0
   for _, toon in ipairs(ns.api.GetAllCharacters()) do
     count = count + 1
-    if toon.playtime and toon.playtime.total then playSecs = playSecs + toon.playtime.total end
+    local pt = toon.playtime
+    if pt and pt.total then
+      playSecs = playSecs + pt.total
+      local snap = pt.byPatch and pt.byPatch[patch]
+      if snap then patchSecs = patchSecs + (pt.total - snap) end
+    end
     if toon.equipment and toon.equipment.ilvl and toon.equipment.ilvl > topIlvl then
       topIlvl = toon.equipment.ilvl
     end
@@ -709,7 +738,7 @@ local Overview = Class(Frame, function(self)
       subIcon = subIcon,
       subColor = subColor,
       subIconColor = subColor,
-      position = { TopLeft = {P - BLEED + (i - 1) * (cardW + GAP), -BLEED}, Width = cardW, Height = STRIP_H },
+      position = { TopLeft = {cardX[i] - BLEED, -BLEED}, Width = colW + BLEED * 2, Height = STRIP_H },
     }
   end
   -- wealth includes the warband (account) bank, not just per-character gold
@@ -724,7 +753,7 @@ local Overview = Class(Frame, function(self)
   card(1, "Total Warband Wealth", BreakUpLargeNumbers(math.floor(wealth / 10000)) .. "g", c.gold,
        madeSub, trendIcon, trendColor)
   card(2, "Total Playtime", BreakUpLargeNumbers(math.floor(playSecs / 3600)) .. " hrs", c.text,
-       "Across " .. count .. " characters")
+       BreakUpLargeNumbers(math.floor(patchSecs / 3600)) .. " hrs this patch · " .. count .. " chars")
   card(3, "Top Item Level", tostring(topIlvl), ns.IlvlColorObj(topIlvl))
 
   self:selectExpansion(EXPANSIONS[1].key)
