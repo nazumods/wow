@@ -15,7 +15,8 @@ The cross-alt standings appear in two places:
   that rep token to** (one that isn't Exalted yet).
 
 `/sreps <factionID or faction name>` prints the same breakdown to chat — a testing aid and a
-quick "who's exalted with X?" lookup.
+quick "who's exalted with X?" lookup. The name may be partial (e.g. `the deeps` resolves
+*The Assembly of the Deeps*).
 
 ## Requirements
 

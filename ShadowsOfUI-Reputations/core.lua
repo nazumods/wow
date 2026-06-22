@@ -85,6 +85,26 @@ function ns.FactionIDByName(text)
   return bestId
 end
 
+-- The factionID for a user-typed faction query (the /sreps command). Unlike FactionIDByName
+-- (which finds a full cached name inside a tooltip blob), the query is usually a *partial*
+-- name the user typed — common with multi-word factions where a leading word is dropped
+-- ("the deeps", "assembly of the deeps") — so match the query as a substring of a cached
+-- name. Exact match wins; otherwise the shortest cached name containing the query (most
+-- specific). Falls back to FactionIDByName so a superset query (extra words) still resolves.
+---@param query string lowercased
+---@return integer?
+function ns.FactionIDByQuery(query)
+  if not nameIndex then ns.RebuildFactionIndex() end
+  if nameIndex[query] then return nameIndex[query] end
+  local bestId, bestLen
+  for name, fid in pairs(nameIndex) do
+    if name:find(query, 1, true) and (not bestLen or #name < bestLen) then
+      bestId, bestLen = fid, #name
+    end
+  end
+  return bestId or ns.FactionIDByName(query)
+end
+
 -- On login: refresh the name index (alts seen since last build) and make sure the
 -- reputation-panel hook is installed (panel.lua may load before the frame mixin exists).
 ns.onLogin = function()
