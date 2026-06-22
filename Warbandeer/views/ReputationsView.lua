@@ -8,10 +8,10 @@ local Colors = ns.Colors
 
 -- Paged cross-alt reputation browser. One page per expansion (plus a trailing "Other"
 -- page for guild / uncategorized factions), switched via a titlebar pulldown labelled
--- with the Collected addon's expansion badges and via the Up/Down arrow keys. Each row
+-- with the Collected addon's expansion badges and via the Left/Right arrow keys. Each row
 -- is one faction — its icon, name, an Alliance/Horde marker when the rep is side-locked,
 -- and the highest standing reached across the warband; hovering (or selecting with the
--- Left/Right arrows) shows every character's standing. Data comes from the reputations
+-- Up/Down arrows) shows every character's standing. Data comes from the reputations
 -- broker via WarbandeerApi (per-faction `categoryId` is the locale-proof expansion key).
 
 local ROW_H, CONTENT_W, SCROLLBAR_W = 24, 480, 20
@@ -347,7 +347,7 @@ function ReputationsView:_select(idx)
   ui.tip:Show()
 end
 
--- Flip to a sibling expansion page (Up/Down arrows + dropdown both route here).
+-- Flip to a sibling expansion page (Left/Right arrows + dropdown both route here).
 function ReputationsView:_flipPage(d)
   local n = #self._pages
   if n == 0 then return end
@@ -362,10 +362,10 @@ end
 
 function ReputationsView:_onKey(key)
   local w = self._widget
-  if key == "LEFT" then w:SetPropagateKeyboardInput(false); self:_select((self._sel or 1) - 1)
-  elseif key == "RIGHT" then w:SetPropagateKeyboardInput(false); self:_select((self._sel or 1) + 1)
-  elseif key == "UP" then w:SetPropagateKeyboardInput(false); self:_flipPage(-1)
-  elseif key == "DOWN" then w:SetPropagateKeyboardInput(false); self:_flipPage(1)
+  if key == "UP" then w:SetPropagateKeyboardInput(false); self:_select((self._sel or 1) - 1)
+  elseif key == "DOWN" then w:SetPropagateKeyboardInput(false); self:_select((self._sel or 1) + 1)
+  elseif key == "LEFT" then w:SetPropagateKeyboardInput(false); self:_flipPage(-1)
+  elseif key == "RIGHT" then w:SetPropagateKeyboardInput(false); self:_flipPage(1)
   else w:SetPropagateKeyboardInput(true) end
 end
 
