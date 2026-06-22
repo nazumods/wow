@@ -143,7 +143,7 @@ stats = {                                              -- v16
 currency = {
   RestoredCofferKey,                                   -- quantity (currency 3028)
   gold,                                                -- GetMoney(), copper
-  CofferKeyShard = { quantity, capped }?,              -- weekly-reset
+  CofferKeyShard = { quantity, earned, weeklyMax, capped }?, -- (3310) weekly earn cap (capped = earned >= maxWeeklyQuantity, 600); RESET_WEEKLY
   Catalyst       = { quantity, max, capped }?,         -- Dawnlight Manaflux (3378), capped = bank full
   HeroDawncrest  = { quantity, earned, max, capped },
   MythDawncrest  = { quantity, earned, max, capped },

@@ -28,16 +28,21 @@ Currency.fields = {
       local cap = info.maxWeeklyQuantity or 0
       local earned = info.quantityEarnedThisWeek or 0
       return {
-        quantity = info.quantity,
-        capped = cap > 0 and earned >= cap,
+        quantity  = info.quantity,
+        earned    = earned,
+        weeklyMax = cap,
+        capped    = cap > 0 and earned >= cap,
       }
     end,
     resetOn = ns.RESET_WEEKLY,
     reset = function(_, toon)
-      if not toon.currency or not toon.currency.CofferKeyShard then return nil end
+      local c = toon.currency and toon.currency.CofferKeyShard
+      if not c then return nil end
       return {
-        quantity = toon.currency.CofferKeyShard.quantity,
-        capped = false,
+        quantity  = c.quantity,
+        earned    = 0,
+        weeklyMax = c.weeklyMax,
+        capped    = false,
       }
     end,
   },
