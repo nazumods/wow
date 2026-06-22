@@ -397,11 +397,11 @@ function ReputationsView:OnBeforeShow()
 end
 
 -- ─── Dev: dump uncategorized ("Other") reps ─────────────────────────────────────
--- `/wb repsdebug` — copy-window list of every warband faction that lands on the "Other"
+-- `/wb reps0` — copy-window list of every warband faction that lands on the "Other"
 -- page (its captured categoryId isn't a mapped expansion header), with the resolved
 -- header name. cat=0 means the faction hasn't been re-scanned on a v24 client yet (log
 -- into a character that has it); a non-zero header not in REL is a mapping gap to add.
-ns:registerCommand("repsdebug", "", function(self)
+ns:registerCommand("reps0", "", function(self)
   local api = self.api
   local byFid = {}
   for _, c in ipairs(api.GetAllCharacters()) do

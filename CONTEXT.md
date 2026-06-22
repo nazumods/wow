@@ -95,7 +95,7 @@ LibNUI_Test is a LoadOnDemand visual test harness for LibNUI (`/nui test [key]`)
 | LibNAddOn | `/lib` | `player` |
 | LibNUI | `/nui`, `/wdebug` | `version`, `test [key]`; `/wdebug <lua>` (raw command: eval Lua → copyable window) |
 | Warbandeer_Characters | `/characters`, `/wbc` | `list`, `delete <name>`, `cleanup`, `refresh`, `refresh items/locks`, `dump`, `dump bank/bankgear/gt/locks/artifact/warband/profgear/wq`, `stat`, `missing`, `missing me`, `wmissing` |
-| Warbandeer | `/warband`, `/wb` | `""` (open), `overview`, `summary`, `gear`, `detail`, `roles`, `races`, `legion`, `midnight`, `profs`, `midnightprofs`, `crafting`, `playtime`, `bars`, `collected`, `reputations`, `check legion`, `enchants` (list accepted wrong-enchants), `enchants clear`, `repsdebug` (dev: dump uncategorized "Other" reps to a copy window) |
+| Warbandeer | `/warband`, `/wb` | `""` (open), `overview`, `summary`, `gear`, `detail`, `roles`, `races`, `legion`, `midnight`, `profs`, `midnightprofs`, `crafting`, `playtime`, `bars`, `collected`, `reputations`, `check legion`, `enchants` (list accepted wrong-enchants), `enchants clear`, `reps0` (dev: dump uncategorized "Other" reps to a copy window) |
 | Warbandeer_Collected | `/collected`, `/collect` | `""` (open), `scan`, `wanted` (list sets flagged wanted), `model <id>` (dev: preview a raw display id), `scale <n>` (dev: user scale multiplier; no arg dumps scale state), `normalize <0..1>` (dev: tune a race's normalization override), `release <1..12>` (dev: preview an expansion badge by release index) |
 | Recycle | `/recycle` | `clear`, `key CTRL|SHIFT|ALT` |
 | Warbandeer_Bars | `/wbbars`, `/wbb` | `""` (status), `snapshot`, `list`, `restore <char> [specID]`, `forget <char> [specID]` |
