@@ -143,7 +143,7 @@ Any key matching a method on the instance is valid; tables are unpacked, scalars
 | `Slider` | inherits Frame (`type = "Slider"`); `min` (0), `max` (1), `step`, `value`, `orientation` (`"HORIZONTAL"`), `thickness` (4), `OnChange(value, userInput)` |
 | `Model` | inherits Frame (`type = "ModelScene"`, `template = "ModelSceneMixinTemplate"`); `rotateSpeed` (0.01 rad/px), `facing`, `minZoom`/`maxZoom` (2/16, camera zoom range), `spinFriction` (0.05, inertia decay), `spinTracking` (0.5, throw-speed follow) |
 | `Button` | `normal` (`{texture,coords}`), `onClick`, `bindLeftClick`, `kbLabel`, `glow` (true), `itemID`, `tooltip`, `OnChange`, `OnClick` |
-| `MinimapButton` | inherits Frame (`type="Button"`, parents to `Minimap`); `icon`, `iconFillsButton`, `db` (`{angle,hide}` store), `defaultAngle` (225), `radius` (8), `tooltip` (string[] or fn), `onClick(self, mouseButton)`, `compartment` (`{text, icon?, onClick}`). Methods: `Shown`, `Angle`, `Icon`. Build it at/after `PLAYER_LOGIN` |
+| `MinimapButton` | inherits Frame (`type="Button"`, parents to `Minimap`); `icon`, `iconFillsButton`, `db` (`{angle,hide}` store), `defaultAngle` (225), `radius` (8), `tooltip` (string[] or fn), `onClick(self, mouseButton)`, `compartment` (`{text, icon?, onClick}`). Methods: `Shown`, `Angle`, `Icon`, `ShowContextMenu(generator)`. Build it at/after `PLAYER_LOGIN` |
 | `SecureButton` | `actions` — list of `{type, target, spell, toy}` |
 | `CheckButton` | `text`, `OnToggle` |
 | `AutoWidget` | `parent`, `onClick`, `path`, `atlas`, `atlasSize`, `coords`, `vertexColor`, `position`, `label`, `font`, `color`, `justifyH` |

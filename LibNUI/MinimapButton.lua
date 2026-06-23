@@ -6,7 +6,7 @@ local Class = ns.lua.Class
 local Frame, Texture = ui.Frame, ui.Texture
 local Minimap, UIParent, GameTooltip = Minimap, UIParent, GameTooltip
 local GetMinimapShape, GetCursorPosition = GetMinimapShape, GetCursorPosition
-local AddonCompartmentFrame = AddonCompartmentFrame
+local AddonCompartmentFrame, MenuUtil = AddonCompartmentFrame, MenuUtil
 local rad, deg, cos, sin, sqrt, atan2 = math.rad, math.deg, math.cos, math.sin, math.sqrt, math.atan2
 local max, min = math.max, math.min
 
@@ -193,6 +193,14 @@ function MinimapButton:registerCompartment()
     funcOnEnter  = function(frame) self:showTooltip(frame, "ANCHOR_LEFT") end,
     funcOnLeave  = function() GameTooltip:Hide() end,
   })
+end
+
+-- Show a Blizzard context menu anchored to the button, so the consumer never
+-- has to reach for the backing frame. `generator` is the
+-- MenuUtil.CreateContextMenu callback: `function(owner, rootDescription) ... end`.
+---@param generator fun(owner: table, rootDescription: table)
+function MinimapButton:ShowContextMenu(generator)
+  MenuUtil.CreateContextMenu(self._widget, generator)
 end
 
 -- Show/hide the button and persist the choice into `db.hide`.

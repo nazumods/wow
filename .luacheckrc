@@ -235,6 +235,7 @@ std = {
     "AddonCompartmentFrame",
     "Minimap",
     "GetMinimapShape",
+    "MenuUtil",
     "StanceBar",
     "StatusTrackingBarManager",
     "UIParent",

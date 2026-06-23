@@ -490,6 +490,7 @@ Includes all `Frame` options, plus:
 | `Shown(bool)` | Get/set visibility, persisting into `db.hide`          |
 | `Angle(deg)`  | Get/set the ring angle in degrees (normalized 0–360)   |
 | `Icon(path)`  | Get/set the icon texture                               |
+| `ShowContextMenu(generator)` | Open a `MenuUtil` context menu anchored to the button (call from `onClick` on right-click) |
 
 ### Callbacks
 
