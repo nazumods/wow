@@ -233,6 +233,8 @@ std = {
     "ProfessionsBookFrame",
     "ProfessionsFrame",
     "AddonCompartmentFrame",
+    "Minimap",
+    "GetMinimapShape",
     "StanceBar",
     "StatusTrackingBarManager",
     "UIParent",
