@@ -14,5 +14,6 @@ model.lua
 slider.lua
 minimapbutton.lua
 filterdropdown.lua
+ring.lua
 copywindow.lua
 entry.lua

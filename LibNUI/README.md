@@ -812,6 +812,46 @@ data = {
 
 ---
 
+## RingSelector
+
+Inherits `Frame`. An OPie-style radial selector: it lays the given `items` out as
+glyphs evenly around a center (clockwise from the top) and highlights the slice the
+cursor **aims toward** — you point a direction, you don't have to hover the icon.
+Inside the center dead-zone nothing is aimed. Pure insecure UI (taint-free); the
+caller drives the lifecycle — show it, then call `Commit()` on key-release to fire
+`onSelect` (the visual test also commits on click).
+
+### Constructor options
+
+| Option      | Type     | Description                                                       |
+|-------------|----------|------------------------------------------------------------------|
+| `items`     | table[]  | Slices: `{ name, path \| atlas, rotation?, title? }`             |
+| `radius`    | number   | Center-to-glyph distance (default 72)                            |
+| `iconSize`  | number   | Glyph size (default 30)                                          |
+| `deadZone`  | number   | Center radius in px that selects nothing (default 26)           |
+| `restColor` | number[] | Glyph tint at rest (rgba)                                         |
+| `hiColor`   | number[] | Glyph tint when aimed at (rgba)                                  |
+| `onSelect`  | func     | `function(name)` fired by `Commit()` with the aimed slice        |
+
+### Methods
+
+| Method       | Description                                                       |
+|--------------|------------------------------------------------------------------|
+| `Selected()` | Name of the slice the cursor aims at, or `nil` in the dead zone  |
+| `Commit()`   | Fire `onSelect` for the aimed slice (if any) and return its name |
+
+```lua
+local ring = ui.RingSelector:new{
+  parent   = parent,
+  items    = { { name = "summary", atlas = "...", title = "Summary" }, ... },
+  position = { Center = {} },
+  onSelect = function(name) ns:view(name) end,
+}
+-- on the keybind's key-up:  ring:Commit(); ring:Hide()
+```
+
+---
+
 ## AutoWidget
 
 Standalone (does not inherit `Region`). Chooses its widget type from the options:
