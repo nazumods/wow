@@ -41,7 +41,7 @@ Main viewer UI. Reads the data layer (`ns.api` ← `WarbandeerApi`) and renders 
 | `views/RoleView.lua` | `ClassTable` per class, grouped by spec |
 | `views/RaceView.lua` | 13×29 class/race grid (dynamic build), one character per cell; hover + click-to-Detail |
 | `views/Legion.lua` | Hidden artifact appearances + Legion achievements |
-| `views/Midnight.lua` | Midnight achievement grid |
+| `views/Milestones.lua` | Collectible-reward achievement grid (mounts/toys/decor) spanning all expansions — **not** Midnight-specific (renamed from `Midnight.lua`) |
 | `views/ProfsView.lua` | Best-skill-per-expansion grid + per-character detail panel |
 | `views/MidnightProfs.lua` | Profs × characters grid: Midnight skill + concentration |
 | `views/CraftingView.lua` | Crafting profs: main crafter, concentration, learned-recipe %; expansion `BuildFilter` |
@@ -66,7 +66,7 @@ Main viewer UI. Reads the data layer (`ns.api` ← `WarbandeerApi`) and renders 
 | `races` | Races | TableFrame | 13×29 grid, one character per cell | — |
 | `profs` | Professions | Frame | Profession skill grid + detail panel | — |
 | `crafting` | Crafting | Frame | Main crafter, concentration, recipe % | expansion dropdown |
-| `midnight` | Midnight | Frame | Achievement grid | — |
+| `milestones` | Milestones | Frame | Collectible-reward achievement grid | — |
 | `legion` | Legion | Frame | Hidden artifacts + achievements | — |
 | `playtime` | Playtime | Frame | Per-character playtime | — |
 | `midnightprofs` | Midnight Profs | Frame | Profs × characters: skill + concentration | — |

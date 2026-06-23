@@ -11,8 +11,8 @@ local achievementIds = {
 }
 
 -- Achievements Table
----@class MidnightAchievements: TableFrame
----@field GetData fun(self: MidnightAchievements): table  builds the achievement cell grid
+---@class MilestonesAchievements: TableFrame
+---@field GetData fun(self: MilestonesAchievements): table  builds the achievement cell grid
 local Achievements = Class(TableFrame, function(self)
   for _,r in ipairs(self.rows) do r:backdropColor(ns.Colors.TransparentBlack) end
   for _,c in ipairs(self.cols) do c:backdropColor(ns.Colors.TransparentBlack) end
@@ -40,9 +40,9 @@ end, {
 })
 
 -- Main View
----@class Midnight: Frame
----@field achievements MidnightAchievements
-local Midnight = Class(Frame, function(self)
+---@class Milestones: Frame
+---@field achievements MilestonesAchievements
+local Milestones = Class(Frame, function(self)
   self.achievements = Achievements:new{
     parent = self,
     position = {
@@ -52,12 +52,12 @@ local Midnight = Class(Frame, function(self)
   self:Height(self.achievements:Height())
   self:Width(self.achievements:Width())
 end, {
-  name = "midnight",
+  name = "milestones",
   onLoad = function(self)
     self:Height(self.achievements:Height())
     self:Width(self.achievements:Width())
   end,
 })
-Midnight.name = "midnight"
-Midnight._title = "Midnight"
-ns.views.Midnight = Midnight
+Milestones.name = "milestones"
+Milestones._title = "Milestones"
+ns.views.Milestones = Milestones

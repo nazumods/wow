@@ -53,7 +53,7 @@ ns.viewOrder = {
   "races",
   "profs",
   "crafting",
-  "midnight",
+  "milestones",
   "legion",
   "playtime",
   "midnightprofs",

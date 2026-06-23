@@ -78,7 +78,7 @@ views\detail\Filter.lua
 views\RoleView.lua
 views\RaceView.lua
 views\Legion.lua
-views\Midnight.lua
+views\Milestones.lua
 views\ProfsView.lua
 views\MidnightProfs.lua
 views\CraftingView.lua
