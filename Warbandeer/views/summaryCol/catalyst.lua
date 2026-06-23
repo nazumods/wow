@@ -25,6 +25,8 @@ table.insert(
     key = "catalyst", label = "Catalyst",
     iconPath = "Interface\\AddOns\\Warbandeer\\icons\\catalyst.tga",
     iconColor = ns.theme.colors.muted,
+    -- nudge the header icon right so it centers over the right-justified content
+    iconOffsetX = 8,
     width = 48,
     justifyH = ui.justify.Center,
     tooltip = {
