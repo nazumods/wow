@@ -103,4 +103,18 @@ ns.Quests.fields = {
     end,
     event = {"QUEST_TURNED_IN", "QUEST_ACCEPTED", "QUEST_REMOVED", "UNIT_QUEST_LOG_CHANGED"},
   },
+  -- Achievement 61519 "Midnight Season 1: Catalyst Unbound" (unlock your class set
+  -- bonuses). The achievement's `completed` is account-wide, but `wasEarnedByMe`
+  -- (13th GetAchievementInfo return) is PER-character — true once THIS character has
+  -- earned it. Captured per character so the Catalyst column can show it cross-alt.
+  -- Sticky: an earned achievement is never lost.
+  CatalystUnbound = {
+    get = function(_, _, currentValue)
+      return currentValue or (select(13, GetAchievementInfo(61519)) or false)
+    end,
+    event = "ACHIEVEMENT_EARNED",
+    eventHandler = function(self, _, achievementId)
+      if achievementId == 61519 then self:set(true) end
+    end,
+  },
 }
