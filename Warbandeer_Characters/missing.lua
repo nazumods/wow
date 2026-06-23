@@ -76,10 +76,11 @@ function ns.getMissingFields(toon)
     table.insert(missing, "bag contents")
   end
 
-  -- Mail is captured only while the character has a mailbox open. The scan stamps a
-  -- record even for an empty inbox, so a nil mail means "never visited a mailbox" — its
-  -- expiries can't warn and its attachments are absent from the stock tooltip.
-  if not toon.mail then
+  -- Mail contents are captured only while the character has a mailbox open. The scan
+  -- stamps a count even for an empty inbox, so a missing count means "never visited a
+  -- mailbox" — its expiries can't warn and its attachments are absent from the stock
+  -- tooltip. (A record may exist with only the new-mail flag set, from UPDATE_PENDING_MAIL.)
+  if not toon.mail or toon.mail.count == nil then
     table.insert(missing, "mail")
   end
 

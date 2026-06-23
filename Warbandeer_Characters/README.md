@@ -41,8 +41,11 @@ data through the `WarbandeerApi` global.
   personal/warband/guild banks when opened) is kept so **ShadowsOfUI-WarbandInventory** can
   show account-wide "how many do I have?" totals on item tooltips.
 - **Mail** is recorded whenever you open a mailbox (count, attached items + gold, and when
-  each piece expires). On login you get a one-line warning naming any character whose mail
-  expires within 3 days, and Warbandeer's Summary view gains a Mail column.
+  each piece expires). New, unread mail is also flagged as soon as it arrives — even before
+  you open the mailbox — and remembered across reloads, so an envelope shows next to that
+  character in the Summary view until the mail is picked up. On login you get a one-line
+  warning naming any character whose mail expires within 3 days, and Warbandeer's Summary
+  view gains a Mail column.
 - **Reputations** are captured each login and whenever they change — every faction's standing
   for each character, so **ShadowsOfUI-Reputations** can show who's Exalted (or still grinding)
   with a faction, on the Reputation tab and on faction-tied item tooltips.
