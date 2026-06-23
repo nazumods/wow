@@ -12,5 +12,6 @@ tab.lua
 theme.lua
 model.lua
 slider.lua
+minimapbutton.lua
 copywindow.lua
 entry.lua

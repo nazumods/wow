@@ -111,6 +111,7 @@ Region
     ├── Button
     │   ├── CheckButton
     │   └── SecureButton
+    ├── MinimapButton
     ├── Cell
     ├── Dialog
     ├── EditBox
@@ -445,6 +446,57 @@ Includes all `Frame` options, plus:
 |--------------|-----------------------------------------------------------|
 | `OnClick`    | Called on mouse up                                        |
 | `OnChange`   | Called on drag-receive for matching item/spell/mount type |
+
+---
+
+## MinimapButton
+
+Inherits `Frame` (`type = "Button"`). A draggable button anchored to the minimap edge. The widget owns the positioning, drag, highlight, and (optionally) addon-compartment boilerplate; the consumer supplies the icon, the click behaviour, the tooltip, and a persistence table.
+
+Positioning is **shape-aware** via `GetMinimapShape()` (round, square, and partial minimaps), the saved angle persists across sessions, and the hover highlight uses ADD blend so it brightens — never hides — the icon. Defaults to `parent = Minimap`; **create it at or after `PLAYER_LOGIN`** so any `GetMinimapShape` provider has loaded.
+
+```lua
+ui.MinimapButton:new{
+  name            = "MyAddonMinimapButton",
+  icon            = "Interface\\AddOns\\MyAddon\\icon.png",
+  iconFillsButton = true,                 -- icon art carries its own border
+  db              = MyAddonDB.minimap,    -- { angle, hide } persisted here
+  defaultAngle    = 198,
+  tooltip         = { "My Addon", "Left-click to open", "Drag to move" },
+  onClick         = function(self, mouseButton) ... end,
+  compartment     = { text = "My Addon", onClick = function() ... end },
+}
+```
+
+### Constructor options
+
+Includes all `Frame` options, plus:
+
+| Option            | Type            | Description                                                                                  |
+|-------------------|-----------------|----------------------------------------------------------------------------------------------|
+| `icon`            | string\|number  | Icon texture path or fileID                                                                   |
+| `iconFillsButton` | bool            | Icon fills the button (its art carries the border); else a Blizzard ring + background is drawn around an inset icon |
+| `db`              | table           | Persistence store; the widget reads/writes `{ angle, hide }`                                  |
+| `defaultAngle`    | number          | Ring angle (degrees) used when `db.angle` is unset (default `225`)                            |
+| `radius`          | number          | Pixels past the minimap edge (default `8`)                                                    |
+| `tooltip`         | string[]\|func  | Tooltip lines (first is the header), or `fun(self): string[]`                                 |
+| `onClick`         | func            | `fun(self, mouseButton)` — decides left/right behaviour                                       |
+| `compartment`     | table           | `{ text, icon?, onClick }` — also register a Blizzard addon-compartment entry                 |
+
+### Methods
+
+| Method        | Description                                            |
+|---------------|--------------------------------------------------------|
+| `Shown(bool)` | Get/set visibility, persisting into `db.hide`          |
+| `Angle(deg)`  | Get/set the ring angle in degrees (normalized 0–360)   |
+| `Icon(path)`  | Get/set the icon texture                               |
+| `ShowContextMenu(generator)` | Open a `MenuUtil` context menu anchored to the button (call from `onClick` on right-click) |
+
+### Callbacks
+
+| Callback              | Description                                  |
+|-----------------------|----------------------------------------------|
+| `onClick(mouseButton)` | Supplied via the `onClick` option; fired on click |
 
 ---
 
