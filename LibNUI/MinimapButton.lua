@@ -6,7 +6,7 @@ local Class = ns.lua.Class
 local Frame, Texture = ui.Frame, ui.Texture
 local Minimap, UIParent, GameTooltip = Minimap, UIParent, GameTooltip
 local GetMinimapShape, GetCursorPosition = GetMinimapShape, GetCursorPosition
-local AddonCompartmentFrame, MenuUtil = AddonCompartmentFrame, MenuUtil
+local MenuUtil = MenuUtil
 local rad, deg, cos, sin, sqrt, atan2 = math.rad, math.deg, math.cos, math.sin, math.sqrt, math.atan2
 local max, min = math.max, math.min
 
@@ -33,7 +33,7 @@ local SHAPES = {
 
 -- A draggable button on the minimap edge. The consumer supplies the icon, the
 -- click behaviour, the tooltip, and a persistence table; the widget owns the
--- positioning/drag/highlight/compartment boilerplate (and its gotchas).
+-- positioning/drag/highlight boilerplate (and its gotchas).
 --
 --   ui.MinimapButton:new{
 --     name = "MyAddonMinimapButton",
@@ -43,10 +43,11 @@ local SHAPES = {
 --     defaultAngle = 198,
 --     tooltip = { "My Addon", "Left-click to open", "Drag to move" },
 --     onClick = function(self, mouseButton) ... end,
---     compartment = { text = "My Addon", onClick = function() ... end },
 --   }
 --
 -- Build it at/after PLAYER_LOGIN so any GetMinimapShape provider has loaded.
+-- (An addon-compartment entry is a separate concern — register it declaratively
+-- via the .toc AddonCompartmentFunc / LibNAddOn X-NUI-COMPARTMENT, not here.)
 ---@class MinimapButton: Frame
 ---@field icon string|number  icon texture path or fileID
 ---@field iconFillsButton boolean?  icon fills the button (its art carries the border); else a Blizzard ring+background is drawn around an inset icon
@@ -55,7 +56,6 @@ local SHAPES = {
 ---@field radius number  pixels past the minimap edge
 ---@field tooltip (string[]|fun(self: MinimapButton): string[])?  tooltip lines (first line is the header); or a function returning them
 ---@field onClick fun(self: MinimapButton, mouseButton: string)?  click handler (decides left/right behaviour)
----@field compartment table?  { text:string, icon?:string, onClick:fun() } — also register a Blizzard addon-compartment entry
 ---@field _icon Texture  the icon Texture widget
 local MinimapButton = Class(Frame, function(self)
   local b = self._widget
@@ -87,10 +87,6 @@ local MinimapButton = Class(Frame, function(self)
   -- icon on hover instead of painting over it (a plain HIGHLIGHT-layer texture
   -- defaults to BLEND and would hide the icon).
   b:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight")
-
-  if self.compartment and AddonCompartmentFrame then
-    self:registerCompartment()
-  end
 
   -- lazy-init the persistence store and place/show the button
   self.db = self.db or {}
@@ -182,20 +178,6 @@ end
 
 function MinimapButton:OnLeave()
   GameTooltip:Hide()
-end
-
--- Register a Blizzard addon-compartment entry (top-of-minimap menu) — a stable
--- access point even when the button itself is hidden.
-function MinimapButton:registerCompartment()
-  local c = self.compartment
-  AddonCompartmentFrame:RegisterAddon({
-    text         = c.text,
-    icon         = c.icon or self.icon,
-    notCheckable = true,
-    func         = function() c.onClick() end,
-    funcOnEnter  = function(frame) self:showTooltip(frame, "ANCHOR_LEFT") end,
-    funcOnLeave  = function() GameTooltip:Hide() end,
-  })
 end
 
 -- Show a Blizzard context menu anchored to the button, so the consumer never
