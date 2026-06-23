@@ -318,6 +318,7 @@ std = {
     "GetTime",
     "GetXPExhaustion",
     "HandleModifiedItemClick",
+    "HasNewMail",
     "HaveQuestRewardData",
     "InCombatLockdown",
     "IsAltKeyDown",

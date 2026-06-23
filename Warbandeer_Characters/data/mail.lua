@@ -6,6 +6,7 @@ local GetInboxNumItems = GetInboxNumItems
 local GetInboxHeaderInfo = GetInboxHeaderInfo
 local GetInboxItem = GetInboxItem
 local GetServerTime = GetServerTime
+local HasNewMail = HasNewMail
 
 local DAY = 86400
 local MAX_ATTACH = ATTACHMENTS_MAX_RECEIVE or 16
@@ -14,11 +15,14 @@ local MAX_ATTACH = ATTACHMENTS_MAX_RECEIVE or 16
 ns.MAIL_WARN_DAYS = 3
 
 ---@class MailData
----@field scannedAt integer server time of the last inbox scan
----@field count integer number of mail in the inbox
----@field expiries integer[] absolute server-time expiry stamps, ascending (one per mail)
----@field items table<integer, integer> itemID -> attached count across all mail
----@field money integer total attached gold, in copper
+---@field scannedAt integer? server time of the last inbox scan (nil until a mailbox is opened)
+---@field count integer? number of mail in the inbox (nil until a mailbox is opened)
+---@field expiries integer[]? absolute server-time expiry stamps, ascending (one per mail)
+---@field items table<integer, integer>? itemID -> attached count across all mail
+---@field money integer? total attached gold, in copper
+---@field hasMail boolean? true while the character has new (unread) mail waiting — the
+---  minimap-envelope state (HasNewMail). Tracked independently of the inbox scan so it
+---  reflects mail that has arrived but not yet been picked up; nil once the inbox is clear.
 
 ---@class Character
 ---@field mail MailData?
@@ -45,10 +49,36 @@ local function scanInbox()
     end
   end
   sort(expiries)
-  toon.mail = { scannedAt = now, count = num, expiries = expiries, items = items, money = money }
+  toon.mail = {
+    scannedAt = now, count = num, expiries = expiries, items = items, money = money,
+    hasMail = HasNewMail() or nil,
+  }
 end
 
 ns:registerEvent("MAIL_INBOX_UPDATE", scanInbox)
+
+-- New-mail (minimap-envelope) state. HasNewMail is readable without opening a mailbox,
+-- so this catches mail that has arrived but not been picked up — persisted so the Summary
+-- column can flag it on alts. Stored on the mail record (created if the inbox was never
+-- scanned); cleared to nil once no mail is waiting. UPDATE_PENDING_MAIL fires at login and
+-- whenever the indicator changes, so the flag survives /reload rather than vanishing.
+--
+-- This is the exact event + API Blizzard's own MiniMapMailFrameMixin uses to raise/lower
+-- the minimap envelope (Blizzard_Minimap/Mainline/Minimap.lua), so our flag flips in
+-- lockstep with that icon. Caveat: Blizzard skips registering the event entirely when the
+-- `IngameMailNotificationDisabled` game rule is active (no minimap icon on such realms/modes),
+-- in which case this flag simply never sets — the column falls back to the inbox count.
+local function updatePendingMail()
+  local toon = ns.currentData
+  if not toon then return end
+  if HasNewMail() then
+    if toon.mail then toon.mail.hasMail = true else toon.mail = { hasMail = true } end
+  elseif toon.mail then
+    toon.mail.hasMail = nil
+  end
+end
+
+ns:registerEvent("UPDATE_PENDING_MAIL", updatePendingMail)
 
 -- Print a one-line account-wide warning naming each character with mail expiring within
 -- MAIL_WARN_DAYS, soonest first, e.g. "Mail expiring soon on: Vellika (1d), Kurorin (2d)".

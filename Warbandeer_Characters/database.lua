@@ -85,7 +85,7 @@ end, "Repair stored data (recount characters)")
 ---@field MigrateDB fun(self) Migrate database to latest version
 function ns:MigrateDB()
   local db = ns.db
-  if db.version == 24 then return end
+  if db.version == 25 then return end
   if not db.characters then db.characters = {} end
   if not db.numCharacters then
     db.numCharacters = countCharacters(db)
@@ -274,6 +274,15 @@ function ns:MigrateDB()
   -- character next logs in and re-scans, so rollback is lossless.
   if (db.version or 0) < 24 then
     db.version = 24
+  end
+
+  -- v25: per-character new-mail flag (`mail.hasMail`: the minimap-envelope state, true
+  -- while unread mail is waiting) (non-destructive).  Stamped by data/mail.lua on
+  -- UPDATE_PENDING_MAIL (and refreshed by the inbox scan); nothing to seed — old revisions
+  -- simply lack it (the Summary mail column shows no envelope) until the character next logs
+  -- in, so rollback is lossless.
+  if (db.version or 0) < 25 then
+    db.version = 25
   end
 end
 
