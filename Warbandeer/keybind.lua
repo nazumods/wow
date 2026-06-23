@@ -11,7 +11,13 @@ BINDING_HEADER_WARBANDEER = "Warbandeer"
 BINDING_NAME_WARBANDEER_TOGGLE = "Toggle Warbandeer window"
 
 -- Binding bodies run in the global environment, so the handler must be a global.
--- Pure insecure UI (toggle the window) — no SetAttribute, taint-free in combat.
-function Warbandeer_ToggleBinding()
-  ns:Toggle()
+-- The binding is runOnUp (Bindings.xml), so it fires on both edges with `keystate`
+-- = "down"/"up": a tap toggles the window, a hold pops the radial ring (ring.lua).
+-- Pure insecure UI — no SetAttribute, taint-free in combat.
+function Warbandeer_ToggleBinding(keystate)
+  if keystate == "up" then
+    ns:RingKeyUp()
+  else
+    ns:RingKeyDown()
+  end
 end

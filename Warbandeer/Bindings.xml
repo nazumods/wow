@@ -1,5 +1,5 @@
 <Bindings>
-	<Binding name="WARBANDEER_TOGGLE" header="WARBANDEER">
-		Warbandeer_ToggleBinding()
+	<Binding name="WARBANDEER_TOGGLE" header="WARBANDEER" runOnUp="true">
+		Warbandeer_ToggleBinding(keystate)
 	</Binding>
 </Bindings>

@@ -117,6 +117,17 @@ function RingSelector:_highlight(slice)
   self.titleLabel:Text(slice and slice.item.title or "")
 end
 
+-- Anchor the ring's center to the current cursor position (so a "hold" pops the
+-- ring up under the cursor). UIParent space, scale-corrected.
+---@return RingSelector
+function RingSelector:CenterOnCursor()
+  local x, y = GetCursorPosition()
+  local s = UIParent:GetEffectiveScale()
+  self._widget:ClearAllPoints()
+  self._widget:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x / s, y / s)
+  return self
+end
+
 -- The name of the slice the cursor currently aims at, or nil in the dead zone.
 ---@return string?
 function RingSelector:Selected()
