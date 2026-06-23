@@ -8,13 +8,16 @@ local ui = ns.ui
 -- unlocked, captured per-character via quests.CatalystUnbound) and the Dawnlight
 -- Manaflux charge count pushed to the right. Charges recharge 1 every two weeks up
 -- to 8, so a full bank (red) means further recharge is wasted. The ✓/✗ is an inline
--- atlas (so the cell stays a single label). Both the icon+count and the below-max
--- count are RIGHT-justified, so every count lines up on the same right edge and the
--- group sits away from the column on the left. GAP is the icon→count spacing; the
--- `:0:-N` markup offset lowers the icon onto the text baseline. Tune GAP / width /
--- offset to taste.
-local CHECK = ("|A:%s:13:13:0:-3|a"):format(ns.icons.CheckGreen)
-local CROSS = ("|A:%s:14:14:0:-3|a"):format(ns.icons.RedX)
+-- atlas (so the cell stays a single label). A leading inline element of a FIXED
+-- width (ICON_W) sits on EVERY row — the real ✓/✗ at max level, a same-width
+-- transparent spacer for leveling alts — so that, right-justified, every count
+-- lines up on the same edge (a leading inline of a different width shifts the
+-- right-justified text, so the widths must match). GAP is the icon→count spacing;
+-- the `:0:-N` markup offset lowers the icon onto the text baseline.
+local ICON_W = 14
+local CHECK  = ("|A:%s:%d:%d:0:-3|a"):format(ns.icons.CheckGreen, ICON_W, ICON_W)
+local CROSS  = ("|A:%s:%d:%d:0:-3|a"):format(ns.icons.RedX, ICON_W, ICON_W)
+local SPACER = ("|T%s:%d:%d|t"):format("Interface\\AddOns\\Warbandeer\\icons\\spacer.tga", ICON_W, ICON_W)
 local GAP = " "
 table.insert(
   ns.SummaryColumns,
@@ -37,9 +40,10 @@ table.insert(
         or (c.capped and ns.CappedColor or ns.UncappedColor)
 
       -- Catalyst Unbound is an endgame achievement, so only show the ✓/✗ for
-      -- max-level characters; leveling alts show just the Manaflux charge count.
+      -- max-level characters; leveling alts get the same-width transparent spacer
+      -- so their charge count still lines up with the max-level counts.
       if (t.basic.level or 0) < ns.wow.maxLevel then
-        return { text = tostring(q), justifyH = ui.justify.Right, color = color,
+        return { text = SPACER .. GAP .. q, justifyH = ui.justify.Right, color = color,
                  fontInfo = ns.theme.fonts.number }
       end
 
@@ -48,7 +52,7 @@ table.insert(
       return {
         -- inline atlas keeps its own green/red; the number takes `color`
         text     = mark .. GAP .. q,
-        justifyH = ui.justify.Left,
+        justifyH = ui.justify.Right,
         color    = color,
         fontInfo = ns.theme.fonts.number,
         onEnter  = function(self)
