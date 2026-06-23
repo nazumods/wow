@@ -146,7 +146,10 @@ function MinimapButton:dragUpdate()
   self:updatePosition()
 end
 
-function MinimapButton:OnClick(mouseButton)
+-- The `scripts` bridge calls this as OnClick(self, frame, button, down), so the
+-- mouse button is the second positional arg, not the first.
+---@param mouseButton string  "LeftButton" / "RightButton" / ...
+function MinimapButton:OnClick(_, mouseButton)
   if self.onClick then self:onClick(mouseButton) end
 end
 
