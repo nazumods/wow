@@ -92,3 +92,4 @@ views\ReputationsView.lua
 window.lua
 
 commands.lua
+minimap.lua
