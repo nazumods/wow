@@ -5,7 +5,9 @@ characters you play: gear, professions, gold, reputations, playtime, crafting pl
 and more — collected automatically as you log between characters and presented in one
 window.
 
-Open it with `/warband` or `/wb` and switch views with the icon rail on the left.
+Open it with `/warband` or `/wb`, the minimap button, or the addon-compartment menu at the top of the minimap, and switch views with the icon rail on the left.
+
+The minimap button opens the window on left-click and drags to reposition. Right-click it for a menu: hide the button, open Settings, or jump straight to any view. Hide or show it any time with `/wb minimap`.
 
 ## Views
 
