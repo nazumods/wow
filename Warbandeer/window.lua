@@ -7,6 +7,30 @@ local ui = ns.ui
 local Class, TitleFrame = ns.lua.Class, ui.TitleFrame
 local IconStrip = ns.IconStrip
 
+-- Ordered navigation views (the rail order): `ns.viewOrder` first, then any
+-- unlisted view appended sorted by title, so the order is deterministic. Shared
+-- by the icon rail and the minimap right-click menu so they stay in sync.
+---@class Warbandeer
+---@field NavViews fun(): { name: string, title: string, iconRotation: number? }[]
+function ns.NavViews()
+  local byName = {}
+  for _, c in pairs(ns.views) do byName[c.name] = c end
+
+  local nav, seen = {}, {}
+  local function add(c)
+    if not c or seen[c.name] then return end
+    seen[c.name] = true
+    nav[#nav + 1] = { name = c.name, title = c._title or c.name, iconRotation = c._iconRotation }
+  end
+
+  for _, name in ipairs(ns.viewOrder) do add(byName[name]) end
+  local leftovers = {}
+  for _, c in pairs(ns.views) do if not seen[c.name] then leftovers[#leftovers + 1] = c end end
+  table.sort(leftovers, function(a, b) return (a._title or a.name) < (b._title or b.name) end)
+  for _, c in ipairs(leftovers) do add(c) end
+  return nav
+end
+
 ---@class MainWindow: TitleFrame
 ---@field views table<string, Frame>         constructed view instances, by view name
 ---@field _viewClasses table<string, table>  registered view classes, by view name
@@ -23,22 +47,7 @@ local MainWindow = Class(TitleFrame, function(self)
     self._viewClasses[c.name] = c
   end
 
-  -- Navigation-rail order: ns.viewOrder first, any unlisted view appended (sorted
-  -- by title) so the rail order is always deterministic.
-  local navViews = {}
-  local seen = {}
-  local function addNav(c)
-    if not c or seen[c.name] then return end
-    seen[c.name] = true
-    table.insert(navViews, { name = c.name, title = c._title or c.name, iconRotation = c._iconRotation })
-  end
-  for _, name in ipairs(ns.viewOrder) do addNav(self._viewClasses[name]) end
-  local leftovers = {}
-  for name, c in pairs(self._viewClasses) do
-    if not seen[name] then table.insert(leftovers, c) end
-  end
-  table.sort(leftovers, function(a, b) return (a._title or a.name) < (b._title or b.name) end)
-  for _, c in ipairs(leftovers) do addNav(c) end
+  local navViews = ns.NavViews()
 
   -- Floating icon rail docked just left of the window (replaces the old
   -- titlebar-icon dropdown selector). Clicking a glyph switches view.

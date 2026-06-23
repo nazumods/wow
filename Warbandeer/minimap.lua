@@ -45,9 +45,14 @@ ns:registerEvent("PLAYER_LOGIN", function()
     onClick = function(self, mouseButton)
       if mouseButton == "RightButton" then
         self:ShowContextMenu(function(_, root)
-          root:CreateTitle("Warbandeer")
-          root:CreateButton("Open", function() ns:Open() end)
           root:CreateButton("Hide minimap button", function() self:Shown(false) end)
+          root:CreateButton("Settings", function()
+            if ns.settingsCategory then Settings.OpenToCategory(ns.settingsCategory:GetID()) end
+          end)
+          root:CreateDivider()
+          for _, v in ipairs(ns.NavViews()) do
+            root:CreateButton(v.title, function() ns:view(v.name) end)
+          end
         end)
       else
         toggleWindow()
