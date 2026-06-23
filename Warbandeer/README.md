@@ -19,7 +19,8 @@ Open it with `/warband` or `/wb` and switch views with the icon rail on the left
 | Races | Race coverage across your characters |
 | Professions | Who has which profession, skill levels and knowledge points |
 | Crafting | Profession intents: who is your main crafter, secondary, gatherer |
-| Legion / Midnight | Expansion-specific progress trackers |
+| Milestones | Achievements that award collectibles (mounts, toys, decor) — spans all expansions |
+| Legion | Legion-specific progress: Balance of Power, class halls, mage portals |
 | Midnight Professions | Expansion profession progress |
 | Playtime | Time played per character and total |
 | Bars | Action-bar profile previews (requires Warbandeer_Bars) |
