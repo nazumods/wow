@@ -1,0 +1,5 @@
+<Bindings>
+	<Binding name="WARBANDEER_TOGGLE" header="WARBANDEER">
+		Warbandeer_ToggleBinding()
+	</Binding>
+</Bindings>

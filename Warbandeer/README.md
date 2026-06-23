@@ -31,6 +31,8 @@ The minimap button opens the window on left-click and drags to reposition. Right
 
 Every view is also reachable directly, e.g. `/wb gear`, `/wb profs`, `/wb playtime`.
 
+**Keybinding:** a *Toggle Warbandeer window* binding is registered under **Esc → Options → Key Bindings → Warbandeer** — assign it any key (Alt-W recommended) to open and close the window.
+
 ## Settings
 
 Found in the Blizzard settings panel:
