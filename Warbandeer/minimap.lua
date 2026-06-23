@@ -6,6 +6,7 @@ local ui = ns.ui
 -- across the addon list, the compartment menu, and the minimap.
 local ICON          = "Interface\\Icons\\inv_10_tailoring2_banner_green"
 local DEFAULT_ANGLE = 210  -- degrees around the ring
+local VIEW_ICONS    = "Interface\\AddOns\\Warbandeer\\icons\\views\\"  -- per-view glyphs (white TGAs, same as the rail)
 
 local button  -- ui.MinimapButton, created at login
 
@@ -51,7 +52,10 @@ ns:registerEvent("PLAYER_LOGIN", function()
           end)
           root:CreateDivider()
           for _, v in ipairs(ns.NavViews()) do
-            root:CreateButton(v.title, function() ns:view(v.name) end)
+            -- inline the view's rail glyph; |T| can't rotate, so the Bars icon
+            -- shows in its base orientation here (cosmetic only)
+            local label = ("|T%s%s.tga:16:16|t  %s"):format(VIEW_ICONS, v.name, v.title)
+            root:CreateButton(label, function() ns:view(v.name) end)
           end
         end)
       else
