@@ -81,8 +81,8 @@ table.insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
     key = "rested", label = "Rested",
-    -- reuses the Milestones view's moon glyph (renamed from midnight.tga)
-    iconPath = "Interface\\AddOns\\Warbandeer\\icons\\views\\milestones.tga",
+    -- moon glyph (formerly the Midnight view's icon, now the Milestones view shows a medal)
+    iconPath = "Interface\\AddOns\\Warbandeer\\icons\\moon.tga",
     iconColor = ns.theme.colors.muted,
     width = 40,
     justifyH = ui.justify.Right,
