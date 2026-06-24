@@ -37,6 +37,7 @@ Found in the Blizzard settings panel:
 
 - **Default View** — which view opens with the window.
 - **Tooltip Side** — show hover tooltips left or right of the window.
+- **Hide minimap button** — hide or show the Warbandeer minimap button. Stays in sync with `/wb minimap` and the button's right-click menu; changes apply immediately.
 - **Summary Columns** — a subpanel of checkboxes to show or hide individual Summary columns (currencies, crests, Great Vault, Mythic+, gold, playtime, and more). The identity columns (character, faction, role, level, item level) are always shown. Changes apply immediately.
 
 ## Requirements

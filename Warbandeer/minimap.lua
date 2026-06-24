@@ -57,6 +57,39 @@ ns:registerCommand("minimap", nil, function()
   ns.Print(show and "Minimap button shown." or "Minimap button hidden.")
 end, "Toggle the minimap button")
 
+-- Surface the same show/hide state as a checkbox in the Warbandeer Settings panel
+-- (#218), alongside Default View / Tooltip Side. A second RegisterSettings on the
+-- existing "Warbandeer" category reuses that panel (getParent), keeping the minimap
+-- concern co-located here rather than in init.lua. Binds directly to `hide`, so the
+-- box reads "checked = hidden" — matching the right-click "Hide minimap button"
+-- wording; the slash command, the menu, and this checkbox all drive ns.db.minimap.hide.
+ns:RegisterSettings{
+  {
+    title = "Warbandeer",
+    fields = {
+      {
+        name = "Hide minimap button",
+        typ = "checkbox",
+        default = false,
+        -- ns.db.minimap is otherwise lazy-created at PLAYER_LOGIN, which runs *after*
+        -- settings register on ADDON_LOADED; register() silently skips a field whose
+        -- table closure returns nil, so ensure-create it here. Mirrors the ensure-and-
+        -- return in views/summaryColumnsSettings.lua.
+        table = function(db)
+          db.minimap = db.minimap or {}
+          return db.minimap
+        end,
+        key = "hide",
+        label = "Hide minimap button",
+        tooltip = "Hide the Warbandeer button on the minimap",
+        -- `value` is the new hide state (checked = hidden); apply the inverse live so
+        -- the button appears/disappears immediately, not just on next /reload.
+        callback = function(_, value) ns.SetMinimapShown(not value) end,
+      },
+    },
+  },
+}
+
 -- Warbandeer already registers an addon-compartment entry via the .toc
 -- (AddonCompartmentFunc), so the widget's `compartment` option is omitted here.
 ns:registerEvent("PLAYER_LOGIN", function()
