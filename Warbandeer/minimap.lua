@@ -16,10 +16,39 @@ local function toggleWindow()
   if w and w._widget:IsShown() then w:Hide() else ns:Open() end
 end
 
+-- Populate a right-click menu with the Settings entry, a divider, then one button
+-- per nav view (each prefixed with the view's rail glyph). Shared by the minimap
+-- button and the addon-compartment entry so both launchers offer the same views.
+---@param root table the MenuUtil rootDescription
+local function populateViewMenu(root)
+  root:CreateButton("Settings", function()
+    if ns.settingsCategory then Settings.OpenToCategory(ns.settingsCategory:GetID()) end
+  end)
+  root:CreateDivider()
+  for _, v in ipairs(ns.NavViews()) do
+    -- inline the view's rail glyph; |T| can't rotate, so the Bars icon
+    -- shows in its base orientation here (cosmetic only)
+    local label = ("|T%s%s.tga:16:16|t  %s"):format(VIEW_ICONS, v.name, v.title)
+    root:CreateButton(label, function() ns:view(v.name) end)
+  end
+end
+
 ---Show or hide the minimap button and persist the choice.
 ---@param show boolean
 function ns.SetMinimapShown(show)
   if button then button:Shown(show) end
+end
+
+-- Addon-compartment click handler: right-click opens the same view menu the
+-- minimap button offers (positioned at the cursor, owned by the always-present
+-- compartment frame); any other click opens the window.
+---@param btn string "LeftButton"|"RightButton"|"MiddleButton"
+function ns:CompartmentClick(btn)
+  if btn == "RightButton" then
+    MenuUtil.CreateContextMenu(AddonCompartmentFrame, function(_, root) populateViewMenu(root) end)
+  else
+    self:Open()
+  end
 end
 
 ns:registerCommand("minimap", nil, function()
@@ -47,16 +76,7 @@ ns:registerEvent("PLAYER_LOGIN", function()
       if mouseButton == "RightButton" then
         self:ShowContextMenu(function(_, root)
           root:CreateButton("Hide minimap button", function() self:Shown(false) end)
-          root:CreateButton("Settings", function()
-            if ns.settingsCategory then Settings.OpenToCategory(ns.settingsCategory:GetID()) end
-          end)
-          root:CreateDivider()
-          for _, v in ipairs(ns.NavViews()) do
-            -- inline the view's rail glyph; |T| can't rotate, so the Bars icon
-            -- shows in its base orientation here (cosmetic only)
-            local label = ("|T%s%s.tga:16:16|t  %s"):format(VIEW_ICONS, v.name, v.title)
-            root:CreateButton(label, function() ns:view(v.name) end)
-          end
+          populateViewMenu(root)
         end)
       else
         toggleWindow()

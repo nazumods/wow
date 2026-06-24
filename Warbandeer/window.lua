@@ -214,10 +214,6 @@ function ns:view(name)
   self.MainWindow:view(name)
 end
 
-function ns:CompartmentClick() -- buttonName = (LeftButton | RightButton | MiddleButton)
-  self:Open()
-end
-
 -- Rebuild the Summary view so a column show/hide setting takes effect. The view is
 -- forgotten so getView reconstructs it fresh against the new VisibleSummaryColumns
 -- set. If Summary is the current view (`_view`, even while the window is hidden) it's
