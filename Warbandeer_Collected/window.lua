@@ -41,13 +41,14 @@ local MainWindow = Class(TitleFrame, function(self)
   }
   self.scroll:Child(self.data.rowArea)
 
-  local counterLabel = Label:new{
+  self._counterLabel = Label:new{
     parent = self,
     position = {
       TopLeft = {self.titlebar, ui.edge.BottomLeft, 15, -12},
     },
     text = "Sets:",
   }
+  local counterLabel = self._counterLabel
   self.counter = Label:new{
     parent = self,
     position = {
@@ -97,9 +98,17 @@ local MainWindow = Class(TitleFrame, function(self)
     self._sortBorder:Color(rev and SORT_ACTIVE or SORT_IDLE)
   end)
 
-  self._wantedBorder = titleToggle(sortBox, "WANTED ONLY", false, function()
+  local wantedBox, _
+  self._wantedBorder, _, wantedBox = titleToggle(sortBox, "WANTED ONLY", false, function()
     local on = self.data:ToggleWantedOnly()
     self._wantedBorder:Color(on and SORT_ACTIVE or SORT_IDLE)
+  end)
+
+  -- Live ⇆ PTR toggle: in PTR mode the grid shows only the upcoming (PTR-only) sets.
+  self._ptrBorder = titleToggle(wantedBox, "PTR PREVIEW", false, function()
+    local on = self.data:SetPtr(not self.data._ptr)
+    self._ptrBorder:Color(on and SORT_ACTIVE or SORT_IDLE)
+    self:RefreshCounter()
   end)
 
   self:RefreshWanted()
@@ -119,6 +128,22 @@ end, {
 ---shared WantedIcon atlas (not a literal glyph, which the header font can't render).
 function MainWindow:RefreshWanted()
   self.wantedCount:Text(("|A:%s:14:14|a %d"):format(ns.WantedIcon, ns:WantedCount()))
+end
+
+---Refresh the left-hand counter for the active dataset: collected/total in live mode,
+---a count of upcoming sets (with the PTR build) in PTR mode.
+function MainWindow:RefreshCounter()
+  if self.data._ptr then
+    local n = 0
+    for _, grp in ipairs(ns.PtrSets) do
+      for _, set in ipairs(grp.sets) do if set.id then n = n + 1 end end
+    end
+    self._counterLabel:Text("Upcoming:")
+    self.counter:Text(ns.PtrBuild and ("%d  ·  PTR %s"):format(n, ns.PtrBuild.ptr) or tostring(n))
+  else
+    self._counterLabel:Text("Sets:")
+    self.counter:Text(ns.db.collected .. " / " .. ns.db.total)
+  end
 end
 
 -- Live-refresh this window's grid + wanted counter when a rating changes anywhere

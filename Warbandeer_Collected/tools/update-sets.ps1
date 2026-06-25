@@ -49,11 +49,165 @@ param(
   [string]$Build,
   [int]$MinRows = 1000,       # abort if TransmogSet returns fewer (incomplete download)
   [int]$MaxDeletePct = 5,     # abort if regeneration would drop more than this % of sets
-  [switch]$Check
+  [switch]$Check,
+  # PTR-delta mode: regenerate data/sets_ptr.lua (ns.PtrSets) from the diff between
+  # the latest live (wow) and PTR (wowt) TransmogSet tables — sets on the PTR but
+  # not yet on live ("upcoming"). Volatile; run on demand, not on the weekly cadence.
+  [switch]$PtrDelta,
+  [string]$PtrFile = (Join-Path $PSScriptRoot '..' 'data' 'sets_ptr.lua'),
+  [string]$LiveBuild,         # explicit live build for the delta (default: latest wow)
+  [string]$PtrBuild           # explicit PTR build for the delta (default: latest wowt)
 )
 
 $ErrorActionPreference = 'Stop'
 $SetsFile = (Resolve-Path -LiteralPath $SetsFile).Path
+
+# ── PTR-delta mode ──────────────────────────────────────────────────────────
+# Emit data/sets_ptr.lua (ns.PtrSets / ns.PtrBuild) from the live↔PTR TransmogSet
+# diff. Self-contained (its own two-build downloads) and exits before the normal
+# single-build live refresh below.
+if ($PtrDelta) {
+  function PtrCsv([string]$table, [string]$build) {
+    $url = "https://wago.tools/db2/$table/csv?build=$build"
+    Write-Host "Fetching $url" -ForegroundColor Cyan
+    (Invoke-WebRequest -Uri $url -UseBasicParsing -ErrorAction Stop).Content | ConvertFrom-Csv
+  }
+  function PtrTrim($s) { if ($null -eq $s) { '' } else { ([string]$s).Trim() } }
+  function PtrEsc([string]$s) { $s.Replace('\', '\\').Replace('"', '\"') }
+  # The patch a build belongs to = its first three version components (12.1.0.68301
+  # -> 12.1.0). A new PTR PATCH (12.1.0 -> 12.1.5) means a fresh content cycle whose
+  # whole upcoming list should be replaced; within-patch build bumps (…68301 -> …69xxx)
+  # are routine churn the daily watcher deliberately ignores.
+  function PtrPatch([string]$v) { ($v -split '\.')[0..2] -join '.' }
+
+  # Resolve both builds (explicit overrides, else the latest of each product). The
+  # bare /csv endpoint serves the newest build across ALL products, so always pin one.
+  $builds = (Invoke-WebRequest -Uri 'https://wago.tools/api/builds' -UseBasicParsing -ErrorAction Stop).Content | ConvertFrom-Json
+  if (-not $LiveBuild) { $LiveBuild = $builds.wow[0].version }
+  if (-not $PtrBuild)  { $PtrBuild  = $builds.wowt[0].version }
+  if (-not $LiveBuild -or -not $PtrBuild) { throw 'Could not resolve live/PTR builds from wago.tools.' }
+  $ptrMatch = $builds.wowt | Where-Object { $_.version -eq $PtrBuild } | Select-Object -First 1
+  $ptrDate  = if ($ptrMatch) { ($ptrMatch.created_at -split ' ')[0] } else { '' }
+  Write-Host "PTR delta: live $LiveBuild  vs  PTR $PtrBuild $ptrDate" -ForegroundColor Cyan
+
+  # -Check is a cheap, PATCH-aware staleness probe (no CSV download): it reports only
+  # whether a new PTR PATCH has opened since the committed list was generated — the
+  # signal the daily watcher acts on. Exit codes: 0 = same patch (up to date),
+  # 2 = new patch / file missing (regenerate), anything else = a real error (throw).
+  if ($Check) {
+    $stamped = $null
+    if (Test-Path -LiteralPath $PtrFile) {
+      $cur = [System.IO.File]::ReadAllText($PtrFile)
+      if ($cur -match 'ns\.PtrBuild\s*=\s*\{[^}]*ptr\s*=\s*"([^"]+)"') { $stamped = $Matches[1] }
+    }
+    if (-not $stamped) {
+      Write-Host "sets_ptr.lua missing or unstamped — regenerate (latest PTR $PtrBuild)." -ForegroundColor Yellow
+      exit 2
+    }
+    $have = PtrPatch $stamped
+    $want = PtrPatch $PtrBuild
+    if ($have -ne $want) {
+      Write-Host "NEW PTR PATCH: $have -> $want (stamped $stamped, latest $PtrBuild) — replace the upcoming list." -ForegroundColor Yellow
+      exit 2
+    }
+    Write-Host "PTR up to date: still patch $have (stamped $stamped, latest $PtrBuild)." -ForegroundColor Green
+    exit 0
+  }
+
+  $liveRows = PtrCsv 'TransmogSet' $LiveBuild
+  $ptrRows  = PtrCsv 'TransmogSet' $PtrBuild
+  $grpRows  = PtrCsv 'TransmogSetGroup' $PtrBuild
+  # Same integrity guards as the live path: expected schema + a row floor catch a
+  # truncated/error response (HTML parsed as CSV, half-finished download).
+  foreach ($col in @('ID', 'Name_lang', 'ClassMask', 'TransmogSetGroupID')) {
+    if ($col -notin $ptrRows[0].PSObject.Properties.Name) { throw "PTR TransmogSet CSV missing '$col' column — aborting." }
+  }
+  if ($liveRows.Count -lt $MinRows -or $ptrRows.Count -lt $MinRows) {
+    throw "TransmogSet under MinRows ($MinRows): live $($liveRows.Count), PTR $($ptrRows.Count) — incomplete download, aborting."
+  }
+
+  $liveIds = @{}; foreach ($r in $liveRows) { $liveIds[$r.ID] = $true }
+  $grpName = @{}; foreach ($g in $grpRows) { $grpName[[int]$g.ID] = PtrTrim $g.Name_lang }
+
+  # PTR-only, placeable rows (a real group + at least one class bit).
+  $delta = $ptrRows | Where-Object {
+    -not $liveIds.ContainsKey($_.ID) -and [int]$_.TransmogSetGroupID -gt 0 -and [int]$_.ClassMask -gt 0
+  }
+
+  # Bucket by group NAME: the armor-type variants of one new raid live under several
+  # consecutive group ids that share a TransmogSetGroup name on a fresh PTR build
+  # (difficulty labels aren't populated yet), so name-bucketing merges them into one
+  # full-class row. id = the lowest group id in the bucket; first/lowest set id wins
+  # per class slot.
+  $byName = [ordered]@{}
+  foreach ($r in ($delta | Sort-Object { [int]$_.ID })) {
+    $gid   = [int]$r.TransmogSetGroupID
+    $sName = PtrTrim $r.Name_lang
+    $name  = if ($grpName.ContainsKey($gid) -and $grpName[$gid]) { $grpName[$gid] } else { $sName }
+    if (-not $name) { continue }
+    if (-not $byName.Contains($name)) { $byName[$name] = @{ minGid = $gid; slots = @{} } }
+    if ($gid -lt $byName[$name].minGid) { $byName[$name].minGid = $gid }
+    $mask = [int]$r.ClassMask
+    for ($b = 0; $b -lt 13; $b++) {
+      if (($mask -band (1 -shl $b)) -eq 0) { continue }
+      $c = $b + 1
+      if ($byName[$name].slots.ContainsKey($c)) { continue }
+      $byName[$name].slots[$c] = @{ id = [int]$r.ID; name = $sName }
+    }
+  }
+
+  # release index for upcoming sets = the newest expansion (last ns.Releases entry,
+  # parsed from sets.lua so it tracks the live data without a second hardcoded list).
+  $release = 12
+  $live = [System.IO.File]::ReadAllText($SetsFile)
+  if ($live -match '(?s)ns\.Releases\s*=\s*\{(.*?)\}') {
+    $n = ([regex]::Matches($Matches[1], '"')).Count / 2
+    if ($n -ge 1) { $release = [int]$n }
+  }
+
+  $L = [System.Collections.Generic.List[string]]::new()
+  $L.Add('---@type Warbandeer_Collected')
+  $L.Add('local ns = select(2, ...)')
+  $L.Add('local tinsert = tinsert')
+  $L.Add("-- Generated from wago.tools TransmogSet PTR delta (live $LiveBuild vs PTR $PtrBuild$(if($ptrDate){", $ptrDate"})) by tools/update-sets.ps1 -PtrDelta.")
+  $L.Add('-- Sets present on the PTR but not yet on live ("upcoming"). VOLATILE — regenerate')
+  $L.Add('-- on demand; not part of the weekly live refresh. release tags the newest expansion;')
+  $L.Add('-- instance/difficulty are omitted (no lockouts for unreleased content).')
+  $L.Add('')
+  $L.Add('---@class Warbandeer_Collected')
+  $L.Add('---@field PtrSets table[] PTR-only set groups (same shape as ns.Sets)')
+  $L.Add('---@field PtrBuild { live: string, ptr: string } the builds this delta was generated from')
+  $L.Add('ns.PtrSets = {}')
+  $L.Add("ns.PtrBuild = { live = ""$LiveBuild"", ptr = ""$PtrBuild"" }")
+  $L.Add('')
+
+  foreach ($k in ($byName.Keys | Sort-Object { $byName[$_].minGid })) {
+    $bucket = $byName[$k]
+    $L.Add('tinsert(ns.PtrSets, {')
+    $L.Add("  id = $($bucket.minGid),")
+    $L.Add("  name = ""$(PtrEsc $k)"",")
+    $L.Add("  release = $release,")
+    $L.Add('  sets = {')
+    $maxC = ($bucket.slots.Keys | Measure-Object -Maximum).Maximum
+    for ($c = 1; $c -le $maxC; $c++) {
+      if ($bucket.slots.ContainsKey($c)) {
+        $slot = $bucket.slots[$c]
+        $slotName = PtrEsc $slot.name
+        $L.Add("    { id = $($slot.id), name = ""$slotName"", classId = $c },")
+      } else {
+        $L.Add('    {},')
+      }
+    }
+    $L.Add('  },')
+    $L.Add('})')
+    $L.Add('')
+  }
+
+  $newText = ($L -join "`n").TrimEnd() + "`n"
+  [System.IO.File]::WriteAllText($PtrFile, $newText, [System.Text.UTF8Encoding]::new($false))
+  Write-Host "Wrote $PtrFile ($($byName.Count) upcoming group(s))." -ForegroundColor Green
+  exit 0
+}
 
 # Resolve the build to pull: an explicit -Build, else the latest build of -Product
 # (default 'wow' = live retail). The bare /csv endpoint serves the newest build

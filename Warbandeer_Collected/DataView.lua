@@ -13,6 +13,13 @@ local GreenCheck = {
   position = { Center = {}, Size = {13, 13} },
 }
 
+-- PTR mode marks every existing set "upcoming" rather than counting collected
+-- pieces (the live client has no collection data for sets that aren't out yet).
+-- A muted blue dot reads as "available to preview, no status" without borrowing
+-- the red→green completion gradient.
+local UPCOMING = {0.55, 0.70, 0.95, 1}
+local UPCOMING_GLYPH = "•"
+
 -- A class set counts as fully collected when the scan flagged the base set (true)
 -- or every appearance is owned (remaining <= 0). The `or` short-circuits before
 -- indexing `status`, so passing the boolean `true` is safe.
@@ -41,6 +48,7 @@ local shades = {
 ---@class DataView: TableFrame
 ---@field _reverse boolean? render newest set-group first (defaults true; see ToggleOrder)
 ---@field _wantedOnly boolean? blank cells for sets that aren't flagged wanted (see ToggleWantedOnly)
+---@field _ptr boolean? show the PTR-only "upcoming" sets (ns.PtrSets) instead of live (see SetPtr)
 ---@field _playerRace number? cached canonical race id the rank pips resolve against
 local DataView = Class(TableFrame, function(self)
   -- autoadjust name width
@@ -58,6 +66,7 @@ end, {
   headerHeight = 28,
   _reverse = true,   -- default to newest set-group first
   _wantedOnly = false,
+  _ptr = false,
   colInfo = prepend(
     lists.map(ns.icons.classes, function(icon)
       return {
@@ -74,22 +83,28 @@ end, {
   ),
   GetData = function(self)
     local toon = api:GetCharacterData(api:GetCurrentCharacter())
-    -- Display order: ns.Sets oldest-first by default; _reverse → newest-first.
-    -- `srcIdx` is the real ns.Sets index (the lockout panel keys off it); `dispIdx`
+    -- PTR mode renders the upcoming-only delta (ns.PtrSets); live mode renders ns.Sets.
+    local source = self._ptr and ns.PtrSets or ns.Sets
+    -- Display order: source oldest-first by default; _reverse → newest-first.
+    -- `srcIdx` is the real source index (the lockout panel keys off it); `dispIdx`
     -- is the on-screen row position (row/cell highlight + arrow key off that). They
     -- differ once reversed, so keep them separate.
     local order = {}
-    for i = 1, #ns.Sets do order[i] = self._reverse and (#ns.Sets - i + 1) or i end
+    for i = 1, #source do order[i] = self._reverse and (#source - i + 1) or i end
     return lists.map(order, function(srcIdx, dispIdx)
-      local grp = ns.Sets[srcIdx]
+      local grp = source[srcIdx]
       local lock = toon.instances.locks and toon.instances.locks[grp.instance] and toon.instances.locks[grp.instance][grp.difficulty]
       local gsets = ns.db.sets[grp.id]
       -- Always emit a positional cell per class (blank {} where there's no set, e.g.
       -- Evoker in pre-Dragonflight raids). Returning nil would make table.insert drop
       -- the slot, shifting later classes left and leaving stale cells on re-sort.
       local r = lists.map(grp.sets, function(set)
+        -- Blank class slot (no set for this class in the group).
+        if not set.id then return {} end
+        -- Live: only show sets the scan knows about. PTR: every entry is "upcoming"
+        -- (the live client has no collection data for it), so skip the scan gate.
         local status = gsets and gsets[set.id]
-        if not status then return {} end
+        if not self._ptr and not status then return {} end
         -- "Wanted only" blanks the cell (no content/click/marks) for sets that
         -- aren't flagged, so the grid shows just the target list in context.
         if self._wantedOnly and not ns:IsWanted(set.id) then return {} end
@@ -102,6 +117,11 @@ end, {
         end
         local onLeave = function() ns.HideInfoTip() end
         -- Left-click previews the set; Shift-click flags/unflags it as wanted.
+        -- Both work for PTR-only sets: wanted is keyed by the globally-unique setId
+        -- (the flag survives the set later shipping to live), and the dressing room
+        -- resolves the appearance on a PTR client. On live it has no data for an
+        -- upcoming set, so ShowDressingRoom prints a "preview on the PTR" hint instead
+        -- of opening an empty viewer (see DressingRoom.lua).
         local onClick = function(cell)
           if IsShiftKeyDown() then
             local nowWanted = ns:ToggleWanted(set.id)
@@ -115,6 +135,16 @@ end, {
           else
             ns.ShowDressingRoom(grp, set, self._reverse)
           end
+        end
+        -- Upcoming (PTR): a muted dot, no count/completion shade.
+        if self._ptr then
+          return {
+            setId = set.id,
+            text = UPCOMING_GLYPH,
+            justifyH = ui.justify.Center,
+            color = UPCOMING,
+            onEnter = onEnter, onLeave = onLeave, onClick = onClick,
+          }
         end
         if isComplete(status) then
           return {
@@ -144,7 +174,9 @@ end, {
       })
       tinsert(r, 2, {
         text = grp.name,
-        onClick = function()
+        -- Upcoming content has no instance lockouts (and srcIdx indexes PtrSets, not
+        -- ns.Sets), so the name click is inert in PTR mode.
+        onClick = self._ptr and function() end or function()
           ns.ShowLockoutView(srcIdx, ns.window, {
             TopRight = {ns.window, ui.edge.TopLeft, -25, 0},
             BottomRight = {ns.window, ui.edge.BottomLeft, -25, 0},
@@ -200,6 +232,23 @@ function DataView:ToggleWantedOnly()
   self.data = self:GetData()
   self:update()
   return self._wantedOnly
+end
+
+---Switch between live and PTR ("upcoming") data, rebuilding the grid. Clears any
+---active lockout selection first — its row index moves between datasets.
+---@param on boolean  true → show ns.PtrSets (upcoming), false → live ns.Sets
+---@return boolean ptr  the new mode
+function DataView:SetPtr(on)
+  self._ptr = on
+  if _selectedRow and self.cells[_selectedRow] and self.cells[_selectedRow][2] then
+    self.cells[_selectedRow][2].label:Color(WHITE_FONT_COLOR)
+  end
+  _selectedRow = nil
+  if _arrow then _arrow:Hide() end
+  ns.HideLockoutView()
+  self.data = self:GetData()
+  self:update()
+  return self._ptr
 end
 
 -- Per-cell rating overlays: a gold "wanted" star (top-left) and the tier letter

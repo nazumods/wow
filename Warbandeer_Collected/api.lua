@@ -9,6 +9,8 @@ local ns = select(2, ...)
 
 ---@class WarbandeerCollectedApi
 ---@field Sets table[] transmog set groups (see `ns.Sets`)
+---@field PtrSets table[] PTR-only "upcoming" set groups (see `ns.PtrSets`)
+---@field PtrBuild { live: string, ptr: string } the builds the PTR delta was generated from
 ---@field Releases string[] expansion names indexed by `release`
 ---@field ReleaseIcons string[] expansion badge textures (64x64 TGA), parallel to `Releases`
 ---@field Ranks string[] ordered tier letters, best → worst (see `ns.Ranks`)
@@ -22,6 +24,8 @@ local API = {}
 -- to share since consumers only read them. (Warbandeer's Reputations view labels its
 -- expansion pages with the badges via `ReleaseIcons`.)
 API.Sets = ns.Sets
+API.PtrSets = ns.PtrSets
+API.PtrBuild = ns.PtrBuild
 API.Releases = ns.Releases
 API.ReleaseIcons = ns.ReleaseIcons
 

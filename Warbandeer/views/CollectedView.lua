@@ -40,6 +40,11 @@ local GreenCheck = {
   position = { Center = {}, Size = {13, 13} },
 }
 
+-- PTR ("upcoming") cell mark: a muted blue dot, no completion shade — the live
+-- client has no collection data for sets that aren't out yet (mirrors Collected).
+local UPCOMING = {0.55, 0.70, 0.95, 1}
+local UPCOMING_GLYPH = "•"
+
 -- A class set counts as fully collected when the scan flagged the base set (true)
 -- or every appearance is owned (remaining <= 0). The `or` short-circuits before
 -- indexing `status`, so passing the boolean `true` is safe.
@@ -55,6 +60,7 @@ local _view
 
 ---@class CollectedGrid: TableFrame
 ---@field _wantedOnly boolean? blank cells for sets that aren't flagged wanted
+---@field _ptr boolean? show the PTR-only "upcoming" sets (api.PtrSets) instead of live
 ---@field _playerRace number? cached canonical race id the rank pips resolve against
 local Grid = Class(TableFrame, function(self)
   -- Auto-size the (zero-width) name column to the widest group label, then grow
@@ -71,6 +77,7 @@ end, {
   headerHeight = 28,
   _reverse = true,   -- default to newest set-group first
   _wantedOnly = false,
+  _ptr = false,
   colInfo = prepend(
     lists.map(ns.icons.classes, function(icon)
       return {
@@ -87,18 +94,24 @@ end, {
   GetData = function(self)
     local api = WarbandeerCollectedApi
     if not api then return {} end
-    -- Default order is ns.Sets (oldest expansion first); _reverse flips to newest first.
-    local groups = api.Sets
+    -- PTR mode renders the upcoming-only delta (api.PtrSets); live mode renders api.Sets.
+    local src = (self._ptr and api.PtrSets) or api.Sets
+    -- Default order is source order (oldest expansion first); _reverse flips to newest first.
+    local groups = src
     if self._reverse then
       groups = {}
-      for i = #api.Sets, 1, -1 do groups[#groups + 1] = api.Sets[i] end
+      for i = #src, 1, -1 do groups[#groups + 1] = src[i] end
     end
     return lists.map(groups, function(grp)
       local gstat = api:GroupStatus(grp.id)
       -- One positional cell per class slot (blank {} where a class has no set).
       local r = lists.map(grp.sets, function(set)
-        local status = set.id and gstat and gstat[set.id]
-        if not status then return {} end
+        -- Blank class slot.
+        if not set.id then return {} end
+        -- Live: only show scanned sets. PTR: every entry is "upcoming" (the live
+        -- client has no collection data), so skip the scan gate.
+        local status = gstat and gstat[set.id]
+        if not self._ptr and not status then return {} end
         -- "Wanted only" blanks non-wanted cells, mirroring the /collected window.
         if self._wantedOnly and not WarbandeerCollectedApi:IsWanted(set.id) then return {} end
         -- Same per-slot source tooltip as the /collected window (via the API) on
@@ -107,7 +120,10 @@ end, {
           WarbandeerCollectedApi:ShowInfoTip(grp, set, c, ns.InfoTipPosition(c))
         end
         local onLeave = function() WarbandeerCollectedApi:HideInfoTip() end
-        -- Left-click previews the set; Shift-click flags/unflags it as wanted.
+        -- Left-click previews the set; Shift-click flags/unflags it as wanted. Both
+        -- work for PTR-only sets (wanted is keyed by the global setId; the dressing
+        -- room resolves on a PTR client, and on live prints a "preview on the PTR"
+        -- hint instead of opening an empty viewer — see Collected's DressingRoom).
         local onClick = function(c)
           if IsShiftKeyDown() then
             local nowWanted = WarbandeerCollectedApi:ToggleWanted(set.id)
@@ -120,6 +136,16 @@ end, {
           else
             WarbandeerCollectedApi:ShowDressingRoom(grp, set, self._reverse)
           end
+        end
+        -- Upcoming (PTR): a muted dot, no count/completion shade.
+        if self._ptr then
+          return {
+            setId = set.id,
+            text = UPCOMING_GLYPH,
+            justifyH = ui.justify.Center,
+            color = UPCOMING,
+            onEnter = onEnter, onLeave = onLeave, onClick = onClick,
+          }
         end
         if isComplete(status) then
           return {
@@ -216,6 +242,16 @@ function Grid:ToggleWantedOnly()
   return self._wantedOnly
 end
 
+---Switch between live and PTR ("upcoming") data, rebuilding the grid.
+---@param on boolean  true → show api.PtrSets (upcoming), false → live api.Sets
+---@return boolean ptr  the new mode
+function Grid:SetPtr(on)
+  self._ptr = on
+  self.data = self:GetData()
+  self:update()
+  return self._ptr
+end
+
 -- ─── CollectedView ──────────────────────────────────────────────────────────
 
 ---@class CollectedView: Frame
@@ -225,6 +261,7 @@ end
 ---@field wantedCount Label running "★ N" wanted-set count (mirrors the /collected window)
 ---@field emptyMsg Label
 ---@field _wantedBorder Texture "wanted only" filter border (gold while active)
+---@field _ptrBorder Texture live/PTR toggle border (gold while in PTR mode)
 ---@field _sortBorder Texture raid-order toggle border (gold once newest-first)
 ---@field _sortLabel Label raid-order toggle caption
 local CollectedView = Class(Frame, function(self)
@@ -291,12 +328,30 @@ end
 -- Refresh counts, grid data, and the empty-state message each time the view shows
 -- (so a /collected scan run after the view was built is reflected on next open).
 function CollectedView:OnBeforeShow()
+  self:_render()
+end
+
+-- Render the active dataset (live or PTR). PTR mode needs no scan — it lists the
+-- upcoming-only delta with a count + the PTR build instead of collected/total.
+function CollectedView:_render()
   local api = WarbandeerCollectedApi
   if not api then
     self.counter:Text("")
     self.wantedCount:Text("")
     self.emptyMsg:Text("Collected add-on not loaded")
     self.emptyMsg:Show()
+    return
+  end
+  if self.grid._ptr then
+    self.emptyMsg:Hide()
+    local n = 0
+    for _, grp in ipairs(api.PtrSets or {}) do
+      for _, set in ipairs(grp.sets) do if set.id then n = n + 1 end end
+    end
+    self.counter:Text(api.PtrBuild and ("Upcoming: %d  ·  PTR %s"):format(n, api.PtrBuild.ptr) or ("Upcoming: " .. n))
+    self:RefreshWanted()
+    self.grid.data = self.grid:GetData()
+    self.grid:update()
     return
   end
   if not api:IsScanned() then
@@ -322,12 +377,12 @@ function CollectedView:RefreshWanted()
   self.wantedCount:Text(api and (("|A:%s:14:14|a %d"):format(api.WantedIcon, api:WantedCount())) or "")
 end
 
--- Titlebar control: two toggle buttons — a "wanted only" filter and a raid (row)
--- order flip (oldest/newest-first). Mirrors GearView's filter chrome and the
--- /collected window's own title-bar toggles.
+-- Titlebar control: three toggle buttons — a live/PTR preview switch, a "wanted
+-- only" filter, and a raid (row) order flip (oldest/newest-first). Mirrors GearView's
+-- filter chrome and the /collected window's own title-bar toggles.
 function CollectedView:BuildFilter(parent)
   local BW, BH, PAD, GAP = 96, 20, 8, 6
-  local box = Frame:new{ parent = parent, position = { Width = BW * 2 + GAP, Height = BH } }
+  local box = Frame:new{ parent = parent, position = { Width = BW * 3 + GAP * 2, Height = BH } }
 
   -- One framed toggle at x; returns its (recolorable) border and caption.
   local function toggle(xoff, text, active, onClick)
@@ -348,12 +403,18 @@ function CollectedView:BuildFilter(parent)
     return border, label
   end
 
-  self._wantedBorder = (toggle(0, "WANTED ONLY", false, function()
+  self._ptrBorder = (toggle(0, "PTR PREVIEW", false, function()
+    local on = self.grid:SetPtr(not self.grid._ptr)
+    self._ptrBorder:Color(on and theme.colors.gold or theme.colors.divider)
+    self:_render()
+  end))
+
+  self._wantedBorder = (toggle(BW + GAP, "WANTED ONLY", false, function()
     local on = self.grid:ToggleWantedOnly()
     self._wantedBorder:Color(on and theme.colors.gold or theme.colors.divider)
   end))
 
-  self._sortBorder, self._sortLabel = toggle(BW + GAP, "NEWEST FIRST", true, function() self:_toggleSort() end)
+  self._sortBorder, self._sortLabel = toggle((BW + GAP) * 2, "NEWEST FIRST", true, function() self:_toggleSort() end)
 
   return box
 end

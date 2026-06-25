@@ -7,6 +7,20 @@ expansion first, hover a set to see its pieces (collected vs missing), and click
 row to see which of your characters are locked out of that instance — so you always
 know who to run it on next.
 
+## PTR preview
+
+The **PTR PREVIEW** title-bar button switches the grid to the **upcoming** sets —
+the transmog sets that are on the current Public Test Realm but **not yet on live**.
+Each upcoming set shows a muted blue dot (there's no collection data for content
+that isn't out yet), and the header shows how many are coming and the PTR build the
+preview was built from. You can still **Shift-click to flag** an upcoming set as
+wanted (the flag carries over once it ships to live). The 3D preview of an upcoming
+set only works when you're **actually logged into the PTR** — there the appearances
+exist and clicking opens the dressing room like any other set. On a live realm the
+client doesn't have those appearances yet, so clicking instead prints a short note
+pointing you to the PTR rather than opening an empty model. The list is a snapshot,
+refreshed by the addon author when a new PTR patch arrives.
+
 ## Wanted & ranking
 
 Mark the sets you're chasing and rate how they look:
