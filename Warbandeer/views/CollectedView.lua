@@ -318,9 +318,12 @@ local CollectedView = Class(Frame, function(self)
   }
 
   -- Shown when there's nothing to render (Collected not installed / never scanned).
+  -- Centered below the header; the grid is hidden while it shows (see _showGrid) so
+  -- it never overlaps the static row names.
   self.emptyMsg = Label:new{
     parent = self, fontInfo = theme.fonts.body, color = theme.colors.muted,
-    position = { TopLeft = {2, -self.grid.headerHeight - 6}, Width = 280, Height = 20, Hide = true },
+    justifyH = ui.justify.Center,
+    position = { Top = {0, -self.grid.headerHeight - 28}, Width = gridW, Height = 20, Hide = true },
   }
 
   self:Width(gridW + SCROLLBAR_W)
@@ -347,6 +350,20 @@ function CollectedView:OnBeforeShow()
   self:_render()
 end
 
+-- Show/hide the grid (header icons + scrolling rows) as a unit, so the empty-state
+-- message can take over a clear area instead of overlapping the static row names.
+function CollectedView:_showGrid(shown)
+  self.grid:SetShown(shown)
+  self.scroll:SetShown(shown)
+end
+
+-- Hide the grid and show the centered empty-state message with the given text.
+function CollectedView:_showEmpty(text)
+  self:_showGrid(false)
+  self.emptyMsg:Text(text)
+  self.emptyMsg:Show()
+end
+
 -- Render the active dataset. PTR PREVIEW shows live + upcoming together (no scan
 -- needed for the upcoming rows); live-only mode shows collected/total and needs a scan.
 function CollectedView:_render()
@@ -354,19 +371,18 @@ function CollectedView:_render()
   if not api then
     self.counter:Text("")
     self.wantedCount:Text("")
-    self.emptyMsg:Text("Collected add-on not loaded")
-    self.emptyMsg:Show()
+    self:_showEmpty("Collected add-on not loaded")
     return
   end
   local ptr = self.grid._ptr
   if not ptr and not api:IsScanned() then
     self.counter:Text("")
     self.wantedCount:Text("")
-    self.emptyMsg:Text("Run /collected scan to populate")
-    self.emptyMsg:Show()
+    self:_showEmpty("Run /collected scan to populate")
     return
   end
   self.emptyMsg:Hide()
+  self:_showGrid(true)
   local collected, total = api:Counts()
   local txt = "Sets: " .. collected .. " / " .. total
   if ptr then
