@@ -56,11 +56,152 @@ param(
   [switch]$PtrDelta,
   [string]$PtrFile = (Join-Path $PSScriptRoot '..' 'data' 'sets_ptr.lua'),
   [string]$LiveBuild,         # explicit live build for the delta (default: latest wow)
-  [string]$PtrBuild           # explicit PTR build for the delta (default: latest wowt)
+  [string]$PtrBuild,          # explicit PTR build for the delta (default: latest wowt)
+  # Coverage-audit mode: report the wago TransmogSet groups we DON'T curate in
+  # ns.Sets yet, categorized so a human can pick which to add. Writes a markdown
+  # report; touches no Lua. See UPDATING.md ("Auditing coverage").
+  [switch]$AuditCoverage,
+  [string]$ReportFile = (Join-Path $PSScriptRoot 'coverage-report.md')
 )
 
 $ErrorActionPreference = 'Stop'
 $SetsFile = (Resolve-Path -LiteralPath $SetsFile).Path
+
+# ── Coverage-audit mode ──────────────────────────────────────────────────────
+# Report the wago TransmogSetGroups we DON'T yet curate in ns.Sets, with enough
+# metadata (expansion, difficulty/variant labels, set count) to triage which to
+# add. Self-contained (own single-build download); writes markdown, touches no Lua,
+# and exits before the normal refresh below. Categories are heuristic — derived from
+# each group's labels + name — so a human can scan, not a source of truth.
+if ($AuditCoverage) {
+  function AuditCsv([string]$table, [string]$build) {
+    $url = "https://wago.tools/db2/$table/csv?build=$build"
+    Write-Host "Fetching $url" -ForegroundColor Cyan
+    (Invoke-WebRequest -Uri $url -UseBasicParsing -ErrorAction Stop).Content | ConvertFrom-Csv
+  }
+
+  # Resolve the live build (pin it — the bare endpoint serves PTR too).
+  $builds = (Invoke-WebRequest -Uri 'https://wago.tools/api/builds' -UseBasicParsing -ErrorAction Stop).Content | ConvertFrom-Json
+  if (-not $Build) { $Build = $builds.wow[0].version }
+  $bMatch = $builds.wow | Where-Object { $_.version -eq $Build } | Select-Object -First 1
+  $bDate  = if ($bMatch) { ($bMatch.created_at -split ' ')[0] } else { '' }
+  Write-Host "Coverage audit against wow build $Build $bDate" -ForegroundColor Cyan
+
+  $tsRows  = AuditCsv 'TransmogSet' $Build
+  $grpRows = AuditCsv 'TransmogSetGroup' $Build
+  $indRows = AuditCsv 'ItemNameDescription' $Build
+  foreach ($col in @('ID', 'ClassMask', 'TransmogSetGroupID', 'ItemNameDescriptionID', 'ExpansionID')) {
+    if ($col -notin $tsRows[0].PSObject.Properties.Name) { throw "TransmogSet CSV missing '$col' — aborting." }
+  }
+  if ($tsRows.Count -lt $MinRows) { throw "TransmogSet returned $($tsRows.Count) rows (< $MinRows) — incomplete download, aborting." }
+
+  $grpName = @{}; foreach ($g in $grpRows) { $grpName[[int]$g.ID] = ([string]$g.Name_lang).Trim() }
+  $indLabel = @{}; foreach ($d in $indRows) { $id = 0; [void][int]::TryParse($d.ID, [ref]$id); if ($id -gt 0) { $indLabel[$id] = ([string]$d.Description_lang).Trim() } }
+
+  # Expansion names from ns.Releases (parsed so they track the live data); release
+  # index = ExpansionID + 1, so a 0-based list aligns directly with ExpansionID.
+  $rel = @()
+  $raw = [System.IO.File]::ReadAllText($SetsFile)
+  if ($raw -match '(?s)ns\.Releases\s*=\s*\{(.*?)\}') {
+    $rel = [regex]::Matches($Matches[1], '"([^"]*)"') | ForEach-Object { $_.Groups[1].Value }
+  }
+  function ExpName([int]$e) { if ($e -ge 0 -and $e -lt $rel.Count) { $rel[$e] } else { "Expansion $e" } }
+
+  # Curated wago group ids already in ns.Sets (the group-level `id = N,` lines).
+  $curated = @{}
+  foreach ($ln in ($raw -split "`r?`n")) { if ($ln -match '^\s+id\s*=\s*(\d+),\s*$') { $curated[[int]$Matches[1]] = $true } }
+
+  # Aggregate placeable rows (real group + at least one class bit) per group id.
+  $grp = @{}
+  foreach ($r in $tsRows) {
+    $gid = 0; [void][int]::TryParse($r.TransmogSetGroupID, [ref]$gid); if ($gid -le 0) { continue }
+    $mask = 0; [void][int]::TryParse($r.ClassMask, [ref]$mask); if ($mask -le 0) { continue }
+    if (([string]$grpName[$gid]) -match '^(?i)test\b') { continue }   # skip Blizzard test placeholders
+    if (-not $grp.ContainsKey($gid)) {
+      $grp[$gid] = @{ name = $grpName[$gid]; sets = 0; exp = -1; labels = (New-Object 'System.Collections.Generic.HashSet[string]') }
+    }
+    $grp[$gid].sets++
+    $e = 0; [void][int]::TryParse($r.ExpansionID, [ref]$e); if ($e -gt $grp[$gid].exp) { $grp[$gid].exp = $e }
+    $ind = 0; [void][int]::TryParse($r.ItemNameDescriptionID, [ref]$ind)
+    if ($indLabel.ContainsKey($ind) -and $indLabel[$ind]) { [void]$grp[$gid].labels.Add($indLabel[$ind]) }
+  }
+
+  # Heuristic category from the group's labels + name. Ordered: first match wins, so
+  # the more specific signals (PvP brackets, Dungeon recolors) precede the generic
+  # raid difficulty words. Purely a triage aid, not authoritative.
+  $catRules = [ordered]@{
+    'PvP'                            = 'gladiator|elite|aspirant|combatant|rival|duelist|\bhonor\b|war mode|\bpvp\b|arena|conquest'
+    'Dungeon / Mythic+'              = '^dungeon|dungeons|mythic\+|dawn of the infinite|time rifts|horrific vision'
+    'Delve'                          = 'delve'
+    'Raid'                           = 'raid finder|\bnormal\b|\bheroic\b|\bmythic\b|\d+\s*player'
+    'Profession / Crafted'           = 'craft|profession'
+    'Trading Post / Anniversary'     = 'trading post|anniversary'
+    'Timewalking'                    = 'timewalking'
+    'Reputation / Renown / Campaign' = 'renown|campaign|reputation|quest reward'
+    'World drops / quests'           = 'world drop|world quest|world and weekly|treasures|weekly|\bquest'
+  }
+  function Categorize([string]$name, [string[]]$labels) {
+    $text = (@($name) + $labels) -join ' '
+    foreach ($cat in $catRules.Keys) { if ($text -match "(?i)$($catRules[$cat])") { return $cat } }
+    return 'Event / feature / other'
+  }
+
+  $unc = @()
+  foreach ($gid in ($grp.Keys | Sort-Object)) {
+    if ($curated.ContainsKey($gid)) { continue }
+    $g = $grp[$gid]
+    $labels = @($g.labels) | Sort-Object
+    $unc += [pscustomobject]@{
+      id = $gid; name = $g.name; exp = $g.exp; release = (ExpName $g.exp)
+      sets = $g.sets; labels = $labels; category = (Categorize $g.name $labels)
+    }
+  }
+
+  # ── Build the markdown report ──────────────────────────────────────────────
+  function MdCell([string]$s) { ([string]$s).Replace('|', '\|') }
+  $catOrder = @($catRules.Keys) + 'Event / feature / other'
+  $L = [System.Collections.Generic.List[string]]::new()
+  $L.Add('# Collected coverage audit — uncaptured transmog-set groups')
+  $L.Add('')
+  $L.Add("Generated from wago.tools TransmogSet (product wow, build $Build$(if($bDate){", $bDate"})) by ``tools/update-sets.ps1 -AuditCoverage``.")
+  $L.Add('')
+  $L.Add("We curate **$($curated.Count) distinct wago group ids** in ``ns.Sets``. wago has **$($grp.Count) groups** with placeable rows; the **$($unc.Count)** below are **not captured yet**. Categories are heuristic (from each group's difficulty/variant labels + name) — verify before adding. Inclusion is editorial: see ``tools/UPDATING.md``.")
+  $L.Add('')
+  $L.Add('## By category')
+  $L.Add('')
+  $L.Add('| Category | Groups |')
+  $L.Add('| --- | ---: |')
+  foreach ($c in $catOrder) { $n = ($unc | Where-Object { $_.category -eq $c }).Count; if ($n) { $L.Add("| $c | $n |") } }
+  $L.Add('')
+  $L.Add('## By expansion')
+  $L.Add('')
+  $L.Add('| Expansion | Groups |')
+  $L.Add('| --- | ---: |')
+  foreach ($e in ($unc | Select-Object -ExpandProperty exp -Unique | Sort-Object -Descending)) {
+    $L.Add("| $(ExpName $e) | $(($unc | Where-Object { $_.exp -eq $e }).Count) |")
+  }
+  $L.Add('')
+  $L.Add('## Groups by category')
+  $L.Add('')
+  foreach ($c in $catOrder) {
+    $rows = @($unc | Where-Object { $_.category -eq $c } | Sort-Object -Property @{e = { $_.exp }; Descending = $true}, name)
+    if (-not $rows) { continue }
+    $L.Add("### $c ($($rows.Count))")
+    $L.Add('')
+    $L.Add('| id | name | expansion | sets | difficulty / variant labels |')
+    $L.Add('| ---: | --- | --- | ---: | --- |')
+    foreach ($r in $rows) {
+      $lab = if ($r.labels.Count) { ($r.labels | ForEach-Object { MdCell $_ }) -join ', ' } else { '_(none)_' }
+      $L.Add("| $($r.id) | $(MdCell $r.name) | $($r.release) | $($r.sets) | $lab |")
+    }
+    $L.Add('')
+  }
+
+  $report = ($L -join "`n").TrimEnd() + "`n"
+  [System.IO.File]::WriteAllText($ReportFile, $report, [System.Text.UTF8Encoding]::new($false))
+  Write-Host "Wrote $ReportFile ($($unc.Count) uncaptured group(s))." -ForegroundColor Green
+  exit 0
+}
 
 # ── PTR-delta mode ──────────────────────────────────────────────────────────
 # Emit data/sets_ptr.lua (ns.PtrSets / ns.PtrBuild) from the live↔PTR TransmogSet

@@ -88,21 +88,28 @@ function ns:Scan()
     self.db.sets[grp.id] = self.db.sets[grp.id] or {}
     for _, set in ipairs(grp.sets) do
       if set.id then
-        self.db.total = self.db.total + 1
         if isCollected(set.id) then
+          self.db.total = self.db.total + 1
           self.db.sets[grp.id][set.id] = true
           self.db.collected = self.db.collected + 1
         else
+          -- Some sets in the data (notably older PvP seasons) exist in wago but
+          -- aren't known to the live transmog API, which returns nil here. Skip
+          -- them — don't crash the scan or count them toward the total; they just
+          -- render as blank cells.
           local parts = getParts(set.id)
-          local n = 0
-          for _,p in ipairs(parts) do
-            if p.collected then n = n + 1 end
+          if parts then
+            self.db.total = self.db.total + 1
+            local n = 0
+            for _,p in ipairs(parts) do
+              if p.collected then n = n + 1 end
+            end
+            self.db.sets[grp.id][set.id] = {
+              collected = n,
+              parts = parts,
+              total = #parts,
+            }
           end
-          self.db.sets[grp.id][set.id] = {
-            collected = n,
-            parts = parts,
-            total = #parts,
-          }
         end
       end
     end
