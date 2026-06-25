@@ -170,6 +170,7 @@ std = {
     "C_TransmogCollection",
     "C_TransmogSets",
     "C_WeeklyRewards",
+    "Constants",
     "Enum",
     "Settings",
 

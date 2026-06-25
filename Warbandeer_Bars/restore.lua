@@ -8,6 +8,12 @@ local PickupSpellBookItem = C_SpellBook and C_SpellBook.PickupSpellBookItem or _
 
 local MAX_BARS = 180
 
+-- 12.1.0 moved these out of the global namespace into Constants.MacroConsts; keep
+-- the runtime macro-restore math working on both old and new clients (see capture.lua).
+local MacroConsts = Constants and Constants.MacroConsts
+local MAX_ACCOUNT_MACROS   = (MacroConsts and MacroConsts.MAX_ACCOUNT_MACROS)   or MAX_ACCOUNT_MACROS   or 120
+local MAX_CHARACTER_MACROS = (MacroConsts and MacroConsts.MAX_CHARACTER_MACROS) or MAX_CHARACTER_MACROS or 30
+
 local function Warn(msg)
   ns.Print("|cffff9900[Bars]|r " .. msg)
 end
