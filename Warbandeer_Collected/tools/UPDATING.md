@@ -171,7 +171,33 @@ the live job.
 > To refresh the list **within** the current patch (pick up sets added since the last
 > generate without waiting for a patch bump), just run `-PtrDelta` by hand and commit.
 
-## Adding a new raid tier
+## Auditing coverage (what we're *not* capturing)
+
+`ns.Sets` curates a **subset** of wago's transmog groups — wago has far more (PvP
+seasons, dungeon / Mythic+ sets, delves, Trading Post, professions, world drops, …).
+To see the gap, run **`-AuditCoverage`**:
+
+```
+pwsh ./update-sets.ps1 -AuditCoverage                       # write tools/coverage-report.md
+pwsh ./update-sets.ps1 -AuditCoverage -ReportFile out.md    # custom output path
+pwsh ./update-sets.ps1 -AuditCoverage -Build 12.0.7.68275   # pin a client build
+```
+
+It downloads the same three tables (`TransmogSet`, `TransmogSetGroup`,
+`ItemNameDescription`), diffs the wago group ids against the ones already in `ns.Sets`,
+and writes [`coverage-report.md`](coverage-report.md): every **uncaptured** group with
+its expansion, set count, and difficulty/variant labels, bucketed into heuristic
+**categories** (PvP, Dungeon / Mythic+, Delve, Raid, Profession / Crafted, Trading
+Post, Timewalking, Reputation / Renown / Campaign, World drops / quests, and a
+catch-all). Categories come from each group's labels + name — a **triage aid, not a
+source of truth**, so verify before adding. Blizzard test placeholders are skipped; no
+Lua is touched.
+
+The report is a point-in-time snapshot (regenerable on demand, not kept in sync) — re-run
+it after a patch. Inclusion stays editorial and incremental: pick a group from the report
+and add it with the same shell as a raid tier below.
+
+## Adding a new raid tier (or any audited group)
 
 Auto-discovery isn't possible — nothing in the data separates raid tiers from PvP
 seasons, test groups, etc. So add the group shell by hand, then let the generator
