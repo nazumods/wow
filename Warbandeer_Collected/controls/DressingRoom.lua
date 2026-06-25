@@ -915,6 +915,19 @@ local _room
 ---@class Warbandeer_Collected
 ---@field ShowDressingRoom fun(group: table, set: table, reverse: boolean?)  group/set are entries from ns.Sets; reverse mirrors the grid sort so Up/Down tier nav matches the on-screen order
 ns.ShowDressingRoom = function(group, set, reverse)
+  -- A set the local client has no appearance data for — a PTR-only "upcoming" set on
+  -- a live client: there's nothing for the 3D model to render, so don't open an empty
+  -- viewer; point the user to the PTR instead. On a PTR client these resolve and the
+  -- preview opens normally. (Live sets, incl. Trading Post variants, always return
+  -- pieces here even when per-slot sources are empty, so they're never gated.)
+  if set and set.id then
+    local src = GetAllSourceIDs(set.id)
+    if not src or #src == 0 then
+      ns.Print(('"%s" is upcoming on the PTR — log into the PTR to preview it in 3D.'):format(set.name or ("set " .. tostring(set.id))))
+      return
+    end
+  end
+
   if not _room then
     _room = DressingRoom:new{}
     _room:RememberPosition(ns.db.dressPos)   -- restore + persist the user's dragged position

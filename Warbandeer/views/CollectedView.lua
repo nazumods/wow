@@ -122,7 +122,8 @@ end, {
         local onLeave = function() WarbandeerCollectedApi:HideInfoTip() end
         -- Left-click previews the set; Shift-click flags/unflags it as wanted. Both
         -- work for PTR-only sets (wanted is keyed by the global setId; the dressing
-        -- room resolves on a PTR client and comes up empty — guarded — on live).
+        -- room resolves on a PTR client, and on live prints a "preview on the PTR"
+        -- hint instead of opening an empty viewer — see Collected's DressingRoom).
         local onClick = function(c)
           if IsShiftKeyDown() then
             local nowWanted = WarbandeerCollectedApi:ToggleWanted(set.id)

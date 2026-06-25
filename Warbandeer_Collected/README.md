@@ -14,10 +14,12 @@ the transmog sets that are on the current Public Test Realm but **not yet on liv
 Each upcoming set shows a muted blue dot (there's no collection data for content
 that isn't out yet), and the header shows how many are coming and the PTR build the
 preview was built from. You can still **Shift-click to flag** an upcoming set as
-wanted (the flag carries over once it ships to live), and clicking one opens the
-dressing room — when you're actually logged into the PTR it previews the set in 3D
-like any other; on live it simply comes up empty (the appearances don't exist yet).
-The list is a snapshot and is refreshed by the addon author as the PTR changes.
+wanted (the flag carries over once it ships to live). The 3D preview of an upcoming
+set only works when you're **actually logged into the PTR** — there the appearances
+exist and clicking opens the dressing room like any other set. On a live realm the
+client doesn't have those appearances yet, so clicking instead prints a short note
+pointing you to the PTR rather than opening an empty model. The list is a snapshot,
+refreshed by the addon author when a new PTR patch arrives.
 
 ## Wanted & ranking
 

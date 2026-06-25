@@ -119,8 +119,9 @@ end, {
         -- Left-click previews the set; Shift-click flags/unflags it as wanted.
         -- Both work for PTR-only sets: wanted is keyed by the globally-unique setId
         -- (the flag survives the set later shipping to live), and the dressing room
-        -- resolves the appearance on a PTR client (it serves no sources on live, so
-        -- the preview simply comes up empty — guarded, never errors).
+        -- resolves the appearance on a PTR client. On live it has no data for an
+        -- upcoming set, so ShowDressingRoom prints a "preview on the PTR" hint instead
+        -- of opening an empty viewer (see DressingRoom.lua).
         local onClick = function(cell)
           if IsShiftKeyDown() then
             local nowWanted = ns:ToggleWanted(set.id)
