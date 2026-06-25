@@ -332,6 +332,7 @@ std = {
     "LibStub",
     "MerchantFrame",
     "OpenAchievementFrameToAchievement",
+    "ShowAchievementFrameForAchievement",
     "OpenAllBags",
     "PickupAction",
     "PickupMacro",

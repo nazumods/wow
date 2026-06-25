@@ -2,6 +2,8 @@
 local ns = select(2, ...)
 local ui = ns.ui
 local Class, Frame, TableFrame = ns.lua.Class, ui.Frame, ui.TableFrame
+-- 12.1.0 renamed OpenAchievementFrameToAchievement -> ShowAchievementFrameForAchievement
+local OpenAchievement = ShowAchievementFrameForAchievement or OpenAchievementFrameToAchievement
 
 local achievementIds = {
   61467, 42189, 42188, 42187, 61451, 40953, 41186, 41119, 40894, 40859, 40542, 40504, 40210, 20595, 20501, 19719,
@@ -30,7 +32,7 @@ end, {
             text = name,
             color = completed and DIM_GREEN_FONT_COLOR or DIM_RED_FONT_COLOR,
             onClick = function()
-              OpenAchievementFrameToAchievement(achievementId)
+              OpenAchievement(achievementId)
             end,
           }
         end)

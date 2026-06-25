@@ -3,6 +3,8 @@ local ns = select(2, ...)
 ---@type LibNUI
 local ui = ns.ui
 local Class, Frame, TableFrame = ns.lua.Class, ui.Frame, ui.TableFrame
+-- 12.1.0 renamed OpenAchievementFrameToAchievement -> ShowAchievementFrameForAchievement
+local OpenAchievement = ShowAchievementFrameForAchievement or OpenAchievementFrameToAchievement
 
 ---@type WarbandeerAPI
 local api = ns.api
@@ -183,7 +185,7 @@ end, {
             text = name,
             color = completed and DIM_GREEN_FONT_COLOR or DIM_RED_FONT_COLOR,
             onClick = function()
-              OpenAchievementFrameToAchievement(achievementId)
+              OpenAchievement(achievementId)
             end,
           }
         end)
