@@ -5,6 +5,7 @@ local Class, find, any = ns.lua.Class, ns.lua.lists.find, ns.lua.maps.any
 local CleanFrame, Label, TableFrame = ui.CleanFrame, ui.Label, ui.TableFrame
 local C_Timer = C_Timer
 local getParts = C_TransmogSets.GetSetPrimaryAppearances
+local GetAllSourceIDs = C_TransmogSets.GetAllSourceIDs
 
 -- The singleton tip and the set it currently describes. _group/_set guard the
 -- async name-load re-render against a stale set; _parent/_position are kept so
@@ -113,14 +114,16 @@ local function render(group, set, parent, position)
   end
 
   -- GetSetPrimaryAppearances returns nil (not an empty table) for a set id the client
-  -- doesn't know — exactly a PTR-only set on a live client — so coalesce before #parts.
+  -- doesn't know — so coalesce before #parts. NOTE: primary appearances are a raid-tier
+  -- concept; PvP sets have sources but ZERO primary appearances, so they can't be the
+  -- "has data" signal (that's GetAllSourceIDs below).
   local parts = getParts(set.id) or {}
+  local sources = GetAllSourceIDs(set.id) or {}
   local scanned = ns.db.sets[group.id] and ns.db.sets[group.id][set.id]
-  -- A PTR-only set the live client has no data for: GetSetPrimaryAppearances /
-  -- GetSourcesForSlot return nothing, so there's no per-slot list to show. Mark it
-  -- upcoming (ratings still apply) instead of rendering nine "missing" rows. On a
-  -- PTR client the set is real, parts resolve, and the normal slot list renders.
-  local upcoming = not scanned and #parts == 0
+  -- "Upcoming / no data on this client" = the set has NO appearance sources at all
+  -- (a PTR-only set on a live client). A set with sources but no primary appearances
+  -- (a PvP set) is NOT upcoming — it renders via the GetAllSourceIDs slot fallback below.
+  local upcoming = not scanned and #sources == 0
   if upcoming then bits[#bits + 1] = "|cff8cc8ffNot yet on live (PTR)|r" end
   _tooltip.status:Text(#bits > 0 and table.concat(bits, "   ") or "|cff808080Shift-click to mark wanted|r")
 
