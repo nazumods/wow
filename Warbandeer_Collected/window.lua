@@ -135,9 +135,11 @@ end
 ---grid is only the upcoming sets, so the counter becomes a "+N sets upcoming" tally.
 function MainWindow:RefreshCounter()
   if self.data._ptr then
-    local n = 0
+    local seen, n = {}, 0
     for _, grp in ipairs(ns.PtrSets) do
-      for _, set in ipairs(grp.sets) do if set.id then n = n + 1 end end
+      for _, set in ipairs(grp.sets) do
+        if set.id and not seen[set.id] then seen[set.id] = true; n = n + 1 end
+      end
     end
     self._counterLabel:Text("")
     self.counter:Text(("+%d sets upcoming%s"):format(n, ns.PtrBuild and (" · PTR " .. ns.PtrBuild.ptr) or ""))

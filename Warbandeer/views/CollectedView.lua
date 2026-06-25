@@ -378,9 +378,11 @@ function CollectedView:_render()
   self.emptyMsg:Hide()
   self:_showGrid(true)
   if ptr then
-    local n = 0
+    local seen, n = {}, 0
     for _, grp in ipairs(api.PtrSets or {}) do
-      for _, set in ipairs(grp.sets) do if set.id then n = n + 1 end end
+      for _, set in ipairs(grp.sets) do
+        if set.id and not seen[set.id] then seen[set.id] = true; n = n + 1 end
+      end
     end
     self.counter:Text(("+%d sets upcoming%s"):format(n, api.PtrBuild and (" · PTR " .. api.PtrBuild.ptr) or ""))
   else
