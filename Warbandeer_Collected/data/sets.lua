@@ -112,6 +112,26 @@ tinsert(ns.Sets, {
   },
 })
 
+
+-- Coverage audit #222 (batch 2): covenants / dungeons / classic raids
+tinsert(ns.Sets, {
+  id = 42,
+  name = "Naxxramas",
+  release = 1,
+  sets = {
+    { id = 850, name = "Dreadnaught's Battlegear", classId = 1 },
+    { id = 899, name = "Redemption Armor", classId = 2 },
+    { id = 914, name = "Cryptstalker Armor", classId = 3 },
+    { id = 891, name = "Bonescythe Armor", classId = 4 },
+    { id = 355, name = "Vestments of Faith", classId = 5 },
+    {},
+    { id = 873, name = "The Earthshatterer", classId = 7 },
+    { id = 907, name = "Frostfire Regalia", classId = 8 },
+    { id = 865, name = "Plagueheart Raiment", classId = 9 },
+    {},
+    { id = 924, name = "Dreamwalker Raiment", classId = 11 },
+  },
+})
 -- Burning Crusade
 tinsert(ns.Sets, {
   id = 41,
@@ -522,6 +542,26 @@ tinsert(ns.Sets, {
     { id = 762, name = "Wrathful Gladiator's Felweave Armor", classId = 9 },
     {},
     { id = 768, name = "Wrathful Gladiator's Dragonhide Armor", classId = 11 },
+  },
+})
+
+-- Coverage audit #222 (batch 2): covenants / dungeons / classic raids
+tinsert(ns.Sets, {
+  id = 36,
+  name = "Trial of the Crusader (10 Normal)",
+  release = 3,
+  sets = {
+    { id = 657, name = "Hellscream's Battlegear", classId = 1 },
+    { id = 706, name = "Turalyon's Plate", classId = 2 },
+    { id = 738, name = "Windrunner's Pursuit", classId = 3 },
+    { id = 690, name = "VanCleef's Battlegear", classId = 4 },
+    { id = 349, name = "Velen's Regalia", classId = 5 },
+    { id = 841, name = "Koltira's Battlegear", classId = 6 },
+    { id = 640, name = "Nobundo's Garb", classId = 7 },
+    { id = 722, name = "Khadgar's Regalia", classId = 8 },
+    { id = 674, name = "Kel'Thuzad's Regalia", classId = 9 },
+    {},
+    { id = 825, name = "Malfurion's Battlegear", classId = 11 },
   },
 })
 -- Cataclysm
@@ -3064,6 +3104,308 @@ tinsert(ns.Sets, {
     { id = 2504, name = "Eternal Gladiator's Felskin Armor", classId = 12 },
   },
 })
+
+-- Coverage audit #222 (batch 2): covenants / dungeons / classic raids
+tinsert(ns.Sets, {
+  id = 181,
+  name = "Kyrian (Campaign)",
+  release = 9,
+  sets = {
+    { id = 2029, name = "Warplate of the Selfless", classId = 1 },
+    { id = 2029, name = "Warplate of the Selfless", classId = 2 },
+    { id = 2023, name = "Chain of the Selfless", classId = 3 },
+    { id = 2019, name = "Garb of the Selfless", classId = 4 },
+    { id = 2015, name = "Vestments of the Selfless", classId = 5 },
+    { id = 2029, name = "Warplate of the Selfless", classId = 6 },
+    { id = 2023, name = "Chain of the Selfless", classId = 7 },
+    { id = 2015, name = "Vestments of the Selfless", classId = 8 },
+    { id = 2015, name = "Vestments of the Selfless", classId = 9 },
+    { id = 2019, name = "Garb of the Selfless", classId = 10 },
+    { id = 2019, name = "Garb of the Selfless", classId = 11 },
+    { id = 2019, name = "Garb of the Selfless", classId = 12 },
+    { id = 2023, name = "Chain of the Selfless", classId = 13 },
+  },
+})
+tinsert(ns.Sets, {
+  id = 181,
+  name = "Kyrian (Path of Ascension)",
+  release = 9,
+  sets = {
+    { id = 2027, name = "Warplate of the Reverent", classId = 1 },
+    { id = 2027, name = "Warplate of the Reverent", classId = 2 },
+    { id = 2024, name = "Chain of the Discordant", classId = 3 },
+    { id = 2021, name = "Garb of the Reverent", classId = 4 },
+    { id = 2017, name = "Vestments of the Reverent", classId = 5 },
+    { id = 2027, name = "Warplate of the Reverent", classId = 6 },
+    { id = 2024, name = "Chain of the Discordant", classId = 7 },
+    { id = 2017, name = "Vestments of the Reverent", classId = 8 },
+    { id = 2017, name = "Vestments of the Reverent", classId = 9 },
+    { id = 2021, name = "Garb of the Reverent", classId = 10 },
+    { id = 2021, name = "Garb of the Reverent", classId = 11 },
+    { id = 2021, name = "Garb of the Reverent", classId = 12 },
+    { id = 2024, name = "Chain of the Discordant", classId = 13 },
+  },
+})
+tinsert(ns.Sets, {
+  id = 181,
+  name = "Kyrian (Renown)",
+  release = 9,
+  sets = {
+    { id = 2030, name = "Warplate of the Harmonious", classId = 1 },
+    { id = 2030, name = "Warplate of the Harmonious", classId = 2 },
+    { id = 2025, name = "Chain of the Harmonious", classId = 3 },
+    { id = 2020, name = "Garb of the Harmonious", classId = 4 },
+    { id = 2016, name = "Vestments of the Harmonious", classId = 5 },
+    { id = 2030, name = "Warplate of the Harmonious", classId = 6 },
+    { id = 2025, name = "Chain of the Harmonious", classId = 7 },
+    { id = 2016, name = "Vestments of the Harmonious", classId = 8 },
+    { id = 2016, name = "Vestments of the Harmonious", classId = 9 },
+    { id = 2020, name = "Garb of the Harmonious", classId = 10 },
+    { id = 2020, name = "Garb of the Harmonious", classId = 11 },
+    { id = 2020, name = "Garb of the Harmonious", classId = 12 },
+    { id = 2025, name = "Chain of the Harmonious", classId = 13 },
+  },
+})
+tinsert(ns.Sets, {
+  id = 180,
+  name = "Necrolord (Abominable Stitching)",
+  release = 9,
+  sets = {
+    { id = 2045, name = "Abomination of Maldraxxus", classId = 1 },
+    { id = 2045, name = "Abomination of Maldraxxus", classId = 2 },
+    { id = 2040, name = "Shambler of Maldraxxus", classId = 3 },
+    { id = 2037, name = "Warflesh of Maldraxxus", classId = 4 },
+    { id = 2034, name = "Horror of Maldraxxus", classId = 5 },
+    { id = 2045, name = "Abomination of Maldraxxus", classId = 6 },
+    { id = 2040, name = "Shambler of Maldraxxus", classId = 7 },
+    { id = 2034, name = "Horror of Maldraxxus", classId = 8 },
+    { id = 2034, name = "Horror of Maldraxxus", classId = 9 },
+    { id = 2037, name = "Warflesh of Maldraxxus", classId = 10 },
+    { id = 2037, name = "Warflesh of Maldraxxus", classId = 11 },
+    { id = 2037, name = "Warflesh of Maldraxxus", classId = 12 },
+    { id = 2040, name = "Shambler of Maldraxxus", classId = 13 },
+  },
+})
+tinsert(ns.Sets, {
+  id = 180,
+  name = "Necrolord (Campaign)",
+  release = 9,
+  sets = {
+    { id = 2043, name = "Might of Maldraxxus", classId = 1 },
+    { id = 2043, name = "Might of Maldraxxus", classId = 2 },
+    { id = 2041, name = "Will of Maldraxxus", classId = 3 },
+    { id = 2035, name = "Sight of Maldraxxus", classId = 4 },
+    { id = 2032, name = "Wisdom of Maldraxxus", classId = 5 },
+    { id = 2043, name = "Might of Maldraxxus", classId = 6 },
+    { id = 2041, name = "Will of Maldraxxus", classId = 7 },
+    { id = 2032, name = "Wisdom of Maldraxxus", classId = 8 },
+    { id = 2032, name = "Wisdom of Maldraxxus", classId = 9 },
+    { id = 2035, name = "Sight of Maldraxxus", classId = 10 },
+    { id = 2035, name = "Sight of Maldraxxus", classId = 11 },
+    { id = 2035, name = "Sight of Maldraxxus", classId = 12 },
+    { id = 2041, name = "Will of Maldraxxus", classId = 13 },
+  },
+})
+tinsert(ns.Sets, {
+  id = 180,
+  name = "Necrolord (Renown)",
+  release = 9,
+  sets = {
+    { id = 2044, name = "Authority of Maldraxxus", classId = 1 },
+    { id = 2044, name = "Authority of Maldraxxus", classId = 2 },
+    { id = 2042, name = "Alacrity of Maldraxxus", classId = 3 },
+    { id = 2036, name = "Guile of Maldraxxus", classId = 4 },
+    { id = 2031, name = "Rationale of Maldraxxus", classId = 5 },
+    { id = 2044, name = "Authority of Maldraxxus", classId = 6 },
+    { id = 2042, name = "Alacrity of Maldraxxus", classId = 7 },
+    { id = 2031, name = "Rationale of Maldraxxus", classId = 8 },
+    { id = 2031, name = "Rationale of Maldraxxus", classId = 9 },
+    { id = 2036, name = "Guile of Maldraxxus", classId = 10 },
+    { id = 2036, name = "Guile of Maldraxxus", classId = 11 },
+    { id = 2036, name = "Guile of Maldraxxus", classId = 12 },
+    { id = 2042, name = "Alacrity of Maldraxxus", classId = 13 },
+  },
+})
+tinsert(ns.Sets, {
+  id = 180,
+  name = "Necrolord (Unity)",
+  release = 9,
+  sets = {
+    { id = 2046, name = "Mettle of Maldraxxus", classId = 1 },
+    { id = 2046, name = "Mettle of Maldraxxus", classId = 2 },
+    { id = 2039, name = "Heart of Maldraxxus", classId = 3 },
+    { id = 2038, name = "Zeal of Maldraxxus", classId = 4 },
+    { id = 2033, name = "Mind of Maldraxxus", classId = 5 },
+    { id = 2046, name = "Mettle of Maldraxxus", classId = 6 },
+    { id = 2039, name = "Heart of Maldraxxus", classId = 7 },
+    { id = 2033, name = "Mind of Maldraxxus", classId = 8 },
+    { id = 2033, name = "Mind of Maldraxxus", classId = 9 },
+    { id = 2038, name = "Zeal of Maldraxxus", classId = 10 },
+    { id = 2038, name = "Zeal of Maldraxxus", classId = 11 },
+    { id = 2038, name = "Zeal of Maldraxxus", classId = 12 },
+    { id = 2039, name = "Heart of Maldraxxus", classId = 13 },
+  },
+})
+tinsert(ns.Sets, {
+  id = 178,
+  name = "Night Fae (Campaign)",
+  release = 9,
+  sets = {
+    { id = 2059, name = "Queensguard Warbark", classId = 1 },
+    { id = 2059, name = "Queensguard Warbark", classId = 2 },
+    { id = 2055, name = "Runewarden's Guise", classId = 3 },
+    { id = 2051, name = "Oakheart Raiment", classId = 4 },
+    { id = 2047, name = "Faewoven Regalia", classId = 5 },
+    { id = 2059, name = "Queensguard Warbark", classId = 6 },
+    { id = 2055, name = "Runewarden's Guise", classId = 7 },
+    { id = 2047, name = "Faewoven Regalia", classId = 8 },
+    { id = 2047, name = "Faewoven Regalia", classId = 9 },
+    { id = 2051, name = "Oakheart Raiment", classId = 10 },
+    { id = 2051, name = "Oakheart Raiment", classId = 11 },
+    { id = 2051, name = "Oakheart Raiment", classId = 12 },
+    { id = 2055, name = "Runewarden's Guise", classId = 13 },
+  },
+})
+tinsert(ns.Sets, {
+  id = 178,
+  name = "Night Fae (Queen's Conservatory)",
+  release = 9,
+  sets = {
+    { id = 2062, name = "Conservator's Warbark", classId = 1 },
+    { id = 2062, name = "Conservator's Warbark", classId = 2 },
+    { id = 2056, name = "Conservator's Guise", classId = 3 },
+    { id = 2052, name = "Conservator's Raiment", classId = 4 },
+    { id = 2049, name = "Conservator's Regalia", classId = 5 },
+    { id = 2062, name = "Conservator's Warbark", classId = 6 },
+    { id = 2056, name = "Conservator's Guise", classId = 7 },
+    { id = 2049, name = "Conservator's Regalia", classId = 8 },
+    { id = 2049, name = "Conservator's Regalia", classId = 9 },
+    { id = 2052, name = "Conservator's Raiment", classId = 10 },
+    { id = 2052, name = "Conservator's Raiment", classId = 11 },
+    { id = 2052, name = "Conservator's Raiment", classId = 12 },
+    { id = 2056, name = "Conservator's Guise", classId = 13 },
+  },
+})
+tinsert(ns.Sets, {
+  id = 178,
+  name = "Night Fae (Renown)",
+  release = 9,
+  sets = {
+    { id = 2060, name = "Night Courtier's Warbark", classId = 1 },
+    { id = 2060, name = "Night Courtier's Warbark", classId = 2 },
+    { id = 2057, name = "Night Courtier's Guise", classId = 3 },
+    { id = 2054, name = "Night Courtier's Raiment", classId = 4 },
+    { id = 2048, name = "Night Courtier's Regalia", classId = 5 },
+    { id = 2060, name = "Night Courtier's Warbark", classId = 6 },
+    { id = 2057, name = "Night Courtier's Guise", classId = 7 },
+    { id = 2048, name = "Night Courtier's Regalia", classId = 8 },
+    { id = 2048, name = "Night Courtier's Regalia", classId = 9 },
+    { id = 2054, name = "Night Courtier's Raiment", classId = 10 },
+    { id = 2054, name = "Night Courtier's Raiment", classId = 11 },
+    { id = 2054, name = "Night Courtier's Raiment", classId = 12 },
+    { id = 2057, name = "Night Courtier's Guise", classId = 13 },
+  },
+})
+tinsert(ns.Sets, {
+  id = 178,
+  name = "Night Fae (Winterborn)",
+  release = 9,
+  sets = {
+    { id = 2061, name = "Winterborn Warbark", classId = 1 },
+    { id = 2061, name = "Winterborn Warbark", classId = 2 },
+    { id = 2058, name = "Winterborn Guise", classId = 3 },
+    { id = 2053, name = "Winterborn Raiment", classId = 4 },
+    { id = 2050, name = "Winterborn Regalia", classId = 5 },
+    { id = 2061, name = "Winterborn Warbark", classId = 6 },
+    { id = 2058, name = "Winterborn Guise", classId = 7 },
+    { id = 2050, name = "Winterborn Regalia", classId = 8 },
+    { id = 2050, name = "Winterborn Regalia", classId = 9 },
+    { id = 2053, name = "Winterborn Raiment", classId = 10 },
+    { id = 2053, name = "Winterborn Raiment", classId = 11 },
+    { id = 2053, name = "Winterborn Raiment", classId = 12 },
+    { id = 2058, name = "Winterborn Guise", classId = 13 },
+  },
+})
+tinsert(ns.Sets, {
+  id = 179,
+  name = "Venthyr (Campaign)",
+  release = 9,
+  sets = {
+    { id = 2075, name = "Dread Sentinel's Ebony Battleplate", classId = 1 },
+    { id = 2075, name = "Dread Sentinel's Ebony Battleplate", classId = 2 },
+    { id = 2071, name = "Fearstalker's Ebony Battlegear", classId = 3 },
+    { id = 2070, name = "Ebony Death Shroud Armor", classId = 4 },
+    { id = 2066, name = "Soulbreaker's Ebony Vestments", classId = 5 },
+    { id = 2075, name = "Dread Sentinel's Ebony Battleplate", classId = 6 },
+    { id = 2071, name = "Fearstalker's Ebony Battlegear", classId = 7 },
+    { id = 2066, name = "Soulbreaker's Ebony Vestments", classId = 8 },
+    { id = 2066, name = "Soulbreaker's Ebony Vestments", classId = 9 },
+    { id = 2070, name = "Ebony Death Shroud Armor", classId = 10 },
+    { id = 2070, name = "Ebony Death Shroud Armor", classId = 11 },
+    { id = 2070, name = "Ebony Death Shroud Armor", classId = 12 },
+    { id = 2071, name = "Fearstalker's Ebony Battlegear", classId = 13 },
+  },
+})
+tinsert(ns.Sets, {
+  id = 179,
+  name = "Venthyr (Ember Court)",
+  release = 9,
+  sets = {
+    { id = 2077, name = "Dread Sentinel's Court Battleplate", classId = 1 },
+    { id = 2077, name = "Dread Sentinel's Court Battleplate", classId = 2 },
+    { id = 2072, name = "Fearstalker's Court Battlegear", classId = 3 },
+    { id = 2068, name = "Court Death Shroud Armor", classId = 4 },
+    { id = 2065, name = "Soulbreaker's Court Vestments", classId = 5 },
+    { id = 2077, name = "Dread Sentinel's Court Battleplate", classId = 6 },
+    { id = 2072, name = "Fearstalker's Court Battlegear", classId = 7 },
+    { id = 2065, name = "Soulbreaker's Court Vestments", classId = 8 },
+    { id = 2065, name = "Soulbreaker's Court Vestments", classId = 9 },
+    { id = 2068, name = "Court Death Shroud Armor", classId = 10 },
+    { id = 2068, name = "Court Death Shroud Armor", classId = 11 },
+    { id = 2068, name = "Court Death Shroud Armor", classId = 12 },
+    { id = 2072, name = "Fearstalker's Court Battlegear", classId = 13 },
+  },
+})
+tinsert(ns.Sets, {
+  id = 179,
+  name = "Venthyr (Renown)",
+  release = 9,
+  sets = {
+    { id = 2078, name = "Dread Sentinel's Crimson Battleplate", classId = 1 },
+    { id = 2078, name = "Dread Sentinel's Crimson Battleplate", classId = 2 },
+    { id = 2074, name = "Fearstalker's Crimson Battlegear", classId = 3 },
+    { id = 2067, name = "Crimson Death Shroud Armor", classId = 4 },
+    { id = 2063, name = "Soulbreaker's Crimson Vestments", classId = 5 },
+    { id = 2078, name = "Dread Sentinel's Crimson Battleplate", classId = 6 },
+    { id = 2074, name = "Fearstalker's Crimson Battlegear", classId = 7 },
+    { id = 2063, name = "Soulbreaker's Crimson Vestments", classId = 8 },
+    { id = 2063, name = "Soulbreaker's Crimson Vestments", classId = 9 },
+    { id = 2067, name = "Crimson Death Shroud Armor", classId = 10 },
+    { id = 2067, name = "Crimson Death Shroud Armor", classId = 11 },
+    { id = 2067, name = "Crimson Death Shroud Armor", classId = 12 },
+    { id = 2074, name = "Fearstalker's Crimson Battlegear", classId = 13 },
+  },
+})
+tinsert(ns.Sets, {
+  id = 179,
+  name = "Venthyr (Travel Network)",
+  release = 9,
+  sets = {
+    { id = 2076, name = "Dread Sentinel's Burnished Battleplate", classId = 1 },
+    { id = 2076, name = "Dread Sentinel's Burnished Battleplate", classId = 2 },
+    { id = 2073, name = "Fearstalker's Burnished Battlegear", classId = 3 },
+    { id = 2069, name = "Burnished Death Shroud Armor", classId = 4 },
+    { id = 2064, name = "Soulbreaker's Burnished Vestments", classId = 5 },
+    { id = 2076, name = "Dread Sentinel's Burnished Battleplate", classId = 6 },
+    { id = 2073, name = "Fearstalker's Burnished Battlegear", classId = 7 },
+    { id = 2064, name = "Soulbreaker's Burnished Vestments", classId = 8 },
+    { id = 2064, name = "Soulbreaker's Burnished Vestments", classId = 9 },
+    { id = 2069, name = "Burnished Death Shroud Armor", classId = 10 },
+    { id = 2069, name = "Burnished Death Shroud Armor", classId = 11 },
+    { id = 2069, name = "Burnished Death Shroud Armor", classId = 12 },
+    { id = 2073, name = "Fearstalker's Burnished Battlegear", classId = 13 },
+  },
+})
 -- release 10
 -- vault of the incarnates 195
 tinsert(ns.Sets, {
@@ -4048,6 +4390,96 @@ tinsert(ns.Sets, {
     { id = 3642, name = "Delver's Mail Armor", classId = 13 },
   },
 })
+
+-- Coverage audit #222 (batch 2): covenants / dungeons / classic raids
+tinsert(ns.Sets, {
+  id = 280,
+  name = "Algari Chainmail",
+  release = 11,
+  sets = {
+    {},
+    {},
+    { id = 3890, name = "Algari Chainmail", classId = 3 },
+    {},
+    {},
+    {},
+    { id = 3890, name = "Algari Chainmail", classId = 7 },
+    {},
+    {},
+    {},
+    {},
+    {},
+    { id = 3890, name = "Algari Chainmail", classId = 13 },
+  },
+})
+tinsert(ns.Sets, {
+  id = 281,
+  name = "Coreway Regalia",
+  release = 11,
+  sets = {
+    {},
+    {},
+    {},
+    { id = 3891, name = "Coreway Regalia", classId = 4 },
+    {},
+    {},
+    {},
+    {},
+    {},
+    { id = 3891, name = "Coreway Regalia", classId = 10 },
+    { id = 3891, name = "Coreway Regalia", classId = 11 },
+    { id = 3891, name = "Coreway Regalia", classId = 12 },
+  },
+})
+tinsert(ns.Sets, {
+  id = 279,
+  name = "Dorn Defender Armaments",
+  release = 11,
+  sets = {
+    { id = 3889, name = "Dorn Defender Armaments", classId = 1 },
+    { id = 3889, name = "Dorn Defender Armaments", classId = 2 },
+    {},
+    {},
+    {},
+    { id = 3889, name = "Dorn Defender Armaments", classId = 6 },
+  },
+})
+tinsert(ns.Sets, {
+  id = 282,
+  name = "Threads of Awakening",
+  release = 11,
+  sets = {
+    {},
+    {},
+    {},
+    {},
+    { id = 3892, name = "Threads of Awakening", classId = 5 },
+    {},
+    {},
+    { id = 3892, name = "Threads of Awakening", classId = 8 },
+    { id = 3892, name = "Threads of Awakening", classId = 9 },
+  },
+})
+tinsert(ns.Sets, {
+  id = 314,
+  name = "Horrific Visions Revisited",
+  release = 11,
+  sets = {
+    { id = 4362, name = "Malignant Vision's Battleplate", classId = 1 },
+    { id = 4362, name = "Malignant Vision's Battleplate", classId = 2 },
+    { id = 4363, name = "Vision Tormentor's Battlekit", classId = 3 },
+    { id = 4364, name = "Garb of the Insatiable Vision", classId = 4 },
+    { id = 4365, name = "Vision Manipulator's Vestments", classId = 5 },
+    { id = 4362, name = "Malignant Vision's Battleplate", classId = 6 },
+    { id = 4363, name = "Vision Tormentor's Battlekit", classId = 7 },
+    { id = 4365, name = "Vision Manipulator's Vestments", classId = 8 },
+    { id = 4365, name = "Vision Manipulator's Vestments", classId = 9 },
+    { id = 4364, name = "Garb of the Insatiable Vision", classId = 10 },
+    { id = 4364, name = "Garb of the Insatiable Vision", classId = 11 },
+    { id = 4364, name = "Garb of the Insatiable Vision", classId = 12 },
+    { id = 4363, name = "Vision Tormentor's Battlekit", classId = 13 },
+  },
+})
 -- release 12 (Midnight)
 -- Season 1 tier appearance (TransmogSetGroupID 372); tokens span The Voidspire,
 -- The Dreamrift, and March on Quel'Danas, so no single instance lockout applies.
@@ -4215,5 +4647,27 @@ tinsert(ns.Sets, {
     { id = 5547, name = "Osseoclad's Wear", classId = 11 },
     { id = 5547, name = "Osseoclad's Wear", classId = 12 },
     { id = 5548, name = "Elder Moss Outfit", classId = 13 },
+  },
+})
+
+-- Coverage audit #222 (batch 2): covenants / dungeons / classic raids
+tinsert(ns.Sets, {
+  id = 274,
+  name = "WoW's 20th Anniversary (WoW Anniversary)",
+  release = 12,
+  sets = {
+    { id = 3872, name = "Eternal Battlegear of Wrath", classId = 1 },
+    { id = 3871, name = "Eternal Judgment Armor", classId = 2 },
+    { id = 3869, name = "Dragonstalker's Eternal Armor", classId = 3 },
+    { id = 3867, name = "Eternal Bloodfang Armor", classId = 4 },
+    { id = 3865, name = "Eternal Vestments of Transcendence", classId = 5 },
+    { id = 3864, name = "Pale Rider's Eternal Armor", classId = 6 },
+    { id = 3866, name = "The Eternal Ten Storms Armor", classId = 7 },
+    { id = 3868, name = "Eternal Netherwind Regalia", classId = 8 },
+    { id = 3873, name = "Eternal Nemesis Raiment", classId = 9 },
+    { id = 3861, name = "Eternal Battlegear of the August Acolyte", classId = 10 },
+    { id = 3870, name = "Eternal Stormrage Armor", classId = 11 },
+    { id = 3863, name = "Netherwalker's Eternal Armor", classId = 12 },
+    { id = 3862, name = "Earth-Warder's Eternal Armor", classId = 13 },
   },
 })
