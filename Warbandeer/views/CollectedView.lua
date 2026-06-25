@@ -382,11 +382,14 @@ function CollectedView:_render()
     for _, grp in ipairs(api.PtrSets or {}) do
       for _, set in ipairs(grp.sets) do if set.id then n = n + 1 end end
     end
-    self.counter:Text(("+%d sets upcoming%s"):format(n, api.PtrBuild and ("   ·   PTR " .. api.PtrBuild.ptr) or ""))
+    self.counter:Text(("+%d sets upcoming%s"):format(n, api.PtrBuild and (" · PTR " .. api.PtrBuild.ptr) or ""))
   else
     local collected, total = api:Counts()
     self.counter:Text("Sets: " .. collected .. " / " .. total)
   end
+  -- The PTR line (with the build) is longer than the live count, so shrink the counter
+  -- font in PTR mode so it stays within the name column, clear of the class icons.
+  self.counter:Font(ptr and {theme.fonts.title[1], 12} or theme.fonts.title)
   self:RefreshWanted()
   self.grid.data = self.grid:GetData()
   self.grid:update()
