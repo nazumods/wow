@@ -1,0 +1,10 @@
+# Difficulty-label aliases for update-sets.ps1
+#
+# A few curated group-name suffixes use a shorter/different label than wago's
+# ItemNameDescription. Map each as  "curated suffix => wago label"  (one per line)
+# so the generator resolves those groups while keeping the tidy in-game names.
+# Blank lines and lines starting with # are ignored. Edit freely — no code change.
+
+10 Normal => 10 Player (Normal)
+25 Normal => 25 Player (Normal)
+25 Heroic => 25 Player (Heroic)

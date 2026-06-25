@@ -545,7 +545,7 @@ tinsert(ns.Sets, {
 
 tinsert(ns.Sets, {
   id = 31,
-  name = "Heart of Fear (Timerunning/Remix)",
+  name = "Heart of Fear (Timerunning)",
   release = 5,
   minLevel = 70,
   sets = {
@@ -1105,7 +1105,7 @@ tinsert(ns.Sets, {
 
 tinsert(ns.Sets, {
   id = 56,
-  name = "Tomb of Sargeras (Timewarped/Legion Remix?)",
+  name = "Tomb of Sargeras (Timewarped)",
   release = 7,
   minLevel = 70,
   sets = {

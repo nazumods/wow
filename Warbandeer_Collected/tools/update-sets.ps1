@@ -116,12 +116,27 @@ foreach ($r in ($rows | Sort-Object { [int]$_.ID })) {
   }
 }
 
+# Curated `(Difficulty)` name suffixes that differ from wago's ItemNameDescription
+# label, loaded from difficulty-aliases.txt ("curated => wago" per line) and
+# translated before matching — keeps tidy in-game names like the Wrath "(10 Normal)".
+$DifficultyAlias = @{}
+$aliasFile = Join-Path $PSScriptRoot 'difficulty-aliases.txt'
+if (Test-Path -LiteralPath $aliasFile) {
+  foreach ($ln in (Get-Content -LiteralPath $aliasFile)) {
+    $t = $ln.Trim()
+    if (-not $t -or $t.StartsWith('#')) { continue }
+    $kv = $t -split '\s*=>\s*', 2
+    if ($kv.Count -eq 2) { $DifficultyAlias[$kv[0].Trim()] = $kv[1].Trim() }
+  }
+}
+
 # Resolve a group's set lines, or $null to leave the block unchanged.
 function Get-SetsBody([int]$gid, [string]$difficulty) {
   if (-not $byGroup.ContainsKey($gid)) { return $null }
   $labels = $byGroup[$gid]
   $use = $null
   if ($difficulty) {
+    if ($DifficultyAlias.ContainsKey($difficulty)) { $difficulty = $DifficultyAlias[$difficulty] }
     if ($labels.ContainsKey($difficulty)) { $use = $difficulty } else { return $null }
   }
   elseif ($labels.Count -eq 1) { $use = @($labels.Keys)[0] }

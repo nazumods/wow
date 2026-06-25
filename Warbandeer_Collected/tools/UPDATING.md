@@ -46,8 +46,11 @@ Two wago facts drive it:
 It is **conservative**: a group is rewritten only when it resolves confidently —
 the id exists in wago **and** (the name's difficulty suffix maps to a label present
 for that id, **or** the group has no suffix and the id carries a single
-difficulty). Anything else — Wrath 10/25-man tiers, custom labels like
-`(Timerunning/Remix)`, ambiguous ids — is **left exactly as written**.
+difficulty). Anything it can't resolve is **left exactly as written**.
+
+When a curated `(Difficulty)` suffix doesn't match wago's label verbatim — e.g. the
+Wrath `(10 Normal)` vs wago's `10 Player (Normal)` — add a `curated => wago label`
+line to **`difficulty-aliases.txt`** and it resolves; no code change.
 
 **Source build.** It pulls the latest **live retail** build (product `wow`),
 resolved from `wago.tools/api/builds` and pinned explicitly — the bare `/csv`
