@@ -47,6 +47,9 @@ jobs:
         with:
           branch: bot/collected-set-refresh
           delete-branch: true
+          # Only commit the data file — the luacheck step leaves a .luarocks/ dir
+          # in the workspace that must not end up in the PR.
+          add-paths: Warbandeer_Collected/data/sets.lua
           commit-message: "chore(collected): refresh transmog set data from wago.tools"
           title: "chore(collected): refresh transmog set data from wago.tools"
           body: |
