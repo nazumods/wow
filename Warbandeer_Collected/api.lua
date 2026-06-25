@@ -17,6 +17,7 @@ local ns = select(2, ...)
 ---@field RankColors table<string, number[]> tier letter → 0–1 rgb
 ---@field WantedIcon string atlas for the "wanted" marker
 ---@field OnScanned fun(self, fn: fun()) register a callback fired after each scan refreshes the data
+---@field DataView DataView the shared set-by-class grid class (set in `DataView.lua`); build with `embedded = true` to reuse it in a host view
 local API = {}
 
 -- Static set-group definitions (rows), release names, and the parallel expansion

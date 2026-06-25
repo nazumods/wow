@@ -57,3 +57,11 @@ ns.theme = ns.ui.Theme{
     stat     = {FONT .. "JetBrainsMono-SemiBold.ttf", 10},
   },
 }
+
+-- Publish the theme on LibNUI's shared `ui.themes` registry so sibling addons can
+-- render in the same skin without depending on this addon. The standalone
+-- /collected window (Warbandeer_Collected) reads `ui.themes["void-dark"]` so its
+-- grid + chrome match Warbandeer's embedded collected view 1:1; it falls back to the
+-- LibNUI default when this addon isn't loaded. Fonts resolve fine for any consumer
+-- since the registration only happens once this addon (which ships them) has loaded.
+ns.ui.themes["void-dark"] = ns.theme

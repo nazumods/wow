@@ -43,22 +43,58 @@ local shades = {
   {      0, 104/255,  55/255},
 }
 
+-- Build the column layout: a zero-width auto-sized name column then one icon column
+-- per class. The windowed grid prepends a narrow lock column (the lockout glyph);
+-- `embedded` hosts omit it entirely, so the name column is col 1 there and col 2 in
+-- the window. Passed in at construction by each host (defaults can't branch on the
+-- per-instance `embedded` flag, since the base table consumes colInfo first).
+---@param embedded boolean?  true → no lock column (host owns lockouts)
+---@return table
+local function buildColInfo(embedded)
+  local cols = lists.map(ns.icons.classes, function(icon)
+    return {
+      atlas = icon,
+      atlasSize = false,
+      width = 28,
+      padding = 2,
+      justifyH = ui.justify.Center,
+      backdrop = {color = Colors.TransparentBlack},
+    }
+  end)
+  if embedded then
+    return prepend(cols, { width = 0, backdrop = {color = Colors.TransparentBlack} })
+  end
+  return prepend(cols,
+    { width = 15, backdrop = {color = Colors.TransparentBlack} },  -- lock
+    { width =  0, backdrop = {color = Colors.TransparentBlack} })  -- name
+end
+
 ---Main grid: one row per set group (lock icon + name), one column per class,
 ---cells show missing-piece counts color-shaded by completion.
+---
+---Shared by both the standalone /collected window and Warbandeer's embedded
+---collected view (single source of truth). `embedded` trims the chrome the host
+---window owns: the lock column is dropped (so the name column is col 1, not col 2)
+---and the lockout-panel name-click is removed (Warbandeer keeps lockouts in
+---/collected's own window). Each host passes its `colInfo` via `BuildColInfo`.
 ---@class DataView: TableFrame
 ---@field _reverse boolean? render newest set-group first (defaults true; see ToggleOrder)
 ---@field _wantedOnly boolean? blank cells for sets that aren't flagged wanted (see ToggleWantedOnly)
 ---@field _ptr boolean? show the PTR-only "upcoming" sets (ns.PtrSets) instead of live (see SetPtr)
 ---@field _playerRace number? cached canonical race id the rank pips resolve against
+---@field embedded boolean? render trimmed for a host view (no lock column / lockout name-click)
+---@field infoTipAnchor fun(cell: Cell): table?  host override for the hover InfoTip anchor (defaults to "above the cell")
+---@field onWantedToggle fun(self: DataView)?  host callback fired after a Shift-click wanted toggle (refresh the host's header)
 local DataView = Class(TableFrame, function(self)
-  -- autoadjust name width
+  -- autoadjust name width (col 1 embedded, col 2 in the window — lock takes col 1)
+  local nameCol = self.embedded and 1 or 2
   local w = 0
   for _,r in ipairs(self.cells) do
-    if #r > 2 then
-      w = max(w, r[2].label:Width())
+    if #r > nameCol then
+      w = max(w, r[nameCol].label:Width())
     end
   end
-  self.cols[2]:Width(w)
+  self.cols[nameCol]:Width(w)
   self.rowArea:Width(self.rowArea:Width() + w)
   self:Width(self:Width() + w)
   self:_refreshMarks()   -- the constructor-time update() ran before our override was mixed in
@@ -67,22 +103,10 @@ end, {
   _reverse = true,   -- default to newest set-group first
   _wantedOnly = false,
   _ptr = false,
-  colInfo = prepend(
-    lists.map(ns.icons.classes, function(icon)
-      return {
-        atlas = icon,
-        atlasSize = false,
-        width = 28,
-        padding = 2,
-        justifyH = ui.justify.Center,
-        backdrop = {color = ns.Colors.TransparentBlack},
-      }
-    end),
-    { width = 15, backdrop = {color = ns.Colors.TransparentBlack} },
-    { width =  0, backdrop = {color = ns.Colors.TransparentBlack} }
-  ),
+  embedded = false,
   GetData = function(self)
-    local toon = api:GetCharacterData(api:GetCurrentCharacter())
+    -- Lockouts are window-only chrome; the embedded host omits the lock column.
+    local toon = not self.embedded and api:GetCharacterData(api:GetCurrentCharacter())
     -- PTR PREVIEW shows ONLY the upcoming-only delta (ns.PtrSets); off, the live ns.Sets.
     local source = self._ptr and ns.PtrSets or ns.Sets
     -- Display order: source oldest-first by default; _reverse → newest-first. `srcIdx`
@@ -93,7 +117,7 @@ end, {
     return lists.map(order, function(srcIdx, dispIdx)
       local grp = source[srcIdx]
       local isPtr = self._ptr
-      local lock = toon.instances.locks and toon.instances.locks[grp.instance] and toon.instances.locks[grp.instance][grp.difficulty]
+      local lock = toon and toon.instances.locks and toon.instances.locks[grp.instance] and toon.instances.locks[grp.instance][grp.difficulty]
       local gsets = ns.db.sets[grp.id]
       -- Always emit a positional cell per class (blank {} where there's no set, e.g.
       -- Evoker in pre-Dragonflight raids). Returning nil would make table.insert drop
@@ -111,7 +135,7 @@ end, {
         -- Same per-slot source tooltip on every cell, complete or partial — for a
         -- fully-collected set every slot shows green.
         local onEnter = function(cell)
-          ns.ShowInfoTip(grp, set, cell, {
+          ns.ShowInfoTip(grp, set, cell, self.infoTipAnchor and self.infoTipAnchor(cell) or {
             BottomRight = {cell, ui.edge.Top, -2, 2},
           })
         end
@@ -130,7 +154,7 @@ end, {
             else
               self:_applyCellMarks(cell, set.id)
             end
-            if ns.window then ns.window:RefreshWanted() end
+            if self.onWantedToggle then self:onWantedToggle() end
             ns.RefreshInfoTip()
           else
             ns.ShowDressingRoom(grp, set, self._reverse)
@@ -169,14 +193,31 @@ end, {
       -- full class count so they get a blank cell and don't keep another row's value
       -- on re-sort.
       for i = #r + 1, #ns.icons.classes do r[i] = {} end
-      tinsert(r, 1, {
-        text = lock and Colors.Strings.Icons.Lock or Colors.Strings.Icons.Empty,
-      })
+      -- Embedded hosts have no lock column or lockout panel — just the group name as
+      -- the leading (col 1) cell, inert.
+      if self.embedded then
+        tinsert(r, 1, { text = grp.name })
+        return r
+      end
+      -- Windowed grid: a lock-icon column then the name. The name click opens the
+      -- lockout panel, except in PTR mode (srcIdx indexes ns.PtrSets, not ns.Sets, so
+      -- there are no lockouts to show), where it's inert.
+      -- Render the lock as a real texture, not a `|T…|t` font-escape in a Label — that
+      -- escape doesn't fit/measure reliably in the narrow column under a custom font
+      -- (it truncated to "|…"); a Texture cell is immune to font + ellipsis truncation.
+      tinsert(r, 1, lock and {
+        path = "Interface\\LFGFrame\\UI-LFG-ICON-LOCK",
+        coords = {0, 0.875, 0, 0.875},
+        position = { Center = {}, Size = {12, 12} },
+      } or {})
       tinsert(r, 2, {
         text = grp.name,
-        -- Upcoming content has no instance lockouts (and in PTR mode srcIdx indexes
-        -- ns.PtrSets, not ns.Sets), so the name click is inert in PTR mode.
         onClick = isPtr and function() end or function()
+          -- Toggle: clicking the row whose lockouts are already open closes the panel.
+          if _selectedRow == dispIdx then
+            self:_clearSelection()
+            return
+          end
           ns.ShowLockoutView(srcIdx, ns.window, {
             TopRight = {ns.window, ui.edge.TopLeft, -25, 0},
             BottomRight = {ns.window, ui.edge.BottomLeft, -25, 0},
@@ -214,12 +255,7 @@ end, {
 ---@return boolean reversed  the new order state
 function DataView:ToggleOrder()
   self._reverse = not self._reverse
-  if _selectedRow and self.cells[_selectedRow] and self.cells[_selectedRow][2] then
-    self.cells[_selectedRow][2].label:Color(WHITE_FONT_COLOR)
-  end
-  _selectedRow = nil
-  if _arrow then _arrow:Hide() end
-  ns.HideLockoutView()
+  if not self.embedded then self:_clearSelection() end
   self.data = self:GetData()
   self:update()
   return self._reverse
@@ -240,15 +276,22 @@ end
 ---@return boolean ptr  the new mode
 function DataView:SetPtr(on)
   self._ptr = on
+  if not self.embedded then self:_clearSelection() end
+  self.data = self:GetData()
+  self:update()
+  return self._ptr
+end
+
+-- Drop any active lockout-panel row selection (its row index moves on re-sort / a
+-- dataset swap): un-highlight the name, hide the arrow, close the panel. Window-only
+-- — embedded hosts have no lockout selection (and share these module locals).
+function DataView:_clearSelection()
   if _selectedRow and self.cells[_selectedRow] and self.cells[_selectedRow][2] then
     self.cells[_selectedRow][2].label:Color(WHITE_FONT_COLOR)
   end
   _selectedRow = nil
   if _arrow then _arrow:Hide() end
   ns.HideLockoutView()
-  self.data = self:GetData()
-  self:update()
-  return self._ptr
 end
 
 -- Per-cell rating overlays: a gold "wanted" star (top-left) and the tier letter
@@ -324,6 +367,21 @@ function DataView:update()
   self:_refreshMarks()
 end
 
+-- Column-layout builder, exposed so each host passes its own `colInfo` at
+-- construction (windowed = with lock column, embedded = without).
+---@param embedded boolean?
+---@return table
+DataView.BuildColInfo = buildColInfo
+
+-- Max scrollable row-area height (px) before the grid scrolls — shared so the embedded
+-- view and the standalone window cap the grid to the same height (same window size).
+DataView.MAX_HEIGHT = 460
+
 ---@class Warbandeer_Collected
 ---@field DataView DataView
 ns.DataView = DataView
+
+-- Share the grid class with sibling addons (Warbandeer's embedded collected view)
+-- via the API global, so the grid is maintained in this one place. api.lua loads
+-- first, so the table already exists; consumers build it with `embedded = true`.
+_G.WarbandeerCollectedApi.DataView = DataView
