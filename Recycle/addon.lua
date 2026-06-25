@@ -16,13 +16,16 @@ end
 -- ─── Sell decision ────────────────────────────────────────────────────────────
 
 --- Returns true if the item should be sold at the next vendor visit.
+--- `quality` is the container-info quality when the caller has it (avoids a
+--- `GetItemInfo` cache miss on a cold login); falls back to `GetItemInfo`.
 ---@param itemID number
+---@param quality number? container-info quality, if known
 ---@return boolean
-local function shouldSell(itemID)
+local function shouldSell(itemID, quality)
   if not itemID then return false end
   if ns.db.itemsToSell[itemID] then return true end
   if ns.db.settings.sellGrey then
-    local quality = select(3, GetItemInfo(itemID))
+    if quality == nil then quality = select(3, GetItemInfo(itemID)) end
     if quality == 0 then return true end
   end
   return false
@@ -53,16 +56,23 @@ local function goldStr(copper)
 end
 
 local BUYBACK_LIMIT = 12
+local RETRY_BUDGET = 3
+local retriesLeft = RETRY_BUDGET
 
 local function sellItems()
   local count, total = 0, 0
+  local deferred = false
   for bag = 0, 4 do
     for slot = 1, C_Container.GetContainerNumSlots(bag) do
       if count >= BUYBACK_LIMIT then break end
       local info = C_Container.GetContainerItemInfo(bag, slot)
-      if info and shouldSell(info.itemID) then
+      if info and shouldSell(info.itemID, info.quality) then
         local price = select(11, GetItemInfo(info.itemID))
-        if price and price > 0 then
+        if price == nil then
+          -- Price not cached yet (cold login); ask for the data and retry later.
+          C_Item.RequestLoadItemDataByID(info.itemID)
+          deferred = true
+        elseif price > 0 then
           C_Container.PickupContainerItem(bag, slot)
           PickupMerchantItem()
           count = count + 1
@@ -74,6 +84,14 @@ local function sellItems()
   end
   if count > 0 and not ns.db.settings.silent then
     print("|cffffcc00Recycle:|r Sold " .. count .. " item(s) for " .. goldStr(total) .. ".")
+  end
+  -- Re-run once the deferred item data has had a chance to load, while the
+  -- merchant is still open and within a small retry budget.
+  if deferred and retriesLeft > 0 then
+    retriesLeft = retriesLeft - 1
+    ns:after(300, function()
+      if MerchantFrame and MerchantFrame:IsShown() then sellItems() end
+    end)
   end
 end
 
@@ -104,7 +122,7 @@ local function refreshDefaultBags()
     for _, btn in ipairs(combined.Items) do
       local slot, bag = btn:GetSlotAndBagID()
       local info = C_Container.GetContainerItemInfo(bag, slot)
-      setMark(btn, info and shouldSell(info.itemID))
+      setMark(btn, info and shouldSell(info.itemID, info.quality))
     end
   else
     local container = _G["ContainerFrameContainer"]
@@ -113,7 +131,7 @@ local function refreshDefaultBags()
         for _, btn in ipairs(bagFrame.Items) do
           local slot, bag = btn:GetSlotAndBagID()
           local info = C_Container.GetContainerItemInfo(bag, slot)
-          setMark(btn, info and shouldSell(info.itemID))
+          setMark(btn, info and shouldSell(info.itemID, info.quality))
         end
       end
     end
@@ -166,6 +184,7 @@ end
 -- ─── Events ──────────────────────────────────────────────────────────────────
 
 function ns.MERCHANT_SHOW()
+  retriesLeft = RETRY_BUDGET
   sellItems()
 end
 

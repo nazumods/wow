@@ -329,6 +329,7 @@ std = {
     "IsSpellKnown",
     "IsWindowsClient",
     "LibStub",
+    "MerchantFrame",
     "OpenAchievementFrameToAchievement",
     "OpenAllBags",
     "PickupAction",
