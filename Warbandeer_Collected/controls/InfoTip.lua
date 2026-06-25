@@ -118,12 +118,12 @@ local function render(group, set, parent, position)
   -- concept; PvP sets have sources but ZERO primary appearances, so they can't be the
   -- "has data" signal (that's GetAllSourceIDs below).
   local parts = getParts(set.id) or {}
-  local sources = GetAllSourceIDs(set.id) or {}
+  local allSources = GetAllSourceIDs(set.id) or {}
   local scanned = ns.db.sets[group.id] and ns.db.sets[group.id][set.id]
   -- "Upcoming / no data on this client" = the set has NO appearance sources at all
   -- (a PTR-only set on a live client). A set with sources but no primary appearances
   -- (a PvP set) is NOT upcoming — it renders via the GetAllSourceIDs slot fallback below.
-  local upcoming = not scanned and #sources == 0
+  local upcoming = not scanned and #allSources == 0
   if upcoming then bits[#bits + 1] = "|cff8cc8ffNot yet on live (PTR)|r" end
   _tooltip.status:Text(#bits > 0 and table.concat(bits, "   ") or "|cff808080Shift-click to mark wanted|r")
 
