@@ -15,6 +15,8 @@ local GetFriendshipReputationRanks = C_GossipInfo.GetFriendshipReputationRanks
 local IsFactionParagon = C_Reputation.IsFactionParagon
 local GetFactionParagonInfo = C_Reputation.GetFactionParagonInfo
 local BottomLeft = ui.edge.BottomLeft
+-- 12.1.0 renamed OpenAchievementFrameToAchievement -> ShowAchievementFrameForAchievement
+local OpenAchievement = ShowAchievementFrameForAchievement or OpenAchievementFrameToAchievement
 
 local TransparentBackdrop = {color = ns.Colors.TransparentBlack}
 local P, GAP, STRIP_H, HEAD_H = 12, 8, 64, 16
@@ -555,7 +557,7 @@ local Achievements = Class(TableFrame, function(self)
         text = name,
         color = completed and DIM_GREEN_FONT_COLOR or DIM_RED_FONT_COLOR,
         onClick = function()
-          OpenAchievementFrameToAchievement(achievementId)
+          OpenAchievement(achievementId)
         end,
         onEnter = function() row.backdrop:Color(theme.colors.hover) end,
         onLeave = function() row.backdrop:Color(0, 0, 0, 0) end,
