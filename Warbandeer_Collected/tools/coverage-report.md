@@ -2,15 +2,14 @@
 
 Generated from wago.tools TransmogSet (product wow, build 12.0.7.68275, 2026-06-23) by `tools/update-sets.ps1 -AuditCoverage`.
 
-We curate **38 distinct wago group ids** in `ns.Sets`. wago has **148 groups** with placeable rows; the **110** below are **not captured yet**. Categories are heuristic (from each group's difficulty/variant labels + name) — verify before adding. Inclusion is editorial: see `tools/UPDATING.md`.
+We curate **79 distinct wago group ids** in `ns.Sets`. wago has **148 groups** with placeable rows; the **69** below are **not captured yet**. Categories are heuristic (from each group's difficulty/variant labels + name) — verify before adding. Inclusion is editorial: see `tools/UPDATING.md`.
 
 ## By category
 
 | Category | Groups |
 | --- | ---: |
-| PvP | 41 |
+| PvP | 5 |
 | Dungeon / Mythic+ | 13 |
-| Delve | 5 |
 | Raid | 6 |
 | Profession / Crafted | 3 |
 | Trading Post / Anniversary | 2 |
@@ -23,66 +22,30 @@ We curate **38 distinct wago group ids** in `ns.Sets`. wago has **148 groups** w
 
 | Expansion | Groups |
 | --- | ---: |
-| Midnight | 13 |
-| The War Within | 19 |
-| Dragonflight | 13 |
-| Shadowlands | 11 |
-| Battle for Azeroth | 5 |
-| Legion | 15 |
-| Warlords of Draenor | 5 |
-| Mists of Pandaria | 7 |
-| Cataclysm | 4 |
-| Wrath of the Lich King | 8 |
-| The Burning Crusade | 6 |
+| Midnight | 11 |
+| The War Within | 12 |
+| Dragonflight | 10 |
+| Shadowlands | 7 |
+| Battle for Azeroth | 1 |
+| Legion | 12 |
+| Warlords of Draenor | 2 |
+| Mists of Pandaria | 3 |
+| Cataclysm | 1 |
+| Wrath of the Lich King | 4 |
+| The Burning Crusade | 2 |
 | Vanilla | 4 |
 
 ## Groups by category
 
-### PvP (41)
+### PvP (5)
 
 | id | name | expansion | sets | difficulty / variant labels |
 | ---: | --- | --- | ---: | --- |
-| 371 | Midnight Season 1 | Midnight | 30 | Aspirant, Elite, Gladiator |
 | 377 | Voidstorm Gear | Midnight | 4 | War Mode |
-| 271 | The War Within Season 1 | The War Within | 30 | Aspirant, Elite, Gladiator |
-| 283 | The War Within Season 2 | The War Within | 30 | Aspirant, Elite, Gladiator |
-| 284 | The War Within Season 3 | The War Within | 30 | Aspirant, Elite, Gladiator |
 | 215 | Cavern Delver's Gear | Dragonflight | 24 | Campaign, Dawn of the Infinite, Suffusion Camps and PvP, Time Rifts and Dawn of the Infinite, Treasures and Unique Creatures, World Quests and World Drops |
-| 207 | Dragonflight Season 1 | Dragonflight | 30 | Aspirant, Elite, Gladiator |
-| 212 | Dragonflight Season 2 | Dragonflight | 30 | Aspirant, Elite, Gladiator |
-| 226 | Dragonflight Season 3 and 4 | Dragonflight | 30 | Aspirant, Elite, Gladiator |
 | 199 | Primal Elements | Dragonflight | 20 | Crafted, Primal Storms, The Forbidden Reach, War Mode, World Drop |
-| 182 | Shadowlands Season 1 | Shadowlands | 12 | Aspirant, Elite, Gladiator |
-| 189 | Shadowlands Season 2 | Shadowlands | 12 | Aspirant, Elite, Gladiator |
-| 191 | Shadowlands Season 3 | Shadowlands | 28 | Aspirant, Elite, Gladiator |
-| 193 | Shadowlands Seasons 3 and 4 | Shadowlands | 28 | Aspirant, Elite, Gladiator |
-| 167 | Battle Season 1 and Arathi Warfront | Battle for Azeroth | 32 | Aspirant, Elite, Gladiator, Warfront |
-| 168 | Battle Season 2 and Darkshore Warfront | Battle for Azeroth | 40 | Aspirant, Elite, Gladiator, Heroic, Warfront |
-| 173 | Battle Season 3 | Battle for Azeroth | 24 | Aspirant, Elite, Gladiator |
-| 175 | Battle Season 4 | Battle for Azeroth | 12 | Elite, Gladiator |
-| 45 | Legion Season 1 and 2 | Legion | 74 | Combatant I, Elite, Gladiator, Timewalking Vendor - Green, Timewalking Vendor - Yellow |
-| 46 | Legion Season 3 and 4 | Legion | 72 | Combatant I, Elite, Gladiator |
-| 57 | Legion Season 5, 6, and 7 | Legion | 72 | Combatant I, Elite, Gladiator |
-| 11 | Warlords Season 1 | Warlords of Draenor | 66 | Combatant I, Elite, Gladiator |
-| 12 | Warlords Season 2 | Warlords of Draenor | 66 | Combatant I, Elite, Gladiator |
-| 13 | Warlords Season 3 | Warlords of Draenor | 67 | Combatant I, Elite, Gladiator |
-| 9 | Season 12 | Mists of Pandaria | 33 | Elite, Gladiator, Honor |
-| 16 | Season 13 | Mists of Pandaria | 44 | Elite, Gladiator |
-| 15 | Season 14 | Mists of Pandaria | 44 | Elite, Gladiator |
-| 14 | Season 15 | Mists of Pandaria | 44 | Elite, Gladiator |
 | 295 | Cataclysm: PVP | Cataclysm | 6 | Timewalking Vendor - Black, Timewalking Vendor - Dark, Timewalking Vendor - Green, Timewalking Vendor - Red |
-| 18 | Season 10 | Cataclysm | 20 | Elite, Gladiator |
-| 17 | Season 11 | Cataclysm | 20 | Elite, Gladiator |
-| 19 | Season 9 | Cataclysm | 30 | Elite, Gladiator, Honor |
-| 23 | Season 5 | Wrath of the Lich King | 30 | Gladiator, Honor, PVP Rare |
-| 22 | Season 6 | Wrath of the Lich King | 10 | Gladiator |
-| 21 | Season 7 | Wrath of the Lich King | 10 | Gladiator |
-| 20 | Season 8 | Wrath of the Lich King | 10 | Gladiator |
 | 287 | Wrath of the Lich King: PVP | Wrath of the Lich King | 5 | Timewalking Vendor - Green, Timewalking Vendor - Purple |
-| 27 | Season 1 | The Burning Crusade | 10 | Gladiator, PVP Rare |
-| 26 | Season 2 | The Burning Crusade | 9 | Gladiator |
-| 25 | Season 3 | The Burning Crusade | 9 | Gladiator |
-| 24 | Season 4 | The Burning Crusade | 10 | Gladiator |
 
 ### Dungeon / Mythic+ (13)
 
@@ -101,16 +64,6 @@ We curate **38 distinct wago group ids** in `ns.Sets`. wago has **148 groups** w
 | 202 | Tuskarr Battlegear | Dragonflight | 4 | Dungeons, Renown, World and Weekly Quests, World Drops |
 | 58 | Pandaria Challenge Dungeons | Mists of Pandaria | 11 | _(none)_ |
 | 285 | The Burning Crusade: Dungeon | The Burning Crusade | 19 | Dungeons - Blue, Dungeons - Brown, Dungeons - Green, Dungeons - Purple, Dungeons - Silver, Dungeons - White, Purple, Reputation Vendors - Red, Silver, Timewalking Vendor - Blue, Timewalking Vendor - Brown, Timewalking Vendor - Purple |
-
-### Delve (5)
-
-| id | name | expansion | sets | difficulty / variant labels |
-| ---: | --- | --- | ---: | --- |
-| 373 | Harandar Gear | Midnight | 4 | Delves |
-| 267 | Hallowfall Gear | The War Within | 16 | Delves, Flame's Radiance, Nightfall, World Drops |
-| 336 | K'areshi Gear | The War Within | 8 | Delves, Quest Rewards |
-| 264 | Underground Gear | The War Within | 4 | Leveling Quests and Delves |
-| 303 | Undermine Gear | The War Within | 12 | Delves, Quest Rewards, World Quests and World Drops |
 
 ### Raid (6)
 
