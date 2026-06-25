@@ -125,13 +125,16 @@ pwsh ./update-sets.ps1 -PtrDelta -Check          # report staleness, write nothi
 pwsh ./update-sets.ps1 -PtrDelta -PtrBuild 12.1.0.68301 -LiveBuild 12.0.7.68275   # pin both
 ```
 
-It downloads both products' `TransmogSet` tables, keeps the set ids present on the
-PTR but absent from live, buckets them **by `TransmogSetGroup` name** (the armor-type
-variants of one new raid sit under several consecutive group ids that share a name on
-a fresh PTR build, before difficulty labels are populated), decomposes `ClassMask`
-into class slots (first/lowest set id wins), and writes the file from scratch —
-`release` tagged to the newest expansion, `instance`/`difficulty` omitted (no
-lockouts for unreleased content). Both build numbers are stamped at the top.
+It downloads the live + PTR `TransmogSet` tables (plus `TransmogSetGroup` for names and
+`ItemNameDescription` for difficulty/variant labels), keeps the set ids present on the
+PTR but absent from live, and buckets them **by (group name, label)**: a group with more
+than one label splits into a row per label with a `Name (Label)` suffix — a raid becomes
+Raid Finder/Normal/Heroic/Mythic rows (ordered that way), PvP becomes Gladiator/Elite/…
+rows — while a single-variant set (delve, world-quest, renown) stays one bare-named row
+and its armor-type group-id variants merge into it. It decomposes `ClassMask` into class
+slots (first/lowest set id wins) and writes the file from scratch — `release` tagged to
+the newest expansion, `instance`/`difficulty` omitted (no lockouts for unreleased
+content). Both build numbers are stamped at the top.
 
 The same integrity guards (required columns, `-MinRows` floor) apply; the same
 `ClassMask → classId` table above is used.

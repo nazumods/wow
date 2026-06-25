@@ -855,16 +855,21 @@ function DressingRoom:Step(dir)
   end
 end
 
--- Switch to the same class set in a sibling difficulty tier of the current raid,
--- keeping the class column. Sibling tiers are the ns.Sets groups that share this
--- group's base id (e.g. Hellfire Citadel Normal/Heroic/Mythic all id 28); they sit
--- in difficulty order in the data. Wraps; no-op for a single-tier raid. Falls back
--- to the tier's first real set if it lacks the current class column.
+-- Switch to the same class set in a sibling difficulty tier (or PvP variant) of the
+-- current group, keeping the class column. Siblings are the groups that share this
+-- group's base id (e.g. Hellfire Citadel Normal/Heroic/Mythic all id 28; or the PTR
+-- raid's Raid Finder/Normal/Heroic/Mythic rows, all the same group id); they sit in
+-- difficulty order in the data. Wraps; no-op for a single-tier group. Falls back to the
+-- tier's first real set if it lacks the current class column.
 ---@param dir number  +1 = next tier, -1 = previous tier
 function DressingRoom:StepTier(dir)
   if not self._group then return end
+  -- Siblings live in the same table as the previewed group — ns.PtrSets for an upcoming
+  -- set (whose difficulty/variant rows share the base group id), else live ns.Sets.
+  local source = ns.Sets
+  for _, g in ipairs(ns.PtrSets) do if g == self._group then source = ns.PtrSets; break end end
   local sibs, cur = {}, nil
-  for _, g in ipairs(ns.Sets) do
+  for _, g in ipairs(source) do
     if g.id == self._group.id then
       sibs[#sibs + 1] = g
       if g == self._group then cur = #sibs end

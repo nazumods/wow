@@ -83,16 +83,16 @@ end, {
   ),
   GetData = function(self)
     local toon = api:GetCharacterData(api:GetCurrentCharacter())
-    -- PTR mode renders the upcoming-only delta (ns.PtrSets); live mode renders ns.Sets.
+    -- PTR PREVIEW shows ONLY the upcoming-only delta (ns.PtrSets); off, the live ns.Sets.
     local source = self._ptr and ns.PtrSets or ns.Sets
-    -- Display order: source oldest-first by default; _reverse → newest-first.
-    -- `srcIdx` is the real source index (the lockout panel keys off it); `dispIdx`
-    -- is the on-screen row position (row/cell highlight + arrow key off that). They
-    -- differ once reversed, so keep them separate.
+    -- Display order: source oldest-first by default; _reverse → newest-first. `srcIdx`
+    -- indexes `source` (a live group's index is also its ns.Sets index, which the lockout
+    -- panel keys off); `dispIdx` is the on-screen row position (row/cell highlight + arrow).
     local order = {}
     for i = 1, #source do order[i] = self._reverse and (#source - i + 1) or i end
     return lists.map(order, function(srcIdx, dispIdx)
       local grp = source[srcIdx]
+      local isPtr = self._ptr
       local lock = toon.instances.locks and toon.instances.locks[grp.instance] and toon.instances.locks[grp.instance][grp.difficulty]
       local gsets = ns.db.sets[grp.id]
       -- Always emit a positional cell per class (blank {} where there's no set, e.g.
@@ -101,10 +101,10 @@ end, {
       local r = lists.map(grp.sets, function(set)
         -- Blank class slot (no set for this class in the group).
         if not set.id then return {} end
-        -- Live: only show sets the scan knows about. PTR: every entry is "upcoming"
-        -- (the live client has no collection data for it), so skip the scan gate.
+        -- Live row: only show sets the scan knows about. PTR (upcoming) row: every
+        -- entry is "upcoming" (no collection data on this client), so skip the gate.
         local status = gsets and gsets[set.id]
-        if not self._ptr and not status then return {} end
+        if not isPtr and not status then return {} end
         -- "Wanted only" blanks the cell (no content/click/marks) for sets that
         -- aren't flagged, so the grid shows just the target list in context.
         if self._wantedOnly and not ns:IsWanted(set.id) then return {} end
@@ -137,7 +137,7 @@ end, {
           end
         end
         -- Upcoming (PTR): a muted dot, no count/completion shade.
-        if self._ptr then
+        if isPtr then
           return {
             setId = set.id,
             text = UPCOMING_GLYPH,
@@ -174,9 +174,9 @@ end, {
       })
       tinsert(r, 2, {
         text = grp.name,
-        -- Upcoming content has no instance lockouts (and srcIdx indexes PtrSets, not
-        -- ns.Sets), so the name click is inert in PTR mode.
-        onClick = self._ptr and function() end or function()
+        -- Upcoming content has no instance lockouts (and in PTR mode srcIdx indexes
+        -- ns.PtrSets, not ns.Sets), so the name click is inert in PTR mode.
+        onClick = isPtr and function() end or function()
           ns.ShowLockoutView(srcIdx, ns.window, {
             TopRight = {ns.window, ui.edge.TopLeft, -25, 0},
             BottomRight = {ns.window, ui.edge.BottomLeft, -25, 0},
@@ -305,9 +305,22 @@ function DataView:_refreshMarks()
   end
 end
 
--- Refresh overlays after the base table (re)builds its cells.
+-- Refresh overlays after the base table (re)builds its cells. The row count varies
+-- (PTR PREVIEW swaps the ~live-raid list for the small upcoming list), so follow the
+-- variable-height pattern: grow the row pool for any new rows, pad the data out to the
+-- pool with blank-string cells so update() overwrites cells left from a larger previous
+-- render (PTR's few rows leave the live rows behind), then ResizeRows to hide the dead
+-- space below the active rows.
 function DataView:update()
+  local real = #self.data
+  for _ = #self.rows + 1, real do self:addRow{} end
+  if real < #self.rows then
+    local blank = {}
+    for c = 1, #self.cols do blank[c] = "" end
+    for i = real + 1, #self.rows do self.data[i] = blank end
+  end
   TableFrame.update(self)
+  self:ResizeRows(real)
   self:_refreshMarks()
 end
 

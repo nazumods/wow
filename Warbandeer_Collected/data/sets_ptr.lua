@@ -56,7 +56,7 @@ tinsert(ns.PtrSets, {
 
 tinsert(ns.PtrSets, {
   id = 401,
-  name = "Midnight Season 2",
+  name = "Midnight Season 2 (War Mode)",
   release = 12,
   sets = {
     { id = 5724, name = "Venomous Warmonger's Plate Armor", classId = 1 },
@@ -72,6 +72,69 @@ tinsert(ns.PtrSets, {
     { id = 5722, name = "Venomous Warmonger's Leather Armor", classId = 11 },
     { id = 5722, name = "Venomous Warmonger's Leather Armor", classId = 12 },
     { id = 5723, name = "Venomous Warmonger's Chain Armor", classId = 13 },
+  },
+})
+
+tinsert(ns.PtrSets, {
+  id = 401,
+  name = "Midnight Season 2 (Gladiator)",
+  release = 12,
+  sets = {
+    { id = 5727, name = "Venomous Gladiator's Plate Armor", classId = 1 },
+    { id = 5762, name = "Venomous Gladiator's Plate Armor", classId = 2 },
+    { id = 5783, name = "Venomous Gladiator's Chain Armor", classId = 3 },
+    { id = 5748, name = "Venomous Gladiator's Leather Armor", classId = 4 },
+    { id = 5755, name = "Venomous Gladiator's Silk Armor", classId = 5 },
+    { id = 5813, name = "Venomous Gladiator's Plate Armor", classId = 6 },
+    { id = 5741, name = "Venomous Gladiator's Chain Armor", classId = 7 },
+    { id = 5776, name = "Venomous Gladiator's Silk Armor", classId = 8 },
+    { id = 5734, name = "Venomous Gladiator's Silk Armor", classId = 9 },
+    { id = 5769, name = "Venomous Gladiator's Leather Armor", classId = 10 },
+    { id = 5799, name = "Venomous Gladiator's Leather Armor", classId = 11 },
+    { id = 5806, name = "Venomous Gladiator's Leather Armor", classId = 12 },
+    { id = 5790, name = "Venomous Gladiator's Chain Armor", classId = 13 },
+  },
+})
+
+tinsert(ns.PtrSets, {
+  id = 401,
+  name = "Midnight Season 2 (Elite)",
+  release = 12,
+  sets = {
+    { id = 5733, name = "Venomous Gladiator's Plate Armor", classId = 1 },
+    { id = 5768, name = "Venomous Gladiator's Plate Armor", classId = 2 },
+    { id = 5789, name = "Venomous Gladiator's Chain Armor", classId = 3 },
+    { id = 5754, name = "Venomous Gladiator's Leather Armor", classId = 4 },
+    { id = 5761, name = "Venomous Gladiator's Silk Armor", classId = 5 },
+    { id = 5819, name = "Venomous Gladiator's Plate Armor", classId = 6 },
+    { id = 5747, name = "Venomous Gladiator's Chain Armor", classId = 7 },
+    { id = 5782, name = "Venomous Gladiator's Silk Armor", classId = 8 },
+    { id = 5740, name = "Venomous Gladiator's Silk Armor", classId = 9 },
+    { id = 5775, name = "Venomous Gladiator's Leather Armor", classId = 10 },
+    { id = 5805, name = "Venomous Gladiator's Leather Armor", classId = 11 },
+    { id = 5812, name = "Venomous Gladiator's Leather Armor", classId = 12 },
+    { id = 5796, name = "Venomous Gladiator's Chain Armor", classId = 13 },
+  },
+})
+
+tinsert(ns.PtrSets, {
+  id = 401,
+  name = "Midnight Season 2 (Aspirant and War Mode)",
+  release = 12,
+  sets = {
+    { id = 5826, name = "Venomous Aspirant's Plate Armor", classId = 1 },
+    { id = 5826, name = "Venomous Aspirant's Plate Armor", classId = 2 },
+    { id = 5825, name = "Venomous Aspirant's Chain Armor", classId = 3 },
+    { id = 5824, name = "Venomous Skirmisher's Leather Armor", classId = 4 },
+    { id = 5823, name = "Venomous Skirmisher's Silk Armor", classId = 5 },
+    { id = 5826, name = "Venomous Aspirant's Plate Armor", classId = 6 },
+    { id = 5825, name = "Venomous Aspirant's Chain Armor", classId = 7 },
+    { id = 5823, name = "Venomous Skirmisher's Silk Armor", classId = 8 },
+    { id = 5823, name = "Venomous Skirmisher's Silk Armor", classId = 9 },
+    { id = 5824, name = "Venomous Skirmisher's Leather Armor", classId = 10 },
+    { id = 5824, name = "Venomous Skirmisher's Leather Armor", classId = 11 },
+    { id = 5824, name = "Venomous Skirmisher's Leather Armor", classId = 12 },
+    { id = 5825, name = "Venomous Aspirant's Chain Armor", classId = 13 },
   },
 })
 
@@ -98,7 +161,7 @@ tinsert(ns.PtrSets, {
 
 tinsert(ns.PtrSets, {
   id = 404,
-  name = "The Venomous Abyss",
+  name = "The Venomous Abyss (Raid Finder)",
   release = 12,
   sets = {
     { id = 5885, name = "Jade Warlord's Dominion", classId = 1 },
@@ -114,6 +177,69 @@ tinsert(ns.PtrSets, {
     { id = 5845, name = "Bark of the Enigmatic Dreamwatcher", classId = 11 },
     { id = 5841, name = "Abyssal Doomhound's Pursuit", classId = 12 },
     { id = 5849, name = "Echo of Calamity", classId = 13 },
+  },
+})
+
+tinsert(ns.PtrSets, {
+  id = 404,
+  name = "The Venomous Abyss (Normal)",
+  release = 12,
+  sets = {
+    { id = 5886, name = "Jade Warlord's Dominion", classId = 1 },
+    { id = 5866, name = "Radiance of the Consecrated Flame", classId = 2 },
+    { id = 5854, name = "Skulking Viper's Ambush", classId = 3 },
+    { id = 5874, name = "Chosen Bloodslayer's Hexweave", classId = 4 },
+    { id = 5870, name = "Cosmic Penitent's Raiment", classId = 5 },
+    { id = 5838, name = "Baleful Grave-Knight's Crucible", classId = 6 },
+    { id = 5878, name = "Ophidian Oracle's Prophecy", classId = 7 },
+    { id = 5858, name = "Primal Leywarden's Attire", classId = 8 },
+    { id = 5882, name = "Damned Necrolyte's Shattered Restraints", classId = 9 },
+    { id = 5862, name = "Guile of the Monkey King", classId = 10 },
+    { id = 5846, name = "Bark of the Enigmatic Dreamwatcher", classId = 11 },
+    { id = 5842, name = "Abyssal Doomhound's Pursuit", classId = 12 },
+    { id = 5850, name = "Echo of Calamity", classId = 13 },
+  },
+})
+
+tinsert(ns.PtrSets, {
+  id = 404,
+  name = "The Venomous Abyss (Heroic)",
+  release = 12,
+  sets = {
+    { id = 5887, name = "Jade Warlord's Dominion", classId = 1 },
+    { id = 5867, name = "Radiance of the Consecrated Flame", classId = 2 },
+    { id = 5855, name = "Skulking Viper's Ambush", classId = 3 },
+    { id = 5875, name = "Chosen Bloodslayer's Hexweave", classId = 4 },
+    { id = 5871, name = "Cosmic Penitent's Raiment", classId = 5 },
+    { id = 5839, name = "Baleful Grave-Knight's Crucible", classId = 6 },
+    { id = 5879, name = "Ophidian Oracle's Prophecy", classId = 7 },
+    { id = 5859, name = "Primal Leywarden's Attire", classId = 8 },
+    { id = 5883, name = "Damned Necrolyte's Shattered Restraints", classId = 9 },
+    { id = 5863, name = "Guile of the Monkey King", classId = 10 },
+    { id = 5847, name = "Bark of the Enigmatic Dreamwatcher", classId = 11 },
+    { id = 5843, name = "Abyssal Doomhound's Pursuit", classId = 12 },
+    { id = 5851, name = "Echo of Calamity", classId = 13 },
+  },
+})
+
+tinsert(ns.PtrSets, {
+  id = 404,
+  name = "The Venomous Abyss (Mythic)",
+  release = 12,
+  sets = {
+    { id = 5888, name = "Jade Warlord's Dominion", classId = 1 },
+    { id = 5868, name = "Radiance of the Consecrated Flame", classId = 2 },
+    { id = 5856, name = "Skulking Viper's Ambush", classId = 3 },
+    { id = 5876, name = "Chosen Bloodslayer's Hexweave", classId = 4 },
+    { id = 5872, name = "Cosmic Penitent's Raiment", classId = 5 },
+    { id = 5840, name = "Baleful Grave-Knight's Crucible", classId = 6 },
+    { id = 5880, name = "Ophidian Oracle's Prophecy", classId = 7 },
+    { id = 5860, name = "Primal Leywarden's Attire", classId = 8 },
+    { id = 5884, name = "Damned Necrolyte's Shattered Restraints", classId = 9 },
+    { id = 5864, name = "Guile of the Monkey King", classId = 10 },
+    { id = 5848, name = "Bark of the Enigmatic Dreamwatcher", classId = 11 },
+    { id = 5844, name = "Abyssal Doomhound's Pursuit", classId = 12 },
+    { id = 5852, name = "Echo of Calamity", classId = 13 },
   },
 })
 

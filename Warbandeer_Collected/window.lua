@@ -15,7 +15,8 @@ local SORT_ACTIVE = {0.85, 0.65, 0.13, 1}
 ---@class CollectedWindow: TitleFrame
 ---@field data DataView the sets-by-class grid
 ---@field scroll ScrollFrame scroll container for the grid's row area
----@field counter Label "collected / total" sets counter
+---@field counter Label "collected / total" sets counter (shrunk in PTR mode)
+---@field _counterSize number? captured full counter font size, restored when leaving PTR mode
 ---@field wantedCount Label running "★ N" wanted-set count
 ---@field _sortBorder Texture raid-order toggle border (gold once newest-first)
 ---@field _sortLabel Label raid-order toggle caption (OLDEST/NEWEST FIRST)
@@ -130,20 +131,27 @@ function MainWindow:RefreshWanted()
   self.wantedCount:Text(("|A:%s:14:14|a %d"):format(ns.WantedIcon, ns:WantedCount()))
 end
 
----Refresh the left-hand counter for the active dataset: collected/total in live mode,
----a count of upcoming sets (with the PTR build) in PTR mode.
+---Refresh the left-hand counter: collected/total in live mode; in PTR PREVIEW mode the
+---grid is only the upcoming sets, so the counter becomes a "+N sets upcoming" tally.
 function MainWindow:RefreshCounter()
   if self.data._ptr then
-    local n = 0
+    local seen, n = {}, 0
     for _, grp in ipairs(ns.PtrSets) do
-      for _, set in ipairs(grp.sets) do if set.id then n = n + 1 end end
+      for _, set in ipairs(grp.sets) do
+        if set.id and not seen[set.id] then seen[set.id] = true; n = n + 1 end
+      end
     end
-    self._counterLabel:Text("Upcoming:")
-    self.counter:Text(ns.PtrBuild and ("%d  ·  PTR %s"):format(n, ns.PtrBuild.ptr) or tostring(n))
+    self._counterLabel:Text("")
+    self.counter:Text(("+%d sets upcoming%s"):format(n, ns.PtrBuild and (" · PTR " .. ns.PtrBuild.ptr) or ""))
   else
     self._counterLabel:Text("Sets:")
     self.counter:Text(ns.db.collected .. " / " .. ns.db.total)
   end
+  -- The PTR line (with the build) is longer than the live count, so shrink the counter
+  -- font in PTR mode to keep it inside the name column, clear of the class icons.
+  self._counterSize = self._counterSize or (self.counter:Font())[2]
+  local f = self.counter:Font()
+  self.counter:Font({f[1], self.data._ptr and 12 or self._counterSize, f[3]})
 end
 
 -- Live-refresh this window's grid + wanted counter when a rating changes anywhere

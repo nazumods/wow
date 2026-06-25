@@ -126,7 +126,11 @@ end
 function DressingRoom:UpdateSlots()
   local set = self._set
   if not set then return end
-  local parts = getParts(set.id)
+  -- GetSetPrimaryAppearances returns nil for a set with none (e.g. a PvP set — primary
+  -- appearances are a raid-tier concept), so coalesce: ipairs(nil) would error here and
+  -- abort _load before Dress(), leaving the model un-skinned. Empty primary → every slot
+  -- falls through to the GetAllSourceIDs bucket below, which has the pieces.
+  local parts = getParts(set.id) or {}
   local primary = {}
   for _, p in ipairs(parts) do primary[p.appearanceID] = true end
 

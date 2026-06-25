@@ -117,9 +117,10 @@ if ($PtrDelta) {
   $liveRows = PtrCsv 'TransmogSet' $LiveBuild
   $ptrRows  = PtrCsv 'TransmogSet' $PtrBuild
   $grpRows  = PtrCsv 'TransmogSetGroup' $PtrBuild
+  $indRows  = PtrCsv 'ItemNameDescription' $PtrBuild   # difficulty/variant labels per set
   # Same integrity guards as the live path: expected schema + a row floor catch a
   # truncated/error response (HTML parsed as CSV, half-finished download).
-  foreach ($col in @('ID', 'Name_lang', 'ClassMask', 'TransmogSetGroupID')) {
+  foreach ($col in @('ID', 'Name_lang', 'ClassMask', 'TransmogSetGroupID', 'ItemNameDescriptionID')) {
     if ($col -notin $ptrRows[0].PSObject.Properties.Name) { throw "PTR TransmogSet CSV missing '$col' column — aborting." }
   }
   if ($liveRows.Count -lt $MinRows -or $ptrRows.Count -lt $MinRows) {
@@ -128,31 +129,63 @@ if ($PtrDelta) {
 
   $liveIds = @{}; foreach ($r in $liveRows) { $liveIds[$r.ID] = $true }
   $grpName = @{}; foreach ($g in $grpRows) { $grpName[[int]$g.ID] = PtrTrim $g.Name_lang }
+  $indLabel = @{}; foreach ($d in $indRows) { $id = 0; [void][int]::TryParse($d.ID, [ref]$id); if ($id -gt 0) { $indLabel[$id] = PtrTrim $d.Description_lang } }
+  # Resolve a set's group name + its difficulty/variant label (e.g. "Mythic", "Elite").
+  function PtrNameOf($row) {
+    $gid = [int]$row.TransmogSetGroupID
+    if ($grpName.ContainsKey($gid) -and $grpName[$gid]) { return $grpName[$gid] }
+    return (PtrTrim $row.Name_lang)
+  }
+  function PtrLabelOf($row) {
+    $ind = 0; [void][int]::TryParse($row.ItemNameDescriptionID, [ref]$ind)
+    if ($indLabel.ContainsKey($ind)) { return $indLabel[$ind] }
+    return ''
+  }
 
   # PTR-only, placeable rows (a real group + at least one class bit).
   $delta = $ptrRows | Where-Object {
     -not $liveIds.ContainsKey($_.ID) -and [int]$_.TransmogSetGroupID -gt 0 -and [int]$_.ClassMask -gt 0
   }
 
-  # Bucket by group NAME: the armor-type variants of one new raid live under several
-  # consecutive group ids that share a TransmogSetGroup name on a fresh PTR build
-  # (difficulty labels aren't populated yet), so name-bucketing merges them into one
-  # full-class row. id = the lowest group id in the bucket; first/lowest set id wins
-  # per class slot.
-  $byName = [ordered]@{}
-  foreach ($r in ($delta | Sort-Object { [int]$_.ID })) {
-    $gid   = [int]$r.TransmogSetGroupID
-    $sName = PtrTrim $r.Name_lang
-    $name  = if ($grpName.ContainsKey($gid) -and $grpName[$gid]) { $grpName[$gid] } else { $sName }
+  # First pass: which group names carry more than one difficulty/variant label, so a
+  # raid (Raid Finder/Normal/Heroic/Mythic) or PvP set (Gladiator/Elite/...) splits into
+  # one row per label, while a single-variant set (a delve/world-quest/renown set) stays
+  # a single bare-named row. Armor-type variants of one set share a label, so they merge.
+  $nameLabels = @{}
+  foreach ($r in $delta) {
+    $name = PtrNameOf $r
     if (-not $name) { continue }
-    if (-not $byName.Contains($name)) { $byName[$name] = @{ minGid = $gid; slots = @{} } }
-    if ($gid -lt $byName[$name].minGid) { $byName[$name].minGid = $gid }
+    if (-not $nameLabels.ContainsKey($name)) { $nameLabels[$name] = New-Object 'System.Collections.Generic.HashSet[string]' }
+    [void]$nameLabels[$name].Add((PtrLabelOf $r))
+  }
+
+  # Bucket by (group name, label). The display name gets a " (Label)" suffix only when
+  # the group has multiple labels. id = the lowest group id in the bucket (difficulty
+  # rows of one raid share it, matching the live data); first/lowest set id wins per
+  # class slot. minId + difficulty rank order the rows (Raid Finder→Mythic, then others).
+  $diffRank = @{ 'Raid Finder' = 1; 'Normal' = 2; 'Heroic' = 3; 'Mythic' = 4 }
+  $buckets = [ordered]@{}
+  foreach ($r in ($delta | Sort-Object { [int]$_.ID })) {
+    $name = PtrNameOf $r
+    if (-not $name) { continue }
+    $sName = PtrTrim $r.Name_lang
+    $label = PtrLabelOf $r
+    $gid   = [int]$r.TransmogSetGroupID
+    $sid   = [int]$r.ID
+    $display = if ($nameLabels[$name].Count -gt 1 -and $label) { "$name ($label)" } else { $name }
+    if (-not $buckets.Contains($display)) {
+      $rank = if ($diffRank.ContainsKey($label)) { $diffRank[$label] } else { 99 }
+      $buckets[$display] = @{ minGid = $gid; minId = $sid; rank = $rank; slots = @{} }
+    }
+    $bk = $buckets[$display]
+    if ($gid -lt $bk.minGid) { $bk.minGid = $gid }
+    if ($sid -lt $bk.minId) { $bk.minId = $sid }
     $mask = [int]$r.ClassMask
     for ($b = 0; $b -lt 13; $b++) {
       if (($mask -band (1 -shl $b)) -eq 0) { continue }
       $c = $b + 1
-      if ($byName[$name].slots.ContainsKey($c)) { continue }
-      $byName[$name].slots[$c] = @{ id = [int]$r.ID; name = $sName }
+      if ($bk.slots.ContainsKey($c)) { continue }
+      $bk.slots[$c] = @{ id = $sid; name = $sName }
     }
   }
 
@@ -181,8 +214,8 @@ if ($PtrDelta) {
   $L.Add("ns.PtrBuild = { live = ""$LiveBuild"", ptr = ""$PtrBuild"" }")
   $L.Add('')
 
-  foreach ($k in ($byName.Keys | Sort-Object { $byName[$_].minGid })) {
-    $bucket = $byName[$k]
+  foreach ($k in ($buckets.Keys | Sort-Object { $buckets[$_].minGid }, { $buckets[$_].rank }, { $buckets[$_].minId })) {
+    $bucket = $buckets[$k]
     $L.Add('tinsert(ns.PtrSets, {')
     $L.Add("  id = $($bucket.minGid),")
     $L.Add("  name = ""$(PtrEsc $k)"",")
@@ -205,7 +238,7 @@ if ($PtrDelta) {
 
   $newText = ($L -join "`n").TrimEnd() + "`n"
   [System.IO.File]::WriteAllText($PtrFile, $newText, [System.Text.UTF8Encoding]::new($false))
-  Write-Host "Wrote $PtrFile ($($byName.Count) upcoming group(s))." -ForegroundColor Green
+  Write-Host "Wrote $PtrFile ($($buckets.Count) upcoming row(s))." -ForegroundColor Green
   exit 0
 }
 
