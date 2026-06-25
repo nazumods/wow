@@ -133,11 +133,40 @@ into class slots (first/lowest set id wins), and writes the file from scratch �
 `release` tagged to the newest expansion, `instance`/`difficulty` omitted (no
 lockouts for unreleased content). Both build numbers are stamped at the top.
 
-> **Volatile — run on demand, not on a schedule.** PTR builds churn (sets added and
-> removed between bumps), so this mode is deliberately **not** part of the weekly
-> `update-collected-sets.yml` job. Regenerate it when you want the preview to reflect
-> a newer PTR build, review the diff, and commit. The same integrity guards (required
-> columns, `-MinRows` floor) apply; the same `ClassMask → classId` table above is used.
+The same integrity guards (required columns, `-MinRows` floor) apply; the same
+`ClassMask → classId` table above is used.
+
+### New-patch detection (the part that's automated)
+
+PTR builds churn — sets are added and removed between builds *within* a patch — so
+unlike the live refresh, regenerating on every build would be noise. What matters is
+a **new PTR patch** opening (e.g. `12.1.0` → `12.1.5`, or `12.2.0`): a fresh content
+cycle whose *whole* upcoming list should be replaced. "Patch" = the first three
+version components; the trailing build number is ignored.
+
+`-Check` is a **patch-aware** probe (and cheap — it only reads wago's build list, no
+CSV download). It compares the latest PTR patch against the `ptr` build stamped in
+`ns.PtrBuild` and exits:
+
+| Exit | Meaning |
+|---|---|
+| `0` | Same patch — nothing to do (a within-patch build bump alone is ignored) |
+| `2` | A **new PTR patch** (or `sets_ptr.lua` missing/unstamped) — regenerate |
+| other | A real error (wago unreachable, etc.) — the script threw |
+
+```
+pwsh ./update-sets.ps1 -PtrDelta -Check     # is a new PTR patch out? (exit 2 = yes)
+```
+
+[`.github/workflows/update-collected-ptr.yml`](../../.github/workflows/update-collected-ptr.yml)
+runs this **daily** (and on demand). On exit `2` it regenerates `sets_ptr.lua`, lints
+it, and opens a PR (`bot/collected-ptr-refresh`) replacing the old list — so a new
+patch's preview lands automatically; you just review the (volatile) diff and merge.
+Two consecutive failures raise a tracking issue (auto-closed on recovery), mirroring
+the live job.
+
+> To refresh the list **within** the current patch (pick up sets added since the last
+> generate without waiting for a patch bump), just run `-PtrDelta` by hand and commit.
 
 ## Adding a new raid tier
 

@@ -74,6 +74,11 @@ if ($PtrDelta) {
   }
   function PtrTrim($s) { if ($null -eq $s) { '' } else { ([string]$s).Trim() } }
   function PtrEsc([string]$s) { $s.Replace('\', '\\').Replace('"', '\"') }
+  # The patch a build belongs to = its first three version components (12.1.0.68301
+  # -> 12.1.0). A new PTR PATCH (12.1.0 -> 12.1.5) means a fresh content cycle whose
+  # whole upcoming list should be replaced; within-patch build bumps (…68301 -> …69xxx)
+  # are routine churn the daily watcher deliberately ignores.
+  function PtrPatch([string]$v) { ($v -split '\.')[0..2] -join '.' }
 
   # Resolve both builds (explicit overrides, else the latest of each product). The
   # bare /csv endpoint serves the newest build across ALL products, so always pin one.
@@ -84,6 +89,30 @@ if ($PtrDelta) {
   $ptrMatch = $builds.wowt | Where-Object { $_.version -eq $PtrBuild } | Select-Object -First 1
   $ptrDate  = if ($ptrMatch) { ($ptrMatch.created_at -split ' ')[0] } else { '' }
   Write-Host "PTR delta: live $LiveBuild  vs  PTR $PtrBuild $ptrDate" -ForegroundColor Cyan
+
+  # -Check is a cheap, PATCH-aware staleness probe (no CSV download): it reports only
+  # whether a new PTR PATCH has opened since the committed list was generated — the
+  # signal the daily watcher acts on. Exit codes: 0 = same patch (up to date),
+  # 2 = new patch / file missing (regenerate), anything else = a real error (throw).
+  if ($Check) {
+    $stamped = $null
+    if (Test-Path -LiteralPath $PtrFile) {
+      $cur = [System.IO.File]::ReadAllText($PtrFile)
+      if ($cur -match 'ns\.PtrBuild\s*=\s*\{[^}]*ptr\s*=\s*"([^"]+)"') { $stamped = $Matches[1] }
+    }
+    if (-not $stamped) {
+      Write-Host "sets_ptr.lua missing or unstamped — regenerate (latest PTR $PtrBuild)." -ForegroundColor Yellow
+      exit 2
+    }
+    $have = PtrPatch $stamped
+    $want = PtrPatch $PtrBuild
+    if ($have -ne $want) {
+      Write-Host "NEW PTR PATCH: $have -> $want (stamped $stamped, latest $PtrBuild) — replace the upcoming list." -ForegroundColor Yellow
+      exit 2
+    }
+    Write-Host "PTR up to date: still patch $have (stamped $stamped, latest $PtrBuild)." -ForegroundColor Green
+    exit 0
+  }
 
   $liveRows = PtrCsv 'TransmogSet' $LiveBuild
   $ptrRows  = PtrCsv 'TransmogSet' $PtrBuild
@@ -175,11 +204,6 @@ if ($PtrDelta) {
   }
 
   $newText = ($L -join "`n").TrimEnd() + "`n"
-  if ($Check) {
-    $cur = if (Test-Path -LiteralPath $PtrFile) { [System.IO.File]::ReadAllText($PtrFile) } else { '' }
-    if ($newText -ne $cur) { Write-Host "sets_ptr.lua is OUT OF DATE." -ForegroundColor Yellow; exit 1 }
-    Write-Host 'sets_ptr.lua is up to date.' -ForegroundColor Green; exit 0
-  }
   [System.IO.File]::WriteAllText($PtrFile, $newText, [System.Text.UTF8Encoding]::new($false))
   Write-Host "Wrote $PtrFile ($($byName.Count) upcoming group(s))." -ForegroundColor Green
   exit 0
