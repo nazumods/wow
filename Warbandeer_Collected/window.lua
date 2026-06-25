@@ -139,7 +139,7 @@ function MainWindow:RefreshCounter()
       for _, set in ipairs(grp.sets) do if set.id then n = n + 1 end end
     end
     self._counterLabel:Text("")
-    self.counter:Text(("+%d sets upcoming"):format(n))
+    self.counter:Text(("+%d sets upcoming%s"):format(n, ns.PtrBuild and ("   ·   PTR " .. ns.PtrBuild.ptr) or ""))
   else
     self._counterLabel:Text("Sets:")
     self.counter:Text(ns.db.collected .. " / " .. ns.db.total)

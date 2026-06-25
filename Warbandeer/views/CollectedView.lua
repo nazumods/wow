@@ -382,7 +382,7 @@ function CollectedView:_render()
     for _, grp in ipairs(api.PtrSets or {}) do
       for _, set in ipairs(grp.sets) do if set.id then n = n + 1 end end
     end
-    self.counter:Text(("+%d sets upcoming"):format(n))
+    self.counter:Text(("+%d sets upcoming%s"):format(n, api.PtrBuild and ("   ·   PTR " .. api.PtrBuild.ptr) or ""))
   else
     local collected, total = api:Counts()
     self.counter:Text("Sets: " .. collected .. " / " .. total)
