@@ -45,6 +45,7 @@
 [CmdletBinding()]
 param(
   [string]$SetsFile = (Join-Path $PSScriptRoot '..' 'data' 'sets.lua'),
+  [string]$Product = 'wow',
   [string]$Build,
   [switch]$Check
 )
@@ -52,9 +53,19 @@ param(
 $ErrorActionPreference = 'Stop'
 $SetsFile = (Resolve-Path -LiteralPath $SetsFile).Path
 
+# Resolve the build to pull: an explicit -Build, else the latest build of -Product
+# (default 'wow' = live retail). The bare /csv endpoint serves the newest build
+# across ALL products — including the PTR — so always pin a real product build.
+$all = (Invoke-WebRequest -Uri 'https://wago.tools/api/builds' -UseBasicParsing -ErrorAction Stop).Content | ConvertFrom-Json
+$list = $all.$Product
+if (-not $list) { throw "wago.tools has no builds for product '$Product'." }
+if (-not $Build) { $Build = $list[0].version }
+$match = $list | Where-Object { $_.version -eq $Build } | Select-Object -First 1
+$buildDate = if ($match) { ($match.created_at -split ' ')[0] } else { '' }
+Write-Host "Using $Product build $Build $buildDate" -ForegroundColor Cyan
+
 function Get-Csv([string]$table) {
-  $url = "https://wago.tools/db2/$table/csv"
-  if ($Build) { $url += "?build=$Build" }
+  $url = "https://wago.tools/db2/$table/csv?build=$Build"
   Write-Host "Fetching $url" -ForegroundColor Cyan
   (Invoke-WebRequest -Uri $url -UseBasicParsing -ErrorAction Stop).Content | ConvertFrom-Csv
 }
@@ -154,6 +165,21 @@ while ($i -lt $lines.Count) {
   }
 
   $out.Add($line); $i++
+}
+
+# Stamp the source build as a comment — but only when the data actually changed,
+# so an unchanged weekly run produces no diff (and no PR) over a build bump alone.
+if ($changed -gt 0) {
+  $date = if ($buildDate) { ", $buildDate" } else { '' }
+  $stamp = "-- Generated from wago.tools TransmogSet (product $Product, build $Build$date) by tools/update-sets.ps1."
+  $at = -1
+  for ($k = 0; $k -lt $out.Count; $k++) { if ($out[$k] -match '^-- Generated from wago\.tools TransmogSet') { $at = $k; break } }
+  if ($at -ge 0) { $out[$at] = $stamp }
+  else {
+    $anchor = 0
+    for ($k = 0; $k -lt $out.Count; $k++) { if ($out[$k] -match '^local tinsert = tinsert\s*$') { $anchor = $k + 1; break } }
+    $out.Insert($anchor, $stamp)
+  }
 }
 
 $newText = $out -join $eol

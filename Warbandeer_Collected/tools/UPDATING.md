@@ -49,6 +49,19 @@ for that id, **or** the group has no suffix and the id carries a single
 difficulty). Anything else — Wrath 10/25-man tiers, custom labels like
 `(Timerunning/Remix)`, ambiguous ids — is **left exactly as written**.
 
+**Source build.** It pulls the latest **live retail** build (product `wow`),
+resolved from `wago.tools/api/builds` and pinned explicitly — the bare `/csv`
+endpoint serves the newest build across *all* products, including the PTR, which
+would add unreleased sets. The build it generated from is recorded as a comment
+near the top of `data/sets.lua`, e.g.:
+
+```lua
+-- Generated from wago.tools TransmogSet (product wow, build 12.0.7.68275, 2026-06-23) by tools/update-sets.ps1.
+```
+
+The stamp updates only when the set data actually changes, so a build bump alone
+never produces a diff (or a PR).
+
 | ClassMask bit | classId | Class | | ClassMask bit | classId | Class |
 |---|---|---|---|---|---|---|
 | 1   | 1 | Warrior | | 64   | 7  | Shaman |
@@ -62,9 +75,10 @@ difficulty). Anything else — Wrath 10/25-man tiers, custom labels like
 ## Running it by hand
 
 ```
-pwsh ./update-sets.ps1                 # regenerate against the current build
-pwsh ./update-sets.ps1 -Check          # report staleness, write nothing (exit 1 if stale)
-pwsh ./update-sets.ps1 -Build 11.2.0.61871   # pin a specific client build
+pwsh ./update-sets.ps1                        # latest live (wow) build
+pwsh ./update-sets.ps1 -Check                 # report staleness, write nothing (exit 1 if stale)
+pwsh ./update-sets.ps1 -Build 11.2.0.61871    # pin a specific client build
+pwsh ./update-sets.ps1 -Product wowt          # pull a different product (e.g. PTR)
 ```
 
 Then verify in-game — `/reload`, and check **both** `/collected` and `/wbc` →
