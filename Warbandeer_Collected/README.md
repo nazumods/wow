@@ -9,12 +9,10 @@ know who to run it on next.
 
 ## PTR preview
 
-The **PTR PREVIEW** title-bar button surfaces the **upcoming** sets at the top of
-the grid — the transmog sets that are on the current Public Test Realm but **not yet
-on live** — pushing your normal live sets down beneath them, so you see what's coming
-without losing your collection view. Each upcoming set shows a muted blue dot (there's
-no collection data for content that isn't out yet), and the header adds a "+N
-upcoming" tally with the PTR build the preview was built from. You can still **Shift-click to flag** an upcoming set as
+The **PTR PREVIEW** title-bar button switches the grid to show just the **upcoming**
+sets — the transmog sets that are on the current Public Test Realm but **not yet on
+live**. Each upcoming set shows a muted blue dot (there's no collection data for
+content that isn't out yet), and the counter switches to a "+N sets upcoming" tally. You can still **Shift-click to flag** an upcoming set as
 wanted (the flag carries over once it ships to live). The 3D preview of an upcoming
 set only works when you're **actually logged into the PTR** — there the appearances
 exist and clicking opens the dressing room like any other set. On a live realm the

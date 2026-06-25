@@ -83,22 +83,16 @@ end, {
   ),
   GetData = function(self)
     local toon = api:GetCharacterData(api:GetCurrentCharacter())
-    -- PTR PREVIEW appends the upcoming-only delta (ns.PtrSets) after the live sets, so
-    -- the upcoming rows surface on top (newest-first) while the live rows stay below;
-    -- off, the grid is just live ns.Sets. `combined` is oldest→newest; _reverse flips it.
-    local nLive = #ns.Sets
-    local combined = {}
-    for i = 1, nLive do combined[i] = ns.Sets[i] end
-    if self._ptr then for i = 1, #ns.PtrSets do combined[nLive + i] = ns.PtrSets[i] end end
-    -- Display order: combined oldest-first by default; _reverse → newest-first.
-    -- `srcIdx` is the real combined index — a live group keeps its ns.Sets index (so the
-    -- lockout panel still keys off it); a PTR group is any `srcIdx > nLive`. `dispIdx`
-    -- is the on-screen row position (row/cell highlight + arrow key off that).
+    -- PTR PREVIEW shows ONLY the upcoming-only delta (ns.PtrSets); off, the live ns.Sets.
+    local source = self._ptr and ns.PtrSets or ns.Sets
+    -- Display order: source oldest-first by default; _reverse → newest-first. `srcIdx`
+    -- indexes `source` (a live group's index is also its ns.Sets index, which the lockout
+    -- panel keys off); `dispIdx` is the on-screen row position (row/cell highlight + arrow).
     local order = {}
-    for i = 1, #combined do order[i] = self._reverse and (#combined - i + 1) or i end
+    for i = 1, #source do order[i] = self._reverse and (#source - i + 1) or i end
     return lists.map(order, function(srcIdx, dispIdx)
-      local grp = combined[srcIdx]
-      local isPtr = srcIdx > nLive
+      local grp = source[srcIdx]
+      local isPtr = self._ptr
       local lock = toon.instances.locks and toon.instances.locks[grp.instance] and toon.instances.locks[grp.instance][grp.difficulty]
       local gsets = ns.db.sets[grp.id]
       -- Always emit a positional cell per class (blank {} where there's no set, e.g.
@@ -180,9 +174,8 @@ end, {
       })
       tinsert(r, 2, {
         text = grp.name,
-        -- Upcoming (PTR) rows have no instance lockouts (and their srcIdx is past the
-        -- ns.Sets range the lockout panel indexes), so their name click is inert; live
-        -- rows still open the lockout panel as normal.
+        -- Upcoming content has no instance lockouts (and in PTR mode srcIdx indexes
+        -- ns.PtrSets, not ns.Sets), so the name click is inert in PTR mode.
         onClick = isPtr and function() end or function()
           ns.ShowLockoutView(srcIdx, ns.window, {
             TopRight = {ns.window, ui.edge.TopLeft, -25, 0},
@@ -313,10 +306,11 @@ function DataView:_refreshMarks()
 end
 
 -- Refresh overlays after the base table (re)builds its cells. The row count varies
--- (PTR PREVIEW appends the upcoming rows), so follow the variable-height pattern: grow
--- the row pool for any new rows, pad the data out to the pool with blank-string cells
--- so update() overwrites cells left from a larger previous render (leaving PTR mode
--- shrinks the grid back to the live rows), then ResizeRows to hide the dead space.
+-- (PTR PREVIEW swaps the ~live-raid list for the small upcoming list), so follow the
+-- variable-height pattern: grow the row pool for any new rows, pad the data out to the
+-- pool with blank-string cells so update() overwrites cells left from a larger previous
+-- render (PTR's few rows leave the live rows behind), then ResizeRows to hide the dead
+-- space below the active rows.
 function DataView:update()
   local real = #self.data
   for _ = #self.rows + 1, real do self:addRow{} end

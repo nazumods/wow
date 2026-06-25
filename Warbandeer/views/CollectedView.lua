@@ -94,19 +94,13 @@ end, {
   GetData = function(self)
     local api = WarbandeerCollectedApi
     if not api then return {} end
-    -- PTR PREVIEW appends the upcoming-only delta (api.PtrSets) after the live sets, so
-    -- it surfaces on top (newest-first) while the live rows stay below; off, the grid is
-    -- just live api.Sets. `combined` is oldest→newest; _reverse flips it. A PTR (upcoming)
-    -- group is any `srcIdx > nLive`.
-    local nLive = #api.Sets
-    local combined = {}
-    for i = 1, nLive do combined[i] = api.Sets[i] end
-    if self._ptr then for i = 1, #api.PtrSets do combined[nLive + i] = api.PtrSets[i] end end
+    -- PTR PREVIEW shows ONLY the upcoming-only delta (api.PtrSets); off, the live api.Sets.
+    local src = self._ptr and api.PtrSets or api.Sets
     local order = {}
-    for i = 1, #combined do order[i] = self._reverse and (#combined - i + 1) or i end
+    for i = 1, #src do order[i] = self._reverse and (#src - i + 1) or i end
     return lists.map(order, function(srcIdx)
-      local grp = combined[srcIdx]
-      local isPtr = srcIdx > nLive
+      local grp = src[srcIdx]
+      local isPtr = self._ptr
       local gstat = api:GroupStatus(grp.id)
       -- One positional cell per class slot (blank {} where a class has no set).
       local r = lists.map(grp.sets, function(set)
@@ -232,10 +226,10 @@ function Grid:_refreshMarks()
   end
 end
 
--- Row count varies (PTR PREVIEW appends the upcoming rows), so follow the variable-
--- height pattern: grow the row pool, pad the data out to the pool with blank-string
--- cells so update() overwrites cells left from a larger previous render (leaving PTR
--- mode shrinks back to the live rows), then ResizeRows to hide the dead space.
+-- Row count varies (PTR PREVIEW swaps the live-raid list for the small upcoming list),
+-- so follow the variable-height pattern: grow the row pool, pad the data out to the pool
+-- with blank-string cells so update() overwrites cells left from a larger previous render
+-- (PTR's few rows leave the live rows behind), then ResizeRows to hide the dead space.
 function Grid:update()
   local real = #self.data
   for _ = #self.rows + 1, real do self:addRow{} end
@@ -383,16 +377,16 @@ function CollectedView:_render()
   end
   self.emptyMsg:Hide()
   self:_showGrid(true)
-  local collected, total = api:Counts()
-  local txt = "Sets: " .. collected .. " / " .. total
   if ptr then
     local n = 0
     for _, grp in ipairs(api.PtrSets or {}) do
       for _, set in ipairs(grp.sets) do if set.id then n = n + 1 end end
     end
-    txt = txt .. ("   ·   +%d upcoming%s"):format(n, api.PtrBuild and (" (PTR " .. api.PtrBuild.ptr .. ")") or "")
+    self.counter:Text(("+%d sets upcoming"):format(n))
+  else
+    local collected, total = api:Counts()
+    self.counter:Text("Sets: " .. collected .. " / " .. total)
   end
-  self.counter:Text(txt)
   self:RefreshWanted()
   self.grid.data = self.grid:GetData()
   self.grid:update()

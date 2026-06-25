@@ -130,19 +130,20 @@ function MainWindow:RefreshWanted()
   self.wantedCount:Text(("|A:%s:14:14|a %d"):format(ns.WantedIcon, ns:WantedCount()))
 end
 
----Refresh the left-hand counter: live collected/total, plus a "+N upcoming" tally and
----the PTR build when PTR PREVIEW is on (the grid then shows live + upcoming together).
+---Refresh the left-hand counter: collected/total in live mode; in PTR PREVIEW mode the
+---grid is only the upcoming sets, so the counter becomes a "+N sets upcoming" tally.
 function MainWindow:RefreshCounter()
-  local txt = ns.db.collected .. " / " .. ns.db.total
   if self.data._ptr then
     local n = 0
     for _, grp in ipairs(ns.PtrSets) do
       for _, set in ipairs(grp.sets) do if set.id then n = n + 1 end end
     end
-    txt = txt .. ("   ·   +%d upcoming%s"):format(n, ns.PtrBuild and (" (PTR " .. ns.PtrBuild.ptr .. ")") or "")
+    self._counterLabel:Text("")
+    self.counter:Text(("+%d sets upcoming"):format(n))
+  else
+    self._counterLabel:Text("Sets:")
+    self.counter:Text(ns.db.collected .. " / " .. ns.db.total)
   end
-  self._counterLabel:Text("Sets:")
-  self.counter:Text(txt)
 end
 
 -- Live-refresh this window's grid + wanted counter when a rating changes anywhere
