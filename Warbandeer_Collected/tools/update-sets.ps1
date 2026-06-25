@@ -141,6 +141,7 @@ $lines = $raw -split "`r?`n"
 
 $out     = [System.Collections.Generic.List[string]]::new()
 $curId   = 0
+$curName = ''
 $curDiff = $null
 $changed = 0
 $i = 0
@@ -151,7 +152,8 @@ while ($i -lt $lines.Count) {
   # stray-space quirks like a 3-space indent or a ` } ,` close.
   if ($line -match '^\s+id\s*=\s*(\d+),\s*$') { $curId = [int]$Matches[1]; $out.Add($line); $i++; continue }
   if ($line -match '^\s+name\s*=\s*"(.*)",\s*$') {
-    $curDiff = if ($Matches[1] -match '\(([^)]+)\)\s*$') { $Matches[1] } else { $null }
+    $curName = $Matches[1]
+    $curDiff = if ($curName -match '\(([^)]+)\)\s*$') { $Matches[1] } else { $null }
     $out.Add($line); $i++; continue
   }
 
@@ -167,11 +169,24 @@ while ($i -lt $lines.Count) {
   if ($line -match '^\s*sets\s*=\s*\{\s*$') {
     $j = $i + 1
     while ($j -lt $lines.Count -and $lines[$j] -notmatch '^\s*\}\s*,\s*$') { $j++ }
+    $orig = if ($j -gt $i + 1) { $lines[($i + 1)..($j - 1)] } else { @() }
     $body = Get-SetsBody $curId $curDiff
+
+    # Per-group guard: don't let a populated tier (>=10 sets) lose more than half
+    # its entries in one refresh — almost always a partial download, not a real
+    # change. Leave that group as written and warn.
+    if ($null -ne $body) {
+      $origN = ($orig | Where-Object { $_ -match '^\s*\{\s*id\s*=\s*\d+' }).Count
+      $newN  = ($body | Where-Object { $_ -match '^\s*\{\s*id\s*=\s*\d+' }).Count
+      if ($origN -ge 10 -and $newN -lt ($origN / 2)) {
+        Write-Warning "Group $curId '$curName' would shrink $origN -> $newN sets (>50%) — left unchanged."
+        $body = $null
+      }
+    }
+
     if ($null -eq $body) {
       for ($k = $i; $k -le $j; $k++) { $out.Add($lines[$k]) }   # leave unchanged
     } else {
-      $orig = if ($j -gt $i + 1) { $lines[($i + 1)..($j - 1)] } else { @() }
       $out.Add('  sets = {'); $body | ForEach-Object { $out.Add($_) }; $out.Add('  },')
       if (($orig -join "`n") -ne ($body -join "`n")) { $changed++ }
     }

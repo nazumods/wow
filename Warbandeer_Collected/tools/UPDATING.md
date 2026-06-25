@@ -74,20 +74,25 @@ never produces a diff (or a PR).
 
 ## Safety guards
 
-The generator **aborts (writes nothing, exits non-zero — so the workflow fails and
-no PR opens)** if the data looks bad or a refresh would destroy curated data:
+**Whole-run aborts** (writes nothing, exits non-zero — the workflow fails and no PR
+opens) if the data looks bad or a refresh would destroy curated data:
 
 - the `TransmogSet` CSV is missing an expected column (an HTML error page parsed as
   CSV, or a schema change);
 - fewer than `-MinRows` rows came back (default **1000** — truncated/empty download);
 - `ItemNameDescription` is missing a core difficulty label (Raid Finder / Normal /
   Heroic / Mythic), which would mis-resolve difficulty tiers;
-- regeneration would drop more than `-MaxDeletePct`% of the set entries (default
-  **5%**).
+- regeneration would drop more than `-MaxDeletePct`% of the **total** set entries
+  (default **5%**).
 
-Because groups that don't resolve are **left unchanged** rather than emptied, a
-partial download usually preserves data; these guards catch the cases that would
-otherwise gut or corrupt the file.
+**Per-group skip** (one group only, the rest still refresh): if regenerating a
+populated tier (**≥10 sets**) would cut it to **less than half** its entries — almost
+always a partial download rather than a real change — that group is left as written
+and logged with a warning.
+
+Because groups that don't resolve are also left unchanged, a partial download usually
+preserves data; together these guards catch the cases that would otherwise gut or
+corrupt the file.
 
 ## Running it by hand
 
