@@ -2,13 +2,13 @@
 
 Generated from wago.tools TransmogSet (product wow, build 12.0.7.68275, 2026-06-23) by `tools/update-sets.ps1 -AuditCoverage`.
 
-We curate **79 distinct wago group ids** in `ns.Sets`. wago has **148 groups** with placeable rows; the **69** below are **not captured yet**. Categories are heuristic (from each group's difficulty/variant labels + name) — verify before adding. Inclusion is editorial: see `tools/UPDATING.md`.
+We curate **78 distinct wago group ids** in `ns.Sets`. wago has **148 groups** with placeable rows; the **70** below are **not captured yet**. Categories are heuristic (from each group's difficulty/variant labels + name) — verify before adding. Inclusion is editorial: see `tools/UPDATING.md`.
 
 ## By category
 
 | Category | Groups |
 | --- | ---: |
-| PvP | 5 |
+| PvP | 6 |
 | Dungeon / Mythic+ | 13 |
 | Raid | 6 |
 | Profession / Crafted | 3 |
@@ -25,7 +25,7 @@ We curate **79 distinct wago group ids** in `ns.Sets`. wago has **148 groups** w
 | Midnight | 11 |
 | The War Within | 12 |
 | Dragonflight | 10 |
-| Shadowlands | 7 |
+| Shadowlands | 8 |
 | Battle for Azeroth | 1 |
 | Legion | 12 |
 | Warlords of Draenor | 2 |
@@ -37,13 +37,14 @@ We curate **79 distinct wago group ids** in `ns.Sets`. wago has **148 groups** w
 
 ## Groups by category
 
-### PvP (5)
+### PvP (6)
 
 | id | name | expansion | sets | difficulty / variant labels |
 | ---: | --- | --- | ---: | --- |
 | 377 | Voidstorm Gear | Midnight | 4 | War Mode |
 | 215 | Cavern Delver's Gear | Dragonflight | 24 | Campaign, Dawn of the Infinite, Suffusion Camps and PvP, Time Rifts and Dawn of the Infinite, Treasures and Unique Creatures, World Quests and World Drops |
 | 199 | Primal Elements | Dragonflight | 20 | Crafted, Primal Storms, The Forbidden Reach, War Mode, World Drop |
+| 191 | Shadowlands Season 3 | Shadowlands | 28 | Aspirant, Elite, Gladiator |
 | 295 | Cataclysm: PVP | Cataclysm | 6 | Timewalking Vendor - Black, Timewalking Vendor - Dark, Timewalking Vendor - Green, Timewalking Vendor - Red |
 | 287 | Wrath of the Lich King: PVP | Wrath of the Lich King | 5 | Timewalking Vendor - Green, Timewalking Vendor - Purple |
 

@@ -214,18 +214,6 @@ tinsert(ns.Sets, {
   },
 })
 tinsert(ns.Sets, {
-  id = 27,
-  name = "Season 1 (PVP Rare)",
-  release = 2,
-  sets = {
-    {},
-    {},
-    {},
-    {},
-    { id = 382, name = "Satin Battlegear", classId = 5 },
-  },
-})
-tinsert(ns.Sets, {
   id = 26,
   name = "Season 2 (Gladiator)",
   release = 2,
@@ -3016,64 +3004,6 @@ tinsert(ns.Sets, {
     { id = 2225, name = "Unchained Gladiator's Leathers", classId = 11 },
     { id = 2225, name = "Unchained Gladiator's Leathers", classId = 12 },
     { id = 2226, name = "Unchained Gladiator's Chain", classId = 13 },
-  },
-})
-tinsert(ns.Sets, {
-  id = 191,
-  name = "Shadowlands Season 3 (Aspirant)",
-  release = 9,
-  sets = {
-    { id = 2319, name = "Cosmic Aspirant's Plate", classId = 1 },
-    { id = 2319, name = "Cosmic Aspirant's Plate", classId = 2 },
-    { id = 2318, name = "Cosmic Aspirant's Chain", classId = 3 },
-    { id = 2317, name = "Cosmic Aspirant's Leathers", classId = 4 },
-    { id = 2316, name = "Cosmic Aspirant's Vestment", classId = 5 },
-    { id = 2319, name = "Cosmic Aspirant's Plate", classId = 6 },
-    { id = 2318, name = "Cosmic Aspirant's Chain", classId = 7 },
-    { id = 2316, name = "Cosmic Aspirant's Vestment", classId = 8 },
-    { id = 2316, name = "Cosmic Aspirant's Vestment", classId = 9 },
-    { id = 2317, name = "Cosmic Aspirant's Leathers", classId = 10 },
-    { id = 2317, name = "Cosmic Aspirant's Leathers", classId = 11 },
-    { id = 2317, name = "Cosmic Aspirant's Leathers", classId = 12 },
-    { id = 2318, name = "Cosmic Aspirant's Chain", classId = 13 },
-  },
-})
-tinsert(ns.Sets, {
-  id = 191,
-  name = "Shadowlands Season 3 (Elite)",
-  release = 9,
-  sets = {
-    { id = 2419, name = "Cosmic Gladiator's Plate Armor", classId = 1 },
-    { id = 2389, name = "Cosmic Gladiator's Scaled Armor", classId = 2 },
-    { id = 2371, name = "Cosmic Gladiator's Chain Armor", classId = 3 },
-    { id = 2401, name = "Cosmic Gladiator's Leather Armor", classId = 4 },
-    { id = 2395, name = "Cosmic Gladiator's Satin Armor", classId = 5 },
-    { id = 2353, name = "Cosmic Gladiator's Dreadplate Armor", classId = 6 },
-    { id = 2407, name = "Cosmic Gladiator's Ringmail Armor", classId = 7 },
-    { id = 2377, name = "Cosmic Gladiator's Silk Armor", classId = 8 },
-    { id = 2413, name = "Cosmic Gladiator's Felweave Armor", classId = 9 },
-    { id = 2383, name = "Cosmic Gladiator's Ironskin Armor", classId = 10 },
-    { id = 2365, name = "Cosmic Gladiator's Dragonhide Armor", classId = 11 },
-    { id = 2359, name = "Cosmic Gladiator's Felskin Armor", classId = 12 },
-  },
-})
-tinsert(ns.Sets, {
-  id = 191,
-  name = "Shadowlands Season 3 (Gladiator)",
-  release = 9,
-  sets = {
-    { id = 2418, name = "Cosmic Gladiator's Plate Armor", classId = 1 },
-    { id = 2388, name = "Cosmic Gladiator's Scaled Armor", classId = 2 },
-    { id = 2370, name = "Cosmic Gladiator's Chain Armor", classId = 3 },
-    { id = 2400, name = "Cosmic Gladiator's Leather Armor", classId = 4 },
-    { id = 2394, name = "Cosmic Gladiator's Satin Armor", classId = 5 },
-    { id = 2352, name = "Cosmic Gladiator's Dreadplate Armor", classId = 6 },
-    { id = 2406, name = "Cosmic Gladiator's Ringmail Armor", classId = 7 },
-    { id = 2376, name = "Cosmic Gladiator's Silk Armor", classId = 8 },
-    { id = 2412, name = "Cosmic Gladiator's Felweave Armor", classId = 9 },
-    { id = 2382, name = "Cosmic Gladiator's Ironskin Armor", classId = 10 },
-    { id = 2364, name = "Cosmic Gladiator's Dragonhide Armor", classId = 11 },
-    { id = 2358, name = "Cosmic Gladiator's Felskin Armor", classId = 12 },
   },
 })
 tinsert(ns.Sets, {
