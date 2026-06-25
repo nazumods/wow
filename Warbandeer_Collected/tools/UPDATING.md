@@ -72,6 +72,23 @@ never produces a diff (or a PR).
 | 32  | 6 | Death Knight | | 2048 | 12 | Demon Hunter |
 |     |   |         | | 4096 | 13 | Evoker |
 
+## Safety guards
+
+The generator **aborts (writes nothing, exits non-zero — so the workflow fails and
+no PR opens)** if the data looks bad or a refresh would destroy curated data:
+
+- the `TransmogSet` CSV is missing an expected column (an HTML error page parsed as
+  CSV, or a schema change);
+- fewer than `-MinRows` rows came back (default **1000** — truncated/empty download);
+- `ItemNameDescription` is missing a core difficulty label (Raid Finder / Normal /
+  Heroic / Mythic), which would mis-resolve difficulty tiers;
+- regeneration would drop more than `-MaxDeletePct`% of the set entries (default
+  **5%**).
+
+Because groups that don't resolve are **left unchanged** rather than emptied, a
+partial download usually preserves data; these guards catch the cases that would
+otherwise gut or corrupt the file.
+
 ## Running it by hand
 
 ```
@@ -79,6 +96,8 @@ pwsh ./update-sets.ps1                        # latest live (wow) build
 pwsh ./update-sets.ps1 -Check                 # report staleness, write nothing (exit 1 if stale)
 pwsh ./update-sets.ps1 -Build 11.2.0.61871    # pin a specific client build
 pwsh ./update-sets.ps1 -Product wowt          # pull a different product (e.g. PTR)
+pwsh ./update-sets.ps1 -MaxDeletePct 10       # loosen the set-deletion guard (default 5)
+pwsh ./update-sets.ps1 -MinRows 2000          # raise the row-floor guard (default 1000)
 ```
 
 Then verify in-game — `/reload`, and check **both** `/collected` and `/wbc` →

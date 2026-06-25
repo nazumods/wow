@@ -47,6 +47,8 @@ param(
   [string]$SetsFile = (Join-Path $PSScriptRoot '..' 'data' 'sets.lua'),
   [string]$Product = 'wow',
   [string]$Build,
+  [int]$MinRows = 1000,       # abort if TransmogSet returns fewer (incomplete download)
+  [int]$MaxDeletePct = 5,     # abort if regeneration would drop more than this % of sets
   [switch]$Check
 )
 
@@ -76,10 +78,22 @@ foreach ($d in (Get-Csv 'ItemNameDescription')) {
   $id = 0; [void][int]::TryParse($d.ID, [ref]$id)
   if ($id -gt 0) { $label[$id] = $d.Description_lang.Trim() }
 }
+# Integrity: the core difficulty labels must be present, else the discriminator
+# is broken and difficulty tiers would resolve wrong (incomplete/garbage download).
+$have = $label.Values | Select-Object -Unique
+foreach ($req in @('Raid Finder', 'Normal', 'Heroic', 'Mythic')) {
+  if ($have -notcontains $req) { throw "ItemNameDescription is missing the '$req' label — incomplete download, aborting." }
+}
 
 # --- 2. wago sets -> $byGroup[gid][difficultyLabel][classId] = Lua line -----
 $rows = Get-Csv 'TransmogSet'
-if (-not $rows) { throw 'No rows returned from wago.tools.' }
+if (-not $rows) { throw 'No rows returned from wago.tools (TransmogSet).' }
+# Integrity: expected schema + a sane row floor guard against truncated / error
+# responses (e.g. an HTML error page parsed as CSV, or a half-finished download).
+foreach ($col in @('ID', 'Name_lang', 'ClassMask', 'TransmogSetGroupID', 'ItemNameDescriptionID')) {
+  if ($col -notin $rows[0].PSObject.Properties.Name) { throw "TransmogSet CSV is missing the '$col' column — unexpected response, aborting." }
+}
+if ($rows.Count -lt $MinRows) { throw "TransmogSet returned only $($rows.Count) rows (< MinRows $MinRows) — likely an incomplete download, aborting." }
 
 $byGroup = @{}
 foreach ($r in ($rows | Sort-Object { [int]$_.ID })) {
@@ -165,6 +179,15 @@ while ($i -lt $lines.Count) {
   }
 
   $out.Add($line); $i++
+}
+
+# Guard: refuse a mass deletion of set entries. Catches partial downloads where
+# groups come back with missing classes (which would otherwise blank out slots).
+$origSets = ($lines | Where-Object { $_ -match '^\s*\{\s*id\s*=\s*\d+' }).Count
+$newSets  = ($out   | Where-Object { $_ -match '^\s*\{\s*id\s*=\s*\d+' }).Count
+$floor = [math]::Floor($origSets * (1 - $MaxDeletePct / 100))
+if ($origSets -gt 0 -and $newSets -lt $floor) {
+  throw "Refusing to write: set entries would drop $origSets -> $newSets (more than $MaxDeletePct%). Likely incomplete wago data — aborting."
 }
 
 # Stamp the source build as a comment — but only when the data actually changed,
