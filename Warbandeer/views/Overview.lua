@@ -223,9 +223,9 @@ local DIFFS = {
   { label = "M",  suffix = "Mythic" },
 }
 local GEAR_W = 26   -- width of each difficulty column
-local STAR = 11     -- wanted-star overlay size (matches Collected/CollectedView)
+local STAR = 11     -- wanted-star overlay size (matches the /collected DataView grid)
 
--- 10-shade red→green gradient keyed by collected fraction (matches CollectedView/Collected).
+-- 10-shade red→green gradient keyed by collected fraction (matches the /collected DataView grid).
 local shades = {
   {165/255,   0/255,  38/255, 1},
   {215/255,  48/255,  39/255, 1},

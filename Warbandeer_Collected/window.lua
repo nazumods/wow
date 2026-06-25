@@ -7,78 +7,82 @@ local Class, TitleFrame, ScrollFrame, Label = ns.lua.Class, ui.TitleFrame, ui.Sc
 local Frame, Button, Texture = ui.Frame, ui.Button, ui.Texture
 local DataView = ns.DataView
 
--- Raid-order toggle border: muted when oldest-first, gold once newest-first.
-local SORT_IDLE   = {0.28, 0.28, 0.32, 1}
-local SORT_ACTIVE = {0.85, 0.65, 0.13, 1}
+-- This window must match Warbandeer's embedded collected view 1:1 (size + coloring),
+-- so it renders the same shared DataView grid and counter/toggle chrome in the same
+-- void-dark theme. That theme lives in the main Warbandeer addon and is published on
+-- LibNUI's shared `ui.themes` registry; when it isn't loaded (Collected running on
+-- its own) we fall back to the LibNUI default and the chrome degrades gracefully.
+local function collectedTheme()
+  return ui.themes["void-dark"] or ui.themes.dark
+end
 
 ---Top-level Collected window: titled frame holding the DataView grid and a sets counter.
 ---@class CollectedWindow: TitleFrame
 ---@field data DataView the sets-by-class grid
 ---@field scroll ScrollFrame scroll container for the grid's row area
----@field counter Label "collected / total" sets counter (shrunk in PTR mode)
----@field _counterSize number? captured full counter font size, restored when leaving PTR mode
+---@field counter Label "Sets: collected / total" counter (shrunk in PTR mode)
 ---@field wantedCount Label running "★ N" wanted-set count
 ---@field _sortBorder Texture raid-order toggle border (gold once newest-first)
 ---@field _sortLabel Label raid-order toggle caption (OLDEST/NEWEST FIRST)
 ---@field _wantedBorder Texture "wanted only" filter border (gold while active)
+---@field _ptrBorder Texture live/PTR toggle border (gold while in PTR mode)
 local MainWindow = Class(TitleFrame, function(self)
+  -- The window is themed in `ns:Open` (so the titlebar inherits it too); read it back
+  -- here for the chrome. Dark's `header` token is the same gold, so the toggles still
+  -- read as on/off when the void-dark theme isn't loaded.
+  local theme = self:Theme()
+  local gold, divider = theme.colors.gold or theme.colors.header, theme.colors.divider
+  local titleFont, caps = theme.fonts.title, theme.fonts.caps
   local w = 110
 
   self.data = DataView:new{
-    parent = self,
+    parent = self,                           -- inherits the window's theme
     position = {
       TopLeft = {self.titlebar, ui.edge.BottomLeft, 2, -2},
       TopRight = {self.titlebar, ui.edge.BottomRight, -2, -2},
     },
+    colInfo = DataView.BuildColInfo(false),  -- windowed: includes the lock column
+    -- Refresh this window's wanted tally after a Shift-click toggle in the grid.
+    onWantedToggle = function() self:RefreshWanted() end,
   }
   w = max(w, self.data:Width() + 4)
 
   self.scroll = ScrollFrame:new{
     parent = self,
     position = {
-      TopLeft = {self.titlebar, ui.edge.BottomLeft, 2, -6 - self.data.headerHeight},
+      TopLeft = {self.titlebar, ui.edge.BottomLeft, 2, -2 - self.data.headerHeight},
       BottomRight = {self, ui.edge.BottomRight, -2, 2},
     },
   }
   self.scroll:Child(self.data.rowArea)
 
-  self._counterLabel = Label:new{
-    parent = self,
-    position = {
-      TopLeft = {self.titlebar, ui.edge.BottomLeft, 15, -12},
-    },
-    text = "Sets:",
-  }
-  local counterLabel = self._counterLabel
+  -- Counter rides the grid's header row, over the group-name column and in line with
+  -- the class icons (matches the embedded view); gold wanted tally to its right.
+  local hdrPad = (self.data.headerHeight - (titleFont and titleFont[2] or 14)) / 2
   self.counter = Label:new{
-    parent = self,
-    position = {
-      Left = {counterLabel, ui.edge.Right, 5, 0},
-    },
-    fontObj = "GameFontNormalLarge",
-    color = WHITE_FONT_COLOR,
-    text = ns.db.collected .. " / " .. ns.db.total,
+    parent = self, fontInfo = titleFont, color = theme.colors.text,
+    position = { TopLeft = {self.data, ui.edge.TopLeft, 2, -hdrPad} },
+    text = "",
   }
-  -- Running wanted-set count, gold, to the right of the sets counter.
   self.wantedCount = Label:new{
-    parent = self,
-    position = {
-      Left = {self.counter, ui.edge.Right, 16, 0},
-    },
-    fontObj = "GameFontNormalLarge",
-    color = SORT_ACTIVE,
+    parent = self, fontInfo = titleFont, color = gold,
+    position = { Left = {self.counter, ui.edge.Right, 16, 0} },
+    text = "",
   }
 
-  -- Title-bar toggles, right-to-left from the close button: raid-order, then a
-  -- "wanted only" filter. A small framed button each; gold border when active.
-  local function titleToggle(rightOf, text, active, onClick)
+  -- Title-bar toggles, right-to-left from the close button: raid-order, "wanted only",
+  -- PTR preview. Same framed-button styling as the embedded view's BuildFilter. `gap`
+  -- is the spacing to the frame on its right (defaults to the inter-button gap); the
+  -- first toggle uses a wider gap to leave a draggable strip beside the close button,
+  -- so the window can still be grabbed when its left side is covered.
+  local function titleToggle(rightOf, text, active, onClick, gap)
     local box = Frame:new{
       parent = self.titlebar,
-      position = { Right = {rightOf, ui.edge.Left, -4, 0}, Width = 96, Height = 20 },
+      position = { Right = {rightOf, ui.edge.Left, gap or -6, 0}, Width = 96, Height = 20 },
     }
     local border = Texture:new{
       parent = box, layer = ui.layer.Background,
-      position = { All = true }, color = active and SORT_ACTIVE or SORT_IDLE,
+      position = { All = true }, color = active and gold or divider,
     }
     Texture:new{
       parent = box, layer = ui.layer.Border, color = {0.05, 0.05, 0.06, 0.92},
@@ -86,8 +90,8 @@ local MainWindow = Class(TitleFrame, function(self)
     }
     local btn = Button:new{ parent = box, position = { All = true }, glow = false, OnClick = onClick }
     local label = Label:new{
-      parent = btn, fontObj = "GameFontNormalSmall", justifyH = ui.justify.Center,
-      position = { Left = {6, 0}, Right = {-6, 0} }, text = text,
+      parent = btn, fontInfo = caps and {caps[1], 10} or nil, justifyH = ui.justify.Center,
+      position = { Left = {8, 0}, Right = {-8, 0} }, text = text,
     }
     return border, label, box
   end
@@ -96,28 +100,35 @@ local MainWindow = Class(TitleFrame, function(self)
   self._sortBorder, self._sortLabel, sortBox = titleToggle(self.closeButton, "NEWEST FIRST", true, function()
     local rev = self.data:ToggleOrder()
     self._sortLabel:Text(rev and "NEWEST FIRST" or "OLDEST FIRST")
-    self._sortBorder:Color(rev and SORT_ACTIVE or SORT_IDLE)
-  end)
+    self._sortBorder:Color(rev and gold or divider)
+  end, -28)  -- wider gap from the close button → a draggable strip on the right
 
   local wantedBox, _
   self._wantedBorder, _, wantedBox = titleToggle(sortBox, "WANTED ONLY", false, function()
     local on = self.data:ToggleWantedOnly()
-    self._wantedBorder:Color(on and SORT_ACTIVE or SORT_IDLE)
+    self._wantedBorder:Color(on and gold or divider)
   end)
 
   -- Live ⇆ PTR toggle: in PTR mode the grid shows only the upcoming (PTR-only) sets.
   self._ptrBorder = titleToggle(wantedBox, "PTR PREVIEW", false, function()
     local on = self.data:SetPtr(not self.data._ptr)
-    self._ptrBorder:Color(on and SORT_ACTIVE or SORT_IDLE)
+    self._ptrBorder:Color(on and gold or divider)
     self:RefreshCounter()
   end)
 
+  self:RefreshCounter()
   self:RefreshWanted()
-  self:Height(34 + min(500, self.data:Height()))
+  -- Cap the visible grid at the shared `DataView.MAX_HEIGHT` and size the window with
+  -- the same header + cap + margin math as the embedded view, so the two are the same
+  -- height (the standalone just adds its titlebar on top).
+  local capH = min(self.data.MAX_HEIGHT, self.data.rowArea:Height())
+  self:Height(self.titlebar:Height() + self.data.headerHeight + capH + 4)
   self:Width(w)
 end, {
   name = ns._NAME,
   title = ns._TITLE,
+  -- Match Warbandeer's main window surface (≈ the LibNUI dark window, slightly translucent).
+  background = {0.11372549019, 0.14117647058, 0.16470588235, 0.92},
   position = {
     Center = {},
   },
@@ -131,7 +142,7 @@ function MainWindow:RefreshWanted()
   self.wantedCount:Text(("|A:%s:14:14|a %d"):format(ns.WantedIcon, ns:WantedCount()))
 end
 
----Refresh the left-hand counter: collected/total in live mode; in PTR PREVIEW mode the
+---Refresh the counter: "Sets: collected / total" in live mode; in PTR PREVIEW mode the
 ---grid is only the upcoming sets, so the counter becomes a "+N sets upcoming" tally.
 function MainWindow:RefreshCounter()
   if self.data._ptr then
@@ -141,17 +152,16 @@ function MainWindow:RefreshCounter()
         if set.id and not seen[set.id] then seen[set.id] = true; n = n + 1 end
       end
     end
-    self._counterLabel:Text("")
     self.counter:Text(("+%d sets upcoming%s"):format(n, ns.PtrBuild and (" · PTR " .. ns.PtrBuild.ptr) or ""))
   else
-    self._counterLabel:Text("Sets:")
-    self.counter:Text(ns.db.collected .. " / " .. ns.db.total)
+    self.counter:Text("Sets: " .. ns.db.collected .. " / " .. ns.db.total)
   end
   -- The PTR line (with the build) is longer than the live count, so shrink the counter
-  -- font in PTR mode to keep it inside the name column, clear of the class icons.
-  self._counterSize = self._counterSize or (self.counter:Font())[2]
-  local f = self.counter:Font()
-  self.counter:Font({f[1], self.data._ptr and 12 or self._counterSize, f[3]})
+  -- font in PTR mode to keep it clear of the class icons (matches the embedded view).
+  local titleFont = collectedTheme().fonts.title
+  if titleFont then
+    self.counter:Font(self.data._ptr and {titleFont[1], 12} or titleFont)
+  end
 end
 
 -- Live-refresh this window's grid + wanted counter when a rating changes anywhere
@@ -170,7 +180,11 @@ ns.window = nil
 ---Open the main window, creating it on first use.
 function ns:Open()
   if not ns.window then
-    ns.window = MainWindow:new{}
+    -- Theme the whole window (titlebar included) to match Warbandeer's collected view;
+    -- the explicit opaque `background` (in defaults) overrides the theme's alpha-0
+    -- `window` token so the surface stays solid. Resolved here, not in the class
+    -- defaults, since the void-dark theme registers only once Warbandeer has loaded.
+    ns.window = MainWindow:new{ theme = collectedTheme() }
     ns.window:RememberPosition(ns.db.windowPos)   -- restore + persist the user's dragged position
   else
     ns.window:Show()
