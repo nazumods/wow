@@ -112,7 +112,9 @@ local function render(group, set, parent, position)
     bits[#bits + 1] = "|cff" .. ns.RankHex(rank) .. tag .. "|r"
   end
 
-  local parts = getParts(set.id)
+  -- GetSetPrimaryAppearances returns nil (not an empty table) for a set id the client
+  -- doesn't know — exactly a PTR-only set on a live client — so coalesce before #parts.
+  local parts = getParts(set.id) or {}
   local scanned = ns.db.sets[group.id] and ns.db.sets[group.id][set.id]
   -- A PTR-only set the live client has no data for: GetSetPrimaryAppearances /
   -- GetSourcesForSlot return nothing, so there's no per-slot list to show. Mark it
