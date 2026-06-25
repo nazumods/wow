@@ -108,7 +108,7 @@ function ns:Scan()
     end
   end
   if ns.window then
-    ns.window.counter:Text(self.db.collected .. " / " .. self.db.total)
+    ns.window:RefreshCounter()   -- respects live/PTR mode (leaves the upcoming count alone in PTR)
     ns.window.data.data = ns.window.data:GetData()
     ns.window.data:update()
   end

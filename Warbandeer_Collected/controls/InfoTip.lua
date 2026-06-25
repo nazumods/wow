@@ -98,10 +98,6 @@ local function render(group, set, parent, position)
       position = false,
     }
   end
-  if not ns.db.sets[group.id] or not ns.db.sets[group.id][set.id] then
-    _tooltip:Hide()
-    return
-  end
   _group, _set, _parent, _position = group, set, parent, position
   _tooltip.name:Text(set.name)
 
@@ -115,42 +111,54 @@ local function render(group, set, parent, position)
     local tag = ns:RaceRank(set.id, race) and ("Tier " .. rank .. " (race)") or ("Tier " .. rank)
     bits[#bits + 1] = "|cff" .. ns.RankHex(rank) .. tag .. "|r"
   end
-  _tooltip.status:Text(#bits > 0 and table.concat(bits, "   ") or "|cff808080Shift-click to mark wanted|r")
 
   local parts = getParts(set.id)
-  local primary = {}
-  for _,p in ipairs(parts) do primary[p.appearanceID] = true end
+  local scanned = ns.db.sets[group.id] and ns.db.sets[group.id][set.id]
+  -- A PTR-only set the live client has no data for: GetSetPrimaryAppearances /
+  -- GetSourcesForSlot return nothing, so there's no per-slot list to show. Mark it
+  -- upcoming (ratings still apply) instead of rendering nine "missing" rows. On a
+  -- PTR client the set is real, parts resolve, and the normal slot list renders.
+  local upcoming = not scanned and #parts == 0
+  if upcoming then bits[#bits + 1] = "|cff8cc8ffNot yet on live (PTR)|r" end
+  _tooltip.status:Text(#bits > 0 and table.concat(bits, "   ") or "|cff808080Shift-click to mark wanted|r")
 
-  local fallback   -- built lazily when a slot's per-slot source lookup is empty
   local incomplete = false
-  for i,slot in ipairs({1,3,15,5,6,7,8,9,10}) do
-    local sources = C_TransmogSets.GetSourcesForSlot(set.id, slot)
-    local _, p = find(sources, function(s) return primary[s.sourceID] end)
-    local name, isCollected
-    if p then
-      isCollected = any(sources, function(s) return s.isCollected end)
-      name = p.name
-      if not name or name == "" then
-        -- Name not cached yet: nudge the item to load and flag a re-render.
-        incomplete = true
-        local info = C_TransmogCollection.GetSourceInfo(p.sourceID)
-        if info and info.itemID then C_Item.RequestLoadItemDataByID(info.itemID) end
+  if upcoming then
+    for i = 1, 9 do _tooltip.items.data[i][1] = "" end
+  else
+    local primary = {}
+    for _,p in ipairs(parts) do primary[p.appearanceID] = true end
+
+    local fallback   -- built lazily when a slot's per-slot source lookup is empty
+    for i,slot in ipairs({1,3,15,5,6,7,8,9,10}) do
+      local sources = C_TransmogSets.GetSourcesForSlot(set.id, slot)
+      local _, p = find(sources, function(s) return primary[s.sourceID] end)
+      local name, isCollected
+      if p then
+        isCollected = any(sources, function(s) return s.isCollected end)
+        name = p.name
+        if not name or name == "" then
+          -- Name not cached yet: nudge the item to load and flag a re-render.
+          incomplete = true
+          local info = C_TransmogCollection.GetSourceInfo(p.sourceID)
+          if info and info.itemID then C_Item.RequestLoadItemDataByID(info.itemID) end
+        end
+      else
+        -- Per-slot API gave nothing (Trading Post / variant set): bucket the set's
+        -- pieces by equip location, matching the dressing-room slots.
+        fallback = fallback or ns.SetSlotPieces(set.id)
+        local fb = fallback[slot]
+        if fb then
+          isCollected = fb.isCollected
+          name = C_Item.GetItemNameByID(fb.itemID)
+          if not name or name == "" then incomplete = true; C_Item.RequestLoadItemDataByID(fb.itemID) end
+        end
       end
-    else
-      -- Per-slot API gave nothing (Trading Post / variant set): bucket the set's
-      -- pieces by equip location, matching the dressing-room slots.
-      fallback = fallback or ns.SetSlotPieces(set.id)
-      local fb = fallback[slot]
-      if fb then
-        isCollected = fb.isCollected
-        name = C_Item.GetItemNameByID(fb.itemID)
-        if not name or name == "" then incomplete = true; C_Item.RequestLoadItemDataByID(fb.itemID) end
-      end
+      _tooltip.items.data[i][1] = name and {
+        text = name,
+        color = isCollected and { 0, 104/255, 55/255} or {165/255, 0, 38/255},
+       } or ""
     end
-    _tooltip.items.data[i][1] = name and {
-      text = name,
-      color = isCollected and { 0, 104/255, 55/255} or {165/255, 0, 38/255},
-     } or ""
   end
   _tooltip.items:update()
   -- Clear the previous hover's anchor before re-pointing: the tip is a reused
