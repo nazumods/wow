@@ -94,24 +94,28 @@ end, {
   GetData = function(self)
     local api = WarbandeerCollectedApi
     if not api then return {} end
-    -- PTR mode renders the upcoming-only delta (api.PtrSets); live mode renders api.Sets.
-    local src = (self._ptr and api.PtrSets) or api.Sets
-    -- Default order is source order (oldest expansion first); _reverse flips to newest first.
-    local groups = src
-    if self._reverse then
-      groups = {}
-      for i = #src, 1, -1 do groups[#groups + 1] = src[i] end
-    end
-    return lists.map(groups, function(grp)
+    -- PTR PREVIEW appends the upcoming-only delta (api.PtrSets) after the live sets, so
+    -- it surfaces on top (newest-first) while the live rows stay below; off, the grid is
+    -- just live api.Sets. `combined` is oldest→newest; _reverse flips it. A PTR (upcoming)
+    -- group is any `srcIdx > nLive`.
+    local nLive = #api.Sets
+    local combined = {}
+    for i = 1, nLive do combined[i] = api.Sets[i] end
+    if self._ptr then for i = 1, #api.PtrSets do combined[nLive + i] = api.PtrSets[i] end end
+    local order = {}
+    for i = 1, #combined do order[i] = self._reverse and (#combined - i + 1) or i end
+    return lists.map(order, function(srcIdx)
+      local grp = combined[srcIdx]
+      local isPtr = srcIdx > nLive
       local gstat = api:GroupStatus(grp.id)
       -- One positional cell per class slot (blank {} where a class has no set).
       local r = lists.map(grp.sets, function(set)
         -- Blank class slot.
         if not set.id then return {} end
-        -- Live: only show scanned sets. PTR: every entry is "upcoming" (the live
-        -- client has no collection data), so skip the scan gate.
+        -- Live row: only show scanned sets. PTR (upcoming) row: every entry is
+        -- "upcoming" (no collection data on this client), so skip the scan gate.
         local status = gstat and gstat[set.id]
-        if not self._ptr and not status then return {} end
+        if not isPtr and not status then return {} end
         -- "Wanted only" blanks non-wanted cells, mirroring the /collected window.
         if self._wantedOnly and not WarbandeerCollectedApi:IsWanted(set.id) then return {} end
         -- Same per-slot source tooltip as the /collected window (via the API) on
@@ -138,7 +142,7 @@ end, {
           end
         end
         -- Upcoming (PTR): a muted dot, no count/completion shade.
-        if self._ptr then
+        if isPtr then
           return {
             setId = set.id,
             text = UPCOMING_GLYPH,
@@ -228,8 +232,20 @@ function Grid:_refreshMarks()
   end
 end
 
+-- Row count varies (PTR PREVIEW appends the upcoming rows), so follow the variable-
+-- height pattern: grow the row pool, pad the data out to the pool with blank-string
+-- cells so update() overwrites cells left from a larger previous render (leaving PTR
+-- mode shrinks back to the live rows), then ResizeRows to hide the dead space.
 function Grid:update()
+  local real = #self.data
+  for _ = #self.rows + 1, real do self:addRow{} end
+  if real < #self.rows then
+    local blank = {}
+    for c = 1, #self.cols do blank[c] = "" end
+    for i = real + 1, #self.rows do self.data[i] = blank end
+  end
   TableFrame.update(self)
+  self:ResizeRows(real)
   self:_refreshMarks()
 end
 
@@ -331,8 +347,8 @@ function CollectedView:OnBeforeShow()
   self:_render()
 end
 
--- Render the active dataset (live or PTR). PTR mode needs no scan — it lists the
--- upcoming-only delta with a count + the PTR build instead of collected/total.
+-- Render the active dataset. PTR PREVIEW shows live + upcoming together (no scan
+-- needed for the upcoming rows); live-only mode shows collected/total and needs a scan.
 function CollectedView:_render()
   local api = WarbandeerCollectedApi
   if not api then
@@ -342,19 +358,8 @@ function CollectedView:_render()
     self.emptyMsg:Show()
     return
   end
-  if self.grid._ptr then
-    self.emptyMsg:Hide()
-    local n = 0
-    for _, grp in ipairs(api.PtrSets or {}) do
-      for _, set in ipairs(grp.sets) do if set.id then n = n + 1 end end
-    end
-    self.counter:Text(api.PtrBuild and ("Upcoming: %d  ·  PTR %s"):format(n, api.PtrBuild.ptr) or ("Upcoming: " .. n))
-    self:RefreshWanted()
-    self.grid.data = self.grid:GetData()
-    self.grid:update()
-    return
-  end
-  if not api:IsScanned() then
+  local ptr = self.grid._ptr
+  if not ptr and not api:IsScanned() then
     self.counter:Text("")
     self.wantedCount:Text("")
     self.emptyMsg:Text("Run /collected scan to populate")
@@ -363,7 +368,15 @@ function CollectedView:_render()
   end
   self.emptyMsg:Hide()
   local collected, total = api:Counts()
-  self.counter:Text("Sets: " .. collected .. " / " .. total)
+  local txt = "Sets: " .. collected .. " / " .. total
+  if ptr then
+    local n = 0
+    for _, grp in ipairs(api.PtrSets or {}) do
+      for _, set in ipairs(grp.sets) do if set.id then n = n + 1 end end
+    end
+    txt = txt .. ("   ·   +%d upcoming%s"):format(n, api.PtrBuild and (" (PTR " .. api.PtrBuild.ptr .. ")") or "")
+  end
+  self.counter:Text(txt)
   self:RefreshWanted()
   self.grid.data = self.grid:GetData()
   self.grid:update()
