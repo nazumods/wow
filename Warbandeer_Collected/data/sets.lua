@@ -1,6 +1,7 @@
 ---@type Warbandeer_Collected
 local ns = select(2, ...)
 local tinsert = tinsert
+-- Generated from wago.tools TransmogSet (product wow, build 12.0.7.68275, 2026-06-23) by tools/update-sets.ps1.
 
 ---@class Warbandeer_Collected
 ---@field Sets table[] transmog set groups: `{ id, name, release, instance, difficulty, minLevel, sets = { { id, name, classId }... } }`
@@ -78,7 +79,7 @@ tinsert(ns.Sets, {
   minLevel = 70,
   sets = {
     { id = 852, name = "Battlegear of Wrath", classId = 1 },
-    { id = 901, name = "Judgement Armor", classId = 2 },
+    { id = 901, name = "Judgment Armor", classId = 2 },
     { id = 916, name = "Dragonstalker Armor", classId = 3 },
     { id = 893, name = "Bloodfang Armor", classId = 4 },
     { id = 356, name = "Vestments of Transcendence", classId = 5 },
@@ -100,14 +101,14 @@ tinsert(ns.Sets, {
     { id = 851, name = "Conqueror's Battlegear", classId = 1 },
     { id = 900, name = "Avenger's Battlegear", classId = 2 },
     { id = 915, name = "Striker's Garb", classId = 3 },
-    { id = 892, name = "Deathdealer's Embrace", },
-    { id = 358, name = "Garments of the Oracle", },
+    { id = 892, name = "Deathdealer's Embrace", classId = 4 },
+    { id = 358, name = "Garments of the Oracle", classId = 5 },
     {},
-    { id = 874, name = "Stormcaller's Garb", },
-    { id = 908, name = "Enigma Vestments", },
-    { id = 866, name = "Doomcaller's Attire", },
+    { id = 874, name = "Stormcaller's Garb", classId = 7 },
+    { id = 908, name = "Enigma Vestments", classId = 8 },
+    { id = 866, name = "Doomcaller's Attire", classId = 9 },
     {},
-    { id = 926, name = "Genesis Raiment", },
+    { id = 926, name = "Genesis Raiment", classId = 11 },
   },
 })
 
@@ -118,17 +119,17 @@ tinsert(ns.Sets, {
   release = 2,
   minLevel = 70,
   sets = {
-    { id = 849, name = "Warbringer Armor", },
-    { id = 906, name = "Justicar Armor", },
-    { id = 913, name = "Demon Stalker Armor", },
-    { id = 890, name = "Netherblade", },
-    { id = 354, name = "Incarnate Regalia", },
+    { id = 849, name = "Warbringer Armor", classId = 1 },
+    { id = 906, name = "Justicar Armor", classId = 2 },
+    { id = 913, name = "Demon Stalker Armor", classId = 3 },
+    { id = 890, name = "Netherblade", classId = 4 },
+    { id = 354, name = "Incarnate Regalia", classId = 5 },
     {},
-    { id = 872, name = "Cyclone Regalia", },
-    { id = 898, name = "Aldor Regalia", },
-    { id = 864, name = "Voidheart Raiment", },
+    { id = 872, name = "Cyclone Regalia", classId = 7 },
+    { id = 898, name = "Aldor Regalia", classId = 8 },
+    { id = 864, name = "Voidheart Raiment", classId = 9 },
     {},
-    { id = 922, name = "Malorne Raiment", },
+    { id = 922, name = "Malorne Raiment", classId = 11 },
   },
 })
 
@@ -138,17 +139,17 @@ tinsert(ns.Sets, {
   release = 2,
   minLevel = 70,
   sets = {
-    { id = 848, name = "Destroyer Armor" },
-    { id = 897, name = "Crystalforge Armor" },
-    { id = 918, name = "Rift Stalker Armor" },
-    { id = 889, name = "Deathmantle" },
-    { id = 353, name = "Avatar Regalia"},
+    { id = 848, name = "Destroyer Armor", classId = 1 },
+    { id = 897, name = "Crystalforge Armor", classId = 2 },
+    { id = 918, name = "Rift Stalker Armor", classId = 3 },
+    { id = 889, name = "Deathmantle", classId = 4 },
+    { id = 353, name = "Avatar Regalia", classId = 5 },
     {},
-    { id = 871, name = "Cataclysm Regalia" },
-    { id = 905, name = "Tirisfal Regalia" },
-    { id = 863, name = "Corruptor Raiment" },
+    { id = 871, name = "Cataclysm Regalia", classId = 7 },
+    { id = 905, name = "Tirisfal Regalia", classId = 8 },
+    { id = 863, name = "Corruptor Raiment", classId = 9 },
     {},
-    { id = 921, name = "Nordrassil Raiment" },
+    { id = 921, name = "Nordrassil Raiment", classId = 11 },
   },
 })
 
@@ -158,17 +159,17 @@ tinsert(ns.Sets, {
   release = 2,
   minLevel = 70,
   sets = {
-    { id = 847, name = "Onslaught Armor" },
-    { id = 896, name = "Lightbringer Armor" },
-    { id = 912, name = "Gronnstalker's Armor" },
-    { id = 888, name = "Slayer's Armor" },
-    { id = 351, name = "Absolution Regalia" },
-    { },
-    { id = 870, name = "Skyshatter Regalia" },
-    { id = 904, name = "Tempest Regalia" },
-    { id = 862, name = "Malefic Raiment" },
-    { },
-    { id = 920, name = "Thunderheart Raiment" },
+    { id = 847, name = "Onslaught Armor", classId = 1 },
+    { id = 896, name = "Lightbringer Armor", classId = 2 },
+    { id = 912, name = "Gronnstalker's Armor", classId = 3 },
+    { id = 888, name = "Slayer's Armor", classId = 4 },
+    { id = 351, name = "Absolution Regalia", classId = 5 },
+    {},
+    { id = 870, name = "Skyshatter Regalia", classId = 7 },
+    { id = 904, name = "Tempest Regalia", classId = 8 },
+    { id = 862, name = "Malefic Raiment", classId = 9 },
+    {},
+    { id = 920, name = "Thunderheart Raiment", classId = 11 },
   },
 })
 
@@ -178,17 +179,17 @@ tinsert(ns.Sets, {
   release = 2,
   minLevel = 70,
   sets = {
-    { id = 931, name = "Onslaught Battlegear" },
-    { id = 895, name = "Lightbringer Battlegear" },
-    { id = 911, name = "Gronnstalker's Battlegear" },
-    { id = 887, name = "Slayer's Battlegear" },
-    { id = 352, name = "Vestments of Absolution" },
-    { },
-    { id = 869, name = "Skyshatter Raiment" },
-    { id = 903, name = "Tempest Garb" },
-    { id = 932, name = "Malefic Regalia" },
-    { },
-    { id = 919, name = "Thunderheart Regalia" },
+    { id = 931, name = "Onslaught Battlegear", classId = 1 },
+    { id = 895, name = "Lightbringer Battlegear", classId = 2 },
+    { id = 911, name = "Gronnstalker's Battlegear", classId = 3 },
+    { id = 887, name = "Slayer's Battlegear", classId = 4 },
+    { id = 352, name = "Vestments of Absolution", classId = 5 },
+    {},
+    { id = 869, name = "Skyshatter Raiment", classId = 7 },
+    { id = 903, name = "Tempest Garb", classId = 8 },
+    { id = 932, name = "Malefic Regalia", classId = 9 },
+    {},
+    { id = 919, name = "Thunderheart Regalia", classId = 11 },
   },
 })
 
@@ -199,17 +200,17 @@ tinsert(ns.Sets, {
   release = 3,
   minLevel = 70,
   sets = {
-    { id = 661, name = "Heroes' Dreadnaught Battlegear" },
-    { id = 710, name = "Heroes' Redemption Plate" },
-    { id = 742, name = "Heroes' Crypstalker Battlegear" },
-    { id = 694, name = "Heroes' Bonescythe Battlegear" },
-    { id = 361, name = "Heroes' Regalia of Faith" },
-    { id = 845, name = "Heroes' Scourgeborne Plate" },
-    { id = 644, name = "Heroes' Earthshatter Regalia" },
-    { id = 726, name = "Heroes' Frostfire Garb" },
-    { id = 678, name = "Heroes' Plagueheart Garb" },
+    { id = 661, name = "Heroes' Dreadnaught Battlegear", classId = 1 },
+    { id = 710, name = "Heroes' Redemption Plate", classId = 2 },
+    { id = 742, name = "Heroes' Cryptstalker Battlegear", classId = 3 },
+    { id = 694, name = "Heroes' Bonescythe Battlegear", classId = 4 },
+    { id = 361, name = "Heroes' Regalia of Faith", classId = 5 },
+    { id = 845, name = "Heroes' Scourgeborne Plate", classId = 6 },
+    { id = 644, name = "Heroes' Earthshatter Regalia", classId = 7 },
+    { id = 726, name = "Heroes' Frostfire Garb", classId = 8 },
+    { id = 678, name = "Heroes' Plagueheart Garb", classId = 9 },
     {},
-    { id = 829, name = "Heroes' Dreamwalker Battlegear" },
+    { id = 829, name = "Heroes' Dreamwalker Battlegear", classId = 11 },
   },
 })
 
@@ -219,17 +220,17 @@ tinsert(ns.Sets, {
   release = 3,
   minLevel = 70,
   sets = {
-    { id = 662, name = "Valourous Dreadnaught Battlegear" },
-    { id = 711, name = "Valourous Redemption Plate" },
-    { id = 743, name = "Valourous Crypstalker Battlegear" },
-    { id = 695, name = "Valourous Bonescythe Battlegear" },
-    { id = 362, name = "Valourous Regalia of Faith" },
-    { id = 846, name = "Valourous Scourgeborne Plate" },
-    { id = 645, name = "Valourous Earthshatter Regalia" },
-    { id = 727, name = "Valourous Frostfire Garb" },
-    { id = 679, name = "Valourous Plagueheart Garb" },
+    { id = 662, name = "Valorous Dreadnaught Battlegear", classId = 1 },
+    { id = 711, name = "Valorous Redemption Plate", classId = 2 },
+    { id = 743, name = "Valorous Cryptstalker Battlegear", classId = 3 },
+    { id = 695, name = "Valorous Bonescythe Battlegear", classId = 4 },
+    { id = 362, name = "Valorous Regalia of Faith", classId = 5 },
+    { id = 846, name = "Valorous Scourgeborne Plate", classId = 6 },
+    { id = 645, name = "Valorous Earthshatter Regalia", classId = 7 },
+    { id = 727, name = "Valorous Frostfire Garb", classId = 8 },
+    { id = 679, name = "Valorous Plagueheart Garb", classId = 9 },
     {},
-    { id = 830, name = "Valourous Dreamwalker Battlegear" },
+    { id = 830, name = "Valorous Dreamwalker Battlegear", classId = 11 },
   },
 })
 
@@ -239,17 +240,17 @@ tinsert(ns.Sets, {
   release = 3,
   minLevel = 70,
   sets = {
-    { id = 659, name = "Valourous Siegebreaker Battlegear" },
-    { id = 708, name = "Valourous Aegis Plate" },
-    { id = 740, name = "Valourous Scourgestalker Battlegear" },
-    { id = 692, name = "Valourous Terrorblade Battlegear" },
-    { id = 363, name = "Valourous Sanctification Regalia" },
-    { id = 843, name = "Valourous Darkruned Plate" },
-    { id = 642, name = "Valourous Worldbreaker Regalia" },
-    { id = 724, name = "Valourous Kirin Tor Garb" },
-    { id = 676, name = "Valourous Deathbringer Garb" },
+    { id = 659, name = "Valorous Siegebreaker Battlegear", classId = 1 },
+    { id = 708, name = "Valorous Aegis Plate", classId = 2 },
+    { id = 740, name = "Valorous Scourgestalker Battlegear", classId = 3 },
+    { id = 692, name = "Valorous Terrorblade Battlegear", classId = 4 },
+    { id = 363, name = "Valorous Sanctification Regalia", classId = 5 },
+    { id = 843, name = "Valorous Darkruned Plate", classId = 6 },
+    { id = 642, name = "Valorous Worldbreaker Regalia", classId = 7 },
+    { id = 724, name = "Valorous Kirin Tor Garb", classId = 8 },
+    { id = 676, name = "Valorous Deathbringer Garb", classId = 9 },
     {},
-    { id = 827, name = "Valourous Nightsong Battlegear" },
+    { id = 827, name = "Valorous Nightsong Battlegear", classId = 11 },
   },
 })
 
@@ -261,17 +262,17 @@ tinsert(ns.Sets, {
   difficulty = 14,
   minLevel = 70,
   sets = {
-    { id = 660, name = "Conqueror's Siegebreaker Battlegear" },
-    { id = 709, name = "Conqueror's Aegis Plate" },
-    { id = 741, name = "Conqueror's Scourgestalker Battlegear" },
-    { id = 693, name = "Conqueror's Terrorblade Battlegear" },
-    { id = 364, name = "Conqueror's Sanctification Regalia" },
-    { id = 844, name = "Conqueror's Darkruned Plate" },
-    { id = 643, name = "Conqueror's Worldbreaker Regalia" },
-    { id = 725, name = "Conqueror's Kirin Tor Garb" },
-    { id = 677, name = "Conqueror's Deathbringer Garb" },
+    { id = 660, name = "Conqueror's Siegebreaker Battlegear", classId = 1 },
+    { id = 709, name = "Conqueror's Aegis Plate", classId = 2 },
+    { id = 741, name = "Conqueror's Scourgestalker Battlegear", classId = 3 },
+    { id = 693, name = "Conqueror's Terrorblade Battlegear", classId = 4 },
+    { id = 364, name = "Conqueror's Sanctification Regalia", classId = 5 },
+    { id = 844, name = "Conqueror's Darkruned Plate", classId = 6 },
+    { id = 643, name = "Conqueror's Worldbreaker Regalia", classId = 7 },
+    { id = 725, name = "Conqueror's Kirin Tor Garb", classId = 8 },
+    { id = 677, name = "Conqueror's Deathbringer Garb", classId = 9 },
     {},
-    { id = 828, name = "Conqueror's Nightsong Battlegear" },
+    { id = 828, name = "Conqueror's Nightsong Battlegear", classId = 11 },
   },
 })
 
@@ -283,17 +284,17 @@ tinsert(ns.Sets, {
   release = 3,
   minLevel = 70,
   sets = {
-    { id = 655, name = "Ymirjar Lord's Battlegear" },
-    { id = 703, name = "Lightsworn Plate" },
-    { id = 735, name = "Ahn'Kahar Blood Hunter's Battlegear" },
-    { id = 687, name = "Shadowblade's Battlegear" },
-    { id = 346, name = "Crimson Acolyte's Regalia" },
-    { id = 838, name = "Scourgelord's Plate" },
-    { id = 637, name = "Frost Witch's Regalia" },
-    { id = 719, name = "Bloodmage's Regalia" },
-    { id = 671, name = "Dark Coven's Regalia" },
+    { id = 655, name = "Ymirjar Lord's Battlegear", classId = 1 },
+    { id = 703, name = "Lightsworn Plate", classId = 2 },
+    { id = 735, name = "Ahn'Kahar Blood Hunter's Battlegear", classId = 3 },
+    { id = 687, name = "Shadowblade's Battlegear", classId = 4 },
+    { id = 346, name = "Crimson Acolyte Regalia", classId = 5 },
+    { id = 838, name = "Scourgelord's Plate", classId = 6 },
+    { id = 637, name = "Frost Witch's Regalia", classId = 7 },
+    { id = 719, name = "Bloodmage's Regalia", classId = 8 },
+    { id = 671, name = "Dark Coven's Regalia", classId = 9 },
     {},
-    { id = 822, name = "Lasherweave Battlegear" },
+    { id = 822, name = "Lasherweave Battlegear", classId = 11 },
   },
 })
 
@@ -303,17 +304,17 @@ tinsert(ns.Sets, {
   release = 3,
   minLevel = 70,
   sets = {
-    { id = 656, name = "Sanctified Ymirjar Lord's Battlegear" },
-    { id = 704, name = "Sanctified Lightsworn Plate" },
-    { id = 736, name = "Sanctified Ahn'Kahar Blood Hunter's Battlegear" },
-    { id = 688, name = "Sanctified Shadowblade's Battlegear" },
-    { id = 347, name = "Sanctified Crimson Acolyte's Regalia" },
-    { id = 839, name = "Sanctified Scourgelord's Plate" },
-    { id = 638, name = "Frost Witch's Regalia" },
-    { id = 720, name = "Sanctified Bloodmage's Regalia" },
-    { id = 672, name = "Sanctified Dark Coven's Regalia" },
+    { id = 656, name = "Sanctified Ymirjar Lord's Battlegear", classId = 1 },
+    { id = 704, name = "Sanctified Lightsworn Plate", classId = 2 },
+    { id = 736, name = "Sanctified Ahn'Kahar Blood Hunter's Battlegear", classId = 3 },
+    { id = 688, name = "Sanctified Shadowblade's Battlegear", classId = 4 },
+    { id = 347, name = "Sanctified Crimson Acolyte Regalia", classId = 5 },
+    { id = 839, name = "Sanctified Scourgelord's Plate", classId = 6 },
+    { id = 638, name = "Frost Witch's Regalia", classId = 7 },
+    { id = 720, name = "Sanctified Bloodmage's Regalia", classId = 8 },
+    { id = 672, name = "Sanctified Dark Coven's Regalia", classId = 9 },
     {},
-    { id = 823, name = "Sanctified Lasherweave Battlegear" },
+    { id = 823, name = "Sanctified Lasherweave Battlegear", classId = 11 },
   },
 })
 
@@ -325,17 +326,17 @@ tinsert(ns.Sets, {
   difficulty = 6,
   minLevel = 70,
   sets = {
-    { id = 298, name = "Sanctified Ymirjar Lord's Battlegear" },
-    { id = 705, name = "Sanctified Lightsworn Plate" },
-    { id = 737, name = "Sanctified Ahn'Kahar Blood Hunter's Battlegear" },
-    { id = 689, name = "Sanctified Shadowblade's Battlegear" },
-    { id = 348, name = "Sanctified Crimson Acolyte's Regalia" },
-    { id = 840, name = "Sanctified Scourgelord's Plate" },
-    { id = 639, name = "Frost Witch's Regalia" },
-    { id = 721, name = "Sanctified Bloodmage's Regalia" },
-    { id = 673, name = "Sanctified Dark Coven's Regalia" },
+    { id = 298, name = "Sanctified Ymirjar Lord's Battlegear", classId = 1 },
+    { id = 705, name = "Sanctified Lightsworn Plate", classId = 2 },
+    { id = 737, name = "Sanctified Ahn'Kahar Blood Hunter's Battlegear", classId = 3 },
+    { id = 689, name = "Sanctified Shadowblade's Battlegear", classId = 4 },
+    { id = 348, name = "Sanctified Crimson Acolyte Regalia", classId = 5 },
+    { id = 840, name = "Sanctified Scourgelord's Plate", classId = 6 },
+    { id = 639, name = "Frost Witch's Regalia", classId = 7 },
+    { id = 721, name = "Sanctified Bloodmage's Regalia", classId = 8 },
+    { id = 673, name = "Sanctified Dark Coven's Regalia", classId = 9 },
     {},
-    { id = 824, name = "Sanctified Lasherweave Battlegear" },
+    { id = 824, name = "Sanctified Lasherweave Battlegear", classId = 11 },
   },
 })
 
@@ -346,17 +347,17 @@ tinsert(ns.Sets, {
   release = 4,
   minLevel = 70,
   sets = {
-    { id = 653, name = "Earthen Battleplate" }, -- class 1
-    { id = 701, name = "Reinforced Sapphirium Battleplate" }, --class 2
-    { id = 733, name = "Lightning-Charged Battlegear" }, --class4
-    { id = 685, name = "Wind Dancer's Regalia" }, --class 8
-    { id = 344, name = "Mercurial Regalia" }, --class 16
-    { id = 836, name = "Magma Plated Battlearmor" }, --class 32
-    { id = 635, name = "Regalia of the Raging Elements" }, --class 64
-    { id = 717, name = "Firelord's Vestments" }, --class 128
-    { id = 669, name = "Shadowflame Regalia" }, --class 256
+    { id = 653, name = "Earthen Battleplate", classId = 1 },
+    { id = 701, name = "Reinforced Sapphirium Battleplate", classId = 2 },
+    { id = 733, name = "Lightning-Charged Battlegear", classId = 3 },
+    { id = 685, name = "Wind Dancer's Regalia", classId = 4 },
+    { id = 344, name = "Mercurial Regalia", classId = 5 },
+    { id = 836, name = "Magma Plated Battlearmor", classId = 6 },
+    { id = 635, name = "Regalia of the Raging Elements", classId = 7 },
+    { id = 717, name = "Firelord's Vestments", classId = 8 },
+    { id = 669, name = "Shadowflame Regalia", classId = 9 },
     {},
-    { id = 820, name = "Stormrider's Vestments" }, --class 1024
+    { id = 820, name = "Stormrider's Vestments", classId = 11 },
   },
 })
 
@@ -366,17 +367,17 @@ tinsert(ns.Sets, {
   release = 4,
   minLevel = 70,
   sets = {
-    { id = 654, name = "Earthen Battleplate" }, -- class 1
-    { id = 702, name = "Reinforced Sapphirium Battleplate" }, --class 2
-    { id = 734, name = "Lightning-Charged Battlegear" }, --class4
-    { id = 686, name = "Wind Dancer's Regalia" }, --class 8
-    { id = 345, name = "Mercurial Regalia" }, --class 16
-    { id = 837, name = "Magma Plated Battlearmor" }, --class 32
-    { id = 636, name = "Regalia of the Raging Elements" }, --class 64
-    { id = 718, name = "Firelord's Vestments" }, --class 128
-    { id = 670, name = "Shadowflame Regalia" }, --class 256
+    { id = 654, name = "Earthen Battleplate", classId = 1 },
+    { id = 702, name = "Reinforced Sapphirium Battleplate", classId = 2 },
+    { id = 734, name = "Lightning-Charged Battlegear", classId = 3 },
+    { id = 686, name = "Wind Dancer's Regalia", classId = 4 },
+    { id = 345, name = "Mercurial Regalia", classId = 5 },
+    { id = 837, name = "Magma Plated Battlearmor", classId = 6 },
+    { id = 636, name = "Regalia of the Raging Elements", classId = 7 },
+    { id = 718, name = "Firelord's Vestments", classId = 8 },
+    { id = 670, name = "Shadowflame Regalia", classId = 9 },
     {},
-    { id = 821, name = "Stormrider's Vestments" }, --class 1024
+    { id = 821, name = "Stormrider's Vestments", classId = 11 },
   },
 })
 
@@ -386,17 +387,17 @@ tinsert(ns.Sets, {
   release = 4,
   minLevel = 70,
   sets = {
-    { id = 651, name = "Molten Giant Battleplate" }, -- class 1
-    { id = 699, name = "Battleplate of Immolation" }, --class 2
-    { id = 732, name = "Flamewaker's Battlegear" }, --class 4
-    { id = 684, name = "Vestments of the Dark Phoenix" }, --class 8
-    { id = 342, name = "Regalia of the Cleansing Flame" }, --class 16
-    { id = 834, name = "Elementium Deathplate Battlearmor" }, --class 32
-    { id = 633, name = "Volcanic Regalia" }, --class 64
-    { id = 715, name = "Firehawk Robes of Conflagration" }, --class 128
-    { id = 667, name = "Balespider's Burning Vestments" }, --class 256
+    { id = 651, name = "Molten Giant Battleplate", classId = 1 },
+    { id = 699, name = "Battleplate of Immolation", classId = 2 },
+    { id = 731, name = "Flamewaker's Battlegear", classId = 3 },
+    { id = 683, name = "Vestments of the Dark Phoenix", classId = 4 },
+    { id = 342, name = "Regalia of the Cleansing Flame", classId = 5 },
+    { id = 834, name = "Elementium Deathplate Battlearmor", classId = 6 },
+    { id = 633, name = "Volcanic Regalia", classId = 7 },
+    { id = 715, name = "Firehawk Robes of Conflagration", classId = 8 },
+    { id = 667, name = "Balespider's Burning Vestments", classId = 9 },
     {},
-    { id = 818, name = "Obsidian Arborweave Vestments" }, --class 1024
+    { id = 818, name = "Obsidian Arborweave Vestments", classId = 11 },
   },
 })
 
@@ -406,17 +407,17 @@ tinsert(ns.Sets, {
   release = 4,
   minLevel = 70,
   sets = {
-    { id = 652, name = "Molten Giant Battleplate" }, -- class 1
-    { id = 700, name = "Battleplate of Immolation" }, --class 2
-    { id = 733, name = "Flamewaker's Battlegear" }, --class 4
-    { id = 685, name = "Vestments of the Dark Phoenix" }, --class 8
-    { id = 343, name = "Regalia of the Cleansing Flame" }, --class 16
-    { id = 835, name = "Elementium Deathplate Battlearmor" }, --class 32
-    { id = 634, name = "Volcanic Regalia" }, --class 64
-    { id = 716, name = "Firehawk Robes of Conflagration" }, --class 128
-    { id = 668, name = "Balespider's Burning Vestments" }, --class 256
+    { id = 652, name = "Molten Giant Battleplate", classId = 1 },
+    { id = 700, name = "Battleplate of Immolation", classId = 2 },
+    { id = 732, name = "Flamewaker's Battlegear", classId = 3 },
+    { id = 684, name = "Vestments of the Dark Phoenix", classId = 4 },
+    { id = 343, name = "Regalia of the Cleansing Flame", classId = 5 },
+    { id = 835, name = "Elementium Deathplate Battlearmor", classId = 6 },
+    { id = 634, name = "Volcanic Regalia", classId = 7 },
+    { id = 716, name = "Firehawk Robes of Conflagration", classId = 8 },
+    { id = 668, name = "Balespider's Burning Vestments", classId = 9 },
     {},
-    { id = 819, name = "Obsidian Arborweave Vestments" }, --class 1024
+    { id = 819, name = "Obsidian Arborweave Vestments", classId = 11 },
   },
 })
 
@@ -426,17 +427,17 @@ tinsert(ns.Sets, {
   release = 4,
   minLevel = 70,
   sets = {
-    { id = 650, name = "Colossal Dragonplate Battlegear" },
-    { id = 697, name = "Battleplate of Radiant Glory" },
-    { id = 729, name = "Wyrmstalker Battlegear" },
-    { id = 681, name = "Blackfang Battleweave" },
-    { id = 340, name = "Regalia of Dying Light" },
-    { id = 832, name = "Necrotic Boneplate Armor" },
-    { id = 632, name = "Spiritwalker's Regalia" },
-    { id = 713, name = "Time Lord's Regalia" },
-    { id = 665, name = "Vestments of the Faceless Shroud" },
-	  {},
-    { id = 816, name = "Deep Earth Vestments" },
+    { id = 650, name = "Colossal Dragonplate Battlegear", classId = 1 },
+    { id = 697, name = "Battleplate of Radiant Glory", classId = 2 },
+    { id = 729, name = "Wyrmstalker Battlegear", classId = 3 },
+    { id = 681, name = "Blackfang Battleweave", classId = 4 },
+    { id = 340, name = "Regalia of Dying Light", classId = 5 },
+    { id = 832, name = "Necrotic Boneplate Armor", classId = 6 },
+    { id = 632, name = "Spiritwalker's Regalia", classId = 7 },
+    { id = 713, name = "Time Lord's Regalia", classId = 8 },
+    { id = 665, name = "Vestments of the Faceless Shroud", classId = 9 },
+    {},
+    { id = 816, name = "Deep Earth Vestments", classId = 11 },
   },
 })
 
@@ -448,17 +449,17 @@ tinsert(ns.Sets, {
   difficulty = 4,
   minLevel = 70,
   sets = {
-    { id = 649, name = "Colossal Dragonplate Battlegear" },
-    { id = 696, name = "Battleplate of Radiant Glory" },
-    { id = 728, name = "Wyrmstalker Battlegear" },
-    { id = 680, name = "Blackfang Battleweave" },
-    { id = 339, name = "Regalia of Dying Light" },
-    { id = 831, name = "Necrotic Boneplate Armor" },
-    { id = 630, name = "Spiritwalker's Regalia" },
-    { id = 712, name = "Time Lord's Regalia" },
-    { id = 664, name = "Vestments of the Faceless Shroud" },
-	  {},
-    { id = 815, name = "Deep Earth Vestments" },
+    { id = 649, name = "Colossal Dragonplate Battlegear", classId = 1 },
+    { id = 696, name = "Battleplate of Radiant Glory", classId = 2 },
+    { id = 728, name = "Wyrmstalker Battlegear", classId = 3 },
+    { id = 680, name = "Blackfang Battleweave", classId = 4 },
+    { id = 339, name = "Regalia of Dying Light", classId = 5 },
+    { id = 831, name = "Necrotic Boneplate Armor", classId = 6 },
+    { id = 630, name = "Spiritwalker's Regalia", classId = 7 },
+    { id = 712, name = "Time Lord's Regalia", classId = 8 },
+    { id = 664, name = "Vestments of the Faceless Shroud", classId = 9 },
+    {},
+    { id = 815, name = "Deep Earth Vestments", classId = 11 },
   },
 })
 
@@ -468,17 +469,17 @@ tinsert(ns.Sets, {
   release = 4,
   minLevel = 70,
   sets = {
-    { id = 631, name = "Colossal Dragonplate Battlegear" },
-    { id = 698, name = "Battleplate of Radiant Glory" },
-    { id = 730, name = "Wyrmstalker Battlegear" },
-    { id = 682, name = "Blackfang Battleweave" },
-    { id = 341, name = "Regalia of Dying Light" },
-    { id = 833, name = "Necrotic Boneplate Armor" },
-    { id = 663, name = "Spiritwalker's Regalia" },
-    { id = 714, name = "Time Lord's Regalia" },
-    { id = 666, name = "Vestments of the Faceless Shroud" },
-	  {},
-    { id = 817, name = "Deep Earth Vestments" },
+    { id = 631, name = "Colossal Dragonplate Battlegear", classId = 1 },
+    { id = 698, name = "Battleplate of Radiant Glory", classId = 2 },
+    { id = 730, name = "Wyrmstalker Battlegear", classId = 3 },
+    { id = 682, name = "Blackfang Battleweave", classId = 4 },
+    { id = 341, name = "Regalia of Dying Light", classId = 5 },
+    { id = 833, name = "Necrotic Boneplate Armor", classId = 6 },
+    { id = 663, name = "Spiritwalker's Regalia", classId = 7 },
+    { id = 714, name = "Time Lord's Regalia", classId = 8 },
+    { id = 666, name = "Vestments of the Faceless Shroud", classId = 9 },
+    {},
+    { id = 817, name = "Deep Earth Vestments", classId = 11 },
   },
 })
 
@@ -489,17 +490,17 @@ tinsert(ns.Sets, {
   release = 5,
   minLevel = 70,
   sets = {
-    { id = 446, name = "Battleplate of Resounding Rings" },
-    { id = 495, name = "White Tiger Battlegear" },
-    { id = 546, name = "Yaungol Slayer Battlegear" },
-    { id = 479, name = "Battlegear of the Thousandfold Blades" },
-    { id = 337, name = "Guardian Serpent Regalia" },
-    { id = 579, name = "Plate of the Lost Catacomb" },
-    { id = 428, name = "Regalia of the Firebird" },
-    { id = 531, name = "Regalia of the Burning Scroll" },
-    { id = 462, name = "Sha Skin Regalia" },
-    { id = 515, name = "Vestments of the Red Crane" },
-    { id = 565, name = "Vestments of the Eternal Blossom" },
+    { id = 446, name = "Battleplate of Resounding Rings", classId = 1 },
+    { id = 495, name = "White Tiger Battlegear", classId = 2 },
+    { id = 546, name = "Yaungol Slayer Battlegear", classId = 3 },
+    { id = 479, name = "Battlegear of the Thousandfold Blades", classId = 4 },
+    { id = 337, name = "Guardian Serpent Regalia", classId = 5 },
+    { id = 579, name = "Plate of the Lost Catacomb", classId = 6 },
+    { id = 428, name = "Regalia of the Firebird", classId = 7 },
+    { id = 531, name = "Regalia of the Burning Scroll", classId = 8 },
+    { id = 462, name = "Sha Skin Regalia", classId = 9 },
+    { id = 515, name = "Vestments of the Red Crane", classId = 10 },
+    { id = 565, name = "Vestments of the Eternal Blossom", classId = 11 },
   },
 })
 
@@ -509,17 +510,17 @@ tinsert(ns.Sets, {
   release = 5,
   minLevel = 70,
   sets = {
-    { id = 444, name = "Battleplate of Resounding Rings" },
-    { id = 493, name = "White Tiger Battlegear" },
-    { id = 545, name = "Yaungol Slayer Battlegear" },
-    { id = 478, name = "Battlegear of the Thousandfold Blades" },
-    { id = 336, name = "Guardian Serpent Regalia" },
-    { id = 578, name = "Plate of the Lost Catacomb" },
-    { id = 427, name = "Regalia of the Firebird" },
-    { id = 529, name = "Regalia of the Burning Scroll" },
-    { id = 461, name = "Sha Skin Regalia" },
-    { id = 513, name = "Vestments of the Red Crane" },
-    { id = 563, name = "Vestments of the Eternal Blossom" },
+    { id = 444, name = "Battleplate of Resounding Rings", classId = 1 },
+    { id = 493, name = "White Tiger Battlegear", classId = 2 },
+    { id = 545, name = "Yaungol Slayer Battlegear", classId = 3 },
+    { id = 478, name = "Battlegear of the Thousandfold Blades", classId = 4 },
+    { id = 336, name = "Guardian Serpent Regalia", classId = 5 },
+    { id = 578, name = "Plate of the Lost Catacomb", classId = 6 },
+    { id = 427, name = "Regalia of the Firebird", classId = 7 },
+    { id = 529, name = "Regalia of the Burning Scroll", classId = 8 },
+    { id = 461, name = "Sha Skin Regalia", classId = 9 },
+    { id = 513, name = "Vestments of the Red Crane", classId = 10 },
+    { id = 563, name = "Vestments of the Eternal Blossom", classId = 11 },
   },
 })
 
@@ -529,17 +530,17 @@ tinsert(ns.Sets, {
   release = 5,
   minLevel = 70,
   sets = {
-    { id = 445, name = "Battleplate of Resounding Rings" },
-    { id = 494, name = "White Tiger Battlegear" },
-    { id = 547, name = "Yaungol Slayer Battlegear" },
-    { id = 477, name = "Battlegear of the Thousandfold Blades" },
-    { id = 429, name = "Guardian Serpent Regalia" },
-    { id = 580, name = "Plate of the Lost Catacomb" },
-    { id = 338, name = "Regalia of the Firebird" },
-    { id = 530, name = "Regalia of the Burning Scroll" },
-    { id = 463, name = "Sha Skin Regalia" },
-    { id = 514, name = "Vestments of the Red Crane" },
-    { id = 564, name = "Vestments of the Eternal Blossom" },
+    { id = 445, name = "Battleplate of Resounding Rings", classId = 1 },
+    { id = 494, name = "White Tiger Battlegear", classId = 2 },
+    { id = 547, name = "Yaungol Slayer Battlegear", classId = 3 },
+    { id = 477, name = "Battlegear of the Thousandfold Blades", classId = 4 },
+    { id = 429, name = "Guardian Serpent Regalia", classId = 5 },
+    { id = 580, name = "Plate of the Lost Catacomb", classId = 6 },
+    { id = 338, name = "Regalia of the Firebird", classId = 7 },
+    { id = 530, name = "Regalia of the Burning Scroll", classId = 8 },
+    { id = 463, name = "Sha Skin Regalia", classId = 9 },
+    { id = 514, name = "Vestments of the Red Crane", classId = 10 },
+    { id = 564, name = "Vestments of the Eternal Blossom", classId = 11 },
   },
 })
 
@@ -549,17 +550,7 @@ tinsert(ns.Sets, {
   release = 5,
   minLevel = 70,
   sets = {
-    { id = 3440, name = "Battleplate of Resounding Rings" },
-    {},
-    {},
-    {},
-    {},
-    {},
-    {},
-    {},
-    {},
-    {},
-    {},
+    { id = 3440, name = "Battleplate of Resounding Rings", classId = 1 },
   },
 })
 
@@ -569,17 +560,17 @@ tinsert(ns.Sets, {
   release = 5,
   minLevel = 70,
   sets = {
-    { id = 442, name = "Battleplate of the Last Mogu" }, --1641
-    { id = 492, name = "Battlegear of the Lightning Emperor" },
-    { id = 543, name = "Battlegear of the Saurok Stalker" },
-    { id = 476, name = "Nine-Tail Battlegear" },
-    { id = 335, name = "Regalia of the Exorcist" },
-    { id = 576, name = "Battleplate of the All-Consuming Maw" },
-    { id = 426, name = "Regalia of the Witch Doctor" },
-    { id = 528, name = "Regalia of the Chromatic Hydra" },
-    { id = 459, name = "Regalia of the Thousandfold Hells" },
-    { id = 512, name = "Fire-Charm Vestments" },
-    { id = 562, name = "Vestments of the Haunted Forest" },
+    { id = 442, name = "Battleplate of the Last Mogu", classId = 1 },
+    { id = 492, name = "Battlegear of the Lightning Emperor", classId = 2 },
+    { id = 543, name = "Battlegear of the Saurok Stalker", classId = 3 },
+    { id = 476, name = "Nine-Tail Battlegear", classId = 4 },
+    { id = 335, name = "Regalia of the Exorcist", classId = 5 },
+    { id = 576, name = "Battleplate of the All-Consuming Maw", classId = 6 },
+    { id = 426, name = "Regalia of the Witch Doctor", classId = 7 },
+    { id = 528, name = "Regalia of the Chromatic Hydra", classId = 8 },
+    { id = 459, name = "Regalia of the Thousandfold Hells", classId = 9 },
+    { id = 512, name = "Fire-Charm Vestments", classId = 10 },
+    { id = 562, name = "Vestments of the Haunted Forest", classId = 11 },
   },
 })
 
@@ -589,17 +580,17 @@ tinsert(ns.Sets, {
   release = 5,
   minLevel = 70,
   sets = {
-    { id = 441, name = "Battleplate of the Last Mogu" }, --13193
-    { id = 490, name = "Battlegear of the Lightning Emperor" },
-    { id = 542, name = "Battlegear of the Saurok Stalker" },
-    { id = 474, name = "Nine-Tail Battlegear" },
-    { id = 310, name = "Regalia of the Exorcist" },
-    { id = 575, name = "Battleplate of the All-Consuming Maw" },
-    { id = 424, name = "Regalia of the Witch Doctor" },
-    { id = 526, name = "Regalia of the Chromatic Hydra" },
-    { id = 458, name = "Regalia of the Thousandfold Hells" },
-    { id = 510, name = "Fire-Charm Vestments" },
-    { id = 560, name = "Vestments of the Haunted Forest" },
+    { id = 441, name = "Battleplate of the Last Mogu", classId = 1 },
+    { id = 490, name = "Battlegear of the Lightning Emperor", classId = 2 },
+    { id = 542, name = "Battlegear of the Saurok Stalker", classId = 3 },
+    { id = 474, name = "Nine-Tail Battlegear", classId = 4 },
+    { id = 310, name = "Regalia of the Exorcist", classId = 5 },
+    { id = 575, name = "Battleplate of the All-Consuming Maw", classId = 6 },
+    { id = 424, name = "Regalia of the Witch Doctor", classId = 7 },
+    { id = 526, name = "Regalia of the Chromatic Hydra", classId = 8 },
+    { id = 458, name = "Regalia of the Thousandfold Hells", classId = 9 },
+    { id = 510, name = "Fire-Charm Vestments", classId = 10 },
+    { id = 560, name = "Vestments of the Haunted Forest", classId = 11 },
   },
 })
 
@@ -609,17 +600,17 @@ tinsert(ns.Sets, {
   release = 5,
   minLevel = 70,
   sets = {
-    { id = 443, name = "Battleplate of the Last Mogu" }, --2015
-    { id = 491, name = "Battlegear of the Lightning Emperor" },
-    { id = 544, name = "Battlegear of the Saurok Stalker" },
-    { id = 475, name = "Nine-Tail Battlegear" },
-    { id = 334, name = "Regalia of the Exorcist" },
-    { id = 577, name = "Battleplate of the All-Consuming Maw" },
-    { id = 425, name = "Regalia of the Witch Doctor" },
-    { id = 527, name = "Regalia of the Chromatic Hydra" },
-    { id = 460, name = "Regalia of the Thousandfold Hells" },
-    { id = 511, name = "Fire-Charm Vestments" },
-    { id = 561, name = "Vestments of the Haunted Forest" },
+    { id = 443, name = "Battleplate of the Last Mogu", classId = 1 },
+    { id = 491, name = "Battlegear of the Lightning Emperor", classId = 2 },
+    { id = 544, name = "Battlegear of the Saurok Stalker", classId = 3 },
+    { id = 475, name = "Nine-Tail Battlegear", classId = 4 },
+    { id = 334, name = "Regalia of the Exorcist", classId = 5 },
+    { id = 577, name = "Battleplate of the All-Consuming Maw", classId = 6 },
+    { id = 425, name = "Regalia of the Witch Doctor", classId = 7 },
+    { id = 527, name = "Regalia of the Chromatic Hydra", classId = 8 },
+    { id = 460, name = "Regalia of the Thousandfold Hells", classId = 9 },
+    { id = 511, name = "Fire-Charm Vestments", classId = 10 },
+    { id = 561, name = "Vestments of the Haunted Forest", classId = 11 },
   },
 })
 
@@ -629,17 +620,17 @@ tinsert(ns.Sets, {
   release = 5,
   minLevel = 70,
   sets = {
-    { id = 440, name = "Battleplate of the Prehistoric Marauder" }, --1641
-    { id = 489, name = "Vestments of Winged Triumph" },
-    { id = 541, name = "Battlegear of the Unblinking Vigil" },
-    { id = 473, name = "Barbed Assassin Battlegear" },
-    { id = 333, name = "Regalia of Ternion Glory" },
-    { id = 574, name = "Battleplate of Cyclopean Dread" },
-    { id = 423, name = "Regalia of Celestial Harmony" },
-    { id = 525, name = "Chronomancer Regalia" },
-    { id = 457, name = "Regalia of the Horned Nightmare" },
-    { id = 508, name = "Vestments of the Seven Sacred Seals" },
-    { id = 559, name = "Vestments of the Shattered Vale" },
+    { id = 440, name = "Battleplate of the Prehistoric Marauder", classId = 1 },
+    { id = 489, name = "Vestments of Winged Triumph", classId = 2 },
+    { id = 541, name = "Battlegear of the Unblinking Vigil", classId = 3 },
+    { id = 473, name = "Barbed Assassin Battlegear", classId = 4 },
+    { id = 333, name = "Regalia of Ternion Glory", classId = 5 },
+    { id = 574, name = "Battleplate of Cyclopean Dread", classId = 6 },
+    { id = 423, name = "Regalia of Celestial Harmony", classId = 7 },
+    { id = 525, name = "Chronomancer Regalia", classId = 8 },
+    { id = 457, name = "Regalia of the Horned Nightmare", classId = 9 },
+    { id = 508, name = "Vestments of the Seven Sacred Seals", classId = 10 },
+    { id = 559, name = "Vestments of the Shattered Vale", classId = 11 },
   },
 })
 
@@ -649,17 +640,17 @@ tinsert(ns.Sets, {
   release = 5,
   minLevel = 70,
   sets = {
-    { id = 438, name = "Battleplate of the Prehistoric Marauder" }, --13193
-    { id = 487, name = "Vestments of Winged Triumph" },
-    { id = 539, name = "Battlegear of the Unblinking Vigil" },
-    { id = 471, name = "Barbed Assassin Battlegear" },
-    { id = 331, name = "Regalia of Ternion Glory" },
-    { id = 572, name = "Battleplate of Cyclopean Dread" },
-    { id = 421, name = "Regalia of Celestial Harmony" },
-    { id = 523, name = "Chronomancer Regalia" },
-    { id = 455, name = "Regalia of the Horned Nightmare" },
-    { id = 506, name = "Vestments of the Seven Sacred Seals" },
-    { id = 557, name = "Vestments of the Shattered Vale" },
+    { id = 438, name = "Battleplate of the Prehistoric Marauder", classId = 1 },
+    { id = 487, name = "Vestments of Winged Triumph", classId = 2 },
+    { id = 539, name = "Battlegear of the Unblinking Vigil", classId = 3 },
+    { id = 471, name = "Barbed Assassin Battlegear", classId = 4 },
+    { id = 331, name = "Regalia of Ternion Glory", classId = 5 },
+    { id = 572, name = "Battleplate of Cyclopean Dread", classId = 6 },
+    { id = 421, name = "Regalia of Celestial Harmony", classId = 7 },
+    { id = 523, name = "Chronomancer Regalia", classId = 8 },
+    { id = 455, name = "Regalia of the Horned Nightmare", classId = 9 },
+    { id = 506, name = "Vestments of the Seven Sacred Seals", classId = 10 },
+    { id = 557, name = "Vestments of the Shattered Vale", classId = 11 },
   },
 })
 
@@ -669,17 +660,17 @@ tinsert(ns.Sets, {
   release = 5,
   minLevel = 70,
   sets = {
-{ id = 439, name = "Battleplate of the Prehistoric Marauder" }, --13145
-{ id = 488, name = "Vestments of Winged Triumph" },
-{ id = 540, name = "Battlegear of the Unblinking Vigil" },
-{ id = 472, name = "Barbed Assassin Battlegear" },
-{ id = 332, name = "Regalia of Ternion Glory" },
-{ id = 573, name = "Battleplate of Cyclopean Dread" },
-{ id = 422, name = "Regalia of Celestial Harmony" },
-{ id = 524, name = "Chronomancer Regalia" },
-{ id = 456, name = "Regalia of the Horned Nightmare" },
-{ id = 507, name = "Vestments of the Seven Sacred Seals" },
-{ id = 558, name = "Vestments of the Shattered Vale" },
+    { id = 439, name = "Battleplate of the Prehistoric Marauder", classId = 1 },
+    { id = 488, name = "Vestments of Winged Triumph", classId = 2 },
+    { id = 540, name = "Battlegear of the Unblinking Vigil", classId = 3 },
+    { id = 472, name = "Barbed Assassin Battlegear", classId = 4 },
+    { id = 332, name = "Regalia of Ternion Glory", classId = 5 },
+    { id = 573, name = "Battleplate of Cyclopean Dread", classId = 6 },
+    { id = 422, name = "Regalia of Celestial Harmony", classId = 7 },
+    { id = 524, name = "Chronomancer Regalia", classId = 8 },
+    { id = 456, name = "Regalia of the Horned Nightmare", classId = 9 },
+    { id = 507, name = "Vestments of the Seven Sacred Seals", classId = 10 },
+    { id = 558, name = "Vestments of the Shattered Vale", classId = 11 },
   },
 })
 
@@ -690,17 +681,17 @@ tinsert(ns.Sets, {
   release = 6,
   minLevel = 70,
   sets = {
-    { id = 435, name = "Blackhand's Battlegear" },
-    { id = 483, name = "Battlegear of Guiding Light" },
-    { id = 536, name = "Rylakstalker's Battlegear" },
-    { id = 468, name = "Poisoner's Battlegear" },
-    { id = 327, name = "Soul Priest's Raiment" },
-    { id = 569, name = "Ogreskull Boneplate Battlegear" },
-    { id = 418, name = "Windspeaker's Regalia" },
-    { id = 520, name = "Arcanoshatter Regalia" },
-    { id = 452, name = "Shadow Council's Garb" },
-    { id = 498, name = "Battlegear of the Somber Gaze" },
-    { id = 554, name = "Living Wood Battlegear" },
+    { id = 435, name = "Blackhand's Battlegear", classId = 1 },
+    { id = 483, name = "Battlegear of Guiding Light", classId = 2 },
+    { id = 536, name = "Rylakstalker's Battlegear", classId = 3 },
+    { id = 468, name = "Poisoner's Battlegear", classId = 4 },
+    { id = 327, name = "Soul Priest's Raiment", classId = 5 },
+    { id = 569, name = "Ogreskull Boneplate Battlegear", classId = 6 },
+    { id = 418, name = "Windspeaker's Regalia", classId = 7 },
+    { id = 520, name = "Arcanoshatter Regalia", classId = 8 },
+    { id = 452, name = "Shadow Council's Garb", classId = 9 },
+    { id = 498, name = "Battlegear of the Somber Gaze", classId = 10 },
+    { id = 554, name = "Living Wood Battlegear", classId = 11 },
   },
 })
 
@@ -710,17 +701,17 @@ tinsert(ns.Sets, {
   release = 6,
   minLevel = 70,
   sets = {
-    { id = 436, name = "Blackhand's Battlegear" },
-    { id = 484, name = "Battlegear of Guiding Light" },
-    { id = 537, name = "Rylakstalker's Battlegear" },
-    { id = 469, name = "Poisoner's Battlegear" },
-    { id = 419, name = "Soul Priest's Raiment" },
-    { id = 570, name = "Ogreskull Boneplate Battlegear" },
-    { id = 328, name = "Windspeaker's Regalia" },
-    { id = 521, name = "Arcanoshatter Regalia" },
-    { id = 454, name = "Shadow Council's Garb" },
-    { id = 500, name = "Battlegear of the Somber Gaze" },
-    { id = 555, name = "Living Wood Battlegear" },
+    { id = 436, name = "Blackhand's Battlegear", classId = 1 },
+    { id = 484, name = "Battlegear of Guiding Light", classId = 2 },
+    { id = 537, name = "Rylakstalker's Battlegear", classId = 3 },
+    { id = 469, name = "Poisoner's Battlegear", classId = 4 },
+    { id = 419, name = "Soul Priest's Raiment", classId = 5 },
+    { id = 570, name = "Ogreskull Boneplate Battlegear", classId = 6 },
+    { id = 328, name = "Windspeaker's Regalia", classId = 7 },
+    { id = 521, name = "Arcanoshatter Regalia", classId = 8 },
+    { id = 454, name = "Shadow Council's Garb", classId = 9 },
+    { id = 500, name = "Battlegear of the Somber Gaze", classId = 10 },
+    { id = 555, name = "Living Wood Battlegear", classId = 11 },
   },
 })
 
@@ -730,17 +721,17 @@ tinsert(ns.Sets, {
   release = 6,
   minLevel = 70,
   sets = {
-    { id = 437, name = "Blackhand's Battlegear" },
-    { id = 485, name = "Battlegear of Guiding Light" },
-    { id = 538, name = "Rylakstalker's Battlegear" },
-    { id = 470, name = "Poisoner's Battlegear" },
-    { id = 329, name = "Soul Priest's Raiment" },
-    { id = 571, name = "Ogreskull Boneplate Battlegear" },
-    { id = 420, name = "Windspeaker's Regalia" },
-    { id = 522, name = "Arcanoshatter Regalia" },
-    { id = 453, name = "Shadow Council's Garb" },
-    { id = 501, name = "Battlegear of the Somber Gaze" },
-    { id = 556, name = "Living Wood Battlegear" },
+    { id = 437, name = "Blackhand's Battlegear", classId = 1 },
+    { id = 485, name = "Battlegear of Guiding Light", classId = 2 },
+    { id = 538, name = "Rylakstalker's Battlegear", classId = 3 },
+    { id = 470, name = "Poisoner's Battlegear", classId = 4 },
+    { id = 329, name = "Soul Priest's Raiment", classId = 5 },
+    { id = 571, name = "Ogreskull Boneplate Battlegear", classId = 6 },
+    { id = 420, name = "Windspeaker's Regalia", classId = 7 },
+    { id = 522, name = "Arcanoshatter Regalia", classId = 8 },
+    { id = 453, name = "Shadow Council's Garb", classId = 9 },
+    { id = 501, name = "Battlegear of the Somber Gaze", classId = 10 },
+    { id = 556, name = "Living Wood Battlegear", classId = 11 },
   },
 })
 
@@ -750,17 +741,17 @@ tinsert(ns.Sets, {
   release = 6,
   minLevel = 70,
   sets = {
-    { id = 432, name = "Battlegear of Iron Wrath" }, --class mask=1,Type=13193
-    { id = 480, name = "Watch of the Ceaseless Vigil" }, --class mask=2,Type=13193
-    { id = 533, name = "Battlegear of the Savage Hunt" }, --class mask=4,Type=13193
-    { id = 465, name = "Felblade Armor" }, --class mask=8,Type=13193
-    { id = 323, name = "Attire of Piety" }, --class mask=16,Type=13193
-    { id = 566, name = "Demongaze Armor" }, --class mask=32,Type=13193
-    { id = 415, name = "Embrace of the Living Mountain" }, --class mask=64,Type=13193
-    { id = 517, name = "Raiment of the Arcanic Conclave" }, --class mask=128,Type=13193
-    { id = 449, name = "Deathrattle Regalia" }, --class mask=256,Type=13193
-    { id = 502, name = "Battlewrap of the Hurricane's Eye" }, --class mask=512,Type=13193
-    { id = 551, name = "Oathclaw Wargarb" }, --class mask=1024,Type=13193
+    { id = 432, name = "Battlegear of Iron Wrath", classId = 1 },
+    { id = 480, name = "Watch of the Ceaseless Vigil", classId = 2 },
+    { id = 533, name = "Battlegear of the Savage Hunt", classId = 3 },
+    { id = 465, name = "Felblade Armor", classId = 4 },
+    { id = 323, name = "Attire of Piety", classId = 5 },
+    { id = 566, name = "Demongaze Armor", classId = 6 },
+    { id = 415, name = "Embrace of the Living Mountain", classId = 7 },
+    { id = 517, name = "Raiment of the Arcanic Conclave", classId = 8 },
+    { id = 449, name = "Deathrattle Regalia", classId = 9 },
+    { id = 502, name = "Battlewrap of the Hurricane's Eye", classId = 10 },
+    { id = 551, name = "Oathclaw Wargarb", classId = 11 },
   },
 })
 
@@ -770,17 +761,17 @@ tinsert(ns.Sets, {
   release = 6,
   minLevel = 70,
   sets = {
-    { id = 433, name = "Battlegear of Iron Wrath" }, --class mask=1,Type=2015
-    { id = 481, name = "Watch of the Ceaseless Vigil" }, --class mask=2,Type=2015
-    { id = 534, name = "Battlegear of the Savage Hunt" }, --class mask=4,Type=2015
-    { id = 466, name = "Felblade Armor" }, --class mask=8,Type=2015
-    { id = 324, name = "Attire of Piety" }, --class mask=16,Type=2015
-    { id = 567, name = "Demongaze Armor" }, --class mask=32,Type=2015
-    { id = 416, name = "Embrace of the Living Mountain" }, --class mask=64,Type=2015
-    { id = 519, name = "Raiment of the Arcanic Conclave" }, --class mask=128,Type=2015
-    { id = 451, name = "Deathrattle Regalia" }, --class mask=256,Type=2015
-    { id = 503, name = "Battlewrap of the Hurricane's Eye" }, --class mask=512,Type=2015
-    { id = 552, name = "Oathclaw Wargarb" }, --class mask=1024,Type=2015
+    { id = 433, name = "Battlegear of Iron Wrath", classId = 1 },
+    { id = 481, name = "Watch of the Ceaseless Vigil", classId = 2 },
+    { id = 534, name = "Battlegear of the Savage Hunt", classId = 3 },
+    { id = 466, name = "Felblade Armor", classId = 4 },
+    { id = 324, name = "Attire of Piety", classId = 5 },
+    { id = 567, name = "Demongaze Armor", classId = 6 },
+    { id = 416, name = "Embrace of the Living Mountain", classId = 7 },
+    { id = 519, name = "Raiment of the Arcanic Conclave", classId = 8 },
+    { id = 451, name = "Deathrattle Regalia", classId = 9 },
+    { id = 503, name = "Battlewrap of the Hurricane's Eye", classId = 10 },
+    { id = 552, name = "Oathclaw Wargarb", classId = 11 },
   },
 })
 
@@ -790,17 +781,17 @@ tinsert(ns.Sets, {
   release = 6,
   minLevel = 70,
   sets = {
-    { id = 434, name = "Battlegear of Iron Wrath" }, --class mask=1,Type=13145
-    { id = 482, name = "Watch of the Ceaseless Vigil" }, --class mask=2,Type=13145
-    { id = 535, name = "Battlegear of the Savage Hunt" }, --class mask=4,Type=13145
-    { id = 467, name = "Felblade Armor" }, --class mask=8,Type=13145
-    { id = 325, name = "Attire of Piety" }, --class mask=16,Type=13145
-    { id = 568, name = "Demongaze Armor" }, --class mask=32,Type=13145
-    { id = 417, name = "Embrace of the Living Mountain" }, --class mask=64,Type=13145
-    { id = 518, name = "Raiment of the Arcanic Conclave" }, --class mask=128,Type=13145
-    { id = 450, name = "Deathrattle Regalia" }, --class mask=256,Type=13145
-    { id = 505, name = "Battlewrap of the Hurricane's Eye" }, --class mask=512,Type=13145
-    { id = 553, name = "Oathclaw Wargarb" }, --class mask=1024,Type=13145
+    { id = 434, name = "Battlegear of Iron Wrath", classId = 1 },
+    { id = 482, name = "Watch of the Ceaseless Vigil", classId = 2 },
+    { id = 535, name = "Battlegear of the Savage Hunt", classId = 3 },
+    { id = 467, name = "Felblade Armor", classId = 4 },
+    { id = 325, name = "Attire of Piety", classId = 5 },
+    { id = 568, name = "Demongaze Armor", classId = 6 },
+    { id = 417, name = "Embrace of the Living Mountain", classId = 7 },
+    { id = 518, name = "Raiment of the Arcanic Conclave", classId = 8 },
+    { id = 450, name = "Deathrattle Regalia", classId = 9 },
+    { id = 505, name = "Battlewrap of the Hurricane's Eye", classId = 10 },
+    { id = 553, name = "Oathclaw Wargarb", classId = 11 },
   },
 })
 
@@ -810,18 +801,19 @@ tinsert(ns.Sets, {
   release = 6,
   minLevel = 70,
   sets = {
-  { id = 	584	, name = "	Demonbreaker Battleplate	" },	 --	class mask=	35,Type=1641 Plate
-  { id = 	584	, name = "	Demonbreaker Battleplate	" },	 --	class mask=	35,Type=1641 Plate
-  { id = 	583	, name = "	Rancorbite Armor	" },	 --	class mask=	4164,Type=1641 Mail
-  { id = 	582	, name = "	Ironpelt Garb	" },	 --	class mask=	3592,Type=1641 Leather
-  { id = 	581	, name = "	Felfume Raiment	" },	 --	class mask=	400,Type=1641  Cloth
-  { id = 	584	, name = "	Demonbreaker Battleplate	" },	 --	class mask=	35,Type=1641 Plate
-  { id = 	583	, name = "	Rancorbite Armor	" },	 --	class mask=	4164,Type=1641 Mail
-  { id = 	581	, name = "	Felfume Raiment	" },	 --	class mask=	400,Type=1641  Cloth
-  { id = 	581	, name = "	Felfume Raiment	" },	 --	class mask=	400,Type=1641  Cloth
-  { id = 	582	, name = "	Ironpelt Garb	" },	 --	class mask=	3592,Type=1641 Leather
-  { id = 	582	, name = "	Ironpelt Garb	" },	 --	class mask=	3592,Type=1641 Leather
-  { id = 	582	, name = "	Ironpelt Garb	" },	 --	class mask=	3592,Type=1641 Leather
+    { id = 584, name = "Demonbreaker Battleplate", classId = 1 },
+    { id = 584, name = "Demonbreaker Battleplate", classId = 2 },
+    { id = 583, name = "Rancorbite Armor", classId = 3 },
+    { id = 582, name = "Ironpelt Garb", classId = 4 },
+    { id = 581, name = "Felfume Raiment", classId = 5 },
+    { id = 584, name = "Demonbreaker Battleplate", classId = 6 },
+    { id = 583, name = "Rancorbite Armor", classId = 7 },
+    { id = 581, name = "Felfume Raiment", classId = 8 },
+    { id = 581, name = "Felfume Raiment", classId = 9 },
+    { id = 582, name = "Ironpelt Garb", classId = 10 },
+    { id = 582, name = "Ironpelt Garb", classId = 11 },
+    { id = 582, name = "Ironpelt Garb", classId = 12 },
+    { id = 583, name = "Rancorbite Armor", classId = 13 },
   },
 })
 
@@ -832,18 +824,19 @@ tinsert(ns.Sets, {
   release = 7,
   minLevel = 70,
   sets = {
-    { id = 186, name = "Funerary Plate of the Chosen Dead" }, --class mask=35,Type=1641,Plate
-    { id = 186, name = "Funerary Plate of the Chosen Dead" }, --class mask=35,Type=1641,Plate
-    { id = 182, name = "Chains of the Chosen Dead" }, --class mask=4164,Type=1641,Mail
-    { id = 178, name = "Garb of the Chosen Dead" }, --class mask=3592,Type=1641,Leather
-    { id = 174, name = "Regalia of the Chosen Dead" }, --class mask=400,Type=1641,Cloth
-    { id = 186, name = "Funerary Plate of the Chosen Dead" }, --class mask=35,Type=1641,Plate
-    { id = 182, name = "Chains of the Chosen Dead" }, --class mask=4164,Type=1641,Mail
-    { id = 174, name = "Regalia of the Chosen Dead" }, --class mask=400,Type=1641,Cloth
-    { id = 174, name = "Regalia of the Chosen Dead" }, --class mask=400,Type=1641,Cloth
-    { id = 178, name = "Garb of the Chosen Dead" }, --class mask=3592,Type=1641,Leather
-    { id = 178, name = "Garb of the Chosen Dead" }, --class mask=3592,Type=1641,Leather
-    { id = 178, name = "Garb of the Chosen Dead" }, --class mask=3592,Type=1641,Leather
+    { id = 186, name = "Funerary Plate of the Chosen Dead", classId = 1 },
+    { id = 186, name = "Funerary Plate of the Chosen Dead", classId = 2 },
+    { id = 182, name = "Chains of the Chosen Dead", classId = 3 },
+    { id = 178, name = "Garb of the Chosen Dead", classId = 4 },
+    { id = 174, name = "Regalia of the Chosen Dead", classId = 5 },
+    { id = 186, name = "Funerary Plate of the Chosen Dead", classId = 6 },
+    { id = 182, name = "Chains of the Chosen Dead", classId = 7 },
+    { id = 174, name = "Regalia of the Chosen Dead", classId = 8 },
+    { id = 174, name = "Regalia of the Chosen Dead", classId = 9 },
+    { id = 178, name = "Garb of the Chosen Dead", classId = 10 },
+    { id = 178, name = "Garb of the Chosen Dead", classId = 11 },
+    { id = 178, name = "Garb of the Chosen Dead", classId = 12 },
+    { id = 182, name = "Chains of the Chosen Dead", classId = 13 },
   },
 })
 
@@ -853,18 +846,19 @@ tinsert(ns.Sets, {
   release = 7,
   minLevel = 70,
   sets = {
-    { id = 183, name = "Funerary Plate of the Chosen Dead" }, --class mask=35,Type=13193,Plate
-    { id = 183, name = "Funerary Plate of the Chosen Dead" }, --class mask=35,Type=13193,Plate
-    { id = 179, name = "Chains of the Chosen Dead" }, --class mask=4164,Type=13193,Mail
-    { id = 175, name = "Garb of the Chosen Dead" }, --class mask=3592,Type=13193,Leather
-    { id = 171, name = "Regalia of the Chosen Dead" }, --class mask=400,Type=13193,Cloth
-    { id = 183, name = "Funerary Plate of the Chosen Dead" }, --class mask=35,Type=13193,Plate
-    { id = 179, name = "Chains of the Chosen Dead" }, --class mask=4164,Type=13193,Mail
-    { id = 171, name = "Regalia of the Chosen Dead" }, --class mask=400,Type=13193,Cloth
-    { id = 171, name = "Regalia of the Chosen Dead" }, --class mask=400,Type=13193,Cloth
-    { id = 175, name = "Garb of the Chosen Dead" }, --class mask=3592,Type=13193,Leather
-    { id = 175, name = "Garb of the Chosen Dead" }, --class mask=3592,Type=13193,Leather
-    { id = 175, name = "Garb of the Chosen Dead" }, --class mask=3592,Type=13193,Leather
+    { id = 183, name = "Funerary Plate of the Chosen Dead", classId = 1 },
+    { id = 183, name = "Funerary Plate of the Chosen Dead", classId = 2 },
+    { id = 179, name = "Chains of the Chosen Dead", classId = 3 },
+    { id = 175, name = "Garb of the Chosen Dead", classId = 4 },
+    { id = 171, name = "Regalia of the Chosen Dead", classId = 5 },
+    { id = 183, name = "Funerary Plate of the Chosen Dead", classId = 6 },
+    { id = 179, name = "Chains of the Chosen Dead", classId = 7 },
+    { id = 171, name = "Regalia of the Chosen Dead", classId = 8 },
+    { id = 171, name = "Regalia of the Chosen Dead", classId = 9 },
+    { id = 175, name = "Garb of the Chosen Dead", classId = 10 },
+    { id = 175, name = "Garb of the Chosen Dead", classId = 11 },
+    { id = 175, name = "Garb of the Chosen Dead", classId = 12 },
+    { id = 179, name = "Chains of the Chosen Dead", classId = 13 },
   },
 })
 
@@ -874,18 +868,19 @@ tinsert(ns.Sets, {
   release = 7,
   minLevel = 70,
   sets = {
-    { id = 184, name = "Funerary Plate of the Chosen Dead" }, --class mask=35,Type=2015,Plate
-    { id = 184, name = "Funerary Plate of the Chosen Dead" }, --class mask=35,Type=2015,Plate
-    { id = 180, name = "Chains of the Chosen Dead" }, --class mask=4164,Type=2015,Mail
-    { id = 176, name = "Garb of the Chosen Dead" }, --class mask=3592,Type=2015,Leather
-    { id = 172, name = "Regalia of the Chosen Dead" }, --class mask=400,Type=2015,Cloth
-    { id = 184, name = "Funerary Plate of the Chosen Dead" }, --class mask=35,Type=2015,Plate
-    { id = 180, name = "Chains of the Chosen Dead" }, --class mask=4164,Type=2015,Mail
-    { id = 172, name = "Regalia of the Chosen Dead" }, --class mask=400,Type=2015,Cloth
-    { id = 172, name = "Regalia of the Chosen Dead" }, --class mask=400,Type=2015,Cloth
-    { id = 176, name = "Garb of the Chosen Dead" }, --class mask=3592,Type=2015,Leather
-    { id = 176, name = "Garb of the Chosen Dead" }, --class mask=3592,Type=2015,Leather
-    { id = 176, name = "Garb of the Chosen Dead" }, --class mask=3592,Type=2015,Leather
+    { id = 184, name = "Funerary Plate of the Chosen Dead", classId = 1 },
+    { id = 184, name = "Funerary Plate of the Chosen Dead", classId = 2 },
+    { id = 180, name = "Chains of the Chosen Dead", classId = 3 },
+    { id = 176, name = "Garb of the Chosen Dead", classId = 4 },
+    { id = 172, name = "Regalia of the Chosen Dead", classId = 5 },
+    { id = 184, name = "Funerary Plate of the Chosen Dead", classId = 6 },
+    { id = 180, name = "Chains of the Chosen Dead", classId = 7 },
+    { id = 172, name = "Regalia of the Chosen Dead", classId = 8 },
+    { id = 172, name = "Regalia of the Chosen Dead", classId = 9 },
+    { id = 176, name = "Garb of the Chosen Dead", classId = 10 },
+    { id = 176, name = "Garb of the Chosen Dead", classId = 11 },
+    { id = 176, name = "Garb of the Chosen Dead", classId = 12 },
+    { id = 180, name = "Chains of the Chosen Dead", classId = 13 },
   },
 })
 
@@ -895,18 +890,19 @@ tinsert(ns.Sets, {
   release = 7,
   minLevel = 70,
   sets = {
-    { id = 185, name = "Funerary Plate of the Chosen Dead" }, --class mask=35,Type=13145,Plate 1
-    { id = 185, name = "Funerary Plate of the Chosen Dead" }, --class mask=35,Type=13145,Plate 2
-    { id = 181, name = "Chains of the Chosen Dead" }, --class mask=4164,Type=13145,Mail 3
-    { id = 177, name = "Garb of the Chosen Dead" }, --class mask=3592,Type=13145,Leather 4
-    { id = 173, name = "Regalia of the Chosen Dead" }, --class mask=400,Type=13145,Cloth 5
-    { id = 185, name = "Funerary Plate of the Chosen Dead" }, --class mask=35,Type=13145,Plate 6
-    { id = 181, name = "Chains of the Chosen Dead" }, --class mask=4164,Type=13145,Mail 7
-    { id = 173, name = "Regalia of the Chosen Dead" }, --class mask=400,Type=13145,Cloth 8
-    { id = 173, name = "Regalia of the Chosen Dead" }, --class mask=400,Type=13145,Cloth 9
-    { id = 177, name = "Garb of the Chosen Dead" }, --class mask=3592,Type=13145,Leather 10
-    { id = 177, name = "Garb of the Chosen Dead" }, --class mask=3592,Type=13145,Leather 11
-    { id = 177, name = "Garb of the Chosen Dead" }, --class mask=3592,Type=13145,Leather 12
+    { id = 185, name = "Funerary Plate of the Chosen Dead", classId = 1 },
+    { id = 185, name = "Funerary Plate of the Chosen Dead", classId = 2 },
+    { id = 181, name = "Chains of the Chosen Dead", classId = 3 },
+    { id = 177, name = "Garb of the Chosen Dead", classId = 4 },
+    { id = 173, name = "Regalia of the Chosen Dead", classId = 5 },
+    { id = 185, name = "Funerary Plate of the Chosen Dead", classId = 6 },
+    { id = 181, name = "Chains of the Chosen Dead", classId = 7 },
+    { id = 173, name = "Regalia of the Chosen Dead", classId = 8 },
+    { id = 173, name = "Regalia of the Chosen Dead", classId = 9 },
+    { id = 177, name = "Garb of the Chosen Dead", classId = 10 },
+    { id = 177, name = "Garb of the Chosen Dead", classId = 11 },
+    { id = 177, name = "Garb of the Chosen Dead", classId = 12 },
+    { id = 181, name = "Chains of the Chosen Dead", classId = 13 },
   },
 })
 
@@ -916,18 +912,19 @@ tinsert(ns.Sets, {
   release = 7,
   minLevel = 70,
   sets = {
-    { id = 2343, name = "Battleplate of the Honored Valarjar" }, --class mask=35,Type=13978,Plate
-    { id = 2343, name = "Battleplate of the Honored Valarjar" }, --class mask=35,Type=13978,Plate
-    { id = 2331, name = "Chains of the Honored Valarjar" }, --class mask=4164,Type=13978,Mail
-    { id = 2334, name = "Battlewraps of the Honored Valarjar" }, --class mask=3592,Type=13978,Leather
-    { id = 2321, name = "Vestment of the Honored Valarjar" }, --class mask=400,Type=13978,Cloth
-    { id = 2343, name = "Battleplate of the Honored Valarjar" }, --class mask=35,Type=13978,Plate
-    { id = 2331, name = "Chains of the Honored Valarjar" }, --class mask=4164,Type=13978,Mail
-    { id = 2321, name = "Vestment of the Honored Valarjar" }, --class mask=400,Type=13978,Cloth
-    { id = 2321, name = "Vestment of the Honored Valarjar" }, --class mask=400,Type=13978,Cloth
-    { id = 2334, name = "Battlewraps of the Honored Valarjar" }, --class mask=3592,Type=13978,Leather
-    { id = 2334, name = "Battlewraps of the Honored Valarjar" }, --class mask=3592,Type=13978,Leather
-    { id = 2334, name = "Battlewraps of the Honored Valarjar" }, --class mask=3592,Type=13978,Leather
+    { id = 2343, name = "Battleplate of the Honored Valarjar", classId = 1 },
+    { id = 2343, name = "Battleplate of the Honored Valarjar", classId = 2 },
+    { id = 2331, name = "Chains of the Honored Valarjar", classId = 3 },
+    { id = 2334, name = "Battlewraps of the Honored Valarjar", classId = 4 },
+    { id = 2321, name = "Vestment of the Honored Valarjar", classId = 5 },
+    { id = 2343, name = "Battleplate of the Honored Valarjar", classId = 6 },
+    { id = 2331, name = "Chains of the Honored Valarjar", classId = 7 },
+    { id = 2321, name = "Vestment of the Honored Valarjar", classId = 8 },
+    { id = 2321, name = "Vestment of the Honored Valarjar", classId = 9 },
+    { id = 2334, name = "Battlewraps of the Honored Valarjar", classId = 10 },
+    { id = 2334, name = "Battlewraps of the Honored Valarjar", classId = 11 },
+    { id = 2334, name = "Battlewraps of the Honored Valarjar", classId = 12 },
+    { id = 2331, name = "Chains of the Honored Valarjar", classId = 13 },
   },
 })
 
@@ -937,18 +934,18 @@ tinsert(ns.Sets, {
   release = 7,
   minLevel = 70,
   sets = {
-    { id = 940, name = "Warplate of the Obsidian Aspect" }, --class mask=1,Type=1641,Warrior
-    { id = 981, name = "Battleplate of the Highlord" }, --class mask=2,Type=1641,Paladin
-    { id = 993, name = "Eagletalon Battlegear" }, --class mask=4,Type=1641,Hunter
-    { id = 945, name = "Doomblade Battlegear" }, --class mask=8,Type=1641,Rogue
-    { id = 322, name = "Vestments of the Purifier" }, --class mask=16,Type=1641,Priest
-    { id = 1005, name = "Dreadwyrm Battleplate" }, --class mask=32,Type=1641,Death Knight
-    { id = 936, name = "Regalia of Shackled Elements" }, --class mask=64,Type=1641,Shaman
-    { id = 989, name = "Regalia of Everburning Knowledge" }, --class mask=128,Type=1641,Mage
-    { id = 941, name = "Legacy of Azj'aqir" }, --class mask=256,Type=1641,Warlock
-    { id = 985, name = "Vestments of Enveloped Dissonance" }, --class mask=512,Type=1641,Monk
-    { id = 997, name = "Garb of the Astral Warden" }, --class mask=1024,Type=1641,Druid
-    { id = 1001, name = "Vestment of Second Sight" }, --class mask=2048,Type=1641,Demon Hunter
+    { id = 940, name = "Warplate of the Obsidian Aspect", classId = 1 },
+    { id = 981, name = "Battleplate of the Highlord", classId = 2 },
+    { id = 993, name = "Eagletalon Battlegear", classId = 3 },
+    { id = 945, name = "Doomblade Battlegear", classId = 4 },
+    { id = 322, name = "Vestments of the Purifier", classId = 5 },
+    { id = 1005, name = "Dreadwyrm Battleplate", classId = 6 },
+    { id = 936, name = "Regalia of Shackled Elements", classId = 7 },
+    { id = 989, name = "Regalia of Everburning Knowledge", classId = 8 },
+    { id = 941, name = "Legacy of Azj'aqir", classId = 9 },
+    { id = 985, name = "Vestments of Enveloped Dissonance", classId = 10 },
+    { id = 997, name = "Garb of the Astral Warden", classId = 11 },
+    { id = 1001, name = "Vestment of Second Sight", classId = 12 },
   },
 })
 
@@ -958,18 +955,18 @@ tinsert(ns.Sets, {
   release = 7,
   minLevel = 70,
   sets = {
-    { id = 937, name = "Warplate of the Obsidian Aspect" }, --class mask=1,Type=13193,Warrior
-    { id = 978, name = "Battleplate of the Highlord" }, --class mask=2,Type=13193,Paladin
-    { id = 990, name = "Eagletalon Battlegear" }, --class mask=4,Type=13193,Hunter
-    { id = 942, name = "Doomblade Battlegear" }, --class mask=8,Type=13193,Rogue
-    { id = 308, name = "Vestments of the Purifier" }, --class mask=16,Type=13193,Priest
-    { id = 1002, name = "Dreadwyrm Battleplate" }, --class mask=32,Type=13193,Death Knight
-    { id = 933, name = "Regalia of Shackled Elements" }, --class mask=64,Type=13193,Shaman
-    { id = 986, name = "Regalia of Everburning Knowledge" }, --class mask=128,Type=13193,Mage
-    { id = 315, name = "Legacy of Azj'Aqir" }, --class mask=256,Type=13193,Warlock
-    { id = 982, name = "Vestments of Enveloped Dissonance" }, --class mask=512,Type=13193,Monk
-    { id = 994, name = "Garb of the Astral Warden" }, --class mask=1024,Type=13193,Druid
-    { id = 998, name = "Vestment of Second Sight" }, --class mask=2048,Type=13193,Demon Hunter
+    { id = 937, name = "Warplate of the Obsidian Aspect", classId = 1 },
+    { id = 978, name = "Battleplate of the Highlord", classId = 2 },
+    { id = 990, name = "Eagletalon Battlegear", classId = 3 },
+    { id = 942, name = "Doomblade Battlegear", classId = 4 },
+    { id = 308, name = "Vestments of the Purifier", classId = 5 },
+    { id = 1002, name = "Dreadwyrm Battleplate", classId = 6 },
+    { id = 933, name = "Regalia of Shackled Elements", classId = 7 },
+    { id = 986, name = "Regalia of Everburning Knowledge", classId = 8 },
+    { id = 315, name = "Legacy of Azj'Aqir", classId = 9 },
+    { id = 982, name = "Vestments of Enveloped Dissonance", classId = 10 },
+    { id = 994, name = "Garb of the Astral Warden", classId = 11 },
+    { id = 998, name = "Vestment of Second Sight", classId = 12 },
   },
 })
 
@@ -979,18 +976,18 @@ tinsert(ns.Sets, {
   release = 7,
   minLevel = 70,
   sets = {
-    { id = 938, name = "Warplate of the Obsidian Aspect" }, --class mask=1,Type=2015,Warrior
-    { id = 979, name = "Battleplate of the Highlord" }, --class mask=2,Type=2015,Paladin
-    { id = 991, name = "Eagletalon Battlegear" }, --class mask=4,Type=2015,Hunter
-    { id = 943, name = "Doomblade Battlegear" }, --class mask=8,Type=2015,Rogue
-    { id = 309, name = "Vestments of the Purifier" }, --class mask=16,Type=2015,Priest
-    { id = 1003, name = "Dreadwyrm Battleplate" }, --class mask=32,Type=2015,Death Knight
-    { id = 934, name = "Regalia of Shackled Elements" }, --class mask=64,Type=2015,Shaman
-    { id = 987, name = "Regalia of Everburning Knowledge" }, --class mask=128,Type=2015,Mage
-    { id = 316, name = "Legacy of Azj'Aqir" }, --class mask=256,Type=2015,Warlock
-    { id = 983, name = "Vestments of Enveloped Dissonance" }, --class mask=512,Type=2015,Monk
-    { id = 995, name = "Garb of the Astral Warden" }, --class mask=1024,Type=2015,Druid
-    { id = 999, name = "Vestment of Second Sight" }, --class mask=2048,Type=2015,Demon Hunter
+    { id = 938, name = "Warplate of the Obsidian Aspect", classId = 1 },
+    { id = 979, name = "Battleplate of the Highlord", classId = 2 },
+    { id = 991, name = "Eagletalon Battlegear", classId = 3 },
+    { id = 943, name = "Doomblade Battlegear", classId = 4 },
+    { id = 309, name = "Vestments of the Purifier", classId = 5 },
+    { id = 1003, name = "Dreadwyrm Battleplate", classId = 6 },
+    { id = 934, name = "Regalia of Shackled Elements", classId = 7 },
+    { id = 987, name = "Regalia of Everburning Knowledge", classId = 8 },
+    { id = 316, name = "Legacy of Azj'Aqir", classId = 9 },
+    { id = 983, name = "Vestments of Enveloped Dissonance", classId = 10 },
+    { id = 995, name = "Garb of the Astral Warden", classId = 11 },
+    { id = 999, name = "Vestment of Second Sight", classId = 12 },
   },
 })
 
@@ -1002,18 +999,18 @@ tinsert(ns.Sets, {
   difficulty = 16,
   minLevel = 70,
   sets = {
-    { id = 939, name = "Warplate of the Obsidian Aspect" }, --class mask=1,Type=13145,Warrior
-    { id = 980, name = "Battleplate of the Highlord" }, --class mask=2,Type=13145,Paladin
-    { id = 992, name = "Eagletalon Battlegear" }, --class mask=4,Type=13145,Hunter
-    { id = 944, name = "Doomblade Battlegear" }, --class mask=8,Type=13145,Rogue
-    { id = 311, name = "Vestments of the Purifier" }, --class mask=16,Type=13145,Priest
-    { id = 1004, name = "Dreadwyrm Battleplate" }, --class mask=32,Type=13145,Death Knight
-    { id = 935, name = "Regalia of Shackled Elements" }, --class mask=64,Type=13145,Shaman
-    { id = 988, name = "Regalia of Everburning Knowledge" }, --class mask=128,Type=13145,Mage
-    { id = 321, name = "Legacy of Azj'Aqir" }, --class mask=256,Type=13145,Warlock
-    { id = 984, name = "Vestments of Enveloped Dissonance" }, --class mask=512,Type=13145,Monk
-    { id = 996, name = "Garb of the Astral Warden" }, --class mask=1024,Type=13145,Druid
-    { id = 1000, name = "Vestment of Second Sight" }, --class mask=2048,Type=13145,Demon Hunter
+    { id = 939, name = "Warplate of the Obsidian Aspect", classId = 1 },
+    { id = 980, name = "Battleplate of the Highlord", classId = 2 },
+    { id = 992, name = "Eagletalon Battlegear", classId = 3 },
+    { id = 944, name = "Doomblade Battlegear", classId = 4 },
+    { id = 311, name = "Vestments of the Purifier", classId = 5 },
+    { id = 1004, name = "Dreadwyrm Battleplate", classId = 6 },
+    { id = 935, name = "Regalia of Shackled Elements", classId = 7 },
+    { id = 988, name = "Regalia of Everburning Knowledge", classId = 8 },
+    { id = 321, name = "Legacy of Azj'Aqir", classId = 9 },
+    { id = 984, name = "Vestments of Enveloped Dissonance", classId = 10 },
+    { id = 996, name = "Garb of the Astral Warden", classId = 11 },
+    { id = 1000, name = "Vestment of Second Sight", classId = 12 },
   },
 })
 
@@ -1023,18 +1020,18 @@ tinsert(ns.Sets, {
   release = 7,
   minLevel = 70,
   sets = {
-    { id = 1296, name = "Titanic Onslaught Armor" },	 --	class mask=	1	,Type=	1641	,	Warrior
-    { id = 1315, name = "Radiant Lightbringer Armor" },	 --	class mask=	2	,Type=	1641	,	Paladin
-    { id = 1327, name = "Wildstalker Armor" },	 --	class mask=	4	,Type=	1641	,	Hunter
-    { id = 1306, name = "Fanged Slayer's Armor" },	 --	class mask=	8	,Type=	1641	,	Rogue
-    { id = 1342, name = "Vestments of Blind Absolution" },	 --	class mask=	16	,Type=	1641	,	Priest
-    { id = 1339, name = "Gravewarden Armaments" },	 --	class mask=	32	,Type=	1641	,	Death Knight
-    { id = 1302, name = "Regalia of the Skybreaker" },	 --	class mask=	64	,Type=	1641	,	Shaman
-    { id = 1323, name = "Regalia of the Arcane Tempest" },	 --	class mask=	128	,Type=	1641	,	Mage
-    { id = 1300, name = "Diabolic Raiment" },	 --	class mask=	256	,Type=	1641	,	Warlock
-    { id = 1319, name = "Xuen's Battlegear" },	 --	class mask=	512	,Type=	1641	,	Monk
-    { id = 1331, name = "Stormheart Raiment" },	 --	class mask=	1024	,Type=	1641	,	Druid
-    { id = 1335, name = "Demonbane Armor" },	 --	class mask=	2048	,Type=	1641	,	Demon Hunter
+    { id = 1296, name = "Titanic Onslaught Armor", classId = 1 },
+    { id = 1315, name = "Radiant Lightbringer Armor", classId = 2 },
+    { id = 1327, name = "Wildstalker Armor", classId = 3 },
+    { id = 1306, name = "Fanged Slayer's Armor", classId = 4 },
+    { id = 1342, name = "Vestments of Blind Absolution", classId = 5 },
+    { id = 1339, name = "Gravewarden Armaments", classId = 6 },
+    { id = 1302, name = "Regalia of the Skybreaker", classId = 7 },
+    { id = 1323, name = "Regalia of the Arcane Tempest", classId = 8 },
+    { id = 1300, name = "Diabolic Raiment", classId = 9 },
+    { id = 1319, name = "Xuen's Battlegear", classId = 10 },
+    { id = 1331, name = "Stormheart Raiment", classId = 11 },
+    { id = 1335, name = "Demonbane Armor", classId = 12 },
   },
 })
 
@@ -1044,18 +1041,18 @@ tinsert(ns.Sets, {
   release = 7,
   minLevel = 70,
   sets = {
-    { id = 1293, name = "Titanic Onslaught Armor" },	 --	class mask=	1	,Type=	13193	,	Warrior
-    { id = 1313, name = "Radiant Lightbringer Armor" },	 --	class mask=	2	,Type=	13193	,	Paladin
-    { id = 1325, name = "Wildstalker Armor" },	 --	class mask=	4	,Type=	13193	,	Hunter
-    { id = 1305, name = "Fanged Slayer's Armor" },	 --	class mask=	8	,Type=	13193	,	Rogue
-    { id = 1309, name = "Vestments of Blind Absolution" },	 --	class mask=	16	,Type=	13193	,	Priest
-    { id = 1337, name = "Gravewarden Armaments" },	 --	class mask=	32	,Type=	13193	,	Death Knight
-    { id = 1301, name = "Regalia of the Skybreaker" },	 --	class mask=	64	,Type=	13193	,	Shaman
-    { id = 1321, name = "Regalia of the Arcane Tempest" },	 --	class mask=	128	,Type=	13193	,	Mage
-    { id = 1297, name = "Diabolic Raiment" },	 --	class mask=	256	,Type=	13193	,	Warlock
-    { id = 1317, name = "Xuen's Battlegear" },	 --	class mask=	512	,Type=	13193	,	Monk
-    { id = 1329, name = "Stormheart Raiment" },	 --	class mask=	1024	,Type=	13193	,	Druid
-    { id = 1333, name = "Demonbane Armor" },	 --	class mask=	2048	,Type=	13193	,	Demon Hunter
+    { id = 1293, name = "Titanic Onslaught Armor", classId = 1 },
+    { id = 1313, name = "Radiant Lightbringer Armor", classId = 2 },
+    { id = 1325, name = "Wildstalker Armor", classId = 3 },
+    { id = 1305, name = "Fanged Slayer's Armor", classId = 4 },
+    { id = 1309, name = "Vestments of Blind Absolution", classId = 5 },
+    { id = 1337, name = "Gravewarden Armaments", classId = 6 },
+    { id = 1301, name = "Regalia of the Skybreaker", classId = 7 },
+    { id = 1321, name = "Regalia of the Arcane Tempest", classId = 8 },
+    { id = 1297, name = "Diabolic Raiment", classId = 9 },
+    { id = 1317, name = "Xuen's Battlegear", classId = 10 },
+    { id = 1329, name = "Stormheart Raiment", classId = 11 },
+    { id = 1333, name = "Demonbane Armor", classId = 12 },
   },
 })
 
@@ -1065,18 +1062,18 @@ tinsert(ns.Sets, {
   release = 7,
   minLevel = 70,
   sets = {
-    { id = 1294, name = "Titanic Onslaught Armor" },	 --	class mask=	1	,Type=	2015	,	Warrior
-    { id = 1316, name = "Radiant Lightbringer Armor" },	 --	class mask=	2	,Type=	2015	,	Paladin
-    { id = 1328, name = "Wildstalker Armor" },	 --	class mask=	4	,Type=	2015	,	Hunter
-    { id = 1307, name = "Fanged Slayer's Armor" },	 --	class mask=	8	,Type=	2015	,	Rogue
-    { id = 1312, name = "Vestments of Blind Absolution" },	 --	class mask=	16	,Type=	2015	,	Priest
-    { id = 1340, name = "Gravewarden Armaments" },	 --	class mask=	32	,Type=	2015	,	Death Knight
-    { id = 1303, name = "Regalia of the Skybreaker" },	 --	class mask=	64	,Type=	2015	,	Shaman
-    { id = 1324, name = "Regalia of the Arcane Tempest" },	 --	class mask=	128	,Type=	2015	,	Mage
-    { id = 1298, name = "Diabolic Raiment" },	 --	class mask=	256	,Type=	2015	,	Warlock
-    { id = 1320, name = "Xuen's Battlegear" },	 --	class mask=	512	,Type=	2015	,	Monk
-    { id = 1332, name = "Stormheart Raiment" },	 --	class mask=	1024	,Type=	2015	,	Druid
-    { id = 1336, name = "Demonbane Armor" },	 --	class mask=	2048	,Type=	2015	,	Demon Hunter
+    { id = 1294, name = "Titanic Onslaught Armor", classId = 1 },
+    { id = 1316, name = "Radiant Lightbringer Armor", classId = 2 },
+    { id = 1328, name = "Wildstalker Armor", classId = 3 },
+    { id = 1307, name = "Fanged Slayer's Armor", classId = 4 },
+    { id = 1312, name = "Vestments of Blind Absolution", classId = 5 },
+    { id = 1340, name = "Gravewarden Armaments", classId = 6 },
+    { id = 1303, name = "Regalia of the Skybreaker", classId = 7 },
+    { id = 1324, name = "Regalia of the Arcane Tempest", classId = 8 },
+    { id = 1298, name = "Diabolic Raiment", classId = 9 },
+    { id = 1320, name = "Xuen's Battlegear", classId = 10 },
+    { id = 1332, name = "Stormheart Raiment", classId = 11 },
+    { id = 1336, name = "Demonbane Armor", classId = 12 },
   },
 })
 
@@ -1088,18 +1085,18 @@ tinsert(ns.Sets, {
   difficulty = 16,
   minLevel = 70,
   sets = {
-    { id = 1295, name = "Titanic Onslaught Armor" },	 --	class mask=	1	,Type=	13145	,	Warrior
-    { id = 1314, name = "Radiant Lightbringer Armor" },	 --	class mask=	2	,Type=	13145	,	Paladin
-    { id = 1326, name = "Wildstalker Armor" },	 --	class mask=	4	,Type=	13145	,	Hunter
-    { id = 1308, name = "Fanged Slayer's Armor" },	 --	class mask=	8	,Type=	13145	,	Rogue
-    { id = 1310, name = "Vestments of Blind Absolution" },	 --	class mask=	16	,Type=	13145	,	Priest
-    { id = 1338, name = "Gravewarden Armaments" },	 --	class mask=	32	,Type=	13145	,	Death Knight
-    { id = 1304, name = "Regalia of the Skybreaker" },	 --	class mask=	64	,Type=	13145	,	Shaman
-    { id = 1322, name = "Regalia of the Arcane Tempest" },	 --	class mask=	128	,Type=	13145	,	Mage
-    { id = 1299, name = "Diabolic Raiment" },	 --	class mask=	256	,Type=	13145	,	Warlock
-    { id = 1318, name = "Xuen's Battlegear" },	 --	class mask=	512	,Type=	13145	,	Monk
-    { id = 1330, name = "Stormheart Raiment" },	 --	class mask=	1024	,Type=	13145	,	Druid
-    { id = 1334, name = "Demonbane Armor" },	 --	class mask=	2048	,Type=	13145	,	Demon Hunter
+    { id = 1295, name = "Titanic Onslaught Armor", classId = 1 },
+    { id = 1314, name = "Radiant Lightbringer Armor", classId = 2 },
+    { id = 1326, name = "Wildstalker Armor", classId = 3 },
+    { id = 1308, name = "Fanged Slayer's Armor", classId = 4 },
+    { id = 1310, name = "Vestments of Blind Absolution", classId = 5 },
+    { id = 1338, name = "Gravewarden Armaments", classId = 6 },
+    { id = 1304, name = "Regalia of the Skybreaker", classId = 7 },
+    { id = 1322, name = "Regalia of the Arcane Tempest", classId = 8 },
+    { id = 1299, name = "Diabolic Raiment", classId = 9 },
+    { id = 1318, name = "Xuen's Battlegear", classId = 10 },
+    { id = 1330, name = "Stormheart Raiment", classId = 11 },
+    { id = 1334, name = "Demonbane Armor", classId = 12 },
   },
 })
 
@@ -1109,18 +1106,18 @@ tinsert(ns.Sets, {
   release = 7,
   minLevel = 70,
   sets = {
-    { id = 2305, name = "Titanic Onslaught Armor" },	 --	class mask=	1	,Type=	13216		Warrior
-    { id = 2300, name = "Radiant Lightbringer Armor" },	 --	class mask=	2	,Type=	13216		Paladin
-    { id = 2297, name = "Wildstalker Armor" },	 --	class mask=	4	,Type=	13216		Hunter
-    { id = 2302, name = "Fanged Slayer's Armor" },	 --	class mask=	8	,Type=	13216		Rogue
-    { id = 2301, name = "Vestments of Blind Absolution" },	 --	class mask=	16	,Type=	13216		Priest
-    { id = 2294, name = "Gravewarden Armaments" },	 --	class mask=	32	,Type=	13216		Death Knight
-    { id = 2303, name = "Regalia of the Skybreaker" },	 --	class mask=	64	,Type=	13216		Shaman
-    { id = 2298, name = "Regalia of the Arcane Tempest" },	 --	class mask=	128	,Type=	13216		Mage
-    { id = 2304, name = "Diabolic Raiment" },	 --	class mask=	256	,Type=	13216		Warlock
-    { id = 2299, name = "Xuen's Battlegear" },	 --	class mask=	512	,Type=	13216		Monk
-    { id = 2296, name = "Stormheart Raiment" },	 --	class mask=	1024	,Type=	13216		Druid
-    { id = 2295, name = "Demonbane Armor" },	 --	class mask=	2048	,Type=	13216		Demon Hunter
+    { id = 2305, name = "Titanic Onslaught Armor", classId = 1 },
+    { id = 2300, name = "Radiant Lightbringer Armor", classId = 2 },
+    { id = 2297, name = "Wildstalker Armor", classId = 3 },
+    { id = 2302, name = "Fanged Slayer's Armor", classId = 4 },
+    { id = 2301, name = "Vestments of Blind Absolution", classId = 5 },
+    { id = 2294, name = "Gravewarden Armaments", classId = 6 },
+    { id = 2303, name = "Regalia of the Skybreaker", classId = 7 },
+    { id = 2298, name = "Regalia of the Arcane Tempest", classId = 8 },
+    { id = 2304, name = "Diabolic Raiment", classId = 9 },
+    { id = 2299, name = "Xuen's Battlegear", classId = 10 },
+    { id = 2296, name = "Stormheart Raiment", classId = 11 },
+    { id = 2295, name = "Demonbane Armor", classId = 12 },
   },
 })
 
@@ -1130,18 +1127,18 @@ tinsert(ns.Sets, {
   release = 7,
   minLevel = 70,
   sets = {
-    { id = 1519, name = "Juggernaut Battlegear" }, --class mask=1,Type=1641,Warrior
-    { id = 1499, name = "Light's Vanguard Battleplate" }, --class mask=2,Type=1641,Paladin
-    { id = 1487, name = "Serpentstalker Guise" }, --class mask=4,Type=1641,Hunter
-    { id = 1507, name = "Regalia of the Dashing Scoundrel" }, --class mask=8,Type=1641,Rogue
-    { id = 1503, name = "Gilded Seraph's Raiment" }, --class mask=16,Type=1641,Priest
-    { id = 1475, name = "Dreadwake Armor" }, --class mask=32,Type=1641,Death Knight
-    { id = 1511, name = "Garb of Venerated Spirits" }, --class mask=64,Type=1641,Shaman
-    { id = 1491, name = "Runebound Regalia" }, --class mask=128,Type=1641,Mage
-    { id = 1515, name = "Grim Inquisitor's Regalia" }, --class mask=256,Type=1641,Warlock
-    { id = 1495, name = "Chi-Ji's Battlegear" }, --class mask=512,Type=1641,Monk
-    { id = 1483, name = "Bearmantle Battlegear" }, --class mask=1024,Type=1641,Druid
-    { id = 1479, name = "Felreaper Vestments" }, --class mask=2048,Type=1641,Demon Hunter
+    { id = 1519, name = "Juggernaut Battlegear", classId = 1 },
+    { id = 1499, name = "Light's Vanguard Battleplate", classId = 2 },
+    { id = 1487, name = "Serpentstalker Guise", classId = 3 },
+    { id = 1507, name = "Regalia of the Dashing Scoundrel", classId = 4 },
+    { id = 1503, name = "Gilded Seraph's Raiment", classId = 5 },
+    { id = 1475, name = "Dreadwake Armor", classId = 6 },
+    { id = 1511, name = "Garb of Venerated Spirits", classId = 7 },
+    { id = 1491, name = "Runebound Regalia", classId = 8 },
+    { id = 1515, name = "Grim Inquisitor's Regalia", classId = 9 },
+    { id = 1495, name = "Chi-Ji's Battlegear", classId = 10 },
+    { id = 1483, name = "Bearmantle Battlegear", classId = 11 },
+    { id = 1479, name = "Felreaper Vestments", classId = 12 },
   },
 })
 
@@ -1151,19 +1148,19 @@ tinsert(ns.Sets, {
   release = 7,
   minLevel = 70,
   sets = {
-    { id = 1516, name = "Juggernaut Battlegear" }, --class mask=1,Type=13193,Warrior
-    { id = 1496, name = "Light's Vanguard Battleplate" }, --class mask=2,Type=13193,Paladin
-    { id = 1484, name = "Serpentstalker Guise" }, --class mask=4,Type=13193,Hunter
-    { id = 1504, name = "Regalia of the Dashing Scoundrel" }, --class mask=8,Type=13193,Rogue
-    { id = 1500, name = "Gilded Seraph's Raiment" }, --class mask=16,Type=13193,Priest
-    { id = 1472, name = "Dreadwake Armor" }, --class mask=32,Type=13193,Death Knight
-    { id = 1508, name = "Garb of Venerated Spirits" }, --class mask=64,Type=13193,Shaman
-    { id = 1488, name = "Runebound Regalia" }, --class mask=128,Type=13193,Mage
-    { id = 1512, name = "Grim Inquisitor's Regalia" }, --class mask=256,Type=13193,Warlock
-    { id = 1492, name = "Chi-Ji's Battlegear" }, --class mask=512,Type=13193,Monk
-    { id = 1480, name = "Bearmantle Battlegear" }, --class mask=1024,Type=13193,Druid
-    { id = 1476, name = "Felreaper Vestments" }, --class mask=2048,Type=13193,Demon Hunter
-   },
+    { id = 1516, name = "Juggernaut Battlegear", classId = 1 },
+    { id = 1496, name = "Light's Vanguard Battleplate", classId = 2 },
+    { id = 1484, name = "Serpentstalker Guise", classId = 3 },
+    { id = 1504, name = "Regalia of the Dashing Scoundrel", classId = 4 },
+    { id = 1500, name = "Gilded Seraph's Raiment", classId = 5 },
+    { id = 1472, name = "Dreadwake Armor", classId = 6 },
+    { id = 1508, name = "Garb of Venerated Spirits", classId = 7 },
+    { id = 1488, name = "Runebound Regalia", classId = 8 },
+    { id = 1512, name = "Grim Inquisitor's Regalia", classId = 9 },
+    { id = 1492, name = "Chi-Ji's Battlegear", classId = 10 },
+    { id = 1480, name = "Bearmantle Battlegear", classId = 11 },
+    { id = 1476, name = "Felreaper Vestments", classId = 12 },
+  },
 })
 
 tinsert(ns.Sets, {
@@ -1172,18 +1169,18 @@ tinsert(ns.Sets, {
   release = 7,
   minLevel = 70,
   sets = {
-    { id = 1517, name = "Juggernaut Battlegear" }, --class mask=1,Type=2015,Warrior
-    { id = 1497, name = "Light's Vanguard Battleplate" }, --class mask=2,Type=2015,Paladin
-    { id = 1485, name = "Serpentstalker Guise" }, --class mask=4,Type=2015,Hunter
-    { id = 1505, name = "Regalia of the Dashing Scoundrel" }, --class mask=8,Type=2015,Rogue
-    { id = 1501, name = "Gilded Seraph's Raiment" }, --class mask=16,Type=2015,Priest
-    { id = 1473, name = "Dreadwake Armor" }, --class mask=32,Type=2015,Death Knight
-    { id = 1509, name = "Garb of Venerated Spirits" }, --class mask=64,Type=2015,Shaman
-    { id = 1489, name = "Runebound Regalia" }, --class mask=128,Type=2015,Mage
-    { id = 1513, name = "Grim Inquisitor's Regalia" }, --class mask=256,Type=2015,Warlock
-    { id = 1493, name = "Chi-Ji's Battlegear" }, --class mask=512,Type=2015,Monk
-    { id = 1481, name = "Bearmantle Battlegear" }, --class mask=1024,Type=2015,Druid
-    { id = 1477, name = "Felreaper Vestments" }, --class mask=2048,Type=2015,Demon Hunter
+    { id = 1517, name = "Juggernaut Battlegear", classId = 1 },
+    { id = 1497, name = "Light's Vanguard Battleplate", classId = 2 },
+    { id = 1485, name = "Serpentstalker Guise", classId = 3 },
+    { id = 1505, name = "Regalia of the Dashing Scoundrel", classId = 4 },
+    { id = 1501, name = "Gilded Seraph's Raiment", classId = 5 },
+    { id = 1473, name = "Dreadwake Armor", classId = 6 },
+    { id = 1509, name = "Garb of Venerated Spirits", classId = 7 },
+    { id = 1489, name = "Runebound Regalia", classId = 8 },
+    { id = 1513, name = "Grim Inquisitor's Regalia", classId = 9 },
+    { id = 1493, name = "Chi-Ji's Battlegear", classId = 10 },
+    { id = 1481, name = "Bearmantle Battlegear", classId = 11 },
+    { id = 1477, name = "Felreaper Vestments", classId = 12 },
   },
 })
 
@@ -1193,18 +1190,18 @@ tinsert(ns.Sets, {
   release = 7,
   minLevel = 70,
   sets = {
-    { id = 1518, name = "Juggernaut Battlegear" }, --class mask=1,Type=13145,Warrior
-    { id = 1498, name = "Light's Vanguard Battleplate" }, --class mask=2,Type=13145,Paladin
-    { id = 1486, name = "Serpentstalker Guise" }, --class mask=4,Type=13145,Hunter
-    { id = 1506, name = "Regalia of the Dashing Scoundrel" }, --class mask=8,Type=13145,Rogue
-    { id = 1502, name = "Gilded Seraph's Raiment" }, --class mask=16,Type=13145,Priest
-    { id = 1474, name = "Dreadwake Armor" }, --class mask=32,Type=13145,Death Knight
-    { id = 1510, name = "Garb of Venerated Spirits" }, --class mask=64,Type=13145,Shaman
-    { id = 1490, name = "Runebound Regalia" }, --class mask=128,Type=13145,Mage
-    { id = 1514, name = "Grim Inquisitor's Regalia" }, --class mask=256,Type=13145,Warlock
-    { id = 1494, name = "Chi-Ji's Battlegear" }, --class mask=512,Type=13145,Monk
-    { id = 1482, name = "Bearmantle Battlegear" }, --class mask=1024,Type=13145,Druid
-    { id = 1478, name = "Felreaper Vestments" }, --class mask=2048,Type=13145,Demon Hunter
+    { id = 1518, name = "Juggernaut Battlegear", classId = 1 },
+    { id = 1498, name = "Light's Vanguard Battleplate", classId = 2 },
+    { id = 1486, name = "Serpentstalker Guise", classId = 3 },
+    { id = 1506, name = "Regalia of the Dashing Scoundrel", classId = 4 },
+    { id = 1502, name = "Gilded Seraph's Raiment", classId = 5 },
+    { id = 1474, name = "Dreadwake Armor", classId = 6 },
+    { id = 1510, name = "Garb of Venerated Spirits", classId = 7 },
+    { id = 1490, name = "Runebound Regalia", classId = 8 },
+    { id = 1514, name = "Grim Inquisitor's Regalia", classId = 9 },
+    { id = 1494, name = "Chi-Ji's Battlegear", classId = 10 },
+    { id = 1482, name = "Bearmantle Battlegear", classId = 11 },
+    { id = 1478, name = "Felreaper Vestments", classId = 12 },
   },
 })
 
@@ -1215,18 +1212,19 @@ tinsert(ns.Sets, {
   release = 7,
   minLevel = 70,
   sets = {
-    { id = 157, name = "Felforged Armor" }, --class mask=35,Type=0,Plate
-    { id = 157, name = "Felforged Armor" }, --class mask=35,Type=0,Plate
-    { id = 158, name = "Fel-Chain Armor" }, --class mask=4164,Type=0,Mail
-    { id = 159, name = "Felshroud Armor" }, --class mask=3592,Type=0,Leather
-    { id = 160, name = "Fel-Infused Armor" }, --class mask=400,Type=0,Cloth
-    { id = 157, name = "Felforged Armor" }, --class mask=35,Type=0,Plate
-    { id = 158, name = "Fel-Chain Armor" }, --class mask=4164,Type=0,Mail
-    { id = 160, name = "Fel-Infused Armor" }, --class mask=400,Type=0,Cloth
-    { id = 160, name = "Fel-Infused Armor" }, --class mask=400,Type=0,Cloth
-    { id = 159, name = "Felshroud Armor" }, --class mask=3592,Type=0,Leather
-    { id = 159, name = "Felshroud Armor" }, --class mask=3592,Type=0,Leather
-    { id = 159, name = "Felshroud Armor" }, --class mask=3592,Type=0,Leather
+    { id = 157, name = "Felforged Armor", classId = 1 },
+    { id = 157, name = "Felforged Armor", classId = 2 },
+    { id = 158, name = "Fel-Chain Armor", classId = 3 },
+    { id = 159, name = "Felshroud Armor", classId = 4 },
+    { id = 160, name = "Fel-Infused Armor", classId = 5 },
+    { id = 157, name = "Felforged Armor", classId = 6 },
+    { id = 158, name = "Fel-Chain Armor", classId = 7 },
+    { id = 160, name = "Fel-Infused Armor", classId = 8 },
+    { id = 160, name = "Fel-Infused Armor", classId = 9 },
+    { id = 159, name = "Felshroud Armor", classId = 10 },
+    { id = 159, name = "Felshroud Armor", classId = 11 },
+    { id = 159, name = "Felshroud Armor", classId = 12 },
+    { id = 158, name = "Fel-Chain Armor", classId = 13 },
   },
 })
 
@@ -1239,18 +1237,19 @@ tinsert(ns.Sets, {
   release = 8,
   minLevel = 70,
   sets = {
-    { id = 1653, name = "Eternal Curator's Protectorate" }, --class mask=35,Type=1641,Plate
-    { id = 1653, name = "Eternal Curator's Protectorate" }, --class mask=35,Type=1641,Plate
-    { id = 1649, name = "Eternal Curator's Chains" }, --class mask=4164,Type=1641,Mail
-    { id = 1645, name = "Eternal Curator's Garb" }, --class mask=3592,Type=1641,Leather
-    { id = 1641, name = "Eternal Curator's Vestment" }, --class mask=400,Type=1641,Cloth
-    { id = 1653, name = "Eternal Curator's Protectorate" }, --class mask=35,Type=1641,Plate
-    { id = 1649, name = "Eternal Curator's Chains" }, --class mask=4164,Type=1641,Mail
-    { id = 1641, name = "Eternal Curator's Vestment" }, --class mask=400,Type=1641,Cloth
-    { id = 1641, name = "Eternal Curator's Vestment" }, --class mask=400,Type=1641,Cloth
-    { id = 1645, name = "Eternal Curator's Garb" }, --class mask=3592,Type=1641,Leather
-    { id = 1645, name = "Eternal Curator's Garb" }, --class mask=3592,Type=1641,Leather
-    { id = 1645, name = "Eternal Curator's Garb" }, --class mask=3592,Type=1641,Leather
+    { id = 1653, name = "Eternal Curator's Protectorate", classId = 1 },
+    { id = 1653, name = "Eternal Curator's Protectorate", classId = 2 },
+    { id = 1649, name = "Eternal Curator's Chains", classId = 3 },
+    { id = 1645, name = "Eternal Curator's Garb", classId = 4 },
+    { id = 1641, name = "Eternal Curator's Vestment", classId = 5 },
+    { id = 1653, name = "Eternal Curator's Protectorate", classId = 6 },
+    { id = 1649, name = "Eternal Curator's Chains", classId = 7 },
+    { id = 1641, name = "Eternal Curator's Vestment", classId = 8 },
+    { id = 1641, name = "Eternal Curator's Vestment", classId = 9 },
+    { id = 1645, name = "Eternal Curator's Garb", classId = 10 },
+    { id = 1645, name = "Eternal Curator's Garb", classId = 11 },
+    { id = 1645, name = "Eternal Curator's Garb", classId = 12 },
+    { id = 1649, name = "Eternal Curator's Chains", classId = 13 },
   },
 })
 tinsert(ns.Sets, {
@@ -1260,18 +1259,19 @@ tinsert(ns.Sets, {
   release = 8,
   minLevel = 70,
   sets = {
-    { id = 1650, name = "Eternal Curator's Protectorate" }, --class mask=35,Type=13193,Plate
-    { id = 1650, name = "Eternal Curator's Protectorate" }, --class mask=35,Type=13193,Plate
-    { id = 1646, name = "Eternal Curator's Chains" }, --class mask=4164,Type=13193,Mail
-    { id = 1642, name = "Eternal Curator's Garb" }, --class mask=3592,Type=13193,Leather
-    { id = 1638, name = "Eternal Curator's Vestment" }, --class mask=400,Type=13193,Cloth
-    { id = 1650, name = "Eternal Curator's Protectorate" }, --class mask=35,Type=13193,Plate
-    { id = 1646, name = "Eternal Curator's Chains" }, --class mask=4164,Type=13193,Mail
-    { id = 1638, name = "Eternal Curator's Vestment" }, --class mask=400,Type=13193,Cloth
-    { id = 1638, name = "Eternal Curator's Vestment" }, --class mask=400,Type=13193,Cloth
-    { id = 1642, name = "Eternal Curator's Garb" }, --class mask=3592,Type=13193,Leather
-    { id = 1642, name = "Eternal Curator's Garb" }, --class mask=3592,Type=13193,Leather
-    { id = 1642, name = "Eternal Curator's Garb" }, --class mask=3592,Type=13193,Leather
+    { id = 1650, name = "Eternal Curator's Protectorate", classId = 1 },
+    { id = 1650, name = "Eternal Curator's Protectorate", classId = 2 },
+    { id = 1646, name = "Eternal Curator's Chains", classId = 3 },
+    { id = 1642, name = "Eternal Curator's Garb", classId = 4 },
+    { id = 1638, name = "Eternal Curator's Vestment", classId = 5 },
+    { id = 1650, name = "Eternal Curator's Protectorate", classId = 6 },
+    { id = 1646, name = "Eternal Curator's Chains", classId = 7 },
+    { id = 1638, name = "Eternal Curator's Vestment", classId = 8 },
+    { id = 1638, name = "Eternal Curator's Vestment", classId = 9 },
+    { id = 1642, name = "Eternal Curator's Garb", classId = 10 },
+    { id = 1642, name = "Eternal Curator's Garb", classId = 11 },
+    { id = 1642, name = "Eternal Curator's Garb", classId = 12 },
+    { id = 1646, name = "Eternal Curator's Chains", classId = 13 },
   },
 })
 tinsert(ns.Sets, {
@@ -1281,18 +1281,19 @@ tinsert(ns.Sets, {
   release = 8,
   minLevel = 70,
   sets = {
-    { id = 1651, name = "Eternal Curator's Protectorate" }, --class mask=35,Type=2015,Plate
-    { id = 1651, name = "Eternal Curator's Protectorate" }, --class mask=35,Type=2015,Plate
-    { id = 1647, name = "Eternal Curator's Chains" }, --class mask=4164,Type=2015,Mail
-    { id = 1643, name = "Eternal Curator's Garb" }, --class mask=3592,Type=2015,Leather
-    { id = 1639, name = "Eternal Curator's Vestment" }, --class mask=400,Type=2015,Cloth
-    { id = 1651, name = "Eternal Curator's Protectorate" }, --class mask=35,Type=2015,Plate
-    { id = 1647, name = "Eternal Curator's Chains" }, --class mask=4164,Type=2015,Mail
-    { id = 1639, name = "Eternal Curator's Vestment" }, --class mask=400,Type=2015,Cloth
-    { id = 1639, name = "Eternal Curator's Vestment" }, --class mask=400,Type=2015,Cloth
-    { id = 1643, name = "Eternal Curator's Garb" }, --class mask=3592,Type=2015,Leather
-    { id = 1643, name = "Eternal Curator's Garb" }, --class mask=3592,Type=2015,Leather
-    { id = 1643, name = "Eternal Curator's Garb" }, --class mask=3592,Type=2015,Leather
+    { id = 1651, name = "Eternal Curator's Protectorate", classId = 1 },
+    { id = 1651, name = "Eternal Curator's Protectorate", classId = 2 },
+    { id = 1647, name = "Eternal Curator's Chains", classId = 3 },
+    { id = 1643, name = "Eternal Curator's Garb", classId = 4 },
+    { id = 1639, name = "Eternal Curator's Vestment", classId = 5 },
+    { id = 1651, name = "Eternal Curator's Protectorate", classId = 6 },
+    { id = 1647, name = "Eternal Curator's Chains", classId = 7 },
+    { id = 1639, name = "Eternal Curator's Vestment", classId = 8 },
+    { id = 1639, name = "Eternal Curator's Vestment", classId = 9 },
+    { id = 1643, name = "Eternal Curator's Garb", classId = 10 },
+    { id = 1643, name = "Eternal Curator's Garb", classId = 11 },
+    { id = 1643, name = "Eternal Curator's Garb", classId = 12 },
+    { id = 1647, name = "Eternal Curator's Chains", classId = 13 },
   },
 })
 tinsert(ns.Sets, {
@@ -1302,18 +1303,19 @@ tinsert(ns.Sets, {
   release = 8,
   minLevel = 70,
   sets = {
-    { id = 1652, name = "Eternal Curator's Protectorate" }, --class mask=35,Type=13145,Plate
-    { id = 1652, name = "Eternal Curator's Protectorate" }, --class mask=35,Type=13145,Plate
-    { id = 1648, name = "Eternal Curator's Chains" }, --class mask=4164,Type=13145,Mail
-    { id = 1644, name = "Eternal Curator's Garb" }, --class mask=3592,Type=13145,Leather
-    { id = 1640, name = "Eternal Curator's Vestment" }, --class mask=400,Type=13145,Cloth
-    { id = 1652, name = "Eternal Curator's Protectorate" }, --class mask=35,Type=13145,Plate
-    { id = 1648, name = "Eternal Curator's Chains" }, --class mask=4164,Type=13145,Mail
-    { id = 1640, name = "Eternal Curator's Vestment" }, --class mask=400,Type=13145,Cloth
-    { id = 1640, name = "Eternal Curator's Vestment" }, --class mask=400,Type=13145,Cloth
-    { id = 1644, name = "Eternal Curator's Garb" }, --class mask=3592,Type=13145,Leather
-    { id = 1644, name = "Eternal Curator's Garb" }, --class mask=3592,Type=13145,Leather
-    { id = 1644, name = "Eternal Curator's Garb" }, --class mask=3592,Type=13145,Leather
+    { id = 1652, name = "Eternal Curator's Protectorate", classId = 1 },
+    { id = 1652, name = "Eternal Curator's Protectorate", classId = 2 },
+    { id = 1648, name = "Eternal Curator's Chains", classId = 3 },
+    { id = 1644, name = "Eternal Curator's Garb", classId = 4 },
+    { id = 1640, name = "Eternal Curator's Vestment", classId = 5 },
+    { id = 1652, name = "Eternal Curator's Protectorate", classId = 6 },
+    { id = 1648, name = "Eternal Curator's Chains", classId = 7 },
+    { id = 1640, name = "Eternal Curator's Vestment", classId = 8 },
+    { id = 1640, name = "Eternal Curator's Vestment", classId = 9 },
+    { id = 1644, name = "Eternal Curator's Garb", classId = 10 },
+    { id = 1644, name = "Eternal Curator's Garb", classId = 11 },
+    { id = 1644, name = "Eternal Curator's Garb", classId = 12 },
+    { id = 1648, name = "Eternal Curator's Chains", classId = 13 },
   },
 })
 -- battle of dazar'alor 169
@@ -1323,18 +1325,19 @@ tinsert(ns.Sets, {
   release = 8,
   minLevel = 70,
   sets = {
-    {id = 1819,name="Gravelord's Direplate"}, -- classmask=35,Type=1641,Plate
-    {id = 1819,name="Gravelord's Direplate"}, -- classmask=35,Type=1641,Plate
-    {id = 1815,name="Death-Devourer Vestments"}, -- classmask=4164,Type=1641,Mail
-    {id = 1811,name="Boneblade Battlegear"}, -- classmask=3592,Type=1641,Leather
-    {id = 1807,name="Soul Reaper's Raiment"}, -- classmask=400,Type=1641,Cloth
-    {id = 1819,name="Gravelord's Direplate"}, -- classmask=35,Type=1641,Plate
-    {id = 1815,name="Death-Devourer Vestments"}, -- classmask=4164,Type=1641,Mail
-    {id = 1807,name="Soul Reaper's Raiment"}, -- classmask=400,Type=1641,Cloth
-    {id = 1807,name="Soul Reaper's Raiment"}, -- classmask=400,Type=1641,Cloth
-    {id = 1811,name="Boneblade Battlegear"}, -- classmask=3592,Type=1641,Leather
-    {id = 1811,name="Boneblade Battlegear"}, -- classmask=3592,Type=1641,Leather
-    {id = 1811,name="Boneblade Battlegear"}, -- classmask=3592,Type=1641,Leather
+    { id = 1819, name = "Gravelord's Direplate", classId = 1 },
+    { id = 1819, name = "Gravelord's Direplate", classId = 2 },
+    { id = 1815, name = "Death-Devourer Vestments", classId = 3 },
+    { id = 1811, name = "Boneblade Battlegear", classId = 4 },
+    { id = 1807, name = "Soul Reaper's Raiment", classId = 5 },
+    { id = 1819, name = "Gravelord's Direplate", classId = 6 },
+    { id = 1815, name = "Death-Devourer Vestments", classId = 7 },
+    { id = 1807, name = "Soul Reaper's Raiment", classId = 8 },
+    { id = 1807, name = "Soul Reaper's Raiment", classId = 9 },
+    { id = 1811, name = "Boneblade Battlegear", classId = 10 },
+    { id = 1811, name = "Boneblade Battlegear", classId = 11 },
+    { id = 1811, name = "Boneblade Battlegear", classId = 12 },
+    { id = 1815, name = "Death-Devourer Vestments", classId = 13 },
   },
 })
 tinsert(ns.Sets, {
@@ -1344,18 +1347,19 @@ tinsert(ns.Sets, {
   release = 8,
   minLevel = 70,
   sets = {
-    {id = 1818,name="Gravelord's Direplate"}, -- classmask=35,Type=13193,Plate
-    {id = 1818,name="Gravelord's Direplate"}, -- classmask=35,Type=13193,Plate
-    {id = 1814,name="Death-Devourer Vestments"}, -- classmask=4164,Type=13193,Mail
-    {id = 1810,name="Boneblade Battlegear"}, -- classmask=3592,Type=13193,Leather
-    {id = 1806,name="Soul Reaper's Raiment"}, -- classmask=400,Type=13193,Cloth
-    {id = 1818,name="Gravelord's Direplate"}, -- classmask=35,Type=13193,Plate
-    {id = 1814,name="Death-Devourer Vestments"}, -- classmask=4164,Type=13193,Mail
-    {id = 1806,name="Soul Reaper's Raiment"}, -- classmask=400,Type=13193,Cloth
-    {id = 1806,name="Soul Reaper's Raiment"}, -- classmask=400,Type=13193,Cloth
-    {id = 1810,name="Boneblade Battlegear"}, -- classmask=3592,Type=13193,Leather
-    {id = 1810,name="Boneblade Battlegear"}, -- classmask=3592,Type=13193,Leather
-    {id = 1810,name="Boneblade Battlegear"}, -- classmask=3592,Type=13193,Leather
+    { id = 1818, name = "Gravelord's Direplate", classId = 1 },
+    { id = 1818, name = "Gravelord's Direplate", classId = 2 },
+    { id = 1814, name = "Death-Devourer Vestments", classId = 3 },
+    { id = 1810, name = "Boneblade Battlegear", classId = 4 },
+    { id = 1806, name = "Soul Reaper's Raiment", classId = 5 },
+    { id = 1818, name = "Gravelord's Direplate", classId = 6 },
+    { id = 1814, name = "Death-Devourer Vestments", classId = 7 },
+    { id = 1806, name = "Soul Reaper's Raiment", classId = 8 },
+    { id = 1806, name = "Soul Reaper's Raiment", classId = 9 },
+    { id = 1810, name = "Boneblade Battlegear", classId = 10 },
+    { id = 1810, name = "Boneblade Battlegear", classId = 11 },
+    { id = 1810, name = "Boneblade Battlegear", classId = 12 },
+    { id = 1814, name = "Death-Devourer Vestments", classId = 13 },
   },
 })
 tinsert(ns.Sets, {
@@ -1365,18 +1369,19 @@ tinsert(ns.Sets, {
   release = 8,
   minLevel = 70,
   sets = {
-    {id = 1820,name="Gravelord's Direplate"}, -- classmask=35,Type=2015,Plate
-    {id = 1820,name="Gravelord's Direplate"}, -- classmask=35,Type=2015,Plate
-    {id = 1816,name="Death-Devourer Vestments"}, -- classmask=4164,Type=2015,Mail
-    {id = 1812,name="Boneblade Battlegear"}, -- classmask=3592,Type=2015,Leather
-    {id = 1808,name="Soul Reaper's Raiment"}, -- classmask=400,Type=2015,Cloth
-    {id = 1820,name="Gravelord's Direplate"}, -- classmask=35,Type=2015,Plate
-    {id = 1816,name="Death-Devourer Vestments"}, -- classmask=4164,Type=2015,Mail
-    {id = 1808,name="Soul Reaper's Raiment"}, -- classmask=400,Type=2015,Cloth
-    {id = 1808,name="Soul Reaper's Raiment"}, -- classmask=400,Type=2015,Cloth
-    {id = 1812,name="Boneblade Battlegear"}, -- classmask=3592,Type=2015,Leather
-    {id = 1812,name="Boneblade Battlegear"}, -- classmask=3592,Type=2015,Leather
-    {id = 1812,name="Boneblade Battlegear"}, -- classmask=3592,Type=2015,Leather
+    { id = 1820, name = "Gravelord's Direplate", classId = 1 },
+    { id = 1820, name = "Gravelord's Direplate", classId = 2 },
+    { id = 1816, name = "Death-Devourer Vestments", classId = 3 },
+    { id = 1812, name = "Boneblade Battlegear", classId = 4 },
+    { id = 1808, name = "Soul Reaper's Raiment", classId = 5 },
+    { id = 1820, name = "Gravelord's Direplate", classId = 6 },
+    { id = 1816, name = "Death-Devourer Vestments", classId = 7 },
+    { id = 1808, name = "Soul Reaper's Raiment", classId = 8 },
+    { id = 1808, name = "Soul Reaper's Raiment", classId = 9 },
+    { id = 1812, name = "Boneblade Battlegear", classId = 10 },
+    { id = 1812, name = "Boneblade Battlegear", classId = 11 },
+    { id = 1812, name = "Boneblade Battlegear", classId = 12 },
+    { id = 1816, name = "Death-Devourer Vestments", classId = 13 },
   },
 })
 tinsert(ns.Sets, {
@@ -1386,18 +1391,19 @@ tinsert(ns.Sets, {
   release = 8,
   minLevel = 70,
   sets = {
-    {id = 1821,name="Gravelord's Direplate"}, -- classmask=35,Type=13145,Plate
-    {id = 1821,name="Gravelord's Direplate"}, -- classmask=35,Type=13145,Plate
-    {id = 1817,name="Death-Devourer Vestments"}, -- classmask=4164,Type=13145,Mail
-    {id = 1813,name="Boneblade Battlegear"}, -- classmask=3592,Type=13145,Leather
-    {id = 1809,name="Soul Reaper's Raiment"}, -- classmask=400,Type=13145,Cloth
-    {id = 1821,name="Gravelord's Direplate"}, -- classmask=35,Type=13145,Plate
-    {id = 1817,name="Death-Devourer Vestments"}, -- classmask=4164,Type=13145,Mail
-    {id = 1809,name="Soul Reaper's Raiment"}, -- classmask=400,Type=13145,Cloth
-    {id = 1809,name="Soul Reaper's Raiment"}, -- classmask=400,Type=13145,Cloth
-    {id = 1813,name="Boneblade Battlegear"}, -- classmask=3592,Type=13145,Leather
-    {id = 1813,name="Boneblade Battlegear"}, -- classmask=3592,Type=13145,Leather
-    {id = 1813,name="Boneblade Battlegear"}, -- classmask=3592,Type=13145,Leather
+    { id = 1821, name = "Gravelord's Direplate", classId = 1 },
+    { id = 1821, name = "Gravelord's Direplate", classId = 2 },
+    { id = 1817, name = "Death-Devourer Vestments", classId = 3 },
+    { id = 1813, name = "Boneblade Battlegear", classId = 4 },
+    { id = 1809, name = "Soul Reaper's Raiment", classId = 5 },
+    { id = 1821, name = "Gravelord's Direplate", classId = 6 },
+    { id = 1817, name = "Death-Devourer Vestments", classId = 7 },
+    { id = 1809, name = "Soul Reaper's Raiment", classId = 8 },
+    { id = 1809, name = "Soul Reaper's Raiment", classId = 9 },
+    { id = 1813, name = "Boneblade Battlegear", classId = 10 },
+    { id = 1813, name = "Boneblade Battlegear", classId = 11 },
+    { id = 1813, name = "Boneblade Battlegear", classId = 12 },
+    { id = 1817, name = "Death-Devourer Vestments", classId = 13 },
   },
 })
 -- the eternal palace 172
@@ -1408,18 +1414,19 @@ tinsert(ns.Sets, {
   release = 8,
   minLevel = 70,
   sets = {
-    {id = 1842,name="Naga Lord's Warplate"}, -- classmask=35,Type=1641,Plate
-    {id = 1842,name="Naga Lord's Warplate"}, -- classmask=35,Type=1641,Plate
-    {id = 1843,name="Queen's Guard Scalemail"}, -- classmask=4164,Type=1641,Mail
-    {id = 1844,name="Razorfin Regalia"}, -- classmask=3592,Type=1641,Leather
-    {id = 1845,name="Frilled Harbinger's Vestments"}, -- classmask=400,Type=1641,Cloth
-    {id = 1842,name="Naga Lord's Warplate"}, -- classmask=35,Type=1641,Plate
-    {id = 1843,name="Queen's Guard Scalemail"}, -- classmask=4164,Type=1641,Mail
-    {id = 1845,name="Frilled Harbinger's Vestments"}, -- classmask=400,Type=1641,Cloth
-    {id = 1845,name="Frilled Harbinger's Vestments"}, -- classmask=400,Type=1641,Cloth
-    {id = 1844,name="Razorfin Regalia"}, -- classmask=3592,Type=1641,Leather
-    {id = 1844,name="Razorfin Regalia"}, -- classmask=3592,Type=1641,Leather
-    {id = 1844,name="Razorfin Regalia"}, -- classmask=3592,Type=1641,Leather
+    { id = 1842, name = "Naga Lord's Warplate", classId = 1 },
+    { id = 1842, name = "Naga Lord's Warplate", classId = 2 },
+    { id = 1843, name = "Queen's Guard Scalemail", classId = 3 },
+    { id = 1844, name = "Razorfin Regalia", classId = 4 },
+    { id = 1845, name = "Frilled Harbinger's Vestments", classId = 5 },
+    { id = 1842, name = "Naga Lord's Warplate", classId = 6 },
+    { id = 1843, name = "Queen's Guard Scalemail", classId = 7 },
+    { id = 1845, name = "Frilled Harbinger's Vestments", classId = 8 },
+    { id = 1845, name = "Frilled Harbinger's Vestments", classId = 9 },
+    { id = 1844, name = "Razorfin Regalia", classId = 10 },
+    { id = 1844, name = "Razorfin Regalia", classId = 11 },
+    { id = 1844, name = "Razorfin Regalia", classId = 12 },
+    { id = 1843, name = "Queen's Guard Scalemail", classId = 13 },
   },
 })
 tinsert(ns.Sets, {
@@ -1429,18 +1436,19 @@ tinsert(ns.Sets, {
   release = 8,
   minLevel = 70,
   sets = {
-    {id = 1830,name="Naga Lord's Warplate"}, -- classmask=35,Type=13193,Plate
-    {id = 1830,name="Naga Lord's Warplate"}, -- classmask=35,Type=13193,Plate
-    {id = 1831,name="Queen's Guard Scalemail"}, -- classmask=4164,Type=13193,Mail
-    {id = 1832,name="Razorfin Regalia"}, -- classmask=3592,Type=13193,Leather
-    {id = 1833,name="Frilled Harbinger's Vestments"}, -- classmask=400,Type=13193,Cloth
-    {id = 1830,name="Naga Lord's Warplate"}, -- classmask=35,Type=13193,Plate
-    {id = 1831,name="Queen's Guard Scalemail"}, -- classmask=4164,Type=13193,Mail
-    {id = 1833,name="Frilled Harbinger's Vestments"}, -- classmask=400,Type=13193,Cloth
-    {id = 1833,name="Frilled Harbinger's Vestments"}, -- classmask=400,Type=13193,Cloth
-    {id = 1832,name="Razorfin Regalia"}, -- classmask=3592,Type=13193,Leather
-    {id = 1832,name="Razorfin Regalia"}, -- classmask=3592,Type=13193,Leather
-    {id = 1832,name="Razorfin Regalia"}, -- classmask=3592,Type=13193,Leather
+    { id = 1830, name = "Naga Lord's Warplate", classId = 1 },
+    { id = 1830, name = "Naga Lord's Warplate", classId = 2 },
+    { id = 1831, name = "Queen's Guard Scalemail", classId = 3 },
+    { id = 1832, name = "Razorfin Regalia", classId = 4 },
+    { id = 1833, name = "Frilled Harbinger's Vestments", classId = 5 },
+    { id = 1830, name = "Naga Lord's Warplate", classId = 6 },
+    { id = 1831, name = "Queen's Guard Scalemail", classId = 7 },
+    { id = 1833, name = "Frilled Harbinger's Vestments", classId = 8 },
+    { id = 1833, name = "Frilled Harbinger's Vestments", classId = 9 },
+    { id = 1832, name = "Razorfin Regalia", classId = 10 },
+    { id = 1832, name = "Razorfin Regalia", classId = 11 },
+    { id = 1832, name = "Razorfin Regalia", classId = 12 },
+    { id = 1831, name = "Queen's Guard Scalemail", classId = 13 },
   },
 })
 tinsert(ns.Sets, {
@@ -1450,18 +1458,19 @@ tinsert(ns.Sets, {
   release = 8,
   minLevel = 70,
   sets = {
-    {id = 1834,name="Naga Lord's Warplate"}, -- classmask=35,Type=2015,Plate
-    {id = 1834,name="Naga Lord's Warplate"}, -- classmask=35,Type=2015,Plate
-    {id = 1835,name="Queen's Guard Scalemail"}, -- classmask=4164,Type=2015,Mail
-    {id = 1836,name="Razorfin Regalia"}, -- classmask=3592,Type=2015,Leather
-    {id = 1837,name="Frilled Harbinger's Vestments"}, -- classmask=400,Type=2015,Cloth
-    {id = 1834,name="Naga Lord's Warplate"}, -- classmask=35,Type=2015,Plate
-    {id = 1835,name="Queen's Guard Scalemail"}, -- classmask=4164,Type=2015,Mail
-    {id = 1837,name="Frilled Harbinger's Vestments"}, -- classmask=400,Type=2015,Cloth
-    {id = 1837,name="Frilled Harbinger's Vestments"}, -- classmask=400,Type=2015,Cloth
-    {id = 1836,name="Razorfin Regalia"}, -- classmask=3592,Type=2015,Leather
-    {id = 1836,name="Razorfin Regalia"}, -- classmask=3592,Type=2015,Leather
-    {id = 1836,name="Razorfin Regalia"}, -- classmask=3592,Type=2015,Leather
+    { id = 1834, name = "Naga Lord's Warplate", classId = 1 },
+    { id = 1834, name = "Naga Lord's Warplate", classId = 2 },
+    { id = 1835, name = "Queen's Guard Scalemail", classId = 3 },
+    { id = 1836, name = "Razorfin Regalia", classId = 4 },
+    { id = 1837, name = "Frilled Harbinger's Vestments", classId = 5 },
+    { id = 1834, name = "Naga Lord's Warplate", classId = 6 },
+    { id = 1835, name = "Queen's Guard Scalemail", classId = 7 },
+    { id = 1837, name = "Frilled Harbinger's Vestments", classId = 8 },
+    { id = 1837, name = "Frilled Harbinger's Vestments", classId = 9 },
+    { id = 1836, name = "Razorfin Regalia", classId = 10 },
+    { id = 1836, name = "Razorfin Regalia", classId = 11 },
+    { id = 1836, name = "Razorfin Regalia", classId = 12 },
+    { id = 1835, name = "Queen's Guard Scalemail", classId = 13 },
   },
 })
 tinsert(ns.Sets, {
@@ -1471,18 +1480,19 @@ tinsert(ns.Sets, {
   release = 8,
   minLevel = 70,
   sets = {
-    {id = 1838,name="Naga Lord's Warplate"}, -- classmask=35,Type=13145,Plate
-    {id = 1838,name="Naga Lord's Warplate"}, -- classmask=35,Type=13145,Plate
-    {id = 1839,name="Queen's Guard Scalemail"}, -- classmask=4164,Type=13145,Mail
-    {id = 1840,name="Razorfin Regalia"}, -- classmask=3592,Type=13145,Leather
-    {id = 1841,name="Frilled Harbinger's Vestments"}, -- classmask=400,Type=13145,Cloth
-    {id = 1838,name="Naga Lord's Warplate"}, -- classmask=35,Type=13145,Plate
-    {id = 1839,name="Queen's Guard Scalemail"}, -- classmask=4164,Type=13145,Mail
-    {id = 1841,name="Frilled Harbinger's Vestments"}, -- classmask=400,Type=13145,Cloth
-    {id = 1841,name="Frilled Harbinger's Vestments"}, -- classmask=400,Type=13145,Cloth
-    {id = 1840,name="Razorfin Regalia"}, -- classmask=3592,Type=13145,Leather
-    {id = 1840,name="Razorfin Regalia"}, -- classmask=3592,Type=13145,Leather
-    {id = 1840,name="Razorfin Regalia"}, -- classmask=3592,Type=13145,Leather
+    { id = 1838, name = "Naga Lord's Warplate", classId = 1 },
+    { id = 1838, name = "Naga Lord's Warplate", classId = 2 },
+    { id = 1839, name = "Queen's Guard Scalemail", classId = 3 },
+    { id = 1840, name = "Razorfin Regalia", classId = 4 },
+    { id = 1841, name = "Frilled Harbinger's Vestments", classId = 5 },
+    { id = 1838, name = "Naga Lord's Warplate", classId = 6 },
+    { id = 1839, name = "Queen's Guard Scalemail", classId = 7 },
+    { id = 1841, name = "Frilled Harbinger's Vestments", classId = 8 },
+    { id = 1841, name = "Frilled Harbinger's Vestments", classId = 9 },
+    { id = 1840, name = "Razorfin Regalia", classId = 10 },
+    { id = 1840, name = "Razorfin Regalia", classId = 11 },
+    { id = 1840, name = "Razorfin Regalia", classId = 12 },
+    { id = 1839, name = "Queen's Guard Scalemail", classId = 13 },
   },
 })
 -- ny'alotha, the waking city 176
@@ -1493,18 +1503,19 @@ tinsert(ns.Sets, {
   release = 8,
   minLevel = 70,
   sets = {
-    {id = 1983,name="Cosmic Aberration's Plate"}, -- classmask=35,Type=1641,Plate
-    {id = 1983,name="Cosmic Aberration's Plate"}, -- classmask=35,Type=1641,Plate
-    {id = 1987,name="Lurking Defiler's Scalemail"}, -- classmask=4164,Type=1641,Mail
-    {id = 1991,name="Treacherous Schemer's Leathers"}, -- classmask=3592,Type=1641,Leather
-    {id = 1995,name="Oblivion Cultist's Robes"}, -- classmask=400,Type=1641,Cloth
-    {id = 1983,name="Cosmic Aberration's Plate"}, -- classmask=35,Type=1641,Plate
-    {id = 1987,name="Lurking Defiler's Scalemail"}, -- classmask=4164,Type=1641,Mail
-    {id = 1995,name="Oblivion Cultist's Robes"}, -- classmask=400,Type=1641,Cloth
-    {id = 1995,name="Oblivion Cultist's Robes"}, -- classmask=400,Type=1641,Cloth
-    {id = 1991,name="Treacherous Schemer's Leathers"}, -- classmask=3592,Type=1641,Leather
-    {id = 1991,name="Treacherous Schemer's Leathers"}, -- classmask=3592,Type=1641,Leather
-    {id = 1991,name="Treacherous Schemer's Leathers"}, -- classmask=3592,Type=1641,Leather
+    { id = 1983, name = "Cosmic Aberration's Plate", classId = 1 },
+    { id = 1983, name = "Cosmic Aberration's Plate", classId = 2 },
+    { id = 1987, name = "Lurking Defiler's Scalemail", classId = 3 },
+    { id = 1991, name = "Treacherous Schemer's Leathers", classId = 4 },
+    { id = 1995, name = "Oblivion Cultist's Robes", classId = 5 },
+    { id = 1983, name = "Cosmic Aberration's Plate", classId = 6 },
+    { id = 1987, name = "Lurking Defiler's Scalemail", classId = 7 },
+    { id = 1995, name = "Oblivion Cultist's Robes", classId = 8 },
+    { id = 1995, name = "Oblivion Cultist's Robes", classId = 9 },
+    { id = 1991, name = "Treacherous Schemer's Leathers", classId = 10 },
+    { id = 1991, name = "Treacherous Schemer's Leathers", classId = 11 },
+    { id = 1991, name = "Treacherous Schemer's Leathers", classId = 12 },
+    { id = 1987, name = "Lurking Defiler's Scalemail", classId = 13 },
   },
 })
 tinsert(ns.Sets, {
@@ -1514,18 +1525,19 @@ tinsert(ns.Sets, {
   release = 8,
   minLevel = 70,
   sets = {
-    {id = 1982,name="Cosmic Aberration's Plate"}, -- classmask=35,Type=13193,Plate
-    {id = 1982,name="Cosmic Aberration's Plate"}, -- classmask=35,Type=13193,Plate
-    {id = 1986,name="Lurking Defiler's Scalemail"}, -- classmask=4164,Type=13193,Mail
-    {id = 1990,name="Treacherous Schemer's Leathers"}, -- classmask=3592,Type=13193,Leather
-    {id = 1994,name="Oblivion Cultist's Robes"}, -- classmask=400,Type=13193,Cloth
-    {id = 1982,name="Cosmic Aberration's Plate"}, -- classmask=35,Type=13193,Plate
-    {id = 1986,name="Lurking Defiler's Scalemail"}, -- classmask=4164,Type=13193,Mail
-    {id = 1994,name="Oblivion Cultist's Robes"}, -- classmask=400,Type=13193,Cloth
-    {id = 1994,name="Oblivion Cultist's Robes"}, -- classmask=400,Type=13193,Cloth
-    {id = 1990,name="Treacherous Schemer's Leathers"}, -- classmask=3592,Type=13193,Leather
-    {id = 1990,name="Treacherous Schemer's Leathers"}, -- classmask=3592,Type=13193,Leather
-    {id = 1990,name="Treacherous Schemer's Leathers"}, -- classmask=3592,Type=13193,Leather
+    { id = 1982, name = "Cosmic Aberration's Plate", classId = 1 },
+    { id = 1982, name = "Cosmic Aberration's Plate", classId = 2 },
+    { id = 1986, name = "Lurking Defiler's Scalemail", classId = 3 },
+    { id = 1990, name = "Treacherous Schemer's Leathers", classId = 4 },
+    { id = 1994, name = "Oblivion Cultist's Robes", classId = 5 },
+    { id = 1982, name = "Cosmic Aberration's Plate", classId = 6 },
+    { id = 1986, name = "Lurking Defiler's Scalemail", classId = 7 },
+    { id = 1994, name = "Oblivion Cultist's Robes", classId = 8 },
+    { id = 1994, name = "Oblivion Cultist's Robes", classId = 9 },
+    { id = 1990, name = "Treacherous Schemer's Leathers", classId = 10 },
+    { id = 1990, name = "Treacherous Schemer's Leathers", classId = 11 },
+    { id = 1990, name = "Treacherous Schemer's Leathers", classId = 12 },
+    { id = 1986, name = "Lurking Defiler's Scalemail", classId = 13 },
   },
 })
 tinsert(ns.Sets, {
@@ -1535,18 +1547,19 @@ tinsert(ns.Sets, {
   release = 8,
   minLevel = 70,
   sets = {
-    {id = 1984,name="Cosmic Aberration's Plate"}, -- classmask=35,Type=2015,Plate
-    {id = 1984,name="Cosmic Aberration's Plate"}, -- classmask=35,Type=2015,Plate
-    {id = 1988,name="Lurking Defiler's Scalemail"}, -- classmask=4164,Type=2015,Mail
-    {id = 1992,name="Treacherous Schemer's Leathers"}, -- classmask=3592,Type=2015,Leather
-    {id = 1996,name="Oblivion Cultist's Robes"}, -- classmask=400,Type=2015,Cloth
-    {id = 1984,name="Cosmic Aberration's Plate"}, -- classmask=35,Type=2015,Plate
-    {id = 1988,name="Lurking Defiler's Scalemail"}, -- classmask=4164,Type=2015,Mail
-    {id = 1996,name="Oblivion Cultist's Robes"}, -- classmask=400,Type=2015,Cloth
-    {id = 1996,name="Oblivion Cultist's Robes"}, -- classmask=400,Type=2015,Cloth
-    {id = 1992,name="Treacherous Schemer's Leathers"}, -- classmask=3592,Type=2015,Leather
-    {id = 1992,name="Treacherous Schemer's Leathers"}, -- classmask=3592,Type=2015,Leather
-    {id = 1992,name="Treacherous Schemer's Leathers"}, -- classmask=3592,Type=2015,Leather
+    { id = 1984, name = "Cosmic Aberration's Plate", classId = 1 },
+    { id = 1984, name = "Cosmic Aberration's Plate", classId = 2 },
+    { id = 1988, name = "Lurking Defiler's Scalemail", classId = 3 },
+    { id = 1992, name = "Treacherous Schemer's Leathers", classId = 4 },
+    { id = 1996, name = "Oblivion Cultist's Robes", classId = 5 },
+    { id = 1984, name = "Cosmic Aberration's Plate", classId = 6 },
+    { id = 1988, name = "Lurking Defiler's Scalemail", classId = 7 },
+    { id = 1996, name = "Oblivion Cultist's Robes", classId = 8 },
+    { id = 1996, name = "Oblivion Cultist's Robes", classId = 9 },
+    { id = 1992, name = "Treacherous Schemer's Leathers", classId = 10 },
+    { id = 1992, name = "Treacherous Schemer's Leathers", classId = 11 },
+    { id = 1992, name = "Treacherous Schemer's Leathers", classId = 12 },
+    { id = 1988, name = "Lurking Defiler's Scalemail", classId = 13 },
   },
 })
 tinsert(ns.Sets, {
@@ -1556,18 +1569,19 @@ tinsert(ns.Sets, {
   release = 8,
   minLevel = 70,
   sets = {
-    {id = 1985,name="Cosmic Aberration's Plate"}, -- classmask=35,Type=13145,Plate
-    {id = 1985,name="Cosmic Aberration's Plate"}, -- classmask=35,Type=13145,Plate
-    {id = 1989,name="Lurking Defiler's Scalemail"}, -- classmask=4164,Type=13145,Mail
-    {id = 1993,name="Treacherous Schemer's Leathers"}, -- classmask=3592,Type=13145,Leather
-    {id = 1997,name="Oblivion Cultist's Robes"}, -- classmask=400,Type=13145,Cloth
-    {id = 1985,name="Cosmic Aberration's Plate"}, -- classmask=35,Type=13145,Plate
-    {id = 1989,name="Lurking Defiler's Scalemail"}, -- classmask=4164,Type=13145,Mail
-    {id = 1997,name="Oblivion Cultist's Robes"}, -- classmask=400,Type=13145,Cloth
-    {id = 1997,name="Oblivion Cultist's Robes"}, -- classmask=400,Type=13145,Cloth
-    {id = 1993,name="Treacherous Schemer's Leathers"}, -- classmask=3592,Type=13145,Leather
-    {id = 1993,name="Treacherous Schemer's Leathers"}, -- classmask=3592,Type=13145,Leather
-    {id = 1993,name="Treacherous Schemer's Leathers"}, -- classmask=3592,Type=13145,Leather
+    { id = 1985, name = "Cosmic Aberration's Plate", classId = 1 },
+    { id = 1985, name = "Cosmic Aberration's Plate", classId = 2 },
+    { id = 1989, name = "Lurking Defiler's Scalemail", classId = 3 },
+    { id = 1993, name = "Treacherous Schemer's Leathers", classId = 4 },
+    { id = 1997, name = "Oblivion Cultist's Robes", classId = 5 },
+    { id = 1985, name = "Cosmic Aberration's Plate", classId = 6 },
+    { id = 1989, name = "Lurking Defiler's Scalemail", classId = 7 },
+    { id = 1997, name = "Oblivion Cultist's Robes", classId = 8 },
+    { id = 1997, name = "Oblivion Cultist's Robes", classId = 9 },
+    { id = 1993, name = "Treacherous Schemer's Leathers", classId = 10 },
+    { id = 1993, name = "Treacherous Schemer's Leathers", classId = 11 },
+    { id = 1993, name = "Treacherous Schemer's Leathers", classId = 12 },
+    { id = 1989, name = "Lurking Defiler's Scalemail", classId = 13 },
   },
 })
 -- release 9
@@ -1579,18 +1593,19 @@ tinsert(ns.Sets, {
   release = 9,
   minLevel = 70,
   sets = {
-    {id = 2151,name="Grand Sentinel's Greatplate"}, -- classmask=35,Type=1641,Plate
-    {id = 2151,name="Grand Sentinel's Greatplate"}, -- classmask=35,Type=1641,Plate
-    {id = 2155,name="Inexorable Castigator's Guise"}, -- classmask=4164,Type=1641,Mail
-    {id = 2163,name="Sin Slayer's Leathers"}, -- classmask=3592,Type=1641,Leather
-    {id = 2159,name="Depraved Beguiler's Visage"}, -- classmask=400,Type=1641,Cloth
-    {id = 2151,name="Grand Sentinel's Greatplate"}, -- classmask=35,Type=1641,Plate
-    {id = 2155,name="Inexorable Castigator's Guise"}, -- classmask=4164,Type=1641,Mail
-    {id = 2159,name="Depraved Beguiler's Visage"}, -- classmask=400,Type=1641,Cloth
-    {id = 2159,name="Depraved Beguiler's Visage"}, -- classmask=400,Type=1641,Cloth
-    {id = 2163,name="Sin Slayer's Leathers"}, -- classmask=3592,Type=1641,Leather
-    {id = 2163,name="Sin Slayer's Leathers"}, -- classmask=3592,Type=1641,Leather
-    {id = 2163,name="Sin Slayer's Leathers"}, -- classmask=3592,Type=1641,Leather
+    { id = 2151, name = "Grand Sentinel's Greatplate", classId = 1 },
+    { id = 2151, name = "Grand Sentinel's Greatplate", classId = 2 },
+    { id = 2155, name = "Inexorable Castigator's Guise", classId = 3 },
+    { id = 2163, name = "Sin Slayer's Leathers", classId = 4 },
+    { id = 2159, name = "Depraved Beguiler's Visage", classId = 5 },
+    { id = 2151, name = "Grand Sentinel's Greatplate", classId = 6 },
+    { id = 2155, name = "Inexorable Castigator's Guise", classId = 7 },
+    { id = 2159, name = "Depraved Beguiler's Visage", classId = 8 },
+    { id = 2159, name = "Depraved Beguiler's Visage", classId = 9 },
+    { id = 2163, name = "Sin Slayer's Leathers", classId = 10 },
+    { id = 2163, name = "Sin Slayer's Leathers", classId = 11 },
+    { id = 2163, name = "Sin Slayer's Leathers", classId = 12 },
+    { id = 2155, name = "Inexorable Castigator's Guise", classId = 13 },
   },
 })
 tinsert(ns.Sets, {
@@ -1600,18 +1615,19 @@ tinsert(ns.Sets, {
   release = 9,
   minLevel = 70,
   sets = {
-    {id = 2150,name="Grand Sentinel's Greatplate"}, -- classmask=35,Type=13193,Plate
-    {id = 2150,name="Grand Sentinel's Greatplate"}, -- classmask=35,Type=13193,Plate
-    {id = 2154,name="Inexorable Castigator's Guise"}, -- classmask=4164,Type=13193,Mail
-    {id = 2162,name="Sin Slayer's Leathers"}, -- classmask=3592,Type=13193,Leather
-    {id = 2158,name="Depraved Beguiler's Visage"}, -- classmask=400,Type=13193,Cloth
-    {id = 2150,name="Grand Sentinel's Greatplate"}, -- classmask=35,Type=13193,Plate
-    {id = 2154,name="Inexorable Castigator's Guise"}, -- classmask=4164,Type=13193,Mail
-    {id = 2158,name="Depraved Beguiler's Visage"}, -- classmask=400,Type=13193,Cloth
-    {id = 2158,name="Depraved Beguiler's Visage"}, -- classmask=400,Type=13193,Cloth
-    {id = 2162,name="Sin Slayer's Leathers"}, -- classmask=3592,Type=13193,Leather
-    {id = 2162,name="Sin Slayer's Leathers"}, -- classmask=3592,Type=13193,Leather
-    {id = 2162,name="Sin Slayer's Leathers"}, -- classmask=3592,Type=13193,Leather
+    { id = 2150, name = "Grand Sentinel's Greatplate", classId = 1 },
+    { id = 2150, name = "Grand Sentinel's Greatplate", classId = 2 },
+    { id = 2154, name = "Inexorable Castigator's Guise", classId = 3 },
+    { id = 2162, name = "Sin Slayer's Leathers", classId = 4 },
+    { id = 2158, name = "Depraved Beguiler's Visage", classId = 5 },
+    { id = 2150, name = "Grand Sentinel's Greatplate", classId = 6 },
+    { id = 2154, name = "Inexorable Castigator's Guise", classId = 7 },
+    { id = 2158, name = "Depraved Beguiler's Visage", classId = 8 },
+    { id = 2158, name = "Depraved Beguiler's Visage", classId = 9 },
+    { id = 2162, name = "Sin Slayer's Leathers", classId = 10 },
+    { id = 2162, name = "Sin Slayer's Leathers", classId = 11 },
+    { id = 2162, name = "Sin Slayer's Leathers", classId = 12 },
+    { id = 2154, name = "Inexorable Castigator's Guise", classId = 13 },
   },
 })
 tinsert(ns.Sets, {
@@ -1621,18 +1637,19 @@ tinsert(ns.Sets, {
   release = 9,
   minLevel = 70,
   sets = {
-    {id = 2152,name="Grand Sentinel's Greatplate"}, -- classmask=35,Type=2015,Plate
-    {id = 2152,name="Grand Sentinel's Greatplate"}, -- classmask=35,Type=2015,Plate
-    {id = 2156,name="Inexorable Castigator's Guise"}, -- classmask=4164,Type=2015,Mail
-    {id = 2164,name="Sin Slayer's Leathers"}, -- classmask=3592,Type=2015,Leather
-    {id = 2160,name="Depraved Beguiler's Visage"}, -- classmask=400,Type=2015,Cloth
-    {id = 2152,name="Grand Sentinel's Greatplate"}, -- classmask=35,Type=2015,Plate
-    {id = 2156,name="Inexorable Castigator's Guise"}, -- classmask=4164,Type=2015,Mail
-    {id = 2160,name="Depraved Beguiler's Visage"}, -- classmask=400,Type=2015,Cloth
-    {id = 2160,name="Depraved Beguiler's Visage"}, -- classmask=400,Type=2015,Cloth
-    {id = 2164,name="Sin Slayer's Leathers"}, -- classmask=3592,Type=2015,Leather
-    {id = 2164,name="Sin Slayer's Leathers"}, -- classmask=3592,Type=2015,Leather
-    {id = 2164,name="Sin Slayer's Leathers"}, -- classmask=3592,Type=2015,Leather
+    { id = 2152, name = "Grand Sentinel's Greatplate", classId = 1 },
+    { id = 2152, name = "Grand Sentinel's Greatplate", classId = 2 },
+    { id = 2156, name = "Inexorable Castigator's Guise", classId = 3 },
+    { id = 2164, name = "Sin Slayer's Leathers", classId = 4 },
+    { id = 2160, name = "Depraved Beguiler's Visage", classId = 5 },
+    { id = 2152, name = "Grand Sentinel's Greatplate", classId = 6 },
+    { id = 2156, name = "Inexorable Castigator's Guise", classId = 7 },
+    { id = 2160, name = "Depraved Beguiler's Visage", classId = 8 },
+    { id = 2160, name = "Depraved Beguiler's Visage", classId = 9 },
+    { id = 2164, name = "Sin Slayer's Leathers", classId = 10 },
+    { id = 2164, name = "Sin Slayer's Leathers", classId = 11 },
+    { id = 2164, name = "Sin Slayer's Leathers", classId = 12 },
+    { id = 2156, name = "Inexorable Castigator's Guise", classId = 13 },
   },
 })
 tinsert(ns.Sets, {
@@ -1642,18 +1659,19 @@ tinsert(ns.Sets, {
   release = 9,
   minLevel = 70,
   sets = {
-    {id = 2153,name="Grand Sentinel's Greatplate"}, -- classmask=35,Type=13145,Plate
-    {id = 2153,name="Grand Sentinel's Greatplate"}, -- classmask=35,Type=13145,Plate
-    {id = 2157,name="Inexorable Castigator's Guise"}, -- classmask=4164,Type=13145,Mail
-    {id = 2165,name="Sin Slayer's Leathers"}, -- classmask=3592,Type=13145,Leather
-    {id = 2161,name="Depraved Beguiler's Visage"}, -- classmask=400,Type=13145,Cloth
-    {id = 2153,name="Grand Sentinel's Greatplate"}, -- classmask=35,Type=13145,Plate
-    {id = 2157,name="Inexorable Castigator's Guise"}, -- classmask=4164,Type=13145,Mail
-    {id = 2161,name="Depraved Beguiler's Visage"}, -- classmask=400,Type=13145,Cloth
-    {id = 2161,name="Depraved Beguiler's Visage"}, -- classmask=400,Type=13145,Cloth
-    {id = 2165,name="Sin Slayer's Leathers"}, -- classmask=3592,Type=13145,Leather
-    {id = 2165,name="Sin Slayer's Leathers"}, -- classmask=3592,Type=13145,Leather
-    {id = 2165,name="Sin Slayer's Leathers"}, -- classmask=3592,Type=13145,Leather
+    { id = 2153, name = "Grand Sentinel's Greatplate", classId = 1 },
+    { id = 2153, name = "Grand Sentinel's Greatplate", classId = 2 },
+    { id = 2157, name = "Inexorable Castigator's Guise", classId = 3 },
+    { id = 2165, name = "Sin Slayer's Leathers", classId = 4 },
+    { id = 2161, name = "Depraved Beguiler's Visage", classId = 5 },
+    { id = 2153, name = "Grand Sentinel's Greatplate", classId = 6 },
+    { id = 2157, name = "Inexorable Castigator's Guise", classId = 7 },
+    { id = 2161, name = "Depraved Beguiler's Visage", classId = 8 },
+    { id = 2161, name = "Depraved Beguiler's Visage", classId = 9 },
+    { id = 2165, name = "Sin Slayer's Leathers", classId = 10 },
+    { id = 2165, name = "Sin Slayer's Leathers", classId = 11 },
+    { id = 2165, name = "Sin Slayer's Leathers", classId = 12 },
+    { id = 2157, name = "Inexorable Castigator's Guise", classId = 13 },
   },
 })
 
@@ -1665,18 +1683,19 @@ tinsert(ns.Sets, {
   release = 9,
   minLevel = 70,
   sets = {
-    {id = 2251,name="Soulforged Dreadplate"}, -- classmask=35,Type=1641,Plate
-    {id = 2251,name="Soulforged Dreadplate"}, -- classmask=35,Type=1641,Plate
-    {id = 2255,name="Tower Ascendant's Battlegear"}, -- classmask=4164,Type=1641,Mail
-    {id = 2259,name="Sanctum Assailant's Trappings"}, -- classmask=3592,Type=1641,Leather
-    {id = 2263,name="Dark Supplicant's Garb"}, -- classmask=400,Type=1641,Cloth
-    {id = 2251,name="Soulforged Dreadplate"}, -- classmask=35,Type=1641,Plate
-    {id = 2255,name="Tower Ascendant's Battlegear"}, -- classmask=4164,Type=1641,Mail
-    {id = 2263,name="Dark Supplicant's Garb"}, -- classmask=400,Type=1641,Cloth
-    {id = 2263,name="Dark Supplicant's Garb"}, -- classmask=400,Type=1641,Cloth
-    {id = 2259,name="Sanctum Assailant's Trappings"}, -- classmask=3592,Type=1641,Leather
-    {id = 2259,name="Sanctum Assailant's Trappings"}, -- classmask=3592,Type=1641,Leather
-    {id = 2259,name="Sanctum Assailant's Trappings"}, -- classmask=3592,Type=1641,Leather
+    { id = 2251, name = "Soulforged Dreadplate", classId = 1 },
+    { id = 2251, name = "Soulforged Dreadplate", classId = 2 },
+    { id = 2255, name = "Tower Ascendant's Battlegear", classId = 3 },
+    { id = 2259, name = "Sanctum Assailant's Trappings", classId = 4 },
+    { id = 2263, name = "Dark Supplicant's Garb", classId = 5 },
+    { id = 2251, name = "Soulforged Dreadplate", classId = 6 },
+    { id = 2255, name = "Tower Ascendant's Battlegear", classId = 7 },
+    { id = 2263, name = "Dark Supplicant's Garb", classId = 8 },
+    { id = 2263, name = "Dark Supplicant's Garb", classId = 9 },
+    { id = 2259, name = "Sanctum Assailant's Trappings", classId = 10 },
+    { id = 2259, name = "Sanctum Assailant's Trappings", classId = 11 },
+    { id = 2259, name = "Sanctum Assailant's Trappings", classId = 12 },
+    { id = 2255, name = "Tower Ascendant's Battlegear", classId = 13 },
   },
 })
 tinsert(ns.Sets, {
@@ -1686,18 +1705,19 @@ tinsert(ns.Sets, {
   release = 9,
   minLevel = 70,
   sets = {
-    {id = 2250,name="Soulforged Dreadplate"}, -- classmask=35,Type=13193,Plate
-    {id = 2250,name="Soulforged Dreadplate"}, -- classmask=35,Type=13193,Plate
-    {id = 2254,name="Tower Ascendant's Battlegear"}, -- classmask=4164,Type=13193,Mail
-    {id = 2258,name="Sanctum Assailant's Trappings"}, -- classmask=3592,Type=13193,Leather
-    {id = 2262,name="Dark Supplicant's Garb"}, -- classmask=400,Type=13193,Cloth
-    {id = 2250,name="Soulforged Dreadplate"}, -- classmask=35,Type=13193,Plate
-    {id = 2254,name="Tower Ascendant's Battlegear"}, -- classmask=4164,Type=13193,Mail
-    {id = 2262,name="Dark Supplicant's Garb"}, -- classmask=400,Type=13193,Cloth
-    {id = 2262,name="Dark Supplicant's Garb"}, -- classmask=400,Type=13193,Cloth
-    {id = 2258,name="Sanctum Assailant's Trappings"}, -- classmask=3592,Type=13193,Leather
-    {id = 2258,name="Sanctum Assailant's Trappings"}, -- classmask=3592,Type=13193,Leather
-    {id = 2258,name="Sanctum Assailant's Trappings"}, -- classmask=3592,Type=13193,Leather
+    { id = 2250, name = "Soulforged Dreadplate", classId = 1 },
+    { id = 2250, name = "Soulforged Dreadplate", classId = 2 },
+    { id = 2254, name = "Tower Ascendant's Battlegear", classId = 3 },
+    { id = 2258, name = "Sanctum Assailant's Trappings", classId = 4 },
+    { id = 2262, name = "Dark Supplicant's Garb", classId = 5 },
+    { id = 2250, name = "Soulforged Dreadplate", classId = 6 },
+    { id = 2254, name = "Tower Ascendant's Battlegear", classId = 7 },
+    { id = 2262, name = "Dark Supplicant's Garb", classId = 8 },
+    { id = 2262, name = "Dark Supplicant's Garb", classId = 9 },
+    { id = 2258, name = "Sanctum Assailant's Trappings", classId = 10 },
+    { id = 2258, name = "Sanctum Assailant's Trappings", classId = 11 },
+    { id = 2258, name = "Sanctum Assailant's Trappings", classId = 12 },
+    { id = 2254, name = "Tower Ascendant's Battlegear", classId = 13 },
   },
 })
 tinsert(ns.Sets, {
@@ -1707,18 +1727,19 @@ tinsert(ns.Sets, {
   release = 9,
   minLevel = 70,
   sets = {
-    {id = 2252,name="Soulforged Dreadplate"}, -- classmask=35,Type=2015,Plate
-    {id = 2252,name="Soulforged Dreadplate"}, -- classmask=35,Type=2015,Plate
-    {id = 2256,name="Tower Ascendant's Battlegear"}, -- classmask=4164,Type=2015,Mail
-    {id = 2260,name="Sanctum Assailant's Trappings"}, -- classmask=3592,Type=2015,Leather
-    {id = 2264,name="Dark Supplicant's Garb"}, -- classmask=400,Type=2015,Cloth
-    {id = 2252,name="Soulforged Dreadplate"}, -- classmask=35,Type=2015,Plate
-    {id = 2256,name="Tower Ascendant's Battlegear"}, -- classmask=4164,Type=2015,Mail
-    {id = 2264,name="Dark Supplicant's Garb"}, -- classmask=400,Type=2015,Cloth
-    {id = 2264,name="Dark Supplicant's Garb"}, -- classmask=400,Type=2015,Cloth
-    {id = 2260,name="Sanctum Assailant's Trappings"}, -- classmask=3592,Type=2015,Leather
-    {id = 2260,name="Sanctum Assailant's Trappings"}, -- classmask=3592,Type=2015,Leather
-    {id = 2260,name="Sanctum Assailant's Trappings"}, -- classmask=3592,Type=2015,Leather
+    { id = 2252, name = "Soulforged Dreadplate", classId = 1 },
+    { id = 2252, name = "Soulforged Dreadplate", classId = 2 },
+    { id = 2256, name = "Tower Ascendant's Battlegear", classId = 3 },
+    { id = 2260, name = "Sanctum Assailant's Trappings", classId = 4 },
+    { id = 2264, name = "Dark Supplicant's Garb", classId = 5 },
+    { id = 2252, name = "Soulforged Dreadplate", classId = 6 },
+    { id = 2256, name = "Tower Ascendant's Battlegear", classId = 7 },
+    { id = 2264, name = "Dark Supplicant's Garb", classId = 8 },
+    { id = 2264, name = "Dark Supplicant's Garb", classId = 9 },
+    { id = 2260, name = "Sanctum Assailant's Trappings", classId = 10 },
+    { id = 2260, name = "Sanctum Assailant's Trappings", classId = 11 },
+    { id = 2260, name = "Sanctum Assailant's Trappings", classId = 12 },
+    { id = 2256, name = "Tower Ascendant's Battlegear", classId = 13 },
   },
 })
 tinsert(ns.Sets, {
@@ -1728,18 +1749,19 @@ tinsert(ns.Sets, {
   release = 9,
   minLevel = 70,
   sets = {
-    {id = 2253,name="Soulforged Dreadplate"}, -- classmask=35,Type=13145,Plate
-    {id = 2253,name="Soulforged Dreadplate"}, -- classmask=35,Type=13145,Plate
-    {id = 2257,name="Tower Ascendant's Battlegear"}, -- classmask=4164,Type=13145,Mail
-    {id = 2261,name="Sanctum Assailant's Trappings"}, -- classmask=3592,Type=13145,Leather
-    {id = 2265,name="Dark Supplicant's Garb"}, -- classmask=400,Type=13145,Cloth
-    {id = 2253,name="Soulforged Dreadplate"}, -- classmask=35,Type=13145,Plate
-    {id = 2257,name="Tower Ascendant's Battlegear"}, -- classmask=4164,Type=13145,Mail
-    {id = 2265,name="Dark Supplicant's Garb"}, -- classmask=400,Type=13145,Cloth
-    {id = 2265,name="Dark Supplicant's Garb"}, -- classmask=400,Type=13145,Cloth
-    {id = 2261,name="Sanctum Assailant's Trappings"}, -- classmask=3592,Type=13145,Leather
-    {id = 2261,name="Sanctum Assailant's Trappings"}, -- classmask=3592,Type=13145,Leather
-    {id = 2261,name="Sanctum Assailant's Trappings"}, -- classmask=3592,Type=13145,Leather
+    { id = 2253, name = "Soulforged Dreadplate", classId = 1 },
+    { id = 2253, name = "Soulforged Dreadplate", classId = 2 },
+    { id = 2257, name = "Tower Ascendant's Battlegear", classId = 3 },
+    { id = 2261, name = "Sanctum Assailant's Trappings", classId = 4 },
+    { id = 2265, name = "Dark Supplicant's Garb", classId = 5 },
+    { id = 2253, name = "Soulforged Dreadplate", classId = 6 },
+    { id = 2257, name = "Tower Ascendant's Battlegear", classId = 7 },
+    { id = 2265, name = "Dark Supplicant's Garb", classId = 8 },
+    { id = 2265, name = "Dark Supplicant's Garb", classId = 9 },
+    { id = 2261, name = "Sanctum Assailant's Trappings", classId = 10 },
+    { id = 2261, name = "Sanctum Assailant's Trappings", classId = 11 },
+    { id = 2261, name = "Sanctum Assailant's Trappings", classId = 12 },
+    { id = 2257, name = "Tower Ascendant's Battlegear", classId = 13 },
   },
 })
 -- sepulcher of the first ones 192
@@ -1750,18 +1772,18 @@ tinsert(ns.Sets, {
   release = 9,
   minLevel = 70,
   sets = {
-    {id = 2415,name="Armaments of the Infinite Infantry"}, -- classmask=1,Type=1641,Warrior
-    {id = 2385,name="Luminous Chevalier's Gallantry"}, -- classmask=2,Type=1641,Paladin
-    {id = 2367,name="Godstalker's Battlegear"}, -- classmask=4,Type=1641,Hunter
-    {id = 2397,name="Soulblade Shadowhide"}, -- classmask=8,Type=1641,Rogue
-    {id = 2391,name="Habiliments of the Empyrean"}, -- classmask=16,Type=1641,Priest
-    {id = 2349,name="The First Eidolon's Soulsteel"}, -- classmask=32,Type=1641,Death Knight
-    {id = 2403,name="Theurgic Starspeaker's Regalia"}, -- classmask=64,Type=1641,Shaman
-    {id = 2373,name="Erudite Occultist's Vestments"}, -- classmask=128,Type=1641,Mage
-    {id = 2409,name="Shroud of the Demon Star"}, -- classmask=256,Type=1641,Warlock
-    {id = 2379,name="Garb of the Grand Upwelling"}, -- classmask=512,Type=1641,Monk
-    {id = 2361,name="Tapestry of the Fixed Stars"}, -- classmask=1024,Type=1641,Druid
-    {id = 2355,name="Mercurial Punisher's Painweave"}, -- classmask=2048,Type=1641,Demon Hunter
+    { id = 2415, name = "Armaments of the Infinite Infantry", classId = 1 },
+    { id = 2385, name = "Luminous Chevalier's Gallantry", classId = 2 },
+    { id = 2367, name = "Godstalker's Battlegear", classId = 3 },
+    { id = 2397, name = "Soulblade Shadowhide", classId = 4 },
+    { id = 2391, name = "Habiliments of the Empyrean", classId = 5 },
+    { id = 2349, name = "The First Eidolon's Soulsteel", classId = 6 },
+    { id = 2403, name = "Theurgic Starspeaker's Regalia", classId = 7 },
+    { id = 2373, name = "Erudite Occultist's Vestments", classId = 8 },
+    { id = 2409, name = "Shroud of the Demon Star", classId = 9 },
+    { id = 2379, name = "Garb of the Grand Upwelling", classId = 10 },
+    { id = 2361, name = "Tapestry of the Fixed Stars", classId = 11 },
+    { id = 2355, name = "Mercurial Punisher's Painweave", classId = 12 },
   },
 })
 tinsert(ns.Sets, {
@@ -1771,18 +1793,18 @@ tinsert(ns.Sets, {
   release = 9,
   minLevel = 70,
   sets = {
-    {id = 2414,name="Armaments of the Infinite Infantry"}, -- classmask=1,Type=13193,Warrior
-    {id = 2384,name="Luminous Chevalier's Gallantry"}, -- classmask=2,Type=13193,Paladin
-    {id = 2366,name="Godstalker's Battlegear"}, -- classmask=4,Type=13193,Hunter
-    {id = 2396,name="Soulblade Shadowhide"}, -- classmask=8,Type=13193,Rogue
-    {id = 2390,name="Habiliments of the Empyrean"}, -- classmask=16,Type=13193,Priest
-    {id = 2348,name="The First Eidolon's Soulsteel"}, -- classmask=32,Type=13193,Death Knight
-    {id = 2402,name="Theurgic Starspeaker's Regalia"}, -- classmask=64,Type=13193,Shaman
-    {id = 2372,name="Erudite Occultist's Vestments"}, -- classmask=128,Type=13193,Mage
-    {id = 2408,name="Shroud of the Demon Star"}, -- classmask=256,Type=13193,Warlock
-    {id = 2378,name="Garb of the Grand Upwelling"}, -- classmask=512,Type=13193,Monk
-    {id = 2360,name="Tapestry of the Fixed Stars"}, -- classmask=1024,Type=13193,Druid
-    {id = 2354,name="Mercurial Punisher's Painweave"}, -- classmask=2048,Type=13193,Demon Hunter
+    { id = 2414, name = "Armaments of the Infinite Infantry", classId = 1 },
+    { id = 2384, name = "Luminous Chevalier's Gallantry", classId = 2 },
+    { id = 2366, name = "Godstalker's Battlegear", classId = 3 },
+    { id = 2396, name = "Soulblade Shadowhide", classId = 4 },
+    { id = 2390, name = "Habiliments of the Empyrean", classId = 5 },
+    { id = 2348, name = "The First Eidolon's Soulsteel", classId = 6 },
+    { id = 2402, name = "Theurgic Starspeaker's Regalia", classId = 7 },
+    { id = 2372, name = "Erudite Occultist's Vestments", classId = 8 },
+    { id = 2408, name = "Shroud of the Demon Star", classId = 9 },
+    { id = 2378, name = "Garb of the Grand Upwelling", classId = 10 },
+    { id = 2360, name = "Tapestry of the Fixed Stars", classId = 11 },
+    { id = 2354, name = "Mercurial Punisher's Painweave", classId = 12 },
   },
 })
 tinsert(ns.Sets, {
@@ -1792,18 +1814,18 @@ tinsert(ns.Sets, {
   release = 9,
   minLevel = 70,
   sets = {
-    {id = 2416,name="Armaments of the Infinite Infantry"}, -- classmask=1,Type=2015,Warrior
-    {id = 2386,name="Luminous Chevalier's Gallantry"}, -- classmask=2,Type=2015,Paladin
-    {id = 2368,name="Godstalker's Battlegear"}, -- classmask=4,Type=2015,Hunter
-    {id = 2398,name="Soulblade Shadowhide"}, -- classmask=8,Type=2015,Rogue
-    {id = 2392,name="Habiliments of the Empyrean"}, -- classmask=16,Type=2015,Priest
-    {id = 2350,name="The First Eidolon's Soulsteel"}, -- classmask=32,Type=2015,Death Knight
-    {id = 2404,name="Theurgic Starspeaker's Regalia"}, -- classmask=64,Type=2015,Shaman
-    {id = 2374,name="Erudite Occultist's Vestments"}, -- classmask=128,Type=2015,Mage
-    {id = 2410,name="Shroud of the Demon Star"}, -- classmask=256,Type=2015,Warlock
-    {id = 2380,name="Garb of the Grand Upwelling"}, -- classmask=512,Type=2015,Monk
-    {id = 2362,name="Tapestry of the Fixed Stars"}, -- classmask=1024,Type=2015,Druid
-    {id = 2356,name="Mercurial Punisher's Painweave"}, -- classmask=2048,Type=2015,Demon Hunter
+    { id = 2416, name = "Armaments of the Infinite Infantry", classId = 1 },
+    { id = 2386, name = "Luminous Chevalier's Gallantry", classId = 2 },
+    { id = 2368, name = "Godstalker's Battlegear", classId = 3 },
+    { id = 2398, name = "Soulblade Shadowhide", classId = 4 },
+    { id = 2392, name = "Habiliments of the Empyrean", classId = 5 },
+    { id = 2350, name = "The First Eidolon's Soulsteel", classId = 6 },
+    { id = 2404, name = "Theurgic Starspeaker's Regalia", classId = 7 },
+    { id = 2374, name = "Erudite Occultist's Vestments", classId = 8 },
+    { id = 2410, name = "Shroud of the Demon Star", classId = 9 },
+    { id = 2380, name = "Garb of the Grand Upwelling", classId = 10 },
+    { id = 2362, name = "Tapestry of the Fixed Stars", classId = 11 },
+    { id = 2356, name = "Mercurial Punisher's Painweave", classId = 12 },
   },
 })
 tinsert(ns.Sets, {
@@ -1813,18 +1835,18 @@ tinsert(ns.Sets, {
   release = 9,
   minLevel = 70,
   sets = {
-    {id = 2417,name="Armaments of the Infinite Infantry"}, -- classmask=1,Type=13145,Warrior
-    {id = 2387,name="Luminous Chevalier's Gallantry"}, -- classmask=2,Type=13145,Paladin
-    {id = 2369,name="Godstalker's Battlegear"}, -- classmask=4,Type=13145,Hunter
-    {id = 2399,name="Soulblade Shadowhide"}, -- classmask=8,Type=13145,Rogue
-    {id = 2393,name="Habiliments of the Empyrean"}, -- classmask=16,Type=13145,Priest
-    {id = 2351,name="The First Eidolon's Soulsteel"}, -- classmask=32,Type=13145,Death Knight
-    {id = 2405,name="Theurgic Starspeaker's Regalia"}, -- classmask=64,Type=13145,Shaman
-    {id = 2375,name="Erudite Occultist's Vestments"}, -- classmask=128,Type=13145,Mage
-    {id = 2411,name="Shroud of the Demon Star"}, -- classmask=256,Type=13145,Warlock
-    {id = 2381,name="Garb of the Grand Upwelling"}, -- classmask=512,Type=13145,Monk
-    {id = 2363,name="Tapestry of the Fixed Stars"}, -- classmask=1024,Type=13145,Druid
-    {id = 2357,name="Mercurial Punisher's Painweave"}, -- classmask=2048,Type=13145,Demon Hunter
+    { id = 2417, name = "Armaments of the Infinite Infantry", classId = 1 },
+    { id = 2387, name = "Luminous Chevalier's Gallantry", classId = 2 },
+    { id = 2369, name = "Godstalker's Battlegear", classId = 3 },
+    { id = 2399, name = "Soulblade Shadowhide", classId = 4 },
+    { id = 2393, name = "Habiliments of the Empyrean", classId = 5 },
+    { id = 2351, name = "The First Eidolon's Soulsteel", classId = 6 },
+    { id = 2405, name = "Theurgic Starspeaker's Regalia", classId = 7 },
+    { id = 2375, name = "Erudite Occultist's Vestments", classId = 8 },
+    { id = 2411, name = "Shroud of the Demon Star", classId = 9 },
+    { id = 2381, name = "Garb of the Grand Upwelling", classId = 10 },
+    { id = 2363, name = "Tapestry of the Fixed Stars", classId = 11 },
+    { id = 2357, name = "Mercurial Punisher's Painweave", classId = 12 },
   },
 })
 -- release 10
@@ -1836,19 +1858,19 @@ tinsert(ns.Sets, {
   release = 10,
   minLevel = 70,
   sets = {
-    {id = 2652,name="Stones of the Walking Mountain"}, -- classmask=1,Type=1641,Warrior
-    {id = 2637,name="Virtuous Silver Cataphract"}, -- classmask=2,Type=1641,Paladin
-    {id = 2628,name="Stormwing Harrier's Camouflage"}, -- classmask=4,Type=1641,Hunter
-    {id = 2643,name="Vault Delver's Toolkit"}, -- classmask=8,Type=1641,Rogue
-    {id = 2640,name="Draconic Hierophant's Finery"}, -- classmask=16,Type=1641,Priest
-    {id = 2616,name="Haunted Frostbrood Remains"}, -- classmask=32,Type=1641,Death Knight
-    {id = 2646,name="Elements of Infused Earth"}, -- classmask=64,Type=1641,Shaman
-    {id = 2631,name="Bindings of the Crystal Scholar"}, -- classmask=128,Type=1641,Mage
-    {id = 2649,name="Scalesworn Cultist's Habit"}, -- classmask=256,Type=1641,Warlock
-    {id = 2634,name="Wrappings of the Waking Fist"}, -- classmask=512,Type=1641,Monk
-    {id = 2622,name="Lost Landcaller's Vesture"}, -- classmask=1024,Type=1641,Druid
-    {id = 2619,name="Skybound Avenger's Flightwear"}, -- classmask=2048,Type=1641,Demon Hunter
-    {id = 2625,name="Scales of the Awakened"}, -- classmask=4096,Type=1641,Evoker
+    { id = 2652, name = "Stones of the Walking Mountain", classId = 1 },
+    { id = 2637, name = "Virtuous Silver Cataphract", classId = 2 },
+    { id = 2628, name = "Stormwing Harrier's Camouflage", classId = 3 },
+    { id = 2643, name = "Vault Delver's Toolkit", classId = 4 },
+    { id = 2640, name = "Draconic Hierophant's Finery", classId = 5 },
+    { id = 2616, name = "Haunted Frostbrood Remains", classId = 6 },
+    { id = 2646, name = "Elements of Infused Earth", classId = 7 },
+    { id = 2631, name = "Bindings of the Crystal Scholar", classId = 8 },
+    { id = 2649, name = "Scalesworn Cultist's Habit", classId = 9 },
+    { id = 2634, name = "Wrappings of the Waking Fist", classId = 10 },
+    { id = 2622, name = "Lost Landcaller's Vesture", classId = 11 },
+    { id = 2619, name = "Skybound Avenger's Flightwear", classId = 12 },
+    { id = 2625, name = "Scales of the Awakened", classId = 13 },
   },
 })
 tinsert(ns.Sets, {
@@ -1858,19 +1880,19 @@ tinsert(ns.Sets, {
   release = 10,
   minLevel = 70,
   sets = {
-    {id = 2613,name="Stones of the Walking Mountain"}, -- classmask=1,Type=13193,Warrior
-    {id = 2608,name="Virtuous Silver Cataphract"}, -- classmask=2,Type=13193,Paladin
-    {id = 2605,name="Stormwing Harrier's Camouflage"}, -- classmask=4,Type=13193,Hunter
-    {id = 2610,name="Vault Delver's Toolkit"}, -- classmask=8,Type=13193,Rogue
-    {id = 2609,name="Draconic Hierophant's Finery"}, -- classmask=16,Type=13193,Priest
-    {id = 2601,name="Haunted Frostbrood Remains"}, -- classmask=32,Type=13193,Death Knight
-    {id = 2611,name="Elements of Infused Earth"}, -- classmask=64,Type=13193,Shaman
-    {id = 2606,name="Bindings of the Crystal Scholar"}, -- classmask=128,Type=13193,Mage
-    {id = 2612,name="Scalesworn Cultist's Habit"}, -- classmask=256,Type=13193,Warlock
-    {id = 2607,name="Wrappings of the Waking Fist"}, -- classmask=512,Type=13193,Monk
-    {id = 2603,name="Lost Landcaller's Vesture"}, -- classmask=1024,Type=13193,Druid
-    {id = 2602,name="Skybound Avenger's Flightwear"}, -- classmask=2048,Type=13193,Demon Hunter
-    {id = 2604,name="Scales of the Awakened"}, -- classmask=4096,Type=13193,Evoker
+    { id = 2613, name = "Stones of the Walking Mountain", classId = 1 },
+    { id = 2608, name = "Virtuous Silver Cataphract", classId = 2 },
+    { id = 2605, name = "Stormwing Harrier's Camouflage", classId = 3 },
+    { id = 2610, name = "Vault Delver's Toolkit", classId = 4 },
+    { id = 2609, name = "Draconic Hierophant's Finery", classId = 5 },
+    { id = 2601, name = "Haunted Frostbrood Remains", classId = 6 },
+    { id = 2611, name = "Elements of Infused Earth", classId = 7 },
+    { id = 2606, name = "Bindings of the Crystal Scholar", classId = 8 },
+    { id = 2612, name = "Scalesworn Cultist's Habit", classId = 9 },
+    { id = 2607, name = "Wrappings of the Waking Fist", classId = 10 },
+    { id = 2603, name = "Lost Landcaller's Vesture", classId = 11 },
+    { id = 2602, name = "Skybound Avenger's Flightwear", classId = 12 },
+    { id = 2604, name = "Scales of the Awakened", classId = 13 },
   },
 })
 tinsert(ns.Sets, {
@@ -1880,19 +1902,19 @@ tinsert(ns.Sets, {
   release = 10,
   minLevel = 70,
   sets = {
-    {id = 2650,name="Stones of the Walking Mountain"}, -- classmask=1,Type=2015,Warrior
-    {id = 2635,name="Virtuous Silver Cataphract"}, -- classmask=2,Type=2015,Paladin
-    {id = 2626,name="Stormwing Harrier's Camouflage"}, -- classmask=4,Type=2015,Hunter
-    {id = 2641,name="Vault Delver's Toolkit"}, -- classmask=8,Type=2015,Rogue
-    {id = 2638,name="Draconic Hierophant's Finery"}, -- classmask=16,Type=2015,Priest
-    {id = 2614,name="Haunted Frostbrood Remains"}, -- classmask=32,Type=2015,Death Knight
-    {id = 2644,name="Elements of Infused Earth"}, -- classmask=64,Type=2015,Shaman
-    {id = 2629,name="Bindings of the Crystal Scholar"}, -- classmask=128,Type=2015,Mage
-    {id = 2647,name="Scalesworn Cultist's Habit"}, -- classmask=256,Type=2015,Warlock
-    {id = 2632,name="Wrappings of the Waking Fist"}, -- classmask=512,Type=2015,Monk
-    {id = 2620,name="Lost Landcaller's Vesture"}, -- classmask=1024,Type=2015,Druid
-    {id = 2617,name="Skybound Avenger's Flightwear"}, -- classmask=2048,Type=2015,Demon Hunter
-    {id = 2623,name="Scales of the Awakened"}, -- classmask=4096,Type=2015,Evoker
+    { id = 2650, name = "Stones of the Walking Mountain", classId = 1 },
+    { id = 2635, name = "Virtuous Silver Cataphract", classId = 2 },
+    { id = 2626, name = "Stormwing Harrier's Camouflage", classId = 3 },
+    { id = 2641, name = "Vault Delver's Toolkit", classId = 4 },
+    { id = 2638, name = "Draconic Hierophant's Finery", classId = 5 },
+    { id = 2614, name = "Haunted Frostbrood Remains", classId = 6 },
+    { id = 2644, name = "Elements of Infused Earth", classId = 7 },
+    { id = 2629, name = "Bindings of the Crystal Scholar", classId = 8 },
+    { id = 2647, name = "Scalesworn Cultist's Habit", classId = 9 },
+    { id = 2632, name = "Wrappings of the Waking Fist", classId = 10 },
+    { id = 2620, name = "Lost Landcaller's Vesture", classId = 11 },
+    { id = 2617, name = "Skybound Avenger's Flightwear", classId = 12 },
+    { id = 2623, name = "Scales of the Awakened", classId = 13 },
   },
 })
 tinsert(ns.Sets, {
@@ -1902,19 +1924,19 @@ tinsert(ns.Sets, {
   release = 10,
   minLevel = 70,
   sets = {
-    {id = 2651,name="Stones of the Walking Mountain"}, -- classmask=1,Type=13145,Warrior
-    {id = 2636,name="Virtuous Silver Cataphract"}, -- classmask=2,Type=13145,Paladin
-    {id = 2627,name="Stormwing Harrier's Camouflage"}, -- classmask=4,Type=13145,Hunter
-    {id = 2642,name="Vault Delver's Toolkit"}, -- classmask=8,Type=13145,Rogue
-    {id = 2639,name="Draconic Hierophant's Finery"}, -- classmask=16,Type=13145,Priest
-    {id = 2615,name="Haunted Frostbrood Remains"}, -- classmask=32,Type=13145,Death Knight
-    {id = 2645,name="Elements of Infused Earth"}, -- classmask=64,Type=13145,Shaman
-    {id = 2630,name="Bindings of the Crystal Scholar"}, -- classmask=128,Type=13145,Mage
-    {id = 2648,name="Scalesworn Cultist's Habit"}, -- classmask=256,Type=13145,Warlock
-    {id = 2633,name="Wrappings of the Waking Fist"}, -- classmask=512,Type=13145,Monk
-    {id = 2621,name="Lost Landcaller's Vesture"}, -- classmask=1024,Type=13145,Druid
-    {id = 2618,name="Skybound Avenger's Flightwear"}, -- classmask=2048,Type=13145,Demon Hunter
-    {id = 2624,name="Scales of the Awakened"}, -- classmask=4096,Type=13145,Evoker
+    { id = 2651, name = "Stones of the Walking Mountain", classId = 1 },
+    { id = 2636, name = "Virtuous Silver Cataphract", classId = 2 },
+    { id = 2627, name = "Stormwing Harrier's Camouflage", classId = 3 },
+    { id = 2642, name = "Vault Delver's Toolkit", classId = 4 },
+    { id = 2639, name = "Draconic Hierophant's Finery", classId = 5 },
+    { id = 2615, name = "Haunted Frostbrood Remains", classId = 6 },
+    { id = 2645, name = "Elements of Infused Earth", classId = 7 },
+    { id = 2630, name = "Bindings of the Crystal Scholar", classId = 8 },
+    { id = 2648, name = "Scalesworn Cultist's Habit", classId = 9 },
+    { id = 2633, name = "Wrappings of the Waking Fist", classId = 10 },
+    { id = 2621, name = "Lost Landcaller's Vesture", classId = 11 },
+    { id = 2618, name = "Skybound Avenger's Flightwear", classId = 12 },
+    { id = 2624, name = "Scales of the Awakened", classId = 13 },
   },
 })
 -- aberrus, the shadowed crucible 211
@@ -1925,19 +1947,19 @@ tinsert(ns.Sets, {
   release = 10,
   minLevel = 70,
   sets = {
-    {id = 2900,name="Irons of the Onyx Crucible"}, -- classmask=1,Type=1641,Warrior
-    {id = 2873,name="Heartfire Sentinel's Authority"}, -- classmask=2,Type=1641,Paladin
-    {id = 2891,name="Ashen Predator's Scaleform"}, -- classmask=4,Type=1641,Hunter
-    {id = 2882,name="Lurking Specter's Shadeweave"}, -- classmask=8,Type=1641,Rogue
-    {id = 2885,name="The Furnace Seraph's Verdict"}, -- classmask=16,Type=1641,Priest
-    {id = 2897,name="Lingering Phantom's Encasement"}, -- classmask=32,Type=1641,Death Knight
-    {id = 2879,name="Runes of the Cinderwolf"}, -- classmask=64,Type=1641,Shaman
-    {id = 2909,name="Underlight Conjurer's Brilliance"}, -- classmask=128,Type=1641,Mage
-    {id = 2876,name="Sinister Savant's Cursethreads"}, -- classmask=256,Type=1641,Warlock
-    {id = 2888,name="Fangs of the Vermillion Forge"}, -- classmask=512,Type=1641,Monk
-    {id = 2894,name="Strands of the Autumn Blaze"}, -- classmask=1024,Type=1641,Druid
-    {id = 2903,name="Kinslayer's Burdens"}, -- classmask=2048,Type=1641,Demon Hunter
-    {id = 2906,name="Legacy of Obsidian Secrets"}, -- classmask=4096,Type=1641,Evoker
+    { id = 2900, name = "Irons of the Onyx Crucible", classId = 1 },
+    { id = 2873, name = "Heartfire Sentinel's Authority", classId = 2 },
+    { id = 2891, name = "Ashen Predator's Scaleform", classId = 3 },
+    { id = 2882, name = "Lurking Specter's Shadeweave", classId = 4 },
+    { id = 2885, name = "The Furnace Seraph's Verdict", classId = 5 },
+    { id = 2897, name = "Lingering Phantom's Encasement", classId = 6 },
+    { id = 2879, name = "Runes of the Cinderwolf", classId = 7 },
+    { id = 2909, name = "Underlight Conjurer's Brilliance", classId = 8 },
+    { id = 2876, name = "Sinister Savant's Cursethreads", classId = 9 },
+    { id = 2888, name = "Fangs of the Vermillion Forge", classId = 10 },
+    { id = 2894, name = "Strands of the Autumn Blaze", classId = 11 },
+    { id = 2903, name = "Kinslayer's Burdens", classId = 12 },
+    { id = 2906, name = "Legacy of Obsidian Secrets", classId = 13 },
   },
 })
 tinsert(ns.Sets, {
@@ -1947,19 +1969,19 @@ tinsert(ns.Sets, {
   release = 10,
   minLevel = 70,
   sets = {
-    {id = 2858,name="Irons of the Onyx Crucible"}, -- classmask=1,Type=13193,Warrior
-    {id = 2859,name="Heartfire Sentinel's Authority"}, -- classmask=2,Type=13193,Paladin
-    {id = 2866,name="Ashen Predator's Scaleform"}, -- classmask=4,Type=13193,Hunter
-    {id = 2862,name="Lurking Specter's Shadeweave"}, -- classmask=8,Type=13193,Rogue
-    {id = 2863,name="The Furnace Seraph's Verdict"}, -- classmask=16,Type=13193,Priest
-    {id = 2870,name="Lingering Phantom's Encasement"}, -- classmask=32,Type=13193,Death Knight
-    {id = 2861,name="Runes of the Cinderwolf"}, -- classmask=64,Type=13193,Shaman
-    {id = 2865,name="Underlight Conjurer's Brilliance"}, -- classmask=128,Type=13193,Mage
-    {id = 2860,name="Sinister Savant's Cursethreads"}, -- classmask=256,Type=13193,Warlock
-    {id = 2864,name="Fangs of the Vermillion Forge"}, -- classmask=512,Type=13193,Monk
-    {id = 2868,name="Strands of the Autumn Blaze"}, -- classmask=1024,Type=13193,Druid
-    {id = 2869,name="Kinslayer's Burdens"}, -- classmask=2048,Type=13193,Demon Hunter
-    {id = 2867,name="Legacy of Obsidian Secrets"}, -- classmask=4096,Type=13193,Evoker
+    { id = 2858, name = "Irons of the Onyx Crucible", classId = 1 },
+    { id = 2859, name = "Heartfire Sentinel's Authority", classId = 2 },
+    { id = 2866, name = "Ashen Predator's Scaleform", classId = 3 },
+    { id = 2862, name = "Lurking Specter's Shadeweave", classId = 4 },
+    { id = 2863, name = "The Furnace Seraph's Verdict", classId = 5 },
+    { id = 2870, name = "Lingering Phantom's Encasement", classId = 6 },
+    { id = 2861, name = "Runes of the Cinderwolf", classId = 7 },
+    { id = 2865, name = "Underlight Conjurer's Brilliance", classId = 8 },
+    { id = 2860, name = "Sinister Savant's Cursethreads", classId = 9 },
+    { id = 2864, name = "Fangs of the Vermillion Forge", classId = 10 },
+    { id = 2868, name = "Strands of the Autumn Blaze", classId = 11 },
+    { id = 2869, name = "Kinslayer's Burdens", classId = 12 },
+    { id = 2867, name = "Legacy of Obsidian Secrets", classId = 13 },
   },
 })
 tinsert(ns.Sets, {
@@ -1969,19 +1991,19 @@ tinsert(ns.Sets, {
   release = 10,
   minLevel = 70,
   sets = {
-    {id = 2898,name="Irons of the Onyx Crucible"}, -- classmask=1,Type=2015,Warrior
-    {id = 2871,name="Heartfire Sentinel's Authority"}, -- classmask=2,Type=2015,Paladin
-    {id = 2889,name="Ashen Predator's Scaleform"}, -- classmask=4,Type=2015,Hunter
-    {id = 2880,name="Lurking Specter's Shadeweave"}, -- classmask=8,Type=2015,Rogue
-    {id = 2883,name="The Furnace Seraph's Verdict"}, -- classmask=16,Type=2015,Priest
-    {id = 2895,name="Lingering Phantom's Encasement"}, -- classmask=32,Type=2015,Death Knight
-    {id = 2877,name="Runes of the Cinderwolf"}, -- classmask=64,Type=2015,Shaman
-    {id = 2907,name="Underlight Conjurer's Brilliance"}, -- classmask=128,Type=2015,Mage
-    {id = 2874,name="Sinister Savant's Cursethreads"}, -- classmask=256,Type=2015,Warlock
-    {id = 2886,name="Fangs of the Vermillion Forge"}, -- classmask=512,Type=2015,Monk
-    {id = 2892,name="Strands of the Autumn Blaze"}, -- classmask=1024,Type=2015,Druid
-    {id = 2901,name="Kinslayer's Burdens"}, -- classmask=2048,Type=2015,Demon Hunter
-    {id = 2904,name="Legacy of Obsidian Secrets"}, -- classmask=4096,Type=2015,Evoker
+    { id = 2898, name = "Irons of the Onyx Crucible", classId = 1 },
+    { id = 2871, name = "Heartfire Sentinel's Authority", classId = 2 },
+    { id = 2889, name = "Ashen Predator's Scaleform", classId = 3 },
+    { id = 2880, name = "Lurking Specter's Shadeweave", classId = 4 },
+    { id = 2883, name = "The Furnace Seraph's Verdict", classId = 5 },
+    { id = 2895, name = "Lingering Phantom's Encasement", classId = 6 },
+    { id = 2877, name = "Runes of the Cinderwolf", classId = 7 },
+    { id = 2907, name = "Underlight Conjurer's Brilliance", classId = 8 },
+    { id = 2874, name = "Sinister Savant's Cursethreads", classId = 9 },
+    { id = 2886, name = "Fangs of the Vermillion Forge", classId = 10 },
+    { id = 2892, name = "Strands of the Autumn Blaze", classId = 11 },
+    { id = 2901, name = "Kinslayer's Burdens", classId = 12 },
+    { id = 2904, name = "Legacy of Obsidian Secrets", classId = 13 },
   },
 })
 tinsert(ns.Sets, {
@@ -1991,19 +2013,19 @@ tinsert(ns.Sets, {
   release = 10,
   minLevel = 70,
   sets = {
-    {id = 2899,name="Irons of the Onyx Crucible"}, -- classmask=1,Type=13145,Warrior
-    {id = 2872,name="Heartfire Sentinel's Authority"}, -- classmask=2,Type=13145,Paladin
-    {id = 2890,name="Ashen Predator's Scaleform"}, -- classmask=4,Type=13145,Hunter
-    {id = 2881,name="Lurking Specter's Shadeweave"}, -- classmask=8,Type=13145,Rogue
-    {id = 2884,name="The Furnace Seraph's Verdict"}, -- classmask=16,Type=13145,Priest
-    {id = 2896,name="Lingering Phantom's Encasement"}, -- classmask=32,Type=13145,Death Knight
-    {id = 2878,name="Runes of the Cinderwolf"}, -- classmask=64,Type=13145,Shaman
-    {id = 2908,name="Underlight Conjurer's Brilliance"}, -- classmask=128,Type=13145,Mage
-    {id = 2875,name="Sinister Savant's Cursethreads"}, -- classmask=256,Type=13145,Warlock
-    {id = 2887,name="Fangs of the Vermillion Forge"}, -- classmask=512,Type=13145,Monk
-    {id = 2893,name="Strands of the Autumn Blaze"}, -- classmask=1024,Type=13145,Druid
-    {id = 2902,name="Kinslayer's Burdens"}, -- classmask=2048,Type=13145,Demon Hunter
-    {id = 2905,name="Legacy of Obsidian Secrets"}, -- classmask=4096,Type=13145,Evoker
+    { id = 2899, name = "Irons of the Onyx Crucible", classId = 1 },
+    { id = 2872, name = "Heartfire Sentinel's Authority", classId = 2 },
+    { id = 2890, name = "Ashen Predator's Scaleform", classId = 3 },
+    { id = 2881, name = "Lurking Specter's Shadeweave", classId = 4 },
+    { id = 2884, name = "The Furnace Seraph's Verdict", classId = 5 },
+    { id = 2896, name = "Lingering Phantom's Encasement", classId = 6 },
+    { id = 2878, name = "Runes of the Cinderwolf", classId = 7 },
+    { id = 2908, name = "Underlight Conjurer's Brilliance", classId = 8 },
+    { id = 2875, name = "Sinister Savant's Cursethreads", classId = 9 },
+    { id = 2887, name = "Fangs of the Vermillion Forge", classId = 10 },
+    { id = 2893, name = "Strands of the Autumn Blaze", classId = 11 },
+    { id = 2902, name = "Kinslayer's Burdens", classId = 12 },
+    { id = 2905, name = "Legacy of Obsidian Secrets", classId = 13 },
   },
 })
 -- amirdrassil, the dream's hope 225
@@ -2014,19 +2036,19 @@ tinsert(ns.Sets, {
   release = 10,
   minLevel = 70,
   sets = {
-    {id = 3152,name="Molten Vanguard's Mortarplate"}, -- classmask=1,Type=1641,Warrior
-    {id = 3147,name="Zealous Pyreknight's Ardor"}, -- classmask=2,Type=1641,Paladin
-    {id = 3138,name="Blazing Dreamstalker's Trophies"}, -- classmask=4,Type=1641,Hunter
-    {id = 3167,name="Lucid Shadewalker's Silence"}, -- classmask=8,Type=1641,Rogue
-    {id = 3181,name="Blessings of Lunar Communion"}, -- classmask=16,Type=1641,Priest
-    {id = 3162,name="Risen Nightmare's Gravemantle"}, -- classmask=32,Type=1641,Death Knight
-    {id = 3171,name="Vision of the Greatwolf Outcast"}, -- classmask=64,Type=1641,Shaman
-    {id = 3185,name="Wayward Chronomancer's Clockwork"}, -- classmask=128,Type=1641,Mage
-    {id = 3176,name="Devout Ashdevil's Pactweave"}, -- classmask=256,Type=1641,Warlock
-    {id = 3142,name="Mystic Heron's Discipline"}, -- classmask=512,Type=1641,Monk
-    {id = 3179,name="Benevolent Embersage's Guidance"}, -- classmask=1024,Type=1641,Druid
-    {id = 3154,name="Screaming Torchfiend's Brutality"}, -- classmask=2048,Type=1641,Demon Hunter
-    {id = 3160,name="Weyrnkeeper's Timeless Vigil"}, -- classmask=4096,Type=1641,Evoker
+    { id = 3152, name = "Molten Vanguard's Mortarplate", classId = 1 },
+    { id = 3147, name = "Zealous Pyreknight's Ardor", classId = 2 },
+    { id = 3138, name = "Blazing Dreamstalker's Trophies", classId = 3 },
+    { id = 3167, name = "Lucid Shadewalker's Silence", classId = 4 },
+    { id = 3181, name = "Blessings of Lunar Communion", classId = 5 },
+    { id = 3162, name = "Risen Nightmare's Gravemantle", classId = 6 },
+    { id = 3171, name = "Vision of the Greatwolf Outcast", classId = 7 },
+    { id = 3185, name = "Wayward Chronomancer's Clockwork", classId = 8 },
+    { id = 3176, name = "Devout Ashdevil's Pactweave", classId = 9 },
+    { id = 3142, name = "Mystic Heron's Discipline", classId = 10 },
+    { id = 3179, name = "Benevolent Embersage's Guidance", classId = 11 },
+    { id = 3154, name = "Screaming Torchfiend's Brutality", classId = 12 },
+    { id = 3160, name = "Weyrnkeeper's Timeless Vigil", classId = 13 },
   },
 })
 tinsert(ns.Sets, {
@@ -2036,19 +2058,19 @@ tinsert(ns.Sets, {
   release = 10,
   minLevel = 70,
   sets = {
-    {id = 3150,name="Molten Vanguard's Mortarplate"}, -- classmask=1,Type=13193,Warrior
-    {id = 3148,name="Zealous Pyreknight's Ardor"}, -- classmask=2,Type=13193,Paladin
-    {id = 3137,name="Blazing Dreamstalker's Trophies"}, -- classmask=4,Type=13193,Hunter
-    {id = 3165,name="Lucid Shadewalker's Silence"}, -- classmask=8,Type=13193,Rogue
-    {id = 3184,name="Blessings of Lunar Communion"}, -- classmask=16,Type=13193,Priest
-    {id = 3163,name="Risen Nightmare's Gravemantle"}, -- classmask=32,Type=13193,Death Knight
-    {id = 3169,name="Vision of the Greatwolf Outcast"}, -- classmask=64,Type=13193,Shaman
-    {id = 3186,name="Wayward Chronomancer's Clockwork"}, -- classmask=128,Type=13193,Mage
-    {id = 3175,name="Devout Ashdevil's Pactweave"}, -- classmask=256,Type=13193,Warlock
-    {id = 3144,name="Mystic Heron's Discipline"}, -- classmask=512,Type=13193,Monk
-    {id = 3177,name="Benevolent Embersage's Guidance"}, -- classmask=1024,Type=13193,Druid
-    {id = 3153,name="Screaming Torchfiend's Brutality"}, -- classmask=2048,Type=13193,Demon Hunter
-    {id = 3157,name="Weyrnkeeper's Timeless Vigil"}, -- classmask=4096,Type=13193,Evoker
+    { id = 3150, name = "Molten Vanguard's Mortarplate", classId = 1 },
+    { id = 3148, name = "Zealous Pyreknight's Ardor", classId = 2 },
+    { id = 3137, name = "Blazing Dreamstalker's Trophies", classId = 3 },
+    { id = 3165, name = "Lucid Shadewalker's Silence", classId = 4 },
+    { id = 3184, name = "Blessings of Lunar Communion", classId = 5 },
+    { id = 3163, name = "Risen Nightmare's Gravemantle", classId = 6 },
+    { id = 3169, name = "Vision of the Greatwolf Outcast", classId = 7 },
+    { id = 3186, name = "Wayward Chronomancer's Clockwork", classId = 8 },
+    { id = 3175, name = "Devout Ashdevil's Pactweave", classId = 9 },
+    { id = 3144, name = "Mystic Heron's Discipline", classId = 10 },
+    { id = 3177, name = "Benevolent Embersage's Guidance", classId = 11 },
+    { id = 3153, name = "Screaming Torchfiend's Brutality", classId = 12 },
+    { id = 3157, name = "Weyrnkeeper's Timeless Vigil", classId = 13 },
   },
 })
 tinsert(ns.Sets, {
@@ -2058,19 +2080,19 @@ tinsert(ns.Sets, {
   release = 10,
   minLevel = 70,
   sets = {
-    {id = 3149,name="Molten Vanguard's Mortarplate"}, -- classmask=1,Type=2015,Warrior
-    {id = 3146,name="Zealous Pyreknight's Ardor"}, -- classmask=2,Type=2015,Paladin
-    {id = 3140,name="Blazing Dreamstalker's Trophies"}, -- classmask=4,Type=2015,Hunter
-    {id = 3168,name="Lucid Shadewalker's Silence"}, -- classmask=8,Type=2015,Rogue
-    {id = 3183,name="Blessings of Lunar Communion"}, -- classmask=16,Type=2015,Priest
-    {id = 3161,name="Risen Nightmare's Gravemantle"}, -- classmask=32,Type=2015,Death Knight
-    {id = 3170,name="Vision of the Greatwolf Outcast"}, -- classmask=64,Type=2015,Shaman
-    {id = 3187,name="Wayward Chronomancer's Clockwork"}, -- classmask=128,Type=2015,Mage
-    {id = 3174,name="Devout Ashdevil's Pactweave"}, -- classmask=256,Type=2015,Warlock
-    {id = 3143,name="Mystic Heron's Discipline"}, -- classmask=512,Type=2015,Monk
-    {id = 3178,name="Benevolent Embersage's Guidance"}, -- classmask=1024,Type=2015,Druid
-    {id = 3155,name="Screaming Torchfiend's Brutality"}, -- classmask=2048,Type=2015,Demon Hunter
-    {id = 3158,name="Weyrnkeeper's Timeless Vigil"}, -- classmask=4096,Type=2015,Evoker
+    { id = 3149, name = "Molten Vanguard's Mortarplate", classId = 1 },
+    { id = 3146, name = "Zealous Pyreknight's Ardor", classId = 2 },
+    { id = 3140, name = "Blazing Dreamstalker's Trophies", classId = 3 },
+    { id = 3168, name = "Lucid Shadewalker's Silence", classId = 4 },
+    { id = 3183, name = "Blessings of Lunar Communion", classId = 5 },
+    { id = 3161, name = "Risen Nightmare's Gravemantle", classId = 6 },
+    { id = 3170, name = "Vision of the Greatwolf Outcast", classId = 7 },
+    { id = 3187, name = "Wayward Chronomancer's Clockwork", classId = 8 },
+    { id = 3174, name = "Devout Ashdevil's Pactweave", classId = 9 },
+    { id = 3143, name = "Mystic Heron's Discipline", classId = 10 },
+    { id = 3178, name = "Benevolent Embersage's Guidance", classId = 11 },
+    { id = 3155, name = "Screaming Torchfiend's Brutality", classId = 12 },
+    { id = 3158, name = "Weyrnkeeper's Timeless Vigil", classId = 13 },
   },
 })
 tinsert(ns.Sets, {
@@ -2080,19 +2102,19 @@ tinsert(ns.Sets, {
   release = 10,
   minLevel = 70,
   sets = {
-    {id = 3151,name="Molten Vanguard's Mortarplate"}, -- classmask=1,Type=13145,Warrior
-    {id = 3145,name="Zealous Pyreknight's Ardor"}, -- classmask=2,Type=13145,Paladin
-    {id = 3139,name="Blazing Dreamstalker's Trophies"}, -- classmask=4,Type=13145,Hunter
-    {id = 3166,name="Lucid Shadewalker's Silence"}, -- classmask=8,Type=13145,Rogue
-    {id = 3182,name="Blessings of Lunar Communion"}, -- classmask=16,Type=13145,Priest
-    {id = 3164,name="Risen Nightmare's Gravemantle"}, -- classmask=32,Type=13145,Death Knight
-    {id = 3172,name="Vision of the Greatwolf Outcast"}, -- classmask=64,Type=13145,Shaman
-    {id = 3188,name="Wayward Chronomancer's Clockwork"}, -- classmask=128,Type=13145,Mage
-    {id = 3173,name="Devout Ashdevil's Pactweave"}, -- classmask=256,Type=13145,Warlock
-    {id = 3141,name="Mystic Heron's Discipline"}, -- classmask=512,Type=13145,Monk
-    {id = 3180,name="Benevolent Embersage's Guidance"}, -- classmask=1024,Type=13145,Druid
-    {id = 3156,name="Screaming Torchfiend's Brutality"}, -- classmask=2048,Type=13145,Demon Hunter
-    {id = 3159,name="Weyrnkeeper's Timeless Vigil"}, -- classmask=4096,Type=13145,Evoker
+    { id = 3151, name = "Molten Vanguard's Mortarplate", classId = 1 },
+    { id = 3145, name = "Zealous Pyreknight's Ardor", classId = 2 },
+    { id = 3139, name = "Blazing Dreamstalker's Trophies", classId = 3 },
+    { id = 3166, name = "Lucid Shadewalker's Silence", classId = 4 },
+    { id = 3182, name = "Blessings of Lunar Communion", classId = 5 },
+    { id = 3164, name = "Risen Nightmare's Gravemantle", classId = 6 },
+    { id = 3172, name = "Vision of the Greatwolf Outcast", classId = 7 },
+    { id = 3188, name = "Wayward Chronomancer's Clockwork", classId = 8 },
+    { id = 3173, name = "Devout Ashdevil's Pactweave", classId = 9 },
+    { id = 3141, name = "Mystic Heron's Discipline", classId = 10 },
+    { id = 3180, name = "Benevolent Embersage's Guidance", classId = 11 },
+    { id = 3156, name = "Screaming Torchfiend's Brutality", classId = 12 },
+    { id = 3159, name = "Weyrnkeeper's Timeless Vigil", classId = 13 },
   },
 })
 -- release 11
@@ -2104,19 +2126,19 @@ tinsert(ns.Sets, {
   release = 11,
   minLevel = 80,
   sets = {
-    {id = 3768,name="Warsculptor's Masterwork"}, -- classmask=1,Type=1641,Warrior
-    {id = 3748,name="Entombed Seraph's Radiance"}, -- classmask=2,Type=1641,Paladin
-    {id = 3736,name="Lightless Scavenger's Necessities"}, -- classmask=4,Type=1641,Hunter
-    {id = 3756,name="K'areshi Phantom's Bindings"}, -- classmask=8,Type=1641,Rogue
-    {id = 3752,name="Shards of Living Luster"}, -- classmask=16,Type=1641,Priest
-    {id = 3720,name="Exhumed Centurion's Relics"}, -- classmask=32,Type=1641,Death Knight
-    {id = 3760,name="Waves of the Forgotten Reservoir"}, -- classmask=64,Type=1641,Shaman
-    {id = 3740,name="Sparks of Violet Rebirth"}, -- classmask=128,Type=1641,Mage
-    {id = 3764,name="Rites of the Hexflame Coven"}, -- classmask=256,Type=1641,Warlock
-    {id = 3744,name="Gatecrasher's Fortitude"}, -- classmask=512,Type=1641,Monk
-    {id = 3728,name="Mane of the Greatlynx"}, -- classmask=1024,Type=1641,Druid
-    {id = 3724,name="Husk of the Hypogeal Nemesis"}, -- classmask=2048,Type=1641,Demon Hunter
-    {id = 3732,name="Destroyer's Scarred Wards"}, -- classmask=4096,Type=1641,Evoker
+    { id = 3768, name = "Warsculptor's Masterwork", classId = 1 },
+    { id = 3748, name = "Entombed Seraph's Radiance", classId = 2 },
+    { id = 3736, name = "Lightless Scavenger's Necessities", classId = 3 },
+    { id = 3756, name = "K'areshi Phantom's Bindings", classId = 4 },
+    { id = 3752, name = "Shards of Living Luster", classId = 5 },
+    { id = 3720, name = "Exhumed Centurion's Relics", classId = 6 },
+    { id = 3760, name = "Waves of the Forgotten Reservoir", classId = 7 },
+    { id = 3740, name = "Sparks of Violet Rebirth", classId = 8 },
+    { id = 3764, name = "Rites of the Hexflame Coven", classId = 9 },
+    { id = 3744, name = "Gatecrasher's Fortitude", classId = 10 },
+    { id = 3728, name = "Mane of the Greatlynx", classId = 11 },
+    { id = 3724, name = "Husk of the Hypogeal Nemesis", classId = 12 },
+    { id = 3732, name = "Destroyer's Scarred Wards", classId = 13 },
   },
 })
 tinsert(ns.Sets, {
@@ -2126,19 +2148,19 @@ tinsert(ns.Sets, {
   release = 11,
   minLevel = 80,
   sets = {
-    {id = 3767,name="Warsculptor's Masterwork"}, -- classmask=1,Type=13193,Warrior
-    {id = 3747,name="Entombed Seraph's Radiance"}, -- classmask=2,Type=13193,Paladin
-    {id = 3735,name="Lightless Scavenger's Necessities"}, -- classmask=4,Type=13193,Hunter
-    {id = 3755,name="K'areshi Phantom's Bindings"}, -- classmask=8,Type=13193,Rogue
-    {id = 3751,name="Shards of Living Luster"}, -- classmask=16,Type=13193,Priest
-    {id = 3711,name="Exhumed Centurion's Relics"}, -- classmask=32,Type=13193,Death Knight
-    {id = 3759,name="Waves of the Forgotten Reservoir"}, -- classmask=64,Type=13193,Shaman
-    {id = 3739,name="Sparks of Violet Rebirth"}, -- classmask=128,Type=13193,Mage
-    {id = 3763,name="Rites of the Hexflame Coven"}, -- classmask=256,Type=13193,Warlock
-    {id = 3743,name="Gatecrasher's Fortitude"}, -- classmask=512,Type=13193,Monk
-    {id = 3727,name="Mane of the Greatlynx"}, -- classmask=1024,Type=13193,Druid
-    {id = 3723,name="Husk of the Hypogeal Nemesis"}, -- classmask=2048,Type=13193,Demon Hunter
-    {id = 3731,name="Destroyer's Scarred Wards"}, -- classmask=4096,Type=13193,Evoker
+    { id = 3767, name = "Warsculptor's Masterwork", classId = 1 },
+    { id = 3747, name = "Entombed Seraph's Radiance", classId = 2 },
+    { id = 3735, name = "Lightless Scavenger's Necessities", classId = 3 },
+    { id = 3755, name = "K'areshi Phantom's Bindings", classId = 4 },
+    { id = 3751, name = "Shards of Living Luster", classId = 5 },
+    { id = 3711, name = "Exhumed Centurion's Relics", classId = 6 },
+    { id = 3759, name = "Waves of the Forgotten Reservoir", classId = 7 },
+    { id = 3739, name = "Sparks of Violet Rebirth", classId = 8 },
+    { id = 3763, name = "Rites of the Hexflame Coven", classId = 9 },
+    { id = 3743, name = "Gatecrasher's Fortitude", classId = 10 },
+    { id = 3727, name = "Mane of the Greatlynx", classId = 11 },
+    { id = 3723, name = "Husk of the Hypogeal Nemesis", classId = 12 },
+    { id = 3731, name = "Destroyer's Scarred Wards", classId = 13 },
   },
 })
 tinsert(ns.Sets, {
@@ -2148,19 +2170,19 @@ tinsert(ns.Sets, {
   release = 11,
   minLevel = 80,
   sets = {
-    {id = 3765,name="Warsculptor's Masterwork"}, -- classmask=1,Type=2015,Warrior
-    {id = 3745,name="Entombed Seraph's Radiance"}, -- classmask=2,Type=2015,Paladin
-    {id = 3733,name="Lightless Scavenger's Necessities"}, -- classmask=4,Type=2015,Hunter
-    {id = 3753,name="K'areshi Phantom's Bindings"}, -- classmask=8,Type=2015,Rogue
-    {id = 3749,name="Shards of Living Luster"}, -- classmask=16,Type=2015,Priest
-    {id = 3718,name="Exhumed Centurion's Relics"}, -- classmask=32,Type=2015,Death Knight
-    {id = 3757,name="Waves of the Forgotten Reservoir"}, -- classmask=64,Type=2015,Shaman
-    {id = 3737,name="Sparks of Violet Rebirth"}, -- classmask=128,Type=2015,Mage
-    {id = 3761,name="Rites of the Hexflame Coven"}, -- classmask=256,Type=2015,Warlock
-    {id = 3741,name="Gatecrasher's Fortitude"}, -- classmask=512,Type=2015,Monk
-    {id = 3725,name="Mane of the Greatlynx"}, -- classmask=1024,Type=2015,Druid
-    {id = 3721,name="Husk of the Hypogeal Nemesis"}, -- classmask=2048,Type=2015,Demon Hunter
-    {id = 3729,name="Destroyer's Scarred Wards"}, -- classmask=4096,Type=2015,Evoker
+    { id = 3765, name = "Warsculptor's Masterwork", classId = 1 },
+    { id = 3745, name = "Entombed Seraph's Radiance", classId = 2 },
+    { id = 3733, name = "Lightless Scavenger's Necessities", classId = 3 },
+    { id = 3753, name = "K'areshi Phantom's Bindings", classId = 4 },
+    { id = 3749, name = "Shards of Living Luster", classId = 5 },
+    { id = 3718, name = "Exhumed Centurion's Relics", classId = 6 },
+    { id = 3757, name = "Waves of the Forgotten Reservoir", classId = 7 },
+    { id = 3737, name = "Sparks of Violet Rebirth", classId = 8 },
+    { id = 3761, name = "Rites of the Hexflame Coven", classId = 9 },
+    { id = 3741, name = "Gatecrasher's Fortitude", classId = 10 },
+    { id = 3725, name = "Mane of the Greatlynx", classId = 11 },
+    { id = 3721, name = "Husk of the Hypogeal Nemesis", classId = 12 },
+    { id = 3729, name = "Destroyer's Scarred Wards", classId = 13 },
   },
 })
 tinsert(ns.Sets, {
@@ -2170,19 +2192,19 @@ tinsert(ns.Sets, {
   release = 11,
   minLevel = 80,
   sets = {
-    {id = 3766,name="Warsculptor's Masterwork"}, -- classmask=1,Type=13145,Warrior
-    {id = 3746,name="Entombed Seraph's Radiance"}, -- classmask=2,Type=13145,Paladin
-    {id = 3734,name="Lightless Scavenger's Necessities"}, -- classmask=4,Type=13145,Hunter
-    {id = 3754,name="K'areshi Phantom's Bindings"}, -- classmask=8,Type=13145,Rogue
-    {id = 3750,name="Shards of Living Luster"}, -- classmask=16,Type=13145,Priest
-    {id = 3719,name="Exhumed Centurion's Relics"}, -- classmask=32,Type=13145,Death Knight
-    {id = 3758,name="Waves of the Forgotten Reservoir"}, -- classmask=64,Type=13145,Shaman
-    {id = 3738,name="Sparks of Violet Rebirth"}, -- classmask=128,Type=13145,Mage
-    {id = 3762,name="Rites of the Hexflame Coven"}, -- classmask=256,Type=13145,Warlock
-    {id = 3742,name="Gatecrasher's Fortitude"}, -- classmask=512,Type=13145,Monk
-    {id = 3726,name="Mane of the Greatlynx"}, -- classmask=1024,Type=13145,Druid
-    {id = 3722,name="Husk of the Hypogeal Nemesis"}, -- classmask=2048,Type=13145,Demon Hunter
-    {id = 3730,name="Destroyer's Scarred Wards"}, -- classmask=4096,Type=13145,Evoker
+    { id = 3766, name = "Warsculptor's Masterwork", classId = 1 },
+    { id = 3746, name = "Entombed Seraph's Radiance", classId = 2 },
+    { id = 3734, name = "Lightless Scavenger's Necessities", classId = 3 },
+    { id = 3754, name = "K'areshi Phantom's Bindings", classId = 4 },
+    { id = 3750, name = "Shards of Living Luster", classId = 5 },
+    { id = 3719, name = "Exhumed Centurion's Relics", classId = 6 },
+    { id = 3758, name = "Waves of the Forgotten Reservoir", classId = 7 },
+    { id = 3738, name = "Sparks of Violet Rebirth", classId = 8 },
+    { id = 3762, name = "Rites of the Hexflame Coven", classId = 9 },
+    { id = 3742, name = "Gatecrasher's Fortitude", classId = 10 },
+    { id = 3726, name = "Mane of the Greatlynx", classId = 11 },
+    { id = 3722, name = "Husk of the Hypogeal Nemesis", classId = 12 },
+    { id = 3730, name = "Destroyer's Scarred Wards", classId = 13 },
   },
 })
 -- liberation of undermine 305
@@ -2193,19 +2215,19 @@ tinsert(ns.Sets, {
   release = 11,
   minLevel = 80,
   sets = {
-    {id = 4326,name="Enforcer's Backalley Brawlplate"}, -- classmask=1,Type=1641,Warrior
-    {id = 4306,name="Oath of the Aureate Sentry"}, -- classmask=2,Type=1641,Paladin
-    {id = 4294,name="Tireless Collector's Bounties"}, -- classmask=4,Type=1641,Hunter
-    {id = 4314,name="Spectral Gambler's Last Call"}, -- classmask=8,Type=1641,Rogue
-    {id = 4310,name="Confessor's Unshakable Virtue"}, -- classmask=16,Type=1641,Priest
-    {id = 4278,name="Cauldron Champion's Encore"}, -- classmask=32,Type=1641,Death Knight
-    {id = 4318,name="Currents of the Gale Sovereign"}, -- classmask=64,Type=1641,Shaman
-    {id = 4298,name="Jewels of the Aspectral Emissary"}, -- classmask=128,Type=1641,Mage
-    {id = 4322,name="Spliced Fiendtrader's Influence"}, -- classmask=256,Type=1641,Warlock
-    {id = 4302,name="Ageless Serpent's Foresight"}, -- classmask=512,Type=1641,Monk
-    {id = 4286,name="Roots of Reclaiming Blight"}, -- classmask=1024,Type=1641,Druid
-    {id = 4282,name="Fel-Dealer's Contraband"}, -- classmask=2048,Type=1641,Demon Hunter
-    {id = 4290,name="Opulent Treasurescale's Hoard"}, -- classmask=4096,Type=1641,Evoker
+    { id = 4326, name = "Enforcer's Backalley Brawlplate", classId = 1 },
+    { id = 4306, name = "Oath of the Aureate Sentry", classId = 2 },
+    { id = 4294, name = "Tireless Collector's Bounties", classId = 3 },
+    { id = 4314, name = "Spectral Gambler's Last Call", classId = 4 },
+    { id = 4310, name = "Confessor's Unshakable Virtue", classId = 5 },
+    { id = 4278, name = "Cauldron Champion's Encore", classId = 6 },
+    { id = 4318, name = "Currents of the Gale Sovereign", classId = 7 },
+    { id = 4298, name = "Jewels of the Aspectral Emissary", classId = 8 },
+    { id = 4322, name = "Spliced Fiendtrader's Influence", classId = 9 },
+    { id = 4302, name = "Ageless Serpent's Foresight", classId = 10 },
+    { id = 4286, name = "Roots of Reclaiming Blight", classId = 11 },
+    { id = 4282, name = "Fel-Dealer's Contraband", classId = 12 },
+    { id = 4290, name = "Opulent Treasurescale's Hoard", classId = 13 },
   },
 })
 tinsert(ns.Sets, {
@@ -2215,20 +2237,20 @@ tinsert(ns.Sets, {
   release = 11,
   minLevel = 80,
   sets = {
-    {id = 4325,name="Enforcer's Backalley Brawlplate"}, -- classmask=1,Type=13193,Warrior
-    {id = 4305,name="Oath of the Aureate Sentry"}, -- classmask=2,Type=13193,Paladin
-    {id = 4293,name="Tireless Collector's Bounties"}, -- classmask=4,Type=13193,Hunter
-    {id = 4313,name="Spectral Gambler's Last Call"}, -- classmask=8,Type=13193,Rogue
-    {id = 4309,name="Confessor's Unshakable Virtue"}, -- classmask=16,Type=13193,Priest
-    {id = 4277,name="Cauldron Champion's Encore"}, -- classmask=32,Type=13193,Death Knight
-    {id = 4317,name="Currents of the Gale Sovereign"}, -- classmask=64,Type=13193,Shaman
-    {id = 4297,name="Jewels of the Aspectral Emissary"}, -- classmask=128,Type=13193,Mage
-    {id = 4321,name="Spliced Fiendtrader's Influence"}, -- classmask=256,Type=13193,Warlock
-    {id = 4301,name="Ageless Serpent's Foresight"}, -- classmask=512,Type=13193,Monk
-    {id = 4285,name="Roots of Reclaiming Blight"}, -- classmask=1024,Type=13193,Druid
-    {id = 4281,name="Fel-Dealer's Contraband"}, -- classmask=2048,Type=13193,Demon Hunter
-    {id = 4289,name="Opulent Treasurescale's Hoard"}, -- classmask=4096,Type=13193,Evoker
- } ,
+    { id = 4325, name = "Enforcer's Backalley Brawlplate", classId = 1 },
+    { id = 4305, name = "Oath of the Aureate Sentry", classId = 2 },
+    { id = 4293, name = "Tireless Collector's Bounties", classId = 3 },
+    { id = 4313, name = "Spectral Gambler's Last Call", classId = 4 },
+    { id = 4309, name = "Confessor's Unshakable Virtue", classId = 5 },
+    { id = 4277, name = "Cauldron Champion's Encore", classId = 6 },
+    { id = 4317, name = "Currents of the Gale Sovereign", classId = 7 },
+    { id = 4297, name = "Jewels of the Aspectral Emissary", classId = 8 },
+    { id = 4321, name = "Spliced Fiendtrader's Influence", classId = 9 },
+    { id = 4301, name = "Ageless Serpent's Foresight", classId = 10 },
+    { id = 4285, name = "Roots of Reclaiming Blight", classId = 11 },
+    { id = 4281, name = "Fel-Dealer's Contraband", classId = 12 },
+    { id = 4289, name = "Opulent Treasurescale's Hoard", classId = 13 },
+  },
 })
 tinsert(ns.Sets, {
   id = 305,
@@ -2237,19 +2259,19 @@ tinsert(ns.Sets, {
   release = 11,
   minLevel = 80,
   sets = {
-    {id = 4323,name="Enforcer's Backalley Brawlplate"}, -- classmask=1,Type=2015,Warrior
-    {id = 4303,name="Oath of the Aureate Sentry"}, -- classmask=2,Type=2015,Paladin
-    {id = 4291,name="Tireless Collector's Bounties"}, -- classmask=4,Type=2015,Hunter
-    {id = 4311,name="Spectral Gambler's Last Call"}, -- classmask=8,Type=2015,Rogue
-    {id = 4307,name="Confessor's Unshakable Virtue"}, -- classmask=16,Type=2015,Priest
-    {id = 4275,name="Cauldron Champion's Encore"}, -- classmask=32,Type=2015,Death Knight
-    {id = 4315,name="Currents of the Gale Sovereign"}, -- classmask=64,Type=2015,Shaman
-    {id = 4295,name="Jewels of the Aspectral Emissary"}, -- classmask=128,Type=2015,Mage
-    {id = 4319,name="Spliced Fiendtrader's Influence"}, -- classmask=256,Type=2015,Warlock
-    {id = 4299,name="Ageless Serpent's Foresight"}, -- classmask=512,Type=2015,Monk
-    {id = 4283,name="Roots of Reclaiming Blight"}, -- classmask=1024,Type=2015,Druid
-    {id = 4279,name="Fel-Dealer's Contraband"}, -- classmask=2048,Type=2015,Demon Hunter
-    {id = 4287,name="Opulent Treasurescale's Hoard"}, -- classmask=4096,Type=2015,Evoker
+    { id = 4323, name = "Enforcer's Backalley Brawlplate", classId = 1 },
+    { id = 4303, name = "Oath of the Aureate Sentry", classId = 2 },
+    { id = 4291, name = "Tireless Collector's Bounties", classId = 3 },
+    { id = 4311, name = "Spectral Gambler's Last Call", classId = 4 },
+    { id = 4307, name = "Confessor's Unshakable Virtue", classId = 5 },
+    { id = 4275, name = "Cauldron Champion's Encore", classId = 6 },
+    { id = 4315, name = "Currents of the Gale Sovereign", classId = 7 },
+    { id = 4295, name = "Jewels of the Aspectral Emissary", classId = 8 },
+    { id = 4319, name = "Spliced Fiendtrader's Influence", classId = 9 },
+    { id = 4299, name = "Ageless Serpent's Foresight", classId = 10 },
+    { id = 4283, name = "Roots of Reclaiming Blight", classId = 11 },
+    { id = 4279, name = "Fel-Dealer's Contraband", classId = 12 },
+    { id = 4287, name = "Opulent Treasurescale's Hoard", classId = 13 },
   },
 })
 tinsert(ns.Sets, {
@@ -2259,19 +2281,19 @@ tinsert(ns.Sets, {
   release = 11,
   minLevel = 80,
   sets = {
-    {id = 4324,name="Enforcer's Backalley Brawlplate"}, -- classmask=1,Type=13145,Warrior
-    {id = 4304,name="Oath of the Aureate Sentry"}, -- classmask=2,Type=13145,Paladin
-    {id = 4292,name="Tireless Collector's Bounties"}, -- classmask=4,Type=13145,Hunter
-    {id = 4312,name="Spectral Gambler's Last Call"}, -- classmask=8,Type=13145,Rogue
-    {id = 4308,name="Confessor's Unshakable Virtue"}, -- classmask=16,Type=13145,Priest
-    {id = 4276,name="Cauldron Champion's Encore"}, -- classmask=32,Type=13145,Death Knight
-    {id = 4316,name="Currents of the Gale Sovereign"}, -- classmask=64,Type=13145,Shaman
-    {id = 4296,name="Jewels of the Aspectral Emissary"}, -- classmask=128,Type=13145,Mage
-    {id = 4320,name="Spliced Fiendtrader's Influence"}, -- classmask=256,Type=13145,Warlock
-    {id = 4300,name="Ageless Serpent's Foresight"}, -- classmask=512,Type=13145,Monk
-    {id = 4284,name="Roots of Reclaiming Blight"}, -- classmask=1024,Type=13145,Druid
-    {id = 4280,name="Fel-Dealer's Contraband"}, -- classmask=2048,Type=13145,Demon Hunter
-    {id = 4288,name="Opulent Treasurescale's Hoard"}, -- classmask=4096,Type=13145,Evoker
+    { id = 4324, name = "Enforcer's Backalley Brawlplate", classId = 1 },
+    { id = 4304, name = "Oath of the Aureate Sentry", classId = 2 },
+    { id = 4292, name = "Tireless Collector's Bounties", classId = 3 },
+    { id = 4312, name = "Spectral Gambler's Last Call", classId = 4 },
+    { id = 4308, name = "Confessor's Unshakable Virtue", classId = 5 },
+    { id = 4276, name = "Cauldron Champion's Encore", classId = 6 },
+    { id = 4316, name = "Currents of the Gale Sovereign", classId = 7 },
+    { id = 4296, name = "Jewels of the Aspectral Emissary", classId = 8 },
+    { id = 4320, name = "Spliced Fiendtrader's Influence", classId = 9 },
+    { id = 4300, name = "Ageless Serpent's Foresight", classId = 10 },
+    { id = 4284, name = "Roots of Reclaiming Blight", classId = 11 },
+    { id = 4280, name = "Fel-Dealer's Contraband", classId = 12 },
+    { id = 4288, name = "Opulent Treasurescale's Hoard", classId = 13 },
   },
 })
 
@@ -2282,19 +2304,19 @@ tinsert(ns.Sets, {
   release = 11,
   minLevel = 80,
   sets = {
-{id = 5148,name="Chains of the Living Weapon"}, -- classmask=1,Type=1641,Warrior
-{id = 5128,name="Vows of the Lucent Battalion"}, -- classmask=2,Type=1641,Paladin
-{id = 5116,name="Midnight Herald's Pledge"}, -- classmask=4,Type=1641,Hunter
-{id = 5136,name="Shroud of the Sudden Eclipse"}, -- classmask=8,Type=1641,Rogue
-{id = 5132,name="Eulogy to a Dying Star"}, -- classmask=16,Type=1641,Priest
-{id = 5100,name="Hollow Sentinel's Vigil"}, -- classmask=32,Type=1641,Death Knight
-{id = 5140,name="Howls of Channeled Fury"}, -- classmask=64,Type=1641,Shaman
-{id = 5120,name="Augur's Ephemeral Plumage"}, -- classmask=128,Type=1641,Mage
-{id = 5144,name="Inquisitor's Feast of Madness"}, -- classmask=256,Type=1641,Warlock
-{id = 5124,name="Crash of Fallen Storms"}, -- classmask=512,Type=1641,Monk
-{id = 5108,name="Ornaments of the Mother Eagle"}, -- classmask=1024,Type=1641,Druid
-{id = 5104,name="Charhound's Vicious Hunt"}, -- classmask=2048,Type=1641,Demon Hunter
-{id = 5112,name="Spellweaver's Immaculate Design"}, -- classmask=4096,Type=1641,Evoker
+    { id = 5148, name = "Chains of the Living Weapon", classId = 1 },
+    { id = 5128, name = "Vows of the Lucent Battalion", classId = 2 },
+    { id = 5116, name = "Midnight Herald's Pledge", classId = 3 },
+    { id = 5136, name = "Shroud of the Sudden Eclipse", classId = 4 },
+    { id = 5132, name = "Eulogy to a Dying Star", classId = 5 },
+    { id = 5100, name = "Hollow Sentinel's Vigil", classId = 6 },
+    { id = 5140, name = "Howls of Channeled Fury", classId = 7 },
+    { id = 5120, name = "Augur's Ephemeral Plumage", classId = 8 },
+    { id = 5144, name = "Inquisitor's Feast of Madness", classId = 9 },
+    { id = 5124, name = "Crash of Fallen Storms", classId = 10 },
+    { id = 5108, name = "Ornaments of the Mother Eagle", classId = 11 },
+    { id = 5104, name = "Charhound's Vicious Hunt", classId = 12 },
+    { id = 5112, name = "Spellweaver's Immaculate Design", classId = 13 },
   },
 })
 
@@ -2305,19 +2327,19 @@ tinsert(ns.Sets, {
   release = 11,
   minLevel = 80,
   sets = {
-{id = 5147,name="Chains of the Living Weapon"}, -- classmask=1,Type=13193,Warrior
-{id = 5127,name="Vows of the Lucent Battalion"}, -- classmask=2,Type=13193,Paladin
-{id = 5115,name="Midnight Herald's Pledge"}, -- classmask=4,Type=13193,Hunter
-{id = 5135,name="Shroud of the Sudden Eclipse"}, -- classmask=8,Type=13193,Rogue
-{id = 5131,name="Eulogy to a Dying Star"}, -- classmask=16,Type=13193,Priest
-{id = 5099,name="Hollow Sentinel's Vigil"}, -- classmask=32,Type=13193,Death Knight
-{id = 5139,name="Howls of Channeled Fury"}, -- classmask=64,Type=13193,Shaman
-{id = 5119,name="Augur's Ephemeral Plumage"}, -- classmask=128,Type=13193,Mage
-{id = 5143,name="Inquisitor's Feast of Madness"}, -- classmask=256,Type=13193,Warlock
-{id = 5123,name="Crash of Fallen Storms"}, -- classmask=512,Type=13193,Monk
-{id = 5107,name="Ornaments of the Mother Eagle"}, -- classmask=1024,Type=13193,Druid
-{id = 5103,name="Charhound's Vicious Hunt"}, -- classmask=2048,Type=13193,Demon Hunter
-{id = 5111,name="Spellweaver's Immaculate Design"}, -- classmask=4096,Type=13193,Evoker
+    { id = 5147, name = "Chains of the Living Weapon", classId = 1 },
+    { id = 5127, name = "Vows of the Lucent Battalion", classId = 2 },
+    { id = 5115, name = "Midnight Herald's Pledge", classId = 3 },
+    { id = 5135, name = "Shroud of the Sudden Eclipse", classId = 4 },
+    { id = 5131, name = "Eulogy to a Dying Star", classId = 5 },
+    { id = 5099, name = "Hollow Sentinel's Vigil", classId = 6 },
+    { id = 5139, name = "Howls of Channeled Fury", classId = 7 },
+    { id = 5119, name = "Augur's Ephemeral Plumage", classId = 8 },
+    { id = 5143, name = "Inquisitor's Feast of Madness", classId = 9 },
+    { id = 5123, name = "Crash of Fallen Storms", classId = 10 },
+    { id = 5107, name = "Ornaments of the Mother Eagle", classId = 11 },
+    { id = 5103, name = "Charhound's Vicious Hunt", classId = 12 },
+    { id = 5111, name = "Spellweaver's Immaculate Design", classId = 13 },
   },
 })
 
@@ -2328,19 +2350,19 @@ tinsert(ns.Sets, {
   release = 11,
   minLevel = 80,
   sets = {
-{id = 5145,name="Chains of the Living Weapon"}, -- classmask=1,Type=2015,Warrior
-{id = 5125,name="Vows of the Lucent Battalion"}, -- classmask=2,Type=2015,Paladin
-{id = 5113,name="Midnight Herald's Pledge"}, -- classmask=4,Type=2015,Hunter
-{id = 5133,name="Shroud of the Sudden Eclipse"}, -- classmask=8,Type=2015,Rogue
-{id = 5129,name="Eulogy to a Dying Star"}, -- classmask=16,Type=2015,Priest
-{id = 5097,name="Hollow Sentinel's Vigil"}, -- classmask=32,Type=2015,Death Knight
-{id = 5137,name="Howls of Channeled Fury"}, -- classmask=64,Type=2015,Shaman
-{id = 5117,name="Augur's Ephemeral Plumage"}, -- classmask=128,Type=2015,Mage
-{id = 5141,name="Inquisitor's Feast of Madness"}, -- classmask=256,Type=2015,Warlock
-{id = 5121,name="Crash of Fallen Storms"}, -- classmask=512,Type=2015,Monk
-{id = 5105,name="Ornaments of the Mother Eagle"}, -- classmask=1024,Type=2015,Druid
-{id = 5101,name="Charhound's Vicious Hunt"}, -- classmask=2048,Type=2015,Demon Hunter
-{id = 5109,name="Spellweaver's Immaculate Design"}, -- classmask=4096,Type=2015,Evoker
+    { id = 5145, name = "Chains of the Living Weapon", classId = 1 },
+    { id = 5125, name = "Vows of the Lucent Battalion", classId = 2 },
+    { id = 5113, name = "Midnight Herald's Pledge", classId = 3 },
+    { id = 5133, name = "Shroud of the Sudden Eclipse", classId = 4 },
+    { id = 5129, name = "Eulogy to a Dying Star", classId = 5 },
+    { id = 5097, name = "Hollow Sentinel's Vigil", classId = 6 },
+    { id = 5137, name = "Howls of Channeled Fury", classId = 7 },
+    { id = 5117, name = "Augur's Ephemeral Plumage", classId = 8 },
+    { id = 5141, name = "Inquisitor's Feast of Madness", classId = 9 },
+    { id = 5121, name = "Crash of Fallen Storms", classId = 10 },
+    { id = 5105, name = "Ornaments of the Mother Eagle", classId = 11 },
+    { id = 5101, name = "Charhound's Vicious Hunt", classId = 12 },
+    { id = 5109, name = "Spellweaver's Immaculate Design", classId = 13 },
   },
 })
 
@@ -2351,19 +2373,19 @@ tinsert(ns.Sets, {
   release = 11,
   minLevel = 80,
   sets = {
-{id = 5146,name="Chains of the Living Weapon"}, -- classmask=1,Type=13145,Warrior
-{id = 5126,name="Vows of the Lucent Battalion"}, -- classmask=2,Type=13145,Paladin
-{id = 5114,name="Midnight Herald's Pledge"}, -- classmask=4,Type=13145,Hunter
-{id = 5134,name="Shroud of the Sudden Eclipse"}, -- classmask=8,Type=13145,Rogue
-{id = 5130,name="Eulogy to a Dying Star"}, -- classmask=16,Type=13145,Priest
-{id = 5098,name="Hollow Sentinel's Vigil"}, -- classmask=32,Type=13145,Death Knight
-{id = 5138,name="Howls of Channeled Fury"}, -- classmask=64,Type=13145,Shaman
-{id = 5118,name="Augur's Ephemeral Plumage"}, -- classmask=128,Type=13145,Mage
-{id = 5142,name="Inquisitor's Feast of Madness"}, -- classmask=256,Type=13145,Warlock
-{id = 5122,name="Crash of Fallen Storms"}, -- classmask=512,Type=13145,Monk
-{id = 5106,name="Ornaments of the Mother Eagle"}, -- classmask=1024,Type=13145,Druid
-{id = 5102,name="Charhound's Vicious Hunt"}, -- classmask=2048,Type=13145,Demon Hunter
-{id = 5110,name="Spellweaver's Immaculate Design"}, -- classmask=4096,Type=13145,Evoker
+    { id = 5146, name = "Chains of the Living Weapon", classId = 1 },
+    { id = 5126, name = "Vows of the Lucent Battalion", classId = 2 },
+    { id = 5114, name = "Midnight Herald's Pledge", classId = 3 },
+    { id = 5134, name = "Shroud of the Sudden Eclipse", classId = 4 },
+    { id = 5130, name = "Eulogy to a Dying Star", classId = 5 },
+    { id = 5098, name = "Hollow Sentinel's Vigil", classId = 6 },
+    { id = 5138, name = "Howls of Channeled Fury", classId = 7 },
+    { id = 5118, name = "Augur's Ephemeral Plumage", classId = 8 },
+    { id = 5142, name = "Inquisitor's Feast of Madness", classId = 9 },
+    { id = 5122, name = "Crash of Fallen Storms", classId = 10 },
+    { id = 5106, name = "Ornaments of the Mother Eagle", classId = 11 },
+    { id = 5102, name = "Charhound's Vicious Hunt", classId = 12 },
+    { id = 5110, name = "Spellweaver's Immaculate Design", classId = 13 },
   },
 })
 
@@ -2376,19 +2398,19 @@ tinsert(ns.Sets, {
   release = 12,
   minLevel = 80,
   sets = {
-    {id = 5465,name="Rage of the Night Ender"}, -- classmask=1,Type=1641,Warrior
-    {id = 5445,name="Luminant Verdict's Vestments"}, -- classmask=2,Type=1641,Paladin
-    {id = 5433,name="Primal Sentry's Camouflage"}, -- classmask=4,Type=1641,Hunter
-    {id = 5453,name="Motley of the Grim Jest"}, -- classmask=8,Type=1641,Rogue
-    {id = 5449,name="Blind Oath's Burden"}, -- classmask=16,Type=1641,Priest
-    {id = 5417,name="Relentless Rider's Lament"}, -- classmask=32,Type=1641,Death Knight
-    {id = 5457,name="Mantle of the Primal Core"}, -- classmask=64,Type=1641,Shaman
-    {id = 5437,name="Voidbreaker's Accordance"}, -- classmask=128,Type=1641,Mage
-    {id = 5461,name="Reign of the Abyssal Immolator"}, -- classmask=256,Type=1641,Warlock
-    {id = 5441,name="Way of Ra-den's Chosen"}, -- classmask=512,Type=1641,Monk
-    {id = 5425,name="Sprouts of the Luminous Bloom"}, -- classmask=1024,Type=1641,Druid
-    {id = 5421,name="Devouring Reaver's Sheathe"}, -- classmask=2048,Type=1641,Demon Hunter
-    {id = 5429,name="Livery of the Black Talon"}, -- classmask=4096,Type=1641,Evoker
+    { id = 5465, name = "Rage of the Night Ender", classId = 1 },
+    { id = 5445, name = "Luminant Verdict's Vestments", classId = 2 },
+    { id = 5433, name = "Primal Sentry's Camouflage", classId = 3 },
+    { id = 5453, name = "Motley of the Grim Jest", classId = 4 },
+    { id = 5449, name = "Blind Oath's Burden", classId = 5 },
+    { id = 5417, name = "Relentless Rider's Lament", classId = 6 },
+    { id = 5457, name = "Mantle of the Primal Core", classId = 7 },
+    { id = 5437, name = "Voidbreaker's Accordance", classId = 8 },
+    { id = 5461, name = "Reign of the Abyssal Immolator", classId = 9 },
+    { id = 5441, name = "Way of Ra-den's Chosen", classId = 10 },
+    { id = 5425, name = "Sprouts of the Luminous Bloom", classId = 11 },
+    { id = 5421, name = "Devouring Reaver's Sheathe", classId = 12 },
+    { id = 5429, name = "Livery of the Black Talon", classId = 13 },
   },
 })
 tinsert(ns.Sets, {
@@ -2397,19 +2419,19 @@ tinsert(ns.Sets, {
   release = 12,
   minLevel = 80,
   sets = {
-    {id = 5466,name="Rage of the Night Ender"}, -- classmask=1,Type=13193,Warrior
-    {id = 5446,name="Luminant Verdict's Vestments"}, -- classmask=2,Type=13193,Paladin
-    {id = 5434,name="Primal Sentry's Camouflage"}, -- classmask=4,Type=13193,Hunter
-    {id = 5454,name="Motley of the Grim Jest"}, -- classmask=8,Type=13193,Rogue
-    {id = 5450,name="Blind Oath's Burden"}, -- classmask=16,Type=13193,Priest
-    {id = 5418,name="Relentless Rider's Lament"}, -- classmask=32,Type=13193,Death Knight
-    {id = 5458,name="Mantle of the Primal Core"}, -- classmask=64,Type=13193,Shaman
-    {id = 5438,name="Voidbreaker's Accordance"}, -- classmask=128,Type=13193,Mage
-    {id = 5462,name="Reign of the Abyssal Immolator"}, -- classmask=256,Type=13193,Warlock
-    {id = 5442,name="Way of Ra-den's Chosen"}, -- classmask=512,Type=13193,Monk
-    {id = 5426,name="Sprouts of the Luminous Bloom"}, -- classmask=1024,Type=13193,Druid
-    {id = 5422,name="Devouring Reaver's Sheathe"}, -- classmask=2048,Type=13193,Demon Hunter
-    {id = 5430,name="Livery of the Black Talon"}, -- classmask=4096,Type=13193,Evoker
+    { id = 5466, name = "Rage of the Night Ender", classId = 1 },
+    { id = 5446, name = "Luminant Verdict's Vestments", classId = 2 },
+    { id = 5434, name = "Primal Sentry's Camouflage", classId = 3 },
+    { id = 5454, name = "Motley of the Grim Jest", classId = 4 },
+    { id = 5450, name = "Blind Oath's Burden", classId = 5 },
+    { id = 5418, name = "Relentless Rider's Lament", classId = 6 },
+    { id = 5458, name = "Mantle of the Primal Core", classId = 7 },
+    { id = 5438, name = "Voidbreaker's Accordance", classId = 8 },
+    { id = 5462, name = "Reign of the Abyssal Immolator", classId = 9 },
+    { id = 5442, name = "Way of Ra-den's Chosen", classId = 10 },
+    { id = 5426, name = "Sprouts of the Luminous Bloom", classId = 11 },
+    { id = 5422, name = "Devouring Reaver's Sheathe", classId = 12 },
+    { id = 5430, name = "Livery of the Black Talon", classId = 13 },
   },
 })
 tinsert(ns.Sets, {
@@ -2418,19 +2440,19 @@ tinsert(ns.Sets, {
   release = 12,
   minLevel = 80,
   sets = {
-    {id = 5467,name="Rage of the Night Ender"}, -- classmask=1,Type=2015,Warrior
-    {id = 5447,name="Luminant Verdict's Vestments"}, -- classmask=2,Type=2015,Paladin
-    {id = 5435,name="Primal Sentry's Camouflage"}, -- classmask=4,Type=2015,Hunter
-    {id = 5455,name="Motley of the Grim Jest"}, -- classmask=8,Type=2015,Rogue
-    {id = 5451,name="Blind Oath's Burden"}, -- classmask=16,Type=2015,Priest
-    {id = 5419,name="Relentless Rider's Lament"}, -- classmask=32,Type=2015,Death Knight
-    {id = 5459,name="Mantle of the Primal Core"}, -- classmask=64,Type=2015,Shaman
-    {id = 5439,name="Voidbreaker's Accordance"}, -- classmask=128,Type=2015,Mage
-    {id = 5463,name="Reign of the Abyssal Immolator"}, -- classmask=256,Type=2015,Warlock
-    {id = 5443,name="Way of Ra-den's Chosen"}, -- classmask=512,Type=2015,Monk
-    {id = 5427,name="Sprouts of the Luminous Bloom"}, -- classmask=1024,Type=2015,Druid
-    {id = 5423,name="Devouring Reaver's Sheathe"}, -- classmask=2048,Type=2015,Demon Hunter
-    {id = 5431,name="Livery of the Black Talon"}, -- classmask=4096,Type=2015,Evoker
+    { id = 5467, name = "Rage of the Night Ender", classId = 1 },
+    { id = 5447, name = "Luminant Verdict's Vestments", classId = 2 },
+    { id = 5435, name = "Primal Sentry's Camouflage", classId = 3 },
+    { id = 5455, name = "Motley of the Grim Jest", classId = 4 },
+    { id = 5451, name = "Blind Oath's Burden", classId = 5 },
+    { id = 5419, name = "Relentless Rider's Lament", classId = 6 },
+    { id = 5459, name = "Mantle of the Primal Core", classId = 7 },
+    { id = 5439, name = "Voidbreaker's Accordance", classId = 8 },
+    { id = 5463, name = "Reign of the Abyssal Immolator", classId = 9 },
+    { id = 5443, name = "Way of Ra-den's Chosen", classId = 10 },
+    { id = 5427, name = "Sprouts of the Luminous Bloom", classId = 11 },
+    { id = 5423, name = "Devouring Reaver's Sheathe", classId = 12 },
+    { id = 5431, name = "Livery of the Black Talon", classId = 13 },
   },
 })
 tinsert(ns.Sets, {
@@ -2439,18 +2461,18 @@ tinsert(ns.Sets, {
   release = 12,
   minLevel = 80,
   sets = {
-    {id = 5468,name="Rage of the Night Ender"}, -- classmask=1,Type=13145,Warrior
-    {id = 5448,name="Luminant Verdict's Vestments"}, -- classmask=2,Type=13145,Paladin
-    {id = 5436,name="Primal Sentry's Camouflage"}, -- classmask=4,Type=13145,Hunter
-    {id = 5456,name="Motley of the Grim Jest"}, -- classmask=8,Type=13145,Rogue
-    {id = 5452,name="Blind Oath's Burden"}, -- classmask=16,Type=13145,Priest
-    {id = 5420,name="Relentless Rider's Lament"}, -- classmask=32,Type=13145,Death Knight
-    {id = 5460,name="Mantle of the Primal Core"}, -- classmask=64,Type=13145,Shaman
-    {id = 5440,name="Voidbreaker's Accordance"}, -- classmask=128,Type=13145,Mage
-    {id = 5464,name="Reign of the Abyssal Immolator"}, -- classmask=256,Type=13145,Warlock
-    {id = 5444,name="Way of Ra-den's Chosen"}, -- classmask=512,Type=13145,Monk
-    {id = 5428,name="Sprouts of the Luminous Bloom"}, -- classmask=1024,Type=13145,Druid
-    {id = 5424,name="Devouring Reaver's Sheathe"}, -- classmask=2048,Type=13145,Demon Hunter
-    {id = 5432,name="Livery of the Black Talon"}, -- classmask=4096,Type=13145,Evoker
+    { id = 5468, name = "Rage of the Night Ender", classId = 1 },
+    { id = 5448, name = "Luminant Verdict's Vestments", classId = 2 },
+    { id = 5436, name = "Primal Sentry's Camouflage", classId = 3 },
+    { id = 5456, name = "Motley of the Grim Jest", classId = 4 },
+    { id = 5452, name = "Blind Oath's Burden", classId = 5 },
+    { id = 5420, name = "Relentless Rider's Lament", classId = 6 },
+    { id = 5460, name = "Mantle of the Primal Core", classId = 7 },
+    { id = 5440, name = "Voidbreaker's Accordance", classId = 8 },
+    { id = 5464, name = "Reign of the Abyssal Immolator", classId = 9 },
+    { id = 5444, name = "Way of Ra-den's Chosen", classId = 10 },
+    { id = 5428, name = "Sprouts of the Luminous Bloom", classId = 11 },
+    { id = 5424, name = "Devouring Reaver's Sheathe", classId = 12 },
+    { id = 5432, name = "Livery of the Black Talon", classId = 13 },
   },
 })
