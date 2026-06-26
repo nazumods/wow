@@ -99,6 +99,8 @@ end
 ---@field _className string?  localized class name for the icon's hover tooltip
 ---@field _expIcon Texture  expansion badge in the model's bottom-right (mirrors the class icon)
 ---@field _expName string?  expansion name for the badge's hover tooltip
+---@field _idLabel Label  set-id text in the title bar (left of the close button)
+---@field _masterName string?  master-grid group name for the id label's hover tooltip
 ---@field _undressed boolean?  hide the set to show the bare race body
 ---@field _undressBorder Texture  undress-toggle border (gold while active)
 ---@field _wantedBorder Texture  wanted-toggle border (gold while the set is wanted)
@@ -145,6 +147,25 @@ DressingRoom = Class(TitleFrame, function(self)
       Width = GRIDW, Height = controlsH,
     },
   }
+
+  -- Set id on the right of the title bar (left of the close button), hovering it shows
+  -- the master-grid group name this set belongs to — a curation aid for mapping a
+  -- previewed set back to its row. Text + tooltip name are set per set in _load. The id
+  -- sits clear of the center title text so that strip stays draggable.
+  self._idLabel = Label:new{
+    parent = self.titlebar,
+    fontObj = "GameFontDisableSmall",
+    position = { Right = {self.closeButton, ui.edge.Left, -4, 0} },
+    text = "",
+  }
+  self._idLabel._widget:EnableMouse(true)
+  self._idLabel._widget:SetScript("OnEnter", function(f)
+    if not self._masterName then return end
+    GameTooltip:SetOwner(f, "ANCHOR_LEFT")
+    GameTooltip:SetText(self._masterName)
+    GameTooltip:Show()
+  end)
+  self._idLabel._widget:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
   -- Model sits between the title bar and controls, inset to leave room for the
   -- equipment-slot columns down each side (built by DressingRoomSlots.lua).
@@ -826,6 +847,9 @@ function DressingRoom:_load(group, set)
   self._group = group
   self._set = set
   self:Title(set.name)
+  -- Set id (right of the title) + its hover tooltip = the master-grid group name.
+  self._masterName = group.name
+  self._idLabel:Text(tostring(set.id or ""))
   -- Class = the set's position in the (positional) group.sets array.
   local classId
   for i = 1, #group.sets do if group.sets[i] == set then classId = i; break end end

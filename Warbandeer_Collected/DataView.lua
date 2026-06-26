@@ -92,7 +92,7 @@ end
 ---and the lockout-panel name-click is removed (Warbandeer keeps lockouts in
 ---/collected's own window). Each host passes its `colInfo` via `BuildColInfo`.
 ---@class DataView: TableFrame
----@field _reverse boolean? render newest set-group first (defaults true; see ToggleOrder)
+---@field _reverse boolean? sort by expansion newest-first (release 12→1; defaults true; see ToggleOrder)
 ---@field _wantedOnly boolean? blank cells for sets that aren't flagged wanted (see ToggleWantedOnly)
 ---@field _ptr boolean? show the PTR-only "upcoming" sets (ns.PtrSets) instead of live (see SetPtr)
 ---@field _expansion number|string? release filter — a release index, or "all" (see SetExpansion)
@@ -116,7 +116,7 @@ local DataView = Class(TableFrame, function(self)
   self:_refreshMarks()   -- the constructor-time update() ran before our override was mixed in
 end, {
   headerHeight = 28,
-  _reverse = true,   -- default to newest set-group first
+  _reverse = true,   -- default to newest expansion first (release 12→1)
   _wantedOnly = false,
   _ptr = false,
   _expansion = "all",
@@ -127,17 +127,24 @@ end, {
     local toon = not self.embedded and api:GetCharacterData(api:GetCurrentCharacter())
     -- PTR PREVIEW shows ONLY the upcoming-only delta (ns.PtrSets); off, the live ns.Sets.
     local source = self._ptr and ns.PtrSets or ns.Sets
-    -- Display order: source oldest-first by default; _reverse → newest-first. `srcIdx`
-    -- indexes `source` (a live group's index is also its ns.Sets index, which the lockout
-    -- panel keys off); `dispIdx` is the on-screen row position (row/cell highlight + arrow).
-    -- Build the display order, dropping groups filtered out by expansion/category
-    -- (`srcIdx` stays the real `source` index the lockout panel keys off; `dispIdx`
-    -- becomes the contiguous on-screen row number).
+    -- Display order is keyed on **expansion** (`release`), not array position: sets are
+    -- appended out of expansion order, so position no longer tracks recency. _reverse
+    -- (newest-first, the default) sorts release 12→1, else 1→12; ties break on the source
+    -- index so order within an expansion stays stable. `srcIdx` indexes `source` (a live
+    -- group's index is also its ns.Sets index, which the lockout panel keys off); `dispIdx`
+    -- is the on-screen row position. Groups filtered out by expansion/category are dropped.
     local order = {}
     for i = 1, #source do
-      local idx = self._reverse and (#source - i + 1) or i
-      if matches(self, source[idx]) then order[#order + 1] = idx end
+      if matches(self, source[i]) then order[#order + 1] = i end
     end
+    table.sort(order, function(a, b)
+      local ra, rb = source[a].release or 0, source[b].release or 0
+      if ra ~= rb then
+        if self._reverse then return ra > rb end
+        return ra < rb
+      end
+      return a < b
+    end)
     return lists.map(order, function(srcIdx, dispIdx)
       local grp = source[srcIdx]
       local isPtr = self._ptr
@@ -289,7 +296,7 @@ end, {
   end,
 })
 
----Flip the raid (row) order between oldest-first (ns.Sets order) and newest-first.
+---Flip the row order between oldest-first (expansion 1→12) and newest-first (12→1).
 ---Clears any active lockout selection first — its row index moves on re-sort — then
 ---rebuilds the grid in place.
 ---@return boolean reversed  the new order state
