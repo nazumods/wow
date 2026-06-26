@@ -266,6 +266,18 @@ describe("ShadowsOfUI-Upgrade enhance", function()
       assert.same({}, ns.EnchantMismatches(mage({ Head = ench(10, 555, "enchant helm -  Best") })))
     end)
 
+    it("does not flag when the applied name keeps the 'Enchant <Slot> - ' prefix but the recommendation is the bare name", function()
+      -- ClassCodex gives the bare enchant name; the applied name (read from the item's
+      -- "Enchanted:" tooltip line) keeps the "Enchant Ring - " prefix. Same enchant → the
+      -- prefix must be stripped from both before comparing, else it reads as "wrong".
+      _G.ClassCodexGearData.MAGE.frost.enchants = {
+        { slot = "Ring", best = { itemId = 601, name = "Eyes of the Eagle" } },
+      }
+      assert.same({}, ns.EnchantMismatches(mage({
+        Finger1 = ench(11, 555, "Enchant Ring - Eyes of the Eagle"),
+      })))
+    end)
+
     it("skips a bare slot (no applied enchant) — MissingEnchants' job", function()
       assert.same({}, ns.EnchantMismatches(mage({ Head = ench(10, 0, nil) })))
     end)

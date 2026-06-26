@@ -259,13 +259,15 @@ local function suggestionName(rec)
   return nil
 end
 
--- Normalize an enchant name for comparison: lowercase + collapse/trim whitespace. The
--- stored applied name and the resolved recommendation are both in "Enchant <Slot> - <X>"
--- form, so this is an exact (case/space-insensitive) match. Rank/quality-tier variants of
--- the same enchant share a name (the tier is a separate tooltip icon, stripped at capture),
--- so they are NOT flagged; only a genuinely different enchant is.
+-- Normalize an enchant name for comparison. The applied name (captured from the item's
+-- "Enchanted:" tooltip line) keeps the "Enchant <Slot> - " prefix, but a ClassCodex
+-- recommendation is the *bare* enchant name with no prefix — so we strip that prefix from
+-- both (the same "^.- %- " drop the Detail display does) before the case/space-insensitive
+-- compare, or an identical enchant would read as "wrong". Rank/quality-tier variants share
+-- a name (the tier is a separate tooltip icon, stripped at capture), so they are NOT flagged;
+-- only a genuinely different enchant is.
 local function normEnchant(name)
-  return (name:lower():gsub("%s+", " "):gsub("^ ", ""):gsub(" $", ""))
+  return (name:gsub("^.- %- ", ""):lower():gsub("%s+", " "):gsub("^ ", ""):gsub(" $", ""))
 end
 
 -- A *stat-line* enchant renders its granted stats instead of a name — leg enchants are
