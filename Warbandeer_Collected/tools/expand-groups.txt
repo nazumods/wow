@@ -1,8 +1,10 @@
-# Canonical -Expand group list: one "id:Category" per line. `update-sets.ps1 -Expand`
-# regenerates the AUTO-EXPAND block of data/sets.lua from this — one row per wago label
-# of each group (recolor / multi-source mega-sets). '#' starts a comment. Edit + re-run
-# `-Expand` to refresh. Category is the grid filter bucket (Raid|PvP|Dungeon|Delve|
-# Covenant|Renown|World|Event); a group's labels may mix sources, so pick the dominant.
+# Canonical -Expand group list: one "id:Category[:mode]" per line. `update-sets.ps1 -Expand`
+# regenerates the AUTO-EXPAND block of data/sets.lua from this. '#' starts a comment; edit
+# + re-run `-Expand` to refresh. Category is the grid filter bucket (Raid|PvP|Dungeon|Delve|
+# Covenant|Renown|World|Trading Post|Event). Modes:
+#   (none)  one row per wago label (recolor / multi-source variant).
+#   byset   one row per SET (named by the set) — label-less flat lists (the Trading Post).
+#   single  collapse ALL the group's variants into ONE row (timewalking-vendor colour sets).
 # Per-row/-group drops live in excludes.txt.
 
 # ── Recolor mega-sets ──
@@ -12,9 +14,13 @@
 244:World      # Mists of Pandaria: World
 
 # ── Classic dungeon / PvP / crafted recolors ──
-285:Dungeon    # The Burning Crusade: Dungeon
-295:PvP        # Cataclysm: PVP (timewalking vendor recolors)
-296:World      # Draenor Crafter's Work (crafted)
+285:Dungeon    # The Burning Crusade: Dungeon (mixed families — kept per-variant)
+
+# single: collapse all of a group's colour variants into one row, named by the common
+# label prefix (e.g. the "Timewalking Vendor - <colour>" labels → "(Timewalking Vendor)").
+287:PvP:single   # Wrath of the Lich King: PVP (timewalking vendor recolours)
+295:PvP:single   # Cataclysm: PVP (timewalking vendor recolours)
+296:World:single  # Draenor Crafter's Work (timewalking vendor recolours)
 
 # ── Dragonflight dungeon / outdoor (armor-type groups, multi-source) ──
 202:World      # Tuskarr Battlegear (leather)

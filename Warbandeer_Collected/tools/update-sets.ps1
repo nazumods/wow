@@ -296,12 +296,15 @@ if ($Expand) {
     $exp = 0; foreach ($r in $rows) { $e = 0; [void][int]::TryParse($r.ExpansionID, [ref]$e); if ($e -gt $exp) { $exp = $e } }
     $release = $exp + 1
     $base = $grpName[$gid]
-    $byset = ($jobMode[$gid] -eq 'byset')
-    # Bucket key: the set's own name in byset mode (one row per ensemble), else its
+    $byset  = ($jobMode[$gid] -eq 'byset')
+    $single = ($jobMode[$gid] -eq 'single')
+    # Bucket key: one bucket for the whole group in single mode (collapse all variants
+    # into one row); the set's own name in byset mode (one row per ensemble); else its
     # ItemNameDescription label (one row per recolor/source variant).
     $byl = [ordered]@{}
     foreach ($r in ($rows | Sort-Object { [int]$_.ID })) {
-      if ($byset) { $key = ([string]$r.Name_lang).Trim() }
+      if ($single) { $key = '*' }
+      elseif ($byset) { $key = ([string]$r.Name_lang).Trim() }
       else { $i = 0; [void][int]::TryParse($r.ItemNameDescriptionID, [ref]$i); $key = if ($indLabel.ContainsKey($i)) { $indLabel[$i] } else { '' } }
       if (-not $byl.Contains($key)) { $byl[$key] = @() }
       $byl[$key] += $r
@@ -323,8 +326,16 @@ if ($Expand) {
       if ($excl.groups.ContainsKey($gid) -or $excl.rows.ContainsKey("$gid|$lab")) { Write-Host "  exclude $gid [$lab] — listed in excludes.txt" -ForegroundColor DarkYellow; continue }
       if ($union -eq 0) { Write-Host "  skip $gid [$lab] — no class bits (cosmetic/weapon)" -ForegroundColor DarkYellow; continue }
       if (-not $byset -and $lab -eq '' -and $byl.Count -gt 1) { Write-Host "  skip $gid [(no label)] in labeled group — ambiguous" -ForegroundColor DarkYellow; continue }
-      if ($overlap) { Write-Host "  overlap $gid [$lab] — $($rs.Count) sets collapse to $($slot.Count) slots" -ForegroundColor Yellow }
-      $disp = LuaEsc $(if ($byset) { $lab } elseif ($lab) { "$base ($lab)" } else { $base })
+      if ($overlap -and -not $single) { Write-Host "  overlap $gid [$lab] — $($rs.Count) sets collapse to $($slot.Count) slots" -ForegroundColor Yellow }
+      # single mode: name the one merged row "<group> (<common label prefix>)" — e.g. the
+      # "Timewalking Vendor - <colour>" labels collapse to "(Timewalking Vendor)"; if the
+      # labels share no common prefix before " - ", just use the group name.
+      if ($single) {
+        $pref = @($rs | ForEach-Object { $j = 0; [void][int]::TryParse($_.ItemNameDescriptionID, [ref]$j); if ($indLabel.ContainsKey($j)) { ($indLabel[$j] -split ' - ', 2)[0].Trim() } } | Where-Object { $_ } | Select-Object -Unique)
+        $disp = LuaEsc $(if ($pref.Count -eq 1) { "$base ($($pref[0]))" } else { $base })
+      } else {
+        $disp = LuaEsc $(if ($byset) { $lab } elseif ($lab) { "$base ($lab)" } else { $base })
+      }
       $L.Add('tinsert(ns.Sets, {')
       $L.Add("  id = $gid,")
       $L.Add("  name = `"$disp`",")
