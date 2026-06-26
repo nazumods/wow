@@ -63,7 +63,7 @@ param(
   [switch]$AuditCoverage,
   [string]$ReportFile = (Join-Path $PSScriptRoot 'coverage-report.md'),
   # Expand mode: auto-generate one curated ns.Sets row per wago label for each group
-  # listed in tools/expand-groups.txt ("id:Category" lines), into a guarded region of
+  # listed in tools/expand-groups.txt ("id:Category" lines), into a guarded block of
   # sets.lua — the mechanical way to capture recolor/multi-source mega-sets without
   # hand-seeding dozens of shells. The file is the canonical spec, so a refresh is just
   # `-Expand` (no args). See UPDATING.md.
@@ -239,7 +239,7 @@ if ($AuditCoverage) {
 # Auto-generate one curated ns.Sets row per wago label for each listed group,
 # decomposing ClassMask into class slots (first/lowest set id wins, {} for gaps) —
 # the same model the normal fill uses, so these rows refresh on the weekly run too.
-# Writes a single guarded region at the end of sets.lua (replaced wholesale each run).
+# Writes a single guarded block at the end of sets.lua (replaced wholesale each run).
 # Argument: comma list of "id:Category" (e.g. "319:World,243:Dungeon"). Labels with no
 # class bits (cosmetic/heritage) and the bare (no-label) bucket of a labeled group are
 # skipped; overlap labels (recolors collapsing to one slot per class) are kept + logged.
@@ -345,15 +345,15 @@ if ($Expand) {
 
   $raw = [System.IO.File]::ReadAllText($SetsFile)
   $eol = if ($raw.Contains("`r`n")) { "`r`n" } else { "`n" }
-  $region = ($L -join "`n") -replace "`n", $eol
+  $block = ($L -join "`n") -replace "`n", $eol
   $startMark = '-- >>> AUTO-EXPAND'
   $endMark = '-- <<< AUTO-EXPAND'
   if ($raw.Contains($startMark)) {
     $si = $raw.IndexOf($startMark)
     $ei = $raw.IndexOf($endMark) + $endMark.Length
-    $newText = $raw.Substring(0, $si) + $region + $raw.Substring($ei)
+    $newText = $raw.Substring(0, $si) + $block + $raw.Substring($ei)
   } else {
-    $newText = $raw.TrimEnd() + $eol + $eol + $region + $eol
+    $newText = $raw.TrimEnd() + $eol + $eol + $block + $eol
   }
   [System.IO.File]::WriteAllText($SetsFile, $newText, [System.Text.UTF8Encoding]::new($false))
   Write-Host "Expand: wrote $emitted row(s) across $($jobIds.Count) group(s) into $SetsFile." -ForegroundColor Green
@@ -648,7 +648,7 @@ $i = 0
 while ($i -lt $lines.Count) {
   $line = $lines[$i]
 
-  # The AUTO-EXPAND region is owned wholesale by `-Expand` (its rows resolve by set name
+  # The AUTO-EXPAND block is owned wholesale by `-Expand` (its rows resolve by set name
   # in byset mode, which this single-label resolver would clobber). Copy it verbatim and
   # skip processing — re-run `-Expand` to refresh it.
   if ($line -match '^\s*-- >>> AUTO-EXPAND') {

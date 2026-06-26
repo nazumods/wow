@@ -1,5 +1,5 @@
 # Canonical -Expand group list: one "id:Category" per line. `update-sets.ps1 -Expand`
-# regenerates the AUTO-EXPAND region of data/sets.lua from this — one row per wago label
+# regenerates the AUTO-EXPAND block of data/sets.lua from this — one row per wago label
 # of each group (recolor / multi-source mega-sets). '#' starts a comment. Edit + re-run
 # `-Expand` to refresh. Category is the grid filter bucket (Raid|PvP|Dungeon|Delve|
 # Covenant|Renown|World|Event); a group's labels may mix sources, so pick the dominant.

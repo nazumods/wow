@@ -254,7 +254,7 @@ look them up on wago (`JournalInstance`).
 Some groups carry *dozens* of labels (Legion: World has 22 color variants, MoP: World
 17). Hand-seeding a shell per label is tedious, so **`-Expand`** auto-generates one
 filled `ns.Sets` row per label for the groups listed in
-[`expand-groups.txt`](expand-groups.txt), into a single **guarded region** at the end of
+[`expand-groups.txt`](expand-groups.txt), into a single **guarded block** at the end of
 `sets.lua` (`-- >>> AUTO-EXPAND … -- <<< AUTO-EXPAND`, replaced wholesale each run):
 
 ```
@@ -274,10 +274,10 @@ class slots (first/lowest id wins, `{}` for gaps), and:
   representative appearance shows; the rest aren't separable from wago's data);
 - infers `release` from the group's max `ExpansionID` and tags every row the given category.
 
-The region is **owned wholesale by `-Expand`** — the normal `update-sets.ps1` pass **skips it
+The block is **owned wholesale by `-Expand`** — the normal `update-sets.ps1` pass **skips it
 verbatim** (its byset rows resolve by set name, which the single-label resolver would clobber).
 So refresh it by re-running `-Expand`, not the normal generator. The weekly workflow runs both
-(normal pass for the hand-curated rows, then `-Expand` for the region), so new Trading Post
+(normal pass for the hand-curated rows, then `-Expand` for the block), so new Trading Post
 ensembles land automatically.
 
 **Dead rows — `excludes.txt`.** A few generated rows exist in wago but render **empty
@@ -286,7 +286,7 @@ defunct limited-time event content, e.g. Legion Remix/Timerunning). They pass th
 checks but show as blank rows. Find them in-game with **`/collected coverage`** (it lists
 rows that render nothing), then add an **`<id>:<label>`** line (label verbatim) to
 [`excludes.txt`](excludes.txt) and re-run `-Expand` — the listed rows are skipped (logged
-`exclude …`). This is the only way to drop them persistently, since the region is
+`exclude …`). This is the only way to drop them persistently, since the block is
 regenerated wholesale each run. See **Exclusions** below — the same file drops whole
 groups from the audit.
 
