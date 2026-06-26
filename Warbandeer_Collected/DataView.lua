@@ -376,6 +376,73 @@ function DataView:CategoryOptions()
   return opts
 end
 
+---Build the shared filter chrome as a strip (toggle buttons + filter dropdowns), wired
+---to this grid, so both hosts render the identical row above the grid. Themed via the
+---grid's own theme. `onModeChanged` fires after the live/PTR toggle so the host can
+---refresh its mode counter.
+---@param parent table  frame to parent the strip to
+---@param onModeChanged fun()?  called after the live/PTR toggle flips
+---@return Frame strip
+function DataView:BuildFilterStrip(parent, onModeChanged)
+  local theme = self:Theme()
+  -- Dark's `header` token is the same gold, so the toggles read on/off without void-dark.
+  local gold, divider = theme.colors.gold or theme.colors.header, theme.colors.divider
+  local caps = theme.fonts.caps
+  local BW, BH, PAD, GAP, DW = 96, DataView.STRIP_H, 8, 6, 110
+  local strip = ui.Frame:new{ parent = parent, position = { Height = BH } }
+
+  -- One framed toggle at x; returns its (recolorable) border + caption label.
+  local function toggle(xoff, text, active, onClick)
+    local b = ui.Frame:new{ parent = strip, position = { TopLeft = {xoff, 0}, Width = BW, Height = BH } }
+    local border = Texture:new{
+      parent = b, layer = ui.layer.Background, position = { All = true },
+      color = active and gold or divider,
+    }
+    Texture:new{
+      parent = b, layer = ui.layer.Border, color = {0.05, 0.05, 0.06, 0.92},
+      position = { TopLeft = {1, -1}, BottomRight = {-1, 1} },
+    }
+    local btn = ui.Button:new{ parent = b, position = { All = true }, glow = false, OnClick = onClick }
+    local label = Label:new{
+      parent = btn, fontInfo = caps and {caps[1], 10} or nil, justifyH = ui.justify.Center,
+      position = { Left = {PAD, 0}, Right = {-PAD, 0} }, text = text,
+    }
+    return border, label
+  end
+
+  -- Warbandeer order: PTR / Wanted / Sort toggles, then Expansion / Category dropdowns.
+  local ptrBorder, wantedBorder, sortBorder, sortLabel
+  ptrBorder = toggle(0, "PTR PREVIEW", false, function()
+    local on = self:SetPtr(not self._ptr)
+    ptrBorder:Color(on and gold or divider)
+    if onModeChanged then onModeChanged() end
+  end)
+  wantedBorder = toggle(BW + GAP, "WANTED ONLY", false, function()
+    local on = self:ToggleWantedOnly()
+    wantedBorder:Color(on and gold or divider)
+  end)
+  sortBorder, sortLabel = toggle((BW + GAP) * 2, "NEWEST FIRST", true, function()
+    local rev = self:ToggleOrder()
+    sortLabel:Text(rev and "NEWEST FIRST" or "OLDEST FIRST")
+    sortBorder:Color(rev and gold or divider)
+  end)
+
+  local dx = (BW + GAP) * 3
+  ui.FilterDropdown:new{
+    parent = strip, position = { TopLeft = {dx, 0} }, width = DW, menuWidth = 150,
+    selected = "all", options = self:ExpansionOptions(),
+    onSelect = function(_, key) self:SetExpansion(key) end,
+  }
+  ui.FilterDropdown:new{
+    parent = strip, position = { TopLeft = {dx + DW + GAP, 0} }, width = DW, menuWidth = 120,
+    selected = "all", options = self:CategoryOptions(),
+    onSelect = function(_, key) self:SetCategory(key) end,
+  }
+
+  strip:Width(BW * 3 + (DW + GAP) * 2 + GAP * 2)
+  return strip
+end
+
 -- Drop any active lockout-panel row selection (its row index moves on re-sort / a
 -- dataset swap): un-highlight the name, hide the arrow, close the panel. Window-only
 -- — embedded hosts have no lockout selection (and share these module locals).
@@ -470,6 +537,9 @@ DataView.BuildColInfo = buildColInfo
 -- Max scrollable row-area height (px) before the grid scrolls — shared so the embedded
 -- view and the standalone window cap the grid to the same height (same window size).
 DataView.MAX_HEIGHT = 460
+
+-- Height (px) of the filter strip (BuildFilterStrip) — hosts offset the grid by it.
+DataView.STRIP_H = 20
 
 ---@class Warbandeer_Collected
 ---@field DataView DataView

@@ -4,14 +4,13 @@ local min = math.min
 local ui = ns.ui
 local theme = ns.theme
 local Class, Frame, Label = ns.lua.Class, ui.Frame, ui.Label
-local Button, Texture = ui.Button, ui.Texture
 
 -- Transmog-set collection grid. The grid itself is the sibling Collected addon's
 -- own DataView, reused in `embedded` mode via the WarbandeerCollectedApi global
 -- (OptionalDep) — one source of truth, maintained in Collected/DataView.lua. This
--- view owns only the surrounding chrome: the scroll container, the header counters
--- and the titlebar filter toggles. Embedded mode drops the lock column / lockout
--- side-panel — see Collected's own /collected window for those.
+-- view owns only the surrounding chrome: the filter strip (DataView:BuildFilterStrip),
+-- the scroll container, and the header counters. Embedded mode drops the lock column /
+-- lockout side-panel — see Collected's own /collected window for those.
 --
 -- The whole view is only registered (see the bottom of the file) when the Collected
 -- addon is loaded, so the grid is always present once a CollectedView is built.
@@ -24,20 +23,19 @@ local _view
 
 ---@class CollectedView: Frame
 ---@field grid DataView the shared set-by-class grid (Collected's own DataView, embedded)
+---@field filterStrip Frame the shared filter chrome row (DataView:BuildFilterStrip)
 ---@field scroll ScrollFrame
 ---@field counter Label
 ---@field wantedCount Label running "★ N" wanted-set count (mirrors the /collected window)
 ---@field emptyMsg Label
----@field _wantedBorder Texture "wanted only" filter border (gold while active)
----@field _ptrBorder Texture live/PTR toggle border (gold while in PTR mode)
----@field _sortBorder Texture raid-order toggle border (gold once newest-first)
----@field _sortLabel Label raid-order toggle caption
 local CollectedView = Class(Frame, function(self)
   _view = self
+  local STRIP_H, GAP = WarbandeerCollectedApi.DataView.STRIP_H, 6
+  local TOP = STRIP_H + GAP   -- the grid sits below the filter strip
 
   self.grid = WarbandeerCollectedApi.DataView:new{
     parent = self,
-    position = { TopLeft = {0, 0} },
+    position = { TopLeft = {0, -TOP} },
     embedded = true,
     colInfo = WarbandeerCollectedApi.DataView.BuildColInfo(true),  -- no lock column
     -- Anchor the hover InfoTip on the configured side (shared with Overview's set
@@ -46,6 +44,11 @@ local CollectedView = Class(Frame, function(self)
     onWantedToggle = function() _view:RefreshWanted() end,
   }
 
+  -- Shared filter strip (PTR / Wanted / Sort toggles + Expansion / Category dropdowns)
+  -- along the top; the PTR toggle re-renders this view so its mode counter updates.
+  self.filterStrip = self.grid:BuildFilterStrip(self, function() _view:_render() end)
+  self.filterStrip:Position({ TopLeft = {0, 0} })
+
   local headerH = self.grid.headerHeight
   local capH = min(self.grid.MAX_HEIGHT, self.grid.rowArea:Height())
   local gridW = self.grid:Width()
@@ -53,20 +56,19 @@ local CollectedView = Class(Frame, function(self)
   self.scroll = ui.ScrollFrame:new{
     parent = self,
     position = {
-      TopLeft = {0, -headerH},
+      TopLeft = {0, -(TOP + headerH)},
       Width   = gridW,
       Height  = capH,
     },
   }
   self.scroll:Child(self.grid.rowArea)
 
-  -- Counter rides the grid's header row, over the empty group-name column and in
-  -- line with the class icons (mirrors the /collected window). Created after the
-  -- grid so it draws above the header cells; vertically centred in the header.
+  -- Counter rides the grid's header row (over the name column, in line with the class
+  -- icons), below the filter strip. Created after the grid so it draws above the header.
   local hdrPad = (headerH - theme.fonts.title[2]) / 2
   self.counter = Label:new{
     parent = self, fontInfo = theme.fonts.title, color = theme.colors.text,
-    position = { TopLeft = {2, -hdrPad} },
+    position = { TopLeft = {2, -(TOP + hdrPad)} },
     text = "",
   }
   self.wantedCount = Label:new{
@@ -81,11 +83,11 @@ local CollectedView = Class(Frame, function(self)
   self.emptyMsg = Label:new{
     parent = self, fontInfo = theme.fonts.body, color = theme.colors.muted,
     justifyH = ui.justify.Center,
-    position = { Top = {0, -headerH - 28}, Width = gridW, Height = 20, Hide = true },
+    position = { Top = {0, -(TOP + headerH + 28)}, Width = gridW, Height = 20, Hide = true },
   }
 
   self:Width(gridW + SCROLLBAR_W)
-  self:Height(headerH + capH + 4)
+  self:Height(TOP + headerH + capH + 4)
 end, {})
 CollectedView.name = "collected"
 CollectedView._title = "Collected"
@@ -169,64 +171,3 @@ function CollectedView:RefreshWanted()
   self.wantedCount:Text(("|A:%s:14:14|a %d"):format(api.WantedIcon, api:WantedCount()))
 end
 
--- Titlebar control: three toggle buttons — a live/PTR preview switch, a "wanted
--- only" filter, and a raid (row) order flip (oldest/newest-first). Mirrors GearView's
--- filter chrome and the /collected window's own title-bar toggles.
-function CollectedView:BuildFilter(parent)
-  local BW, BH, PAD, GAP, DW = 96, 20, 8, 6, 110
-  local box = Frame:new{ parent = parent, position = { Width = BW * 3 + (DW + GAP) * 2 + GAP * 2, Height = BH } }
-
-  -- One framed toggle at x; returns its (recolorable) border and caption.
-  local function toggle(xoff, text, active, onClick)
-    local b = Frame:new{ parent = box, position = { TopLeft = {xoff, 0}, Width = BW, Height = BH } }
-    local border = Texture:new{
-      parent = b, layer = ui.layer.Background,
-      position = { All = true }, color = active and theme.colors.gold or theme.colors.divider,
-    }
-    Texture:new{
-      parent = b, layer = ui.layer.Border, color = {0.05, 0.05, 0.06, 0.92},
-      position = { TopLeft = {1, -1}, BottomRight = {-1, 1} },
-    }
-    local btn = Button:new{ parent = b, position = { All = true }, glow = false, OnClick = onClick }
-    local label = Label:new{
-      parent = btn, fontInfo = {theme.fonts.caps[1], 10}, justifyH = ui.justify.Center,
-      position = { Left = {PAD, 0}, Right = {-PAD, 0} }, text = text,
-    }
-    return border, label
-  end
-
-  self._ptrBorder = (toggle(0, "PTR PREVIEW", false, function()
-    local on = self.grid:SetPtr(not self.grid._ptr)
-    self._ptrBorder:Color(on and theme.colors.gold or theme.colors.divider)
-    self:_render()
-  end))
-
-  self._wantedBorder = (toggle(BW + GAP, "WANTED ONLY", false, function()
-    local on = self.grid:ToggleWantedOnly()
-    self._wantedBorder:Color(on and theme.colors.gold or theme.colors.divider)
-  end))
-
-  self._sortBorder, self._sortLabel = toggle((BW + GAP) * 2, "NEWEST FIRST", true, function() self:_toggleSort() end)
-
-  -- Expansion + category filter dropdowns (right of the toggles).
-  local dx = (BW + GAP) * 3
-  ui.FilterDropdown:new{
-    parent = box, position = { TopLeft = {dx, 0} }, width = DW, menuWidth = 150,
-    selected = "all", options = self.grid:ExpansionOptions(),
-    onSelect = function(_, key) self.grid:SetExpansion(key) end,
-  }
-  ui.FilterDropdown:new{
-    parent = box, position = { TopLeft = {dx + DW + GAP, 0} }, width = DW, menuWidth = 120,
-    selected = "all", options = self.grid:CategoryOptions(),
-    onSelect = function(_, key) self.grid:SetCategory(key) end,
-  }
-
-  return box
-end
-
--- Flip the grid's row order in place (cells are reused; see Cell:Label).
-function CollectedView:_toggleSort()
-  local rev = self.grid:ToggleOrder()
-  self._sortLabel:Text(rev and "NEWEST FIRST" or "OLDEST FIRST")
-  self._sortBorder:Color(rev and theme.colors.gold or theme.colors.divider)
-end
