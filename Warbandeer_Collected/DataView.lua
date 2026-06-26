@@ -345,28 +345,29 @@ function DataView:SetExpansion(key) self._expansion = key; self:_refilter() end
 ---@param key string  a category name, or "all"
 function DataView:SetCategory(key) self._category = key; self:_refilter() end
 
----Collected / total set-slot counts over the currently filtered (matching) groups, so
----the counter tracks the active expansion/category filter. Mirrors `Scan`'s per-slot
----accumulation (a set spanning N class columns counts N, collected = slots the scan
----marked fully collected); with both filters "all" it equals `db.collected`/`db.total`.
----@return number collected, number total
+---Counts over the currently filtered (matching) groups, so the counter tracks the active
+---expansion/category filter: the number of set **rows** shown, the total grid **cells**
+---that hold a resolvable set (every green check or red number), and how many of those
+---render a **green** check — a fully collected set (`isComplete`, however it got there).
+---@return number sets, number cells, number green
 function DataView:VisibleCounts()
-  local collected, total = 0, 0
+  local sets, cells, green = 0, 0, 0
   for _, grp in ipairs(ns.Sets) do
     if matches(self, grp) then
+      sets = sets + 1
       local gsets = ns.db.sets[grp.id]
       if gsets then
         for _, set in ipairs(grp.sets) do
           local s = set.id and gsets[set.id]
           if s ~= nil then
-            total = total + 1
-            if s == true then collected = collected + 1 end
+            cells = cells + 1
+            if isComplete(s) then green = green + 1 end
           end
         end
       end
     end
   end
-  return collected, total
+  return sets, cells, green
 end
 
 ---Dropdown option specs for the expansion filter: "All" then one per release present
