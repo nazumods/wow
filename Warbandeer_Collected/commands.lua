@@ -1,7 +1,9 @@
 ---@type Warbandeer_Collected
 local ns = select(2, ...)
+local ui = ns.ui
 local isCollected = C_TransmogSets.IsBaseSetCollected
 local getParts = C_TransmogSets.GetSetPrimaryAppearances
+local getSources = C_TransmogSets.GetAllSourceIDs
 
 ns:registerCommand("", nil, function(self)
   self:Open()
@@ -41,6 +43,31 @@ ns:registerCommand("model", nil, function(_, args)
   ns.PreviewModelID(id, useCust)
   ns.Print(("Preview display %d (customizations %s)"):format(id, useCust and "on" or "off"))
 end, "dev: preview a raw creature display id; append 1 to overlay player customizations")
+
+-- dev: vet a freshly curated batch — list every group whose set ids resolve to no
+-- appearance on the live client (GetAllSourceIDs empty), i.e. render as blank rows.
+-- GetAllSourceIDs (not GetSetPrimaryAppearances) is the has-data signal: non-raid
+-- sets carry sources but no primary appearances. Dumps to a copy window so the list
+-- is pasteable; prints "all resolve" when the data is clean.
+ns:registerCommand("coverage", nil, function()
+  local empty = {}
+  for _, grp in ipairs(ns.Sets) do
+    local ok = false
+    for _, set in ipairs(grp.sets) do
+      if set.id then
+        local src = getSources(set.id)
+        if src and #src > 0 then ok = true; break end
+      end
+    end
+    if not ok then empty[#empty + 1] = ("%d  %s"):format(grp.id, grp.name) end
+  end
+  if #empty == 0 then
+    ns.Print(("All %d groups resolve on live."):format(#ns.Sets))
+  else
+    ui.ShowCopyWindow("Collected — unresolved groups (" .. #empty .. ")", table.concat(empty, "\n"))
+    ns.Print(("%d group(s) render empty — see copy window."):format(#empty))
+  end
+end, "dev: list groups that resolve to no appearance on live (blank rows)")
 
 -- dev: live-tune the open preview model's user scale multiplier (on top of the
 -- automatic normalization), or dump the scale state with no arg.
