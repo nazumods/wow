@@ -16,6 +16,9 @@ local C_GREY, C_END = "|cff888888", "|r"
 -- scrollbar arrow already points down and is a neutral grey, so no rotation/tint.
 local CHEVRON = "  |A:UI-HUD-ActionBar-PageDownArrow-Disabled:12:12|a"
 
+-- At most one dropdown menu is open at a time; opening one closes any other.
+local openOne
+
 ---@class FilterDropdown: Frame
 ---@field options   table[]  list of `{ key, label, enabled? }` option specs (enabled defaults true)
 ---@field selected  any?     key of the initially selected option
@@ -30,7 +33,7 @@ local FilterDropdown = Class(Frame, function(self)
     parent   = self,
     position = { All = true },
     glow     = false,
-    OnClick  = function() self.menu:Toggle() end,
+    OnClick  = function() self:_toggleMenu() end,
   }
   self.label = Label:new{
     parent   = self.button,
@@ -48,7 +51,7 @@ local FilterDropdown = Class(Frame, function(self)
       onLeave    = function(line) line.background:Color(1, 1, 1, 0) end,
       onClick    = function()
         if not enabled then return end
-        self.menu:Hide()
+        self:_closeMenu()
         if self.selected == opt.key then return end
         self.selected = opt.key
         self.label:Text(opt.label .. CHEVRON)
@@ -63,6 +66,16 @@ local FilterDropdown = Class(Frame, function(self)
     },
     lines = lines,
   }
+  -- Esc closes (only) the open menu: consuming the key stops it from also closing a
+  -- parent window. Other keys propagate so bindings still work while the menu is up.
+  self.menu:SetScript("OnKeyDown", function(_, key)
+    if key == "ESCAPE" then
+      self.menu:SetPropagateKeyboardInput(false)
+      self:_closeMenu()
+    else
+      self.menu:SetPropagateKeyboardInput(true)
+    end
+  end)
 
   self:Width(self.width)
   self:Height(20)
@@ -72,6 +85,27 @@ end, {
   menuWidth = 120,
 })
 ui.FilterDropdown = FilterDropdown
+
+-- Open this menu, first closing any other dropdown's menu (only one open at a time),
+-- and capture the keyboard so Esc can close it.
+function FilterDropdown:_openMenu()
+  if openOne and openOne ~= self then openOne:_closeMenu() end
+  openOne = self
+  self.menu:EnableKeyboard(true)
+  self.menu:SetPropagateKeyboardInput(true)
+  self.menu:Show()
+end
+
+-- Close this menu and release the keyboard.
+function FilterDropdown:_closeMenu()
+  self.menu:EnableKeyboard(false)
+  self.menu:Hide()
+  if openOne == self then openOne = nil end
+end
+
+function FilterDropdown:_toggleMenu()
+  if openOne == self then self:_closeMenu() else self:_openMenu() end
+end
 
 -- Display label for an option key (empty string if not found).
 ---@param key any
