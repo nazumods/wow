@@ -8095,7 +8095,7 @@ tinsert(ns.Sets, {
 })
 tinsert(ns.Sets, {
   id = 279,
-  name = "TWW Dungeon",
+  name = "The War Within (Dungeons)",
   release = 11,
   category = "Dungeon",
   sets = {
