@@ -13,5 +13,6 @@ theme.lua
 model.lua
 slider.lua
 minimapbutton.lua
+filterdropdown.lua
 copywindow.lua
 entry.lua

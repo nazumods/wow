@@ -14,7 +14,7 @@ OOP UI widget library. Every widget wraps a backing WoW object (`self._widget`) 
 | `Region.lua` | `Region` — abstract base; anchoring/size/visibility/alpha + declarative `position` system |
 | `Texture.lua` | `Texture` — wraps WoW Texture (atlas, color, coords, nine-slice, runtime `Gradient`) |
 | `Label.lua` | `Label` — wraps FontString; `Text`, `Color`, `JustifyH`, `StringWidth` |
-| `Frame.lua` | `Frame` — core frame wrapper: events, dragging, per-frame `onUpdate`, `delay` |
+| `Frame.lua` | `Frame` — core frame wrapper: events, dragging, per-frame `onUpdate`, `delay`; `SetScript`/`RemoveScript`, `EnableKeyboard`/`SetPropagateKeyboardInput` (receive keys + consume vs pass through — e.g. trap Esc) |
 | `BgFrame.lua` | `BgFrame` — Frame with auto-created backdrop Texture; `backdropColor`/`backdropTexture` |
 | `Dialog.lua` | `Dialog` — DIALOG-strata frame with Blizzard title bar, Escape-to-close; `makeTitlebarDraggable` |
 | `StatusBar.lua` | `StatusBar` — fill bar with backdrop/texture/orientation; `Color`, `Texture`, `SetValue` |
@@ -36,6 +36,7 @@ OOP UI widget library. Every widget wraps a backing WoW object (`self._widget`) 
 | `CopyWindow.lua` | `CopyWindow` — reusable copyable scroll window (TitleFrame + ScrollFrame + multiline EditBox + titlebar font-size picker); `Display(title, text)`. Shared singleton via `ui.ShowCopyWindow(title, text)`; `ui.ToggleCopyWindow(title, text)` closes it if already open on the same title (caches `_title`), else shows — for slash commands that should toggle. Font size persists in `LibNUIDB.copyFontSize` |
 | `TabFrame.lua` | `TabFrame` — tabbed container; `Select`, `Tab`, `Selected` |
 | `Tooltip.lua` | `Tooltip` — custom tooltip with line pooling + scrolling menus; singleton `ui.tip` |
+| `FilterDropdown.lua` | `FilterDropdown` — compact labelled button that drops a `Tooltip` menu of `{ key, label, enabled? }` options (disabled = greyed/unselectable); picking fires `onSelect(self, key)` and updates the button label. `Select(key)` re-points it without firing. `width`/`menuWidth`; `bordered` draws a framed background + 1px border (matches toggle buttons). **Esc closes only the open menu** (the menu captures the keyboard and consumes Escape, so a parent window stays open), and **at most one menu is open at a time** (a module-level registry closes any other on open). Used for titlebar/strip filters (Collected expansion+category, Overview/Reputations/Crafting pickers) |
 | `settings/SettingsFrame.lua` | `SettingsFrame` — WoW Settings panel container; `AddControl`, `Register(Sub)category` |
 | `settings/TextSetting.lua` | `TextSetting` — label + EditBox bound to `table[field]` |
 | `settings/ToggleSetting.lua` | `ToggleSetting` — label + CheckButton bound to `table[field]` |
@@ -63,6 +64,7 @@ Region
      ├─ ScrollFrame
      ├─ Cell
      ├─ TabFrame
+     ├─ FilterDropdown
      ├─ SettingsFrame
      ├─ TextSetting
      ├─ ToggleSetting
