@@ -1,0 +1,27 @@
+# Canonical -Expand group list: one "id:Category" per line. `update-sets.ps1 -Expand`
+# regenerates the AUTO-EXPAND region of data/sets.lua from this — one row per wago label
+# of each group (recolor / multi-source mega-sets). '#' starts a comment. Edit + re-run
+# `-Expand` to refresh. Category is the grid filter bucket (Raid|PvP|Dungeon|Delve|
+# Covenant|Renown|World|Event); a group's labels may mix sources, so pick the dominant.
+# Per-row/-group drops live in excludes.txt.
+
+# ── Recolor mega-sets ──
+319:World      # Legion: World
+320:Dungeon    # Legion: Dungeon
+321:Event      # Legion: Remix (Timerunning)
+244:World      # Mists of Pandaria: World
+
+# ── Classic dungeon / PvP / crafted recolors ──
+285:Dungeon    # The Burning Crusade: Dungeon
+295:PvP        # Cataclysm: PVP (timewalking vendor recolors)
+296:World      # Draenor Crafter's Work (crafted)
+
+# ── Dragonflight dungeon / outdoor (armor-type groups, multi-source) ──
+202:World      # Tuskarr Battlegear (leather)
+204:World      # Titan Keeper's Vestments (cloth)
+205:World      # Centaur Regalia (mail)
+206:World      # Djaradin Battlegear (plate)
+218:Event      # Time Rifts
+
+# ── Misc ──
+356:Event      # Argussian Defender's Regalia (Legion / Argus)

@@ -253,17 +253,19 @@ look them up on wago (`JournalInstance`).
 
 Some groups carry *dozens* of labels (Legion: World has 22 color variants, MoP: World
 17). Hand-seeding a shell per label is tedious, so **`-Expand`** auto-generates one
-filled `ns.Sets` row per label for the listed groups, into a single **guarded region**
-at the end of `sets.lua` (`-- >>> AUTO-EXPAND … -- <<< AUTO-EXPAND`, replaced wholesale
-each run):
+filled `ns.Sets` row per label for the groups listed in
+[`expand-groups.txt`](expand-groups.txt), into a single **guarded region** at the end of
+`sets.lua` (`-- >>> AUTO-EXPAND … -- <<< AUTO-EXPAND`, replaced wholesale each run):
 
 ```
-pwsh ./update-sets.ps1 -Expand "319:World,320:Dungeon,321:Event,244:World"
+pwsh ./update-sets.ps1 -Expand          # regenerates from expand-groups.txt
 ```
 
-Argument is a comma list of **`id:Category`**. For each group it buckets sets by label,
-decomposes `ClassMask` into class slots (first/lowest id wins, `{}` for gaps — same model
-as the normal fill, so the rows still refresh on the weekly run), and:
+The canonical group list is **`expand-groups.txt`** — one **`id:Category`** line per group
+(`'#'` comments). To add a mega-set, add a line and re-run `-Expand`; to refresh after a
+patch, just re-run `-Expand`. For each group it buckets sets by label, decomposes
+`ClassMask` into class slots (first/lowest id wins, `{}` for gaps — same model as the
+normal fill, so the rows still refresh on the weekly run), and:
 
 - **skips** labels whose union `ClassMask` has no class bits (heritage/cosmetic pieces)
   and the bare no-label bucket of an otherwise-labeled group — both logged;

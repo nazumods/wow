@@ -62,11 +62,13 @@ param(
   # report; touches no Lua. See UPDATING.md ("Auditing coverage").
   [switch]$AuditCoverage,
   [string]$ReportFile = (Join-Path $PSScriptRoot 'coverage-report.md'),
-  # Expand mode: auto-generate one curated ns.Sets row per wago label for each
-  # listed group, into a guarded region of sets.lua — the mechanical way to capture
-  # recolor/multi-source mega-sets without hand-seeding dozens of shells. Argument is
-  # a comma list of "id:Category" (e.g. "319:World,243:Dungeon"). See UPDATING.md.
-  [string]$Expand
+  # Expand mode: auto-generate one curated ns.Sets row per wago label for each group
+  # listed in tools/expand-groups.txt ("id:Category" lines), into a guarded region of
+  # sets.lua — the mechanical way to capture recolor/multi-source mega-sets without
+  # hand-seeding dozens of shells. The file is the canonical spec, so a refresh is just
+  # `-Expand` (no args). See UPDATING.md.
+  [switch]$Expand,
+  [string]$ExpandFile = (Join-Path $PSScriptRoot 'expand-groups.txt')
 )
 
 $ErrorActionPreference = 'Stop'
@@ -248,14 +250,17 @@ if ($Expand) {
     Write-Host "Fetching $url" -ForegroundColor Cyan
     (Invoke-WebRequest -Uri $url -UseBasicParsing -ErrorAction Stop).Content | ConvertFrom-Csv
   }
+  # Canonical group list lives in expand-groups.txt ("id:Category" per line, '#' comments).
+  if (-not (Test-Path -LiteralPath $ExpandFile)) { throw "Expand group list not found: $ExpandFile" }
   $jobIds = @(); $jobCat = @{}
-  foreach ($pair in ($Expand -split ',')) {
-    if (-not $pair.Trim()) { continue }
-    $kv = $pair.Trim() -split ':', 2
-    if ($kv.Count -ne 2) { throw "Bad -Expand entry '$pair' — expected 'id:Category'." }
+  foreach ($ln in (Get-Content -LiteralPath $ExpandFile)) {
+    $t = ($ln -split '#', 2)[0].Trim()
+    if (-not $t) { continue }
+    $kv = $t -split ':', 2
+    if ($kv.Count -ne 2) { throw "Bad expand-groups.txt line '$ln' — expected 'id:Category'." }
     $jid = [int]$kv[0].Trim(); $jobIds += $jid; $jobCat[$jid] = $kv[1].Trim()
   }
-  if ($jobIds.Count -eq 0) { throw '-Expand was empty.' }
+  if ($jobIds.Count -eq 0) { throw 'expand-groups.txt has no entries.' }
 
   $excl = Get-Excludes   # tools/excludes.txt — whole groups + "id:label" dead rows
 
