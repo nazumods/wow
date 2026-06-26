@@ -4606,7 +4606,7 @@ tinsert(ns.Sets, {
 -- Coverage audit #222 (batch 2): covenants / dungeons / classic raids
 tinsert(ns.Sets, {
   id = 280,
-  name = "Algari Chainmail",
+  name = "TWW Dungeon (Mail)",
   release = 11,
   category = "Dungeon",
   sets = {
@@ -4627,7 +4627,7 @@ tinsert(ns.Sets, {
 })
 tinsert(ns.Sets, {
   id = 281,
-  name = "Coreway Regalia",
+  name = "TWW Dungeon (Leather)",
   release = 11,
   category = "Dungeon",
   sets = {
@@ -4647,7 +4647,7 @@ tinsert(ns.Sets, {
 })
 tinsert(ns.Sets, {
   id = 279,
-  name = "Dorn Defender Armaments",
+  name = "TWW Dungeon (Plate)",
   release = 11,
   category = "Dungeon",
   sets = {
@@ -4661,7 +4661,7 @@ tinsert(ns.Sets, {
 })
 tinsert(ns.Sets, {
   id = 282,
-  name = "Threads of Awakening",
+  name = "TWW Dungeon (Cloth)",
   release = 11,
   category = "Dungeon",
   sets = {
