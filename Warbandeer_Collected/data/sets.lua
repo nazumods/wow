@@ -7989,78 +7989,6 @@ tinsert(ns.Sets, {
 })
 tinsert(ns.Sets, {
   id = 198,
-  name = "Void-Bound Raiment",
-  release = 10,
-  category = "Trading Post",
-  sets = {
-    {},
-    {},
-    {},
-    {},
-    { id = 2659, name = "Void-Bound Raiment", classId = 5 },
-    {},
-    {},
-    { id = 2659, name = "Void-Bound Raiment", classId = 8 },
-    { id = 2659, name = "Void-Bound Raiment", classId = 9 },
-  },
-})
-tinsert(ns.Sets, {
-  id = 198,
-  name = "Void-Bound Battlegear",
-  release = 10,
-  category = "Trading Post",
-  sets = {
-    {},
-    {},
-    {},
-    { id = 2660, name = "Void-Bound Battlegear", classId = 4 },
-    {},
-    {},
-    {},
-    {},
-    {},
-    { id = 2660, name = "Void-Bound Battlegear", classId = 10 },
-    { id = 2660, name = "Void-Bound Battlegear", classId = 11 },
-    { id = 2660, name = "Void-Bound Battlegear", classId = 12 },
-  },
-})
-tinsert(ns.Sets, {
-  id = 198,
-  name = "Void-Bound Chains",
-  release = 10,
-  category = "Trading Post",
-  sets = {
-    {},
-    {},
-    { id = 2676, name = "Void-Bound Chains", classId = 3 },
-    {},
-    {},
-    {},
-    { id = 2676, name = "Void-Bound Chains", classId = 7 },
-    {},
-    {},
-    {},
-    {},
-    {},
-    { id = 2676, name = "Void-Bound Chains", classId = 13 },
-  },
-})
-tinsert(ns.Sets, {
-  id = 198,
-  name = "Void-Bound Warplate",
-  release = 10,
-  category = "Trading Post",
-  sets = {
-    { id = 2677, name = "Void-Bound Warplate", classId = 1 },
-    { id = 2677, name = "Void-Bound Warplate", classId = 2 },
-    {},
-    {},
-    {},
-    { id = 2677, name = "Void-Bound Warplate", classId = 6 },
-  },
-})
-tinsert(ns.Sets, {
-  id = 198,
   name = "Kvaldir Scout Leathers",
   release = 10,
   category = "Trading Post",
@@ -8133,6 +8061,27 @@ tinsert(ns.Sets, {
     {},
     {},
     { id = 4247, name = "Drake Hunter's Kit", classId = 13 },
+  },
+})
+tinsert(ns.Sets, {
+  id = 198,
+  name = "Void-Bound",
+  release = 10,
+  category = "Trading Post",
+  sets = {
+    { id = 2677, name = "Void-Bound Warplate", classId = 1 },
+    { id = 2677, name = "Void-Bound Warplate", classId = 2 },
+    { id = 2676, name = "Void-Bound Chains", classId = 3 },
+    { id = 2660, name = "Void-Bound Battlegear", classId = 4 },
+    { id = 2659, name = "Void-Bound Raiment", classId = 5 },
+    { id = 2677, name = "Void-Bound Warplate", classId = 6 },
+    { id = 2676, name = "Void-Bound Chains", classId = 7 },
+    { id = 2659, name = "Void-Bound Raiment", classId = 8 },
+    { id = 2659, name = "Void-Bound Raiment", classId = 9 },
+    { id = 2660, name = "Void-Bound Battlegear", classId = 10 },
+    { id = 2660, name = "Void-Bound Battlegear", classId = 11 },
+    { id = 2660, name = "Void-Bound Battlegear", classId = 12 },
+    { id = 2676, name = "Void-Bound Chains", classId = 13 },
   },
 })
 -- <<< AUTO-EXPAND

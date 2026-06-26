@@ -38,6 +38,10 @@
 # ── byset: one row per named ensemble (no labels; flat list that grows monthly) ──
 198:Trading Post:byset   # Trading Post — armor ensembles; weapon/cosmetic (class-less) sets auto-skipped
 
+# ── mergeset: merge specific set ids into one row (byset rows skip them) ──
+#   mergeset <setid>+... | <Category> | <Name> [| <release>]
+mergeset 2659+2660+2676+2677 | Trading Post | Void-Bound | 10   # cloth/leather/mail/plate → one set (pin DF, matches other Trading Post rows; wago mistags as Legion)
+
 # ── merge: combine several class-disjoint group ids into one full row ──
 #   merge <id>+<id>+... | <Category> | <Name> [| <release>]
 #   release (1=Vanilla..12=Midnight) overrides wago's ExpansionID when it's mistagged.

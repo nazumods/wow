@@ -275,10 +275,21 @@ if ($Expand) {
   # `byset` mode emits one row per SET (named by the set's own name) — for label-less
   # groups that are a flat list of distinctly-named ensembles (the Trading Post).
   if (-not (Test-Path -LiteralPath $ExpandFile)) { throw "Expand group list not found: $ExpandFile" }
-  $jobIds = @(); $jobCat = @{}; $jobMode = @{}; $merges = @()
+  $jobIds = @(); $jobCat = @{}; $jobMode = @{}; $merges = @(); $setMerges = @(); $mergedSetIds = @{}
   foreach ($ln in (Get-Content -LiteralPath $ExpandFile)) {
     $t = ($ln -split '#', 2)[0].Trim()
     if (-not $t) { continue }
+    # `mergeset <setid>+... | <Category> | <Name>` — merge specific SET ids into one row
+    # (armor pieces of one set listed individually, e.g. Void-Bound inside the Trading
+    # Post). The owning group's byset/label rows skip these set ids so there's no dup.
+    if ($t -match '^mergeset\s+(.+)$') {
+      $p = $Matches[1] -split '\s*\|\s*'
+      if ($p.Count -lt 3 -or $p.Count -gt 4) { throw "Bad mergeset line '$ln' — expected 'mergeset setids | Category | Name [| release]'." }
+      $sids = @($p[0] -split '\s*\+\s*' | ForEach-Object { [int]$_ })
+      foreach ($s in $sids) { $mergedSetIds[$s] = $true }
+      $setMerges += @{ sids = $sids; cat = $p[1].Trim(); name = $p[2].Trim(); release = if ($p.Count -ge 4 -and $p[3].Trim()) { [int]$p[3].Trim() } else { $null } }
+      continue
+    }
     # `merge <id>+<id>+... | <Category> | <Name>` — assemble ONE class-disjoint row from
     # several whole groups (armor-type / source splits of one logical set spanning ids).
     if ($t -match '^merge\s+(.+)$') {
@@ -334,6 +345,7 @@ if ($Expand) {
     # ItemNameDescription label (one row per recolor/source variant).
     $byl = [ordered]@{}
     foreach ($r in ($rows | Sort-Object { [int]$_.ID })) {
+      if ($mergedSetIds.ContainsKey([int]$r.ID)) { continue }   # pulled into a mergeset row
       if ($single) { $key = '*' }
       elseif ($byset) { $key = ([string]$r.Name_lang).Trim() }
       else { $i = 0; [void][int]::TryParse($r.ItemNameDescriptionID, [ref]$i); $key = if ($indLabel.ContainsKey($i)) { $indLabel[$i] } else { '' } }
@@ -411,6 +423,41 @@ if ($Expand) {
     $L.Add("  name = `"$(LuaEsc $mg.name)`",")
     $L.Add("  release = $rel,")
     $L.Add("  category = `"$($mg.cat)`",")
+    $L.Add('  sets = {')
+    $max = ($slot.Keys | Measure-Object -Maximum).Maximum
+    for ($c = 1; $c -le $max; $c++) {
+      if ($slot.ContainsKey($c)) { $L.Add("    { id = $($slot[$c].id), name = `"$($slot[$c].name)`", classId = $c },") }
+      else { $L.Add('    {},') }
+    }
+    $L.Add('  },')
+    $L.Add('})')
+    $emitted++
+  }
+
+  # ── mergeset directives: merge specific SET ids into one row (within a group; the row
+  # takes that group's id so its cells key into db.sets on scan, like its sibling rows) ──
+  foreach ($sm in $setMerges) {
+    $rows = $tsRows | Where-Object { [int]$_.ID -in $sm.sids }
+    if (-not $rows) { Write-Warning "mergeset [$($sm.sids -join '+')] '$($sm.name)' — no rows; skipped."; continue }
+    $slot = @{}; $union = 0; $exp = 0; $gid = [int]($rows | Select-Object -First 1).TransmogSetGroupID
+    foreach ($r in ($rows | Sort-Object { [int]$_.ID })) {
+      $e = 0; [void][int]::TryParse($r.ExpansionID, [ref]$e); if ($e -gt $exp) { $exp = $e }
+      $m = 0; [void][int]::TryParse($r.ClassMask, [ref]$m); $union = $union -bor $m
+      for ($bb = 0; $bb -lt 13; $bb++) {
+        if (($m -band (1 -shl $bb)) -eq 0) { continue }
+        $c = $bb + 1
+        if ($slot.ContainsKey($c)) { continue }
+        $slot[$c] = @{ id = $r.ID; name = (LuaEsc ([string]$r.Name_lang)) }
+      }
+    }
+    if ($union -eq 0) { Write-Host "  skip mergeset '$($sm.name)' — no class bits" -ForegroundColor DarkYellow; continue }
+    $rel = if ($sm.release) { $sm.release } else { $exp + 1 }
+    Write-Host "  mergeset [$($sm.sids -join '+')] -> '$($sm.name)' ($($slot.Count) classes, release $rel)" -ForegroundColor Cyan
+    $L.Add('tinsert(ns.Sets, {')
+    $L.Add("  id = $gid,")
+    $L.Add("  name = `"$(LuaEsc $sm.name)`",")
+    $L.Add("  release = $rel,")
+    $L.Add("  category = `"$($sm.cat)`",")
     $L.Add('  sets = {')
     $max = ($slot.Keys | Measure-Object -Maximum).Maximum
     for ($c = 1; $c -le $max; $c++) {
