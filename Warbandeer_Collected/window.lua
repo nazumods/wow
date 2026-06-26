@@ -86,6 +86,19 @@ local MainWindow = Class(TitleFrame, function(self)
   counterHover:SetScript("OnEnter", function(f) self.data:ShowCountTooltip(f) end)
   counterHover:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
+  -- The gold wanted tally toggles WANTED ONLY on click (same as the filter button).
+  local wantedHover = ui.Frame:new{
+    parent = self,
+    position = {
+      TopLeft = {self.wantedCount, ui.edge.TopLeft, -2, 0},
+      BottomRight = {self.wantedCount, ui.edge.BottomRight, 2, 0},
+    },
+  }
+  wantedHover:EnableMouse(true)
+  wantedHover:SetScript("OnMouseUp", function() self.data:ToggleWanted() end)
+  wantedHover:SetScript("OnEnter", function(f) self.data:ShowWantedTooltip(f) end)
+  wantedHover:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
   self:RefreshCounter()
   self:RefreshWanted()
   -- Cap the visible grid at the shared `DataView.MAX_HEIGHT` and size the window with

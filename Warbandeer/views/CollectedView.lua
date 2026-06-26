@@ -91,6 +91,19 @@ local CollectedView = Class(Frame, function(self)
   counterHover:SetScript("OnEnter", function(f) self.grid:ShowCountTooltip(f) end)
   counterHover:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
+  -- The gold wanted tally toggles WANTED ONLY on click (same as the filter button).
+  local wantedHover = Frame:new{
+    parent = self,
+    position = {
+      TopLeft = {self.wantedCount, ui.edge.TopLeft, -2, 0},
+      BottomRight = {self.wantedCount, ui.edge.BottomRight, 2, 0},
+    },
+  }
+  wantedHover:EnableMouse(true)
+  wantedHover:SetScript("OnMouseUp", function() self.grid:ToggleWanted() end)
+  wantedHover:SetScript("OnEnter", function(f) self.grid:ShowWantedTooltip(f) end)
+  wantedHover:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
   -- Shown before the first /collected scan has populated any data. Centered below the
   -- header; the grid is hidden while it shows (see _showGrid) so it never overlaps the
   -- static row names.

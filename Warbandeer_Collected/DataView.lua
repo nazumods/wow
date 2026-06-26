@@ -318,6 +318,14 @@ function DataView:ToggleWantedOnly()
   return self._wantedOnly
 end
 
+---Toggle "wanted only" AND sync the WANTED ONLY filter button's highlight — so other
+---chrome (the wanted-count counter) can drive the same toggle and the button still
+---reflects it. `_syncWantedBtn` is registered by BuildFilterStrip; no-op before then.
+function DataView:ToggleWanted()
+  self:ToggleWantedOnly()
+  if self._syncWantedBtn then self._syncWantedBtn() end
+end
+
 ---Switch between live and PTR ("upcoming") data, rebuilding the grid. Clears any
 ---active lockout selection first — its row index moves between datasets.
 ---@param on boolean  true → show ns.PtrSets (upcoming), false → live ns.Sets
@@ -381,6 +389,15 @@ function DataView:ShowCountTooltip(owner)
   GameTooltip:AddLine("|cffffffffsets|r — set rows shown for the current filter.", 0.8, 0.8, 0.8, true)
   GameTooltip:AddLine("|cffffffffcells|r — class-column cells that hold a set (a set counts once per class it covers).", 0.8, 0.8, 0.8, true)
   GameTooltip:AddLine("|cffffffffcollected|r — cells you've fully collected, i.e. the green checks.", 0.8, 0.8, 0.8, true)
+  GameTooltip:Show()
+end
+
+---Tooltip for the gold wanted tally, which (clickable) drives the WANTED ONLY filter.
+---@param owner Frame  the WoW frame the tooltip anchors to
+function DataView:ShowWantedTooltip(owner)
+  GameTooltip:SetOwner(owner, "ANCHOR_BOTTOMRIGHT")
+  GameTooltip:SetText("Wanted sets")
+  GameTooltip:AddLine("Click to toggle showing only the sets you've flagged wanted.", 0.8, 0.8, 0.8, true)
   GameTooltip:Show()
 end
 
@@ -464,10 +481,10 @@ function DataView:BuildFilterStrip(parent, onModeChanged)
     ptrBorder:Color(on and gold or divider)
     if onModeChanged then onModeChanged() end
   end)
-  wantedBorder = toggle(BW + GAP, "WANTED ONLY", false, function()
-    local on = self:ToggleWantedOnly()
-    wantedBorder:Color(on and gold or divider)
-  end)
+  wantedBorder = toggle(BW + GAP, "WANTED ONLY", false, function() self:ToggleWanted() end)
+  -- Let other chrome (the wanted-count counter) drive the same toggle and keep this
+  -- button's highlight in sync.
+  self._syncWantedBtn = function() wantedBorder:Color(self._wantedOnly and gold or divider) end
   sortBorder, sortLabel = toggle((BW + GAP) * 2, "NEWEST FIRST", true, function()
     local rev = self:ToggleOrder()
     sortLabel:Text(rev and "NEWEST FIRST" or "OLDEST FIRST")
