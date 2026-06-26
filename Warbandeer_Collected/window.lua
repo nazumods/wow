@@ -5,6 +5,7 @@ local ui = ns.ui
 local min, max = math.min, math.max
 local Class, TitleFrame, ScrollFrame, Label = ns.lua.Class, ui.TitleFrame, ui.ScrollFrame, ui.Label
 local DataView = ns.DataView
+local GameTooltip = GameTooltip
 
 -- This window must match Warbandeer's embedded collected view 1:1 (size + coloring),
 -- so it renders the same shared DataView grid and counter/toggle chrome in the same
@@ -19,7 +20,7 @@ end
 ---@class CollectedWindow: TitleFrame
 ---@field data DataView the sets-by-class grid
 ---@field scroll ScrollFrame scroll container for the grid's row area
----@field counter Label "Sets: collected / total" counter (shrunk in PTR mode)
+---@field counter Label "N sets · N cells · N collected" counter (shrunk in PTR mode)
 ---@field wantedCount Label running "★ N" wanted-set count
 ---@field filterStrip Frame the shared filter chrome row (DataView:BuildFilterStrip)
 local MainWindow = Class(TitleFrame, function(self)
@@ -72,6 +73,32 @@ local MainWindow = Class(TitleFrame, function(self)
     text = "",
   }
 
+  -- A FontString can't take mouse events, so overlay a transparent frame on the counter
+  -- to host its hover tooltip (anchored to the label, so it tracks the text width).
+  local counterHover = ui.Frame:new{
+    parent = self,
+    position = {
+      TopLeft = {self.counter, ui.edge.TopLeft, 0, 0},
+      BottomRight = {self.counter, ui.edge.BottomRight, 0, 0},
+    },
+  }
+  counterHover:EnableMouse(true)
+  counterHover:SetScript("OnEnter", function(f) self.data:ShowCountTooltip(f) end)
+  counterHover:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+  -- The gold wanted tally toggles WANTED ONLY on click (same as the filter button).
+  local wantedHover = ui.Frame:new{
+    parent = self,
+    position = {
+      TopLeft = {self.wantedCount, ui.edge.TopLeft, -2, 0},
+      BottomRight = {self.wantedCount, ui.edge.BottomRight, 2, 0},
+    },
+  }
+  wantedHover:EnableMouse(true)
+  wantedHover:SetScript("OnMouseUp", function() self.data:ToggleWanted() end)
+  wantedHover:SetScript("OnEnter", function(f) self.data:ShowWantedTooltip(f) end)
+  wantedHover:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
   self:RefreshCounter()
   self:RefreshWanted()
   -- Cap the visible grid at the shared `DataView.MAX_HEIGHT` and size the window with
@@ -97,8 +124,9 @@ function MainWindow:RefreshWanted()
   self.wantedCount:Text(("|A:%s:14:14|a %d"):format(ns.WantedIcon, ns:WantedCount()))
 end
 
----Refresh the counter: "Sets: collected / total" in live mode; in PTR PREVIEW mode the
----grid is only the upcoming sets, so the counter becomes a "+N sets upcoming" tally.
+---Refresh the counter: "N sets · N cells · N collected" in live mode (rows shown / grid
+---cells with a set / green-check cells, tracking the active filter via VisibleCounts); in
+---PTR PREVIEW mode the grid is only the upcoming sets, so it becomes a "+N upcoming" tally.
 function MainWindow:RefreshCounter()
   if self.data._ptr then
     local seen, n = {}, 0
@@ -109,7 +137,8 @@ function MainWindow:RefreshCounter()
     end
     self.counter:Text(("+%d sets upcoming%s"):format(n, ns.PtrBuild and (" · PTR " .. ns.PtrBuild.ptr) or ""))
   else
-    self.counter:Text("Sets: " .. ns.db.collected .. " / " .. ns.db.total)
+    local sets, cells, green = self.data:VisibleCounts()
+    self.counter:Text(("%d sets · %d cells · %d collected"):format(sets, cells, green))
   end
   -- The PTR line (with the build) is longer than the live count, so shrink the counter
   -- font in PTR mode to keep it clear of the class icons (matches the embedded view).

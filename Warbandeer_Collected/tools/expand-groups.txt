@@ -1,0 +1,48 @@
+# Canonical -Expand group list: one "id:Category[:mode]" per line. `update-sets.ps1 -Expand`
+# regenerates the AUTO-EXPAND block of data/sets.lua from this. '#' starts a comment; edit
+# + re-run `-Expand` to refresh. Category is the grid filter bucket (Raid|PvP|Dungeon|Delve|
+# Covenant|Renown|World|Trading Post|Event). Modes:
+#   (none)  one row per wago label (recolor / multi-source variant).
+#   byset   one row per SET (named by the set) — label-less flat lists (the Trading Post).
+#   single  collapse ALL the group's variants into ONE row (timewalking-vendor colour sets).
+# Per-row/-group drops live in excludes.txt.
+
+# ── Recolor mega-sets ──
+319:World      # Legion: World
+320:Dungeon    # Legion: Dungeon
+321:Event      # Legion: Remix (Timerunning)
+244:World      # Mists of Pandaria: World
+
+# ── Classic dungeon / PvP / crafted recolors ──
+285:Dungeon    # The Burning Crusade: Dungeon (mixed families — kept per-variant)
+
+# single: collapse all of a group's colour variants into one row, named by the common
+# label prefix (e.g. the "Timewalking Vendor - <colour>" labels → "(Timewalking Vendor)").
+287:PvP:single   # Wrath of the Lich King: PVP (timewalking vendor recolours)
+295:PvP:single   # Cataclysm: PVP (timewalking vendor recolours)
+296:World:single  # Draenor Crafter's Work (timewalking vendor recolours)
+
+# ── Dragonflight dungeon / outdoor (armor-type groups, multi-source) ──
+# 4 armor groups (leather/cloth/mail/plate) each carrying the same source labels →
+# merge by label into "Dragonflight (Dungeons)" / (Renown) / (World ...) / (World Drops).
+mergelabels 202+204+205+206 | World | Dragonflight
+218:Event      # Time Rifts
+
+# ── Misc ──
+356:Event      # Argussian Defender's Regalia (Legion / Argus)
+
+# ── single: one group's labels tile to one set ──
+383:Dungeon:single   # Tangled Raiment — Dungeons + World Quests labels tile a full set
+
+# ── byset: one row per named ensemble (no labels; flat list that grows monthly) ──
+198:Trading Post:byset   # Trading Post — armor ensembles; weapon/cosmetic (class-less) sets auto-skipped
+
+# ── mergeset: merge specific set ids into one row (byset rows skip them) ──
+#   mergeset <setid>+... | <Category> | <Name> [| <release>]
+mergeset 2659+2660+2676+2677 | Trading Post | Void-Bound | 10   # cloth/leather/mail/plate → one set (pin DF, matches other Trading Post rows; wago mistags as Legion)
+
+# ── merge: combine several class-disjoint group ids into one full row ──
+#   merge <id>+<id>+... | <Category> | <Name> [| <release>]
+#   release (1=Vanilla..12=Midnight) overrides wago's ExpansionID when it's mistagged.
+merge 279+280+281+282 | Dungeon | The War Within (Dungeons)   # mail/leather/plate/cloth armor groups
+merge 349+297 | Dungeon | Legion (Timewalking) | 7   # plate (349) + mail (297); release pinned Legion (wago mistags 349 as Shadowlands)

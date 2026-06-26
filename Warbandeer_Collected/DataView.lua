@@ -5,6 +5,7 @@ local ui, api, Colors = ns.ui, ns.api, ns.Colors
 local lists, prepend = ns.lua.lists, ns.lua.lists.prepend
 local Class = ns.lua.Class
 local TableFrame, Texture, Label = ui.TableFrame, ui.Texture, ui.Label
+local GameTooltip = GameTooltip
 
 local GreenCheck = {
   atlas = ns.icons.CheckGreen,
@@ -25,6 +26,13 @@ local UPCOMING_GLYPH = "•"
 -- indexing `status`, so passing the boolean `true` is safe.
 local function isComplete(status)
   return status == true or status.collected >= status.total
+end
+
+-- A row's name without its trailing "(variant)" suffix — the key the grid alphabetizes
+-- on within an expansion, so a set's difficulty/variant rows stay grouped (and in their
+-- authored order, e.g. Raid Finder→Mythic) rather than scattering by suffix.
+local function baseName(name)
+  return (name:gsub("%s*%b()%s*$", ""))
 end
 
 -- A group passes the active filters. A module-level function (not a method) because
@@ -143,6 +151,10 @@ end, {
         if self._reverse then return ra > rb end
         return ra < rb
       end
+      -- Within an expansion: alphabetical by base name (A→Z regardless of sort direction);
+      -- same base name (a set's variant/difficulty rows) falls back to authored order.
+      local na, nb = baseName(source[a].name), baseName(source[b].name)
+      if na ~= nb then return na < nb end
       return a < b
     end)
     return lists.map(order, function(srcIdx, dispIdx)
@@ -317,6 +329,14 @@ function DataView:ToggleWantedOnly()
   return self._wantedOnly
 end
 
+---Toggle "wanted only" AND sync the WANTED ONLY filter button's highlight — so other
+---chrome (the wanted-count counter) can drive the same toggle and the button still
+---reflects it. `_syncWantedBtn` is registered by BuildFilterStrip; no-op before then.
+function DataView:ToggleWanted()
+  self:ToggleWantedOnly()
+  if self._syncWantedBtn then self._syncWantedBtn() end
+end
+
 ---Switch between live and PTR ("upcoming") data, rebuilding the grid. Clears any
 ---active lockout selection first — its row index moves between datasets.
 ---@param on boolean  true → show ns.PtrSets (upcoming), false → live ns.Sets
@@ -345,6 +365,53 @@ function DataView:SetExpansion(key) self._expansion = key; self:_refilter() end
 ---@param key string  a category name, or "all"
 function DataView:SetCategory(key) self._category = key; self:_refilter() end
 
+---Counts over the currently filtered (matching) groups, so the counter tracks the active
+---expansion/category filter: the number of set **rows** shown, the total grid **cells**
+---that hold a resolvable set (every green check or red number), and how many of those
+---render a **green** check — a fully collected set (`isComplete`, however it got there).
+---@return number sets, number cells, number green
+function DataView:VisibleCounts()
+  local sets, cells, green = 0, 0, 0
+  for _, grp in ipairs(ns.Sets) do
+    if matches(self, grp) then
+      sets = sets + 1
+      local gsets = ns.db.sets[grp.id]
+      if gsets then
+        for _, set in ipairs(grp.sets) do
+          local s = set.id and gsets[set.id]
+          if s ~= nil then
+            cells = cells + 1
+            if isComplete(s) then green = green + 1 end
+          end
+        end
+      end
+    end
+  end
+  return sets, cells, green
+end
+
+---Explain the counter's three numbers in GameTooltip. Shared by both hosts (the standalone
+---window and the embedded view) so the wording stays in one place; each wires its own hover
+---frame over its counter and calls this from OnEnter. `owner` is that raw hover frame.
+---@param owner Frame  the WoW frame the tooltip anchors to
+function DataView:ShowCountTooltip(owner)
+  GameTooltip:SetOwner(owner, "ANCHOR_BOTTOMRIGHT")
+  GameTooltip:SetText("Collected set totals")
+  GameTooltip:AddLine("|cffffffffsets|r — set rows shown for the current filter.", 0.8, 0.8, 0.8, true)
+  GameTooltip:AddLine("|cffffffffcells|r — class-column cells that hold a set (a set counts once per class it covers).", 0.8, 0.8, 0.8, true)
+  GameTooltip:AddLine("|cffffffffcollected|r — cells you've fully collected, i.e. the green checks.", 0.8, 0.8, 0.8, true)
+  GameTooltip:Show()
+end
+
+---Tooltip for the gold wanted tally, which (clickable) drives the WANTED ONLY filter.
+---@param owner Frame  the WoW frame the tooltip anchors to
+function DataView:ShowWantedTooltip(owner)
+  GameTooltip:SetOwner(owner, "ANCHOR_BOTTOMRIGHT")
+  GameTooltip:SetText("Wanted sets")
+  GameTooltip:AddLine("Click to toggle showing only the sets you've flagged wanted.", 0.8, 0.8, 0.8, true)
+  GameTooltip:Show()
+end
+
 ---Dropdown option specs for the expansion filter: "All" then one per release present
 ---in `ns.Sets` (newest first), each label prefixed with the expansion badge.
 ---@return table[]  `{ key, label }` specs for `ui.FilterDropdown`
@@ -366,7 +433,7 @@ end
 
 -- Display order for the category filter; categories present in ns.Sets but unlisted
 -- here are appended so the menu never silently drops one.
-local CATEGORY_ORDER = { "Raid", "PvP", "Dungeon", "Delve", "Covenant", "Renown", "World", "Event" }
+local CATEGORY_ORDER = { "Raid", "PvP", "Dungeon", "Delve", "Covenant", "Renown", "World", "Trading Post", "Event" }
 
 ---Dropdown option specs for the category filter: "All" then each category present.
 ---@return table[]  `{ key, label }` specs for `ui.FilterDropdown`
@@ -425,10 +492,10 @@ function DataView:BuildFilterStrip(parent, onModeChanged)
     ptrBorder:Color(on and gold or divider)
     if onModeChanged then onModeChanged() end
   end)
-  wantedBorder = toggle(BW + GAP, "WANTED ONLY", false, function()
-    local on = self:ToggleWantedOnly()
-    wantedBorder:Color(on and gold or divider)
-  end)
+  wantedBorder = toggle(BW + GAP, "WANTED ONLY", false, function() self:ToggleWanted() end)
+  -- Let other chrome (the wanted-count counter) drive the same toggle and keep this
+  -- button's highlight in sync.
+  self._syncWantedBtn = function() wantedBorder:Color(self._wantedOnly and gold or divider) end
   sortBorder, sortLabel = toggle((BW + GAP) * 2, "NEWEST FIRST", true, function()
     local rev = self:ToggleOrder()
     sortLabel:Text(rev and "NEWEST FIRST" or "OLDEST FIRST")
@@ -439,12 +506,12 @@ function DataView:BuildFilterStrip(parent, onModeChanged)
   ui.FilterDropdown:new{
     parent = strip, position = { TopLeft = {dx, 0} }, width = DW_EXP, menuWidth = 200,
     bordered = true, selected = "all", options = self:ExpansionOptions(),
-    onSelect = function(_, key) self:SetExpansion(key) end,
+    onSelect = function(_, key) self:SetExpansion(key); if onModeChanged then onModeChanged() end end,
   }
   ui.FilterDropdown:new{
     parent = strip, position = { TopLeft = {dx + DW_EXP + GAP, 0} }, width = DW, menuWidth = 120,
     bordered = true, selected = "all", options = self:CategoryOptions(),
-    onSelect = function(_, key) self:SetCategory(key) end,
+    onSelect = function(_, key) self:SetCategory(key); if onModeChanged then onModeChanged() end end,
   }
 
   strip:Width(dx + DW_EXP + GAP + DW)

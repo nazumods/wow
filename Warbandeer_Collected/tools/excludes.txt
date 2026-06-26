@@ -19,7 +19,10 @@
 # ── Whole groups (never captured) ──
 6      # Tier Awesome — Blizzard test placeholder (sets named "Child Chain Set")
 7      # Tier It Up — Blizzard test placeholder (sets named "Parent Chain Set")
-198    # Trading Post — monthly cosmetic ensembles, wrong shape for the class x set grid
+52     # Darkmoon Faire — classic tier-set recolors under a dup group name (twin of 53), no distinct value
+53     # Darkmoon Faire — classic tier-set recolors under a dup group name (twin of 52), no distinct value
+59     # Time's Keeper — mixed-label Legion group; the no-label plate set can't attach cleanly
+60     # Trial of Style — transmog fashion-contest reward grab-bag, not coherent class sets
 
 # ── Dead -Expand rows (exist in wago, render empty on live) ──
 321:Nightmare   # Legion Remix (Timerunning) — "Barkbinds of the Archdruid's Nightmare" (set 4439) absent on live

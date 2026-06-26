@@ -4,6 +4,7 @@ local min = math.min
 local ui = ns.ui
 local theme = ns.theme
 local Class, Frame, Label = ns.lua.Class, ui.Frame, ui.Label
+local GameTooltip = GameTooltip
 
 -- Transmog-set collection grid. The grid itself is the sibling Collected addon's
 -- own DataView, reused in `embedded` mode via the WarbandeerCollectedApi global
@@ -76,6 +77,32 @@ local CollectedView = Class(Frame, function(self)
     position = { Left = {self.counter, ui.edge.Right, 16, 0} },
     text = "",
   }
+
+  -- A FontString can't take mouse events, so overlay a transparent frame on the counter
+  -- to host its hover tooltip (anchored to the label, so it tracks the text width).
+  local counterHover = Frame:new{
+    parent = self,
+    position = {
+      TopLeft = {self.counter, ui.edge.TopLeft, 0, 0},
+      BottomRight = {self.counter, ui.edge.BottomRight, 0, 0},
+    },
+  }
+  counterHover:EnableMouse(true)
+  counterHover:SetScript("OnEnter", function(f) self.grid:ShowCountTooltip(f) end)
+  counterHover:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+  -- The gold wanted tally toggles WANTED ONLY on click (same as the filter button).
+  local wantedHover = Frame:new{
+    parent = self,
+    position = {
+      TopLeft = {self.wantedCount, ui.edge.TopLeft, -2, 0},
+      BottomRight = {self.wantedCount, ui.edge.BottomRight, 2, 0},
+    },
+  }
+  wantedHover:EnableMouse(true)
+  wantedHover:SetScript("OnMouseUp", function() self.grid:ToggleWanted() end)
+  wantedHover:SetScript("OnEnter", function(f) self.grid:ShowWantedTooltip(f) end)
+  wantedHover:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
   -- Shown before the first /collected scan has populated any data. Centered below the
   -- header; the grid is hidden while it shows (see _showGrid) so it never overlaps the
@@ -152,8 +179,8 @@ function CollectedView:_render()
     end
     self.counter:Text(("+%d sets upcoming%s"):format(n, api.PtrBuild and (" · PTR " .. api.PtrBuild.ptr) or ""))
   else
-    local collected, total = api:Counts()
-    self.counter:Text("Sets: " .. collected .. " / " .. total)
+    local sets, cells, green = self.grid:VisibleCounts()   -- tracks the active expansion/category filter
+    self.counter:Text(("%d sets · %d cells · %d collected"):format(sets, cells, green))
   end
   -- The PTR line (with the build) is longer than the live count, so shrink the counter
   -- font in PTR mode so it stays within the name column, clear of the class icons.
