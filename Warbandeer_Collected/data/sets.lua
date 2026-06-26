@@ -6187,8 +6187,8 @@ tinsert(ns.Sets, {
 tinsert(ns.Sets, {
   id = 349,
   name = "Legion Timewalking",
-  release = 9,
-  category = "Event",
+  release = 7,   -- wago ExpansionID tags it Shadowlands, but it's Legion content (Ravencrest's Battleplate); set editorially
+  category = "Dungeon",
   sets = {
     { id = 2292, name = "Ravencrest's Battleplate", classId = 1 },
     { id = 2292, name = "Ravencrest's Battleplate", classId = 2 },
