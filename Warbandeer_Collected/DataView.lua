@@ -27,6 +27,20 @@ local function isComplete(status)
   return status == true or status.collected >= status.total
 end
 
+-- A group passes the active filters. A module-level function (not a method) because
+-- GetData calls it during the base TableFrame construction — before the subclass's
+-- methods are mixed onto the instance. PTR preview is never filtered (small
+-- upcoming-only list, no category), so the dropdowns apply to the live grid only.
+---@param view DataView
+---@param grp table
+---@return boolean
+local function matches(view, grp)
+  if view._ptr then return true end
+  if view._expansion ~= "all" and grp.release ~= view._expansion then return false end
+  if view._category ~= "all" and grp.category ~= view._category then return false end
+  return true
+end
+
 local _arrow = nil
 local _selectedRow = nil
 
@@ -122,7 +136,7 @@ end, {
     local order = {}
     for i = 1, #source do
       local idx = self._reverse and (#source - i + 1) or i
-      if self:_matches(source[idx]) then order[#order + 1] = idx end
+      if matches(self, source[idx]) then order[#order + 1] = idx end
     end
     return lists.map(order, function(srcIdx, dispIdx)
       local grp = source[srcIdx]
@@ -306,18 +320,6 @@ function DataView:SetPtr(on)
   self.data = self:GetData()
   self:update()
   return self._ptr
-end
-
--- A group passes the active filters. PTR preview is never filtered (it's a small
--- upcoming-only list with no category), so the expansion/category dropdowns apply
--- to the live grid only.
----@param grp table
----@return boolean
-function DataView:_matches(grp)
-  if self._ptr then return true end
-  if self._expansion ~= "all" and grp.release ~= self._expansion then return false end
-  if self._category ~= "all" and grp.category ~= self._category then return false end
-  return true
 end
 
 -- Rebuild after a filter change (shared by SetExpansion/SetCategory). Clears any
