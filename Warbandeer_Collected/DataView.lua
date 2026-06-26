@@ -203,10 +203,24 @@ end, {
       -- full class count so they get a blank cell and don't keep another row's value
       -- on re-sort.
       for i = #r + 1, #ns.icons.classes do r[i] = {} end
+      -- Prefix the name with its expansion badge (inline texture escape, auto-sized to
+      -- the font height via :0); the name column auto-sizes to fit it. ReleaseIcons is
+      -- parallel to Releases, indexed by the group's release. Hovering the name cell
+      -- shows the expansion name in a cursor-anchored tooltip (the cell spans the whole
+      -- name, so a frame-anchored tip would land far off to the side).
+      local icon = ns.ReleaseIcons[grp.release]
+      local expName = ns.Releases[grp.release]
+      local nameText = icon and ("|T%s:0|t %s"):format(icon, grp.name) or grp.name
+      local onNameEnter = expName and function()
+        GameTooltip:SetOwner(UIParent, "ANCHOR_CURSOR")
+        GameTooltip:SetText(expName)
+        GameTooltip:Show()
+      end or nil
+      local onNameLeave = expName and function() GameTooltip:Hide() end or nil
       -- Embedded hosts have no lock column or lockout panel — just the group name as
       -- the leading (col 1) cell, inert.
       if self.embedded then
-        tinsert(r, 1, { text = grp.name })
+        tinsert(r, 1, { text = nameText, onEnter = onNameEnter, onLeave = onNameLeave })
         return r
       end
       -- Windowed grid: a lock-icon column then the name. The name click opens the
@@ -221,7 +235,9 @@ end, {
         position = { Center = {}, Size = {12, 12} },
       } or {})
       tinsert(r, 2, {
-        text = grp.name,
+        text = nameText,
+        onEnter = onNameEnter,
+        onLeave = onNameLeave,
         onClick = isPtr and function() end or function()
           -- Toggle: clicking the row whose lockouts are already open closes the panel.
           if _selectedRow == dispIdx then
