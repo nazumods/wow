@@ -81,6 +81,8 @@ end
 ---@field _reverse boolean? render newest set-group first (defaults true; see ToggleOrder)
 ---@field _wantedOnly boolean? blank cells for sets that aren't flagged wanted (see ToggleWantedOnly)
 ---@field _ptr boolean? show the PTR-only "upcoming" sets (ns.PtrSets) instead of live (see SetPtr)
+---@field _expansion number|string? release filter — a release index, or "all" (see SetExpansion)
+---@field _category string? category filter — a category name, or "all" (see SetCategory)
 ---@field _playerRace number? cached canonical race id the rank pips resolve against
 ---@field embedded boolean? render trimmed for a host view (no lock column / lockout name-click)
 ---@field infoTipAnchor fun(cell: Cell): table?  host override for the hover InfoTip anchor (defaults to "above the cell")
@@ -103,6 +105,8 @@ end, {
   _reverse = true,   -- default to newest set-group first
   _wantedOnly = false,
   _ptr = false,
+  _expansion = "all",
+  _category = "all",
   embedded = false,
   GetData = function(self)
     -- Lockouts are window-only chrome; the embedded host omits the lock column.
@@ -112,8 +116,14 @@ end, {
     -- Display order: source oldest-first by default; _reverse → newest-first. `srcIdx`
     -- indexes `source` (a live group's index is also its ns.Sets index, which the lockout
     -- panel keys off); `dispIdx` is the on-screen row position (row/cell highlight + arrow).
+    -- Build the display order, dropping groups filtered out by expansion/category
+    -- (`srcIdx` stays the real `source` index the lockout panel keys off; `dispIdx`
+    -- becomes the contiguous on-screen row number).
     local order = {}
-    for i = 1, #source do order[i] = self._reverse and (#source - i + 1) or i end
+    for i = 1, #source do
+      local idx = self._reverse and (#source - i + 1) or i
+      if self:_matches(source[idx]) then order[#order + 1] = idx end
+    end
     return lists.map(order, function(srcIdx, dispIdx)
       local grp = source[srcIdx]
       local isPtr = self._ptr
@@ -280,6 +290,70 @@ function DataView:SetPtr(on)
   self.data = self:GetData()
   self:update()
   return self._ptr
+end
+
+-- A group passes the active filters. PTR preview is never filtered (it's a small
+-- upcoming-only list with no category), so the expansion/category dropdowns apply
+-- to the live grid only.
+---@param grp table
+---@return boolean
+function DataView:_matches(grp)
+  if self._ptr then return true end
+  if self._expansion ~= "all" and grp.release ~= self._expansion then return false end
+  if self._category ~= "all" and grp.category ~= self._category then return false end
+  return true
+end
+
+-- Rebuild after a filter change (shared by SetExpansion/SetCategory). Clears any
+-- lockout selection first, since the visible rows change.
+function DataView:_refilter()
+  if not self.embedded then self:_clearSelection() end
+  self.data = self:GetData()
+  self:update()
+end
+
+---Filter the grid to one expansion (a release index) or "all".
+---@param key number|string  a release index, or "all"
+function DataView:SetExpansion(key) self._expansion = key; self:_refilter() end
+
+---Filter the grid to one category, or "all".
+---@param key string  a category name, or "all"
+function DataView:SetCategory(key) self._category = key; self:_refilter() end
+
+---Dropdown option specs for the expansion filter: "All" then one per release present
+---in `ns.Sets` (newest first), each label prefixed with the expansion badge.
+---@return table[]  `{ key, label }` specs for `ui.FilterDropdown`
+function DataView:ExpansionOptions()
+  local seen = {}
+  for _, g in ipairs(ns.Sets) do seen[g.release] = true end
+  local rels = {}
+  for r in pairs(seen) do rels[#rels + 1] = r end
+  table.sort(rels, function(a, b) return a > b end)
+  local opts = { { key = "all", label = "All" } }
+  for _, r in ipairs(rels) do
+    local icon = ns.ReleaseIcons[r]
+    opts[#opts + 1] = { key = r, label = (icon and ("|T%s:0|t "):format(icon) or "") .. (ns.Releases[r] or r) }
+  end
+  return opts
+end
+
+-- Display order for the category filter; categories present in ns.Sets but unlisted
+-- here are appended so the menu never silently drops one.
+local CATEGORY_ORDER = { "Raid", "PvP", "Dungeon", "Delve", "Covenant", "Event" }
+
+---Dropdown option specs for the category filter: "All" then each category present.
+---@return table[]  `{ key, label }` specs for `ui.FilterDropdown`
+function DataView:CategoryOptions()
+  local seen = {}
+  for _, g in ipairs(ns.Sets) do if g.category then seen[g.category] = true end end
+  local opts, used = { { key = "all", label = "All" } }, {}
+  for _, c in ipairs(CATEGORY_ORDER) do
+    if seen[c] then opts[#opts + 1] = { key = c, label = c }; used[c] = true end
+  end
+  for c in pairs(seen) do
+    if not used[c] then opts[#opts + 1] = { key = c, label = c } end
+  end
+  return opts
 end
 
 -- Drop any active lockout-panel row selection (its row index moves on re-sort / a

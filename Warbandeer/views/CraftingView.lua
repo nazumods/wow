@@ -296,7 +296,7 @@ end
 ---@param parent Frame
 ---@return FilterDropdown
 function CraftingView:BuildFilter(parent)
-  local box = ns.FilterDropdown:new{
+  local box = ui.FilterDropdown:new{
     parent   = parent,
     options  = EXPANSIONS,
     selected = self._expansion,

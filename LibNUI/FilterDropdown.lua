@@ -1,16 +1,16 @@
----@type Warbandeer
+---@type LibNUI_AddOn
 local ns = select(2, ...)
 local ui = ns.ui
 local insert = table.insert
 local Class, Frame, Label = ns.lua.Class, ui.Frame, ui.Label
 local Button, Tooltip = ui.Button, ui.Tooltip
-local ColorS = ns.Colors.Strings
-local C_GREY, C_END = ColorS.GREY, ColorS.END
+-- Greyed-out (disabled) option text; inlined so the widget has no addon dependency.
+local C_GREY, C_END = "|cff888888", "|r"
 
 -- A compact titlebar filter: a labelled button that drops a menu of options.
 -- Disabled options render greyed and are not selectable. Picking a new option
--- updates the button label and fires `onSelect(self, key)`. Used by views that
--- expose a `BuildFilter` (Crafting expansion picker, Overview expansion picker).
+-- updates the button label and fires `onSelect(self, key)`. Used by views with a
+-- `BuildFilter` (e.g. expansion / category pickers).
 
 -- Inline down-arrow (atlas markup: |A:atlasName:height:width|a). The minimal
 -- scrollbar arrow already points down and is a neutral grey, so no rotation/tint.
@@ -71,9 +71,7 @@ end, {
   width     = 96,
   menuWidth = 120,
 })
----@class Warbandeer
----@field FilterDropdown FilterDropdown
-ns.FilterDropdown = FilterDropdown
+ui.FilterDropdown = FilterDropdown
 
 -- Display label for an option key (empty string if not found).
 ---@param key any

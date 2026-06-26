@@ -373,7 +373,7 @@ end
 
 function ReputationsView:BuildFilter(parent)
   self:_refreshData()
-  local box = ns.FilterDropdown:new{
+  local box = ui.FilterDropdown:new{
     parent = parent,
     width = 160, menuWidth = 180,
     options = self:_pageOptions(),

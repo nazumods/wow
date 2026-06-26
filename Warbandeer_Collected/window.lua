@@ -110,11 +110,28 @@ local MainWindow = Class(TitleFrame, function(self)
   end)
 
   -- Live ⇆ PTR toggle: in PTR mode the grid shows only the upcoming (PTR-only) sets.
-  self._ptrBorder = titleToggle(wantedBox, "PTR PREVIEW", false, function()
+  local ptrBox
+  self._ptrBorder, _, ptrBox = titleToggle(wantedBox, "PTR PREVIEW", false, function()
     local on = self.data:SetPtr(not self.data._ptr)
     self._ptrBorder:Color(on and gold or divider)
     self:RefreshCounter()
   end)
+
+  -- Expansion + category filter dropdowns, continuing right-to-left from the toggles.
+  local expDD = ui.FilterDropdown:new{
+    parent = self.titlebar,
+    position = { Right = {ptrBox, ui.edge.Left, -6, 0} },
+    width = 110, menuWidth = 150, selected = "all",
+    options = self.data:ExpansionOptions(),
+    onSelect = function(_, key) self.data:SetExpansion(key) end,
+  }
+  ui.FilterDropdown:new{
+    parent = self.titlebar,
+    position = { Right = {expDD, ui.edge.Left, -6, 0} },
+    width = 110, menuWidth = 120, selected = "all",
+    options = self.data:CategoryOptions(),
+    onSelect = function(_, key) self.data:SetCategory(key) end,
+  }
 
   self:RefreshCounter()
   self:RefreshWanted()

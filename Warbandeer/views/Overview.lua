@@ -819,7 +819,7 @@ end
 function Overview:BuildFilter(parent)
   local box = Frame:new{ parent = parent, position = { Height = 20 } }
 
-  local raid = ns.FilterDropdown:new{
+  local raid = ui.FilterDropdown:new{
     parent    = box,
     options   = RAIDS,
     selected  = self.topAlts._raidId,
@@ -828,7 +828,7 @@ function Overview:BuildFilter(parent)
     onSelect  = function(_, key) self.topAlts:SetRaid(key) end,
     position  = { TopLeft = {0, 0} },
   }
-  local exp = ns.FilterDropdown:new{
+  local exp = ui.FilterDropdown:new{
     parent    = box,
     options   = EXPANSIONS,
     selected  = self._expansion,

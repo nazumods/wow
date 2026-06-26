@@ -4,7 +4,7 @@ local tinsert = tinsert
 -- Generated from wago.tools TransmogSet (product wow, build 12.0.7.68275, 2026-06-23) by tools/update-sets.ps1.
 
 ---@class Warbandeer_Collected
----@field Sets table[] transmog set groups: `{ id, name, release, instance, difficulty, minLevel, sets = { { id, name, classId }... } }`
+---@field Sets table[] transmog set groups: `{ id, name, release, category, instance, difficulty, minLevel, sets = { { id, name, classId }... } }` (category = Raid|PvP|Dungeon|Delve|Covenant|Event, drives the grid's category filter)
 ---@field Releases string[] expansion names indexed by `release`
 ---@field ReleaseIcons string[] expansion badge textures (64x64 TGA), parallel to Releases
 ns.Sets = {}
@@ -54,6 +54,7 @@ tinsert(ns.Sets, {
   id = 44,
   name = "Molten Core",
   release = 1,
+  category = "Raid",
   instance = 409,
   difficulty = 9,
   minLevel = 70,
@@ -76,6 +77,7 @@ tinsert(ns.Sets, {
   id = 43,
   name = "Blackwing Lair",
   release = 1,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 852, name = "Battlegear of Wrath", classId = 1 },
@@ -96,6 +98,7 @@ tinsert(ns.Sets, {
   id = 51,
   name = "Temple of Ahn'Qiraj",
   release = 1,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 851, name = "Conqueror's Battlegear", classId = 1 },
@@ -118,6 +121,7 @@ tinsert(ns.Sets, {
   id = 42,
   name = "Naxxramas",
   release = 1,
+  category = "Raid",
   sets = {
     { id = 850, name = "Dreadnaught's Battlegear", classId = 1 },
     { id = 899, name = "Redemption Armor", classId = 2 },
@@ -137,6 +141,7 @@ tinsert(ns.Sets, {
   id = 41,
   name = "Gruul's Lair",
   release = 2,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 849, name = "Warbringer Armor", classId = 1 },
@@ -157,6 +162,7 @@ tinsert(ns.Sets, {
   id = 40,
   name = "Serpentshrine Cavern",
   release = 2,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 848, name = "Destroyer Armor", classId = 1 },
@@ -177,6 +183,7 @@ tinsert(ns.Sets, {
   id = 39,
   name = "Black Temple",
   release = 2,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 847, name = "Onslaught Armor", classId = 1 },
@@ -197,6 +204,7 @@ tinsert(ns.Sets, {
   id = 50,
   name = "Sunwell Plateau",
   release = 2,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 931, name = "Onslaught Battlegear", classId = 1 },
@@ -219,6 +227,7 @@ tinsert(ns.Sets, {
   id = 27,
   name = "Season 1 (Gladiator)",
   release = 2,
+  category = "PvP",
   sets = {
     { id = 381, name = "Gladiator's Plate Armor", classId = 1 },
     { id = 974, name = "Gladiator's Scaled Armor", classId = 2 },
@@ -237,6 +246,7 @@ tinsert(ns.Sets, {
   id = 26,
   name = "Season 2 (Gladiator)",
   release = 2,
+  category = "PvP",
   sets = {
     { id = 962, name = "Merciless Gladiator's Plate Armor", classId = 1 },
     { id = 966, name = "Merciless Gladiator's Scaled Armor", classId = 2 },
@@ -255,6 +265,7 @@ tinsert(ns.Sets, {
   id = 25,
   name = "Season 3 (Gladiator)",
   release = 2,
+  category = "PvP",
   sets = {
     { id = 954, name = "Vengeful Gladiator's Plate Armor", classId = 1 },
     { id = 958, name = "Vengeful Gladiator's Scaled Armor", classId = 2 },
@@ -273,6 +284,7 @@ tinsert(ns.Sets, {
   id = 24,
   name = "Season 4 (Gladiator)",
   release = 2,
+  category = "PvP",
   sets = {
     { id = 946, name = "Brutal Gladiator's Plate Armor", classId = 1 },
     { id = 950, name = "Brutal Gladiator's Scaled Armor", classId = 2 },
@@ -292,6 +304,7 @@ tinsert(ns.Sets, {
   id = 38,
   name = "Naxxramas (10 Normal)",
   release = 3,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 661, name = "Heroes' Dreadnaught Battlegear", classId = 1 },
@@ -312,6 +325,7 @@ tinsert(ns.Sets, {
   id = 38,
   name = "Naxxramas (25 Normal)",
   release = 3,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 662, name = "Valorous Dreadnaught Battlegear", classId = 1 },
@@ -332,6 +346,7 @@ tinsert(ns.Sets, {
   id = 37,
   name = "Ulduar (10 Normal)",
   release = 3,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 659, name = "Valorous Siegebreaker Battlegear", classId = 1 },
@@ -352,6 +367,7 @@ tinsert(ns.Sets, {
   id = 37,
   name = "Ulduar (25 Normal)",
   release = 3,
+  category = "Raid",
   instance = 603,
   difficulty = 14,
   minLevel = 70,
@@ -376,6 +392,7 @@ tinsert(ns.Sets, {
   id = 35,
   name = "Icecrown Citadel (10 Normal)",
   release = 3,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 655, name = "Ymirjar Lord's Battlegear", classId = 1 },
@@ -396,6 +413,7 @@ tinsert(ns.Sets, {
   id = 35,
   name = "Icecrown Citadel (25 Normal)",
   release = 3,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 656, name = "Sanctified Ymirjar Lord's Battlegear", classId = 1 },
@@ -416,6 +434,7 @@ tinsert(ns.Sets, {
   id = 35,
   name = "Icecrown Citadel (25 Heroic)",
   release = 3,
+  category = "Raid",
   instance = 631,
   difficulty = 6,
   minLevel = 70,
@@ -440,6 +459,7 @@ tinsert(ns.Sets, {
   id = 23,
   name = "Season 5 (Honor)",
   release = 3,
+  category = "PvP",
   sets = {
     { id = 797, name = "Hateful Gladiator's Plate Armor", classId = 1 },
     { id = 801, name = "Hateful Gladiator's Scaled Armor", classId = 2 },
@@ -458,6 +478,7 @@ tinsert(ns.Sets, {
   id = 23,
   name = "Season 5 (Gladiator)",
   release = 3,
+  category = "PvP",
   sets = {
     { id = 788, name = "Deadly Gladiator's Plate Armor", classId = 1 },
     { id = 792, name = "Deadly Gladiator's Scaled Armor", classId = 2 },
@@ -476,6 +497,7 @@ tinsert(ns.Sets, {
   id = 23,
   name = "Season 5 (PVP Rare)",
   release = 3,
+  category = "PvP",
   sets = {
     { id = 806, name = "Savage Gladiator's Plate Armor", classId = 1 },
     { id = 810, name = "Savage Gladiator's Scaled Armor", classId = 2 },
@@ -494,6 +516,7 @@ tinsert(ns.Sets, {
   id = 22,
   name = "Season 6 (Gladiator)",
   release = 3,
+  category = "PvP",
   sets = {
     { id = 779, name = "Furious Gladiator's Plate Armor", classId = 1 },
     { id = 783, name = "Furious Gladiator's Scaled Armor", classId = 2 },
@@ -512,6 +535,7 @@ tinsert(ns.Sets, {
   id = 21,
   name = "Season 7 (Gladiator)",
   release = 3,
+  category = "PvP",
   sets = {
     { id = 770, name = "Relentless Gladiator's Plate Armor", classId = 1 },
     { id = 774, name = "Relentless Gladiator's Scaled Armor", classId = 2 },
@@ -530,6 +554,7 @@ tinsert(ns.Sets, {
   id = 20,
   name = "Season 8 (Gladiator)",
   release = 3,
+  category = "PvP",
   sets = {
     { id = 761, name = "Wrathful Gladiator's Plate Armor", classId = 1 },
     { id = 765, name = "Wrathful Gladiator's Scaled Armor", classId = 2 },
@@ -550,6 +575,7 @@ tinsert(ns.Sets, {
   id = 36,
   name = "Trial of the Crusader (10 Normal)",
   release = 3,
+  category = "Raid",
   sets = {
     { id = 657, name = "Hellscream's Battlegear", classId = 1 },
     { id = 706, name = "Turalyon's Plate", classId = 2 },
@@ -569,6 +595,7 @@ tinsert(ns.Sets, {
   id = 34,
   name = "Bastion of Twilight (Normal)",
   release = 4,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 653, name = "Earthen Battleplate", classId = 1 },
@@ -589,6 +616,7 @@ tinsert(ns.Sets, {
   id = 34,
   name = "Bastion of Twilight (Heroic)",
   release = 4,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 654, name = "Earthen Battleplate", classId = 1 },
@@ -609,6 +637,7 @@ tinsert(ns.Sets, {
   id = 33,
   name = "Firelands (Normal)",
   release = 4,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 651, name = "Molten Giant Battleplate", classId = 1 },
@@ -629,6 +658,7 @@ tinsert(ns.Sets, {
   id = 33,
   name = "Firelands (Heroic)",
   release = 4,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 652, name = "Molten Giant Battleplate", classId = 1 },
@@ -649,6 +679,7 @@ tinsert(ns.Sets, {
   id = 32,
   name = "Dragon Soul (Raid Finder)",
   release = 4,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 650, name = "Colossal Dragonplate Battlegear", classId = 1 },
@@ -669,6 +700,7 @@ tinsert(ns.Sets, {
   id = 32,
   name = "Dragon Soul (Normal)",
   release = 4,
+  category = "Raid",
   instance = 967,
   difficulty = 4,
   minLevel = 70,
@@ -691,6 +723,7 @@ tinsert(ns.Sets, {
   id = 32,
   name = "Dragon Soul (Heroic)",
   release = 4,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 631, name = "Colossal Dragonplate Battlegear", classId = 1 },
@@ -713,6 +746,7 @@ tinsert(ns.Sets, {
   id = 19,
   name = "Season 9 (Honor)",
   release = 4,
+  category = "PvP",
   sets = {
     { id = 1193, name = "Bloodthirsty Gladiator's Plate Armor", classId = 1 },
     { id = 1197, name = "Bloodthirsty Gladiator's Scaled Armor", classId = 2 },
@@ -731,6 +765,7 @@ tinsert(ns.Sets, {
   id = 19,
   name = "Season 9 (Elite)",
   release = 4,
+  category = "PvP",
   sets = {
     { id = 627, name = "Vicious Gladiator's Plate Armor", classId = 1 },
     { id = 752, name = "Vicious Gladiator's Scaled Armor", classId = 2 },
@@ -749,6 +784,7 @@ tinsert(ns.Sets, {
   id = 19,
   name = "Season 9 (Gladiator)",
   release = 4,
+  category = "PvP",
   sets = {
     { id = 626, name = "Vicious Gladiator's Plate Armor", classId = 1 },
     { id = 751, name = "Vicious Gladiator's Scaled Armor", classId = 2 },
@@ -767,6 +803,7 @@ tinsert(ns.Sets, {
   id = 18,
   name = "Season 10 (Elite)",
   release = 4,
+  category = "PvP",
   sets = {
     { id = 607, name = "Ruthless Gladiator's Plate Armor", classId = 1 },
     { id = 617, name = "Ruthless Gladiator's Scaled Armor", classId = 2 },
@@ -785,6 +822,7 @@ tinsert(ns.Sets, {
   id = 18,
   name = "Season 10 (Gladiator)",
   release = 4,
+  category = "PvP",
   sets = {
     { id = 606, name = "Ruthless Gladiator's Plate Armor", classId = 1 },
     { id = 616, name = "Ruthless Gladiator's Scaled Armor", classId = 2 },
@@ -803,6 +841,7 @@ tinsert(ns.Sets, {
   id = 17,
   name = "Season 11 (Elite)",
   release = 4,
+  category = "PvP",
   sets = {
     { id = 589, name = "Cataclysmic Gladiator's Plate Armor", classId = 1 },
     { id = 597, name = "Cataclysmic Gladiator's Scaled Armor", classId = 2 },
@@ -821,6 +860,7 @@ tinsert(ns.Sets, {
   id = 17,
   name = "Season 11 (Gladiator)",
   release = 4,
+  category = "PvP",
   sets = {
     { id = 588, name = "Cataclysmic Gladiator's Plate Armor", classId = 1 },
     { id = 596, name = "Cataclysmic Gladiator's Scaled Armor", classId = 2 },
@@ -840,6 +880,7 @@ tinsert(ns.Sets, {
   id = 31,
   name = "Heart of Fear (Raid Finder)",
   release = 5,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 446, name = "Battleplate of Resounding Rings", classId = 1 },
@@ -860,6 +901,7 @@ tinsert(ns.Sets, {
   id = 31,
   name = "Heart of Fear (Normal)",
   release = 5,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 444, name = "Battleplate of Resounding Rings", classId = 1 },
@@ -880,6 +922,7 @@ tinsert(ns.Sets, {
   id = 31,
   name = "Heart of Fear (Heroic)",
   release = 5,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 445, name = "Battleplate of Resounding Rings", classId = 1 },
@@ -900,6 +943,7 @@ tinsert(ns.Sets, {
   id = 31,
   name = "Heart of Fear (Timerunning)",
   release = 5,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 3440, name = "Battleplate of Resounding Rings", classId = 1 },
@@ -910,6 +954,7 @@ tinsert(ns.Sets, {
   id = 10,
   name = "Throne Of Thunder (Raid Finder)",
   release = 5,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 442, name = "Battleplate of the Last Mogu", classId = 1 },
@@ -930,6 +975,7 @@ tinsert(ns.Sets, {
   id = 10,
   name = "Throne Of Thunder (Normal)",
   release = 5,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 441, name = "Battleplate of the Last Mogu", classId = 1 },
@@ -950,6 +996,7 @@ tinsert(ns.Sets, {
   id = 10,
   name = "Throne Of Thunder (Heroic)",
   release = 5,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 443, name = "Battleplate of the Last Mogu", classId = 1 },
@@ -970,6 +1017,7 @@ tinsert(ns.Sets, {
   id = 30,
   name = "Siege Of Orgrimmar (Raid Finder)",
   release = 5,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 440, name = "Battleplate of the Prehistoric Marauder", classId = 1 },
@@ -990,6 +1038,7 @@ tinsert(ns.Sets, {
   id = 30,
   name = "Siege Of Orgrimmar (Normal)",
   release = 5,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 438, name = "Battleplate of the Prehistoric Marauder", classId = 1 },
@@ -1010,6 +1059,7 @@ tinsert(ns.Sets, {
   id = 30,
   name = "Siege Of Orgrimmar (Mythic)",
   release = 5,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 439, name = "Battleplate of the Prehistoric Marauder", classId = 1 },
@@ -1032,6 +1082,7 @@ tinsert(ns.Sets, {
   id = 9,
   name = "Season 12 (Honor)",
   release = 5,
+  category = "PvP",
   sets = {
     { id = 193, name = "Dreadful Gladiator's Plate", classId = 1 },
     { id = 196, name = "Dreadful Gladiator's Scaled Armor", classId = 2 },
@@ -1050,6 +1101,7 @@ tinsert(ns.Sets, {
   id = 9,
   name = "Season 12 (Elite)",
   release = 5,
+  category = "PvP",
   sets = {
     { id = 1064, name = "Malevolent Gladiator's Plate Armor", classId = 1 },
     { id = 1060, name = "Malevolent Gladiator's Scaled Armor", classId = 2 },
@@ -1068,6 +1120,7 @@ tinsert(ns.Sets, {
   id = 9,
   name = "Season 12 (Gladiator)",
   release = 5,
+  category = "PvP",
   sets = {
     { id = 278, name = "Malevolent Gladiator's Plate Armor", classId = 1 },
     { id = 277, name = "Malevolent Gladiator's Scaled Armor", classId = 2 },
@@ -1086,6 +1139,7 @@ tinsert(ns.Sets, {
   id = 16,
   name = "Season 13 (Elite)",
   release = 5,
+  category = "PvP",
   sets = {
     { id = 1028, name = "Tyrannical Gladiator's Plate Armor", classId = 1 },
     { id = 1020, name = "Tyrannical Gladiator's Scaled Armor", classId = 2 },
@@ -1104,6 +1158,7 @@ tinsert(ns.Sets, {
   id = 16,
   name = "Season 13 (Gladiator)",
   release = 5,
+  category = "PvP",
   sets = {
     { id = 261, name = "Tyrannical Gladiator's Plate Armor", classId = 1 },
     { id = 263, name = "Tyrannical Gladiator's Scaled Armor", classId = 2 },
@@ -1122,6 +1177,7 @@ tinsert(ns.Sets, {
   id = 15,
   name = "Season 14 (Elite)",
   release = 5,
+  category = "PvP",
   sets = {
     { id = 1048, name = "Grievous Gladiator's Plate Armor", classId = 1 },
     { id = 1040, name = "Grievous Gladiator's Scaled Armor", classId = 2 },
@@ -1140,6 +1196,7 @@ tinsert(ns.Sets, {
   id = 15,
   name = "Season 14 (Gladiator)",
   release = 5,
+  category = "PvP",
   sets = {
     { id = 205, name = "Grievous Gladiator's Plate Armor", classId = 1 },
     { id = 208, name = "Grievous Gladiator's Scaled Armor", classId = 2 },
@@ -1158,6 +1215,7 @@ tinsert(ns.Sets, {
   id = 14,
   name = "Season 15 (Elite)",
   release = 5,
+  category = "PvP",
   sets = {
     { id = 1091, name = "Prideful Gladiator's Plate Armor", classId = 1 },
     { id = 1083, name = "Prideful Gladiator's Scaled Armor", classId = 2 },
@@ -1176,6 +1234,7 @@ tinsert(ns.Sets, {
   id = 14,
   name = "Season 15 (Gladiator)",
   release = 5,
+  category = "PvP",
   sets = {
     { id = 238, name = "Prideful Gladiator's Plate Armor", classId = 1 },
     { id = 241, name = "Prideful Gladiator's Scaled Armor", classId = 2 },
@@ -1195,6 +1254,7 @@ tinsert(ns.Sets, {
   id = 29,
   name = "Blackrock Foundry (Normal)",
   release = 6,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 435, name = "Blackhand's Battlegear", classId = 1 },
@@ -1215,6 +1275,7 @@ tinsert(ns.Sets, {
   id = 29,
   name = "Blackrock Foundry (Heroic)",
   release = 6,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 436, name = "Blackhand's Battlegear", classId = 1 },
@@ -1235,6 +1296,7 @@ tinsert(ns.Sets, {
   id = 29,
   name = "Blackrock Foundry (Mythic)",
   release = 6,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 437, name = "Blackhand's Battlegear", classId = 1 },
@@ -1255,6 +1317,7 @@ tinsert(ns.Sets, {
   id = 28,
   name = "Hellfire Citadel (Normal)",
   release = 6,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 432, name = "Battlegear of Iron Wrath", classId = 1 },
@@ -1275,6 +1338,7 @@ tinsert(ns.Sets, {
   id = 28,
   name = "Hellfire Citadel (Heroic)",
   release = 6,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 433, name = "Battlegear of Iron Wrath", classId = 1 },
@@ -1295,6 +1359,7 @@ tinsert(ns.Sets, {
   id = 28,
   name = "Hellfire Citadel (Mythic)",
   release = 6,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 434, name = "Battlegear of Iron Wrath", classId = 1 },
@@ -1315,6 +1380,7 @@ tinsert(ns.Sets, {
   id = 54,
   name = "Hellfire Citadel (Raid Finder)",
   release = 6,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 584, name = "Demonbreaker Battleplate", classId = 1 },
@@ -1339,6 +1405,7 @@ tinsert(ns.Sets, {
   id = 11,
   name = "Warlords Season 1 (Combatant I)",
   release = 6,
+  category = "PvP",
   sets = {
     { id = 71, name = "Primal Combatant's Plate Armor", classId = 1 },
     { id = 69, name = "Primal Combatant's Scaled Armor", classId = 2 },
@@ -1357,6 +1424,7 @@ tinsert(ns.Sets, {
   id = 11,
   name = "Warlords Season 1 (Elite)",
   release = 6,
+  category = "PvP",
   sets = {
     { id = 1156, name = "Primal Gladiator's Plate Armor", classId = 1 },
     { id = 1148, name = "Primal Gladiator's Scaled Armor", classId = 2 },
@@ -1375,6 +1443,7 @@ tinsert(ns.Sets, {
   id = 11,
   name = "Warlords Season 1 (Gladiator)",
   release = 6,
+  category = "PvP",
   sets = {
     { id = 135, name = "Primal Gladiator's Plate Armor", classId = 1 },
     { id = 141, name = "Primal Gladiator's Scaled Armor", classId = 2 },
@@ -1393,6 +1462,7 @@ tinsert(ns.Sets, {
   id = 12,
   name = "Warlords Season 2 (Combatant I)",
   release = 6,
+  category = "PvP",
   sets = {
     { id = 21, name = "Wild Combatant's Plate Armor", classId = 1 },
     { id = 19, name = "Wild Combatant's Scaled Armor", classId = 2 },
@@ -1411,6 +1481,7 @@ tinsert(ns.Sets, {
   id = 12,
   name = "Warlords Season 2 (Elite)",
   release = 6,
+  category = "PvP",
   sets = {
     { id = 1191, name = "Wild Gladiator's Plate Armor", classId = 1 },
     { id = 1183, name = "Wild Gladiator's Scaled Paladin", classId = 2 },
@@ -1429,6 +1500,7 @@ tinsert(ns.Sets, {
   id = 12,
   name = "Warlords Season 2 (Gladiator)",
   release = 6,
+  category = "PvP",
   sets = {
     { id = 91, name = "Wild Gladiator's Plate Armor", classId = 1 },
     { id = 93, name = "Wild Gladiator's Scaled Armor", classId = 2 },
@@ -1447,6 +1519,7 @@ tinsert(ns.Sets, {
   id = 13,
   name = "Warlords Season 3 (Combatant I)",
   release = 6,
+  category = "PvP",
   sets = {
     { id = 49, name = "Warmongering Combatant's Plate Armor", classId = 1 },
     { id = 47, name = "Warmongering Combatant's Scaled Armor", classId = 2 },
@@ -1465,6 +1538,7 @@ tinsert(ns.Sets, {
   id = 13,
   name = "Warlords Season 3 (Elite)",
   release = 6,
+  category = "PvP",
   sets = {
     { id = 1222, name = "Warmongering Gladiator's Plate Armor", classId = 1 },
     { id = 1214, name = "Warmongering Gladiator's Scaled Armor", classId = 2 },
@@ -1483,6 +1557,7 @@ tinsert(ns.Sets, {
   id = 13,
   name = "Warlords Season 3 (Gladiator)",
   release = 6,
+  category = "PvP",
   sets = {
     { id = 115, name = "Warmongering Gladiator's Plate Armor", classId = 1 },
     { id = 119, name = "Warmongering Gladiator's Scaled Armor", classId = 2 },
@@ -1502,6 +1577,7 @@ tinsert(ns.Sets, {
   id = 47,
   name = "Trial Of Valor (Raid Finder)",
   release = 7,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 186, name = "Funerary Plate of the Chosen Dead", classId = 1 },
@@ -1524,6 +1600,7 @@ tinsert(ns.Sets, {
   id = 47,
   name = "Trial Of Valor (Normal)",
   release = 7,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 183, name = "Funerary Plate of the Chosen Dead", classId = 1 },
@@ -1546,6 +1623,7 @@ tinsert(ns.Sets, {
   id = 47,
   name = "Trial Of Valor (Heroic)",
   release = 7,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 184, name = "Funerary Plate of the Chosen Dead", classId = 1 },
@@ -1568,6 +1646,7 @@ tinsert(ns.Sets, {
   id = 47,
   name = "Trial Of Valor (Mythic)",
   release = 7,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 185, name = "Funerary Plate of the Chosen Dead", classId = 1 },
@@ -1590,6 +1669,7 @@ tinsert(ns.Sets, {
   id = 47,
   name = "Trial Of Valor (Trading Post)",
   release = 7,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 2343, name = "Battleplate of the Honored Valarjar", classId = 1 },
@@ -1612,6 +1692,7 @@ tinsert(ns.Sets, {
   id = 8,
   name = "The Nighthold (Raid Finder)",
   release = 7,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 940, name = "Warplate of the Obsidian Aspect", classId = 1 },
@@ -1633,6 +1714,7 @@ tinsert(ns.Sets, {
   id = 8,
   name = "The Nighthold (Normal)",
   release = 7,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 937, name = "Warplate of the Obsidian Aspect", classId = 1 },
@@ -1654,6 +1736,7 @@ tinsert(ns.Sets, {
   id = 8,
   name = "The Nighthold (Heroic)",
   release = 7,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 938, name = "Warplate of the Obsidian Aspect", classId = 1 },
@@ -1675,6 +1758,7 @@ tinsert(ns.Sets, {
   id = 8,
   name = "The Nighthold (Mythic)",
   release = 7,
+  category = "Raid",
   instance = 1530,
   difficulty = 16,
   minLevel = 70,
@@ -1698,6 +1782,7 @@ tinsert(ns.Sets, {
   id = 56,
   name = "Tomb of Sargeras (Raid Finder)",
   release = 7,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 1296, name = "Titanic Onslaught Armor", classId = 1 },
@@ -1719,6 +1804,7 @@ tinsert(ns.Sets, {
   id = 56,
   name = "Tomb of Sargeras (Normal)",
   release = 7,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 1293, name = "Titanic Onslaught Armor", classId = 1 },
@@ -1740,6 +1826,7 @@ tinsert(ns.Sets, {
   id = 56,
   name = "Tomb of Sargeras (Heroic)",
   release = 7,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 1294, name = "Titanic Onslaught Armor", classId = 1 },
@@ -1761,6 +1848,7 @@ tinsert(ns.Sets, {
   id = 56,
   name = "Tomb of Sargeras (Mythic)",
   release = 7,
+  category = "Raid",
   instance = 1676,
   difficulty = 16,
   minLevel = 70,
@@ -1784,6 +1872,7 @@ tinsert(ns.Sets, {
   id = 56,
   name = "Tomb of Sargeras (Timewarped)",
   release = 7,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 2305, name = "Titanic Onslaught Armor", classId = 1 },
@@ -1805,6 +1894,7 @@ tinsert(ns.Sets, {
   id = 62,
   name = "Antorus, The Burning Throne (Raid Finder)",
   release = 7,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 1519, name = "Juggernaut Battlegear", classId = 1 },
@@ -1826,6 +1916,7 @@ tinsert(ns.Sets, {
   id = 62,
   name = "Antorus, The Burning Throne (Normal)",
   release = 7,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 1516, name = "Juggernaut Battlegear", classId = 1 },
@@ -1847,6 +1938,7 @@ tinsert(ns.Sets, {
   id = 62,
   name = "Antorus, The Burning Throne (Heroic)",
   release = 7,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 1517, name = "Juggernaut Battlegear", classId = 1 },
@@ -1868,6 +1960,7 @@ tinsert(ns.Sets, {
   id = 62,
   name = "Antorus, The Burning Throne (Mythic)",
   release = 7,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 1518, name = "Juggernaut Battlegear", classId = 1 },
@@ -1890,6 +1983,7 @@ tinsert(ns.Sets, {
   id = 48,
   name = "Legion Invasions",
   release = 7,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 157, name = "Felforged Armor", classId = 1 },
@@ -1914,6 +2008,7 @@ tinsert(ns.Sets, {
   id = 45,
   name = "Legion Season 1 and 2 (Combatant I)",
   release = 7,
+  category = "PvP",
   sets = {
     { id = 1069, name = "Vindictive Combatant's Plate Armor", classId = 1 },
     { id = 1164, name = "Vindictive Combatant's Scaled Armor", classId = 2 },
@@ -1933,6 +2028,7 @@ tinsert(ns.Sets, {
   id = 45,
   name = "Legion Season 1 and 2 (Elite)",
   release = 7,
+  category = "PvP",
   sets = {
     { id = 1135, name = "Vindictive Gladiator's Plate Armor", classId = 1 },
     { id = 1123, name = "Vindictive Gladiator's Scaled Armor", classId = 2 },
@@ -1952,6 +2048,7 @@ tinsert(ns.Sets, {
   id = 45,
   name = "Legion Season 1 and 2 (Gladiator)",
   release = 7,
+  category = "PvP",
   sets = {
     { id = 1133, name = "Vindictive Gladiator's Plate Armor", classId = 1 },
     { id = 1121, name = "Vindictive Gladiator's Scaled Armor", classId = 2 },
@@ -1971,6 +2068,7 @@ tinsert(ns.Sets, {
   id = 46,
   name = "Legion Season 3 and 4 (Combatant I)",
   release = 7,
+  category = "PvP",
   sets = {
     { id = 1269, name = "Cruel Combatant's Plate Armor", classId = 1 },
     { id = 1279, name = "Cruel Combatant's Scaled Armor", classId = 2 },
@@ -1990,6 +2088,7 @@ tinsert(ns.Sets, {
   id = 46,
   name = "Legion Season 3 and 4 (Elite)",
   release = 7,
+  category = "PvP",
   sets = {
     { id = 1227, name = "Cruel Gladiator's Plate Armor", classId = 1 },
     { id = 1243, name = "Cruel Gladiator's Scaled Armor", classId = 2 },
@@ -2009,6 +2108,7 @@ tinsert(ns.Sets, {
   id = 46,
   name = "Legion Season 3 and 4 (Gladiator)",
   release = 7,
+  category = "PvP",
   sets = {
     { id = 1225, name = "Cruel Gladiator's Plate Armor", classId = 1 },
     { id = 1241, name = "Cruel Gladiator's Scaled Armor", classId = 2 },
@@ -2028,6 +2128,7 @@ tinsert(ns.Sets, {
   id = 57,
   name = "Legion Season 5, 6, and 7 (Combatant I)",
   release = 7,
+  category = "PvP",
   sets = {
     { id = 1378, name = "Fierce Combatant's Plate Armor", classId = 1 },
     { id = 1368, name = "Fierce Combatant's Scaled Armor", classId = 2 },
@@ -2047,6 +2148,7 @@ tinsert(ns.Sets, {
   id = 57,
   name = "Legion Season 5, 6, and 7 (Elite)",
   release = 7,
+  category = "PvP",
   sets = {
     { id = 1398, name = "Fierce Gladiator's Plate Armor", classId = 1 },
     { id = 1388, name = "Fierce Gladiator's Scaled Armor", classId = 2 },
@@ -2066,6 +2168,7 @@ tinsert(ns.Sets, {
   id = 57,
   name = "Legion Season 5, 6, and 7 (Gladiator)",
   release = 7,
+  category = "PvP",
   sets = {
     { id = 1422, name = "Fierce Gladiator's Plate Armor", classId = 1 },
     { id = 1412, name = "Fierce Gladiator's Scaled Armor", classId = 2 },
@@ -2088,6 +2191,7 @@ tinsert(ns.Sets, {
   name = "Uldir (Raid Finder)",
   instance = 1861,
   release = 8,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 1653, name = "Eternal Curator's Protectorate", classId = 1 },
@@ -2110,6 +2214,7 @@ tinsert(ns.Sets, {
   name = "Uldir (Normal)",
   instance = 1861,
   release = 8,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 1650, name = "Eternal Curator's Protectorate", classId = 1 },
@@ -2132,6 +2237,7 @@ tinsert(ns.Sets, {
   name = "Uldir (Heroic)",
   instance = 1861,
   release = 8,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 1651, name = "Eternal Curator's Protectorate", classId = 1 },
@@ -2154,6 +2260,7 @@ tinsert(ns.Sets, {
   name = "Uldir (Mythic)",
   instance = 1861,
   release = 8,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 1652, name = "Eternal Curator's Protectorate", classId = 1 },
@@ -2176,6 +2283,7 @@ tinsert(ns.Sets, {
   id = 169,
   name = "Battle of Dazar'alor (Raid Finder)",
   release = 8,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 1819, name = "Gravelord's Direplate", classId = 1 },
@@ -2198,6 +2306,7 @@ tinsert(ns.Sets, {
   name = "Battle of Dazar'alor (Normal)",
   instance = 2070,
   release = 8,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 1818, name = "Gravelord's Direplate", classId = 1 },
@@ -2220,6 +2329,7 @@ tinsert(ns.Sets, {
   name = "Battle of Dazar'alor (Heroic)",
   instance = 2070,
   release = 8,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 1820, name = "Gravelord's Direplate", classId = 1 },
@@ -2242,6 +2352,7 @@ tinsert(ns.Sets, {
   name = "Battle of Dazar'alor (Mythic)",
   instance = 2070,
   release = 8,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 1821, name = "Gravelord's Direplate", classId = 1 },
@@ -2265,6 +2376,7 @@ tinsert(ns.Sets, {
   name = "The Eternal Palace (Raid Finder)",
   instance = 2070,
   release = 8,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 1842, name = "Naga Lord's Warplate", classId = 1 },
@@ -2287,6 +2399,7 @@ tinsert(ns.Sets, {
   name = "The Eternal Palace (Normal)",
   instance = 2070,
   release = 8,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 1830, name = "Naga Lord's Warplate", classId = 1 },
@@ -2309,6 +2422,7 @@ tinsert(ns.Sets, {
   name = "The Eternal Palace (Heroic)",
   instance = 2070,
   release = 8,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 1834, name = "Naga Lord's Warplate", classId = 1 },
@@ -2331,6 +2445,7 @@ tinsert(ns.Sets, {
   name = "The Eternal Palace (Mythic)",
   instance = 2070,
   release = 8,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 1838, name = "Naga Lord's Warplate", classId = 1 },
@@ -2354,6 +2469,7 @@ tinsert(ns.Sets, {
   name = "Ny'alotha, The Waking City (Raid Finder)",
   instance = 2164,
   release = 8,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 1983, name = "Cosmic Aberration's Plate", classId = 1 },
@@ -2376,6 +2492,7 @@ tinsert(ns.Sets, {
   name = "Ny'alotha, The Waking City (Normal)",
   instance = 2070,
   release = 8,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 1982, name = "Cosmic Aberration's Plate", classId = 1 },
@@ -2398,6 +2515,7 @@ tinsert(ns.Sets, {
   name = "Ny'alotha, The Waking City (Heroic)",
   instance = 2070,
   release = 8,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 1984, name = "Cosmic Aberration's Plate", classId = 1 },
@@ -2420,6 +2538,7 @@ tinsert(ns.Sets, {
   name = "Ny'alotha, The Waking City (Mythic)",
   instance = 2070,
   release = 8,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 1985, name = "Cosmic Aberration's Plate", classId = 1 },
@@ -2443,6 +2562,7 @@ tinsert(ns.Sets, {
   id = 167,
   name = "Battle Season 1 (Aspirant)",
   release = 8,
+  category = "PvP",
   sets = {
     { id = 1664, name = "Dread Aspirant's Plate", classId = 1 },
     { id = 1664, name = "Dread Aspirant's Plate", classId = 2 },
@@ -2463,6 +2583,7 @@ tinsert(ns.Sets, {
   id = 167,
   name = "Battle Season 1 (Elite)",
   release = 8,
+  category = "PvP",
   sets = {
     { id = 1731, name = "Dread Gladiator's Plate", classId = 1 },
     { id = 1731, name = "Dread Gladiator's Plate", classId = 2 },
@@ -2483,6 +2604,7 @@ tinsert(ns.Sets, {
   id = 167,
   name = "Battle Season 1 (Gladiator)",
   release = 8,
+  category = "PvP",
   sets = {
     { id = 1663, name = "Dread Gladiator's Plate", classId = 1 },
     { id = 1663, name = "Dread Gladiator's Plate", classId = 2 },
@@ -2503,6 +2625,7 @@ tinsert(ns.Sets, {
   id = 168,
   name = "Battle Season 2 (Aspirant)",
   release = 8,
+  category = "PvP",
   sets = {
     { id = 1746, name = "Sinister Aspirant's Plate", classId = 1 },
     { id = 1746, name = "Sinister Aspirant's Plate", classId = 2 },
@@ -2523,6 +2646,7 @@ tinsert(ns.Sets, {
   id = 168,
   name = "Battle Season 2 (Elite)",
   release = 8,
+  category = "PvP",
   sets = {
     { id = 1750, name = "Sinister Gladiator's Plate", classId = 1 },
     { id = 1750, name = "Sinister Gladiator's Plate", classId = 2 },
@@ -2543,6 +2667,7 @@ tinsert(ns.Sets, {
   id = 168,
   name = "Battle Season 2 (Gladiator)",
   release = 8,
+  category = "PvP",
   sets = {
     { id = 1751, name = "Sinister Gladiator's Plate", classId = 1 },
     { id = 1751, name = "Sinister Gladiator's Plate", classId = 2 },
@@ -2563,6 +2688,7 @@ tinsert(ns.Sets, {
   id = 173,
   name = "Battle Season 3 (Aspirant)",
   release = 8,
+  category = "PvP",
   sets = {
     { id = 1869, name = "Notorious Aspirant's Plate", classId = 1 },
     { id = 1869, name = "Notorious Aspirant's Plate", classId = 2 },
@@ -2583,6 +2709,7 @@ tinsert(ns.Sets, {
   id = 173,
   name = "Battle Season 3 (Elite)",
   release = 8,
+  category = "PvP",
   sets = {
     { id = 1865, name = "Notorious Gladiator's Plate", classId = 1 },
     { id = 1865, name = "Notorious Gladiator's Plate", classId = 2 },
@@ -2603,6 +2730,7 @@ tinsert(ns.Sets, {
   id = 173,
   name = "Battle Season 3 (Gladiator)",
   release = 8,
+  category = "PvP",
   sets = {
     { id = 1864, name = "Notorious Gladiator's Plate", classId = 1 },
     { id = 1864, name = "Notorious Gladiator's Plate", classId = 2 },
@@ -2623,6 +2751,7 @@ tinsert(ns.Sets, {
   id = 175,
   name = "Battle Season 4 (Elite)",
   release = 8,
+  category = "PvP",
   sets = {
     { id = 1950, name = "Corrupted Gladiator's Plate", classId = 1 },
     { id = 1950, name = "Corrupted Gladiator's Plate", classId = 2 },
@@ -2643,6 +2772,7 @@ tinsert(ns.Sets, {
   id = 175,
   name = "Battle Season 4 (Gladiator)",
   release = 8,
+  category = "PvP",
   sets = {
     { id = 1951, name = "Corrupted Gladiator's Plate", classId = 1 },
     { id = 1951, name = "Corrupted Gladiator's Plate", classId = 2 },
@@ -2666,6 +2796,7 @@ tinsert(ns.Sets, {
   name = "Castle Nathria (Raid Finder)",
   instance = 2296,
   release = 9,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 2151, name = "Grand Sentinel's Greatplate", classId = 1 },
@@ -2688,6 +2819,7 @@ tinsert(ns.Sets, {
   name = "Castle Nathria (Normal)",
   instance = 2296,
   release = 9,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 2150, name = "Grand Sentinel's Greatplate", classId = 1 },
@@ -2710,6 +2842,7 @@ tinsert(ns.Sets, {
   name = "Castle Nathria (Heroic)",
   instance = 2296,
   release = 9,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 2152, name = "Grand Sentinel's Greatplate", classId = 1 },
@@ -2732,6 +2865,7 @@ tinsert(ns.Sets, {
   name = "Castle Nathria (Mythic)",
   instance = 2296,
   release = 9,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 2153, name = "Grand Sentinel's Greatplate", classId = 1 },
@@ -2756,6 +2890,7 @@ tinsert(ns.Sets, {
   name = "Sanctum of Domination (Raid Finder)",
   instance = 2450,
   release = 9,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 2251, name = "Soulforged Dreadplate", classId = 1 },
@@ -2778,6 +2913,7 @@ tinsert(ns.Sets, {
   name = "Sanctum of Domination (Normal)",
   instance = 2450,
   release = 9,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 2250, name = "Soulforged Dreadplate", classId = 1 },
@@ -2800,6 +2936,7 @@ tinsert(ns.Sets, {
   name = "Sanctum of Domination (Heroic)",
   instance = 2450,
   release = 9,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 2252, name = "Soulforged Dreadplate", classId = 1 },
@@ -2822,6 +2959,7 @@ tinsert(ns.Sets, {
   name = "Sanctum of Domination (Mythic)",
   instance = 2450,
   release = 9,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 2253, name = "Soulforged Dreadplate", classId = 1 },
@@ -2845,6 +2983,7 @@ tinsert(ns.Sets, {
   name = "Sepulcher of the First Ones (Raid Finder)",
   instance = 2481,
   release = 9,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 2415, name = "Armaments of the Infinite Infantry", classId = 1 },
@@ -2866,6 +3005,7 @@ tinsert(ns.Sets, {
   name = "Sepulcher of the First Ones (Normal)",
   instance = 2481,
   release = 9,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 2414, name = "Armaments of the Infinite Infantry", classId = 1 },
@@ -2887,6 +3027,7 @@ tinsert(ns.Sets, {
   name = "Sepulcher of the First Ones (Heroic)",
   instance = 2481,
   release = 9,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 2416, name = "Armaments of the Infinite Infantry", classId = 1 },
@@ -2908,6 +3049,7 @@ tinsert(ns.Sets, {
   name = "Sepulcher of the First Ones (Mythic)",
   instance = 2481,
   release = 9,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 2417, name = "Armaments of the Infinite Infantry", classId = 1 },
@@ -2930,6 +3072,7 @@ tinsert(ns.Sets, {
   id = 182,
   name = "Shadowlands Season 1 (Aspirant)",
   release = 9,
+  category = "PvP",
   sets = {
     { id = 2177, name = "Sinful Aspirant's Plate", classId = 1 },
     { id = 2177, name = "Sinful Aspirant's Plate", classId = 2 },
@@ -2950,6 +3093,7 @@ tinsert(ns.Sets, {
   id = 182,
   name = "Shadowlands Season 1 (Elite)",
   release = 9,
+  category = "PvP",
   sets = {
     { id = 2169, name = "Sinful Gladiator's Plate", classId = 1 },
     { id = 2169, name = "Sinful Gladiator's Plate", classId = 2 },
@@ -2970,6 +3114,7 @@ tinsert(ns.Sets, {
   id = 182,
   name = "Shadowlands Season 1 (Gladiator)",
   release = 9,
+  category = "PvP",
   sets = {
     { id = 2173, name = "Sinful Gladiator's Plate", classId = 1 },
     { id = 2173, name = "Sinful Gladiator's Plate", classId = 2 },
@@ -2990,6 +3135,7 @@ tinsert(ns.Sets, {
   id = 189,
   name = "Shadowlands Season 2 (Aspirant)",
   release = 9,
+  category = "PvP",
   sets = {
     { id = 2249, name = "Unchained Aspirant's Plate", classId = 1 },
     { id = 2249, name = "Unchained Aspirant's Plate", classId = 2 },
@@ -3010,6 +3156,7 @@ tinsert(ns.Sets, {
   id = 189,
   name = "Shadowlands Season 2 (Elite)",
   release = 9,
+  category = "PvP",
   sets = {
     { id = 2231, name = "Unchained Gladiator's Plate", classId = 1 },
     { id = 2231, name = "Unchained Gladiator's Plate", classId = 2 },
@@ -3030,6 +3177,7 @@ tinsert(ns.Sets, {
   id = 189,
   name = "Shadowlands Season 2 (Gladiator)",
   release = 9,
+  category = "PvP",
   sets = {
     { id = 2227, name = "Unchained Gladiator's Plate", classId = 1 },
     { id = 2227, name = "Unchained Gladiator's Plate", classId = 2 },
@@ -3050,6 +3198,7 @@ tinsert(ns.Sets, {
   id = 193,
   name = "Shadowlands Seasons 3 and 4 (Aspirant)",
   release = 9,
+  category = "PvP",
   sets = {
     { id = 2568, name = "Eternal Aspirant's Plate", classId = 1 },
     { id = 2568, name = "Eternal Aspirant's Plate", classId = 2 },
@@ -3070,6 +3219,7 @@ tinsert(ns.Sets, {
   id = 193,
   name = "Shadowlands Seasons 3 and 4 (Elite)",
   release = 9,
+  category = "PvP",
   sets = {
     { id = 2580, name = "Eternal Gladiator's Plate Armor", classId = 1 },
     { id = 2575, name = "Eternal Gladiator's Scaled Armor", classId = 2 },
@@ -3089,6 +3239,7 @@ tinsert(ns.Sets, {
   id = 193,
   name = "Shadowlands Seasons 3 and 4 (Gladiator)",
   release = 9,
+  category = "PvP",
   sets = {
     { id = 2564, name = "Eternal Gladiator's Plate Armor", classId = 1 },
     { id = 2534, name = "Eternal Gladiator's Scaled Armor", classId = 2 },
@@ -3110,6 +3261,7 @@ tinsert(ns.Sets, {
   id = 181,
   name = "Kyrian (Campaign)",
   release = 9,
+  category = "Covenant",
   sets = {
     { id = 2029, name = "Warplate of the Selfless", classId = 1 },
     { id = 2029, name = "Warplate of the Selfless", classId = 2 },
@@ -3130,6 +3282,7 @@ tinsert(ns.Sets, {
   id = 181,
   name = "Kyrian (Path of Ascension)",
   release = 9,
+  category = "Covenant",
   sets = {
     { id = 2027, name = "Warplate of the Reverent", classId = 1 },
     { id = 2027, name = "Warplate of the Reverent", classId = 2 },
@@ -3150,6 +3303,7 @@ tinsert(ns.Sets, {
   id = 181,
   name = "Kyrian (Renown)",
   release = 9,
+  category = "Covenant",
   sets = {
     { id = 2030, name = "Warplate of the Harmonious", classId = 1 },
     { id = 2030, name = "Warplate of the Harmonious", classId = 2 },
@@ -3170,6 +3324,7 @@ tinsert(ns.Sets, {
   id = 180,
   name = "Necrolord (Abominable Stitching)",
   release = 9,
+  category = "Covenant",
   sets = {
     { id = 2045, name = "Abomination of Maldraxxus", classId = 1 },
     { id = 2045, name = "Abomination of Maldraxxus", classId = 2 },
@@ -3190,6 +3345,7 @@ tinsert(ns.Sets, {
   id = 180,
   name = "Necrolord (Campaign)",
   release = 9,
+  category = "Covenant",
   sets = {
     { id = 2043, name = "Might of Maldraxxus", classId = 1 },
     { id = 2043, name = "Might of Maldraxxus", classId = 2 },
@@ -3210,6 +3366,7 @@ tinsert(ns.Sets, {
   id = 180,
   name = "Necrolord (Renown)",
   release = 9,
+  category = "Covenant",
   sets = {
     { id = 2044, name = "Authority of Maldraxxus", classId = 1 },
     { id = 2044, name = "Authority of Maldraxxus", classId = 2 },
@@ -3230,6 +3387,7 @@ tinsert(ns.Sets, {
   id = 180,
   name = "Necrolord (Unity)",
   release = 9,
+  category = "Covenant",
   sets = {
     { id = 2046, name = "Mettle of Maldraxxus", classId = 1 },
     { id = 2046, name = "Mettle of Maldraxxus", classId = 2 },
@@ -3250,6 +3408,7 @@ tinsert(ns.Sets, {
   id = 178,
   name = "Night Fae (Campaign)",
   release = 9,
+  category = "Covenant",
   sets = {
     { id = 2059, name = "Queensguard Warbark", classId = 1 },
     { id = 2059, name = "Queensguard Warbark", classId = 2 },
@@ -3270,6 +3429,7 @@ tinsert(ns.Sets, {
   id = 178,
   name = "Night Fae (Queen's Conservatory)",
   release = 9,
+  category = "Covenant",
   sets = {
     { id = 2062, name = "Conservator's Warbark", classId = 1 },
     { id = 2062, name = "Conservator's Warbark", classId = 2 },
@@ -3290,6 +3450,7 @@ tinsert(ns.Sets, {
   id = 178,
   name = "Night Fae (Renown)",
   release = 9,
+  category = "Covenant",
   sets = {
     { id = 2060, name = "Night Courtier's Warbark", classId = 1 },
     { id = 2060, name = "Night Courtier's Warbark", classId = 2 },
@@ -3310,6 +3471,7 @@ tinsert(ns.Sets, {
   id = 178,
   name = "Night Fae (Winterborn)",
   release = 9,
+  category = "Covenant",
   sets = {
     { id = 2061, name = "Winterborn Warbark", classId = 1 },
     { id = 2061, name = "Winterborn Warbark", classId = 2 },
@@ -3330,6 +3492,7 @@ tinsert(ns.Sets, {
   id = 179,
   name = "Venthyr (Campaign)",
   release = 9,
+  category = "Covenant",
   sets = {
     { id = 2075, name = "Dread Sentinel's Ebony Battleplate", classId = 1 },
     { id = 2075, name = "Dread Sentinel's Ebony Battleplate", classId = 2 },
@@ -3350,6 +3513,7 @@ tinsert(ns.Sets, {
   id = 179,
   name = "Venthyr (Ember Court)",
   release = 9,
+  category = "Covenant",
   sets = {
     { id = 2077, name = "Dread Sentinel's Court Battleplate", classId = 1 },
     { id = 2077, name = "Dread Sentinel's Court Battleplate", classId = 2 },
@@ -3370,6 +3534,7 @@ tinsert(ns.Sets, {
   id = 179,
   name = "Venthyr (Renown)",
   release = 9,
+  category = "Covenant",
   sets = {
     { id = 2078, name = "Dread Sentinel's Crimson Battleplate", classId = 1 },
     { id = 2078, name = "Dread Sentinel's Crimson Battleplate", classId = 2 },
@@ -3390,6 +3555,7 @@ tinsert(ns.Sets, {
   id = 179,
   name = "Venthyr (Travel Network)",
   release = 9,
+  category = "Covenant",
   sets = {
     { id = 2076, name = "Dread Sentinel's Burnished Battleplate", classId = 1 },
     { id = 2076, name = "Dread Sentinel's Burnished Battleplate", classId = 2 },
@@ -3413,6 +3579,7 @@ tinsert(ns.Sets, {
   name = "Vault of the Incarnates (Raid Finder)",
   instance = 2522,
   release = 10,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 2652, name = "Stones of the Walking Mountain", classId = 1 },
@@ -3435,6 +3602,7 @@ tinsert(ns.Sets, {
   name = "Vault of the Incarnates (Normal)",
   instance = 2522,
   release = 10,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 2613, name = "Stones of the Walking Mountain", classId = 1 },
@@ -3457,6 +3625,7 @@ tinsert(ns.Sets, {
   name = "Vault of the Incarnates (Heroic)",
   instance = 2522,
   release = 10,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 2650, name = "Stones of the Walking Mountain", classId = 1 },
@@ -3479,6 +3648,7 @@ tinsert(ns.Sets, {
   name = "Vault of the Incarnates (Mythic)",
   instance = 2522,
   release = 10,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 2651, name = "Stones of the Walking Mountain", classId = 1 },
@@ -3502,6 +3672,7 @@ tinsert(ns.Sets, {
   name = "Aberrus, The Shadowed Crucible (Raid Finder)",
   instance = 2569,
   release = 10,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 2900, name = "Irons of the Onyx Crucible", classId = 1 },
@@ -3524,6 +3695,7 @@ tinsert(ns.Sets, {
   name = "Aberrus, The Shadowed Crucible (Normal)",
   instance = 2569,
   release = 10,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 2858, name = "Irons of the Onyx Crucible", classId = 1 },
@@ -3546,6 +3718,7 @@ tinsert(ns.Sets, {
   name = "Aberrus, The Shadowed Crucible (Heroic)",
   instance = 2569,
   release = 10,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 2898, name = "Irons of the Onyx Crucible", classId = 1 },
@@ -3568,6 +3741,7 @@ tinsert(ns.Sets, {
   name = "Aberrus, The Shadowed Crucible (Mythic)",
   instance = 2569,
   release = 10,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 2899, name = "Irons of the Onyx Crucible", classId = 1 },
@@ -3591,6 +3765,7 @@ tinsert(ns.Sets, {
   name = "Amirdrassil, The Dream's Hope (Raid Finder)",
   instance = 2549,
   release = 10,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 3152, name = "Molten Vanguard's Mortarplate", classId = 1 },
@@ -3613,6 +3788,7 @@ tinsert(ns.Sets, {
   name = "Amirdrassil, The Dream's Hope (Normal)",
   instance = 2549,
   release = 10,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 3150, name = "Molten Vanguard's Mortarplate", classId = 1 },
@@ -3635,6 +3811,7 @@ tinsert(ns.Sets, {
   name = "Amirdrassil, The Dream's Hope (Heroic)",
   instance = 2549,
   release = 10,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 3149, name = "Molten Vanguard's Mortarplate", classId = 1 },
@@ -3657,6 +3834,7 @@ tinsert(ns.Sets, {
   name = "Amirdrassil, The Dream's Hope (Mythic)",
   instance = 2549,
   release = 10,
+  category = "Raid",
   minLevel = 70,
   sets = {
     { id = 3151, name = "Molten Vanguard's Mortarplate", classId = 1 },
@@ -3680,6 +3858,7 @@ tinsert(ns.Sets, {
   id = 207,
   name = "Dragonflight Season 1 (Aspirant)",
   release = 10,
+  category = "PvP",
   sets = {
     { id = 2715, name = "Crimson Aspirant's Plate Armor", classId = 1 },
     { id = 2715, name = "Crimson Aspirant's Plate Armor", classId = 2 },
@@ -3700,6 +3879,7 @@ tinsert(ns.Sets, {
   id = 207,
   name = "Dragonflight Season 1 (Elite)",
   release = 10,
+  category = "PvP",
   sets = {
     { id = 2741, name = "Crimson Gladiator's Plate Armor", classId = 1 },
     { id = 2739, name = "Crimson Gladiator's Plate Armor", classId = 2 },
@@ -3720,6 +3900,7 @@ tinsert(ns.Sets, {
   id = 207,
   name = "Dragonflight Season 1 (Gladiator)",
   release = 10,
+  category = "PvP",
   sets = {
     { id = 2740, name = "Crimson Gladiator's Plate Armor", classId = 1 },
     { id = 2738, name = "Crimson Gladiator's Plate Armor", classId = 2 },
@@ -3740,6 +3921,7 @@ tinsert(ns.Sets, {
   id = 212,
   name = "Dragonflight Season 2 (Aspirant)",
   release = 10,
+  category = "PvP",
   sets = {
     { id = 3010, name = "Obsidian Aspirant's Plate Armor", classId = 1 },
     { id = 3010, name = "Obsidian Aspirant's Plate Armor", classId = 2 },
@@ -3760,6 +3942,7 @@ tinsert(ns.Sets, {
   id = 212,
   name = "Dragonflight Season 2 (Elite)",
   release = 10,
+  category = "PvP",
   sets = {
     { id = 2934, name = "Obsidian Gladiator's Plate Armor", classId = 1 },
     { id = 2932, name = "Obsidian Gladiator's Plate Armor", classId = 2 },
@@ -3780,6 +3963,7 @@ tinsert(ns.Sets, {
   id = 212,
   name = "Dragonflight Season 2 (Gladiator)",
   release = 10,
+  category = "PvP",
   sets = {
     { id = 2933, name = "Obsidian Gladiator's Plate Armor", classId = 1 },
     { id = 2931, name = "Obsidian Gladiator's Plate Armor", classId = 2 },
@@ -3800,6 +3984,7 @@ tinsert(ns.Sets, {
   id = 226,
   name = "Dragonflight Season 3 and 4 (Aspirant)",
   release = 10,
+  category = "PvP",
   sets = {
     { id = 3292, name = "Verdant Aspirant's Plate Armor", classId = 1 },
     { id = 3292, name = "Verdant Aspirant's Plate Armor", classId = 2 },
@@ -3820,6 +4005,7 @@ tinsert(ns.Sets, {
   id = 226,
   name = "Dragonflight Season 3 and 4 (Elite)",
   release = 10,
+  category = "PvP",
   sets = {
     { id = 3220, name = "Verdant Gladiator's Plate Armor", classId = 1 },
     { id = 3218, name = "Verdant Gladiator's Plate Armor", classId = 2 },
@@ -3840,6 +4026,7 @@ tinsert(ns.Sets, {
   id = 226,
   name = "Dragonflight Season 3 and 4 (Gladiator)",
   release = 10,
+  category = "PvP",
   sets = {
     { id = 3219, name = "Verdant Gladiator's Plate Armor", classId = 1 },
     { id = 3217, name = "Verdant Gladiator's Plate Armor", classId = 2 },
@@ -3863,6 +4050,7 @@ tinsert(ns.Sets, {
   name = "Nerub-ar Palace (Raid Finder)",
   instance = 2657,
   release = 11,
+  category = "Raid",
   minLevel = 80,
   sets = {
     { id = 3768, name = "Warsculptor's Masterwork", classId = 1 },
@@ -3885,6 +4073,7 @@ tinsert(ns.Sets, {
   name = "Nerub-ar Palace (Normal)",
   instance = 2657,
   release = 11,
+  category = "Raid",
   minLevel = 80,
   sets = {
     { id = 3767, name = "Warsculptor's Masterwork", classId = 1 },
@@ -3907,6 +4096,7 @@ tinsert(ns.Sets, {
   name = "Nerub-ar Palace (Heroic)",
   instance = 2657,
   release = 11,
+  category = "Raid",
   minLevel = 80,
   sets = {
     { id = 3765, name = "Warsculptor's Masterwork", classId = 1 },
@@ -3929,6 +4119,7 @@ tinsert(ns.Sets, {
   name = "Nerub-ar Palace (Mythic)",
   instance = 2657,
   release = 11,
+  category = "Raid",
   minLevel = 80,
   sets = {
     { id = 3766, name = "Warsculptor's Masterwork", classId = 1 },
@@ -3952,6 +4143,7 @@ tinsert(ns.Sets, {
   name = "Liberation of Undermine (Raid Finder)",
   instance = 2769,
   release = 11,
+  category = "Raid",
   minLevel = 80,
   sets = {
     { id = 4326, name = "Enforcer's Backalley Brawlplate", classId = 1 },
@@ -3974,6 +4166,7 @@ tinsert(ns.Sets, {
   name = "Liberation of Undermine (Normal)",
   instance = 2769,
   release = 11,
+  category = "Raid",
   minLevel = 80,
   sets = {
     { id = 4325, name = "Enforcer's Backalley Brawlplate", classId = 1 },
@@ -3996,6 +4189,7 @@ tinsert(ns.Sets, {
   name = "Liberation of Undermine (Heroic)",
   instance = 2769,
   release = 11,
+  category = "Raid",
   minLevel = 80,
   sets = {
     { id = 4323, name = "Enforcer's Backalley Brawlplate", classId = 1 },
@@ -4018,6 +4212,7 @@ tinsert(ns.Sets, {
   name = "Liberation of Undermine (Mythic)",
   instance = 2769,
   release = 11,
+  category = "Raid",
   minLevel = 80,
   sets = {
     { id = 4324, name = "Enforcer's Backalley Brawlplate", classId = 1 },
@@ -4041,6 +4236,7 @@ tinsert(ns.Sets, {
   name = "Manaforge Omega (Raid Finder)",
   instance = 16178,
   release = 11,
+  category = "Raid",
   minLevel = 80,
   sets = {
     { id = 5148, name = "Chains of the Living Weapon", classId = 1 },
@@ -4064,6 +4260,7 @@ tinsert(ns.Sets, {
   name = "Manaforge Omega (Normal)",
   instance = 16178,
   release = 11,
+  category = "Raid",
   minLevel = 80,
   sets = {
     { id = 5147, name = "Chains of the Living Weapon", classId = 1 },
@@ -4087,6 +4284,7 @@ tinsert(ns.Sets, {
   name = "Manaforge Omega (Heroic)",
   instance = 16178,
   release = 11,
+  category = "Raid",
   minLevel = 80,
   sets = {
     { id = 5145, name = "Chains of the Living Weapon", classId = 1 },
@@ -4110,6 +4308,7 @@ tinsert(ns.Sets, {
   name = "Manaforge Omega (Mythic)",
   instance = 16178,
   release = 11,
+  category = "Raid",
   minLevel = 80,
   sets = {
     { id = 5146, name = "Chains of the Living Weapon", classId = 1 },
@@ -4134,6 +4333,7 @@ tinsert(ns.Sets, {
   id = 271,
   name = "The War Within Season 1 (Aspirant)",
   release = 11,
+  category = "PvP",
   sets = {
     { id = 3696, name = "Forged Aspirant's Plate Armor", classId = 1 },
     { id = 3696, name = "Forged Aspirant's Plate Armor", classId = 2 },
@@ -4154,6 +4354,7 @@ tinsert(ns.Sets, {
   id = 271,
   name = "The War Within Season 1 (Elite)",
   release = 11,
+  category = "PvP",
   sets = {
     { id = 3845, name = "Forged Gladiator's Plate Armor", classId = 1 },
     { id = 3841, name = "Forged Gladiator's Plate Armor", classId = 2 },
@@ -4174,6 +4375,7 @@ tinsert(ns.Sets, {
   id = 271,
   name = "The War Within Season 1 (Gladiator)",
   release = 11,
+  category = "PvP",
   sets = {
     { id = 3832, name = "Forged Gladiator's Plate Armor", classId = 1 },
     { id = 3828, name = "Forged Gladiator's Plate Armor", classId = 2 },
@@ -4194,6 +4396,7 @@ tinsert(ns.Sets, {
   id = 283,
   name = "The War Within Season 2 (Aspirant)",
   release = 11,
+  category = "PvP",
   sets = {
     { id = 4340, name = "Prized Aspirant's Plate Armor", classId = 1 },
     { id = 4340, name = "Prized Aspirant's Plate Armor", classId = 2 },
@@ -4214,6 +4417,7 @@ tinsert(ns.Sets, {
   id = 283,
   name = "The War Within Season 2 (Elite)",
   release = 11,
+  category = "PvP",
   sets = {
     { id = 4031, name = "Prized Gladiator's Plate Armor", classId = 1 },
     { id = 4026, name = "Prized Gladiator's Plate Armor", classId = 2 },
@@ -4234,6 +4438,7 @@ tinsert(ns.Sets, {
   id = 283,
   name = "The War Within Season 2 (Gladiator)",
   release = 11,
+  category = "PvP",
   sets = {
     { id = 4017, name = "Prized Gladiator's Plate Armor", classId = 1 },
     { id = 4013, name = "Prized Gladiator's Plate Armor", classId = 2 },
@@ -4254,6 +4459,7 @@ tinsert(ns.Sets, {
   id = 284,
   name = "The War Within Season 3 (Aspirant)",
   release = 11,
+  category = "PvP",
   sets = {
     { id = 5170, name = "Astral Aspirant's Plate Armor", classId = 1 },
     { id = 5170, name = "Astral Aspirant's Plate Armor", classId = 2 },
@@ -4274,6 +4480,7 @@ tinsert(ns.Sets, {
   id = 284,
   name = "The War Within Season 3 (Elite)",
   release = 11,
+  category = "PvP",
   sets = {
     { id = 4124, name = "Astral Gladiator's Plate Armor", classId = 1 },
     { id = 4119, name = "Astral Gladiator's Plate Armor", classId = 2 },
@@ -4294,6 +4501,7 @@ tinsert(ns.Sets, {
   id = 284,
   name = "The War Within Season 3 (Gladiator)",
   release = 11,
+  category = "PvP",
   sets = {
     { id = 4110, name = "Astral Gladiator's Plate Armor", classId = 1 },
     { id = 4106, name = "Astral Gladiator's Plate Armor", classId = 2 },
@@ -4314,6 +4522,7 @@ tinsert(ns.Sets, {
   id = 267,
   name = "Hallowfall Gear (Delves)",
   release = 11,
+  category = "Delve",
   sets = {
     { id = 3879, name = "Aegis of Hidden Stars", classId = 1 },
     { id = 3879, name = "Aegis of Hidden Stars", classId = 2 },
@@ -4334,6 +4543,7 @@ tinsert(ns.Sets, {
   id = 336,
   name = "K'areshi Gear (Delves)",
   release = 11,
+  category = "Delve",
   sets = {
     { id = 5187, name = "Void-Scarred Captain's Plate", classId = 1 },
     { id = 5187, name = "Void-Scarred Captain's Plate", classId = 2 },
@@ -4354,6 +4564,7 @@ tinsert(ns.Sets, {
   id = 303,
   name = "Undermine Gear (Delves)",
   release = 11,
+  category = "Delve",
   sets = {
     { id = 4270, name = "Junkreaver's Plates", classId = 1 },
     { id = 4270, name = "Junkreaver's Plates", classId = 2 },
@@ -4374,6 +4585,7 @@ tinsert(ns.Sets, {
   id = 264,
   name = "Underground Gear",
   release = 11,
+  category = "Delve",
   sets = {
     { id = 3643, name = "Delver's Plate Armor", classId = 1 },
     { id = 3643, name = "Delver's Plate Armor", classId = 2 },
@@ -4396,6 +4608,7 @@ tinsert(ns.Sets, {
   id = 280,
   name = "Algari Chainmail",
   release = 11,
+  category = "Dungeon",
   sets = {
     {},
     {},
@@ -4416,6 +4629,7 @@ tinsert(ns.Sets, {
   id = 281,
   name = "Coreway Regalia",
   release = 11,
+  category = "Dungeon",
   sets = {
     {},
     {},
@@ -4435,6 +4649,7 @@ tinsert(ns.Sets, {
   id = 279,
   name = "Dorn Defender Armaments",
   release = 11,
+  category = "Dungeon",
   sets = {
     { id = 3889, name = "Dorn Defender Armaments", classId = 1 },
     { id = 3889, name = "Dorn Defender Armaments", classId = 2 },
@@ -4448,6 +4663,7 @@ tinsert(ns.Sets, {
   id = 282,
   name = "Threads of Awakening",
   release = 11,
+  category = "Dungeon",
   sets = {
     {},
     {},
@@ -4464,6 +4680,7 @@ tinsert(ns.Sets, {
   id = 314,
   name = "Horrific Visions Revisited",
   release = 11,
+  category = "Dungeon",
   sets = {
     { id = 4362, name = "Malignant Vision's Battleplate", classId = 1 },
     { id = 4362, name = "Malignant Vision's Battleplate", classId = 2 },
@@ -4487,6 +4704,7 @@ tinsert(ns.Sets, {
   id = 372,
   name = "Voidspire / Dreamrift (Raid Finder)",
   release = 12,
+  category = "Raid",
   minLevel = 80,
   sets = {
     { id = 5465, name = "Rage of the Night Ender", classId = 1 },
@@ -4508,6 +4726,7 @@ tinsert(ns.Sets, {
   id = 372,
   name = "Voidspire / Dreamrift (Normal)",
   release = 12,
+  category = "Raid",
   minLevel = 80,
   sets = {
     { id = 5466, name = "Rage of the Night Ender", classId = 1 },
@@ -4529,6 +4748,7 @@ tinsert(ns.Sets, {
   id = 372,
   name = "Voidspire / Dreamrift (Heroic)",
   release = 12,
+  category = "Raid",
   minLevel = 80,
   sets = {
     { id = 5467, name = "Rage of the Night Ender", classId = 1 },
@@ -4550,6 +4770,7 @@ tinsert(ns.Sets, {
   id = 372,
   name = "Voidspire / Dreamrift (Mythic)",
   release = 12,
+  category = "Raid",
   minLevel = 80,
   sets = {
     { id = 5468, name = "Rage of the Night Ender", classId = 1 },
@@ -4573,6 +4794,7 @@ tinsert(ns.Sets, {
   id = 371,
   name = "Midnight Season 1 (Aspirant)",
   release = 12,
+  category = "PvP",
   sets = {
     { id = 5472, name = "Galactic Aspirant's Plate Armor", classId = 1 },
     { id = 5472, name = "Galactic Aspirant's Plate Armor", classId = 2 },
@@ -4593,6 +4815,7 @@ tinsert(ns.Sets, {
   id = 371,
   name = "Midnight Season 1 (Elite)",
   release = 12,
+  category = "PvP",
   sets = {
     { id = 5597, name = "Galactic Gladiator's Plate Armor", classId = 1 },
     { id = 5592, name = "Galactic Gladiator's Plate Armor", classId = 2 },
@@ -4613,6 +4836,7 @@ tinsert(ns.Sets, {
   id = 371,
   name = "Midnight Season 1 (Gladiator)",
   release = 12,
+  category = "PvP",
   sets = {
     { id = 5584, name = "Galactic Gladiator's Plate Armor", classId = 1 },
     { id = 5579, name = "Galactic Gladiator's Plate Armor", classId = 2 },
@@ -4633,6 +4857,7 @@ tinsert(ns.Sets, {
   id = 373,
   name = "Harandar Gear",
   release = 12,
+  category = "Delve",
   sets = {
     { id = 5549, name = "Rampant Thorn Armor", classId = 1 },
     { id = 5549, name = "Rampant Thorn Armor", classId = 2 },
@@ -4655,6 +4880,7 @@ tinsert(ns.Sets, {
   id = 274,
   name = "WoW's 20th Anniversary (WoW Anniversary)",
   release = 12,
+  category = "Event",
   sets = {
     { id = 3872, name = "Eternal Battlegear of Wrath", classId = 1 },
     { id = 3871, name = "Eternal Judgment Armor", classId = 2 },

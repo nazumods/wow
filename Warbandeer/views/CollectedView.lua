@@ -173,8 +173,8 @@ end
 -- only" filter, and a raid (row) order flip (oldest/newest-first). Mirrors GearView's
 -- filter chrome and the /collected window's own title-bar toggles.
 function CollectedView:BuildFilter(parent)
-  local BW, BH, PAD, GAP = 96, 20, 8, 6
-  local box = Frame:new{ parent = parent, position = { Width = BW * 3 + GAP * 2, Height = BH } }
+  local BW, BH, PAD, GAP, DW = 96, 20, 8, 6, 110
+  local box = Frame:new{ parent = parent, position = { Width = BW * 3 + (DW + GAP) * 2 + GAP * 2, Height = BH } }
 
   -- One framed toggle at x; returns its (recolorable) border and caption.
   local function toggle(xoff, text, active, onClick)
@@ -207,6 +207,19 @@ function CollectedView:BuildFilter(parent)
   end))
 
   self._sortBorder, self._sortLabel = toggle((BW + GAP) * 2, "NEWEST FIRST", true, function() self:_toggleSort() end)
+
+  -- Expansion + category filter dropdowns (right of the toggles).
+  local dx = (BW + GAP) * 3
+  ui.FilterDropdown:new{
+    parent = box, position = { TopLeft = {dx, 0} }, width = DW, menuWidth = 150,
+    selected = "all", options = self.grid:ExpansionOptions(),
+    onSelect = function(_, key) self.grid:SetExpansion(key) end,
+  }
+  ui.FilterDropdown:new{
+    parent = box, position = { TopLeft = {dx + DW + GAP, 0} }, width = DW, menuWidth = 120,
+    selected = "all", options = self.grid:CategoryOptions(),
+    onSelect = function(_, key) self.grid:SetCategory(key) end,
+  }
 
   return box
 end
