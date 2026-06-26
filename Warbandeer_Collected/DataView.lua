@@ -28,6 +28,13 @@ local function isComplete(status)
   return status == true or status.collected >= status.total
 end
 
+-- A row's name without its trailing "(variant)" suffix — the key the grid alphabetizes
+-- on within an expansion, so a set's difficulty/variant rows stay grouped (and in their
+-- authored order, e.g. Raid Finder→Mythic) rather than scattering by suffix.
+local function baseName(name)
+  return (name:gsub("%s*%b()%s*$", ""))
+end
+
 -- A group passes the active filters. A module-level function (not a method) because
 -- GetData calls it during the base TableFrame construction — before the subclass's
 -- methods are mixed onto the instance. PTR preview is never filtered (small
@@ -144,6 +151,10 @@ end, {
         if self._reverse then return ra > rb end
         return ra < rb
       end
+      -- Within an expansion: alphabetical by base name (A→Z regardless of sort direction);
+      -- same base name (a set's variant/difficulty rows) falls back to authored order.
+      local na, nb = baseName(source[a].name), baseName(source[b].name)
+      if na ~= nb then return na < nb end
       return a < b
     end)
     return lists.map(order, function(srcIdx, dispIdx)
