@@ -347,7 +347,9 @@ function DataView:ExpansionOptions()
   local rels = {}
   for r in pairs(seen) do rels[#rels + 1] = r end
   table.sort(rels, function(a, b) return a > b end)
-  local opts = { { key = "all", label = "All" } }
+  -- The "show all" option is labelled with the dimension, so the button names what it
+  -- filters (e.g. "Expansion") when nothing is selected, and still means no filter.
+  local opts = { { key = "all", label = "Expansion" } }
   for _, r in ipairs(rels) do
     local icon = ns.ReleaseIcons[r]
     opts[#opts + 1] = { key = r, label = (icon and ("|T%s:0|t "):format(icon) or "") .. (ns.Releases[r] or r) }
@@ -364,7 +366,7 @@ local CATEGORY_ORDER = { "Raid", "PvP", "Dungeon", "Delve", "Covenant", "Event" 
 function DataView:CategoryOptions()
   local seen = {}
   for _, g in ipairs(ns.Sets) do if g.category then seen[g.category] = true end end
-  local opts, used = { { key = "all", label = "All" } }, {}
+  local opts, used = { { key = "all", label = "Category" } }, {}
   for _, c in ipairs(CATEGORY_ORDER) do
     if seen[c] then opts[#opts + 1] = { key = c, label = c }; used[c] = true end
   end
