@@ -39,6 +39,7 @@
 198:Trading Post:byset   # Trading Post — armor ensembles; weapon/cosmetic (class-less) sets auto-skipped
 
 # ── merge: combine several class-disjoint group ids into one full row ──
-#   merge <id>+<id>+... | <Category> | <Name>
+#   merge <id>+<id>+... | <Category> | <Name> [| <release>]
+#   release (1=Vanilla..12=Midnight) overrides wago's ExpansionID when it's mistagged.
 merge 279+280+281+282 | Dungeon | The War Within (Dungeons)   # mail/leather/plate/cloth armor groups
-merge 349+297 | Dungeon | Legion Timewalking        # plate (349) + mail (297) timewalking sets
+merge 349+297 | Dungeon | Legion (Timewalking) | 7   # plate (349) + mail (297); release pinned Legion (wago mistags 349 as Shadowlands)

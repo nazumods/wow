@@ -283,8 +283,11 @@ if ($Expand) {
     # several whole groups (armor-type / source splits of one logical set spanning ids).
     if ($t -match '^merge\s+(.+)$') {
       $p = $Matches[1] -split '\s*\|\s*'
-      if ($p.Count -ne 3) { throw "Bad merge line '$ln' — expected 'merge ids | Category | Name'." }
-      $merges += @{ ids = @($p[0] -split '\s*\+\s*' | ForEach-Object { [int]$_ }); cat = $p[1].Trim(); name = $p[2].Trim() }
+      if ($p.Count -lt 3 -or $p.Count -gt 4) { throw "Bad merge line '$ln' — expected 'merge ids | Category | Name [| release]'." }
+      $merges += @{
+        ids = @($p[0] -split '\s*\+\s*' | ForEach-Object { [int]$_ }); cat = $p[1].Trim(); name = $p[2].Trim()
+        release = if ($p.Count -ge 4 -and $p[3].Trim()) { [int]$p[3].Trim() } else { $null }   # override wago's (sometimes wrong) ExpansionID
+      }
       continue
     }
     $kv = $t -split ':', 3
@@ -401,11 +404,12 @@ if ($Expand) {
     }
     if ($union -eq 0) { Write-Host "  skip merge '$($mg.name)' — no class bits" -ForegroundColor DarkYellow; continue }
     $gid = ($mg.ids | Measure-Object -Minimum).Minimum
-    Write-Host "  merge [$($mg.ids -join '+')] -> '$($mg.name)' ($($slot.Count) classes)" -ForegroundColor Cyan
+    $rel = if ($mg.release) { $mg.release } else { $exp + 1 }
+    Write-Host "  merge [$($mg.ids -join '+')] -> '$($mg.name)' ($($slot.Count) classes, release $rel)" -ForegroundColor Cyan
     $L.Add('tinsert(ns.Sets, {')
     $L.Add("  id = $gid,")
     $L.Add("  name = `"$(LuaEsc $mg.name)`",")
-    $L.Add("  release = $($exp + 1),")
+    $L.Add("  release = $rel,")
     $L.Add("  category = `"$($mg.cat)`",")
     $L.Add('  sets = {')
     $max = ($slot.Keys | Measure-Object -Maximum).Maximum

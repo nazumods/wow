@@ -8116,8 +8116,8 @@ tinsert(ns.Sets, {
 })
 tinsert(ns.Sets, {
   id = 297,
-  name = "Legion Timewalking",
-  release = 9,
+  name = "Legion (Timewalking)",
+  release = 7,
   category = "Dungeon",
   sets = {
     { id = 2292, name = "Ravencrest's Battleplate", classId = 1 },
