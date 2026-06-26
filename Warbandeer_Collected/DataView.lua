@@ -366,7 +366,7 @@ end
 
 -- Display order for the category filter; categories present in ns.Sets but unlisted
 -- here are appended so the menu never silently drops one.
-local CATEGORY_ORDER = { "Raid", "PvP", "Dungeon", "Delve", "Covenant", "Renown", "World", "Event" }
+local CATEGORY_ORDER = { "Raid", "PvP", "Dungeon", "Delve", "Covenant", "Renown", "World", "Trading Post", "Event" }
 
 ---Dropdown option specs for the category filter: "All" then each category present.
 ---@return table[]  `{ key, label }` specs for `ui.FilterDropdown`

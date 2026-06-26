@@ -261,21 +261,24 @@ filled `ns.Sets` row per label for the groups listed in
 pwsh ./update-sets.ps1 -Expand          # regenerates from expand-groups.txt
 ```
 
-The canonical group list is **`expand-groups.txt`** — one **`id:Category`** line per group
-(`'#'` comments). To add a mega-set, add a line and re-run `-Expand`; to refresh after a
-patch, just re-run `-Expand`. For each group it buckets sets by label, decomposes
-`ClassMask` into class slots (first/lowest id wins, `{}` for gaps — same model as the
-normal fill, so the rows still refresh on the weekly run), and:
+The canonical group list is **`expand-groups.txt`** — one **`id:Category[:byset]`** line per
+group (`'#'` comments). To add a mega-set, add a line and re-run `-Expand`; to refresh after a
+patch, just re-run `-Expand`. For each group it buckets sets by **label** (default — one row
+per recolor/source variant) or by **set** (`byset` mode — one row per named ensemble, for
+label-less flat lists like the Trading Post that grow over time), decomposes `ClassMask` into
+class slots (first/lowest id wins, `{}` for gaps), and:
 
-- **skips** labels whose union `ClassMask` has no class bits (heritage/cosmetic pieces)
-  and the bare no-label bucket of an otherwise-labeled group — both logged;
+- **skips** labels/sets whose union `ClassMask` has no class bits (heritage/cosmetic/weapon
+  pieces) and the bare no-label bucket of an otherwise-labeled group — both logged;
 - **keeps but logs** *overlap* labels (recolors collapsing to one slot per class — only a
   representative appearance shows; the rest aren't separable from wago's data);
 - infers `release` from the group's max `ExpansionID` and tags every row the given category.
 
-The region is plain `tinsert(ns.Sets, {...})` rows, so the normal generator re-resolves
-them by id + label suffix — running `pwsh ./update-sets.ps1` afterwards is a no-op (verify
-with `-Check`). Re-run `-Expand` (then the normal generator) to refresh after a patch.
+The region is **owned wholesale by `-Expand`** — the normal `update-sets.ps1` pass **skips it
+verbatim** (its byset rows resolve by set name, which the single-label resolver would clobber).
+So refresh it by re-running `-Expand`, not the normal generator. The weekly workflow runs both
+(normal pass for the hand-curated rows, then `-Expand` for the region), so new Trading Post
+ensembles land automatically.
 
 **Dead rows — `excludes.txt`.** A few generated rows exist in wago but render **empty
 in-game**: their appearance sources don't resolve to items on a live client (typically

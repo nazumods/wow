@@ -31,6 +31,13 @@ jobs:
         shell: pwsh
         run: ./Warbandeer_Collected/tools/update-sets.ps1
 
+      # Refresh the AUTO-EXPAND region too (mega-sets / Trading Post). The normal pass
+      # above skips that region, so -Expand is what keeps it current (e.g. new monthly
+      # Trading Post ensembles) from tools/expand-groups.txt.
+      - name: Refresh -Expand region
+        shell: pwsh
+        run: ./Warbandeer_Collected/tools/update-sets.ps1 -Expand
+
       # Validate here: PRs opened with GITHUB_TOKEN don't trigger the normal
       # luacheck workflow, so lint the regenerated file before opening one.
       - uses: leafo/gh-actions-lua@v10

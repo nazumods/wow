@@ -25,3 +25,6 @@
 
 # ── Misc ──
 356:Event      # Argussian Defender's Regalia (Legion / Argus)
+
+# ── byset: one row per named ensemble (no labels; flat list that grows monthly) ──
+198:Trading Post:byset   # Trading Post — armor ensembles; weapon/cosmetic (class-less) sets auto-skipped
