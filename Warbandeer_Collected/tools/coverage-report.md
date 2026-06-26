@@ -2,7 +2,7 @@
 
 Generated from wago.tools TransmogSet (product wow, build 12.0.7.68275, 2026-06-23) by `tools/update-sets.ps1 -AuditCoverage`.
 
-We curate **128 distinct wago group ids** in `ns.Sets`. wago has **148 groups** with placeable rows; the **20** below are **not captured yet**. Categories are heuristic (from each group's difficulty/variant labels + name) — verify before adding. Inclusion is editorial: see `tools/UPDATING.md`.
+We curate **132 distinct wago group ids** in `ns.Sets`. wago has **148 groups** with placeable rows; the **16** below are **not captured yet**. Categories are heuristic (from each group's difficulty/variant labels + name) — verify before adding. Inclusion is editorial: see `tools/UPDATING.md`.
 
 ## By category
 
@@ -13,16 +13,15 @@ We curate **128 distinct wago group ids** in `ns.Sets`. wago has **148 groups** 
 | Raid | 3 |
 | Profession / Crafted | 1 |
 | Trading Post / Anniversary | 1 |
-| Event / feature / other | 8 |
+| Event / feature / other | 4 |
 
 ## By expansion
 
 | Expansion | Groups |
 | --- | ---: |
 | Dragonflight | 5 |
-| Legion | 6 |
+| Legion | 3 |
 | Warlords of Draenor | 1 |
-| Mists of Pandaria | 1 |
 | Cataclysm | 1 |
 | Wrath of the Lich King | 2 |
 | The Burning Crusade | 2 |
@@ -67,15 +66,11 @@ We curate **128 distinct wago group ids** in `ns.Sets`. wago has **148 groups** 
 | ---: | --- | --- | ---: | --- |
 | 198 | Trading Post | Legion | 12 | _(none)_ |
 
-### Event / feature / other (8)
+### Event / feature / other (4)
 
 | id | name | expansion | sets | difficulty / variant labels |
 | ---: | --- | --- | ---: | --- |
 | 356 | Argussian Defender's Regalia | Legion | 2 | _(none)_ |
-| 320 | Legion: Dungeon | Legion | 16 | Blue, Dark, Green, Purple, Red, Silver, Teal |
-| 321 | Legion: Remix | Legion | 35 | Black, Blue, Brown, Gold, Green, Light, Nightmare, Orange, Original, Purple, Red, Silver, Teal, Valhallas Gold |
-| 319 | Legion: World | Legion | 35 | Black, Blue, Brown, Copper, Dark, Darksteel, Gold, Green, Grey, Holy, Light, Orange, Original, Purple, Red, Silver, Sky, Teal, White, White Gold, Yellow |
-| 244 | Mists of Pandaria: World | Mists of Pandaria | 42 | Black, Blue, Brown, Crimson, Dark, Gold, Green, Indigo, Light, Original, Purple, Red, Silver, White, Yellow |
 | 6 | Tier Awesome | Wrath of the Lich King | 1 | Season 2 |
 | 7 | Tier It Up | Wrath of the Lich King | 1 | Season 1 |
 | 60 | Trial of Style | The Burning Crusade | 12 | Trial of Style Season 2 |

@@ -226,3 +226,40 @@ fill the sets:
 `release` indexes `ns.Releases` (1 = Vanilla … 12 = Midnight). `instance` /
 `difficulty` are only needed for lockout linking; copy a sibling tier's values or
 look them up on wago (`JournalInstance`).
+
+> **Tip — the difficulty suffix matches *any* `ItemNameDescription` label**, not just
+> Raid Finder/Normal/Heroic/Mythic. A multi-label group (one carrying e.g. *Dungeons*,
+> *World Drops*, *Renown*, or color names *Blue*/*Red*) is captured by seeding **one
+> shell per label**, each `name = "Group (<label>)"`. A label fills cleanly when its
+> sets are **class-disjoint**; a label that bundles recolors (multiple sets covering the
+> same class) keeps only the lowest-id appearance per class.
+
+## Expanding recolor / multi-source mega-sets (`-Expand`)
+
+Some groups carry *dozens* of labels (Legion: World has 22 color variants, MoP: World
+17). Hand-seeding a shell per label is tedious, so **`-Expand`** auto-generates one
+filled `ns.Sets` row per label for the listed groups, into a single **guarded region**
+at the end of `sets.lua` (`-- >>> AUTO-EXPAND … -- <<< AUTO-EXPAND`, replaced wholesale
+each run):
+
+```
+pwsh ./update-sets.ps1 -Expand "319:World,320:Dungeon,321:Event,244:World"
+```
+
+Argument is a comma list of **`id:Category`**. For each group it buckets sets by label,
+decomposes `ClassMask` into class slots (first/lowest id wins, `{}` for gaps — same model
+as the normal fill, so the rows still refresh on the weekly run), and:
+
+- **skips** labels whose union `ClassMask` has no class bits (heritage/cosmetic pieces)
+  and the bare no-label bucket of an otherwise-labeled group — both logged;
+- **keeps but logs** *overlap* labels (recolors collapsing to one slot per class — only a
+  representative appearance shows; the rest aren't separable from wago's data);
+- infers `release` from the group's max `ExpansionID` and tags every row the given category.
+
+The region is plain `tinsert(ns.Sets, {...})` rows, so the normal generator re-resolves
+them by id + label suffix — running `pwsh ./update-sets.ps1` afterwards is a no-op (verify
+with `-Check`). Re-run `-Expand` (then the normal generator) to refresh after a patch.
+
+> **Coverage ceiling.** Overlap labels and cosmetic (`class=0`) pieces mean a few
+> *appearances* per mega-set can't be shown in a per-class grid — this captures every
+> **group**, not literally every appearance. Validate in-game with `/collected coverage`.
