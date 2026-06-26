@@ -259,13 +259,15 @@ local function suggestionName(rec)
   return nil
 end
 
--- Normalize an enchant name for comparison: lowercase + collapse/trim whitespace. The
--- stored applied name and the resolved recommendation are both in "Enchant <Slot> - <X>"
--- form, so this is an exact (case/space-insensitive) match. Rank/quality-tier variants of
--- the same enchant share a name (the tier is a separate tooltip icon, stripped at capture),
--- so they are NOT flagged; only a genuinely different enchant is.
+-- Normalize an enchant name for comparison. The applied name (captured from the item's
+-- "Enchanted:" tooltip line) keeps the "Enchant <Slot> - " prefix, but a ClassCodex
+-- recommendation is the *bare* enchant name with no prefix — so we strip that prefix from
+-- both (the same "^.- %- " drop the Detail display does) before the case/space-insensitive
+-- compare, or an identical enchant would read as "wrong". Rank/quality-tier variants share
+-- a name (the tier is a separate tooltip icon, stripped at capture), so they are NOT flagged;
+-- only a genuinely different enchant is.
 local function normEnchant(name)
-  return (name:lower():gsub("%s+", " "):gsub("^ ", ""):gsub(" $", ""))
+  return (name:gsub("^.- %- ", ""):lower():gsub("%s+", " "):gsub("^ ", ""):gsub(" $", ""))
 end
 
 -- A *stat-line* enchant renders its granted stats instead of a name — leg enchants are
@@ -299,6 +301,16 @@ end
 local function recTooltipLines(rec)
   local TI = _G.C_TooltipInfo
   if rec.kind == "item" and rec.id and TI and TI.GetItemByID then
+    -- The scroll's stat ("Use:") line only appears in the tooltip once the item is cached;
+    -- before that GetItemByID returns just its name/quality, which `statLineMatches` would
+    -- read as a stat mismatch and wrongly flag a *correct* spellthread (#236). Treat an
+    -- uncached item as "can't judge" (return nil) and kick off a load so the next render
+    -- resolves it — matching the observed "refresh twice and it clears" behaviour.
+    local Item = _G.C_Item
+    if Item and Item.IsItemDataCachedByID and not Item.IsItemDataCachedByID(rec.id) then
+      if Item.RequestLoadItemDataByID then Item.RequestLoadItemDataByID(rec.id) end
+      return nil
+    end
     local data = TI.GetItemByID(rec.id)
     if data and data.lines then
       local out = {}

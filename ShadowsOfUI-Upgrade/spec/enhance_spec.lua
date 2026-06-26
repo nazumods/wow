@@ -266,6 +266,18 @@ describe("ShadowsOfUI-Upgrade enhance", function()
       assert.same({}, ns.EnchantMismatches(mage({ Head = ench(10, 555, "enchant helm -  Best") })))
     end)
 
+    it("does not flag when the applied name keeps the 'Enchant <Slot> - ' prefix but the recommendation is the bare name", function()
+      -- ClassCodex gives the bare enchant name; the applied name (read from the item's
+      -- "Enchanted:" tooltip line) keeps the "Enchant Ring - " prefix. Same enchant → the
+      -- prefix must be stripped from both before comparing, else it reads as "wrong".
+      _G.ClassCodexGearData.MAGE.frost.enchants = {
+        { slot = "Ring", best = { itemId = 601, name = "Eyes of the Eagle" } },
+      }
+      assert.same({}, ns.EnchantMismatches(mage({
+        Finger1 = ench(11, 555, "Enchant Ring - Eyes of the Eagle"),
+      })))
+    end)
+
     it("skips a bare slot (no applied enchant) — MissingEnchants' job", function()
       assert.same({}, ns.EnchantMismatches(mage({ Head = ench(10, 0, nil) })))
     end)
@@ -321,6 +333,20 @@ describe("ShadowsOfUI-Upgrade enhance", function()
         assert.same({}, ns.EnchantMismatches(mage({
           Legs = ench(20, 7935, "+41 Intellect & +115 Stamina"),
         })))
+      end)
+
+      it("does not flag while the recommended scroll's item data is still uncached", function()
+        -- An uncached scroll's tooltip carries only its name/quality, not the "Use:" stat
+        -- line, so a magnitude compare would wrongly flag a correct spellthread (#236). Gate
+        -- on the item being cached: until then it's "can't judge" and a load is requested.
+        local requested
+        _G.C_Item.IsItemDataCachedByID = function() return false end
+        _G.C_Item.RequestLoadItemDataByID = function(id) requested = id end
+        tooltip({ "Sunfire Silk Spellthread" })   -- partial: only the name resolved so far
+        assert.same({}, ns.EnchantMismatches(mage({
+          Legs = ench(20, 7935, "+41 Intellect & +115 Stamina"),
+        })))
+        assert.equals(700, requested)             -- a load was kicked off for next render
       end)
 
       it("requires one line to carry all stats (a coincidental single match isn't enough)", function()
