@@ -99,6 +99,7 @@ end
 
 ---Refresh the counter: "Sets: collected / total" in live mode; in PTR PREVIEW mode the
 ---grid is only the upcoming sets, so the counter becomes a "+N sets upcoming" tally.
+---The live count tracks the active expansion/category filter (DataView:VisibleCounts).
 function MainWindow:RefreshCounter()
   if self.data._ptr then
     local seen, n = {}, 0
@@ -109,7 +110,8 @@ function MainWindow:RefreshCounter()
     end
     self.counter:Text(("+%d sets upcoming%s"):format(n, ns.PtrBuild and (" · PTR " .. ns.PtrBuild.ptr) or ""))
   else
-    self.counter:Text("Sets: " .. ns.db.collected .. " / " .. ns.db.total)
+    local collected, total = self.data:VisibleCounts()
+    self.counter:Text("Sets: " .. collected .. " / " .. total)
   end
   -- The PTR line (with the build) is longer than the live count, so shrink the counter
   -- font in PTR mode to keep it clear of the class icons (matches the embedded view).

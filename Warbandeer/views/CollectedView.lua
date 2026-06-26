@@ -152,7 +152,7 @@ function CollectedView:_render()
     end
     self.counter:Text(("+%d sets upcoming%s"):format(n, api.PtrBuild and (" · PTR " .. api.PtrBuild.ptr) or ""))
   else
-    local collected, total = api:Counts()
+    local collected, total = self.grid:VisibleCounts()   -- tracks the active expansion/category filter
     self.counter:Text("Sets: " .. collected .. " / " .. total)
   end
   -- The PTR line (with the build) is longer than the live count, so shrink the counter

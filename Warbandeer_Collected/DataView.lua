@@ -345,6 +345,30 @@ function DataView:SetExpansion(key) self._expansion = key; self:_refilter() end
 ---@param key string  a category name, or "all"
 function DataView:SetCategory(key) self._category = key; self:_refilter() end
 
+---Collected / total set-slot counts over the currently filtered (matching) groups, so
+---the counter tracks the active expansion/category filter. Mirrors `Scan`'s per-slot
+---accumulation (a set spanning N class columns counts N, collected = slots the scan
+---marked fully collected); with both filters "all" it equals `db.collected`/`db.total`.
+---@return number collected, number total
+function DataView:VisibleCounts()
+  local collected, total = 0, 0
+  for _, grp in ipairs(ns.Sets) do
+    if matches(self, grp) then
+      local gsets = ns.db.sets[grp.id]
+      if gsets then
+        for _, set in ipairs(grp.sets) do
+          local s = set.id and gsets[set.id]
+          if s ~= nil then
+            total = total + 1
+            if s == true then collected = collected + 1 end
+          end
+        end
+      end
+    end
+  end
+  return collected, total
+end
+
 ---Dropdown option specs for the expansion filter: "All" then one per release present
 ---in `ns.Sets` (newest first), each label prefixed with the expansion badge.
 ---@return table[]  `{ key, label }` specs for `ui.FilterDropdown`
@@ -439,12 +463,12 @@ function DataView:BuildFilterStrip(parent, onModeChanged)
   ui.FilterDropdown:new{
     parent = strip, position = { TopLeft = {dx, 0} }, width = DW_EXP, menuWidth = 200,
     bordered = true, selected = "all", options = self:ExpansionOptions(),
-    onSelect = function(_, key) self:SetExpansion(key) end,
+    onSelect = function(_, key) self:SetExpansion(key); if onModeChanged then onModeChanged() end end,
   }
   ui.FilterDropdown:new{
     parent = strip, position = { TopLeft = {dx + DW_EXP + GAP, 0} }, width = DW, menuWidth = 120,
     bordered = true, selected = "all", options = self:CategoryOptions(),
-    onSelect = function(_, key) self:SetCategory(key) end,
+    onSelect = function(_, key) self:SetCategory(key); if onModeChanged then onModeChanged() end end,
   }
 
   strip:Width(dx + DW_EXP + GAP + DW)
