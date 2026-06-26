@@ -1,0 +1,25 @@
+# Deliberately-excluded wago transmog groups / rows. Single source of truth, read by
+# both `update-sets.ps1 -AuditCoverage` and `-Expand`. Two granularities:
+#
+#   <id>          Exclude the whole group. The coverage audit won't list it as
+#                 "uncaptured" (it's counted as a deliberate exclusion instead), and
+#                 -Expand skips every one of its labels. Use for content we will never
+#                 add: Blizzard test placeholders, or sets whose shape doesn't fit the
+#                 class x set grid.
+#
+#   <id>:<label>  Exclude one label-row of a group (label verbatim from wago). -Expand
+#                 skips just that row; the group still counts as captured via its other
+#                 labels. Use for -Expand rows that exist in wago but render EMPTY on a
+#                 live client — defunct limited-time event content whose appearance
+#                 sources don't resolve to items. Find these in-game with
+#                 `/collected coverage` (lists rows that render nothing).
+#
+# '#' starts a comment. Re-run -AuditCoverage / -Expand after editing.
+
+# ── Whole groups (never captured) ──
+6      # Tier Awesome — Blizzard test placeholder (sets named "Child Chain Set")
+7      # Tier It Up — Blizzard test placeholder (sets named "Parent Chain Set")
+198    # Trading Post — monthly cosmetic ensembles, wrong shape for the class x set grid
+
+# ── Dead -Expand rows (exist in wago, render empty on live) ──
+321:Nightmare   # Legion Remix (Timerunning) — "Barkbinds of the Archdruid's Nightmare" (set 4439) absent on live

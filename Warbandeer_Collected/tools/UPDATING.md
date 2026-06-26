@@ -190,12 +190,27 @@ its expansion, set count, and difficulty/variant labels, bucketed into heuristic
 **categories** (PvP, Dungeon / Mythic+, Delve, Raid, Profession / Crafted, Trading
 Post, Timewalking, Reputation / Renown / Campaign, World drops / quests, and a
 catch-all). Categories come from each group's labels + name — a **triage aid, not a
-source of truth**, so verify before adding. Blizzard test placeholders are skipped; no
-Lua is touched.
+source of truth**, so verify before adding. Blizzard `test`-named groups are skipped
+automatically; groups listed in `excludes.txt` are reported as deliberate exclusions, not
+candidates (see **Exclusions** below); no Lua is touched.
 
 The report is a point-in-time snapshot (regenerable on demand, not kept in sync) — re-run
 it after a patch. Inclusion stays editorial and incremental: pick a group from the report
 and add it with the same shell as a raid tier below.
+
+### Exclusions (`excludes.txt`)
+
+The deliberate-exclusion list is the single source of truth shared by `-AuditCoverage` and
+`-Expand`. Two granularities:
+
+- **`<id>`** — exclude a whole group: the audit counts it as a deliberate exclusion (not
+  "uncaptured"), and `-Expand` skips all its labels. For content we'll never add — test
+  placeholders the `test`-name regex misses (e.g. `6`, `7` = "Parent/Child Chain Set"), or
+  sets whose shape doesn't fit the class × set grid (`198` Trading Post cosmetic ensembles).
+- **`<id>:<label>`** — exclude one `-Expand` row (see **Dead rows** above).
+
+`'#'` starts a comment; each line carries the reason. The audit header reports the count
+(`N are deliberately excluded`), so the floor stays honest.
 
 ## Adding a new raid tier (or any audited group)
 
@@ -260,14 +275,15 @@ The region is plain `tinsert(ns.Sets, {...})` rows, so the normal generator re-r
 them by id + label suffix — running `pwsh ./update-sets.ps1` afterwards is a no-op (verify
 with `-Check`). Re-run `-Expand` (then the normal generator) to refresh after a patch.
 
-**Dead rows — `expand-exclude.txt`.** A few generated rows exist in wago but render
-**empty in-game**: their appearance sources don't resolve to items on a live client
-(typically defunct limited-time event content, e.g. Legion Remix/Timerunning). They pass
-the offline checks but show as blank rows. Find them in-game with **`/collected coverage`**
-(it lists rows that render nothing), then add an **`id:label`** line (label verbatim) to
-[`expand-exclude.txt`](expand-exclude.txt) and re-run `-Expand` — the listed labels are
-skipped (logged `exclude …`). This is the only way to drop them persistently, since the
-region is regenerated wholesale each run.
+**Dead rows — `excludes.txt`.** A few generated rows exist in wago but render **empty
+in-game**: their appearance sources don't resolve to items on a live client (typically
+defunct limited-time event content, e.g. Legion Remix/Timerunning). They pass the offline
+checks but show as blank rows. Find them in-game with **`/collected coverage`** (it lists
+rows that render nothing), then add an **`<id>:<label>`** line (label verbatim) to
+[`excludes.txt`](excludes.txt) and re-run `-Expand` — the listed rows are skipped (logged
+`exclude …`). This is the only way to drop them persistently, since the region is
+regenerated wholesale each run. See **Exclusions** below — the same file drops whole
+groups from the audit.
 
 > **Coverage ceiling.** Overlap labels and cosmetic (`class=0`) pieces mean a few
 > *appearances* per mega-set can't be shown in a per-class grid — this captures every

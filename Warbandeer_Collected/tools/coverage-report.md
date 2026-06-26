@@ -2,7 +2,7 @@
 
 Generated from wago.tools TransmogSet (product wow, build 12.0.7.68275, 2026-06-23) by `tools/update-sets.ps1 -AuditCoverage`.
 
-We curate **132 distinct wago group ids** in `ns.Sets`. wago has **148 groups** with placeable rows; the **16** below are **not captured yet**. Categories are heuristic (from each group's difficulty/variant labels + name) — verify before adding. Inclusion is editorial: see `tools/UPDATING.md`.
+We curate **132 distinct wago group ids** in `ns.Sets`. wago has **148 groups** with placeable rows; **3 are deliberately excluded** (`tools/excludes.txt`), leaving the **13** below **not captured yet**. Categories are heuristic (from each group's difficulty/variant labels + name) — verify before adding. Inclusion is editorial: see `tools/UPDATING.md`.
 
 ## By category
 
@@ -12,18 +12,16 @@ We curate **132 distinct wago group ids** in `ns.Sets`. wago has **148 groups** 
 | Dungeon / Mythic+ | 6 |
 | Raid | 3 |
 | Profession / Crafted | 1 |
-| Trading Post / Anniversary | 1 |
-| Event / feature / other | 4 |
+| Event / feature / other | 2 |
 
 ## By expansion
 
 | Expansion | Groups |
 | --- | ---: |
 | Dragonflight | 5 |
-| Legion | 3 |
+| Legion | 2 |
 | Warlords of Draenor | 1 |
 | Cataclysm | 1 |
-| Wrath of the Lich King | 2 |
 | The Burning Crusade | 2 |
 | Vanilla | 2 |
 
@@ -60,17 +58,9 @@ We curate **132 distinct wago group ids** in `ns.Sets`. wago has **148 groups** 
 | ---: | --- | --- | ---: | --- |
 | 296 | Draenor Crafter's Work | Warlords of Draenor | 6 | Timewalking Vendor - Blue, Timewalking Vendor - Green, Timewalking Vendor - Orange, Timewalking Vendor - Purple |
 
-### Trading Post / Anniversary (1)
-
-| id | name | expansion | sets | difficulty / variant labels |
-| ---: | --- | --- | ---: | --- |
-| 198 | Trading Post | Legion | 12 | _(none)_ |
-
-### Event / feature / other (4)
+### Event / feature / other (2)
 
 | id | name | expansion | sets | difficulty / variant labels |
 | ---: | --- | --- | ---: | --- |
 | 356 | Argussian Defender's Regalia | Legion | 2 | _(none)_ |
-| 6 | Tier Awesome | Wrath of the Lich King | 1 | Season 2 |
-| 7 | Tier It Up | Wrath of the Lich King | 1 | Season 1 |
 | 60 | Trial of Style | The Burning Crusade | 12 | Trial of Style Season 2 |

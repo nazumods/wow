@@ -72,6 +72,29 @@ param(
 $ErrorActionPreference = 'Stop'
 $SetsFile = (Resolve-Path -LiteralPath $SetsFile).Path
 
+# Single source of truth for deliberately-excluded wago groups/rows (tools/excludes.txt),
+# read by both -AuditCoverage and -Expand. Two granularities:
+#   <id>          — whole group: the audit won't list it as uncaptured, and -Expand skips
+#                   every label. For content we'll never add (test placeholders, sets whose
+#                   shape doesn't fit the class grid).
+#   <id>:<label>  — one label-row: -Expand skips just that row (the group still counts as
+#                   captured via its other labels). For -Expand rows that render empty on a
+#                   live client (defunct-event sources that don't resolve to items).
+# '#' starts a comment. Returns @{ groups = @{[int]=$true}; rows = @{"id|label"=$true} }.
+function Get-Excludes {
+  $g = @{}; $r = @{}
+  $f = Join-Path $PSScriptRoot 'excludes.txt'
+  if (Test-Path -LiteralPath $f) {
+    foreach ($ln in (Get-Content -LiteralPath $f)) {
+      $t = ($ln -split '#', 2)[0].Trim()
+      if (-not $t) { continue }
+      if ($t -match ':') { $kv = $t -split ':', 2; $r["$([int]$kv[0].Trim())|$($kv[1].Trim())"] = $true }
+      else { $g[[int]$t] = $true }
+    }
+  }
+  return @{ groups = $g; rows = $r }
+}
+
 # ── Coverage-audit mode ──────────────────────────────────────────────────────
 # Report the wago TransmogSetGroups we DON'T yet curate in ns.Sets, with enough
 # metadata (expansion, difficulty/variant labels, set count) to triage which to
@@ -151,9 +174,11 @@ if ($AuditCoverage) {
     return 'Event / feature / other'
   }
 
+  $excl = (Get-Excludes).groups
   $unc = @()
   foreach ($gid in ($grp.Keys | Sort-Object)) {
     if ($curated.ContainsKey($gid)) { continue }
+    if ($excl.ContainsKey($gid)) { continue }   # deliberately excluded (excludes.txt)
     $g = $grp[$gid]
     $labels = @($g.labels) | Sort-Object
     $unc += [pscustomobject]@{
@@ -170,7 +195,7 @@ if ($AuditCoverage) {
   $L.Add('')
   $L.Add("Generated from wago.tools TransmogSet (product wow, build $Build$(if($bDate){", $bDate"})) by ``tools/update-sets.ps1 -AuditCoverage``.")
   $L.Add('')
-  $L.Add("We curate **$($curated.Count) distinct wago group ids** in ``ns.Sets``. wago has **$($grp.Count) groups** with placeable rows; the **$($unc.Count)** below are **not captured yet**. Categories are heuristic (from each group's difficulty/variant labels + name) — verify before adding. Inclusion is editorial: see ``tools/UPDATING.md``.")
+  $L.Add("We curate **$($curated.Count) distinct wago group ids** in ``ns.Sets``. wago has **$($grp.Count) groups** with placeable rows; **$($excl.Count) are deliberately excluded** (``tools/excludes.txt``), leaving the **$($unc.Count)** below **not captured yet**. Categories are heuristic (from each group's difficulty/variant labels + name) — verify before adding. Inclusion is editorial: see ``tools/UPDATING.md``.")
   $L.Add('')
   $L.Add('## By category')
   $L.Add('')
@@ -232,20 +257,7 @@ if ($Expand) {
   }
   if ($jobIds.Count -eq 0) { throw '-Expand was empty.' }
 
-  # Exclusion list: "id:label" lines (label verbatim) for rows that exist in wago but
-  # render empty in-game — defunct-event sets whose sources don't resolve to items on a
-  # live client (found via /collected coverage). Keyed "id|label"; '#' comments/blanks ok.
-  $exclude = @{}
-  $excludeFile = Join-Path $PSScriptRoot 'expand-exclude.txt'
-  if (Test-Path -LiteralPath $excludeFile) {
-    foreach ($ln in (Get-Content -LiteralPath $excludeFile)) {
-      $t = $ln.Trim()
-      if (-not $t -or $t.StartsWith('#')) { continue }
-      $t = ($t -split '#', 2)[0].Trim()
-      $kv = $t -split ':', 2
-      if ($kv.Count -eq 2) { $exclude["$([int]$kv[0].Trim())|$($kv[1].Trim())"] = $true }
-    }
-  }
+  $excl = Get-Excludes   # tools/excludes.txt — whole groups + "id:label" dead rows
 
   $builds = (Invoke-WebRequest -Uri 'https://wago.tools/api/builds' -UseBasicParsing -ErrorAction Stop).Content | ConvertFrom-Json
   if (-not $Build) { $Build = $builds.wow[0].version }
@@ -296,7 +308,7 @@ if ($Expand) {
           $slot[$c] = @{ id = $r.ID; name = (LuaEsc ([string]$r.Name_lang)) }
         }
       }
-      if ($exclude.ContainsKey("$gid|$lab")) { Write-Host "  exclude $gid [$lab] — listed in expand-exclude.txt (renders empty on live)" -ForegroundColor DarkYellow; continue }
+      if ($excl.groups.ContainsKey($gid) -or $excl.rows.ContainsKey("$gid|$lab")) { Write-Host "  exclude $gid [$lab] — listed in excludes.txt" -ForegroundColor DarkYellow; continue }
       if ($union -eq 0) { Write-Host "  skip $gid [$lab] — no class bits (cosmetic)" -ForegroundColor DarkYellow; continue }
       if ($lab -eq '' -and $byl.Count -gt 1) { Write-Host "  skip $gid [(no label)] in labeled group — ambiguous" -ForegroundColor DarkYellow; continue }
       if ($overlap) { Write-Host "  overlap $gid [$lab] — $($rs.Count) sets collapse to $($slot.Count) slots" -ForegroundColor Yellow }
