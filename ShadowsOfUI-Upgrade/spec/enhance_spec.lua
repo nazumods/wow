@@ -335,6 +335,20 @@ describe("ShadowsOfUI-Upgrade enhance", function()
         })))
       end)
 
+      it("does not flag while the recommended scroll's item data is still uncached", function()
+        -- An uncached scroll's tooltip carries only its name/quality, not the "Use:" stat
+        -- line, so a magnitude compare would wrongly flag a correct spellthread (#236). Gate
+        -- on the item being cached: until then it's "can't judge" and a load is requested.
+        local requested
+        _G.C_Item.IsItemDataCachedByID = function() return false end
+        _G.C_Item.RequestLoadItemDataByID = function(id) requested = id end
+        tooltip({ "Sunfire Silk Spellthread" })   -- partial: only the name resolved so far
+        assert.same({}, ns.EnchantMismatches(mage({
+          Legs = ench(20, 7935, "+41 Intellect & +115 Stamina"),
+        })))
+        assert.equals(700, requested)             -- a load was kicked off for next render
+      end)
+
       it("requires one line to carry all stats (a coincidental single match isn't enough)", function()
         tooltip({ "Item Level 115", "Requires Level 80", "Increases Intellect by 41." })
         local res = ns.EnchantMismatches(mage({

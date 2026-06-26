@@ -301,6 +301,16 @@ end
 local function recTooltipLines(rec)
   local TI = _G.C_TooltipInfo
   if rec.kind == "item" and rec.id and TI and TI.GetItemByID then
+    -- The scroll's stat ("Use:") line only appears in the tooltip once the item is cached;
+    -- before that GetItemByID returns just its name/quality, which `statLineMatches` would
+    -- read as a stat mismatch and wrongly flag a *correct* spellthread (#236). Treat an
+    -- uncached item as "can't judge" (return nil) and kick off a load so the next render
+    -- resolves it — matching the observed "refresh twice and it clears" behaviour.
+    local Item = _G.C_Item
+    if Item and Item.IsItemDataCachedByID and not Item.IsItemDataCachedByID(rec.id) then
+      if Item.RequestLoadItemDataByID then Item.RequestLoadItemDataByID(rec.id) end
+      return nil
+    end
     local data = TI.GetItemByID(rec.id)
     if data and data.lines then
       local out = {}
