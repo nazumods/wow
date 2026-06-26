@@ -4480,6 +4480,28 @@ tinsert(ns.Sets, {
     { id = 4363, name = "Vision Tormentor's Battlekit", classId = 13 },
   },
 })
+
+-- WoW 20th Anniversary (a TWW 11.0.5 event; wago tags it newer)
+tinsert(ns.Sets, {
+  id = 274,
+  name = "WoW's 20th Anniversary (WoW Anniversary)",
+  release = 11,
+  sets = {
+    { id = 3872, name = "Eternal Battlegear of Wrath", classId = 1 },
+    { id = 3871, name = "Eternal Judgment Armor", classId = 2 },
+    { id = 3869, name = "Dragonstalker's Eternal Armor", classId = 3 },
+    { id = 3867, name = "Eternal Bloodfang Armor", classId = 4 },
+    { id = 3865, name = "Eternal Vestments of Transcendence", classId = 5 },
+    { id = 3864, name = "Pale Rider's Eternal Armor", classId = 6 },
+    { id = 3866, name = "The Eternal Ten Storms Armor", classId = 7 },
+    { id = 3868, name = "Eternal Netherwind Regalia", classId = 8 },
+    { id = 3873, name = "Eternal Nemesis Raiment", classId = 9 },
+    { id = 3861, name = "Eternal Battlegear of the August Acolyte", classId = 10 },
+    { id = 3870, name = "Eternal Stormrage Armor", classId = 11 },
+    { id = 3863, name = "Netherwalker's Eternal Armor", classId = 12 },
+    { id = 3862, name = "Earth-Warder's Eternal Armor", classId = 13 },
+  },
+})
 -- release 12 (Midnight)
 -- Season 1 tier appearance (TransmogSetGroupID 372); tokens span The Voidspire,
 -- The Dreamrift, and March on Quel'Danas, so no single instance lockout applies.
@@ -4647,27 +4669,5 @@ tinsert(ns.Sets, {
     { id = 5547, name = "Osseoclad's Wear", classId = 11 },
     { id = 5547, name = "Osseoclad's Wear", classId = 12 },
     { id = 5548, name = "Elder Moss Outfit", classId = 13 },
-  },
-})
-
--- Coverage audit #222 (batch 2): covenants / dungeons / classic raids
-tinsert(ns.Sets, {
-  id = 274,
-  name = "WoW's 20th Anniversary (WoW Anniversary)",
-  release = 12,
-  sets = {
-    { id = 3872, name = "Eternal Battlegear of Wrath", classId = 1 },
-    { id = 3871, name = "Eternal Judgment Armor", classId = 2 },
-    { id = 3869, name = "Dragonstalker's Eternal Armor", classId = 3 },
-    { id = 3867, name = "Eternal Bloodfang Armor", classId = 4 },
-    { id = 3865, name = "Eternal Vestments of Transcendence", classId = 5 },
-    { id = 3864, name = "Pale Rider's Eternal Armor", classId = 6 },
-    { id = 3866, name = "The Eternal Ten Storms Armor", classId = 7 },
-    { id = 3868, name = "Eternal Netherwind Regalia", classId = 8 },
-    { id = 3873, name = "Eternal Nemesis Raiment", classId = 9 },
-    { id = 3861, name = "Eternal Battlegear of the August Acolyte", classId = 10 },
-    { id = 3870, name = "Eternal Stormrage Armor", classId = 11 },
-    { id = 3863, name = "Netherwalker's Eternal Armor", classId = 12 },
-    { id = 3862, name = "Earth-Warder's Eternal Armor", classId = 13 },
   },
 })
