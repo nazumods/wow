@@ -5,6 +5,7 @@ local ui = ns.ui
 local min, max = math.min, math.max
 local Class, TitleFrame, ScrollFrame, Label = ns.lua.Class, ui.TitleFrame, ui.ScrollFrame, ui.Label
 local DataView = ns.DataView
+local GameTooltip = GameTooltip
 
 -- This window must match Warbandeer's embedded collected view 1:1 (size + coloring),
 -- so it renders the same shared DataView grid and counter/toggle chrome in the same
@@ -71,6 +72,19 @@ local MainWindow = Class(TitleFrame, function(self)
     position = { Left = {self.counter, ui.edge.Right, 16, 0} },
     text = "",
   }
+
+  -- A FontString can't take mouse events, so overlay a transparent frame on the counter
+  -- to host its hover tooltip (anchored to the label, so it tracks the text width).
+  local counterHover = ui.Frame:new{
+    parent = self,
+    position = {
+      TopLeft = {self.counter, ui.edge.TopLeft, 0, 0},
+      BottomRight = {self.counter, ui.edge.BottomRight, 0, 0},
+    },
+  }
+  counterHover:EnableMouse(true)
+  counterHover:SetScript("OnEnter", function(f) self.data:ShowCountTooltip(f) end)
+  counterHover:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
   self:RefreshCounter()
   self:RefreshWanted()

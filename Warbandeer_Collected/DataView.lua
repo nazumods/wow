@@ -5,6 +5,7 @@ local ui, api, Colors = ns.ui, ns.api, ns.Colors
 local lists, prepend = ns.lua.lists, ns.lua.lists.prepend
 local Class = ns.lua.Class
 local TableFrame, Texture, Label = ui.TableFrame, ui.Texture, ui.Label
+local GameTooltip = GameTooltip
 
 local GreenCheck = {
   atlas = ns.icons.CheckGreen,
@@ -368,6 +369,19 @@ function DataView:VisibleCounts()
     end
   end
   return sets, cells, green
+end
+
+---Explain the counter's three numbers in GameTooltip. Shared by both hosts (the standalone
+---window and the embedded view) so the wording stays in one place; each wires its own hover
+---frame over its counter and calls this from OnEnter. `owner` is that raw hover frame.
+---@param owner Frame  the WoW frame the tooltip anchors to
+function DataView:ShowCountTooltip(owner)
+  GameTooltip:SetOwner(owner, "ANCHOR_BOTTOMRIGHT")
+  GameTooltip:SetText("Collected set totals")
+  GameTooltip:AddLine("|cffffffffsets|r — set rows shown for the current filter.", 0.8, 0.8, 0.8, true)
+  GameTooltip:AddLine("|cffffffffcells|r — class-column cells that hold a set (a set counts once per class it covers).", 0.8, 0.8, 0.8, true)
+  GameTooltip:AddLine("|cffffffffcollected|r — cells you've fully collected, i.e. the green checks.", 0.8, 0.8, 0.8, true)
+  GameTooltip:Show()
 end
 
 ---Dropdown option specs for the expansion filter: "All" then one per release present

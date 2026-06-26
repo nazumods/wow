@@ -4,6 +4,7 @@ local min = math.min
 local ui = ns.ui
 local theme = ns.theme
 local Class, Frame, Label = ns.lua.Class, ui.Frame, ui.Label
+local GameTooltip = GameTooltip
 
 -- Transmog-set collection grid. The grid itself is the sibling Collected addon's
 -- own DataView, reused in `embedded` mode via the WarbandeerCollectedApi global
@@ -76,6 +77,19 @@ local CollectedView = Class(Frame, function(self)
     position = { Left = {self.counter, ui.edge.Right, 16, 0} },
     text = "",
   }
+
+  -- A FontString can't take mouse events, so overlay a transparent frame on the counter
+  -- to host its hover tooltip (anchored to the label, so it tracks the text width).
+  local counterHover = Frame:new{
+    parent = self,
+    position = {
+      TopLeft = {self.counter, ui.edge.TopLeft, 0, 0},
+      BottomRight = {self.counter, ui.edge.BottomRight, 0, 0},
+    },
+  }
+  counterHover:EnableMouse(true)
+  counterHover:SetScript("OnEnter", function(f) self.grid:ShowCountTooltip(f) end)
+  counterHover:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
   -- Shown before the first /collected scan has populated any data. Centered below the
   -- header; the grid is hidden while it shows (see _showGrid) so it never overlaps the
