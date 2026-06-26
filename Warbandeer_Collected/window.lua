@@ -4,7 +4,6 @@ local ns = select(2, ...)
 local ui = ns.ui
 local min, max = math.min, math.max
 local Class, TitleFrame, ScrollFrame, Label = ns.lua.Class, ui.TitleFrame, ui.ScrollFrame, ui.Label
-local Frame, Button, Texture = ui.Frame, ui.Button, ui.Texture
 local DataView = ns.DataView
 
 -- This window must match Warbandeer's embedded collected view 1:1 (size + coloring),
@@ -22,24 +21,22 @@ end
 ---@field scroll ScrollFrame scroll container for the grid's row area
 ---@field counter Label "Sets: collected / total" counter (shrunk in PTR mode)
 ---@field wantedCount Label running "★ N" wanted-set count
----@field _sortBorder Texture raid-order toggle border (gold once newest-first)
----@field _sortLabel Label raid-order toggle caption (OLDEST/NEWEST FIRST)
----@field _wantedBorder Texture "wanted only" filter border (gold while active)
----@field _ptrBorder Texture live/PTR toggle border (gold while in PTR mode)
+---@field filterStrip Frame the shared filter chrome row (DataView:BuildFilterStrip)
 local MainWindow = Class(TitleFrame, function(self)
   -- The window is themed in `ns:Open` (so the titlebar inherits it too); read it back
-  -- here for the chrome. Dark's `header` token is the same gold, so the toggles still
-  -- read as on/off when the void-dark theme isn't loaded.
+  -- here for the counter chrome.
   local theme = self:Theme()
-  local gold, divider = theme.colors.gold or theme.colors.header, theme.colors.divider
-  local titleFont, caps = theme.fonts.title, theme.fonts.caps
+  local gold = theme.colors.gold or theme.colors.header
+  local titleFont = theme.fonts.title
+  local STRIP_H, GAP = DataView.STRIP_H, 6
+  local TOP = STRIP_H + GAP   -- the grid sits below the filter strip
   local w = 110
 
   self.data = DataView:new{
     parent = self,                           -- inherits the window's theme
     position = {
-      TopLeft = {self.titlebar, ui.edge.BottomLeft, 2, -2},
-      TopRight = {self.titlebar, ui.edge.BottomRight, -2, -2},
+      TopLeft = {self.titlebar, ui.edge.BottomLeft, 2, -2 - TOP},
+      TopRight = {self.titlebar, ui.edge.BottomRight, -2, -2 - TOP},
     },
     colInfo = DataView.BuildColInfo(false),  -- windowed: includes the lock column
     -- Refresh this window's wanted tally after a Shift-click toggle in the grid.
@@ -47,10 +44,15 @@ local MainWindow = Class(TitleFrame, function(self)
   }
   w = max(w, self.data:Width() + 4)
 
+  -- Shared filter strip (PTR / Wanted / Sort toggles + Expansion / Category dropdowns)
+  -- below the titlebar; the PTR toggle refreshes this window's mode counter.
+  self.filterStrip = self.data:BuildFilterStrip(self, function() self:RefreshCounter() end)
+  self.filterStrip:Position({ TopLeft = {self.titlebar, ui.edge.BottomLeft, 2, -2} })
+
   self.scroll = ScrollFrame:new{
     parent = self,
     position = {
-      TopLeft = {self.titlebar, ui.edge.BottomLeft, 2, -2 - self.data.headerHeight},
+      TopLeft = {self.titlebar, ui.edge.BottomLeft, 2, -2 - TOP - self.data.headerHeight},
       BottomRight = {self, ui.edge.BottomRight, -2, 2},
     },
   }
@@ -70,59 +72,12 @@ local MainWindow = Class(TitleFrame, function(self)
     text = "",
   }
 
-  -- Title-bar toggles, right-to-left from the close button: raid-order, "wanted only",
-  -- PTR preview. Same framed-button styling as the embedded view's BuildFilter. `gap`
-  -- is the spacing to the frame on its right (defaults to the inter-button gap); the
-  -- first toggle uses a wider gap to leave a draggable strip beside the close button,
-  -- so the window can still be grabbed when its left side is covered.
-  local function titleToggle(rightOf, text, active, onClick, gap)
-    local box = Frame:new{
-      parent = self.titlebar,
-      position = { Right = {rightOf, ui.edge.Left, gap or -6, 0}, Width = 96, Height = 20 },
-    }
-    local border = Texture:new{
-      parent = box, layer = ui.layer.Background,
-      position = { All = true }, color = active and gold or divider,
-    }
-    Texture:new{
-      parent = box, layer = ui.layer.Border, color = {0.05, 0.05, 0.06, 0.92},
-      position = { TopLeft = {1, -1}, BottomRight = {-1, 1} },
-    }
-    local btn = Button:new{ parent = box, position = { All = true }, glow = false, OnClick = onClick }
-    local label = Label:new{
-      parent = btn, fontInfo = caps and {caps[1], 10} or nil, justifyH = ui.justify.Center,
-      position = { Left = {8, 0}, Right = {-8, 0} }, text = text,
-    }
-    return border, label, box
-  end
-
-  local sortBox
-  self._sortBorder, self._sortLabel, sortBox = titleToggle(self.closeButton, "NEWEST FIRST", true, function()
-    local rev = self.data:ToggleOrder()
-    self._sortLabel:Text(rev and "NEWEST FIRST" or "OLDEST FIRST")
-    self._sortBorder:Color(rev and gold or divider)
-  end, -28)  -- wider gap from the close button → a draggable strip on the right
-
-  local wantedBox, _
-  self._wantedBorder, _, wantedBox = titleToggle(sortBox, "WANTED ONLY", false, function()
-    local on = self.data:ToggleWantedOnly()
-    self._wantedBorder:Color(on and gold or divider)
-  end)
-
-  -- Live ⇆ PTR toggle: in PTR mode the grid shows only the upcoming (PTR-only) sets.
-  self._ptrBorder = titleToggle(wantedBox, "PTR PREVIEW", false, function()
-    local on = self.data:SetPtr(not self.data._ptr)
-    self._ptrBorder:Color(on and gold or divider)
-    self:RefreshCounter()
-  end)
-
   self:RefreshCounter()
   self:RefreshWanted()
   -- Cap the visible grid at the shared `DataView.MAX_HEIGHT` and size the window with
-  -- the same header + cap + margin math as the embedded view, so the two are the same
-  -- height (the standalone just adds its titlebar on top).
+  -- the same header + cap + margin math as the embedded view, plus the filter strip.
   local capH = min(self.data.MAX_HEIGHT, self.data.rowArea:Height())
-  self:Height(self.titlebar:Height() + self.data.headerHeight + capH + 4)
+  self:Height(self.titlebar:Height() + TOP + self.data.headerHeight + capH + 4)
   self:Width(w)
 end, {
   name = ns._NAME,

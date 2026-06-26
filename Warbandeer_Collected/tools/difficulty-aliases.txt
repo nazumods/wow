@@ -8,3 +8,10 @@
 10 Normal => 10 Player (Normal)
 25 Normal => 25 Player (Normal)
 25 Heroic => 25 Player (Heroic)
+
+# TWW dungeon drop sets, renamed "TWW Dungeon (<ArmorType>)" by armor type — each is a
+# separate group sharing wago's single "Dungeons" label.
+Plate => Dungeons
+Mail => Dungeons
+Leather => Dungeons
+Cloth => Dungeons

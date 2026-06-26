@@ -45,6 +45,7 @@ TableFrame.lua
 TitleFrame.lua
 TabFrame.lua
 Tooltip.lua
+FilterDropdown.lua
 CopyWindow.lua
 
 # Settings

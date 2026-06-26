@@ -115,6 +115,7 @@ Region
     ├── Cell
     ├── Dialog
     ├── EditBox
+    ├── FilterDropdown
     ├── ScrollFrame
     ├── StatusBar
     ├── TabFrame
@@ -268,6 +269,8 @@ Includes all `Region` options, plus:
 | `delay(ms, fn)`               | Run `fn` (or method name) after `ms` milliseconds       |
 | `Attribute(name, value)`      | Get/set frame attribute                                 |
 | `EnableMouse(enabled)`        | Toggle mouse interactivity (defaults to true)           |
+| `EnableKeyboard(enabled)`     | Receive keyboard input (so an `OnKeyDown` handler fires) |
+| `SetPropagateKeyboardInput(p)`| Pass handled keys on (`true`) or consume them (`false`) — e.g. trap Esc |
 | `Level(level)`                | Get/set frame level                                     |
 
 ### Callbacks
@@ -413,6 +416,43 @@ Inherits `CleanFrame`. A text tooltip rendered as a list of lines. Auto-sizes to
 |---------|-------|-------------------------------------------------|
 | `lines` | table | List of line defs: `{text, background, onClick, onEnter, onLeave}` |
 | `inset` | number | Inner padding (default `3`)                    |
+
+---
+
+## FilterDropdown
+
+A compact labelled button that drops a `Tooltip` menu of options. Picking one updates the button label and fires `onSelect`. Esc closes only the open menu (it stays out of a parent window's Escape handling), and only one `FilterDropdown` menu is open at a time.
+
+### Constructor options
+
+| Option      | Description                                                                 |
+|-------------|-----------------------------------------------------------------------------|
+| `options`   | List of `{ key, label, enabled? }` specs (`enabled` defaults true; disabled renders greyed and unselectable) |
+| `selected`  | Key of the initially selected option (sets the button label)                |
+| `onSelect`  | `fun(self, key)` fired when the selection changes                           |
+| `width`     | Button width (default 96)                                                   |
+| `menuWidth` | Dropdown menu width (default 120)                                           |
+| `bordered`  | Draw a framed background + 1px border, matching toggle buttons (default false)|
+
+### Methods
+
+| Method          | Description                                                  |
+|-----------------|--------------------------------------------------------------|
+| `Select(key)`   | Re-point at `key` (updates the label) **without** firing `onSelect` |
+| `labelFor(key)` | The display label for a key (empty string if not found)      |
+
+```lua
+ui.FilterDropdown:new{
+  parent = titlebar,
+  bordered = true, selected = "all",
+  options = {
+    { key = "all",  label = "Expansion" },
+    { key = 11,     label = "The War Within" },
+    { key = 12,     label = "Midnight" },
+  },
+  onSelect = function(_, key) view:SetExpansion(key) end,
+}
+```
 
 ---
 

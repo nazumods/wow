@@ -106,6 +106,12 @@ function Frame:SetScript(event, handler) self._widget:SetScript(event, handler);
 ---@param event string  script handler name
 ---@return Frame
 function Frame:RemoveScript(event) self._widget:SetScript(event, nil); return self end
+---@param enabled boolean  receive keyboard input (so an OnKeyDown handler fires)
+---@return Frame
+function Frame:EnableKeyboard(enabled) self._widget:EnableKeyboard(enabled); return self end
+---@param propagate boolean  pass handled keys on to the next frame / default bindings (false consumes the key)
+---@return Frame
+function Frame:SetPropagateKeyboardInput(propagate) self._widget:SetPropagateKeyboardInput(propagate); return self end
 function Frame:listenForEvents()
   if self._listening then return end
   self._listening = true

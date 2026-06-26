@@ -3,7 +3,7 @@ local ns = select(2, ...)
 ---@type LibNUI
 local ui = ns.ui
 local Frame, Label, Texture = ui.Frame, ui.Label, ui.Texture
-local LabeledBar, FilterDropdown = ns.LabeledBar, ns.FilterDropdown
+local LabeledBar, FilterDropdown = ns.LabeledBar, ui.FilterDropdown
 local theme = ns.theme
 local insert = table.insert
 local C_TradeSkillUI = C_TradeSkillUI

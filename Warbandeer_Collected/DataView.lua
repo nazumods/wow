@@ -27,6 +27,20 @@ local function isComplete(status)
   return status == true or status.collected >= status.total
 end
 
+-- A group passes the active filters. A module-level function (not a method) because
+-- GetData calls it during the base TableFrame construction — before the subclass's
+-- methods are mixed onto the instance. PTR preview is never filtered (small
+-- upcoming-only list, no category), so the dropdowns apply to the live grid only.
+---@param view DataView
+---@param grp table
+---@return boolean
+local function matches(view, grp)
+  if view._ptr then return true end
+  if view._expansion ~= "all" and grp.release ~= view._expansion then return false end
+  if view._category ~= "all" and grp.category ~= view._category then return false end
+  return true
+end
+
 local _arrow = nil
 local _selectedRow = nil
 
@@ -81,6 +95,8 @@ end
 ---@field _reverse boolean? render newest set-group first (defaults true; see ToggleOrder)
 ---@field _wantedOnly boolean? blank cells for sets that aren't flagged wanted (see ToggleWantedOnly)
 ---@field _ptr boolean? show the PTR-only "upcoming" sets (ns.PtrSets) instead of live (see SetPtr)
+---@field _expansion number|string? release filter — a release index, or "all" (see SetExpansion)
+---@field _category string? category filter — a category name, or "all" (see SetCategory)
 ---@field _playerRace number? cached canonical race id the rank pips resolve against
 ---@field embedded boolean? render trimmed for a host view (no lock column / lockout name-click)
 ---@field infoTipAnchor fun(cell: Cell): table?  host override for the hover InfoTip anchor (defaults to "above the cell")
@@ -103,6 +119,8 @@ end, {
   _reverse = true,   -- default to newest set-group first
   _wantedOnly = false,
   _ptr = false,
+  _expansion = "all",
+  _category = "all",
   embedded = false,
   GetData = function(self)
     -- Lockouts are window-only chrome; the embedded host omits the lock column.
@@ -112,8 +130,14 @@ end, {
     -- Display order: source oldest-first by default; _reverse → newest-first. `srcIdx`
     -- indexes `source` (a live group's index is also its ns.Sets index, which the lockout
     -- panel keys off); `dispIdx` is the on-screen row position (row/cell highlight + arrow).
+    -- Build the display order, dropping groups filtered out by expansion/category
+    -- (`srcIdx` stays the real `source` index the lockout panel keys off; `dispIdx`
+    -- becomes the contiguous on-screen row number).
     local order = {}
-    for i = 1, #source do order[i] = self._reverse and (#source - i + 1) or i end
+    for i = 1, #source do
+      local idx = self._reverse and (#source - i + 1) or i
+      if matches(self, source[idx]) then order[#order + 1] = idx end
+    end
     return lists.map(order, function(srcIdx, dispIdx)
       local grp = source[srcIdx]
       local isPtr = self._ptr
@@ -298,6 +322,128 @@ function DataView:SetPtr(on)
   return self._ptr
 end
 
+-- Rebuild after a filter change (shared by SetExpansion/SetCategory). Clears any
+-- lockout selection first, since the visible rows change.
+function DataView:_refilter()
+  if not self.embedded then self:_clearSelection() end
+  self.data = self:GetData()
+  self:update()
+end
+
+---Filter the grid to one expansion (a release index) or "all".
+---@param key number|string  a release index, or "all"
+function DataView:SetExpansion(key) self._expansion = key; self:_refilter() end
+
+---Filter the grid to one category, or "all".
+---@param key string  a category name, or "all"
+function DataView:SetCategory(key) self._category = key; self:_refilter() end
+
+---Dropdown option specs for the expansion filter: "All" then one per release present
+---in `ns.Sets` (newest first), each label prefixed with the expansion badge.
+---@return table[]  `{ key, label }` specs for `ui.FilterDropdown`
+function DataView:ExpansionOptions()
+  local seen = {}
+  for _, g in ipairs(ns.Sets) do seen[g.release] = true end
+  local rels = {}
+  for r in pairs(seen) do rels[#rels + 1] = r end
+  table.sort(rels, function(a, b) return a > b end)
+  -- The "show all" option is labelled with the dimension, so the button names what it
+  -- filters (e.g. "Expansion") when nothing is selected, and still means no filter.
+  local opts = { { key = "all", label = "Expansion" } }
+  for _, r in ipairs(rels) do
+    local icon = ns.ReleaseIcons[r]
+    opts[#opts + 1] = { key = r, label = (icon and ("|T%s:0|t "):format(icon) or "") .. (ns.Releases[r] or r) }
+  end
+  return opts
+end
+
+-- Display order for the category filter; categories present in ns.Sets but unlisted
+-- here are appended so the menu never silently drops one.
+local CATEGORY_ORDER = { "Raid", "PvP", "Dungeon", "Delve", "Covenant", "Event" }
+
+---Dropdown option specs for the category filter: "All" then each category present.
+---@return table[]  `{ key, label }` specs for `ui.FilterDropdown`
+function DataView:CategoryOptions()
+  local seen = {}
+  for _, g in ipairs(ns.Sets) do if g.category then seen[g.category] = true end end
+  local opts, used = { { key = "all", label = "Category" } }, {}
+  for _, c in ipairs(CATEGORY_ORDER) do
+    if seen[c] then opts[#opts + 1] = { key = c, label = c }; used[c] = true end
+  end
+  for c in pairs(seen) do
+    if not used[c] then opts[#opts + 1] = { key = c, label = c } end
+  end
+  return opts
+end
+
+---Build the shared filter chrome as a strip (toggle buttons + filter dropdowns), wired
+---to this grid, so both hosts render the identical row above the grid. Themed via the
+---grid's own theme. `onModeChanged` fires after the live/PTR toggle so the host can
+---refresh its mode counter.
+---@param parent table  frame to parent the strip to
+---@param onModeChanged fun()?  called after the live/PTR toggle flips
+---@return Frame strip
+function DataView:BuildFilterStrip(parent, onModeChanged)
+  local theme = self:Theme()
+  -- Dark's `header` token is the same gold, so the toggles read on/off without void-dark.
+  local gold, divider = theme.colors.gold or theme.colors.header, theme.colors.divider
+  local caps = theme.fonts.caps
+  -- Expansion names get long ("Wrath of the Lich King"), so that dropdown is wider.
+  local BW, BH, PAD, GAP, DW, DW_EXP = 96, DataView.STRIP_H, 8, 6, 110, 190
+  local strip = ui.Frame:new{ parent = parent, position = { Height = BH } }
+
+  -- One framed toggle at x; returns its (recolorable) border + caption label.
+  local function toggle(xoff, text, active, onClick)
+    local b = ui.Frame:new{ parent = strip, position = { TopLeft = {xoff, 0}, Width = BW, Height = BH } }
+    local border = Texture:new{
+      parent = b, layer = ui.layer.Background, position = { All = true },
+      color = active and gold or divider,
+    }
+    Texture:new{
+      parent = b, layer = ui.layer.Border, color = {0.05, 0.05, 0.06, 0.92},
+      position = { TopLeft = {1, -1}, BottomRight = {-1, 1} },
+    }
+    local btn = ui.Button:new{ parent = b, position = { All = true }, glow = false, OnClick = onClick }
+    local label = Label:new{
+      parent = btn, fontInfo = caps and {caps[1], 10} or nil, justifyH = ui.justify.Center,
+      position = { Left = {PAD, 0}, Right = {-PAD, 0} }, text = text,
+    }
+    return border, label
+  end
+
+  -- Warbandeer order: PTR / Wanted / Sort toggles, then Expansion / Category dropdowns.
+  local ptrBorder, wantedBorder, sortBorder, sortLabel
+  ptrBorder = toggle(0, "PTR PREVIEW", false, function()
+    local on = self:SetPtr(not self._ptr)
+    ptrBorder:Color(on and gold or divider)
+    if onModeChanged then onModeChanged() end
+  end)
+  wantedBorder = toggle(BW + GAP, "WANTED ONLY", false, function()
+    local on = self:ToggleWantedOnly()
+    wantedBorder:Color(on and gold or divider)
+  end)
+  sortBorder, sortLabel = toggle((BW + GAP) * 2, "NEWEST FIRST", true, function()
+    local rev = self:ToggleOrder()
+    sortLabel:Text(rev and "NEWEST FIRST" or "OLDEST FIRST")
+    sortBorder:Color(rev and gold or divider)
+  end)
+
+  local dx = (BW + GAP) * 3
+  ui.FilterDropdown:new{
+    parent = strip, position = { TopLeft = {dx, 0} }, width = DW_EXP, menuWidth = 200,
+    bordered = true, selected = "all", options = self:ExpansionOptions(),
+    onSelect = function(_, key) self:SetExpansion(key) end,
+  }
+  ui.FilterDropdown:new{
+    parent = strip, position = { TopLeft = {dx + DW_EXP + GAP, 0} }, width = DW, menuWidth = 120,
+    bordered = true, selected = "all", options = self:CategoryOptions(),
+    onSelect = function(_, key) self:SetCategory(key) end,
+  }
+
+  strip:Width(dx + DW_EXP + GAP + DW)
+  return strip
+end
+
 -- Drop any active lockout-panel row selection (its row index moves on re-sort / a
 -- dataset swap): un-highlight the name, hide the arrow, close the panel. Window-only
 -- — embedded hosts have no lockout selection (and share these module locals).
@@ -392,6 +538,9 @@ DataView.BuildColInfo = buildColInfo
 -- Max scrollable row-area height (px) before the grid scrolls — shared so the embedded
 -- view and the standalone window cap the grid to the same height (same window size).
 DataView.MAX_HEIGHT = 460
+
+-- Height (px) of the filter strip (BuildFilterStrip) — hosts offset the grid by it.
+DataView.STRIP_H = 20
 
 ---@class Warbandeer_Collected
 ---@field DataView DataView

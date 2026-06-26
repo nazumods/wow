@@ -4,7 +4,7 @@ local ui = ns.ui
 local insert, sort = table.insert, table.sort
 local Class, Frame, Label, Texture = ns.lua.Class, ui.Frame, ui.Label, ui.Texture
 local Button = ui.Button
-local FilterDropdown = ns.FilterDropdown
+local FilterDropdown = ui.FilterDropdown
 local theme = ns.theme
 
 -- ─── Layout ───────────────────────────────────────────────────────────────────
