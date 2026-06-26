@@ -4680,7 +4680,7 @@ tinsert(ns.Sets, {
   id = 314,
   name = "Horrific Visions Revisited",
   release = 11,
-  category = "Dungeon",
+  category = "Event",
   sets = {
     { id = 4362, name = "Malignant Vision's Battleplate", classId = 1 },
     { id = 4362, name = "Malignant Vision's Battleplate", classId = 2 },
