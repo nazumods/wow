@@ -3,7 +3,6 @@ local ns = select(2, ...)
 local ui = ns.ui
 local isCollected = C_TransmogSets.IsBaseSetCollected
 local getParts = C_TransmogSets.GetSetPrimaryAppearances
-local getSources = C_TransmogSets.GetAllSourceIDs
 
 ns:registerCommand("", nil, function(self)
   self:Open()
@@ -44,26 +43,26 @@ ns:registerCommand("model", nil, function(_, args)
   ns.Print(("Preview display %d (customizations %s)"):format(id, useCust and "on" or "off"))
 end, "dev: preview a raw creature display id; append 1 to overlay player customizations")
 
--- dev: vet a freshly curated batch — check which groups resolve to a live
--- appearance. GetAllSourceIDs (not GetSetPrimaryAppearances) is the has-data signal:
--- non-raid sets carry sources but no primary appearances. Default dumps just the
--- empties (blank rows) to a copy window; `coverage all` dumps every group tagged
--- OK/EMPTY so the full resolved list is eyeballable. Always prints a count summary.
+-- dev: vet a freshly curated batch — list the rows that render NOTHING in the grid.
+-- Scans first, then checks each row against db.sets (the exact signal the grid cells
+-- use), so it catches sets that resolve via GetAllSourceIDs yet have no renderable
+-- pieces on this client (their cells/tooltips show blank). Default dumps just the
+-- empties to a copy window; `coverage all` dumps every row tagged OK/EMPTY. Always
+-- prints a count summary.
 ns:registerCommand("coverage", nil, function(_, args)
   local showAll = (args or ""):lower():find("all") ~= nil
+  ns:Scan()   -- refresh db.sets so the check matches exactly what the grid renders
   local ok, empty = {}, {}
   for _, grp in ipairs(ns.Sets) do
-    local resolved = false
+    local gsets = ns.db.sets[grp.id]
+    local rendered = false
     for _, set in ipairs(grp.sets) do
-      if set.id then
-        local src = getSources(set.id)
-        if src and #src > 0 then resolved = true; break end
-      end
+      if set.id and gsets and gsets[set.id] then rendered = true; break end
     end
-    local bucket = resolved and ok or empty
+    local bucket = rendered and ok or empty
     bucket[#bucket + 1] = ("%d  %s"):format(grp.id, grp.name)
   end
-  local summary = ("%d groups: %d resolve, %d empty."):format(#ns.Sets, #ok, #empty)
+  local summary = ("%d rows: %d render, %d empty."):format(#ns.Sets, #ok, #empty)
   local body, title
   if showAll then
     local lines = { summary, "" }
@@ -77,7 +76,7 @@ ns:registerCommand("coverage", nil, function(_, args)
   end
   ui.ShowCopyWindow(title, body)
   ns.Print(summary)
-end, "dev: vet set resolution on live (copy window); `all` lists every group, else empties only")
+end, "dev: list grid rows that render nothing (copy window); `all` lists every row, else empties only")
 
 -- dev: live-tune the open preview model's user scale multiplier (on top of the
 -- automatic normalization), or dump the scale state with no arg.
@@ -130,12 +129,8 @@ function ns:Scan()
           self.db.sets[grp.id][set.id] = true
           self.db.collected = self.db.collected + 1
         else
-          -- Some sets in the data (notably older PvP seasons) exist in wago but
-          -- aren't known to the live transmog API, which returns nil here. Skip
-          -- them — don't crash the scan or count them toward the total; they just
-          -- render as blank cells.
           local parts = getParts(set.id)
-          if parts then
+          if parts and #parts > 0 then
             self.db.total = self.db.total + 1
             local n = 0
             for _,p in ipairs(parts) do
@@ -146,6 +141,22 @@ function ns:Scan()
               parts = parts,
               total = #parts,
             }
+          else
+            -- No primary appearances: a raid-tier concept that non-raid sets (PvP
+            -- seasons, recolors, world/event sets) lack. Fall back to the appearance
+            -- sources — the same path the InfoTip and dressing room use — so the cell
+            -- still renders a collected count. A set whose sources don't resolve to
+            -- items on this client (truly absent) yields no pieces and stays blank.
+            local pieces = ns.SetSlotPieces(set.id)
+            local total, n = 0, 0
+            for _, p in pairs(pieces) do
+              total = total + 1
+              if p.isCollected then n = n + 1 end
+            end
+            if total > 0 then
+              self.db.total = self.db.total + 1
+              self.db.sets[grp.id][set.id] = { collected = n, total = total }
+            end
           end
         end
       end
