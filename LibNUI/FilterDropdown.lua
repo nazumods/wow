@@ -3,7 +3,7 @@ local ns = select(2, ...)
 local ui = ns.ui
 local insert = table.insert
 local Class, Frame, Label = ns.lua.Class, ui.Frame, ui.Label
-local Button, Tooltip = ui.Button, ui.Tooltip
+local Button, Tooltip, Texture = ui.Button, ui.Tooltip, ui.Texture
 -- Greyed-out (disabled) option text; inlined so the widget has no addon dependency.
 local C_GREY, C_END = "|cff888888", "|r"
 
@@ -25,10 +25,18 @@ local openOne
 ---@field onSelect  fun(self: FilterDropdown, key: any)?  fired when the selection changes
 ---@field width     number   button width
 ---@field menuWidth number   dropdown menu width
+---@field bordered  boolean? draw a framed background + 1px border (matches toggle buttons)
 ---@field button    Button
 ---@field label     Label
 ---@field menu      Tooltip
 local FilterDropdown = Class(Frame, function(self)
+  if self.bordered then
+    Texture:new{ parent = self, layer = ui.layer.Background, position = { All = true }, color = "divider" }
+    Texture:new{
+      parent = self, layer = ui.layer.Border, color = {0.05, 0.05, 0.06, 0.92},
+      position = { TopLeft = {1, -1}, BottomRight = {-1, 1} },
+    }
+  end
   self.button = Button:new{
     parent   = self,
     position = { All = true },
@@ -83,6 +91,7 @@ end, {
   options   = {},
   width     = 96,
   menuWidth = 120,
+  bordered  = false,
 })
 ui.FilterDropdown = FilterDropdown
 

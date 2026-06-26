@@ -388,7 +388,8 @@ function DataView:BuildFilterStrip(parent, onModeChanged)
   -- Dark's `header` token is the same gold, so the toggles read on/off without void-dark.
   local gold, divider = theme.colors.gold or theme.colors.header, theme.colors.divider
   local caps = theme.fonts.caps
-  local BW, BH, PAD, GAP, DW = 96, DataView.STRIP_H, 8, 6, 110
+  -- Expansion names get long ("Wrath of the Lich King"), so that dropdown is wider.
+  local BW, BH, PAD, GAP, DW, DW_EXP = 96, DataView.STRIP_H, 8, 6, 110, 190
   local strip = ui.Frame:new{ parent = parent, position = { Height = BH } }
 
   -- One framed toggle at x; returns its (recolorable) border + caption label.
@@ -429,17 +430,17 @@ function DataView:BuildFilterStrip(parent, onModeChanged)
 
   local dx = (BW + GAP) * 3
   ui.FilterDropdown:new{
-    parent = strip, position = { TopLeft = {dx, 0} }, width = DW, menuWidth = 150,
-    selected = "all", options = self:ExpansionOptions(),
+    parent = strip, position = { TopLeft = {dx, 0} }, width = DW_EXP, menuWidth = 200,
+    bordered = true, selected = "all", options = self:ExpansionOptions(),
     onSelect = function(_, key) self:SetExpansion(key) end,
   }
   ui.FilterDropdown:new{
-    parent = strip, position = { TopLeft = {dx + DW + GAP, 0} }, width = DW, menuWidth = 120,
-    selected = "all", options = self:CategoryOptions(),
+    parent = strip, position = { TopLeft = {dx + DW_EXP + GAP, 0} }, width = DW, menuWidth = 120,
+    bordered = true, selected = "all", options = self:CategoryOptions(),
     onSelect = function(_, key) self:SetCategory(key) end,
   }
 
-  strip:Width(BW * 3 + (DW + GAP) * 2 + GAP * 2)
+  strip:Width(dx + DW_EXP + GAP + DW)
   return strip
 end
 
