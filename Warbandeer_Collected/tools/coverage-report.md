@@ -2,20 +2,20 @@
 
 Generated from wago.tools TransmogSet (product wow, build 12.0.7.68275, 2026-06-23) by `tools/update-sets.ps1 -AuditCoverage`.
 
-We curate **107 distinct wago group ids** in `ns.Sets`. wago has **148 groups** with placeable rows; the **41** below are **not captured yet**. Categories are heuristic (from each group's difficulty/variant labels + name) — verify before adding. Inclusion is editorial: see `tools/UPDATING.md`.
+We curate **113 distinct wago group ids** in `ns.Sets`. wago has **148 groups** with placeable rows; the **35** below are **not captured yet**. Categories are heuristic (from each group's difficulty/variant labels + name) — verify before adding. Inclusion is editorial: see `tools/UPDATING.md`.
 
 ## By category
 
 | Category | Groups |
 | --- | ---: |
 | PvP | 6 |
-| Dungeon / Mythic+ | 8 |
+| Dungeon / Mythic+ | 7 |
 | Raid | 4 |
 | Profession / Crafted | 3 |
 | Trading Post / Anniversary | 1 |
 | Timewalking | 3 |
 | Reputation / Renown / Campaign | 1 |
-| Event / feature / other | 15 |
+| Event / feature / other | 10 |
 
 ## By expansion
 
@@ -23,11 +23,10 @@ We curate **107 distinct wago group ids** in `ns.Sets`. wago has **148 groups** 
 | --- | ---: |
 | Midnight | 3 |
 | Dragonflight | 10 |
-| Shadowlands | 4 |
-| Battle for Azeroth | 1 |
-| Legion | 11 |
+| Shadowlands | 2 |
+| Legion | 9 |
 | Warlords of Draenor | 1 |
-| Mists of Pandaria | 3 |
+| Mists of Pandaria | 2 |
 | Cataclysm | 1 |
 | Wrath of the Lich King | 3 |
 | The Burning Crusade | 2 |
@@ -46,7 +45,7 @@ We curate **107 distinct wago group ids** in `ns.Sets`. wago has **148 groups** 
 | 295 | Cataclysm: PVP | Cataclysm | 6 | Timewalking Vendor - Black, Timewalking Vendor - Dark, Timewalking Vendor - Green, Timewalking Vendor - Red |
 | 287 | Wrath of the Lich King: PVP | Wrath of the Lich King | 5 | Timewalking Vendor - Green, Timewalking Vendor - Purple |
 
-### Dungeon / Mythic+ (8)
+### Dungeon / Mythic+ (7)
 
 | id | name | expansion | sets | difficulty / variant labels |
 | ---: | --- | --- | ---: | --- |
@@ -56,7 +55,6 @@ We curate **107 distinct wago group ids** in `ns.Sets`. wago has **148 groups** 
 | 218 | Time Rifts | Dragonflight | 12 | _(none)_ |
 | 204 | Titan Keeper's Vestments | Dragonflight | 4 | Dungeons, World and Weekly Quests, World Drops |
 | 202 | Tuskarr Battlegear | Dragonflight | 4 | Dungeons, Renown, World and Weekly Quests, World Drops |
-| 58 | Pandaria Challenge Dungeons | Mists of Pandaria | 11 | _(none)_ |
 | 285 | The Burning Crusade: Dungeon | The Burning Crusade | 19 | Dungeons - Blue, Dungeons - Brown, Dungeons - Green, Dungeons - Purple, Dungeons - Silver, Dungeons - White, Purple, Reputation Vendors - Red, Silver, Timewalking Vendor - Blue, Timewalking Vendor - Brown, Timewalking Vendor - Purple |
 
 ### Raid (4)
@@ -96,17 +94,12 @@ We curate **107 distinct wago group ids** in `ns.Sets`. wago has **148 groups** 
 | ---: | --- | --- | ---: | --- |
 | 224 | Dreamer's Enchantment | Dragonflight | 16 | Emerald Bounty, Quest Rewards, Superbloom, World Drops |
 
-### Event / feature / other (15)
+### Event / feature / other (10)
 
 | id | name | expansion | sets | difficulty / variant labels |
 | ---: | --- | --- | ---: | --- |
 | 200 | Dracthyr Battlegear | Dragonflight | 5 | Cobalt, Crimson, Emerald, Obsidian, Sandshaped |
-| 347 | Knights of Blood | Shadowlands | 1 | _(none)_ |
-| 350 | Return to Lordaeron | Shadowlands | 1 | _(none)_ |
-| 165 | Shrine of the Storm | Battle for Azeroth | 1 | _(none)_ |
-| 355 | Antaen Battlegear | Legion | 2 | _(none)_ |
 | 356 | Argussian Defender's Regalia | Legion | 2 | _(none)_ |
-| 49 | Legion Order Hall | Legion | 12 | _(none)_ |
 | 320 | Legion: Dungeon | Legion | 16 | Blue, Dark, Green, Purple, Red, Silver, Teal |
 | 321 | Legion: Remix | Legion | 35 | Black, Blue, Brown, Gold, Green, Light, Nightmare, Orange, Original, Purple, Red, Silver, Teal, Valhallas Gold |
 | 319 | Legion: World | Legion | 35 | Black, Blue, Brown, Copper, Dark, Darksteel, Gold, Green, Grey, Holy, Light, Orange, Original, Purple, Red, Silver, Sky, Teal, White, White Gold, Yellow |

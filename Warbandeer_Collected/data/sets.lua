@@ -5257,3 +5257,99 @@ tinsert(ns.Sets, {
     { id = 3057, name = "Icy Scale Mail", classId = 13 },
   },
 })
+
+-- Coverage audit #222 (batch 4): per-class & clean classic sets.
+tinsert(ns.Sets, {
+  id = 49,
+  name = "Legion Order Hall",
+  release = 7,
+  category = "World",
+  sets = {
+    { id = 447, name = "Battlelord's Plate", classId = 1 },
+    { id = 496, name = "Battleplate of the Silver Hand", classId = 2 },
+    { id = 532, name = "Guise of the Unseen Path", classId = 3 },
+    { id = 464, name = "Battlegear of the Uncrowned", classId = 4 },
+    { id = 330, name = "Regalia of the High Priest", classId = 5 },
+    { id = 550, name = "Deathlord's Battleplate", classId = 6 },
+    { id = 430, name = "Raiment of the Farseer", classId = 7 },
+    { id = 516, name = "Vesture of Tirisgarde", classId = 8 },
+    { id = 448, name = "Vestments of the Black Harvest", classId = 9 },
+    { id = 497, name = "Grandmaster's Finery", classId = 10 },
+    { id = 549, name = "Dreamgrove Raiment", classId = 11 },
+    { id = 548, name = "Battlegear of the Shattered Abyss", classId = 12 },
+  },
+})
+tinsert(ns.Sets, {
+  id = 58,
+  name = "Pandaria Challenge Dungeons",
+  release = 5,
+  category = "Dungeon",
+  sets = {
+    { id = 1436, name = "Golden King Plate", classId = 1 },
+    { id = 1441, name = "Holy Warrior Plate", classId = 2 },
+    { id = 1444, name = "Howling Beast Armor", classId = 3 },
+    { id = 1439, name = "Silent Assassin Armor", classId = 4 },
+    { id = 1440, name = "Light Regalia", classId = 5 },
+    { id = 1446, name = "Lich Lord Plate", classId = 6 },
+    { id = 1438, name = "Windfury Armor", classId = 7 },
+    { id = 1443, name = "Elemental Triad Regalia", classId = 8 },
+    { id = 1437, name = "Betrayer Regalia", classId = 9 },
+    { id = 1442, name = "Regal Lord Armor", classId = 10 },
+    { id = 1445, name = "Cycle Armor", classId = 11 },
+  },
+})
+tinsert(ns.Sets, {
+  id = 165,
+  name = "Shrine of the Storm",
+  release = 8,
+  category = "Dungeon",
+  sets = {
+    {},
+    {},
+    {},
+    {},
+    { id = 1637, name = "Vestments of the Tidesages", classId = 5 },
+    {},
+    {},
+    { id = 1637, name = "Vestments of the Tidesages", classId = 8 },
+    { id = 1637, name = "Vestments of the Tidesages", classId = 9 },
+  },
+})
+tinsert(ns.Sets, {
+  id = 355,
+  name = "Antaen Battlegear",
+  release = 7,
+  category = "Event",
+  sets = {
+    { id = 5300, name = "World-Defiler's Battle Armor", classId = 1 },
+    { id = 5300, name = "World-Defiler's Battle Armor", classId = 2 },
+    {},
+    {},
+    { id = 5301, name = "Zealous Felslingers Battle Armor", classId = 5 },
+    { id = 5300, name = "World-Defiler's Battle Armor", classId = 6 },
+    {},
+    { id = 5301, name = "Zealous Felslingers Battle Armor", classId = 8 },
+    { id = 5301, name = "Zealous Felslingers Battle Armor", classId = 9 },
+  },
+})
+tinsert(ns.Sets, {
+  id = 347,
+  name = "Knights of Blood",
+  release = 9,
+  category = "Event",
+  sets = {
+    {},
+    { id = 2481, name = "Blood Knight's Dedication", classId = 2 },
+  },
+})
+tinsert(ns.Sets, {
+  id = 350,
+  name = "Return to Lordaeron",
+  release = 9,
+  category = "Event",
+  sets = {
+    {},
+    {},
+    { id = 2484, name = "Dark Ranger's Attire", classId = 3 },
+  },
+})
