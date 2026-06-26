@@ -232,6 +232,21 @@ if ($Expand) {
   }
   if ($jobIds.Count -eq 0) { throw '-Expand was empty.' }
 
+  # Exclusion list: "id:label" lines (label verbatim) for rows that exist in wago but
+  # render empty in-game — defunct-event sets whose sources don't resolve to items on a
+  # live client (found via /collected coverage). Keyed "id|label"; '#' comments/blanks ok.
+  $exclude = @{}
+  $excludeFile = Join-Path $PSScriptRoot 'expand-exclude.txt'
+  if (Test-Path -LiteralPath $excludeFile) {
+    foreach ($ln in (Get-Content -LiteralPath $excludeFile)) {
+      $t = $ln.Trim()
+      if (-not $t -or $t.StartsWith('#')) { continue }
+      $t = ($t -split '#', 2)[0].Trim()
+      $kv = $t -split ':', 2
+      if ($kv.Count -eq 2) { $exclude["$([int]$kv[0].Trim())|$($kv[1].Trim())"] = $true }
+    }
+  }
+
   $builds = (Invoke-WebRequest -Uri 'https://wago.tools/api/builds' -UseBasicParsing -ErrorAction Stop).Content | ConvertFrom-Json
   if (-not $Build) { $Build = $builds.wow[0].version }
   Write-Host "Expand against wow build $Build" -ForegroundColor Cyan
@@ -281,6 +296,7 @@ if ($Expand) {
           $slot[$c] = @{ id = $r.ID; name = (LuaEsc ([string]$r.Name_lang)) }
         }
       }
+      if ($exclude.ContainsKey("$gid|$lab")) { Write-Host "  exclude $gid [$lab] — listed in expand-exclude.txt (renders empty on live)" -ForegroundColor DarkYellow; continue }
       if ($union -eq 0) { Write-Host "  skip $gid [$lab] — no class bits (cosmetic)" -ForegroundColor DarkYellow; continue }
       if ($lab -eq '' -and $byl.Count -gt 1) { Write-Host "  skip $gid [(no label)] in labeled group — ambiguous" -ForegroundColor DarkYellow; continue }
       if ($overlap) { Write-Host "  overlap $gid [$lab] — $($rs.Count) sets collapse to $($slot.Count) slots" -ForegroundColor Yellow }

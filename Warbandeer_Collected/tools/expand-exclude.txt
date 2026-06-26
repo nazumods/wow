@@ -1,0 +1,8 @@
+# -Expand exclusion list — "id:label" (label verbatim from wago) for rows that exist in
+# wago's TransmogSet table but render EMPTY in-game: their appearance sources don't
+# resolve to items on a live client (typically defunct limited-time event content).
+# Found via `/collected coverage` (lists rows that render nothing). One line each;
+# '#' starts a comment. Re-run `-Expand` after editing to regenerate the AUTO-EXPAND
+# region without these rows.
+
+321:Nightmare   # Legion Remix (Timerunning) — "Barkbinds of the Archdruid's Nightmare" (set 4439) absent on live

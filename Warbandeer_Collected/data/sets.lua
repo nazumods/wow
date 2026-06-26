@@ -7111,26 +7111,6 @@ tinsert(ns.Sets, {
 })
 tinsert(ns.Sets, {
   id = 321,
-  name = "Legion: Remix (Nightmare)",
-  release = 7,
-  category = "Event",
-  sets = {
-    {},
-    {},
-    {},
-    { id = 4439, name = "Barkbinds of the Archdruid's Nightmare", classId = 4 },
-    {},
-    {},
-    {},
-    {},
-    {},
-    { id = 4439, name = "Barkbinds of the Archdruid's Nightmare", classId = 10 },
-    { id = 4439, name = "Barkbinds of the Archdruid's Nightmare", classId = 11 },
-    { id = 4439, name = "Barkbinds of the Archdruid's Nightmare", classId = 12 },
-  },
-})
-tinsert(ns.Sets, {
-  id = 321,
   name = "Legion: Remix (Teal)",
   release = 7,
   category = "Event",

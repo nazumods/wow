@@ -260,6 +260,15 @@ The region is plain `tinsert(ns.Sets, {...})` rows, so the normal generator re-r
 them by id + label suffix — running `pwsh ./update-sets.ps1` afterwards is a no-op (verify
 with `-Check`). Re-run `-Expand` (then the normal generator) to refresh after a patch.
 
+**Dead rows — `expand-exclude.txt`.** A few generated rows exist in wago but render
+**empty in-game**: their appearance sources don't resolve to items on a live client
+(typically defunct limited-time event content, e.g. Legion Remix/Timerunning). They pass
+the offline checks but show as blank rows. Find them in-game with **`/collected coverage`**
+(it lists rows that render nothing), then add an **`id:label`** line (label verbatim) to
+[`expand-exclude.txt`](expand-exclude.txt) and re-run `-Expand` — the listed labels are
+skipped (logged `exclude …`). This is the only way to drop them persistently, since the
+region is regenerated wholesale each run.
+
 > **Coverage ceiling.** Overlap labels and cosmetic (`class=0`) pieces mean a few
 > *appearances* per mega-set can't be shown in a per-class grid — this captures every
 > **group**, not literally every appearance. Validate in-game with `/collected coverage`.
