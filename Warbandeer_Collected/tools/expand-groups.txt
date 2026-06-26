@@ -23,10 +23,9 @@
 296:World:single  # Draenor Crafter's Work (timewalking vendor recolours)
 
 # ── Dragonflight dungeon / outdoor (armor-type groups, multi-source) ──
-202:World      # Tuskarr Battlegear (leather)
-204:World      # Titan Keeper's Vestments (cloth)
-205:World      # Centaur Regalia (mail)
-206:World      # Djaradin Battlegear (plate)
+# 4 armor groups (leather/cloth/mail/plate) each carrying the same source labels →
+# merge by label into "Dragonflight (Dungeons)" / (Renown) / (World ...) / (World Drops).
+mergelabels 202+204+205+206 | World | Dragonflight
 218:Event      # Time Rifts
 
 # ── Misc ──

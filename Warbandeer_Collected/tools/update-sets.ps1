@@ -107,7 +107,8 @@ function Get-ExpandIds([string]$file) {
     foreach ($ln in (Get-Content -LiteralPath $file)) {
       $t = ($ln -split '#', 2)[0].Trim()
       if (-not $t) { continue }
-      if ($t -match '^merge\s+(\S+)') { foreach ($x in ($Matches[1] -split '\+')) { $ids[[int]$x] = $true } }
+      if ($t -match '^mergelabels\s+(\S+)') { foreach ($x in ($Matches[1] -split '\+')) { $ids[[int]$x] = $true } }
+      elseif ($t -match '^merge\s+(\S+)') { foreach ($x in ($Matches[1] -split '\+')) { $ids[[int]$x] = $true } }
       elseif ($t -match '^(\d+)') { $ids[[int]$Matches[1]] = $true }
     }
   }
@@ -275,7 +276,7 @@ if ($Expand) {
   # `byset` mode emits one row per SET (named by the set's own name) — for label-less
   # groups that are a flat list of distinctly-named ensembles (the Trading Post).
   if (-not (Test-Path -LiteralPath $ExpandFile)) { throw "Expand group list not found: $ExpandFile" }
-  $jobIds = @(); $jobCat = @{}; $jobMode = @{}; $merges = @(); $setMerges = @(); $mergedSetIds = @{}
+  $jobIds = @(); $jobCat = @{}; $jobMode = @{}; $merges = @(); $setMerges = @(); $mergedSetIds = @{}; $labelMerges = @()
   foreach ($ln in (Get-Content -LiteralPath $ExpandFile)) {
     $t = ($ln -split '#', 2)[0].Trim()
     if (-not $t) { continue }
@@ -288,6 +289,18 @@ if ($Expand) {
       $sids = @($p[0] -split '\s*\+\s*' | ForEach-Object { [int]$_ })
       foreach ($s in $sids) { $mergedSetIds[$s] = $true }
       $setMerges += @{ sids = $sids; cat = $p[1].Trim(); name = $p[2].Trim(); release = if ($p.Count -ge 4 -and $p[3].Trim()) { [int]$p[3].Trim() } else { $null } }
+      continue
+    }
+    # `mergelabels <id>+... | <Category> | <NamePrefix>` — for groups that are armor-type
+    # splits each carrying the SAME source labels (the DF dungeon sets), emit one row per
+    # label, merged across the groups: "<NamePrefix> (<label>)" tiling armor types.
+    if ($t -match '^mergelabels\s+(.+)$') {
+      $p = $Matches[1] -split '\s*\|\s*'
+      if ($p.Count -lt 3 -or $p.Count -gt 4) { throw "Bad mergelabels line '$ln' — expected 'mergelabels ids | Category | NamePrefix [| release]'." }
+      $labelMerges += @{
+        ids = @($p[0] -split '\s*\+\s*' | ForEach-Object { [int]$_ }); cat = $p[1].Trim(); name = $p[2].Trim()
+        release = if ($p.Count -ge 4 -and $p[3].Trim()) { [int]$p[3].Trim() } else { $null }
+      }
       continue
     }
     # `merge <id>+<id>+... | <Category> | <Name>` — assemble ONE class-disjoint row from
@@ -467,6 +480,52 @@ if ($Expand) {
     $L.Add('  },')
     $L.Add('})')
     $emitted++
+  }
+
+  # ── mergelabels directives: one row per source label, merged across armor groups ──
+  # (the DF dungeon sets — 4 armor groups each carrying Dungeons/Renown/World labels →
+  # "<NamePrefix> (<label>)" rows that tile armor types). Row id = lowest group id.
+  foreach ($lm in $labelMerges) {
+    $rows = $tsRows | Where-Object { [int]$_.TransmogSetGroupID -in $lm.ids }
+    if (-not $rows) { Write-Warning "mergelabels [$($lm.ids -join '+')] '$($lm.name)' — no rows; skipped."; continue }
+    $gid = ($lm.ids | Measure-Object -Minimum).Minimum
+    $byl = [ordered]@{}
+    foreach ($r in ($rows | Sort-Object { [int]$_.ID })) {
+      $i = 0; [void][int]::TryParse($r.ItemNameDescriptionID, [ref]$i)
+      $lab = if ($indLabel.ContainsKey($i)) { $indLabel[$i] } else { '' }
+      if (-not $byl.Contains($lab)) { $byl[$lab] = @() }
+      $byl[$lab] += $r
+    }
+    foreach ($lab in $byl.Keys) {
+      $slot = @{}; $union = 0; $exp = 0
+      foreach ($r in $byl[$lab]) {
+        $e = 0; [void][int]::TryParse($r.ExpansionID, [ref]$e); if ($e -gt $exp) { $exp = $e }
+        $m = 0; [void][int]::TryParse($r.ClassMask, [ref]$m); $union = $union -bor $m
+        for ($bb = 0; $bb -lt 13; $bb++) {
+          if (($m -band (1 -shl $bb)) -eq 0) { continue }
+          $c = $bb + 1
+          if (-not $slot.ContainsKey($c)) { $slot[$c] = @{ id = $r.ID; name = (LuaEsc ([string]$r.Name_lang)) } }
+        }
+      }
+      if ($union -eq 0 -or -not $lab) { continue }
+      $rel = if ($lm.release) { $lm.release } else { $exp + 1 }
+      $disp = LuaEsc "$($lm.name) ($lab)"
+      Write-Host "  mergelabels [$($lm.ids -join '+')] -> '$($lm.name) ($lab)' ($($slot.Count) classes)" -ForegroundColor Cyan
+      $L.Add('tinsert(ns.Sets, {')
+      $L.Add("  id = $gid,")
+      $L.Add("  name = `"$disp`",")
+      $L.Add("  release = $rel,")
+      $L.Add("  category = `"$($lm.cat)`",")
+      $L.Add('  sets = {')
+      $max = ($slot.Keys | Measure-Object -Maximum).Maximum
+      for ($c = 1; $c -le $max; $c++) {
+        if ($slot.ContainsKey($c)) { $L.Add("    { id = $($slot[$c].id), name = `"$($slot[$c].name)`", classId = $c },") }
+        else { $L.Add('    {},') }
+      }
+      $L.Add('  },')
+      $L.Add('})')
+      $emitted++
+    }
   }
   $L.Add('-- <<< AUTO-EXPAND')
 
