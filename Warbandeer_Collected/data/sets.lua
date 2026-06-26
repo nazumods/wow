@@ -4605,78 +4605,6 @@ tinsert(ns.Sets, {
 
 -- Coverage audit #222 (batch 2): covenants / dungeons / classic raids
 tinsert(ns.Sets, {
-  id = 280,
-  name = "TWW Dungeon (Mail)",
-  release = 11,
-  category = "Dungeon",
-  sets = {
-    {},
-    {},
-    { id = 3890, name = "Algari Chainmail", classId = 3 },
-    {},
-    {},
-    {},
-    { id = 3890, name = "Algari Chainmail", classId = 7 },
-    {},
-    {},
-    {},
-    {},
-    {},
-    { id = 3890, name = "Algari Chainmail", classId = 13 },
-  },
-})
-tinsert(ns.Sets, {
-  id = 281,
-  name = "TWW Dungeon (Leather)",
-  release = 11,
-  category = "Dungeon",
-  sets = {
-    {},
-    {},
-    {},
-    { id = 3891, name = "Coreway Regalia", classId = 4 },
-    {},
-    {},
-    {},
-    {},
-    {},
-    { id = 3891, name = "Coreway Regalia", classId = 10 },
-    { id = 3891, name = "Coreway Regalia", classId = 11 },
-    { id = 3891, name = "Coreway Regalia", classId = 12 },
-  },
-})
-tinsert(ns.Sets, {
-  id = 279,
-  name = "TWW Dungeon (Plate)",
-  release = 11,
-  category = "Dungeon",
-  sets = {
-    { id = 3889, name = "Dorn Defender Armaments", classId = 1 },
-    { id = 3889, name = "Dorn Defender Armaments", classId = 2 },
-    {},
-    {},
-    {},
-    { id = 3889, name = "Dorn Defender Armaments", classId = 6 },
-  },
-})
-tinsert(ns.Sets, {
-  id = 282,
-  name = "TWW Dungeon (Cloth)",
-  release = 11,
-  category = "Dungeon",
-  sets = {
-    {},
-    {},
-    {},
-    {},
-    { id = 3892, name = "Threads of Awakening", classId = 5 },
-    {},
-    {},
-    { id = 3892, name = "Threads of Awakening", classId = 8 },
-    { id = 3892, name = "Threads of Awakening", classId = 9 },
-  },
-})
-tinsert(ns.Sets, {
   id = 314,
   name = "Horrific Visions Revisited",
   release = 11,
@@ -5669,47 +5597,6 @@ tinsert(ns.Sets, {
   },
 })
 tinsert(ns.Sets, {
-  id = 383,
-  name = "Tangled Raiment (Dungeons)",
-  release = 12,
-  category = "Dungeon",
-  sets = {
-    { id = 5629, name = "Blossoming Battleplate", classId = 1 },
-    { id = 5629, name = "Blossoming Battleplate", classId = 2 },
-    {},
-    { id = 5627, name = "Grotto Garb", classId = 4 },
-    { id = 5626, name = "Valeguard Vestments", classId = 5 },
-    { id = 5629, name = "Blossoming Battleplate", classId = 6 },
-    {},
-    { id = 5626, name = "Valeguard Vestments", classId = 8 },
-    { id = 5626, name = "Valeguard Vestments", classId = 9 },
-    { id = 5627, name = "Grotto Garb", classId = 10 },
-    { id = 5627, name = "Grotto Garb", classId = 11 },
-    { id = 5627, name = "Grotto Garb", classId = 12 },
-  },
-})
-tinsert(ns.Sets, {
-  id = 383,
-  name = "Tangled Raiment (World Quests)",
-  release = 12,
-  category = "World",
-  sets = {
-    {},
-    {},
-    { id = 5628, name = "Rootward Regalia", classId = 3 },
-    {},
-    {},
-    {},
-    { id = 5628, name = "Rootward Regalia", classId = 7 },
-    {},
-    {},
-    {},
-    {},
-    {},
-    { id = 5628, name = "Rootward Regalia", classId = 13 },
-  },
-})
-tinsert(ns.Sets, {
   id = 306,
   name = "Legion Assaults (Gold)",
   release = 7,
@@ -6141,41 +6028,6 @@ tinsert(ns.Sets, {
     {},
     {},
     { id = 2675, name = "Sandshaped Dracthyr Battlegear", classId = 13 },
-  },
-})
-tinsert(ns.Sets, {
-  id = 349,
-  name = "Legion Timewalking",
-  release = 7,   -- wago ExpansionID tags it Shadowlands, but it's Legion content (Ravencrest's Battleplate); set editorially
-  category = "Dungeon",
-  sets = {
-    { id = 2292, name = "Ravencrest's Battleplate", classId = 1 },
-    { id = 2292, name = "Ravencrest's Battleplate", classId = 2 },
-    {},
-    {},
-    {},
-    { id = 2292, name = "Ravencrest's Battleplate", classId = 6 },
-  },
-})
-tinsert(ns.Sets, {
-  id = 297,
-  name = "Legion Timewalking Dungeon",
-  release = 7,
-  category = "Dungeon",
-  sets = {
-    {},
-    {},
-    { id = 4247, name = "Drake Hunter's Kit", classId = 3 },
-    {},
-    {},
-    {},
-    { id = 4247, name = "Drake Hunter's Kit", classId = 7 },
-    {},
-    {},
-    {},
-    {},
-    {},
-    { id = 4247, name = "Drake Hunter's Kit", classId = 13 },
   },
 })
 tinsert(ns.Sets, {
@@ -8005,6 +7857,27 @@ tinsert(ns.Sets, {
   },
 })
 tinsert(ns.Sets, {
+  id = 383,
+  name = "Tangled Raiment",
+  release = 12,
+  category = "Dungeon",
+  sets = {
+    { id = 5629, name = "Blossoming Battleplate", classId = 1 },
+    { id = 5629, name = "Blossoming Battleplate", classId = 2 },
+    { id = 5628, name = "Rootward Regalia", classId = 3 },
+    { id = 5627, name = "Grotto Garb", classId = 4 },
+    { id = 5626, name = "Valeguard Vestments", classId = 5 },
+    { id = 5629, name = "Blossoming Battleplate", classId = 6 },
+    { id = 5628, name = "Rootward Regalia", classId = 7 },
+    { id = 5626, name = "Valeguard Vestments", classId = 8 },
+    { id = 5626, name = "Valeguard Vestments", classId = 9 },
+    { id = 5627, name = "Grotto Garb", classId = 10 },
+    { id = 5627, name = "Grotto Garb", classId = 11 },
+    { id = 5627, name = "Grotto Garb", classId = 12 },
+    { id = 5628, name = "Rootward Regalia", classId = 13 },
+  },
+})
+tinsert(ns.Sets, {
   id = 198,
   name = "Fel-Automaton Exoplate",
   release = 10,
@@ -8218,6 +8091,48 @@ tinsert(ns.Sets, {
     {},
     {},
     { id = 2679, name = "Helarjar Berserker Warplate", classId = 6 },
+  },
+})
+tinsert(ns.Sets, {
+  id = 279,
+  name = "TWW Dungeon",
+  release = 11,
+  category = "Dungeon",
+  sets = {
+    { id = 3889, name = "Dorn Defender Armaments", classId = 1 },
+    { id = 3889, name = "Dorn Defender Armaments", classId = 2 },
+    { id = 3890, name = "Algari Chainmail", classId = 3 },
+    { id = 3891, name = "Coreway Regalia", classId = 4 },
+    { id = 3892, name = "Threads of Awakening", classId = 5 },
+    { id = 3889, name = "Dorn Defender Armaments", classId = 6 },
+    { id = 3890, name = "Algari Chainmail", classId = 7 },
+    { id = 3892, name = "Threads of Awakening", classId = 8 },
+    { id = 3892, name = "Threads of Awakening", classId = 9 },
+    { id = 3891, name = "Coreway Regalia", classId = 10 },
+    { id = 3891, name = "Coreway Regalia", classId = 11 },
+    { id = 3891, name = "Coreway Regalia", classId = 12 },
+    { id = 3890, name = "Algari Chainmail", classId = 13 },
+  },
+})
+tinsert(ns.Sets, {
+  id = 297,
+  name = "Legion Timewalking",
+  release = 9,
+  category = "Dungeon",
+  sets = {
+    { id = 2292, name = "Ravencrest's Battleplate", classId = 1 },
+    { id = 2292, name = "Ravencrest's Battleplate", classId = 2 },
+    { id = 4247, name = "Drake Hunter's Kit", classId = 3 },
+    {},
+    {},
+    { id = 2292, name = "Ravencrest's Battleplate", classId = 6 },
+    { id = 4247, name = "Drake Hunter's Kit", classId = 7 },
+    {},
+    {},
+    {},
+    {},
+    {},
+    { id = 4247, name = "Drake Hunter's Kit", classId = 13 },
   },
 })
 -- <<< AUTO-EXPAND

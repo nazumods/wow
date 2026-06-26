@@ -97,6 +97,23 @@ function Get-Excludes {
   return @{ groups = $g; rows = $r }
 }
 
+# Every wago group id referenced by tools/expand-groups.txt — the leading id of each
+# normal/single/byset line, plus all components of each `merge` line. A merged row keeps
+# only the lowest id, so the others vanish from sets.lua; the audit reads these so it
+# still counts them as captured (not "uncaptured"). Returns @{[int]=$true}.
+function Get-ExpandIds([string]$file) {
+  $ids = @{}
+  if (Test-Path -LiteralPath $file) {
+    foreach ($ln in (Get-Content -LiteralPath $file)) {
+      $t = ($ln -split '#', 2)[0].Trim()
+      if (-not $t) { continue }
+      if ($t -match '^merge\s+(\S+)') { foreach ($x in ($Matches[1] -split '\+')) { $ids[[int]$x] = $true } }
+      elseif ($t -match '^(\d+)') { $ids[[int]$Matches[1]] = $true }
+    }
+  }
+  return $ids
+}
+
 # ── Coverage-audit mode ──────────────────────────────────────────────────────
 # Report the wago TransmogSetGroups we DON'T yet curate in ns.Sets, with enough
 # metadata (expansion, difficulty/variant labels, set count) to triage which to
@@ -140,6 +157,9 @@ if ($AuditCoverage) {
   # Curated wago group ids already in ns.Sets (the group-level `id = N,` lines).
   $curated = @{}
   foreach ($ln in ($raw -split "`r?`n")) { if ($ln -match '^\s+id\s*=\s*(\d+),\s*$') { $curated[[int]$Matches[1]] = $true } }
+  # Also count merge-component ids: a merged row keeps only its lowest id, so the others
+  # are captured (shown in that row) but no longer appear as `id = N,` lines above.
+  foreach ($k in (Get-ExpandIds $ExpandFile).Keys) { $curated[$k] = $true }
 
   # Aggregate placeable rows (real group + at least one class bit) per group id.
   $grp = @{}
@@ -255,16 +275,24 @@ if ($Expand) {
   # `byset` mode emits one row per SET (named by the set's own name) — for label-less
   # groups that are a flat list of distinctly-named ensembles (the Trading Post).
   if (-not (Test-Path -LiteralPath $ExpandFile)) { throw "Expand group list not found: $ExpandFile" }
-  $jobIds = @(); $jobCat = @{}; $jobMode = @{}
+  $jobIds = @(); $jobCat = @{}; $jobMode = @{}; $merges = @()
   foreach ($ln in (Get-Content -LiteralPath $ExpandFile)) {
     $t = ($ln -split '#', 2)[0].Trim()
     if (-not $t) { continue }
+    # `merge <id>+<id>+... | <Category> | <Name>` — assemble ONE class-disjoint row from
+    # several whole groups (armor-type / source splits of one logical set spanning ids).
+    if ($t -match '^merge\s+(.+)$') {
+      $p = $Matches[1] -split '\s*\|\s*'
+      if ($p.Count -ne 3) { throw "Bad merge line '$ln' — expected 'merge ids | Category | Name'." }
+      $merges += @{ ids = @($p[0] -split '\s*\+\s*' | ForEach-Object { [int]$_ }); cat = $p[1].Trim(); name = $p[2].Trim() }
+      continue
+    }
     $kv = $t -split ':', 3
-    if ($kv.Count -lt 2) { throw "Bad expand-groups.txt line '$ln' — expected 'id:Category[:byset]'." }
+    if ($kv.Count -lt 2) { throw "Bad expand-groups.txt line '$ln' — expected 'id:Category[:byset|single]'." }
     $jid = [int]$kv[0].Trim(); $jobIds += $jid; $jobCat[$jid] = $kv[1].Trim()
     $jobMode[$jid] = if ($kv.Count -ge 3) { $kv[2].Trim() } else { '' }
   }
-  if ($jobIds.Count -eq 0) { throw 'expand-groups.txt has no entries.' }
+  if ($jobIds.Count -eq 0 -and $merges.Count -eq 0) { throw 'expand-groups.txt has no entries.' }
 
   $excl = Get-Excludes   # tools/excludes.txt — whole groups + "id:label" dead rows
 
@@ -351,6 +379,43 @@ if ($Expand) {
       $L.Add('})')
       $emitted++
     }
+  }
+
+  # ── merge directives: assemble ONE class-disjoint row from several whole groups ──
+  # (armor-type / source splits of one logical set that span multiple group ids). First
+  # /lowest set id wins per class — clean when the groups tile without overlap. The row
+  # takes the lowest group id (so its cells key into db.sets consistently on scan).
+  foreach ($mg in $merges) {
+    $rows = $tsRows | Where-Object { [int]$_.TransmogSetGroupID -in $mg.ids }
+    if (-not $rows) { Write-Warning "merge [$($mg.ids -join '+')] '$($mg.name)' — no rows; skipped."; continue }
+    $slot = @{}; $union = 0; $exp = 0
+    foreach ($r in ($rows | Sort-Object { [int]$_.ID })) {
+      $e = 0; [void][int]::TryParse($r.ExpansionID, [ref]$e); if ($e -gt $exp) { $exp = $e }
+      $m = 0; [void][int]::TryParse($r.ClassMask, [ref]$m); $union = $union -bor $m
+      for ($bb = 0; $bb -lt 13; $bb++) {
+        if (($m -band (1 -shl $bb)) -eq 0) { continue }
+        $c = $bb + 1
+        if ($slot.ContainsKey($c)) { continue }
+        $slot[$c] = @{ id = $r.ID; name = (LuaEsc ([string]$r.Name_lang)) }
+      }
+    }
+    if ($union -eq 0) { Write-Host "  skip merge '$($mg.name)' — no class bits" -ForegroundColor DarkYellow; continue }
+    $gid = ($mg.ids | Measure-Object -Minimum).Minimum
+    Write-Host "  merge [$($mg.ids -join '+')] -> '$($mg.name)' ($($slot.Count) classes)" -ForegroundColor Cyan
+    $L.Add('tinsert(ns.Sets, {')
+    $L.Add("  id = $gid,")
+    $L.Add("  name = `"$(LuaEsc $mg.name)`",")
+    $L.Add("  release = $($exp + 1),")
+    $L.Add("  category = `"$($mg.cat)`",")
+    $L.Add('  sets = {')
+    $max = ($slot.Keys | Measure-Object -Maximum).Maximum
+    for ($c = 1; $c -le $max; $c++) {
+      if ($slot.ContainsKey($c)) { $L.Add("    { id = $($slot[$c].id), name = `"$($slot[$c].name)`", classId = $c },") }
+      else { $L.Add('    {},') }
+    }
+    $L.Add('  },')
+    $L.Add('})')
+    $emitted++
   }
   $L.Add('-- <<< AUTO-EXPAND')
 
