@@ -44,30 +44,40 @@ ns:registerCommand("model", nil, function(_, args)
   ns.Print(("Preview display %d (customizations %s)"):format(id, useCust and "on" or "off"))
 end, "dev: preview a raw creature display id; append 1 to overlay player customizations")
 
--- dev: vet a freshly curated batch — list every group whose set ids resolve to no
--- appearance on the live client (GetAllSourceIDs empty), i.e. render as blank rows.
--- GetAllSourceIDs (not GetSetPrimaryAppearances) is the has-data signal: non-raid
--- sets carry sources but no primary appearances. Dumps to a copy window so the list
--- is pasteable; prints "all resolve" when the data is clean.
-ns:registerCommand("coverage", nil, function()
-  local empty = {}
+-- dev: vet a freshly curated batch — check which groups resolve to a live
+-- appearance. GetAllSourceIDs (not GetSetPrimaryAppearances) is the has-data signal:
+-- non-raid sets carry sources but no primary appearances. Default dumps just the
+-- empties (blank rows) to a copy window; `coverage all` dumps every group tagged
+-- OK/EMPTY so the full resolved list is eyeballable. Always prints a count summary.
+ns:registerCommand("coverage", nil, function(_, args)
+  local showAll = (args or ""):lower():find("all") ~= nil
+  local ok, empty = {}, {}
   for _, grp in ipairs(ns.Sets) do
-    local ok = false
+    local resolved = false
     for _, set in ipairs(grp.sets) do
       if set.id then
         local src = getSources(set.id)
-        if src and #src > 0 then ok = true; break end
+        if src and #src > 0 then resolved = true; break end
       end
     end
-    if not ok then empty[#empty + 1] = ("%d  %s"):format(grp.id, grp.name) end
+    local bucket = resolved and ok or empty
+    bucket[#bucket + 1] = ("%d  %s"):format(grp.id, grp.name)
   end
-  if #empty == 0 then
-    ns.Print(("All %d groups resolve on live."):format(#ns.Sets))
+  local summary = ("%d groups: %d resolve, %d empty."):format(#ns.Sets, #ok, #empty)
+  local body, title
+  if showAll then
+    local lines = { summary, "" }
+    if #empty > 0 then lines[#lines + 1] = "-- EMPTY --"; for _, l in ipairs(empty) do lines[#lines + 1] = l end; lines[#lines + 1] = "" end
+    lines[#lines + 1] = "-- OK --"
+    for _, l in ipairs(ok) do lines[#lines + 1] = l end
+    body, title = table.concat(lines, "\n"), "Collected coverage — all groups"
   else
-    ui.ShowCopyWindow("Collected — unresolved groups (" .. #empty .. ")", table.concat(empty, "\n"))
-    ns.Print(("%d group(s) render empty — see copy window."):format(#empty))
+    body = #empty > 0 and table.concat(empty, "\n") or summary
+    title = ("Collected coverage — %d empty"):format(#empty)
   end
-end, "dev: list groups that resolve to no appearance on live (blank rows)")
+  ui.ShowCopyWindow(title, body)
+  ns.Print(summary)
+end, "dev: vet set resolution on live (copy window); `all` lists every group, else empties only")
 
 -- dev: live-tune the open preview model's user scale multiplier (on top of the
 -- automatic normalization), or dump the scale state with no arg.
