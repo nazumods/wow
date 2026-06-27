@@ -31,10 +31,10 @@ jobs:
         shell: pwsh
         run: ./Warbandeer_Collected/tools/update-sets.ps1
 
-      # Refresh the AUTO-EXPAND block too (mega-sets / Trading Post). The normal pass
-      # above skips that block, so -Expand is what keeps it current (e.g. new monthly
-      # Trading Post ensembles) from tools/expand-groups.txt.
-      - name: Refresh -Expand block
+      # Refresh data/sets_expand.lua too (mega-sets / Trading Post). The normal pass
+      # above only touches sets.lua, so -Expand is what keeps the generated file current
+      # (e.g. new monthly Trading Post ensembles) from tools/expand-groups.txt.
+      - name: Refresh sets_expand.lua
         shell: pwsh
         run: ./Warbandeer_Collected/tools/update-sets.ps1 -Expand
 
@@ -46,17 +46,19 @@ jobs:
       - uses: leafo/gh-actions-luarocks@v4
       - name: Install luacheck
         run: luarocks install luacheck
-      - name: Lint regenerated file
-        run: luacheck Warbandeer_Collected/data/sets.lua --codes
+      - name: Lint regenerated files
+        run: luacheck Warbandeer_Collected/data/sets.lua Warbandeer_Collected/data/sets_expand.lua --codes
 
       - name: Open PR if changed
         uses: peter-evans/create-pull-request@v6
         with:
           branch: bot/collected-set-refresh
           delete-branch: true
-          # Only commit the data file — the luacheck step leaves a .luarocks/ dir
+          # Only commit the data files — the luacheck step leaves a .luarocks/ dir
           # in the workspace that must not end up in the PR.
-          add-paths: Warbandeer_Collected/data/sets.lua
+          add-paths: |
+            Warbandeer_Collected/data/sets.lua
+            Warbandeer_Collected/data/sets_expand.lua
           commit-message: "chore(collected): refresh transmog set data from wago.tools"
           title: "chore(collected): refresh transmog set data from wago.tools"
           body: |

@@ -18,6 +18,7 @@ init.lua
 commands.lua
 
 data\sets.lua
+data\sets_expand.lua
 data\sets_ptr.lua
 data\sets_review.lua
 data\models.lua
