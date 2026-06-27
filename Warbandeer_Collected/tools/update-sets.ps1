@@ -282,49 +282,42 @@ if ($AuditSets) {
   Write-Host "Set-level audit against wow build $Build" -ForegroundColor Cyan
   $tsRows  = ASCsv 'TransmogSet' $Build
   $grpRows = ASCsv 'TransmogSetGroup' $Build
+  $indRows = ASCsv 'ItemNameDescription' $Build
   if ($tsRows.Count -lt $MinRows) { throw "TransmogSet returned $($tsRows.Count) rows (< $MinRows) — incomplete download, aborting." }
   $grpName = @{}; foreach ($g in $grpRows) { $grpName[[int]$g.ID] = ([string]$g.Name_lang).Trim() }
   function LuaEsc([string]$s) { $s.Replace('\', '\\').Replace('"', '\"') }
 
-  # Rendered cells = `{ id = N, name = ..., classId = C }` in the curated files (NOT
-  # sets_review.lua, so re-runs diff against real data). Track the set id ($have), the
-  # appearance key "name|classId" ($haveCell), and — for each appearance — the owning row's
-  # display name + the rendered set id ($cellRow/$cellId) so a twin can name its counterpart.
-  # Many wago sets are exact duplicate ids of an already-rendered appearance (legacy PvP ships
-  # each season-bracket-armor set twice; the row picked one id, the twin is redundant). A set
-  # whose every class slot is already a rendered cell of the same name adds nothing to the grid.
-  $have = @{}; $haveCell = @{}; $cellRow = @{}; $cellId = @{}
+  # Appearance key = name + bracket-label + ClassMask. Legacy Elite/Gladiator sets share a
+  # NAME but are different recolors (distinct labels), so name alone mis-matches; keying on
+  # the label (ItemNameDescription) + mask pins the exact look. $tsById indexes every wago set.
+  $indLabel = @{}; foreach ($d in $indRows) { $i = 0; [void][int]::TryParse($d.ID, [ref]$i); if ($i -gt 0) { $indLabel[$i] = ([string]$d.Description_lang).Trim() } }
+  function LabelOf($r) { $i = 0; [void][int]::TryParse($r.ItemNameDescriptionID, [ref]$i); if ($indLabel.ContainsKey($i)) { $indLabel[$i] } else { '' } }
+  function KeyOf($r) { "$(LuaEsc ([string]$r.Name_lang))|$(LabelOf $r)|$([int]$r.ClassMask)" }
+  $tsById = @{}; foreach ($r in $tsRows) { $tsById[[int]$r.ID] = $r }
+
+  # Rendered set ids = cell `id = N` in the curated files (NOT sets_review.lua, so re-runs
+  # diff against real data). $haveByKey maps each rendered appearance to one of its set ids,
+  # so an un-rendered set with the SAME appearance can be flagged a duplicate and paired to it.
+  $have = @{}
   foreach ($f in @($SetsFile, (Join-Path (Split-Path $SetsFile) 'sets_ptr.lua'))) {
-    if (-not (Test-Path -LiteralPath $f)) { continue }
-    $rowName = ''
-    foreach ($ln in (Get-Content -LiteralPath $f)) {
-      if ($ln -match '^\s*name\s*=\s*"([^"]*)",\s*$') { $rowName = $Matches[1]; continue }   # row header
-      if ($ln -match '\{\s*id\s*=\s*(\d+),\s*name\s*=\s*"([^"]*)",\s*classId\s*=\s*(\d+)') {
-        $cid = [int]$Matches[1]; $key = "$($Matches[2])|$($Matches[3])"
-        $have[$cid] = $true; $haveCell[$key] = $true
-        if (-not $cellRow.ContainsKey($key)) { $cellRow[$key] = $rowName; $cellId[$key] = $cid }
-      }
+    if (Test-Path -LiteralPath $f) {
+      foreach ($ln in (Get-Content -LiteralPath $f)) { if ($ln -match '\{\s*id\s*=\s*(\d+),\s*name\s*=.*classId') { $have[[int]$Matches[1]] = $true } }
     }
   }
+  $haveByKey = @{}
+  foreach ($id in $have.Keys) { if ($tsById.ContainsKey($id)) { $k = KeyOf $tsById[$id]; if (-not $haveByKey.ContainsKey($k)) { $haveByKey[$k] = $id } } }
 
   # Placeable wago sets (class bits, real non-test group) that aren't rendered — split into
-  # genuine gaps ($miss, "Review" category) and appearance-duplicate twins ($twins, "Twins"
-  # category, each tagged with the row it duplicates for an in-game A/B). Whole groups dropped
-  # in excludes.txt (test placeholders, grab-bags) are skipped entirely.
+  # genuine gaps ($miss, "Review") and appearance-duplicate twins ($twins, "Twins", each paired
+  # to the rendered set id it duplicates). Whole groups in excludes.txt are skipped entirely.
   $exclGroups = (Get-Excludes).groups
   $miss = @{}; $twins = @()
   foreach ($r in $tsRows) {
     $m = [int]$r.ClassMask; $gid = [int]$r.TransmogSetGroupID; $sid = [int]$r.ID
     if ($m -le 0 -or $gid -le 0 -or $have.ContainsKey($sid)) { continue }
     if (($grpName[$gid]) -match '^(?i)test\b' -or $exclGroups.ContainsKey($gid)) { continue }
-    $nm = LuaEsc ([string]$r.Name_lang)
-    $covered = $true; $rep = 0
-    for ($c = 1; $c -le 13; $c++) {
-      if (($m -band (1 -shl ($c - 1))) -eq 0) { continue }
-      if (-not $haveCell["$nm|$c"]) { $covered = $false; break }
-      if ($rep -eq 0) { $rep = $c }
-    }
-    if ($covered) { $k = "$nm|$rep"; $twins += @{ r = $r; row = $cellRow[$k]; cid = $cellId[$k] }; continue }
+    $k = KeyOf $r
+    if ($haveByKey.ContainsKey($k)) { $twins += @{ r = $r; cid = $haveByKey[$k] }; continue }
     if (-not $miss.ContainsKey($gid)) { $miss[$gid] = @() }
     $miss[$gid] += $r
   }
@@ -362,26 +355,36 @@ if ($AuditSets) {
       $total++
     }
   }
-  # Twins — each renders its OWN appearance (its id across its ClassMask); the row name carries
-  # the counterpart it duplicates ("<name> = twin of '<row>' #<id>") so the same look can be
-  # found in its real category and compared cell-for-cell. Sorted by counterpart row, then id.
-  $L.Add('')
-  $L.Add("-- ── Twins ($dupTwins) — appearance-duplicates of already-rendered rows ──")
-  foreach ($tw in ($twins | Sort-Object { $_.row }, { [int]$_.r.ID })) {
-    $r = $tw.r; $m = [int]$r.ClassMask; $e = 0; [void][int]::TryParse($r.ExpansionID, [ref]$e)
-    $nm = LuaEsc ([string]$r.Name_lang)
-    $disp = LuaEsc ("$([string]$r.Name_lang) = twin of '$($tw.row)' #$($tw.cid)")
+  # Twins — for each rendered original, emit it then its duplicate(s) as consecutive rows.
+  # Both share the base name "<name> #<origId>" (the grid sorts within a release alphabetically
+  # by base name, ties → authored order), so the original lands directly above its twin(s); the
+  # " (original)" / " (twin #id)" suffix is in parens, which the sort strips. The look AND your
+  # collected marks should match line-to-line — a mismatch means it's not a true duplicate.
+  function TwinRow([string]$disp, $set, [int]$mask, [int]$rel, [string]$cat) {
+    $nm = LuaEsc ([string]$set.Name_lang)
     $L.Add('tinsert(ns.Sets, {')
-    $L.Add("  id = $($r.ID),")
+    $L.Add("  id = $($set.ID),")
     $L.Add("  name = `"$disp`",")
-    $L.Add("  release = $($e + 1),")
-    $L.Add('  category = "Twins",')
+    $L.Add("  release = $rel,")
+    $L.Add("  category = `"$cat`",")
     $L.Add('  sets = {')
     for ($c = 1; $c -le 13; $c++) {
-      if ($m -band (1 -shl ($c - 1))) { $L.Add("    { id = $($r.ID), name = `"$nm`", classId = $c },") } else { $L.Add('    {},') }
+      if ($mask -band (1 -shl ($c - 1))) { $L.Add("    { id = $($set.ID), name = `"$nm`", classId = $c },") } else { $L.Add('    {},') }
     }
     $L.Add('  },')
     $L.Add('})')
+  }
+  $byCid = @{}
+  foreach ($tw in $twins) { if (-not $byCid.ContainsKey($tw.cid)) { $byCid[$tw.cid] = @() }; $byCid[$tw.cid] += $tw.r }
+  $L.Add('')
+  $L.Add("-- ── Twins ($dupTwins) — appearance-duplicates, each under its rendered original ──")
+  foreach ($cid in ($byCid.Keys | Sort-Object { LuaEsc ([string]$tsById[$_].Name_lang) }, { [int]$_ })) {
+    $orig = $tsById[$cid]; $e = 0; [void][int]::TryParse($orig.ExpansionID, [ref]$e); $rel = $e + 1
+    $base = "$(LuaEsc ([string]$orig.Name_lang)) #$cid"
+    TwinRow "$base (original)" $orig ([int]$orig.ClassMask) $rel 'Twins'
+    foreach ($r in ($byCid[$cid] | Sort-Object { [int]$_.ID })) {
+      TwinRow "$base (twin #$($r.ID))" $r ([int]$r.ClassMask) $rel 'Twins'
+    }
   }
   [System.IO.File]::WriteAllText($ReviewFile, ($L -join "`n").TrimEnd() + "`n", [System.Text.UTF8Encoding]::new($false))
   Write-Host "Wrote $ReviewFile — $total un-rendered (Review) + $dupTwins twin(s) (Twins) across $($miss.Count) group(s)." -ForegroundColor Green
