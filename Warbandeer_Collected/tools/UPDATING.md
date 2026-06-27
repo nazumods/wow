@@ -319,6 +319,10 @@ rows that a plain `id:Category` line can't, each `| `-delimited with an optional
   (armor-type / source splits of one logical set spanning group ids).
 - **`mergeset <setid>+… | Cat | Name`** — merge specific **set** ids into one row (the owning
   group's byset/label rows skip them); for armor pieces of one set listed individually.
+- **`eachset <setid>+… | Cat`** — emit **one row per set**, named `<set name> (<colour>)` (the
+  colour/source is the label's last ` - `-delimited segment). The opposite of `mergeset`: for
+  overlapping single-armor recolours that can't tile a full class row but are each a distinct
+  appearance worth showing (the Legion/MoP recolour-catalogue leftovers).
 - **`mergelabels <id>+… | Cat | NamePrefix`** — armor-type groups sharing source labels → one
   `NamePrefix (label)` row per label, tiling armor types across the groups.
 - **`assemble <setid>:<classId>+… | Cat | Name`** — explicit set→class pairs, for all-class

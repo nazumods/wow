@@ -384,7 +384,7 @@ if ($Expand) {
   # `byset` mode emits one row per SET (named by the set's own name) — for label-less
   # groups that are a flat list of distinctly-named ensembles (the Trading Post).
   if (-not (Test-Path -LiteralPath $ExpandFile)) { throw "Expand group list not found: $ExpandFile" }
-  $jobIds = @(); $jobCat = @{}; $jobMode = @{}; $merges = @(); $setMerges = @(); $mergedSetIds = @{}; $labelMerges = @(); $assembles = @(); $seasonMerges = @()
+  $jobIds = @(); $jobCat = @{}; $jobMode = @{}; $merges = @(); $setMerges = @(); $mergedSetIds = @{}; $labelMerges = @(); $assembles = @(); $seasonMerges = @(); $eachSets = @()
   foreach ($ln in (Get-Content -LiteralPath $ExpandFile)) {
     $t = ($ln -split '#', 2)[0].Trim()
     if (-not $t) { continue }
@@ -419,6 +419,18 @@ if ($Expand) {
       $sids = @($p[0] -split '\s*\+\s*' | ForEach-Object { [int]$_ })
       foreach ($s in $sids) { $mergedSetIds[$s] = $true }
       $setMerges += @{ sids = $sids; cat = $p[1].Trim(); name = $p[2].Trim(); release = if ($p.Count -ge 4 -and $p[3].Trim()) { [int]$p[3].Trim() } else { $null } }
+      continue
+    }
+    # `eachset <setid>+... | <Category> [| <release>]` — emit ONE row per listed set (named by
+    # its own name + colour/source label), NOT merged. For groups of overlapping single-armor
+    # recolours that can't tile into a full class row (the Legion/MoP recolour-catalogue
+    # leftovers) but are each a distinct, real appearance worth showing.
+    if ($t -match '^eachset\s+(.+)$') {
+      $p = $Matches[1] -split '\s*\|\s*'
+      if ($p.Count -lt 2 -or $p.Count -gt 3) { throw "Bad eachset line '$ln' — expected 'eachset setids | Category [| release]'." }
+      $sids = @($p[0] -split '\s*\+\s*' | ForEach-Object { [int]$_ })
+      foreach ($s in $sids) { $mergedSetIds[$s] = $true }
+      $eachSets += @{ sids = $sids; cat = $p[1].Trim(); release = if ($p.Count -ge 3 -and $p[2].Trim()) { [int]$p[2].Trim() } else { $null } }
       continue
     }
     # `mergelabels <id>+... | <Category> | <NamePrefix>` — for groups that are armor-type
@@ -610,6 +622,38 @@ if ($Expand) {
     $L.Add('  },')
     $L.Add('})')
     $emitted++
+  }
+
+  # ── eachset directives: one row per listed set, NOT merged (overlapping single-armor
+  # recolours that can't tile a full row). Named "<set name> (<colour>)" — the colour/source
+  # is the label's last " - "-delimited segment, to disambiguate same-named recolours. ──
+  foreach ($es in $eachSets) {
+    foreach ($sid in $es.sids) {
+      $r = $tsRows | Where-Object { [int]$_.ID -eq $sid } | Select-Object -First 1
+      if (-not $r) { Write-Warning "eachset $sid — not found; skipped."; continue }
+      $m = 0; [void][int]::TryParse($r.ClassMask, [ref]$m)
+      if ($m -le 0) { Write-Host "  skip eachset $sid — no class bits" -ForegroundColor DarkYellow; continue }
+      $gid = [int]$r.TransmogSetGroupID; $e = 0; [void][int]::TryParse($r.ExpansionID, [ref]$e)
+      $rel = if ($es.release) { $es.release } else { $e + 1 }
+      $i = 0; [void][int]::TryParse($r.ItemNameDescriptionID, [ref]$i)
+      $lab = if ($indLabel.ContainsKey($i)) { $indLabel[$i] } else { '' }
+      $suf = if ($lab) { " ($(($lab -split ' - ')[-1].Trim()))" } else { '' }
+      $nm = LuaEsc ([string]$r.Name_lang)
+      $disp = LuaEsc ("$([string]$r.Name_lang)$suf")
+      Write-Host "  eachset $sid -> '$disp' (grp $gid, release $rel)" -ForegroundColor Cyan
+      $L.Add('tinsert(ns.Sets, {')
+      $L.Add("  id = $gid,")
+      $L.Add("  name = `"$disp`",")
+      $L.Add("  release = $rel,")
+      $L.Add("  category = `"$($es.cat)`",")
+      $L.Add('  sets = {')
+      for ($c = 1; $c -le 13; $c++) {
+        if ($m -band (1 -shl ($c - 1))) { $L.Add("    { id = $sid, name = `"$nm`", classId = $c },") } else { $L.Add('    {},') }
+      }
+      $L.Add('  },')
+      $L.Add('})')
+      $emitted++
+    }
   }
 
   # ── assemble directives: one row from explicit set:class pairs (all-class anniversary sets) ──
