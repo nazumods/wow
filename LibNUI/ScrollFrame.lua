@@ -36,3 +36,15 @@ function ScrollFrame:VerticalScroll(offset)
   self._widget:SetVerticalScroll(offset)
   return self
 end
+
+-- Recompute the scroll range after the child's content extent changed (e.g. rows were
+-- shown/hidden) — a ScrollFrame only refreshes its range on UpdateScrollChildRect — then
+-- re-clamp the current offset into the new range so the view can't stay scrolled into the
+-- empty space left below shrunk content. Note the child's *content extent* drives the
+-- range, not its set height: a caller that shrinks the child must also hide the frames it
+-- left behind (see TableFrame:ResizeRows), or this recompute still sees the old extent.
+---@return ScrollFrame
+function ScrollFrame:Refresh()
+  self._widget:UpdateScrollChildRect()
+  return self:VerticalScroll(self:VerticalScroll())   -- VerticalScroll clamps to the new range
+end
