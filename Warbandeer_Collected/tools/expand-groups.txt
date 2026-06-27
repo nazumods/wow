@@ -40,6 +40,9 @@ mergelabels 202+204+205+206 | World | Dragonflight
 # ── mergeset: merge specific set ids into one row (byset rows skip them) ──
 #   mergeset <setid>+... | <Category> | <Name> [| <release>]
 mergeset 2659+2660+2676+2677 | Trading Post | Void-Bound | 10   # cloth/leather/mail/plate → one set (pin DF, matches other Trading Post rows; wago mistags as Legion)
+# Per-class PvP set pieces (group 45, Legion Season 1+2) → one set. The 12 un-rendered
+# (the recolor not already in the bracket rows) tile all 12 Legion classes. From -AuditSets review.
+mergeset 410+1068+1070+1072+1159+1160+1162+1165+1166+1170+1171+1172 | PvP | Vindictive Combatant's (PvP)
 
 # ── merge: combine several class-disjoint group ids into one full row ──
 #   merge <id>+<id>+... | <Category> | <Name> [| <release>]

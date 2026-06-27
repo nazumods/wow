@@ -7849,6 +7849,26 @@ tinsert(ns.Sets, {
   },
 })
 tinsert(ns.Sets, {
+  id = 45,
+  name = "Vindictive Combatant's (PvP)",
+  release = 7,
+  category = "PvP",
+  sets = {
+    { id = 1070, name = "Vindictive Combatant's Plate Armor", classId = 1 },
+    { id = 1166, name = "Vindictive Combatant's Scaled Armor", classId = 2 },
+    { id = 410, name = "Vindictive Combatant's Chain Armor", classId = 3 },
+    { id = 1068, name = "Vindictive Combatant's Leather Armor", classId = 4 },
+    { id = 1072, name = "Vindictive Combatant's Satin Armor", classId = 5 },
+    { id = 1165, name = "Vindictive Combatant's Dreadplate Armor", classId = 6 },
+    { id = 1162, name = "Vindictive Combatant's Ringmail Armor", classId = 7 },
+    { id = 1159, name = "Vindictive Combatant's Silk Armor", classId = 8 },
+    { id = 1160, name = "Vindictive Combatant's Felweave Armor", classId = 9 },
+    { id = 1172, name = "Vindictive Combatant's Ironskin Armor", classId = 10 },
+    { id = 1171, name = "Vindictive Combatant's Dragonhide Armor", classId = 11 },
+    { id = 1170, name = "Vindictive Combatant's Felskin Armor", classId = 12 },
+  },
+})
+tinsert(ns.Sets, {
   id = 202,
   name = "Dragonflight (Renown)",
   release = 10,
