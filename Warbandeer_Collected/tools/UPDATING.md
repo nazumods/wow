@@ -1,8 +1,12 @@
-# Updating the transmog set data (`data/sets.lua`)
+# Updating the transmog set data (`data/sets.lua` + `data/sets_late.lua`)
 
-The Collected feature's set list (`ns.Sets` in [`../data/sets.lua`](../data/sets.lua))
-is **regenerated from Blizzard's client database** via [wago.tools](https://wago.tools).
-It feeds both render paths, which share the one file:
+The Collected feature's set list (`ns.Sets`) is **regenerated from Blizzard's client
+database** via [wago.tools](https://wago.tools). The hand-curated body is split across two
+files for load time — [`../data/sets.lua`](../data/sets.lua) (Vanilla→Shadowlands, plus the
+`ns.Releases`/`ns.ReleaseIcons` preamble) and [`../data/sets_late.lua`](../data/sets_late.lua)
+(Dragonflight→Midnight) — and the generated mega-sets live in `sets_expand.lua` (see below).
+The normal `update-sets.ps1` pass rewrites the `sets = {}` blocks in **both** body files. It
+feeds both render paths:
 
 - `/collected` (and `/collect`) — the standalone Collected window.
 - `/wbc` → Collected tab — Warbandeer's `views/CollectedView.lua` (OptionalDep).
@@ -223,8 +227,9 @@ gap:
 pwsh ./update-sets.ps1 -AuditSets
 ```
 
-It diffs every placeable wago set against the cells in `data/sets.lua` and writes the
-un-rendered ones to [`../data/sets_review.lua`](../data/sets_review.lua) as rows under an
+It diffs every placeable wago set against the cells in `data/sets.lua`,
+`data/sets_late.lua` and `data/sets_expand.lua` and writes the un-rendered ones to
+[`../data/sets_review.lua`](../data/sets_review.lua) as rows under an
 ephemeral **"Review"** category — one row per set, classes from its `ClassMask`. Reload
 and **filter Category → Review** to browse them in-game (sorted by expansion), decide which
 deserve real curation (a new `expand-groups.txt` row, a merge, etc.), then **`git checkout
@@ -285,8 +290,9 @@ look them up on wago (`JournalInstance`).
 Some groups carry *dozens* of labels (Legion: World has 22 color variants, MoP: World
 17). Hand-seeding a shell per label is tedious, so **`-Expand`** auto-generates one
 filled `ns.Sets` row per label for the groups listed in
-[`expand-groups.txt`](expand-groups.txt), into a single **guarded block** at the end of
-`sets.lua` (`-- >>> AUTO-EXPAND … -- <<< AUTO-EXPAND`, replaced wholesale each run):
+[`expand-groups.txt`](expand-groups.txt), into its own data file
+[`../data/sets_expand.lua`](../data/sets_expand.lua) (loaded right after `sets.lua` in the
+toc; fenced `-- >>> AUTO-EXPAND … -- <<< AUTO-EXPAND`, the whole file rewritten each run):
 
 ```
 pwsh ./update-sets.ps1 -Expand          # regenerates from expand-groups.txt
@@ -305,11 +311,11 @@ class slots (first/lowest id wins, `{}` for gaps), and:
   representative appearance shows; the rest aren't separable from wago's data);
 - infers `release` from the group's max `ExpansionID` and tags every row the given category.
 
-The block is **owned wholesale by `-Expand`** — the normal `update-sets.ps1` pass **skips it
-verbatim** (its byset rows resolve by set name, which the single-label resolver would clobber).
-So refresh it by re-running `-Expand`, not the normal generator. The weekly workflow runs both
-(normal pass for the hand-curated rows, then `-Expand` for the block), so new Trading Post
-ensembles land automatically.
+`sets_expand.lua` is **owned wholesale by `-Expand`** — the normal `update-sets.ps1` pass only
+touches `sets.lua` and never reads it (its byset rows resolve by set name, which the single-label
+resolver would clobber). So refresh it by re-running `-Expand`, not the normal generator. The
+weekly workflow runs both (normal pass for the hand-curated `sets.lua`, then `-Expand` for
+`sets_expand.lua`), so new Trading Post ensembles land automatically.
 
 **Merge directives** (also in `expand-groups.txt`, all generate into the same block) assemble
 rows that a plain `id:Category` line can't, each `| `-delimited with an optional trailing
