@@ -47,6 +47,9 @@ mergeset 1134+1122+1114+1126+390+1106+1130+1094+1102+1118+1098+1110 | PvP | Vind
 mergeset 1136+1124+1116+1128+393+1108+1132+1096+1104+1120+1100+1112 | PvP | Vindictive Gladiator's Elite (PvP)
 mergeset 4389+4390+4391+4392 | World | Arathi Armor   # Hallowfall (TWW): Crusader/Cleric/Zealot/Abbot = plate/mail/leather/cloth → one set
 mergeset 3655+3656+3657+3658 | World | Hallowfall Armor   # Hallowfall (TWW): plate/mail/leather/cloth → one set
+mergeset 4385+4386+4387+4388 | World | Nightfall Regalia   # Hallowfall (TWW): Executioner/Shadowalker/Curseblade/Darkcaster → one set
+mergeset 4342+4343+4344+4345 | World | Undermine Revolutionary's Armor   # Undermine (TWW): Battleplate/Guise/Battlegear/Vestments → one set
+mergeset 3065+3066+3067+3068 | Event | Jingoist's War Armor   # Time Rifts (DF): 4 armor-type pieces (same name) → one set
 
 # ── assemble: sets each tagged all-classes in wago, assigned per class by name (setid:classId) ──
 #   assemble <setid>:<classId>+... | <Category> | <Name> [| <release>]
