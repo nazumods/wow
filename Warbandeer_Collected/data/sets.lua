@@ -7930,6 +7930,27 @@ tinsert(ns.Sets, {
   },
 })
 tinsert(ns.Sets, {
+  id = 267,
+  name = "Hallowfall Armor",
+  release = 11,
+  category = "World",
+  sets = {
+    { id = 3655, name = "Hallowfall Plate Armor", classId = 1 },
+    { id = 3655, name = "Hallowfall Plate Armor", classId = 2 },
+    { id = 3656, name = "Hallowfall Mail Armor", classId = 3 },
+    { id = 3657, name = "Hallowfall Leather Armor", classId = 4 },
+    { id = 3658, name = "Hallowfall Cloth Armor", classId = 5 },
+    { id = 3655, name = "Hallowfall Plate Armor", classId = 6 },
+    { id = 3656, name = "Hallowfall Mail Armor", classId = 7 },
+    { id = 3658, name = "Hallowfall Cloth Armor", classId = 8 },
+    { id = 3658, name = "Hallowfall Cloth Armor", classId = 9 },
+    { id = 3657, name = "Hallowfall Leather Armor", classId = 10 },
+    { id = 3657, name = "Hallowfall Leather Armor", classId = 11 },
+    { id = 3657, name = "Hallowfall Leather Armor", classId = 12 },
+    { id = 3656, name = "Hallowfall Mail Armor", classId = 13 },
+  },
+})
+tinsert(ns.Sets, {
   id = 274,
   name = "Void Assaults",
   release = 12,
