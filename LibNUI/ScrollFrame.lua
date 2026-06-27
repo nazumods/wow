@@ -38,11 +38,23 @@ function ScrollFrame:VerticalScroll(offset)
 end
 
 -- Recompute the scroll range after the child's height changed (e.g. rows were added
--- or removed) — WoW caches the range and won't refresh it until UpdateScrollChildRect.
--- Then re-clamp the current offset into the new range, so the view can't stay scrolled
+-- or removed) — WoW caches the range and only refreshes it on UpdateScrollChildRect,
+-- then re-clamp the current offset into the new range so the view can't stay scrolled
 -- into the empty space left below a shrunk child.
+--
+-- UpdateScrollChildRect measures the child's *rendered* rect, which doesn't reflect a
+-- SetHeight made earlier in the same frame until the next layout pass. Recomputing only
+-- now would measure the stale (pre-resize) height and leave the range too large, so we
+-- recompute again on the next frame once the child's new size has been laid out — that
+-- deferred pass is the one that actually lands when a filter shrank the child.
 ---@return ScrollFrame
 function ScrollFrame:Refresh()
-  self._widget:UpdateScrollChildRect()
-  return self:VerticalScroll(self:VerticalScroll())
+  local widget = self._widget
+  local function recompute()
+    widget:UpdateScrollChildRect()
+    self:VerticalScroll(self:VerticalScroll())   -- VerticalScroll clamps to the new range
+  end
+  recompute()                  -- synchronous case (child already laid out)
+  C_Timer.After(0, recompute)  -- deferred case (child resized this frame)
+  return self
 end
