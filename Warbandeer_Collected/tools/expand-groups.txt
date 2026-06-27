@@ -45,6 +45,7 @@ mergeset 2659+2660+2676+2677 | Trading Post | Void-Bound | 10   # cloth/leather/
 mergeset 410+1068+1070+1072+1159+1160+1162+1165+1166+1170+1171+1172 | PvP | Vindictive Combatant's (PvP)
 mergeset 1134+1122+1114+1126+390+1106+1130+1094+1102+1118+1098+1110 | PvP | Vindictive Gladiator's (PvP)
 mergeset 1136+1124+1116+1128+393+1108+1132+1096+1104+1120+1100+1112 | PvP | Vindictive Gladiator's Elite (PvP)
+mergeset 4389+4390+4391+4392 | World | Arathi Armor   # Hallowfall (TWW): Crusader/Cleric/Zealot/Abbot = plate/mail/leather/cloth → one set
 
 # ── assemble: sets each tagged all-classes in wago, assigned per class by name (setid:classId) ──
 #   assemble <setid>:<classId>+... | <Category> | <Name> [| <release>]

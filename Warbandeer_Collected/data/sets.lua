@@ -7909,6 +7909,27 @@ tinsert(ns.Sets, {
   },
 })
 tinsert(ns.Sets, {
+  id = 267,
+  name = "Arathi Armor",
+  release = 11,
+  category = "World",
+  sets = {
+    { id = 4389, name = "Arathi Crusader's Armor", classId = 1 },
+    { id = 4389, name = "Arathi Crusader's Armor", classId = 2 },
+    { id = 4390, name = "Arathi Cleric's Armor", classId = 3 },
+    { id = 4391, name = "Arathi Zealot's Armor", classId = 4 },
+    { id = 4392, name = "Arathi Abbot's Armor", classId = 5 },
+    { id = 4389, name = "Arathi Crusader's Armor", classId = 6 },
+    { id = 4390, name = "Arathi Cleric's Armor", classId = 7 },
+    { id = 4392, name = "Arathi Abbot's Armor", classId = 8 },
+    { id = 4392, name = "Arathi Abbot's Armor", classId = 9 },
+    { id = 4391, name = "Arathi Zealot's Armor", classId = 10 },
+    { id = 4391, name = "Arathi Zealot's Armor", classId = 11 },
+    { id = 4391, name = "Arathi Zealot's Armor", classId = 12 },
+    { id = 4390, name = "Arathi Cleric's Armor", classId = 13 },
+  },
+})
+tinsert(ns.Sets, {
   id = 274,
   name = "Void Assaults",
   release = 12,
