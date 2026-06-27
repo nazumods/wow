@@ -365,10 +365,21 @@ if ($Expand) {
   # `byset` mode emits one row per SET (named by the set's own name) — for label-less
   # groups that are a flat list of distinctly-named ensembles (the Trading Post).
   if (-not (Test-Path -LiteralPath $ExpandFile)) { throw "Expand group list not found: $ExpandFile" }
-  $jobIds = @(); $jobCat = @{}; $jobMode = @{}; $merges = @(); $setMerges = @(); $mergedSetIds = @{}; $labelMerges = @()
+  $jobIds = @(); $jobCat = @{}; $jobMode = @{}; $merges = @(); $setMerges = @(); $mergedSetIds = @{}; $labelMerges = @(); $assembles = @()
   foreach ($ln in (Get-Content -LiteralPath $ExpandFile)) {
     $t = ($ln -split '#', 2)[0].Trim()
     if (-not $t) { continue }
+    # `assemble <setid>:<classId>+... | <Category> | <Name>` — build one row from sets that
+    # are each tagged all-classes in wago (the 20th-Anniversary tier recolors), assigning
+    # each to its themed class explicitly (mask-based merges can't tell them apart).
+    if ($t -match '^assemble\s+(.+)$') {
+      $p = $Matches[1] -split '\s*\|\s*'
+      if ($p.Count -lt 3 -or $p.Count -gt 4) { throw "Bad assemble line '$ln' — expected 'assemble setid:classId+... | Category | Name [| release]'." }
+      $slots = @{}
+      foreach ($pp in ($p[0] -split '\s*\+\s*')) { $sc = $pp -split ':', 2; $sid = [int]$sc[0].Trim(); $slots[[int]$sc[1].Trim()] = $sid; $mergedSetIds[$sid] = $true }
+      $assembles += @{ slots = $slots; cat = $p[1].Trim(); name = $p[2].Trim(); release = if ($p.Count -ge 4 -and $p[3].Trim()) { [int]$p[3].Trim() } else { $null } }
+      continue
+    }
     # `mergeset <setid>+... | <Category> | <Name>` — merge specific SET ids into one row
     # (armor pieces of one set listed individually, e.g. Void-Bound inside the Trading
     # Post). The owning group's byset/label rows skip these set ids so there's no dup.
@@ -560,6 +571,35 @@ if ($Expand) {
     $L.Add("  name = `"$(LuaEsc $sm.name)`",")
     $L.Add("  release = $rel,")
     $L.Add("  category = `"$($sm.cat)`",")
+    $L.Add('  sets = {')
+    $max = ($slot.Keys | Measure-Object -Maximum).Maximum
+    for ($c = 1; $c -le $max; $c++) {
+      if ($slot.ContainsKey($c)) { $L.Add("    { id = $($slot[$c].id), name = `"$($slot[$c].name)`", classId = $c },") }
+      else { $L.Add('    {},') }
+    }
+    $L.Add('  },')
+    $L.Add('})')
+    $emitted++
+  }
+
+  # ── assemble directives: one row from explicit set:class pairs (all-class anniversary sets) ──
+  foreach ($as in $assembles) {
+    $slot = @{}; $exp = 0; $gid = 0
+    foreach ($c in ($as.slots.Keys | Sort-Object)) {
+      $r = $tsRows | Where-Object { [int]$_.ID -eq $as.slots[$c] } | Select-Object -First 1
+      if (-not $r) { Write-Warning "assemble '$($as.name)' — set $($as.slots[$c]) not found; skipped slot."; continue }
+      if ($gid -eq 0) { $gid = [int]$r.TransmogSetGroupID }
+      $e = 0; [void][int]::TryParse($r.ExpansionID, [ref]$e); if ($e -gt $exp) { $exp = $e }
+      $slot[$c] = @{ id = $as.slots[$c]; name = (LuaEsc ([string]$r.Name_lang)) }
+    }
+    if ($slot.Count -eq 0) { Write-Host "  skip assemble '$($as.name)' — no sets resolved" -ForegroundColor DarkYellow; continue }
+    $rel = if ($as.release) { $as.release } else { $exp + 1 }
+    Write-Host "  assemble -> '$($as.name)' ($($slot.Count) classes, release $rel)" -ForegroundColor Cyan
+    $L.Add('tinsert(ns.Sets, {')
+    $L.Add("  id = $gid,")
+    $L.Add("  name = `"$(LuaEsc $as.name)`",")
+    $L.Add("  release = $rel,")
+    $L.Add("  category = `"$($as.cat)`",")
     $L.Add('  sets = {')
     $max = ($slot.Keys | Measure-Object -Maximum).Maximum
     for ($c = 1; $c -le $max; $c++) {

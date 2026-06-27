@@ -7909,6 +7909,27 @@ tinsert(ns.Sets, {
   },
 })
 tinsert(ns.Sets, {
+  id = 274,
+  name = "WoW's 20th Anniversary (Void Assaults)",
+  release = 11,
+  category = "Event",
+  sets = {
+    { id = 5555, name = "Battlegear of Voidrath", classId = 1 },
+    { id = 3850, name = "Void's Judgment Armor", classId = 2 },
+    { id = 5553, name = "Voidstalker's Armor", classId = 3 },
+    { id = 3854, name = "Voidfang Armor", classId = 4 },
+    { id = 5556, name = "Vestments of Voidcendence", classId = 5 },
+    { id = 5551, name = "Void Rider's Armor", classId = 6 },
+    { id = 3855, name = "Void Storms Armor", classId = 7 },
+    { id = 3853, name = "Voidwind Regalia", classId = 8 },
+    { id = 3848, name = "Void Nemesis' Raiment", classId = 9 },
+    { id = 5554, name = "Battlegear of the Void Acolyte", classId = 10 },
+    { id = 5552, name = "Voidrage Armor", classId = 11 },
+    { id = 3858, name = "Voidwalker's Armor", classId = 12 },
+    { id = 3859, name = "Void-Warder's Armor", classId = 13 },
+  },
+})
+tinsert(ns.Sets, {
   id = 202,
   name = "Dragonflight (Renown)",
   release = 10,
