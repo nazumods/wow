@@ -62,6 +62,25 @@ Weekly.fields = {
     end,
   },
   ---@class WeeklyBroker
+  ---@field delversBounty boolean  the weekly Delver's Bounty treasure (quest 86371) claimed this week
+  delversBounty = {
+    ids = Set{86371},
+    maxLevel = true,
+    resetOn = ns.RESET_WEEKLY,
+    get = function(_, _, current)
+      -- Sticky until the weekly reset: a transient/early read (quest log not yet
+      -- populated) returns false — don't let it wipe a stored completion.
+      return IsQuestFlaggedCompleted(86371) or current
+    end,
+    reset = function() return false end,
+    -- Capture the claim live; otherwise it's only stored if a refresh runs before
+    -- the weekly reset clears the quest flag.
+    event = "QUEST_TURNED_IN",
+    eventHandler = function(self, _, questId)
+      if self.ids[questId] then self:set(true) end
+    end,
+  },
+  ---@class WeeklyBroker
   ---@field caches integer
   caches = {
     ids = Set{
