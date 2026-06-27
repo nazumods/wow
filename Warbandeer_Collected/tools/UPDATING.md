@@ -1,8 +1,12 @@
-# Updating the transmog set data (`data/sets.lua`)
+# Updating the transmog set data (`data/sets.lua` + `data/sets_late.lua`)
 
-The Collected feature's set list (`ns.Sets` in [`../data/sets.lua`](../data/sets.lua))
-is **regenerated from Blizzard's client database** via [wago.tools](https://wago.tools).
-It feeds both render paths, which share the one file:
+The Collected feature's set list (`ns.Sets`) is **regenerated from Blizzard's client
+database** via [wago.tools](https://wago.tools). The hand-curated body is split across two
+files for load time — [`../data/sets.lua`](../data/sets.lua) (Vanilla→Shadowlands, plus the
+`ns.Releases`/`ns.ReleaseIcons` preamble) and [`../data/sets_late.lua`](../data/sets_late.lua)
+(Dragonflight→Midnight) — and the generated mega-sets live in `sets_expand.lua` (see below).
+The normal `update-sets.ps1` pass rewrites the `sets = {}` blocks in **both** body files. It
+feeds both render paths:
 
 - `/collected` (and `/collect`) — the standalone Collected window.
 - `/wbc` → Collected tab — Warbandeer's `views/CollectedView.lua` (OptionalDep).
@@ -223,8 +227,8 @@ gap:
 pwsh ./update-sets.ps1 -AuditSets
 ```
 
-It diffs every placeable wago set against the cells in `data/sets.lua` and
-`data/sets_expand.lua` and writes the un-rendered ones to
+It diffs every placeable wago set against the cells in `data/sets.lua`,
+`data/sets_late.lua` and `data/sets_expand.lua` and writes the un-rendered ones to
 [`../data/sets_review.lua`](../data/sets_review.lua) as rows under an
 ephemeral **"Review"** category — one row per set, classes from its `ClassMask`. Reload
 and **filter Category → Review** to browse them in-game (sorted by expansion), decide which

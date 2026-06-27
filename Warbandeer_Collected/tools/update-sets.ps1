@@ -1,7 +1,8 @@
 <#
 .SYNOPSIS
-  Regenerate the inner `sets = { ... }` blocks of
-  Warbandeer_Collected/data/sets.lua from live wago.tools TransmogSet data.
+  Regenerate the inner `sets = { ... }` blocks of the hand-curated body files
+  Warbandeer_Collected/data/sets.lua + data/sets_late.lua from live wago.tools
+  TransmogSet data. (data/sets_expand.lua is owned by the separate -Expand mode.)
 
 .DESCRIPTION
   Downloads the TransmogSet + ItemNameDescription tables once and rewrites each
@@ -168,9 +169,13 @@ if ($AuditCoverage) {
   }
   function ExpName([int]$e) { if ($e -ge 0 -and $e -lt $rel.Count) { $rel[$e] } else { "Expansion $e" } }
 
-  # Curated wago group ids already in ns.Sets (the group-level `id = N,` lines).
+  # Curated wago group ids already in ns.Sets (the group-level `id = N,` lines), across
+  # both hand-curated body files.
   $curated = @{}
-  foreach ($ln in ($raw -split "`r?`n")) { if ($ln -match '^\s+id\s*=\s*(\d+),\s*$') { $curated[[int]$Matches[1]] = $true } }
+  foreach ($bf in @($SetsFile, (Join-Path (Split-Path $SetsFile) 'sets_late.lua'))) {
+    if (-not (Test-Path -LiteralPath $bf)) { continue }
+    foreach ($ln in (Get-Content -LiteralPath $bf)) { if ($ln -match '^\s+id\s*=\s*(\d+),\s*$') { $curated[[int]$Matches[1]] = $true } }
+  }
   # Also count merge-component ids: a merged row keeps only its lowest id, so the others
   # are captured (shown in that row) but no longer appear as `id = N,` lines above.
   foreach ($k in (Get-ExpandIds $ExpandFile).Keys) { $curated[$k] = $true }
@@ -304,7 +309,8 @@ if ($AuditSets) {
   # against real data). $haveByAppr is the set of rendered appearance signatures, so an
   # un-rendered set with the IDENTICAL look counts as already-shown rather than a gap.
   $have = @{}
-  foreach ($f in @($SetsFile, (Join-Path (Split-Path $SetsFile) 'sets_ptr.lua'), $ExpandSetsFile)) {
+  $dataDir = Split-Path $SetsFile
+  foreach ($f in @($SetsFile, (Join-Path $dataDir 'sets_late.lua'), (Join-Path $dataDir 'sets_ptr.lua'), $ExpandSetsFile)) {
     if (Test-Path -LiteralPath $f) {
       foreach ($ln in (Get-Content -LiteralPath $f)) { if ($ln -match '\{\s*id\s*=\s*(\d+),\s*name\s*=.*classId') { $have[[int]$Matches[1]] = $true } }
     }
@@ -1079,101 +1085,126 @@ function Get-SetsBody([int]$gid, [string]$difficulty) {
 }
 
 # --- 3. Rewrite each group's sets block in place ---------------------------
-$raw   = [System.IO.File]::ReadAllText($SetsFile)
-$eol   = if ($raw.Contains("`r`n")) { "`r`n" } else { "`n" }
-$lines = $raw -split "`r?`n"
+# The hand-curated body spans two files (sets.lua + sets_late.lua); the normal pass
+# fills every `sets = {}` block in each. sets_expand.lua is owned by -Expand, not here.
+$BodyFiles = @($SetsFile, (Join-Path (Split-Path $SetsFile) 'sets_late.lua'))
 
-$out     = [System.Collections.Generic.List[string]]::new()
-$curId   = 0
-$curName = ''
-$curDiff = $null
-$changed = 0
-$i = 0
-while ($i -lt $lines.Count) {
-  $line = $lines[$i]
+$results  = @()   # per body file: @{ Path; Raw; Eol; Out } (Out is the rewritten line list)
+$changed  = 0
+$origSets = 0
+$newSets  = 0
 
-  # Structural matches are whitespace-tolerant: the hand-maintained file has
-  # stray-space quirks like a 3-space indent or a ` } ,` close.
-  if ($line -match '^\s+id\s*=\s*(\d+),\s*$') { $curId = [int]$Matches[1]; $out.Add($line); $i++; continue }
-  if ($line -match '^\s+name\s*=\s*"(.*)",\s*$') {
-    $curName = $Matches[1]
-    $curDiff = if ($curName -match '\(([^)]+)\)\s*$') { $Matches[1] } else { $null }
-    $out.Add($line); $i++; continue
-  }
+foreach ($file in $BodyFiles) {
+  $raw   = [System.IO.File]::ReadAllText($file)
+  $eol   = if ($raw.Contains("`r`n")) { "`r`n" } else { "`n" }
+  $lines = $raw -split "`r?`n"
 
-  # Single-line empty stub: `  sets = {},` (used when seeding a new tier).
-  if ($line -match '^\s*sets\s*=\s*\{\s*\}\s*,?\s*$') {
-    $body = Get-SetsBody $curId $curDiff
-    if ($null -eq $body) { $out.Add($line) }
-    else { $out.Add('  sets = {'); $body | ForEach-Object { $out.Add($_) }; $out.Add('  },'); $changed++ }
-    $i++; continue
-  }
+  $out     = [System.Collections.Generic.List[string]]::new()
+  $curId   = 0
+  $curName = ''
+  $curDiff = $null
+  $i = 0
+  while ($i -lt $lines.Count) {
+    $line = $lines[$i]
 
-  # Multi-line block: `  sets = {` ... `  },` (whitespace-tolerant close).
-  if ($line -match '^\s*sets\s*=\s*\{\s*$') {
-    $j = $i + 1
-    while ($j -lt $lines.Count -and $lines[$j] -notmatch '^\s*\}\s*,\s*$') { $j++ }
-    $orig = if ($j -gt $i + 1) { $lines[($i + 1)..($j - 1)] } else { @() }
-    $body = Get-SetsBody $curId $curDiff
+    # Structural matches are whitespace-tolerant: the hand-maintained file has
+    # stray-space quirks like a 3-space indent or a ` } ,` close.
+    if ($line -match '^\s+id\s*=\s*(\d+),\s*$') { $curId = [int]$Matches[1]; $out.Add($line); $i++; continue }
+    if ($line -match '^\s+name\s*=\s*"(.*)",\s*$') {
+      $curName = $Matches[1]
+      $curDiff = if ($curName -match '\(([^)]+)\)\s*$') { $Matches[1] } else { $null }
+      $out.Add($line); $i++; continue
+    }
 
-    # Per-group guard: don't let a populated tier (>=10 sets) lose more than half
-    # its entries in one refresh — almost always a partial download, not a real
-    # change. Leave that group as written and warn.
-    if ($null -ne $body) {
-      $origN = ($orig | Where-Object { $_ -match '^\s*\{\s*id\s*=\s*\d+' }).Count
-      $newN  = ($body | Where-Object { $_ -match '^\s*\{\s*id\s*=\s*\d+' }).Count
-      if ($origN -ge 10 -and $newN -lt ($origN / 2)) {
-        Write-Warning "Group $curId '$curName' would shrink $origN -> $newN sets (>50%) — left unchanged."
-        $body = $null
+    # Single-line empty stub: `  sets = {},` (used when seeding a new tier).
+    if ($line -match '^\s*sets\s*=\s*\{\s*\}\s*,?\s*$') {
+      $body = Get-SetsBody $curId $curDiff
+      if ($null -eq $body) { $out.Add($line) }
+      else { $out.Add('  sets = {'); $body | ForEach-Object { $out.Add($_) }; $out.Add('  },'); $changed++ }
+      $i++; continue
+    }
+
+    # Multi-line block: `  sets = {` ... `  },` (whitespace-tolerant close).
+    if ($line -match '^\s*sets\s*=\s*\{\s*$') {
+      $j = $i + 1
+      while ($j -lt $lines.Count -and $lines[$j] -notmatch '^\s*\}\s*,\s*$') { $j++ }
+      $orig = if ($j -gt $i + 1) { $lines[($i + 1)..($j - 1)] } else { @() }
+      $body = Get-SetsBody $curId $curDiff
+
+      # Per-group guard: don't let a populated tier (>=10 sets) lose more than half
+      # its entries in one refresh — almost always a partial download, not a real
+      # change. Leave that group as written and warn.
+      if ($null -ne $body) {
+        $origN = ($orig | Where-Object { $_ -match '^\s*\{\s*id\s*=\s*\d+' }).Count
+        $newN  = ($body | Where-Object { $_ -match '^\s*\{\s*id\s*=\s*\d+' }).Count
+        if ($origN -ge 10 -and $newN -lt ($origN / 2)) {
+          Write-Warning "Group $curId '$curName' would shrink $origN -> $newN sets (>50%) — left unchanged."
+          $body = $null
+        }
       }
+
+      if ($null -eq $body) {
+        for ($k = $i; $k -le $j; $k++) { $out.Add($lines[$k]) }   # leave unchanged
+      } else {
+        $out.Add('  sets = {'); $body | ForEach-Object { $out.Add($_) }; $out.Add('  },')
+        if (($orig -join "`n") -ne ($body -join "`n")) { $changed++ }
+      }
+      $i = $j + 1; continue
     }
 
-    if ($null -eq $body) {
-      for ($k = $i; $k -le $j; $k++) { $out.Add($lines[$k]) }   # leave unchanged
-    } else {
-      $out.Add('  sets = {'); $body | ForEach-Object { $out.Add($_) }; $out.Add('  },')
-      if (($orig -join "`n") -ne ($body -join "`n")) { $changed++ }
-    }
-    $i = $j + 1; continue
+    $out.Add($line); $i++
   }
 
-  $out.Add($line); $i++
+  $origSets += ($lines | Where-Object { $_ -match '^\s*\{\s*id\s*=\s*\d+' }).Count
+  $newSets  += ($out   | Where-Object { $_ -match '^\s*\{\s*id\s*=\s*\d+' }).Count
+  $results  += @{ Path = $file; Raw = $raw; Eol = $eol; Out = $out }
 }
 
-# Guard: refuse a mass deletion of set entries. Catches partial downloads where
-# groups come back with missing classes (which would otherwise blank out slots).
-$origSets = ($lines | Where-Object { $_ -match '^\s*\{\s*id\s*=\s*\d+' }).Count
-$newSets  = ($out   | Where-Object { $_ -match '^\s*\{\s*id\s*=\s*\d+' }).Count
+# Guard: refuse a mass deletion of set entries (summed across both body files).
+# Catches partial downloads where groups come back with missing classes.
 $floor = [math]::Floor($origSets * (1 - $MaxDeletePct / 100))
 if ($origSets -gt 0 -and $newSets -lt $floor) {
   throw "Refusing to write: set entries would drop $origSets -> $newSets (more than $MaxDeletePct%). Likely incomplete wago data — aborting."
 }
 
-# Stamp the source build as a comment — but only when the data actually changed,
-# so an unchanged weekly run produces no diff (and no PR) over a build bump alone.
+# Stamp the source build as a comment — but only when the data actually changed, so an
+# unchanged weekly run produces no diff (and no PR) over a build bump alone. The stamp
+# lives in the file that already carries it (sets.lua); the other body file has none.
 if ($changed -gt 0) {
   $date = if ($buildDate) { ", $buildDate" } else { '' }
   $stamp = "-- Generated from wago.tools TransmogSet (product $Product, build $Build$date) by tools/update-sets.ps1."
-  $at = -1
-  for ($k = 0; $k -lt $out.Count; $k++) { if ($out[$k] -match '^-- Generated from wago\.tools TransmogSet') { $at = $k; break } }
-  if ($at -ge 0) { $out[$at] = $stamp }
-  else {
+  $stamped = $false
+  foreach ($r in $results) {
+    $rOut = $r.Out
+    for ($k = 0; $k -lt $rOut.Count; $k++) {
+      if ($rOut[$k] -match '^-- Generated from wago\.tools TransmogSet') { $rOut[$k] = $stamp; $stamped = $true; break }
+    }
+    if ($stamped) { break }
+  }
+  if (-not $stamped) {
+    $rOut = $results[0].Out
     $anchor = 0
-    for ($k = 0; $k -lt $out.Count; $k++) { if ($out[$k] -match '^local tinsert = tinsert\s*$') { $anchor = $k + 1; break } }
-    $out.Insert($anchor, $stamp)
+    for ($k = 0; $k -lt $rOut.Count; $k++) { if ($rOut[$k] -match '^local tinsert = tinsert\s*$') { $anchor = $k + 1; break } }
+    $rOut.Insert($anchor, $stamp)
   }
 }
 
-$newText = $out -join $eol
+foreach ($r in $results) { $r.NewText = ($r.Out -join $r.Eol) }
+$anyChange = @($results | Where-Object { $_.NewText -ne $_.Raw }).Count -gt 0
 
 if ($Check) {
-  if ($newText -ne $raw) { Write-Host "sets.lua is OUT OF DATE ($changed group(s) would change)." -ForegroundColor Yellow; exit 1 }
-  Write-Host 'sets.lua is up to date.' -ForegroundColor Green; exit 0
+  if ($anyChange) { Write-Host "sets data is OUT OF DATE ($changed group(s) would change)." -ForegroundColor Yellow; exit 1 }
+  Write-Host 'sets data is up to date.' -ForegroundColor Green; exit 0
 }
 
-if ($newText -ne $raw) {
-  [System.IO.File]::WriteAllText($SetsFile, $newText, [System.Text.UTF8Encoding]::new($false))
-  Write-Host "Updated $SetsFile ($changed group(s) changed)." -ForegroundColor Green
+if ($anyChange) {
+  foreach ($r in $results) {
+    if ($r.NewText -ne $r.Raw) {
+      [System.IO.File]::WriteAllText($r.Path, $r.NewText, [System.Text.UTF8Encoding]::new($false))
+      Write-Host "Updated $($r.Path)." -ForegroundColor Green
+    }
+  }
+  Write-Host "$changed group(s) changed." -ForegroundColor Green
 } else {
-  Write-Host 'No changes — sets.lua already current.' -ForegroundColor Green
+  Write-Host 'No changes — sets data already current.' -ForegroundColor Green
 }
