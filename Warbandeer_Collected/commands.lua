@@ -22,7 +22,7 @@ ns:registerCommand("wanted", nil, function()
     end
   end
   if n == 0 then
-    ns.Print("No sets flagged wanted — Shift-click a grid cell, or use the dressing room.")
+    ns.Print("No sets flagged wanted — Shift-click an appearance in the grid, or use the dressing room.")
   else
     ns.Print(n .. " wanted set(s).")
   end
