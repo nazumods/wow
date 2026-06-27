@@ -26,7 +26,7 @@ OOP UI widget library. Every widget wraps a backing WoW object (`self._widget`) 
 | `CheckButton.lua` | `CheckButton` — toggle checkbox; `Checked`, `OnToggle` |
 | `AutoWidget.lua` | `AutoWidget` — standalone factory that builds a Button, Texture, or Label from options |
 | `EditBox.lua` | `EditBox` — text input; `Text`, `CursorPosition`, `HighlightText`, `Font` (`{path,size[,flags]}` tuple getter/setter) |
-| `ScrollFrame.lua` | `ScrollFrame` — scrollable container; `Child`, `VerticalScroll` (get/set offset, clamped to range — for scroll-into-view) |
+| `ScrollFrame.lua` | `ScrollFrame` — scrollable container; `Child`, `VerticalScroll` (get/set offset, clamped to range — for scroll-into-view), `Refresh()` (recompute the scroll range via `UpdateScrollChildRect` after the child's height changed, then re-clamp the offset — call after the child grows/shrinks so it can't overscroll into empty space) |
 | `CleanFrame.lua` | `CleanFrame` — styled dark frame with tooltip border (base for windows) |
 | `Cell.lua` | `Cell` — table cell (Frame); renders as Label or Texture, reused across re-sorts via `update`. Label cell-data keys: `text`, `color`, `justifyH`, `font` (font-object name), `fontInfo` (`{path,size}` tuple, re-applied on reuse) |
 | `TableCol.lua` | `TableCol` — column header (BgFrame); content surfaced as `header.label`/`header.texture` |

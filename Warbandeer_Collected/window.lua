@@ -23,6 +23,7 @@ end
 ---@field counter Label "N sets · N appearances · N collected" counter (shrunk in PTR mode)
 ---@field wantedCount Label running "★ N" wanted-set count
 ---@field filterStrip Frame the shared filter chrome row (DataView:BuildFilterStrip)
+---@field _top number grid top offset (filter strip + gap) — _fitToGrid re-derives the height from it
 local MainWindow = Class(TitleFrame, function(self)
   -- The window is themed in `ns:Open` (so the titlebar inherits it too); read it back
   -- here for the counter chrome.
@@ -31,6 +32,7 @@ local MainWindow = Class(TitleFrame, function(self)
   local titleFont = theme.fonts.title
   local STRIP_H, GAP = DataView.STRIP_H, 6
   local TOP = STRIP_H + GAP   -- the grid sits below the filter strip
+  self._top = TOP             -- _fitToGrid re-derives the window height from it
   local w = 110
 
   self.data = DataView:new{
@@ -42,6 +44,8 @@ local MainWindow = Class(TitleFrame, function(self)
     colInfo = DataView.BuildColInfo(false),  -- windowed: includes the lock column
     -- Refresh this window's wanted tally after a Shift-click toggle in the grid.
     onWantedToggle = function() self:RefreshWanted() end,
+    -- Refit the window to the (filtered) row count so the scroll range can't overscroll.
+    onResized = function() self:_fitToGrid() end,
   }
   w = max(w, self.data:Width() + 4)
 
@@ -101,10 +105,7 @@ local MainWindow = Class(TitleFrame, function(self)
 
   self:RefreshCounter()
   self:RefreshWanted()
-  -- Cap the visible grid at the shared `DataView.MAX_HEIGHT` and size the window with
-  -- the same header + cap + margin math as the embedded view, plus the filter strip.
-  local capH = min(self.data.MAX_HEIGHT, self.data.rowArea:Height())
-  self:Height(self.titlebar:Height() + TOP + self.data.headerHeight + capH + 4)
+  self:_fitToGrid()
   self:Width(w)
 end, {
   name = ns._NAME,
@@ -117,6 +118,16 @@ end, {
   special = true,
   level = 580,
 })
+
+---Cap the visible grid at the shared `DataView.MAX_HEIGHT` and size the window with the
+---same header + cap + margin math as the embedded view, plus the filter strip. Called at
+---construction and again on every filter/PTR change (via the grid's `onResized` hook), so
+---the window shrinks to the filtered row count and the scroll range refits — no overscroll.
+function MainWindow:_fitToGrid()
+  local capH = min(self.data.MAX_HEIGHT, self.data.rowArea:Height())
+  self:Height(self.titlebar:Height() + self._top + self.data.headerHeight + capH + 4)
+  self.scroll:Refresh()   -- the scroll frame tracks the window's BottomRight; recompute its range
+end
 
 ---Refresh the running wanted-set count in the header. The star is drawn from the
 ---shared WantedIcon atlas (not a literal glyph, which the header font can't render).

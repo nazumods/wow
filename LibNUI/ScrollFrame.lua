@@ -36,3 +36,13 @@ function ScrollFrame:VerticalScroll(offset)
   self._widget:SetVerticalScroll(offset)
   return self
 end
+
+-- Recompute the scroll range after the child's height changed (e.g. rows were added
+-- or removed) — WoW caches the range and won't refresh it until UpdateScrollChildRect.
+-- Then re-clamp the current offset into the new range, so the view can't stay scrolled
+-- into the empty space left below a shrunk child.
+---@return ScrollFrame
+function ScrollFrame:Refresh()
+  self._widget:UpdateScrollChildRect()
+  return self:VerticalScroll(self:VerticalScroll())
+end

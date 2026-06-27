@@ -611,6 +611,7 @@ Inherits `Frame`. Uses `UIPanelScrollFrameTemplate`.
 |-------------------------|------------------------------------------------------------------|
 | `Child(child)`          | Get/set scroll child                                             |
 | `VerticalScroll(offset)`| Get/set vertical offset (pixels); clamped to range when setting  |
+| `Refresh()`             | Recompute the scroll range after the child's height changed (rows added/removed), then re-clamp the offset so it can't stay scrolled into empty space |
 
 ---
 

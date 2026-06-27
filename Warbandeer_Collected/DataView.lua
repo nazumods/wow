@@ -109,6 +109,7 @@ end
 ---@field embedded boolean? render trimmed for a host view (no lock column / lockout name-click)
 ---@field infoTipAnchor fun(cell: Cell): table?  host override for the hover InfoTip anchor (defaults to "above the cell")
 ---@field onWantedToggle fun(self: DataView)?  host callback fired after a Shift-click wanted toggle (refresh the host's header)
+---@field onResized fun(self: DataView)?  host callback fired after a filter/PTR change shrinks or grows the row area, so the host can refit its scroll container (see _refilter / SetPtr)
 local DataView = Class(TableFrame, function(self)
   -- autoadjust name width (col 1 embedded, col 2 in the window — lock takes col 1)
   local nameCol = self.embedded and 1 or 2
@@ -346,6 +347,8 @@ function DataView:SetPtr(on)
   if not self.embedded then self:_clearSelection() end
   self.data = self:GetData()
   self:update()
+  -- The live and PTR row counts differ wildly, so the host must refit its scroll container.
+  if self.onResized then self:onResized() end
   return self._ptr
 end
 
@@ -355,6 +358,9 @@ function DataView:_refilter()
   if not self.embedded then self:_clearSelection() end
   self.data = self:GetData()
   self:update()
+  -- ResizeRows (inside update) shrank/grew the row area; let the host refit its scroll
+  -- container so the scroll range matches the filtered row count (no overscroll).
+  if self.onResized then self:onResized() end
 end
 
 ---Filter the grid to one expansion (a release index) or "all".

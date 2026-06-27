@@ -29,10 +29,12 @@ local _view
 ---@field counter Label
 ---@field wantedCount Label running "★ N" wanted-set count (mirrors the /collected window)
 ---@field emptyMsg Label
+---@field _top number grid top offset (filter strip + gap) — _fitToGrid re-derives the height from it
 local CollectedView = Class(Frame, function(self)
   _view = self
   local STRIP_H, GAP = WarbandeerCollectedApi.DataView.STRIP_H, 6
   local TOP = STRIP_H + GAP   -- the grid sits below the filter strip
+  self._top = TOP             -- _fitToGrid re-derives the view + scroll height from it
 
   self.grid = WarbandeerCollectedApi.DataView:new{
     parent = self,
@@ -43,6 +45,8 @@ local CollectedView = Class(Frame, function(self)
     -- cells); refresh this view's wanted tally after a Shift-click toggle.
     infoTipAnchor = ns.InfoTipPosition,
     onWantedToggle = function() _view:RefreshWanted() end,
+    -- Refit the scroll container to the (filtered) row count so it can't overscroll.
+    onResized = function() _view:_fitToGrid() end,
   }
 
   -- Shared filter strip (PTR / Wanted / Sort toggles + Expansion / Category dropdowns)
@@ -114,7 +118,7 @@ local CollectedView = Class(Frame, function(self)
   }
 
   self:Width(gridW + SCROLLBAR_W)
-  self:Height(TOP + headerH + capH + 4)
+  self:_fitToGrid()
 end, {})
 CollectedView.name = "collected"
 CollectedView._title = "Collected"
@@ -141,6 +145,17 @@ end
 -- (so a /collected scan run after the view was built is reflected on next open).
 function CollectedView:OnBeforeShow()
   self:_render()
+end
+
+-- Cap the visible grid at the shared `DataView.MAX_HEIGHT` and size the scroll container
+-- (and the view) to match. Called at construction and again on every filter/PTR change
+-- (via the grid's `onResized` hook), so the scroll range tracks the filtered row count and
+-- can't overscroll into empty space below the rows.
+function CollectedView:_fitToGrid()
+  local capH = min(self.grid.MAX_HEIGHT, self.grid.rowArea:Height())
+  self.scroll:Height(capH)
+  self:Height(self._top + self.grid.headerHeight + capH + 4)
+  self.scroll:Refresh()   -- recompute the scroll range for the new child height
 end
 
 -- Show/hide the grid (header icons + scrolling rows) as a unit, so the empty-state
