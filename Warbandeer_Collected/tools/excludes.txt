@@ -34,3 +34,4 @@
 
 # ── -AuditSets data-quirk set drops ──
 set:382   # "Satin Battlegear" (grp 27, Priest-only mask) — identical appearance to the rendered 3-class "Mooncloth Vestments" #4139 (grp 285), so it shows as a slot-mismatched twin. Blizzard tagging quirk.
+set:4439  # "Barkbinds of the Archdruid's Nightmare" (grp 321 Legion Remix) — sources absent on live, renders empty; already a dead -Expand row (321:Nightmare), this drops it from the set-audit too.
