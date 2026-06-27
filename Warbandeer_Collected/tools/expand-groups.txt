@@ -94,3 +94,8 @@ mergeseason 167 | PvP   # Battle Season 1 (Arathi Warfront sets handled by merge
 mergeseason 168 | PvP   # Battle Season 2 (Darkshore Warfront sets handled by mergeset above)
 mergeseason 173 | PvP   # Battle Season 3
 mergeseason 175 | PvP   # Battle Season 4
+
+# ── 20th-Anniversary recolor sets (group 274) — per-class single sets, distinct appearances
+# from the rendered "Eternal" set. mergeset combines each family into one row. From -AuditSets.
+mergeset 3849+3906+3852+3903+3856+3857+3908+3905+3860+3851+3909+3910 | Event | WoW's 20th Anniversary (Trading Post) | 11   # "Enduring" Trading Post recolor (no Shaman in wago)
+mergeset 4564+4574+4563+4568+4572+4567+4569+4570+4573+4565+4571+4566+4562 | Event | WoW's 20th Anniversary (Fiery Recolor) | 11   # Red/Black/Fiery/Blood classic-tier recolor

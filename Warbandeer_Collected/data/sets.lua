@@ -7445,6 +7445,48 @@ tinsert(ns.Sets, {
 })
 tinsert(ns.Sets, {
   id = 274,
+  name = "WoW's 20th Anniversary (Trading Post)",
+  release = 11,
+  category = "Event",
+  sets = {
+    { id = 3849, name = "Enduring Battlegear of Wrath", classId = 1 },
+    { id = 3906, name = "Enduring Judgment Armor", classId = 2 },
+    { id = 3852, name = "Dragonstalker's Enduring Armor", classId = 3 },
+    { id = 3903, name = "Enduring Bloodfang Armor", classId = 4 },
+    { id = 3856, name = "Enduring Vestments of Transcendence", classId = 5 },
+    { id = 3857, name = "Pale Rider's Enduring Armor", classId = 6 },
+    {},
+    { id = 3908, name = "Enduring Netherwind Regalia", classId = 8 },
+    { id = 3905, name = "Enduring Nemesis Raiment", classId = 9 },
+    { id = 3860, name = "Enduring Battlegear of the August Acolyte", classId = 10 },
+    { id = 3851, name = "Enduring Stormrage Armor", classId = 11 },
+    { id = 3909, name = "Netherwalker's Enduring Armor", classId = 12 },
+    { id = 3910, name = "Earth-Warder's Enduring Armor", classId = 13 },
+  },
+})
+tinsert(ns.Sets, {
+  id = 274,
+  name = "WoW's 20th Anniversary (Fiery Recolor)",
+  release = 11,
+  category = "Event",
+  sets = {
+    { id = 4564, name = "Executioner's Bladed Battlegear", classId = 1 },
+    { id = 4574, name = "Blood Vindicator's Armor", classId = 2 },
+    { id = 4563, name = "Timestalker's Armor", classId = 3 },
+    { id = 4568, name = "Shadowslayer Armor", classId = 4 },
+    { id = 4572, name = "Vestments of Searing Radiance", classId = 5 },
+    { id = 4567, name = "Grimforged Armor", classId = 6 },
+    { id = 4569, name = "Flamelash Armor", classId = 7 },
+    { id = 4570, name = "Emberwind Regalia", classId = 8 },
+    { id = 4573, name = "Hellfire Raiment", classId = 9 },
+    { id = 4565, name = "Death-Touched Battlegear", classId = 10 },
+    { id = 4571, name = "Staghelm Armor", classId = 11 },
+    { id = 4566, name = "Armor of Torment", classId = 12 },
+    { id = 4562, name = "Life-Binder's Armor", classId = 13 },
+  },
+})
+tinsert(ns.Sets, {
+  id = 274,
   name = "Void Assaults",
   release = 12,
   category = "Event",
