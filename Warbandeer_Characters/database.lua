@@ -85,7 +85,7 @@ end, "Repair stored data (recount characters)")
 ---@field MigrateDB fun(self) Migrate database to latest version
 function ns:MigrateDB()
   local db = ns.db
-  if db.version == 25 then return end
+  if db.version == 26 then return end
   if not db.characters then db.characters = {} end
   if not db.numCharacters then
     db.numCharacters = countCharacters(db)
@@ -283,6 +283,15 @@ function ns:MigrateDB()
   -- in, so rollback is lossless.
   if (db.version or 0) < 25 then
     db.version = 25
+  end
+
+  -- v26: per-character weekly Delver's Bounty claim (`weeklies.delversBounty`: true once
+  -- the weekly delve treasure, quest 86371, has been claimed) (non-destructive).  Captured
+  -- by data/weekly.lua on QUEST_TURNED_IN (and each refresh), reset weekly; nothing to seed
+  -- — old revisions simply lack it (the Summary Bounty column reads as not-yet-claimed) until
+  -- the character next logs in, so rollback is lossless.
+  if (db.version or 0) < 26 then
+    db.version = 26
   end
 end
 
