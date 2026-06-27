@@ -212,6 +212,26 @@ The deliberate-exclusion list is the single source of truth shared by `-AuditCov
 `'#'` starts a comment; each line carries the reason. The audit header reports the count
 (`N are deliberately excluded`), so the floor stays honest.
 
+### Set-level audit (`-AuditSets`)
+
+`-AuditCoverage` is **group-level** (every wago group captured or excluded). But within a
+captured group we render only a representative set per class — overlap labels, merges, and
+excludes drop the rest, so the **set-level** count is lower (≈82%). To see and triage the
+gap:
+
+```
+pwsh ./update-sets.ps1 -AuditSets
+```
+
+It diffs every placeable wago set against the cells in `data/sets.lua` and writes the
+un-rendered ones to [`../data/sets_review.lua`](../data/sets_review.lua) as rows under an
+ephemeral **"Review"** category — one row per set, classes from its `ClassMask`. Reload
+and **filter Category → Review** to browse them in-game (sorted by expansion), decide which
+deserve real curation (a new `expand-groups.txt` row, a merge, etc.), then **`git checkout
+data/sets_review.lua`** to empty it. The committed `sets_review.lua` is an empty stub
+(loaded by the `.toc` so the review rows light up when populated); never commit a populated
+copy. The bulk of the gap is PvP-season brackets and the 20th-Anniversary re-releases.
+
 ## Adding a new raid tier (or any audited group)
 
 Auto-discovery isn't possible — nothing in the data separates raid tiers from PvP
