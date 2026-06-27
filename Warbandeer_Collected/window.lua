@@ -20,7 +20,7 @@ end
 ---@class CollectedWindow: TitleFrame
 ---@field data DataView the sets-by-class grid
 ---@field scroll ScrollFrame scroll container for the grid's row area
----@field counter Label "N sets · N cells · N collected" counter (shrunk in PTR mode)
+---@field counter Label "N sets · N appearances · N collected" counter (shrunk in PTR mode)
 ---@field wantedCount Label running "★ N" wanted-set count
 ---@field filterStrip Frame the shared filter chrome row (DataView:BuildFilterStrip)
 local MainWindow = Class(TitleFrame, function(self)
@@ -124,7 +124,7 @@ function MainWindow:RefreshWanted()
   self.wantedCount:Text(("|A:%s:14:14|a %d"):format(ns.WantedIcon, ns:WantedCount()))
 end
 
----Refresh the counter: "N sets · N cells · N collected" in live mode (rows shown / grid
+---Refresh the counter: "N sets · N appearances · N collected" in live mode (rows shown / grid
 ---cells with a set / green-check cells, tracking the active filter via VisibleCounts); in
 ---PTR PREVIEW mode the grid is only the upcoming sets, so it becomes a "+N upcoming" tally.
 function MainWindow:RefreshCounter()
@@ -138,7 +138,7 @@ function MainWindow:RefreshCounter()
     self.counter:Text(("+%d sets upcoming%s"):format(n, ns.PtrBuild and (" · PTR " .. ns.PtrBuild.ptr) or ""))
   else
     local sets, cells, green = self.data:VisibleCounts()
-    self.counter:Text(("%d sets · %d cells · %d collected"):format(sets, cells, green))
+    self.counter:Text(("%d sets · %d appearances · %d collected"):format(sets, cells, green))
   end
   -- The PTR line (with the build) is longer than the live count, so shrink the counter
   -- font in PTR mode to keep it clear of the class icons (matches the embedded view).

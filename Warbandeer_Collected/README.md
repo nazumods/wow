@@ -25,18 +25,18 @@ refreshed by the addon author when a new PTR patch arrives.
 
 Mark the sets you're chasing and rate how they look:
 
-- **Wanted** — **Shift-click** any set's cell (or use the **Wanted** button in the
-  dressing room) to flag it. Wanted sets show a gold star in the grid, the header
+- **Wanted** — **Shift-click** any of a set's appearances in the grid (or use the
+  **Wanted** button in the dressing room) to flag the set. Wanted sets show a gold star in the grid, the header
   keeps a running `★` count, and the **Wanted only** title-bar button filters the
   grid down to just your target list. `/collected wanted` lists them all in chat.
 - **Tier rank** — give a set an **S / A / B / C / F** rating in the dressing room.
   Set a single baseline rank, or turn on **This race** to rank it for the specific
   race you're previewing (some sets look better on some races). The grid shows the
-  tier letter, in its tier color, in the corner of the cell — for your current
+  tier letter, in its tier color, in the corner of the appearance — for your current
   character's race. Both are saved account-wide and are independent of whether
   you've collected the set.
 
-Click a set's cell to open a 3D dressing
+Click an appearance to open a 3D dressing
 room showing the set worn by any playable **race** you pick — handy for
 deciding what a transmog will actually look like. Like the character sheet, each
 piece sits in its equipment slot down the sides (green border = collected, red =

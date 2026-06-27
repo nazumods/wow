@@ -398,8 +398,8 @@ function DataView:ShowCountTooltip(owner)
   GameTooltip:SetOwner(owner, "ANCHOR_BOTTOMRIGHT")
   GameTooltip:SetText("Collected set totals")
   GameTooltip:AddLine("|cffffffffsets|r — set rows shown for the current filter.", 0.8, 0.8, 0.8, true)
-  GameTooltip:AddLine("|cffffffffcells|r — class-column cells that hold a set (a set counts once per class it covers).", 0.8, 0.8, 0.8, true)
-  GameTooltip:AddLine("|cffffffffcollected|r — cells you've fully collected, i.e. the green checks.", 0.8, 0.8, 0.8, true)
+  GameTooltip:AddLine("|cffffffffappearances|r — class-column slots that hold a set (a set counts once per class it covers).", 0.8, 0.8, 0.8, true)
+  GameTooltip:AddLine("|cffffffffcollected|r — appearances you've fully collected, i.e. the green checks.", 0.8, 0.8, 0.8, true)
   GameTooltip:Show()
 end
 
