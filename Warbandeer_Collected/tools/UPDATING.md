@@ -232,20 +232,20 @@ data/sets_review.lua`** to empty it. The committed `sets_review.lua` is an empty
 (loaded by the `.toc` so the review rows light up when populated); never commit a populated
 copy.
 
-**Appearance-duplicate twins go to a separate `Twins` category, paired with their original.**
-Legacy PvP ships each season-bracket-armor set as a pair of consecutive ids with identical
-**name + bracket-label + `ClassMask`**; the row picked one id, so the twin's specific id reads
-"un-rendered" yet its look is already on the grid. The audit keys each set on that triple
-(name alone mis-matches — Elite and Gladiator sets share a name but are different recolors with
-different labels) and, when an un-rendered set matches a rendered one, emits **both** under
-**Category → Twins**: the rendered original then its duplicate(s), as consecutive rows sharing
-the base name `<name> #<origId>` so the grid's within-release alphabetical sort keeps them
-adjacent (original first; the ` (original)` / ` (twin #id)` suffix is in parens, which the sort
-strips). Scroll **Twins** and the look **and your collected marks** should match line-to-line —
-a mismatch means it isn't a true duplicate. Filtering twins out of the genuine list collapsed
-the gap from ~18% to ~4% (≈280 twins); the real remainder (Category → Review) is the
-20th-Anniversary re-releases (`assemble`), modern Warfront/PvP-bracket sets (`merge`), and
-recolor catalogs left as-is. Whole groups in `excludes.txt` are skipped from both lists.
+**True appearance-duplicates go to a separate `Twins` category, paired with their original.**
+A set's identity is its exact list of **`ItemModifiedAppearanceID`s** (its source items, from
+`TransmogSetItem`) — **not** its name/label/`ClassMask`. Those three do *not* identify a look:
+the Alliance and Horde recolors of a PvP set share all three yet are visually distinct, as are
+season recolors. So the audit keys each set on its sorted-IMA signature; only when an
+un-rendered set's signature exactly matches a rendered one is it a duplicate. It emits **both**
+under **Category → Twins** — the rendered original then its duplicate(s), as consecutive rows
+sharing the base name `<name> #<origId>` so the grid's within-release alphabetical sort keeps
+them adjacent (original first; the ` (original)` / ` (twin #id)` suffix is in parens, which the
+sort strips). The look **and your collected marks** will match line-to-line (they're the same
+items). This is a small set (~80). The **Review** list (~296) is the genuine remainder: distinct
+recolors — Alliance/Horde faction variants and season recolors of the PvP brackets (the bulk),
+plus the 20th-Anniversary re-releases (`assemble`) and recolor catalogs. Whole groups in
+`excludes.txt` are skipped from both lists.
 
 ## Adding a new raid tier (or any audited group)
 
