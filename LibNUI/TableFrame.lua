@@ -150,6 +150,15 @@ function TableFrame:ResizeRows(n)
   end
   self.rowArea:Height(rowH)
   self:Height(self.offsetY + rowH)
+  -- Show exactly n rows: hide the rest *and their cells* (cells parent to the row area,
+  -- not the row). A ScrollFrame derives its range from the scroll child's content extent,
+  -- not its set height — rows left shown below the shrunk row area would keep the range
+  -- full and let a hosting scroll view overscroll into dead space below the data.
+  for i = 1, #self.rows do
+    local shown = i <= n
+    self.rows[i]:SetShown(shown)
+    for _, cell in pairs(self.cells[i]) do cell:SetShown(shown) end
+  end
 end
 
 function TableFrame:Autosize()
