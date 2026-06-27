@@ -7869,6 +7869,46 @@ tinsert(ns.Sets, {
   },
 })
 tinsert(ns.Sets, {
+  id = 45,
+  name = "Vindictive Gladiator's (PvP)",
+  release = 7,
+  category = "PvP",
+  sets = {
+    { id = 1134, name = "Vindictive Gladiator's Plate Armor", classId = 1 },
+    { id = 1122, name = "Vindictive Gladiator's Scaled Armor", classId = 2 },
+    { id = 1114, name = "Vindictive Gladiator's Chain Armor", classId = 3 },
+    { id = 1126, name = "Vindictive Gladiator's Leather Armor", classId = 4 },
+    { id = 390, name = "Vindictive Gladiator's Satin Armor", classId = 5 },
+    { id = 1106, name = "Vindictive Gladiator's Dreadplate Armor", classId = 6 },
+    { id = 1130, name = "Vindictive Gladiator's Ringmail Armor", classId = 7 },
+    { id = 1094, name = "Vindictive Gladiator's Silk Armor", classId = 8 },
+    { id = 1102, name = "Vindictive Gladiator's Felweave Armor", classId = 9 },
+    { id = 1118, name = "Vindictive Gladiator's Ironskin Armor", classId = 10 },
+    { id = 1098, name = "Vindictive Gladiator's Dragonhide Armor", classId = 11 },
+    { id = 1110, name = "Vindictive Gladiator's Felskin Armor", classId = 12 },
+  },
+})
+tinsert(ns.Sets, {
+  id = 45,
+  name = "Vindictive Gladiator's Elite (PvP)",
+  release = 7,
+  category = "PvP",
+  sets = {
+    { id = 1136, name = "Vindictive Gladiator's Plate Armor", classId = 1 },
+    { id = 1124, name = "Vindictive Gladiator's Scaled Armor", classId = 2 },
+    { id = 1116, name = "Vindictive Gladiator's Chain Armor", classId = 3 },
+    { id = 1128, name = "Vindictive Gladiator's Leather Armor", classId = 4 },
+    { id = 393, name = "Vindictive Gladiator's Satin Armor", classId = 5 },
+    { id = 1108, name = "Vindictive Gladiator's Dreadplate Armor", classId = 6 },
+    { id = 1132, name = "Vindictive Gladiator's Ringmail Armor", classId = 7 },
+    { id = 1096, name = "Vindictive Gladiator's Silk Armor", classId = 8 },
+    { id = 1104, name = "Vindictive Gladiator's Felweave Armor", classId = 9 },
+    { id = 1120, name = "Vindictive Gladiator's Ironskin Armor", classId = 10 },
+    { id = 1100, name = "Vindictive Gladiator's Dragonhide Armor", classId = 11 },
+    { id = 1112, name = "Vindictive Gladiator's Felskin Armor", classId = 12 },
+  },
+})
+tinsert(ns.Sets, {
   id = 202,
   name = "Dragonflight (Renown)",
   release = 10,
