@@ -14,6 +14,11 @@
 #                 sources don't resolve to items. Find these in-game with
 #                 `/collected coverage` (lists rows that render nothing).
 #
+#   set:<id>      `-AuditSets` only: drop one wago SET id from the Review/Twins lists. For
+#                 Blizzard data quirks — a set whose appearance exactly duplicates a rendered
+#                 one but is tagged with a different class-mask, so it shows as a mismatched
+#                 "twin" that can't line up. Never rendered, just review-list noise.
+#
 # '#' starts a comment. Re-run -AuditCoverage / -Expand after editing.
 
 # ── Whole groups (never captured) ──
@@ -26,3 +31,6 @@
 
 # ── Dead -Expand rows (exist in wago, render empty on live) ──
 321:Nightmare   # Legion Remix (Timerunning) — "Barkbinds of the Archdruid's Nightmare" (set 4439) absent on live
+
+# ── -AuditSets data-quirk set drops ──
+set:382   # "Satin Battlegear" (grp 27, Priest-only mask) — identical appearance to the rendered 3-class "Mooncloth Vestments" #4139 (grp 285), so it shows as a slot-mismatched twin. Blizzard tagging quirk.

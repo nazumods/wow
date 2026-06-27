@@ -92,17 +92,18 @@ $SetsFile = (Resolve-Path -LiteralPath $SetsFile).Path
 #                   live client (defunct-event sources that don't resolve to items).
 # '#' starts a comment. Returns @{ groups = @{[int]=$true}; rows = @{"id|label"=$true} }.
 function Get-Excludes {
-  $g = @{}; $r = @{}
+  $g = @{}; $r = @{}; $s = @{}
   $f = Join-Path $PSScriptRoot 'excludes.txt'
   if (Test-Path -LiteralPath $f) {
     foreach ($ln in (Get-Content -LiteralPath $f)) {
       $t = ($ln -split '#', 2)[0].Trim()
       if (-not $t) { continue }
-      if ($t -match ':') { $kv = $t -split ':', 2; $r["$([int]$kv[0].Trim())|$($kv[1].Trim())"] = $true }
+      if ($t -match '^set:\s*(\d+)') { $s[[int]$Matches[1]] = $true }   # -AuditSets only: drop one wago set id (data-quirk twin/orphan)
+      elseif ($t -match ':') { $kv = $t -split ':', 2; $r["$([int]$kv[0].Trim())|$($kv[1].Trim())"] = $true }
       else { $g[[int]$t] = $true }
     }
   }
-  return @{ groups = $g; rows = $r }
+  return @{ groups = $g; rows = $r; sets = $s }
 }
 
 # Every wago group id referenced by tools/expand-groups.txt — the leading id of each
@@ -312,11 +313,11 @@ if ($AuditSets) {
   # Placeable wago sets (class bits, real non-test group) that aren't rendered — split into
   # genuine gaps ($miss, "Review") and true appearance-duplicates ($twins, "Twins", each paired
   # to the rendered set id with the identical look). Whole groups in excludes.txt are skipped.
-  $exclGroups = (Get-Excludes).groups
+  $excl = Get-Excludes; $exclGroups = $excl.groups; $exclSets = $excl.sets
   $miss = @{}; $twins = @()
   foreach ($r in $tsRows) {
     $m = [int]$r.ClassMask; $gid = [int]$r.TransmogSetGroupID; $sid = [int]$r.ID
-    if ($m -le 0 -or $gid -le 0 -or $have.ContainsKey($sid)) { continue }
+    if ($m -le 0 -or $gid -le 0 -or $have.ContainsKey($sid) -or $exclSets.ContainsKey($sid)) { continue }
     if (($grpName[$gid]) -match '^(?i)test\b' -or $exclGroups.ContainsKey($gid)) { continue }
     if ($imaKey.ContainsKey($sid) -and $haveByAppr.ContainsKey($imaKey[$sid])) { $twins += @{ r = $r; cid = $haveByAppr[$imaKey[$sid]] }; continue }
     if (-not $miss.ContainsKey($gid)) { $miss[$gid] = @() }
