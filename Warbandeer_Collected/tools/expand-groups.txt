@@ -110,3 +110,17 @@ mergeset 3069+3070+3071+3072 | Event    | Valhalas Ceremonial Armor     # 218 Ti
 mergeset 4354+4355+4356+4357 | World    | Undermine Field Gear          # 303 (TWW, World Quests/Drops)
 mergeset 5174+5175+5176+5177 | World    | K'aresh Expedition Armor      # 336 (Midnight, Quest Rewards)
 mergeset 1533+1534+1535      | Renown   | Draenor Clans Armor           # 61 (WoD, 10 classes — no mail)
+
+# ── eachset: recolor-catalogue leftovers — overlapping single-armor recolours that can't tile
+# a full class row, each shown as its own row "<name> (<colour>)". From -AuditSets review;
+# roshne confirmed all are visually distinct and should render. (4439 stays dead — excludes.txt.)
+eachset 4327+4458+4465+4477+4478 | World    # 319 Legion: World leftovers
+eachset 3374+3378+3398+3399+3416+3418+3431+3432+3433 | World   # 244 MoP: World colour variants
+eachset 2705+2709+2714 | World              # 204/205/206 DF dungeon World-Drops singles
+eachset 5185 | World                        # 338 K'aresh rare-monster mail
+eachset 2337+2656+2658+4440+4446+4450+4456+4489+4491+4492 | Event   # 321 Legion: Remix leftovers
+eachset 5304 | Event                        # 356 Argussian plate
+eachset 3902+3904+3907 | Event              # 274 Anniversary "Enduring" 2nd-variant fragment
+eachset 4416+4422 | Dungeon                 # 320 Legion: Dungeon purple
+eachset 4143 | Dungeon                      # 285 TBC dungeon cloth (Reputation Vendors - Red)
+eachset 4147 | PvP                          # 287 WotLK PvP plate (Timewalking Vendor - Purple)
