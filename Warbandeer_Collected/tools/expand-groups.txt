@@ -99,3 +99,14 @@ mergeseason 175 | PvP   # Battle Season 4
 # from the rendered "Eternal" set. mergeset combines each family into one row. From -AuditSets.
 mergeset 3849+3906+3852+3903+3856+3857+3908+3905+3860+3851+3909+3910 | Event | WoW's 20th Anniversary (Trading Post) | 11   # "Enduring" Trading Post recolor (no Shaman in wago)
 mergeset 4564+4574+4563+4568+4572+4567+4569+4570+4573+4565+4571+4566+4562 | Event | WoW's 20th Anniversary (Fiery Recolor) | 11   # Red/Black/Fiery/Blood classic-tier recolor
+
+# Trial of the Crusader (group 36, Wrath) — body row "(10 Normal)" is one faction's tier set;
+# these 10 (one per class) are the other faction's distinct recolor (Zabra's/Thrall's/Wrynn's…).
+mergeset 350+641+658+675+691+707+723+739+826+842 | Raid | Trial of the Crusader (10 Normal) II
+
+# Small armor-tile sets (plate+mail+leather+cloth → one row) from -AuditSets review.
+mergeset 2018+2022+2026+2028 | Covenant | Path of Ascension Armor       # 181 Kyrian (SL)
+mergeset 3069+3070+3071+3072 | Event    | Valhalas Ceremonial Armor     # 218 Time Rifts (DF)
+mergeset 4354+4355+4356+4357 | World    | Undermine Field Gear          # 303 (TWW, World Quests/Drops)
+mergeset 5174+5175+5176+5177 | World    | K'aresh Expedition Armor      # 336 (Midnight, Quest Rewards)
+mergeset 1533+1534+1535      | Renown   | Draenor Clans Armor           # 61 (WoD, 10 classes — no mail)
