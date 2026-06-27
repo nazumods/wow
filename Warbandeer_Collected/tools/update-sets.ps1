@@ -304,12 +304,14 @@ if ($AuditSets) {
   }
 
   # Placeable wago sets (class bits, real non-test group) that aren't rendered, grouped —
-  # skipping appearance-duplicate twins (every class slot already on the grid under this name).
+  # skipping appearance-duplicate twins (every class slot already on the grid under this name)
+  # and whole groups deliberately dropped in excludes.txt (test placeholders, grab-bags).
+  $exclGroups = (Get-Excludes).groups
   $miss = @{}; $dupTwins = 0
   foreach ($r in $tsRows) {
     $m = [int]$r.ClassMask; $gid = [int]$r.TransmogSetGroupID; $sid = [int]$r.ID
     if ($m -le 0 -or $gid -le 0 -or $have.ContainsKey($sid)) { continue }
-    if (($grpName[$gid]) -match '^(?i)test\b') { continue }
+    if (($grpName[$gid]) -match '^(?i)test\b' -or $exclGroups.ContainsKey($gid)) { continue }
     $nm = LuaEsc ([string]$r.Name_lang)
     $covered = $true
     for ($c = 1; $c -le 13; $c++) { if (($m -band (1 -shl ($c - 1))) -and -not $haveCell["$nm|$c"]) { $covered = $false; break } }
