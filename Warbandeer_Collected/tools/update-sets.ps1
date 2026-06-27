@@ -286,21 +286,34 @@ if ($AuditSets) {
   $grpName = @{}; foreach ($g in $grpRows) { $grpName[[int]$g.ID] = ([string]$g.Name_lang).Trim() }
   function LuaEsc([string]$s) { $s.Replace('\', '\\').Replace('"', '\"') }
 
-  # Rendered set ids = cell lines `{ id = N, name = ..., classId = ... }` in the curated
-  # files (NOT sets_review.lua, so re-runs diff against real data).
-  $have = @{}
+  # Rendered cells = `{ id = N, name = ..., classId = C }` in the curated files (NOT
+  # sets_review.lua, so re-runs diff against real data). Track both the set id ($have) and
+  # the appearance key "name|classId" ($haveCell) — many wago sets are exact duplicate ids
+  # of an already-rendered appearance (legacy PvP ships each season-bracket-armor set twice;
+  # the row picked one id, the twin is redundant). A set whose every class slot is already a
+  # rendered cell of the same name adds nothing to the grid, so it's not "un-rendered".
+  $have = @{}; $haveCell = @{}
   foreach ($f in @($SetsFile, (Join-Path (Split-Path $SetsFile) 'sets_ptr.lua'))) {
     if (Test-Path -LiteralPath $f) {
-      foreach ($ln in (Get-Content -LiteralPath $f)) { if ($ln -match '\{\s*id\s*=\s*(\d+),\s*name\s*=.*classId') { $have[[int]$Matches[1]] = $true } }
+      foreach ($ln in (Get-Content -LiteralPath $f)) {
+        if ($ln -match '\{\s*id\s*=\s*(\d+),\s*name\s*=\s*"([^"]*)",\s*classId\s*=\s*(\d+)') {
+          $have[[int]$Matches[1]] = $true; $haveCell["$($Matches[2])|$($Matches[3])"] = $true
+        }
+      }
     }
   }
 
-  # Placeable wago sets (class bits, real non-test group) that aren't rendered, grouped.
-  $miss = @{}
+  # Placeable wago sets (class bits, real non-test group) that aren't rendered, grouped —
+  # skipping appearance-duplicate twins (every class slot already on the grid under this name).
+  $miss = @{}; $dupTwins = 0
   foreach ($r in $tsRows) {
     $m = [int]$r.ClassMask; $gid = [int]$r.TransmogSetGroupID; $sid = [int]$r.ID
     if ($m -le 0 -or $gid -le 0 -or $have.ContainsKey($sid)) { continue }
     if (($grpName[$gid]) -match '^(?i)test\b') { continue }
+    $nm = LuaEsc ([string]$r.Name_lang)
+    $covered = $true
+    for ($c = 1; $c -le 13; $c++) { if (($m -band (1 -shl ($c - 1))) -and -not $haveCell["$nm|$c"]) { $covered = $false; break } }
+    if ($covered) { $dupTwins++; continue }
     if (-not $miss.ContainsKey($gid)) { $miss[$gid] = @() }
     $miss[$gid] += $r
   }
@@ -337,6 +350,7 @@ if ($AuditSets) {
   }
   [System.IO.File]::WriteAllText($ReviewFile, ($L -join "`n").TrimEnd() + "`n", [System.Text.UTF8Encoding]::new($false))
   Write-Host "Wrote $ReviewFile — $total un-rendered set(s) across $($miss.Count) group(s)." -ForegroundColor Green
+  Write-Host "Skipped $dupTwins appearance-duplicate twin(s) (same name+classes already rendered)." -ForegroundColor DarkGray
   Write-Host "Top groups:" -ForegroundColor Cyan
   foreach ($gid in ($miss.Keys | Sort-Object { $miss[$_].Count } -Descending | Select-Object -First 12)) {
     Write-Host ("  {0,4}  {1} '{2}'" -f $miss[$gid].Count, $gid, $grpName[$gid])

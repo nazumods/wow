@@ -230,7 +230,16 @@ and **filter Category → Review** to browse them in-game (sorted by expansion),
 deserve real curation (a new `expand-groups.txt` row, a merge, etc.), then **`git checkout
 data/sets_review.lua`** to empty it. The committed `sets_review.lua` is an empty stub
 (loaded by the `.toc` so the review rows light up when populated); never commit a populated
-copy. The bulk of the gap is PvP-season brackets and the 20th-Anniversary re-releases.
+copy.
+
+**Appearance-duplicate twins are skipped.** Legacy PvP ships each season-bracket-armor set
+as a pair of consecutive ids with identical name/label/`ClassMask`; the row picked one id,
+so the twin's specific id is "un-rendered" yet its appearance is already on the grid. The
+audit treats a set as rendered when **every class slot of its `ClassMask` already has a
+rendered cell of the same name**, and reports how many such twins it skipped. This is what
+collapsed the gap from ~18% to ~4% (≈290 twins); the genuine remainder is the
+20th-Anniversary re-releases (`assemble`), modern Warfront/PvP-bracket sets (`merge`), and
+recolor catalogs left as-is.
 
 ## Adding a new raid tier (or any audited group)
 
