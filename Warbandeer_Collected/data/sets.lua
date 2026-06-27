@@ -7910,8 +7910,8 @@ tinsert(ns.Sets, {
 })
 tinsert(ns.Sets, {
   id = 274,
-  name = "WoW's 20th Anniversary (Void Assaults)",
-  release = 11,
+  name = "Void Assaults",
+  release = 12,
   category = "Event",
   sets = {
     { id = 5555, name = "Battlegear of Voidrath", classId = 1 },

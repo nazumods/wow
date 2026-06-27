@@ -48,11 +48,12 @@ mergeset 1136+1124+1116+1128+393+1108+1132+1096+1104+1120+1100+1112 | PvP | Vind
 
 # ── assemble: sets each tagged all-classes in wago, assigned per class by name (setid:classId) ──
 #   assemble <setid>:<classId>+... | <Category> | <Name> [| <release>]
-# 20th-Anniversary "Void Assaults" tier recolors — class inferred from the themed name
-# (mirrors the captured "Eternal" anniversary set): War=Voidrath, Pal=Judgment, Hun=stalker,
-# Rog=fang, Pri=Voidcendence, DK=Rider, Sha=Storms, Mag=wind, Wlk=Nemesis, Mnk=Acolyte,
-# Dru=Voidrage, DH=walker, Evk=Warder.
-assemble 5555:1+3850:2+5553:3+3854:4+5556:5+5551:6+3855:7+3853:8+3848:9+5554:10+5552:11+3858:12+3859:13 | Event | WoW's 20th Anniversary (Void Assaults) | 11
+# "Void Assaults" (Midnight feature; wago files it under the 20th-Anniversary group, so
+# release pinned to Midnight). Class inferred from the themed name (mirrors the captured
+# "Eternal" anniversary set): War=Voidrath, Pal=Judgment, Hun=stalker, Rog=fang,
+# Pri=Voidcendence, DK=Rider, Sha=Storms, Mag=wind, Wlk=Nemesis, Mnk=Acolyte, Dru=Voidrage,
+# DH=walker, Evk=Warder.
+assemble 5555:1+3850:2+5553:3+3854:4+5556:5+5551:6+3855:7+3853:8+3848:9+5554:10+5552:11+3858:12+3859:13 | Event | Void Assaults | 12
 
 # ── merge: combine several class-disjoint group ids into one full row ──
 #   merge <id>+<id>+... | <Category> | <Name> [| <release>]
