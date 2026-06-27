@@ -230,7 +230,18 @@ and **filter Category → Review** to browse them in-game (sorted by expansion),
 deserve real curation (a new `expand-groups.txt` row, a merge, etc.), then **`git checkout
 data/sets_review.lua`** to empty it. The committed `sets_review.lua` is an empty stub
 (loaded by the `.toc` so the review rows light up when populated); never commit a populated
-copy. The bulk of the gap is PvP-season brackets and the 20th-Anniversary re-releases.
+copy.
+
+**Appearance-duplicates are skipped, not listed.** A set's identity is its exact list of
+**`ItemModifiedAppearanceID`s** (its source items, from `TransmogSetItem`) — **not** its
+name/label/`ClassMask`. Those three do *not* identify a look: the Alliance and Horde recolors of
+a PvP set share all three yet are visually distinct, as are season recolors. So the audit keys
+each set on its sorted-IMA signature; when an un-rendered set's signature exactly matches an
+already-rendered one, its look is already on the grid, so it's dropped from Review (reported as
+a skipped count) rather than flagged as a gap. What remains is genuine: distinct recolors to
+capture (Alliance/Horde + season variants via `mergeseason`, armor-tile sets via `mergeset`,
+20th-Anniversary re-releases via `assemble`) and recolor catalogs left as-is. Whole groups and
+individual `set:<id>`s in `excludes.txt` are skipped too.
 
 ## Adding a new raid tier (or any audited group)
 
@@ -299,6 +310,27 @@ verbatim** (its byset rows resolve by set name, which the single-label resolver 
 So refresh it by re-running `-Expand`, not the normal generator. The weekly workflow runs both
 (normal pass for the hand-curated rows, then `-Expand` for the block), so new Trading Post
 ensembles land automatically.
+
+**Merge directives** (also in `expand-groups.txt`, all generate into the same block) assemble
+rows that a plain `id:Category` line can't, each `| `-delimited with an optional trailing
+`| <release>` (1=Vanilla…12=Midnight) overriding wago's `ExpansionID`:
+
+- **`merge <id>+<id>+… | Cat | Name`** — one class-disjoint row from several whole groups
+  (armor-type / source splits of one logical set spanning group ids).
+- **`mergeset <setid>+… | Cat | Name`** — merge specific **set** ids into one row (the owning
+  group's byset/label rows skip them); for armor pieces of one set listed individually.
+- **`mergelabels <id>+… | Cat | NamePrefix`** — armor-type groups sharing source labels → one
+  `NamePrefix (label)` row per label, tiling armor types across the groups.
+- **`assemble <setid>:<classId>+… | Cat | Name`** — explicit set→class pairs, for all-class
+  recolors that mask-merges can't tell apart (20th-Anniversary tier sets).
+- **`mergeseason <groupId> | Cat`** — **own a whole PvP-style group**: bucket all its placeable
+  sets by `ItemNameDescription` label, then greedy class-disjoint-tile each label into one row
+  per visually-distinct recolor (Alliance/Horde faction variants share name+label+`ClassMask`
+  but are different looks, so they tile into separate rows). Tile 1 is `(label)`, the 2nd+ get
+  `(label II)`, `(label III)`. **Remove the group's hand-curated body rows first** — this
+  regenerates every bracket/faction uniformly and owns the group. Set identity is the appearance
+  (`TransmogSetItem`), so this captures the faction/season recolors the single-faction body rows
+  left out (the bulk of the set-level gap).
 
 **Dead rows — `excludes.txt`.** A few generated rows exist in wago but render **empty
 in-game**: their appearance sources don't resolve to items on a live client (typically

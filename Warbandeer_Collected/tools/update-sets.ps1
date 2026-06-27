@@ -92,17 +92,18 @@ $SetsFile = (Resolve-Path -LiteralPath $SetsFile).Path
 #                   live client (defunct-event sources that don't resolve to items).
 # '#' starts a comment. Returns @{ groups = @{[int]=$true}; rows = @{"id|label"=$true} }.
 function Get-Excludes {
-  $g = @{}; $r = @{}
+  $g = @{}; $r = @{}; $s = @{}
   $f = Join-Path $PSScriptRoot 'excludes.txt'
   if (Test-Path -LiteralPath $f) {
     foreach ($ln in (Get-Content -LiteralPath $f)) {
       $t = ($ln -split '#', 2)[0].Trim()
       if (-not $t) { continue }
-      if ($t -match ':') { $kv = $t -split ':', 2; $r["$([int]$kv[0].Trim())|$($kv[1].Trim())"] = $true }
+      if ($t -match '^set:\s*(\d+)') { $s[[int]$Matches[1]] = $true }   # -AuditSets only: drop one wago set id (data-quirk twin/orphan)
+      elseif ($t -match ':') { $kv = $t -split ':', 2; $r["$([int]$kv[0].Trim())|$($kv[1].Trim())"] = $true }
       else { $g[[int]$t] = $true }
     }
   }
-  return @{ groups = $g; rows = $r }
+  return @{ groups = $g; rows = $r; sets = $s }
 }
 
 # Every wago group id referenced by tools/expand-groups.txt — the leading id of each
@@ -117,6 +118,7 @@ function Get-ExpandIds([string]$file) {
       if (-not $t) { continue }
       if ($t -match '^mergelabels\s+(\S+)') { foreach ($x in ($Matches[1] -split '\+')) { $ids[[int]$x] = $true } }
       elseif ($t -match '^merge\s+(\S+)') { foreach ($x in ($Matches[1] -split '\+')) { $ids[[int]$x] = $true } }
+      elseif ($t -match '^mergeseason\s+(\d+)') { $ids[[int]$Matches[1]] = $true }
       elseif ($t -match '^(\d+)') { $ids[[int]$Matches[1]] = $true }
     }
   }
@@ -282,25 +284,42 @@ if ($AuditSets) {
   Write-Host "Set-level audit against wow build $Build" -ForegroundColor Cyan
   $tsRows  = ASCsv 'TransmogSet' $Build
   $grpRows = ASCsv 'TransmogSetGroup' $Build
+  $tsiRows = ASCsv 'TransmogSetItem' $Build
   if ($tsRows.Count -lt $MinRows) { throw "TransmogSet returned $($tsRows.Count) rows (< $MinRows) — incomplete download, aborting." }
   $grpName = @{}; foreach ($g in $grpRows) { $grpName[[int]$g.ID] = ([string]$g.Name_lang).Trim() }
   function LuaEsc([string]$s) { $s.Replace('\', '\\').Replace('"', '\"') }
 
-  # Rendered set ids = cell lines `{ id = N, name = ..., classId = ... }` in the curated
-  # files (NOT sets_review.lua, so re-runs diff against real data).
+  # Appearance identity = the set's exact list of ItemModifiedAppearanceIDs (its source items).
+  # Name / bracket-label / ClassMask do NOT identify a look — the Alliance and Horde recolors of
+  # a PvP set share all three yet are visually distinct, as are season recolors. Two sets are
+  # duplicates ONLY when their appearance lists match. $imaKey is each set's sorted-IMA signature.
+  $ima = @{}
+  foreach ($r in $tsiRows) { $s = [int]$r.TransmogSetID; if (-not $ima.ContainsKey($s)) { $ima[$s] = @() }; $ima[$s] += [int]$r.ItemModifiedAppearanceID }
+  $imaKey = @{}; foreach ($s in $ima.Keys) { $imaKey[$s] = (($ima[$s] | Sort-Object) -join ',') }
+
+  # Rendered set ids = cell `id = N` in the curated files (NOT sets_review.lua, so re-runs diff
+  # against real data). $haveByAppr is the set of rendered appearance signatures, so an
+  # un-rendered set with the IDENTICAL look counts as already-shown rather than a gap.
   $have = @{}
   foreach ($f in @($SetsFile, (Join-Path (Split-Path $SetsFile) 'sets_ptr.lua'))) {
     if (Test-Path -LiteralPath $f) {
       foreach ($ln in (Get-Content -LiteralPath $f)) { if ($ln -match '\{\s*id\s*=\s*(\d+),\s*name\s*=.*classId') { $have[[int]$Matches[1]] = $true } }
     }
   }
+  $haveByAppr = @{}
+  foreach ($id in $have.Keys) { if ($imaKey.ContainsKey($id)) { $haveByAppr[$imaKey[$id]] = $true } }
 
-  # Placeable wago sets (class bits, real non-test group) that aren't rendered, grouped.
-  $miss = @{}
+  # Placeable wago sets (class bits, real non-test group) that aren't rendered ($miss, "Review").
+  # A set whose exact appearance is already rendered (an appearance-duplicate of a curated set —
+  # e.g. the Alliance/Horde or season recolor that won) is skipped, not a gap. Whole groups and
+  # individual sets in excludes.txt are skipped too.
+  $excl = Get-Excludes; $exclGroups = $excl.groups; $exclSets = $excl.sets
+  $miss = @{}; $dupTwins = 0
   foreach ($r in $tsRows) {
     $m = [int]$r.ClassMask; $gid = [int]$r.TransmogSetGroupID; $sid = [int]$r.ID
-    if ($m -le 0 -or $gid -le 0 -or $have.ContainsKey($sid)) { continue }
-    if (($grpName[$gid]) -match '^(?i)test\b') { continue }
+    if ($m -le 0 -or $gid -le 0 -or $have.ContainsKey($sid) -or $exclSets.ContainsKey($sid)) { continue }
+    if (($grpName[$gid]) -match '^(?i)test\b' -or $exclGroups.ContainsKey($gid)) { continue }
+    if ($imaKey.ContainsKey($sid) -and $haveByAppr.ContainsKey($imaKey[$sid])) { $dupTwins++; continue }
     if (-not $miss.ContainsKey($gid)) { $miss[$gid] = @() }
     $miss[$gid] += $r
   }
@@ -313,8 +332,8 @@ if ($AuditSets) {
   $L.Add('local ns = select(2, ...)')
   $L.Add('local tinsert = tinsert')
   $L.Add('-- EPHEMERAL — generated by tools/update-sets.ps1 -AuditSets for in-game review of')
-  $L.Add('-- wago sets not yet rendered in collected (Category -> Review). DO NOT COMMIT a')
-  $L.Add('-- populated copy; git checkout this file when done. The committed version is empty.')
+  $L.Add('-- wago sets not yet rendered (Category -> Review). DO NOT COMMIT a populated copy;')
+  $L.Add('-- git checkout this file when done. The committed version is an empty stub.')
   $L.Add('')
   $total = 0
   foreach ($gid in ($miss.Keys | Sort-Object { $miss[$_].Count } -Descending)) {
@@ -323,7 +342,7 @@ if ($AuditSets) {
       $m = [int]$r.ClassMask; $e = 0; [void][int]::TryParse($r.ExpansionID, [ref]$e); $nm = LuaEsc ([string]$r.Name_lang)
       $L.Add('tinsert(ns.Sets, {')
       $L.Add("  id = $($r.ID),")
-      $L.Add("  name = `"$nm`",")
+      $L.Add("  name = `"$nm #$($r.ID)`",")
       $L.Add("  release = $($e + 1),")
       $L.Add('  category = "Review",')
       $L.Add('  sets = {')
@@ -336,7 +355,7 @@ if ($AuditSets) {
     }
   }
   [System.IO.File]::WriteAllText($ReviewFile, ($L -join "`n").TrimEnd() + "`n", [System.Text.UTF8Encoding]::new($false))
-  Write-Host "Wrote $ReviewFile — $total un-rendered set(s) across $($miss.Count) group(s)." -ForegroundColor Green
+  Write-Host "Wrote $ReviewFile — $total un-rendered (Review) across $($miss.Count) group(s); skipped $dupTwins appearance-duplicate(s)." -ForegroundColor Green
   Write-Host "Top groups:" -ForegroundColor Cyan
   foreach ($gid in ($miss.Keys | Sort-Object { $miss[$_].Count } -Descending | Select-Object -First 12)) {
     Write-Host ("  {0,4}  {1} '{2}'" -f $miss[$gid].Count, $gid, $grpName[$gid])
@@ -365,10 +384,21 @@ if ($Expand) {
   # `byset` mode emits one row per SET (named by the set's own name) — for label-less
   # groups that are a flat list of distinctly-named ensembles (the Trading Post).
   if (-not (Test-Path -LiteralPath $ExpandFile)) { throw "Expand group list not found: $ExpandFile" }
-  $jobIds = @(); $jobCat = @{}; $jobMode = @{}; $merges = @(); $setMerges = @(); $mergedSetIds = @{}; $labelMerges = @(); $assembles = @()
+  $jobIds = @(); $jobCat = @{}; $jobMode = @{}; $merges = @(); $setMerges = @(); $mergedSetIds = @{}; $labelMerges = @(); $assembles = @(); $seasonMerges = @()
   foreach ($ln in (Get-Content -LiteralPath $ExpandFile)) {
     $t = ($ln -split '#', 2)[0].Trim()
     if (-not $t) { continue }
+    # `mergeseason <groupId> | <Category> [| <release>]` — own a whole PvP-style group: bucket
+    # ALL its placeable sets by ItemNameDescription label, then greedy class-disjoint-tile each
+    # label into one row per faction recolor (Alliance/Horde share name+label+mask but are
+    # distinct looks). Names "<group> (<label>)", "<group> (<label> · 2)" for the 2nd+ tile.
+    # The group's hand-curated body rows must be REMOVED (this regenerates them all uniformly).
+    if ($t -match '^mergeseason\s+(.+)$') {
+      $p = $Matches[1] -split '\s*\|\s*'
+      if ($p.Count -lt 2 -or $p.Count -gt 3) { throw "Bad mergeseason line '$ln' — expected 'mergeseason groupId | Category [| release]'." }
+      $seasonMerges += @{ gid = [int]$p[0].Trim(); cat = $p[1].Trim(); release = if ($p.Count -ge 3 -and $p[2].Trim()) { [int]$p[2].Trim() } else { $null } }
+      continue
+    }
     # `assemble <setid>:<classId>+... | <Category> | <Name>` — build one row from sets that
     # are each tagged all-classes in wago (the 20th-Anniversary tier recolors), assigning
     # each to its themed class explicitly (mask-based merges can't tell them apart).
@@ -654,6 +684,62 @@ if ($Expand) {
       $L.Add('  },')
       $L.Add('})')
       $emitted++
+    }
+  }
+
+  # ── mergeseason directives: own a whole group — bucket its placeable sets by label, then
+  # greedy class-disjoint-tile each label into one row per faction recolor (Alliance/Horde &
+  # season variants share name+label+mask but are distinct looks). Lowest-id faction tiles
+  # first → "<group> (<label>)"; later tiles get "· 2", "· 3". The group's body rows must be
+  # removed from sets.lua (this regenerates every bracket/faction uniformly). Row id = group id.
+  foreach ($ms in $seasonMerges) {
+    $rows = $tsRows | Where-Object { [int]$_.TransmogSetGroupID -eq $ms.gid -and [int]$_.ClassMask -gt 0 -and -not $mergedSetIds.ContainsKey([int]$_.ID) }
+    if (-not $rows) { Write-Warning "mergeseason $($ms.gid) — no rows; skipped."; continue }
+    $gname = $grpName[$ms.gid]
+    $byl = [ordered]@{}
+    foreach ($r in ($rows | Sort-Object { [int]$_.ID })) {
+      $i = 0; [void][int]::TryParse($r.ItemNameDescriptionID, [ref]$i)
+      $lab = if ($indLabel.ContainsKey($i)) { $indLabel[$i] } else { '' }
+      if (-not $byl.Contains($lab)) { $byl[$lab] = @() }
+      $byl[$lab] += $r
+    }
+    foreach ($lab in $byl.Keys) {
+      $tiles = @()   # each: @{ slot = @{class->@{id,name}}; exp = N }
+      foreach ($r in ($byl[$lab] | Sort-Object { [int]$_.ID })) {
+        $m = [int]$r.ClassMask; $e = 0; [void][int]::TryParse($r.ExpansionID, [ref]$e)
+        $tile = $null
+        foreach ($cand in $tiles) {
+          $clash = $false
+          for ($bb = 0; $bb -lt 13; $bb++) { if (($m -band (1 -shl $bb)) -and $cand.slot.ContainsKey($bb + 1)) { $clash = $true; break } }
+          if (-not $clash) { $tile = $cand; break }
+        }
+        if (-not $tile) { $tile = @{ slot = @{}; exp = 0 }; $tiles += $tile }
+        for ($bb = 0; $bb -lt 13; $bb++) { if ($m -band (1 -shl $bb)) { $tile.slot[$bb + 1] = @{ id = $r.ID; name = (LuaEsc ([string]$r.Name_lang)) } } }
+        if ($e -gt $tile.exp) { $tile.exp = $e }
+      }
+      $n = 0
+      foreach ($tile in $tiles) {
+        $n++
+        $roman = @('', '', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX')[$n]
+        $suffix = if ($lab) { if ($n -eq 1) { " ($lab)" } else { " ($lab $roman)" } } elseif ($n -eq 1) { '' } else { " ($roman)" }
+        $disp = LuaEsc "$gname$suffix"
+        $rel = if ($ms.release) { $ms.release } else { $tile.exp + 1 }
+        Write-Host "  mergeseason $($ms.gid) -> '$disp' ($($tile.slot.Count) classes)" -ForegroundColor Cyan
+        $L.Add('tinsert(ns.Sets, {')
+        $L.Add("  id = $($ms.gid),")
+        $L.Add("  name = `"$disp`",")
+        $L.Add("  release = $rel,")
+        $L.Add("  category = `"$($ms.cat)`",")
+        $L.Add('  sets = {')
+        $max = ($tile.slot.Keys | Measure-Object -Maximum).Maximum
+        for ($c = 1; $c -le $max; $c++) {
+          if ($tile.slot.ContainsKey($c)) { $L.Add("    { id = $($tile.slot[$c].id), name = `"$($tile.slot[$c].name)`", classId = $c },") }
+          else { $L.Add('    {},') }
+        }
+        $L.Add('  },')
+        $L.Add('})')
+        $emitted++
+      }
     }
   }
   $L.Add('-- <<< AUTO-EXPAND')

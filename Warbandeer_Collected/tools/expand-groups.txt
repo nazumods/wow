@@ -50,6 +50,16 @@ mergeset 3655+3656+3657+3658 | World | Hallowfall Armor   # Hallowfall (TWW): pl
 mergeset 4385+4386+4387+4388 | World | Nightfall Regalia   # Hallowfall (TWW): Executioner/Shadowalker/Curseblade/Darkcaster → one set
 mergeset 4342+4343+4344+4345 | World | Undermine Revolutionary's Armor   # Undermine (TWW): Battleplate/Guise/Battlegear/Vestments → one set
 mergeset 3065+3066+3067+3068 | Event | Jingoist's War Armor   # Time Rifts (DF): 4 armor-type pieces (same name) → one set
+# BfA Warfront sets (PvE faction war) bundled in the PvP-season groups 167/168 — the season
+# brackets already render; these are the Warfront-label sets, 4 armor ids (plate/mail/leather/
+# cloth) tiling all 13 classes. Categorised World (faction/zone armor, like the Arathi/Hallowfall
+# mergesets above), NOT PvP. From -AuditSets review.
+mergeset 1656+1659+1662+1665 | World | Arathi Warfront (7th Legionnaire's)      # group 167, Alliance
+mergeset 1668+1671+1674+1677 | World | Arathi Warfront (Honorbound)             # group 167, Horde
+mergeset 1775+1782+1789+1796 | World | Darkshore Warfront (Alliance)            # group 168, Kaldorei-themed
+mergeset 1745+1752+1759+1766 | World | Darkshore Warfront (Horde)               # group 168, Forsaken-themed
+mergeset 5285+5284+5283+5282 | World | Darkshore Warfront (Alliance, Heroic)    # group 168, Heroic recolor
+mergeset 5290+5289+5288+5287 | World | Darkshore Warfront (Horde, Heroic)       # group 168, Heroic recolor
 
 # ── assemble: sets each tagged all-classes in wago, assigned per class by name (setid:classId) ──
 #   assemble <setid>:<classId>+... | <Category> | <Name> [| <release>]
@@ -65,3 +75,38 @@ assemble 5555:1+3850:2+5553:3+3854:4+5556:5+5551:6+3855:7+3853:8+3848:9+5554:10+
 #   release (1=Vanilla..12=Midnight) overrides wago's ExpansionID when it's mistagged.
 merge 279+280+281+282 | Dungeon | The War Within (Dungeons)   # mail/leather/plate/cloth armor groups
 merge 349+297 | Dungeon | Legion (Timewalking) | 7   # plate (349) + mail (297); release pinned Legion (wago mistags 349 as Shadowlands)
+
+# ── mergeseason: own a whole PvP group — bucket its sets by ItemNameDescription label, then
+# greedy class-disjoint-tile each label into one row per faction recolor (Alliance/Horde &
+# season variants share name+label+mask but are distinct looks). Tile 1 "(label)", tile 2+
+# "(label II/III…)". The group's hand-curated body rows were removed; this regenerates them
+# uniformly across both factions. From -AuditSets review (appearance-keyed).
+mergeseason 11  | PvP   # Warlords Season 1
+mergeseason 12  | PvP   # Warlords Season 2
+mergeseason 13  | PvP   # Warlords Season 3
+mergeseason 14  | PvP   # Mists Season 15
+mergeseason 15  | PvP   # Mists Season 14
+mergeseason 16  | PvP   # Mists Season 13
+mergeseason 45  | PvP   # Legion Season 1 and 2
+mergeseason 46  | PvP   # Legion Season 3 and 4
+mergeseason 57  | PvP   # Legion Season 5, 6, and 7
+mergeseason 167 | PvP   # Battle Season 1 (Arathi Warfront sets handled by mergeset above)
+mergeseason 168 | PvP   # Battle Season 2 (Darkshore Warfront sets handled by mergeset above)
+mergeseason 173 | PvP   # Battle Season 3
+mergeseason 175 | PvP   # Battle Season 4
+
+# ── 20th-Anniversary recolor sets (group 274) — per-class single sets, distinct appearances
+# from the rendered "Eternal" set. mergeset combines each family into one row. From -AuditSets.
+mergeset 3849+3906+3852+3903+3856+3857+3908+3905+3860+3851+3909+3910 | Event | WoW's 20th Anniversary (Trading Post) | 11   # "Enduring" Trading Post recolor (no Shaman in wago)
+mergeset 4564+4574+4563+4568+4572+4567+4569+4570+4573+4565+4571+4566+4562 | Event | WoW's 20th Anniversary (Fiery Recolor) | 11   # Red/Black/Fiery/Blood classic-tier recolor
+
+# Trial of the Crusader (group 36, Wrath) — body row "(10 Normal)" is one faction's tier set;
+# these 10 (one per class) are the other faction's distinct recolor (Zabra's/Thrall's/Wrynn's…).
+mergeset 350+641+658+675+691+707+723+739+826+842 | Raid | Trial of the Crusader (10 Normal) II
+
+# Small armor-tile sets (plate+mail+leather+cloth → one row) from -AuditSets review.
+mergeset 2018+2022+2026+2028 | Covenant | Path of Ascension Armor       # 181 Kyrian (SL)
+mergeset 3069+3070+3071+3072 | Event    | Valhalas Ceremonial Armor     # 218 Time Rifts (DF)
+mergeset 4354+4355+4356+4357 | World    | Undermine Field Gear          # 303 (TWW, World Quests/Drops)
+mergeset 5174+5175+5176+5177 | World    | K'aresh Expedition Armor      # 336 (Midnight, Quest Rewards)
+mergeset 1533+1534+1535      | Renown   | Draenor Clans Armor           # 61 (WoD, 10 classes — no mail)
