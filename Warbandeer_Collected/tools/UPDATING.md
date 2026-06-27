@@ -232,14 +232,17 @@ data/sets_review.lua`** to empty it. The committed `sets_review.lua` is an empty
 (loaded by the `.toc` so the review rows light up when populated); never commit a populated
 copy.
 
-**Appearance-duplicate twins are skipped.** Legacy PvP ships each season-bracket-armor set
-as a pair of consecutive ids with identical name/label/`ClassMask`; the row picked one id,
-so the twin's specific id is "un-rendered" yet its appearance is already on the grid. The
-audit treats a set as rendered when **every class slot of its `ClassMask` already has a
-rendered cell of the same name**, and reports how many such twins it skipped. This is what
-collapsed the gap from ~18% to ~4% (≈290 twins); the genuine remainder is the
-20th-Anniversary re-releases (`assemble`), modern Warfront/PvP-bracket sets (`merge`), and
-recolor catalogs left as-is.
+**Appearance-duplicate twins go to a separate `Twins` category.** Legacy PvP ships each
+season-bracket-armor set as a pair of consecutive ids with identical name/label/`ClassMask`;
+the row picked one id, so the twin's specific id is "un-rendered" yet its appearance is
+already on the grid. The audit treats a set as a twin when **every class slot of its
+`ClassMask` already has a rendered cell of the same name**, and emits it under **Category →
+Twins** with the row name **`<name> = twin of '<row>' #<id>`** so you can flip to the
+counterpart's real category and A/B the look cell-for-cell. Filtering these out of the
+genuine list collapsed the gap from ~18% to ~4% (≈290 twins); the real remainder (Category →
+Review) is the 20th-Anniversary re-releases (`assemble`), modern Warfront/PvP-bracket sets
+(`merge`), and recolor catalogs left as-is. Whole groups in `excludes.txt` are skipped from
+both lists.
 
 ## Adding a new raid tier (or any audited group)
 
