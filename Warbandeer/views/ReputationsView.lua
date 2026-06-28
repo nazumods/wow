@@ -213,6 +213,7 @@ function ReputationsView:BuildFilter(parent)
   self:_refreshData()
   local box = ui.FilterDropdown:new{
     parent = parent,
+    bordered = true,
     width = 160, menuWidth = 180,
     options = self:_pageOptions(),
     selected = self._pages[self._pageIdx] and self._pages[self._pageIdx].key,

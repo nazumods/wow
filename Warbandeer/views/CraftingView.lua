@@ -298,6 +298,7 @@ end
 function CraftingView:BuildFilter(parent)
   local box = ui.FilterDropdown:new{
     parent   = parent,
+    bordered = true,
     options  = EXPANSIONS,
     selected = self._expansion,
     onSelect = function(_, key)
