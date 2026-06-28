@@ -104,4 +104,3 @@ minimap.lua
 
 ring.lua
 keybind.lua
-Bindings.xml
