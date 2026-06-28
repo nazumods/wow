@@ -92,7 +92,9 @@ views\BarsPreview.lua
 views\BarsApply.lua
 views\BarsView.lua
 views\CollectedView.lua
+views\reps\ReputationsData.lua
 views\ReputationsView.lua
+views\reps\ReputationsRender.lua
 
 window.lua
 
