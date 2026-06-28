@@ -7,6 +7,10 @@ on:
 
 jobs:
   curseforge:
+    # Skip desktop-app releases (apps/ → `app-*` tags, published by app-release.yml).
+    # They carry no .toc and aren't CurseForge addons. workflow_dispatch passes the
+    # guard (empty tag_name) and is format-checked by the first step below.
+    if: ${{ !startsWith(github.event.release.tag_name, 'app-') }}
     runs-on: ubuntu-latest
 
     steps:
