@@ -6,7 +6,7 @@ local rgba = ns.Colors.rgba
 local GetTime = GetTime
 
 -- Font path borrowed from a stock font object, so the spell-name / time-text size is
--- the only thing the user tunes (8–18px) without us shipping a font file.
+-- the only thing the user tunes (8–22px) without us shipping a font file.
 local FONT_PATH = GameFontHighlightSmall:GetFont()
 
 local WIDTH, HEIGHT = 220, 22
@@ -150,7 +150,7 @@ function CastBar:SetEnabled(on)
   self:Refresh()
 end
 
--- Resize the spell-name + time text (settings slider, 8–18px).
+-- Resize the spell-name + time text (settings slider, 8–22px).
 ---@param size number
 function CastBar:SetTextSize(size)
   self.nameText:Font({ FONT_PATH, size })

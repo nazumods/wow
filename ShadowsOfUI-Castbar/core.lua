@@ -30,7 +30,7 @@ ns:RegisterSettings{
       label = "Show focus cast bar", default = true,
       callback = function(_, v) ns:SetBarEnabled("focus", v) end },
     { typ = "slider", key = "textSize", table = function(db) return db end,
-      label = "Bar text size", min = 8, max = 18, step = 1, default = 12,
+      label = "Bar text size", min = 8, max = 22, step = 1, default = 12,
       tooltip = "Font size of the spell name and cast-time text.",
       callback = function(_, v) ns:ApplyTextSize(v) end },
   } },

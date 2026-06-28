@@ -12,7 +12,7 @@ name, and remaining time — and stay out of the way the rest of the time.
   without any combat restrictions.
 - **Non-interruptible casts stand out.** Interruptible casts fill gold, non-interruptible
   casts grey, channels green.
-- **Adjustable text size.** Set the spell-name / cast-time font anywhere from 8 to 18px.
+- **Adjustable text size.** Set the spell-name / cast-time font anywhere from 8 to 22px.
 - **Placed with Edit Mode.** Open Blizzard's Edit Mode and each bar becomes a labelled,
   draggable handle — drop it where you want and it stays there across sessions.
 
@@ -35,7 +35,7 @@ Found under **Options → AddOns → Shadows of UI → Cast Bars**:
 
 - **Show target cast bar** — on by default.
 - **Show focus cast bar** — on by default.
-- **Bar text size** — 8–18px (default 12).
+- **Bar text size** — 8–22px (default 12).
 
 ## Dependencies
 
