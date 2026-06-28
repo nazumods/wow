@@ -11,7 +11,7 @@ init (`local ns = LibNAddOn(...)`); no LibNUI.
 | File | Purpose |
 |---|---|
 | `core.lua` | Bootstrap + logic. `RECIPE_SUBCLASS_TO_SKILL` (recipe item subclass → parent skillLineID), and `ns.BuildLearnable(itemID, reqSkill, itemName)` → sorted `KnownEntry[]` (or nil if not a craftable recipe). |
-| `tooltip.lua` | `TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item)` hook: reads the skill threshold off the tooltip lines, renders the block, colours names. Manual `/sknown` dev command. |
+| `tooltip.lua` | `ns:OnItemTooltip` (LibNAddOn item-tooltip hook): reads the skill threshold off the tooltip lines, renders the block, colours names. Manual `/sknown` dev command. |
 
 ## `ns.BuildLearnable(itemID, reqSkill, itemName)`
 

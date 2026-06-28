@@ -44,9 +44,8 @@ local function reqSkill(data)
   return 0
 end
 
-local function onItemTooltip(tooltip, data)
-  if not data or not data.id then return end
-  if tooltip.IsForbidden and tooltip:IsForbidden() then return end
+ns:OnItemTooltip(function(tooltip, data)
+  if not data.id then return end
   local nm = data.lines and data.lines[1] and data.lines[1].leftText
   local list, knownCount = ns.BuildLearnable(data.id, reqSkill(data), nm)
   if not list then return end
@@ -57,11 +56,7 @@ local function onItemTooltip(tooltip, data)
     -- empty list reads as "not needed" rather than "data missing".
     tooltip:AddLine(GREEN_FONT_COLOR:WrapTextInColorCode("Already known"))
   end
-end
-
-if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall then
-  TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, onItemTooltip)
-end
+end)
 
 -- /sknown <itemID> — print the learnable list for a recipe item (testing aid, since
 -- tooltip text can't be copied). With no live tooltip the skill threshold is unknown,
