@@ -33,4 +33,7 @@ controls\DressingRoom.lua
 controls\DressingRoomSlots.lua
 
 DataView.lua
+DataViewData.lua
+DataViewFilters.lua
+DataViewMarks.lua
 window.lua
