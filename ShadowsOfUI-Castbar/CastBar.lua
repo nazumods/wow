@@ -9,8 +9,17 @@ local GetTime = GetTime
 -- the only thing the user tunes (8–22px) without us shipping a font file.
 local FONT_PATH = GameFontHighlightSmall:GetFont()
 
-local WIDTH, HEIGHT = 220, 22
 local PLACEHOLDER = "Interface\\Icons\\inv_misc_questionmark"
+
+-- The bar scales with its text size so larger fonts never overflow: height = size + V_PAD,
+-- width keeps the bar's proportions (height × W_PER_H). Default 12px → 22 high × 220 wide
+-- (the original look); 22px → 32 × 320.
+local V_PAD = 10
+local W_PER_H = 10
+local function dims(textSize)
+  local h = textSize + V_PAD
+  return h * W_PER_H, h
+end
 
 -- Fill colours by cast state.
 local CAST     = rgba(255, 200, 80, 0.9)  -- normal, interruptible cast
@@ -42,13 +51,12 @@ local CAST_EVENTS = {
 ---@field _endMS number?  cast end (ms); only read when not secret (for the time text)
 ---@field _secretTime boolean?  true when the cast timing is a protected/secret value
 local CastBar = Class(StatusBar, function(self)
-  self:Size(WIDTH, HEIGHT)
   self._enabled = self.enabled
   self._label = self.unit == "focus" and "Focus Cast Bar" or "Target Cast Bar"
 
   self.icon = Texture:new{
     parent = self, layer = ui.layer.Overlay,
-    position = { TopLeft = {1, -1}, Width = HEIGHT - 2, Height = HEIGHT - 2 },
+    position = { TopLeft = {1, -1} }, -- size set by _applySize (scales with text)
   }
   self.icon:Coords(0.08, 0.92, 0.08, 0.92) -- trim the icon's built-in border
 
@@ -70,6 +78,8 @@ local CastBar = Class(StatusBar, function(self)
     position = { TopLeft = {}, BottomRight = {self, ui.edge.TopRight, 0, -3} },
   }
 
+  self:_applySize()
+
   for _, e in ipairs(CAST_EVENTS) do
     self._widget:RegisterUnitEvent(e, self.unit)
   end
@@ -88,6 +98,14 @@ ns.CastBar = CastBar
 function CastBar:applyPosition()
   self._widget:ClearAllPoints()
   self._widget:SetPoint("CENTER", UIParent, "CENTER", self.pos.x, self.pos.y)
+end
+
+-- Size the bar + icon for the current text size. CENTER-anchored, so it grows
+-- symmetrically and stays put. Called at construction and on every slider change.
+function CastBar:_applySize()
+  local w, h = dims(self.textSize)
+  self:Size(w, h)
+  self.icon:Size(h - 2, h - 2)
 end
 
 -- Re-read the live cast/channel state and paint, or hide when nothing is being cast.
@@ -153,8 +171,10 @@ end
 -- Resize the spell-name + time text (settings slider, 8–22px).
 ---@param size number
 function CastBar:SetTextSize(size)
+  self.textSize = size
   self.nameText:Font({ FONT_PATH, size })
   self.timeText:Font({ FONT_PATH, size })
+  self:_applySize()
 end
 
 -- Enter/leave Edit Mode placement: show a static draggable sample, or return to live.
