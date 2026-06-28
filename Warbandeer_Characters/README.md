@@ -55,6 +55,10 @@ data through the `WarbandeerApi` global.
 - **Quests** are captured each login — your active quests and your completed-quest history —
   so **ShadowsOfUI-Quests** can show, on a quest's tooltip, which other characters are on it or
   have already completed it. (The completed history is the largest thing tracked per character.)
+- **Playtime** is tracked both as the lifetime `/played` total and **per day** for each character
+  (how long you were logged in, by calendar day), so Warbandeer's Playtime view can show Today and
+  the last 7 days. Per-day history starts from when this version is first installed and counts only
+  time spent logged in (offline time is never added).
 
 ## Settings
 

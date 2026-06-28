@@ -5,6 +5,8 @@ local insert = table.insert
 local Class, Frame, TableFrame, Label = ns.lua.Class, ui.Frame, ui.TableFrame, ui.Label
 local Left = ui.justify.Left
 local RAID_CLASS_COLORS = RAID_CLASS_COLORS
+local GetServerTime = GetServerTime
+local date = date
 
 local transpBk = {color = {0, 0, 0, 0}}
 
@@ -14,6 +16,8 @@ local colInfo = {
   {name = "Lvl",       width = 30,  justifyH = Left, backdrop = transpBk},
   {name = "Class",     width = 90,  justifyH = Left, backdrop = transpBk},
   {name = "Played",    width = 95,  justifyH = Left, backdrop = transpBk, padLeft = 10},
+  {name = "Today",     width = 60,  justifyH = Left, backdrop = transpBk, padLeft = 10},
+  {name = "7 days",    width = 70,  justifyH = Left, backdrop = transpBk, padLeft = 4},
 }
 
 local function formatTime(seconds)
@@ -43,6 +47,26 @@ local function formatTotalTime(seconds)
   return table.concat(parts, " ")
 end
 
+-- Sum the per-day playtime buckets over the last `days` LOCAL calendar days
+-- (today back). Keys are local "YYYY-MM-DD" (see data/playtime.lua), so we walk
+-- the same keys backwards from the current server epoch.
+local function recentSum(byDay, days)
+  if not byDay then return 0 end
+  local now = GetServerTime()
+  local sum = 0
+  for i = 0, days - 1 do
+    sum = sum + (byDay[date("%Y-%m-%d", now - i * 86400)] or 0)
+  end
+  return sum
+end
+
+-- Per-day cells read blank rather than "0m" when there's nothing, so a character
+-- that simply wasn't played that span doesn't add noise.
+local function formatDay(seconds)
+  if not seconds or seconds == 0 then return "" end
+  return formatTime(seconds)
+end
+
 local function getCharacters(isAlliance)
   local result = {}
   for _, t in ipairs(ns.api:GetAllCharacters()) do
@@ -62,12 +86,15 @@ local function buildData(isAlliance)
   local data = {}
   for _, toon in ipairs(getCharacters(isAlliance)) do
     local c = toon.classKey and RAID_CLASS_COLORS[toon.classKey:upper()]
+    local byDay = toon.playtime and toon.playtime.byDay
     insert(data, {
       ns.factionIcon[toon.isAlliance],
       c and c:WrapTextInColorCode(toon.name) or toon.name,
       toon.basic.level,
       toon.className or "?",
       formatTime(toon.playtime and toon.playtime.total),
+      formatDay(recentSum(byDay, 1)),
+      formatDay(recentSum(byDay, 7)),
     })
   end
   return data

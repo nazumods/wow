@@ -86,7 +86,7 @@ end, "Repair stored data (recount characters)")
 ---@field MigrateDB fun(self) Migrate database to latest version
 function ns:MigrateDB()
   local db = ns.db
-  if db.version == 28 then return end
+  if db.version == 29 then return end
   if not db.characters then db.characters = {} end
   if not db.numCharacters then
     db.numCharacters = countCharacters(db)
@@ -311,6 +311,14 @@ function ns:MigrateDB()
     db.settings = db.settings or {}
     if db.settings.combatLogging == nil then db.settings.combatLogging = false end
     db.version = 28
+  end
+
+  -- v29: per-character per-day played-time buckets (`playtime.byDay`: local-calendar-day
+  -- "YYYY-MM-DD" -> logged-in seconds).  Filled lazily by data/playtime.lua's session
+  -- accounting from this login forward; nothing to seed — old revisions simply lack it
+  -- (no per-day history) until the character next logs in, so rollback is lossless.
+  if (db.version or 0) < 29 then
+    db.version = 29
   end
 end
 

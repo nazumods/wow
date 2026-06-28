@@ -44,7 +44,7 @@ Main viewer UI. Reads the data layer (`ns.api` ← `WarbandeerApi`) and renders 
 | `views/ProfsView.lua` (+ `views/profs/ProfsData.lua`) | Best-skill-per-expansion grid + per-character detail panel. The view shell (`ProfsView` class + its methods) is in `ProfsView.lua`; the shared column factories, gradient `skillCell`, and per-expansion skill aggregation (`buildBestSkills`/`buildCharList`) + the expansion/profession order tables live in `profs/ProfsData.lua` on `ns.profs` (loaded first) |
 | `views/MidnightProfs.lua` | Profs × characters grid: Midnight skill + concentration |
 | `views/CraftingView.lua` | Crafting profs: main crafter, concentration, learned-recipe %; expansion `BuildFilter` |
-| `views/PlaytimeView.lua` | Per-character playtime breakdown |
+| `views/PlaytimeView.lua` | Per-character playtime breakdown: total `/played` + **Today** and **7 days** columns summed from `playtime.byDay` (`recentSum` walks local-day keys back from `GetServerTime`; per-day cells blank at 0). Warband total below |
 | `views/BarsView.lua` | Action-bar profile browser (class/spec filters + result list); needs `WarbandeerBarsApi` (OptionalDep) |
 | `views/BarsPreview.lua` | `ns.BarsPreviewFrame` — companion box docked right of the window rendering a profile's bars (icons, keybinds, Edit Mode layout) |
 | `views/BarsApply.lua` | `ns.BarsApplyFrame` — companion box below the main window: per-bar muted/red toggles (1-8 / C1-C5 / Bonus, Sky, Pet) + Apply button → `WarbandeerBarsApi:Restore` with a `barFilter` |
@@ -70,7 +70,7 @@ Main viewer UI. Reads the data layer (`ns.api` ← `WarbandeerApi`) and renders 
 | `crafting` | Crafting | Frame | Main crafter, concentration, recipe % | expansion dropdown |
 | `milestones` | Milestones | Frame | Collectible-reward achievement grid | — |
 | `legion` | Legion | Frame | Hidden artifacts + achievements | — |
-| `playtime` | Playtime | Frame | Per-character playtime | — |
+| `playtime` | Playtime | Frame | Per-character playtime — total + Today / 7-day columns (`playtime.byDay`) | — |
 | `midnightprofs` | Midnight Profs | Frame | Profs × characters: skill + concentration | — |
 | `bars` | Bars | Frame | Bar-profile browser + docked preview & apply panels | — (view-local dropdowns) |
 | `collected` | Collected | Frame | The shared `/collected` transmog-set grid (`Warbandeer_Collected`'s `DataView`) embedded in Warbandeer — see that addon's CONTEXT for the grid; this view is the host chrome (counter, wanted tally, toggles) and is only registered when the Collected addon is loaded | PTR + wanted-only + raid-order toggles (`BuildFilter`) |
