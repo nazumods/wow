@@ -27,6 +27,7 @@ LibNAddOn
     |     |
     |     +-- ShadowsOfUI-XP
     |     +-- ShadowsOfUI-GCD
+    |     +-- ShadowsOfUI-Castbar
     |     +-- ShadowsOfUI-Compartment
     |     +-- HideStanceBar
     |     +-- Warbandeer_Alias
@@ -72,6 +73,7 @@ Load the linked `CONTEXT.md` for full file maps, class hierarchies, API surfaces
 | **HideStanceBar** | Hides the stance bar via reparenting, per-class toggles. `HideStanceBarDB` (v1). | [HideStanceBar/CONTEXT.md](HideStanceBar/CONTEXT.md) |
 | **HideBagBar** | Hides backpack/bag slot buttons. Raw WoW API only — no LibNAddOn. | [HideBagBar/CONTEXT.md](HideBagBar/CONTEXT.md) |
 | **ShadowsOfUI-GCD** | Minimal GCD sweep bar anchored between the primary and secondary resource bars. Single file, no DB, no slash commands. | — |
+| **ShadowsOfUI-Castbar** | Two movable, cosmetic cast bars (target + focus target) on LibNUI `StatusBar` — spell icon/name/time, non-interruptible greyed, channels green. Text size 8–18px; placed via Blizzard Edit Mode (enter/exit hooks → draggable sample). Reads `UnitCastingInfo`/`UnitChannelInfo` only (no secret data). `/scast`; `ShadowsOfUI_CastbarDB` (v1). | [ShadowsOfUI-Castbar/CONTEXT.md](ShadowsOfUI-Castbar/CONTEXT.md) |
 | **BarNonce** | Removes padding and sets 70% opacity on Action Bars 1 and 2. Raw WoW API only — no LibNAddOn. Single file, no DB, no slash commands. | — |
 | **CombatOutline** | Toggles `OutlineEngineMode` CVar in/out of combat. Single file. | [CombatOutline/CONTEXT.md](CombatOutline/CONTEXT.md) |
 | **Recycle** | Auto-sells grey + marked items at merchants (`/recycle`). Per-character `RecycleDB` (v1). | [Recycle/CONTEXT.md](Recycle/CONTEXT.md) |
@@ -109,4 +111,5 @@ LibNUI_Test is a LoadOnDemand visual test harness for LibNUI (`/nui test [key]`)
 | ShadowsOfUI-Quests | `/squests` | `<questID>` (dev/lookup: dump which characters are on / have completed a quest) |
 | ShadowsOfUI-Delves | `/sdelves` | `""` (dev: dump live delve state for tier/name calibration), `dump` (print recorded run-time stats for the current delve) |
 | ShadowsOfUI-Compartment | `/scompartment` | `""` (open settings), `reset` (restore the compartment button's default position) |
+| ShadowsOfUI-Castbar | `/scast` | `""` (open settings), `dump` (dev: print text size + each bar's state/position) |
 | ShadowsOfUI-Upgrade | `/supgrade` | `[name]` (dev: dump a character's available gear upgrades), `enchants [name]` (dev: copyable enchant-resolution dump — why a slot has no suggested enchant) |

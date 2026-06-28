@@ -14,6 +14,7 @@ include_files = {
   "ShadowsOfUI-Artisan/**/*.lua", "ShadowsOfUI-WarbandInventory/**/*.lua",
   "ShadowsOfUI-Reputations/**/*.lua", "ShadowsOfUI-Quests/**/*.lua",
   "ShadowsOfUI-Compartment/**/*.lua", "ShadowsOfUI-Delves/**/*.lua",
+  "ShadowsOfUI-Castbar/**/*.lua",
   "Warbandeer/**/*.lua", "Warbandeer_Alias/**/*.lua", "Warbandeer_Bars/**/*.lua",
   "Warbandeer_Characters/**/*.lua", "Warbandeer_Collected/**/*.lua",
 }
@@ -39,6 +40,7 @@ files["ShadowsOfUI-Reputations/**/*.lua"] = {globals = {"SLASH_SUI_REPS1"}}
 files["ShadowsOfUI-Quests/**/*.lua"] = {globals = {"SLASH_SUI_QUESTS1"}}
 files["ShadowsOfUI-Compartment/**/*.lua"] = {globals = {"SLASH_SUI_COMPARTMENT1"}}
 files["ShadowsOfUI-Delves/**/*.lua"] = {globals = {"SLASH_SUI_DELVES1"}}
+files["ShadowsOfUI-Castbar/**/*.lua"] = {globals = {"SLASH_SUI_CASTBAR1"}}
 files["Warbandeer_Bars/init.lua"] = {globals = {"WarbandeerBarsSettings"}}
 
 std = {
@@ -128,6 +130,7 @@ std = {
     "TooltipDataProcessor",
     "TooltipUtil",
     "UiMapPoint",
+    "EditModeManagerFrame",
     "hooksecurefunc",
 
     "C_AddOns",
@@ -360,6 +363,8 @@ std = {
     "SetOverrideBindingClick",
     "ShowOptionsCategory",
     "StaticPopup_Show",
+    "UnitCastingInfo",
+    "UnitChannelInfo",
     "UnitClass",
     "UnitClassBase",
     "UnitExists",

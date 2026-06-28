@@ -1,0 +1,207 @@
+---@type ShadowsOfUI_Castbar
+local ns = select(2, ...)
+local ui, Class = ns.ui, ns.lua.Class
+local StatusBar, Texture, Label = ui.StatusBar, ui.Texture, ui.Label
+local rgba = ns.Colors.rgba
+local GetTime = GetTime
+
+-- Font path borrowed from a stock font object, so the spell-name / time-text size is
+-- the only thing the user tunes (8–18px) without us shipping a font file.
+local FONT_PATH = GameFontHighlightSmall:GetFont()
+
+local WIDTH, HEIGHT = 220, 22
+local PLACEHOLDER = "Interface\\Icons\\inv_misc_questionmark"
+
+-- Fill colours by cast state.
+local CAST     = rgba(255, 200, 80, 0.9)  -- normal, interruptible cast
+local SHIELDED = rgba(150, 150, 150, 0.9) -- non-interruptible (greyed)
+local CHANNEL  = rgba(120, 200, 120, 0.9) -- channelled spell
+
+-- Spellcast events, registered per-unit via RegisterUnitEvent so each bar only wakes
+-- for its own unit ("target" / "focus" follow whatever is currently targeted/focused).
+local CAST_EVENTS = {
+  "UNIT_SPELLCAST_START", "UNIT_SPELLCAST_STOP",
+  "UNIT_SPELLCAST_CHANNEL_START", "UNIT_SPELLCAST_CHANNEL_STOP",
+  "UNIT_SPELLCAST_DELAYED", "UNIT_SPELLCAST_CHANNEL_UPDATE",
+  "UNIT_SPELLCAST_INTERRUPTED",
+  "UNIT_SPELLCAST_INTERRUPTIBLE", "UNIT_SPELLCAST_NOT_INTERRUPTIBLE",
+}
+
+---@class CastBar: StatusBar
+---@field unit string  the unit token this bar watches ("target" | "focus")
+---@field changedEvent string  PLAYER_TARGET_CHANGED | PLAYER_FOCUS_CHANGED (set via the `events` option)
+---@field pos table  the bar's saved `{x, y}` CENTER offset (a live reference into the addon DB)
+---@field enabled boolean  whether the bar shows for real casts
+---@field icon Texture  spell icon, inset top-left
+---@field nameText Label  spell name
+---@field timeText Label  remaining time
+---@field _enabled boolean  internal mirror of `enabled`
+---@field _config boolean?  true while Edit Mode placement is active
+---@field _channel boolean?  true while the tracked cast is a channel
+---@field _endMS number?  cast end (ms); only read when not secret (for the time text)
+---@field _secretTime boolean?  true when the cast timing is a protected/secret value
+local CastBar = Class(StatusBar, function(self)
+  self:Size(WIDTH, HEIGHT)
+  self._enabled = self.enabled
+  self._label = self.unit == "focus" and "Focus Cast Bar" or "Target Cast Bar"
+
+  self.icon = Texture:new{
+    parent = self, layer = ui.layer.Overlay,
+    position = { TopLeft = {1, -1}, Width = HEIGHT - 2, Height = HEIGHT - 2 },
+  }
+  self.icon:Coords(0.08, 0.92, 0.08, 0.92) -- trim the icon's built-in border
+
+  self.nameText = Label:new{
+    parent = self, layer = ui.layer.Overlay, color = {1, 1, 1},
+    fontInfo = { FONT_PATH, self.textSize }, justifyH = ui.justify.Left, wordWrap = false,
+    position = { Left = {self.icon, ui.edge.Right, 4, 0}, Right = {self, ui.edge.Right, -36, 0} },
+  }
+  self.timeText = Label:new{
+    parent = self, layer = ui.layer.Overlay, color = {0.9, 0.9, 0.9},
+    fontInfo = { FONT_PATH, self.textSize }, justifyH = ui.justify.Right,
+    position = { Right = {self, ui.edge.Right, -3, 0} },
+  }
+
+  -- Darkened top edge, matching the XP / GCD bars.
+  self.edge = Texture:new{
+    parent = self, layer = ui.layer.Overlay, blendMode = "BLEND",
+    gradient = { "VERTICAL", rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.5) },
+    position = { TopLeft = {}, BottomRight = {self, ui.edge.TopRight, 0, -3} },
+  }
+
+  for _, e in ipairs(CAST_EVENTS) do
+    self._widget:RegisterUnitEvent(e, self.unit)
+  end
+
+  self:applyPosition()
+  self:Hide()
+end, {
+  parent = UIParent,
+  backdrop = {0, 0, 0, 0.5},
+  texture = "Interface\\Buttons\\WHITE8X8", -- native fill texture, tinted via SetStatusBarColor
+  textSize = 12,
+})
+ns.CastBar = CastBar
+
+-- Anchor by CENTER to UIParent using the saved offset (kept in the DB so it survives /reload).
+function CastBar:applyPosition()
+  self._widget:ClearAllPoints()
+  self._widget:SetPoint("CENTER", UIParent, "CENTER", self.pos.x, self.pos.y)
+end
+
+-- Re-read the live cast/channel state and paint, or hide when nothing is being cast.
+function CastBar:Refresh()
+  if self._config then return end -- placement sample owns the bar while Edit Mode is open
+  if not self._enabled then self:Hide(); self:stopUpdates(); return end
+
+  local unit = self.unit
+  local name, text, tex, startMS, endMS, _, _, notInterruptible = UnitCastingInfo(unit)
+  local channel = false
+  if not name then
+    name, text, tex, startMS, endMS, _, notInterruptible = UnitChannelInfo(unit)
+    channel = name ~= nil
+  end
+  if not name then self:Hide(); self:stopUpdates(); return end
+
+  self._channel = channel
+  self._endMS = endMS
+  -- An enemy target/focus's cast timing + interruptible flag are "secret" values (WoW's
+  -- anti-automation guard): tainted addon code can't do arithmetic / boolean tests on them.
+  -- We sidestep that by feeding the (possibly secret) start/end straight to the native
+  -- StatusBar, which computes the fill in C — Lua never touches the protected numbers. Only
+  -- the time text needs real arithmetic, so it's gated on the timing being readable.
+  -- canaccessvalue is retail-only (nil elsewhere → treat as readable).
+  self._secretTime = canaccessvalue ~= nil and not canaccessvalue(endMS)
+  self.icon:Texture(tex)
+  self.nameText:Text(text or name)
+  self:applyColor(notInterruptible)
+  if self._secretTime then self.timeText:Text("") end
+  self._widget:SetMinMaxValues(startMS, endMS)
+  self:Show()
+  self:startUpdates()
+  self:onUpdate(0)
+end
+
+-- Pick the fill colour for the current state (channel > shielded > normal cast). The
+-- interruptible flag is secret for enemy casts, so only test it when readable.
+function CastBar:applyColor(notInterruptible)
+  local shielded = not self._channel
+    and canaccessvalue ~= nil and canaccessvalue(notInterruptible) and notInterruptible
+  local c = self._channel and CHANNEL or (shielded and SHIELDED or CAST)
+  self._widget:SetStatusBarColor(c:GetRGBA())
+end
+
+-- Advance the native fill each frame; the engine clamps GetTime() against the (secret)
+-- min/max, so no Lua arithmetic touches the protected times. Hiding is driven by the
+-- UNIT_SPELLCAST_*_STOP events (→ Refresh), not by comparing against the secret end time.
+function CastBar:onUpdate()
+  self._widget:SetValue(GetTime() * 1000)
+  if not self._secretTime and self._endMS then
+    local remaining = (self._endMS - GetTime() * 1000) / 1000
+    self.timeText:Text(("%.1f"):format(remaining < 0 and 0 or remaining))
+  end
+end
+
+-- Toggle whether this bar shows for real casts (settings checkbox).
+---@param on boolean
+function CastBar:SetEnabled(on)
+  self._enabled = on
+  self:Refresh()
+end
+
+-- Resize the spell-name + time text (settings slider, 8–18px).
+---@param size number
+function CastBar:SetTextSize(size)
+  self.nameText:Font({ FONT_PATH, size })
+  self.timeText:Font({ FONT_PATH, size })
+end
+
+-- Enter/leave Edit Mode placement: show a static draggable sample, or return to live.
+---@param on boolean
+function CastBar:SetConfig(on)
+  self._config = on
+  if on then
+    self:stopUpdates()
+    self.icon:Texture(PLACEHOLDER)
+    self.nameText:Text(self._label)
+    self.timeText:Text("")
+    self._widget:SetStatusBarColor(CAST:GetRGBA())
+    self._widget:SetMinMaxValues(0, 1)
+    self._widget:SetValue(0.6)
+    self:enableDrag(true)
+    self:Show()
+  else
+    self:enableDrag(false)
+    self:Refresh()
+  end
+end
+
+-- Left-drag to reposition (only armed while in placement mode); the new CENTER offset
+-- is written straight back into the DB-backed `pos` table.
+---@param on boolean
+function CastBar:enableDrag(on)
+  local w = self._widget
+  w:EnableMouse(on)
+  w:SetMovable(on)
+  if on then
+    w:RegisterForDrag("LeftButton")
+    w:SetScript("OnDragStart", function() w:StartMoving() end)
+    w:SetScript("OnDragStop", function()
+      w:StopMovingOrSizing()
+      local cx, cy = w:GetCenter()
+      local ux, uy = UIParent:GetCenter()
+      self.pos.x, self.pos.y = cx - ux, cy - uy
+      self:applyPosition()
+    end)
+  else
+    w:RegisterForDrag()
+    w:SetScript("OnDragStart", nil)
+    w:SetScript("OnDragStop", nil)
+  end
+end
+
+-- Any spellcast / unit-change event just re-reads the live state.
+local function refresh(self) self:Refresh() end
+for _, e in ipairs(CAST_EVENTS) do CastBar[e] = refresh end
+CastBar.PLAYER_TARGET_CHANGED = refresh
+CastBar.PLAYER_FOCUS_CHANGED = refresh
