@@ -40,6 +40,8 @@ function LibNAddOn(features, o)
 
   ns.linkCVarHelpers(addOn)
 
+  ns.linkTooltipHelpers(addOn)
+
   local dbName = addOn:GetMetadata("X-NUI-DB")
   if not features.db and dbName then
     features.db = {

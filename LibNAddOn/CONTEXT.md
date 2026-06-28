@@ -24,6 +24,7 @@ Bootstrapping factory every other addon depends on. `LibNAddOn(features)` wires 
 | `globals.lua` | `ns.linkGlobals(addOn, features)` — wires `lua`/`wow`/`icons`/`Colors`/`api`/`ui` onto the namespace |
 | `eventListener.lua` | `ns.createEventListener(addOn)` — event frame, `registerEvent`/`unregisterEvent`/`delay`, `onLoad`/`onLogin` hooks |
 | `cvar.lua` | `ns.linkCVarHelpers(addOn)` — `SetTemporaryCVar(cvar, value)` (backs up the user's original once, sets the new value, arms a `PLAYER_LOGOUT` restore), `RestoreCVar(cvar)` / `RestoreCVars()` (put originals back now; logout runs `RestoreCVars` automatically). Guards a transient override from getting stuck if the addon is disabled/uninstalled mid-override |
+| `tooltip.lua` | `ns.linkTooltipHelpers(addOn)` — `OnItemTooltip(fn)`: registers `fn(tooltip, data)` as a `TooltipDataProcessor` post-call for `Enum.TooltipDataType.Item`, pre-guarded against forbidden tooltips + nil data (and a no-op when the client lacks `TooltipDataProcessor`). Wraps the boilerplate every headless tooltip addon repeated |
 | `database.lua` | `ns.setupDB(name, addOn, ops)` — links `_G[dbName]` → `addOn.db`, triggers `MigrateDB` on version mismatch |
 | `settings.lua` | `ns.registerSettings(addOn, name, features)` — Blizzard Settings API (checkbox/slider/dropdown) |
 | `api.lua` | `LibNAddOn(features, o)` — top-level factory function (global) |
@@ -54,7 +55,7 @@ All suite addons use the assignment form; everything else comes from `X-NUI-*` t
 
 ### Wiring order
 
-`linkCommonFunctions` → `linkGlobals` → `createEventListener` → `linkCVarHelpers` → `setupDB` (if db) → `registerSettings` (if settings) → `registerSlashCommands` → compartment handler.
+`linkCommonFunctions` → `linkGlobals` → `createEventListener` → `linkCVarHelpers` → `linkTooltipHelpers` → `setupDB` (if db) → `registerSettings` (if settings) → `registerSlashCommands` → compartment handler.
 
 `setupDB`/`registerSettings` register `ADDON_LOADED` handlers at positions **1** and **2** (db links + migrates, then settings register) so both run before `onLoad`.
 
@@ -68,7 +69,7 @@ addOn.api (shared global, if configured), addOn.ui (LibNUI global, if configured
 addOn.db (linked on ADDON_LOADED), addOn.commands, addOn.settingsCategory
 Methods:   GetMetadata, Print, hook, registerEvent, unregisterEvent, delay, after,
            registerCommand, SlashCmd, usage, SetTemporaryCVar, RestoreCVar, RestoreCVars,
-           RegisterSettings, GetSettingsParent
+           OnItemTooltip, RegisterSettings, GetSettingsParent
 Lifecycle: onLoad, onLogin, MigrateDB, settingChanged, CompartmentClick
 ```
 

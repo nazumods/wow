@@ -178,9 +178,7 @@ local function isEmbedded(tooltip)
   return parent and parent.Tooltip == tooltip
 end
 
-local function onItemTooltip(tooltip, data)
-  if not data then return end
-  if tooltip.IsForbidden and tooltip:IsForbidden() then return end
+ns:OnItemTooltip(function(tooltip, data)
   -- Opt-out hook: a consumer can set `tooltip.SkipUpgradeBlock = true` on its own
   -- GameTooltip frame to suppress the block (e.g. Warbandeer's Detail view, which
   -- shows the suggested upgrade as a side-by-side comparison instead).
@@ -212,11 +210,7 @@ local function onItemTooltip(tooltip, data)
   local boundTo = isSoulbound(data) and ns.api:GetCurrentCharacter() or nil
   local list = Upgrade:ItemUpgrades(link, boundTo, effectiveIlvl(data))
   if list then render(tooltip, list) end
-end
-
-if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall then
-  TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, onItemTooltip)
-end
+end)
 
 -- /supgrade [name]            — dump the available upgrades for a character
 -- /supgrade enchants [name]   — dump enchant resolution (why a slot has no recommendation)

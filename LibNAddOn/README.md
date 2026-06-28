@@ -182,6 +182,24 @@ call won't overwrite the remembered original) and arming a `PLAYER_LOGOUT` resto
 Restore one / all overridden CVars to their original values now (logout calls
 `RestoreCVars` for you). A CVar the addon never set is left untouched.
 
+### Item-tooltip hooks
+
+#### OnItemTooltip(fn)
+
+Registers `fn(tooltip, data)` as a post-call on item tooltips (a `TooltipDataProcessor`
+hook for `Enum.TooltipDataType.Item`), so an addon can append lines to any item tooltip
+without re-implementing the boilerplate. The callback runs only after the standard guards:
+the tooltip isn't forbidden (Blizzard's secure/inspect tooltips) and `data` is non-nil. Any
+further gating — `data.id`, shift-to-hide, an opt-out flag — stays in the callback. If the
+client lacks `TooltipDataProcessor`, no hook is installed (the call is a no-op).
+
+```lua
+ns:OnItemTooltip(function(tooltip, data)
+  if not data.id then return end
+  tooltip:AddLine("Item " .. data.id)
+end)
+```
+
 ### An event handler for ADDON_LOADED
 
 Calls `myAddOn.onLoad` when the event is fired for `ADDON_NAME`.

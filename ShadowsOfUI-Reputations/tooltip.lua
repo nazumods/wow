@@ -12,9 +12,8 @@ local concat = table.concat
 -- caching too) and wipe the whole memo whenever the name index is rebuilt.
 local memo = {}
 local memoGen
-local function onItemTooltip(tooltip, data)
-  if not data or not data.lines then return end
-  if tooltip.IsForbidden and tooltip:IsForbidden() then return end
+ns:OnItemTooltip(function(tooltip, data)
+  if not data.lines then return end
   if memoGen ~= ns._factionIndexGen then
     wipe(memo)
     memoGen = ns._factionIndexGen
@@ -31,11 +30,7 @@ local function onItemTooltip(tooltip, data)
   end
   if not fid then return end
   ns.AppendStandings(tooltip, fid) -- item tooltips auto-show after post-calls; no Show() needed
-end
-
-if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall then
-  TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, onItemTooltip)
-end
+end)
 
 -- /sreps <factionID | faction name> — print the cross-alt standings for a faction (testing
 -- aid + a quick "who's exalted with X?" lookup, since tooltip text can't be copied).

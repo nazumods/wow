@@ -27,6 +27,7 @@ globals.lua
 
 eventListener.lua
 cvar.lua
+tooltip.lua
 database.lua
 settings.lua
 

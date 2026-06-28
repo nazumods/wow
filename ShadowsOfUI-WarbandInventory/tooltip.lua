@@ -79,20 +79,15 @@ local function render(tooltip, report, itemID)
     TOTAL:WrapTextInColorCode(abbr(report.total)))
 end
 
-local function onItemTooltip(tooltip, data)
-  if not data or not data.id then return end
-  if tooltip.IsForbidden and tooltip:IsForbidden() then return end
+ns:OnItemTooltip(function(tooltip, data)
+  if not data.id then return end
   -- Holding Shift hides the block. Shift also triggers a tooltip refresh (it
   -- toggles item comparison), so the block disappears the instant it's pressed.
   if IsShiftKeyDown() then return end
   local report = API:GetItemCounts(data.id)
   if not report then return end
   render(tooltip, report, data.id)
-end
-
-if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall then
-  TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, onItemTooltip)
-end
+end)
 
 -- /swinv <itemID | item link> — print the warband-stock breakdown for an item
 -- (testing aid + a "find item" lookup, since tooltip text can't be copied).
