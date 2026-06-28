@@ -41,7 +41,7 @@ Main viewer UI. Reads the data layer (`ns.api` ← `WarbandeerApi`) and renders 
 | `views/RaceView.lua` | 13×29 class/race grid (dynamic build), one character per cell; hover + click-to-Detail |
 | `views/Legion.lua` | Hidden artifact appearances + Legion achievements |
 | `views/Milestones.lua` | Collectible-reward achievement grid (mounts/toys/decor) spanning all expansions — **not** Midnight-specific (renamed from `Midnight.lua`) |
-| `views/ProfsView.lua` | Best-skill-per-expansion grid + per-character detail panel |
+| `views/ProfsView.lua` (+ `views/profs/ProfsData.lua`) | Best-skill-per-expansion grid + per-character detail panel. The view shell (`ProfsView` class + its methods) is in `ProfsView.lua`; the shared column factories, gradient `skillCell`, and per-expansion skill aggregation (`buildBestSkills`/`buildCharList`) + the expansion/profession order tables live in `profs/ProfsData.lua` on `ns.profs` (loaded first) |
 | `views/MidnightProfs.lua` | Profs × characters grid: Midnight skill + concentration |
 | `views/CraftingView.lua` | Crafting profs: main crafter, concentration, learned-recipe %; expansion `BuildFilter` |
 | `views/PlaytimeView.lua` | Per-character playtime breakdown |

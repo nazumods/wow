@@ -83,6 +83,7 @@ views\RoleView.lua
 views\RaceView.lua
 views\Legion.lua
 views\Milestones.lua
+views\profs\ProfsData.lua
 views\ProfsView.lua
 views\MidnightProfs.lua
 views\CraftingView.lua
