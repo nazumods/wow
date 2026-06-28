@@ -101,3 +101,7 @@ window.lua
 
 commands.lua
 minimap.lua
+
+ring.lua
+keybind.lua
+Bindings.xml

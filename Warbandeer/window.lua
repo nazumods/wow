@@ -198,6 +198,16 @@ function ns:Open()
   self.MainWindow._view:Show()
 end
 
+-- Toggle the main window: close if shown, otherwise open. Used by the keybinding.
+function ns:Toggle()
+  local w = self.MainWindow
+  if w and w._widget:IsShown() then
+    w:Hide()
+  else
+    self:Open()
+  end
+end
+
 -- Open the window on the named view; toggles the window closed if that view is
 -- already showing.
 ---@param name string
