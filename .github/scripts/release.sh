@@ -31,9 +31,21 @@ declare -A COMMIT_TYPE_NAMES=(
 # An "owned" addon is a top-level directory that has both git-tracked files
 # and at least one .toc file. Third-party addons sitting in the same WoW
 # AddOns folder but never committed to this repo are automatically excluded.
+#
+# Some tracked top-level directories are deliberately NOT addons and must never
+# be released or published: `apps/` (the Tauri desktop companion — its own
+# Rust/JS build & versioning, not a WoW addon) and `.github/` (CI). They have no
+# top-level .toc so the filter below already skips them, but list them
+# explicitly so the intent is documented and a stray .toc can't sneak one in.
+NON_ADDON_DIRS=(apps .github)
 
 ADDONS=()
 while IFS= read -r dir; do
+  is_non_addon=false
+  for nd in "${NON_ADDON_DIRS[@]}"; do
+    [[ "$dir" == "$nd" ]] && { is_non_addon=true; break; }
+  done
+  [[ "$is_non_addon" == true ]] && continue
   if ls "${dir}"/*.toc &>/dev/null 2>&1; then
     ADDONS+=("$dir")
   fi

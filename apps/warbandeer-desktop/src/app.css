@@ -1,0 +1,82 @@
+/* Void-Dark surface + type system, mirrored from Warbandeer/theme.lua.
+   Fonts: system stacks standing in for the bundled Hanken Grotesk / Geist /
+   JetBrains Mono (the addon ships those by path; the desktop app uses close
+   web-safe equivalents to avoid bundling font binaries). */
+:root {
+  /* colors (theme.lua) */
+  --window: #0d0d0f;
+  --surface: rgba(255, 255, 255, 0.05); /* module */
+  --surface-hi: rgba(255, 255, 255, 0.08); /* moduleHi */
+  --hover: rgba(255, 255, 255, 0.1);
+  --selected: rgba(230, 204, 128, 0.15);
+  --track: #80808c;
+  --border: rgba(153, 143, 117, 0.25);
+  --divider: rgba(153, 143, 117, 0.2);
+
+  --text: #e6e2e1;
+  --muted: #d1c6ab;
+  --faded: rgba(209, 198, 171, 0.6);
+
+  --gold: #ffd100;
+  --orange: #ff8000;
+  --green: #73d973;
+  --cyan: #66cce6;
+  --red: #db2626;
+
+  --font-display: "Hanken Grotesk", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Geist", "Inter", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "Cascadia Mono", ui-monospace, monospace;
+
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--window);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+#app {
+  height: 100vh;
+  overflow: auto;
+}
+
+/* shared bits */
+.caps {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}

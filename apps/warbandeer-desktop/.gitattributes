@@ -1,0 +1,6 @@
+# The repo-root `.gitattributes` applies `* text eol=lf` to every file, which
+# corrupts binary assets (CR bytes stripped during line-ending normalization).
+# Mark the app's binary files so git stores them verbatim.
+*.png binary
+*.ico binary
+*.icns binary

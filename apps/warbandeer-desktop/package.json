@@ -1,0 +1,28 @@
+{
+  "name": "warbandeer-desktop",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Desktop companion that reads Warbandeer addon data + WoW combat logs",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-check --tsconfig ./tsconfig.json",
+    "tauri": "tauri",
+    "icon": "tauri icon icons/source.png",
+    "icon:source": "node scripts/gen-icon.mjs"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.1.1"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^5.0.3",
+    "@tauri-apps/cli": "^2.1.0",
+    "@tsconfig/svelte": "^5.0.4",
+    "svelte": "^5.16.0",
+    "svelte-check": "^4.1.1",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.3"
+  }
+}

@@ -1,0 +1,96 @@
+name: app-release
+
+# Release step for the `apps/` desktop companion — the analogue of the addon
+# release flow (.github/scripts/release.sh), but for the Tauri app instead of a
+# WoW addon. Runs whenever the app's source changes on main (doc-only changes are
+# ignored, mirroring the addon flow), builds a PORTABLE Windows .exe (no installer),
+# and attaches it to a GitHub release tagged `app-warbandeer-desktop-v<version>`.
+#
+# Portable build: `bundle.active` is false in tauri.conf.json, so `tauri build`
+# produces the standalone exe (target/release/*.exe) and skips NSIS/MSI installers.
+# The exe needs the Evergreen WebView2 runtime, preinstalled on Windows 10/11.
+#
+# Versioning is driven by `src-tauri/tauri.conf.json`'s `version` (keep package.json
+# + Cargo.toml in sync). Bump it to cut a new release; pushes that don't change the
+# version refresh the current release's asset. Auto-bumping is intentionally NOT done
+# here (it would commit back into apps/ and re-trigger this path-filtered workflow in
+# a loop — the addon flow avoids that by running on a cron, not on push).
+#
+# App release tags are namespaced `app-*` so the addon CurseForge publisher
+# (publish.yml) can skip them with a single rule — they carry no .toc.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/warbandeer-desktop/**"
+      - "!apps/warbandeer-desktop/**/*.md"
+      - ".github/workflows/app-release.yml"
+  workflow_dispatch:
+
+# Needed to create the release + upload the asset.
+permissions:
+  contents: write
+
+# One app release at a time; queue rather than cancel so an in-flight upload finishes.
+concurrency:
+  group: app-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    # Windows-only: the app targets Windows WoW installs (its data-path discovery
+    # defaults to the Windows install path). Add a matrix here to ship other OSes.
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: apps/warbandeer-desktop
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/warbandeer-desktop/package-lock.json
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: apps/warbandeer-desktop/src-tauri -> target
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      # Runs beforeBuildCommand (npm run build) then compiles the app. With
+      # bundle.active=false this emits the portable exe and no installer.
+      - name: Build portable app
+        run: npm run tauri build
+
+      - name: Stage portable exe
+        id: stage
+        run: |
+          version=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          exe=$(ls src-tauri/target/release/*.exe | head -1)
+          out="Warbandeer-v${version}-portable.exe"
+          cp "$exe" "$out"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "asset=apps/warbandeer-desktop/$out" >> "$GITHUB_OUTPUT"
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: app-warbandeer-desktop-v${{ steps.stage.outputs.version }}
+          name: Warbandeer Desktop v${{ steps.stage.outputs.version }}
+          body: >
+            Portable Windows build of the Warbandeer desktop companion — reads the
+            addon's SavedVariables (Overview mirror) and your combat logs. No installer:
+            download the .exe and run it. Requires the Evergreen WebView2 runtime
+            (preinstalled on Windows 10/11).
+          files: ${{ steps.stage.outputs.asset }}
+          fail_on_unmatched_files: true

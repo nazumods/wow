@@ -1,0 +1,20 @@
+# dependencies / build output
+node_modules
+dist
+.DS_Store
+
+# rust
+src-tauri/target
+
+# `tauri icon` emits a full mobile/store set; we only track the desktop icons the
+# build references (32x32 / 128x128 / 128x128@2x / icon.ico / icon.icns) + the source.
+src-tauri/icons/64x64.png
+src-tauri/icons/icon.png
+src-tauri/icons/Square*Logo.png
+src-tauri/icons/StoreLogo.png
+src-tauri/icons/android/
+src-tauri/icons/ios/
+
+# local config
+.env
+.env.local
