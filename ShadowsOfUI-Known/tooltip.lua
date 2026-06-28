@@ -1,7 +1,6 @@
 ---@type ShadowsOfUI_Known
 local ns = select(2, ...)
 
-local floor = math.floor
 local LABEL = NORMAL_FONT_COLOR
 
 -- Display name wrapped in the alt's class colour, or red when the alt doesn't yet meet
@@ -9,9 +8,7 @@ local LABEL = NORMAL_FONT_COLOR
 ---@param e KnownEntry
 local function colorName(e)
   if not e.meets then return RED_FONT_COLOR:WrapTextInColorCode(e.name) end
-  local c = ns.Colors[e.classKey]
-  if not c or not c[1] then return e.name end
-  return ("|cff%02x%02x%02x%s|r"):format(floor(c[1] * 255 + 0.5), floor(c[2] * 255 + 0.5), floor(c[3] * 255 + 0.5), e.name)
+  return ns.Colors.className(e.name, e.classKey)
 end
 
 -- Append the "Learnable by:" block. A single alt is one inline line; multiple alts get a

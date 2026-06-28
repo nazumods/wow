@@ -16,7 +16,7 @@ Bootstrapping factory every other addon depends on. `LibNAddOn(features)` wires 
 | `lua/class.lua` | `ns.lua.Class(parent, fn, defaults, ...)` — OOP class factory |
 | `lua/strings.lua` | `ns.lua.strings` — `startsWith(str, start)`, `split(token, str)` |
 | `slashCommands.lua` | `ns.registerSlashCommands`; adds `registerCommand`/`SlashCmd`/`usage` to addon. Self-bootstraps `/lib` |
-| `globals/colors.lua` | `ns.Colors` — class colors (0–1), `Strings` (color/icon escape codes), `rgba(r255,g255,b255,a01)`, `alpha(color, a)` |
+| `globals/colors.lua` | `ns.Colors` — class colors (0–1), `Strings` (color/icon escape codes), `rgba(r255,g255,b255,a01)`, `alpha(color, a)`, `hex(color)`/`code(color)`/`wrap(text, color)` (0–1 `{r,g,b}` → `"RRGGBB"`/`"|cffRRGGBB"`/`"|cff…|r"`), `className(name, classKey)` (class-colour a name) |
 | `globals/wow.lua` | `ns.wow` — `maxLevel`, `Armor` (+`byClass`/`types`), `ClassKeys`, `ClassByKey`, `Specializations` |
 | `globals/player.lua` | `ns.wow.Player`, `ns.wow.GreatVault`; `/lib player <method>` dump command |
 | `globals/icons.lua` | `ns.icons` — atlas/path constants for classes, roles, specs, factions, common UI |
@@ -132,6 +132,7 @@ Dot functions (no self): `GetAverageItemLevel`, `GetClassId`, `GetHealth`, `GetH
 
 - Class colors: `ns.Colors.DeathKnight = {0.77, 0.12, 0.23}` … (0–1 float lists). `TransparentBlack = {0,0,0,0}`.
 - `rgba(r, g, b, a)` → `ColorMixin` (r/g/b 0–255, a 0–1). `alpha(color, a)` → `{r,g,b,a}` list (accepts `ColorMixin` or list).
+- Escape-string builders from a `{r,g,b}` (0–1) list: `hex(color)` → `"RRGGBB"`, `code(color)` → `"|cffRRGGBB"` (pair with `|r`), `wrap(text, color)` → `"|cffRRGGBB<text>|r"`. `className(name, classKey)` wraps a name in its class colour (PascalCase keys matching `Character.classKey`), passing the name through unchanged when the class is unknown. Used by the headless tooltip addons + Warbandeer views in place of hand-rolled `("|cff%02x%02x%02x"):format(floor(c*255+0.5)…)`.
 - `ns.Colors.Strings` — chat escape codes (`GREEN`/`WHITE`/`ORANGE`/`GREY`/`END`) and `Icons` texture markup.
 - `ns.icons` simple keys: `CheckGreen`, `RedX`, `Vault`, `Theatre`, `Treasure`, `BackArrow`, `preMidnight`, `Nightfall`, `Alliance`, `Horde`, `Bag`, `Backpack`.
 - Complex keys (`{path, coords, vertexColor?}`): `AllianceLight`, `HordeLight`, `DAMAGER`, `HEALER`, `TANK`, `Arcane`, `Fury`, `Holy`, `Preservation`, `Shadow`, `Vengeance`.

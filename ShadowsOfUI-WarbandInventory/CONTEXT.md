@@ -11,8 +11,7 @@ LibNUI, no DB. Surfaces data only — all counting lives in Warbandeer_Character
 
 | File | Purpose |
 |---|---|
-| `core.lua` | Bootstrap + `ns.ColorName(name, classKey)` (wrap a character name in its class colour via `ns.Colors`, PascalCase keys matching `Character.classKey`). |
-| `tooltip.lua` | `TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item)` hook → `WarbandeerApi:GetItemCounts(data.id)` → renders the block. `IsShiftKeyDown()` suppresses it. Manual `/swinv` dev/find command. |
+| `tooltip.lua` | Bootstrap (`LibNAddOn(...)`) + the `TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item)` hook → `WarbandeerApi:GetItemCounts(data.id)` → renders the block (class-coloured names via `ns.Colors.className`). `IsShiftKeyDown()` suppresses it. Manual `/swinv` dev/find command. |
 
 ## Rendering (`tooltip.lua`)
 

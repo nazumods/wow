@@ -1,17 +1,9 @@
 ---@type ShadowsOfUI_Artisan
 local ns = select(2, ...)
 
-local floor = math.floor
 local GetCurrencyInfo = C_CurrencyInfo.GetCurrencyInfo
 local BreakUpLargeNumbers = BreakUpLargeNumbers
-
--- Class-coloured name (ns.Colors keys are PascalCase, matching Character.classKey).
-local function colorName(classKey, name)
-  local c = classKey and ns.Colors[classKey]
-  if not c or not c[1] then return name end
-  return ("|cff%02x%02x%02x%s|r"):format(
-    floor(c[1] * 255 + 0.5), floor(c[2] * 255 + 0.5), floor(c[3] * 255 + 0.5), name)
-end
+local className = ns.Colors.className
 
 local function onEnter(badge)
   local list = ns.BuildBreakdown(badge.skillLineID)
@@ -24,7 +16,7 @@ local function onEnter(badge)
   end
   GameTooltip:AddLine(title)
   for _, e in ipairs(list) do
-    local nm = colorName(e.classKey, e.name)
+    local nm = className(e.name, e.classKey)
     if e.isCurrent then nm = nm .. " " .. GRAY_FONT_COLOR:WrapTextInColorCode("(here)") end
     GameTooltip:AddDoubleLine(nm, BreakUpLargeNumbers(e.quantity), nil, nil, nil,
       HIGHLIGHT_FONT_COLOR.r, HIGHLIGHT_FONT_COLOR.g, HIGHLIGHT_FONT_COLOR.b)

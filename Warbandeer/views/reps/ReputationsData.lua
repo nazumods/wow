@@ -1,6 +1,5 @@
 ---@type Warbandeer
 local ns = select(2, ...)
-local floor = math.floor
 local unpack = unpack
 local Colors = ns.Colors
 
@@ -43,7 +42,7 @@ local GREEN, WHITE, PARAGON = "|cff66cc66", "|cffe6e6e6", "|cff66b3ff"
 local function classCode(key)
   local c = key and Colors[key]
   if not c then return "|cffffffff" end
-  return ("|cff%02x%02x%02x"):format(floor(c[1] * 255 + 0.5), floor(c[2] * 255 + 0.5), floor(c[3] * 255 + 0.5))
+  return Colors.code(c)
 end
 
 -- The display label, repairing a stale "Renown %d" label cached before the broker
