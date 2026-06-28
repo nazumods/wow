@@ -20,5 +20,7 @@ data/gems.lua
 resolve.lua
 equip.lua
 upgrade.lua
-enhance.lua
+classcodex.lua
+enchants.lua
+gems.lua
 tooltip.lua

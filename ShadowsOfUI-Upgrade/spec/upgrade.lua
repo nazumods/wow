@@ -23,7 +23,9 @@ local FILES = {
   "resolve.lua",
   "equip.lua",
   "upgrade.lua",
-  "enhance.lua",
+  "classcodex.lua",
+  "enchants.lua",
+  "gems.lua",
 }
 
 -- Armour type per class (the real ns.wow.Armor.byClass the addon reads in-game).
