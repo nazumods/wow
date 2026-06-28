@@ -19,7 +19,9 @@ data/gems.lua
 
 resolve.lua
 equip.lua
+evaluate.lua
 upgrade.lua
+upgradesources.lua
 classcodex.lua
 enchants.lua
 gems.lua

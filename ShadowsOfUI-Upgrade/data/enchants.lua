@@ -20,7 +20,7 @@ local ns = select(2, ...)
 ---@field fixed number?                  single recipe spellID (non-variant slots)
 
 -- The lowest item level *any* permanent enchant will apply to this expansion. An equipped
--- item below it can't be enchanted at all, so `enhance.lua` neither flags it as "missing an
+-- item below it can't be enchanted at all, so `enchants.lua` neither flags it as "missing an
 -- enchant" nor recommends one — and this gate covers **every** enchantable slot, including
 -- the utility-only ones we carry no stat recommendation for (Head / Shoulder / Legs / Feet),
 -- not just the families in `ns.Enchants` below. Midnight: a single shared floor of 120.
