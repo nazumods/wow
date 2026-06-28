@@ -6,11 +6,20 @@ local rgba = ns.Colors.rgba
 local GetTime = GetTime
 
 -- Font path borrowed from a stock font object, so the spell-name / time-text size is
--- the only thing the user tunes (8–18px) without us shipping a font file.
+-- the only thing the user tunes (8–22px) without us shipping a font file.
 local FONT_PATH = GameFontHighlightSmall:GetFont()
 
-local WIDTH, HEIGHT = 220, 22
 local PLACEHOLDER = "Interface\\Icons\\inv_misc_questionmark"
+
+-- The bar scales with its text size so larger fonts never overflow: height = size + V_PAD,
+-- width keeps the bar's proportions (height × W_PER_H). Default 12px → 22 high × 220 wide
+-- (the original look); 22px → 32 × 320.
+local V_PAD = 10
+local W_PER_H = 10
+local function dims(textSize)
+  local h = textSize + V_PAD
+  return h * W_PER_H, h
+end
 
 -- Fill colours by cast state.
 local CAST     = rgba(255, 200, 80, 0.9)  -- normal, interruptible cast
@@ -36,18 +45,18 @@ local CAST_EVENTS = {
 ---@field nameText Label  spell name
 ---@field timeText Label  remaining time
 ---@field _enabled boolean  internal mirror of `enabled`
----@field _config boolean?  true while Edit Mode placement is active
+---@field _editMode boolean?  true while Edit Mode placement is active (draggable sample)
+---@field _preview boolean?  true while our settings panel is open (static sample, for live slider preview)
 ---@field _channel boolean?  true while the tracked cast is a channel
 ---@field _endMS number?  cast end (ms); only read when not secret (for the time text)
 ---@field _secretTime boolean?  true when the cast timing is a protected/secret value
 local CastBar = Class(StatusBar, function(self)
-  self:Size(WIDTH, HEIGHT)
   self._enabled = self.enabled
   self._label = self.unit == "focus" and "Focus Cast Bar" or "Target Cast Bar"
 
   self.icon = Texture:new{
     parent = self, layer = ui.layer.Overlay,
-    position = { TopLeft = {1, -1}, Width = HEIGHT - 2, Height = HEIGHT - 2 },
+    position = { TopLeft = {1, -1} }, -- size set by _applySize (scales with text)
   }
   self.icon:Coords(0.08, 0.92, 0.08, 0.92) -- trim the icon's built-in border
 
@@ -69,6 +78,8 @@ local CastBar = Class(StatusBar, function(self)
     position = { TopLeft = {}, BottomRight = {self, ui.edge.TopRight, 0, -3} },
   }
 
+  self:_applySize()
+
   for _, e in ipairs(CAST_EVENTS) do
     self._widget:RegisterUnitEvent(e, self.unit)
   end
@@ -82,16 +93,27 @@ end, {
   textSize = 12,
 })
 ns.CastBar = CastBar
+CastBar.dims = dims -- (textSize) → width, height; shared with MigrateDB's position conversion
 
--- Anchor by CENTER to UIParent using the saved offset (kept in the DB so it survives /reload).
+-- Anchor by the bar's TOPLEFT (offset from UIParent's centre, kept in the DB so it survives
+-- /reload). Top-left rather than centre so resizing for a larger font grows down/right from a
+-- locked corner instead of spreading from the middle.
 function CastBar:applyPosition()
   self._widget:ClearAllPoints()
-  self._widget:SetPoint("CENTER", UIParent, "CENTER", self.pos.x, self.pos.y)
+  self._widget:SetPoint("TOPLEFT", UIParent, "CENTER", self.pos.x, self.pos.y)
+end
+
+-- Size the bar + icon for the current text size. CENTER-anchored, so it grows
+-- symmetrically and stays put. Called at construction and on every slider change.
+function CastBar:_applySize()
+  local w, h = dims(self.textSize)
+  self:Size(w, h)
+  self.icon:Size(h - 2, h - 2)
 end
 
 -- Re-read the live cast/channel state and paint, or hide when nothing is being cast.
 function CastBar:Refresh()
-  if self._config then return end -- placement sample owns the bar while Edit Mode is open
+  if self._editMode or self._preview then return end -- a sample owns the bar (Edit Mode / settings preview)
   if not self._enabled then self:Hide(); self:stopUpdates(); return end
 
   local unit = self.unit
@@ -142,44 +164,71 @@ function CastBar:onUpdate()
   end
 end
 
--- Toggle whether this bar shows for real casts (settings checkbox).
+-- Toggle whether this bar shows at all (settings checkbox). Routes through _syncSample so
+-- it also hides/shows the live sample when the panel is open (Refresh alone would no-op
+-- there, since a sample owns the bar).
 ---@param on boolean
 function CastBar:SetEnabled(on)
   self._enabled = on
-  self:Refresh()
+  self:_syncSample()
 end
 
--- Resize the spell-name + time text (settings slider, 8–18px).
+-- Resize the spell-name + time text (settings slider, 8–22px).
 ---@param size number
 function CastBar:SetTextSize(size)
+  self.textSize = size
   self.nameText:Font({ FONT_PATH, size })
   self.timeText:Font({ FONT_PATH, size })
+  self:_applySize()
 end
 
--- Enter/leave Edit Mode placement: show a static draggable sample, or return to live.
----@param on boolean
-function CastBar:SetConfig(on)
-  self._config = on
-  if on then
-    self:stopUpdates()
-    self.icon:Texture(PLACEHOLDER)
-    self.nameText:Text(self._label)
-    self.timeText:Text("")
-    self._widget:SetStatusBarColor(CAST:GetRGBA())
-    self._widget:SetMinMaxValues(0, 1)
-    self._widget:SetValue(0.6)
-    self:enableDrag(true)
-    self:Show()
-  else
+-- Show the static placeholder sample while a sample source is active (Edit Mode or the
+-- settings panel) AND the bar is enabled; otherwise hide it / return to live behaviour. Drag
+-- is armed only for Edit Mode — the settings preview is look-only so the slider's effect shows.
+function CastBar:_syncSample()
+  if not (self._editMode or self._preview) then
     self:enableDrag(false)
     self:Refresh()
+    return
   end
+  -- A sample is requested — but a disabled bar stays hidden everywhere ("Show … cast bar"
+  -- off means off, preview included).
+  if not self._enabled then
+    self:enableDrag(false)
+    self:stopUpdates()
+    self:Hide()
+    return
+  end
+  self:stopUpdates()
+  self.icon:Texture(PLACEHOLDER)
+  self.nameText:Text(self._label)
+  self.timeText:Text("")
+  self._widget:SetStatusBarColor(CAST:GetRGBA())
+  self._widget:SetMinMaxValues(0, 1)
+  self._widget:SetValue(0.6)
+  self:enableDrag(self._editMode)
+  self:Show()
+end
+
+-- Edit Mode placement (draggable sample).
+---@param on boolean
+function CastBar:SetConfig(on)
+  self._editMode = on
+  self:_syncSample()
+end
+
+-- Settings-panel preview (static sample so the text-size slider shows a live result).
+---@param on boolean
+function CastBar:SetPreview(on)
+  self._preview = on
+  self:_syncSample()
 end
 
 -- Left-drag to reposition (only armed while in placement mode); the new CENTER offset
 -- is written straight back into the DB-backed `pos` table.
 ---@param on boolean
 function CastBar:enableDrag(on)
+  on = on and true or false -- _editMode can be nil; SetMovable rejects a non-boolean
   local w = self._widget
   w:EnableMouse(on)
   w:SetMovable(on)
@@ -188,9 +237,8 @@ function CastBar:enableDrag(on)
     w:SetScript("OnDragStart", function() w:StartMoving() end)
     w:SetScript("OnDragStop", function()
       w:StopMovingOrSizing()
-      local cx, cy = w:GetCenter()
       local ux, uy = UIParent:GetCenter()
-      self.pos.x, self.pos.y = cx - ux, cy - uy
+      self.pos.x, self.pos.y = w:GetLeft() - ux, w:GetTop() - uy
       self:applyPosition()
     end)
   else
