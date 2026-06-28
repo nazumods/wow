@@ -164,11 +164,13 @@ function CastBar:onUpdate()
   end
 end
 
--- Toggle whether this bar shows for real casts (settings checkbox).
+-- Toggle whether this bar shows at all (settings checkbox). Routes through _syncSample so
+-- it also hides/shows the live sample when the panel is open (Refresh alone would no-op
+-- there, since a sample owns the bar).
 ---@param on boolean
 function CastBar:SetEnabled(on)
   self._enabled = on
-  self:Refresh()
+  self:_syncSample()
 end
 
 -- Resize the spell-name + time text (settings slider, 8–22px).
@@ -180,25 +182,32 @@ function CastBar:SetTextSize(size)
   self:_applySize()
 end
 
--- Enter/leave Edit Mode placement: show a static draggable sample, or return to live.
 -- Show the static placeholder sample while a sample source is active (Edit Mode or the
--- settings panel), or return to live cast-driven behaviour. Drag is armed only for Edit
--- Mode; the settings preview is look-only, so the text-size slider's effect is visible.
+-- settings panel) AND the bar is enabled; otherwise hide it / return to live behaviour. Drag
+-- is armed only for Edit Mode — the settings preview is look-only so the slider's effect shows.
 function CastBar:_syncSample()
-  if self._editMode or self._preview then
-    self:stopUpdates()
-    self.icon:Texture(PLACEHOLDER)
-    self.nameText:Text(self._label)
-    self.timeText:Text("")
-    self._widget:SetStatusBarColor(CAST:GetRGBA())
-    self._widget:SetMinMaxValues(0, 1)
-    self._widget:SetValue(0.6)
-    self:enableDrag(self._editMode)
-    self:Show()
-  else
+  if not (self._editMode or self._preview) then
     self:enableDrag(false)
     self:Refresh()
+    return
   end
+  -- A sample is requested — but a disabled bar stays hidden everywhere ("Show … cast bar"
+  -- off means off, preview included).
+  if not self._enabled then
+    self:enableDrag(false)
+    self:stopUpdates()
+    self:Hide()
+    return
+  end
+  self:stopUpdates()
+  self.icon:Texture(PLACEHOLDER)
+  self.nameText:Text(self._label)
+  self.timeText:Text("")
+  self._widget:SetStatusBarColor(CAST:GetRGBA())
+  self._widget:SetMinMaxValues(0, 1)
+  self._widget:SetValue(0.6)
+  self:enableDrag(self._editMode)
+  self:Show()
 end
 
 -- Edit Mode placement (draggable sample).
