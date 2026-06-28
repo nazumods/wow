@@ -93,7 +93,12 @@ local function refreshActive()
     if not key then return end -- scenario data not ready yet; a later SCENARIO_UPDATE retries
     local a = dt.active
     if a and a.key == key then
-      a.name, a.tier = name, readTier() -- refresh now that the scenario is fully set up
+      -- Refresh now that the scenario is fully set up, but never clobber a known tier with the
+      -- unknown bucket: SCENARIO_UPDATE also fires before the header widget is populated and again
+      -- as it tears down at completion, where readTier() reads 0.
+      a.name = name
+      local tier = readTier()
+      if tier ~= 0 then a.tier = tier end
     else
       dt.active = { key = key, name = name, tier = readTier(), start = GetServerTime() }
     end
@@ -114,7 +119,8 @@ local function recordCompletion()
   local entry = dt.runs[a.key]
   if not entry then entry = { name = a.name, tiers = {} }; dt.runs[a.key] = entry end
   entry.name = a.name or entry.name
-  local tier = a.tier or 0
+  -- Last-ditch read in case no in-run SCENARIO_UPDATE ever caught a populated header widget.
+  local tier = a.tier and a.tier ~= 0 and a.tier or readTier()
   local list = entry.tiers[tier]
   if not list then list = {}; entry.tiers[tier] = list end
   insert(list, seconds)
@@ -141,3 +147,11 @@ ns:registerCommand("dump", "delves", function(self)
     ns.Print(("In progress: %s [T%s] for %ds"):format(dt.active.name or "?", dt.active.tier or 0, GetServerTime() - dt.active.start))
   end
 end, "dump delve run-times")
+
+-- /wbc clear delves — reset the current character's recorded run-times (and any in-progress timer).
+ns:registerCommand("clear", "delves", function(self)
+  local toon = ns.currentData
+  if not toon or not toon.delveTimes then ns.Print("No delve run-times to clear.") return end
+  toon.delveTimes = nil
+  ns.Print("Delve run-times cleared.")
+end, "clear delve run-times")
