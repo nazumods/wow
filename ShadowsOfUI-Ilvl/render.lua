@@ -116,6 +116,23 @@ local function ensureInset(button)
     button.soiInset:SetJustifyH(pos[5])
 end
 
+-- Average equipped item level, shown at the top centre of a paperdoll model.
+-- Created lazily on the host frame; hidden when no item level is available.
+---@param parent table frame to host the label (a paperdoll model)
+---@param ilvl integer? equipped average item level, or nil/0 to hide
+function ns.SetAvgIlvl(parent, ilvl)
+    if not parent.soiAvg then
+        parent.soiAvg = makeFS(parent, 18)
+        parent.soiAvg:SetPoint("TOP", parent, "TOP", 0, -6)
+    end
+    if ilvl and ilvl > 0 then
+        parent.soiAvg:SetFormattedText("%d ilvl", ilvl)
+        parent.soiAvg:Show()
+    else
+        parent.soiAvg:Hide()
+    end
+end
+
 function ns.CleanButton(button)
     if button.soiIlvl  then button.soiIlvl:Hide() end
     if button.soiTrack then button.soiTrack:Hide() end

@@ -7,7 +7,7 @@
 ## SavedVariables: ShadowsOfUI_IlvlDB
 ## Dependencies: LibNAddOn
 ## X-NUI-DB: ShadowsOfUI_IlvlDB
-## X-NUI-DB-VERSION: 2
+## X-NUI-DB-VERSION: 3
 
 core.lua
 render.lua

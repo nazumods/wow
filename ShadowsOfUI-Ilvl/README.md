@@ -14,6 +14,8 @@ read at a glance how far an upgradeable piece has been crafted up.
   to* each slot, toward the inside of the panel, so the whole set reads as a tidy
   column you can scan top to bottom. You can switch either panel back to the
   on-icon overlay instead.
+- **Inspect** — also shows the inspected player's **average item level** at the top
+  centre of the model.
 - Item level is colored by item quality; the track badge is gold.
 
 The track letters are **A**dventurer, **V**eteran, **C**hampion, **H**ero and
@@ -27,6 +29,8 @@ Options are under **Game Menu → Options → AddOns → Shadows of UI → Item 
   (track widget), Bagnon, character pane, inspect pane.
 - **Character: inset** / **Inspect: inset** — beside the icon (on) vs over the
   icon (off).
+- **Inspect: average ilvl** — show the inspected player's average item level at
+  the top of the model.
 - **Minimum quality** — only tag gear of this quality or better (Poor, Common,
   Uncommon, Rare, Epic). Defaults to Uncommon.
 

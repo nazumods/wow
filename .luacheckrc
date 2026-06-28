@@ -157,6 +157,7 @@ std = {
     "C_Minimap",
     "C_MountJournal",
     "C_MythicPlus",
+    "C_PaperDollInfo",
     "C_PartyInfo",
     "C_PetJournal",
     "C_PlayerInfo",

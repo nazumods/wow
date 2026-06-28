@@ -56,8 +56,19 @@ EventUtil.ContinueOnAddOnLoaded("Blizzard_InspectUI", function()
     hooksecurefunc("InspectPaperDollItemSlotButton_Update", function(button)
         updateSlot(button, unit(), db("inspect"), db("inspectInset"))
     end)
+
+    -- Average ilvl at the top centre of the inspect model.
+    local function updateAvg()
+        local u = unit()
+        local ilvl = db("inspectAvg") and u and C_PaperDollInfo.GetInspectItemLevel(u)
+        ns.SetAvgIlvl(_G.InspectModelFrame, ilvl or nil)
+    end
+    -- Inspect data streams in asynchronously; refresh once it has landed.
+    EventRegistry:RegisterFrameEventAndCallback("INSPECT_READY", updateAvg)
+
     AddRefresher(function()
         refreshPaperdoll("Inspect", _G.InspectFrame, unit(), "inspect", "inspectInset")
+        if _G.InspectFrame and _G.InspectFrame:IsShown() then updateAvg() end
     end)
 end)
 

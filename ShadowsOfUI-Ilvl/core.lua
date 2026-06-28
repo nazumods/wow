@@ -19,6 +19,7 @@ local Defaults = {
     characterInset = true,
     inspect = true,
     inspectInset = true,
+    inspectAvg = true,
     minQuality = 3, -- Uncommon
 }
 
@@ -27,7 +28,7 @@ function ns:MigrateDB()
     for k, v in pairs(Defaults) do
         if db[k] == nil then db[k] = v end -- non-destructive: only add missing keys
     end
-    db.version = 2
+    db.version = 3
 end
 
 -- Re-tag every currently-visible surface. Surfaces register a refresher here so
@@ -74,6 +75,9 @@ ns:RegisterSettings{
             { typ = "checkbox", key = "inspectInset", default = true, name = "Inspect: inset",
               label = "inspect inset", table = dbTable,
               tooltip = "Place the label beside each slot (toward the centre) instead of over the icon." },
+            { typ = "checkbox", key = "inspectAvg", default = true, name = "Inspect: average ilvl",
+              label = "inspect average ilvl", table = dbTable,
+              tooltip = "Show the inspected player's average item level at the top of the model." },
         },
     },
 }
