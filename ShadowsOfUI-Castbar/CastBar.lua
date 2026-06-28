@@ -196,6 +196,7 @@ end
 -- is written straight back into the DB-backed `pos` table.
 ---@param on boolean
 function CastBar:enableDrag(on)
+  on = on and true or false -- _editMode can be nil; SetMovable rejects a non-boolean
   local w = self._widget
   w:EnableMouse(on)
   w:SetMovable(on)
