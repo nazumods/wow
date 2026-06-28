@@ -36,7 +36,8 @@ local CAST_EVENTS = {
 ---@field nameText Label  spell name
 ---@field timeText Label  remaining time
 ---@field _enabled boolean  internal mirror of `enabled`
----@field _config boolean?  true while Edit Mode placement is active
+---@field _editMode boolean?  true while Edit Mode placement is active (draggable sample)
+---@field _preview boolean?  true while our settings panel is open (static sample, for live slider preview)
 ---@field _channel boolean?  true while the tracked cast is a channel
 ---@field _endMS number?  cast end (ms); only read when not secret (for the time text)
 ---@field _secretTime boolean?  true when the cast timing is a protected/secret value
@@ -91,7 +92,7 @@ end
 
 -- Re-read the live cast/channel state and paint, or hide when nothing is being cast.
 function CastBar:Refresh()
-  if self._config then return end -- placement sample owns the bar while Edit Mode is open
+  if self._editMode or self._preview then return end -- a sample owns the bar (Edit Mode / settings preview)
   if not self._enabled then self:Hide(); self:stopUpdates(); return end
 
   local unit = self.unit
@@ -157,10 +158,11 @@ function CastBar:SetTextSize(size)
 end
 
 -- Enter/leave Edit Mode placement: show a static draggable sample, or return to live.
----@param on boolean
-function CastBar:SetConfig(on)
-  self._config = on
-  if on then
+-- Show the static placeholder sample while a sample source is active (Edit Mode or the
+-- settings panel), or return to live cast-driven behaviour. Drag is armed only for Edit
+-- Mode; the settings preview is look-only, so the text-size slider's effect is visible.
+function CastBar:_syncSample()
+  if self._editMode or self._preview then
     self:stopUpdates()
     self.icon:Texture(PLACEHOLDER)
     self.nameText:Text(self._label)
@@ -168,12 +170,26 @@ function CastBar:SetConfig(on)
     self._widget:SetStatusBarColor(CAST:GetRGBA())
     self._widget:SetMinMaxValues(0, 1)
     self._widget:SetValue(0.6)
-    self:enableDrag(true)
+    self:enableDrag(self._editMode)
     self:Show()
   else
     self:enableDrag(false)
     self:Refresh()
   end
+end
+
+-- Edit Mode placement (draggable sample).
+---@param on boolean
+function CastBar:SetConfig(on)
+  self._editMode = on
+  self:_syncSample()
+end
+
+-- Settings-panel preview (static sample so the text-size slider shows a live result).
+---@param on boolean
+function CastBar:SetPreview(on)
+  self._preview = on
+  self:_syncSample()
 end
 
 -- Left-drag to reposition (only armed while in placement mode); the new CENTER offset

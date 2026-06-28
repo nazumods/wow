@@ -62,6 +62,24 @@ function ns:onLoad()
     },
   }
   self:WireEditMode()
+  self:WireSettingsPreview()
+end
+
+-- Show both bars as static samples while our settings panel is open, so the text-size
+-- slider's effect is visible immediately (otherwise nothing is on screen without a live
+-- cast). DisplayCategory fires on open + every category switch; SettingsPanel.OnHide on close.
+function ns:WireSettingsPreview()
+  if not (SettingsPanel and SettingsPanel.DisplayCategory) then return end
+  hooksecurefunc(SettingsPanel, "DisplayCategory", function(_, category)
+    ns:SetPreview(category == ns.settingsCategory)
+  end)
+  EventRegistry:RegisterCallback("SettingsPanel.OnHide", function() ns:SetPreview(false) end, ns)
+end
+
+---@param on boolean
+function ns:SetPreview(on)
+  if not self.bars then return end
+  for _, bar in pairs(self.bars) do bar:SetPreview(on) end
 end
 
 -- /scast        → open settings

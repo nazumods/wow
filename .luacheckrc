@@ -247,6 +247,7 @@ std = {
     "Minimap",
     "GetMinimapShape",
     "MenuUtil",
+    "SettingsPanel",
     "StanceBar",
     "StatusTrackingBarManager",
     "UIParent",
