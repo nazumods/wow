@@ -88,6 +88,7 @@
     "TooltipDataProcessor",
     "TooltipUtil",
     "UiMapPoint",
+    "EditModeManagerFrame",
     "hooksecurefunc",
 
     "C_AddOns",
@@ -314,6 +315,8 @@
     "ShowOptionsCategory",
     "StaticPopup_Show",
     "StaticPopupDialogs",
+    "UnitCastingInfo",
+    "UnitChannelInfo",
     "UnitClass",
     "UnitClassBase",
     "UnitExists",
