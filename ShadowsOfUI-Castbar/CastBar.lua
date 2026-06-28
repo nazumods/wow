@@ -4,7 +4,6 @@ local ui, Class = ns.ui, ns.lua.Class
 local StatusBar, Texture, Label = ui.StatusBar, ui.Texture, ui.Label
 local rgba = ns.Colors.rgba
 local GetTime = GetTime
-local unpack = unpack
 
 -- Font path borrowed from a stock font object, so the spell-name / time-text size is
 -- the only thing the user tunes (8–18px) without us shipping a font file.
@@ -117,7 +116,7 @@ end
 -- Pick the fill colour for the current state (channel > shielded > normal cast).
 function CastBar:applyColor(notInterruptible)
   local c = self._channel and CHANNEL or (notInterruptible and SHIELDED or CAST)
-  self.fill:Color(unpack(c))
+  self.fill:Color(c)
 end
 
 function CastBar:onUpdate()
@@ -155,7 +154,7 @@ function CastBar:SetConfig(on)
     self.icon:Texture(PLACEHOLDER)
     self.nameText:Text(self._label)
     self.timeText:Text("")
-    self.fill:Color(unpack(CAST))
+    self.fill:Color(CAST)
     self.fill:Width(self:Width() * 0.6)
     self:enableDrag(true)
     self:Show()
