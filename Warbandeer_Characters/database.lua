@@ -293,6 +293,14 @@ function ns:MigrateDB()
   if (db.version or 0) < 26 then
     db.version = 26
   end
+
+  -- v27: per-character delve completion-time cache (`delveTimes`: a personal rolling average of
+  -- run durations per delve + tier).  Filled lazily by data/delvetimes.lua as the character
+  -- completes delves; nothing to seed — old revisions simply lack it (ShadowsOfUI-Delves shows no
+  -- average for that character) until it next runs a delve, so rollback is lossless.
+  if (db.version or 0) < 27 then
+    db.version = 27
+  end
 end
 
 ---@class Warbandeer_Characters

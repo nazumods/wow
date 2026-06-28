@@ -13,7 +13,7 @@ include_files = {
   "ShadowsOfUI-Known/**/*.lua", "ShadowsOfUI-Upgrade/**/*.lua", "ShadowsOfUI-XP/**/*.lua",
   "ShadowsOfUI-Artisan/**/*.lua", "ShadowsOfUI-WarbandInventory/**/*.lua",
   "ShadowsOfUI-Reputations/**/*.lua", "ShadowsOfUI-Quests/**/*.lua",
-  "ShadowsOfUI-Compartment/**/*.lua",
+  "ShadowsOfUI-Compartment/**/*.lua", "ShadowsOfUI-Delves/**/*.lua",
   "Warbandeer/**/*.lua", "Warbandeer_Alias/**/*.lua", "Warbandeer_Bars/**/*.lua",
   "Warbandeer_Characters/**/*.lua", "Warbandeer_Collected/**/*.lua",
 }
@@ -38,6 +38,7 @@ files["ShadowsOfUI-WarbandInventory/**/*.lua"] = {globals = {"SLASH_SUI_WINV1"}}
 files["ShadowsOfUI-Reputations/**/*.lua"] = {globals = {"SLASH_SUI_REPS1"}}
 files["ShadowsOfUI-Quests/**/*.lua"] = {globals = {"SLASH_SUI_QUESTS1"}}
 files["ShadowsOfUI-Compartment/**/*.lua"] = {globals = {"SLASH_SUI_COMPARTMENT1"}}
+files["ShadowsOfUI-Delves/**/*.lua"] = {globals = {"SLASH_SUI_DELVES1"}}
 files["Warbandeer_Bars/init.lua"] = {globals = {"WarbandeerBarsSettings"}}
 
 std = {
@@ -101,6 +102,7 @@ std = {
     "ReputationEntryMixin",
     "SecondaryResourceBar",
 
+    "AreaPOIPinMixin",
     "CopyToClipboard",
     "CreateColor",
     "CreateFont",
@@ -129,6 +131,7 @@ std = {
     "hooksecurefunc",
 
     "C_AddOns",
+    "C_AreaPoiInfo",
     "C_AssistedCombat",
     "C_AuctionHouse",
     "C_Bank",
@@ -139,6 +142,7 @@ std = {
     "C_CreatureInfo",
     "C_CurrencyInfo",
     "C_DateAndTime",
+    "C_DelvesUI",
     "C_EditMode",
     "C_EquipmentSet",
     "C_GossipInfo",
@@ -150,11 +154,13 @@ std = {
     "C_Minimap",
     "C_MountJournal",
     "C_MythicPlus",
+    "C_PartyInfo",
     "C_PetJournal",
     "C_PlayerInfo",
     "C_ProfSpecs",
     "C_QuestLog",
     "C_Reputation",
+    "C_ScenarioInfo",
     "C_SpecializationInfo",
     "C_Spell",
     "C_SpellBook",
@@ -169,6 +175,7 @@ std = {
     "C_Traits",
     "C_TransmogCollection",
     "C_TransmogSets",
+    "C_UIWidgetManager",
     "C_WeeklyRewards",
     "Constants",
     "Enum",
@@ -275,6 +282,7 @@ std = {
     "GetInboxHeaderInfo",
     "GetInboxItem",
     "GetInboxNumItems",
+    "GetInstanceInfo",
     "GetInventoryItemID",
     "GetInventoryItemLink",
     "GetInventorySlotInfo",

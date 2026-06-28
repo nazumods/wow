@@ -2,6 +2,7 @@
 local ns = select(2, ...)
 local insert = table.insert
 local sort = table.sort
+local floor = math.floor
 local GetServerTime = GetServerTime
 
 ---@class WarbandeerAPI
@@ -263,6 +264,50 @@ function API:GetQuestStatus(questID)
   sort(active, byName)
   sort(completed, byName)
   return { active = active, completed = completed }
+end
+
+-- Mean of a delve entry's durations: the requested tier's samples if it has any, else every
+-- tier's samples pooled.  Returns avg (rounded seconds), count, scope ("T<tier>" or "all").
+local function computeStats(entry, tier)
+  local list = tier and entry.tiers[tier]
+  local scope = (list and #list > 0) and ("T" .. tier) or "all"
+  if not list or #list == 0 then
+    list = {}
+    for _, samples in pairs(entry.tiers) do
+      for _, s in ipairs(samples) do insert(list, s) end
+    end
+  end
+  if #list == 0 then return nil end
+  local total = 0
+  for _, s in ipairs(list) do total = total + s end
+  return floor(total / #list + 0.5), #list, scope
+end
+
+---Per-character delve completion-time stats for one delve, current character first then by name.
+---`avg` is the rounded mean of recent run durations (seconds); `scope` is "T<tier>" when that
+---tier has samples, else "all" (the all-tiers aggregate fallback).  nil when no tracked character
+---has timed that delve.  Data comes from the per-character `delveTimes` cache (data/delvetimes.lua).
+---@param delveName string the delve's display name (as shown on its map pin); normalized internally
+---@param tier integer? preferred tier (e.g. 11); falls back to the all-tiers aggregate
+---@return { name: string, classKey: string, avg: integer, count: integer, scope: string }[]?
+function API:GetDelveStats(delveName, tier)
+  local key = ns.NormalizeDelveKey(delveName)
+  if not key then return nil end
+  local me = ns.currentPlayer
+  local out = {}
+  for name, c in pairs(ns.db.characters) do
+    local entry = c.delveTimes and c.delveTimes.runs and c.delveTimes.runs[key]
+    if entry then
+      local avg, count, scope = computeStats(entry, tier)
+      if avg then insert(out, { name = name, classKey = c.classKey, avg = avg, count = count, scope = scope }) end
+    end
+  end
+  if #out == 0 then return nil end
+  sort(out, function(a, b)
+    if (a.name == me) ~= (b.name == me) then return a.name == me end
+    return a.name < b.name
+  end)
+  return out
 end
 
 ---Synchronously re-fetch one broker field for the current character.
