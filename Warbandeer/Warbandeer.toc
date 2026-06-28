@@ -30,6 +30,10 @@ controls\UpgradeMark.lua
 controls\SuggestedBox.lua
 controls\FlashItem.lua
 
+views\overview\FactionBars.lua
+views\overview\Achievements.lua
+views\overview\TopAlts.lua
+views\overview\TopAltsMarks.lua
 views\Overview.lua
 
 views\SummaryColumns.lua
