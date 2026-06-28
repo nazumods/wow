@@ -338,6 +338,7 @@ std = {
     "IsSpellKnown",
     "IsWindowsClient",
     "LibStub",
+    "LoggingCombat",
     "MerchantFrame",
     "OpenAchievementFrameToAchievement",
     "ShowAchievementFrameForAchievement",

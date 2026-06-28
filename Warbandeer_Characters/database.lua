@@ -10,6 +10,7 @@ local UnitClassBase = UnitClassBase
 ---@field numCharacters integer total number of characters
 ---@field warband WarbandData account-wide warband bank gold + weekly wealth tracking
 ---@field ui table legacy account-wide UI prefs (the wmissing copy-window font size moved to LibNUIDB.copyFontSize; kept for rollback safety)
+---@field settings {combatLogging: boolean} account-wide addon settings (Settings panel)
 
 ---@class Warbandeer_Characters
 ---@field db WarbandeerCharactersDB
@@ -85,7 +86,7 @@ end, "Repair stored data (recount characters)")
 ---@field MigrateDB fun(self) Migrate database to latest version
 function ns:MigrateDB()
   local db = ns.db
-  if db.version == 26 then return end
+  if db.version == 28 then return end
   if not db.characters then db.characters = {} end
   if not db.numCharacters then
     db.numCharacters = countCharacters(db)
@@ -300,6 +301,16 @@ function ns:MigrateDB()
   -- average for that character) until it next runs a delve, so rollback is lossless.
   if (db.version or 0) < 27 then
     db.version = 27
+  end
+
+  -- v28: account-wide settings table holding the opt-in combat-logging toggle
+  -- (default off).  logging.lua re-applies it each login (the client never persists
+  -- combat logging across sessions).  Nothing else reads the key, so an older
+  -- revision simply ignores it — rollback is lossless.
+  if (db.version or 0) < 28 then
+    db.settings = db.settings or {}
+    if db.settings.combatLogging == nil then db.settings.combatLogging = false end
+    db.version = 28
   end
 end
 

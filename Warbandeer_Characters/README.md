@@ -56,6 +56,17 @@ data through the `WarbandeerApi` global.
   so **ShadowsOfUI-Quests** can show, on a quest's tooltip, which other characters are on it or
   have already completed it. (The completed history is the largest thing tracked per character.)
 
+## Settings
+
+Found under **Game Menu → Options → AddOns → Warbandeer → Logging**:
+
+- **Enable Combat Log** *(default: off)* — when enabled, turns on the game's combat log,
+  writing every combat event to `Logs\WoWCombatLog.txt` so you can analyse fights with
+  an outside tool (Warcraft Logs, a parser, a spreadsheet). It also switches on
+  **Advanced Combat Logging** (extra detail like positions and item levels) while active.
+  Combat logging always starts off when the game launches, so this option re-enables it
+  automatically each login. Turn it off to stop logging.
+
 ## Requirements
 
 **LibNAddOn** and **LibNUI**.
