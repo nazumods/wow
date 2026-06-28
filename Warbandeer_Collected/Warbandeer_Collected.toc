@@ -30,6 +30,10 @@ api.lua
 controls\InfoTip.lua
 controls\LockoutView.lua
 controls\DressingRoom.lua
+controls\DressingRoomBuild.lua
+controls\DressingRoomControls.lua
+controls\DressingRoomActions.lua
+controls\DressingRoomModel.lua
 controls\DressingRoomSlots.lua
 
 DataView.lua
