@@ -2,7 +2,7 @@
 local ns = select(2, ...)
 
 -- The **fallback** recommended gem, used only when ClassCodex isn't installed (its
--- per-spec primary gem is preferred — see `enhance.lua`). ClassCodex's primary gem is
+-- per-spec primary gem is preferred — see `gems.lua`). ClassCodex's primary gem is
 -- role-specific (a different "diamond" per spec), which we don't hand-maintain; instead
 -- the fallback offers a **secondary-stat** gem matched to the character's top stat (any
 -- class can socket any of these), mirroring how the enchant fallback picks ring variants.

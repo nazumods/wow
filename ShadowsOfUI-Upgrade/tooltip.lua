@@ -82,7 +82,7 @@ end
 
 -- Enchantable equipped slots → their inventory slot id (resolved once). The
 -- off-hand is included but only counts when it currently holds a weapon (a shield /
--- holdable can't be enchanted), matching enhance.lua's slotTakesEnchant.
+-- holdable can't be enchanted), matching enchants.lua's slotTakesEnchant.
 local ENCH_INV = {}
 do
   local names = {
@@ -205,8 +205,8 @@ local function onItemTooltip(tooltip, data)
   if not link and data.id then link = "item:" .. data.id end
   if not link then return end
   -- Enchant/gem reminders only once the character is max level — a still-levelling
-  -- char churns gear too fast to bother enchanting/gemming (mirrors enhance.lua's gate
-  -- on the ns.* surfaces). The cross-character "Upgrade for:" block below is unaffected.
+  -- char churns gear too fast to bother enchanting/gemming (mirrors the ns.BelowMaxLevel
+  -- gate in classcodex.lua). The cross-character "Upgrade for:" block below is unaffected.
   local meData = ns.api:GetCharacterData(ns.api:GetCurrentCharacter())
   if not ns.BelowMaxLevel(meData) then
     -- Reminder line for your own equipped gear that's missing its permanent enchant,
