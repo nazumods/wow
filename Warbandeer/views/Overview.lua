@@ -276,6 +276,7 @@ function Overview:BuildFilter(parent)
 
   local raid = ui.FilterDropdown:new{
     parent    = box,
+    bordered  = true,
     options   = ns.overview.RAIDS,
     selected  = self.topAlts._raidId,
     width     = 110,
@@ -285,6 +286,7 @@ function Overview:BuildFilter(parent)
   }
   local exp = ui.FilterDropdown:new{
     parent    = box,
+    bordered  = true,
     options   = EXPANSIONS,
     selected  = self._expansion,
     width     = 112,
