@@ -35,7 +35,9 @@ data/reputations.lua
 data/auctions.lua
 data/questlog.lua
 data/gearbag.lua
+data/professioninfo.lua
 data/professions.lua
+data/professions_gear.lua
 data/recipegear.lua
 data/races.lua
 data/quests.lua
