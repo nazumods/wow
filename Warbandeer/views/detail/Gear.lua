@@ -8,7 +8,6 @@ local theme = ns.theme
 local D = ns.detail
 
 local DetailView = ns.views.DetailView
-local floor = math.floor
 local BottomLeft, BottomRight = ui.edge.BottomLeft, ui.edge.BottomRight
 
 -- The suggested upgrade and each issue-note (missing enchant, empty socket) render on
@@ -16,7 +15,7 @@ local BottomLeft, BottomRight = ui.edge.BottomLeft, ui.edge.BottomRight
 -- Every line is fully inline-coloured — the shared sub-line label keeps one base colour,
 -- so the upgrade line carries its own green (held) / gold (warband) code and the notes
 -- their orange. NOTE_ARROW is the "→ <recommendation>" tail.
-local function colorCode(c) return ("|cff%02x%02x%02x"):format(floor(c[1] * 255 + 0.5), floor(c[2] * 255 + 0.5), floor(c[3] * 255 + 0.5)) end
+local colorCode = ns.Colors.code
 local GREEN_CODE, GOLD_CODE = colorCode(theme.colors.green), colorCode(theme.colors.gold)
 -- Distinct colours so the issue-notes don't blur together: missing enchant = orange,
 -- wrong enchant = yellow (a milder "consider swapping"), empty socket = cyan (a gem slot).

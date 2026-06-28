@@ -38,8 +38,8 @@ knownCount == 0` means no character has the profession at all (nothing rendered)
 - **>1** → a `Learnable by:` header, then up to 5 names; past 5, the first 4 then
   `and N more.`.
 - **0 learnable but `knownCount > 0`** → a single green `Already known` line.
-- Name colour: `ns.Colors[classKey]` (PascalCase class colour) when `meets`, else
-  `RED_FONT_COLOR`.
+- Name colour: `ns.Colors.className(name, classKey)` (PascalCase class colour) when `meets`,
+  else `RED_FONT_COLOR`.
 - `reqSkill(data)` = first parenthesised integer on tooltip lines 2+ (skips line 1, the item
   name) — i.e. the "Requires <Profession> (N)" threshold; 0 when the recipe states none.
 

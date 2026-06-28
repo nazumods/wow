@@ -1,7 +1,7 @@
 ---@type ShadowsOfUI_Upgrade
 local ns = select(2, ...)
 local Upgrade = ns.UpgradeApi
-local floor = math.floor
+local className = ns.Colors.className
 
 local LABEL = NORMAL_FONT_COLOR
 
@@ -43,14 +43,6 @@ local function effectiveIlvl(data)
   return nil
 end
 
--- A character name wrapped in its class colour (ns.Colors keys are PascalCase,
--- matching Character.classKey).
-local function colorName(name, classKey)
-  local c = ns.Colors[classKey]
-  if not c or not c[1] then return name end
-  return ("|cff%02x%02x%02x%s|r"):format(floor(c[1] * 255 + 0.5), floor(c[2] * 255 + 0.5), floor(c[3] * 255 + 0.5), name)
-end
-
 -- Trailing "(+N good stats)" annotation for one upgrade entry.
 local function suffix(entry)
   local gain = ("+%d"):format(entry.ilvlGain)
@@ -67,13 +59,13 @@ end
 local function render(tooltip, list)
   local n = #list
   if n == 1 then
-    tooltip:AddLine(LABEL:WrapTextInColorCode("Upgrade for:") .. " " .. colorName(list[1].name, list[1].classKey) .. suffix(list[1]))
+    tooltip:AddLine(LABEL:WrapTextInColorCode("Upgrade for:") .. " " .. className(list[1].name, list[1].classKey) .. suffix(list[1]))
     return
   end
   tooltip:AddLine(LABEL:WrapTextInColorCode("Upgrade for:"))
   local shown = n > 5 and 4 or n
   for i = 1, shown do
-    tooltip:AddLine("  " .. colorName(list[i].name, list[i].classKey) .. suffix(list[i]))
+    tooltip:AddLine("  " .. className(list[i].name, list[i].classKey) .. suffix(list[i]))
   end
   if n > shown then
     tooltip:AddLine(GRAY_FONT_COLOR:WrapTextInColorCode(("  and %d more."):format(n - shown)))

@@ -1,5 +1,5 @@
----@type ShadowsOfUI_WarbandInventory
-local ns = select(2, ...)
+---@class ShadowsOfUI_WarbandInventory: AddOn
+local ns = LibNAddOn(...)
 ---@type WarbandeerAPI
 local API = ns.api
 
@@ -33,7 +33,7 @@ end
 ---@param e ItemCountEntry
 local function charLabel(e)
   local name = e.realm and (e.name .. " (" .. e.realm .. ")") or e.name
-  return ns.ColorName(name, e.classKey)
+  return ns.Colors.className(name, e.classKey)
 end
 
 -- Append the "Warband Inventory" block: a header, one

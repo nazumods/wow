@@ -7,5 +7,4 @@
 ## OptionalDeps: Warbandeer
 ## X-NUI-API: WarbandeerApi
 
-core.lua
 tooltip.lua

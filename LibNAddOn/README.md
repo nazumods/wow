@@ -199,6 +199,10 @@ Contains various color-related constants and convenience functions:
 
 - `rgba(r, g, b, a)` -- converts hex r/g/b values, returning a WoW Color table representation
 - `alpha(color, alpha)` -- returns a copy of the Color with the new alpha value
+- `hex(color)` -- the 6-digit hex string (`"RRGGBB"`) for a `{r, g, b}` (0–1) colour, for embedding in an escape
+- `code(color)` -- the opening colour escape (`"|cffRRGGBB"`) for a colour; pair with `|r` (or use `wrap`)
+- `wrap(text, color)` -- wraps `text` in a colour escape: `"|cffRRGGBB<text>|r"`
+- `className(name, classKey)` -- wraps a character name in its class colour (PascalCase keys, e.g. `"DeathKnight"`, matching `Character.classKey`); returns the name unchanged when the class is unknown
 
 #### `myAddOn.lua`
 

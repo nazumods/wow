@@ -1,6 +1,7 @@
 ---@class LibNAddOn
 local ns = select(2, ...)
 local insert = table.insert
+local floor = math.floor
 local lists = ns.lua.lists
 local CreateColor = CreateColor
 
@@ -82,4 +83,38 @@ ns.Colors.alpha = function(color, alpha)
     c[4] = alpha or 1
   end
   return c
+end
+
+---The 6-digit hex string ("RRGGBB") for a colour, for embedding in a chat/tooltip escape.
+---@param color number[] `{r, g, b}` components in 0-1 (alpha ignored).
+---@return string
+ns.Colors.hex = function(color)
+  return ("%02x%02x%02x"):format(
+    floor(color[1] * 255 + 0.5), floor(color[2] * 255 + 0.5), floor(color[3] * 255 + 0.5))
+end
+
+---The opening colour escape ("|cffRRGGBB") for a colour. Pair with `|r` (or `ns.Colors.wrap`).
+---@param color number[] `{r, g, b}` components in 0-1.
+---@return string
+ns.Colors.code = function(color)
+  return "|cff" .. ns.Colors.hex(color)
+end
+
+---Wrap text in a colour escape: "|cffRRGGBB<text>|r".
+---@param text string
+---@param color number[] `{r, g, b}` components in 0-1.
+---@return string
+ns.Colors.wrap = function(text, color)
+  return ns.Colors.code(color) .. text .. "|r"
+end
+
+---Wrap a character name in its class colour. Class keys are PascalCase (e.g. "DeathKnight"),
+---matching `Character.classKey`; returns the name unchanged when the class colour is unknown.
+---@param name string
+---@param classKey string?
+---@return string
+ns.Colors.className = function(name, classKey)
+  local c = classKey and ns.Colors[classKey]
+  if not c or not c[1] then return name end
+  return ns.Colors.wrap(name, c)
 end

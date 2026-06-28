@@ -10,7 +10,7 @@ data comes from Warbandeer_Characters' `questlog` broker via `WarbandeerApi:GetQ
 
 | File | Purpose |
 |---|---|
-| `core.lua` | Bootstrap + `ns.ColorName` (class colour) + `ns.AppendQuestStatus(tooltip, questID)`: the shared block. Reads `WarbandeerApi:GetQuestStatus`, drops the current character (`names()` excludes `GetCurrentCharacter()`, caps at `MAX` 6 + "+N more"), emits an "Also on this quest:" line and/or a "Completed by:" line; returns false (nothing added) when no *other* character is involved. |
+| `core.lua` | Bootstrap + `ns.AppendQuestStatus(tooltip, questID)`: the shared block (class-coloured names via `ns.Colors.className`). Reads `WarbandeerApi:GetQuestStatus`, drops the current character (`names()` excludes `GetCurrentCharacter()`, caps at `MAX` 6 + "+N more"), emits an "Also on this quest:" line and/or a "Completed by:" line; returns false (nothing added) when no *other* character is involved. |
 | `log.lua` | `EventRegistry:RegisterCallback("QuestMapLogTitleButton.OnEnter", …)` → appends the block to `GameTooltip` (with the questID the event passes), re-`Show`s it. `/squests` dev/lookup command. |
 
 ## How it hooks

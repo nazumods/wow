@@ -27,13 +27,8 @@ local ROW_SUB_H = 13       -- source sub-line (smaller font)
 local ROW_H = ROW_HEAD_H + ROW_SUB_H  -- one suggestion row spans two lines
 local MAX_ROWS = 5         -- cap; the rest are implied by the gear list's ▲ marks
 
--- |cff hex for an embedded colour escape from a {r,g,b} (0–1) theme colour.
-local function hex(c)
-  return ("%02x%02x%02x"):format(
-    math.floor((c[1] or 1) * 255 + 0.5),
-    math.floor((c[2] or 1) * 255 + 0.5),
-    math.floor((c[3] or 1) * 255 + 0.5))
-end
+-- 6-digit hex for an embedded colour escape from a {r,g,b} (0–1) theme colour.
+local hex = ns.Colors.hex
 
 -- Human-friendly slot name: "MainHand" → "Main Hand", "Finger1" → "Finger 1".
 local function prettySlot(s)
