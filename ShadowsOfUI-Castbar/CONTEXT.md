@@ -1,6 +1,6 @@
 # ShadowsOfUI-Castbar
 
-**Deps:** LibNAddOn, LibNUI · **SavedVars:** `ShadowsOfUI_CastbarDB` (v1) · **UI:** LibNUI · **Settings:** subcategory under the shared "Shadows of UI" parent · **Slash:** `/scast`
+**Deps:** LibNAddOn, LibNUI · **SavedVars:** `ShadowsOfUI_CastbarDB` (v2) · **UI:** LibNUI · **Settings:** subcategory under the shared "Shadows of UI" parent · **Slash:** `/scast`
 
 Two movable, cosmetic cast bars — one for the **target** unit, one for the **focus** unit —
 in the suite's minimal style (siblings to `ShadowsOfUI-XP` / `ShadowsOfUI-GCD`). Built on
@@ -19,7 +19,8 @@ so it's purely cosmetic and combat-safe (insecure frames, no `SetAttribute`).
 
 - **`core.lua` loads first** (it's the `LibNAddOn(...)` setup file, so `ns.ui`/`ns.Colors` exist for the other files); `ns.CastBar` / `ns:WireEditMode` are only *used* in `onLoad`, which runs long after all files load.
 - **Edit Mode is not a real registration.** WoW has no public Edit Mode API for third-party frames, so the bars piggy-back on the manager's enter/exit hooks to show a draggable sample. This is the intended approach (see issue #263), not a true Edit Mode "system".
-- **Position is a live DB reference.** Each bar's `pos` is the actual `db.targetPos`/`db.focusPos` table, so a drag mutates the DB directly; `applyPosition` re-anchors `CENTER → UIParent CENTER` with the saved offset. Offsets assume the bar and `UIParent` share an effective scale (both parent to `UIParent`).
+- **Position is a live DB reference, anchored top-left.** Each bar's `pos` is the actual `db.targetPos`/`db.focusPos` table, so a drag mutates the DB directly; `applyPosition` anchors the bar's **`TOPLEFT → UIParent CENTER`** with the saved offset — top-left (not centre) so `_applySize` growing the bar for a larger font extends it down/right from a locked corner. Offsets assume the bar and `UIParent` share an effective scale (both parent to `UIParent`). **DB v2** switched this from centre-anchored; `MigrateDB` converts a pre-v2 centre offset to the matching top-left offset via `ns.CastBar.dims(textSize)`, preserving placement.
+- **Bar scales with text size.** `dims(textSize)` → `height = textSize + V_PAD (10)`, `width = height × W_PER_H (10)`; `_applySize` (construction + every `SetTextSize`) sizes the bar + icon. Default 12px → 220×22, 22px → 320×32. Exposed as `ns.CastBar.dims` for the v2 migration.
 - **Per-unit events, not global.** `RegisterUnitEvent(event, "target"|"focus")` means each bar only wakes for its own unit; on a target/focus change the change-event handler re-`Refresh`es to catch an already-in-progress cast.
 - **Secret cast values (anti-automation).** An enemy target/focus's `UnitCastingInfo` timing (`startMS`/`endMS`) and `notInterruptible` flag are **secret** values — tainted addon code may *pass* them to C but not do arithmetic/boolean tests on them (else `attempt to … a secret … value, while execution tainted`). So the fill is driven by handing the secret times to the native `StatusBar` (C does the math), the interrupt colour is only applied when `canaccessvalue(notInterruptible)`, and the **time text only shows when `canaccessvalue(endMS)`** (i.e. your own / friendly casts; blank for enemies). Name/icon/texture are *not* secret. This hinges on the engine accepting secret values *through* `SetMinMaxValues`/`SetValue` (a "pass, don't inspect" use) — **pending in-game confirmation**; if it rejects them, the fallback is to reskin Blizzard's own (secure) target/focus cast bars. See [[reference_wow_secret_values]].
 - **Settings variable keys must be unique.** The two enable checkboxes use distinct DB keys (`targetEnabled` / `focusEnabled`) because `ns.registerSettings` derives the (addon-global) Settings variable id from the key — a shared `enabled` key would collide.
@@ -29,11 +30,12 @@ so it's purely cosmetic and combat-safe (insecure frames, no `SetAttribute`).
 
 ```lua
 {
-  textSize      = 12,                -- spell-name / time font size, 8–22
-  targetEnabled = true,             -- show the target bar for real casts
-  focusEnabled  = true,             -- show the focus bar for real casts
-  targetPos     = { x = 0, y = 160 }, -- CENTER offset from UIParent
-  focusPos      = { x = 0, y = 124 },
+  version       = 2,
+  textSize      = 12,                    -- spell-name / time font size, 8–22
+  targetEnabled = true,                  -- show the target bar for real casts
+  focusEnabled  = true,                  -- show the focus bar for real casts
+  targetPos     = { x = -110, y = 171 }, -- bar TOPLEFT offset from UIParent's centre
+  focusPos      = { x = -110, y = 135 },
 }
 ```
-`MigrateDB` only ensures each key exists; non-destructive.
+`MigrateDB` seeds missing keys, and at **v2** converts a pre-v2 centre-anchored `*Pos` to the top-left-anchored equivalent (using the bar size at the current text size) so the dragged placement carries over.

@@ -93,11 +93,14 @@ end, {
   textSize = 12,
 })
 ns.CastBar = CastBar
+CastBar.dims = dims -- (textSize) → width, height; shared with MigrateDB's position conversion
 
--- Anchor by CENTER to UIParent using the saved offset (kept in the DB so it survives /reload).
+-- Anchor by the bar's TOPLEFT (offset from UIParent's centre, kept in the DB so it survives
+-- /reload). Top-left rather than centre so resizing for a larger font grows down/right from a
+-- locked corner instead of spreading from the middle.
 function CastBar:applyPosition()
   self._widget:ClearAllPoints()
-  self._widget:SetPoint("CENTER", UIParent, "CENTER", self.pos.x, self.pos.y)
+  self._widget:SetPoint("TOPLEFT", UIParent, "CENTER", self.pos.x, self.pos.y)
 end
 
 -- Size the bar + icon for the current text size. CENTER-anchored, so it grows
@@ -225,9 +228,8 @@ function CastBar:enableDrag(on)
     w:SetScript("OnDragStart", function() w:StartMoving() end)
     w:SetScript("OnDragStop", function()
       w:StopMovingOrSizing()
-      local cx, cy = w:GetCenter()
       local ux, uy = UIParent:GetCenter()
-      self.pos.x, self.pos.y = cx - ux, cy - uy
+      self.pos.x, self.pos.y = w:GetLeft() - ux, w:GetTop() - uy
       self:applyPosition()
     end)
   else

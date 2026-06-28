@@ -5,20 +5,33 @@
 ---@field WireEditMode fun(self: ShadowsOfUI_Castbar)  hook Blizzard Edit Mode (editmode.lua)
 local ns = LibNAddOn(...)
 
--- Default CENTER offsets (UIParent) before the user drags a bar in Edit Mode.
+-- Default TOPLEFT offsets from UIParent's centre (the bar's top-left corner) before the
+-- user drags a bar — the top-left equivalent of the old centred defaults at the default size.
 local DEFAULT_POS = {
-  target = { x = 0, y = 160 },
-  focus  = { x = 0, y = 124 },
+  target = { x = -110, y = 171 },
+  focus  = { x = -110, y = 135 },
 }
 
 function ns:MigrateDB()
   local db = ns.db
+  local v = db.version or 0
   if db.textSize == nil then db.textSize = 12 end
   if db.targetEnabled == nil then db.targetEnabled = true end
   if db.focusEnabled == nil then db.focusEnabled = true end
   if db.targetPos == nil then db.targetPos = { x = DEFAULT_POS.target.x, y = DEFAULT_POS.target.y } end
   if db.focusPos == nil then db.focusPos = { x = DEFAULT_POS.focus.x, y = DEFAULT_POS.focus.y } end
-  db.version = 1
+
+  -- v2: bars switched from CENTER-anchored to TOPLEFT-anchored (so a larger font grows
+  -- down/right from a locked top-left). Convert any pre-v2 centre offset to the matching
+  -- top-left offset using the bar size at the current text size, so placement is preserved.
+  if v >= 1 and v < 2 then
+    local w, h = ns.CastBar.dims(db.textSize)
+    for _, pos in ipairs({ db.targetPos, db.focusPos }) do
+      pos.x, pos.y = pos.x - w / 2, pos.y + h / 2
+    end
+  end
+
+  db.version = 2
 end
 
 ns:RegisterSettings{
