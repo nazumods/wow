@@ -204,3 +204,10 @@ function Frame:Level(level)
   end
   return self._widget:GetFrameLevel()
 end
+
+-- Raise the frame above its siblings within its strata.
+---@return Frame
+function Frame:Raise()
+  self._widget:Raise()
+  return self
+end

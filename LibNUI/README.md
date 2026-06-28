@@ -272,6 +272,7 @@ Includes all `Region` options, plus:
 | `EnableKeyboard(enabled)`     | Receive keyboard input (so an `OnKeyDown` handler fires) |
 | `SetPropagateKeyboardInput(p)`| Pass handled keys on (`true`) or consume them (`false`) — e.g. trap Esc |
 | `Level(level)`                | Get/set frame level                                     |
+| `Raise()`                     | Raise the frame above its siblings within its strata    |
 
 ### Callbacks
 
