@@ -105,23 +105,37 @@ function CastBar:Refresh()
 
   self._channel = channel
   self._startMS, self._endMS = startMS, endMS
+  -- An enemy target/focus's cast timing + interruptible flag come back as "secret"
+  -- values (WoW's anti-automation guard): tainted addon code can't do arithmetic or
+  -- boolean tests on them, so we can't animate the fill. Detect that and degrade to a
+  -- static icon + name. canaccessvalue is retail-only (nil elsewhere → treat readable).
+  self._secretTime = canaccessvalue ~= nil and not canaccessvalue(endMS)
   self.icon:Texture(tex)
   self.nameText:Text(text or name)
   self:applyColor(notInterruptible)
   self:Show()
-  self:startUpdates()
-  self:onUpdate(0)
+  if self._secretTime then
+    self.timeText:Text("")
+    self.fill:Width(self:Width()) -- timing protected: static full bar, no progress
+    self:stopUpdates()
+  else
+    self:startUpdates()
+    self:onUpdate(0)
+  end
 end
 
--- Pick the fill colour for the current state (channel > shielded > normal cast).
+-- Pick the fill colour for the current state (channel > shielded > normal cast). The
+-- interruptible flag is secret for enemy casts, so only test it when readable.
 function CastBar:applyColor(notInterruptible)
-  local c = self._channel and CHANNEL or (notInterruptible and SHIELDED or CAST)
+  local shielded = not self._channel
+    and canaccessvalue ~= nil and canaccessvalue(notInterruptible) and notInterruptible
+  local c = self._channel and CHANNEL or (shielded and SHIELDED or CAST)
   self.fill:Color(c)
 end
 
 function CastBar:onUpdate()
   local s, e = self._startMS, self._endMS
-  if not s then self:stopUpdates(); return end
+  if not s or self._secretTime then self:stopUpdates(); return end
   local now = GetTime() * 1000
   if now >= e then self:Hide(); self:stopUpdates(); return end
   local pct = (now - s) / (e - s)
