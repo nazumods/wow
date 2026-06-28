@@ -38,8 +38,8 @@ local CAST_EVENTS = {
 ---@field _enabled boolean  internal mirror of `enabled`
 ---@field _config boolean?  true while Edit Mode placement is active
 ---@field _channel boolean?  true while the tracked cast is a channel
----@field _startMS number?  cast start (ms)
----@field _endMS number?  cast end (ms)
+---@field _endMS number?  cast end (ms); only read when not secret (for the time text)
+---@field _secretTime boolean?  true when the cast timing is a protected/secret value
 local CastBar = Class(StatusBar, function(self)
   self:Size(WIDTH, HEIGHT)
   self._enabled = self.enabled
@@ -78,7 +78,7 @@ local CastBar = Class(StatusBar, function(self)
 end, {
   parent = UIParent,
   backdrop = {0, 0, 0, 0.5},
-  fill = { color = {1, 1, 1} },
+  texture = "Interface\\Buttons\\WHITE8X8", -- native fill texture, tinted via SetStatusBarColor
   textSize = 12,
 })
 ns.CastBar = CastBar
@@ -104,24 +104,22 @@ function CastBar:Refresh()
   if not name then self:Hide(); self:stopUpdates(); return end
 
   self._channel = channel
-  self._startMS, self._endMS = startMS, endMS
-  -- An enemy target/focus's cast timing + interruptible flag come back as "secret"
-  -- values (WoW's anti-automation guard): tainted addon code can't do arithmetic or
-  -- boolean tests on them, so we can't animate the fill. Detect that and degrade to a
-  -- static icon + name. canaccessvalue is retail-only (nil elsewhere → treat readable).
+  self._endMS = endMS
+  -- An enemy target/focus's cast timing + interruptible flag are "secret" values (WoW's
+  -- anti-automation guard): tainted addon code can't do arithmetic / boolean tests on them.
+  -- We sidestep that by feeding the (possibly secret) start/end straight to the native
+  -- StatusBar, which computes the fill in C — Lua never touches the protected numbers. Only
+  -- the time text needs real arithmetic, so it's gated on the timing being readable.
+  -- canaccessvalue is retail-only (nil elsewhere → treat as readable).
   self._secretTime = canaccessvalue ~= nil and not canaccessvalue(endMS)
   self.icon:Texture(tex)
   self.nameText:Text(text or name)
   self:applyColor(notInterruptible)
+  if self._secretTime then self.timeText:Text("") end
+  self._widget:SetMinMaxValues(startMS, endMS)
   self:Show()
-  if self._secretTime then
-    self.timeText:Text("")
-    self.fill:Width(self:Width()) -- timing protected: static full bar, no progress
-    self:stopUpdates()
-  else
-    self:startUpdates()
-    self:onUpdate(0)
-  end
+  self:startUpdates()
+  self:onUpdate(0)
 end
 
 -- Pick the fill colour for the current state (channel > shielded > normal cast). The
@@ -130,19 +128,18 @@ function CastBar:applyColor(notInterruptible)
   local shielded = not self._channel
     and canaccessvalue ~= nil and canaccessvalue(notInterruptible) and notInterruptible
   local c = self._channel and CHANNEL or (shielded and SHIELDED or CAST)
-  self.fill:Color(c)
+  self._widget:SetStatusBarColor(c:GetRGBA())
 end
 
+-- Advance the native fill each frame; the engine clamps GetTime() against the (secret)
+-- min/max, so no Lua arithmetic touches the protected times. Hiding is driven by the
+-- UNIT_SPELLCAST_*_STOP events (→ Refresh), not by comparing against the secret end time.
 function CastBar:onUpdate()
-  local s, e = self._startMS, self._endMS
-  if not s or self._secretTime then self:stopUpdates(); return end
-  local now = GetTime() * 1000
-  if now >= e then self:Hide(); self:stopUpdates(); return end
-  local pct = (now - s) / (e - s)
-  if self._channel then pct = 1 - pct end
-  if pct < 0 then pct = 0 elseif pct > 1 then pct = 1 end
-  self.fill:Width(self:Width() * pct)
-  self.timeText:Text(("%.1f"):format((e - now) / 1000))
+  self._widget:SetValue(GetTime() * 1000)
+  if not self._secretTime and self._endMS then
+    local remaining = (self._endMS - GetTime() * 1000) / 1000
+    self.timeText:Text(("%.1f"):format(remaining < 0 and 0 or remaining))
+  end
 end
 
 -- Toggle whether this bar shows for real casts (settings checkbox).
@@ -168,8 +165,9 @@ function CastBar:SetConfig(on)
     self.icon:Texture(PLACEHOLDER)
     self.nameText:Text(self._label)
     self.timeText:Text("")
-    self.fill:Color(CAST)
-    self.fill:Width(self:Width() * 0.6)
+    self._widget:SetStatusBarColor(CAST:GetRGBA())
+    self._widget:SetMinMaxValues(0, 1)
+    self._widget:SetValue(0.6)
     self:enableDrag(true)
     self:Show()
   else
