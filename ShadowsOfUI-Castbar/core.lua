@@ -1,6 +1,6 @@
 ---@class ShadowsOfUI_Castbar: AddOn
 ---@field CastBar CastBar  the cast-bar widget class (CastBar.lua)
----@field bars table<string, CastBar>  the two live bars, keyed "target" / "focus"
+---@field bars table<string, CastBar>  the live bars, keyed "target" / "focus" / "player"
 ---@field DEFAULT_POS table<string, table>  per-unit default TOPLEFT offsets (for "Reset position")
 ---@field SetConfigMode fun(self: ShadowsOfUI_Castbar, on: boolean)  toggle Edit Mode placement (editmode.lua)
 ---@field WireEditMode fun(self: ShadowsOfUI_Castbar)  hook Blizzard Edit Mode (editmode.lua)
@@ -15,6 +15,7 @@ local ns = LibNAddOn(...)
 local DEFAULT_POS = {
   target = { x = -110, y = 171 },
   focus  = { x = -110, y = 135 },
+  player = { x = -110, y = -120 }, -- lower-centre, clear of the target/focus stack
 }
 ns.DEFAULT_POS = DEFAULT_POS
 
@@ -24,8 +25,12 @@ function ns:MigrateDB()
   if db.textSize == nil then db.textSize = 12 end
   if db.targetEnabled == nil then db.targetEnabled = true end
   if db.focusEnabled == nil then db.focusEnabled = true end
+  -- Player bar is opt-in: existing users already have Blizzard's always-on player cast bar,
+  -- so it defaults off to avoid dropping a third overlapping bar on them after an update.
+  if db.playerEnabled == nil then db.playerEnabled = false end
   if db.targetPos == nil then db.targetPos = { x = DEFAULT_POS.target.x, y = DEFAULT_POS.target.y } end
   if db.focusPos == nil then db.focusPos = { x = DEFAULT_POS.focus.x, y = DEFAULT_POS.focus.y } end
+  if db.playerPos == nil then db.playerPos = { x = DEFAULT_POS.player.x, y = DEFAULT_POS.player.y } end
 
   -- v2: bars switched from CENTER-anchored to TOPLEFT-anchored (so a larger font grows
   -- down/right from a locked top-left). Convert any pre-v2 centre offset to the matching
@@ -37,7 +42,8 @@ function ns:MigrateDB()
     end
   end
 
-  db.version = 2
+  -- v3: added the player bar (playerEnabled / playerPos) — seeded above, no conversion needed.
+  db.version = 3
 end
 
 ns:RegisterSettings{
@@ -48,6 +54,10 @@ ns:RegisterSettings{
     { typ = "checkbox", key = "focusEnabled", table = function(db) return db end,
       label = "Show focus cast bar", default = true,
       callback = function(_, v) ns:SetBarEnabled("focus", v) end },
+    { typ = "checkbox", key = "playerEnabled", table = function(db) return db end,
+      label = "Show player cast bar", default = false,
+      tooltip = "Your own cast bar. Off by default (you may want to hide Blizzard's via Edit Mode).",
+      callback = function(_, v) ns:SetBarEnabled("player", v) end },
     { typ = "slider", key = "textSize", table = function(db) return db end,
       label = "Bar text size", min = 8, max = 22, step = 1, default = 12,
       tooltip = "Font size of the spell name and cast-time text.",
@@ -56,7 +66,7 @@ ns:RegisterSettings{
 }
 
 -- Live-apply settings (callbacks fire long after onLoad, so the bars exist).
----@param which string  "target" | "focus"
+---@param which string  "target" | "focus" | "player"
 ---@param on boolean
 function ns:SetBarEnabled(which, on)
   if self.bars then self.bars[which]:SetEnabled(on) end
@@ -78,6 +88,11 @@ function ns:onLoad()
     focus = CastBar:new{
       name = "ShadowsOfUICastBarFocus", unit = "focus", events = { "PLAYER_FOCUS_CHANGED" },
       enabled = self.db.focusEnabled, pos = self.db.focusPos, textSize = self.db.textSize,
+    },
+    -- No change event: the "player" unit never changes, so only the per-unit cast events fire.
+    player = CastBar:new{
+      name = "ShadowsOfUICastBarPlayer", unit = "player",
+      enabled = self.db.playerEnabled, pos = self.db.playerPos, textSize = self.db.textSize,
     },
   }
   self:WireEditMode()
@@ -108,10 +123,11 @@ SlashCmdList["SUI_CASTBAR"] = function(msg)
   local cmd = (msg or ""):match("^%s*(%S*)"):lower()
   if cmd == "dump" then
     local db = ns.db
-    ns:Print(("text %dpx · target %s (%d, %d) · focus %s (%d, %d)"):format(
+    ns:Print(("text %dpx · target %s (%d, %d) · focus %s (%d, %d) · player %s (%d, %d)"):format(
       db.textSize,
       db.targetEnabled and "on" or "off", db.targetPos.x, db.targetPos.y,
-      db.focusEnabled and "on" or "off", db.focusPos.x, db.focusPos.y))
+      db.focusEnabled and "on" or "off", db.focusPos.x, db.focusPos.y,
+      db.playerEnabled and "on" or "off", db.playerPos.x, db.playerPos.y))
   elseif ns.settingsCategory then
     Settings.OpenToCategory(ns.settingsCategory:GetID())
   end

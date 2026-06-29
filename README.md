@@ -33,7 +33,7 @@ Each addon folder has its own `README.md` with end-user documentation.
 |---|---|
 | [ShadowsOfUI-XP](ShadowsOfUI-XP/README.md) | Minimal full-width XP bar at the bottom of the screen (below max level only). |
 | [ShadowsOfUI-GCD](ShadowsOfUI-GCD/README.md) | Slim global-cooldown sweep bar between your resource bars. |
-| [ShadowsOfUI-Castbar](ShadowsOfUI-Castbar/README.md) | Two minimal, Edit Mode-placed cast bars for your target and focus target (icon, name, time; non-interruptible casts greyed). |
+| [ShadowsOfUI-Castbar](ShadowsOfUI-Castbar/README.md) | Three minimal, Edit Mode-placed cast bars for your target, focus target, and yourself (icon, name, time; non-interruptible casts greyed). Player bar off by default. |
 | [ShadowsOfUI-DMF](ShadowsOfUI-DMF/README.md) | Darkmoon Faire helper: auto-buys profession quest mats and guides you between quest givers. |
 | [ShadowsOfUI-Ilvl](ShadowsOfUI-Ilvl/README.md) | Item level + upgrade-track badge on gear icons (bags, bank, loot, Baganator, Bagnon); inset beside each slot on the character/inspect panels. Per-place toggles. |
 | [ShadowsOfUI-Known](ShadowsOfUI-Known/README.md) | Adds a "Learnable by:" line to recipe tooltips, listing the alts that can still learn it. |
