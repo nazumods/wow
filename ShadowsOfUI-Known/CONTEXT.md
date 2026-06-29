@@ -17,7 +17,7 @@ Assignment-form init (`local ns = LibNAddOn(...)`); no LibNUI.
 | File | Purpose |
 |---|---|
 | `core.lua` | Bootstrap + logic. `RECIPE_SUBCLASS_TO_SKILL` (recipe item subclass → parent skillLineID), `ns.BuildLearnable(itemID, reqSkill, itemName)` → sorted `KnownEntry[]` (or nil if not a craftable recipe), and `ns.BuildKnownBy(recipeID)` → sorted `CrafterEntry[]` of characters that have **learned** that recipe (matched by the captured `learned[].id` — exact, no name ambiguity; ordered main-intent → secondary → other, then level desc, name). |
-| `tooltip.lua` | Two `ns:OnItemTooltip` (LibNAddOn item-tooltip hook) registrations: the **Learnable** block (reads the skill threshold off the tooltip lines, renders names) and the **Known by** line on crafting-order rows (`customerOrderRecipeID` gates on `ProfessionsCustomerOrdersFrame` being shown + the tooltip owner's `option.spellID` — which C_TradeSkillUI treats as a recipeID — so it's both the gate and the exact identity; `renderKnownBy` → `Known by: <names>` or red `Not Known`). `/sknown <itemID>` + `/sknown knownby <recipeID>` dev commands. |
+| `tooltip.lua` | Two `ns:OnItemTooltip` (LibNAddOn item-tooltip hook) registrations: the **Learnable** block (reads the skill threshold off the tooltip lines, renders names) and the **Known by** line on crafting-order rows (`customerOrderRecipeID` gates on `ProfessionsCustomerOrdersFrame` being shown + the tooltip owner's `option.spellID` — which C_TradeSkillUI treats as a recipeID — so it's both the gate and the exact identity; `renderKnownBy` → `Known by: <names>` or red `Not Known: <Profession>` — the profession comes from the row's `option.skillLineAbilityID` via `C_TradeSkillUI.GetProfessionNameForSkillLineAbility`, so it shows even when **nobody** knows the recipe). `/sknown <itemID>` + `/sknown knownby <recipeID>` dev commands. |
 
 ## `ns.BuildLearnable(itemID, reqSkill, itemName)`
 
@@ -61,7 +61,10 @@ level }`; sorted by `rank ↑` (intent: main → secondary → other), `level �
 carries `option.spellID`. That spellID *is* the recipeID (`C_TradeSkillUI.GetQualitiesForRecipe`
 takes it), so it serves as both the UI gate and the exact recipe identity. Rendering: 1 crafter
 → inline `Known by: <name>`; >1 → a `Known by:` header + up to 5 class-coloured names (first 4 +
-`and N more.` past 5); 0 → a red `Not Known`.
+`and N more.` past 5); 0 → a red `Not Known: <Profession>` (the profession is resolved from the
+row's `option.skillLineAbilityID` via `C_TradeSkillUI.GetProfessionNameForSkillLineAbility` —
+available even though no captured-data path exists when nobody knows the recipe; falls back to a
+bare `Not Known` if the name can't be resolved).
 
 ## Gotchas
 

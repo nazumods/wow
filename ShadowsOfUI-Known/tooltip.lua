@@ -2,6 +2,7 @@
 local ns = select(2, ...)
 
 local LABEL = NORMAL_FONT_COLOR
+local GetProfessionName = C_TradeSkillUI and C_TradeSkillUI.GetProfessionNameForSkillLineAbility
 
 -- Display name wrapped in the alt's class colour, or red when the alt doesn't yet meet
 -- the recipe's skill requirement (ns.Colors keys are PascalCase, matching Character.classKey).
@@ -65,22 +66,27 @@ end)
 -- recipeID). That's our gate *and* the exact recipe identity in one — so we match by id (vs
 -- the recipe-item surface above, which can only name-match), and the line shows only in that UI.
 ---@param tooltip table
----@return integer? recipeID
-local function customerOrderRecipeID(tooltip)
+---@return integer? recipeID, integer? skillLineAbilityID
+local function customerOrderRecipe(tooltip)
   local frame = ProfessionsCustomerOrdersFrame
   if not (frame and frame:IsShown() and tooltip.GetOwner) then return nil end
   local owner = tooltip:GetOwner()
   local opt = owner and owner.option
-  return opt and opt.spellID
+  if not (opt and opt.spellID) then return nil end
+  return opt.spellID, opt.skillLineAbilityID
 end
 
 -- "Known by:" — a single crafter inline, multiple as a header + up to 5 class-coloured names,
--- or a red "Not Known" when no character has learned the recipe.
+-- or a red "Not Known: <Profession>" when no character has learned the recipe (the profession
+-- comes from the row's skillLineAbilityID, so it shows even though nobody knows the recipe).
 ---@param list CrafterEntry[]
-local function renderKnownBy(tooltip, list)
+---@param skillLineAbilityID integer?  the hovered recipe's ability id, for the profession name
+local function renderKnownBy(tooltip, list, skillLineAbilityID)
   local n = #list
   if n == 0 then
-    tooltip:AddLine(RED_FONT_COLOR:WrapTextInColorCode("Not Known"))
+    local prof = skillLineAbilityID and GetProfessionName and GetProfessionName(skillLineAbilityID)
+    local text = prof and ("Not Known: " .. prof) or "Not Known"
+    tooltip:AddLine(RED_FONT_COLOR:WrapTextInColorCode(text))
     return
   end
   if n == 1 then
@@ -98,9 +104,9 @@ local function renderKnownBy(tooltip, list)
 end
 
 ns:OnItemTooltip(function(tooltip)
-  local recipeID = customerOrderRecipeID(tooltip)
+  local recipeID, skillLineAbilityID = customerOrderRecipe(tooltip)
   if not recipeID then return end
-  renderKnownBy(tooltip, ns.BuildKnownBy(recipeID))
+  renderKnownBy(tooltip, ns.BuildKnownBy(recipeID), skillLineAbilityID)
 end)
 
 -- /sknown <itemID>            — print the learnable list for a recipe item

@@ -31,9 +31,10 @@ at most five names, or four names plus "and N more." beyond that.
 When you open **Place Crafting Order** and hover a recipe in the browse list, the tooltip
 gains a **"Known by:"** line naming the characters that already know that recipe (class-
 coloured, main crafter first, capped at five like the Learnable list). If **none** of your
-characters know it, the line reads **"Not Known"** in red — so you can tell at a glance
-whether you can craft it yourself or have to order it. This matches on the exact recipe, so
-it's not thrown off by similarly named items.
+characters know it, the line reads **"Not Known: \<Profession\>"** in red (e.g. "Not Known:
+Jewelcrafting") — so you can tell at a glance whether you can craft it yourself, and which
+profession you'd need to learn it on. This matches on the exact recipe, so it's not thrown off
+by similarly named items.
 
 `/sknown <itemID>` prints the Learnable list to chat for a given recipe item, and `/sknown
 knownby <recipeID>` prints the Known-by list for a recipe — debugging aids; you won't
