@@ -244,6 +244,7 @@ std = {
     "MainMenuBarBackpackButton",
     "ProfessionsBookFrame",
     "ProfessionsFrame",
+    "ProfessionsCustomerOrdersFrame",
     "AddonCompartmentFrame",
     "Minimap",
     "GetMinimapShape",
