@@ -58,12 +58,69 @@ ns:OnItemTooltip(function(tooltip, data)
   end
 end)
 
--- /sknown <itemID> — print the learnable list for a recipe item (testing aid, since
--- tooltip text can't be copied). With no live tooltip the skill threshold is unknown,
--- so red is not evaluated here.
+-- ─── "Known by" on the Place Crafting Order browse list ─────────────────────────
+--
+-- Hovering a recipe row there shows the result item's tooltip; the row sets itself as the
+-- tooltip owner and carries the recipe on `option.spellID` (C_TradeSkillUI treats that as a
+-- recipeID). That's our gate *and* the exact recipe identity in one — so we match by id (vs
+-- the recipe-item surface above, which can only name-match), and the line shows only in that UI.
+---@param tooltip table
+---@return integer? recipeID
+local function customerOrderRecipeID(tooltip)
+  local frame = ProfessionsCustomerOrdersFrame
+  if not (frame and frame:IsShown() and tooltip.GetOwner) then return nil end
+  local owner = tooltip:GetOwner()
+  local opt = owner and owner.option
+  return opt and opt.spellID
+end
+
+-- "Known by:" — a single crafter inline, multiple as a header + up to 5 class-coloured names,
+-- or a red "Not Known" when no character has learned the recipe.
+---@param list CrafterEntry[]
+local function renderKnownBy(tooltip, list)
+  local n = #list
+  if n == 0 then
+    tooltip:AddLine(RED_FONT_COLOR:WrapTextInColorCode("Not Known"))
+    return
+  end
+  if n == 1 then
+    tooltip:AddLine(LABEL:WrapTextInColorCode("Known by:") .. " " .. ns.Colors.className(list[1].name, list[1].classKey))
+    return
+  end
+  tooltip:AddLine(LABEL:WrapTextInColorCode("Known by:"))
+  local shown = n > 5 and 4 or n
+  for i = 1, shown do
+    tooltip:AddLine("  " .. ns.Colors.className(list[i].name, list[i].classKey))
+  end
+  if n > shown then
+    tooltip:AddLine(GRAY_FONT_COLOR:WrapTextInColorCode(("  and %d more."):format(n - shown)))
+  end
+end
+
+ns:OnItemTooltip(function(tooltip)
+  local recipeID = customerOrderRecipeID(tooltip)
+  if not recipeID then return end
+  renderKnownBy(tooltip, ns.BuildKnownBy(recipeID))
+end)
+
+-- /sknown <itemID>            — print the learnable list for a recipe item
+-- /sknown knownby <recipeID>  — print which crafters know a recipe (the crafting-order line)
+-- Testing aids, since tooltip text can't be copied. With no live tooltip the skill threshold
+-- is unknown for the learnable list, so red is not evaluated there.
 SLASH_SUI_KNOWN1 = "/sknown"
 SlashCmdList["SUI_KNOWN"] = function(msg)
-  local itemID = tonumber(msg and msg:match("%d+"))
+  msg = msg or ""
+  local recipeID = tonumber(msg:match("^%s*knownby%s+(%d+)"))
+  if recipeID then
+    local list = ns.BuildKnownBy(recipeID)
+    if #list == 0 then ns.Print("Not Known by any character — recipe", recipeID); return end
+    ns.Print(("Known by (%d):"):format(#list))
+    for _, e in ipairs(list) do
+      ns.Print((" - %s  lvl %d, rank %d"):format(e.name, e.level, e.rank))
+    end
+    return
+  end
+  local itemID = tonumber(msg:match("%d+"))
   if not itemID then ns.Print("Usage: /sknown <itemID>") return end
   local nm = GetItemInfo(itemID)
   local list, knownCount = ns.BuildLearnable(itemID, 0, nm)

@@ -63,6 +63,60 @@ local function intentRank(charName, skillLineID)
   return INTENT_RANK[forChar and forChar[skillLineID]] or 3
 end
 
+-- The skillLineID under which `toon` has learned recipe `recipeID`, or nil. recipeIDs are
+-- globally unique, so the first profession with a match is the one. Used by the crafting-order
+-- "Known by" surface, which has the exact recipeID (vs the recipe-item surface's name match).
+---@param toon Character
+---@param recipeID integer
+local function knowsRecipeID(toon, recipeID)
+  local details = toon.professions and toon.professions.details
+  if not details then return nil end
+  for skillLineID, det in pairs(details) do
+    for _, bucket in pairs(det.recipes or {}) do
+      for _, r in ipairs(bucket.learned or {}) do
+        if r.id == recipeID then return skillLineID end
+      end
+    end
+  end
+  return nil
+end
+
+---@class CrafterEntry
+---@field name string
+---@field classKey string
+---@field rank integer     intent rank (1 main, 2 secondary, 3 other) for ordering
+---@field level integer
+
+-- Characters that have learned the recipe `recipeID` (any profession), ordered main-intent
+-- crafters first, then level desc, name. Drives the "Place Crafting Order" tooltip's "Known by"
+-- line; an empty list means no character knows it (→ "Not Known"). Matches by the captured
+-- recipe id (Warbandeer_Characters stores `{ id, name }` per learned recipe), so it's exact —
+-- no name/locale ambiguity.
+---@param recipeID integer
+---@return CrafterEntry[]
+function ns.BuildKnownBy(recipeID)
+  local api = ns.api
+  if not (recipeID and api and api.GetAllCharacters) then return {} end
+  local list = {}
+  for _, toon in ipairs(api:GetAllCharacters()) do
+    local skillLineID = knowsRecipeID(toon, recipeID)
+    if skillLineID then
+      insert(list, {
+        name     = toon.name,
+        classKey = toon.classKey,
+        rank     = intentRank(toon.name, skillLineID),
+        level    = toon.basic and toon.basic.level or 0,
+      })
+    end
+  end
+  sort(list, function(a, b)
+    if a.rank ~= b.rank then return a.rank < b.rank end
+    if a.level ~= b.level then return a.level > b.level end
+    return a.name < b.name
+  end)
+  return list
+end
+
 ---@class KnownEntry
 ---@field name string
 ---@field classKey string

@@ -1,5 +1,10 @@
 # ShadowsOfUI-Known
 
+Adds profession recipe-knowledge lines to tooltips, telling you at a glance which of your
+characters can learn — or already know — a recipe.
+
+## Learnable by
+
 Adds a **"Learnable by:"** line to recipe item tooltips, telling you at a glance which of
 your characters could still learn that recipe.
 
@@ -21,8 +26,18 @@ main/secondary designation comes from Warbandeer — see Requirements.) One char
 on a single line; several become a short header + list, capped so the tooltip stays small:
 at most five names, or four names plus "and N more." beyond that.
 
-`/sknown <itemID>` prints the same list to chat for a given recipe item — a debugging aid;
-you won't normally need it.
+## Known by (when placing a crafting order)
+
+When you open **Place Crafting Order** and hover a recipe in the browse list, the tooltip
+gains a **"Known by:"** line naming the characters that already know that recipe (class-
+coloured, main crafter first, capped at five like the Learnable list). If **none** of your
+characters know it, the line reads **"Not Known"** in red — so you can tell at a glance
+whether you can craft it yourself or have to order it. This matches on the exact recipe, so
+it's not thrown off by similarly named items.
+
+`/sknown <itemID>` prints the Learnable list to chat for a given recipe item, and `/sknown
+knownby <recipeID>` prints the Known-by list for a recipe — debugging aids; you won't
+normally need them.
 
 ## Requirements
 
