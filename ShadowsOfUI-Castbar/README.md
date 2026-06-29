@@ -26,6 +26,9 @@ name, and remaining time — and stay out of the way the rest of the time.
    (enable that bar, change the text size, or reset its position).
 4. Close Edit Mode. The position is saved per account.
 
+A bar you've **hidden** still appears in Edit Mode — dimmed — so you can always reposition it
+or switch it back on from the popup, rather than having to dig into the settings panel.
+
 ## Commands
 
 | Command | Action |

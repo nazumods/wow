@@ -187,17 +187,20 @@ function CastBar:SetTextSize(size)
 end
 
 -- Show the static placeholder sample while a sample source is active (Edit Mode or the
--- settings panel) AND the bar is enabled; otherwise hide it / return to live behaviour. Drag
--- is armed only for Edit Mode — the settings preview is look-only so the slider's effect shows.
+-- settings panel); otherwise hide it / return to live behaviour. Drag is armed only for Edit
+-- Mode — the settings preview is look-only so the slider's effect shows.
+--
+-- A disabled bar stays hidden in the settings preview ("off means off") but still shows —
+-- dimmed — in Edit Mode, so a hidden bar can be repositioned and re-enabled from its config
+-- popup instead of being unreachable until you dig into the Settings panel.
 function CastBar:_syncSample()
   if not (self._editMode or self._preview) then
     self:enableDrag(false)
+    self:Alpha(1)
     self:Refresh()
     return
   end
-  -- A sample is requested — but a disabled bar stays hidden everywhere ("Show … cast bar"
-  -- off means off, preview included).
-  if not self._enabled then
+  if not self._enabled and not self._editMode then
     self:enableDrag(false)
     self:stopUpdates()
     self:Hide()
@@ -210,6 +213,7 @@ function CastBar:_syncSample()
   self._widget:SetStatusBarColor(CAST:GetRGBA())
   self._widget:SetMinMaxValues(0, 1)
   self._widget:SetValue(0.6)
+  self:Alpha(self._enabled and 1 or 0.4) -- dim the handle while the bar is hidden
   self:enableDrag(self._editMode)
   self:Show()
 end
