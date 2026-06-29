@@ -127,6 +127,9 @@ end
 ---@param char Character
 ---@return number height
 function ConsumablesBox:Populate(char)
+  -- Master toggle: hide the whole box when the user has switched consumables off entirely
+  -- (absent/true = shown, matching the per-category overrides).
+  if ns.db.settings.showConsumables == false then self:Hide(); return 0 end
   local api = ShadowsOfUI_UpgradeApi
   local data = api and api.RecommendedConsumables and api:RecommendedConsumables(char.name)
   if not data then self:Hide(); return 0 end

@@ -14,7 +14,20 @@ local function refreshDetail()
   if view and view.name == "detail" then view:OnBeforeShow(); ns.MainWindow:Fit() end
 end
 
-local fields = {}
+-- Master toggle first, then one checkbox per category. Unchecking the master hides the whole
+-- box regardless of the per-category checkboxes (which stay live for when it's turned back on).
+local fields = {
+  {
+    name = "Show consumables",
+    typ = "checkbox",
+    default = true,
+    table = function(db) return db.settings end,
+    key = "showConsumables",
+    label = "Show consumables",
+    tooltip = "Show the recommended consumables box in the Detail view at all",
+    callback = function() refreshDetail() end,
+  },
+}
 for _, cat in ipairs(ns.ConsumableCats) do
   fields[#fields + 1] = {
     name = cat.label,
