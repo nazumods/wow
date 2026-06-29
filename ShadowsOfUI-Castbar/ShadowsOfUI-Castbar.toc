@@ -12,4 +12,5 @@
 
 core.lua
 CastBar.lua
+config.lua
 editmode.lua

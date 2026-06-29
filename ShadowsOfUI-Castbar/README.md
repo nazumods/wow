@@ -14,13 +14,20 @@ name, and remaining time — and stay out of the way the rest of the time.
   casts grey, channels green.
 - **Adjustable text size.** Set the spell-name / cast-time font anywhere from 8 to 22px.
 - **Placed with Edit Mode.** Open Blizzard's Edit Mode and each bar becomes a labelled,
-  draggable handle — drop it where you want and it stays there across sessions.
+  draggable handle with a selection outline — drag to position it, or **click it for a small
+  config popup** (show/hide that bar, text size, reset position) right next to the bar.
 
 ## Placing the bars
 
 1. Open **Edit Mode** (game menu → Edit Mode).
-2. Each bar appears as a labelled sample ("Target Cast Bar" / "Focus Cast Bar").
-3. Drag a bar to position it, then close Edit Mode. The position is saved per account.
+2. Each bar appears as a labelled sample ("Target Cast Bar" / "Focus Cast Bar") with a
+   cyan selection outline.
+3. **Drag** a bar to position it, or **click** it to open a config popup beside the bar
+   (enable that bar, change the text size, or reset its position).
+4. Close Edit Mode. The position is saved per account.
+
+A bar you've **hidden** still appears in Edit Mode — dimmed — so you can always reposition it
+or switch it back on from the popup, rather than having to dig into the settings panel.
 
 ## Commands
 
