@@ -130,6 +130,22 @@ function ns.ClassCodexGems(charData)
   return type(gems) == "table" and gems or nil
 end
 
+-- ClassCodex's per-spec consumables block (its `.consumables` table) when installed, or nil.
+-- Shape: { flask = { itemId, name }, combatPotion = {...}, food, weaponBuff, augmentRune }.
+-- Only the Wowhead source (the `ClassCodexGearData` global we read) carries consumables —
+-- the Archon / Icy Veins source globals don't — so there's no source-selection to handle.
+---@param charData Character
+---@return table?
+function ns.ClassCodexConsumables(charData)
+  local data = _G.ClassCodexGearData
+  if type(data) ~= "table" then return nil end
+  local token, specKey = ccClassSpec(charData)
+  if not token then return nil end
+  local spec = data[token] and data[token][specKey]
+  local cons = spec and spec.consumables
+  return type(cons) == "table" and cons or nil
+end
+
 ---@class EnchantSuggestion
 ---@field kind "item"|"spell"  item = a ClassCodex pick (id is an itemId), spell = a bundled enchanting recipe
 ---@field id number?           item / recipe-spell id (resolve a name with GetItemInfo / GetSpellName)
@@ -209,4 +225,15 @@ end
 ---@return table<string, integer>?
 function Upgrade:StatRanks(charName)
   return ns.StatRanks(API:GetCharacterData(charName))
+end
+
+---ClassCodex's recommended consumables for a character's spec — the raw `.consumables`
+---block (`{ flask = { itemId, name }, combatPotion = {...}, food, weaponBuff, augmentRune }`),
+---or nil when ClassCodex isn't installed or has no data for the spec. A consumer maps the
+---known keys to display labels. From the Wowhead-source `ClassCodexGearData` global (OptionalDep).
+---There is no bundled fallback — consumables are purely a ClassCodex surface.
+---@param charName string
+---@return table?
+function Upgrade:RecommendedConsumables(charName)
+  return ns.ClassCodexConsumables(API:GetCharacterData(charName))
 end

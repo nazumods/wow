@@ -91,7 +91,7 @@ end
 ---@field db WarbandeerDB
 
 ---@class WarbandeerDB: AddOnDatabase
----@field settings {defaultView: integer, tooltipSide: integer, summaryColumns: table<string, boolean>}
+---@field settings {defaultView: integer, tooltipSide: integer, summaryColumns: table<string, boolean>, consumables: table<string, boolean>}
 ---@field profIntent table<string,table<integer,string>> map of character name and skillLineID to crafter intent
 ---@field ignoredEnchants table<string, boolean> per-item accepted wrong-enchants, key "<itemID>:<enchantID>"
 
@@ -125,6 +125,13 @@ function ns:MigrateDB()
     -- the applied enchant too, so re-enchanting differently re-flags. Account-wide.
     db.ignoredEnchants = db.ignoredEnchants or {}
     db.version = 5
+  end
+  if db.version < 6 then
+    -- Per-category visibility for the Detail view's Consumables box: consumables[key] = false
+    -- hides that category (flask / combatPotion / food / weaponBuff / augmentRune). Absent/true
+    -- = shown, so an empty table means every category visible (default).
+    db.settings.consumables = db.settings.consumables or {}
+    db.version = 6
   end
 end
 
