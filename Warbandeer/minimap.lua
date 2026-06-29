@@ -18,9 +18,10 @@ end
 
 -- Populate a right-click menu with the Settings entry, a divider, then one button
 -- per nav view (each prefixed with the view's rail glyph). Shared by the minimap
--- button and the addon-compartment entry so both launchers offer the same views.
+-- button, the addon-compartment entry, and the nav rail's brand-mark logo so every
+-- launcher offers the same Settings + views menu.
 ---@param root table the MenuUtil rootDescription
-local function populateViewMenu(root)
+function ns.populateViewMenu(root)
   root:CreateButton("Settings", function()
     if ns.settingsCategory then Settings.OpenToCategory(ns.settingsCategory:GetID()) end
   end)
@@ -45,7 +46,7 @@ end
 ---@param btn string "LeftButton"|"RightButton"|"MiddleButton"
 function ns:CompartmentClick(btn)
   if btn == "RightButton" then
-    MenuUtil.CreateContextMenu(AddonCompartmentFrame, function(_, root) populateViewMenu(root) end)
+    MenuUtil.CreateContextMenu(AddonCompartmentFrame, function(_, root) ns.populateViewMenu(root) end)
   else
     self:Open()
   end
@@ -109,7 +110,7 @@ ns:registerEvent("PLAYER_LOGIN", function()
       if mouseButton == "RightButton" then
         self:ShowContextMenu(function(_, root)
           root:CreateButton("Hide minimap button", function() self:Shown(false) end)
-          populateViewMenu(root)
+          ns.populateViewMenu(root)
         end)
       else
         toggleWindow()

@@ -24,6 +24,7 @@ local ACTIVE_BG = {1, 0.82, 0, 0.10} -- faint gold wash behind the active icon
 ---@field cellSize number                  per-icon hit-area height
 ---@field pad      number                  top/bottom padding
 ---@field gap      number                  vertical gap between icons
+---@field logoButton Frame                 brand-mark button (right-click → Settings/views menu)
 ---@field logo     Texture                 brand mark at the top
 ---@field _buttons table<string, Frame>    name -> icon button frame
 ---@field _active  string?                 currently highlighted view name
@@ -31,14 +32,41 @@ local IconStrip = Class(CleanFrame, function(self)
   local c = theme.colors
   local W, ICON, CELL, PAD, GAP = self.width, self.iconSize, self.cellSize, self.pad, self.gap
 
-  -- brand mark
-  self.logo = Texture:new{
+  -- brand mark — a button so right-clicking it pops the shared Settings + views menu
+  -- (the same one the minimap button and addon-compartment entry offer).
+  local LOGO = ICON + 4
+  self.logoButton = Frame:new{
+    type = "Button",
     parent = self,
+    position = { Top = {self, ui.edge.Top, 0, -PAD}, Size = {LOGO, LOGO} },
+    background = {0, 0, 0, 0},
+  }
+  self.logoButton._widget:SetMouseClickEnabled(true)
+  self.logoButton._widget:SetMouseMotionEnabled(true)
+  self.logo = Texture:new{
+    parent = self.logoButton,
     layer = ui.layer.Artwork,
     path = ICON_PATH .. "logo.tga",
-    position = { Top = {self, ui.edge.Top, 0, -PAD}, Size = {ICON + 4, ICON + 4} },
+    position = { Center = {}, Size = {LOGO, LOGO} },
   }
   self.logo:SetVertexColor(c.gold)
+  self.logoButton:SetScript("OnEnter", function()
+    self.logo:SetVertexColor(c.text)
+    ui.tip:AnchorTo(self.logoButton, "ANCHOR_RIGHT", 8, 0)
+    ui.tip:ClearLines()
+    ui.tip:AddLine("Warbandeer")
+    ui.tip:AddLine("Right-click for menu", c.muted[1], c.muted[2], c.muted[3])
+    ui.tip:Show()
+  end)
+  self.logoButton:SetScript("OnLeave", function()
+    self.logo:SetVertexColor(c.gold)
+    ui.tip:Hide()
+  end)
+  self.logoButton:SetScript("OnMouseUp", function(_, mouseButton)
+    if mouseButton == "RightButton" and ns.populateViewMenu then
+      MenuUtil.CreateContextMenu(self.logoButton._widget, function(_, root) ns.populateViewMenu(root) end)
+    end
+  end)
 
   -- divider under the brand mark
   local divY = PAD + ICON + 4 + PAD
