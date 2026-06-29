@@ -493,4 +493,40 @@ describe("ShadowsOfUI-Upgrade enhance", function()
       assert.same({}, h.Api:MissingEnchants("Ghost"))
     end)
   end)
+
+  describe("ClassCodexConsumables / Upgrade:RecommendedConsumables", function()
+    local function mage()
+      return { name = "Toon", classKey = "Mage", basic = { specialization = { id = 64 } } }
+    end
+    before_each(function() _G.GetSpecializationInfoByID = function(id) return id, "Frost" end end)
+    after_each(function() _G.GetSpecializationInfoByID = nil; _G.ClassCodexGearData = nil end)
+
+    it("returns the spec's consumables block from ClassCodex", function()
+      _G.ClassCodexGearData = { MAGE = { frost = { consumables = {
+        flask = { itemId = 111, name = "Flask" },
+        food = { itemId = 222, name = "Food" },
+      } } } }
+      local c = ns.ClassCodexConsumables(mage())
+      assert.equals(111, c.flask.itemId)
+      assert.equals("Food", c.food.name)
+    end)
+
+    it("is nil without ClassCodex", function()
+      assert.is_nil(ns.ClassCodexConsumables(mage()))
+    end)
+
+    it("is nil when the consumables block is malformed", function()
+      _G.ClassCodexGearData = { MAGE = { frost = { consumables = "broken" } } }
+      assert.is_nil(ns.ClassCodexConsumables(mage()))
+    end)
+
+    it("published method resolves the character by name (nil for unknown)", function()
+      _G.ClassCodexGearData = { MAGE = { frost = { consumables = {
+        flask = { itemId = 111, name = "Flask" },
+      } } } }
+      h.addChar(mage())
+      assert.equals(111, h.Api:RecommendedConsumables("Toon").flask.itemId)
+      assert.is_nil(h.Api:RecommendedConsumables("Ghost"))
+    end)
+  end)
 end)

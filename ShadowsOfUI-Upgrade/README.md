@@ -70,6 +70,13 @@ the rest**. With **ClassCodex** installed both are its per-spec picks; without i
 secondary-stat gem matched to the character's top stat is used (the role-specific diamond isn't
 bundled).
 
+## Recommended consumables
+
+With **ClassCodex** installed, it also surfaces the spec's recommended **consumables** — flask,
+combat potion, food, weapon buff and augment rune (ClassCodex's Wowhead picks). Unlike enchants and
+gems there's no built-in fallback for these, so they appear only when ClassCodex is present. They're
+shown in Warbandeer's Detail view (see below); this addon adds no consumable tooltip line of its own.
+
 ## Held vs. better elsewhere
 
 - An upgrade sitting in a character's **own bags or personal bank** is **held** for them
@@ -99,7 +106,9 @@ bundled).
     box lists active **world-quest** rewards that would upgrade a slot (the quest's gear, the
     item-level gain, and where to find it) alongside the ready upgrades — world quests are
     scanned while each character is logged in, so the suggestions persist when you view an alt.
-    **Click a world-quest suggestion to open the map to it** (and start tracking the quest).
+    **Click a world-quest suggestion to open the map to it** (and start tracking the quest). With
+    **ClassCodex**, the Detail view also shows a **Consumables** box (flask, combat potion, food,
+    weapon buff, augment rune), each category toggleable in Warbandeer's settings.
 
 `/supgrade [name]` prints a character's available upgrades to chat (defaults to the
 logged-in character) — a debugging aid; you won't normally need it. `/supgrade enchants
@@ -118,6 +127,8 @@ enchant" with no suggested enchant.
 - **ClassCodex** *(optional)* — when installed, its per-spec best enchant **and gem** (from
   Wowhead) are used for the "which to apply" recommendations, for every slot. Without it, a
   built-in fallback is used. Either way the missing-enchant and empty-socket detection itself works.
+  ClassCodex also supplies the spec's recommended **consumables** (Warbandeer's Detail Consumables
+  box) — those have no fallback and appear only when ClassCodex is installed.
 
 ## Notes
 

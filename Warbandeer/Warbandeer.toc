@@ -10,7 +10,7 @@
 ## OptionalDeps: Warbandeer_Bars, Warbandeer_Collected, ShadowsOfUI-Upgrade
 ## X-Curse-Project-ID: 1546586
 ## X-NUI-DB: WarbandeerDB
-## X-NUI-DB-VERSION: 5
+## X-NUI-DB-VERSION: 6
 ## X-NUI-COMMANDS: /warband, /wb
 ## X-NUI-COMPARTMENT: Warbandeer_OnAddonCompartmentClick
 ## X-NUI-API: WarbandeerApi
@@ -28,6 +28,7 @@ controls\LabeledBar.lua
 controls\IconStrip.lua
 controls\UpgradeMark.lua
 controls\SuggestedBox.lua
+controls\ConsumablesBox.lua
 controls\FlashItem.lua
 
 views\overview\FactionBars.lua
@@ -79,6 +80,7 @@ views\detail\Professions.lua
 views\detail\Gear.lua
 views\detail\Stats.lua
 views\detail\Filter.lua
+views\consumablesSettings.lua
 
 views\RoleView.lua
 views\RaceView.lua

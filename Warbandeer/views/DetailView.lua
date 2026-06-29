@@ -6,6 +6,7 @@ local Class, Frame, Label, Texture = ns.lua.Class, ui.Frame, ui.Label, ui.Textur
 local unpack = unpack
 local StatCard = ns.StatCard
 local SuggestedBox = ns.SuggestedBox
+local ConsumablesBox = ns.ConsumablesBox
 local theme = ns.theme
 local Colors = ns.Colors
 local BottomLeft, BottomRight = ui.edge.BottomLeft, ui.edge.BottomRight
@@ -63,6 +64,7 @@ end
 ---@field gearPanel Frame
 ---@field gearHeader Label
 ---@field suggestBox SuggestedBox
+---@field consumeBox ConsumablesBox
 local DetailView = Class(Frame, function(self)
   local c = theme.colors
   self._char = ns.api:GetCharacterData()
@@ -155,6 +157,12 @@ local DetailView = Class(Frame, function(self)
   self.suggestBox = SuggestedBox:new{
     parent = self,
     position = { TopLeft = {D.P, -D.PROF_HEADER_Y}, Width = D.PANEL_W, Height = D.STRIP_H },
+  }
+
+  -- Recommended consumables, anchored beneath the gear panel in OnBeforeShow (right column).
+  self.consumeBox = ConsumablesBox:new{
+    parent = self,
+    position = { TopLeft = {D.GEAR_X, -D.CONTENT_TOP}, Width = D.gearPanelW(D.GEAR_NAME_MIN), Height = D.STRIP_H },
   }
 
   self:Width(D.VIEW_WIDTH)
@@ -319,7 +327,17 @@ function DetailView:OnBeforeShow()
   if g > 0 then gearH = gearH + D.GEAR_HEADER_GAP + gearRowsH end
   gearH = gearH + D.GEAR_PAD
   self.gearPanel:Height(gearH)
-  local rightH = D.CONTENT_TOP + gearH + D.P
+
+  -- Consumables box beneath the gear panel: the spec's recommended flask/potion/food/etc
+  -- from ClassCodex (via ShadowsOfUI-Upgrade), each category toggleable in settings. Hidden
+  -- (zero height) when that data isn't available or every category is off.
+  self.consumeBox:ClearAllPoints()
+  self.consumeBox:TopLeft(self.gearPanel, BottomLeft, 0, -D.GAP)
+  self.consumeBox:Width(D.gearPanelW(nameW))
+  local consH = self.consumeBox:Populate(char)
+  local consExtent = consH > 0 and (D.GAP + consH) or 0
+
+  local rightH = D.CONTENT_TOP + gearH + consExtent + D.P
 
   self:Width(D.GEAR_X + D.gearPanelW(nameW) + D.P)
   self:Height(math.max(leftH, rightH))
