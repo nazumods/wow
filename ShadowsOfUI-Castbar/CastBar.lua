@@ -37,8 +37,8 @@ local CAST_EVENTS = {
 }
 
 ---@class CastBar: StatusBar
----@field unit string  the unit token this bar watches ("target" | "focus")
----@field changedEvent string  PLAYER_TARGET_CHANGED | PLAYER_FOCUS_CHANGED (set via the `events` option)
+---@field unit string  the unit token this bar watches ("target" | "focus" | "player")
+---@field changedEvent string?  PLAYER_TARGET_CHANGED | PLAYER_FOCUS_CHANGED (set via the `events` option; none for "player")
 ---@field pos table  the bar's saved `{x, y}` CENTER offset (a live reference into the addon DB)
 ---@field enabled boolean  whether the bar shows for real casts
 ---@field icon Texture  spell icon, inset top-left
@@ -55,7 +55,7 @@ local CAST_EVENTS = {
 ---@field _didDrag boolean?  set on drag-start so the following click doesn't open the popup
 local CastBar = Class(StatusBar, function(self)
   self._enabled = self.enabled
-  self._label = self.unit == "focus" and "Focus Cast Bar" or "Target Cast Bar"
+  self._label = ({ target = "Target Cast Bar", focus = "Focus Cast Bar", player = "Player Cast Bar" })[self.unit]
 
   self.icon = Texture:new{
     parent = self, layer = ui.layer.Overlay,
@@ -84,6 +84,10 @@ local CastBar = Class(StatusBar, function(self)
   self:_applySize()
   self:_buildSelection() -- Edit Mode selection box (defined in editmode.lua)
 
+  -- Install the OnEvent → self[event] dispatcher up front. We register CAST_EVENTS manually
+  -- (per-unit) below rather than via the `events`/`unitEvents` options, so we can't rely on
+  -- those options to wire dispatch — the player bar passes no `events` at all.
+  self:listenForEvents()
   for _, e in ipairs(CAST_EVENTS) do
     self._widget:RegisterUnitEvent(e, self.unit)
   end
