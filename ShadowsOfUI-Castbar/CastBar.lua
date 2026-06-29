@@ -50,6 +50,9 @@ local CAST_EVENTS = {
 ---@field _channel boolean?  true while the tracked cast is a channel
 ---@field _endMS number?  cast end (ms); only read when not secret (for the time text)
 ---@field _secretTime boolean?  true when the cast timing is a protected/secret value
+---@field _sel Texture[]  the four border strips of the Edit Mode selection box
+---@field _selected boolean?  true while this bar owns the open config popup (drawn highlighted)
+---@field _didDrag boolean?  set on drag-start so the following click doesn't open the popup
 local CastBar = Class(StatusBar, function(self)
   self._enabled = self.enabled
   self._label = self.unit == "focus" and "Focus Cast Bar" or "Target Cast Bar"
@@ -79,6 +82,7 @@ local CastBar = Class(StatusBar, function(self)
   }
 
   self:_applySize()
+  self:_buildSelection() -- Edit Mode selection box (defined in editmode.lua)
 
   for _, e in ipairs(CAST_EVENTS) do
     self._widget:RegisterUnitEvent(e, self.unit)
@@ -224,8 +228,9 @@ function CastBar:SetPreview(on)
   self:_syncSample()
 end
 
--- Left-drag to reposition (only armed while in placement mode); the new CENTER offset
--- is written straight back into the DB-backed `pos` table.
+-- Placement mode (Edit Mode only): show the selection box, left-drag to reposition (the new
+-- TOPLEFT offset is written straight back into the DB-backed `pos` table), and left-click
+-- (no drag) to open this bar's config popup — mirroring Blizzard's click-to-configure.
 ---@param on boolean
 function CastBar:enableDrag(on)
   on = on and true or false -- _editMode can be nil; SetMovable rejects a non-boolean
@@ -233,18 +238,30 @@ function CastBar:enableDrag(on)
   w:EnableMouse(on)
   w:SetMovable(on)
   if on then
+    for _, strip in ipairs(self._sel) do strip:Show() end
+    self:_selectStyle(self._selected)
     w:RegisterForDrag("LeftButton")
-    w:SetScript("OnDragStart", function() w:StartMoving() end)
+    w:SetScript("OnDragStart", function() self._didDrag = true; w:StartMoving() end)
     w:SetScript("OnDragStop", function()
       w:StopMovingOrSizing()
       local ux, uy = UIParent:GetCenter()
       self.pos.x, self.pos.y = w:GetLeft() - ux, w:GetTop() - uy
       self:applyPosition()
     end)
+    w:SetScript("OnMouseUp", function()
+      if self._didDrag then self._didDrag = false; return end -- a drag, not a click
+      ns:OpenConfig(self)
+    end)
+    w:SetScript("OnEnter", function() if not self._selected then self:_selectStyle(true) end end)
+    w:SetScript("OnLeave", function() if not self._selected then self:_selectStyle(false) end end)
   else
+    for _, strip in ipairs(self._sel) do strip:Hide() end
     w:RegisterForDrag()
     w:SetScript("OnDragStart", nil)
     w:SetScript("OnDragStop", nil)
+    w:SetScript("OnMouseUp", nil)
+    w:SetScript("OnEnter", nil)
+    w:SetScript("OnLeave", nil)
   end
 end
 

@@ -1,16 +1,22 @@
 ---@class ShadowsOfUI_Castbar: AddOn
 ---@field CastBar CastBar  the cast-bar widget class (CastBar.lua)
 ---@field bars table<string, CastBar>  the two live bars, keyed "target" / "focus"
+---@field DEFAULT_POS table<string, table>  per-unit default TOPLEFT offsets (for "Reset position")
 ---@field SetConfigMode fun(self: ShadowsOfUI_Castbar, on: boolean)  toggle Edit Mode placement (editmode.lua)
 ---@field WireEditMode fun(self: ShadowsOfUI_Castbar)  hook Blizzard Edit Mode (editmode.lua)
+---@field OpenConfig fun(self: ShadowsOfUI_Castbar, bar: CastBar)  open the per-bar config popup (config.lua)
+---@field AttachConfig fun(self: ShadowsOfUI_Castbar, bar: CastBar)  re-anchor the popup to a bar (config.lua)
+---@field CloseConfig fun(self: ShadowsOfUI_Castbar)  close the popup + clear selection (config.lua)
 local ns = LibNAddOn(...)
 
 -- Default TOPLEFT offsets from UIParent's centre (the bar's top-left corner) before the
 -- user drags a bar — the top-left equivalent of the old centred defaults at the default size.
+-- Exposed on ns so the config popup's "Reset position" can restore them.
 local DEFAULT_POS = {
   target = { x = -110, y = 171 },
   focus  = { x = -110, y = 135 },
 }
+ns.DEFAULT_POS = DEFAULT_POS
 
 function ns:MigrateDB()
   local db = ns.db
