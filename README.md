@@ -44,6 +44,7 @@ Each addon folder has its own `README.md` with end-user documentation.
 | [ShadowsOfUI-Quests](ShadowsOfUI-Quests/README.md) | Adds a cross-alt "Also on this quest / Completed by" block to quest-log tooltips, so you can see which character still needs a quest. |
 | [ShadowsOfUI-Delves](ShadowsOfUI-Delves/README.md) | Times your delve runs and shows your average completion time (at Tier 11 once max level) on each delve's map entrance pin. |
 | [ShadowsOfUI-Compartment](ShadowsOfUI-Compartment/README.md) | Makes the minimap's addon-compartment button movable (ALT+drag) and swaps its count for a clean icon. |
+| [ShadowsOfUI-Collectibles](ShadowsOfUI-Collectibles/README.md) | Tints already-known and still-collectible items (recipes, toys, mounts, pets, decor…) on vendors and the Auction House — recipes checked across your whole warband. |
 
 ### Quality of life
 
