@@ -1,6 +1,6 @@
 # Warbandeer_Bars (Headless data layer)
 
-**Deps:** LibNAddOn (no LibNUI — headless) · **SavedVars:** `WarbandeerBarsDB` (v1) · **PerChar:** `WarbandeerBarsSettings` · **Commands:** `/wbbars`, `/wbb` · **API:** `WarbandeerBarsApi`
+**Deps:** LibNAddOn (no LibNUI — headless) · **SavedVars:** `WarbandeerBarsDB` (v2) · **PerChar:** `WarbandeerBarsSettings` · **Commands:** `/wbbars`, `/wbb` · **API:** `WarbandeerBarsApi`
 
 Headless tracker for action bar / keybind / macro / pet bar / outfit layouts, auto-snapshotted per
 character + spec. No UI — exposes `WarbandeerBarsApi` for a consuming UI to preview any
@@ -11,7 +11,7 @@ character/spec's setup and import it onto the current character. Profiles are st
 
 | File | Purpose |
 |---|---|
-| `init.lua` | Assignment-form bootstrap; `MigrateDB` (seeds `profiles={}`, v1), `DefaultSettings`, `onLoad` per-char settings init |
+| `init.lua` | Assignment-form bootstrap; `MigrateDB` (v1 seeds `profiles={}`; v2 adds `layouts={}`), `DefaultSettings`, `onLoad` per-char settings init |
 | `capture.lua` | `ns.Capture(include, accountMacros, charMacros)` → profile table; per-section capture + spell/flyout override resolution |
 | `restore.lua` | `ns.Restore(profile, include, silent?, barFilter?)` — applies a profile, recreating macros on import; flyouts-first pre-pass, spellbook fallbacks, per-bar filter |
 | `tracker.lua` | `ns.Snapshot()` + auto-capture triggers (login / spec change / logout); combat- & cursor-guarded |
@@ -70,14 +70,14 @@ Slot `type` ∈ `spell | item | toy | flyout | companion | summonmount | summonp
 ## SavedVariables
 
 ```lua
-WarbandeerBarsDB       = { version=1, profiles = { [charName] = { [specID] = profile } } }
+WarbandeerBarsDB       = { version=2, profiles = { [charName] = { [specID] = profile } }, layouts = { [layoutName] = { [barIndex] = {numIcons,numRows,orientation} } } }
 WarbandeerBarsSettings = {           -- per-character; RESTORE filter only
   include = { bars=true, macros=true, petbar=true, bindings=false, outfits=false },
   accountMacros = true, charMacros = true,
 }
 ```
 
-`MigrateDB` only seeds `profiles`/`version` on first run; non-destructive. `onLoad` backfills any
+`MigrateDB` seeds `profiles`/`version` on first run and adds `layouts` at v2; non-destructive. `onLoad` backfills any
 missing `WarbandeerBarsSettings` keys from `ns.DefaultSettings`.
 
 ## Capture / restore model

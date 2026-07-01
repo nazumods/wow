@@ -78,13 +78,21 @@ local Player = {
   GetPetHealthValues = function() return UnitHealth("pet"), UnitHealthMax("pet") end,
   GetPower = function(self, idx) return UnitPower("player", idx) end,
   GetPowerMax = function(self, idx) return UnitPowerMax("player", idx) end,
-  GetPowerPercent = function(self, idx) return math.floor(100 * (self:GetPower(idx) / self:GetPowerMax(idx))).."%" end,
+  GetPowerPercent = function(self, idx)
+    local m = self:GetPowerMax(idx)
+    if m == 0 then return "0%" end  -- power types with no max would divide to nan
+    return math.floor(100 * (self:GetPower(idx) / m)).."%"
+  end,
   GetPowerType = function() return UnitPowerType("player") end,
   GetPowerValues = function(self, idx) return self:GetPower(idx), self:GetPowerMax(idx) end,
   -- https://wowpedia.fandom.com/wiki/API_GetShapeshiftFormID (forms, stealth, wolf, stance, etc)
   GetShapeshiftFormID = GetShapeshiftFormID,
   -- id, name, description, icon (FileID), role (DAMAGE | TANK | HEALER, classFile (e.g. PRIEST), className (e.g. Priest)
-  GetActiveSpecialization = function() return GetSpecializationInfo(GetSpecialization()) end,
+  GetActiveSpecialization = function()
+    local spec = GetSpecialization()
+    if not spec then return end  -- no active spec yet (e.g. very early login)
+    return GetSpecializationInfo(spec)
+  end,
   GetPrimarySpecialization = function() return GetSpecializationInfoByID(GetLootSpecialization()) end,
   GetRace = function()
     local _, raceFile, raceId = UnitRace("player")
@@ -92,7 +100,11 @@ local Player = {
   end,
   GetXP = function() return UnitXP("player") end,
   GetXPExhaustion = function() return GetXPExhaustion() end,
-  GetXPPercent = function(self) return self:GetXP() / self:GetMaxXP() end,
+  GetXPPercent = function(self)
+    local m = self:GetMaxXP()
+    if m == 0 then return 0 end  -- at max level GetMaxXP is 0 -> avoid 0/0 = nan
+    return self:GetXP() / m
+  end,
   HasTarget = function() return UnitExists("target") end,
   HasToy = PlayerHasToy,
   InCombat = InCombatLockdown,
@@ -125,6 +137,7 @@ ns.wow.Player = Player
 function Player:GetRestPercent()
   if not self:isRested() then return 0 end
   local maxXP = self:GetMaxXP()
+  if maxXP == 0 then return 0 end  -- at max level GetMaxXP is 0 -> avoid 0/0 = nan
   return max(0, self:GetXPExhaustion() / maxXP)
 end
 
