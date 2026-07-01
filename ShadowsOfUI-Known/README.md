@@ -16,9 +16,9 @@ your alts that:
 - **haven't learned the recipe yet**.
 
 A character whose profession skill is too low to learn it right now is shown in **red**.
-Characters who already know the recipe are left off the list — and if *every* character
-who has the profession already knows it, the tooltip simply reads **"Already known"** so
-you can see at a glance the recipe isn't needed.
+Characters who already know the recipe aren't listed here — instead they appear on a
+separate **"Known by:"** line just below (see below), so you can see at a glance who can
+already craft it and who still needs to learn it.
 
 The list is ordered with your designated **main crafter** first, then **secondaries**,
 then everyone else, each group sorted by character level and then profession skill. (The
@@ -26,15 +26,18 @@ main/secondary designation comes from Warbandeer — see Requirements.) One char
 on a single line; several become a short header + list, capped so the tooltip stays small:
 at most five names, or four names plus "and N more." beyond that.
 
-## Known by (when placing a crafting order)
+## Known by
 
-When you open **Place Crafting Order** and hover a recipe in the browse list, the tooltip
-gains a **"Known by:"** line naming the characters that already know that recipe (class-
-coloured, main crafter first, capped at five like the Learnable list). If **none** of your
-characters know it, the line reads **"Not Known: \<Profession\>"** in red (e.g. "Not Known:
-Jewelcrafting") — so you can tell at a glance whether you can craft it yourself, and which
-profession you'd need to learn it on. This matches on the exact recipe, so it's not thrown off
-by similarly named items.
+Hover a recipe and the tooltip gains a **"Known by:"** line naming the characters that
+already know it (class-coloured, main crafter first, capped at five like the Learnable
+list). It shows in two places:
+
+- **On the recipe item itself** — in your bags, at a vendor, in the Auction House or a chat
+  link — alongside the "Learnable by:" line, matched by recipe name.
+- **On the Place Crafting Order browse list** — matched on the *exact* recipe, so it's not
+  thrown off by similarly named items. Here, if **none** of your characters know it, the line
+  instead reads **"Not Known: \<Profession\>"** in red (e.g. "Not Known: Jewelcrafting") — so
+  you can tell at a glance whether you can craft it yourself, and which profession you'd need.
 
 `/sknown <itemID>` prints the Learnable list to chat for a given recipe item, and `/sknown
 knownby <recipeID>` prints the Known-by list for a recipe — debugging aids; you won't
