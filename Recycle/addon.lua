@@ -58,13 +58,18 @@ end
 local BUYBACK_LIMIT = 12
 local RETRY_BUDGET = 3
 local retriesLeft = RETRY_BUDGET
+-- Sales counter for the current merchant visit. It persists across retry passes
+-- and is reset only on MERCHANT_SHOW, so the cap spans passes: without this, each
+-- cold-cache retry restarted its own count and could sell far more than 12 items
+-- per visit, pushing older sales out of the 12-slot buyback window (unrecoverable).
+local soldThisVisit = 0
 
 local function sellItems()
-  local count, total = 0, 0
+  local sold, total = 0, 0
   local deferred = false
   for bag = 0, 4 do
     for slot = 1, C_Container.GetContainerNumSlots(bag) do
-      if count >= BUYBACK_LIMIT then break end
+      if soldThisVisit >= BUYBACK_LIMIT then break end
       local info = C_Container.GetContainerItemInfo(bag, slot)
       if info and shouldSell(info.itemID, info.quality) then
         local price = select(11, GetItemInfo(info.itemID))
@@ -75,19 +80,21 @@ local function sellItems()
         elseif price > 0 then
           C_Container.PickupContainerItem(bag, slot)
           PickupMerchantItem()
-          count = count + 1
+          soldThisVisit = soldThisVisit + 1
+          sold = sold + 1
           total = total + price * (info.stackCount or 1)
         end
       end
     end
-    if count >= BUYBACK_LIMIT then break end
+    if soldThisVisit >= BUYBACK_LIMIT then break end
   end
-  if count > 0 and not ns.db.settings.silent then
-    print("|cffffcc00Recycle:|r Sold " .. count .. " item(s) for " .. goldStr(total) .. ".")
+  if sold > 0 and not ns.db.settings.silent then
+    print("|cffffcc00Recycle:|r Sold " .. sold .. " item(s) for " .. goldStr(total) .. ".")
   end
   -- Re-run once the deferred item data has had a chance to load, while the
-  -- merchant is still open and within a small retry budget.
-  if deferred and retriesLeft > 0 then
+  -- merchant is still open, within the retry budget, and only while there is
+  -- still buyback headroom left this visit.
+  if deferred and retriesLeft > 0 and soldThisVisit < BUYBACK_LIMIT then
     retriesLeft = retriesLeft - 1
     ns:after(300, function()
       if MerchantFrame and MerchantFrame:IsShown() then sellItems() end
@@ -185,6 +192,7 @@ end
 
 function ns.MERCHANT_SHOW()
   retriesLeft = RETRY_BUDGET
+  soldThisVisit = 0
   sellItems()
 end
 
