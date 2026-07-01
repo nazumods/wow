@@ -1,5 +1,9 @@
 # WoW AddOn Suite — Claude Instructions
 
+## Environment
+
+This is a Windows environment. Prefer PowerShell for file/text operations (e.g. `\r\n` conversion, here-strings). Do **not** run PowerShell here-string syntax through the Bash tool — the `@` literal leaks into the output. Keep each shell's idioms in its own tool: don't mix Unix syntax into the PowerShell tool, and don't mix PowerShell syntax into the Bash tool.
+
 ## First Step: Read CONTEXT.md
 
 **At the start of every session, read `CONTEXT.md` in this directory.** It is the top-level index: the dependency graph, a one-line summary per addon, and the global slash command registry. Each addon's full code reference — file maps, class hierarchies, API surfaces, data structures, and constructor options — lives in its own `<addon>/CONTEXT.md` (linked from the root index). Load only the per-addon files relevant to the task; together they eliminate the need to re-read source files.
@@ -92,10 +96,12 @@ function MyClass:Value(v)
 end
 ```
 
-## Commits
+## Git & Commits
 
 - Follow the [Conventional Commits](https://www.conventionalcommits.org/) spec (`type(scope): summary`, e.g. `feat(detail): show suggested gear upgrade`). Types: `feat`, `fix`, `doc`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert` (note `doc`, not `docs` — see below). Use `doc:` for doc-only changes.
 - Keep messages to a short one-liner. Let the code speak for itself — through being simple and clear, or via documentation and comments — rather than explaining it in the commit body.
+- Write commit messages with multiple `-m` flags or a temp file (`git commit -F`) — **never** bash/PowerShell here-strings, which reliably mangle messages in this environment.
+- Only stage files explicitly in scope for the current task. Never stage another session's in-progress work, and never merge a whole branch when only a subset of changes was requested — confirm scope before staging, committing, or merging.
 
 ## Versioning
 
@@ -133,6 +139,14 @@ WoW-API-free code (currently LibNAddOn's `ns.lua.*` modules) has busted specs in
 ## In-Game Debugging
 
 Use `/dump <expr>` or `/run <lua>` to inspect live data. Output appears in the chat window — can't be copy/pasted and truncates if too long. Use these to check what WoW API calls actually return (e.g. `/run print(C_MajorFactions.GetMajorFactionData(2742))` or `/dump C_DelvesUI.GetDelvesFactionForSeason()`).
+
+## WoW Addon Conventions
+
+- This codebase targets the **Lua 5.1** environment — do not use Lua 5.2+ features (`goto`, etc.).
+- Account for WoW 12.0 API changes when using icon/spell APIs (Blizzard renames/repurposes these across client versions).
+- Verify `/wdebug` probes compile and stay under WoW's chat input length limit (255 chars including the prefix).
+- Render bars/overlays on the correct frame layer (not `BACKGROUND`) and verify z-order and mouse-grab behavior.
+- Creature-display models cannot be dressed — use a `ModelScene` actor for arbitrary races.
 
 ## Key Gotchas
 
