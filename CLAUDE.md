@@ -98,6 +98,8 @@ end
 
 ## Git & Commits
 
+**The `git-commit-safety` skill is the standing discipline for every commit and merge in every session** — invoke/apply it whenever you are about to `git add`, `git commit`, or merge (the `/pr` skill automates the same rules for a full branch → PR → merge ship). Its four non-negotiables: (1) write the commit message to a temp file and use `git commit -F` (or multiple `-m` flags), never an inline here-string; (2) print `git status` and confirm the staged set matches the user's stated scope **exactly** before staging — nothing else, and never another session's in-progress files; (3) reach `main` only via a PR-based **squash** merge with all required CI green; (4) after merge, verify a clean tree on an up-to-date `main`. The rules below are the WoW-suite specifics that sit on top of that baseline.
+
 - Follow the [Conventional Commits](https://www.conventionalcommits.org/) spec (`type(scope): summary`, e.g. `feat(detail): show suggested gear upgrade`). Types: `feat`, `fix`, `doc`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert` (note `doc`, not `docs` — see below). Use `doc:` for doc-only changes.
 - Keep messages to a short one-liner. Let the code speak for itself — through being simple and clear, or via documentation and comments — rather than explaining it in the commit body.
 - Write commit messages with multiple `-m` flags or a temp file (`git commit -F`) — **never** bash/PowerShell here-strings, which reliably mangle messages in this environment.
