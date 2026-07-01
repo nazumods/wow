@@ -1,0 +1,16 @@
+## Interface: 120007
+## Category: Shadows of UI
+## Title: Collectible Tints
+## Author: Nazuraki
+## Version: 12.0.7-r0
+## Dependencies: LibNAddOn
+## OptionalDeps: Warbandeer_Characters
+## SavedVariables: ShadowsOfUI_CollectiblesDB
+## X-NUI-DB: ShadowsOfUI_CollectiblesDB
+## X-NUI-DB-VERSION: 1
+## X-NUI-API: WarbandeerApi
+
+core.lua
+data.lua
+detect.lua
+surfaces.lua

@@ -14,7 +14,7 @@ include_files = {
   "ShadowsOfUI-Artisan/**/*.lua", "ShadowsOfUI-WarbandInventory/**/*.lua",
   "ShadowsOfUI-Reputations/**/*.lua", "ShadowsOfUI-Quests/**/*.lua",
   "ShadowsOfUI-Compartment/**/*.lua", "ShadowsOfUI-Delves/**/*.lua",
-  "ShadowsOfUI-Castbar/**/*.lua",
+  "ShadowsOfUI-Castbar/**/*.lua", "ShadowsOfUI-Collectibles/**/*.lua",
   "Warbandeer/**/*.lua", "Warbandeer_Alias/**/*.lua", "Warbandeer_Bars/**/*.lua",
   "Warbandeer_Characters/**/*.lua", "Warbandeer_Collected/**/*.lua",
 }
@@ -41,6 +41,7 @@ files["ShadowsOfUI-Quests/**/*.lua"] = {globals = {"SLASH_SUI_QUESTS1"}}
 files["ShadowsOfUI-Compartment/**/*.lua"] = {globals = {"SLASH_SUI_COMPARTMENT1"}}
 files["ShadowsOfUI-Delves/**/*.lua"] = {globals = {"SLASH_SUI_DELVES1"}}
 files["ShadowsOfUI-Castbar/**/*.lua"] = {globals = {"SLASH_SUI_CASTBAR1"}}
+files["ShadowsOfUI-Collectibles/**/*.lua"] = {globals = {"SLASH_SUI_COLLECT1"}}
 files["Warbandeer_Bars/init.lua"] = {globals = {"WarbandeerBarsSettings"}}
 
 std = {
@@ -149,6 +150,7 @@ std = {
     "C_EditMode",
     "C_EquipmentSet",
     "C_GossipInfo",
+    "C_HousingCatalog",
     "C_Item",
     "C_KeyBindings",
     "C_MajorFactions",
@@ -198,6 +200,7 @@ std = {
     "GRAY_FONT_COLOR",
     "GREEN_FONT_COLOR",
     "HIGHLIGHT_FONT_COLOR",
+    "HOUSING_DECOR_OWNED_COUNT_FORMAT",
     "ENCHANTED_TOOLTIP_LINE",
     "ITEM_ARTIFACT_COLOR",
     "ITEM_EPIC_COLOR",
@@ -222,18 +225,24 @@ std = {
     "WHITE_FONT_COLOR",
     "GameFontHighlightSmall",
     "NumberFontNormalSmallGray",
+    "ITEM_PET_KNOWN",
+    "ITEM_SPELL_KNOWN",
 
     "ATTACHMENTS_MAX_RECEIVE",
     "MAX_ACCOUNT_MACROS",
     "MAX_CHARACTER_MACROS",
     "MAX_GUILDBANK_SLOTS_PER_TAB",
+    "MERCHANT_ITEMS_PER_PAGE",
     "NUM_BAG_SLOTS",
     "NUM_CHAT_WINDOWS",
     "NUM_PET_ACTION_SLOTS",
 
+    "AuctionHouseFrame",
     "BagBarExpandToggle",
     "BankPanel",
     "CalendarFrame",
+    "ColorPickerFrame",
+    "GuildBankFrame",
     "CharacterBag0Slot",
     "CharacterBag1Slot",
     "CharacterBag2Slot",
@@ -300,6 +309,7 @@ std = {
     "GetMacroInfo",
     "GetMaxLevelForPlayerExpansion",
     "GetMerchantItemID",
+    "GetMerchantItemLink",
     "ItemLocation",
     "GetMerchantItemInfo",
     "GetMerchantItemMaxStack",
@@ -359,10 +369,16 @@ std = {
     "PlayerIsTimerunning",
     "QueryGuildBankTab",
     "RequestTimePlayed",
+    "RunNextFrame",
     "SaveBindings",
     "SetBinding",
     "SetCurrentGuildBankTab",
     "SetCVar",
+    "SetItemButtonDesaturated",
+    "SetItemButtonNameFrameVertexColor",
+    "SetItemButtonNormalTextureVertexColor",
+    "SetItemButtonSlotVertexColor",
+    "SetItemButtonTextureVertexColor",
     "SetOverrideBindingClick",
     "ShowOptionsCategory",
     "StaticPopup_Show",
