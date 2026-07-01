@@ -30,7 +30,11 @@ end
 
 -- Capture at session boundaries: entering world, spec change, and logout/reload.
 function ns:onLogin()
-  self:delay(LOGIN_SETTLE_MS, function()
+  -- Use `after` (concurrent C_Timer), not `delay`: `delay` shares a single
+  -- per-addon timer, so a spec change inside the login-settle window would
+  -- overwrite this pending login capture and drop CaptureLayouts. The
+  -- spec-change handler keeps `delay` for its debounce.
+  self:after(LOGIN_SETTLE_MS, function()
     ns.CaptureLayouts()
     ns.Snapshot()
   end)
