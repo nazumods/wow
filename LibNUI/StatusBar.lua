@@ -108,7 +108,7 @@ function StatusBar:SetValue(v)
   else -- vertical
     -- crop from the top: advance the top coord downward by the empty fraction
     t = t + dy
-    tex:Top(0, self:Height() * -dy)
+    tex:Top(self, ui.edge.Top, 0, self:Height() * -dy)
   end
   tex:Coords(l, r, t, b)
 end

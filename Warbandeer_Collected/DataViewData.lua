@@ -240,6 +240,7 @@ function ns.CollectedRows(self)
         end
         self._arrow._widget:SetSize(14, 16)
         self._arrow:TopRight(row, ui.edge.TopLeft, -3, -2)
+        self._arrow:Show()  -- re-show: _clearSelection hides it, and SetPoint alone won't
       end,
     })
     return r

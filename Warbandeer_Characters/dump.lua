@@ -30,13 +30,16 @@ ns:registerCommand("stat", "", function(self)
   for _,t in pairs(self.db.characters) do
     if t.isAlliance then a = a + 1 else h = h + 1 end
     if t.playtime then
-      p = p + t.playtime.total
-      pp = pp + (t.playtime.byPatch[patch] or 0)
-      if t.playtime.total > mp then
-        mp = t.playtime.total
+      -- total/byPatch are filled by the async TIME_PLAYED_MSG; guard the arithmetic
+      -- so /wbc stat run in that early window can't error on a nil playtime.total.
+      local tot = t.playtime.total or 0
+      p = p + tot
+      pp = pp + (t.playtime.byPatch and t.playtime.byPatch[patch] or 0)
+      if tot > mp then
+        mp = tot
         ft = t.name
       end
-      pbc[t.className] = (pbc[t.className] or 0) + t.playtime.total
+      pbc[t.className] = (pbc[t.className] or 0) + tot
     end
   end
   local cp, cn = 0, nil
