@@ -127,29 +127,35 @@ end
 
 -- Alts that can still learn the given recipe item: those who have its profession but
 -- haven't learned it, ordered main -> secondary -> other, then level desc, skill desc,
--- name. Also returns how many characters already know it, so an empty list can be told
--- apart from "nobody has the profession". Returns nil when the item isn't a craftable
--- recipe, so callers add nothing.
+-- name. Also returns the list of characters that already know it (same CrafterEntry
+-- shape and ordering as BuildKnownBy), so callers can render a "Known by:" line and
+-- tell an empty learnable list ("everyone who could has it") apart from "nobody has the
+-- profession" (both lists empty). Returns nil when the item isn't a craftable recipe.
 ---@param itemID integer
 ---@param reqSkill integer  skill threshold read off the item (0 = no numeric requirement)
 ---@param itemName string?  the recipe item's name, for the already-learned check
 ---@return KnownEntry[]? list
----@return integer knownCount  characters that already know the recipe
+---@return CrafterEntry[] knownList  characters that already know the recipe
 function ns.BuildLearnable(itemID, reqSkill, itemName)
   local _, _, _, _, _, classID, subClassID = GetItemInfoInstant(itemID)
-  if classID ~= Enum.ItemClass.Recipe then return nil, -1 end
+  if classID ~= Enum.ItemClass.Recipe then return nil end
   local skillLineID = RECIPE_SUBCLASS_TO_SKILL[subClassID]
-  if not skillLineID then return nil, -1 end
+  if not skillLineID then return nil end
   local api = ns.api
-  if not api or not api.GetAllCharacters then return nil, -1 end
+  if not api or not api.GetAllCharacters then return nil end
 
   local recipe = craftedName(itemName)
-  local list, knownCount = {}, 0
+  local list, knownList = {}, {}
   for _, toon in ipairs(api:GetAllCharacters()) do
     local p = findProf(toon, skillLineID)
     if p then
       if recipe and knowsRecipe(toon, skillLineID, recipe) then
-        knownCount = knownCount + 1
+        insert(knownList, {
+          name     = toon.name,
+          classKey = toon.classKey,
+          rank     = intentRank(toon.name, skillLineID),
+          level    = toon.basic and toon.basic.level or 0,
+        })
       else
         local skill = p.skillLevel or 0
         insert(list, {
@@ -169,5 +175,10 @@ function ns.BuildLearnable(itemID, reqSkill, itemName)
     if a.skill ~= b.skill then return a.skill > b.skill end
     return a.name < b.name
   end)
-  return list, knownCount
+  sort(knownList, function(a, b)
+    if a.rank ~= b.rank then return a.rank < b.rank end
+    if a.level ~= b.level then return a.level > b.level end
+    return a.name < b.name
+  end)
+  return list, knownList
 end

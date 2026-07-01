@@ -6,9 +6,10 @@ Headless tooltip addon with two surfaces, both driven by the captured per-charac
 data (`professions.details[skillLineID].recipes[bucket].learned[] = { id, name }`):
 
 1. **"Learnable by:"** on **recipe items** (the patterns/scrolls) — characters that have the
-   recipe's profession but haven't learned it.
+   recipe's profession but haven't learned it, plus a **"Known by:"** line naming those who
+   already know it (matched by recipe name).
 2. **"Known by:" / "Not Known"** on the **Place Crafting Order** browse list — which characters
-   already know the hovered recipe (red "Not Known" when none do).
+   already know the hovered recipe (matched by exact recipe id; red "Not Known" when none do).
 
 Assignment-form init (`local ns = LibNAddOn(...)`); no LibNUI.
 
@@ -16,8 +17,8 @@ Assignment-form init (`local ns = LibNAddOn(...)`); no LibNUI.
 
 | File | Purpose |
 |---|---|
-| `core.lua` | Bootstrap + logic. `RECIPE_SUBCLASS_TO_SKILL` (recipe item subclass → parent skillLineID), `ns.BuildLearnable(itemID, reqSkill, itemName)` → sorted `KnownEntry[]` (or nil if not a craftable recipe), and `ns.BuildKnownBy(recipeID)` → sorted `CrafterEntry[]` of characters that have **learned** that recipe (matched by the captured `learned[].id` — exact, no name ambiguity; ordered main-intent → secondary → other, then level desc, name). |
-| `tooltip.lua` | Two `ns:OnItemTooltip` (LibNAddOn item-tooltip hook) registrations: the **Learnable** block (reads the skill threshold off the tooltip lines, renders names) and the **Known by** line on crafting-order rows (`customerOrderRecipeID` gates on `ProfessionsCustomerOrdersFrame` being shown + the tooltip owner's `option.spellID` — which C_TradeSkillUI treats as a recipeID — so it's both the gate and the exact identity; `renderKnownBy` → `Known by: <names>` or red `Not Known: <Profession>` — the profession comes from the row's `option.skillLineAbilityID` via `C_TradeSkillUI.GetProfessionNameForSkillLineAbility`, so it shows even when **nobody** knows the recipe). `/sknown <itemID>` + `/sknown knownby <recipeID>` dev commands. |
+| `core.lua` | Bootstrap + logic. `RECIPE_SUBCLASS_TO_SKILL` (recipe item subclass → parent skillLineID), `ns.BuildLearnable(itemID, reqSkill, itemName)` → sorted `KnownEntry[]` learnable list **and** a `CrafterEntry[]` known-by list (or nil if not a craftable recipe), and `ns.BuildKnownBy(recipeID)` → sorted `CrafterEntry[]` of characters that have **learned** that recipe (matched by the captured `learned[].id` — exact, no name ambiguity; ordered main-intent → secondary → other, then level desc, name). |
+| `tooltip.lua` | Two `ns:OnItemTooltip` (LibNAddOn item-tooltip hook) registrations: the **Learnable** block (reads the skill threshold off the tooltip lines, renders names, then appends a **Known by** line for alts who already know it via the shared forward-declared `renderKnownBy`) and the **Known by** line on crafting-order rows (`customerOrderRecipeID` gates on `ProfessionsCustomerOrdersFrame` being shown + the tooltip owner's `option.spellID` — which C_TradeSkillUI treats as a recipeID — so it's both the gate and the exact identity; `renderKnownBy` → `Known by: <names>` or red `Not Known: <Profession>` — the profession comes from the row's `option.skillLineAbilityID` via `C_TradeSkillUI.GetProfessionNameForSkillLineAbility`, so it shows even when **nobody** knows the recipe). `/sknown <itemID>` + `/sknown knownby <recipeID>` dev commands. |
 
 ## `ns.BuildLearnable(itemID, reqSkill, itemName)`
 
@@ -33,17 +34,19 @@ emits a `KnownEntry { name, classKey, meets, rank, level, skill }`. `meets = req
 skill >= reqSkill`. `rank` is the intent rank from `WarbandeerDB.profIntent[name][skillLineID]`
 (main = 1, secondary = 2, else 3). Sorted by `rank ↑`, `level ↓`, `skill ↓`, `name ↑`.
 
-Second return value `knownCount` = characters that already know the recipe. Since any toon
-with the profession is either learnable or known, `#list == 0 and knownCount > 0` means
-"everyone who could has it" (rendered as **Already known**), while `#list == 0 and
-knownCount == 0` means no character has the profession at all (nothing rendered).
+Second return value `knownList` = the `CrafterEntry[]` of characters that already know the
+recipe (same shape + ordering as `BuildKnownBy`). Since any toon with the profession is
+either learnable or known, `#list == 0 and #knownList > 0` means "everyone who could has
+it", while both empty means no character has the profession at all (nothing rendered).
 
 ## Rendering (`tooltip.lua`)
 
 - **1 entry** → one inline line: `Learnable by: <name>`.
 - **>1** → a `Learnable by:` header, then up to 5 names; past 5, the first 4 then
   `and N more.`.
-- **0 learnable but `knownCount > 0`** → a single green `Already known` line.
+- **Known by** → when any alt already knows it, a `Known by:` line follows (shared
+  `renderKnownBy`: inline for one, header + up to 5 names past that), replacing the old bare
+  green `Already known` line.
 - Name colour: `ns.Colors.className(name, classKey)` (PascalCase class colour) when `meets`,
   else `RED_FONT_COLOR`.
 - `reqSkill(data)` = first parenthesised integer on tooltip lines 2+ (skips line 1, the item
