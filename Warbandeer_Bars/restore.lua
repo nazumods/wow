@@ -137,14 +137,25 @@ local function RestoreSlots(slots, overrides)
         if not GetCursorInfo() then C_PetJournal.PickupPet(s.strindex, true) end
         if not GetCursorInfo() then Warn("Missing pet [" .. tostring(s.strindex) .. "]") end
       elseif s.type == "summonmount" then
+        -- GetDisplayedMountInfo indexes the DISPLAYED (filtered) list, bounded by
+        -- GetNumDisplayedMounts() — not GetNumMounts() (the full catalog); Pickup's
+        -- arg is a 1-based index into that same displayed list. The old code looped
+        -- GetNumMounts() and fell back to Pickup(0) (Blizzard's "pick up nothing"
+        -- index), silently placing a wrong/no mount when a journal filter hid the
+        -- target. Loop the displayed bound and warn+blank on a miss like other slots.
         local mi
         if C_MountJournal then
-          for i = 1, C_MountJournal.GetNumMounts() do
-            local _, _, _, _, _, _, _, _, _, _, col, mid = C_MountJournal.GetDisplayedMountInfo(i)
-            if col and mid == s.index then mi = i; break end
+          for i = 1, C_MountJournal.GetNumDisplayedMounts() do
+            local _, _, _, _, _, _, _, _, _, _, isCollected, mid = C_MountJournal.GetDisplayedMountInfo(i)
+            if isCollected and mid == s.index then mi = i; break end
           end
         end
-        if mi then C_MountJournal.Pickup(mi) else C_MountJournal.Pickup(0) end
+        if mi then
+          C_MountJournal.Pickup(mi)
+        else
+          Warn("Slot " .. s.id .. ": mount #" .. tostring(s.index)
+            .. " is uncollected or hidden by an active mount-journal filter")
+        end
       elseif s.type == "companion" then
         -- legacy pre-journal mount/mini-pet action; index is the summon spell ID
         PickupSpell(s.index)
@@ -230,16 +241,25 @@ end
 
 local function RestorePetBar(petslots)
   if not IsPetActive() then return end
-  local tokens = {}
-  for i = 1, NUM_PET_ACTION_SLOTS do
-    local name, _, isToken = GetPetActionInfo(i)
-    if isToken then tokens[name] = i end
+  -- Re-scan the token slots for each placement: placing a token swaps the two
+  -- slots' contents, so a name->slot map built once goes stale across placements
+  -- and would move the wrong token.
+  local function tokenSlot(name)
+    for i = 1, NUM_PET_ACTION_SLOTS do
+      local n, _, isToken = GetPetActionInfo(i)
+      if isToken and n == name then return i end
+    end
   end
   for _, p in ipairs(petslots) do
-    if p.type == "token" and tokens[p.strindex] then
-      PickupPetAction(tokens[p.strindex])
-      PickupPetAction(p.id)
-    elseif p.type == "spell" then
+    if p.type == "token" then
+      local from = tokenSlot(p.strindex)
+      if from then
+        PickupPetAction(from)
+        PickupPetAction(p.id)
+      end
+    elseif p.type == "spell" and PickupPetSpell then
+      -- Guard PickupPetSpell (absent on some clients) so both calls are gated
+      -- together — otherwise PickupPetAction places an empty cursor over the slot.
       PickupPetSpell(p.index)
       PickupPetAction(p.id)
     end
