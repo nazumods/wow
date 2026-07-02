@@ -14,22 +14,45 @@ end
 local Hider = CreateFrame("Frame", "StanceHider", UIParent)
 Hider:Hide()
 
+-- StanceBar is a protected, Edit-Mode-managed frame: Hide/Show/SetParent are
+-- blocked under combat lockdown, and onLoad can run mid-combat (a /reload during
+-- a fight). Defer any change requested during combat to PLAYER_REGEN_ENABLED.
+local pendingHide  -- nil = nothing pending; boolean = desired hide state
+local combatWatcher = CreateFrame("Frame")
+
+local function applyHide(hide)
+  if InCombatLockdown() then
+    pendingHide = hide
+    combatWatcher:RegisterEvent("PLAYER_REGEN_ENABLED")
+    return
+  end
+  if hide then
+    StanceBar:Hide()
+    StanceBar:SetParent(Hider)
+  else
+    StanceBar:Show()
+    StanceBar:SetParent(UIParent)
+  end
+end
+
+combatWatcher:SetScript("OnEvent", function(self)
+  self:UnregisterEvent("PLAYER_REGEN_ENABLED")
+  if pendingHide ~= nil then
+    local hide = pendingHide
+    pendingHide = nil
+    applyHide(hide)
+  end
+end)
+
 local function update(classId, hide)
   if classId == Player:GetClassId() then
-    if hide then
-      StanceBar:Hide()
-      StanceBar:SetParent(Hider)
-    else
-      StanceBar:Show()
-      StanceBar:SetParent(UIParent)
-    end
+    applyHide(hide)
   end
 end
 
 function ns:onLoad()
   if ns.db.hide[Player:GetClassId()] == true then
-    StanceBar:Hide()
-    StanceBar:SetParent(Hider)
+    applyHide(true)
   end
 
   local settings = SettingsFrame:new{
