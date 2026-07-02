@@ -183,7 +183,10 @@ local function FindOrCreateMacro(m)
   local numG, numC = GetNumMacros()
   local isChar = m.id > MAX_ACCOUNT_MACROS
   local canG, canC = numG < MAX_ACCOUNT_MACROS, numC < MAX_CHARACTER_MACROS
-  local perchar = isChar and canC or (canG and false or canC)
+  -- Prefer the macro's original bank; only fall back to the other when the
+  -- preferred one is full. (The old `canG and false or canC` form wrongly put
+  -- account macros into the character bank whenever both had free slots.)
+  local perchar = isChar and canC or (not canG and canC)
   if not canG and not canC then
     Warn("No macro space for: " .. m.name)
     return nil
