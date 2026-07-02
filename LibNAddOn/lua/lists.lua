@@ -76,6 +76,7 @@ function lists.find(table, value)
         return i, v
       end
     end
+    return nil  -- a predicate that matched nothing shouldn't fall through to == compare
   end
   for i,v in ipairs(table) do
     if v == value then

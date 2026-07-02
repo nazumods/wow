@@ -11,7 +11,7 @@ Data-collection backbone for the suite. Scans the active character each login/re
 | `init.lua` | Addon bootstrap (assignment form) |
 | `types.lua` | LuaLS aliases: `Specialization`, `SpecializationKey` |
 | `broker.lua` | `Broker` class + `ns:RegisterBroker`/`InitBrokers`; reset constants `RESET_SUNDAY/DAILY/WEEKLY`; reset-boundary timestamps `ns.LAST_DAILY_RESET`/`LAST_RESET`/`LAST_SUNDAY_RESET` |
-| `database.lua` | `ns:MigrateDB` (v27), `ns:initialize` (creates the per-char struct, then `InitBrokers`/`InitWarband`); `/characters list`, `/characters delete <name>` (also prunes the character's cached bank gear), `/characters cleanup` (recount numCharacters + drop bank gear for untracked characters) |
+| `database.lua` | `ns:MigrateDB` (v29), `ns:initialize` (creates the per-char struct, then `InitBrokers`/`InitWarband`); `/characters list`, `/characters delete <name>` (also prunes the character's cached bank gear), `/characters cleanup` (recount numCharacters + drop bank gear for untracked characters) |
 | `main.lua` | `ns:refresh` + `ns:refreshQueue` (one **field** scanned per 100ms); `/characters refresh`, `/characters dump` |
 | `login.lua` | `ns.onLogin` → `initialize()` once, then `refresh()` |
 | `logging.lua` | Settings panel **Warbandeer → Logging** subcategory: opt-in `combatLogging` checkbox (default off, `db.settings.combatLogging`). `LoggingCombat(true)` writes COMBAT_LOG events to `Logs/WoWCombatLog.txt` for offline parsing; the client never persists the toggle, so it's re-applied each `PLAYER_LOGIN`. Enables `advancedCombatLogging` via `SetTemporaryCVar` (restored at logout) only while active; only ever enables (never force-disables a manual `/combatlog`) |
