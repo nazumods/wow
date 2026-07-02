@@ -2,7 +2,7 @@
 ## Category: Shadows of UI
 ## Title: BarNonce
 ## Notes: Remove padding and set 80% opacity on Action Bar 1 and 2
-## Version: 12.0.0-5
+## Version: 12.0.0-6
 ## Author: nazuraki
 ## IconTexture: Interface\Icons\spell_holy_powerinfusion
 
