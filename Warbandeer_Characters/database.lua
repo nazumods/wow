@@ -81,12 +81,13 @@ end, "Repair stored data (recount characters)")
 ---@field isAlliance boolean
 ---@field realm string
 ---@field sex integer  UnitSex code (2=male, 3=female); refreshed each login for the active character
+---@field guid string  "Player-<realmID>-<lowGUID>" UnitGUID; refreshed each login for the active character
 
 ---@class Warbandeer_Characters
 ---@field MigrateDB fun(self) Migrate database to latest version
 function ns:MigrateDB()
   local db = ns.db
-  if db.version == 29 then return end
+  if db.version == 30 then return end
   if not db.characters then db.characters = {} end
   if not db.numCharacters then
     db.numCharacters = countCharacters(db)
@@ -320,6 +321,14 @@ function ns:MigrateDB()
   if (db.version or 0) < 29 then
     db.version = 29
   end
+
+  -- v30: per-character GUID (`guid`: the "Player-<realmID>-<lowGUID>" UnitGUID string)
+  -- (non-destructive).  Stamped by ns:initialize() each login for the active character;
+  -- nothing to seed — old revisions simply lack it until the character next logs in, so
+  -- rollback is lossless.
+  if (db.version or 0) < 30 then
+    db.version = 30
+  end
 end
 
 ---@class Warbandeer_Characters
@@ -352,9 +361,10 @@ function ns:initialize()
     self.db.numCharacters = self.db.numCharacters + 1
   end
   self.currentData = c
-  -- Refresh each login so characters created before `sex` existed are backfilled
+  -- Refresh each login so characters created before `sex`/`guid` existed are backfilled
   -- the next time they log in (alts not yet seen default to male at render time).
   c.sex = UnitSex("player")
+  c.guid = UnitGUID("player")
 
   self:InitBrokers()
   self:InitWarband()

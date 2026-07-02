@@ -1,6 +1,6 @@
 # Warbandeer_Characters (Data Layer)
 
-**Deps:** LibNAddOn, LibNUI · **SavedVars:** `WarbandeerCharDB` (v29) · **Commands:** `/characters`, `/wbc` · **API:** `WarbandeerApi`
+**Deps:** LibNAddOn, LibNUI · **SavedVars:** `WarbandeerCharDB` (v30) · **Commands:** `/characters`, `/wbc` · **API:** `WarbandeerApi`
 
 Data-collection backbone for the suite. Scans the active character each login/refresh and stores everything in `WarbandeerCharDB`, exposing it to the rest of the suite through the `WarbandeerApi` global. Per-field scanning is driven by the **broker** system (`broker.lua`).
 
@@ -11,7 +11,7 @@ Data-collection backbone for the suite. Scans the active character each login/re
 | `init.lua` | Addon bootstrap (assignment form) |
 | `types.lua` | LuaLS aliases: `Specialization`, `SpecializationKey` |
 | `broker.lua` | `Broker` class + `ns:RegisterBroker`/`InitBrokers`; reset constants `RESET_SUNDAY/DAILY/WEEKLY`; reset-boundary timestamps `ns.LAST_DAILY_RESET`/`LAST_RESET`/`LAST_SUNDAY_RESET` |
-| `database.lua` | `ns:MigrateDB` (v29), `ns:initialize` (creates the per-char struct, then `InitBrokers`/`InitWarband`); `/characters list`, `/characters delete <name>` (also prunes the character's cached bank gear), `/characters cleanup` (recount numCharacters + drop bank gear for untracked characters) |
+| `database.lua` | `ns:MigrateDB` (v30), `ns:initialize` (creates the per-char struct, then `InitBrokers`/`InitWarband`); `/characters list`, `/characters delete <name>` (also prunes the character's cached bank gear), `/characters cleanup` (recount numCharacters + drop bank gear for untracked characters) |
 | `main.lua` | `ns:refresh` + `ns:refreshQueue` (one **field** scanned per 100ms); `/characters refresh`, `/characters dump` |
 | `login.lua` | `ns.onLogin` → `initialize()` once, then `refresh()` |
 | `logging.lua` | Settings panel **Warbandeer → Logging** subcategory: opt-in `combatLogging` checkbox (default off, `db.settings.combatLogging`). `LoggingCombat(true)` writes COMBAT_LOG events to `Logs/WoWCombatLog.txt` for offline parsing; the client never persists the toggle, so it's re-applied each `PLAYER_LOGIN`. Enables `advancedCombatLogging` via `SetTemporaryCVar` (restored at logout) only while active; only ever enables (never force-disables a manual `/combatlog`) |
@@ -141,6 +141,7 @@ Also on the API table: `ALLIANCE_RACES`, `HORDE_RACES`, `professionInfo`.
 -- Top-level (set once at creation in initialize):
 name, classId, className, classKey, race, raceId, raceIdx, isAlliance, realm
 sex           -- UnitSex code (2=male, 3=female); refreshed each login for the active char (alts seen before this field default to male at render time)
+guid          -- "Player-<realmID>-<lowGUID>" UnitGUID; refreshed each login for the active char (alts not yet seen since v30 lack it until next login)
 lastRefresh   -- set by refreshQueue when a full scan completes
 
 -- Sub-tables (one per broker, populated by their fields):
@@ -318,7 +319,7 @@ A `Broker` (from `broker.lua`) holds a `fields` table; each field is `{ get, eve
 ## SavedVariables (`WarbandeerCharDB`)
 
 ```lua
-{ version = 29, numCharacters, lastDailyReset, lastReset, lastSundayReset,
+{ version = 30, numCharacters, lastDailyReset, lastReset, lastSundayReset,
   characters = { ["Name"] = Character },
   -- account-wide warband wealth (v8); not per-character
   warband = {
