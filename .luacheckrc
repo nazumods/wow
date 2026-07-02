@@ -58,6 +58,7 @@ std = {
     "date",
     "floor",
     "format",
+    "getmetatable",
     "gsub",
     "ipairs",
     "loadstring",

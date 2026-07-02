@@ -1,7 +1,7 @@
 ---@class LibNAddOn
 local ns = select(2, ...)
-local Mixin, setmetatable = Mixin, setmetatable
-local fill = ns.lua.maps.fill
+local Mixin, setmetatable, getmetatable, type, pairs = Mixin, setmetatable, getmetatable, type, pairs
+local merge = ns.lua.maps.merge
 
 ---@class Lua
 ---@field Class fun(parent: table?, fn: function, defaults: table?, ...: table?): table create a class with optional parent class, constructor function, default properties and mixins
@@ -21,7 +21,16 @@ function ns.lua.Class(parent, fn, defaults, ...)
 
   -- define the constructor
   function c:new(o)
-    if defaults then fill(o, defaults) end
+    if defaults then
+      for k, v in pairs(defaults) do
+        if o[k] == nil then
+          -- plain-table defaults are copied so instances never share (or
+          -- corrupt) the class's default tables; metatabled values (frames,
+          -- widget instances) are shared by reference on purpose
+          o[k] = (type(v) == "table" and getmetatable(v) == nil) and merge({}, v) or v
+        end
+      end
+    end
     o = parent and parent:new(o) or o
     Mixin(o, parent or {}, c)
     setmetatable(o, self)
