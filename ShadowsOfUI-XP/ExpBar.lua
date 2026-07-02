@@ -115,6 +115,10 @@ function ExpBar:onLeave()
 end
 
 function ExpBar:update()
+  -- At max level GetXP()/GetMaxXP() is 0/0 -> nan. The bar is hidden on dinging
+  -- max but its XP/resting events stay registered, so guard here rather than
+  -- writing "nan%" onto a hidden bar when a later resting event fires.
+  if Player:isMaxLevel() then return end
   local w = self:Width()
   local xp = Player:GetXPPercent()
   local rest = Player:GetRestPercent()

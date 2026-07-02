@@ -48,11 +48,16 @@ Weekly.fields = {
   preMidnight = {
     ids = Set{87308,91795},
     resetOn = ns.RESET_WEEKLY,
-    get = function(self)
-      return {
-        eight = IsQuestFlaggedCompleted(87308),
-        three = IsQuestFlaggedCompleted(91795)
-      }
+    get = function(self, _, current)
+      -- Sticky until the weekly reset: a transient/early read (quest log not yet
+      -- populated) returns false for both — don't let it wipe a stored completion.
+      local eight = IsQuestFlaggedCompleted(87308)
+      local three = IsQuestFlaggedCompleted(91795)
+      if current then
+        eight = eight or current.eight
+        three = three or current.three
+      end
+      return { eight = eight, three = three }
     end,
     reset = function() return { three = false, eight = false } end,
     event = "QUEST_TURNED_IN",
@@ -107,10 +112,10 @@ Weekly.fields = {
     end,
     reset = function() return 0 end,
     event = "QUEST_TURNED_IN",
-    eventHandler = function(self, currentValue, questId)
-      if self.ids[questId] then
-        self:set((currentValue or 0) + 1)
-      end
+    eventHandler = function(self, _, questId)
+      -- Recompute the count from the live quest flags (as get does) rather than
+      -- blindly incrementing: a re-fired QUEST_TURNED_IN would otherwise over-count.
+      if self.ids[questId] then self:set(self:get()) end
     end,
   },
   ---@class WeeklyBroker
