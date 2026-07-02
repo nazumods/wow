@@ -30,18 +30,12 @@ local function updateMerchant()
       local link = on and GetMerchantItemLink(index)
       local r, g, b, desat
       if link then r, g, b, desat = tintFor(link) end
-      -- Only paint when we have a tint. This hook runs AFTER
-      -- MerchantFrame_UpdateMerchantInfo, which repaints every button from
-      -- scratch, so leaving untinted buttons alone preserves Blizzard's own cues
-      -- (red = unusable, grey = can't afford, heirloom desaturation) instead of
-      -- stomping them all to white.
-      if r then
-        SetItemButtonNameFrameVertexColor(merchantButton, r, g, b)
-        SetItemButtonSlotVertexColor(merchantButton, r, g, b)
-        SetItemButtonTextureVertexColor(itemButton, 0.9 * r, 0.9 * g, 0.9 * b)
-        SetItemButtonNormalTextureVertexColor(itemButton, 0.9 * r, 0.9 * g, 0.9 * b)
-        SetItemButtonDesaturated(itemButton, desat)
-      end
+      if not r then r, g, b, desat = 1, 1, 1, false end
+      SetItemButtonNameFrameVertexColor(merchantButton, r, g, b)
+      SetItemButtonSlotVertexColor(merchantButton, r, g, b)
+      SetItemButtonTextureVertexColor(itemButton, 0.9 * r, 0.9 * g, 0.9 * b)
+      SetItemButtonNormalTextureVertexColor(itemButton, 0.9 * r, 0.9 * g, 0.9 * b)
+      SetItemButtonDesaturated(itemButton, desat)
     end
   end
 end
@@ -77,7 +71,6 @@ EventUtil.ContinueOnAddOnLoaded("Blizzard_AuctionHouseUI", function()
         else
           r, g, b, desat = 1, 1, 1, false
           button.SelectedHighlight:SetVertexColor(1, 1, 1)
-          button.SelectedHighlight:Hide()  -- else a toggled-off row keeps a white ADD-blend glow until the next scroll
         end
         cell.Icon:SetVertexColor(r, g, b)
         if cell.IconBorder then cell.IconBorder:SetVertexColor(r, g, b) end
