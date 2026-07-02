@@ -9,7 +9,7 @@
 local libn = {}
 
 -- Mirrors the load order of LibNAddOn.toc (maps must precede class:
--- class.lua reads ns.lua.maps.fill at load time).
+-- class.lua reads ns.lua.maps.merge at load time).
 local FILES = {
   "lua/lua.lua",
   "lua/strings.lua",

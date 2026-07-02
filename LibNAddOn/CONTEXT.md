@@ -80,14 +80,14 @@ local MyClass = Class(Parent, function(self) ... end, { defaults })
 local instance = MyClass:new{ field = value }
 ```
 
-Construction order: `fill(o, defaults)` → `parent:new(o)` → `Mixin(o, parent, class)` → `setmetatable` → `fn(o)` → `parent.onLoad(o)` → `class.onLoad(o)` → `defaults.onLoad(o)`.
+Construction order: copy defaults into `o` (missing keys only; plain-table defaults are deep-copied per instance, metatabled values shared by reference) → `parent:new(o)` → `Mixin(o, parent, class)` → `setmetatable` → `fn(o)` → `parent.onLoad(o)` → `class.onLoad(o)` → `defaults.onLoad(o)`.
 
 ## Lua utilities
 
 ### `ns.lua.maps`
 | Function | Signature | Notes |
 |---|---|---|
-| `merge` | `(dest, ...) → dest` | Deep-merge; overwrites scalars, recurses sub-tables; skips `__index` |
+| `merge` | `(dest, ...) → dest` | Deep-merge; overwrites scalars, recurses sub-tables; copies plain sub-tables (never aliases the source), metatabled values by reference; skips `__index` |
 | `fill` | `(dest, ...) → dest` | Like merge but does NOT overwrite existing keys (shallow) |
 | `map` | `(t, f) → table` | `f(v, k)`, same keys |
 | `toMap` | `(t, f?) → table` | List→map; each value becomes a key. `f(v,i)` produces the mapped value |

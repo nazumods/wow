@@ -63,6 +63,45 @@ describe("ns.lua.Class", function()
     assert.equal(42, C:new{}:Extra())
   end)
 
+  it("gives each instance its own copy of table-valued defaults", function()
+    local C = Class(nil, function() end, {list = {}, point = {x = 1}})
+    local a, b = C:new{}, C:new{}
+    assert.not_equal(a.list, b.list)
+    table.insert(a.list, "item")
+    a.point.x = 99
+    assert.same({}, b.list)
+    assert.equal(1, b.point.x)
+    assert.equal(1, C:new{}.point.x) -- the class defaults stay pristine too
+  end)
+
+  it("copies table-valued defaults deeply", function()
+    local C = Class(nil, function() end, {position = {Center = {}}})
+    local a, b = C:new{}, C:new{}
+    assert.not_equal(a.position.Center, b.position.Center)
+  end)
+
+  it("shares metatabled and function defaults by reference", function()
+    local frame = setmetatable({}, {__index = {IsShown = function() end}})
+    local fn = function() end
+    local C = Class(nil, function() end, {parent = frame, handler = fn})
+    local o = C:new{}
+    assert.equal(frame, o.parent)
+    assert.equal(fn, o.handler)
+  end)
+
+  it("keeps a caller-provided table by reference, uncopied", function()
+    local mine = {"a"}
+    local C = Class(nil, function() end, {list = {}})
+    assert.equal(mine, C:new{list = mine}.list)
+  end)
+
+  it("copies parent table-valued defaults per instance as well", function()
+    local P = Class(nil, function() end, {plist = {}})
+    local C = Class(P, function() end, {})
+    local a, b = C:new{}, C:new{}
+    assert.not_equal(a.plist, b.plist)
+  end)
+
   it("calls parent class-level onLoad exactly once when constructing a subclass", function()
     local calls = 0
     local P = Class(nil, function() end)

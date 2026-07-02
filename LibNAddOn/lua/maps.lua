@@ -1,6 +1,6 @@
 ---@class LibNAddOn
 local ns = select(2, ...)
-local select, pairs, insert = select, pairs, table.insert
+local select, pairs, insert, type, getmetatable = select, pairs, table.insert, type, getmetatable
 
 -- Maps
 -- Maps are used to store key-value pairs, where keys are not necessarily numeric or sequential.
@@ -16,7 +16,10 @@ local select, pairs, insert = select, pairs, table.insert
 local maps = {}
 ns.lua.maps = maps
 
----merge multiple tables into the first one, overwriting existing keys
+---merge multiple tables into the first one, overwriting existing keys; plain
+---sub-tables are copied so the sources are never aliased into the destination,
+---while metatabled values (frames, mixins, class instances) stay shared by
+---reference
 ---@param destination table
 ---@param ... any
 ---@return table
@@ -28,6 +31,8 @@ function maps.merge(destination, ...)
         if '__index' ~= k then
           if type(destination[k]) == "table" and type(v) == "table" then
             maps.merge(destination[k], v)
+          elseif type(v) == "table" and getmetatable(v) == nil then
+            destination[k] = maps.merge({}, v)
           else
             destination[k] = v
           end

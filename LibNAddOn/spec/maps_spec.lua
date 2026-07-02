@@ -30,6 +30,29 @@ describe("ns.lua.maps", function()
     it("ignores nil sources", function()
       assert.same({a = 1}, maps.merge({a = 1}, nil, nil))
     end)
+
+    it("copies plain sub-tables instead of aliasing the source", function()
+      local src = {sub = {x = 1}}
+      local t = maps.merge({}, src)
+      assert.same({x = 1}, t.sub)
+      assert.not_equal(src.sub, t.sub)
+      t.sub.x = 99
+      assert.equal(1, src.sub.x)
+    end)
+
+    it("copies nested sub-tables deeply", function()
+      local src = {a = {b = {c = 1}}}
+      local t = maps.merge({}, src)
+      assert.not_equal(src.a.b, t.a.b)
+      t.a.b.c = 99
+      assert.equal(1, src.a.b.c)
+    end)
+
+    it("assigns metatabled values by reference, not by copy", function()
+      local obj = setmetatable({v = 1}, {__index = {Method = function() end}})
+      local t = maps.merge({}, {obj = obj})
+      assert.equal(obj, t.obj)
+    end)
   end)
 
   describe("fill", function()
