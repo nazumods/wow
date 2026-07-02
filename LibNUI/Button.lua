@@ -100,16 +100,10 @@ local Button = Class(Frame, function(self)
     }
   end
 
-  -- cooldown
-  if self.itemID or self.spellID then
-    self.cooldown = Label:new{
-      parent = self,
-      position = {
-        All = true,
-        Hide = true,
-      },
-    }
-  end
+  -- The cooldown Label is created lazily (see Button:ensureCooldown): a
+  -- SecureButton assigns spellID/itemID in its own constructor, which runs AFTER
+  -- this parent Button constructor, so they aren't set here for secure spell/toy
+  -- buttons — creating it here would skip them and crash on their first cooldown.
 end, {
   type = "Button",
   scripts = {
@@ -121,6 +115,21 @@ end, {
   },
 })
 ui.Button = Button
+
+-- Lazily create the cooldown Label on first use. Not created in the constructor
+-- because SecureButton assigns spellID/itemID after the parent Button constructor
+-- has already run (see the note there).
+function Button:ensureCooldown()
+  if not self.cooldown then
+    self.cooldown = Label:new{
+      parent = self,
+      position = {
+        All = true,
+        Hide = true,
+      },
+    }
+  end
+end
 
 -- Getter/setter for the button text. Unlike the standard pattern, the set
 -- path also returns the (new) text rather than self.
@@ -162,6 +171,7 @@ function Button:OnMouseUp()
     local cd = C_Spell and C_Spell.GetSpellCooldown and C_Spell.GetSpellCooldown(self.spellID)
     local start, duration = cd and cd.startTime or 0, cd and cd.duration or 0
     if start > 0 then
+      self:ensureCooldown()
       self.cooldownEnd = start + duration
       self._widget:GetNormalTexture():SetDesaturated(true)
       self.cooldown:Text(formatCooldown(duration))
@@ -171,6 +181,7 @@ function Button:OnMouseUp()
   elseif self.itemID then
     local start, duration, enable = C_Item.GetItemCooldown(self.itemID)
     if enable and start > 0 then
+      self:ensureCooldown()
       self.cooldownEnd = start + duration
       self._widget:GetNormalTexture():SetDesaturated(true)
       self.cooldown:Text(formatCooldown(duration))
