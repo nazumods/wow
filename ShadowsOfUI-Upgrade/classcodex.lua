@@ -92,7 +92,9 @@ local function ccClassSpec(charData)
     name = getInfo and select(2, getInfo(spec.id))
   end
   name = name or spec.active or spec.primary   -- prefer the played spec; `primary` is the loot spec
-  if not name then return nil end
+  -- Defensive like every other read in this file: `name` mixes a live API return
+  -- with stored DB strings, so type-check rather than nil-check before :lower().
+  if type(name) ~= "string" then return nil end
   return token, (name:lower():gsub("%s+", "-"))
 end
 
