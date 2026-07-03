@@ -13,7 +13,9 @@ local function SetupBar(prefix, count)
       local btn = _G[prefix .. i]
       if btn then
         btn:SetAlpha(0.7)
-        btn.NormalTexture:SetAlpha(0.7)
+        -- Blizzard field, not ours — guard so a rename degrades to a slightly
+        -- brighter border instead of a crash.
+        if btn.NormalTexture then btn.NormalTexture:SetAlpha(0.7) end
       end
     end
   end
