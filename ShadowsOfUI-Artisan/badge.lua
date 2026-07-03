@@ -117,7 +117,15 @@ function ns.UpdateOrderBadge()
   if not applyBadge(badge, skillLineID, currencyId) then return end
   badge.text:SetTextColor(WHITE_FONT_COLOR:GetRGB())  -- match the white crafting-window amount
   badge:ClearAllPoints()
-  badge:SetPoint("TOPLEFT", page, "TOPLEFT", 120, -35)
+  -- Selecting an order shows the OrderView's own concentration pool in this same header slot
+  -- (TOPLEFT 120,-35); when it's up, sit just to its right so both read cleanly. On the browse
+  -- list that display is hidden, so the badge takes the slot on its own.
+  local conc = page.OrderView and page.OrderView.ConcentrationDisplay
+  if conc and conc:IsShown() then
+    badge:SetPoint("LEFT", conc, "RIGHT", 16, 0)
+  else
+    badge:SetPoint("TOPLEFT", page, "TOPLEFT", 120, -35)
+  end
 end
 
 -- ── Spellbook professions page (Blizzard_ProfessionsBook) ────────────────────────────────
@@ -184,6 +192,13 @@ EventUtil.ContinueOnAddOnLoaded("Blizzard_Professions", function()
       ns.UpdateOrderBadge()
     end)
     orders:HookScript("OnHide", function() orderDriver:UnregisterEvent("CURRENCY_DISPLAY_UPDATE") end)
+    -- The OrderView's concentration pool appears/vanishes in our header slot as orders are
+    -- selected/closed; re-anchor the badge beside it (or back to the slot) on each toggle.
+    local conc = orders.OrderView and orders.OrderView.ConcentrationDisplay
+    if conc then
+      conc:HookScript("OnShow", ns.UpdateOrderBadge)
+      conc:HookScript("OnHide", ns.UpdateOrderBadge)
+    end
   end
 end)
 
