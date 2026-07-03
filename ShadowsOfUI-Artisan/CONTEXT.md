@@ -56,10 +56,13 @@ known yet; `onEnter` renders the breakdown tooltip (header = currency icon + nam
 - **Crafting Orders tab** (`ns.UpdateOrderBadge`): same `ContinueOnAddOnLoaded("Blizzard_Professions")`
   block hooks `ProfessionsFrame.OrdersPage`'s `Refresh` (`ProfessionsCraftingOrderPageMixin`), which
   Blizzard calls for **every** page on each `ProfessionsMixin:Refresh`, so the shared `ns.currentSkill`
-  is set from the same `professionInfo`. One badge (`ns.orderBadge`) anchored `OrdersPage TOPLEFT
-  (120,-35)` — the Orders header has no ConcentrationDisplay, and both pages `setAllPoints` the frame,
-  so the offset matches the crafting badge's fallback slot on screen. Its own driver frame registers
-  `CURRENCY_DISPLAY_UPDATE` only while the Orders page is shown.
+  is set from the same `professionInfo`. One badge (`ns.orderBadge`) at `OrdersPage TOPLEFT (120,-35)`
+  (both pages `setAllPoints` the frame, so this matches the crafting badge's slot on screen). The
+  **OrderView** — shown after an order is selected — has its own `ConcentrationDisplay` anchored to
+  that *exact* slot; while it's shown the badge sits `LEFT` of its `RIGHT` (+16) instead, so both read
+  cleanly, reverting to the slot on the browse list. Re-anchored via `ConcentrationDisplay`
+  `OnShow`/`OnHide` hooks; its own driver frame registers `CURRENCY_DISPLAY_UPDATE` only while the
+  Orders page is shown.
 - **Spellbook page** (`ns.UpdateBookBadges`): `ContinueOnAddOnLoaded("Blizzard_ProfessionsBook")`
   → `hooksecurefunc("ProfessionsBookFrame_Update", …)`. Iterates `PrimaryProfession1/2` +
   `SecondaryProfession1/2/3`, reads `frame.skillLine` (stamped by Blizzard's `FormatProfession`),
