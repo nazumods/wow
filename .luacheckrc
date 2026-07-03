@@ -15,6 +15,7 @@ include_files = {
   "ShadowsOfUI-Reputations/**/*.lua", "ShadowsOfUI-Quests/**/*.lua",
   "ShadowsOfUI-Compartment/**/*.lua", "ShadowsOfUI-Delves/**/*.lua",
   "ShadowsOfUI-Castbar/**/*.lua", "ShadowsOfUI-Collectibles/**/*.lua",
+  "ShadowsOfUI-ProfCommissions/**/*.lua",
   "Warbandeer/**/*.lua", "Warbandeer_Alias/**/*.lua", "Warbandeer_Bars/**/*.lua",
   "Warbandeer_Characters/**/*.lua", "Warbandeer_Collected/**/*.lua",
 }
@@ -42,6 +43,7 @@ files["ShadowsOfUI-Compartment/**/*.lua"] = {globals = {"SLASH_SUI_COMPARTMENT1"
 files["ShadowsOfUI-Delves/**/*.lua"] = {globals = {"SLASH_SUI_DELVES1"}}
 files["ShadowsOfUI-Castbar/**/*.lua"] = {globals = {"SLASH_SUI_CASTBAR1"}}
 files["ShadowsOfUI-Collectibles/**/*.lua"] = {globals = {"SLASH_SUI_COLLECT1"}}
+files["ShadowsOfUI-ProfCommissions/**/*.lua"] = {globals = {"SLASH_SUI_PROFCOMM1", "ShadowsOfUI_ProfCommissions_InfoCellMixin"}}
 files["Warbandeer_Bars/init.lua"] = {globals = {"WarbandeerBarsSettings"}}
 
 std = {
@@ -88,8 +90,10 @@ std = {
 
     "AbbreviateNumbers",
     "CopyTable",
+    "CreateFromMixins",
     "Mixin",
     "select",
+    "TableBuilderCellMixin",
     "tInvert",
 
     -- Globals defined by this suite's own addons (cross-addon reads).
@@ -255,6 +259,8 @@ std = {
     "ProfessionsBookFrame",
     "ProfessionsFrame",
     "ProfessionsCustomerOrdersFrame",
+    "ProfessionsCrafterTableCellCommissionMixin",
+    "ProfessionsSortOrder",
     "AddonCompartmentFrame",
     "Minimap",
     "GetMinimapShape",
