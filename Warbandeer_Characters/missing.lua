@@ -57,6 +57,11 @@ function ns.getMissingFields(toon)
 
   if not toon.lastRefresh then table.insert(missing, "lastRefresh") end
 
+  -- guid is stamped every login (added in DB v30); a nil means the character hasn't
+  -- logged in since, so external tools keying off it (e.g. a character-list sorter)
+  -- can't yet identify it from character-list-order.txt's raw GUID fragments.
+  if not toon.guid then table.insert(missing, "guid") end
+
   local bars = missingBars(toon.name)
   if bars then table.insert(missing, bars) end
 
