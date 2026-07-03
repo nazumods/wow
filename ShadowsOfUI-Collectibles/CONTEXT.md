@@ -19,8 +19,14 @@ style — hooks modeled on `ShadowsOfUI-Ilvl`, not copied). Assignment-form init
 
 ## Detection (`detect.lua`)
 
-Both predicates take an item hyperlink or `"item:<id>"` string; positive results are cached for the
-session (frame refreshes re-scan otherwise).
+Both predicates take an item hyperlink or `"item:<id>"` string. Results are cached per link for the
+session: positives always; negatives only from the expensive tooltip-scanned fallthrough and only
+once the item's data is loaded (`GetItemInfo` name present — an incomplete tooltip reads as a false
+negative). Known-negatives are wiped (+ `ns.Refresh()`) on collection-gain events
+(`NEW_RECIPE_LEARNED`, `NEW_MOUNT_ADDED`, `NEW_PET_ADDED`, `TOYS_UPDATED`,
+`TRANSMOG_COLLECTION_SOURCE_ADDED`, `QUEST_TURNED_IN`, `HOUSING_STORAGE_UPDATED`);
+collectible-negatives are permanent (an item's type never changes). The cheap API paths
+(battlepet/quest/special/container/toy/mount) never negative-cache.
 
 - **`ns.IsKnown(link)`** — owned/known by this account:
   - caged battlepet link → `C_PetJournal.GetNumCollectedInfo(species) > 0`.
@@ -78,5 +84,7 @@ change re-tints what's on screen (pattern from `ShadowsOfUI-Ilvl/surfaces.lua`).
   survives toggling other options.
 - **"Teaches you" is enUS-specific** — the collectible tooltip fallback for non-class-typed learn
   items is locale-dependent (class-typed collectibles are locale-safe).
-- **Caches are positive-only** — an item that later becomes known is picked up (cache miss re-scans);
-  one that *was* known stays cached for the session.
+- **Known-negatives depend on the event list** — a cached "not known" only flips via one of the
+  collection-gain events registered in `detect.lua`; a knowledge source with no covering event would
+  read stale until `/reload`. Positives are forever (something known never becomes unknown);
+  an item that becomes known mid-session is caught by the event wipe + `ns.Refresh()`.
