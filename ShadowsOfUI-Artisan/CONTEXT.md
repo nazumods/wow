@@ -4,16 +4,18 @@
 
 Adds a currency badge — the current expansion's artisan crafting currency (Midnight's
 per-profession "Artisan's … Moxie") for the logged-in character, with an account-wide hover
-breakdown — on **two surfaces**: the crafting window (`ProfessionsFrame`, beside Blizzard's
-Concentration readout) and the spellbook professions page (`ProfessionsBookFrame`, under each
-profession's spell-button labels). Assignment-form init (`local ns = LibNAddOn(...)`); no LibNUI.
+breakdown — on **three surfaces**: the crafting window (`ProfessionsFrame.CraftingPage`, beside
+Blizzard's Concentration readout), the crafting-window **Crafting Orders tab**
+(`ProfessionsFrame.OrdersPage`, top-left header slot), and the spellbook professions page
+(`ProfessionsBookFrame`, under each profession's spell-button labels). Assignment-form init
+(`local ns = LibNAddOn(...)`); no LibNUI.
 
 ## Files
 
 | File | Purpose |
 |---|---|
 | `core.lua` | Bootstrap + data. `ns.ARTISAN_CURRENCIES` (parent skillLineID → currencyId, current expansion) and `ns.BuildBreakdown(skillLineID)` → sorted `ArtisanEntry[]`. Manual `/sartisan` dev command. |
-| `badge.lua` | Shared `makeBadge`/`applyBadge`/`onEnter` + two surfaces: `ns.UpdateBadge` (crafting window, one badge by the concentration readout) and `ns.UpdateBookBadges` (spellbook page, one badge per profession under its spell label). Both refresh on profession switch + currency change while shown. |
+| `badge.lua` | Shared `makeBadge`/`applyBadge`/`onEnter` + three surfaces: `ns.UpdateBadge` (crafting window, one badge by the concentration readout), `ns.UpdateOrderBadge` (Crafting Orders tab, one badge in the top-left header) and `ns.UpdateBookBadges` (spellbook page, one badge per profession under its spell label). All refresh on profession switch + currency change while shown. |
 
 ## `ns.ARTISAN_CURRENCIES`
 
@@ -51,6 +53,13 @@ known yet; `onEnter` renders the breakdown tooltip (header = currency icon + nam
   (parent skill line, e.g. Enchanting 333), falling back to `professionID`. One badge
   (`ns.craftBadge`) anchored `LEFT` of `page.ConcentrationDisplay`'s `RIGHT` when shown, else the
   page `TOPLEFT (120,-35)` (the concentration slot).
+- **Crafting Orders tab** (`ns.UpdateOrderBadge`): same `ContinueOnAddOnLoaded("Blizzard_Professions")`
+  block hooks `ProfessionsFrame.OrdersPage`'s `Refresh` (`ProfessionsCraftingOrderPageMixin`), which
+  Blizzard calls for **every** page on each `ProfessionsMixin:Refresh`, so the shared `ns.currentSkill`
+  is set from the same `professionInfo`. One badge (`ns.orderBadge`) anchored `OrdersPage TOPLEFT
+  (120,-35)` — the Orders header has no ConcentrationDisplay, and both pages `setAllPoints` the frame,
+  so the offset matches the crafting badge's fallback slot on screen. Its own driver frame registers
+  `CURRENCY_DISPLAY_UPDATE` only while the Orders page is shown.
 - **Spellbook page** (`ns.UpdateBookBadges`): `ContinueOnAddOnLoaded("Blizzard_ProfessionsBook")`
   → `hooksecurefunc("ProfessionsBookFrame_Update", …)`. Iterates `PrimaryProfession1/2` +
   `SecondaryProfession1/2/3`, reads `frame.skillLine` (stamped by Blizzard's `FormatProfession`),
