@@ -14,9 +14,28 @@ local RECIPE_SUBCLASS_TO_SKILL = {
 -- "You already know this battle pet." with the trailing "(x/y)" count stripped.
 local S_PET_KNOWN = ITEM_PET_KNOWN and ITEM_PET_KNOWN:match("[^%(]+")
 
--- Positive-only caches: an item that scanned as known/collectible stays that way
--- for the session, so repeated frame refreshes don't re-scan tooltips.
+-- Session caches, keyed by link. Positives are stable (something known stays
+-- known). Negatives are cached only by the expensive tooltip-scanned paths, and
+-- only once the item's data is loaded (an incomplete tooltip reads as a false
+-- negative); known-negatives are wiped on collection-gain events below, while
+-- collectible-negatives are permanent (an item's *type* never changes).
 local knownCache, collectibleCache = {}, {}
+
+-- A collection gain can flip a cached "not known" to known: drop the negative
+-- entries (positives stay) and re-tint whatever is on screen.
+local function forgetKnownNegatives()
+  local dropped = false
+  for link, v in pairs(knownCache) do
+    if v == false then knownCache[link], dropped = nil, true end
+  end
+  if dropped then ns.Refresh() end
+end
+for _, e in ipairs({
+  "NEW_RECIPE_LEARNED", "NEW_MOUNT_ADDED", "NEW_PET_ADDED", "TOYS_UPDATED",
+  "TRANSMOG_COLLECTION_SOURCE_ADDED", "QUEST_TURNED_IN", "HOUSING_STORAGE_UPDATED",
+}) do
+  ns:registerEvent(e, forgetKnownNegatives)
+end
 
 local function itemIDFromLink(link)
   return tonumber(link:match("item:(%d+)"))
@@ -109,7 +128,8 @@ end
 ---@return boolean
 function ns.IsKnown(link)
   if not link then return false end
-  if knownCache[link] then return true end
+  local cached = knownCache[link]
+  if cached ~= nil then return cached end
 
   local species = speciesFromLink(link)
   if species then
@@ -163,7 +183,13 @@ function ns.IsKnown(link)
     known = scanTooltipKnown(link)
   end
 
-  if known then knownCache[link] = true end
+  if known then
+    knownCache[link] = true
+  elseif itemName then
+    -- itemName loaded = the tooltip scan above saw complete data, so "not
+    -- known" is trustworthy until a collection-gain event drops it.
+    knownCache[link] = false
+  end
   return known
 end
 
@@ -173,13 +199,15 @@ end
 ---@return boolean
 function ns.IsCollectible(link)
   if not link then return false end
-  if collectibleCache[link] then return true end
+  local cached = collectibleCache[link]
+  if cached ~= nil then return cached end
 
   local result = false
+  local itemID
   if speciesFromLink(link) then
     result = true
   else
-    local itemID = itemIDFromLink(link) or select(1, GetItemInfoInstant(link))
+    itemID = itemIDFromLink(link) or select(1, GetItemInfoInstant(link))
     local _, _, _, _, _, classID, subClassID = GetItemInfoInstant(itemID or link)
     if itemID and (ns.QuestItems[itemID] or ns.SpecialItems[itemID] or ns.ContainerItems[itemID]) then
       result = true
@@ -207,6 +235,12 @@ function ns.IsCollectible(link)
     end
   end
 
-  if result then collectibleCache[link] = true end
+  if result then
+    collectibleCache[link] = true
+  elseif itemID and GetItemInfo(itemID) then
+    -- Data loaded, so the "Teaches you" scan above saw the full tooltip; an
+    -- item's class/type never changes, so the negative holds all session.
+    collectibleCache[link] = false
+  end
   return result
 end
