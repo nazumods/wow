@@ -1,0 +1,29 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+	<!-- Cell for the extra "Info" column on the crafter Crafting Orders list: two status icons —
+	     a first-craft-bonus book and a reagent-provision indicator. passThroughButtons lets the
+	     row keep its click while the cell still gets OnEnter/OnLeave for its tooltip (mirrors
+	     Blizzard's ProfessionsCrafterTableCellReagentsTemplate). -->
+	<Frame name="ShadowsOfUI_ProfCommissions_InfoCellTemplate" mixin="ShadowsOfUI_ProfCommissions_InfoCellMixin" enableMouse="true" passThroughButtons="LeftButton, RightButton" virtual="true">
+		<Size x="0" y="18"/>
+		<Scripts>
+			<OnEnter method="OnEnter"/>
+			<OnLeave method="OnLeave"/>
+		</Scripts>
+		<Layers>
+			<Layer level="ARTWORK">
+				<Texture parentKey="FirstCraft" atlas="Professions_Icon_FirstTimeCraft" useAtlasSize="false">
+					<Size x="18" y="18"/>
+					<Anchors>
+						<Anchor point="LEFT" x="0" y="0"/>
+					</Anchors>
+				</Texture>
+				<Texture parentKey="Reagents" useAtlasSize="false">
+					<Size x="18" y="18"/>
+					<Anchors>
+						<Anchor point="LEFT" x="21" y="0"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+		</Layers>
+	</Frame>
+</Ui>

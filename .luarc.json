@@ -43,7 +43,9 @@
 
     "AbbreviateNumbers",
     "CopyTable",
+    "CreateFromMixins",
     "Mixin",
+    "TableBuilderCellMixin",
     "select",
     "tInvert",
 
@@ -207,6 +209,8 @@
     "ProfessionsBookFrame",
     "ProfessionsFrame",
     "ProfessionsCustomerOrdersFrame",
+    "ProfessionsCrafterTableCellCommissionMixin",
+    "ProfessionsSortOrder",
     "AddonCompartmentFrame",
     "Minimap",
     "GetMinimapShape",
