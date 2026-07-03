@@ -101,6 +101,25 @@ function ns.UpdateBadge()
   end
 end
 
+-- ── Crafting Orders page (Blizzard_Professions OrdersPage) ───────────────────────────────
+-- Mirror of the crafting-window badge for the Crafting Orders tab, whose header has no
+-- concentration readout to sit beside. Same profession/currency as the crafting window; placed
+-- at the header slot the crafting badge falls back to (both pages setAllPoints the frame, so the
+-- page-relative offset lands in the same on-screen spot).
+function ns.UpdateOrderBadge()
+  local page = ProfessionsFrame and ProfessionsFrame.OrdersPage
+  if not page then return end
+  local skillLineID = ns.currentSkill
+  local currencyId = skillLineID and ns.ARTISAN_CURRENCIES[skillLineID]
+  ns.orderBadge = ns.orderBadge
+    or makeBadge(page, 10, { iconSize = 24, font = "GameFontNormal", textX = 6, textY = 2 })
+  local badge = ns.orderBadge
+  if not applyBadge(badge, skillLineID, currencyId) then return end
+  badge.text:SetTextColor(WHITE_FONT_COLOR:GetRGB())  -- match the white crafting-window amount
+  badge:ClearAllPoints()
+  badge:SetPoint("TOPLEFT", page, "TOPLEFT", 120, -35)
+end
+
 -- ── Spellbook professions page (Blizzard_ProfessionsBook) ────────────────────────────────
 -- A per-profession badge tucked under the right-hand spell-button labels.
 local BOOK_FRAMES = {
@@ -149,6 +168,23 @@ EventUtil.ContinueOnAddOnLoaded("Blizzard_Professions", function()
   driver:SetScript("OnEvent", ns.UpdateBadge)
   ProfessionsFrame:HookScript("OnShow", function() driver:RegisterEvent("CURRENCY_DISPLAY_UPDATE") end)
   ProfessionsFrame:HookScript("OnHide", function() driver:UnregisterEvent("CURRENCY_DISPLAY_UPDATE") end)
+
+  -- Crafting Orders tab: Refresh fires for every page on each profession switch, so the same
+  -- professionInfo drives this badge too; a dedicated driver refreshes it on currency change.
+  local orders = ProfessionsFrame.OrdersPage
+  if orders then
+    hooksecurefunc(orders, "Refresh", function(_, professionInfo)
+      ns.currentSkill = professionInfo and (professionInfo.parentProfessionID or professionInfo.professionID)
+      ns.UpdateOrderBadge()
+    end)
+    local orderDriver = CreateFrame("Frame")
+    orderDriver:SetScript("OnEvent", ns.UpdateOrderBadge)
+    orders:HookScript("OnShow", function()
+      orderDriver:RegisterEvent("CURRENCY_DISPLAY_UPDATE")
+      ns.UpdateOrderBadge()
+    end)
+    orders:HookScript("OnHide", function() orderDriver:UnregisterEvent("CURRENCY_DISPLAY_UPDATE") end)
+  end
 end)
 
 -- Blizzard_ProfessionsBook: the spellbook's professions page.

@@ -10,6 +10,9 @@ Concentration count, with the Moxie's own icon and amount. It follows whichever 
 have open. Every profession has its own Moxie — the gathering ones (Herbalism, Mining, Skinning)
 included.
 
+The same badge also shows on the **Crafting Orders tab** of that window (top-left header), so
+your Moxie stays visible while you browse and fill orders.
+
 It also appears on the **spellbook's Professions page** (open the spellbook, **Professions**
 tab): each profession there gets the same badge tucked beneath its spell-button labels, so you
 can read every profession's Moxie at a glance.
