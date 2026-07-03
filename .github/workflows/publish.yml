@@ -16,25 +16,37 @@ jobs:
     steps:
       - name: Validate ref is a release tag
         if: github.event_name == 'workflow_dispatch'
+        env:
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          if [[ ! "${{ github.ref_name }}" =~ ^[A-Za-z_]+-v[0-9]+\.[0-9]+\.[0-9]+-r[0-9]+$ ]]; then
-            echo "Error: must be run from a release tag (e.g. LibNAddOn-v12.0.5-r1), got: ${{ github.ref_name }}"
+          if [[ ! "$REF_NAME" =~ ^[A-Za-z_]+-v[0-9]+\.[0-9]+\.[0-9]+-r[0-9]+$ ]]; then
+            echo "Error: must be run from a release tag (e.g. LibNAddOn-v12.0.5-r1), got: $REF_NAME"
             exit 1
           fi
 
+      # github.event.release.body is untrusted (it's the changelog, built from
+      # commit subjects) and can contain quotes/backticks — it must reach the
+      # shell only via an env var, never interpolated straight into `run:`,
+      # or a crafted/careless commit message can inject arbitrary shell.
       - name: Resolve tag and release info
         id: info
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+          EVENT_TAG: ${{ github.event.release.tag_name }}
+          EVENT_BODY: ${{ github.event.release.body }}
+          EVENT_PRERELEASE: ${{ github.event.release.prerelease }}
         run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            TAG="${{ github.ref_name }}"
-            BODY=$(gh release view "$TAG" --repo "${{ github.repository }}" --json body --jq .body)
-            PRERELEASE=$(gh release view "$TAG" --repo "${{ github.repository }}" --json isPrerelease --jq .isPrerelease)
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            TAG="$REF_NAME"
+            BODY=$(gh release view "$TAG" --repo "$REPO" --json body --jq .body)
+            PRERELEASE=$(gh release view "$TAG" --repo "$REPO" --json isPrerelease --jq .isPrerelease)
           else
-            TAG="${{ github.event.release.tag_name }}"
-            BODY="${{ github.event.release.body }}"
-            PRERELEASE="${{ github.event.release.prerelease }}"
+            TAG="$EVENT_TAG"
+            BODY="$EVENT_BODY"
+            PRERELEASE="$EVENT_PRERELEASE"
           fi
 
           echo "tag=$TAG"               >> "$GITHUB_OUTPUT"
