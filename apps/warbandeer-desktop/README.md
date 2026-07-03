@@ -7,7 +7,7 @@ the game. The first view is a desktop mirror of the addon's **Overview**.
 - **Backend (Rust):** loads `Warbandeer_Characters.lua` by executing it in an embedded
   Lua 5.1 VM ([`mlua`](https://crates.io/crates/mlua), vendored) and deserializing the
   `WarbandeerCharDB` global — the same dialect WoW uses, so the data round-trips exactly.
-  Also lists/parses `Logs/WoWCombatLog*.txt`.
+  Also lists/parses `Logs/WoWCombatLog*.txt`, and reads/writes `character-list-order.txt`.
 - **Frontend (Svelte 5 + Vite + TS):** the "void-dark" theme, ilvl/class colors, stat
   strip, reputation bars and Top Characters table mirrored from `Warbandeer/views/`.
 
@@ -20,6 +20,36 @@ the game. The first view is a desktop mirror of the addon's **Overview**.
 | Top Characters | top char per class by level/ilvl | ✅ (raid set-completion columns: planned, needs the Collected DB) |
 | Achievements | not persisted to SavedVariables | ⛔ placeholder (needs live game state) |
 | Combat logs | `Logs/WoWCombatLog*.txt` | ✅ list + lightweight CLEU summary (encounters, top damage) |
+| Character Sort | `WTF/Account/<name>/character-list-order.txt` | ✅ reorder the character-select list (see below) |
+
+## Character Sort
+
+Reorders your WoW account's character-select list — alphabetically, by level, class, or
+profession — without the in-game drag-and-drop. This folds in what used to be the
+standalone **WarbandeerCharacterSort** app (now retired — see its archived repo).
+
+WoW addons have no access to the character-select (glue) screen and no filesystem API
+beyond SavedVariables, so reordering means editing `character-list-order.txt` directly —
+only possible from an external tool, and only while **WoW is closed** (the client reads
+that file once, at the character-select screen).
+
+How it works: WoW writes `character-list-order.txt` — one line per character, an opaque
+`<realmID>-<lowGUID>` fragment and a sort position, no names. Warbandeer_Characters (DB
+v30+) stamps each character's full GUID into its own SavedVariables every login. The
+**Sort** tab cross-references the two by GUID to resolve every row to an actual
+character; unresolved rows (a character Warbandeer hasn't seen since v30) are kept, not
+dropped, and can still be repositioned manually.
+
+Usage: pick an account, click a sort button (or use the ^/v buttons to fine-tune
+manually), then **Save to WoW** — this makes a timestamped backup of
+`character-list-order.txt` in the same folder before overwriting it. Restart WoW (or
+return to character select) to see the new order. If anything looks wrong, restore the
+backup file from the account folder.
+
+Dual-crafting characters (two crafting professions, no gathering) have no automatic
+sort priority between them — the **Profession** sort mode asks which one leads via a
+dialog; the answer is remembered (per-character, in the app's local storage) and can be
+revisited later with **Prof choices…**.
 
 ## Data location
 
@@ -41,7 +71,10 @@ Useful checks without launching the window:
 npm run check                       # Svelte + TypeScript typecheck
 npm run build                       # frontend production build
 cargo check --manifest-path src-tauri/Cargo.toml
+cargo test --manifest-path src-tauri/Cargo.toml
 ```
+
+`.github/workflows/app-test.yml` runs all four on every PR/push touching this app.
 
 > `mlua`'s vendored Lua compiles from C, so a C toolchain (MSVC on Windows) must be
 > available — the same one Rust already uses to link.
