@@ -51,7 +51,13 @@ local function CaptureSlots(overrides)
       local entry = { id = i, type = slotType }
       if slotType == "spell" then
         if subType == "assistedcombat" then
-          entry.index = C_AssistedCombat.GetActionSpell()
+          -- Store the assisted-combat action's OWN spell (GetActionInfo's id), not
+          -- the volatile current-rotation suggestion (C_AssistedCombat.GetActionSpell):
+          -- the suggestion changes constantly and isn't what the button actually is,
+          -- so a snapshot must re-place the assist spell itself. Blizzard's
+          -- scrubActionInfo swaps this id for GetActionSpell() only in the restricted
+          -- env — the unrestricted id is the real action. (Ported from ABM.)
+          entry.index = index
         else
           entry.index = overrides[index] or index
         end
