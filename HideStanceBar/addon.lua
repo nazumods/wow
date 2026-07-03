@@ -50,9 +50,28 @@ local function update(classId, hide)
   end
 end
 
+-- Applying an Edit Mode layout (login, layout switch, leaving the editor)
+-- re-anchors and reshows the managed StanceBar, undoing the reparent. Re-apply
+-- the saved hide afterwards — but not while the editor is open, so the bar stays
+-- visible and editable there (ExitEditMode clears editModeActive before its
+-- hooks run, so the on-exit re-hide passes this guard).
+local function reapply()
+  if EditModeManagerFrame and EditModeManagerFrame.editModeActive then return end
+  if ns.db and ns.db.hide and ns.db.hide[Player:GetClassId()] == true then
+    applyHide(true)
+  end
+end
+
 function ns:onLoad()
   if ns.db.hide[Player:GetClassId()] == true then
     applyHide(true)
+  end
+
+  ns:registerEvent("EDIT_MODE_LAYOUTS_UPDATED", reapply)
+  -- Exit reverts unsaved changes without necessarily firing the event; guarded
+  -- like ShadowsOfUI-Castbar's WireEditMode for clients without the frame.
+  if EditModeManagerFrame and EditModeManagerFrame.ExitEditMode then
+    hooksecurefunc(EditModeManagerFrame, "ExitEditMode", reapply)
   end
 
   local settings = SettingsFrame:new{
