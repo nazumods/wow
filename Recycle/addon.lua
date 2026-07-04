@@ -177,7 +177,10 @@ end
 local function hookItemClick()
   local orig = HandleModifiedItemClick
   HandleModifiedItemClick = function(link, item)
-    orig(link, item)
+    -- Preserve the stock boolean return ("did I handle this modified click"): Blizzard
+    -- callers branch on it (e.g. ContainerFrame/BankFrame `if HandleModifiedItemClick(...)
+    -- then return`), so dropping it makes a handled click read as unhandled and fall through.
+    local handled = orig(link, item)
     if item and isOurClick() then
       local bag, slot = item:GetBagAndSlot()
       if bag then
@@ -185,6 +188,7 @@ local function hookItemClick()
         ns:refreshMarks()
       end
     end
+    return handled
   end
 end
 
