@@ -7,6 +7,11 @@ local ns = select(2, ...)
 local function onRepEnter(self)
   local fid = self.elementData and self.elementData.factionID
   if not fid then return end
+  -- Only standard/friendship/major-faction rows own GameTooltip. A Paragon row builds its
+  -- tooltip on EmbeddedItemTooltip, and a selected row shows none (OnEnter skips it when
+  -- IsSelected) — appending + Show()ing GameTooltip there floats a detached, mis-anchored
+  -- tooltip with only our block. Guard on ownership so we only extend the row's own tooltip.
+  if GameTooltip:GetOwner() ~= self then return end
   if ns.AppendStandings(GameTooltip, fid) then GameTooltip:Show() end
 end
 
