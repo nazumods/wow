@@ -5,5 +5,9 @@
 ## Version: 12.0.7-r0
 ## Author: nazuraki
 ## IconTexture: Interface\Icons\ability_eyeoftheowl
+## SavedVariables: MouselookToggleDB
+## Dependencies: LibNAddOn
+## X-NUI-DB: MouselookToggleDB
+## X-NUI-DB-VERSION: 1
 
 addon.lua

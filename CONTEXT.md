@@ -50,11 +50,11 @@ LibNAddOn
     +-- ShadowsOfUI-Delves (LibNAddOn + Warbandeer_Characters; no LibNUI)
     +-- ShadowsOfUI-Collectibles (LibNAddOn; optional Warbandeer_Characters for cross-alt recipes; no LibNUI)
     +-- ShadowsOfUI-ProfCommissions (LibNAddOn only; hooks Blizzard_Professions crafting-orders list; no LibNUI)
+    +-- MouselookToggle (LibNAddOn only, no LibNUI)
 
 (no LibN dependency):
     HideBagBar       (raw WoW API only)
     BarNonce         (raw WoW API only)
-    MouselookToggle  (raw WoW API only)
 ```
 
 ---
@@ -78,7 +78,7 @@ Load the linked `CONTEXT.md` for full file maps, class hierarchies, API surfaces
 | **ShadowsOfUI-GCD** | Minimal GCD sweep bar anchored between the primary and secondary resource bars. Single file, no DB, no slash commands. | — |
 | **ShadowsOfUI-Castbar** | Three movable, cosmetic cast bars (target + focus + player; player off by default) on LibNUI `StatusBar` — spell icon/name/time, non-interruptible greyed, channels green. Text size 8–22px; placed via Blizzard Edit Mode (enter/exit hooks → draggable sample with a hand-rolled selection box; click a bar for a LibNUI config popup — enable/text size/reset position). Reads `UnitCastingInfo`/`UnitChannelInfo` only (no secret data). `/scast`; `ShadowsOfUI_CastbarDB` (v3). | [ShadowsOfUI-Castbar/CONTEXT.md](ShadowsOfUI-Castbar/CONTEXT.md) |
 | **BarNonce** | Removes padding and sets 70% opacity on Action Bars 1 and 2. Raw WoW API only — no LibNAddOn. Single file, no DB, no slash commands. | — |
-| **MouselookToggle** | Keybind (Options → Keybindings → Shadows of UI, via `Bindings.xml`) that toggles mouselook (`MouselookStart`/`MouselookStop`). Raw WoW API only — no LibNAddOn. Single file, no DB, no slash commands. | — |
+| **MouselookToggle** | Keybind (Options → Keybindings → Shadows of UI, via `Bindings.xml`) that toggles mouselook. While toggled, `CursorFreelookCentering`/`CursorCenteredYPos` CVars (via `SetTemporaryCVar`, armed one frame after `MouselookStart` — 10.2 camera-jolt bug) center the hidden cursor at a configurable height, action-combat style; held right-click freelook keeps the stock frozen cursor. Crosshair reticle (`crosshair_unablecrosshairs_48` atlas) tracks `GetCursorPosition` — where `@cursor` macros target — fading in immediately when toggled, debounced 0.3s during held freelook (optional). Settings: reticle height %, show-during-held. `MouselookToggleDB` (v1); no slash commands. | [MouselookToggle/CONTEXT.md](MouselookToggle/CONTEXT.md) |
 | **CombatOutline** | Toggles `OutlineEngineMode` CVar in/out of combat. Single file. | [CombatOutline/CONTEXT.md](CombatOutline/CONTEXT.md) |
 | **Recycle** | Auto-sells grey + marked items at merchants (`/recycle`). Per-character `RecycleDB` (v1). | [Recycle/CONTEXT.md](Recycle/CONTEXT.md) |
 | **ShadowsOfUI-DMF** | Headless Darkmoon Faire helper: merchant material auto-buy + waypoint/map-pin guidance to profession quest givers. `/sdmf` dev command. No UI, no DB. | [ShadowsOfUI-DMF/CONTEXT.md](ShadowsOfUI-DMF/CONTEXT.md) |
