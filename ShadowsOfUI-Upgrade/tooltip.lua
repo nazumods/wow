@@ -198,17 +198,23 @@ ns:OnItemTooltip(function(tooltip, data)
   -- char churns gear too fast to bother enchanting/gemming (mirrors the ns.BelowMaxLevel
   -- gate in classcodex.lua). The cross-character "Upgrade for:" block below is unaffected.
   local meData = ns.api:GetCharacterData(ns.api:GetCurrentCharacter())
+  local eilvl = effectiveIlvl(data)
   if not ns.BelowMaxLevel(meData) then
     -- Reminder line for your own equipped gear that's missing its permanent enchant,
-    -- with the recommended enchant when we have one for the slot.
+    -- with the recommended enchant when we have one for the slot. Skip an item below the
+    -- enchant ilvl floor (a legacy sub-120 twink/heirloom piece): no enchant applies, so
+    -- ns.RecommendedEnchant returns nil and the line would render as a bare "Missing
+    -- enchant" with no pick — the same gate ns.MissingEnchants applies for the views.
     local missSlot = equippedMissingSlot(link)
-    if missSlot then tooltip:AddLine(missingEnchantLine(missSlot)) end
+    if missSlot and not ns.BelowEnchantMinIlvl({ ilvl = eilvl }) then
+      tooltip:AddLine(missingEnchantLine(missSlot))
+    end
     -- Reminder for your own equipped gear with an empty gem socket.
     if equippedEmptySockets(link) > 0 then tooltip:AddLine(emptySocketLine()) end
   end
   -- Soulbound items can only ever help their holder (the current character).
   local boundTo = isSoulbound(data) and ns.api:GetCurrentCharacter() or nil
-  local list = Upgrade:ItemUpgrades(link, boundTo, effectiveIlvl(data))
+  local list = Upgrade:ItemUpgrades(link, boundTo, eilvl)
   if list then render(tooltip, list) end
 end)
 
