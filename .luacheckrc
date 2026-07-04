@@ -16,7 +16,7 @@ include_files = {
   "ShadowsOfUI-Reputations/**/*.lua", "ShadowsOfUI-Quests/**/*.lua",
   "ShadowsOfUI-Compartment/**/*.lua", "ShadowsOfUI-Delves/**/*.lua",
   "ShadowsOfUI-Castbar/**/*.lua", "ShadowsOfUI-Collectibles/**/*.lua",
-  "ShadowsOfUI-ProfCommissions/**/*.lua",
+  "ShadowsOfUI-ProfCommissions/**/*.lua", "ShadowsOfUI-QuestXP/**/*.lua",
   "Warbandeer/**/*.lua", "Warbandeer_Alias/**/*.lua", "Warbandeer_Bars/**/*.lua",
   "Warbandeer_Characters/**/*.lua", "Warbandeer_Collected/**/*.lua",
 }
@@ -46,6 +46,7 @@ files["ShadowsOfUI-Delves/**/*.lua"] = {globals = {"SLASH_SUI_DELVES1"}}
 files["ShadowsOfUI-Castbar/**/*.lua"] = {globals = {"SLASH_SUI_CASTBAR1"}}
 files["ShadowsOfUI-Collectibles/**/*.lua"] = {globals = {"SLASH_SUI_COLLECT1"}}
 files["ShadowsOfUI-ProfCommissions/**/*.lua"] = {globals = {"SLASH_SUI_PROFCOMM1", "ShadowsOfUI_ProfCommissions_InfoCellMixin"}}
+files["ShadowsOfUI-QuestXP/**/*.lua"] = {globals = {"SLASH_SUI_QUESTXP1"}}
 files["Warbandeer_Bars/init.lua"] = {globals = {"WarbandeerBarsSettings"}}
 
 std = {
@@ -260,6 +261,7 @@ std = {
     "DEFAULT_CHAT_FRAME",
     "GameTooltip",
     "MainMenuBarBackpackButton",
+    "MapQuestInfoRewardsFrame",
     "ProfessionsBookFrame",
     "ProfessionsFrame",
     "ProfessionsCustomerOrdersFrame",
@@ -337,6 +339,7 @@ std = {
     "GetPetActionInfo",
     "GetQuestLogItemLink",
     "GetQuestLogRewardInfo",
+    "GetQuestLogRewardXP",
     "GetProfessionInfo",
     "GetProfessions",
     "GetRealmName",
