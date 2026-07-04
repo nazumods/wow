@@ -46,7 +46,11 @@ function Upgrade:WorldQuestUpgrades(charName)
       })
     end
   end
-  sort(out, function(a, b) return a.ilvlGain > b.ilvlGain end)
+  sort(out, function(a, b)
+    if a.ilvlGain ~= b.ilvlGain then return a.ilvlGain > b.ilvlGain end
+    if a.slot ~= b.slot then return a.slot < b.slot end
+    return a.link < b.link   -- stable tiebreak so equal-gain rewards don't reshuffle
+  end)
   return out
 end
 
@@ -116,7 +120,11 @@ function Upgrade:VendorUpgrades(charName)
       end
     end
   end
-  sort(out, function(a, b) return a.ilvlGain > b.ilvlGain end)
+  sort(out, function(a, b)
+    if a.ilvlGain ~= b.ilvlGain then return a.ilvlGain > b.ilvlGain end
+    if a.slot ~= b.slot then return a.slot < b.slot end
+    return a.link < b.link   -- stable tiebreak so equal-gain pieces don't reshuffle
+  end)
   return out
 end
 
@@ -176,6 +184,9 @@ function Upgrade:ItemUpgrades(link, boundTo, ilvl)
     end
   end
   if #out == 0 then return nil end
-  sort(out, function(a, b) return a.ilvlGain > b.ilvlGain end)
+  sort(out, function(a, b)
+    if a.ilvlGain ~= b.ilvlGain then return a.ilvlGain > b.ilvlGain end
+    return a.name < b.name   -- stable tiebreak (unique per character) for equal-gain rows
+  end)
   return out
 end

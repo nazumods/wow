@@ -15,10 +15,11 @@ local ns = LibNAddOn(...)
 -- WarbandeerCollectedApi).  No saved variables — everything derives from the data
 -- layer at query time.
 
--- Private data, filled by data/*.lua.
+-- Private data: `ns.StatPriority` is created and filled by data/statpriority.lua (which
+-- loads right after this file); this block only documents the field on the class. Don't
+-- seed it here — data/statpriority.lua reassigns `{}` and would wipe any earlier seed.
 ---@class ShadowsOfUI_Upgrade
 ---@field StatPriority table<string, table<integer, table<string, integer>>> [classToken][specIndex] = {crit,haste,mastery,versatility} stat→tier
-ns.StatPriority = {}
 
 -- Our published read-only API; methods are added in upgrade.lua.
 ---@class ShadowsOfUI_UpgradeApi

@@ -93,7 +93,12 @@ end
 function Upgrade:CharacterUpgrades(charName)
   local list = {}
   for _, r in pairs(cachedUpgrades(API:GetCharacterData(charName))) do insert(list, r) end
-  sort(list, function(a, b) return a.ilvlGain > b.ilvlGain end)
+  -- Slot tiebreak so equal-gain entries keep a stable order across memo recomputes (else
+  -- pairs() + an unstable sort reshuffles rows and changes the tooltip's top-N cut).
+  sort(list, function(a, b)
+    if a.ilvlGain ~= b.ilvlGain then return a.ilvlGain > b.ilvlGain end
+    return a.slot < b.slot
+  end)
   return list
 end
 
