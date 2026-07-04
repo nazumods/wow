@@ -302,6 +302,152 @@ describe("ShadowsOfUI-Upgrade upgrade calc", function()
     end)
   end)
 
+  -- A wand shares INVTYPE_RANGEDRIGHT with guns/crossbows but is a one-handed main-hand
+  -- weapon paired with an off-hand — so a wand user is a 1H+off-hand build, NOT a 2H
+  -- wielder.  Their off-hand upgrades must surface, and a 2H that would strand the
+  -- off-hand must not.  (#301)
+  describe("wand wielder (one-handed main hand + off-hand)", function()
+    local WAND, STAFF = 19, 10
+    local function priest(name, slots)
+      return { name = name, classKey = "Priest", equipment = { slots = slots } }
+    end
+    local function wandPriest(wandIlvl, offIlvl)
+      return priest("Anduin", {
+        MainHand = { ilvl = wandIlvl, equipLoc = "INVTYPE_RANGEDRIGHT", subClassID = WAND },
+        OffHand  = { ilvl = offIlvl, equipLoc = "INVTYPE_HOLDABLE" },
+      })
+    end
+    local function holdable(id, ilvl)
+      return h.defItem{ link = "off:" .. id, itemID = id, equipLoc = "INVTYPE_HOLDABLE",
+        classID = ARMOR, subClassID = MISC, ilvl = ilvl }
+    end
+    local function staff(id, ilvl)
+      return h.defItem{ link = "staff:" .. id, itemID = id, equipLoc = "INVTYPE_2HWEAPON",
+        classID = WEAPON, subClassID = STAFF, ilvl = ilvl }
+    end
+
+    it("suggests a lone off-hand upgrade (not suppressed as if a 2H wielder)", function()
+      h.addChar(wandPriest(600, 580))
+      h.pools.Anduin = { bags = { holdable(1, 620) }, bank = {} }
+      local off = h.Api:SlotUpgrade("Anduin", "OffHand")
+      assert.is_not_nil(off)
+      assert.equals(40, off.ilvlGain)                    -- 620 − 580
+    end)
+
+    it("does not offer a staff that would strand the equipped off-hand", function()
+      h.addChar(wandPriest(600, 580))
+      h.pools.Anduin = { bags = { staff(1, 610) }, bank = {} }   -- barely above the wand
+      assert.is_nil(h.Api:SlotUpgrade("Anduin", "MainHand"))
+    end)
+  end)
+
+  -- A Titan's-Grip Fury warrior dual-wields two two-handers, so the off-hand is NOT
+  -- empty (nor a shield a 2H would strand): a better 2H replaces the weaker hand.  (#302)
+  describe("Titan's Grip (dual two-hander) wielder", function()
+    local function tgWarrior(name, mhIlvl, ohIlvl)
+      return warrior(name, {
+        MainHand = { ilvl = mhIlvl, equipLoc = "INVTYPE_2HWEAPON" },
+        OffHand  = { ilvl = ohIlvl, equipLoc = "INVTYPE_2HWEAPON" },
+      })
+    end
+    local function sword2h(id, ilvl)
+      return h.defItem{ link = "2h:" .. id, itemID = id, equipLoc = "INVTYPE_2HWEAPON",
+        classID = WEAPON, subClassID = SWORD2H, ilvl = ilvl }
+    end
+    local function sword1h(id, ilvl)
+      return h.defItem{ link = "1h:" .. id, itemID = id, equipLoc = "INVTYPE_WEAPON",
+        classID = WEAPON, subClassID = SWORD1H, ilvl = ilvl }
+    end
+
+    it("suggests a better 2H as an upgrade for the weaker hand", function()
+      h.addChar(tgWarrior("Grommash", 660, 600))
+      h.pools.Grommash = { bags = { sword2h(1, 630) }, bank = {} }
+      local off = h.Api:SlotUpgrade("Grommash", "OffHand")
+      assert.is_not_nil(off)
+      assert.equals("OffHand", off.slot)
+      assert.equals(30, off.ilvlGain)                    -- 630 − 600 (weaker hand)
+      assert.is_nil(h.Api:SlotUpgrade("Grommash", "MainHand"))
+    end)
+
+    it("does not suggest a 2H below both equipped hands", function()
+      h.addChar(tgWarrior("Grommash", 660, 600))
+      h.pools.Grommash = { bags = { sword2h(1, 590) }, bank = {} }
+      assert.is_nil(h.Api:SlotUpgrade("Grommash", "OffHand"))
+      assert.is_nil(h.Api:SlotUpgrade("Grommash", "MainHand"))
+    end)
+
+    it("does not suggest switching to a lone one-hander (build change)", function()
+      h.addChar(tgWarrior("Grommash", 660, 600))
+      h.pools.Grommash = { bags = { sword1h(1, 700) }, bank = {} }
+      assert.is_nil(h.Api:SlotUpgrade("Grommash", "MainHand"))
+      assert.is_nil(h.Api:SlotUpgrade("Grommash", "OffHand"))
+    end)
+
+    it("lists a hovered 2H as a weaker-hand upgrade in the tooltip path", function()
+      h.addChar(tgWarrior("Grommash", 660, 600))
+      local twoH = sword2h(1, 630)
+      local out = h.Api:ItemUpgrades(twoH.link, nil, 630)
+      assert.is_not_nil(out)
+      assert.equals(1, #out)
+      assert.equals("Grommash", out[1].name)
+      assert.equals("OffHand", out[1].slot)
+      assert.equals(30, out[1].ilvlGain)
+    end)
+
+    it("surfaces a 2H world-quest reward for the weaker hand", function()
+      h.addChar(tgWarrior("Grommash", 660, 600))
+      local rw = sword2h(1, 630)
+      rw.questID, rw.title = 100, "Forge a Blade"
+      h.addWQ("Grommash", rw)
+      local list = h.Api:WorldQuestUpgrades("Grommash")
+      assert.equals(1, #list)
+      assert.equals("OffHand", list[1].slot)
+      assert.equals(30, list[1].ilvlGain)
+    end)
+  end)
+
+  -- Hunters can wield melee weapons (Survival's mandatory 2H), not only ranged.  (#303)
+  describe("Hunter melee proficiency (Survival)", function()
+    local POLEARM = 6
+    local function survivalHunter(name, ilvl)
+      return { name = name, classKey = "Hunter",
+        equipment = { slots = { MainHand = { ilvl = ilvl, equipLoc = "INVTYPE_2HWEAPON" } } } }
+    end
+    local function polearm(id, ilvl)
+      return h.defItem{ link = "pole:" .. id, itemID = id, equipLoc = "INVTYPE_2HWEAPON",
+        classID = WEAPON, subClassID = POLEARM, ilvl = ilvl }
+    end
+
+    it("suggests a higher-ilvl polearm as a MainHand upgrade", function()
+      h.addChar(survivalHunter("Rexxar", 600))
+      h.pools.Rexxar = { bags = { polearm(1, 650) }, bank = {} }
+      local mh = h.Api:SlotUpgrade("Rexxar", "MainHand")
+      assert.is_not_nil(mh)
+      assert.equals(50, mh.ilvlGain)
+    end)
+  end)
+
+  -- Evokers retain 2H axe/mace/sword proficiency, not just staves.  (#304)
+  describe("Evoker 2H proficiency", function()
+    local MACE2H = 5
+    local function evokerChar(name, ilvl)
+      return { name = name, classKey = "Evoker",
+        equipment = { slots = { MainHand = { ilvl = ilvl, equipLoc = "INVTYPE_2HWEAPON" } } } }
+    end
+    local function mace2h(id, ilvl)
+      return h.defItem{ link = "m2h:" .. id, itemID = id, equipLoc = "INVTYPE_2HWEAPON",
+        classID = WEAPON, subClassID = MACE2H, ilvl = ilvl }
+    end
+
+    it("suggests a 2H mace upgrade for a staff-wielding Evoker", function()
+      h.addChar(evokerChar("Alexstrasza", 610))
+      h.pools.Alexstrasza = { bags = { mace2h(1, 645) }, bank = {} }
+      local mh = h.Api:SlotUpgrade("Alexstrasza", "MainHand")
+      assert.is_not_nil(mh)
+      assert.equals(35, mh.ilvlGain)
+    end)
+  end)
+
   describe("artifact exclusion (Heart of Azeroth regression)", function()
     -- An artifact's GetDetailedItemLevelInfo reports an inflated effective ilvl,
     -- so without the quality gate a legacy Heart of Azeroth in a bank "upgrades"
