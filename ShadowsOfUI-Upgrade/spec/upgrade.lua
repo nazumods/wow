@@ -11,7 +11,9 @@
 
 local up = {}
 
--- Files in toc order, minus core.lua (bootstrap) and tooltip.lua (frames).
+-- Files in toc order, minus core.lua (bootstrap), tooltip.lua (frames), and
+-- data/vendorgear.lua (its real item links don't resolve against the stub item table —
+-- the harness substitutes the synthetic h.vendor list instead; see h.ns.VendorGear below).
 -- Data must precede resolve/equip/upgrade (they read ns.StatPriority etc.).
 local FILES = {
   "data/statpriority.lua",

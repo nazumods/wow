@@ -1,4 +1,4 @@
----@type ShadowsOfUI_Upgrade
+---@class ShadowsOfUI_Upgrade
 local ns = select(2, ...)
 local Armor = Enum.ItemClass.Armor
 local Weapon = Enum.ItemClass.Weapon
