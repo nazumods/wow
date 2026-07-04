@@ -7,6 +7,7 @@ local Frame, Label, Texture = ui.Frame, ui.Label, ui.Texture
 local GameTooltip, SetOverrideBindingClick = GameTooltip, SetOverrideBindingClick
 local GetTime = GetTime
 local GetCursorInfo = GetCursorInfo
+local canaccessvalue = canaccessvalue -- retail-only (nil elsewhere → every value readable)
 
 local file, _, flags = NumberFontNormalSmallGray:GetFont()
 local keybindFont = CreateFont("LibNUIButtonKeybind")
@@ -169,8 +170,15 @@ function Button:OnMouseUp()
 
   if self.spellID then
     local cd = C_Spell and C_Spell.GetSpellCooldown and C_Spell.GetSpellCooldown(self.spellID)
-    local start, duration = cd and cd.startTime or 0, cd and cd.duration or 0
-    if start > 0 then
+    local start, duration = cd and cd.startTime, cd and cd.duration
+    -- GetSpellCooldown is SecretWhenCooldownsRestricted: startTime/duration can be "secret"
+    -- values that raise 'arithmetic on a secret value' when compared/added from tainted addon
+    -- code — and a SecureButton clicked in combat is the primary consumer. Treat a secret
+    -- reading as "no cooldown shown" (canaccessvalue is retail-only; nil elsewhere → readable).
+    if cd and canaccessvalue and (not canaccessvalue(start) or not canaccessvalue(duration)) then
+      start, duration = nil, nil
+    end
+    if start and duration and start > 0 then
       self:ensureCooldown()
       self.cooldownEnd = start + duration
       self._widget:GetNormalTexture():SetDesaturated(true)
