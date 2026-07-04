@@ -49,7 +49,14 @@ local function hookEditBox(editBox)
 
     if text:match("^%s*[/!#@?]") then return end
 
-    eb:SetText(GetPrefix() .. text)
+    -- SendChatMessage enforces WoW's 255-byte server-side cap and silently drops the
+    -- tail past it. Prepending the prefix must not push a near-max message over that cap,
+    -- or the end of the user's own text is lost — leave it untouched instead (# is the
+    -- byte length WoW counts).
+    local prefix = GetPrefix()
+    if #text + #prefix > 255 then return end
+
+    eb:SetText(prefix .. text)
   end)
 
   editBox._aliasHooked = true
