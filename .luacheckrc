@@ -185,6 +185,7 @@ std = {
     "C_TradeSkillUI",
     "C_Traits",
     "C_TransmogCollection",
+    "C_TransmogOutfitInfo",
     "C_TransmogSets",
     "C_UIWidgetManager",
     "C_WeeklyRewards",

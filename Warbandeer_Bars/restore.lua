@@ -166,6 +166,25 @@ local function RestoreSlots(slots, overrides)
         local idx = C_EquipmentSet.GetEquipmentSetID(s.strindex)
         if idx then C_EquipmentSet.PickupEquipmentSet(idx) end
         if not GetCursorInfo() then Warn("Missing equipment set [" .. tostring(s.strindex) .. "]") end
+      elseif s.type == "outfit" then
+        -- Transmog outfit: resolve the stored name to a current outfitID (identity),
+        -- falling back to the captured list position, then pick it up (mirrors the
+        -- equipmentset path — a different API, C_TransmogOutfitInfo, not C_EquipmentSet).
+        if C_TransmogOutfitInfo then
+          local outfits = C_TransmogOutfitInfo.GetOutfitsInfo() or {}
+          local outfitID
+          if s.strindex then
+            for _, info in ipairs(outfits) do
+              if info.name == s.strindex then outfitID = info.outfitID; break end
+            end
+          end
+          if not outfitID and s.index then
+            local info = outfits[s.index]
+            outfitID = info and info.outfitID
+          end
+          if outfitID then C_TransmogOutfitInfo.PickupOutfit(outfitID) end
+          if not GetCursorInfo() then Warn("Missing outfit [" .. tostring(s.strindex or s.index) .. "]") end
+        end
       elseif s.type == "petaction" or s.type == "futurespell" then
         PickupAction(s.id) -- clear
       end

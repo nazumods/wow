@@ -77,6 +77,18 @@ local function CaptureSlots(overrides)
         entry.strindex = index  -- GUID string
       elseif slotType == "equipmentset" then
         entry.strindex = index  -- set name
+      elseif slotType == "outfit" then
+        -- Transmog (Wardrobe) outfit — distinct from equipmentset (C_EquipmentSet gear
+        -- sets). GetActionInfo's index is the outfitID; store the outfit NAME as identity
+        -- (strindex) with the list position as a fallback, resolved via C_TransmogOutfitInfo.
+        local outfits = C_TransmogOutfitInfo and C_TransmogOutfitInfo.GetOutfitsInfo()
+        for pos, info in ipairs(outfits or {}) do
+          if info.outfitID == index then
+            entry.index    = pos
+            entry.strindex = info.name
+            break
+          end
+        end
       end
       slots[#slots+1] = entry
     end

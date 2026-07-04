@@ -64,8 +64,9 @@ that bar untouched (restore *and* clear pass). `nil` = all bars.
 }
 ```
 
-Slot `type` ∈ `spell | item | toy | flyout | companion | summonmount | summonpet | equipmentset | macro`.
-`summonpet` (GUID) and `equipmentset` (set name) use `strindex`; the rest use `index`.
+Slot `type` ∈ `spell | item | toy | flyout | companion | summonmount | summonpet | equipmentset | outfit | macro`.
+`summonpet` (GUID) and `equipmentset` (set name) use `strindex`; `outfit` (transmog set) carries **both**
+its name in `strindex` (identity) and its list position in `index` (fallback); the rest use `index`.
 
 ## SavedVariables
 
@@ -126,8 +127,13 @@ missing `WarbandeerBarsSettings` keys from `ns.DefaultSettings`.
   `PickupAction`/`PlaceAction` round-trip.
 - **Pet bar capture/restore only runs while a pet is active** (`IsPetActive`); tokens are matched by
   name, spells by ID.
-- **Outfits are names only** — `C_EquipmentSet` data is account-wide, so the profile just records set
-  names to confirm existence; restore does not rebuild gear sets.
+- **Two distinct "outfit" concepts — don't conflate them.** (1) `profile.outfits` is a list of
+  `C_EquipmentSet` **gear-set names** (the `include.outfits` filter): account-wide data, so it's
+  names-only and restore does not rebuild gear sets. (2) A `"outfit"` **action-slot** is a *transmog*
+  (Wardrobe) outfit button — a different API (`C_TransmogOutfitInfo`, not `C_EquipmentSet`). It's
+  captured/restored like any other slot: store the outfit name (`strindex`) + list position
+  (`index`) at capture, resolve name→`outfitID` (position fallback) and `PickupOutfit` at restore.
+  Missing this branch previously left transmog outfit buttons uncaptured and **blanked on restore**.
 - **Keybindings restore replaces the live binding set** (`SaveBindings(GetCurrentBindingSet())`),
   writing each captured key with its per-command binding context when available. Capture is a
   *full* snapshot (`CaptureBindings` walks every command via `GetNumBindings`/`GetBinding`), so
