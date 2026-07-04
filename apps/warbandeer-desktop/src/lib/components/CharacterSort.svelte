@@ -3,9 +3,18 @@
   // WoW is closed — ported from the standalone WarbandeerCharacterSort app (see its
   // MainViewModel.cs for the reference flow this mirrors).
   import type { ResolvedCharacter, OrderLine } from "../types";
-  import { listOrderAccounts, getCharacterOrder, saveCharacterOrder } from "../api";
+  import {
+    listOrderAccounts,
+    getCharacterOrder,
+    saveCharacterOrder,
+    getRememberedOrder,
+    rememberCharacterOrder,
+  } from "../api";
   import {
     applySort,
+    applyRememberedOrder,
+    applyLocked,
+    assignPositions,
     isAmbiguous,
     professionPrimaryMap,
     rememberPrimary,
@@ -22,6 +31,7 @@
     levelAsc: "Level (low-high)",
     classRole: "Class",
     profession: "Profession",
+    memory: "Remembered Order",
   };
 
   let accounts = $state<string[]>([]);
@@ -41,6 +51,143 @@
   let dialogItems = $state<ResolvedCharacter[] | null>(null);
   let dialogMode = $state<"sort" | "edit">("sort");
   let pendingSortMode = $state<SortMode | null>(null);
+
+  // The account's remembered order, if one's been saved — null means nothing to preview yet.
+  let rememberedOrder = $state<OrderLine[] | null>(null);
+
+  // realmGuid set of characters pinned to their current slot — sorts skip over them.
+  // Reassigned wholesale on every toggle rather than mutated in place, for the same
+  // reactivity-certainty reason as ProfessionChoiceDialog's `picks`.
+  let lockedGuids = $state<Set<string>>(new Set());
+
+  function toggleLock(realmGuid: string) {
+    const next = new Set(lockedGuids);
+    if (next.has(realmGuid)) next.delete(realmGuid);
+    else next.add(realmGuid);
+    lockedGuids = next;
+  }
+
+  // Ranks ("this many characters precede it") of every empty-slot row currently shown —
+  // seeded once at load from the file's real gaps and otherwise left alone by lock/unlock
+  // toggles or manual moves, exactly like a character's presence in `characters` doesn't
+  // depend on whether it's locked. Only collapses to locked-only at the moment a sort (or
+  // Remembered Order) actually runs — the same moment unlocked characters get resorted.
+  let gaps = $state<Set<number>>(new Set());
+
+  // Subset of `gaps` the user has locked: these survive a sort and get written to disk as
+  // a deliberate vacancy; everything else in `gaps` is just "currently shown" and will be
+  // squeezed out the next time a sort runs.
+  let lockedGapRanks = $state<Set<number>>(new Set());
+
+  function toggleGapLock(rank: number) {
+    const next = new Set(lockedGapRanks);
+    if (next.has(rank)) next.delete(rank);
+    else next.add(rank);
+    lockedGapRanks = next;
+  }
+
+  /** One representative rank per contiguous run of missing raw slot numbers. A multi-wide
+   * gap (two+ consecutive deleted characters) collapses to a single shown row — a known
+   * simplification, since a rank can only reserve one number. */
+  function naturalGapRanks(sortedCharacters: readonly ResolvedCharacter[]): Set<number> {
+    const ranks = new Set<number>();
+    let prevSlot = 0;
+    sortedCharacters.forEach((c, i) => {
+      if (c.position > prevSlot + 1) ranks.add(i);
+      prevSlot = c.position;
+    });
+    return ranks;
+  }
+
+  // `insertBefore` is this row's target rank if something is dropped on it — for a
+  // character row that's how many characters precede it (== its index); for an empty-slot
+  // row it's the same count. `slot` is the number shown in the Slot # column, always the
+  // prospective one Save to WoW would actually write.
+  type DisplayRow =
+    | { kind: "character"; c: ResolvedCharacter; insertBefore: number; slot: number }
+    | { kind: "empty"; slot: number; insertBefore: number; locked: boolean };
+
+  let displayRows = $derived.by((): DisplayRow[] => {
+    const assigned = assignPositions(characters, gaps);
+    const rows: DisplayRow[] = [];
+    let count = 0;
+    for (const slot of assigned) {
+      if (slot.c) {
+        rows.push({ kind: "character", c: slot.c, insertBefore: count, slot: slot.position });
+        count++;
+      } else {
+        rows.push({ kind: "empty", slot: slot.position, insertBefore: count, locked: lockedGapRanks.has(count) });
+      }
+    }
+    return rows;
+  });
+
+  type EmptyRow = Extract<DisplayRow, { kind: "empty" }>;
+
+  // Drag-and-drop reorder — a plain variable, not $state, since it's only read/written
+  // synchronously within a single drag gesture; no reactive UI depends on its value
+  // between dragstart and drop.
+  let dragging: { kind: "character"; guid: string } | EmptyRow | null = null;
+
+  function dragStartCharacter(guid: string) {
+    dragging = { kind: "character", guid };
+  }
+
+  function dragStartEmpty(row: EmptyRow) {
+    dragging = row;
+  }
+
+  function dropOn(row: DisplayRow) {
+    const d = dragging;
+    dragging = null;
+    if (!d) return;
+
+    if (d.kind === "character") {
+      const fromIndex = characters.findIndex((c) => c.realmGuid === d.guid);
+      if (fromIndex === -1) return;
+
+      const copy = [...characters];
+      const [item] = copy.splice(fromIndex, 1);
+      // Removing the item shifts everything after it left by one, so a target past the
+      // removal point needs the same adjustment before inserting.
+      const target = row.insertBefore > fromIndex ? row.insertBefore - 1 : row.insertBefore;
+      copy.splice(target, 0, item);
+      characters = copy;
+      activeSortMode = null; // manual reorder — no sort button describes the list anymore
+      return;
+    }
+
+    moveGapTo(d.insertBefore, row);
+  }
+
+  /** Moves a gap's rank to land at `target` — ranks are plain 0..N reservation slots, not
+   * array indices, so no splice-style shift adjustment is needed like a character move.
+   * Dropping "onto" a row means landing just before it (matching character drag-drop),
+   * *except* when the target is the character immediately after the gap — that character
+   * shares the gap's own current rank, so using it as-is would be a no-op; land after that
+   * character instead so the drop still does something. Keeps `lockedGapRanks` in sync if
+   * the moved gap was locked. */
+  function moveGapTo(fromRank: number, target: DisplayRow) {
+    const toRank =
+      target.insertBefore === fromRank && target.kind === "character"
+        ? target.insertBefore + 1
+        : target.insertBefore;
+    if (fromRank === toRank) return;
+    const wasLocked = lockedGapRanks.has(fromRank);
+
+    const nextGaps = new Set(gaps);
+    nextGaps.delete(fromRank);
+    nextGaps.add(toRank);
+    gaps = nextGaps;
+
+    if (wasLocked) {
+      const nextLocked = new Set(lockedGapRanks);
+      nextLocked.delete(fromRank);
+      nextLocked.add(toRank);
+      lockedGapRanks = nextLocked;
+    }
+    statusMessage = "Moved the empty slot.";
+  }
 
   async function loadAccounts() {
     loading = true;
@@ -69,6 +216,10 @@
       characters = [...payload.characters].sort((a, b) => a.position - b.position);
       unresolvedCount = payload.unresolvedCount;
       dbVersion = payload.dbVersion;
+      rememberedOrder = await getRememberedOrder(selectedAccount);
+      lockedGuids = new Set();
+      lockedGapRanks = new Set();
+      gaps = naturalGapRanks(characters);
       hasLoaded = true;
       activeSortMode = null; // freshly-loaded file order, not one of our sorts
       statusMessage =
@@ -85,14 +236,28 @@
 
   function performSort(mode: SortMode) {
     const map = professionPrimaryMap(characters);
-    characters = applySort(characters, mode, map);
+    characters = applyLocked(characters, lockedGuids, (unlocked) => applySort(unlocked, mode, map));
+    gaps = new Set(lockedGapRanks); // a sort squeezes out any gap that isn't locked
     activeSortMode = mode;
-    statusMessage = `Previewing "${SORT_LABELS[mode]}" order — click "Save to WoW" to write it, or pick another sort.`;
+    const lockedNote = lockedGuids.size > 0 ? ` (${lockedGuids.size} locked in place)` : "";
+    statusMessage = `Previewing "${SORT_LABELS[mode]}" order${lockedNote} — click "Save to WoW" to write it, or pick another sort.`;
   }
 
   function sortBy(mode: SortMode) {
+    if (mode === "memory") {
+      const remembered = rememberedOrder;
+      if (!remembered) return;
+      characters = applyLocked(characters, lockedGuids, (unlocked) =>
+        applyRememberedOrder(unlocked, remembered),
+      );
+      gaps = new Set(lockedGapRanks); // a sort squeezes out any gap that isn't locked
+      activeSortMode = mode;
+      statusMessage = `Previewing your remembered order — click "Save to WoW" to write it.`;
+      return;
+    }
     if (mode === "profession") {
       const needsChoice = characters
+        .filter((c) => !lockedGuids.has(c.realmGuid))
         .filter(isAmbiguous)
         .filter((c) => validPrimaryFor(c.realmGuid, c.profession1, c.profession2) === undefined);
       if (needsChoice.length > 0) {
@@ -103,6 +268,24 @@
       }
     }
     performSort(mode);
+  }
+
+  /** Snapshots whatever order is currently shown (a preview or a manual reorder) as the
+   * account's remembered order — stays until this is called again. */
+  async function rememberOrder() {
+    if (!selectedAccount) return;
+    try {
+      const ordered: OrderLine[] = characters.map((c) => ({
+        flag: c.flag,
+        realmGuid: c.realmGuid,
+        position: c.position,
+      }));
+      await rememberCharacterOrder(selectedAccount, ordered);
+      rememberedOrder = ordered;
+      statusMessage = "Remembered this order — it stays as an option until you remember a new one.";
+    } catch (e) {
+      error = String(e);
+    }
   }
 
   function editProfessionChoices() {
@@ -151,7 +334,9 @@
     saving = true;
     error = null;
     try {
-      const ordered: OrderLine[] = characters.map((c) => ({ flag: c.flag, realmGuid: c.realmGuid }));
+      const ordered: OrderLine[] = assignPositions(characters, lockedGapRanks)
+        .filter((slot) => slot.c !== null)
+        .map((slot) => ({ flag: slot.c!.flag, realmGuid: slot.c!.realmGuid, position: slot.position }));
       const backupPath = await saveCharacterOrder(selectedAccount, ordered);
       const backupName = backupPath.split(/[\\/]/).pop();
       statusMessage = `Saved. Backup written to ${backupName}. Restart WoW (or go to character select) to see the new order.`;
@@ -178,12 +363,21 @@
 
     <div class="sort-buttons">
       {#each Object.entries(SORT_LABELS) as [mode, label] (mode)}
-        <button class:active={activeSortMode === mode} onclick={() => sortBy(mode as SortMode)}>
-          {label}
-        </button>
+        {#if mode !== "memory" || rememberedOrder}
+          <button class:active={activeSortMode === mode} onclick={() => sortBy(mode as SortMode)}>
+            {label}
+          </button>
+        {/if}
       {/each}
       <button onclick={editProfessionChoices} title="Change which profession a dual-crafter sorts under">
         Prof choices…
+      </button>
+      <button
+        onclick={rememberOrder}
+        disabled={characters.length === 0}
+        title="Save the order currently shown as a persistent option, replacing any previously remembered order"
+      >
+        Remember this order
       </button>
     </div>
 
@@ -210,7 +404,10 @@
     <table class="chars">
       <thead>
         <tr>
+          <th class="handle"></th>
+          <th class="lock" title="Locked characters keep their position — sorts go around them">Lock</th>
           <th></th>
+          <th class="num slot">Slot #</th>
           <th>Name</th>
           <th>Realm</th>
           <th>Class</th>
@@ -222,23 +419,88 @@
         </tr>
       </thead>
       <tbody>
-        {#each characters as c, i (c.realmGuid)}
-          <tr class:unresolved={c.classId === 0}>
-            <td class="move">
-              <button disabled={i === 0} onclick={() => move(c, -1)} title="Move up">^</button>
-              <button disabled={i === characters.length - 1} onclick={() => move(c, 1)} title="Move down">v</button>
-            </td>
-            <td style:color={c.classId !== 0 ? classColor(c.classKey) : undefined}>{c.name}</td>
-            <td>{c.realm}</td>
-            <td>{c.className}</td>
-            <td class="num">{c.level || ""}</td>
-            <td>{c.role}</td>
-            <td class="num" style:color={c.itemLevel > 0 ? ilvlColor(c.itemLevel) : undefined}>
-              {c.itemLevel > 0 ? c.itemLevel : ""}
-            </td>
-            <td>{c.profession1}</td>
-            <td>{c.profession2}</td>
-          </tr>
+        {#each displayRows as row, i (row.kind === "character" ? row.c.realmGuid : `empty-${row.insertBefore}-${row.slot}`)}
+          {#if row.kind === "empty"}
+            <tr class="empty-slot" ondragover={(e) => e.preventDefault()} ondrop={() => dropOn(row)}>
+              <td class="handle">
+                <span
+                  class="handle-grip"
+                  role="button"
+                  tabindex="0"
+                  draggable="true"
+                  ondragstart={() => dragStartEmpty(row)}
+                  title="Drag the empty slot to reorder"
+                >⠿</span>
+              </td>
+              <td class="lock">
+                <input
+                  type="checkbox"
+                  checked={row.locked}
+                  onchange={() => toggleGapLock(row.insertBefore)}
+                  title="Lock this empty slot — sorts and Save to WoW keep it vacant"
+                />
+              </td>
+              <td class="move">
+                <button
+                  disabled={i === 0}
+                  onclick={() => moveGapTo(row.insertBefore, displayRows[i - 1])}
+                  title="Move up"
+                >^</button>
+                <button
+                  disabled={i === displayRows.length - 1}
+                  onclick={() => moveGapTo(row.insertBefore, displayRows[i + 1])}
+                  title="Move down"
+                >v</button>
+              </td>
+              <td class="num slot">{row.slot}</td>
+              <td colspan="8" class="empty-label">(empty)</td>
+            </tr>
+          {:else}
+            {@const c = row.c}
+            <tr
+              class:unresolved={c.classId === 0}
+              ondragover={(e) => e.preventDefault()}
+              ondrop={() => dropOn(row)}
+            >
+              <td class="handle">
+                <span
+                  class="handle-grip"
+                  role="button"
+                  tabindex="0"
+                  draggable="true"
+                  ondragstart={() => dragStartCharacter(c.realmGuid)}
+                  title="Drag {c.name} to reorder"
+                >⠿</span>
+              </td>
+              <td class="lock">
+                <input
+                  type="checkbox"
+                  checked={lockedGuids.has(c.realmGuid)}
+                  onchange={() => toggleLock(c.realmGuid)}
+                  title="Lock {c.name} to this position"
+                />
+              </td>
+              <td class="move">
+                <button disabled={characters.indexOf(c) === 0} onclick={() => move(c, -1)} title="Move up">^</button>
+                <button
+                  disabled={characters.indexOf(c) === characters.length - 1}
+                  onclick={() => move(c, 1)}
+                  title="Move down"
+                >v</button>
+              </td>
+              <td class="num slot">{row.slot}</td>
+              <td style:color={c.classId !== 0 ? classColor(c.classKey) : undefined}>{c.name}</td>
+              <td>{c.realm}</td>
+              <td>{c.className}</td>
+              <td class="num">{c.level || ""}</td>
+              <td>{c.role}</td>
+              <td class="num" style:color={c.itemLevel > 0 ? ilvlColor(c.itemLevel) : undefined}>
+                {c.itemLevel > 0 ? c.itemLevel : ""}
+              </td>
+              <td>{c.profession1}</td>
+              <td>{c.profession2}</td>
+            </tr>
+          {/if}
         {/each}
       </tbody>
     </table>
@@ -369,6 +631,36 @@
   .chars tr.unresolved {
     color: var(--faded);
     font-style: italic;
+  }
+  .chars tr.empty-slot {
+    color: var(--faded);
+  }
+  .chars .empty-label {
+    font-style: italic;
+  }
+  th.handle,
+  td.handle {
+    width: 1%;
+    text-align: center;
+  }
+  .handle-grip {
+    display: inline-block;
+    cursor: grab;
+    color: var(--muted);
+    font-size: 14px;
+    padding: 2px 4px;
+  }
+  .handle-grip:active {
+    cursor: grabbing;
+  }
+  th.lock,
+  td.lock {
+    width: 1%;
+    text-align: center;
+  }
+  th.slot,
+  td.slot {
+    width: 1%;
   }
   .move {
     display: flex;

@@ -14,6 +14,10 @@ use std::collections::HashMap;
 use std::path::Path;
 
 const ORDER_FILE: &str = "character-list-order.txt";
+/// A user-captured snapshot of a specific order, independent of the live order file —
+/// stays as-is until the user explicitly remembers a new one. Same on-disk format as
+/// `ORDER_FILE` so `parse_order_file` and the write logic both apply unchanged.
+const MEMORY_FILE: &str = "character-list-order - Memory.txt";
 
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -34,7 +38,13 @@ pub struct ResolvedCharacter {
     pub profession1: String,
     /// Second-slot profession name; empty when untrained or unknown.
     pub profession2: String,
-    /// Current position (1-based) — the sort key Blizzard reads.
+    /// The slot number as actually stored in the order file. Not guaranteed contiguous —
+    /// deleting a character removes its line but leaves surviving rows' numbers as-is, so
+    /// gaps (e.g. 1, 3, 4 with no 2) reflect real vacant slots. Only meaningful as "the real
+    /// file's slot layout" in the freshly-loaded, unsorted view; once previewing a sort or a
+    /// manual reorder it's just "this row's slot before that change" — see `Slot #` handling
+    /// in `CharacterSort.svelte`, which only renders gap placeholders while positions are
+    /// still strictly increasing (i.e. still file order).
     pub position: i64,
     /// Leading flag column, preserved verbatim (always `"0"` observed so far; meaning unknown).
     pub flag: String,
@@ -57,18 +67,23 @@ pub struct CharacterOrderPayload {
     pub unresolved_count: usize,
 }
 
-/// What the frontend sends back to write a new order: just the two fields the file format
-/// actually stores per row. Position is recomputed from array order on write.
-#[derive(Deserialize)]
+/// What the frontend sends back to write a new order (and what a remembered order reads
+/// back as): the exact fields the file format stores per row. `position` is written
+/// verbatim, not recomputed from array order — the frontend is responsible for numbering
+/// (including deliberately skipping a number to preserve a locked-empty-slot reservation).
+#[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct OrderLine {
     pub flag: String,
     pub realm_guid: String,
+    pub position: i64,
 }
 
 struct OrderEntry {
     flag: String,
     realm_guid: String,
+    /// The raw third column, verbatim — see `ResolvedCharacter::position`.
+    position: i64,
 }
 
 fn role_display(raw: Option<&str>) -> String {
@@ -83,7 +98,8 @@ fn role_display(raw: Option<&str>) -> String {
 
 /// Parses `character-list-order.txt`: a `Version: 2` header line, then one
 /// `{flag} {realmID}-{lowGUID} {position}` line per character. Position values aren't
-/// necessarily contiguous (a sort key, not an index) — file order is what we read by.
+/// necessarily contiguous (a sort key, not an index) — file order is what we read by, but
+/// the raw value is kept too so a vacant slot from a deleted character is still visible.
 fn parse_order_file(text: &str) -> Vec<OrderEntry> {
     text.lines()
         .skip(1) // "Version: 2" header
@@ -93,9 +109,11 @@ fn parse_order_file(text: &str) -> Vec<OrderEntry> {
             if parts.len() != 3 {
                 return None;
             }
+            let position: i64 = parts[2].parse().ok()?;
             Some(OrderEntry {
                 flag: parts[0].to_string(),
                 realm_guid: parts[1].to_string(),
+                position,
             })
         })
         .collect()
@@ -111,9 +129,8 @@ fn resolve(char_db: &CharDb, entries: &[OrderEntry]) -> Vec<ResolvedCharacter> {
 
     entries
         .iter()
-        .enumerate()
-        .map(|(i, e)| {
-            let position = (i + 1) as i64;
+        .map(|e| {
+            let position = e.position;
             let full_guid = format!("Player-{}", e.realm_guid);
 
             match by_guid.get(full_guid.as_str()) {
@@ -196,6 +213,14 @@ pub fn load(account_dir: &Path, account_name: &str) -> Result<CharacterOrderPayl
     })
 }
 
+fn format_order_text(ordered: &[OrderLine]) -> String {
+    let mut out_lines = vec!["Version: 2".to_string()];
+    for line in ordered {
+        out_lines.push(format!("{} {} {}", line.flag, line.realm_guid, line.position));
+    }
+    out_lines.join("\r\n") + "\r\n"
+}
+
 /// Backs up the existing file (timestamped, alongside the original — local time, since it's
 /// shown to the user browsing their account folder) then writes the new order. Refuses to
 /// overwrite an existing backup of the same name (e.g. two saves within the same second)
@@ -213,15 +238,40 @@ pub fn save(account_dir: &Path, ordered: &[OrderLine]) -> Result<String, String>
     std::fs::copy(&order_path, &backup_path)
         .map_err(|e| format!("backup to {backup_path:?}: {e}"))?;
 
-    let mut out_lines = vec!["Version: 2".to_string()];
-    for (i, line) in ordered.iter().enumerate() {
-        out_lines.push(format!("{} {} {}", line.flag, line.realm_guid, i + 1));
-    }
-    let text = out_lines.join("\r\n") + "\r\n";
-
-    std::fs::write(&order_path, text).map_err(|e| format!("write {order_path:?}: {e}"))?;
+    std::fs::write(&order_path, format_order_text(ordered))
+        .map_err(|e| format!("write {order_path:?}: {e}"))?;
 
     Ok(backup_path.to_string_lossy().into_owned())
+}
+
+/// Reads the remembered-order file, if one has been saved for this account. `Ok(None)`
+/// means nothing's been remembered yet — the normal starting state, not an error.
+pub fn load_memory(account_dir: &Path) -> Result<Option<Vec<OrderLine>>, String> {
+    let memory_path = account_dir.join(MEMORY_FILE);
+    if !memory_path.is_file() {
+        return Ok(None);
+    }
+    let text = std::fs::read_to_string(&memory_path)
+        .map_err(|e| format!("read {memory_path:?}: {e}"))?;
+    Ok(Some(
+        parse_order_file(&text)
+            .into_iter()
+            .map(|e| OrderLine {
+                flag: e.flag,
+                realm_guid: e.realm_guid,
+                position: e.position,
+            })
+            .collect(),
+    ))
+}
+
+/// Overwrites the remembered order in place. Unlike `save`, no backup is made — this is a
+/// saved preference the user asked to persist "until a new one is remembered", so plainly
+/// replacing it on the next remember is the intended behavior, not a data-loss risk.
+pub fn save_memory(account_dir: &Path, ordered: &[OrderLine]) -> Result<(), String> {
+    let memory_path = account_dir.join(MEMORY_FILE);
+    std::fs::write(&memory_path, format_order_text(ordered))
+        .map_err(|e| format!("write {memory_path:?}: {e}"))
 }
 
 #[tauri::command]
@@ -250,6 +300,27 @@ pub fn save_character_order(
     let retail = crate::wow::find_retail_dir(wow_dir.as_deref())
         .ok_or("Couldn't find a WoW _retail_ folder. Set WOW_DIR.")?;
     save(&crate::wow::account_dir(&retail, &account), &ordered)
+}
+
+#[tauri::command]
+pub fn get_remembered_order(
+    account: String,
+    wow_dir: Option<String>,
+) -> Result<Option<Vec<OrderLine>>, String> {
+    let retail = crate::wow::find_retail_dir(wow_dir.as_deref())
+        .ok_or("Couldn't find a WoW _retail_ folder. Set WOW_DIR.")?;
+    load_memory(&crate::wow::account_dir(&retail, &account))
+}
+
+#[tauri::command]
+pub fn remember_character_order(
+    account: String,
+    ordered: Vec<OrderLine>,
+    wow_dir: Option<String>,
+) -> Result<(), String> {
+    let retail = crate::wow::find_retail_dir(wow_dir.as_deref())
+        .ok_or("Couldn't find a WoW _retail_ folder. Set WOW_DIR.")?;
+    save_memory(&crate::wow::account_dir(&retail, &account), &ordered)
 }
 
 #[cfg(test)]
@@ -330,6 +401,20 @@ mod tests {
     }
 
     #[test]
+    fn preserves_a_gap_from_a_deleted_character() {
+        // Slot 2 is missing (a character deleted from that slot), so the raw stored
+        // numbers themselves have a gap even though these are the only two lines in the
+        // file — that gap must survive into the resolved position, not get silently
+        // renumbered to 1, 2.
+        let db = CharDb::default();
+        let entries = parse_order_file("Version: 2\n0 47-AAA 1\n0 47-BBB 3\n");
+        let resolved = resolve(&db, &entries);
+
+        assert_eq!(resolved[0].position, 1);
+        assert_eq!(resolved[1].position, 3);
+    }
+
+    #[test]
     fn save_round_trips_and_backs_up() {
         let tmp = std::env::temp_dir().join(format!(
             "warbandeer-desktop-charorder-test-save-{}",
@@ -343,10 +428,12 @@ mod tests {
             OrderLine {
                 flag: "0".to_string(),
                 realm_guid: "47-BBB".to_string(),
+                position: 1,
             },
             OrderLine {
                 flag: "0".to_string(),
                 realm_guid: "47-AAA".to_string(),
+                position: 2,
             },
         ];
         let backup_path = save(&tmp, &ordered).expect("save should succeed");
@@ -355,7 +442,7 @@ mod tests {
         let backup_text = std::fs::read_to_string(&backup_path).unwrap();
         assert_eq!(backup_text, "Version: 2\r\n0 47-AAA 1\r\n0 47-BBB 2\r\n");
 
-        // The live file now reflects the new order, CRLF, positions renumbered from 1.
+        // The live file now reflects the new order and positions, verbatim, CRLF.
         let new_text = std::fs::read_to_string(&order_path).unwrap();
         assert_eq!(new_text, "Version: 2\r\n0 47-BBB 1\r\n0 47-AAA 2\r\n");
 
@@ -381,9 +468,123 @@ mod tests {
         let ordered = vec![OrderLine {
             flag: "0".to_string(),
             realm_guid: "47-AAA".to_string(),
+            position: 1,
         }];
         let result = save(&tmp, &ordered);
         assert!(result.is_err());
+
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn save_writes_position_verbatim_preserving_a_deliberate_gap() {
+        // A locked-empty-slot reservation shows up here as a plain skipped number — the
+        // frontend computes gap-aware positions, and `save` just writes whatever it's given.
+        let tmp = std::env::temp_dir().join(format!(
+            "warbandeer-desktop-charorder-test-gap-{}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&tmp).unwrap();
+        std::fs::write(tmp.join(ORDER_FILE), "Version: 2\r\n0 47-AAA 1\r\n").unwrap();
+
+        let ordered = vec![
+            OrderLine {
+                flag: "0".to_string(),
+                realm_guid: "47-AAA".to_string(),
+                position: 1,
+            },
+            OrderLine {
+                flag: "0".to_string(),
+                realm_guid: "47-BBB".to_string(),
+                position: 3, // slot 2 is a deliberately preserved gap
+            },
+        ];
+        save(&tmp, &ordered).expect("save should succeed");
+
+        let new_text = std::fs::read_to_string(tmp.join(ORDER_FILE)).unwrap();
+        assert_eq!(new_text, "Version: 2\r\n0 47-AAA 1\r\n0 47-BBB 3\r\n");
+
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn load_memory_returns_none_when_nothing_remembered() {
+        let tmp = std::env::temp_dir().join(format!(
+            "warbandeer-desktop-charorder-test-nomemory-{}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&tmp).unwrap();
+
+        assert!(load_memory(&tmp).unwrap().is_none());
+
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn save_memory_round_trips_without_touching_the_live_order_file() {
+        let tmp = std::env::temp_dir().join(format!(
+            "warbandeer-desktop-charorder-test-memory-{}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&tmp).unwrap();
+        std::fs::write(tmp.join(ORDER_FILE), "Version: 2\r\n0 47-AAA 1\r\n").unwrap();
+
+        let ordered = vec![
+            OrderLine {
+                flag: "0".to_string(),
+                realm_guid: "47-BBB".to_string(),
+                position: 1,
+            },
+            OrderLine {
+                flag: "0".to_string(),
+                realm_guid: "47-AAA".to_string(),
+                position: 2,
+            },
+        ];
+        save_memory(&tmp, &ordered).expect("save_memory should succeed");
+
+        let remembered = load_memory(&tmp).unwrap().expect("memory file should exist");
+        assert_eq!(remembered.len(), 2);
+        assert_eq!(remembered[0].realm_guid, "47-BBB");
+        assert_eq!(remembered[1].realm_guid, "47-AAA");
+
+        // The live order file is untouched by remembering.
+        let live_text = std::fs::read_to_string(tmp.join(ORDER_FILE)).unwrap();
+        assert_eq!(live_text, "Version: 2\r\n0 47-AAA 1\r\n");
+
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    #[test]
+    fn save_memory_overwrites_a_previous_memory() {
+        let tmp = std::env::temp_dir().join(format!(
+            "warbandeer-desktop-charorder-test-memory-overwrite-{}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&tmp).unwrap();
+
+        save_memory(
+            &tmp,
+            &[OrderLine {
+                flag: "0".to_string(),
+                realm_guid: "47-AAA".to_string(),
+                position: 1,
+            }],
+        )
+        .unwrap();
+        save_memory(
+            &tmp,
+            &[OrderLine {
+                flag: "0".to_string(),
+                realm_guid: "47-BBB".to_string(),
+                position: 1,
+            }],
+        )
+        .unwrap();
+
+        let remembered = load_memory(&tmp).unwrap().unwrap();
+        assert_eq!(remembered.len(), 1);
+        assert_eq!(remembered[0].realm_guid, "47-BBB");
 
         std::fs::remove_dir_all(&tmp).ok();
     }

@@ -40,3 +40,20 @@ export function saveCharacterOrder(
 ): Promise<string> {
   return invoke("save_character_order", { account, ordered, wowDir: wowDir ?? null });
 }
+
+/** The user's remembered order for this account, or null if nothing's been remembered. */
+export function getRememberedOrder(
+  account: string,
+  wowDir?: string | null,
+): Promise<OrderLine[] | null> {
+  return invoke("get_remembered_order", { account, wowDir: wowDir ?? null });
+}
+
+/** Persists `ordered` as the remembered order, replacing whatever was remembered before. */
+export function rememberCharacterOrder(
+  account: string,
+  ordered: OrderLine[],
+  wowDir?: string | null,
+): Promise<void> {
+  return invoke("remember_character_order", { account, ordered, wowDir: wowDir ?? null });
+}

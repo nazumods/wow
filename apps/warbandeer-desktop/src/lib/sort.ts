@@ -2,7 +2,7 @@
 // WarbandeerCharacterSort app's SortMode/CharacterSorter. Unresolved characters (no
 // matching Warbandeer record) always sort to the end regardless of mode, since there's
 // nothing meaningful to sort them by until the owning character next logs in.
-import type { ResolvedCharacter } from "./types";
+import type { OrderLine, ResolvedCharacter } from "./types";
 
 export type SortMode =
   | "alphaAsc"
@@ -10,7 +10,8 @@ export type SortMode =
   | "levelDesc"
   | "levelAsc"
   | "classRole"
-  | "profession";
+  | "profession"
+  | "memory";
 
 // English gathering professions — a crafting profession always outranks these as a
 // character's sort identity. (Assumes an English client, same as the Tank/Healer/DPS
@@ -113,6 +114,68 @@ export function applySort(
   }
 
   return [...sorted, ...unresolved];
+}
+
+/** Applies `sortFn` only to the characters not in `locked` (by realmGuid); every locked
+ * character is left in its current slot untouched — sorts "go around" a lock rather than
+ * moving it. Works with any of the sort functions above, including `applyRememberedOrder`,
+ * since it only ever calls `sortFn` with the unlocked subset. */
+export function applyLocked(
+  characters: readonly ResolvedCharacter[],
+  locked: ReadonlySet<string>,
+  sortFn: (unlocked: ResolvedCharacter[]) => ResolvedCharacter[],
+): ResolvedCharacter[] {
+  const isLocked = characters.map((c) => locked.has(c.realmGuid));
+  const sortedUnlocked = sortFn(characters.filter((c) => !locked.has(c.realmGuid)));
+  let cursor = 0;
+  return characters.map((c, i) => (isLocked[i] ? c : sortedUnlocked[cursor++]));
+}
+
+export interface AssignedSlot {
+  position: number;
+  /** The character at this position, or `null` for a locked-empty-slot reservation. */
+  c: ResolvedCharacter | null;
+}
+
+/** Assigns sequential position numbers to `characters`, reserving one for each locked-gap
+ * rank (a rank is "this many characters precede it" — the same rank a locked character's
+ * array index preserves through a sort, but for a slot with nothing in it). Used both to
+ * build what gets written to disk (a `null` slot is simply omitted, leaving its number
+ * permanently vacant) and to drive the "Slot #" display once anything is locked — with an
+ * empty `lockedGapRanks`, this just numbers `characters` 1..N with no gaps, same as before
+ * locking existed. */
+export function assignPositions(
+  characters: readonly ResolvedCharacter[],
+  lockedGapRanks: ReadonlySet<number>,
+): AssignedSlot[] {
+  const result: AssignedSlot[] = [];
+  let position = 1;
+  for (let rank = 0; rank <= characters.length; rank++) {
+    if (lockedGapRanks.has(rank)) {
+      result.push({ position, c: null });
+      position++;
+    }
+    if (rank < characters.length) {
+      result.push({ position, c: characters[rank] });
+      position++;
+    }
+  }
+  return result;
+}
+
+/** Reorders `characters` to match a previously remembered order (by realmGuid). A
+ * character not present in the memory — created since it was last remembered — keeps its
+ * current relative position, appended after every remembered one, rather than being
+ * dropped or shuffled to an arbitrary spot. */
+export function applyRememberedOrder(
+  characters: readonly ResolvedCharacter[],
+  remembered: readonly OrderLine[],
+): ResolvedCharacter[] {
+  const index = new Map(remembered.map((r, i) => [r.realmGuid, i]));
+  const known = characters.filter((c) => index.has(c.realmGuid));
+  const unknown = characters.filter((c) => !index.has(c.realmGuid));
+  known.sort((a, b) => index.get(a.realmGuid)! - index.get(b.realmGuid)!);
+  return [...known, ...unknown];
 }
 
 // --- Remembered profession-sort choices (localStorage — the webview already has a

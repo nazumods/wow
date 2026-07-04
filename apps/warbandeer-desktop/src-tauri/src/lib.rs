@@ -15,6 +15,8 @@ pub fn run() {
             charorder::list_order_accounts,
             charorder::get_character_order,
             charorder::save_character_order,
+            charorder::get_remembered_order,
+            charorder::remember_character_order,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
