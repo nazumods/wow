@@ -80,3 +80,23 @@ pub fn find_saved_var(retail: &Path, file: &str) -> Option<(String, PathBuf)> {
 pub fn logs_dir(retail: &Path) -> PathBuf {
     retail.join("Logs")
 }
+
+/// The account's folder under `WTF/Account/<name>/`.
+pub fn account_dir(retail: &Path, account: &str) -> PathBuf {
+    retail.join("WTF").join("Account").join(account)
+}
+
+/// Every account folder that has a `character-list-order.txt` (i.e. has been used at the
+/// character-select screen at least once), sorted by name.
+pub fn list_order_accounts(retail: &Path) -> Vec<String> {
+    let accounts = retail.join("WTF").join("Account");
+    let mut out: Vec<String> = std::fs::read_dir(&accounts)
+        .into_iter()
+        .flatten()
+        .flatten()
+        .filter(|entry| entry.path().join("character-list-order.txt").is_file())
+        .map(|entry| entry.file_name().to_string_lossy().into_owned())
+        .collect();
+    out.sort();
+    out
+}

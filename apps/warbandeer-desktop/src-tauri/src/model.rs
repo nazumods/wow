@@ -34,10 +34,13 @@ pub struct Week {
 #[serde(default)]
 pub struct Character {
     pub realm: Option<String>,
+    pub guid: Option<String>,
     #[serde(rename = "classKey")]
     pub class_key: Option<String>,
     #[serde(rename = "classId")]
     pub class_id: f64,
+    #[serde(rename = "className")]
+    pub class_name: Option<String>,
     #[serde(rename = "isAlliance")]
     pub is_alliance: bool,
     pub basic: Basic,
@@ -51,6 +54,29 @@ pub struct Character {
 #[serde(default)]
 pub struct Basic {
     pub level: f64,
+    pub specialization: Option<Specialization>,
+    pub professions: Option<Professions>,
+}
+
+/// `role` is Blizzard's `GetSpecializationRoleByID` token: `"TANK"`/`"HEALER"`/`"DAMAGER"`.
+#[derive(Deserialize, Default)]
+#[serde(default)]
+pub struct Specialization {
+    pub role: Option<String>,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(default)]
+pub struct Professions {
+    pub primary: Option<ProfessionSlot>,
+    pub secondary: Option<ProfessionSlot>,
+}
+
+/// `Player:GetProfessions()`'s per-slot `:GetInfo()` result — only `name` is needed here.
+#[derive(Deserialize, Default)]
+#[serde(default)]
+pub struct ProfessionSlot {
+    pub name: Option<String>,
 }
 
 #[derive(Deserialize, Default)]

@@ -55,3 +55,33 @@ export interface CombatLogSummary {
   encounters: string[];
   topDamage: DamageRow[];
 }
+
+export interface ResolvedCharacter {
+  name: string;
+  realm: string;
+  realmGuid: string;
+  classId: number;
+  classKey: string; // uppercase class token, e.g. "MAGE" — empty when unresolved
+  className: string;
+  level: number;
+  role: string; // "Tank" | "Healer" | "DPS" | "?"
+  itemLevel: number; // 0 when unknown
+  profession1: string; // "" when untrained/unknown
+  profession2: string;
+  position: number;
+  flag: string; // opaque, round-tripped verbatim
+}
+
+export interface CharacterOrderPayload {
+  account: string;
+  dbVersion: number | null;
+  characters: ResolvedCharacter[];
+  unresolvedCount: number;
+}
+
+/** What gets sent back to `saveCharacterOrder` — just the two fields the file format
+ * stores; position is recomputed from array order on write. */
+export interface OrderLine {
+  flag: string;
+  realmGuid: string;
+}

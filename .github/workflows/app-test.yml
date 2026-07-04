@@ -1,0 +1,54 @@
+name: app-test
+
+# PR/push gate for the `apps/` desktop companion — the analogue of `test.yml`'s Lua
+# suite, but for the Tauri app: Svelte/TS typecheck + Rust unit tests. `app-release.yml`
+# only builds on release; nothing else runs `cargo test` or `svelte-check`, so this is
+# the only gate that actually exercises this app's test suite.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/warbandeer-desktop/**"
+      - ".github/workflows/app-test.yml"
+  pull_request:
+    paths:
+      - "apps/warbandeer-desktop/**"
+      - ".github/workflows/app-test.yml"
+
+jobs:
+  test:
+    # Windows-only, matching app-release.yml: the backend's data-path discovery and
+    # some path handling assume a Windows WoW install.
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: apps/warbandeer-desktop
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/warbandeer-desktop/package-lock.json
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Svelte + TypeScript typecheck
+        run: npm run check
+
+      - name: Frontend production build
+        run: npm run build
+
+      - name: Rust tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+
+      - name: Rust check
+        run: cargo check --manifest-path src-tauri/Cargo.toml

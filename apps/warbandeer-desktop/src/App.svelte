@@ -3,12 +3,13 @@
   import { getOverview, listCombatLogs } from "./lib/api";
   import OverviewView from "./lib/components/Overview.svelte";
   import CombatLogPanel from "./lib/components/CombatLogPanel.svelte";
+  import CharacterSort from "./lib/components/CharacterSort.svelte";
 
   let overview = $state<Overview | null>(null);
   let logs = $state<CombatLogFile[]>([]);
   let error = $state<string | null>(null);
   let loading = $state(true);
-  let tab = $state<"overview" | "logs">("overview");
+  let tab = $state<"overview" | "logs" | "sort">("overview");
 
   async function load() {
     loading = true;
@@ -42,6 +43,7 @@
     <button class:active={tab === "logs"} onclick={() => (tab = "logs")}>
       Logs{#if logs.length}<span class="badge">{logs.length}</span>{/if}
     </button>
+    <button class:active={tab === "sort"} onclick={() => (tab = "sort")}> Sort </button>
   </nav>
   <button class="refresh" onclick={load} title="Reload saved data">⟳</button>
 </header>
@@ -58,8 +60,10 @@
   {:else if overview}
     {#if tab === "overview"}
       <OverviewView data={overview} />
-    {:else}
+    {:else if tab === "logs"}
       <CombatLogPanel {logs} />
+    {:else}
+      <CharacterSort />
     {/if}
   {/if}
 </main>
