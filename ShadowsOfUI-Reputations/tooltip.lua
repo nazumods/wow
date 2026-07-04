@@ -14,6 +14,10 @@ local memo = {}
 local memoGen
 ns:OnItemTooltip(function(tooltip, data)
   if not data.lines then return end
+  -- A loading/empty item tooltip (or some hyperlink-routed ones) fires with a nil id;
+  -- memo[nil] = fid would raise 'table index is nil'. Guard like the sibling consumers
+  -- (ShadowsOfUI-Known, ShadowsOfUI-WarbandInventory) do.
+  if not data.id then return end
   if memoGen ~= ns._factionIndexGen then
     wipe(memo)
     memoGen = ns._factionIndexGen
