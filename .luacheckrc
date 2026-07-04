@@ -274,7 +274,6 @@ std = {
     "SettingsPanel",
     "StanceBar",
     "StatusTrackingBarManager",
-    "QuestInfoFrame",
     "UIParent",
     "UISpecialFrames",
     "WorldMapFrame",
