@@ -35,7 +35,9 @@ character/spec's setup and import it onto the current character. Profiles are st
 :GetIncludeSettings()                      → include table (live; mutate to change)
 ```
 
-`char`/`specID`/`include` args default to the current character / spec / per-char settings.
+`char`/`specID`/`include` args default to the current character / spec / per-char settings. `char`
+is resolved **case-insensitively** (`resolveChar` — exact hit first, then a case-insensitive scan) so
+`/wbb restore lurias` finds the canonically-stored `Lurias`; stored keys stay canonical.
 `barFilter` maps **internal** bar numbers (1-15, slot id = `(bar-1)*12 + n`) to bool; `false` leaves
 that bar untouched (restore *and* clear pass). `nil` = all bars.
 
