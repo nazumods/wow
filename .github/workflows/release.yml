@@ -2,7 +2,7 @@ name: release
 
 on:
   schedule:
-    # 10:00 America/New_York (14:00 UTC EST / shifts to 09:00 ET during DST).
+    # 14:00 UTC year-round → 10:00 ET during EDT, 09:00 ET during EST.
     - cron: '0 14 * * *'
   workflow_dispatch:
 
