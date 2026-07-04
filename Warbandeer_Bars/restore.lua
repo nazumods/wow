@@ -228,6 +228,29 @@ local function RestoreMacrosAndSlots(macros, slots)
 end
 
 local function RestoreBindings(binds)
+  -- A profile captured with bindings excluded has an empty binds list; treat that as "no
+  -- binding data" and leave the live set alone. Without this the clear pass below (empty
+  -- `wanted`) would wipe every live keybind — a profile restored with bindings=true but no
+  -- captured bindings must not nuke the user's keys.
+  if #binds == 0 then return end
+
+  -- Bindings are a full snapshot (CaptureBindings records every bound command), so the
+  -- restored set must MATCH the profile, not union with what's already live. Clear any key
+  -- bound live but absent from the profile first — the binding analog of ClearUnusedSlots —
+  -- else e.g. a live F5->ACTIONBUTTON5 survives a profile captured before that binding, and
+  -- the result is the union of both sets rather than the profile the user asked to import.
+  local wanted = {}
+  for _, b in ipairs(binds) do
+    if b.key1 then wanted[b.key1] = true end
+    if b.key2 then wanted[b.key2] = true end
+  end
+  for i = 1, GetNumBindings() do
+    local _, _, key1, key2 = GetBinding(i)
+    for _, key in ipairs({ key1, key2 }) do
+      if key and not wanted[key] then SetBinding(key) end  -- SetBinding(key) with no command unbinds it
+    end
+  end
+
   for _, b in ipairs(binds) do
     for _, key in ipairs({ b.key1, b.key2 }) do
       if key then

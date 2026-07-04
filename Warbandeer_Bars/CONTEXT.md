@@ -128,5 +128,10 @@ missing `WarbandeerBarsSettings` keys from `ns.DefaultSettings`.
   name, spells by ID.
 - **Outfits are names only** — `C_EquipmentSet` data is account-wide, so the profile just records set
   names to confirm existence; restore does not rebuild gear sets.
-- **Keybindings restore writes the live binding set** (`SaveBindings(GetCurrentBindingSet())`) per
-  key, using the per-command binding context when available.
+- **Keybindings restore replaces the live binding set** (`SaveBindings(GetCurrentBindingSet())`),
+  writing each captured key with its per-command binding context when available. Capture is a
+  *full* snapshot (`CaptureBindings` walks every command via `GetNumBindings`/`GetBinding`), so
+  restore first **clears any live key not in the profile** (the binding analog of
+  `ClearUnusedSlots`) before applying — otherwise the result would be the union of the old live
+  bindings and the profile's, leaving stale keys bound (e.g. a live `F5`→`ACTIONBUTTON5` surviving
+  a profile that predates it).
