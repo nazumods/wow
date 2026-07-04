@@ -2,9 +2,11 @@ local up = require("ShadowsOfUI-Upgrade.spec.upgrade")
 
 -- Enum.ItemWeaponSubclass IDs (mirror data/classgear.lua).
 local AXE1H, AXE2H = 0, 1
-local MACE1H = 4
+local MACE1H, MACE2H = 4, 5
+local POLEARM = 6
 local SWORD1H, SWORD2H = 7, 8
 local STAFF, DAGGER = 10, 15
+local BOW = 2
 local WAND = 19
 local ARMOR, WEAPON = 4, 2          -- Enum.ItemClass
 local CLOTH, LEATHER, MAIL, PLATE = 1, 2, 3, 4   -- Enum.ItemArmorSubclass
@@ -55,6 +57,14 @@ describe("ShadowsOfUI-Upgrade equip", function()
       assert.is_false(ns.IsTwoHand("INVTYPE_HEAD"))
       assert.is_false(ns.IsTwoHand(nil))
     end)
+
+    it("treats a wand as one-handed despite sharing INVTYPE_RANGEDRIGHT", function()
+      -- A gun/crossbow (no subclass, or any non-wand) at RANGEDRIGHT is two-handed…
+      assert.is_true(ns.IsTwoHand("INVTYPE_RANGEDRIGHT"))
+      assert.is_true(ns.IsTwoHand("INVTYPE_RANGEDRIGHT", BOW))
+      -- …but a wand at the same equipLoc is one-handed.
+      assert.is_false(ns.IsTwoHand("INVTYPE_RANGEDRIGHT", WAND))
+    end)
   end)
 
   describe("WeaponRole", function()
@@ -66,6 +76,11 @@ describe("ShadowsOfUI-Upgrade equip", function()
       assert.equals("off", ns.WeaponRole("INVTYPE_WEAPONOFFHAND"))
       assert.equals("off", ns.WeaponRole("INVTYPE_SHIELD"))
       assert.equals("off", ns.WeaponRole("INVTYPE_HOLDABLE"))
+    end)
+
+    it("classifies a wand as a main-hand 1H, not a 2H", function()
+      assert.equals("mh2h", ns.WeaponRole("INVTYPE_RANGEDRIGHT"))          -- gun/crossbow
+      assert.equals("mh1h", ns.WeaponRole("INVTYPE_RANGEDRIGHT", WAND))    -- wand
     end)
 
     it("is nil for armour and rings", function()
@@ -123,6 +138,19 @@ describe("ShadowsOfUI-Upgrade equip", function()
 
     it("rejects a weapon subclass an unknown class can't be looked up for", function()
       assert.is_false(ns.CanEquip("NotAClass", "INVTYPE_WEAPON", WEAPON, SWORD1H))
+    end)
+
+    it("lets a Hunter equip melee weapons, not just ranged (Survival's 2H)", function()
+      assert.is_true(ns.CanEquip("Hunter", "INVTYPE_RANGED", WEAPON, BOW))
+      assert.is_true(ns.CanEquip("Hunter", "INVTYPE_2HWEAPON", WEAPON, POLEARM))
+      assert.is_true(ns.CanEquip("Hunter", "INVTYPE_2HWEAPON", WEAPON, SWORD2H))
+      assert.is_true(ns.CanEquip("Hunter", "INVTYPE_WEAPON", WEAPON, DAGGER))
+    end)
+
+    it("lets an Evoker equip 2H axes/maces/swords, not only staves", function()
+      assert.is_true(ns.CanEquip("Evoker", "INVTYPE_2HWEAPON", WEAPON, AXE2H))
+      assert.is_true(ns.CanEquip("Evoker", "INVTYPE_2HWEAPON", WEAPON, MACE2H))
+      assert.is_true(ns.CanEquip("Evoker", "INVTYPE_2HWEAPON", WEAPON, SWORD2H))
     end)
   end)
 

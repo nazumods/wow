@@ -27,7 +27,7 @@ LibNUI. The stat-priority and quartermaster-gear tables are small built-ins (`ns
 | `data/enchants.lua` | `ns.Enchants` = the **fallback** recommended enchant per **canonical** enchant slot (used only when ClassCodex isn't installed; CC's per-spec data is preferred — see `enchants.lua`). (both rings → `Finger`, both weapons → `Weapon`; `enchants.lua`'s `ENCHANT_KEY` maps equipped slots onto these). Each row is either `byStat = { haste=id, crit=id, mastery=id, versatility=id }` (resolver picks the variant for the character's top secondary via `ns.StatRanks`) or `fixed = id` (non-variant slots — weapon proc/utility enchants, a primary-stat leg kit). Also exports **`ns.EnchantMinIlvl`** — the single season-wide floor (Midnight = 120): the lowest item level *any* enchant applies to, so an equipped item below it is **neither flagged as missing nor recommended** (can't be enchanted), for **every** enchantable slot — including Head/Shoulder/Legs/Feet, which carry no bundled stat pick. Gated via `ns.BelowEnchantMinIlvl(item)` (in `classcodex.lua`). `id` is the **enchanting recipe spellID**; names resolve live (`GetSpellInfo`) at the surface, so nothing is hardcoded/locale-bound. **Regenerate each season** — harvest live recipe ids in-game (see Gotchas → "Refreshing `ns.Enchants`"); **bump `ns.EnchantMinIlvl` per expansion** too. A slot absent here yields no recommendation |
 | `resolve.lua` | `ns.StatRanks(charData)` → the spec's `{stat=tier}` table (or nil); `ns.PrimaryStat(charData)` → `"str"`/`"agi"`/`"int"` (or nil). Both via a lazily-built `specID → {token, index}` map (`GetSpecializationInfoForClassID`) indexing into `ns.StatPriority` / `ns.ClassPrimary` |
 | `equip.lua` | `ns.CompetingSlots(equipLoc)` → equipment-slot names an item contests; `ns.CanEquip(classKey, equipLoc, classID, subClassID)` → armour-type / shield / weapon-proficiency check; `ns.IsTwoHand(equipLoc)` + `ns.WeaponRole(equipLoc)` → `"mh1h"`/`"mh2h"`/`"off"`/nil for the 2H ↔ dual-wield reconciliation |
-| `evaluate.lua` | **Single-candidate evaluation primitives**, published on `ns` for `upgrade.lua` (aggregation) + `upgradesources.lua` (external sources). `ns.Evaluate(charData, cand)` → `(slot, ilvlGain, candIlvl)` or nil: the core test — `candInfo`/`ClassifyGearItem` → `ns.CanEquip` (proficiency) → `primaryFits` (`ns.PrimaryStat` match) → `ns.CompetingSlots` → upgrade iff candidate ilvl > the **lowest** equipped ilvl among competing slots (empty slot = 0). `ns.StatTag(link, ranks)` → `"good"`/`"off"`/nil (carries a tier-1 secondary?). `ns.EquippedTwoHand(charData)` (off-hand occupied by a 2H — `slotEquipLoc` falls back to `GetItemInfoInstant` for pre-equipLoc cached alts). `ns.EvaluateExternal(charData, cand, twoHander)` (= `ns.Evaluate` + the lone-item 2H guard, for WQ/vendor candidates). `ns.PickHeadline` (prefer held; a strictly-higher warband copy wins + flags `betterElsewhere`). `ns.ResolveTwoHand(...)` (the 2H ↔ dual-wield reconciliation — see Algorithm). `isArtifact`/`primaryFits`/`candInfo` stay file-local (used only here + `ResolveTwoHand`). |
+| `evaluate.lua` | **Single-candidate evaluation primitives**, published on `ns` for `upgrade.lua` (aggregation) + `upgradesources.lua` (external sources). `ns.Evaluate(charData, cand)` → `(slot, ilvlGain, candIlvl)` or nil: the core test — `candInfo`/`ClassifyGearItem` → `ns.CanEquip` (proficiency) → `primaryFits` (`ns.PrimaryStat` match) → `ns.CompetingSlots` → upgrade iff candidate ilvl > the **lowest** equipped ilvl among competing slots (empty slot = 0). `ns.StatTag(link, ranks)` → `"good"`/`"off"`/nil (carries a tier-1 secondary?). `ns.EquippedTwoHand(charData)` (main hand holds a 2H — `slotEquipLoc`/`slotSubClass` fall back to `GetItemInfoInstant` for pre-equipLoc cached alts; a **wand** is excluded, being one-handed despite sharing `INVTYPE_RANGEDRIGHT` with guns/crossbows). `ns.EquippedDualTwoHand(charData)` (both hands hold a 2H — a Titan's-Grip Fury warrior). `ns.EvaluateExternal(charData, cand, twoHander)` (= `ns.Evaluate` + the lone-item 2H guard, for WQ/vendor candidates). `ns.PickHeadline` (prefer held; a strictly-higher warband copy wins + flags `betterElsewhere`). `ns.ResolveTwoHand(...)` (the 2H ↔ dual-wield reconciliation — see Algorithm). `isArtifact`/`primaryFits`/`candInfo` stay file-local (used only here + `ResolveTwoHand`). |
 | `upgrade.lua` | **Per-character aggregation** + the held/warband published API. `computeUpgrades` collects the best held-vs-warband candidate per slot (`ns.Evaluate` → `ns.PickHeadline` → `ns.StatTag`), routing both weapon slots through `ns.ResolveTwoHand` when the character wields a 2H; a ~2s per-character memo (`cachedUpgrades`) so a view's per-slot calls compute once. Publishes `SlotUpgrade`/`CharacterUpgrades`/`CharacterUpgradeCount` |
 | `upgradesources.lua` | **External-source published API** — `WorldQuestUpgrades` (reads `WarbandeerApi:GetWorldQuestRewards`), `VendorUpgrades` (`pickVendorOption` over the bundled `ns.VendorGear`, `reqLevel`-gated), and `ItemUpgrades` (the tooltip "upgrades `<alt>`" check; `boundTo` soulbound restriction + the lone-item 2H guard). Each runs candidates through `evaluate.lua`'s `ns.EvaluateExternal`/`ns.Evaluate` + `ns.StatTag` so they're held to the same bar as held/warband gear |
 | `classcodex.lua` | **ClassCodex resolution layer + shared enchant/gem gates**, published on `ns` for `enchants.lua`/`gems.lua`. The two gates **every** enchant/gem surface consults: `ns.BelowMaxLevel(charData)` (still-levelling → suppress all surfaces; also used by `tooltip.lua`) and `ns.BelowEnchantMinIlvl(item)` (equipped item below `ns.EnchantMinIlvl` → can't be enchanted; gates only when ilvl is known). `ns.PickStat(ranks, byStat)` picks the top secondary among offered variants (`STAT_ORDER` tie-break). The CC layer — `ccClassSpec` (builds the `(CLASSTOKEN, specKey)` keys: classKey upper-cased; spec name lower-with-hyphens from the persisted numeric `id` via `GetSpecializationInfoByID`, **else** the stored `active`/`primary` name — prefers played over loot spec; locale-dependent), `ccNormalize`+`CC_SLOT`+`CC_ALIAS` (collapse "Ring"/"Rings"/"Boots"/"Helm"→canonical) — behind `ns.ClassCodexEnchant(charData, slot)` → `(name, itemId)` and `ns.ClassCodexGems(charData)` → the `.gems` table; both type-check every level and return nil on any shape mismatch (callers fall back to the bundled tables). `ns.StatTargets` (+ the published `StatTargets`/`StatRanks` wrappers) and `ns.ClassCodexConsumables(charData)` → the spec's raw `.consumables` block (`{ flask, combatPotion, food, weaponBuff, augmentRune }`, each `{ itemId, name }`) or nil — **wowhead-source-only** (the `ClassCodexGearData` global; Archon/IcyVeins globals carry no consumables), **no bundled fallback**, published as `Upgrade:RecommendedConsumables`. Defines the `EnchantSuggestion` type. `ns.DumpEnchants(charData)` → the `/supgrade enchants` text block (resolved class/spec key, CC presence, every CC enchant entry as **raw slot → `ccNormalize` → pick**, each missing-enchant slot → its recommendation) — reuses the real helpers so it mirrors live resolution |
@@ -159,14 +159,25 @@ MainHand **and** OffHand results flagged `pairSwap`, each showing the average pe
 tooltip path (`ItemUpgrades`) applies the same gate: a single item can't form a pair, so a lone
 off-hand / 1H is not listed as an upgrade for a 2H wielder (only another 2H is).
 
+**Titan's Grip (dual two-hander)** (`equippedDualTwoHand` — both hands hold a 2H): the off-hand
+isn't nominally empty, so the doubled-budget pairing above doesn't apply. `resolveTwoHand` scores
+current = `MH.ilvl + OH.ilvl` and a better 2H simply replaces the **weaker** of the two equipped
+hands (gain vs that hand, emitted on its slot — no `pairSwap`). Across every source: the per-slot
+guard in `evaluate` lets a 2H through for a dual-2H wielder (contesting **both** weapon slots,
+targeting the weaker) instead of rejecting it, and the external/tooltip guards allow a 2H (still
+rejecting a lone 1H/off-hand, which for a TG build would be an off-build switch to SMF).
+
 **One-hander guard** (the mirror, in `evaluate`): when the character has an **off-hand equipped**
 (`equipped.OffHand`) — a shield tank (Prot Paladin/Warrior) or a dual-wielder (DW Frost DK,
 Enhancement, Windwalker, rogues) — a two-hander (`ns.IsTwoHand`) is rejected outright, since equipping it would
 drop the off-hand the spec relies on (the per-slot ilvl compare would otherwise flag a higher-ilvl
 2H against the equipped 1H main hand). It's keyed off the **equipped weapon config**, not a spec
-table, so it tracks the character's actual build (DW vs 2H Frost, SMF vs Titan's-Grip Fury) for free;
-a true 2H wielder has an empty off-hand and falls to `resolveTwoHand` instead. One gate in `evaluate`
-covers every source (held/warband, world-quest, vendor, and the `ItemUpgrades` tooltip).
+table, so it tracks the character's actual build (DW vs 2H Frost) for free. The one **exception** is
+a Titan's-Grip Fury warrior already dual-wielding two 2H (`equippedDualTwoHand`): an occupied
+off-hand does **not** always mean a 1H/shield build, so a 2H is *not* rejected there — it's routed
+to the weaker hand (see Titan's Grip above). A true single-2H wielder has an empty off-hand and
+falls to `resolveTwoHand` instead. One gate in `evaluate` covers every source (held/warband,
+world-quest, vendor, and the `ItemUpgrades` tooltip).
 
 ## Gotchas
 
@@ -203,11 +214,19 @@ covers every source (held/warband, world-quest, vendor, and the `ItemUpgrades` t
   only a better 2H, or a 1H+off-hand pair that beats the 2H in doubled-ilvl budget. The pair is a
   heuristic (2H ilvl ≈ two one-handers of that ilvl); spec weapon *style* (e.g. Arms wanting a 2H)
   isn't modelled, so a fury-style pair can surface for a 2H-preferring spec — class proficiency is
-  the only gate. Non-2H wielders keep the plain per-slot behaviour.
-- **2H detection tolerates pre-equipLoc cached data:** `slotEquipLoc` falls back to
-  `GetItemInfoInstant(link)` when an equipped slot has no stored `equipLoc` (alt scanned before
-  that field existed) — otherwise alts viewed from the warband would slip back to the bogus lone
-  off-hand upgrade.
+  the only gate. Non-2H wielders keep the plain per-slot behaviour. **Titan's Grip** (both hands 2H)
+  is the exception: a 2H upgrades the weaker hand directly (no pairing), and 1H/off-hand candidates
+  are not suggested (they'd be an off-build SMF switch).
+- **Wands are one-handed**, though they share `INVTYPE_RANGEDRIGHT` with (two-handed) guns and
+  crossbows — only the weapon subclass (`Enum.ItemWeaponSubclass.Wand` = 19) tells them apart. So
+  `ns.IsTwoHand`/`ns.WeaponRole` take an optional `subClassID` and exclude a wand from the two-hand
+  bucket; a wand user is treated as a 1H + off-hand build (their off-hand upgrades surface, and a 2H
+  that would strand the off-hand is guarded out). Callers pass the candidate's subclass; equipped
+  slots derive it via `slotSubClass` (`GetItemInfoInstant` fallback like `slotEquipLoc`).
+- **2H detection tolerates pre-equipLoc cached data:** `slotEquipLoc`/`slotSubClass` fall back to
+  `GetItemInfoInstant(link)` when an equipped slot has no stored `equipLoc`/`subClassID` (alt scanned
+  before those fields existed) — otherwise alts viewed from the warband would slip back to the bogus
+  lone off-hand upgrade.
 - **Artifact-quality items are excluded outright** (`isArtifact` in `evaluate.lua`, gating both
   `evaluate` and the `resolveTwoHand` scan). The Heart of Azeroth and Legion artifact weapons
   scale by their own systems, so `GetDetailedItemLevelInfo` returns an inflated effective ilvl —
@@ -227,7 +246,11 @@ covers every source (held/warband, world-quest, vendor, and the `ItemUpgrades` t
 - **ilvl-first** means tier-set breaks / unique-equipped duplicates can show as upgrades; the
   stat tag and class-proficiency gate trim the obvious noise but it's documented, not perfect.
 - **`ns.ClassGear` weapon matrix is a class-granularity approximation** — refresh on weapon-
-  proficiency changes. Armour-type gating (the high-value case) is exact via `ns.wow.Armor.byClass`.
+  proficiency changes. It lists the **full** class proficiency (e.g. Hunters carry their melee
+  weapons — axes/swords/polearm/staff/dagger/fist — so Survival's mandatory 2H is covered, not just
+  ranged; Evokers carry 2H axe/mace/sword, not only staves), erring toward over-allowing since an
+  occasional mis-allow only adds/drops one ilvl-gated suggestion. Armour-type gating (the high-value
+  case) is exact via `ns.wow.Armor.byClass`.
 - **Last-seen data:** loose gear is only known after the relevant bags/bank/warband-bank have
   been opened; `GetItemStats`/scaled ilvl need the item loaded (warm for your own gear).
 - **Stat priorities drift** with the season — `data/statpriority.lua` is precomputed from PvE

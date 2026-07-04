@@ -163,9 +163,9 @@ function Upgrade:ItemUpgrades(link, boundTo, ilvl)
   for _, charData in ipairs(chars) do
     local slot, gain = ns.Evaluate(charData, cand)
     -- A single item can't establish the main-hand + off-hand pair a 2H wielder would
-    -- need, so a lone off-hand or 1H isn't an upgrade for them — only a 2H is.
-    if slot and ns.EquippedTwoHand(charData)
-        and (slot == "OffHand" or (slot == "MainHand" and not ns.IsTwoHand(cand.equipLoc))) then
+    -- need, so a lone off-hand or 1H isn't an upgrade for them — only a 2H is.  (A
+    -- Titan's-Grip dual-2H wielder's 2H was already routed to the weaker hand by Evaluate.)
+    if slot and ns.EquippedTwoHand(charData) and not ns.IsTwoHand(cand.equipLoc, cand.subClassID) then
       slot = nil
     end
     if slot then

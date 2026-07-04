@@ -54,6 +54,12 @@ local OFF_HAND = {
   INVTYPE_WEAPONOFFHAND = true, INVTYPE_SHIELD = true, INVTYPE_HOLDABLE = true,
 }
 
+-- Wands (Enum.ItemWeaponSubclass.Wand) share INVTYPE_RANGEDRIGHT with guns and
+-- crossbows, but since MoP they are one-handed main-hand weapons that pair with an
+-- off-hand — not two-handers.  Only the subclass distinguishes them, so a caller
+-- that knows it passes it in to keep wands out of the two-hand bucket.
+local WAND = 19
+
 ---Equipment slot names a candidate item contests, or nil if its type maps to no
 ---tracked slot.
 ---@param equipLoc string
@@ -62,10 +68,14 @@ function ns.CompetingSlots(equipLoc)
   return SLOTS_FOR[equipLoc]
 end
 
----Whether an equipLoc occupies both weapon hands (a two-hander or 2H ranged).
+---Whether an equipLoc occupies both weapon hands (a two-hander or 2H ranged).  A
+---wand shares INVTYPE_RANGEDRIGHT with guns/crossbows but is one-handed, so pass its
+---subclass when known to keep it out of the two-hand bucket.
 ---@param equipLoc string?
+---@param subClassID integer? weapon subclass, to disambiguate a wand from a gun/crossbow
 ---@return boolean
-function ns.IsTwoHand(equipLoc)
+function ns.IsTwoHand(equipLoc, subClassID)
+  if subClassID == WAND then return false end
   return equipLoc ~= nil and TWO_HAND[equipLoc] == true
 end
 
@@ -73,12 +83,13 @@ end
 ---`"mh2h"` (two-hander), `"mh1h"` (one-hand main weapon), `"off"` (off-hand item),
 ---or nil when the item isn't a weapon/off-hand at all (armour, rings, …).
 ---@param equipLoc string
+---@param subClassID integer? weapon subclass (a wand is mh1h, not mh2h)
 ---@return string?
-function ns.WeaponRole(equipLoc)
+function ns.WeaponRole(equipLoc, subClassID)
   if OFF_HAND[equipLoc] then return "off" end
   local slots = SLOTS_FOR[equipLoc]
   if slots and slots[1] == "MainHand" then
-    return TWO_HAND[equipLoc] and "mh2h" or "mh1h"
+    return ns.IsTwoHand(equipLoc, subClassID) and "mh2h" or "mh1h"
   end
   return nil
 end

@@ -38,7 +38,7 @@ ns.ClassGear = {
   Warrior     = { shield = true,  weapons = weapons(AXE1H, AXE2H, MACE1H, MACE2H, SWORD1H, SWORD2H, POLEARM, STAFF, DAGGER, FIST) },
   Paladin     = { shield = true,  weapons = weapons(AXE1H, AXE2H, MACE1H, MACE2H, SWORD1H, SWORD2H, POLEARM) },
   DeathKnight = { shield = false, weapons = weapons(AXE1H, AXE2H, MACE1H, MACE2H, SWORD1H, SWORD2H, POLEARM) },
-  Hunter      = { shield = false, weapons = weapons(BOW, GUN, CROSSBOW) },
+  Hunter      = { shield = false, weapons = weapons(BOW, GUN, CROSSBOW, AXE1H, AXE2H, SWORD1H, SWORD2H, POLEARM, STAFF, DAGGER, FIST) },
   Shaman      = { shield = true,  weapons = weapons(AXE1H, AXE2H, MACE1H, MACE2H, DAGGER, FIST, STAFF) },
   Druid       = { shield = false, weapons = weapons(MACE1H, MACE2H, POLEARM, STAFF, DAGGER, FIST) },
   Rogue       = { shield = false, weapons = weapons(AXE1H, MACE1H, SWORD1H, DAGGER, FIST) },
@@ -47,5 +47,5 @@ ns.ClassGear = {
   Warlock     = { shield = false, weapons = weapons(STAFF, SWORD1H, DAGGER, WAND) },
   Monk        = { shield = false, weapons = weapons(AXE1H, MACE1H, SWORD1H, POLEARM, STAFF, FIST) },
   DemonHunter = { shield = false, weapons = weapons(WARGLAIVE, AXE1H, SWORD1H, FIST) },
-  Evoker      = { shield = false, weapons = weapons(AXE1H, MACE1H, SWORD1H, DAGGER, FIST, STAFF) },
+  Evoker      = { shield = false, weapons = weapons(AXE1H, AXE2H, MACE1H, MACE2H, SWORD1H, SWORD2H, DAGGER, FIST, STAFF) },
 }

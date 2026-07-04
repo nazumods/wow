@@ -6,6 +6,10 @@ local GetItemStats = C_Item.GetItemStats
 local GetItemQualityByID = C_Item.GetItemQualityByID
 local ARTIFACT = Enum.ItemQuality.Artifact
 
+-- Both weapon slots — a Titan's-Grip wielder's two-hander can go in either hand, so
+-- it contests both (targeting the weaker), unlike a normal 2H which maps to MainHand.
+local TWO_HAND_SLOTS = { "MainHand", "OffHand" }
+
 -- Single-candidate evaluation: given one loose item (a bag/bank/warband/world-quest/
 -- vendor candidate) decide whether it upgrades a usable slot for a character, how well
 -- its secondaries fit, and reconcile the two-hand ↔ dual-wield weapon comparison. The
@@ -116,17 +120,21 @@ local function evaluate(charData, cand)
 
   local equipLoc, classID, subClassID = candInfo(cand)
   if not equipLoc then return nil end
+  local slots = ns.CompetingSlots(equipLoc)
+  if not slots then return nil end
   -- A character holding an off-hand (a shield tank — Prot Paladin/Warrior — or a
   -- dual-wielder — DW Frost DK, Enhancement, Windwalker, rogues) must keep it: a
   -- two-hander is never an upgrade for them, since equipping it drops the off-hand
-  -- the spec needs.
+  -- the spec needs.  The exception is a Titan's-Grip Fury warrior already dual-wielding
+  -- two-handers — there a 2H replaces the weaker of the two equipped hands, so it
+  -- contests both weapon slots.
   -- Mirror of the two-hand wielder's guard (which rejects a lone 1H/off-hand). Keyed
-  -- off the equipped off-hand, so it follows the character's actual build (DW vs 2H
-  -- Frost) with no spec table; a true 2H wielder has an empty off-hand and is handled
-  -- by resolveTwoHand instead.
-  if equipped.OffHand and ns.IsTwoHand(equipLoc) then return nil end
-  local slots = ns.CompetingSlots(equipLoc)
-  if not slots then return nil end
+  -- off the equipped config, so it follows the character's actual build (DW vs 2H Frost,
+  -- SMF vs Titan's-Grip Fury) with no spec table; a true single-2H wielder has an empty
+  -- off-hand and is handled by resolveTwoHand instead.
+  if equipped.OffHand and ns.IsTwoHand(equipLoc, subClassID) then
+    if ns.EquippedDualTwoHand(charData) then slots = TWO_HAND_SLOTS else return nil end
+  end
   if not ns.CanEquip(charData.classKey, equipLoc, classID, subClassID) then return nil end
   if not primaryFits(cand.link, ns.PrimaryStat(charData)) then return nil end
 
@@ -169,15 +177,38 @@ local function slotEquipLoc(item)
   return nil
 end
 
+-- Weapon subclass of an equipped slot (field 7 of GetItemInfoInstant), derived from
+-- the link when the stored item predates the field — mirrors slotEquipLoc.  Needed to
+-- tell a one-handed wand from a two-handed gun/crossbow (they share INVTYPE_RANGEDRIGHT).
+local function slotSubClass(item)
+  if not item then return nil end
+  if item.subClassID then return item.subClassID end
+  if item.link then return (select(7, GetItemInfoInstant(item.link))) end
+  return nil
+end
+
 -- Whether the character currently wields a two-hander (so the off-hand is occupied
 -- by it, not genuinely empty).
 ---@param charData Character
 ---@return boolean
 local function equippedTwoHand(charData)
   local eq = charData.equipment and charData.equipment.slots
-  return (eq and ns.IsTwoHand(slotEquipLoc(eq.MainHand))) == true
+  return (eq and ns.IsTwoHand(slotEquipLoc(eq.MainHand), slotSubClass(eq.MainHand))) == true
 end
 ns.EquippedTwoHand = equippedTwoHand
+
+-- Whether the character dual-wields two two-handers (a Titan's-Grip Fury warrior):
+-- both weapon slots hold a 2H, so the off-hand isn't a shield/frill a 2H would strand —
+-- a 2H upgrades either hand.  Distinguishes TG from a shield/dual-wield off-hand build.
+---@param charData Character
+---@return boolean
+local function equippedDualTwoHand(charData)
+  local eq = charData.equipment and charData.equipment.slots
+  if not eq or not eq.OffHand then return false end
+  return ns.IsTwoHand(slotEquipLoc(eq.MainHand), slotSubClass(eq.MainHand))
+     and ns.IsTwoHand(slotEquipLoc(eq.OffHand), slotSubClass(eq.OffHand))
+end
+ns.EquippedDualTwoHand = equippedDualTwoHand
 
 -- Evaluate one candidate from an *external* source (a world quest, a vendor) the
 -- same way the held/warband finder does, then apply the guard a single lone item
@@ -191,9 +222,11 @@ ns.EquippedTwoHand = equippedTwoHand
 local function evaluateExternal(charData, cand, twoHander)
   local slot, gain, ilvl = evaluate(charData, cand)
   if not slot then return nil end
-  if twoHander and (slot == "OffHand" or (slot == "MainHand" and not ns.IsTwoHand(cand.equipLoc))) then
-    return nil
-  end
+  -- A two-hand wielder can't use a lone 1H or off-hand (a single item can't form the
+  -- 1H + off-hand pair equipping a 2H would need); only another two-hander is an upgrade.
+  -- (A Titan's-Grip dual-2H wielder's 2H candidate was already routed to the weaker hand
+  -- by evaluate, and passes this test.)
+  if twoHander and not ns.IsTwoHand(cand.equipLoc, cand.subClassID) then return nil end
   return slot, gain, ilvl
 end
 ns.EvaluateExternal = evaluateExternal
@@ -206,6 +239,9 @@ ns.EvaluateExternal = evaluateExternal
 local function resolveTwoHand(charData, pools, warband, equipped, ranks, out)
   local mhIlvl = equipped.MainHand.ilvl or 0
   local primary = ns.PrimaryStat(charData)
+  -- Titan's Grip: the off-hand also holds a two-hander, so it isn't nominally empty —
+  -- a better 2H replaces the weaker of the two hands rather than doubling the main hand.
+  local dualTwoHand = ns.EquippedDualTwoHand(charData)
 
   -- Best equippable candidate per weapon role, held vs warband.
   local acc = { mh1h = {}, mh2h = {}, off = {} }
@@ -213,7 +249,7 @@ local function resolveTwoHand(charData, pools, warband, equipped, ranks, out)
     local k = where == "warband" and "wb" or "held"
     for _, cand in ipairs(cands) do
       local equipLoc, classID, subClassID = candInfo(cand)
-      local role = equipLoc and ns.WeaponRole(equipLoc)
+      local role = equipLoc and ns.WeaponRole(equipLoc, subClassID)
       if role and not isArtifact(cand)
           and ns.CanEquip(charData.classKey, equipLoc, classID, subClassID)
           and primaryFits(cand.link, primary) then
@@ -230,6 +266,24 @@ local function resolveTwoHand(charData, pools, warband, equipped, ranks, out)
   scan(warband, "warband")
 
   local newMH, mhWhere, mhBetter = pickHeadline(acc.mh2h)
+
+  -- Titan's Grip: both hands hold a 2H (current budget = MH + OH), so a better 2H just
+  -- swaps into the weaker hand — no doubled-budget 1H+off-hand pairing.
+  if dualTwoHand then
+    if not newMH then return end
+    local weakSlot, weakIlvl = "MainHand", mhIlvl
+    local ohIlvl = equipped.OffHand.ilvl or 0
+    if ohIlvl < weakIlvl then weakSlot, weakIlvl = "OffHand", ohIlvl end
+    if newMH.ilvl > weakIlvl then
+      out[weakSlot] = {
+        slot = weakSlot, link = newMH.link, ilvl = newMH.ilvl, ilvlGain = newMH.ilvl - weakIlvl,
+        where = mhWhere, betterElsewhere = mhBetter, statTag = statTag(newMH.link, ranks),
+        reqLevel = newMH.reqLevel,
+      }
+    end
+    return
+  end
+
   local oneH, mh1hWhere, mh1hBetter = pickHeadline(acc.mh1h)
   local offH, offWhere, offBetter = pickHeadline(acc.off)
 
