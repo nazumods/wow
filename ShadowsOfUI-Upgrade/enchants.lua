@@ -140,16 +140,28 @@ local function isStatLine(name)
   return name:find("%d") ~= nil and name:find(" %- ") == nil
 end
 
+-- Strip digit-group separators so a stat crossing 1,000 (or a locale using a different
+-- grouping char, e.g. deDE "2.081") reads as one number instead of split fragments —
+-- "+2,081 Armor" must yield 2081, not {2, 81}. LARGE_NUMBER_SEPERATOR is the client-locale
+-- grouping char (nil in the pure-Lua tests); also strip literal , and . defensively.
+local function stripSeparators(text)
+  local sep = LARGE_NUMBER_SEPERATOR
+  if sep and sep ~= "" then text = text:gsub((sep:gsub("(%p)", "%%%1")), "") end
+  return (text:gsub("[,.]", ""))
+end
+
 -- The integers embedded in a string ("+41 Intellect & +115 Stamina" → { 41, 115 }).
 local function statNumbers(text)
   local nums = {}
-  for n in text:gmatch("%d+") do nums[#nums + 1] = tonumber(n) end
+  for n in stripSeparators(text):gmatch("%d+") do nums[#nums + 1] = tonumber(n) end
   return nums
 end
 
 -- Whether a tooltip line contains every number in `want` as a standalone integer (frontier
 -- patterns so 41 doesn't match inside 415) — i.e. that one line grants all the applied stats.
+-- The line is separator-stripped to match `want` (already stripped by statNumbers).
 local function lineHasAll(line, want)
+  line = stripSeparators(line)
   for _, n in ipairs(want) do
     if not line:find("%f[%d]" .. n .. "%f[%D]") then return false end
   end

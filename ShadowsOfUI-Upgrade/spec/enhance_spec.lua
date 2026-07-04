@@ -318,6 +318,17 @@ describe("ShadowsOfUI-Upgrade enhance", function()
         })))
       end)
 
+      it("matches a stat crossing 1,000 despite the thousands separator", function()
+        -- "+2,081 Armor" must read as 2081, not {2, 81}: the split fragment 81 can't
+        -- frontier-match inside "2,081" (the 8 follows a 0), so pre-fix a correct
+        -- spellthread was falsely flagged. Arms itself as values grow past 1,000 (or on a
+        -- digit-grouping locale). Both sides are separator-stripped before comparing.
+        tooltip({ "Daybreak Spellthread", "Use: increasing Armor by 2,081." })
+        assert.same({}, ns.EnchantMismatches(mage({
+          Legs = ench(20, 7935, "+2,081 Armor"),
+        })))
+      end)
+
       it("flags when the recommendation grants different stats", function()
         tooltip({ "Daybreak Spellthread", "Use: increasing Intellect by 50 and Stamina by 140." })
         local res = ns.EnchantMismatches(mage({
