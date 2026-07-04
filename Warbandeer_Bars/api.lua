@@ -14,6 +14,20 @@ local function currentSpecID()
   return (GetSpecInfo(idx)) or 0
 end
 
+-- Resolve a possibly mis-cased character name to its stored profile key. WoW
+-- canonicalises names (first letter upper), so a typed "lurias" should still find the
+-- stored "Lurias" — exact hit first (O(1) for the current character / correct casing),
+-- case-insensitive scan only on a miss. Returns the name unchanged when nothing matches,
+-- so callers still resolve to nil and report "no profile".
+local function resolveChar(name)
+  if not name or ns.db.profiles[name] then return name end
+  local lower = name:lower()
+  for key in pairs(ns.db.profiles) do
+    if key:lower() == lower then return key end
+  end
+  return name
+end
+
 function API:GetCurrentCharacter() return UnitName("player") end
 function API:GetCurrentSpecID()    return currentSpecID() end
 
@@ -21,7 +35,7 @@ function API:GetCurrentSpecID()    return currentSpecID() end
 ---@param char string? defaults to current character
 ---@return table<number, table>?
 function API:GetProfiles(char)
-  return ns.db.profiles[char or UnitName("player")]
+  return ns.db.profiles[resolveChar(char or UnitName("player"))]
 end
 
 ---A single stored profile.
@@ -29,7 +43,7 @@ end
 ---@param specID number? defaults to current spec
 ---@return table?
 function API:GetProfile(char, specID)
-  local byChar = ns.db.profiles[char or UnitName("player")]
+  local byChar = ns.db.profiles[resolveChar(char or UnitName("player"))]
   return byChar and byChar[specID or currentSpecID()]
 end
 
@@ -61,6 +75,7 @@ function API:Snapshot() return ns.Snapshot() end
 ---@param char string
 ---@param specID number
 function API:DeleteProfile(char, specID)
+  char = resolveChar(char)
   local byChar = ns.db.profiles[char]
   if not byChar then return end
   byChar[specID] = nil
