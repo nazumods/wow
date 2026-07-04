@@ -8,7 +8,8 @@ max_comment_line_length = 500
 -- churn with every install. Add new suite addons here.
 include_files = {
   "BarNonce/**/*.lua", "CombatOutline/**/*.lua", "HideBagBar/**/*.lua", "HideStanceBar/**/*.lua",
-  "LibNAddOn/**/*.lua", "LibNUI/**/*.lua", "LibNUI_Test/**/*.lua", "Recycle/**/*.lua",
+  "LibNAddOn/**/*.lua", "LibNUI/**/*.lua", "LibNUI_Test/**/*.lua", "MouselookToggle/**/*.lua",
+  "Recycle/**/*.lua",
   "ShadowsOfUI-DMF/**/*.lua", "ShadowsOfUI-GCD/**/*.lua", "ShadowsOfUI-Ilvl/**/*.lua",
   "ShadowsOfUI-Known/**/*.lua", "ShadowsOfUI-Upgrade/**/*.lua", "ShadowsOfUI-XP/**/*.lua",
   "ShadowsOfUI-Artisan/**/*.lua", "ShadowsOfUI-WarbandInventory/**/*.lua",
@@ -30,6 +31,7 @@ files["LibNUI/globals.lua"] = {globals = {"LibNUI"}, read_globals = {"LibNUITest
 files["LibNUI/debug.lua"] = {globals = {"SLASH_WDEBUG1"}}
 files["LibNUI_Test/**/*.lua"] = {globals = {"LibNUITest"}}
 files["LibNAddOn/api.lua"] = {globals = {"LibNAddOn"}}
+files["MouselookToggle/addon.lua"] = {globals = {"BINDING_NAME_MOUSELOOKTOGGLE_TOGGLE", "MouselookToggle_Toggle"}}
 files["Recycle/addon.lua"] = {globals = {"HandleModifiedItemClick"}}
 files["ShadowsOfUI-Artisan/**/*.lua"] = {globals = {"SLASH_SUI_ARTISAN1"}}
 files["ShadowsOfUI-DMF/**/*.lua"] = {globals = {"SLASH_SUI_DMF1"}}
@@ -359,12 +361,15 @@ std = {
     "IsControlKeyDown",
     "IsPetActive",
     "IsResting",
+    "IsMouselooking",
     "IsShiftKeyDown",
     "IsSpellKnown",
     "IsWindowsClient",
     "LibStub",
     "LoggingCombat",
     "MerchantFrame",
+    "MouselookStart",
+    "MouselookStop",
     "OpenAchievementFrameToAchievement",
     "ShowAchievementFrameForAchievement",
     "OpenAllBags",

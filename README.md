@@ -55,6 +55,7 @@ Each addon folder has its own `README.md` with end-user documentation.
 | [HideStanceBar](HideStanceBar/README.md) | Hides the stance bar, with a per-class toggle. |
 | [HideBagBar](HideBagBar/README.md) | Hides the backpack and bag slot buttons. |
 | [CombatOutline](CombatOutline/README.md) | Enables the character outline rendering mode only while in combat. |
+| [MouselookToggle](MouselookToggle/README.md) | Toggle mouselook (steer the camera without holding right-click) with a configurable keybind. |
 | [BarNonce](BarNonce/README.md) | Removes padding and dims Action Bars 1–2 to 70% opacity. |
 
 ## Installation

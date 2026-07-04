@@ -1,0 +1,5 @@
+<Bindings>
+    <Binding name="MOUSELOOKTOGGLE_TOGGLE" category="Shadows of UI">
+        MouselookToggle_Toggle()
+    </Binding>
+</Bindings>

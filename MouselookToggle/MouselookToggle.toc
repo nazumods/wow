@@ -1,0 +1,9 @@
+## Interface: 120007
+## Category: Shadows of UI
+## Title: Mouselook Toggle
+## Notes: Toggle mouselook (steer the camera by moving the mouse) with a configurable keybind
+## Version: 12.0.7-r0
+## Author: nazuraki
+## IconTexture: Interface\Icons\ability_eyeoftheowl
+
+addon.lua
