@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Overview, CombatLogFile } from "./lib/types";
+  import { getVersion } from "@tauri-apps/api/app";
   import { getOverview, listCombatLogs } from "./lib/api";
   import OverviewView from "./lib/components/Overview.svelte";
   import CombatLogPanel from "./lib/components/CombatLogPanel.svelte";
@@ -10,6 +11,10 @@
   let error = $state<string | null>(null);
   let loading = $state(true);
   let tab = $state<"overview" | "logs" | "sort">("overview");
+
+  // App version, read from tauri.conf.json (the field the release pipeline bumps).
+  let version = $state("");
+  getVersion().then((v) => (version = v));
 
   async function load() {
     loading = true;
@@ -34,6 +39,7 @@
   <div class="brand">
     <span class="mark">W</span>
     <span class="name">Warbandeer</span>
+    {#if version}<span class="version">v{version}</span>{/if}
     {#if overview?.account}<span class="account">{overview.account}</span>{/if}
   </div>
   <nav class="tabs">
@@ -102,6 +108,11 @@
     font-family: var(--font-display);
     font-weight: 600;
     font-size: 16px;
+  }
+  .version {
+    color: var(--faded);
+    font-family: var(--font-mono);
+    font-size: 11px;
   }
   .account {
     color: var(--faded);

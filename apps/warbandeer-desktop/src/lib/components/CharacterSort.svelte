@@ -15,6 +15,7 @@
     applyRememberedOrder,
     applyLocked,
     assignPositions,
+    gapRanksFromOrder,
     isAmbiguous,
     professionPrimaryMap,
     rememberPrimary,
@@ -29,6 +30,8 @@
     alphaDesc: "Name Z-A",
     levelDesc: "Level (high-low)",
     levelAsc: "Level (low-high)",
+    ilvlDesc: "iLvl (high-low)",
+    ilvlAsc: "iLvl (low-high)",
     classRole: "Class",
     profession: "Profession",
     memory: "Remembered Order",
@@ -234,6 +237,22 @@
     }
   }
 
+  // Name and Level each collapse their two directions into one toggle button: a click
+  // applies `first`, clicking again while already on it flips to `second` (and back).
+  function toggleSort(first: SortMode, second: SortMode) {
+    sortBy(activeSortMode === first ? second : first);
+  }
+
+  const isNameSort = $derived(activeSortMode === "alphaAsc" || activeSortMode === "alphaDesc");
+  const isLevelSort = $derived(activeSortMode === "levelDesc" || activeSortMode === "levelAsc");
+  const isIlvlSort = $derived(activeSortMode === "ilvlDesc" || activeSortMode === "ilvlAsc");
+  // Label names the currently-applied direction once active (so it matches the status line
+  // and the actual order); while inactive it shows the default the first click applies.
+  // Clicking an already-active toggle flips to the other direction.
+  const nameLabel = $derived(activeSortMode === "alphaDesc" ? "Name Z–A" : "Name A–Z");
+  const levelLabel = $derived(activeSortMode === "levelAsc" ? "Level low–high" : "Level high–low");
+  const ilvlLabel = $derived(activeSortMode === "ilvlAsc" ? "iLvl low–high" : "iLvl high–low");
+
   function performSort(mode: SortMode) {
     const map = professionPrimaryMap(characters);
     characters = applyLocked(characters, lockedGuids, (unlocked) => applySort(unlocked, mode, map));
@@ -250,7 +269,11 @@
       characters = applyLocked(characters, lockedGuids, (unlocked) =>
         applyRememberedOrder(unlocked, remembered),
       );
-      gaps = new Set(lockedGapRanks); // a sort squeezes out any gap that isn't locked
+      // Restore the empty slots the order was remembered with — locked, so they persist
+      // through later sorts and get written back on Save to WoW just as they were saved.
+      const restoredGaps = gapRanksFromOrder(remembered);
+      gaps = new Set(restoredGaps);
+      lockedGapRanks = new Set(restoredGaps);
       activeSortMode = mode;
       statusMessage = `Previewing your remembered order — click "Save to WoW" to write it.`;
       return;
@@ -275,17 +298,25 @@
   async function rememberOrder() {
     if (!selectedAccount) return;
     try {
-      const ordered: OrderLine[] = characters.map((c) => ({
-        flag: c.flag,
-        realmGuid: c.realmGuid,
-        position: c.position,
-      }));
+      // Snapshot the same gap-aware numbering Save to WoW would write, so a locked empty
+      // slot is recorded in the memory file as a real skipped number.
+      const ordered: OrderLine[] = currentOrderLines();
       await rememberCharacterOrder(selectedAccount, ordered);
       rememberedOrder = ordered;
       statusMessage = "Remembered this order — it stays as an option until you remember a new one.";
     } catch (e) {
       error = String(e);
     }
+  }
+
+  /** The current layout as order-file lines, with every *shown* empty slot recorded as a
+   * skipped position number — what-you-see-is-what-you-write. Shared by Remember this order
+   * and Save to WoW so both agree. Uses `gaps` (all displayed blanks), not `lockedGapRanks`:
+   * locking only governs whether a blank survives a *sort*, not whether it's written. */
+  function currentOrderLines(): OrderLine[] {
+    return assignPositions(characters, gaps)
+      .filter((slot) => slot.c !== null)
+      .map((slot) => ({ flag: slot.c!.flag, realmGuid: slot.c!.realmGuid, position: slot.position }));
   }
 
   function editProfessionChoices() {
@@ -334,10 +365,7 @@
     saving = true;
     error = null;
     try {
-      const ordered: OrderLine[] = assignPositions(characters, lockedGapRanks)
-        .filter((slot) => slot.c !== null)
-        .map((slot) => ({ flag: slot.c!.flag, realmGuid: slot.c!.realmGuid, position: slot.position }));
-      const backupPath = await saveCharacterOrder(selectedAccount, ordered);
+      const backupPath = await saveCharacterOrder(selectedAccount, currentOrderLines());
       const backupName = backupPath.split(/[\\/]/).pop();
       statusMessage = `Saved. Backup written to ${backupName}. Restart WoW (or go to character select) to see the new order.`;
     } catch (e) {
@@ -362,16 +390,11 @@
     </label>
 
     <div class="sort-buttons">
-      {#each Object.entries(SORT_LABELS) as [mode, label] (mode)}
-        {#if mode !== "memory" || rememberedOrder}
-          <button class:active={activeSortMode === mode} onclick={() => sortBy(mode as SortMode)}>
-            {label}
-          </button>
-        {/if}
-      {/each}
-      <button onclick={editProfessionChoices} title="Change which profession a dual-crafter sorts under">
-        Prof choices…
-      </button>
+      {#if rememberedOrder}
+        <button class:active={activeSortMode === "memory"} onclick={() => sortBy("memory")}>
+          {SORT_LABELS.memory}
+        </button>
+      {/if}
       <button
         onclick={rememberOrder}
         disabled={characters.length === 0}
@@ -398,6 +421,39 @@
     {/if}
   </div>
 
+  <div class="sort-buttons">
+    <button
+      class:active={isNameSort}
+      onclick={() => toggleSort("alphaAsc", "alphaDesc")}
+      title="Sort by name — click again to reverse"
+    >
+      {nameLabel}
+    </button>
+    <button
+      class:active={isLevelSort}
+      onclick={() => toggleSort("levelDesc", "levelAsc")}
+      title="Sort by level — click again to reverse"
+    >
+      {levelLabel}
+    </button>
+    <button
+      class:active={isIlvlSort}
+      onclick={() => toggleSort("ilvlDesc", "ilvlAsc")}
+      title="Sort by item level — click again to reverse"
+    >
+      {ilvlLabel}
+    </button>
+    <button class:active={activeSortMode === "classRole"} onclick={() => sortBy("classRole")}>
+      {SORT_LABELS.classRole}
+    </button>
+    <button class:active={activeSortMode === "profession"} onclick={() => sortBy("profession")}>
+      {SORT_LABELS.profession}
+    </button>
+    <button onclick={editProfessionChoices} title="Change which profession a dual-crafter sorts under">
+      Prof choices…
+    </button>
+  </div>
+
   <p class="status" class:err={!!error}>{error ?? statusMessage}</p>
 
   {#if hasLoaded}
@@ -410,12 +466,13 @@
           <th class="num slot">Slot #</th>
           <th>Name</th>
           <th>Realm</th>
-          <th>Class</th>
           <th class="num">Lvl</th>
-          <th>Role</th>
+          <th>Spec</th>
+          <th>Class</th>
           <th class="num">iLvl</th>
           <th>Prof 1</th>
           <th>Prof 2</th>
+          <th class="spacer"></th>
         </tr>
       </thead>
       <tbody>
@@ -437,7 +494,7 @@
                   type="checkbox"
                   checked={row.locked}
                   onchange={() => toggleGapLock(row.insertBefore)}
-                  title="Lock this empty slot — sorts and Save to WoW keep it vacant"
+                  title="Keep this empty slot through a sort (it's saved/remembered either way)"
                 />
               </td>
               <td class="move">
@@ -453,7 +510,7 @@
                 >v</button>
               </td>
               <td class="num slot">{row.slot}</td>
-              <td colspan="8" class="empty-label">(empty)</td>
+              <td colspan="9" class="empty-label">(empty)</td>
             </tr>
           {:else}
             {@const c = row.c}
@@ -491,14 +548,15 @@
               <td class="num slot">{row.slot}</td>
               <td style:color={c.classId !== 0 ? classColor(c.classKey) : undefined}>{c.name}</td>
               <td>{c.realm}</td>
-              <td>{c.className}</td>
               <td class="num">{c.level || ""}</td>
-              <td>{c.role}</td>
+              <td>{c.spec}</td>
+              <td>{c.className}</td>
               <td class="num" style:color={c.itemLevel > 0 ? ilvlColor(c.itemLevel) : undefined}>
                 {c.itemLevel > 0 ? c.itemLevel : ""}
               </td>
               <td>{c.profession1}</td>
               <td>{c.profession2}</td>
+              <td class="spacer"></td>
             </tr>
           {/if}
         {/each}
@@ -609,24 +667,31 @@
   .chars {
     width: 100%;
     border-collapse: collapse;
-    font-size: 12px;
+    font-size: 13px;
   }
   .chars th {
     text-align: left;
     color: var(--muted);
     font-weight: 600;
-    padding: 4px 8px;
+    padding: 5px 12px;
     border-bottom: 1px solid var(--divider);
+    white-space: nowrap;
   }
   .chars td {
-    padding: 4px 8px;
+    padding: 5px 12px;
     border-bottom: 1px solid var(--divider);
     white-space: nowrap;
   }
   .chars .num {
-    text-align: right;
+    text-align: center;
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
+  }
+  /* Trailing column soaks up the extra table width so every real column hugs its content
+     (autosized) while the row dividers still span the full width. */
+  .chars .spacer {
+    width: 100%;
+    padding: 0;
   }
   .chars tr.unresolved {
     color: var(--faded);
