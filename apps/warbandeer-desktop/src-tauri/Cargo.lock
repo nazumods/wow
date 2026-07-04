@@ -3773,6 +3773,7 @@ dependencies = [
 name = "warbandeer-desktop"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "mlua",
  "serde",
  "serde_json",
