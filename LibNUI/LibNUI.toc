@@ -2,7 +2,7 @@
 ## Category: Lib
 ## Title: LibNUI
 ## Author: Nazuraki
-## Version: 12.0.7-r9
+## Version: 12.0.7-r10
 ## IconTexture: Interface\Icons\achievement_guildperk_bountifulbags
 ## SavedVariables: LibNUIDB
 ## Dependencies: LibNAddOn
