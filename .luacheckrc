@@ -361,6 +361,7 @@ std = {
     "IsControlKeyDown",
     "IsPetActive",
     "IsResting",
+    "IsMouseButtonDown",
     "IsMouselooking",
     "IsShiftKeyDown",
     "IsSpellKnown",
