@@ -9,6 +9,8 @@ export type SortMode =
   | "alphaDesc"
   | "levelDesc"
   | "levelAsc"
+  | "ilvlDesc"
+  | "ilvlAsc"
   | "classRole"
   | "profession"
   | "memory";
@@ -89,6 +91,12 @@ export function applySort(
     case "levelAsc":
       sorted = [...resolved].sort((a, b) => a.level - b.level || cmpName(a, b));
       break;
+    case "ilvlDesc":
+      sorted = [...resolved].sort((a, b) => b.itemLevel - a.itemLevel || cmpName(a, b));
+      break;
+    case "ilvlAsc":
+      sorted = [...resolved].sort((a, b) => a.itemLevel - b.itemLevel || cmpName(a, b));
+      break;
     case "classRole":
       sorted = [...resolved].sort(
         (a, b) => collator.compare(a.className, b.className) || cmpName(a, b),
@@ -161,6 +169,22 @@ export function assignPositions(
     }
   }
   return result;
+}
+
+/** Recovers empty-slot ranks from a remembered order's stored positions: a jump in the
+ * position sequence (e.g. 1, 3 — no 2) means a slot was deliberately left vacant, at the
+ * rank equal to how many characters precede it. Inverse of `assignPositions` — feed its
+ * result back through here and you get the same gap ranks out. A multi-wide jump collapses
+ * to a single rank, matching the one-gap-per-rank model `assignPositions` itself produces. */
+export function gapRanksFromOrder(remembered: readonly OrderLine[]): Set<number> {
+  const sorted = [...remembered].sort((a, b) => a.position - b.position);
+  const ranks = new Set<number>();
+  let prevPos = 0;
+  sorted.forEach((line, i) => {
+    if (line.position > prevPos + 1) ranks.add(i);
+    prevPos = line.position;
+  });
+  return ranks;
 }
 
 /** Reorders `characters` to match a previously remembered order (by realmGuid). A

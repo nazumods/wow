@@ -1,6 +1,6 @@
 [package]
 name = "warbandeer-desktop"
-version = "0.2.1"
+version = "0.2.2"
 description = "Desktop companion for the Warbandeer addon suite"
 authors = ["Nazuraki"]
 edition = "2021"

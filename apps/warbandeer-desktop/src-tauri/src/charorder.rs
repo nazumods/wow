@@ -30,8 +30,8 @@ pub struct ResolvedCharacter {
     pub class_key: String,
     pub class_name: String,
     pub level: i64,
-    /// Display role from the played spec: `"Tank"`/`"Healer"`/`"DPS"`, or `"?"` when unknown.
-    pub role: String,
+    /// Current spec's display name (e.g. `"Frost"`); empty when unknown.
+    pub spec: String,
     /// Average equipped item level; 0 when unknown (frontend shows blank instead of a bare 0).
     pub item_level: i64,
     /// Primary-slot profession name; empty when untrained or unknown.
@@ -86,16 +86,6 @@ struct OrderEntry {
     position: i64,
 }
 
-fn role_display(raw: Option<&str>) -> String {
-    match raw {
-        Some("TANK") => "Tank",
-        Some("HEALER") => "Healer",
-        Some("DAMAGER") => "DPS",
-        _ => "?",
-    }
-    .to_string()
-}
-
 /// Parses `character-list-order.txt`: a `Version: 2` header line, then one
 /// `{flag} {realmID}-{lowGUID} {position}` line per character. Position values aren't
 /// necessarily contiguous (a sort key, not an index) — file order is what we read by, but
@@ -146,9 +136,12 @@ fn resolve(char_db: &CharDb, entries: &[OrderEntry]) -> Vec<ResolvedCharacter> {
                         class_key: c.class_key.clone().unwrap_or_default(),
                         class_name: c.class_name.clone().unwrap_or_else(|| "Unknown".into()),
                         level: c.basic.level as i64,
-                        role: role_display(
-                            c.basic.specialization.as_ref().and_then(|s| s.role.as_deref()),
-                        ),
+                        spec: c
+                            .basic
+                            .specialization
+                            .as_ref()
+                            .and_then(|s| s.active.clone().or_else(|| s.key.clone()))
+                            .unwrap_or_default(),
                         item_level: c
                             .equipment
                             .as_ref()
@@ -172,7 +165,7 @@ fn resolve(char_db: &CharDb, entries: &[OrderEntry]) -> Vec<ResolvedCharacter> {
                     class_key: String::new(),
                     class_name: "Unknown".into(),
                     level: 0,
-                    role: "?".into(),
+                    spec: String::new(),
                     item_level: 0,
                     profession1: String::new(),
                     profession2: String::new(),
@@ -343,6 +336,8 @@ mod tests {
                     level: 80.0,
                     specialization: Some(Specialization {
                         role: Some("DAMAGER".to_string()),
+                        active: Some("Frost".to_string()),
+                        key: Some("Frost".to_string()),
                     }),
                     professions: Some(Professions {
                         primary: Some(ProfessionSlot {
@@ -374,7 +369,7 @@ mod tests {
         assert_eq!(resolved[0].name, "Arcanix");
         assert_eq!(resolved[0].class_id, 8);
         assert_eq!(resolved[0].level, 80);
-        assert_eq!(resolved[0].role, "DPS");
+        assert_eq!(resolved[0].spec, "Frost");
         assert_eq!(resolved[0].item_level, 650);
         assert_eq!(resolved[0].profession1, "Tailoring");
         assert_eq!(resolved[0].profession2, "");
@@ -611,7 +606,7 @@ WarbandeerCharDB = {
             ["className"] = "Mage",
             ["basic"] = {
                 ["level"] = 80,
-                ["specialization"] = { ["role"] = "DAMAGER" },
+                ["specialization"] = { ["role"] = "DAMAGER", ["active"] = "Frost" },
                 ["professions"] = { ["primary"] = { ["name"] = "Tailoring" } },
             },
         },
@@ -627,7 +622,7 @@ WarbandeerCharDB = {
         assert_eq!(payload.unresolved_count, 0);
         assert_eq!(payload.characters.len(), 1);
         assert_eq!(payload.characters[0].name, "Arcanix");
-        assert_eq!(payload.characters[0].role, "DPS");
+        assert_eq!(payload.characters[0].spec, "Frost");
 
         std::fs::remove_dir_all(&tmp).ok();
     }

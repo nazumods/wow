@@ -59,10 +59,14 @@ pub struct Basic {
 }
 
 /// `role` is Blizzard's `GetSpecializationRoleByID` token: `"TANK"`/`"HEALER"`/`"DAMAGER"`.
+/// `active` is the current spec's display name (e.g. `"Frost"`); `key` is the same name as
+/// a stable token, used as a fallback for older saves that predate `active`.
 #[derive(Deserialize, Default)]
 #[serde(default)]
 pub struct Specialization {
     pub role: Option<String>,
+    pub active: Option<String>,
+    pub key: Option<String>,
 }
 
 #[derive(Deserialize, Default)]

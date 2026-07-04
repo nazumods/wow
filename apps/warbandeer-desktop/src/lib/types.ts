@@ -64,7 +64,7 @@ export interface ResolvedCharacter {
   classKey: string; // uppercase class token, e.g. "MAGE" — empty when unresolved
   className: string;
   level: number;
-  role: string; // "Tank" | "Healer" | "DPS" | "?"
+  spec: string; // current spec display name, e.g. "Frost"; "" when unknown
   itemLevel: number; // 0 when unknown
   profession1: string; // "" when untrained/unknown
   profession2: string;
