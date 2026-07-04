@@ -79,9 +79,11 @@ export interface CharacterOrderPayload {
   unresolvedCount: number;
 }
 
-/** What gets sent back to `saveCharacterOrder` — just the two fields the file format
- * stores; position is recomputed from array order on write. */
+/** What gets sent back to `saveCharacterOrder` (and read back from a remembered order) —
+ * the exact fields the file format stores. `position` is written verbatim, letting the
+ * caller deliberately skip a number to preserve a locked-empty-slot reservation. */
 export interface OrderLine {
   flag: string;
   realmGuid: string;
+  position: number;
 }
