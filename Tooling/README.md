@@ -10,8 +10,9 @@ into this directory with a docstring and an entry in the table below.
 
 | Script | Purpose |
 |---|---|
-| `make_addon_logo.py` | **Warbandeer-family logo generator** (green flag style). Reuses the `Warbandeer_Collected` photo flag: inpaints out its word and re-sets the given text in the measured house typography (Old English Text MT 230, condensed to 740px, +2 stroke, pale halo, flow-curve warp). Only the text varies — every logo comes out in the identical style. `python Tooling/make_addon_logo.py Inventory --out <addon>/logo.png` |
-| `make_moon_logo.py` | **ShadowsOfUI-family logo generator** (purple moon style). Reuses the `ShadowsOfUI-Known` moon art: inpaints out its word and re-sets the given text in the measured typography (Times New Roman, 94.4% condense, cream ink, cap height ≤79px shrinking to a 235px max width). 400×400 output. `python Tooling/make_moon_logo.py Castbar --out <addon>/logo.png` |
+| `make_addon_logo.py` | **Warbandeer-family logo generator** (green flag style). Reuses the photo flag base in `assets/`: inpaints out its word and re-sets the given text in the measured house typography (Old English Text MT 230, condensed to 740px, +2 stroke, pale halo, flow-curve warp). Only the text varies — every logo comes out in the identical style. `python Tooling/make_addon_logo.py Inventory --out <addon>/logo.png` |
+| `make_moon_logo.py` | **ShadowsOfUI-family logo generator** (purple moon style). Reuses the moon-art base in `assets/`: inpaints out its word and re-sets the given text in the measured typography (Times New Roman, 94.4% condense, cream ink, cap height ≤79px shrinking to a 235px max width). 400×400 output. `python Tooling/make_moon_logo.py Castbar --out <addon>/logo.png` |
+| `assets/` | Stable base images the generators derive from: `warbandeer_flag_base.png` (= `Warbandeer_Collected/logo.png`) and `shadowsofui_moon_base.png` (= `ShadowsOfUI-Known/logo.png`). Snapshots so the tools keep working identically even if an addon's own logo changes. |
 | `procedural_flag_logo.py` | Superseded reference: draws the whole flag scene procedurally in PIL (no photo base). Kept for the sampled palette/geometry constants. |
 
 ## Logo generation notes
