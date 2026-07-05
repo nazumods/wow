@@ -2,7 +2,7 @@
 ## Category: Shadows of UI
 ## Title: Gear Upgrades
 ## Author: Nazuraki
-## Version: 12.0.7-r9
+## Version: 12.0.7-r10
 ## Dependencies: LibNAddOn, Warbandeer_Characters
 ## OptionalDeps: ClassCodex
 ## X-NUI-API: WarbandeerApi
