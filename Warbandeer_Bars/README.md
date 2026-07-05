@@ -90,8 +90,9 @@ Bindings and outfits default **off** so importing buttons doesn't silently rewri
 :DeleteProfile(char, specID)
 
 -- Apply to the current character
-:Restore(profile, include?, silent?)
-:RestoreProfile(char, specID, include?, silent?)  --> boolean (false if no such profile)
+:Restore(profile, include?, silent?, barFilter?)
+:RestoreProfile(char, specID, include?, silent?, barFilter?)  --> boolean (false if no such profile)
+--   barFilter? = map of internal bar numbers (1-15) to bool; false = leave that bar untouched
 
 -- Engine passthrough
 :Capture(include?, accountMacros?, charMacros?)   --> profile (does NOT store)

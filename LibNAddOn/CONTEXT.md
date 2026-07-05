@@ -17,7 +17,7 @@ Bootstrapping factory every other addon depends on. `LibNAddOn(features)` wires 
 | `lua/strings.lua` | `ns.lua.strings` — `startsWith(str, start)`, `split(token, str)` |
 | `slashCommands.lua` | `ns.registerSlashCommands`; adds `registerCommand`/`SlashCmd`/`usage` to addon. Self-bootstraps `/lib` |
 | `globals/colors.lua` | `ns.Colors` — class colors (0–1), `Strings` (color/icon escape codes), `rgba(r255,g255,b255,a01)`, `alpha(color, a)`, `hex(color)`/`code(color)`/`wrap(text, color)` (0–1 `{r,g,b}` → `"RRGGBB"`/`"|cffRRGGBB"`/`"|cff…|r"`), `className(name, classKey)` (class-colour a name) |
-| `globals/wow.lua` | `ns.wow` — `maxLevel`, `Armor` (+`byClass`/`types`), `ClassKeys`, `ClassByKey`, `Specializations` |
+| `globals/wow.lua` | `ns.wow` — `maxLevel`, `Armor` (+`byClass`/`types`), `ClassKeys`, `ClassByKey`, `ClassKeyByToken` (locale-independent classToken → PascalCase key), `Specializations` |
 | `globals/player.lua` | `ns.wow.Player`, `ns.wow.GreatVault`; `/lib player <method>` dump command |
 | `globals/icons.lua` | `ns.icons` — atlas/path constants for classes, roles, specs, factions, common UI |
 | `globals/items.lua` | `ns.wow.Items` — `GetIcon(itemID)`, `GetNumSlots(containerIndex)` |

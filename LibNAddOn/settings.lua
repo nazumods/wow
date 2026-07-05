@@ -69,6 +69,7 @@ end
 
 ---@class AddOn
 ---@field settingsCategory table?
+---@field settingsCategories table[]?
 
 -- Top-level categories keyed by display name. LibNAddOn loads once, so this table
 -- is shared across every addon: any addon referencing the same name converges on
