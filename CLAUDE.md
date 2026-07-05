@@ -14,6 +14,10 @@ WoW Retail addon suite by Nazuraki (Interface 120000+). No build step, no packag
 
 Addons: LibNAddOn, LibNUI, LibNUI_Test, Warbandeer (Characters, main UI, Alias, Collected, Bars), ShadowsOfUI-XP, ShadowsOfUI-GCD, ShadowsOfUI-DMF, HideStanceBar, HideBagBar, CombatOutline, Recycle, BarNonce. The authoritative list is the root `CONTEXT.md` addon index.
 
+## Tooling
+
+Reusable development tooling lives in `Tooling/` (see `Tooling/README.md` for the script index). **Before writing any temporary or one-off script, check `Tooling/` first** — the job may already be solved there (e.g. `make_addon_logo.py` generates addon logos in the identical house style every time). When a scratchpad script proves reusable, promote it into `Tooling/` with a docstring and a README entry. `Tooling/` is not an addon: it ships nothing and is excluded from the release pipeline via `NON_ADDON_DIRS` in `release.sh`.
+
 ## Documentation
 
 Each doc has a fixed audience — keep them in sync with code changes:

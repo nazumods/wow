@@ -34,10 +34,11 @@ declare -A COMMIT_TYPE_NAMES=(
 #
 # Some tracked top-level directories are deliberately NOT addons and must never
 # be released or published: `apps/` (the Tauri desktop companion — its own
-# Rust/JS build & versioning, not a WoW addon) and `.github/` (CI). They have no
-# top-level .toc so the filter below already skips them, but list them
-# explicitly so the intent is documented and a stray .toc can't sneak one in.
-NON_ADDON_DIRS=(apps .github)
+# Rust/JS build & versioning, not a WoW addon), `.github/` (CI), and `Tooling/`
+# (development scripts, e.g. the logo generator). They have no top-level .toc
+# so the filter below already skips them, but list them explicitly so the
+# intent is documented and a stray .toc can't sneak one in.
+NON_ADDON_DIRS=(apps .github Tooling)
 
 ADDONS=()
 while IFS= read -r dir; do
