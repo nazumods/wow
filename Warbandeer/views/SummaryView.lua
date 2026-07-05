@@ -204,12 +204,6 @@ local SummaryView = Class(ui.Frame, function(self)
   local current = ns.api:GetCharacterData()
   self._showAlliance = not current or current.isAlliance
 
-  -- glass-module surface behind the active table
-  -- self.moduleBg = Texture:new{
-  --   parent = self, layer = ui.layer.Artwork, color = theme.colors.module,
-  --   position = { TopLeft = {0, 0}, Width = 12, Height = 12 },
-  -- }
-
   -- The user-visible column set (identity columns + non-hidden toggleable ones),
   -- resolved fresh each build so a settings toggle is reflected on rebuild. Each
   -- table gets its OWN column list + colInfo copy: SummaryColumnsDelayed appends the
@@ -244,8 +238,6 @@ function SummaryView:layout()
   self.horde:SetShown(not a)
 
   local t = a and self.alliance or self.horde
-  -- self.moduleBg:Width(t:Width())
-  -- self.moduleBg:Height(t:Height())
   self:Width(t:Width())
   self:Height(t:Height())
 end

@@ -172,7 +172,7 @@ function CollectedView:_showEmpty(text)
   self.emptyMsg:Show()
 end
 
--- Render the active dataset. PTR PREVIEW shows live + upcoming together (no scan
+-- Render the active dataset. PTR PREVIEW shows only the upcoming sets (no scan
 -- needed for the upcoming rows); live-only mode shows collected/total and needs a scan.
 function CollectedView:_render()
   local api = WarbandeerCollectedApi
