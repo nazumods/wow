@@ -12,8 +12,8 @@ OOP UI widget library. Every widget wraps a backing WoW object (`self._widget`) 
 | `constants.lua` | Enum tables: `ui.edge`, `ui.layer`, `ui.justify`, `ui.wrap`, `ui.fonts` |
 | `Theme.lua` | `ui.themes.dark` (default styling tokens) + `ui.Theme(overrides)` factory for custom themes |
 | `Region.lua` | `Region` — abstract base; anchoring/size/visibility/alpha + declarative `position` system |
-| `Texture.lua` | `Texture` — wraps WoW Texture (atlas, color, coords, nine-slice, runtime `Gradient`) |
-| `Label.lua` | `Label` — wraps FontString; `Text`, `Color`, `JustifyH`, `StringWidth` |
+| `Texture.lua` | `Texture` — wraps WoW Texture (atlas, color, coords, nine-slice, runtime `Gradient`, `Rotation`) |
+| `Label.lua` | `Label` — wraps FontString; `Text`, `Color`, `JustifyH`, `StringWidth`, `UnboundedWidth` |
 | `Frame.lua` | `Frame` — core frame wrapper: events, dragging, per-frame `onUpdate`, `delay`; `SetScript`/`RemoveScript`, `EnableKeyboard`/`SetPropagateKeyboardInput` (receive keys + consume vs pass through — e.g. trap Esc) |
 | `BgFrame.lua` | `BgFrame` — Frame with auto-created backdrop Texture; `backdropColor`/`backdropTexture` |
 | `Dialog.lua` | `Dialog` — DIALOG-strata frame with Blizzard title bar, Escape-to-close; `makeTitlebarDraggable` |
@@ -37,7 +37,7 @@ OOP UI widget library. Every widget wraps a backing WoW object (`self._widget`) 
 | `CopyWindow.lua` | `CopyWindow` — reusable copyable scroll window (TitleFrame + ScrollFrame + multiline EditBox + titlebar font-size picker); `Display(title, text)`. Shared singleton via `ui.ShowCopyWindow(title, text)`; `ui.ToggleCopyWindow(title, text)` closes it if already open on the same title (caches `_title`), else shows — for slash commands that should toggle. Font size persists in `LibNUIDB.copyFontSize` |
 | `TabFrame.lua` | `TabFrame` — tabbed container; `Select`, `Tab`, `Selected` |
 | `Tooltip.lua` | `Tooltip` — custom tooltip with line pooling + scrolling menus; singleton `ui.tip` |
-| `FilterDropdown.lua` | `FilterDropdown` — compact labelled button that drops a `Tooltip` menu of `{ key, label, enabled? }` options (disabled = greyed/unselectable); picking fires `onSelect(self, key)` and updates the button label. `Select(key)` re-points it without firing. `width`/`menuWidth`; `bordered` draws a framed background + 1px border (matches toggle buttons). **Esc closes only the open menu** (the menu captures the keyboard and consumes Escape, so a parent window stays open), and **at most one menu is open at a time** (a module-level registry closes any other on open). Used for titlebar/strip filters (Collected expansion+category, Overview/Reputations/Crafting pickers) |
+| `FilterDropdown.lua` | `FilterDropdown` — select control: labelled button (left-aligned text + right chevron Texture, flipped while open) that drops an **attached option panel** of `{ key, label, enabled? }` options (disabled = greyed/inert; the panel swallows their clicks). The panel hangs flush under the button's left edge, is never narrower than the button (`menuWidth` = minimum; widens to fit the longest option), and option labels share the button label's x-inset so text aligns exactly; on open the current selection renders gold (`header` token). Picking fires `onSelect(self, key)` and updates the button label. `Select(key)` re-points it without firing. `width`; `bordered` draws a framed background + 1px border (matches toggle buttons; the panel is always framed). Menu closes on **Esc** (captured + consumed, so a parent window stays open), on **any click outside** (`GLOBAL_MOUSE_DOWN`, registered only while open), and **when the dropdown/its view hides** (the panel parents to UIParent to escape clipping ancestors, so an `OnHide` hook takes it down); **at most one menu is open at a time** (module-level registry). Used for titlebar/strip filters (Collected expansion+category, Overview/Reputations/Crafting pickers) |
 | `settings/SettingsFrame.lua` | `SettingsFrame` — WoW Settings panel container; `AddControl`, `Register(Sub)category` |
 | `settings/TextSetting.lua` | `TextSetting` — label + EditBox bound to `table[field]` |
 | `settings/ToggleSetting.lua` | `ToggleSetting` — label + CheckButton bound to `table[field]` |
@@ -121,6 +121,7 @@ Constructor resolves `theme` (own option → parent widget's theme), calls subcl
 | `Size(x?, y?)` · `Width(w?)` · `Height(h?)` | Getter/setter |
 | `Show()` · `Hide()` · `SetShown(b)` · `Toggle()` | Visibility |
 | `Alpha(a?)` | Getter/setter |
+| `IsMouseOver()` | Cursor within the region's hit rect |
 
 ### `position` table
 

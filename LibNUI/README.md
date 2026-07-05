@@ -154,6 +154,7 @@ Base class for all positioned widgets.
 | `Toggle()`                    | Toggle visibility                                |
 | `SetShown(bool)`              | Conditional show/hide                            |
 | `Alpha(a)`                    | Get/set alpha                                    |
+| `IsMouseOver()`               | Whether the cursor is within the region's hit rect |
 
 ### Callbacks
 
@@ -194,6 +195,7 @@ Inherits `Region`. Wraps a Blizzard `Texture` widget.
 | `Color(r,g,b,a)`         | `SetColorTexture` — accepts table     |
 | `SetVertexColor(r,g,b,a)`| Vertex tint — accepts table           |
 | `Coords(l,r,t,b)`        | `SetTexCoord`                         |
+| `Rotation(r)`            | Get/set render rotation (radians)     |
 | `Gradient(orient,min,max)`| `SetGradient` — re-apply a vertex gradient (ColorMixin min/max, alpha interpolated) over the base texture |
 
 ---
@@ -222,6 +224,8 @@ Inherits `Region`. Wraps a `FontString`.
 |----------------|-----------------------------------------|
 | `Text(text)`   | Get/set text                            |
 | `Color(r,g,b,a)` | Set text color — accepts table        |
+| `StringWidth()` | Natural (unwrapped) width of the current text |
+| `UnboundedWidth()` | Single-line width ignoring wrapping and width constraints |
 
 ---
 
@@ -422,17 +426,19 @@ Inherits `CleanFrame`. A text tooltip rendered as a list of lines. Auto-sizes to
 
 ## FilterDropdown
 
-A compact labelled button that drops a `Tooltip` menu of options. Picking one updates the button label and fires `onSelect`. Esc closes only the open menu (it stays out of a parent window's Escape handling), and only one `FilterDropdown` menu is open at a time.
+A compact select control: a labelled button that drops an attached panel of options. The panel hangs flush under the button's left edge, is never narrower than the button (widening to fit a long option), and its option text shares the button label's inset — button and menu read as one control. On open, the current selection renders gold and the chevron flips; picking an option updates the button label and fires `onSelect`.
+
+The menu closes on Esc (consumed, so it stays out of a parent window's Escape handling), on any click outside the control, and when the dropdown itself hides; only one `FilterDropdown` menu is open at a time.
 
 ### Constructor options
 
 | Option      | Description                                                                 |
 |-------------|-----------------------------------------------------------------------------|
-| `options`   | List of `{ key, label, enabled? }` specs (`enabled` defaults true; disabled renders greyed and unselectable) |
+| `options`   | List of `{ key, label, enabled? }` specs (`enabled` defaults true; disabled renders greyed and inert) |
 | `selected`  | Key of the initially selected option (sets the button label)                |
 | `onSelect`  | `fun(self, key)` fired when the selection changes                           |
 | `width`     | Button width (default 96)                                                   |
-| `menuWidth` | Dropdown menu width (default 120)                                           |
+| `menuWidth` | Minimum menu width (default 0 — the menu is at least as wide as the button and grows to fit its longest option) |
 | `bordered`  | Draw a framed background + 1px border, matching toggle buttons (default false)|
 
 ### Methods
