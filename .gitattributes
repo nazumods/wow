@@ -1,1 +1,20 @@
 * text eol=lf
+
+# Binary assets — never apply line-ending normalization.
+# Without these, `* text eol=lf` + core.autocrlf collapses every CRLF byte
+# pair inside a binary to LF, corrupting the file on commit (a PNG's magic
+# signature is 89 50 4E 47 0D 0A 1A 0A, so every PNG is guaranteed broken).
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.webp binary
+*.tga  binary
+*.blp  binary
+*.ico  binary
+*.icns binary
+*.ttf  binary
+*.otf  binary
+*.woff  binary
+*.woff2 binary
+*.zip  binary
