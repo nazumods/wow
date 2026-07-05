@@ -70,12 +70,17 @@ raceIdToFactionIndex[52] = {13, true}
 raceIdToFactionIndex[70] = {13, false}
 raceIdToFactionIndex[84] = {14, false}
 raceIdToFactionIndex[85] = {14, true}
-raceIdToFactionIndex[86] = {15, true}
-raceIdToFactionIndex[87] = {15, false}
+raceIdToFactionIndex[86] = {15, true} -- Haranir (Alliance)
+raceIdToFactionIndex[91] = {15, false} -- Haranir (Horde); 87 is a non-race creature ("Delver's Dirigible")
 
 ---Map a WoW raceId to its compact per-faction race index and faction.
 ---@class Warbandeer_Characters
 ---@field NormalizeRaceId fun(raceId: integer): integer, boolean raceIdx (index into API.ALLIANCE_RACES/HORDE_RACES), isAlliance
 function ns.NormalizeRaceId(raceId)
-  return unpack(raceIdToFactionIndex[raceId])
+  local entry = raceIdToFactionIndex[raceId]
+  if entry then return unpack(entry) end
+  -- Forward-compat: a newly-added race the table hasn't caught up to. Derive faction from the
+  -- API so login never crashes; raceIdx 0 makes callers fall back to the raw race name.
+  local faction = C_CreatureInfo.GetFactionInfo(raceId)
+  return 0, faction ~= nil and faction.groupTag == "Alliance"
 end
