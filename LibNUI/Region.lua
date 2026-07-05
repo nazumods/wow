@@ -127,3 +127,7 @@ function Region:Toggle() self:SetShown(not self._widget:IsVisible()) end
 ---@param a number?  alpha (0–1)
 ---@return number?  the alpha when getting
 function Region:Alpha(a) return a == nil and self._widget:GetAlpha() or self._widget:SetAlpha(a) end
+
+-- Whether the cursor is currently within the region's hit rect.
+---@return boolean
+function Region:IsMouseOver() return self._widget:IsMouseOver() end

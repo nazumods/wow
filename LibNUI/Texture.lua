@@ -79,6 +79,14 @@ function Texture:SetVertexColor(r, g, b, a)
 end
 ---@param ... number  SetTexCoord args: left, right, top, bottom (or 8-arg corner form)
 function Texture:Coords(...) self._widget:SetTexCoord(...) end
+-- Getter/setter for the render rotation (radians, around the texture center).
+---@param r number?
+---@return number|Texture
+function Texture:Rotation(r)
+  if r == nil then return self._widget:GetRotation() end
+  self._widget:SetRotation(r)
+  return self
+end
 -- Apply (or re-apply) a vertex gradient over the texture. minColor sits at the
 -- left/top edge, maxColor at the right/bottom; both are ColorMixins, so their
 -- alpha is interpolated too. Needs a base texture (e.g. a solid color fill).

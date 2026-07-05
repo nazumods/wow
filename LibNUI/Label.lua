@@ -75,6 +75,11 @@ end
 ---@return number
 function Label:StringWidth() return self._widget:GetStringWidth() end
 
+-- Like StringWidth, but also ignores wrapping: the width the text would take on
+-- a single unconstrained line — for sizing a container to fit its text.
+---@return number
+function Label:UnboundedWidth() return self._widget:GetUnboundedStringWidth() end
+
 -- Set the text color: a theme token, a color table / ColorMixin, or channels.
 ---@param r string|table|number  theme color token, rgba table, ColorMixin, or red channel (0–1)
 ---@param g number?  green channel (0–1)

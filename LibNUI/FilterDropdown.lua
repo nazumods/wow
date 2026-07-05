@@ -1,20 +1,29 @@
 ---@type LibNUI_AddOn
 local ns = select(2, ...)
 local ui = ns.ui
-local insert = table.insert
-local Class, Frame, Label = ns.lua.Class, ui.Frame, ui.Label
-local Button, Tooltip, Texture = ui.Button, ui.Tooltip, ui.Texture
--- Greyed-out (disabled) option text; inlined so the widget has no addon dependency.
-local C_GREY, C_END = "|cff888888", "|r"
+local insert, max = table.insert, math.max
+local UIParent = UIParent
+local Class = ns.lua.Class
+local Frame, Label, Texture, Button = ui.Frame, ui.Label, ui.Texture, ui.Button
 
--- A compact titlebar filter: a labelled button that drops a menu of options.
--- Disabled options render greyed and are not selectable. Picking a new option
--- updates the button label and fires `onSelect(self, key)`. Used by views with a
--- `BuildFilter` (e.g. expansion / category pickers).
+-- A compact select control: a labelled button that drops an attached panel of
+-- options. The panel hangs flush under the button's left edge and is never
+-- narrower than it (widening to fit a long option label), and the option text
+-- shares the button label's x-inset, so button and menu read as one control.
+-- On open, the current selection renders gold; disabled options render grey and
+-- are inert. Picking a new option updates the button label and fires
+-- `onSelect(self, key)`. The menu closes on Esc (consumed, so a parent window
+-- stays open), on any click outside the control, and when the dropdown itself
+-- hides; at most one menu is open at a time.
 
--- Inline down-arrow (atlas markup: |A:atlasName:height:width|a). The minimal
--- scrollbar arrow already points down and is a neutral grey, so no rotation/tint.
-local CHEVRON = "  |A:UI-HUD-ActionBar-PageDownArrow-Disabled:12:12|a"
+-- Shared x-inset for the button label and the option labels, so the menu text
+-- sits exactly under the button text.
+local PAD_X = 8
+local ROW_H = 20
+local GREY = {0.53, 0.53, 0.53, 1}    -- disabled option text
+local FILL = {0.05, 0.05, 0.06, 0.95} -- panel fill inside the 1px divider border
+-- Minimal scrollbar arrow: already points down and is a neutral grey.
+local CHEVRON = "UI-HUD-ActionBar-PageDownArrow-Disabled"
 
 -- At most one dropdown menu is open at a time; opening one closes any other.
 local openOne
@@ -24,16 +33,18 @@ local openOne
 ---@field selected  any?     key of the initially selected option
 ---@field onSelect  fun(self: FilterDropdown, key: any)?  fired when the selection changes
 ---@field width     number   button width
----@field menuWidth number   dropdown menu width
+---@field menuWidth number   minimum menu width (the menu is never narrower than the button and widens to fit its longest option)
 ---@field bordered  boolean? draw a framed background + 1px border (matches toggle buttons)
 ---@field button    Button
 ---@field label     Label
----@field menu      Tooltip
+---@field chevron   Texture  down arrow on the button's right edge; flipped while the menu is open
+---@field menu      Frame    the option panel
+---@field _rows     Frame[]  option row frames (each carries a `.label` and hover `.background`)
 local FilterDropdown = Class(Frame, function(self)
   if self.bordered then
     Texture:new{ parent = self, layer = ui.layer.Background, position = { All = true }, color = "divider" }
     Texture:new{
-      parent = self, layer = ui.layer.Border, color = {0.05, 0.05, 0.06, 0.92},
+      parent = self, layer = ui.layer.Border, color = FILL,
       position = { TopLeft = {1, -1}, BottomRight = {-1, 1} },
     }
   end
@@ -43,71 +54,130 @@ local FilterDropdown = Class(Frame, function(self)
     glow     = false,
     OnClick  = function() self:_toggleMenu() end,
   }
+  self.chevron = Texture:new{
+    parent   = self.button,
+    layer    = ui.layer.Artwork,
+    atlas    = CHEVRON,
+    position = { Right = {-6, 0}, Width = 12, Height = 12 },
+  }
   self.label = Label:new{
     parent   = self.button,
-    position = { Center = {} },
-    text     = self:labelFor(self.selected) .. CHEVRON,
+    text     = self:labelFor(self.selected),
+    justifyH = ui.edge.Left,
+    wordWrap = false,
+    position = { Left = {PAD_X, 0}, Right = {self.chevron, ui.edge.Left, -2, 0} },
   }
-
-  local lines = {}
-  for _, opt in ipairs(self.options) do
-    local enabled = opt.enabled ~= false
-    insert(lines, {
-      text       = enabled and opt.label or (C_GREY .. opt.label .. C_END),
-      background = { 0, 0, 0, 0 },
-      onEnter    = function(line) line.background:Color(1, 1, 1, 0.2) end,
-      onLeave    = function(line) line.background:Color(1, 1, 1, 0) end,
-      onClick    = function()
-        if not enabled then return end
-        self:_closeMenu()
-        if self.selected == opt.key then return end
-        self.selected = opt.key
-        self.label:Text(opt.label .. CHEVRON)
-        if self.onSelect then self:onSelect(opt.key) end
-      end,
-    })
-  end
-  self.menu = Tooltip:new{
-    position = {
-      TopRight = { self, ui.edge.BottomRight, 0, 2 },
-      Width    = self.menuWidth,
-    },
-    lines = lines,
-  }
-  -- Esc closes (only) the open menu: consuming the key stops it from also closing a
-  -- parent window. Other keys propagate so bindings still work while the menu is up.
-  self.menu:SetScript("OnKeyDown", function(_, key)
-    if key == "ESCAPE" then
-      self.menu:SetPropagateKeyboardInput(false)
-      self:_closeMenu()
-    else
-      self.menu:SetPropagateKeyboardInput(true)
-    end
-  end)
+  self:_buildMenu()
+  -- The menu is parented to UIParent (a clipping ancestor, e.g. a ScrollFrame,
+  -- must not cut it off), so when the dropdown or one of its ancestors hides,
+  -- the menu must be taken down explicitly or it would outlive the view.
+  self:SetScript("OnHide", function() self:_closeMenu() end)
 
   self:Width(self.width)
-  self:Height(20)
+  self:Height(ROW_H)
 end, {
   options   = {},
   width     = 96,
-  menuWidth = 120,
+  menuWidth = 0,
   bordered  = false,
 })
 ui.FilterDropdown = FilterDropdown
 
--- Open this menu, first closing any other dropdown's menu (only one open at a time),
--- and capture the keyboard so Esc can close it.
+-- Build the option panel: bordered like a bordered button, hanging flush under
+-- the button's left edge, sized to the wider of the button and its options.
+function FilterDropdown:_buildMenu()
+  local menu = Frame:new{
+    parent   = UIParent,
+    theme    = self.theme,
+    strata   = "DIALOG",
+    position = { TopLeft = {self, ui.edge.BottomLeft, 0, -2} },
+  }
+  menu:Hide()
+  -- Swallow clicks anywhere on the panel (e.g. on a disabled option) so they
+  -- can't fall through to whatever sits underneath.
+  menu:EnableMouse(true)
+  Texture:new{ parent = menu, layer = ui.layer.Background, position = { All = true }, color = "divider" }
+  Texture:new{
+    parent = menu, layer = ui.layer.Border, color = FILL,
+    position = { TopLeft = {1, -1}, BottomRight = {-1, 1} },
+  }
+  self.menu = menu
+
+  self._rows = {}
+  local widest = 0
+  for i, opt in ipairs(self.options) do
+    local row = Frame:new{
+      parent     = menu,
+      background = {1, 1, 1, 0},
+      position   = {
+        TopLeft = i == 1 and {1, -1} or {self._rows[i - 1], ui.edge.BottomLeft},
+        Right   = {menu, ui.edge.Right, -1, 0},
+        Height  = ROW_H,
+      },
+    }
+    row.label = Label:new{
+      parent   = row,
+      text     = opt.label,
+      justifyH = ui.edge.Left,
+      wordWrap = false,
+      position = { Left = {PAD_X - 1, 0}, Right = {-PAD_X, 0} },
+    }
+    if opt.enabled ~= false then
+      row:SetScript("OnEnter", function() row.background:Color(1, 1, 1, 0.15) end)
+      row:SetScript("OnLeave", function() row.background:Color(1, 1, 1, 0) end)
+      row:SetScript("OnMouseUp", function()
+        self:_closeMenu()
+        if self.selected == opt.key then return end
+        self:Select(opt.key)
+        if self.onSelect then self:onSelect(opt.key) end
+      end)
+    end
+    widest = max(widest, row.label:UnboundedWidth())
+    insert(self._rows, row)
+  end
+  menu:Width(max(self.width, self.menuWidth, widest + 2 * PAD_X + 2))
+  menu:Height(#self.options * ROW_H + 2)
+
+  -- Esc closes (only) the open menu: consuming the key stops it from also closing a
+  -- parent window. Other keys propagate so bindings still work while the menu is up.
+  menu:SetScript("OnKeyDown", function(_, key)
+    if key == "ESCAPE" then
+      menu:SetPropagateKeyboardInput(false)
+      self:_closeMenu()
+    else
+      menu:SetPropagateKeyboardInput(true)
+    end
+  end)
+  -- Any mouse-down outside the control closes the menu (GLOBAL_MOUSE_DOWN is only
+  -- registered while open). A down on the button itself is left alone: the button's
+  -- own click toggles the menu closed on release.
+  menu:SetScript("OnEvent", function()
+    if not (menu:IsMouseOver() or self:IsMouseOver()) then self:_closeMenu() end
+  end)
+end
+
+-- Open this menu, first closing any other dropdown's menu (only one open at a
+-- time), recolor the rows for the current selection, and capture the keyboard
+-- so Esc can close it.
 function FilterDropdown:_openMenu()
   if openOne and openOne ~= self then openOne:_closeMenu() end
   openOne = self
+  for i, opt in ipairs(self.options) do
+    self._rows[i].label:Color(
+      opt.enabled == false and GREY or (opt.key == self.selected and "header" or "text"))
+  end
+  self.chevron:Rotation(math.pi)
   self.menu:EnableKeyboard(true)
   self.menu:SetPropagateKeyboardInput(true)
+  self.menu:registerEvent("GLOBAL_MOUSE_DOWN")
   self.menu:Show()
 end
 
--- Close this menu and release the keyboard.
+-- Close this menu and release the keyboard and mouse watch.
 function FilterDropdown:_closeMenu()
+  self.chevron:Rotation(0)
   self.menu:EnableKeyboard(false)
+  self.menu:unregisterEvent("GLOBAL_MOUSE_DOWN")
   self.menu:Hide()
   if openOne == self then openOne = nil end
 end
@@ -132,6 +202,6 @@ end
 ---@return FilterDropdown
 function FilterDropdown:Select(key)
   self.selected = key
-  self.label:Text(self:labelFor(key) .. CHEVRON)
+  self.label:Text(self:labelFor(key))
   return self
 end

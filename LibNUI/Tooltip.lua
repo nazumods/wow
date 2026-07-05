@@ -49,7 +49,7 @@ local Tooltip = Class(CleanFrame, function(self)
     if line.onLeave then l:SetScript("OnLeave", function() line.onLeave(l) end) end
     insert(self.lines, l)
     self._lineCount = i
-    self._w = max(self._w, l.label._widget:GetUnboundedStringWidth())
+    self._w = max(self._w, l.label:UnboundedWidth())
     self._h = self._h + l:Height()
   end
   self:Height(self._h + 2 * self.inset)
@@ -229,7 +229,7 @@ function Tooltip:AddLine(text, r, g, b, a)
   -- the line frame (Right anchor → tooltip.Right) and the All=true label, so
   -- the FontString wraps to maxLineW.
   local fs = l.label._widget
-  local rawW = fs:GetUnboundedStringWidth()
+  local rawW = l.label:UnboundedWidth()
   local maxLineW = self.maxWidth and (self.maxWidth - 2 * self.inset)
   local wraps = maxLineW ~= nil and rawW > maxLineW
   local lineW = wraps and maxLineW or rawW
