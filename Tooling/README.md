@@ -15,6 +15,12 @@ into this directory with a docstring and an entry in the table below.
 
 ## Logo generation notes
 
+- `make_addon_logo.py` produces the **green-flag style of the Warbandeer
+  family** (Warbandeer, Characters, Collected, Bars, Alias, WarbandInventory).
+  The **ShadowsOfUI family uses a different style** — purple crescent moon +
+  cherry blossoms on black with white serif text (see `ShadowsOfUI-XP/logo.png`)
+  — for which no generator exists; those originals live with nazumods.
+
 - Requires `pillow`, `numpy`, `opencv-python-headless`, and the Windows font
   **Old English Text MT** (`C:/Windows/Fonts/OLDENGL.TTF`).
 - Output is a 1024×1024 PNG, same as the sibling logos
