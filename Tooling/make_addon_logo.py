@@ -22,8 +22,8 @@ import numpy as np
 import cv2
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
-REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DEFAULT_SOURCE = os.path.join(REPO_ROOT, "Warbandeer_Collected", "logo.png")
+TOOLING_DIR = os.path.dirname(os.path.abspath(__file__))
+DEFAULT_SOURCE = os.path.join(TOOLING_DIR, "assets", "warbandeer_flag_base.png")
 FONT = r"C:/Windows/Fonts/OLDENGL.TTF"
 
 # --- fixed style constants (measured from the original logos) ---
@@ -142,7 +142,7 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("text", help="word to set on the flag (e.g. Inventory)")
     ap.add_argument("--source", default=DEFAULT_SOURCE,
-                    help="base flag photo (default: Warbandeer_Collected)")
+                    help="base flag photo (default: Tooling/assets/warbandeer_flag_base.png)")
     ap.add_argument("--out", default="logo.png", help="output PNG path")
     args = ap.parse_args()
     make_logo(args.text, args.source, args.out)

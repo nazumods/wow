@@ -22,8 +22,8 @@ import numpy as np
 import cv2
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
-REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DEFAULT_SOURCE = os.path.join(REPO_ROOT, "ShadowsOfUI-Known", "logo.png")
+TOOLING_DIR = os.path.dirname(os.path.abspath(__file__))
+DEFAULT_SOURCE = os.path.join(TOOLING_DIR, "assets", "shadowsofui_moon_base.png")
 FONT = r"C:/Windows/Fonts/times.ttf"
 
 # --- fixed style constants (measured from the XP / Known originals) ---
@@ -104,7 +104,7 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("text", help="word to set on the logo (e.g. Castbar)")
     ap.add_argument("--source", default=DEFAULT_SOURCE,
-                    help="base moon logo (default: ShadowsOfUI-Known)")
+                    help="base moon logo (default: Tooling/assets/shadowsofui_moon_base.png)")
     ap.add_argument("--out", default="logo.png", help="output PNG path")
     args = ap.parse_args()
     make_logo(args.text, args.source, args.out)
