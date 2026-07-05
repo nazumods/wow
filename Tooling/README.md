@@ -10,16 +10,17 @@ into this directory with a docstring and an entry in the table below.
 
 | Script | Purpose |
 |---|---|
-| `make_addon_logo.py` | **Canonical addon-logo generator.** Reuses the `Warbandeer_Collected` photo flag: inpaints out its word and re-sets the given text in the measured house typography (Old English Text MT 230, condensed to 740px, +2 stroke, pale halo, flow-curve warp). Only the text varies — every logo comes out in the identical style. `python Tooling/make_addon_logo.py Inventory --out <addon>/logo.png` |
+| `make_addon_logo.py` | **Warbandeer-family logo generator** (green flag style). Reuses the `Warbandeer_Collected` photo flag: inpaints out its word and re-sets the given text in the measured house typography (Old English Text MT 230, condensed to 740px, +2 stroke, pale halo, flow-curve warp). Only the text varies — every logo comes out in the identical style. `python Tooling/make_addon_logo.py Inventory --out <addon>/logo.png` |
+| `make_moon_logo.py` | **ShadowsOfUI-family logo generator** (purple moon style). Reuses the `ShadowsOfUI-Known` moon art: inpaints out its word and re-sets the given text in the measured typography (Times New Roman, 94.4% condense, cream ink, cap height ≤79px shrinking to a 235px max width). 400×400 output. `python Tooling/make_moon_logo.py Castbar --out <addon>/logo.png` |
 | `procedural_flag_logo.py` | Superseded reference: draws the whole flag scene procedurally in PIL (no photo base). Kept for the sampled palette/geometry constants. |
 
 ## Logo generation notes
 
-- `make_addon_logo.py` produces the **green-flag style of the Warbandeer
-  family** (Warbandeer, Characters, Collected, Bars, Alias, WarbandInventory).
-  The **ShadowsOfUI family uses a different style** — purple crescent moon +
-  cherry blossoms on black with white serif text (see `ShadowsOfUI-XP/logo.png`)
-  — for which no generator exists; those originals live with nazumods.
+- Two house styles, one generator each: **Warbandeer family** = green flag
+  (`make_addon_logo.py`), **ShadowsOfUI family** = purple crescent moon +
+  cherry blossoms (`make_moon_logo.py`). Match the family to the addon prefix.
+- The moon base (`ShadowsOfUI-Known/logo.png`) and XP's logo are 400×400
+  CurseForge re-encodes (#347); the 1254×1254 originals live with nazumods.
 
 - Requires `pillow`, `numpy`, `opencv-python-headless`, and the Windows font
   **Old English Text MT** (`C:/Windows/Fonts/OLDENGL.TTF`).
