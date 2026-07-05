@@ -16,7 +16,7 @@ with no vendor price are never sold.
 
 | Command | What it does |
 |---|---|
-| `/recycle` | Show status |
+| `/recycle` | Open settings |
 | `/recycle clear` | Unmark everything |
 | `/recycle key CTRL\|SHIFT\|ALT` | Change the marking modifier key |
 

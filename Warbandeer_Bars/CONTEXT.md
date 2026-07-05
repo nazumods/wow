@@ -63,6 +63,8 @@ that bar untouched (restore *and* clear pass). `nil` = all bars.
   macros   = { { id, name, icon, body }, ... },
   petslots = { { id, type="token", strindex } | { id, type="spell", index }, ... },
   outfits  = { "Set Name", ... },                          -- equipment-set names only
+  bindingSet = <1|2>,                                      -- GetCurrentBindingSet() at capture (1=account, 2=per-character)
+  layoutName = <string?>,                                  -- active Edit Mode layout name (set by ns.CaptureLayouts())
 }
 ```
 
@@ -100,6 +102,7 @@ missing `WarbandeerBarsSettings` keys from `ns.DefaultSettings`.
 | `onLogin` (entering world) | 2000 ms |
 | `ACTIVE_TALENT_GROUP_CHANGED` (spec swap) | 500 ms |
 | `PLAYER_LOGOUT` (also fires on `/reload`) | none |
+| `EDIT_MODE_LAYOUTS_UPDATED` (→ `ns.CaptureLayouts()`) | none |
 
 ## Gotchas
 

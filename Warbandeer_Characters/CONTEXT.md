@@ -17,7 +17,7 @@ Data-collection backbone for the suite. Scans the active character each login/re
 | `logging.lua` | Settings panel **Warbandeer → Logging** subcategory: opt-in `combatLogging` checkbox (default off, `db.settings.combatLogging`). `LoggingCombat(true)` writes COMBAT_LOG events to `Logs/WoWCombatLog.txt` for offline parsing; the client never persists the toggle, so it's re-applied each `PLAYER_LOGIN`. Enables `advancedCombatLogging` via `SetTemporaryCVar` (restored at logout) only while active; only ever enables (never force-disables a manual `/combatlog`) |
 | `api.lua` | `WarbandeerApi` public methods (see below) |
 | `data/basic.lua` | Broker `basic`: `level`, `specialization`, `professions` (name summary), `xp` |
-| `data/currency.lua` | Broker `currency`: `RestoredCofferKey`, `gold` (`GetMoney`), `CofferKeyShard`, `Catalyst`, `HeroDawncrest`, `MythDawncrest`, `NebulousVoidcore`, `UntaintedManaCrystal`, `ShardOfDundun` |
+| `data/currency.lua` | Broker `currency`: `RestoredCofferKey`, `gold` (`GetMoney`), `CofferKeyShard`, `Catalyst`, `HeroDawncrest`, `MythDawncrest`, `NebulousVoidcore`, `UntaintedManaCrystal`, `ShardOfDundun`, `FieldAccolade`, `UnalloyedAbundance` |
 | `data/warband.lua` | Account-wide (not a broker): `db.warband` bank gold + weekly wealth. `ns:GetWarbandWealth`, `RolloverWarbandWeek`, `InitWarband`; `/wbc dump warband` |
 | `data/bank.lua` | Account-wide (not a broker): `db.bank` profession-gear cache for the warband bank, each character's bank, and guild banks. Also records each store's equippable gear (`equip` = `GearCandidate[]`) for the warband + personal banks (not guild). Scanned on bank/guild-bank open (warband+character via `C_Bank`/`C_Container`, guild via the classic API). Each store also records `items` (v19) — a full `{[itemID]=count}` map of *everything* in that bank (not just prof gear), accumulated in the same slot loop via `addCount`; drives `WarbandeerApi:GetItemCounts` (warband-stock tooltip). The warband bank's map is account-wide (stored once). **Load-then-rescan** for the `equip` ilvls: a fresh bank-open scan reads many slots cold, so `addEquip` falls back to the link's ilvl (never nil — a nil ilvl makes the upgrade finder drop the item, recommending a worse already-loaded piece first) and flags the slot; `scanPersonalBanks` requests a load and `scheduleBankRescan` re-scans (gen-guarded, `MAX_BANK_RESCANS`×`BANK_RESCAN_DELAY`, gated on the bank still open) until every slot reports its real scaled ilvl — mirrors `data/equipment.lua`. `WarbandeerApi:GetBankProfGear(skillID)`; `/wbc dump bankgear`. A character with no `db.bank.characters[name]` entry is flagged "bank contents" by `missing.lua` |
 | `data/items.lua` | Broker `items`: `bags`, `reagentBag`; `/wbc refresh items` |
@@ -164,6 +164,8 @@ currency = {
   NebulousVoidcore = { quantity, earned, max, capped }?,   -- (3418) season cap: totalEarned vs maxQuantity, grows +2/week
   UntaintedManaCrystal = { quantity, earned, max, capped }?, -- (3356) weekly-earn cap 250 (hard cap 1000); RESET_WEEKLY
   ShardOfDundun = { quantity, earned, max, weeklyMax, capped }?, -- (3376) earn 8/wk + hold 8 (both caps 8); capped = held >= max OR earned >= weeklyMax; empowers the Abundance world event; RESET_WEEKLY
+  FieldAccolade,                                       -- quantity (currency 3405); consumed by Warbandeer's fieldaccolade Summary column
+  UnalloyedAbundance,                                  -- quantity (currency 3377); collected only — no reader in the suite yet
 }
 items = {
   bags = { [1..N] = {id, slots}, GoblinMiniFridge?, ArathorSatchel?, PortableRefridgerator? },
@@ -273,7 +275,7 @@ playtime = {
 | Broker | Fields | Events | Resets |
 |---|---|---|---|
 | `basic` | level, specialization, professions, xp | `PLAYER_LEVEL_UP` (500ms), `PLAYER_SPECIALIZATION_CHANGED` (specialization), `PLAYER_XP_UPDATE`/`UPDATE_EXHAUSTION`/`PLAYER_UPDATE_RESTING` (1000ms) | — |
-| `currency` | RestoredCofferKey, gold, CofferKeyShard, Catalyst, HeroDawncrest, MythDawncrest, NebulousVoidcore, UntaintedManaCrystal, ShardOfDundun | `PLAYER_MONEY` (gold), `CURRENCY_DISPLAY_UPDATE` (Catalyst + NebulousVoidcore + ShardOfDundun, id-filtered) | CofferKeyShard, NebulousVoidcore, UntaintedManaCrystal, ShardOfDundun: `RESET_WEEKLY` |
+| `currency` | RestoredCofferKey, gold, CofferKeyShard, Catalyst, HeroDawncrest, MythDawncrest, NebulousVoidcore, UntaintedManaCrystal, ShardOfDundun, FieldAccolade, UnalloyedAbundance | `PLAYER_MONEY` (gold), `CURRENCY_DISPLAY_UPDATE` (Catalyst + NebulousVoidcore + ShardOfDundun, id-filtered) | CofferKeyShard, NebulousVoidcore, UntaintedManaCrystal, ShardOfDundun: `RESET_WEEKLY` |
 | `items` | bags, reagentBag | — | — |
 | `inventory` | counts | `BAG_UPDATE_DELAYED` (500ms) | — |
 | `reputations` | factions | `UPDATE_FACTION` (rate-limited: self-trigger suppression + gen-guarded debounce 2s + 6s throttle — full faction walk too heavy per-event) | — |

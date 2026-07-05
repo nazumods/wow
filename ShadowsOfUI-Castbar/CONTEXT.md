@@ -1,6 +1,6 @@
 # ShadowsOfUI-Castbar
 
-**Deps:** LibNAddOn, LibNUI · **SavedVars:** `ShadowsOfUI_CastbarDB` (v2) · **UI:** LibNUI · **Settings:** subcategory under the shared "Shadows of UI" parent · **Slash:** `/scast`
+**Deps:** LibNAddOn, LibNUI · **SavedVars:** `ShadowsOfUI_CastbarDB` (v3) · **UI:** LibNUI · **Settings:** subcategory under the shared "Shadows of UI" parent · **Slash:** `/scast`
 
 Three movable, cosmetic cast bars — one each for the **target**, **focus**, and **player**
 units — in the suite's minimal style (siblings to `ShadowsOfUI-XP` / `ShadowsOfUI-GCD`). The
