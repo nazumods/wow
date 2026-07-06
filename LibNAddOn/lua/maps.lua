@@ -29,7 +29,7 @@ function maps.merge(destination, ...)
     if t then
       for k, v in pairs(t) do
         if '__index' ~= k then
-          if type(destination[k]) == "table" and type(v) == "table" then
+          if type(destination[k]) == "table" and type(v) == "table" and getmetatable(v) == nil then
             maps.merge(destination[k], v)
           elseif type(v) == "table" and getmetatable(v) == nil then
             destination[k] = maps.merge({}, v)

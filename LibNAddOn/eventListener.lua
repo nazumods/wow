@@ -1,6 +1,6 @@
 ---@class LibNAddOn
 local ns = select(2, ...)
-local getn, insert, remove = table.getn, table.insert, table.remove
+local insert, remove = table.insert, table.remove
 
 ---@alias Event string
 
@@ -43,13 +43,14 @@ end
 ---@param name string event name
 ---@param handler function? event handler function to unregister, or nil to unregister all handlers for the event
 local function UnregisterEvent(self, name, handler)
+  if not self._eventHandlers[name] then return end  -- never registered (or already fully unregistered)
   if handler then
     local idx
     for i,h in ipairs(self._eventHandlers[name]) do
       if h == handler then idx = i; break end
     end
     if idx then remove(self._eventHandlers[name], idx) end
-    if getn(self._eventHandlers[name]) == 0 then
+    if #self._eventHandlers[name] == 0 then
       self._eventListener:UnregisterEvent(name)
       self._eventHandlers[name] = nil
     end
