@@ -47,6 +47,9 @@ function DataView:ToggleOrder()
   if not self.embedded then self:_clearSelection() end
   self.data = self:GetData()
   self:update()
+  -- an open dressing room snapshots the sort direction at open; push the new one
+  -- so its tier arrows keep matching the on-screen order (see SyncDressingRoomOrder)
+  ns.SyncDressingRoomOrder(self._reverse)
   return self._reverse
 end
 

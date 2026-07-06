@@ -192,6 +192,19 @@ ns.HideDressingRoom = function()
   if _room then _room:Hide() end
 end
 
+---Keep an already-open dressing room's tier-nav direction in sync when the grid's
+---sort flips (grid + room both open). `_reverse` is otherwise only captured at open
+---(ShowDressingRoom), so without this the Up/Down / ^v tier arrows keep mapping to
+---the pre-flip on-screen direction until the next cell click. No-op when closed —
+---a reopen re-seeds `_reverse` from the passed `reverse`.
+---@class Warbandeer_Collected
+---@field SyncDressingRoomOrder fun(reverse: boolean)
+ns.SyncDressingRoomOrder = function(reverse)
+  if _room and _room._widget:IsShown() then
+    _room._reverse = reverse ~= false
+  end
+end
+
 ---Dev/verify helper: force a raw creature display id into the open dressing room
 ---model so a candidate RaceModels id can be eyeballed (no-op if not open). The
 ---next race/gender/form change reverts to the configured model. Used by

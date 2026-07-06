@@ -55,9 +55,13 @@ function DataView:_applyCellMarks(cell, setId)
   end
 end
 
--- Re-apply every cell's overlays from current DB state. Cheap enough to run on
--- every update()/re-sort; cells persist across re-sorts so their overlays do too.
-function DataView:_refreshMarks()
+-- Re-apply cell overlays from current DB state. Cheap enough to run on every
+-- update()/re-sort; cells persist across re-sorts so their overlays do too.
+-- With `onlySetId` set, only cells carrying that setId are refreshed — used after
+-- a single wanted/rank toggle so the clicked cell's *siblings* (other class columns
+-- in the same group can share one base setId) update too, not just the clicked cell.
+---@param onlySetId number?
+function DataView:_refreshMarks(onlySetId)
   self._playerRace = ns:PlayerRace()
   for r = 1, #self.cells do
     local row = self.cells[r]
@@ -65,7 +69,10 @@ function DataView:_refreshMarks()
       local cell = row[c]
       if cell then
         local data = cell.data
-        self:_applyCellMarks(cell, type(data) == "table" and data.setId or nil)
+        local setId = type(data) == "table" and data.setId or nil
+        if not onlySetId or setId == onlySetId then
+          self:_applyCellMarks(cell, setId)
+        end
       end
     end
   end

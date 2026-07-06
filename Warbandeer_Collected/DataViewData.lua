@@ -134,7 +134,9 @@ function ns.CollectedRows(self)
           if self._wantedOnly and not nowWanted then
             self.data = self:GetData(); self:update()   -- it left the filtered view
           else
-            self:_applyCellMarks(cell, set.id)
+            -- refresh every cell sharing this setId, not just the clicked one, so
+            -- sibling class columns of a shared set update their star/pip too
+            self:_refreshMarks(set.id)
           end
           if self.onWantedToggle then self:onWantedToggle() end
           ns.RefreshInfoTip()
