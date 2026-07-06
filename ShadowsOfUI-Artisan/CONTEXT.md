@@ -68,6 +68,9 @@ known yet; `onEnter` renders the breakdown tooltip (header = currency icon + nam
   `SecondaryProfession1/2/3`, reads `frame.skillLine` (stamped by Blizzard's `FormatProfession`),
   one badge per frame (`frame.soiArtisanBadge`) anchored under the lowest shown spell button's
   `spellString` label; gated on `ARTISAN_CURRENCIES` so Cooking/Fishing/Archaeology show nothing.
+  Also gated on `frame.SpellButton1:IsShown()` — Blizzard never nils `frame.skillLine` when a slot
+  empties (unlearned profession), so without the visibility check a stale skillLine would float a
+  phantom badge in the now-empty slot.
 - **Refresh:** each surface has a driver frame registering `CURRENCY_DISPLAY_UPDATE` only while
   its window is shown (crafting via `ProfessionsFrame` `OnShow`/`OnHide`; book via the EventRegistry
   `ProfessionsBookFrame.Show`/`.Hide` callbacks). The respective `Refresh`/`_Update` hook covers

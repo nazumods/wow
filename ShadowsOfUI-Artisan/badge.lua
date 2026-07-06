@@ -141,7 +141,12 @@ function ns.UpdateBookBadges()
     local skillLineID = frame and frame.skillLine
     local currencyId = skillLineID and ns.ARTISAN_CURRENCIES[skillLineID]
     if frame then
-      if not currencyId then
+      -- Blizzard's FormatProfession stamps frame.skillLine only in the has-profession
+      -- branch and never nils it when a slot empties (unlearned profession) — but it DOES
+      -- hide the slot's SpellButtons. Gate on SpellButton1 being shown, or a stale skillLine
+      -- would float a phantom badge in the now-empty slot (its currency is still known).
+      local hasProfession = frame.SpellButton1 and frame.SpellButton1:IsShown()
+      if not currencyId or not hasProfession then
         if frame.soiArtisanBadge then frame.soiArtisanBadge:Hide() end
       else
         frame.soiArtisanBadge = frame.soiArtisanBadge or makeBadge(frame, 5)
