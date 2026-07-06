@@ -35,16 +35,26 @@ local function render(tooltip, list)
   end
 end
 
--- The first parenthesised integer among the requirement lines is the recipe's skill
--- threshold ("Requires Tailoring (425)"). Line 1 (the item name) is skipped so a recipe
--- whose name itself contains "(NN)" can't be misread as a requirement.
-local function reqSkill(data)
+-- The localized "Requires " prefix of the skill line, taken from ITEM_MIN_SKILL
+-- ("Requires %s (%d)") — everything before the profession-name placeholder.
+local REQ_PREFIX = ITEM_MIN_SKILL and ITEM_MIN_SKILL:match("^(.-)%%s")
+
+-- The recipe's skill threshold, read from the "Requires <Profession> (NN)" line.
+-- Anchored to that line via REQ_PREFIX so an earlier incidental "(NN)" — a stat, a
+-- set-piece "(2)", a level range — isn't misread as the requirement. Line 1 (the
+-- item name) is always skipped. Falls back to the first parenthesised integer on
+-- lines 2+ when ITEM_MIN_SKILL is unavailable.
+---@param data table  tooltip data (expects `.lines[i].leftText`)
+---@return integer
+function ns.ReqSkill(data)
   local lines = data.lines
   if not lines then return 0 end
   for i = 2, #lines do
     local txt = lines[i].leftText
-    local v = txt and txt:match("%((%d+)%)")
-    if v then return tonumber(v) end
+    if txt and (not REQ_PREFIX or REQ_PREFIX == "" or txt:find(REQ_PREFIX, 1, true)) then
+      local v = txt:match("%((%d+)%)")
+      if v then return tonumber(v) end
+    end
   end
   return 0
 end
@@ -52,7 +62,7 @@ end
 ns:OnItemTooltip(function(tooltip, data)
   if not data.id then return end
   local nm = data.lines and data.lines[1] and data.lines[1].leftText
-  local list, knownList = ns.BuildLearnable(data.id, reqSkill(data), nm)
+  local list, knownList = ns.BuildLearnable(data.id, ns.ReqSkill(data), nm)
   if not list then return end
   -- Who already knows it first (the common "can I make this?" question), then who could
   -- still learn it. Either line is skipped when its list is empty.

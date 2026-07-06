@@ -92,11 +92,20 @@ end
 -- line; an empty list means no character knows it (→ "Not Known"). Matches by the captured
 -- recipe id (Warbandeer_Characters stores `{ id, name }` per learned recipe), so it's exact —
 -- no name/locale ambiguity.
+-- The crafting-orders browse list hovers BuildKnownBy on every row, and the scan is
+-- heavy (all characters x all professions x all learned recipes). Cross-alt data is
+-- static within a session (it comes from SavedVariables); only the current character's
+-- own learns change it, so cache per recipeID and wipe on NEW_RECIPE_LEARNED.
+local knownByCache = {}
+ns:registerEvent("NEW_RECIPE_LEARNED", function() wipe(knownByCache) end)
+
 ---@param recipeID integer
 ---@return CrafterEntry[]
 function ns.BuildKnownBy(recipeID)
   local api = ns.api
   if not (recipeID and api and api.GetAllCharacters) then return {} end
+  local cached = knownByCache[recipeID]
+  if cached then return cached end
   local list = {}
   for _, toon in ipairs(api:GetAllCharacters()) do
     local skillLineID = knowsRecipeID(toon, recipeID)
@@ -114,6 +123,7 @@ function ns.BuildKnownBy(recipeID)
     if a.level ~= b.level then return a.level > b.level end
     return a.name < b.name
   end)
+  knownByCache[recipeID] = list
   return list
 end
 
