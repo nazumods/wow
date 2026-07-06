@@ -163,6 +163,11 @@ local function autoBuyItems()
                                 local price = info and info.price       or select(3, GetMerchantItemInfo(j))
                                 local qty   = info and info.stackCount  or select(4, GetMerchantItemInfo(j))
                                 local avail = info and info.numAvailable or select(5, GetMerchantItemInfo(j))
+                                -- Spend-safety: a 0/nil maxStack makes the stack loop below spin
+                                -- forever (BuyMerchantItem(j, 0) never reduces buyCount); an
+                                -- extended-cost item's `price` is only the gold portion, so the
+                                -- gold check can't gauge affordability. Skip the item in both cases.
+                                if not maxStack or maxStack <= 0 or (info and info.hasExtendedCost) then break end
                                 if avail ~= -1 then buyCount = math.min(buyCount, avail) end
                                 while buyCount >= maxStack
                                         and (avail >= maxStack or avail == -1)
