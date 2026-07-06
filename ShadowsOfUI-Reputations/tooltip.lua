@@ -20,7 +20,6 @@ ns:OnItemTooltip(function(tooltip, data)
   if not data.id then return end
   if memoGen ~= ns._factionIndexGen then
     wipe(memo)
-    memoGen = ns._factionIndexGen
   end
   local fid = memo[data.id]
   if fid == nil then
@@ -32,6 +31,10 @@ ns:OnItemTooltip(function(tooltip, data)
     fid = ns.FactionIDByName(concat(buf, "\n")) or false
     memo[data.id] = fid
   end
+  -- Sync AFTER the resolve: FactionIDByName can lazily build the index (bumping the
+  -- gen), so syncing at the top would leave memoGen one behind and force a spurious
+  -- wipe on the next tooltip.
+  memoGen = ns._factionIndexGen
   if not fid then return end
   ns.AppendStandings(tooltip, fid) -- item tooltips auto-show after post-calls; no Show() needed
 end)
