@@ -122,7 +122,9 @@ end
 function Region:Hide() self._widget:Hide() end
 ---@param b boolean
 function Region:SetShown(b) if b then self:Show() else self:Hide() end end
-function Region:Toggle() self:SetShown(not self._widget:IsVisible()) end
+-- IsShown (own shown flag), not IsVisible (false under any hidden ancestor): a
+-- shown widget under a hidden parent must still toggle to hidden, not re-show.
+function Region:Toggle() self:SetShown(not self._widget:IsShown()) end
 
 ---@param a number?  alpha (0–1)
 ---@return number?  the alpha when getting

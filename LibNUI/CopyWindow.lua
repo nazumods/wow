@@ -143,6 +143,10 @@ function CopyWindow:_createPicker()
     lines = lines,
   }
   btn.OnClick = function() menu:Toggle() end
+  -- The menu is parented to UIParent (so the titlebar/scroll frame can't clip it),
+  -- so it won't hide with the window on its own — close it when the window hides
+  -- (Escape or the close button), else it orphans on screen. Mirrors FilterDropdown.
+  self:SetScript("OnHide", function() menu:Hide() end)
 end
 
 ---Show `text` under `title`, sizing the window to the content and pre-selecting

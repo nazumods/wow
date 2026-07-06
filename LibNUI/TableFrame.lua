@@ -164,12 +164,14 @@ end
 function TableFrame:Autosize()
   local s, w = 0, 0
   if self.rowNames then
+    -- A texture-only row header (built from an atlas/path rowInfo) has no .label,
+    -- only .texture — skip it rather than nil-index its width.
     for _,r in ipairs(self.rows) do
-      s = max(s, r.header.label:Width())
+      if r.header.label then s = max(s, r.header.label:Width()) end
     end
     s = s + (self.padding or 2)
     for _,r in ipairs(self.rows) do
-      r.header.label:Width(s)
+      if r.header.label then r.header.label:Width(s) end
     end
   end
   local offset = s
