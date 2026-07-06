@@ -20,10 +20,14 @@ local SettingsFrame = ns.ui.SettingsFrame
 local function ShouldPrefix()
   local alias = ns.db.settings.alias
   if not alias or alias == "" then return false end
+  -- Read the name live (cheap UnitName("player")) rather than a value captured once at
+  -- load, so a mid-session name-change/transfer that resolves without a full reload
+  -- doesn't leave the prefix decision comparing against a stale name.
+  local player = ns.wow.Player.GetName()
   if ns.db.settings.startsWith then
-    return not ns.lua.strings.startsWith(ns.player, alias)
+    return not ns.lua.strings.startsWith(player, alias)
   end
-  return ns.player ~= alias
+  return player ~= alias
 end
 
 local function GetPrefix()
@@ -63,8 +67,6 @@ local function hookEditBox(editBox)
 end
 
 function ns:onLoad()
-  ns.player = ns.wow.Player.GetName()
-
   local settings = SettingsFrame:new{ headingText = ns._TITLE }
   settings:AddTextControl("Alias", ns.db.settings, "alias").SettingChanged = nil
   settings:AddToggleControl("Suppress if character name starts with alias", ns.db.settings, "startsWith").SettingChanged = nil

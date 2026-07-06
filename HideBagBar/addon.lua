@@ -4,7 +4,7 @@ frame:RegisterEvent("ADDON_LOADED")
 
 frame:SetScript("OnEvent", function(self, event, arg1)
   if event == "ADDON_LOADED" and arg1 == ADDON_NAME then
-    for _, f in pairs({
+    for _, f in ipairs({
       MainMenuBarBackpackButton,
       BagBarExpandToggle,
       CharacterBag0Slot,
