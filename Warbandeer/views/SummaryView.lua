@@ -224,6 +224,15 @@ local SummaryView = Class(ui.Frame, function(self)
   }
 
   self:layout()
+
+  -- Cold-session FontString rasterization heal, mirroring Overview: the two
+  -- ClassSummary tables are built here on the first (lazy) open, so without this a
+  -- cold-session first Summary open can render the identity cells blank. Idempotent —
+  -- see ns.HealCellFonts.
+  ns:after(50, function()
+    ns.HealCellFonts(self.alliance)
+    ns.HealCellFonts(self.horde)
+  end)
 end, {
   name   = "summary",
   background = theme.colors.window,

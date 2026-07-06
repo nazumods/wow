@@ -49,7 +49,7 @@ local function buildTab(panel, expansionLevel, extraFactionIDs, achievementIds)
     achievementIds = achievementIds,
     position = { TopLeft = {0, -HEAD_H} },
   }
-  panel._ach = ach -- reachable for the cold-session font heal (and /wb cells)
+  panel._ach = ach -- reachable for the cold-session font heal (ns.HealCellFonts)
   return bars:Width(), bars:Height(), ach:Width(), ach:Height(), achHead
 end
 
@@ -59,20 +59,6 @@ local EXPANSIONS = {
   { key = "midnight", label = "Midnight",       expansionLevel = 11, extraFactionIDs = {}, achievementIds = ns.overview.midnightAchievementIds },
   { key = "wwi",      label = "The War Within", expansionLevel = 10, extraFactionIDs = {}, achievementIds = ns.overview.wwiAchievementIds },
 }
-
--- Swap every cell label's font away and back (same size/flags) to force the
--- client to re-rasterize the string. See the cold-session note in the ctor.
-local function healCellFonts(tbl)
-  for _, row in pairs(tbl.cells) do
-    for _, cell in pairs(row) do
-      if cell.label then
-        local f = cell.label:Font()
-        cell.label:Font({"Fonts\\FRIZQT__.TTF", f[2], f[3]})
-        cell.label:Font(f)
-      end
-    end
-  end
-end
 
 -- Overview
 ---@class Overview: Frame
@@ -222,8 +208,8 @@ local Overview = Class(Frame, function(self)
   -- a same-params SetFont is a no-op — so one tick after construction every cell
   -- label's font is swapped away and back. Invisible and idempotent.
   ns:after(50, function()
-    healCellFonts(self.topAlts)
-    for _, panel in pairs(self._panels) do healCellFonts(panel._ach) end
+    ns.HealCellFonts(self.topAlts)
+    for _, panel in pairs(self._panels) do ns.HealCellFonts(panel._ach) end
   end)
 end, {
   name = "overview",
