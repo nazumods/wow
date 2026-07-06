@@ -140,6 +140,9 @@ std = {
     "TooltipUtil",
     "UiMapPoint",
     "EditModeManagerFrame",
+    "FrameStackTooltip_Toggle",
+    "ReloadUI",
+    "ShowUIPanel",
     "hooksecurefunc",
 
     "C_AddOns",

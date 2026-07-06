@@ -18,6 +18,7 @@ lua/strings.lua
 
 slashCommands.lua
 
+globals/globalCommands.lua
 globals/colors.lua
 globals/wow.lua
 globals/player.lua
