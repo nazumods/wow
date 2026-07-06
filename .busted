@@ -7,6 +7,7 @@ return {
       "LibNAddOn/spec",
       "ShadowsOfUI-Upgrade/spec",
       "Warbandeer_Bars/spec",
+      "ShadowsOfUI-Collectibles/spec",
     },
     lpath = "?.lua",
     verbose = true,

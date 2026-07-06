@@ -106,21 +106,26 @@ local S_DECOR_OWNED = HOUSING_DECOR_OWNED_COUNT_FORMAT and (
 -- Tooltip fallback for owned-state the item-class paths above don't cover: the current
 -- character's own recipe knowledge, cosmetics, misc "Already known" mounts, and decor
 -- (its "Total Owned:" line — read even when the housing catalog hasn't cached the item).
+-- Returns (known, sawTooltip). `sawTooltip` is true only when GetHyperlink
+-- returned a populated tooltip — a negative is trustworthy only then, because the
+-- "already known / owned" line resolves on its own schedule and an unloaded
+-- tooltip reads as a false negative.
 local function scanTooltipKnown(link)
   local data = C_TooltipInfo.GetHyperlink(link)
-  if not (data and data.lines) then return false end
-  for _, line in ipairs(data.lines) do
+  local lines = data and data.lines
+  if not (lines and lines[1]) then return false, false end
+  for _, line in ipairs(lines) do
     local text = line.leftText
     if text == ITEM_SPELL_KNOWN then
-      return true
+      return true, true
     elseif S_PET_KNOWN and text and text:match(S_PET_KNOWN) then
-      return true
+      return true, true
     elseif S_DECOR_OWNED and text then
       local owned = text:match(S_DECOR_OWNED)
-      if owned and tonumber(owned) > 0 then return true end
+      if owned and tonumber(owned) > 0 then return true, true end
     end
   end
-  return false
+  return false, true
 end
 
 -- Whether the current account/character already owns/knows the item.
@@ -141,14 +146,21 @@ function ns.IsKnown(link)
   local itemID = itemIDFromLink(link) or select(1, GetItemInfoInstant(link))
   if itemID then
     local q = ns.QuestItems[itemID]
-    if q then return C_QuestLog.IsQuestFlaggedCompleted(q) end
+    if q then
+      -- Quest completion is monotonic, so a positive is safe to cache forever;
+      -- a not-yet-done negative stays uncached (it flips on QUEST_TURNED_IN).
+      if C_QuestLog.IsQuestFlaggedCompleted(q) then knownCache[link] = true return true end
+      return false
+    end
 
     local sp = ns.SpecialItems[itemID]
     if sp then
       local _, srcLink = GetItemInfo(sp[1])
       if not srcLink then return false end
       local field = tonumber((select(sp[2], strsplit(":", srcLink))))
-      return field == sp[3]
+      -- The whistle-upgrade state is monotonic too — cache the positive.
+      if field == sp[3] then knownCache[link] = true return true end
+      return false
     end
 
     local contents = ns.ContainerItems[itemID]
@@ -171,23 +183,26 @@ function ns.IsKnown(link)
 
   local _, _, _, _, itemIcon, classID, subClassID = GetItemInfoInstant(itemID or link)
   local itemName = itemID and GetItemInfo(itemID)
-  local known
+  local known, sawTooltip
   if classID == Enum.ItemClass.Recipe then
     known = anyAltKnowsRecipe(RECIPE_SUBCLASS_TO_SKILL[subClassID], craftedName(itemName))
-      or scanTooltipKnown(link)
+    if not known then known, sawTooltip = scanTooltipKnown(link) end
   elseif classID == Enum.ItemClass.Miscellaneous and subClassID == Enum.ItemMiscellaneousSubclass.CompanionPet then
-    known = knowsCompanion(itemName, itemIcon) or scanTooltipKnown(link)
+    known = knowsCompanion(itemName, itemIcon)
+    if not known then known, sawTooltip = scanTooltipKnown(link) end
   elseif classID == Enum.ItemClass.Housing and subClassID == Enum.ItemHousingSubclass.Decor then
-    known = knowsDecor(link) or scanTooltipKnown(link)
+    known = knowsDecor(link)
+    if not known then known, sawTooltip = scanTooltipKnown(link) end
   else
-    known = scanTooltipKnown(link)
+    known, sawTooltip = scanTooltipKnown(link)
   end
 
   if known then
     knownCache[link] = true
-  elseif itemName then
-    -- itemName loaded = the tooltip scan above saw complete data, so "not
-    -- known" is trustworthy until a collection-gain event drops it.
+  elseif sawTooltip then
+    -- Trust a negative only once the tooltip actually loaded: the "already known"
+    -- line resolves on its own schedule, so an unloaded tooltip reads as a false
+    -- negative. Wiped anyway on a collection-gain event.
     knownCache[link] = false
   end
   return known
@@ -204,6 +219,7 @@ function ns.IsCollectible(link)
 
   local result = false
   local itemID
+  local sawTooltip = false
   if speciesFromLink(link) then
     result = true
   else
@@ -225,7 +241,9 @@ function ns.IsCollectible(link)
       -- "Use to learn" plans that aren't a Recipe item class (Blizzard tags some as
       -- Consumable) — catch the recipe-teach line. "Teaches you" is enUS-specific.
       local data = C_TooltipInfo.GetHyperlink(link)
-      for _, line in ipairs(data and data.lines or {}) do
+      local lines = data and data.lines
+      sawTooltip = (lines and lines[1]) ~= nil
+      for _, line in ipairs(lines or {}) do
         local text = line.leftText
         if text and text:find("Teaches you", 1, true) then
           result = true
@@ -237,9 +255,11 @@ function ns.IsCollectible(link)
 
   if result then
     collectibleCache[link] = true
-  elseif itemID and GetItemInfo(itemID) then
-    -- Data loaded, so the "Teaches you" scan above saw the full tooltip; an
-    -- item's class/type never changes, so the negative holds all session.
+  elseif itemID and sawTooltip then
+    -- Cache the permanent negative only once the tooltip actually loaded: the
+    -- "Teaches you" line resolves asynchronously and collectible-negatives are
+    -- never wiped, so caching on an unloaded tooltip would lock a false negative
+    -- for the whole session. Synchronous class-typed items never reach here.
     collectibleCache[link] = false
   end
   return result
