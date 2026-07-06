@@ -31,6 +31,17 @@ ns.overview.midnightAchievementIds = {
   61864, -- Sojourner of Voidstorm
 }
 
+-- Live completion colour for one achievement (41818 = the Midnight meta, also
+-- satisfied by its Heroic variant 41820). Read fresh so a mid-session earn recolours.
+local function achColor(achievementId)
+  local _, _, _, completed = GetAchievementInfo(achievementId)
+  if achievementId == 41818 then
+    local _, _, _, completedH = GetAchievementInfo(41820)
+    completed = completed or completedH
+  end
+  return completed and DIM_GREEN_FONT_COLOR or DIM_RED_FONT_COLOR
+end
+
 -- Single-column achievement checklist for one expansion.
 ---@class OverviewAchievements: TableFrame
 ---@field achievementIds number[]  achievement IDs to list, in display order
@@ -39,15 +50,11 @@ local Achievements = Class(TableFrame, function(self)
   for _, achievementId in ipairs(self.achievementIds) do
     self:addRow({backdrop = TransparentBackdrop})
     local row = self.rows[#self.rows]
-    local _, name, _, completed = GetAchievementInfo(achievementId)
-    if achievementId == 41818 then
-       local _, _, _, completedH = GetAchievementInfo(41820)
-       completed = completed or completedH
-    end
+    local _, name = GetAchievementInfo(achievementId)
     insert(self.data, {
       {
         text = name,
-        color = completed and DIM_GREEN_FONT_COLOR or DIM_RED_FONT_COLOR,
+        color = achColor(achievementId),
         onClick = function()
           OpenAchievement(achievementId)
         end,
@@ -65,4 +72,15 @@ end, {
     {width = 200, backdrop = TransparentBackdrop},
   },
 })
+
+-- Re-read completion state and recolour each row. Overview:OnBeforeShow calls this
+-- so an achievement earned mid-session turns green without a /reload (the rows are
+-- built once and otherwise never revisited).
+function Achievements:Refresh()
+  for i, achievementId in ipairs(self.achievementIds) do
+    self.data[i][1].color = achColor(achievementId)
+  end
+  self:update()
+end
+
 ns.overview.Achievements = Achievements

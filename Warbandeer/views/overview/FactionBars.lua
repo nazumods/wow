@@ -28,7 +28,9 @@ end
 -- color for an uncolored subfaction). Returns nameColor, fillColor, r, g, b.
 local function colorFor(factionID, apiColor, fallback)
   local col = ns.data.factionColors[factionID] or apiColor or fallback
-  if col and col.a == 0 then col.a = 1 end
+  -- apiColor is Blizzard's cached factionFontColor ColorMixin; clone before forcing
+  -- opaque so an alpha-0 API colour doesn't get written back onto the shared object.
+  if col and col.a == 0 then col = CreateColor(col.r, col.g, col.b, 1) end
   local r, g, b = rgbaOf(col)
   return col, (r and {r, g, b, 1} or theme.colors.gold), r, g, b
 end

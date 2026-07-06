@@ -264,6 +264,10 @@ end
 -- /collected scan run after the view was built is reflected on next open.
 function Overview:OnBeforeShow()
   if self.topAlts then self.topAlts:Refresh() end
+  -- Recolour achievement checklists so a mid-session earn shows without a /reload.
+  for _, panel in pairs(self._panels) do
+    if panel._ach then panel._ach:Refresh() end
+  end
 end
 
 -- Titlebar pickers (shown only while the Overview is active): a raid picker for the

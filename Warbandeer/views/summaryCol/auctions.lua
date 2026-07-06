@@ -34,7 +34,8 @@ table.insert(
         for _, ts in ipairs(a.expiries) do
           if ts > now then
             live = live + 1
-            soonest = soonest or ts -- expiries are ascending, so the first future one is soonest
+            -- soonest = the min future stamp; don't assume expiries are sorted.
+            if not soonest or ts < soonest then soonest = ts end
           end
         end
       else

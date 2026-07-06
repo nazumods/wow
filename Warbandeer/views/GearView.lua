@@ -83,12 +83,10 @@ local function slotStr(item, charName, slot)
 end
 
 local getILvlString = function(toon)
-  local lines = {}
-  if toon.equipment then
-    for slot, item in pairs(toon.equipment.slots) do
-      insert(lines, slot.." "..ns.IlvlColor(item.ilvl))
-    end
-  end
+  -- Reuse the canonical breakdown so the hover lines are in gearSlots draw order
+  -- (a plain pairs() walk here was hash-ordered) and match the Summary/Overview
+  -- ilvl tooltips, track suffix and all.
+  local lines = ns.IlvlTooltipLines(toon)
   return {
     text = (toon.basic.level or 0) < ns.wow.maxLevel and ITEM_STANDARD_COLOR:WrapTextInColorCode(ns.ilvlOf(toon)) or ns.IlvlColor(ns.ilvlOf(toon)),
     onEnter = function(self)

@@ -33,7 +33,12 @@ table.insert(
       local count = m.count
       local hasCount = count and count > 0
       if not m.hasMail and not hasCount then return "" end
-      local soonest = m.expiries and m.expiries[1]
+      -- The earliest expiry is the min, not expiries[1] — don't assume the data
+      -- layer stored them sorted.
+      local soonest
+      for _, e in ipairs(m.expiries or {}) do
+        if not soonest or e < soonest then soonest = e end
+      end
       local soon = soonest and soonest <= GetServerTime() + WARN_DAYS * DAY
       -- New mail waiting trumps the count: show just the envelope. Otherwise fall back
       -- to the inbox count. Either way the cell goes red when a piece expires soon.
