@@ -15,18 +15,22 @@ style — hooks modeled on `ShadowsOfUI-Ilvl`, not copied). Assignment-form init
 | `core.lua` | Init, `Defaults` + `MigrateDB` (non-destructive), refresher registry (`ns.AddRefresher`/`ns.Refresh`), `ns:settingChanged` (applies the colour preset only when the `knownColor` dropdown changed, so a custom colour survives other toggles), `ns.KnownColor()`, `ns.UncollectedColor`, `RegisterSettings` (5 fields), `/scollect` (status / `custom` colour picker / `itemtest`). Loaded **first** so `AddRefresher` exists before `surfaces.lua` runs. |
 | `data.lua` | `ns.QuestItems` (itemID→questID), `ns.SpecialItems` (itemID→`{srcItemID, linkField, expected}`), `ns.ContainerItems` (itemID→contained itemIDs) — collectibles the game doesn't self-flag as known. Typed direct-assignment fields. |
 | `detect.lua` | `ns.IsKnown(link)` / `ns.IsCollectible(link)` + positive-only caches (`knownCache`/`collectibleCache`). |
+| `spec/` | busted unit tests for the tooltip-load negative-cache gating; excluded from zip + release detection. |
 | `surfaces.lua` | `tintFor(link)` → r,g,b,desat; the two frame hooks (Merchant, Auction House — each gated on its toggle + registered as a refresher); `ns:onLogin` decor pre-cache. |
 
 ## Detection (`detect.lua`)
 
 Both predicates take an item hyperlink or `"item:<id>"` string. Results are cached per link for the
 session: positives always; negatives only from the expensive tooltip-scanned fallthrough and only
-once the item's data is loaded (`GetItemInfo` name present — an incomplete tooltip reads as a false
-negative). Known-negatives are wiped (+ `ns.Refresh()`) on collection-gain events
-(`NEW_RECIPE_LEARNED`, `NEW_MOUNT_ADDED`, `NEW_PET_ADDED`, `TOYS_UPDATED`,
-`TRANSMOG_COLLECTION_SOURCE_ADDED`, `QUEST_TURNED_IN`, `HOUSING_STORAGE_UPDATED`);
-collectible-negatives are permanent (an item's type never changes). The cheap API paths
-(battlepet/quest/special/container/toy/mount) never negative-cache.
+once the tooltip actually loaded. The load signal is the tooltip scan itself (`C_TooltipInfo.GetHyperlink`
+returned a populated `data.lines`), **not** a `GetItemInfo` name proxy: the "already known / Teaches you"
+line resolves on its own schedule, so gating on the base item name would cache a false negative while the
+tooltip is still filling in (permanent for `IsCollectible`, whose negatives are never wiped). Known-negatives
+are wiped (+ `ns.Refresh()`) on collection-gain events (`NEW_RECIPE_LEARNED`, `NEW_MOUNT_ADDED`,
+`NEW_PET_ADDED`, `TOYS_UPDATED`, `TRANSMOG_COLLECTION_SOURCE_ADDED`, `QUEST_TURNED_IN`,
+`HOUSING_STORAGE_UPDATED`); collectible-negatives are permanent (an item's type never changes). The cheap
+API paths (battlepet/toy/mount/container and quest/special) never negative-cache; quest/special **positives**
+are cached (both states are monotonic).
 
 - **`ns.IsKnown(link)`** — owned/known by this account:
   - caged battlepet link → `C_PetJournal.GetNumCollectedInfo(species) > 0`.
