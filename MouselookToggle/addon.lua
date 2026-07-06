@@ -41,7 +41,7 @@ local function unlock()
 end
 
 -- Called by the MOUSELOOKTOGGLE_TOGGLE binding on key press. Right-click also
--- cancels toggled mouselook natively; the reticle's OnUpdate spots that and unlocks.
+-- cancels toggled mouselook (handled in the reticle OnUpdate).
 function MouselookToggle_Toggle()
     -- Stopping mouselook while a mouse button is held leaves the character
     -- auto-running, so ignore the keybind mid-click.
@@ -72,15 +72,36 @@ crosshair:SetAtlas("crosshair_unablecrosshairs_48", false)
 crosshair:Hide()
 
 local lookStartedAt ---@type number? GetTime() when mouselook was first seen active
+local rightWasDown = false -- RightButton state last frame, for edge-detecting a click
 
 reticle:SetScript("OnUpdate", function()
     if not IsMouselooking() then
         lookStartedAt = nil
+        rightWasDown = false
         crosshair:Hide()
-        if toggled then unlock() end -- right-click cancelled toggled mouselook natively
+        if toggled then unlock() end -- mouselook ended some other way while toggled
         return
     end
     lookStartedAt = lookStartedAt or GetTime()
+
+    -- Right-click cancels toggled mouselook. Since #335 set CursorFreelookCentering
+    -- live for the toggle, the client's native right-click-cancel no longer fires, so
+    -- detect the release edge ourselves and stop. Cancel on the up-edge (not while
+    -- held, and not with LeftButton also down) so MouselookStop() can't leave the
+    -- character auto-running.
+    if toggled then
+        local rightDown = IsMouseButtonDown("RightButton")
+        if rightWasDown and not rightDown and not IsMouseButtonDown("LeftButton") then
+            MouselookStop()
+            unlock()
+            crosshair:Hide()
+            rightWasDown = false
+            return
+        end
+        rightWasDown = rightDown
+    else
+        rightWasDown = false
+    end
 
     -- Toggled mouselook shows the reticle immediately; held (right-click) freelook
     -- is debounced so quick camera flicks don't flash it, and can be turned off.

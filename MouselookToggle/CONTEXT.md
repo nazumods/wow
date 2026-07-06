@@ -18,7 +18,8 @@ right-click freelook (optional).
 ## Behavior
 
 - `lock()`: `MouselookStart()`, then arms the centering CVars **one frame later** via `ns:after(0, ...)`.
-- `unlock()`: `toggled = false` + `ns:RestoreCVars()`. Called from the keybind (explicit stop) and from the reticle OnUpdate when mouselook ends any other way (right-click cancels toggled mouselook natively).
+- `unlock()`: `toggled = false` + `ns:RestoreCVars()`. Called from the keybind (explicit stop) and from the reticle OnUpdate when mouselook ends any other way.
+- **Right-click cancel** while toggled is handled in the reticle OnUpdate, not natively: with `CursorFreelookCentering` live the client's own right-click-cancel stops firing (#339), so the OnUpdate edge-detects a RightButton release (up-edge, LeftButton not also down — else `MouselookStop()` leaves the character auto-running) and stops mouselook itself.
 - CVars go through `ns:SetTemporaryCVar` so a logout/disable mid-toggle can't leave them stuck.
 - Reticle: toggled mouselook fades the crosshair in immediately (`FADE_TIME` 0.2s); untoggled (held right-click) waits `SHOW_DELAY` 0.3s first — quick camera flicks never show it — and is gated by `db.showHeld`.
 
