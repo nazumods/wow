@@ -60,7 +60,7 @@ pub fn list_combat_logs(wow_dir: Option<String>) -> Result<Vec<CombatLogFile>, S
         });
     }
     // newest first
-    out.sort_by(|a, b| b.modified_secs.cmp(&a.modified_secs));
+    out.sort_by_key(|f| std::cmp::Reverse(f.modified_secs));
     Ok(out)
 }
 
@@ -142,7 +142,7 @@ pub fn summarize_combat_log(path: String) -> Result<CombatLogSummary, String> {
         .into_iter()
         .map(|(name, amount)| DamageRow { name, amount })
         .collect();
-    rows.sort_by(|a, b| b.amount.cmp(&a.amount));
+    rows.sort_by_key(|r| std::cmp::Reverse(r.amount));
     rows.truncate(10);
 
     encounters.truncate(20);
