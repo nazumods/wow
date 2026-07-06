@@ -108,6 +108,18 @@ local function CaptureBindings()
   return binds
 end
 
+-- GetMacroInfo returns the icon as either a texture path OR a numeric fileID on 12.x.
+-- Only the string (path) form should be normalized to a bare name; a numeric fileID
+-- must stay a number so CreateMacro gets a valid fileID back. The old
+-- `gsub(strupper(icon), ...)` coerced numeric icons to a decimal string (e.g. "135932")
+-- and relied on it round-tripping — fragile and inconsistent with the path form.
+local function normIcon(icon)
+  if type(icon) == "string" then
+    return gsub(strupper(icon), "INTERFACE\\ICONS\\", "")
+  end
+  return icon or "INV_Misc_QuestionMark"
+end
+
 -- Capture macros
 local function CaptureMacros(accountMacros, charMacros)
   local macros = {}
@@ -117,8 +129,7 @@ local function CaptureMacros(accountMacros, charMacros)
     for i = 1, MAX_ACCOUNT_MACROS do
       local name, icon, body = GetMacroInfo(i)
       if name then
-        icon = gsub(strupper(icon or "INV_Misc_QuestionMark"), "INTERFACE\\ICONS\\", "")
-        macros[#macros+1] = { id = i, name = name, icon = icon, body = body }
+        macros[#macros+1] = { id = i, name = name, icon = normIcon(icon), body = body }
       end
     end
   end
@@ -128,8 +139,7 @@ local function CaptureMacros(accountMacros, charMacros)
     for i = MAX_ACCOUNT_MACROS + 1, MAX_MACROS do
       local name, icon, body = GetMacroInfo(i)
       if name then
-        icon = gsub(strupper(icon or "INV_Misc_QuestionMark"), "INTERFACE\\ICONS\\", "")
-        macros[#macros+1] = { id = i, name = name, icon = icon, body = body }
+        macros[#macros+1] = { id = i, name = name, icon = normIcon(icon), body = body }
       end
     end
   end
