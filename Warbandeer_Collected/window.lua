@@ -164,7 +164,9 @@ end
 ns:OnRatingsChanged(function()
   if not ns.window then return end
   local grid = ns.window.data
-  if grid._wantedOnly then grid.data = grid:GetData(); grid:update()   -- re-filter
+  if grid._wantedOnly then
+    grid.data = grid:GetData(); grid:update()             -- re-filter (row set may change)
+    if grid.onResized then grid:onResized() end           -- refit the window to the new count
   else grid:_refreshMarks() end
   ns.window:RefreshWanted()
 end)

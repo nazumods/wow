@@ -53,12 +53,17 @@ function DataView:ToggleOrder()
   return self._reverse
 end
 
----Toggle the "wanted only" filter, rebuilding the grid so non-wanted cells blank out.
+---Toggle the "wanted only" filter, rebuilding the grid to just the rows holding a
+---wanted set (non-wanted class cells within a shown row still blank; an empty result
+---shows a centered "no wanted sets" message).
 ---@return boolean wantedOnly  the new filter state
 function DataView:ToggleWantedOnly()
   self._wantedOnly = not self._wantedOnly
   self.data = self:GetData()
   self:update()
+  -- The row count changes (rows are now added/removed, not just blanked), so let the
+  -- host refit its scroll container / window height to the new count.
+  if self.onResized then self:onResized() end
   return self._wantedOnly
 end
 
@@ -176,46 +181,89 @@ function DataView:BuildFilterStrip(parent, onModeChanged)
   local gold, divider = theme.colors.gold or theme.colors.header, theme.colors.divider
   local caps = theme.fonts.caps
   -- Expansion names get long ("Wrath of the Lich King"), so that dropdown is wider.
-  local BW, BH, PAD, GAP, DW, DW_EXP = 96, DataView.STRIP_H, 8, 6, 110, 190
+  local BW, BH, PAD, GAP, DW, DW_EXP = 48, DataView.STRIP_H, 8, 6, 110, 190
+  local IB, IPAD = BH, 2  -- icon toggles are square (BH×BH) with an IPAD glyph inset
+  local TEX = [[Interface\AddOns\Warbandeer_Collected\textures\]]
+  local NEWEST_ICON, OLDEST_ICON = TEX .. "sort-newest", TEX .. "sort-oldest"
   local strip = ui.Frame:new{ parent = parent, position = { Height = BH } }
 
-  -- One framed toggle at x; returns its (recolorable) border + caption label.
-  local function toggle(xoff, text, active, onClick)
-    local b = ui.Frame:new{ parent = strip, position = { TopLeft = {xoff, 0}, Width = BW, Height = BH } }
+  -- One framed toggle. A `text` spec builds a caption pill (BW wide); an `atlas`
+  -- or `tex` spec builds a square icon button (BH×BH) with a hover GameTooltip
+  -- (`tip` returns the string). Returns the recolorable border + the face — a
+  -- caption Label for text, or the icon Texture for icons (retint via SetVertexColor,
+  -- swap art via Texture()).
+  local function toggle(spec)
+    local isIcon = spec.atlas or spec.tex
+    local b = ui.Frame:new{ parent = strip,
+      position = { TopLeft = {spec.x, 0}, Width = isIcon and IB or BW, Height = BH } }
     local border = Texture:new{
       parent = b, layer = ui.layer.Background, position = { All = true },
-      color = active and gold or divider,
+      color = spec.active and gold or divider,
     }
     Texture:new{
       parent = b, layer = ui.layer.Border, color = {0.05, 0.05, 0.06, 0.92},
       position = { TopLeft = {1, -1}, BottomRight = {-1, 1} },
     }
-    local btn = ui.Button:new{ parent = b, position = { All = true }, glow = false, OnClick = onClick }
+    local btn = ui.Button:new{ parent = b, position = { All = true }, glow = false, OnClick = spec.onClick,
+      OnEnter = spec.tip and function(s)
+        GameTooltip:SetOwner(s._widget, "ANCHOR_BOTTOMRIGHT")
+        GameTooltip:SetText(spec.tip()); GameTooltip:Show()
+      end or nil,
+      OnLeave = spec.tip and function() GameTooltip:Hide() end or nil,
+    }
+    if isIcon then
+      -- `tint = false` keeps an already-colored atlas (the gold star) at its native
+      -- color; an explicit color tints a white silhouette (the calendar's gold,
+      -- independent of the border); otherwise the glyph tracks the active/off border.
+      local vc
+      if spec.tint ~= false then vc = spec.tint or (spec.active and gold or divider) end
+      local icon = Texture:new{
+        parent = btn, layer = ui.layer.Artwork,
+        atlas = spec.atlas, atlasSize = spec.atlas and false or nil, path = spec.tex,
+        vertexColor = vc,
+        position = { TopLeft = {IPAD, -IPAD}, BottomRight = {-IPAD, IPAD} },
+      }
+      return border, icon
+    end
     local label = Label:new{
       parent = btn, fontInfo = caps and {caps[1], 10} or nil, justifyH = ui.justify.Center,
-      position = { Left = {PAD, 0}, Right = {-PAD, 0} }, text = text,
+      position = { Left = {PAD, 0}, Right = {-PAD, 0} }, text = spec.text,
     }
     return border, label
   end
 
-  -- Warbandeer order: PTR / Wanted / Sort toggles, then Expansion / Category dropdowns.
-  local ptrBorder, wantedBorder, sortBorder, sortLabel
-  ptrBorder = toggle(0, "PTR PREVIEW", false, function()
+  -- Warbandeer order: PTR (text) / Wanted (★) / Sort (calendar) toggles, then dropdowns.
+  -- Running x cursor since the icon toggles are narrower than the text pill.
+  local x = 0
+  local ptrBorder, wantedBorder, sortIcon
+  ptrBorder = toggle{ x = x, text = "PTR", active = false, onClick = function()
     local on = self:SetPtr(not self._ptr)
     ptrBorder:Color(on and gold or divider)
     if onModeChanged then onModeChanged() end
-  end)
-  wantedBorder = toggle(BW + GAP, "WANTED ONLY", false, function() self:ToggleWanted() end)
-  -- Let other chrome (the wanted-count counter) drive the same toggle and keep this
-  -- button's highlight in sync.
-  self._syncWantedBtn = function() wantedBorder:Color(self._wantedOnly and gold or divider) end
-  sortBorder, sortLabel = toggle((BW + GAP) * 2, "NEWEST FIRST", true, function()
-    local rev = self:ToggleOrder()
-    sortLabel:Text(rev and "NEWEST FIRST" or "OLDEST FIRST")
-    sortBorder:Color(rev and gold or divider)
-  end)
+  end }
+  x = x + BW + GAP
 
-  local dx = (BW + GAP) * 3
+  wantedBorder = toggle{ x = x, atlas = ns.WantedIcon, tint = false, active = false,
+    tip = function() return self._wantedOnly and "Wanted only — click to show all sets"
+                                             or  "Show only sets you've flagged wanted" end,
+    onClick = function() self:ToggleWanted() end }
+  -- Let other chrome (the wanted-count counter) drive the same toggle and keep the
+  -- button's border in sync (the star keeps its natural gold).
+  self._syncWantedBtn = function() wantedBorder:Color(self._wantedOnly and gold or divider) end
+  x = x + IB + GAP
+
+  -- Neutral border (always-on control, no active-highlight glow); the gold calendar
+  -- glyph carries the direction. Only the icon face is captured (swapped on toggle).
+  sortIcon = select(2, toggle{ x = x, tex = NEWEST_ICON, tint = gold,
+    tip = function() return self._reverse and "Newest first — click for oldest first"
+                                          or  "Oldest first — click for newest first" end,
+    onClick = function()
+      local rev = self:ToggleOrder()
+      sortIcon:Texture(rev and NEWEST_ICON or OLDEST_ICON)
+    end })
+  x = x + IB + GAP
+
+  local dx = x
   ui.FilterDropdown:new{
     parent = strip, position = { TopLeft = {dx, 0} }, width = DW_EXP, menuWidth = 200,
     bordered = true, selected = "all", options = self:ExpansionOptions(),

@@ -49,6 +49,18 @@ local function matches(view, grp)
   return true
 end
 
+-- True if any of the group's class sets is flagged wanted. Row-level test for the
+-- "wanted only" filter, which hides whole rows that hold no wanted set (within a
+-- shown row, the non-wanted class cells still blank — see the cell builder below).
+---@param grp table
+---@return boolean
+local function groupWanted(grp)
+  for _, set in ipairs(grp.sets) do
+    if set.id and ns:IsWanted(set.id) then return true end
+  end
+  return false
+end
+
 local shades = {
   {165/255,   0/255,  38/255, 1},
   {215/255,  48/255,  39/255, 1},
@@ -82,7 +94,11 @@ function ns.CollectedRows(self)
   -- is the on-screen row position. Groups filtered out by expansion/category are dropped.
   local order = {}
   for i = 1, #source do
-    if matches(self, source[i]) then order[#order + 1] = i end
+    -- Expansion/category filter, plus (when "wanted only" is on) drop whole rows with
+    -- no wanted set so the grid shows just the target list, not blanked filler rows.
+    if matches(self, source[i]) and (not self._wantedOnly or groupWanted(source[i])) then
+      order[#order + 1] = i
+    end
   end
   table.sort(order, function(a, b)
     local ra, rb = source[a].release or 0, source[b].release or 0
