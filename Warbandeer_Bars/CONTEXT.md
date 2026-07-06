@@ -127,15 +127,23 @@ missing `WarbandeerBarsSettings` keys from `ns.DefaultSettings`.
   spellbook items (e.g. the warlock Summon Demon drawer) silently fails after any other protected
   pickup operation in the same hardware event. Never reorder the restore passes.
 - **`PickupSpell` fails for some known spells** (form-specific druid abilities) — restore falls back
-  to pickup by spellbook index, and only warns when the spell *is* in the book but still failed.
+  to pickup by spellbook index, then by spell **name** (`PickupSpellFromBookByName`, for a stored ID
+  that no longer matches the book after rank/ID churn but whose name still resolves), and only warns
+  when the spell *is* in the book but still failed.
 - **Slots whose content can't be picked up are blanked** (`PickupAction` on the slot), so the result
   matches the profile rather than keeping stale leftovers.
 - **Spell overrides are resolved both ways.** Capture stores the *base* spellID
   (`C_Spell.GetOverrideSpell` reverse-mapped); restore re-applies via an override map plus name /
   `FindBaseSpellByID` fallbacks, warning on any spell the character doesn't know.
+- **Item slots** restore by id, then by link string, then (for toys captured as plain items in older
+  profiles) `C_ToyBox.PickupToyBoxItem`. The "Missing item" warning is **gated on the item's data
+  being cached** (`C_Item.IsItemDataCachedByID`) — on a cold cache it instead requests the load
+  (`RequestLoadItemDataByID`) so a later restore resolves it, rather than warning spuriously.
 - **Macros are recreated by name+body match**, not by index — restore reuses an existing matching
   macro or `CreateMacro`s one (account vs character bank inferred from `m.id`), warning if no macro
-  slots remain. Macro action slots are placed in a second pass via an id→newId map.
+  slots remain. Macro action slots are placed in a second pass via an id→newId map. Capture keeps the
+  icon as a **numeric fileID** when `GetMacroInfo` returns one (only the string/path form is
+  normalized to a bare name), so `CreateMacro` gets a valid icon back on restore.
 - **Temp/override macro slots** are resolved to their real macro index at capture via a
   `PickupAction`/`PlaceAction` round-trip.
 - **Pet bar capture/restore only runs while a pet is active** (`IsPetActive`); tokens are matched by
@@ -147,8 +155,11 @@ missing `WarbandeerBarsSettings` keys from `ns.DefaultSettings`.
   captured/restored like any other slot: store the outfit name (`strindex`) + list position
   (`index`) at capture, resolve name→`outfitID` (position fallback) and `PickupOutfit` at restore.
   Missing this branch previously left transmog outfit buttons uncaptured and **blanked on restore**.
-- **Keybindings restore replaces the live binding set** (`SaveBindings(GetCurrentBindingSet())`),
-  writing each captured key with its per-command binding context when available. Capture is a
+- **Keybindings restore replaces the binding set the profile was captured under**
+  (`SaveBindings(profile.bindingSet or GetCurrentBindingSet())` — 1=account, 2=per-character;
+  `SaveBindings` also makes that set active, so an account-set profile lands in the account set even
+  if per-character bindings are live now), writing each captured key with its per-command binding
+  context when available. Capture is a
   *full* snapshot (`CaptureBindings` walks every command via `GetNumBindings`/`GetBinding`), so
   restore first **clears any live key not in the profile** (the binding analog of
   `ClearUnusedSlots`) before applying — otherwise the result would be the union of the old live

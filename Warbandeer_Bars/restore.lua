@@ -4,6 +4,7 @@ local ns = select(2, ...)
 local PickupSpell   = C_Spell and C_Spell.PickupSpell   or _G.PickupSpell
 local PickupItem    = C_Item  and C_Item.PickupItem      or _G.PickupItem
 local GetSpellLink  = C_Spell and C_Spell.GetSpellLink  or _G.GetSpellLink
+local GetSpellName  = C_Spell and C_Spell.GetSpellName  or _G.GetSpellName
 local PickupSpellBookItem = C_SpellBook and C_SpellBook.PickupSpellBookItem or _G.PickupSpellBookItem
 
 local MAX_BARS = 180
@@ -50,17 +51,17 @@ local function BuildSpellbookMaps()
   return overrides, flyouts
 end
 
--- PickupSpell fails for some valid spells (e.g. form-specific druid abilities).
--- Fall back to picking up by spellbook index, which works regardless of current form.
-local function PickupSpellFromBook(targetSid)
-  if not (C_SpellBook and C_SpellBook.GetNumSpellBookSkillLines) then return end
+-- Walk the player's spellbook, calling match(sid) per item; pick up + return true on
+-- the first truthy match (nil-guards absent spellbook API on some clients).
+local function pickupSpellFromBookWhere(match)
+  if not (C_SpellBook and C_SpellBook.GetNumSpellBookSkillLines) then return false end
   for idx = 1, C_SpellBook.GetNumSpellBookSkillLines() do
     local info = C_SpellBook.GetSpellBookSkillLineInfo(idx)
     if info then
       for i = 1, info.numSpellBookItems do
         local si = info.itemIndexOffset + i
         local _, _, sid = C_SpellBook.GetSpellBookItemType(si, Enum.SpellBookSpellBank.Player)
-        if sid == targetSid then
+        if sid and match(sid) then
           PickupSpellBookItem(si, Enum.SpellBookSpellBank.Player)
           return true
         end
@@ -68,6 +69,19 @@ local function PickupSpellFromBook(targetSid)
     end
   end
   return false
+end
+
+-- PickupSpell fails for some valid spells (e.g. form-specific druid abilities); fall
+-- back to pickup by spellbook index, which works regardless of current form.
+local function PickupSpellFromBook(targetSid)
+  return pickupSpellFromBookWhere(function(sid) return sid == targetSid end)
+end
+
+-- Last-resort pickup by spell NAME, for a stored ID that no longer matches the current
+-- spellbook (rank/ID churn across patches) but whose name still resolves (mirrors ABM).
+local function PickupSpellFromBookByName(name)
+  if not name then return false end
+  return pickupSpellFromBookWhere(function(sid) return GetSpellName(sid) == name end)
 end
 
 -- Flyout slots must be restored first, before any other PickupSpell/PlaceAction
@@ -112,6 +126,11 @@ local function RestoreSlots(slots, overrides)
         if not GetCursorInfo() then
           foundInBook = PickupSpellFromBook(s.index)
         end
+        -- stored ID may no longer match the spellbook (rank/ID churn) but the name
+        -- still resolves — recover by name before giving up (mirrors ABM).
+        if not GetCursorInfo() then
+          PickupSpellFromBookByName(GetSpellName(s.index))
+        end
         -- only warn if the spell exists in this character's spellbook but still
         -- failed; if it's not in the book it's unavailable content (profession,
         -- expansion, other class, ...)
@@ -123,12 +142,25 @@ local function RestoreSlots(slots, overrides)
         return
       elseif s.type == "item" then
         PickupItem(s.index)
+        -- toys captured as plain items in older profiles (before the `toy` type existed)
+        if not GetCursorInfo() and C_ToyBox then
+          C_ToyBox.PickupToyBoxItem(s.index)
+        end
         -- try by link string (some items only respond to this form)
         if not GetCursorInfo() then
           local link = select(2, GetItemInfo(s.index))
           if link then PickupItem(link) end
         end
-        if not GetCursorInfo() then Warn("Missing item [" .. s.index .. "]") end
+        if not GetCursorInfo() then
+          -- On a cold cache the item's data may not be loaded yet, so the miss (and its
+          -- warning) is spurious. Warn only once the data is actually cached; otherwise
+          -- request the load so a later restore resolves it.
+          if C_Item.IsItemDataCachedByID(s.index) then
+            Warn("Missing item [" .. s.index .. "]")
+          else
+            C_Item.RequestLoadItemDataByID(s.index)
+          end
+        end
       elseif s.type == "toy" then
         C_ToyBox.PickupToyBoxItem(s.index)
         if not GetCursorInfo() then Warn("Missing toy [" .. tostring(s.index) .. "]") end
@@ -246,7 +278,7 @@ local function RestoreMacrosAndSlots(macros, slots)
   end
 end
 
-local function RestoreBindings(binds)
+local function RestoreBindings(binds, bindingSet)
   -- A profile captured with bindings excluded has an empty binds list; treat that as "no
   -- binding data" and leave the live set alone. Without this the clear pass below (empty
   -- `wanted`) would wipe every live keybind — a profile restored with bindings=true but no
@@ -281,7 +313,11 @@ local function RestoreBindings(binds)
       end
     end
   end
-  SaveBindings(GetCurrentBindingSet())
+  -- Persist into the set the profile was captured under (1=account, 2=per-character),
+  -- not merely whatever is active now — otherwise an account-set profile restored while
+  -- per-character bindings are active silently lands in the per-character set. SaveBindings
+  -- also makes that set active, so the restore's binding context matches the capture.
+  SaveBindings(bindingSet or GetCurrentBindingSet())
 end
 
 local function RestorePetBar(petslots)
@@ -359,7 +395,7 @@ function ns.Restore(profile, include, silent, barFilter)
     RestoreSlots(slots, overrides)
     ClearUnusedSlots(slots, barFilter)
   end
-  if include.bindings then RestoreBindings(profile.binds or {}) end
+  if include.bindings then RestoreBindings(profile.binds or {}, profile.bindingSet) end
   if include.petbar   then RestorePetBar(profile.petslots or {}) end
   -- outfits: equipment sets are account-wide; names in profile just confirm they exist
   if not silent then ns.Print("Bars restored.") end
