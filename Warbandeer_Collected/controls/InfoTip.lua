@@ -107,7 +107,9 @@ local function render(group, set, parent, position)
   local race = ns:PlayerRace()
   local rank = ns:EffectiveRank(set.id, race)
   local bits = {}
-  if ns:IsWanted(set.id) then bits[#bits + 1] = "|cffffd100★ Wanted|r" end
+  -- Inline atlas escape for the gold star (the status Label's font has no U+2605
+  -- glyph, so a literal ★ renders as a missing-glyph box); same atlas as the cell mark.
+  if ns:IsWanted(set.id) then bits[#bits + 1] = "|A:" .. ns.WantedIcon .. ":14:14|a |cffffd100Wanted|r" end
   if rank then
     local tag = ns:RaceRank(set.id, race) and ("Tier " .. rank .. " (race)") or ("Tier " .. rank)
     bits[#bits + 1] = "|cff" .. ns.RankHex(rank) .. tag .. "|r"

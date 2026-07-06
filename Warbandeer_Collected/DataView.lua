@@ -2,7 +2,8 @@
 local ns = select(2, ...)
 local max = math.max
 local Class = ns.lua.Class
-local TableFrame = ns.ui.TableFrame
+local ui = ns.ui
+local TableFrame = ui.TableFrame
 
 ---Main grid: one row per set group (lock icon + name), one column per class,
 ---cells show missing-piece counts color-shaded by completion.
@@ -20,13 +21,14 @@ local TableFrame = ns.ui.TableFrame
 ---wanted/rank overlays + lockout selection).
 ---@class DataView: TableFrame
 ---@field _reverse boolean? sort by expansion newest-first (release 12→1; defaults true; see ToggleOrder)
----@field _wantedOnly boolean? blank cells for sets that aren't flagged wanted (see ToggleWantedOnly)
+---@field _wantedOnly boolean? show only rows holding a wanted set (non-wanted cells within a shown row still blank; empty → _setEmpty message) — see ToggleWantedOnly
 ---@field _ptr boolean? show the PTR-only "upcoming" sets (ns.PtrSets) instead of live (see SetPtr)
 ---@field _expansion number|string? release filter — a release index, or "all" (see SetExpansion)
 ---@field _category string? category filter — a category name, or "all" (see SetCategory)
 ---@field _playerRace number? cached canonical race id the rank pips resolve against
 ---@field _selectedRow number? lockout-panel selected row index (window grid only)
 ---@field _arrow Texture? lockout-selection arrow texture (window grid only, created lazily)
+---@field _emptyMsg Label? centered empty-state message (created lazily; shown when "wanted only" matches nothing)
 ---@field embedded boolean? render trimmed for a host view (no lock column / lockout name-click)
 ---@field infoTipAnchor fun(cell: Cell): table?  host override for the hover InfoTip anchor (defaults to "above the cell")
 ---@field onWantedToggle fun(self: DataView)?  host callback fired after a Shift-click wanted toggle (refresh the host's header)
@@ -73,7 +75,34 @@ function DataView:update()
   end
   TableFrame.update(self)
   self:ResizeRows(real)
+  self:_setEmpty(self._wantedOnly and real == 0)
   self:_refreshMarks()
+end
+
+-- Row-area height reserved for the empty-state message (ResizeRows(0) collapses it).
+DataView.EMPTY_H = 48
+
+-- Show or hide a centered empty-state message in the row area. Shown when "wanted
+-- only" is active but no set is flagged, so the grid reads as intentionally empty
+-- rather than blank/broken. ResizeRows already collapsed the area to 0, so reserve
+-- EMPTY_H here; the host's onResized → _fitToGrid then sizes the window to fit it.
+---@param on boolean
+function DataView:_setEmpty(on)
+  if not on then
+    if self._emptyMsg then self._emptyMsg:Hide() end
+    return
+  end
+  if not self._emptyMsg then
+    self._emptyMsg = ui.Label:new{
+      parent = self.rowArea, justifyH = ui.justify.Center,
+      color = self:Theme().colors.muted or {0.6, 0.6, 0.62, 1},
+      text = "You don't have any Wanted sets.",
+      position = { Center = {} },
+    }
+  end
+  self._emptyMsg:Show()
+  self.rowArea:Height(DataView.EMPTY_H)
+  self:Height(self.offsetY + DataView.EMPTY_H)
 end
 
 -- Max scrollable row-area height (px) before the grid scrolls — shared so the embedded
