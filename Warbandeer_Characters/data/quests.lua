@@ -102,6 +102,10 @@ ns.Quests.fields = {
       return d
     end,
     event = {"QUEST_TURNED_IN", "QUEST_ACCEPTED", "QUEST_REMOVED", "UNIT_QUEST_LOG_CHANGED"},
+    -- UNIT_QUEST_LOG_CHANGED fires on every quest-objective tick, and the default
+    -- handler runs get() synchronously per event — a full ~20-API-call delve rescan
+    -- each time. Debounce so a burst of objective updates collapses to one rescan.
+    eventDelay = 1000,
   },
   -- Achievement 61519 "Midnight Season 1: Catalyst Unbound" (unlock your class set
   -- bonuses). The achievement's `completed` is account-wide, but `wasEarnedByMe`

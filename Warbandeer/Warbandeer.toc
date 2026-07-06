@@ -64,6 +64,7 @@ views\summaryCol\delversBounty.lua
 views\summaryCol\lumber.lua
 views\summaryCol\cofferKey.lua
 views\summaryCol\fieldaccolade.lua
+views\summaryCol\unalloyedabundance.lua
 views\summaryCol\caches.lua
 views\summaryCol\xp.lua
 views\summaryCol\rested.lua

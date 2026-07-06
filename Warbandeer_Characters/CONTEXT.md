@@ -165,7 +165,7 @@ currency = {
   UntaintedManaCrystal = { quantity, earned, max, capped }?, -- (3356) weekly-earn cap 250 (hard cap 1000); RESET_WEEKLY
   ShardOfDundun = { quantity, earned, max, weeklyMax, capped }?, -- (3376) earn 8/wk + hold 8 (both caps 8); capped = held >= max OR earned >= weeklyMax; empowers the Abundance world event; RESET_WEEKLY
   FieldAccolade,                                       -- quantity (currency 3405); consumed by Warbandeer's fieldaccolade Summary column
-  UnalloyedAbundance,                                  -- quantity (currency 3377); collected only — no reader in the suite yet
+  UnalloyedAbundance,                                  -- quantity (currency 3377); consumed by Warbandeer's unalloyedabundance Summary column
 }
 items = {
   bags = { [1..N] = {id, slots}, GoblinMiniFridge?, ArathorSatchel?, PortableRefridgerator? },
