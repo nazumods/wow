@@ -83,6 +83,25 @@ ns.CLASSES = Generate(
 )
 ns.CLASS_NAMES = Map(ns.CLASSES, Select("name"))
 
+-- Swap every cell label's font away and back (same size/flags) to force the client
+-- to re-rasterize the string. Works around the cold-session render glitch: cell
+-- FontStrings in a TableFrame can rasterize blank on the first UI load of a client
+-- session (never after /reload), even though text, size, visibility and font all
+-- report correct. A *real* font change re-rasterizes them; a same-params SetFont is
+-- a no-op. Views call this one tick after building their tables. Idempotent.
+---@param tbl TableFrame
+function ns.HealCellFonts(tbl)
+  for _, row in pairs(tbl.cells) do
+    for _, cell in pairs(row) do
+      if cell.label then
+        local f = cell.label:Font()
+        cell.label:Font({"Fonts\\FRIZQT__.TTF", f[2], f[3]})
+        cell.label:Font(f)
+      end
+    end
+  end
+end
+
 function ns:settingChanged(key, value) --, setting
   ns.Print("setting changed", key, value)
 end
