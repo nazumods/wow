@@ -2,7 +2,7 @@
 ## Category: Shadows of UI
 ## Title: Cast Bars
 ## Author: Nazuraki
-## Version: 12.0.7-r2
+## Version: 12.0.7-r3
 ## IconTexture: Interface\Icons\spell_holy_borrowedtime
 ## SavedVariables: ShadowsOfUI_CastbarDB
 ## Dependencies: LibNAddOn, LibNUI

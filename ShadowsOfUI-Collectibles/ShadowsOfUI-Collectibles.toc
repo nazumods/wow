@@ -2,7 +2,7 @@
 ## Category: Shadows of UI
 ## Title: Collectible Tints
 ## Author: Nazuraki
-## Version: 12.0.7-r2
+## Version: 12.0.7-r3
 ## Dependencies: LibNAddOn
 ## OptionalDeps: Warbandeer_Characters
 ## SavedVariables: ShadowsOfUI_CollectiblesDB
