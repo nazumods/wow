@@ -104,7 +104,7 @@ LibNUI_Test is a LoadOnDemand visual test harness for LibNUI (`/nui test [key]`)
 
 | Addon | Commands | Sub-commands |
 |---|---|---|
-| LibNAddOn | `/lib` | `player` |
+| LibNAddOn | `/lib`, `/rl`, `/fs`, `/etc` | `player`; `/rl` (ReloadUI), `/fs` (framestack toggle), `/etc` (Edit Mode) — suite-wide, unscoped |
 | LibNUI | `/nui`, `/wdebug` | `version`, `test [key]`; `/wdebug <lua>` (raw command: eval Lua → copyable window) |
 | Warbandeer_Characters | `/characters`, `/wbc` | `list`, `delete <name>`, `cleanup`, `refresh`, `refresh items/locks`, `dump`, `dump bank/bankgear/gt/locks/artifact/warband/profgear/wq/delves`, `clear delves`, `stat`, `missing`, `missing me`, `wmissing` |
 | Warbandeer | `/warband`, `/wb` | `""` (open), `overview`, `summary`, `gear`, `detail`, `roles`, `races`, `legion`, `midnight`, `profs`, `midnightprofs`, `crafting`, `playtime`, `bars`, `collected`, `reputations`, `check legion`, `enchants` (list accepted wrong-enchants), `enchants clear`, `minimap` (toggle the minimap button), `reps0` (dev: dump uncategorized "Other" reps to a copy window) |

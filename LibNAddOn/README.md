@@ -251,3 +251,13 @@ Includes various convenience methods for working with Lists, Maps, Sets, Strings
 - `strings.split(token, str)` - returns a List of the substrings in str that are separated by token
 
 Also includes the `Class` function for defining inheritable, instantiatable objects.
+
+## Global slash commands
+
+Because LibNAddOn is a dependency of every addon in the suite and always loaded, it also
+registers a small set of suite-wide convenience slash commands. These are unscoped — they
+aren't tied to any one addon's namespace — and are available as soon as LibNAddOn loads:
+
+- `/rl` — reload the UI (`ReloadUI()`)
+- `/fs` — toggle the frame stack (Blizzard's `/framestack` debug tooltip)
+- `/etc` — open Edit Mode
