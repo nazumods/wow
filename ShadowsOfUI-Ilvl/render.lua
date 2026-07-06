@@ -134,6 +134,9 @@ function ns.SetAvgIlvl(parent, ilvl)
 end
 
 function ns.CleanButton(button)
+    -- Invalidate any in-flight ContinueOnItemLoad paint (see UpdateButton) so a stale
+    -- callback can't repaint a button that was just cleared (e.g. slot emptied, mode off).
+    button.soiToken = (button.soiToken or 0) + 1
     if button.soiIlvl  then button.soiIlvl:Hide() end
     if button.soiTrack then button.soiTrack:Hide() end
     if button.soiInset then button.soiInset:Hide() end
@@ -171,8 +174,16 @@ end
 ---@param inset boolean? inset beside the icon instead of overlaid on it
 ---@param big boolean? larger font (paperdoll panels)
 function ns.UpdateButton(button, item, inset, big)
+    -- A slot button can have several item loads in flight during rapid bag churn
+    -- (vendoring/looting): a later refresh that resolves synchronously (cached item)
+    -- can be clobbered by an earlier callback for the old item firing late. Stamp the
+    -- button and let only the newest callback paint. Bump before the early-return so an
+    -- emptying slot also invalidates a prior in-flight paint.
+    local token = (button.soiToken or 0) + 1
+    button.soiToken = token
     if not item or item:IsItemEmpty() then return end
     item:ContinueOnItemLoad(function()
+        if button.soiToken ~= token then return end
         local ilvl, quality, track = ns.ItemDetails(item)
         if not ilvl then return ns.CleanButton(button) end
         if inset then

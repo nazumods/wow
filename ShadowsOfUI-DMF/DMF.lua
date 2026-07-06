@@ -226,16 +226,35 @@ end
 
 -- World map pins (DMF island) -----------------------------------------------------
 
-local mapPins = {}
+local mapPins = {}   -- pins currently placed on the canvas
+local pinPool = {}   -- pins retired from the canvas, ready to reuse
 local PIN_SIZE = 16
 local PIN_ICON = "Interface\\MINIMAP\\TRACKING\\QuestGiver"
 
+-- Retire the active pins to the pool. WoW frames are never truly freed, so reuse
+-- them: the old SetParent(nil) only orphaned each pin, churning a fresh CreateFrame
+-- on every quest turn-in / map change while never reclaiming anything.
 local function clearMapPins()
     for _, pin in ipairs(mapPins) do
         pin:Hide()
-        pin:SetParent(nil)
+        pinPool[#pinPool + 1] = pin
     end
     wipe(mapPins)
+end
+
+-- A pooled pin, or a fresh one. Static bits (size, texture, mouse, OnLeave) are set
+-- once at creation; the per-refresh position and hover label are set by the caller.
+local function acquirePin(canvas)
+    local pin = table.remove(pinPool)
+    if pin then return pin end
+    pin = CreateFrame("Frame", nil, canvas)
+    pin:SetSize(PIN_SIZE, PIN_SIZE)
+    local tex = pin:CreateTexture(nil, "OVERLAY")
+    tex:SetAllPoints(pin)
+    tex:SetTexture(PIN_ICON)
+    pin:EnableMouse(true)
+    pin:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    return pin
 end
 
 local function refreshMapPins()
@@ -252,23 +271,17 @@ local function refreshMapPins()
         if npcNeeded(npcId) then
             local pos = NpcPositions[npcId]
             if pos and pos[1] == mapId then
-                local pin = CreateFrame("Frame", nil, canvas)
-                pin:SetSize(PIN_SIZE, PIN_SIZE)
+                local pin = acquirePin(canvas)
+                pin:ClearAllPoints()
                 pin:SetPoint("CENTER", canvas, "TOPLEFT", pos[2] * w, -pos[3] * h)
                 pin:SetFrameLevel(canvas:GetFrameLevel() + 10)
 
-                local tex = pin:CreateTexture(nil, "OVERLAY")
-                tex:SetAllPoints(pin)
-                tex:SetTexture(PIN_ICON)
-
                 local label = pos[4]
-                pin:EnableMouse(true)
                 pin:SetScript("OnEnter", function(self)
                     GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
                     GameTooltip:AddLine(label, 1, 1, 1)
                     GameTooltip:Show()
                 end)
-                pin:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
                 pin:Show()
                 table.insert(mapPins, pin)
