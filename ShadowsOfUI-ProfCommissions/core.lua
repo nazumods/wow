@@ -85,7 +85,9 @@ local function fillIcon(icon, reward)
 
   icon.tex:SetTexture(texture or 134400) -- INV_Misc_QuestionMark fallback
 
-  local color = quality and quality > Enum.ItemQuality.Common and QUALITY_COLORS[quality]
+  -- Quality border is item-rewards-only (per README/CONTEXT); currency rewards can
+  -- also report a quality but must not get the border.
+  local color = reward.itemLink and quality and quality > Enum.ItemQuality.Common and QUALITY_COLORS[quality]
   if color then
     icon.border:SetVertexColor(color.r, color.g, color.b)
     icon.border:Show()
@@ -95,7 +97,7 @@ local function fillIcon(icon, reward)
 
   local count = reward.count or 0
   if count > 1 then
-    icon.count:SetText(count)
+    icon.count:SetText(AbbreviateNumbers(count))  -- currency counts can be 3-4 digits; keep it inside the 18px icon
     icon.count:Show()
   else
     icon.count:Hide()
