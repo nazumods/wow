@@ -53,6 +53,13 @@ describe("ns.lua.maps", function()
       local t = maps.merge({}, {obj = obj})
       assert.equal(obj, t.obj)
     end)
+
+    it("keeps a metatabled value by reference even when the destination key already holds a table", function()
+      local obj = setmetatable({v = 1}, {__index = {Method = function() end}})
+      local dest = {obj = {}}  -- destination[k] is already a plain table
+      maps.merge(dest, {obj = obj})
+      assert.equal(obj, dest.obj)  -- shared by reference, not field-copied into the existing table
+    end)
   end)
 
   describe("fill", function()
