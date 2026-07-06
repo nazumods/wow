@@ -42,9 +42,10 @@ dropped, and can still be repositioned manually.
 
 Usage: pick an account, click a sort button (or use the ^/v buttons to fine-tune
 manually), then **Save to WoW** — this makes a timestamped backup of
-`character-list-order.txt` in the same folder before overwriting it. Restart WoW (or
-return to character select) to see the new order. If anything looks wrong, restore the
-backup file from the account folder.
+`character-list-order.txt` under `C:\Temp\WarbandeerCharacterSort\` (named
+`character-list-order.<account>.backup-<timestamp>.txt`) before overwriting the live file.
+Restart WoW (or return to character select) to see the new order. If anything looks wrong,
+copy the backup file back over `character-list-order.txt` in the account folder.
 
 Dual-crafting characters (two crafting professions, no gathering) have no automatic
 sort priority between them — the **Profession** sort mode asks which one leads via a

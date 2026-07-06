@@ -366,8 +366,7 @@
     error = null;
     try {
       const backupPath = await saveCharacterOrder(selectedAccount, currentOrderLines());
-      const backupName = backupPath.split(/[\\/]/).pop();
-      statusMessage = `Saved. Backup written to ${backupName}. Restart WoW (or go to character select) to see the new order.`;
+      statusMessage = `Saved. Backup written to ${backupPath}. Restart WoW (or go to character select) to see the new order.`;
     } catch (e) {
       error = String(e);
     } finally {

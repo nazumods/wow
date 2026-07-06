@@ -214,15 +214,41 @@ fn format_order_text(ordered: &[OrderLine]) -> String {
     out_lines.join("\r\n") + "\r\n"
 }
 
-/// Backs up the existing file (timestamped, alongside the original — local time, since it's
-/// shown to the user browsing their account folder) then writes the new order. Refuses to
-/// overwrite an existing backup of the same name (e.g. two saves within the same second)
-/// rather than silently discarding one — matches the standalone app's `overwrite: false`.
-pub fn save(account_dir: &Path, ordered: &[OrderLine]) -> Result<String, String> {
+/// Where order-file backups are parked. Deliberately OUTSIDE the WTF account folder: WoW
+/// never reads them, and leaving them beside `character-list-order.txt` clutters the user's
+/// account dir (and got swept as noise). Staged under `C:\Temp` per the suite convention;
+/// on non-Windows (CI, tests) it falls back to the platform temp dir.
+pub fn default_backup_dir() -> std::path::PathBuf {
+    #[cfg(windows)]
+    {
+        std::path::PathBuf::from(r"C:\Temp\WarbandeerCharacterSort")
+    }
+    #[cfg(not(windows))]
+    {
+        std::env::temp_dir().join("WarbandeerCharacterSort")
+    }
+}
+
+/// Backs up the existing file (timestamped, local time) into `backup_dir` — namespaced by
+/// account name since all accounts' backups now share one folder outside the WTF tree — then
+/// writes the new order. Refuses to overwrite an existing backup of the same name (e.g. two
+/// saves of the same account within one second) rather than silently discarding one.
+pub fn save(account_dir: &Path, backup_dir: &Path, ordered: &[OrderLine]) -> Result<String, String> {
     let order_path = account_dir.join(ORDER_FILE);
 
+    let account = account_dir
+        .file_name()
+        .map(|s| s.to_string_lossy().into_owned())
+        .filter(|s| !s.is_empty());
     let stamp = chrono::Local::now().format("%Y%m%d-%H%M%S");
-    let backup_path = account_dir.join(format!("character-list-order.backup-{stamp}.txt"));
+    let backup_name = match &account {
+        Some(a) => format!("character-list-order.{a}.backup-{stamp}.txt"),
+        None => format!("character-list-order.backup-{stamp}.txt"),
+    };
+
+    std::fs::create_dir_all(backup_dir)
+        .map_err(|e| format!("create backup dir {backup_dir:?}: {e}"))?;
+    let backup_path = backup_dir.join(backup_name);
     if backup_path.exists() {
         return Err(format!(
             "Backup {backup_path:?} already exists — wait a second and try again."
@@ -292,7 +318,11 @@ pub fn save_character_order(
 ) -> Result<String, String> {
     let retail = crate::wow::find_retail_dir(wow_dir.as_deref())
         .ok_or("Couldn't find a WoW _retail_ folder. Set WOW_DIR.")?;
-    save(&crate::wow::account_dir(&retail, &account), &ordered)
+    save(
+        &crate::wow::account_dir(&retail, &account),
+        &default_backup_dir(),
+        &ordered,
+    )
 }
 
 #[tauri::command]
@@ -410,13 +440,17 @@ mod tests {
     }
 
     #[test]
-    fn save_round_trips_and_backs_up() {
+    fn save_round_trips_and_backs_up_outside_the_account_folder() {
         let tmp = std::env::temp_dir().join(format!(
             "warbandeer-desktop-charorder-test-save-{}",
             std::process::id()
         ));
-        std::fs::create_dir_all(&tmp).unwrap();
-        let order_path = tmp.join(ORDER_FILE);
+        // Account dir and backup dir are deliberately separate — the backup must NOT land
+        // in the account folder.
+        let account_dir = tmp.join("ROSHNE");
+        let backup_dir = tmp.join("backups");
+        std::fs::create_dir_all(&account_dir).unwrap();
+        let order_path = account_dir.join(ORDER_FILE);
         std::fs::write(&order_path, "Version: 2\r\n0 47-AAA 1\r\n0 47-BBB 2\r\n").unwrap();
 
         let ordered = vec![
@@ -431,7 +465,13 @@ mod tests {
                 position: 2,
             },
         ];
-        let backup_path = save(&tmp, &ordered).expect("save should succeed");
+        let backup_path = save(&account_dir, &backup_dir, &ordered).expect("save should succeed");
+
+        // Backup lands in backup_dir (not the account folder) and carries the account name.
+        assert!(Path::new(&backup_path).starts_with(&backup_dir));
+        let backup_name = Path::new(&backup_path).file_name().unwrap().to_string_lossy();
+        assert!(backup_name.starts_with("character-list-order.ROSHNE.backup-"));
+        assert!(!account_dir.join(&*backup_name).exists());
 
         // Backup preserves the original content exactly.
         let backup_text = std::fs::read_to_string(&backup_path).unwrap();
@@ -450,12 +490,15 @@ mod tests {
             "warbandeer-desktop-charorder-test-clobber-{}",
             std::process::id()
         ));
-        std::fs::create_dir_all(&tmp).unwrap();
-        std::fs::write(tmp.join(ORDER_FILE), "Version: 2\r\n0 47-AAA 1\r\n").unwrap();
+        let account_dir = tmp.join("ROSHNE");
+        let backup_dir = tmp.join("backups");
+        std::fs::create_dir_all(&account_dir).unwrap();
+        std::fs::create_dir_all(&backup_dir).unwrap();
+        std::fs::write(account_dir.join(ORDER_FILE), "Version: 2\r\n0 47-AAA 1\r\n").unwrap();
 
         let stamp = chrono::Local::now().format("%Y%m%d-%H%M%S");
         std::fs::write(
-            tmp.join(format!("character-list-order.backup-{stamp}.txt")),
+            backup_dir.join(format!("character-list-order.ROSHNE.backup-{stamp}.txt")),
             "existing backup",
         )
         .unwrap();
@@ -465,7 +508,7 @@ mod tests {
             realm_guid: "47-AAA".to_string(),
             position: 1,
         }];
-        let result = save(&tmp, &ordered);
+        let result = save(&account_dir, &backup_dir, &ordered);
         assert!(result.is_err());
 
         std::fs::remove_dir_all(&tmp).ok();
@@ -494,7 +537,7 @@ mod tests {
                 position: 3, // slot 2 is a deliberately preserved gap
             },
         ];
-        save(&tmp, &ordered).expect("save should succeed");
+        save(&tmp, &tmp.join("backups"), &ordered).expect("save should succeed");
 
         let new_text = std::fs::read_to_string(tmp.join(ORDER_FILE)).unwrap();
         assert_eq!(new_text, "Version: 2\r\n0 47-AAA 1\r\n0 47-BBB 3\r\n");
