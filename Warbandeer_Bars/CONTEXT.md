@@ -14,9 +14,10 @@ character/spec's setup and import it onto the current character. Profiles are st
 | `init.lua` | Assignment-form bootstrap; `MigrateDB` (v1 seeds `profiles={}`; v2 adds `layouts={}`), `DefaultSettings`, `onLoad` per-char settings init |
 | `capture.lua` | `ns.Capture(include, accountMacros, charMacros)` → profile table; per-section capture + spell/flyout override resolution |
 | `restore.lua` | `ns.Restore(profile, include, silent?, barFilter?)` — applies a profile, recreating macros on import; flyouts-first pre-pass, spellbook fallbacks, per-bar filter |
-| `tracker.lua` | `ns.Snapshot()` + auto-capture triggers (login / spec change / logout); combat- & cursor-guarded |
+| `tracker.lua` | `ns.Snapshot(guardSparse?)` + `ns.shouldStore` + auto-capture triggers (login / spec change / logout); combat- & cursor-guarded |
 | `api.lua` | `WarbandeerBarsApi` methods |
 | `commands.lua` | `/wbb` inspection sub-commands (no window — data layer only) |
+| `spec/` | busted unit tests (`ns.shouldStore` sparse-capture guard); excluded from zip + release detection |
 
 ## WarbandeerBarsApi
 
@@ -114,6 +115,13 @@ missing `WarbandeerBarsSettings` keys from `ns.DefaultSettings`.
 - **`ns.Snapshot()` is a no-op during combat or mid-drag.** Macro temp-index resolution in capture
   touches protected APIs, and an in-progress cursor drag would be clobbered. Guarded by
   `InCombatLockdown()` / `GetCursorInfo()`. None of the triggers fire in combat anyway.
+- **Sparse-capture guard (`Snapshot(true)` on the login/spec timers).** The login (`onLogin`, 2 s
+  after entering the world) and spec-change (500 ms) snapshots run on a delay and can fire before
+  the action bars finish populating — an unguarded store would then overwrite a good profile with a
+  half-empty capture. `ns.shouldStore` refuses a *guarded* capture whose `slots` count is below the
+  stored profile's. The **logout** snapshot is unguarded (bars are fully loaded — it's authoritative,
+  so a legitimate button removal is still recorded). Same for the public `API:Snapshot()` / `/wbb`
+  snapshot. Covered by `spec/tracker_spec.lua`.
 - **`ns.Restore` bails in combat** (taint) — it prints a notice and returns.
 - **Flyouts restore FIRST** (`RestoreFlyouts` pre-pass): `PickupSpellBookItem` for flyout-type
   spellbook items (e.g. the warlock Summon Demon drawer) silently fails after any other protected

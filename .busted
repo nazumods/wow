@@ -6,6 +6,7 @@ return {
     ROOT = {
       "LibNAddOn/spec",
       "ShadowsOfUI-Upgrade/spec",
+      "Warbandeer_Bars/spec",
     },
     lpath = "?.lua",
     verbose = true,
