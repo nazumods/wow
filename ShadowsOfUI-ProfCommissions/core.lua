@@ -6,7 +6,10 @@ local GetCurrencyInfo = C_CurrencyInfo.GetCurrencyInfo
 local QUALITY_COLORS = ITEM_QUALITY_COLORS
 
 local ICON_SIZE = 18
-local ICON_GAP = 3 -- px between adjacent reward icons (and between the group and the money)
+local ICON_GAP = 3 -- px between adjacent reward icons
+local MONEY_RESERVE = 80 -- px reserved for the money display, measured from its right edge; the
+                         -- reward group's right edge pins here so the icons form a neat column
+                         -- regardless of the amount's width. Live-tunable via /sprofcomm reserve.
 
 -- On the crafter's "Crafting Orders" browse list, Patron (NPC) orders carry bonus item/currency
 -- rewards on top of the gold commission. Blizzard renders these as a single generic treasure-chest
@@ -118,13 +121,20 @@ local function onPopulate(cell, rowData)
   local rewards = order and order.npcOrderRewards
   local count = rewards and #rewards or 0
 
-  -- Anchor rightmost reward next to the money and walk leftward, so reward 1 ends up on the left.
-  local prev = cell.TipMoneyDisplayFrame
+  -- Anchor the rightmost reward at a FIXED x (the money's right edge minus the reserved money
+  -- zone) and walk leftward, so reward 1 ends up on the left. Pinning to the money's right edge
+  -- (not its ragged left edge, which shifts with the amount's digit count) keeps the reward
+  -- column aligned across rows.
+  local prev
   for i = count, 1, -1 do
     local icon = acquireIcon(cell, i)
     fillIcon(icon, rewards[i])
     icon:ClearAllPoints()
-    icon:SetPoint("RIGHT", prev, "LEFT", -ICON_GAP, 0)
+    if i == count then
+      icon:SetPoint("RIGHT", cell.TipMoneyDisplayFrame, "RIGHT", -MONEY_RESERVE, 0)
+    else
+      icon:SetPoint("RIGHT", prev, "LEFT", -ICON_GAP, 0)
+    end
     icon:Show()
     prev = icon
   end
@@ -239,18 +249,26 @@ EventUtil.ContinueOnAddOnLoaded("Blizzard_Professions", function()
   end
 end)
 
--- /sprofcomm            — status (whether the commission hook is installed + current icon size)
--- /sprofcomm size <n>   — retune the reward icon size live; takes effect on the next list refresh
---                         (re-sort a column or reopen the Crafting Orders window). A tuning aid,
---                         since exact pixel sizing is easier eyeballed in-game than guessed.
+-- /sprofcomm             — status (whether the commission hook is installed + current icon size/reserve)
+-- /sprofcomm size <n>    — retune the reward icon size live; takes effect on the next list refresh
+--                          (re-sort a column or reopen the Crafting Orders window). A tuning aid,
+--                          since exact pixel sizing is easier eyeballed in-game than guessed.
+-- /sprofcomm reserve <n> — retune the reserved money-zone width (px) the reward column pins to.
 SLASH_SUI_PROFCOMM1 = "/sprofcomm"
 SlashCmdList["SUI_PROFCOMM"] = function(msg)
-  local n = tonumber((msg or ""):match("^%s*size%s+(%d+)"))
+  msg = msg or ""
+  local n = tonumber(msg:match("^%s*size%s+(%d+)"))
   if n then
     ICON_SIZE = n
     ns.Print(("Reward icon size set to %d (refresh the order list to apply)."):format(n))
     return
   end
-  ns.Print(("Crafting-order hook %s; reward icon size %d."):format(
-    hooked and "installed" or "not installed (open a profession window first)", ICON_SIZE))
+  local r = tonumber(msg:match("^%s*reserve%s+(%d+)"))
+  if r then
+    MONEY_RESERVE = r
+    ns.Print(("Money-zone reserve set to %d px (refresh the order list to apply)."):format(r))
+    return
+  end
+  ns.Print(("Crafting-order hook %s; reward icon size %d, money reserve %d."):format(
+    hooked and "installed" or "not installed (open a profession window first)", ICON_SIZE, MONEY_RESERVE))
 end

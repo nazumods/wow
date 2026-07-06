@@ -1,6 +1,6 @@
 # ShadowsOfUI-ProfCommissions
 
-**Deps:** LibNAddOn · **OptionalDeps:** none · **SavedVars:** none · **Commands:** `/sprofcomm` (status), `/sprofcomm size <n>` (dev: live icon-size tuning) · **API:** none · **UI:** none (raw WoW frames, no LibNUI)
+**Deps:** LibNAddOn · **OptionalDeps:** none · **SavedVars:** none · **Commands:** `/sprofcomm` (status), `/sprofcomm size <n>` (dev: live icon-size tuning), `/sprofcomm reserve <n>` (dev: live money-zone tuning) · **API:** none · **UI:** none (raw WoW frames, no LibNUI)
 
 Two hooks on the crafter **Crafting Orders** browse list: (1) replaces Blizzard's generic reward
 **treasure-chest** icon in the Commission column with the **actual reward item/currency icons**
@@ -49,8 +49,12 @@ Each icon button (`acquireIcon`): trimmed icon texture, a 1px quality-coloured `
 `GameTooltip:SetHyperlink(itemLink)` / `SetCurrencyByID(currencyType)`, and hovering also shows the
 row's `HighlightTexture` (via `cell:GetParent():GetParent()`), matching the native feel.
 
-`ICON_SIZE` (18) / `ICON_GAP` (3) are module-level; `/sprofcomm size <n>` mutates `ICON_SIZE` live
-(applies on the next `Populate`, i.e. a re-sort or reopen).
+`ICON_SIZE` (18) / `ICON_GAP` (3) / `MONEY_RESERVE` (80) are module-level. The **rightmost** reward
+pins its right edge to `TipMoneyDisplayFrame`'s **right** edge minus `MONEY_RESERVE` (a fixed money
+zone), not to the money's *left* edge — the left edge shifts with the amount's digit count, so pinning
+there left the reward column ragged across rows; the fixed reserve keeps it aligned. `/sprofcomm size <n>`
+mutates `ICON_SIZE` and `/sprofcomm reserve <n>` mutates `MONEY_RESERVE`, both live (apply on the next
+`Populate`, i.e. a re-sort or reopen).
 
 ## Info column (`SetupTable` hook)
 

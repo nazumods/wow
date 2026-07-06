@@ -120,7 +120,7 @@ LibNUI_Test is a LoadOnDemand visual test harness for LibNUI (`/nui test [key]`)
 | ShadowsOfUI-QuestXP | `/squestxp` | `""` (dev/lookup: dump the computed XP-reward percentage for the currently selected quest) |
 | ShadowsOfUI-Delves | `/sdelves` | `""` (dev: dump live delve state for tier/name calibration), `dump` (print recorded run-time stats for the current delve) |
 | ShadowsOfUI-Collectibles | `/scollect` | `""` (status), `custom` (open colour picker for the known-item tint), `itemtest` (dev: dump IsKnown/IsCollectible for the item under the cursor) |
-| ShadowsOfUI-ProfCommissions | `/sprofcomm` | `""` (status: hook installed + icon size), `size <n>` (dev: retune reward icon size live) |
+| ShadowsOfUI-ProfCommissions | `/sprofcomm` | `""` (status: hook installed + icon size + money reserve), `size <n>` (dev: retune reward icon size live), `reserve <n>` (dev: retune the money-zone width the reward column aligns to) |
 | ShadowsOfUI-Compartment | `/scompartment` | `""` (open settings), `reset` (restore the compartment button's default position) |
 | ShadowsOfUI-Castbar | `/scast` | `""` (open settings), `dump` (dev: print text size + each bar's state/position) |
 | ShadowsOfUI-Upgrade | `/supgrade` | `[name]` (dev: dump a character's available gear upgrades), `enchants [name]` (dev: copyable enchant-resolution dump — why a slot has no suggested enchant) |
