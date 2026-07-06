@@ -11,16 +11,25 @@ end, "Open the Collected window")
 -- List every set flagged wanted (group — set [tier]), so the target list is
 -- readable from chat without opening the window.
 ns:registerCommand("wanted", nil, function()
-  local race, n = ns:PlayerRace(), 0
-  for _, grp in ipairs(ns.Sets) do
-    for _, set in ipairs(grp.sets) do
-      if set.id and ns:IsWanted(set.id) then
-        n = n + 1
-        local rank = ns:EffectiveRank(set.id, race)
-        ns.Print(("%s — %s%s"):format(grp.name, set.name, rank and (" [" .. rank .. "]") or ""))
+  local race, n, seen = ns:PlayerRace(), 0, {}
+  -- Walk both sources: live sets AND the PTR-only "upcoming" sets, since a set can
+  -- be flagged wanted while the grid is in PTR PREVIEW mode (its id lives in
+  -- ns.PtrSets, not ns.Sets yet). Dedupe by setId so a set present in both prints once.
+  local function list(groups, tag)
+    for _, grp in ipairs(groups) do
+      for _, set in ipairs(grp.sets) do
+        if set.id and not seen[set.id] and ns:IsWanted(set.id) then
+          seen[set.id] = true
+          n = n + 1
+          local rank = ns:EffectiveRank(set.id, race)
+          ns.Print(("%s — %s%s%s"):format(grp.name, set.name,
+            rank and (" [" .. rank .. "]") or "", tag))
+        end
       end
     end
   end
+  list(ns.Sets, "")
+  list(ns.PtrSets, " (upcoming)")
   if n == 0 then
     ns.Print("No sets flagged wanted — Shift-click an appearance in the grid, or use the dressing room.")
   else
