@@ -51,7 +51,8 @@ local GRIDW = COLS * STEP
 local MODELH = 640
 
 -- Race-selector faction panels: Alliance | Neutral | Horde, each in a colored
--- border. Alliance/Horde wrap at AHCOLS columns; Neutral is an inverted pyramid.
+-- border. Alliance/Horde wrap at AHCOLS columns; Neutral wraps at 2 (2-over-1 for 3
+-- races, 2x2 for 4).
 local AHCOLS   = 4          -- columns in the Alliance / Horde panels
 local PBORDER  = 1          -- faction-panel border thickness (px)
 local PINPAD   = 5          -- gap between the border and the icons
@@ -132,15 +133,16 @@ DressingRoom = Class(TitleFrame, function(self)
     local t = (r.faction == "alliance" and alliance) or (r.faction == "horde" and horde) or neutral
     t[#t + 1] = r
   end
-  -- Panel content + border footprint. Alliance/Horde wrap at AHCOLS; Neutral is a
-  -- fixed 2-wide inverted pyramid (2 over 1).
+  -- Panel content + border footprint. Alliance/Horde wrap at AHCOLS; Neutral wraps at
+  -- 2 columns (3 races → 2-over-1 pyramid, 4 → 2x2), sized to its row count so it grows
+  -- as both-faction races are added.
   local function panelDims(n, cols)
     local rws = ceil(n / cols)
     return (cols - 1) * STEP + CELL + 2 * PANELPAD, (rws - 1) * STEP + CELL + 2 * PANELPAD
   end
   local aW, aH = panelDims(#alliance, AHCOLS)
   local hW, hH = panelDims(#horde, AHCOLS)
-  local nW, nH = STEP + CELL + 2 * PANELPAD, STEP + CELL + 2 * PANELPAD
+  local nW, nH = panelDims(#neutral, 2)
   local panelsH = max(aH, hH, nH)
   -- two control rows (Undress/Background + ratings) above the faction panels
   local controlsH = PANELSTOP + panelsH + 4

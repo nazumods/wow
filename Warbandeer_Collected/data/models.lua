@@ -58,6 +58,10 @@ ns.RaceModels = {
   [36] = { [2] = 86343,  [3] = 86342  }, -- Mag'har Orc
   [37] = { [2] = 94370,  [3] = 94371  }, -- Mechagnome
   [84] = { [2] = 121634, [3] = 121635 }, -- Earthen
+  -- Haranir (86) intentionally has no entry yet: it renders via the dressable-unit
+  -- fallback + auto-normalize like any unlisted race (the [2]/[3] ids are reference-only,
+  -- not used for rendering). Add its recruitment-showcase male/female display ids here
+  -- once verified in-game (/collected model <id>).
 
   -- Core + remaining allied races: first baked display per race+gender (VERIFY/curate).
   [1]  = { [2] = 1276,  [3] = 176   }, -- Human
@@ -105,10 +109,12 @@ ns.RaceModels = {
 -- resolve to the icon we show (so it'd never highlight, and a Dracthyr's visage toggle
 -- — gated to "previewing own race" — would never appear for the off-faction variant).
 -- Pandaren 24 (neutral) / 26 (Horde) → 25; Dracthyr 70 (Horde) → 52; Earthen 85
--- (Alliance) → 84. Verified against ns.NormalizeRaceId's faction table.
+-- (Alliance) → 84; Haranir 91 → 86 (both-faction Midnight allied race, ids confirmed
+-- in-game — not the consecutive pair the Earthen precedent suggested). Verified against
+-- ns.NormalizeRaceId's faction table.
 ---@class Warbandeer_Collected
 ---@field RaceAlias table<number, number>
-ns.RaceAlias = { [24] = 25, [26] = 25, [70] = 52, [85] = 84 }
+ns.RaceAlias = { [24] = 25, [26] = 25, [70] = 52, [85] = 84, [91] = 86 }
 
 ---Resolve a chrRaceID to its canonical selector id (an alias variant → the shown id,
 ---otherwise unchanged). Used to match the logged-in char against the selector.
@@ -139,7 +145,7 @@ local FACTIONS = {
   --   Troll+Zandalari Troll | Blood Elf+Nightborne
   --   Undead+Goblin+Vulpera   (the kinless three, centered bottom row)
   { faction = "horde",    ids = { 2, 36, 6, 28, 8, 31, 10, 27, 5, 9, 35 } },
-  { faction = "neutral",  ids = { 25, 52, 84 } },   -- Pandaren, Dracthyr, Earthen
+  { faction = "neutral",  ids = { 25, 52, 84, 86 } },   -- Pandaren, Dracthyr, Earthen, Haranir
 }
 
 -- The race-icon atlas suffix (raceicon-<suffix>-male) doesn't always match the
@@ -151,6 +157,7 @@ local ICON_ATLAS = {
   ZandalariTroll     = "zandalari",
   LightforgedDraenei = "lightforged",
   EarthenDwarf       = "earthen",
+  Harronir           = "haranir",   -- clientFileString "Harronir" but the atlas is raceicon-haranir-*
 }
 
 ---Ordered playable-race list for the dressing-room selector, tagged by faction.
