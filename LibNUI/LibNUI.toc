@@ -37,6 +37,7 @@ MinimapButton.lua
 AutoWidget.lua
 EditBox.lua
 ScrollFrame.lua
+SectionHeader.lua
 
 # "Clean UI" classes
 CleanFrame.lua
@@ -49,6 +50,7 @@ TabFrame.lua
 Tooltip.lua
 FilterDropdown.lua
 CopyWindow.lua
+Notification.lua
 
 # Settings
 settings/SettingsFrame.lua

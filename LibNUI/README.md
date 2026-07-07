@@ -107,11 +107,14 @@ Region
     │   └── TableRow
     ├── CleanFrame
     │   ├── TitleFrame
+    │   │   ├── CopyWindow
+    │   │   └── Notification
     │   └── Tooltip
     ├── Button
     │   ├── CheckButton
     │   └── SecureButton
     ├── RadioGroup
+    ├── SectionHeader
     ├── MinimapButton
     ├── Cell
     ├── Dialog
@@ -380,6 +383,58 @@ LibNUI.ShowCopyWindow("My Report", table.concat(lines, "\n"))
 
 ---
 
+## Notification
+
+Inherits `TitleFrame`. A movable, Escape-closable notification card: an accent title
+strip + close X, an optional icon, a wrapped body, an optional "don't show again"
+checkbox, and a dismiss button. Call `Notify()` to show it — that resets the checkbox and
+arms the optional auto-hide. The close X, the dismiss button, and Escape all take it down
+through the same path (firing `onDismiss`).
+
+Because it registers as a UISpecialFrame (so Escape closes it), **pass a unique `name`**
+whenever `special` is left at its default `true`.
+
+```lua
+local note = LibNUI.Notification:new{
+  name          = "MyAddonReminder",
+  title         = "Reminder",
+  body          = "Don't forget your weekly bounty!",
+  icon          = 1064187,
+  dontShowAgain = true,
+  onDontShowAgain = function(_, checked) MyDB.showReminder = not checked end,
+}
+note:Notify()
+```
+
+### Constructor options
+
+| Option          | Type          | Description                                                     |
+|-----------------|---------------|-----------------------------------------------------------------|
+| `name`          | string        | **Required** while `special` (registers the UISpecialFrame)     |
+| `title`         | string        | Title-bar text (rendered in the accent colour)                  |
+| `body`          | string        | Wrapped body text                                               |
+| `icon`          | string/number | Icon texture path or fileID, shown left of the body             |
+| `dismiss`       | string/bool   | Dismiss button label; `false` to omit (default `"Dismiss"`)     |
+| `dontShowAgain` | bool          | Show the "don't show again" checkbox (default `false`)          |
+| `dontShowText`  | string        | Checkbox label (default `"Don't show this again"`)              |
+| `duration`      | number        | Auto-hide after N seconds (default `nil` = manual dismiss)      |
+
+### Methods
+
+| Method        | Description                                                                    |
+|---------------|-------------------------------------------------------------------------------|
+| `Notify()`    | Show the card: reset the checkbox, (re)arm the auto-hide, and show             |
+| `Body(text)`  | Get/set the body text                                                         |
+
+### Callbacks
+
+| Callback                    | Description                                                    |
+|-----------------------------|----------------------------------------------------------------|
+| `onDismiss()`               | Fired on dismiss — button, close X, or Escape                  |
+| `onDontShowAgain(checked)`  | Fired when the "don't show again" checkbox toggles            |
+
+---
+
 ## TabFrame
 
 Inherits `Frame`. A tabbed container: a tab button bar across the top and one content panel per tab. Anchor your widgets inside `frame:Tab(i)`.
@@ -598,6 +653,35 @@ checks it and clears the rest (re-clicking the selected row keeps it selected). 
 | Callback         | Description                                        |
 |------------------|----------------------------------------------------|
 | `onSelect(key)`  | Fired when the user picks a *different* option     |
+
+---
+
+## SectionHeader
+
+Inherits `Frame`. A titled section separator — an accent-coloured heading with a 1px
+divider rule underneath, plus an optional right-aligned muted `summary` slot on the
+heading row. The most-repeated construct when laying out stacked panels. It sizes its own
+height from the heading; **anchor it with a fixed width** (Left+Right to the parent, or a
+`Width`) so the rule and right-aligned summary have an edge to reach.
+
+### Constructor options
+
+| Option         | Type         | Description                                            |
+|----------------|--------------|--------------------------------------------------------|
+| `text`         | string       | Heading text                                           |
+| `summary`      | string       | Optional right-aligned secondary text (muted)          |
+| `titleColor`   | string/table | Heading colour token or rgba (default `"header"`)      |
+| `dividerColor` | string/table | Rule colour token or rgba (default `"header"` — the accent) |
+| `fontInfo`     | table        | `{path, size[, flags]}` heading font override          |
+| `underline`    | bool         | Draw the 1px rule (default `true`)                     |
+| `gap`          | number       | Px between heading and rule (default `5`)              |
+
+### Methods
+
+| Method         | Description                                                          |
+|----------------|---------------------------------------------------------------------|
+| `Text(v)`      | Get/set the heading text                                            |
+| `Summary(v)`   | Get/set the summary text (no-op if no `summary` was configured)     |
 
 ---
 
