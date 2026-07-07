@@ -1,5 +1,7 @@
 ---@class ShadowsOfUI_Delves: AddOn
 local ns = LibNAddOn(...)
+---@type LibNUI
+local ui = ns.ui
 
 -- "Changelog" button in settings (ns.changelog from changelog.lua).
 ns:RegisterChangelog("Shadows of UI")
@@ -35,9 +37,10 @@ local function delveName()
   return mi and mi.name
 end
 
--- /sdelves — dev/calibration aid (tooltip text can't be copied).  No argument dumps the live
--- delve state used by the tracker (the in-game source for the name + tier readout) — compare the
--- name candidates against the map pin; `dump` prints the recorded stats for the current delve.
+-- /sdelves — dev/calibration aid, opened in a copyable window (tooltip/chat text can't be copied).
+-- No argument dumps the live delve state used by the tracker (the in-game source for the name + tier
+-- readout) — compare the name candidates against the map pin; `dump` shows the recorded stats for the
+-- current delve.
 SLASH_SUI_DELVES1 = "/sdelves"
 SlashCmdList["SUI_DELVES"] = function(msg)
   msg = msg and strtrim(msg):lower() or ""
@@ -47,10 +50,11 @@ SlashCmdList["SUI_DELVES"] = function(msg)
     if not name then ns.Print("Not in a delve.") return end
     local stats = ns.api:GetDelveStats(name, ns.AssumedTier())
     if not stats then ns.Print(("No recorded runs for '%s'."):format(name)) return end
-    ns.Print(("Delve stats for '%s':"):format(name))
+    local lines = { ("Delve stats for '%s':"):format(name) }
     for _, s in ipairs(stats) do
-      print(("  %s: %s (%s, %d run(s))"):format(s.name, ns.FormatDuration(s.avg), s.scope, s.count))
+      lines[#lines + 1] = ("  %s: %s (%s, %d run(s))"):format(s.name, ns.FormatDuration(s.avg), s.scope, s.count)
     end
+    ui.ToggleCopyWindow("Delve stats", table.concat(lines, "\n"))
     return
   end
 
@@ -58,22 +62,25 @@ SlashCmdList["SUI_DELVES"] = function(msg)
   local step = C_ScenarioInfo and C_ScenarioInfo.GetScenarioStepInfo and C_ScenarioInfo.GetScenarioStepInfo()
   local mapID = C_Map.GetBestMapForUnit("player")
   local mi = mapID and C_Map.GetMapInfo(mapID)
-  ns.Print("Delve live state (name candidates — match against the map pin):")
-  print("  instance name:", GetInstanceInfo())
-  print("  map name:", mi and mi.name)
-  print("  scenario name:", scen and scen.name)
-  print("  step title:", step and step.title)
-  print("  -> using:", delveName())
-  print("  IsDelveInProgress:", C_PartyInfo and C_PartyInfo.IsDelveInProgress and C_PartyInfo.IsDelveInProgress())
-  print("  HasActiveDelve:", C_DelvesUI and C_DelvesUI.HasActiveDelve and C_DelvesUI.HasActiveDelve())
+  local lines = {
+    "Delve live state (name candidates — match against the map pin):",
+    "  instance name: " .. tostring(GetInstanceInfo()),
+    "  map name: " .. tostring(mi and mi.name),
+    "  scenario name: " .. tostring(scen and scen.name),
+    "  step title: " .. tostring(step and step.title),
+    "  -> using: " .. tostring(delveName()),
+    "  IsDelveInProgress: " .. tostring(C_PartyInfo and C_PartyInfo.IsDelveInProgress and C_PartyInfo.IsDelveInProgress()),
+    "  HasActiveDelve: " .. tostring(C_DelvesUI and C_DelvesUI.HasActiveDelve and C_DelvesUI.HasActiveDelve()),
+  }
   local setID = step and step.widgetSetID
-  print("  widgetSetID:", setID)
+  lines[#lines + 1] = "  widgetSetID: " .. tostring(setID)
   if setID and C_UIWidgetManager and C_UIWidgetManager.GetAllWidgetsBySetID then
     for _, w in ipairs(C_UIWidgetManager.GetAllWidgetsBySetID(setID)) do
       local viz = C_UIWidgetManager.GetScenarioHeaderDelvesWidgetVisualizationInfo
         and C_UIWidgetManager.GetScenarioHeaderDelvesWidgetVisualizationInfo(w.widgetID)
-      print(("    widget %s type=%s tierText=%s"):format(tostring(w.widgetID), tostring(w.widgetType), viz and tostring(viz.tierText) or "n/a"))
+      lines[#lines + 1] = ("    widget %s type=%s tierText=%s"):format(tostring(w.widgetID), tostring(w.widgetType), viz and tostring(viz.tierText) or "n/a")
     end
   end
-  print("  AssumedTier:", ns.AssumedTier())
+  lines[#lines + 1] = "  AssumedTier: " .. tostring(ns.AssumedTier())
+  ui.ToggleCopyWindow("Delve live state", table.concat(lines, "\n"))
 end

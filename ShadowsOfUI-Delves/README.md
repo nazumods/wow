@@ -23,9 +23,10 @@ Hold **Shift** while hovering to hide the line.
   character gears up and gets faster.
 - Timing survives a `/reload` mid-run (it's anchored to server time), so you won't lose a run
   you reload during.
-- `/sdelves` prints the live delve state (a dev/diagnostic aid); `/sdelves dump` prints the
-  recorded average for the delve you're currently in. (Your full per-character history is
-  visible via Warbandeer_Characters' `/wbc dump delves`.)
+- `/sdelves` shows the live delve state (a dev/diagnostic aid); `/sdelves dump` shows the
+  recorded average for the delve you're currently in. Both open a **copyable window** so the
+  output can be pasted. (Your full per-character history is visible via Warbandeer_Characters'
+  `/wbc dump delves`.)
 
 ## Changelog
 
@@ -34,6 +35,7 @@ A **Changelog** button in this addon's settings (Options → AddOns → Shadows 
 ## Requirements
 
 - **LibNAddOn**
+- **LibNUI** — provides the shared copyable window the `/sdelves` dev commands render into
 - **Warbandeer_Characters** — does the actual timing and stores the run history per character
   (so the data is shared with the rest of the Warbandeer suite); this addon only draws the
   tooltip line from it.
