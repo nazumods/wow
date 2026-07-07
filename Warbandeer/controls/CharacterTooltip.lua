@@ -14,6 +14,7 @@ local Label = ui.Label
 ---@field specialization Label
 ---@field class Label
 ---@field realm Label
+---@field guild Label
 ---@field level Label
 ---@field levelNum Label
 local Tooltip = Class(CleanFrame, function(self)
@@ -70,10 +71,23 @@ local Tooltip = Class(CleanFrame, function(self)
   }
   h = h + self.realm:Height() + 5
 
+  -- Guild line (shown only for guilded characters; SetToon hides it + collapses the
+  -- reserved space otherwise, re-anchoring the level line straight below the realm).
+  self.guild = Label:new{
+    parent = self,
+    position = {
+      TopLeft = {self.realm, ui.edge.BottomLeft, 0, -5},
+    },
+    color = NORMAL_FONT_COLOR,
+    text = "Guild",
+  }
+  self._guildLineH = self.guild:Height() + 5
+  h = h + self._guildLineH
+
   self.level = Label:new{
     parent = self,
     position = {
-      TopLeft = {self.realm, ui.edge.BottomLeft, 0, -10},
+      TopLeft = {self.guild, ui.edge.BottomLeft, 0, -10},
     },
     color = WHITE_FONT_COLOR,
     text = "Level",
@@ -91,6 +105,9 @@ local Tooltip = Class(CleanFrame, function(self)
   -- needs bag
   -- druid needs Deamwalk
 
+  -- Full height (guild line shown) vs collapsed (guild line hidden); SetToon picks one.
+  self._hFull = h
+  self._hNoGuild = h - self._guildLineH
   self:Height(h)
   self:Width(w)
   self:Hide()
@@ -122,6 +139,20 @@ function Tooltip:SetToon(toon)
   self.class:Text(toon.className)
   self.class:Color(Colors[toon.classKey])
   self.realm:Text(toon.realm)
+
+  -- Guild line is optional: guilded characters show "<Guild>" and the level line
+  -- sits below it; unguilded characters hide it and the level line moves up.
+  self.level:ClearAllPoints()
+  if toon.guild and toon.guild ~= "" then
+    self.guild:Text("<" .. toon.guild .. ">")
+    self.guild:Show()
+    self.level:Position({ TopLeft = {self.guild, ui.edge.BottomLeft, 0, -10} })
+    self:Height(self._hFull)
+  else
+    self.guild:Hide()
+    self.level:Position({ TopLeft = {self.realm, ui.edge.BottomLeft, 0, -10} })
+    self:Height(self._hNoGuild)
+  end
 end
 
 -- Configured tooltip side (index into ns.TOOLTIP_SIDES): 1=Left, 2=Right.
