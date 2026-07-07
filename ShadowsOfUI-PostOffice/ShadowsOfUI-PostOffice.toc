@@ -5,9 +5,10 @@
 ## Version: 12.0.7-r1
 ## IconTexture: Interface\Icons\INV_Letter_15
 ## SavedVariables: ShadowsOfUI_PostOfficeDB
-## Dependencies: LibNAddOn
+## Dependencies: LibNAddOn, LibNUI
 ## X-NUI-DB: ShadowsOfUI_PostOfficeDB
-## X-NUI-DB-VERSION: 2
+## X-NUI-DB-VERSION: 3
+## X-NUI-UI: LibNUI
 
 core.lua
 changelog.lua
@@ -15,3 +16,5 @@ rake.lua
 tradeBlock.lua
 wire.lua
 express.lua
+forward.lua
+carbonCopy.lua

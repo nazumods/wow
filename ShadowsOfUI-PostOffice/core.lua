@@ -12,6 +12,8 @@ local Defaults = {
   wire = true,            -- auto-fill a blank Send-Mail subject with the coin amount
   express = true,         -- modifier-click shortcuts (ctrl-return, alt-attach)
   expressAutoSend = false, -- alt-attach also sends the letter (off: a send is a deliberate click)
+  forward = true,         -- "Forward" button on an open letter
+  carbonCopy = true,      -- copy-to-window button on an open letter
 }
 
 function ns:MigrateDB()
@@ -19,7 +21,21 @@ function ns:MigrateDB()
   for k, v in pairs(Defaults) do
     if db[k] == nil then db[k] = v end -- non-destructive: only add missing keys
   end
-  db.version = 2
+  db.version = 3
+end
+
+-- Plain-text coin string (no texture escapes, for editable/subject text). e.g.
+-- 10230405 copper -> "1023g 4s 5c"; omits zero parts. Shared by Wire + CarbonCopy.
+local floor = math.floor
+function ns.PlainCoins(copper)
+  local parts = {}
+  local g = floor(copper / 10000)
+  local s = floor(copper % 10000 / 100)
+  local c = copper % 100
+  if g > 0 then parts[#parts + 1] = g .. "g" end
+  if s > 0 then parts[#parts + 1] = s .. "s" end
+  if c > 0 or #parts == 0 then parts[#parts + 1] = c .. "c" end
+  return table.concat(parts, " ")
 end
 
 --------------------------------------------------------------------------------
@@ -56,6 +72,22 @@ end
 -- events it has been registered for (see LibNAddOn/eventListener.lua).
 ns:registerEvent("PLAYER_INTERACTION_MANAGER_FRAME_SHOW")
 ns:registerEvent("PLAYER_INTERACTION_MANAGER_FRAME_HIDE")
+
+-- Open-letter refresh. Blizzard's OpenMail_Update runs whenever the open-mail view
+-- redraws (opening a letter, taking an attachment). Features that decorate the open
+-- letter (Forward, CarbonCopy) subscribe here to refresh their button. OpenMail_Update
+-- is load-on-demand (Blizzard_MailFrame), so hook it lazily on the first mailbox open.
+ns._onOpenMailUpdate = {} ---@type function[]
+function ns.OnOpenMailUpdate(fn) table.insert(ns._onOpenMailUpdate, fn) end
+
+local openMailHooked = false
+ns.OnMailShow(function()
+  if openMailHooked or not OpenMail_Update then return end
+  openMailHooked = true
+  hooksecurefunc("OpenMail_Update", function()
+    for _, fn in ipairs(ns._onOpenMailUpdate) do fn() end
+  end)
+end)
 
 --------------------------------------------------------------------------------
 -- Settings-change routing
@@ -95,6 +127,12 @@ ns:RegisterSettings{
       { typ = "checkbox", key = "expressAutoSend", default = false, name = "Alt-click also sends",
         label = "alt-click also sends", table = dbTable,
         tooltip = "After an Alt-click attaches an item, send the letter immediately (needs a recipient). Off by default." },
+      { typ = "checkbox", key = "forward", default = true, name = "Forward button",
+        label = "forward button", table = dbTable,
+        tooltip = "Add a Forward button to an open letter to re-send its text and attachments to someone else." },
+      { typ = "checkbox", key = "carbonCopy", default = true, name = "Copy-mail button",
+        label = "copy-mail button", table = dbTable,
+        tooltip = "Add a small button to an open letter that copies its text (and auction invoice details) into a selectable window." },
     },
   },
 }
