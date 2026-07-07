@@ -16,6 +16,7 @@ local Defaults = {
   carbonCopy = true,      -- copy-to-window button on an open letter
   blackBook = true,       -- recipient menu + autocomplete on the "To:" field
   quickAttach = true,     -- trade-goods category attach buttons beside Send Mail
+  doNotWant = true,       -- per-row return/delete icon on each inbox letter
 }
 
 function ns:MigrateDB()
@@ -26,7 +27,7 @@ function ns:MigrateDB()
   -- Table-valued state gets an explicit seed (kept out of Defaults so no instance
   -- ever aliases the shared defaults table).
   if db.blackBookRecent == nil then db.blackBookRecent = {} end -- recently-mailed names, newest first
-  db.version = 5
+  db.version = 6
 end
 
 -- Plain-text coin string (no texture escapes, for editable/subject text). e.g.
@@ -94,6 +95,39 @@ ns.OnMailShow(function()
   end)
 end)
 
+-- Shared inbox-row decoration. Blizzard's InboxFrame_Update redraws the 7 visible
+-- inbox rows for the current page; features register ONE per-row callback here rather
+-- than each racing its own InboxFrame_Update hook. The callback receives a `row` with
+-- { i = 1..7, index = mail index, present = has a letter, item = MailItemN frame,
+-- expire = MailItemNExpireTime frame }. Per-row WIDGETS anchor to those frames so they
+-- follow the active row layout; the row LAYOUT itself (width/indent) is owned by
+-- whichever feature changes it. Hooked lazily — InboxFrame_Update is load-on-demand.
+local INBOX_ROWS = 7
+ns._onInboxRow = {} ---@type fun(row: table)[]
+function ns.OnInboxRow(fn) table.insert(ns._onInboxRow, fn) end
+
+local inboxHooked = false
+ns.OnMailShow(function()
+  if inboxHooked or not InboxFrame_Update then return end
+  inboxHooked = true
+  hooksecurefunc("InboxFrame_Update", function()
+    local num = GetInboxNumItems()
+    local page = InboxFrame.pageNum or 1
+    for i = 1, INBOX_ROWS do
+      local index = (page - 1) * INBOX_ROWS + i
+      local row = { i = i, index = index, present = index <= num,
+        item = _G["MailItem" .. i], expire = _G["MailItem" .. i .. "ExpireTime"] }
+      for _, fn in ipairs(ns._onInboxRow) do fn(row) end
+    end
+  end)
+end)
+
+-- Ask the inbox to redraw (re-runs InboxFrame_Update → our per-row callbacks). Used by
+-- inbox features to apply a live settings toggle. Safe no-op away from an open mailbox.
+function ns.RefreshInbox()
+  if InboxFrame_Update and ns._atMailbox then InboxFrame_Update() end
+end
+
 --------------------------------------------------------------------------------
 -- Settings-change routing
 --
@@ -146,6 +180,10 @@ ns:RegisterSettings{
         label = "quick-attach buttons", table = dbTable,
         tooltip = "Add trade-goods category buttons beside the Send Mail frame — click one to attach"
           .. " every stack of that type (cloth, herbs, ore …) from your bags to the letter." },
+      { typ = "checkbox", key = "doNotWant", default = true, name = "Inbox return/delete icons",
+        label = "inbox return/delete icons", table = dbTable,
+        tooltip = "Show a small icon on each inbox letter — click it to return the letter to its sender,"
+          .. " or delete it (whichever it would do on expiry). Deletions ask for confirmation." },
     },
   },
 }

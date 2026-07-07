@@ -1,6 +1,6 @@
 # ShadowsOfUI-PostOffice — CONTEXT
 
-**Deps:** LibNAddOn, LibNUI (optional Warbandeer_Characters → alts menu) · **Commands:** `/spost` · **DB:** `ShadowsOfUI_PostOfficeDB` (v5) · **UI lib:** LibNUI (copy window only)
+**Deps:** LibNAddOn, LibNUI (optional Warbandeer_Characters → alts menu) · **Commands:** `/spost` · **DB:** `ShadowsOfUI_PostOfficeDB` (v6) · **UI lib:** LibNUI (copy window only)
 
 Headless mailbox helper (no window of its own). Re-derives Postal modules in LibNAddOn
 style — augments the native mail frames + exposes Settings-panel toggles. Phase 1 (Rake,
@@ -14,7 +14,7 @@ Ace3→LibNAddOn mismatch).
 
 | File | Purpose |
 |---|---|
-| `core.lua` | `LibNAddOn` init, `Defaults`/`MigrateDB`, the mailbox lifecycle + `OnOpenMailUpdate` dispatch (see below), settings-change routing, `RegisterSettings` (9 toggles), `ns.PlainCoins` helper, changelog button, `/spost`. |
+| `core.lua` | `LibNAddOn` init, `Defaults`/`MigrateDB`, the mailbox lifecycle + `OnOpenMailUpdate` + `OnInboxRow` dispatches (see below), `ns.RefreshInbox`, settings-change routing, `RegisterSettings` (10 toggles), `ns.PlainCoins` helper, changelog button, `/spost`. |
 | `rake.lua` | Snapshot `GetMoney()` on mail open, print the gain (`GetCoinTextureString`) on close. Report-only; does not auto-loot. |
 | `tradeBlock.lua` | `ns:SetTemporaryCVar("BlockTrades", 1)` on open, `RestoreCVar` on close; reacts to a live toggle while `ns._atMailbox`. |
 | `wire.lua` | Installs an `onValueChangedFunc` on `SendMailMoney` (lazily, first open) to fill a blank `SendMailSubjectEditBox` with `ns.PlainCoins`; only overwrites its own prior value. |
@@ -23,6 +23,7 @@ Ace3→LibNAddOn mismatch).
 | `carbonCopy.lua` | Small grow-on-hover button on `OpenMailScrollFrame` that copies the letter's sender/subject/body (+ auction invoice breakdown) into `ns.ui.ShowCopyWindow`. `db.carbonCopy`. |
 | `blackBook.lua` | Recipient picker + autocomplete on the "To:" field: arrow button beside `SendMailNameEditBox` → `MenuUtil` menu (recently mailed inline, then Alts / Friends / Guild submenus, `SetScrollMode` 400, class-coloured via `ns.Colors.className`); inline `OnChar` completion from the same lists; Blizzard's autocomplete popup suppressed while on. Recent capture: `SendMailFrame_SendMail` posthook → commit on `MAIL_SEND_SUCCESS` (+ `AddHistoryLine`). Alts via optional `WarbandeerApi:GetAllCharacters()`. `db.blackBook`, `db.blackBookRecent`. |
 | `quickAttach.lua` | Column of ~12 trade-goods category buttons off the right edge of `MailFrame` (parented to `SendMailFrame`). Left-click bulk-attaches every matching stack from bags 0..reagent: `GetItemInfoInstant` class/subclass filter (`Enum.ItemClass.Tradegoods`, `sub == -1` = all), skip soulbound (`GetItemInfo` bindType == `Enum.ItemBind.OnAcquire`), whole-stack `PickupContainerItem` → `ClickSendMailItemButton(firstFreeSendSlot())` until the letter fills. Whole stacks are synchronous, so no split machinery. `db.quickAttach`. |
+| `doNotWant.lua` | Per-row return/delete icon on each inbox letter (first consumer of `ns.OnInboxRow`). Icon parented to `MailItemNExpireTime` so it follows the row layout; texture/tooltip per `InboxItemCanDelete` (delete vs return). Click returns (`ReturnInboxItem`) or deletes (`DeleteInboxItem`) with confirm popups for item/coin loss. `db.doNotWant`. |
 | `changelog.lua` | `ns.changelog` release history (release.sh appends). |
 
 ## Mailbox lifecycle (core.lua)
@@ -44,6 +45,14 @@ Retail drives the mail window via the player-interaction manager; the legacy
   `OpenMail_Update` once (lazily on first mailbox open, since it's load-on-demand) and
   fans out to subscribers. Forward + CarbonCopy use it to refresh their buttons whenever
   a letter is opened or an attachment is taken.
+- `ns.OnInboxRow(fn)` — **shared inbox-row decorator.** Core posthooks `InboxFrame_Update`
+  once (lazily) and calls each subscriber for all 7 visible rows with a `row` table
+  (`i`, `index`, `present`, `item` = `MailItemN`, `expire` = `MailItemNExpireTime`).
+  Features register ONE per-row callback instead of racing their own `InboxFrame_Update`
+  hooks. Per-row widgets anchor to `row.item`/`row.expire` so they follow the active row
+  layout; the row layout itself is owned by whichever feature changes it (Select).
+  `ns.RefreshInbox()` re-runs `InboxFrame_Update` to apply a live toggle (no-op away from
+  an open mailbox).
 
 ## Settings-change routing
 
@@ -51,14 +60,14 @@ Retail drives the mail window via the player-interaction manager; the legacy
 (the LibNAddOn default settings callback) dispatches to it. Used by TradeBlock to
 un-block immediately when disabled at the mailbox.
 
-## DB (`ShadowsOfUI_PostOfficeDB`, v5)
+## DB (`ShadowsOfUI_PostOfficeDB`, v6)
 
 Flat feature flags: `rake`, `tradeBlock`, `wire`, `express`, `forward`, `carbonCopy`,
-`blackBook`, `quickAttach` (all default `true`) and `expressAutoSend` (default `false`),
-plus `blackBookRecent` (recently-mailed names, newest first, cap 15 — seeded explicitly in
-`MigrateDB`, kept out of `Defaults` so no instance aliases the shared table). `MigrateDB`
-adds missing keys non-destructively (v2 added `express*`; v3 `forward` + `carbonCopy`;
-v4 `blackBook` + `blackBookRecent`; v5 `quickAttach`).
+`blackBook`, `quickAttach`, `doNotWant` (all default `true`) and `expressAutoSend`
+(default `false`), plus `blackBookRecent` (recently-mailed names, newest first, cap 15 —
+seeded explicitly in `MigrateDB`, kept out of `Defaults` so no instance aliases the shared
+table). `MigrateDB` adds missing keys non-destructively (v2 added `express*`; v3 `forward`
++ `carbonCopy`; v4 `blackBook` + `blackBookRecent`; v5 `quickAttach`; v6 `doNotWant`).
 
 ## Gotchas
 
