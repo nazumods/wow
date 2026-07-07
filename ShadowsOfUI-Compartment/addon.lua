@@ -95,7 +95,9 @@ function ns:onLoad()
   settings:AddToggleControl("Use a custom icon (hides the addon count)", ns.db, "useIcon").SettingChanged = function(_, _state)
     applyIcon()
   end
-  settings:RegisterSubcategory(ns:GetSettingsParent("Shadows of UI"), ns._TITLE)
+  -- Keep the category so /scompartment can open straight to it (LibNUI's
+  -- RegisterSubcategory returns it but doesn't store it like ns:RegisterSettings does).
+  ns.settingsCategory = settings:RegisterSubcategory(ns:GetSettingsParent("Shadows of UI"), ns._TITLE)
 end
 
 -- /scompartment        → open settings
@@ -106,7 +108,8 @@ SlashCmdList["SUI_COMPARTMENT"] = function(msg)
   if cmd == "reset" then
     resetPosition()
     ns:Print("Addon-compartment button moved back to its default position.")
-  else
-    Settings.OpenToCategory(ns._TITLE)
+  elseif ns.settingsCategory then
+    -- OpenToCategory takes a category ID, not a name (and ours is a subcategory).
+    Settings.OpenToCategory(ns.settingsCategory:GetID())
   end
 end
