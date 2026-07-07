@@ -4,6 +4,7 @@ local insert, remove = table.insert, table.remove
 local floor = math.floor
 local GetServerTime = GetServerTime
 local GetInstanceInfo = GetInstanceInfo
+local Player = ns.wow.Player
 
 -- Personal delve completion-time tracker.  WoW exposes no completion-time API, so we time each
 -- run ourselves: capture the start when a delve scenario begins and, on SCENARIO_COMPLETED,
@@ -16,9 +17,10 @@ local KEEP = 10 -- rolling window: only the most recent N durations per delve+ti
 ---@class DelveRuns
 ---@field name string canonical delve name (most recently seen)
 ---@field tiers table<integer, integer[]> tier (1-11, 0 = unknown) -> recent durations in seconds
+---@field xps table<integer, integer[]>? tier -> recent XP gains (leveling runs only; independent window)
 
 ---@class DelveTimes
----@field active { key: string, name: string, tier: integer, start: integer }? in-progress run
+---@field active { key: string, name: string, tier: integer, start: integer, xp: RunXP? }? in-progress run
 ---@field runs table<string, DelveRuns> normalized delve key -> recorded runs
 
 ---@class Character
@@ -33,6 +35,37 @@ function ns.NormalizeDelveKey(name)
   if not name then return nil end
   local key = strtrim(name):lower():gsub("^the ", "")
   return key ~= "" and key or nil
+end
+
+-- Per-run XP capture, shared with data/dungeontimes.lua.  XP only matters while leveling, so
+-- StartRunXP returns nil at max level (the run then records no XP).  FinishRunXP measures the gain
+-- over the same start→finish window the run timer uses, accounting for a single level-up mid-run;
+-- a run spanning two or more level-ups is dropped rather than mis-counted (the intermediate levels'
+-- max-XP totals aren't recoverable after the fact).
+---@class RunXP
+---@field xp integer
+---@field maxXP integer
+---@field level integer
+
+---@class Warbandeer_Characters
+---@field StartRunXP fun(): RunXP? snapshot the current XP position; nil at max level
+---@field FinishRunXP fun(snap: RunXP?): integer? XP gained since the snapshot; nil if unknowable
+function ns.StartRunXP()
+  local maxXP = Player:GetMaxXP()
+  if not maxXP or maxXP == 0 then return nil end
+  return { xp = Player:GetXP(), maxXP = maxXP, level = Player:GetLevel() }
+end
+
+function ns.FinishRunXP(snap)
+  if not snap then return nil end
+  local level, xp = Player:GetLevel(), Player:GetXP()
+  if level == snap.level then
+    local gained = xp - snap.xp
+    return gained >= 0 and gained or nil
+  elseif level == snap.level + 1 then
+    return (snap.maxXP - snap.xp) + xp
+  end
+  return nil -- two+ level-ups this run: intermediate maxes unknown, drop the sample
 end
 
 -- (Lazily create and) return the current character's delveTimes store.
@@ -100,7 +133,7 @@ local function refreshActive()
       local tier = readTier()
       if tier ~= 0 then a.tier = tier end
     else
-      dt.active = { key = key, name = name, tier = readTier(), start = GetServerTime() }
+      dt.active = { key = key, name = name, tier = readTier(), start = GetServerTime(), xp = ns.StartRunXP() }
     end
   elseif dt.active then
     dt.active = nil -- left the delve without completing it; discard
@@ -125,6 +158,16 @@ local function recordCompletion()
   if not list then list = {}; entry.tiers[tier] = list end
   insert(list, seconds)
   while #list > KEEP do remove(list, 1) end
+  -- XP gained (leveling runs only): a parallel rolling window, independent of the duration one
+  -- (durations record every run; XP records only sub-max runs, so the two lists drift by design).
+  local xpGain = ns.FinishRunXP(a.xp)
+  if xpGain and xpGain > 0 then
+    entry.xps = entry.xps or {}
+    local xl = entry.xps[tier]
+    if not xl then xl = {}; entry.xps[tier] = xl end
+    insert(xl, xpGain)
+    while #xl > KEEP do remove(xl, 1) end
+  end
 end
 
 ns:registerEvent("PLAYER_ENTERING_WORLD", refreshActive)
@@ -140,7 +183,14 @@ ns:registerCommand("dump", "delves", function(self)
     for tier, list in pairs(entry.tiers) do
       local total = 0
       for _, s in ipairs(list) do total = total + s end
-      print(("  %s [%s]: avg %ds over %d run(s)"):format(entry.name, tier > 0 and ("T" .. tier) or "T?", floor(total / #list + 0.5), #list))
+      local xps = entry.xps and entry.xps[tier]
+      local xpStr = ""
+      if xps and #xps > 0 then
+        local xt = 0
+        for _, x in ipairs(xps) do xt = xt + x end
+        xpStr = (" · avg %d XP over %d run(s)"):format(floor(xt / #xps + 0.5), #xps)
+      end
+      print(("  %s [%s]: avg %ds over %d run(s)%s"):format(entry.name, tier > 0 and ("T" .. tier) or "T?", floor(total / #list + 0.5), #list, xpStr))
     end
   end
   if dt.active then

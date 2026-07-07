@@ -266,30 +266,34 @@ function API:GetQuestStatus(questID)
   return { active = active, completed = completed }
 end
 
--- Mean of a delve entry's durations: the requested tier's samples if it has any, else every
--- tier's samples pooled.  Returns avg (rounded seconds), count, scope ("T<tier>" or "all").
-local function computeStats(entry, tier)
-  local list = tier and entry.tiers[tier]
-  local scope = (list and #list > 0) and ("T" .. tier) or "all"
-  if not list or #list == 0 then
+-- Mean over a bucketed sample set (delve tiers or keystone levels): the requested bucket's own
+-- samples if it has any, else every bucket's samples pooled.  Returns avg (rounded), count, and
+-- whether the requested bucket's own samples were used (`bucketed`, so the caller can label the
+-- scope).  Shared by durations and XP, delves and dungeons.
+local function poolAvg(buckets, wanted)
+  local list = wanted and buckets[wanted]
+  local bucketed = list and #list > 0
+  if not bucketed then
     list = {}
-    for _, samples in pairs(entry.tiers) do
+    for _, samples in pairs(buckets) do
       for _, s in ipairs(samples) do insert(list, s) end
     end
   end
   if #list == 0 then return nil end
   local total = 0
   for _, s in ipairs(list) do total = total + s end
-  return floor(total / #list + 0.5), #list, scope
+  return floor(total / #list + 0.5), #list, bucketed
 end
 
 ---Per-character delve completion-time stats for one delve, current character first then by name.
 ---`avg` is the rounded mean of recent run durations (seconds); `scope` is "T<tier>" when that
----tier has samples, else "all" (the all-tiers aggregate fallback).  nil when no tracked character
----has timed that delve.  Data comes from the per-character `delveTimes` cache (data/delvetimes.lua).
+---tier has samples, else "all" (the all-tiers aggregate fallback).  `avgXp`/`xpCount` report the
+---mean XP gained per run where recorded (leveling runs only; nil at/above max level).  nil when no
+---tracked character has timed that delve.  Data comes from the per-character `delveTimes` cache
+---(data/delvetimes.lua).
 ---@param delveName string the delve's display name (as shown on its map pin); normalized internally
 ---@param tier integer? preferred tier (e.g. 11); falls back to the all-tiers aggregate
----@return { name: string, classKey: string, avg: integer, count: integer, scope: string }[]?
+---@return { name: string, classKey: string, avg: integer, count: integer, scope: string, avgXp: integer?, xpCount: integer? }[]?
 function API:GetDelveStats(delveName, tier)
   local key = ns.NormalizeDelveKey(delveName)
   if not key then return nil end
@@ -298,8 +302,46 @@ function API:GetDelveStats(delveName, tier)
   for name, c in pairs(ns.db.characters) do
     local entry = c.delveTimes and c.delveTimes.runs and c.delveTimes.runs[key]
     if entry then
-      local avg, count, scope = computeStats(entry, tier)
-      if avg then insert(out, { name = name, classKey = c.classKey, avg = avg, count = count, scope = scope }) end
+      local avg, count, bucketed = poolAvg(entry.tiers, tier)
+      if avg then
+        local avgXp, xpCount
+        if entry.xps then avgXp, xpCount = poolAvg(entry.xps, tier) end
+        insert(out, { name = name, classKey = c.classKey, avg = avg, count = count,
+          scope = bucketed and ("T" .. tier) or "all", avgXp = avgXp, xpCount = xpCount })
+      end
+    end
+  end
+  if #out == 0 then return nil end
+  sort(out, function(a, b)
+    if (a.name == me) ~= (b.name == me) then return a.name == me end
+    return a.name < b.name
+  end)
+  return out
+end
+
+---Per-character Mythic+ completion-time stats for one dungeon, current character first then by
+---name.  Mirrors GetDelveStats: `avg` is the rounded mean of recent keyed-run durations (seconds);
+---`scope` is "+<level>" when that keystone level has samples, else "all".  `avgXp`/`xpCount` cover
+---per-run XP where recorded (leveling runs only; nil for max-level M+).  nil when no tracked
+---character has timed that dungeon.  Data comes from the `dungeonTimes` cache (data/dungeontimes.lua).
+---@param dungeonName string the dungeon's display name; normalized internally
+---@param level integer? preferred keystone level; falls back to the all-levels aggregate
+---@return { name: string, classKey: string, avg: integer, count: integer, scope: string, avgXp: integer?, xpCount: integer? }[]?
+function API:GetDungeonStats(dungeonName, level)
+  local key = ns.NormalizeDelveKey(dungeonName)
+  if not key then return nil end
+  local me = ns.currentPlayer
+  local out = {}
+  for name, c in pairs(ns.db.characters) do
+    local entry = c.dungeonTimes and c.dungeonTimes.runs and c.dungeonTimes.runs[key]
+    if entry then
+      local avg, count, bucketed = poolAvg(entry.tiers, level)
+      if avg then
+        local avgXp, xpCount
+        if entry.xps then avgXp, xpCount = poolAvg(entry.xps, level) end
+        insert(out, { name = name, classKey = c.classKey, avg = avg, count = count,
+          scope = bucketed and ("+" .. level) or "all", avgXp = avgXp, xpCount = xpCount })
+      end
     end
   end
   if #out == 0 then return nil end

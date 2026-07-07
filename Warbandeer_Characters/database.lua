@@ -87,7 +87,7 @@ end, "Repair stored data (recount characters)")
 ---@field MigrateDB fun(self) Migrate database to latest version
 function ns:MigrateDB()
   local db = ns.db
-  if db.version == 30 then return end
+  if db.version == 31 then return end
   if not db.characters then db.characters = {} end
   if not db.numCharacters then
     db.numCharacters = countCharacters(db)
@@ -328,6 +328,16 @@ function ns:MigrateDB()
   -- rollback is lossless.
   if (db.version or 0) < 30 then
     db.version = 30
+  end
+
+  -- v31: per-character Mythic+ completion-time cache (`dungeonTimes`: personal rolling averages of
+  -- keyed-run durations per dungeon + keystone level) plus per-run XP gains on both trackers
+  -- (`delveTimes.runs.*.xps` / `dungeonTimes.runs.*.xps`, leveling runs only).  Both are additive
+  -- and filled lazily by data/dungeontimes.lua / data/delvetimes.lua as the character completes
+  -- runs; nothing to seed — old revisions simply lack them (no dungeon averages, no per-run XP)
+  -- until the character next runs a delve/key, so rollback is lossless.
+  if (db.version or 0) < 31 then
+    db.version = 31
   end
 end
 

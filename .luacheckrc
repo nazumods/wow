@@ -152,6 +152,7 @@ std = {
     "C_AuctionHouse",
     "C_Bank",
     "C_Calendar",
+    "C_ChallengeMode",
     "C_ChatInfo",
     "C_ClassColor",
     "C_Container",
