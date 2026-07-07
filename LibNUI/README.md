@@ -111,6 +111,7 @@ Region
     ├── Button
     │   ├── CheckButton
     │   └── SecureButton
+    ├── RadioGroup
     ├── MinimapButton
     ├── Cell
     ├── Dialog
@@ -569,6 +570,37 @@ Inherits `Button`. Uses `ChatConfigCheckButtonTemplate`. Default size 32×32.
 
 ---
 
+## RadioGroup
+
+Inherits `Frame`. A vertical stack of mutually-exclusive options — the single-select
+companion to `CheckButton`. Each option renders as one `CheckButton` row; picking one
+checks it and clears the rest (re-clicking the selected row keeps it selected). Mirrors
+`FilterDropdown`'s `{ key, label }` + `Select`/`onSelect` contract.
+
+### Constructor options
+
+| Option     | Type   | Description                                                       |
+|------------|--------|-------------------------------------------------------------------|
+| `options`  | table  | List of `{ key, label }`, laid out top to bottom                  |
+| `selected` | any    | Initial selected key                                              |
+| `header`   | string | Optional heading label above the rows                            |
+| `spacing`  | number | Vertical pitch between rows in px (default `32`, = CheckButton height) |
+| `width`    | number | Group width in px (default `180`)                                |
+
+### Methods
+
+| Method        | Description                                                      |
+|---------------|------------------------------------------------------------------|
+| `Select(key)` | Get the selected key, or set it programmatically (no `onSelect`) |
+
+### Callbacks
+
+| Callback         | Description                                        |
+|------------------|----------------------------------------------------|
+| `onSelect(key)`  | Fired when the user picks a *different* option     |
+
+---
+
 ## SecureButton
 
 Inherits `Button`. Uses `SecureActionButtonTemplate` for protected actions (spells, toys).
@@ -612,13 +644,29 @@ Pre-registered scripts: `OnEditFocusLost`, `OnEnterPressed`, `OnEscapePressed`
 
 Inherits `Frame`. Uses `UIPanelScrollFrameTemplate`.
 
+By default the frame keeps the stock Blizzard scrollbar. Set `scrollbar = true` for a
+themed, **auto-hiding** scrollbar instead: it hides the Blizzard bar and overlays a
+`Slider` (theme-aware gold thumb) on the inner right edge, driving the offset from the
+thumb and the mousewheel and hiding itself when the content fits. The themed bar overlays
+the rightmost `scrollbarWidth` pixels, so inset your scroll child by that much to avoid
+overlap. Only the opt-in path touches the frame's wheel/range scripts — default consumers
+are unaffected.
+
+### Constructor options
+
+| Option           | Type   | Description                                             |
+|------------------|--------|---------------------------------------------------------|
+| `scrollbar`      | bool   | Build the themed auto-hiding scrollbar (default `false`) |
+| `scrollbarWidth` | number | Themed scrollbar width in px (default `16`)             |
+| `wheelStep`      | number | Pixels scrolled per mousewheel notch (default `30`)    |
+
 ### Methods
 
 | Method                  | Description                                                      |
 |-------------------------|------------------------------------------------------------------|
 | `Child(child)`          | Get/set scroll child                                             |
-| `VerticalScroll(offset)`| Get/set vertical offset (pixels); clamped to range when setting  |
-| `Refresh()`             | Recompute the scroll range (via `UpdateScrollChildRect`) after the child's content extent changed, then re-clamp the offset so it can't stay scrolled into empty space. The range tracks the child's **content extent** (its shown sub-frames), not its set height — a caller that shrinks the child must also hide the frames below (see `TableFrame:ResizeRows`) or the range stays full |
+| `VerticalScroll(offset)`| Get/set vertical offset (pixels); clamped to range when setting. Syncs the themed scrollbar thumb when one is built |
+| `Refresh()`             | Recompute the scroll range (via `UpdateScrollChildRect`) after the child's content extent changed, then re-clamp the offset so it can't stay scrolled into empty space, and re-fit the themed scrollbar. The range tracks the child's **content extent** (its shown sub-frames), not its set height — a caller that shrinks the child must also hide the frames below (see `TableFrame:ResizeRows`) or the range stays full |
 
 ---
 

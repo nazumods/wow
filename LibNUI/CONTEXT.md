@@ -25,9 +25,10 @@ OOP UI widget library. Every widget wraps a backing WoW object (`self._widget`) 
 | `MinimapButton.lua` | `MinimapButton` — draggable minimap-edge button: shape-aware positioning (`GetMinimapShape`), drag-to-move with persisted angle, ADD-blend highlight, optional Blizzard ring/background, `ShowContextMenu`; `Shown`/`Angle`/`Icon`. (Addon-compartment entries stay declarative via the `.toc`, not here) |
 | `SecureButton.lua` | `SecureButton` — `SecureActionButtonTemplate` for casting spells/toys in combat |
 | `CheckButton.lua` | `CheckButton` — toggle checkbox; `Checked`, `OnToggle` |
+| `RadioGroup.lua` | `RadioGroup` — vertical stack of mutually-exclusive `CheckButton` rows (single-select companion to CheckButton). `{ key, label }` options; picking one checks it and clears the rest (re-clicking the selected keeps it); `Select(key)` re-points without firing, `onSelect(self, key)` fires only on a *changed* user pick. Mirrors FilterDropdown's key/label + Select/onSelect contract |
 | `AutoWidget.lua` | `AutoWidget` — standalone factory that builds a Button, Texture, or Label from options |
 | `EditBox.lua` | `EditBox` — text input; `Text`, `CursorPosition`, `HighlightText`, `Font` (`{path,size[,flags]}` tuple getter/setter) |
-| `ScrollFrame.lua` | `ScrollFrame` — scrollable container; `Child`, `VerticalScroll` (get/set offset, clamped to range — for scroll-into-view), `Refresh()` (recompute the scroll range via `UpdateScrollChildRect` after the child's content extent changed, then re-clamp the offset — call after the child grows/shrinks so it can't overscroll into empty space. **The range tracks the child's content extent (its shown sub-frames), NOT its set height** — so a caller that shrinks the scroll child must *hide* the frames it leaves below, e.g. `TableFrame:ResizeRows` hides rows+cells beyond the visible count; otherwise `UpdateScrollChildRect` still measures the old extent and the range stays full) |
+| `ScrollFrame.lua` | `ScrollFrame` — scrollable container; `Child`, `VerticalScroll` (get/set offset, clamped to range — for scroll-into-view), `Refresh()` (recompute the scroll range via `UpdateScrollChildRect` after the child's content extent changed, then re-clamp the offset — call after the child grows/shrinks so it can't overscroll into empty space. **The range tracks the child's content extent (its shown sub-frames), NOT its set height** — so a caller that shrinks the scroll child must *hide* the frames it leaves below, e.g. `TableFrame:ResizeRows` hides rows+cells beyond the visible count; otherwise `UpdateScrollChildRect` still measures the old extent and the range stays full). Opt-in `scrollbar = true` swaps the Blizzard bar for a themed **auto-hiding** `Slider` scrollbar (gutter on the inner right edge, mousewheel-synced, hidden when content fits); only that path overrides the frame's wheel/range scripts, so default consumers are untouched |
 | `CleanFrame.lua` | `CleanFrame` — styled dark frame with tooltip border (base for windows) |
 | `Cell.lua` | `Cell` — table cell (Frame); renders as Label or Texture, reused across re-sorts via `update`. Label cell-data keys: `text`, `color`, `justifyH`, `font` (font-object name), `fontInfo` (`{path,size}` tuple, re-applied on reuse) |
 | `TableCol.lua` | `TableCol` — column header (BgFrame); content surfaced as `header.label`/`header.texture` |
@@ -61,6 +62,7 @@ Region
      ├─ Button
      │   ├─ SecureButton
      │   └─ CheckButton
+     ├─ RadioGroup
      ├─ MinimapButton
      ├─ EditBox
      ├─ ScrollFrame
@@ -151,6 +153,7 @@ Any key matching a method on the instance is valid; tables are unpacked, scalars
 | `MinimapButton` | inherits Frame (`type="Button"`, parents to `Minimap`); `icon`, `iconFillsButton`, `db` (`{angle,hide}` store), `defaultAngle` (225), `radius` (8), `tooltip` (string[] or fn), `onClick(self, mouseButton)`. Methods: `Shown`, `Angle`, `Icon`, `ShowContextMenu(generator)`. Build it at/after `PLAYER_LOGIN` |
 | `SecureButton` | `actions` — list of `{type, target, spell, toy}` |
 | `CheckButton` | `text`, `OnToggle` |
+| `RadioGroup` | inherits Frame; `options` (`{key,label}[]`), `selected` (initial key), `header` (optional heading), `spacing` (32), `width` (180), `onSelect(self, key)`. Methods: `Select(key)` (get/set, no fire) |
 | `AutoWidget` | `parent`, `onClick`, `path`, `atlas`, `atlasSize`, `coords`, `vertexColor`, `position`, `label`, `font`, `color`, `justifyH` |
 | `EditBox` | `fontObj`, `autoFocus`, `text`, `cursorPosition` |
 | `CleanFrame` | `parent` (`UIParent`), `clamped` (true), `strata` (`MEDIUM`), `background` (`{0.114,0.141,0.165,1}`) |
