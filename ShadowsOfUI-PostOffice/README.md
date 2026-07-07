@@ -18,6 +18,7 @@ Each is independently toggleable (all on by default):
 | **Modifier-click shortcuts** | **Ctrl-click** an inbox letter to return it to sender; **Alt-click** a bag item to attach it to the letter you're writing. (Optional: alt-click also *sends* the letter — off by default.) |
 | **Forward button** | Adds a **Forward** button to an open letter — re-sends its text and item attachments (stackables included) to another player. Disabled for letters with money/COD, or when your bags are too full to hold the attachments. |
 | **Copy-mail button** | Adds a small button to an open letter that copies its text — and, for auction invoices, the sale/purchase breakdown — into a selectable window you can Ctrl-C. |
+| **Recipient menu + autocomplete** | Adds a menu beside the **To:** field — recently mailed, your warband alts (class-coloured), friends, and guild mates — and auto-completes names from those lists as you type. Replaces Blizzard's autocomplete popup. |
 
 ## Commands
 
@@ -32,10 +33,12 @@ checkbox per feature, plus a **Changelog** button.
 
 ## Saved data
 
-`ShadowsOfUI_PostOfficeDB` — your feature toggles. Nothing account- or character-
-sensitive is stored.
+`ShadowsOfUI_PostOfficeDB` — your feature toggles and the recently-mailed name list
+(up to 15 names). Nothing else is stored.
 
 ## Dependencies
 
 - **LibNAddOn** (required)
 - **LibNUI** (required — used for the copy-mail window)
+- **Warbandeer** (optional — with its Characters module installed, the recipient menu
+  and autocomplete include all your warband alts)
