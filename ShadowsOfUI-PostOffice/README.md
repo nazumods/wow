@@ -20,6 +20,7 @@ Each is independently toggleable (all on by default):
 | **Copy-mail button** | Adds a small button to an open letter that copies its text — and, for auction invoices, the sale/purchase breakdown — into a selectable window you can Ctrl-C. |
 | **Recipient menu + autocomplete** | Adds a menu beside the **To:** field — recently mailed, your warband alts (class-coloured), friends, and guild mates — and auto-completes names from those lists as you type. Replaces Blizzard's autocomplete popup. |
 | **Quick-attach buttons** | Adds a column of trade-goods category buttons beside the Send Mail frame. Click one (Cloth, Herb, Ore, …) to attach **every stack of that type** from your bags to the letter — handy for mailing mats to an alt. Skips soulbound items. |
+| **Inbox return/delete icons** | Shows a small icon on each inbox letter — click it to **return** the letter to its sender, or **delete** it (whichever it would do on expiry). Deletions that would lose items or coin ask for confirmation first. |
 
 ## Commands
 
