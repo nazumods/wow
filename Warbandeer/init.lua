@@ -110,7 +110,7 @@ end
 ---@field db WarbandeerDB
 
 ---@class WarbandeerDB: AddOnDatabase
----@field settings {defaultView: integer, tooltipSide: integer, summaryColumns: table<string, boolean>, consumables: table<string, boolean>}
+---@field settings {defaultView: integer, tooltipSide: integer, summaryColumns: table<string, boolean>, consumables: table<string, boolean>, barApplyDefaults: table<string, boolean>}
 ---@field profIntent table<string,table<integer,string>> map of character name and skillLineID to crafter intent
 ---@field ignoredEnchants table<string, boolean> per-item accepted wrong-enchants, key "<itemID>:<enchantID>"
 
@@ -151,6 +151,13 @@ function ns:MigrateDB()
     -- = shown, so an empty table means every category visible (default).
     db.settings.consumables = db.settings.consumables or {}
     db.version = 6
+  end
+  if db.version < 7 then
+    -- Default include-state for each Bars Apply toggle: barApplyDefaults[label] = false
+    -- means that bar starts unchecked when the apply panel opens. Absent = the built-in
+    -- default (every bar on except Bonus / Sky / Pet), so an empty table changes nothing.
+    db.settings.barApplyDefaults = db.settings.barApplyDefaults or {}
+    db.version = 7
   end
 end
 
