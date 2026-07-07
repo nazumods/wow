@@ -87,7 +87,7 @@ end, "Repair stored data (recount characters)")
 ---@field MigrateDB fun(self) Migrate database to latest version
 function ns:MigrateDB()
   local db = ns.db
-  if db.version == 31 then return end
+  if db.version == 32 then return end
   if not db.characters then db.characters = {} end
   if not db.numCharacters then
     db.numCharacters = countCharacters(db)
@@ -338,6 +338,15 @@ function ns:MigrateDB()
   -- until the character next runs a delve/key, so rollback is lossless.
   if (db.version or 0) < 31 then
     db.version = 31
+  end
+
+  -- v32: non-keyed dungeon run-times on the existing dungeonTimes cache (`runs.*.diffs` /
+  -- `.diffXps`, keyed by difficultyID — normal/heroic/etc. finder runs, recorded on
+  -- LFG_COMPLETION_REWARD) plus the `active.kind` discriminator.  Additive to v31 and filled lazily
+  -- by data/dungeontimes.lua; nothing to seed — an older revision simply lacks the non-keyed buckets
+  -- (only keyed M+ averages) until the character next runs a finder dungeon, so rollback is lossless.
+  if (db.version or 0) < 32 then
+    db.version = 32
   end
 end
 

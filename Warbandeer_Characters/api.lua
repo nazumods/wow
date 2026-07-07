@@ -319,28 +319,37 @@ function API:GetDelveStats(delveName, tier)
   return out
 end
 
----Per-character Mythic+ completion-time stats for one dungeon, current character first then by
----name.  Mirrors GetDelveStats: `avg` is the rounded mean of recent keyed-run durations (seconds);
----`scope` is "+<level>" when that keystone level has samples, else "all".  `avgXp`/`xpCount` cover
----per-run XP where recorded (leveling runs only; nil for max-level M+).  nil when no tracked
----character has timed that dungeon.  Data comes from the `dungeonTimes` cache (data/dungeontimes.lua).
+---Per-character dungeon completion-time stats for one dungeon, current character first then by
+---name.  Mirrors GetDelveStats.  Reads one of two axes: pass `difficultyID` for a non-keyed
+---(normal/heroic/finder) run — scope is the difficulty label — else it reads the keyed Mythic+ axis
+---for `level`, scope "+<level>".  Either axis falls back to its all-buckets aggregate (scope "all")
+---when the requested bucket has no samples.  `avg` = rounded mean seconds; `avgXp`/`xpCount` cover
+---per-run XP where recorded (leveling runs only).  nil when no tracked character has timed that
+---dungeon on the requested axis.  Data comes from the `dungeonTimes` cache (data/dungeontimes.lua).
 ---@param dungeonName string the dungeon's display name; normalized internally
----@param level integer? preferred keystone level; falls back to the all-levels aggregate
+---@param level integer? preferred keystone level (keyed M+); ignored when difficultyID is given
+---@param difficultyID integer? instance difficulty for a non-keyed run; selects the non-keyed axis
 ---@return { name: string, classKey: string, avg: integer, count: integer, scope: string, avgXp: integer?, xpCount: integer? }[]?
-function API:GetDungeonStats(dungeonName, level)
+function API:GetDungeonStats(dungeonName, level, difficultyID)
   local key = ns.NormalizeDelveKey(dungeonName)
   if not key then return nil end
   local me = ns.currentPlayer
   local out = {}
+  -- Non-keyed axis (difficulty) vs keyed axis (keystone level): pick the bucket set + scope label.
+  local nonKeyed = difficultyID ~= nil
+  local timeField, xpField, wanted = "tiers", "xps", level
+  if nonKeyed then timeField, xpField, wanted = "diffs", "diffXps", difficultyID end
   for name, c in pairs(ns.db.characters) do
     local entry = c.dungeonTimes and c.dungeonTimes.runs and c.dungeonTimes.runs[key]
-    if entry then
-      local avg, count, bucketed = poolAvg(entry.tiers, level)
+    if entry and entry[timeField] then
+      local avg, count, bucketed = poolAvg(entry[timeField], wanted)
       if avg then
         local avgXp, xpCount
-        if entry.xps then avgXp, xpCount = poolAvg(entry.xps, level) end
+        if entry[xpField] then avgXp, xpCount = poolAvg(entry[xpField], wanted) end
+        local scope = "all"
+        if bucketed then scope = nonKeyed and ns.DungeonDifficultyLabel(difficultyID) or ("+" .. level) end
         insert(out, { name = name, classKey = c.classKey, avg = avg, count = count,
-          scope = bucketed and ("+" .. level) or "all", avgXp = avgXp, xpCount = xpCount })
+          scope = scope, avgXp = avgXp, xpCount = xpCount })
       end
     end
   end
