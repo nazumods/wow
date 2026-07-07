@@ -16,6 +16,8 @@ Each is independently toggleable (all on by default):
 | **Block trades at the mailbox** | Declines incoming trade requests while the mailbox is open, then restores your trade setting when you close it. |
 | **Auto-subject for coin** | When you enter a coin amount to send, fills a blank Send-Mail subject with that amount (e.g. `12g 30s`). Never overwrites a subject you typed yourself. |
 | **Modifier-click shortcuts** | **Ctrl-click** an inbox letter to return it to sender; **Alt-click** a bag item to attach it to the letter you're writing. (Optional: alt-click also *sends* the letter — off by default.) |
+| **Forward button** | Adds a **Forward** button to an open letter — re-sends its text and item attachments (stackables included) to another player. Disabled for letters with money/COD, or when your bags are too full to hold the attachments. |
+| **Copy-mail button** | Adds a small button to an open letter that copies its text — and, for auction invoices, the sale/purchase breakdown — into a selectable window you can Ctrl-C. |
 
 ## Commands
 
@@ -36,3 +38,4 @@ sensitive is stored.
 ## Dependencies
 
 - **LibNAddOn** (required)
+- **LibNUI** (required — used for the copy-mail window)
