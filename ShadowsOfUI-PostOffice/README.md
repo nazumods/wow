@@ -15,6 +15,7 @@ Each is independently toggleable (all on by default):
 | **Report coin collected** | Prints the coin you looted each time you close the mailbox. |
 | **Block trades at the mailbox** | Declines incoming trade requests while the mailbox is open, then restores your trade setting when you close it. |
 | **Auto-subject for coin** | When you enter a coin amount to send, fills a blank Send-Mail subject with that amount (e.g. `12g 30s`). Never overwrites a subject you typed yourself. |
+| **Modifier-click shortcuts** | **Ctrl-click** an inbox letter to return it to sender; **Alt-click** a bag item to attach it to the letter you're writing. (Optional: alt-click also *sends* the letter — off by default.) |
 
 ## Commands
 

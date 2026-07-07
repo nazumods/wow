@@ -7,9 +7,11 @@ local ns = LibNAddOn(...)
 --
 -- Feature flags — all on by default, matching Postal's shipped module defaults.
 local Defaults = {
-  rake = true,       -- report coin collected each mailbox visit
-  tradeBlock = true, -- suppress trade requests while the mailbox is open
-  wire = true,       -- auto-fill a blank Send-Mail subject with the coin amount
+  rake = true,            -- report coin collected each mailbox visit
+  tradeBlock = true,      -- suppress trade requests while the mailbox is open
+  wire = true,            -- auto-fill a blank Send-Mail subject with the coin amount
+  express = true,         -- modifier-click shortcuts (ctrl-return, alt-attach)
+  expressAutoSend = false, -- alt-attach also sends the letter (off: a send is a deliberate click)
 }
 
 function ns:MigrateDB()
@@ -17,7 +19,7 @@ function ns:MigrateDB()
   for k, v in pairs(Defaults) do
     if db[k] == nil then db[k] = v end -- non-destructive: only add missing keys
   end
-  db.version = 1
+  db.version = 2
 end
 
 --------------------------------------------------------------------------------
@@ -87,6 +89,12 @@ ns:RegisterSettings{
       { typ = "checkbox", key = "wire", default = true, name = "Auto-subject for coin",
         label = "auto-subject for coin", table = dbTable,
         tooltip = "When sending coin, fill a blank Send-Mail subject with the amount." },
+      { typ = "checkbox", key = "express", default = true, name = "Modifier-click shortcuts",
+        label = "modifier-click shortcuts", table = dbTable,
+        tooltip = "Ctrl-click an inbox letter to return it; Alt-click a bag item to attach it to the letter you're writing." },
+      { typ = "checkbox", key = "expressAutoSend", default = false, name = "Alt-click also sends",
+        label = "alt-click also sends", table = dbTable,
+        tooltip = "After an Alt-click attaches an item, send the letter immediately (needs a recipient). Off by default." },
     },
   },
 }
@@ -94,8 +102,9 @@ ns:RegisterSettings{
 -- "Changelog" button in the settings category (ns.changelog from changelog.lua).
 ns:RegisterChangelog("Shadows of UI")
 
--- /spost → open settings
+-- /spost → open settings. OpenToCategory takes a category ID, not a name (and our
+-- category is a subcategory), so resolve it from the registered category object.
 SLASH_SUI_POSTOFFICE1 = "/spost"
 SlashCmdList["SUI_POSTOFFICE"] = function()
-  Settings.OpenToCategory(ns._TITLE)
+  if ns.settingsCategory then Settings.OpenToCategory(ns.settingsCategory:GetID()) end
 end
