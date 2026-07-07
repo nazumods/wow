@@ -1,0 +1,13 @@
+---@class ShadowsOfUI_Delves
+local ns = select(2, ...)
+
+-- In-game changelog (newest first), shown via the "Changelog" button in this
+-- addon's settings. Appended automatically at release by release.sh from the same
+-- conventional-commit grouping used for the GitHub/CurseForge release notes.
+---@type { version: string, notes: string }[]
+ns.changelog = {
+  { version = "12.0.7-r1", notes = [==[
+### Features
+- track personal delve completion times + entrance-pin tooltip
+]==] },
+}

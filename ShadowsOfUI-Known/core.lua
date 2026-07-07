@@ -1,6 +1,9 @@
 ---@class ShadowsOfUI_Known: AddOn
 local ns = LibNAddOn(...)
 
+-- "Changelog" button in settings (ns.changelog from changelog.lua).
+ns:RegisterChangelog("Shadows of UI")
+
 local insert, sort = table.insert, table.sort
 local GetItemInfoInstant = C_Item.GetItemInfoInstant
 

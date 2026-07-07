@@ -9,4 +9,5 @@
 ## X-NUI-COMMANDS: /sartisan
 
 core.lua
+changelog.lua
 badge.lua

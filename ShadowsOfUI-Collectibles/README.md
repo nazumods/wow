@@ -35,6 +35,7 @@ Open the game's **Settings → AddOns → Shadows of UI → Collectible Tints** 
 - **Desaturate known** — also grey out the icons of already-known items.
 - **Mark collectible** — tint still-collectible items green (on by default).
 - **Vendor / Auction House** — turn the tint on or off per frame.
+- **Changelog** — a button that opens this addon's release history (newest first) in a scrollable, copyable window.
 
 The guild bank isn't supported yet — its UI was reworked in 12.0; support will return once the
 new frame is handled.

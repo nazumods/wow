@@ -25,6 +25,10 @@ shows its live amount; alts show the amount last recorded when you played them.
 `/sartisan [name]` prints the same breakdown to chat — a debugging aid; you won't normally
 need it.
 
+## Changelog
+
+A **Changelog** button in this addon's settings (Options → AddOns → Shadows of UI → Artisan Currency) opens its release history in a scrollable, copyable window.
+
 ## Requirements
 
 - **LibNAddOn**

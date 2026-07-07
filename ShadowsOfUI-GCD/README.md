@@ -10,6 +10,10 @@ sweeps.
 - Uses the base 1.5 s GCD as its duration.
 - No settings, no commands, no saved data.
 
+## Changelog
+
+A **Changelog** button in this addon's settings (Options → AddOns → Shadows of UI → GCD Bar) opens its release history in a scrollable, copyable window.
+
 ## Requirements
 
 **LibNAddOn** and **LibNUI**.

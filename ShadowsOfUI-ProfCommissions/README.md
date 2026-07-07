@@ -35,6 +35,10 @@ all.
 retunes the icon size live (applies on the next list refresh). Both are tuning/debug aids you won't
 normally need.
 
+## Changelog
+
+A **Changelog** button in this addon's settings (Options → AddOns → Shadows of UI → Prof Commissions) opens its release history in a scrollable, copyable window.
+
 ## Requirements
 
 - **LibNAddOn**

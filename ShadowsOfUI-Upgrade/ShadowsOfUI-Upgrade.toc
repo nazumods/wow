@@ -8,6 +8,7 @@
 ## X-NUI-API: WarbandeerApi
 
 core.lua
+changelog.lua
 
 data/statpriority.lua
 data/primarystat.lua

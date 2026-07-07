@@ -10,6 +10,10 @@ Blizzard's status tracking bar while you level.
 
 No settings, no commands, no saved data — install it and level.
 
+## Changelog
+
+A **Changelog** button in this addon's settings (Options → AddOns → Shadows of UI → XP Bar) opens its release history in a scrollable, copyable window.
+
 ## Requirements
 
 **LibNAddOn** and **LibNUI**.

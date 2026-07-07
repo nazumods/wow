@@ -10,6 +10,7 @@
 ## X-NUI-DB-VERSION: 3
 
 core.lua
+changelog.lua
 render.lua
 surfaces.lua
 baganator.lua

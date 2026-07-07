@@ -8,3 +8,4 @@
 ## X-NUI-UI: LibNUI
 
 GcdBar.lua
+changelog.lua

@@ -43,6 +43,10 @@ list). It shows in two places:
 knownby <recipeID>` prints the Known-by list for a recipe — debugging aids; you won't
 normally need them.
 
+## Changelog
+
+A **Changelog** button in this addon's settings (Options → AddOns → Shadows of UI → Recipe Learners) opens its release history in a scrollable, copyable window.
+
 ## Requirements
 
 - **LibNAddOn**

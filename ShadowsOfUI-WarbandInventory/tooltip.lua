@@ -1,5 +1,8 @@
 ---@class ShadowsOfUI_WarbandInventory: AddOn
 local ns = LibNAddOn(...)
+
+-- "Changelog" button in settings (ns.changelog from changelog.lua).
+ns:RegisterChangelog("Shadows of UI")
 ---@type WarbandeerAPI
 local API = ns.api
 

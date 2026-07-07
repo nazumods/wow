@@ -13,6 +13,10 @@ when another character is actually on or has completed the quest.
 
 `/squests <questID>` prints the same status to chat — a testing aid and a quick lookup.
 
+## Changelog
+
+A **Changelog** button in this addon's settings (Options → AddOns → Shadows of UI → Quests) opens its release history in a scrollable, copyable window.
+
 ## Requirements
 
 - **LibNAddOn**

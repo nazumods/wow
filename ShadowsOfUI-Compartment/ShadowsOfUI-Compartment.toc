@@ -11,3 +11,4 @@
 ## X-NUI-UI: LibNUI
 
 addon.lua
+changelog.lua

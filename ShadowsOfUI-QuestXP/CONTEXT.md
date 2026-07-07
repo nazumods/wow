@@ -11,6 +11,7 @@ percentage of the player's current-level XP requirement the reward is worth.
 | File | Purpose |
 |---|---|
 | `core.lua` | Whole addon. `GetRewardPercent()` (also exposed as `ns.GetRewardPercent`): whole-percent value of the selected quest's XP reward vs. `UnitXPMax("player")`, or nil if nothing to show. `hooksecurefunc(MapQuestInfoRewardsFrame.XPFrame.Name, "SetText", …)` appends the tag whenever that FontString's text is set; `EnsureHooked` installs it once the frame exists (immediately, or on `WorldMapFrame`'s first `OnShow`). `/squestxp` dev/lookup command. |
+| `changelog.lua` | `ns.changelog` — newest-first `{version, notes}` release history for the in-game **Changelog** viewer (LibNAddOn). **Generated** — `release.sh` prepends each release; not hand-edited |
 
 ## How it hooks
 

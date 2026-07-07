@@ -11,6 +11,7 @@
 ## X-NUI-UI: LibNUI
 
 core.lua
+changelog.lua
 CastBar.lua
 config.lua
 editmode.lua

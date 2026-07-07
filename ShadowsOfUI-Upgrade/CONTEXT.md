@@ -18,6 +18,7 @@ LibNUI. The stat-priority and quartermaster-gear tables are small built-ins (`ns
 | File | Purpose |
 |---|---|
 | `core.lua` | Bootstrap. `ns.api` = `WarbandeerApi` (X-NUI-API, consumed); creates + publishes the global `ShadowsOfUI_UpgradeApi` (`ns.UpgradeApi`); seeds `ns.StatPriority` |
+| `changelog.lua` | `ns.changelog` — newest-first `{version, notes}` release history for the in-game **Changelog** viewer (LibNAddOn). **Generated** — `release.sh` prepends each release; not hand-edited |
 | `data/statpriority.lua` | `ns.StatPriority[classToken] = { [specIndex] = { crit, haste, mastery, versatility } }` = stat→tier (1 = top), each class an array in `GetSpecialization()` index order. Precomputed offline from PvE secondary-stat weightings (ties within ~15% share a tier); the only stat data the addon carries |
 | `data/primarystat.lua` | `ns.ClassPrimary[classToken] = { [specIndex] = "str"\|"agi"\|"int" }` — primary stat per spec, same array layout as `ns.StatPriority`. Gates out wrong-primary gear (an Intellect dagger for a Rogue) that class proficiency alone lets through |
 | `data/classgear.lua` | `ns.ClassGear[classKey] = { shield, weapons = {[subClassID]=true} }` — bundled weapon/shield proficiency baseline (armour *type* comes from `ns.wow.Armor.byClass`, not repeated here) |

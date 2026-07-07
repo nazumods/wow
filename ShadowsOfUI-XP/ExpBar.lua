@@ -1,5 +1,8 @@
 ---@class ShadowsOfUI_XP: AddOn
 local ns = LibNAddOn(...)
+
+-- "Changelog" button in settings (ns.changelog from changelog.lua).
+ns:RegisterChangelog("Shadows of UI")
 local floor = math.floor
 local min = math.min
 

@@ -1,6 +1,9 @@
 ---@class ShadowsOfUI_Quests: AddOn
 local ns = LibNAddOn(...)
 
+-- "Changelog" button in settings (ns.changelog from changelog.lua).
+ns:RegisterChangelog("Shadows of UI")
+
 local concat = table.concat
 local LABEL = NORMAL_FONT_COLOR
 local MUTED = GRAY_FONT_COLOR

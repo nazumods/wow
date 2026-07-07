@@ -12,6 +12,7 @@ LibNUI, no DB. Surfaces data only — all counting lives in Warbandeer_Character
 | File | Purpose |
 |---|---|
 | `tooltip.lua` | Bootstrap (`LibNAddOn(...)`) + the `ns:OnItemTooltip` (LibNAddOn) hook → `WarbandeerApi:GetItemCounts(data.id)` → renders the block (class-coloured names via `ns.Colors.className`). `IsShiftKeyDown()` suppresses it. Manual `/swinv` dev/find command. |
+| `changelog.lua` | `ns.changelog` — newest-first `{version, notes}` release history for the in-game **Changelog** viewer (LibNAddOn). **Generated** — `release.sh` prepends each release; not hand-edited |
 
 ## Rendering (`tooltip.lua`)
 

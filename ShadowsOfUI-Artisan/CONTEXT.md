@@ -15,6 +15,7 @@ Blizzard's Concentration readout), the crafting-window **Crafting Orders tab**
 | File | Purpose |
 |---|---|
 | `core.lua` | Bootstrap + data. `ns.ARTISAN_CURRENCIES` (parent skillLineID → currencyId, current expansion) and `ns.BuildBreakdown(skillLineID)` → sorted `ArtisanEntry[]`. Manual `/sartisan` dev command. |
+| `changelog.lua` | `ns.changelog` — newest-first `{version, notes}` release history for the in-game **Changelog** viewer (LibNAddOn). **Generated** — `release.sh` prepends each release; not hand-edited |
 | `badge.lua` | Shared `makeBadge`/`applyBadge`/`onEnter` + three surfaces: `ns.UpdateBadge` (crafting window, one badge by the concentration readout), `ns.UpdateOrderBadge` (Crafting Orders tab, one badge in the top-left header) and `ns.UpdateBookBadges` (spellbook page, one badge per profession under its spell label). All refresh on profession switch + currency change while shown. |
 
 ## `ns.ARTISAN_CURRENCIES`

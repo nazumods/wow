@@ -14,6 +14,7 @@ column** of two status icons — first-craft bonus + reagent provision. Patron (
 | File | Purpose |
 |---|---|
 | `core.lua` | Both features: the `hooksecurefunc` on the commission cell mixin (reward-icon pool + rendering); the `ShadowsOfUI_ProfCommissions_InfoCellMixin` + `SetupTable` hook that repurposes the Reagents column; and the `/sprofcomm` command. |
+| `changelog.lua` | `ns.changelog` — newest-first `{version, notes}` release history for the in-game **Changelog** viewer (LibNAddOn). **Generated** — `release.sh` prepends each release; not hand-edited |
 | `column.xml` | The Info column's cell template (`ShadowsOfUI_ProfCommissions_InfoCellTemplate`) — a `passThroughButtons` Frame with two textures (`FirstCraft`, `Reagents`) and OnEnter/OnLeave wired to the mixin. |
 
 ## How it hooks

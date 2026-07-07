@@ -118,6 +118,11 @@ function ns.registerSettings(addOn, addOnName, features)
       if not addOn.settingsCategories then addOn.settingsCategories = {} end
       table.insert(addOn.settingsCategories, category)
       addOn.settingsCategory = addOn.settingsCategories[1]
+      -- Also key categories by title so a later feature (e.g. the changelog button)
+      -- can find the addon's own category — whether it's a top-level category or a
+      -- subcategory nested under a shared parent — without relying on ordering.
+      addOn.settingsCategoriesByTitle = addOn.settingsCategoriesByTitle or {}
+      addOn.settingsCategoriesByTitle[cat.title] = category
     end
   end, 2) -- run after db, but before addOn.onLoad
 end

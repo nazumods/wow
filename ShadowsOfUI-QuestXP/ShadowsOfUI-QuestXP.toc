@@ -7,3 +7,4 @@
 ## Dependencies: LibNAddOn
 
 core.lua
+changelog.lua
