@@ -6,9 +6,11 @@
 ## IconTexture: Interface\Icons\INV_Letter_15
 ## SavedVariables: ShadowsOfUI_PostOfficeDB
 ## Dependencies: LibNAddOn, LibNUI
+## OptionalDeps: Warbandeer_Characters
 ## X-NUI-DB: ShadowsOfUI_PostOfficeDB
-## X-NUI-DB-VERSION: 3
+## X-NUI-DB-VERSION: 4
 ## X-NUI-UI: LibNUI
+## X-NUI-API: WarbandeerApi
 
 core.lua
 changelog.lua
@@ -18,3 +20,4 @@ wire.lua
 express.lua
 forward.lua
 carbonCopy.lua
+blackBook.lua

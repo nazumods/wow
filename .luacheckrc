@@ -48,7 +48,7 @@ files["ShadowsOfUI-Castbar/**/*.lua"] = {globals = {"SLASH_SUI_CASTBAR1"}}
 files["ShadowsOfUI-Collectibles/**/*.lua"] = {globals = {"SLASH_SUI_COLLECT1"}}
 files["ShadowsOfUI-ProfCommissions/**/*.lua"] = {globals = {"SLASH_SUI_PROFCOMM1", "ShadowsOfUI_ProfCommissions_InfoCellMixin"}}
 files["ShadowsOfUI-QuestXP/**/*.lua"] = {globals = {"SLASH_SUI_QUESTXP1"}}
-files["ShadowsOfUI-PostOffice/**/*.lua"] = {globals = {"SLASH_SUI_POSTOFFICE1", "InboxFrame", "InboxFrame_OnClick"}}
+files["ShadowsOfUI-PostOffice/**/*.lua"] = {globals = {"SLASH_SUI_POSTOFFICE1", "InboxFrame", "InboxFrame_OnClick", "SendMailNameEditBox"}}
 files["Warbandeer_Bars/init.lua"] = {globals = {"WarbandeerBarsSettings"}}
 
 std = {
@@ -339,8 +339,15 @@ std = {
     "AMOUNT_PAID_COLON",
     "AMOUNT_RECEIVED_COLON",
     "AUCTION_HOUSE_CUT_COLON",
+    "AUTOCOMPLETE_LIST",
+    "AutoCompleteEditBox_SetAutoCompleteSource",
     "BUYOUT",
+    "C_AutoComplete",
+    "C_FriendList",
     "ClickSendMailItemButton",
+    "GetGuildRosterInfo",
+    "GetNumGuildMembers",
+    "IsInGuild",
     "CursorHasItem",
     "DEPOSIT_COLON",
     "FROM",

@@ -14,6 +14,7 @@ local Defaults = {
   expressAutoSend = false, -- alt-attach also sends the letter (off: a send is a deliberate click)
   forward = true,         -- "Forward" button on an open letter
   carbonCopy = true,      -- copy-to-window button on an open letter
+  blackBook = true,       -- recipient menu + autocomplete on the "To:" field
 }
 
 function ns:MigrateDB()
@@ -21,7 +22,10 @@ function ns:MigrateDB()
   for k, v in pairs(Defaults) do
     if db[k] == nil then db[k] = v end -- non-destructive: only add missing keys
   end
-  db.version = 3
+  -- Table-valued state gets an explicit seed (kept out of Defaults so no instance
+  -- ever aliases the shared defaults table).
+  if db.blackBookRecent == nil then db.blackBookRecent = {} end -- recently-mailed names, newest first
+  db.version = 4
 end
 
 -- Plain-text coin string (no texture escapes, for editable/subject text). e.g.
@@ -133,6 +137,10 @@ ns:RegisterSettings{
       { typ = "checkbox", key = "carbonCopy", default = true, name = "Copy-mail button",
         label = "copy-mail button", table = dbTable,
         tooltip = "Add a small button to an open letter that copies its text (and auction invoice details) into a selectable window." },
+      { typ = "checkbox", key = "blackBook", default = true, name = "Recipient menu + autocomplete",
+        label = "recipient menu + autocomplete", table = dbTable,
+        tooltip = "Add a recipient menu (recent, warband alts, friends, guild) beside the To: field,"
+          .. " and auto-complete names from those lists as you type (replaces Blizzard's popup)." },
     },
   },
 }
