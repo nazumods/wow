@@ -9,6 +9,7 @@ Minimal full-width XP bar pinned to the screen bottom. Hides Blizzard's `StatusT
 | File | Purpose |
 |---|---|
 | `ExpBar.lua` | Whole addon. `ns` init (assignment form). `ExpBar` (extends `StatusBar`) — 7px bar with rested-XP overlay, 10% notches, hover-reveal `%` labels. `ns:onLoad` hides the Blizzard bar and creates `ns.xpBar` if not max level |
+| `changelog.lua` | `ns.changelog` — newest-first `{version, notes}` release history for the in-game **Changelog** viewer (LibNAddOn). **Generated** — `release.sh` prepends each release; not hand-edited |
 
 ## ExpBar (extends StatusBar)
 

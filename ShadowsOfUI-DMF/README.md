@@ -14,6 +14,10 @@ session.
 `/sdmf` exists for addon development (prints NPC IDs and coordinates); you won't need
 it.
 
+## Changelog
+
+A **Changelog** button in this addon's settings (Options → AddOns → Shadows of UI → Darkmoon Faire) opens its release history in a scrollable, copyable window.
+
 ## Requirements
 
 **LibNAddOn**.

@@ -22,6 +22,10 @@ gear, which Shift already does).
 `/swinv <itemID or item link>` prints the same breakdown to chat for a given item — both a
 debugging aid and a quick "where is my…?" lookup you can run without finding the item first.
 
+## Changelog
+
+A **Changelog** button in this addon's settings (Options → AddOns → Shadows of UI → Warband Inventory) opens its release history in a scrollable, copyable window.
+
 ## Requirements
 
 - **LibNAddOn**

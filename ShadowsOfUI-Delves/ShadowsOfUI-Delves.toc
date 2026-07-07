@@ -7,4 +7,5 @@
 ## X-NUI-API: WarbandeerApi
 
 core.lua
+changelog.lua
 tooltip.lua

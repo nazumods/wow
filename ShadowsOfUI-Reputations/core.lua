@@ -2,6 +2,9 @@
 ---@field _factionIndexGen integer? bumped whenever the faction name index is rebuilt (tooltip memo invalidation)
 local ns = LibNAddOn(...)
 
+-- "Changelog" button in settings (ns.changelog from changelog.lua).
+ns:RegisterChangelog("Shadows of UI")
+
 local LABEL = NORMAL_FONT_COLOR
 local MUTED = GRAY_FONT_COLOR
 local DONE = GREEN_FONT_COLOR

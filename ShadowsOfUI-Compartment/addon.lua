@@ -1,5 +1,8 @@
 ---@class ShadowsOfUI_Compartment: AddOn
 local ns = LibNAddOn(...)
+
+-- "Changelog" button in settings (ns.changelog from changelog.lua).
+ns:RegisterChangelog("Shadows of UI")
 local SettingsFrame = ns.ui.SettingsFrame
 
 -- Icon shown on the addon-compartment button when db.useIcon is on. A clean cog;

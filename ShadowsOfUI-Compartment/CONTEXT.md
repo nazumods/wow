@@ -9,6 +9,7 @@ Makes Blizzard's built-in `AddonCompartmentFrame` (the minimap addon-count butto
 | File | Purpose |
 |---|---|
 | `addon.lua` | Whole addon (assignment form). `MigrateDB` seeds `db.useIcon`. `onLoad` binds `frame = AddonCompartmentFrame`, captures `defaultPoint`, wires drag + icon, and hooks `UpdateDisplay`. File-locals: `applyPosition`/`resetPosition`/`savePosition`, `applyIcon`, `setupDrag`. Manual `SLASH_SUI_COMPARTMENT1 = "/scompartment"` (base opens settings, `reset` restores default position). |
+| `changelog.lua` | `ns.changelog` — newest-first `{version, notes}` release history for the in-game **Changelog** viewer (LibNAddOn). **Generated** — `release.sh` prepends each release; not hand-edited |
 
 ## Gotchas
 

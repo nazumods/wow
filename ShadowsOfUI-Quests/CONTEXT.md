@@ -11,6 +11,7 @@ data comes from Warbandeer_Characters' `questlog` broker via `WarbandeerApi:GetQ
 | File | Purpose |
 |---|---|
 | `core.lua` | Bootstrap + `ns.AppendQuestStatus(tooltip, questID)`: the shared block (class-coloured names via `ns.Colors.className`). Reads `WarbandeerApi:GetQuestStatus`, drops the current character (`names()` excludes `GetCurrentCharacter()`, caps at `MAX` 6 + "+N more"), emits an "Also on this quest:" line and/or a "Completed by:" line; returns false (nothing added) when no *other* character is involved. |
+| `changelog.lua` | `ns.changelog` — newest-first `{version, notes}` release history for the in-game **Changelog** viewer (LibNAddOn). **Generated** — `release.sh` prepends each release; not hand-edited |
 | `log.lua` | `EventRegistry:RegisterCallback("QuestMapLogTitleButton.OnEnter", …)` → appends the block to `GameTooltip` (with the questID the event passes), re-`Show`s it. `/squests` dev/lookup command. |
 
 ## How it hooks

@@ -1,6 +1,9 @@
 ---@class ShadowsOfUI_Upgrade: AddOn
 local ns = LibNAddOn(...)
 
+-- "Changelog" button in settings (ns.changelog from changelog.lua).
+ns:RegisterChangelog("Shadows of UI")
+
 -- ShadowsOfUI-Upgrade — gear-upgrade finder.
 --
 -- Reads the data layer (ns.api == WarbandeerApi, bound from X-NUI-API): each

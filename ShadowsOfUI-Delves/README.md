@@ -27,6 +27,10 @@ Hold **Shift** while hovering to hide the line.
   recorded average for the delve you're currently in. (Your full per-character history is
   visible via Warbandeer_Characters' `/wbc dump delves`.)
 
+## Changelog
+
+A **Changelog** button in this addon's settings (Options → AddOns → Shadows of UI → Delves) opens its release history in a scrollable, copyable window.
+
 ## Requirements
 
 - **LibNAddOn**

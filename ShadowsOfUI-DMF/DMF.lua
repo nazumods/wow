@@ -1,6 +1,9 @@
 ---@class ShadowsOfUI_DMF: AddOn
 local ns = LibNAddOn(...)
 
+-- "Changelog" button in settings (ns.changelog from changelog.lua).
+ns:RegisterChangelog("Shadows of UI")
+
 ---@type table<integer, { questId: integer, questItems: table<integer,integer>? }>
 local ProfessionQuestData = {
     [171] = { questId = 29506, questItems = { [1645] = 5,  [19299] = 5  } }, -- Alchemy

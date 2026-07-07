@@ -82,6 +82,9 @@ ns:RegisterSettings{
     },
 }
 
+-- "Changelog" button in the settings category, showing ns.changelog (changelog.lua).
+ns:RegisterChangelog("Shadows of UI")
+
 -- /silvl <itemID|link>: dump ilvl/quality/track for an item (dev helper)
 SLASH_SUI_ILVL1 = "/silvl"
 SlashCmdList["SUI_ILVL"] = function(msg)

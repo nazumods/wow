@@ -8,7 +8,8 @@ Overlay addon: draws each gear item's item level + a compact upgrade-track code 
 
 | File | Purpose |
 |---|---|
-| `core.lua` | Init, DB defaults + `MigrateDB`, `ns:RegisterSettings` (12 fields), `settingChanged`→`Refresh`, refresher registry (`ns.AddRefresher`/`ns.Refresh`), `/silvl` |
+| `core.lua` | Init, DB defaults + `MigrateDB`, `ns:RegisterSettings` (12 fields), `ns:RegisterChangelog()` (Changelog button), `settingChanged`→`Refresh`, refresher registry (`ns.AddRefresher`/`ns.Refresh`), `/silvl` |
+| `changelog.lua` | `ns.changelog` — newest-first `{version, notes}` release history for the in-game **Changelog** viewer (LibNAddOn). **Generated** — `release.sh` prepends each release; not hand-edited |
 | `render.lua` | `ns.ItemDetails`, lazy FontString attach + apply, `ns.UpdateButton(button, item, inset)` / `ns.CleanButton`, `ns.SetAvgIlvl(parent, ilvl)`, `ns.InsetPositions` |
 | `surfaces.lua` | `hooksecurefunc` wiring + per-surface toggle gating + refreshers: character/inspect paperdoll (incl. inspect average ilvl), bags, bank, loot, guild bank |
 | `baganator.lua` | One `Baganator.API.RegisterCornerWidget` (upgrade track; Baganator has its own ilvl), gated on `db.baganator` |

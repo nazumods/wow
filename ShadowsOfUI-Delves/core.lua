@@ -1,6 +1,9 @@
 ---@class ShadowsOfUI_Delves: AddOn
 local ns = LibNAddOn(...)
 
+-- "Changelog" button in settings (ns.changelog from changelog.lua).
+ns:RegisterChangelog("Shadows of UI")
+
 local floor = math.floor
 
 -- The tier a max-level character is assumed to run (the spec: Tier 11 for level-90s).

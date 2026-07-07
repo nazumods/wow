@@ -52,6 +52,7 @@ Found under **Options → AddOns → Shadows of UI → Cast Bars**:
 - **Show focus cast bar** — on by default.
 - **Show player cast bar** — off by default (your own casts).
 - **Bar text size** — 8–22px (default 12).
+- **Changelog** — a button that opens this addon's release history (newest first) in a scrollable, copyable window.
 
 ## Dependencies
 

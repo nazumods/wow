@@ -9,6 +9,7 @@ Headless Darkmoon Faire helper. While the faire is open it auto-buys profession 
 | File | Purpose |
 |---|---|
 | `DMF.lua` | Everything: DMF calendar detection, profession-skill tally, merchant auto-buy, waypoint/map-pin guidance, event wiring, `/sdmf` |
+| `changelog.lua` | `ns.changelog` — newest-first `{version, notes}` release history for the in-game **Changelog** viewer (LibNAddOn). **Generated** — `release.sh` prepends each release; not hand-edited |
 
 ## Behavior
 

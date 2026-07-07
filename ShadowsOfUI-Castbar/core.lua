@@ -65,6 +65,9 @@ ns:RegisterSettings{
   } },
 }
 
+-- "Changelog" button in the settings category, showing ns.changelog (changelog.lua).
+ns:RegisterChangelog("Shadows of UI")
+
 -- Live-apply settings (callbacks fire long after onLoad, so the bars exist).
 ---@param which string  "target" | "focus" | "player"
 ---@param on boolean

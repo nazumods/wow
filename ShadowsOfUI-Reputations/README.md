@@ -18,6 +18,10 @@ The cross-alt standings appear in two places:
 quick "who's exalted with X?" lookup. The name may be partial (e.g. `the deeps` resolves
 *The Assembly of the Deeps*).
 
+## Changelog
+
+A **Changelog** button in this addon's settings (Options → AddOns → Shadows of UI → Reputations) opens its release history in a scrollable, copyable window.
+
 ## Requirements
 
 - **LibNAddOn**

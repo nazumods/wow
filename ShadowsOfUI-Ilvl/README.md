@@ -33,6 +33,7 @@ Options are under **Game Menu → Options → AddOns → Shadows of UI → Item 
   the top of the model.
 - **Minimum quality** — only tag gear of this quality or better (Poor, Common,
   Uncommon, Rare, Epic). Defaults to Uncommon.
+- **Changelog** — a button that opens this addon's release history (newest first) in a scrollable, copyable window.
 
 Changes apply immediately to anything already on screen.
 

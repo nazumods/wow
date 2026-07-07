@@ -282,7 +282,11 @@ its Settings category. Two pieces:
    }
    ```
 
-2. Call `myAddOn:RegisterChangelog()` once (e.g. in your setup file). It adds the button to
-   your settings category — defaulting to the addon's title, or pass a category name to
-   override. The notes open in LibNUI's shared scrollable **CopyWindow**; an addon without
-   LibNUI falls back to printing them to chat. `myAddOn:ShowChangelog()` opens it directly.
+2. Call `myAddOn:RegisterChangelog()` once (e.g. in your setup file). If your addon already
+   has a settings category (top-level or a subcategory under a shared parent) the button lands
+   on it. If it has **no** settings of its own, one is created to host the button — pass a
+   parent name to nest it as a subcategory there (e.g. `myAddOn:RegisterChangelog("Shadows of UI")`),
+   or omit it for a top-level category. The notes open in LibNUI's shared scrollable
+   **CopyWindow** (using the addon's own UI binding, or the global `LibNUI` if it's loaded);
+   an addon with no LibNUI at all falls back to printing to chat. `myAddOn:ShowChangelog()`
+   opens it directly.

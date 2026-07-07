@@ -1,6 +1,9 @@
 ---@class ShadowsOfUI_ProfCommissions: AddOn
 local ns = LibNAddOn(...)
 
+-- "Changelog" button in settings (ns.changelog from changelog.lua).
+ns:RegisterChangelog("Shadows of UI")
+
 local GetItemInfoInstant = C_Item.GetItemInfoInstant
 local GetCurrencyInfo = C_CurrencyInfo.GetCurrencyInfo
 local QUALITY_COLORS = ITEM_QUALITY_COLORS

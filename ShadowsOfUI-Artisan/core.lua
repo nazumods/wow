@@ -1,6 +1,9 @@
 ---@class ShadowsOfUI_Artisan: AddOn
 local ns = LibNAddOn(...)
 
+-- "Changelog" button in settings (ns.changelog from changelog.lua).
+ns:RegisterChangelog("Shadows of UI")
+
 local insert, sort = table.insert, table.sort
 local GetCurrencyInfo = C_CurrencyInfo.GetCurrencyInfo
 

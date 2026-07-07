@@ -12,7 +12,8 @@ style — hooks modeled on `ShadowsOfUI-Ilvl`, not copied). Assignment-form init
 
 | File | Purpose |
 |---|---|
-| `core.lua` | Init, `Defaults` + `MigrateDB` (non-destructive), refresher registry (`ns.AddRefresher`/`ns.Refresh`), `ns:settingChanged` (applies the colour preset only when the `knownColor` dropdown changed, so a custom colour survives other toggles), `ns.KnownColor()`, `ns.UncollectedColor`, `RegisterSettings` (5 fields), `/scollect` (status / `custom` colour picker / `itemtest`). Loaded **first** so `AddRefresher` exists before `surfaces.lua` runs. |
+| `core.lua` | Init, `Defaults` + `MigrateDB` (non-destructive), refresher registry (`ns.AddRefresher`/`ns.Refresh`), `ns:settingChanged` (applies the colour preset only when the `knownColor` dropdown changed, so a custom colour survives other toggles), `ns.KnownColor()`, `ns.UncollectedColor`, `RegisterSettings` (5 fields), `ns:RegisterChangelog()` (Changelog button), `/scollect` (status / `custom` colour picker / `itemtest`). Loaded **first** so `AddRefresher` exists before `surfaces.lua` runs. |
+| `changelog.lua` | `ns.changelog` — newest-first `{version, notes}` release history for the in-game **Changelog** viewer (LibNAddOn). **Generated** — `release.sh` prepends each release; not hand-edited |
 | `data.lua` | `ns.QuestItems` (itemID→questID), `ns.SpecialItems` (itemID→`{srcItemID, linkField, expected}`), `ns.ContainerItems` (itemID→contained itemIDs) — collectibles the game doesn't self-flag as known. Typed direct-assignment fields. |
 | `detect.lua` | `ns.IsKnown(link)` / `ns.IsCollectible(link)` + positive-only caches (`knownCache`/`collectibleCache`). |
 | `spec/` | busted unit tests for the tooltip-load negative-cache gating; excluded from zip + release detection. |

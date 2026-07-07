@@ -116,6 +116,10 @@ logged-in character) — a debugging aid; you won't normally need it. `/supgrade
 source supplied the recommendation, or why none did) — useful when a slot shows "Missing
 enchant" with no suggested enchant.
 
+## Changelog
+
+A **Changelog** button in this addon's settings (Options → AddOns → Shadows of UI → Gear Upgrades) opens its release history in a scrollable, copyable window.
+
 ## Requirements
 
 - **LibNAddOn**

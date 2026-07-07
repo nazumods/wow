@@ -1,5 +1,8 @@
 ---@class ShadowsOfUI_GCD: AddOn
 local ns = LibNAddOn(...)
+
+-- "Changelog" button in settings (ns.changelog from changelog.lua).
+ns:RegisterChangelog("Shadows of UI")
 local ui, Class = ns.ui, ns.lua.Class
 local StatusBar, Texture = ui.StatusBar, ui.Texture
 local rgba = ns.Colors.rgba

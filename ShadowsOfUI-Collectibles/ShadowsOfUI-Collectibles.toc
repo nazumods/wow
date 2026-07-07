@@ -11,6 +11,7 @@
 ## X-NUI-API: WarbandeerApi
 
 core.lua
+changelog.lua
 data.lua
 detect.lua
 surfaces.lua

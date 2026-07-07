@@ -6,3 +6,4 @@
 ## Dependencies: LibNAddOn
 
 DMF.lua
+changelog.lua

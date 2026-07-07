@@ -85,6 +85,9 @@ ns:RegisterSettings{
   },
 }
 
+-- "Changelog" button in the settings category, showing ns.changelog (changelog.lua).
+ns:RegisterChangelog("Shadows of UI")
+
 -- ─── /scollect ──────────────────────────────────────────────────────────────
 -- no arg     — print status
 -- custom     — open the colour picker for a custom known-item tint
