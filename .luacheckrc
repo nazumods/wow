@@ -17,6 +17,7 @@ include_files = {
   "ShadowsOfUI-Compartment/**/*.lua", "ShadowsOfUI-Delves/**/*.lua",
   "ShadowsOfUI-Castbar/**/*.lua", "ShadowsOfUI-Collectibles/**/*.lua",
   "ShadowsOfUI-ProfCommissions/**/*.lua", "ShadowsOfUI-QuestXP/**/*.lua",
+  "ShadowsOfUI-PostOffice/**/*.lua",
   "Warbandeer/**/*.lua", "Warbandeer_Alias/**/*.lua", "Warbandeer_Bars/**/*.lua",
   "Warbandeer_Characters/**/*.lua", "Warbandeer_Collected/**/*.lua",
 }
@@ -47,6 +48,7 @@ files["ShadowsOfUI-Castbar/**/*.lua"] = {globals = {"SLASH_SUI_CASTBAR1"}}
 files["ShadowsOfUI-Collectibles/**/*.lua"] = {globals = {"SLASH_SUI_COLLECT1"}}
 files["ShadowsOfUI-ProfCommissions/**/*.lua"] = {globals = {"SLASH_SUI_PROFCOMM1", "ShadowsOfUI_ProfCommissions_InfoCellMixin"}}
 files["ShadowsOfUI-QuestXP/**/*.lua"] = {globals = {"SLASH_SUI_QUESTXP1"}}
+files["ShadowsOfUI-PostOffice/**/*.lua"] = {globals = {"SLASH_SUI_POSTOFFICE1"}}
 files["Warbandeer_Bars/init.lua"] = {globals = {"WarbandeerBarsSettings"}}
 
 std = {
@@ -333,8 +335,13 @@ std = {
     "GetMerchantItemInfo",
     "GetMerchantItemMaxStack",
     "GetMerchantNumItems",
+    "GetCoinTextureString",
     "GetMoney",
     "GetMouseButtonClicked",
+    "MoneyInputFrame_GetCopper",
+    "MoneyInputFrame_SetOnValueChangedFunc",
+    "SendMailMoney",
+    "SendMailSubjectEditBox",
     "GetNumBindings",
     "GetNumClasses",
     "GetNumGuildBankTabs",

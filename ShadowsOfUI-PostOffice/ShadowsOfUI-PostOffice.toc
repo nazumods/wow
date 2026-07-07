@@ -1,0 +1,16 @@
+## Interface: 120007
+## Category: Shadows of UI
+## Title: Post Office
+## Author: Nazuraki
+## Version: 12.0.7-r0
+## IconTexture: Interface\Icons\INV_Letter_15
+## SavedVariables: ShadowsOfUI_PostOfficeDB
+## Dependencies: LibNAddOn
+## X-NUI-DB: ShadowsOfUI_PostOfficeDB
+## X-NUI-DB-VERSION: 1
+
+core.lua
+changelog.lua
+rake.lua
+tradeBlock.lua
+wire.lua

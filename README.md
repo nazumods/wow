@@ -47,6 +47,7 @@ Each addon folder has its own `README.md` with end-user documentation.
 | [ShadowsOfUI-Collectibles](ShadowsOfUI-Collectibles/README.md) | Tints already-known and still-collectible items (recipes, toys, mounts, pets, decor…) on vendors and the Auction House — recipes checked across your whole warband. |
 | [ShadowsOfUI-ProfCommissions](ShadowsOfUI-ProfCommissions/README.md) | Enhances the Crafting Orders list: shows each order's actual reward icons in place of the generic chest, and replaces the Reagents text column with at-a-glance first-craft + reagent-provision icons. |
 | [ShadowsOfUI-QuestXP](ShadowsOfUI-QuestXP/README.md) | Shows what percentage of a level a quest's XP reward is worth, next to the XP reward in the quest log's reward pane. |
+| [ShadowsOfUI-PostOffice](ShadowsOfUI-PostOffice/README.md) | Headless mailbox helper: reports coin collected per visit, blocks trade requests while the mailbox is open, and auto-fills a blank Send-Mail subject with the coin amount. |
 
 ### Quality of life
 
