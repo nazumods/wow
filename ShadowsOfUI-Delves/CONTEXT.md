@@ -1,10 +1,11 @@
 # ShadowsOfUI-Delves
 
-**Deps:** LibNAddOn, Warbandeer_Characters · **SavedVars:** none · **Commands:** `/sdelves` (dev/calibration) · **UI:** none (no LibNUI) · **API:** reads `WarbandeerApi`
+**Deps:** LibNAddOn, LibNUI, Warbandeer_Characters · **SavedVars:** none · **Commands:** `/sdelves` (dev/calibration) · **UI:** LibNUI (shared copy window for `/sdelves`) · **API:** reads `WarbandeerApi`
 
 Headless tooltip addon. Appends the current character's average delve completion time to a
-delve's **map entrance-pin** tooltip. Assignment-form init (`local ns = LibNAddOn(...)`); no
-LibNUI, no DB. All run-time data is tracked + stored by **Warbandeer_Characters**
+delve's **map entrance-pin** tooltip. Assignment-form init (`local ns = LibNAddOn(...)`); no DB.
+LibNUI is bound (`X-NUI-UI: LibNUI`) only so the `/sdelves` dev commands can render into the shared
+copyable window (`ui.ToggleCopyWindow`) instead of chat. All run-time data is tracked + stored by **Warbandeer_Characters**
 (`data/delvetimes.lua`) and read here via `WarbandeerApi:GetDelveStats`. Pairs with
 ShadowsOfUI-Quests/-Reputations (same data-layer-consumer shape).
 
@@ -12,7 +13,7 @@ ShadowsOfUI-Quests/-Reputations (same data-layer-consumer shape).
 
 | File | Purpose |
 |---|---|
-| `core.lua` | Bootstrap + `ns.AssumedTier()` (T11 = `MAX_TIER` at the level cap via `ns.wow.Player:isMaxLevel()`, else nil → all-tiers fallback) + `ns.FormatDuration(sec)` (`m:ss`) + `/sdelves` (no arg: dump live delve state for tier/name calibration; `dump`: print `GetDelveStats` for the delve you're in). |
+| `core.lua` | Bootstrap (`local ui = ns.ui`) + `ns.AssumedTier()` (T11 = `MAX_TIER` at the level cap via `ns.wow.Player:isMaxLevel()`, else nil → all-tiers fallback) + `ns.FormatDuration(sec)` (`m:ss`) + `/sdelves` (no arg: dump live delve state for tier/name calibration; `dump`: `GetDelveStats` for the delve you're in). Both render into the shared **copy window** (`ui.ToggleCopyWindow`) so the output can be pasted; only the short "not in a delve"/"no runs" guards stay `ns.Print`. |
 | `changelog.lua` | `ns.changelog` — newest-first `{version, notes}` release history for the in-game **Changelog** viewer (LibNAddOn). **Generated** — `release.sh` prepends each release; not hand-edited |
 | `tooltip.lua` | `hooksecurefunc(AreaPOIPinMixin, "OnMouseEnter", …)` → gate the pin to delves via `C_AreaPoiInfo.GetDelvesForMap(mapID)`, then `appendDelveTime`: pull the current character's entry from `WarbandeerApi:GetDelveStats(poiName, ns.AssumedTier())` and add a line (`Avg completion (T11): m:ss · N runs`, or `(all tiers)` for the aggregate, or a muted `No timed runs yet`), then re-`Show`. Shift hides it. |
 
