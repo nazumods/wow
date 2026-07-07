@@ -12,6 +12,8 @@ tab.lua
 theme.lua
 model.lua
 slider.lua
+scrollframe.lua
+radiogroup.lua
 minimapbutton.lua
 filterdropdown.lua
 ring.lua

@@ -32,6 +32,7 @@ RingSelector.lua
 Button.lua
 SecureButton.lua
 CheckButton.lua
+RadioGroup.lua
 MinimapButton.lua
 AutoWidget.lua
 EditBox.lua
