@@ -15,6 +15,7 @@ local Defaults = {
   forward = true,         -- "Forward" button on an open letter
   carbonCopy = true,      -- copy-to-window button on an open letter
   blackBook = true,       -- recipient menu + autocomplete on the "To:" field
+  quickAttach = true,     -- trade-goods category attach buttons beside Send Mail
 }
 
 function ns:MigrateDB()
@@ -25,7 +26,7 @@ function ns:MigrateDB()
   -- Table-valued state gets an explicit seed (kept out of Defaults so no instance
   -- ever aliases the shared defaults table).
   if db.blackBookRecent == nil then db.blackBookRecent = {} end -- recently-mailed names, newest first
-  db.version = 4
+  db.version = 5
 end
 
 -- Plain-text coin string (no texture escapes, for editable/subject text). e.g.
@@ -141,6 +142,10 @@ ns:RegisterSettings{
         label = "recipient menu + autocomplete", table = dbTable,
         tooltip = "Add a recipient menu (recent, warband alts, friends, guild) beside the To: field,"
           .. " and auto-complete names from those lists as you type (replaces Blizzard's popup)." },
+      { typ = "checkbox", key = "quickAttach", default = true, name = "Quick-attach buttons",
+        label = "quick-attach buttons", table = dbTable,
+        tooltip = "Add trade-goods category buttons beside the Send Mail frame — click one to attach"
+          .. " every stack of that type (cloth, herbs, ore …) from your bags to the letter." },
     },
   },
 }
