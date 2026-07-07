@@ -66,6 +66,10 @@ end, {
   name     = "LibNUICopyWindow",
   title    = "",
   special  = true,
+  -- DIALOG strata (above CleanFrame's MEDIUM default) so the window floats over the
+  -- HIGH-strata Blizzard Settings panel it can be opened from (e.g. the changelog
+  -- viewer), while still sitting below TOOLTIP-strata tooltips.
+  strata   = "DIALOG",
   level    = 600,
   position = { Center = {}, Height = 380 },
 })

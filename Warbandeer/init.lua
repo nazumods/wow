@@ -39,6 +39,10 @@ ns:RegisterSettings{
   },
 }
 
+-- Surface a "Changelog" button in the Warbandeer settings category, opening the
+-- release history (ns.changelog, from changelog.lua) in the shared CopyWindow.
+ns:RegisterChangelog()
+
 ns.views = {}
 
 -- Order of views in the selector dropdown (by view `.name`).  Single source of

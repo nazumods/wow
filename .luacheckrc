@@ -139,6 +139,7 @@ std = {
     "TooltipDataProcessor",
     "TooltipUtil",
     "UiMapPoint",
+    "CreateSettingsButtonInitializer",
     "EditModeManagerFrame",
     "FrameStackTooltip_Toggle",
     "ReloadUI",

@@ -64,6 +64,12 @@ annotated import.
   hand** — the release workflow (`.github/scripts/release.sh`) detects changed addons,
   bumps the revision, tags `AddonName-vX.Y.Z-rN`, and creates GitHub releases with a
   changelog generated from conventional-commit messages.
+- **In-game changelog (opt-in).** If an addon ships a `changelog.lua` (a newest-first
+  `ns.changelog = {{version, notes}}` list) and calls `ns:RegisterChangelog()`, `release.sh`
+  prepends each release's generated notes to that file so a **Changelog** button in the
+  addon's Settings shows the history in-game. The script only touches `changelog.lua` when it
+  already exists (opt-in by presence) and never lets a `changelog.lua` change trigger a
+  release. See LibNAddOn's README.
 - Publishing a GitHub release triggers `.github/workflows/publish.yml`, which zips the
   addon folder (excluding `spec/`) and uploads it to CurseForge for addons that have an
   `X-Curse-Project-ID` in their `.toc`.

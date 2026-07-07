@@ -6,6 +6,7 @@ local G = _G
 ---@field CompartmentClick fun(self: AddOn, buttonName: string)?
 ---@field RegisterSettings fun(self: AddOn, settings: table) register Settings-panel categories; call at file-load time (before ADDON_LOADED), requires a DB
 ---@field GetSettingsParent fun(self: AddOn, name: string): table get-or-create a shared parent Settings category to nest under (e.g. for a LibNUI SettingsFrame subcategory)
+---@field RegisterChangelog fun(self: AddOn, categoryName: string?) add a "Changelog" button to the addon's settings category (needs a `changelog.lua` data file); defaults the category to the addon title
 
 ---@param features {name: string, addOn: AddOn, [any]: any}|string
 ---@param o AddOn|nil
@@ -32,6 +33,10 @@ function LibNAddOn(features, o)
 
   function addOn:GetSettingsParent(name)
     return ns.getSettingsParent(name)
+  end
+
+  function addOn:RegisterChangelog(categoryName)
+    ns.registerChangelog(self, addOnName, categoryName)
   end
 
   ns.linkGlobals(addOn, features)

@@ -17,6 +17,7 @@
 ## X-NUI-UI: LibNUI
 
 init.lua
+changelog.lua
 data.lua
 theme.lua
 
