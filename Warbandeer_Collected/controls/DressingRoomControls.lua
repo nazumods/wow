@@ -181,13 +181,11 @@ function DressingRoom:_buildRacePanels(controls, d)
   local aPanel = factionPanel(leftX, PANELSTOP + (d.panelsH - d.aH) / 2, d.aW, d.aH, ALLIANCE_COLOR)
   fillGrid(aPanel, d.alliance, AHCOLS)
 
-  -- Neutral: inverted pyramid — 2 on top, 1 centered below.
+  -- Neutral: a 2-wide grid with the short final row centered — 3 races render as the
+  -- classic 2-over-1 pyramid, 4 as a 2x2 (5+ would keep wrapping). fillGrid handles the
+  -- centering, so this stays correct as Blizzard adds both-faction races (Haranir, …).
   local nPanel = factionPanel(leftX + d.aW + PANELGAP, PANELSTOP + (d.panelsH - d.nH) / 2, d.nW, d.nH, NEUTRAL_COLOR)
-  local pyramid = { {0, 0}, {1, 0}, {0.5, 1} }
-  for i, race in ipairs(d.neutral) do
-    local p = pyramid[i] or {i - 1, 0}
-    raceIcon(nPanel, race, PANELPAD + p[1] * STEP, PANELPAD + p[2] * STEP)
-  end
+  fillGrid(nPanel, d.neutral, 2)
 
   local hPanel = factionPanel(leftX + d.aW + PANELGAP + d.nW + PANELGAP, PANELSTOP + (d.panelsH - d.hH) / 2, d.hW, d.hH, HORDE_COLOR)
   fillGrid(hPanel, d.horde, AHCOLS)
