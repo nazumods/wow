@@ -16,6 +16,8 @@ scrollframe.lua
 radiogroup.lua
 sectionheader.lua
 notification.lua
+virtuallist.lua
+accordion.lua
 minimapbutton.lua
 filterdropdown.lua
 ring.lua
