@@ -38,6 +38,8 @@ AutoWidget.lua
 EditBox.lua
 ScrollFrame.lua
 SectionHeader.lua
+VirtualList.lua
+Accordion.lua
 
 # "Clean UI" classes
 CleanFrame.lua

@@ -30,6 +30,8 @@ OOP UI widget library. Every widget wraps a backing WoW object (`self._widget`) 
 | `EditBox.lua` | `EditBox` — text input; `Text`, `CursorPosition`, `HighlightText`, `Font` (`{path,size[,flags]}` tuple getter/setter) |
 | `ScrollFrame.lua` | `ScrollFrame` — scrollable container; `Child`, `VerticalScroll` (get/set offset, clamped to range — for scroll-into-view), `Refresh()` (recompute the scroll range via `UpdateScrollChildRect` after the child's content extent changed, then re-clamp the offset — call after the child grows/shrinks so it can't overscroll into empty space. **The range tracks the child's content extent (its shown sub-frames), NOT its set height** — so a caller that shrinks the scroll child must *hide* the frames it leaves below, e.g. `TableFrame:ResizeRows` hides rows+cells beyond the visible count; otherwise `UpdateScrollChildRect` still measures the old extent and the range stays full). Opt-in `scrollbar = true` swaps the Blizzard bar for a themed **auto-hiding** `Slider` scrollbar (gutter on the inner right edge, mousewheel-synced, hidden when content fits); only that path overrides the frame's wheel/range scripts, so default consumers are untouched |
 | `SectionHeader.lua` | `SectionHeader` — titled section separator: an accent heading + a 1px divider rule underneath, plus an optional right-aligned muted `summary` slot on the heading row. Sizes its own height from the heading; anchor it with a fixed width (Left+Right, or a Width) so the rule/summary have an edge. `Text`/`Summary` getters/setters. The single most-repeated panel-layout construct in the source addon |
+| `VirtualList.lua` | `VirtualList` — pooled, variable-height, mixed-row-type list (the complement to TableFrame's fixed grid). Owns a themed-scrollbar `ScrollFrame` + content child; per-**type** row pools; `SetItems(items)` stacks one row per item via a `yCur` cursor (anchored to the child, no sibling chaining), reusing rows and hiding the surplus, then sizes the child + `Refresh`es the scroll range. Rows anchor left+right → reflow on resize. **Not windowed** (a frame per item). Single-type: `createRow`/`updateRow`; multi-type: `rowTypes` map + `typeOf(item)`. `Content()` is the parent for row builders |
+| `Accordion.lua` | `Accordion` — collapsible sections composed on a `VirtualList`: built-in clickable header rows (accent caret + title, hover highlight) whose child rows (consumer's `createRow`/`updateRow`) appear only while expanded. Header click → `Toggle(key)` rebuilds the flattened item list. `SetSections`, `Toggle`/`Expand`/`Collapse`/`IsExpanded`, `onToggle(self, key, expanded)`; expansion state keyed by `section.key` (survives `SetSections`) |
 | `CleanFrame.lua` | `CleanFrame` — styled dark frame with tooltip border (base for windows) |
 | `Cell.lua` | `Cell` — table cell (Frame); renders as Label or Texture, reused across re-sorts via `update`. Label cell-data keys: `text`, `color`, `justifyH`, `font` (font-object name), `fontInfo` (`{path,size}` tuple, re-applied on reuse) |
 | `TableCol.lua` | `TableCol` — column header (BgFrame); content surfaced as `header.label`/`header.texture` |
@@ -69,6 +71,8 @@ Region
      ├─ EditBox
      ├─ ScrollFrame
      ├─ SectionHeader
+     ├─ VirtualList
+     ├─ Accordion
      ├─ Cell
      ├─ TabFrame
      ├─ FilterDropdown
@@ -159,6 +163,8 @@ Any key matching a method on the instance is valid; tables are unpacked, scalars
 | `CheckButton` | `text`, `OnToggle` |
 | `RadioGroup` | inherits Frame; `options` (`{key,label}[]`), `selected` (initial key), `header` (optional heading), `spacing` (32), `width` (180), `onSelect(self, key)`. Methods: `Select(key)` (get/set, no fire) |
 | `SectionHeader` | inherits Frame; `text`, `summary` (optional right-aligned), `titleColor` (`"header"`), `dividerColor` (`"header"`), `fontInfo`, `underline` (true), `gap` (5). Anchor with a fixed width. Methods: `Text`, `Summary` |
+| `VirtualList` | inherits Frame; `spacing` (2), `padding` (4), `rowHeight` (20), `scrollbar` (true), `items`; single-type `createRow(list)→Frame` + `updateRow(list,row,item,i)→height?`, or multi-type `rowTypes` (`{name={create,update}}`) + `typeOf(item,i)→name` (default `item.type`). Methods: `SetItems(items)`, `Content()`, `Refresh()` |
+| `Accordion` | inherits Frame; `sections` (`{key,title,rows,expanded?}[]`), `spacing` (2), `padding` (4), `headerHeight` (24), `rowHeight` (20), `headerColor` (`"header"`), `scrollbar` (true), `createRow(acc)→Frame`, `updateRow(acc,row,rowData,section)→height?`, `onToggle(acc,key,expanded)`. Methods: `SetSections`, `Toggle`/`Expand`/`Collapse`/`IsExpanded(key)`, `Content()` |
 | `AutoWidget` | `parent`, `onClick`, `path`, `atlas`, `atlasSize`, `coords`, `vertexColor`, `position`, `label`, `font`, `color`, `justifyH` |
 | `EditBox` | `fontObj`, `autoFocus`, `text`, `cursorPosition` |
 | `CleanFrame` | `parent` (`UIParent`), `clamped` (true), `strata` (`MEDIUM`), `background` (`{0.114,0.141,0.165,1}`) |

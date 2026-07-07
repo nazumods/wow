@@ -115,6 +115,8 @@ Region
     │   └── SecureButton
     ├── RadioGroup
     ├── SectionHeader
+    ├── VirtualList
+    ├── Accordion
     ├── MinimapButton
     ├── Cell
     ├── Dialog
@@ -682,6 +684,115 @@ height from the heading; **anchor it with a fixed width** (Left+Right to the par
 |----------------|---------------------------------------------------------------------|
 | `Text(v)`      | Get/set the heading text                                            |
 | `Summary(v)`   | Get/set the summary text (no-op if no `summary` was configured)     |
+
+---
+
+## VirtualList
+
+Inherits `Frame`. A pooled, variable-height, mixed-row-type list — the complement to
+`TableFrame`'s fixed grid. It owns a scrolling viewport (with the themed auto-hiding
+scrollbar) and a pool of row frames per *type*; `SetItems(items)` stacks one row per item
+top to bottom, reusing rows across rebuilds and hiding the surplus. Rows anchor left+right
+to the content child, so they reflow width on resize.
+
+It is **not windowed** — it builds a frame per item (fine for the dozens-to-hundreds a
+panel shows), not only the on-screen ones. Row builders parent their row to
+`list:Content()`; `update` populates the reused row for an item and returns its height.
+
+```lua
+local list = LibNUI.VirtualList:new{
+  parent = panel, position = { All = true },
+  createRow = function(l)
+    local row = LibNUI.Frame:new{ parent = l:Content() }
+    row.label = LibNUI.Label:new{ parent = row, position = { Left = {row, 8, 0} } }
+    return row
+  end,
+  updateRow = function(_, row, item) row.label:Text(item.text); return item.height end,
+}
+list:SetItems(myItems)
+```
+
+For mixed row types, pass a `rowTypes` map and a `typeOf` selector instead of
+`createRow`/`updateRow` (this is how `Accordion` interleaves header and child rows).
+
+### Constructor options
+
+| Option      | Type    | Description                                                          |
+|-------------|---------|----------------------------------------------------------------------|
+| `createRow` | fun     | Single-type: `fun(list) -> row` — build one blank pooled row          |
+| `updateRow` | fun     | Single-type: `fun(list, row, item, index) -> height?` — populate      |
+| `rowTypes`  | table   | Multi-type: `{ name = { create, update } }` (instead of the above)   |
+| `typeOf`    | fun     | Multi-type: `fun(item, index) -> name` (default reads `item.type`)   |
+| `items`     | table   | Initial items                                                        |
+| `spacing`   | number  | Vertical gap between rows (default `2`)                              |
+| `padding`   | number  | Inset around the stacked rows (default `4`)                          |
+| `rowHeight` | number  | Fallback row height when an `update` returns nil (default `20`)     |
+| `scrollbar` | bool    | Themed scrollbar on the viewport (default `true`)                    |
+
+### Methods
+
+| Method            | Description                                                             |
+|-------------------|-------------------------------------------------------------------------|
+| `SetItems(items)` | (Re)render: acquire/reuse a row per item, stack, hide surplus, resize   |
+| `Content()`       | The content child that row builders parent into                         |
+| `Refresh()`       | Re-run the layout with the current items                                |
+
+---
+
+## Accordion
+
+Inherits `Frame`. Collapsible sections built on `VirtualList`: each section is a clickable
+header row (accent caret + title) whose child rows appear only while expanded. Toggling a
+header rebuilds the underlying list, so headers and child rows share one pooled, scrolling
+viewport. You supply the child-row builders (`createRow`/`updateRow`, parenting into
+`acc:Content()`); the header rows are built in. Expansion state is keyed by `section.key`,
+so it survives `SetSections`.
+
+```lua
+local acc = LibNUI.Accordion:new{
+  parent = panel, position = { All = true },
+  createRow = function(a)
+    local row = LibNUI.Frame:new{ parent = a:Content() }
+    row.label = LibNUI.Label:new{ parent = row, position = { Left = {row, 24, 0} } }
+    return row
+  end,
+  updateRow = function(_, row, rowData) row.label:Text(rowData); return 20 end,
+}
+acc:SetSections({
+  { key = "a", title = "Section A", expanded = true, rows = {"one", "two"} },
+  { key = "b", title = "Section B", rows = {"three", "four"} },
+})
+```
+
+### Constructor options
+
+| Option         | Type    | Description                                                       |
+|----------------|---------|-------------------------------------------------------------------|
+| `sections`     | table   | `{ key, title, rows?, expanded? }` list                          |
+| `createRow`    | fun     | `fun(acc) -> row` — build one blank pooled child row              |
+| `updateRow`    | fun     | `fun(acc, row, rowData, section) -> height?` — populate a child   |
+| `headerHeight` | number  | Header row height (default `24`)                                 |
+| `rowHeight`    | number  | Fallback child-row height (default `20`)                         |
+| `headerColor`  | string  | Caret + title colour token (default `"header"`)                  |
+| `spacing`      | number  | Row gap (default `2`)                                            |
+| `padding`      | number  | Inset (default `4`)                                             |
+| `scrollbar`    | bool    | Themed scrollbar (default `true`)                               |
+
+### Methods
+
+| Method              | Description                                                    |
+|---------------------|----------------------------------------------------------------|
+| `SetSections(list)` | Replace the sections and re-render (expansion preserved by key) |
+| `Toggle(key)`       | Flip a section's expansion, re-render, fire `onToggle`         |
+| `Expand(key)` / `Collapse(key)` | Force a section open/closed                        |
+| `IsExpanded(key)`   | Whether a section is currently expanded                        |
+| `Content()`         | The content child that child-row builders parent into          |
+
+### Callbacks
+
+| Callback                      | Description                                     |
+|-------------------------------|--------------------------------------------------|
+| `onToggle(key, expanded)`     | Fired when a header toggles                      |
 
 ---
 
