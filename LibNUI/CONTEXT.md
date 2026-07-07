@@ -29,6 +29,7 @@ OOP UI widget library. Every widget wraps a backing WoW object (`self._widget`) 
 | `AutoWidget.lua` | `AutoWidget` — standalone factory that builds a Button, Texture, or Label from options |
 | `EditBox.lua` | `EditBox` — text input; `Text`, `CursorPosition`, `HighlightText`, `Font` (`{path,size[,flags]}` tuple getter/setter) |
 | `ScrollFrame.lua` | `ScrollFrame` — scrollable container; `Child`, `VerticalScroll` (get/set offset, clamped to range — for scroll-into-view), `Refresh()` (recompute the scroll range via `UpdateScrollChildRect` after the child's content extent changed, then re-clamp the offset — call after the child grows/shrinks so it can't overscroll into empty space. **The range tracks the child's content extent (its shown sub-frames), NOT its set height** — so a caller that shrinks the scroll child must *hide* the frames it leaves below, e.g. `TableFrame:ResizeRows` hides rows+cells beyond the visible count; otherwise `UpdateScrollChildRect` still measures the old extent and the range stays full). Opt-in `scrollbar = true` swaps the Blizzard bar for a themed **auto-hiding** `Slider` scrollbar (gutter on the inner right edge, mousewheel-synced, hidden when content fits); only that path overrides the frame's wheel/range scripts, so default consumers are untouched |
+| `SectionHeader.lua` | `SectionHeader` — titled section separator: an accent heading + a 1px divider rule underneath, plus an optional right-aligned muted `summary` slot on the heading row. Sizes its own height from the heading; anchor it with a fixed width (Left+Right, or a Width) so the rule/summary have an edge. `Text`/`Summary` getters/setters. The single most-repeated panel-layout construct in the source addon |
 | `CleanFrame.lua` | `CleanFrame` — styled dark frame with tooltip border (base for windows) |
 | `Cell.lua` | `Cell` — table cell (Frame); renders as Label or Texture, reused across re-sorts via `update`. Label cell-data keys: `text`, `color`, `justifyH`, `font` (font-object name), `fontInfo` (`{path,size}` tuple, re-applied on reuse) |
 | `TableCol.lua` | `TableCol` — column header (BgFrame); content surfaced as `header.label`/`header.texture` |
@@ -36,6 +37,7 @@ OOP UI widget library. Every widget wraps a backing WoW object (`self._widget`) 
 | `TableFrame.lua` | `TableFrame` — full data grid (headers + cells); `set`, `addCol`/`addRow`, `update`, `setFooter`. `ResizeRows(n)` shows exactly `n` rows: sets the row-area height **and hides rows `n+1…` plus their cells** (cells parent to the row area, not the row), so a hosting `ScrollFrame`'s range — driven by the child's content extent — collapses to the visible rows instead of overscrolling into the blanked dead rows |
 | `TitleFrame.lua` | `TitleFrame` — windowed CleanFrame with title bar, icon, close button; `Title`; `RememberPosition(store)` — opt-in drag-position persistence: restores the saved point from `store` and writes `{ point, relPoint, x, y }` back on drag-stop (hooks both drag paths — the body `OnDragStop` + the title bar's `OnMouseUp`), so a DB-backed `store` survives `/reload`/relog instead of re-centering |
 | `CopyWindow.lua` | `CopyWindow` — reusable copyable scroll window (TitleFrame + ScrollFrame + multiline EditBox + titlebar font-size picker); `Display(title, text)`. Shared singleton via `ui.ShowCopyWindow(title, text)`; `ui.ToggleCopyWindow(title, text)` closes it if already open on the same title (caches `_title`), else shows — for slash commands that should toggle. **`DIALOG` strata** so it floats above the HIGH-strata Blizzard Settings panel (e.g. when opened from LibNAddOn's changelog viewer). Font size persists in `LibNUIDB.copyFontSize` |
+| `Notification.lua` | `Notification` — movable, Escape-closable notification card (TitleFrame subclass): accent title strip + close X, optional `icon`, wrapped `body`, optional "don't show again" checkbox, and a dismiss button. `:Notify()` shows it (resets the checkbox, arms the optional `duration` auto-hide via `C_Timer.NewTimer`); the close X, dismiss button, and Escape share one `_dismiss` path (`onDismiss`). `special = true` by default → **pass a unique `name`**. Ports EverythingDelves' reminder-toast pattern; subsumes a version-gated "what's new" popup |
 | `TabFrame.lua` | `TabFrame` — tabbed container; `Select`, `Tab`, `Selected` |
 | `Tooltip.lua` | `Tooltip` — custom tooltip with line pooling + scrolling menus; singleton `ui.tip` |
 | `FilterDropdown.lua` | `FilterDropdown` — select control: labelled button (left-aligned text + right chevron Texture, flipped while open) that drops an **attached option panel** of `{ key, label, enabled? }` options (disabled = greyed/inert; the panel swallows their clicks). The panel hangs flush under the button's left edge, is never narrower than the button (`menuWidth` = minimum; widens to fit the longest option), and option labels share the button label's x-inset so text aligns exactly; on open the current selection renders gold (`header` token). Picking fires `onSelect(self, key)` and updates the button label. `Select(key)` re-points it without firing. `width`; `bordered` draws a framed background + 1px border (matches toggle buttons; the panel is always framed). Menu closes on **Esc** (captured + consumed, so a parent window stays open), on **any click outside** (`GLOBAL_MOUSE_DOWN`, registered only while open), and **when the dropdown/its view hides** (the panel parents to UIParent to escape clipping ancestors, so an `OnHide` hook takes it down); **at most one menu is open at a time** (module-level registry). Used for titlebar/strip filters (Collected expansion+category, Overview/Reputations/Crafting pickers) |
@@ -66,6 +68,7 @@ Region
      ├─ MinimapButton
      ├─ EditBox
      ├─ ScrollFrame
+     ├─ SectionHeader
      ├─ Cell
      ├─ TabFrame
      ├─ FilterDropdown
@@ -74,7 +77,8 @@ Region
      ├─ ToggleSetting
      └─ CleanFrame
          ├─ TitleFrame
-         │   └─ CopyWindow
+         │   ├─ CopyWindow
+         │   └─ Notification
          └─ Tooltip
 AutoWidget — standalone factory (no parent class)
 ```
@@ -154,11 +158,13 @@ Any key matching a method on the instance is valid; tables are unpacked, scalars
 | `SecureButton` | `actions` — list of `{type, target, spell, toy}` |
 | `CheckButton` | `text`, `OnToggle` |
 | `RadioGroup` | inherits Frame; `options` (`{key,label}[]`), `selected` (initial key), `header` (optional heading), `spacing` (32), `width` (180), `onSelect(self, key)`. Methods: `Select(key)` (get/set, no fire) |
+| `SectionHeader` | inherits Frame; `text`, `summary` (optional right-aligned), `titleColor` (`"header"`), `dividerColor` (`"header"`), `fontInfo`, `underline` (true), `gap` (5). Anchor with a fixed width. Methods: `Text`, `Summary` |
 | `AutoWidget` | `parent`, `onClick`, `path`, `atlas`, `atlasSize`, `coords`, `vertexColor`, `position`, `label`, `font`, `color`, `justifyH` |
 | `EditBox` | `fontObj`, `autoFocus`, `text`, `cursorPosition` |
 | `CleanFrame` | `parent` (`UIParent`), `clamped` (true), `strata` (`MEDIUM`), `background` (`{0.114,0.141,0.165,1}`) |
 | `TitleFrame` | inherits CleanFrame; `title`, `drag` (true) |
 | `CopyWindow` | inherits TitleFrame; no options needed (defaults: centered, height 380, `special`). `Display(title, text)` shows + sizes + highlights; prefer the `ui.ShowCopyWindow` singleton |
+| `Notification` | inherits TitleFrame; **`name` (required — `special`)**, `title`, `body`, `icon`, `dismiss` (`"Dismiss"`, false to omit), `dontShowAgain` (false), `dontShowText`, `duration` (auto-hide secs), `onDismiss(self)`, `onDontShowAgain(self, checked)`; defaults `strata="DIALOG"`, `Center` 360×170. Methods: `Notify()`, `Body(text)` |
 | `TabFrame` | `tabs` (string[]), `tabHeight` (24), `tabWidth` (80), `activeColor`, `inactiveColor`, `onSelect` |
 | `Tooltip` | inherits CleanFrame; `lines`, `maxHeight` (clips into scrollable viewport); `strata` (`DIALOG`), `background` (`{0,0,0,0.7}`), `inset` (3) |
 | `SettingsFrame` | `heading` (`{text,fontObj,color}`), `headingText` |

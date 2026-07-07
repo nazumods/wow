@@ -14,6 +14,8 @@ model.lua
 slider.lua
 scrollframe.lua
 radiogroup.lua
+sectionheader.lua
+notification.lua
 minimapbutton.lua
 filterdropdown.lua
 ring.lua
