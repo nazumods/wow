@@ -10,7 +10,7 @@
 ## OptionalDeps: Warbandeer_Bars, Warbandeer_Collected, ShadowsOfUI-Upgrade
 ## X-Curse-Project-ID: 1546586
 ## X-NUI-DB: WarbandeerDB
-## X-NUI-DB-VERSION: 6
+## X-NUI-DB-VERSION: 7
 ## X-NUI-COMMANDS: /warband, /wb
 ## X-NUI-COMPARTMENT: Warbandeer_OnAddonCompartmentClick
 ## X-NUI-API: WarbandeerApi
@@ -94,6 +94,7 @@ views\CraftingView.lua
 views\PlaytimeView.lua
 views\BarsPreview.lua
 views\BarsApply.lua
+views\barApplyDefaultsSettings.lua
 views\BarsView.lua
 views\CollectedView.lua
 views\reps\ReputationsData.lua

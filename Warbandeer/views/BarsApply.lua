@@ -37,6 +37,17 @@ local TOGGLES = {
   { label = "Sky",   bars = {11}, w = 40, off = true },
   { label = "Pet",   pet  = true, w = 40, off = true },
 }
+-- Exposed for barApplyDefaultsSettings.lua (one checkbox per toggle).
+---@type table[]
+ns.BarApplyToggles = TOGGLES
+
+-- The default include-state for a toggle: the user's saved preference if set,
+-- else the built-in default (`not def.off`). Read when the panel is constructed.
+local function defaultOn(def)
+  local pref = ns.db.settings.barApplyDefaults[def.label]
+  if pref == nil then return not def.off end
+  return pref
+end
 
 local ROW_W    = 8 * NUM_W + 7 * GAP
 local FRAME_W  = P + ROW_W + P
@@ -83,7 +94,7 @@ local BarsApplyFrame = Class(CleanFrame, function(self)
       text     = def.label:upper(),
     }
     b._def = def
-    b._on  = not def.off
+    b._on  = defaultOn(def)
     b.OnClick = function()
       b._on = not b._on
       self:_paintToggle(b)
