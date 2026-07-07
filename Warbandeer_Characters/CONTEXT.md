@@ -151,6 +151,7 @@ Also on the API table: `ALLIANCE_RACES`, `HORDE_RACES`, `professionInfo`.
 name, classId, className, classKey, race, raceId, raceIdx, isAlliance, realm
 sex           -- UnitSex code (2=male, 3=female); refreshed each login for the active char (alts seen before this field default to male at render time)
 guid          -- "Player-<realmID>-<lowGUID>" UnitGUID; refreshed each login for the active char (alts not yet seen since v30 lack it until next login)
+guild         -- guild name (nil when unguilded); refreshed each login + on PLAYER_GUILD_UPDATE for the active char (alts seen before this field lack it until next login)
 lastRefresh   -- set by refreshQueue when a full scan completes
 
 -- Sub-tables (one per broker, populated by their fields):

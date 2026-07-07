@@ -82,6 +82,7 @@ end, "Repair stored data (recount characters)")
 ---@field realm string
 ---@field sex integer  UnitSex code (2=male, 3=female); refreshed each login for the active character
 ---@field guid string  "Player-<realmID>-<lowGUID>" UnitGUID; refreshed each login for the active character
+---@field guild string?  guild name (nil when unguilded); refreshed each login and on PLAYER_GUILD_UPDATE for the active character
 
 ---@class Warbandeer_Characters
 ---@field MigrateDB fun(self) Migrate database to latest version
@@ -384,7 +385,15 @@ function ns:initialize()
   -- the next time they log in (alts not yet seen default to male at render time).
   c.sex = UnitSex("player")
   c.guid = UnitGUID("player")
+  c.guild = GetGuildInfo("player")
 
   self:InitBrokers()
   self:InitWarband()
 end
+
+-- Guild info can read back nil at PLAYER_LOGIN (before the roster loads) and also
+-- changes mid-session when the player joins or leaves a guild; keep the active
+-- character's stored guild in sync as those updates arrive.
+ns:registerEvent("PLAYER_GUILD_UPDATE", function()
+  if ns.currentData then ns.currentData.guild = GetGuildInfo("player") end
+end)
