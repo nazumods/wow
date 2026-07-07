@@ -2,7 +2,7 @@
 ## Category: Shadows of UI
 ## Title: GCD Bar
 ## Author: Nazuraki
-## Version: 12.0.7-r1
+## Version: 12.0.7-r2
 ## IconTexture: Interface\Icons\inv_icon_shadowcouncilorb_purple
 ## Dependencies: LibNAddOn, LibNUI
 ## X-NUI-UI: LibNUI

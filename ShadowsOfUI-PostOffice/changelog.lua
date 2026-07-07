@@ -6,6 +6,11 @@ local ns = select(2, ...)
 -- conventional-commit grouping used for the GitHub/CurseForge release notes.
 ---@type { version: string, notes: string }[]
 ns.changelog = {
+  { version = "12.0.7-r1", notes = [==[
+### Features
+- add ShadowsOfUI-PostOffice mailbox helper (#381)
+
+]==] },
   { version = "12.0.7-r0", notes = [==[
 ### Features
 - initial release: coin-collected report, trade blocking at the mailbox, and coin auto-subject (re-derived from Postal's Rake, TradeBlock, and Wire)

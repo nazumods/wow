@@ -6,6 +6,15 @@ local ns = select(2, ...)
 -- same conventional-commit grouping used for the GitHub/CurseForge release notes.
 ---@type { version: string, notes: string }[]
 ns.changelog = {
+  { version = "12.0.7-r15", notes = [==[
+### Features
+- in-game changelog viewer, wired for Warbandeer (#340) (#375)
+- add settings for default bar-apply toggle states (#336) (#374)
+
+### Bug Fixes
+- heal Summary cell fonts on cold-session first open (#357) (#373)
+
+]==] },
   { version = "12.0.7-r14", notes = [==[
 ### Features
 - Unalloyed Abundance summary column + throttle delves rescan (#320) (#361)

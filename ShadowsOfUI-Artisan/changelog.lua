@@ -6,6 +6,14 @@ local ns = select(2, ...)
 -- conventional-commit grouping used for the GitHub/CurseForge release notes.
 ---@type { version: string, notes: string }[]
 ns.changelog = {
+  { version = "12.0.7-r4", notes = [==[
+### Features
+- roll out in-game changelog viewer to all ShadowsOfUI addons (#340) (#376)
+
+### Bug Fixes
+- gate book badge on SpellButton1 shown to avoid phantom badge in emptied slot (#320) (#366)
+
+]==] },
   { version = "12.0.7-r3", notes = [==[
 ### Features
 - show the Moxie badge on the Crafting Orders tab (#296)
