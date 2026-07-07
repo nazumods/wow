@@ -360,6 +360,7 @@ std = {
     "ITEM_PURCHASED_COLON",
     "ITEM_SOLD_COLON",
     "MAIL_SUBJECT_LABEL",
+    "MailFrame",
     "MailFrameTab_OnClick",
     "OpenMailFrame",
     "OpenMailReplyButton",
