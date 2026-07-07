@@ -1,10 +1,10 @@
 # ShadowsOfUI-PostOffice — CONTEXT
 
-**Deps:** LibNAddOn · **Commands:** `/spost` · **DB:** `ShadowsOfUI_PostOfficeDB` (v1) · **UI lib:** none (headless)
+**Deps:** LibNAddOn · **Commands:** `/spost` · **DB:** `ShadowsOfUI_PostOfficeDB` (v2) · **UI lib:** none (headless)
 
 Headless mailbox helper. Re-derives the "pure logic" subset of Postal (Rake,
-TradeBlock, Wire) in LibNAddOn style — no widgets, only native-mail augmentation +
-Settings-panel toggles. Ongoing port is scoped in the Postal fork's
+TradeBlock, Wire, Express) in LibNAddOn style — no widgets, only native-mail
+augmentation + Settings-panel toggles. Ongoing port is scoped in the Postal fork's
 `docs/postoffice-port.md`; **re-derive, never copy Postal verbatim** (ARR license +
 Ace3→LibNAddOn mismatch).
 
@@ -16,6 +16,7 @@ Ace3→LibNAddOn mismatch).
 | `rake.lua` | Snapshot `GetMoney()` on mail open, print the gain (`GetCoinTextureString`) on close. Report-only; does not auto-loot. |
 | `tradeBlock.lua` | `ns:SetTemporaryCVar("BlockTrades", 1)` on open, `RestoreCVar` on close; reacts to a live toggle while `ns._atMailbox`. |
 | `wire.lua` | Installs an `onValueChangedFunc` on `SendMailMoney` (lazily, first open) to fill a blank `SendMailSubjectEditBox` with a plain-text coin string; only overwrites its own prior value. |
+| `express.lua` | Modifier-click shortcuts (lazy install, first open): replaces `InboxFrame_OnClick` for ctrl-click-return, posthooks `HandleModifiedItemClick` for alt-click-attach (+ optional auto-send), posthooks `InboxFrameItem_OnEnter` + `ns:OnItemTooltip` for hint lines. `db.express` / `db.expressAutoSend`. |
 | `changelog.lua` | `ns.changelog` release history (release.sh appends). |
 
 ## Mailbox lifecycle (core.lua)
@@ -40,10 +41,11 @@ Retail drives the mail window via the player-interaction manager; the legacy
 (the LibNAddOn default settings callback) dispatches to it. Used by TradeBlock to
 un-block immediately when disabled at the mailbox.
 
-## DB (`ShadowsOfUI_PostOfficeDB`, v1)
+## DB (`ShadowsOfUI_PostOfficeDB`, v2)
 
-Flat feature flags, all default `true`: `rake`, `tradeBlock`, `wire`. `MigrateDB`
-adds missing keys non-destructively.
+Flat feature flags: `rake`, `tradeBlock`, `wire`, `express` (all default `true`) and
+`expressAutoSend` (default `false`). `MigrateDB` adds missing keys non-destructively
+(v2 added the two `express*` keys).
 
 ## Gotchas
 
@@ -56,10 +58,12 @@ adds missing keys non-destructively.
 - **`BlockTrades` CVar** is set via `SetTemporaryCVar` (auto-restores on logout as a
   safety net if a close is missed).
 
-## Not yet ported
+## Express notes
 
-Postal's `Express` (modifier-click loot/return/attach) is the remaining "pure logic"
-module. Deferred: shift-click auto-loot is now native
-(`InboxFrame_OnModifiedClick` → `AutoLootMailItem`), and adding ctrl-to-return means
-replacing that handler rather than a clean posthook — needs in-game validation. See
-the port design doc.
+- **Shift-click loot is left to native** (`InboxFrame_OnModifiedClick` → `AutoLootMailItem`
+  on the MAILAUTOLOOTTOGGLE modifier); we only add ctrl-return + alt-attach.
+- **Ctrl-return replaces `InboxFrame_OnClick`** (not a posthook) so it can suppress the
+  open; mail frames aren't protected, so this is taint-safe. The wrapper falls through to
+  the original for non-ctrl clicks and when `db.express` is off.
+- **Not ported from Postal:** the ctrl-click "bulk-attach similar items" pass (multi-pass
+  quality/subtype matching + soulbound tooltip scan) — omitted as low-clarity for v1.
