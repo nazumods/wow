@@ -68,6 +68,33 @@ bump_version() {
   fi
 }
 
+# ── In-game changelog helper ──────────────────────────────────────────────────
+# Prepend a release entry (newest first) to an addon's in-game changelog data file.
+# Only touches it when the addon opted in by shipping a changelog.lua + toc entry
+# (see LibNAddOn's changelog viewer) — this script never creates the file, so an
+# addon that hasn't wired up the viewer is left untouched. The notes body is the
+# same markdown grouping written to the GitHub release, wrapped in a Lua long string.
+prepend_changelog() {
+  local changelog="$1" version="$2" notes_file="$3"
+  [[ -f "$changelog" ]] || return 0
+  local entry_file
+  entry_file=$(mktemp)
+  {
+    printf '  { version = "%s", notes = [==[\n' "$version"
+    sed -e 's/[[:space:]]*$//' "$notes_file"
+    printf ']==] },\n'
+  } > "$entry_file"
+  # Insert the new entry immediately after the `ns.changelog = {` opening line.
+  awk -v ef="$entry_file" '
+    { print }
+    /^ns\.changelog = \{/ && !inserted {
+      while ((getline line < ef) > 0) print line
+      close(ef); inserted = 1
+    }
+  ' "$changelog" > "${changelog}.tmp" && mv "${changelog}.tmp" "$changelog"
+  rm -f "$entry_file"
+}
+
 # ── Detect changes and prepare releases ──────────────────────────────────────
 
 CHANGED_ADDONS=()
@@ -92,7 +119,7 @@ for addon in "${ADDONS[@]}"; do
   # release or version bump. The :(exclude,glob) pathspec's /**/ spans subdirs
   # and also matches top-level .md files (e.g. CONTEXT.md). spec/ and tools/ are
   # also excluded from the published zip in publish.yml.
-  pathspec=("${addon}/" ":(exclude,glob)${addon}/**/*.md" ":(exclude,glob)${addon}/spec/**" ":(exclude,glob)${addon}/tools/**")
+  pathspec=("${addon}/" ":(exclude,glob)${addon}/**/*.md" ":(exclude,glob)${addon}/spec/**" ":(exclude,glob)${addon}/tools/**" ":(exclude)${addon}/changelog.lua")
   if [[ -n "$last_tag" ]]; then
     commit_log=$(git log "${last_tag}..HEAD" --pretty=format:"%s" -- "${pathspec[@]}" || true)
   else
@@ -146,6 +173,9 @@ for addon in "${ADDONS[@]}"; do
 
   notes_file=$(mktemp)
   printf '%s' "$notes" > "$notes_file"
+
+  # Append this release to the addon's in-game changelog (opt-in; no-op if absent).
+  prepend_changelog "${addon}/changelog.lua" "$new_version" "$notes_file"
 
   CHANGED_ADDONS+=("$addon")
   ADDON_VERSIONS[$addon]="$new_version"

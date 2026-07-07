@@ -261,3 +261,28 @@ aren't tied to any one addon's namespace — and are available as soon as LibNAd
 - `/rl` — reload the UI (`ReloadUI()`)
 - `/fs` — toggle the frame stack (Blizzard's `/framestack` debug tooltip)
 - `/etc` — open Edit Mode
+
+## In-game changelog
+
+An addon can surface its release history in-game, viewable from a **Changelog** button in
+its Settings category. Two pieces:
+
+1. Ship a `changelog.lua` data file — a newest-first list of `{ version, notes }` entries.
+   The release tooling (`.github/scripts/release.sh`) appends to this automatically at
+   release time, from the same conventional-commit grouping used for the GitHub/CurseForge
+   release notes, so it's never maintained by hand. Add the file to your `.toc`:
+
+   ```lua
+   ---@class MyAddOn
+   local ns = select(2, ...)
+
+   ---@type { version: string, notes: string }[]
+   ns.changelog = {
+     { version = "12.0.7-r1", notes = "### Features\n- did a thing" },
+   }
+   ```
+
+2. Call `myAddOn:RegisterChangelog()` once (e.g. in your setup file). It adds the button to
+   your settings category — defaulting to the addon's title, or pass a category name to
+   override. The notes open in LibNUI's shared scrollable **CopyWindow**; an addon without
+   LibNUI falls back to printing them to chat. `myAddOn:ShowChangelog()` opens it directly.

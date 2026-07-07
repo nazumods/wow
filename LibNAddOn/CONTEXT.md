@@ -28,6 +28,7 @@ Bootstrapping factory every other addon depends on. `LibNAddOn(features)` wires 
 | `tooltip.lua` | `ns.linkTooltipHelpers(addOn)` — `OnItemTooltip(fn)`: registers `fn(tooltip, data)` as a `TooltipDataProcessor` post-call for `Enum.TooltipDataType.Item`, pre-guarded against forbidden tooltips + nil data (and a no-op when the client lacks `TooltipDataProcessor`). Wraps the boilerplate every headless tooltip addon repeated |
 | `database.lua` | `ns.setupDB(name, addOn, ops)` — links `_G[dbName]` → `addOn.db`, triggers `MigrateDB` on version mismatch |
 | `settings.lua` | `ns.registerSettings(addOn, name, features)` — Blizzard Settings API (checkbox/slider/dropdown) |
+| `changelog.lua` | `ns.registerChangelog(addOn, name, categoryName?)` — adds a **"Changelog"** button to the addon's settings category (via `CreateSettingsButtonInitializer` + `Settings.RegisterInitializer`, deferred to `ADDON_LOADED`) that opens `addOn.changelog` (a newest-first `{version, notes}` list from the addon's `changelog.lua`, appended at release by `release.sh`) in LibNUI's shared `CopyWindow`; chat fallback without LibNUI. Adds `addOn:RegisterChangelog`/`ShowChangelog` |
 | `api.lua` | `LibNAddOn(features, o)` — top-level factory function (global) |
 
 ## Factory: `LibNAddOn(features)`
@@ -68,9 +69,10 @@ addOn._eventListener (Frame), addOn._eventHandlers (table), addOn._cvarBackup (t
 addOn.lua, addOn.wow, addOn.icons, addOn.Colors
 addOn.api (shared global, if configured), addOn.ui (LibNUI global, if configured)
 addOn.db (linked on ADDON_LOADED), addOn.commands, addOn.settingsCategory
+addOn.changelog (release history, if a changelog.lua ships)
 Methods:   GetMetadata, Print, hook, registerEvent, unregisterEvent, delay, after,
            registerCommand, SlashCmd, usage, SetTemporaryCVar, RestoreCVar, RestoreCVars,
-           OnItemTooltip, RegisterSettings, GetSettingsParent
+           OnItemTooltip, RegisterSettings, GetSettingsParent, RegisterChangelog, ShowChangelog
 Lifecycle: onLoad, onLogin, MigrateDB, settingChanged, CompartmentClick
 ```
 

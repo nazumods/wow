@@ -31,5 +31,6 @@ cvar.lua
 tooltip.lua
 database.lua
 settings.lua
+changelog.lua
 
 api.lua

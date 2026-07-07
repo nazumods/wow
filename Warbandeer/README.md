@@ -43,6 +43,7 @@ Found in the Blizzard settings panel:
 - **Summary Columns** — a subpanel of checkboxes to show or hide individual Summary columns (currencies, crests, Great Vault, Mythic+, gold, playtime, and more). The identity columns (character, faction, role, level, item level) are always shown. Changes apply immediately.
 - **Consumables** — a subpanel with a master **Show consumables** checkbox (turn the whole Detail Consumables box off) plus a checkbox per category (flask, combat potion, food, weapon buff, augment rune). Appears only with **ClassCodex** installed (the source of the recommendations). Changes apply immediately.
 - **Bar Apply Defaults** — a subpanel of checkboxes setting which bars are pre-checked when the Bars view's Apply panel opens (Action Bars 1-8, Class Pages 1-5, and the Bonus / Skyriding / Pet bars). By default every bar is included except Bonus, Skyriding, and Pet. Changes take effect the next time you open the game.
+- **Changelog** — a button that opens Warbandeer's release history (newest first) in a scrollable, copyable window, so you can read what changed without leaving the game.
 
 ## Requirements
 
