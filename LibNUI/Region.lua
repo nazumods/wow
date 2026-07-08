@@ -38,6 +38,22 @@ function Region:ThemeColor(c)
   return c
 end
 
+-- Register a repaint against this widget's active theme: `fn(self, theme)` runs now and
+-- again after every `theme:Apply(overrides)`, so token-derived styling follows runtime
+-- theme swaps. Registration is permanent — call once at construction (a pooled/reused
+-- widget registers when built, not per refresh), or entries pile up. Widgets without a
+-- custom theme register on the shared dark theme: a `ui.themes.dark:Apply` repaints them
+-- across every LibNUI-based addon.
+---@param fn fun(self: Region, theme: Theme)
+---@return Region
+function Region:Themed(fn)
+  local theme = self:Theme()
+  local themed = theme._themed
+  themed[#themed + 1] = function() fn(self, theme) end
+  fn(self, theme)
+  return self
+end
+
 ---@param parent Region|table  new parent (LibNUI widget or raw WoW frame)
 function Region:Parent(parent)
   self._widget:SetParent(parent._widget or parent)

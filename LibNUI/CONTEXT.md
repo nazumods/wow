@@ -10,7 +10,7 @@ OOP UI widget library. Every widget wraps a backing WoW object (`self._widget`) 
 |---|---|
 | `globals.lua` | Creates `LibNUI`/`ns.ui`; `MigrateDB` (seeds `LibNUIDB`); registers `/nui version` and `/nui test` (loads on-demand `LibNUI_Test`) |
 | `constants.lua` | Enum tables: `ui.edge`, `ui.layer`, `ui.justify`, `ui.wrap`, `ui.fonts` |
-| `Theme.lua` | `ui.themes.dark` (default styling tokens) + `ui.Theme(overrides)` factory for custom themes |
+| `Theme.lua` | `ui.themes.dark` (default styling tokens) + `ui.Theme(overrides)` factory for custom themes. **Runtime swaps:** `theme:Apply{colors/fonts/textures}` merges tokens **in place** (widgets built afterwards style themselves with the new values automatically — construction resolves from the same tables) and re-runs every repaint registered via `Region:Themed(fn)`. Custom themes fall back to dark via `__index`, so a dark-level Apply shows through custom themes that didn't override that token |
 | `Region.lua` | `Region` — abstract base; anchoring/size/visibility/alpha + declarative `position` system |
 | `Texture.lua` | `Texture` — wraps WoW Texture (atlas, color, coords, nine-slice, runtime `Gradient`, `Rotation`) |
 | `Label.lua` | `Label` — wraps FontString; `Text`, `Color`, `JustifyH`, `StringWidth`, `UnboundedWidth` |
@@ -124,6 +124,7 @@ local win = ui.TitleFrame:new{ title = "Mine", theme = myTheme }
 - **Token strings as colors**: any color option (`background`, `color`, `activeColor`, cell `data.color`, …) and `Label:Color`/`Texture:Color`/`Texture:SetVertexColor` accept a token name string (e.g. `background = "window"`), resolved against the widget's active theme.
 - `Region:Theme()` returns the active theme; `Region:ThemeColor(c)` resolves a token-or-table.
 - Always build custom themes via `ui.Theme{}` (raw tables miss the dark fallback metatables).
+- **Runtime swaps**: `theme:Apply{ colors = { header = {...} } }` merges tokens **in place** and re-runs repaints registered via `Region:Themed(fn)` (`fn(self, theme)` runs immediately + after every Apply — re-pull token styling there, e.g. `self.title:Color("header")`). Registration is **permanent**: register once at construction, never per refresh (pooled rows register when built). Widgets without a custom theme register on the shared dark theme — a `ui.themes.dark:Apply` repaints across every LibNUI-based addon; scope user-facing accent pickers to a custom theme instead.
 
 ## Region (base class)
 
@@ -140,6 +141,7 @@ Constructor resolves `theme` (own option → parent widget's theme), calls subcl
 | `Show()` · `Hide()` · `SetShown(b)` · `Toggle()` | Visibility |
 | `Alpha(a?)` | Getter/setter |
 | `IsMouseOver()` | Cursor within the region's hit rect |
+| `Themed(fn)` | Register `fn(self, theme)` against the active theme: runs now + after every `theme:Apply` (see **Themes**) |
 
 ### `position` table
 
