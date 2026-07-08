@@ -68,7 +68,9 @@ end
 ---@field delay fun(self: AddOn, ms: number, fn: function|string) one-shot debounce timer; a second call replaces the pending callback
 ---@field after fun(self: AddOn, ms: number, fn: function) fire fn once after ms milliseconds; supports concurrent timers
 ---@field _coalescing table<any, boolean> keys with a coalesced fire currently scheduled
----@field coalesce fun(self: AddOn, key: any, ms: number, fn: function) collapse a storm of same-key calls into one trailing-edge fire ms later
+---@field coalesce fun(self: AddOn, key: any, ms: number, fn: function) collapse a storm of same-key calls into one trailing-edge fire ms after the FIRST call (rest dropped)
+---@field _debouncing table<any, integer> per-key monotonic generation for the reset-trailing debounce
+---@field debounce fun(self: AddOn, key: any, ms: number, fn: function) reset-trailing debounce: each same-key call reschedules; fn fires ms after the LAST call
 ---@field onLoad fun(self: AddOn) called when the add-on is loaded
 ---@field onLogin fun(self: AddOn, isLogin: boolean, isReload: boolean) called when the player logs in or the UI is reloaded
 ---@field ADDON_LOADED Event
@@ -82,6 +84,7 @@ function ns.createEventListener(addOn)
   a._eventListener = CreateFrame("Frame")
   a._eventHandlers = {}
   a._coalescing = {}
+  a._debouncing = {}
   a._eventListener.OnEvent = OnEvent
   a.registerEvent = RegisterEvent
   a.unregisterEvent = UnregisterEvent
@@ -133,6 +136,23 @@ function ns.createEventListener(addOn)
     C_Timer.After(ms / 1000, function()
       pending[key] = nil
       fn()
+    end)
+  end
+
+  -- Reset-trailing debounce keyed by `key`: each call supersedes the pending fire
+  -- and reschedules `ms` out, so a burst collapses to one `fn` that runs `ms` after
+  -- the LAST call (waits for quiet). The mirror of `coalesce` (which fires `ms` after
+  -- the FIRST call and drops the rest); and `delay` generalised from one addon-wide
+  -- slot to N independent keys. Under a sustained stream `debounce` never fires until
+  -- it settles, `coalesce` keeps firing every `ms` — pick by whether you want the
+  -- burst to quiet first. A per-key monotonic generation is the cancel (C_Timer.After
+  -- can't be cancelled): only the newest scheduling for a key passes its guard.
+  a.debounce = function(self, key, ms, fn)
+    local gens = self._debouncing
+    local gen = (gens[key] or 0) + 1
+    gens[key] = gen
+    C_Timer.After(ms / 1000, function()
+      if gens[key] == gen then fn() end   -- else superseded by a later call in the burst
     end)
   end
 end
