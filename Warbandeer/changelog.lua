@@ -6,6 +6,11 @@ local ns = select(2, ...)
 -- same conventional-commit grouping used for the GitHub/CurseForge release notes.
 ---@type { version: string, notes: string }[]
 ns.changelog = {
+  { version = "12.0.7-r16", notes = [==[
+### Features
+- show guild name in the character summary tooltip (#390)
+
+]==] },
   { version = "12.0.7-r15", notes = [==[
 ### Features
 - in-game changelog viewer, wired for Warbandeer (#340) (#375)
