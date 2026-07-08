@@ -41,6 +41,12 @@ SectionHeader.lua
 VirtualList.lua
 Accordion.lua
 
+# content primitives
+StatTile.lua
+LabeledValue.lua
+IconListItem.lua
+Badge.lua
+
 # "Clean UI" classes
 CleanFrame.lua
 Cell.lua

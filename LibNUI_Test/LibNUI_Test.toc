@@ -18,6 +18,7 @@ sectionheader.lua
 notification.lua
 virtuallist.lua
 accordion.lua
+primitives.lua
 minimapbutton.lua
 filterdropdown.lua
 ring.lua

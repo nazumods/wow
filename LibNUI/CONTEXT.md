@@ -32,6 +32,10 @@ OOP UI widget library. Every widget wraps a backing WoW object (`self._widget`) 
 | `SectionHeader.lua` | `SectionHeader` — titled section separator: an accent heading + a 1px divider rule underneath, plus an optional right-aligned muted `summary` slot on the heading row. Sizes its own height from the heading; anchor it with a fixed width (Left+Right, or a Width) so the rule/summary have an edge. `Text`/`Summary` getters/setters. The single most-repeated panel-layout construct in the source addon |
 | `VirtualList.lua` | `VirtualList` — pooled, variable-height, mixed-row-type list (the complement to TableFrame's fixed grid). Owns a themed-scrollbar `ScrollFrame` + content child; per-**type** row pools; `SetItems(items)` stacks one row per item via a `yCur` cursor (anchored to the child, no sibling chaining), reusing rows and hiding the surplus, then sizes the child + `Refresh`es the scroll range. Rows anchor left+right → reflow on resize. **Not windowed** (a frame per item). Single-type: `createRow`/`updateRow`; multi-type: `rowTypes` map + `typeOf(item)`. `Content()` is the parent for row builders |
 | `Accordion.lua` | `Accordion` — collapsible sections composed on a `VirtualList`: built-in clickable header rows (accent caret + title, hover highlight) whose child rows (consumer's `createRow`/`updateRow`) appear only while expanded. Header click → `Toggle(key)` rebuilds the flattened item list. `SetSections`, `Toggle`/`Expand`/`Collapse`/`IsExpanded`, `onToggle(self, key, expanded)`; expansion state keyed by `section.key` (survives `SetSections`) |
+| `StatTile.lua` | `StatTile` — bordered "KPI" box: big centred value (default `GameFontHighlightLarge`) + small muted subtitle, 1px border whose colour expresses state; optional `tooltip` lines via `ui.tip`. `Value`/`Subtitle` getters/setters; `Colors{value,subtitle,border,fill}` one-call restyle. FilterDropdown's bordered idiom (border texture + fill inset 1px) |
+| `LabeledValue.lua` | `LabeledValue` — one "label: value" stat field: optional icon + muted caption + accent value to its right. `Value` getter/setter for live updates |
+| `IconListItem.lua` | `IconListItem` — media list row: icon (or `•` bullet when none) + title with optional muted `kind` suffix + wrapped subtitle; row hover shows `itemID`'s real item tooltip (GameTooltip) or custom `tooltip` lines (`ui.tip`). `Set(data)` re-points the whole row for pooled reuse (the VirtualList updateRow path). Anchor with a width so the subtitle wraps |
+| `Badge.lua` | `Badge` — inline status pill: short coloured text on a subtle fill, auto-sized to the text (`_fit` on `Text` set); optional `tooltip` legend. For "[B]"-style markers beside a name |
 | `CleanFrame.lua` | `CleanFrame` — styled dark frame with tooltip border (base for windows) |
 | `Cell.lua` | `Cell` — table cell (Frame); renders as Label or Texture, reused across re-sorts via `update`. Label cell-data keys: `text`, `color`, `justifyH`, `font` (font-object name), `fontInfo` (`{path,size}` tuple, re-applied on reuse) |
 | `TableCol.lua` | `TableCol` — column header (BgFrame); content surfaced as `header.label`/`header.texture` |
@@ -73,6 +77,10 @@ Region
      ├─ SectionHeader
      ├─ VirtualList
      ├─ Accordion
+     ├─ StatTile
+     ├─ LabeledValue
+     ├─ IconListItem
+     ├─ Badge
      ├─ Cell
      ├─ TabFrame
      ├─ FilterDropdown
@@ -165,6 +173,10 @@ Any key matching a method on the instance is valid; tables are unpacked, scalars
 | `SectionHeader` | inherits Frame; `text`, `summary` (optional right-aligned), `titleColor` (`"header"`), `dividerColor` (`"header"`), `fontInfo`, `underline` (true), `gap` (5). Anchor with a fixed width. Methods: `Text`, `Summary` |
 | `VirtualList` | inherits Frame; `spacing` (2), `padding` (4), `rowHeight` (20), `scrollbar` (true), `items`; single-type `createRow(list)→Frame` + `updateRow(list,row,item,i)→height?`, or multi-type `rowTypes` (`{name={create,update}}`) + `typeOf(item,i)→name` (default `item.type`). Methods: `SetItems(items)`, `Content()`, `Refresh()` |
 | `Accordion` | inherits Frame; `sections` (`{key,title,rows,expanded?}[]`), `spacing` (2), `padding` (4), `headerHeight` (24), `rowHeight` (20), `headerColor` (`"header"`), `scrollbar` (true), `createRow(acc)→Frame`, `updateRow(acc,row,rowData,section)→height?`, `onToggle(acc,key,expanded)`. Methods: `SetSections`, `Toggle`/`Expand`/`Collapse`/`IsExpanded(key)`, `Content()` |
+| `StatTile` | inherits Frame; `value`, `subtitle`, `valueColor` (`"text"`), `subtitleColor` (`"muted"`), `borderColor` (`"divider"`), `fill` (`"backdrop"`), `valueFont` (`"GameFontHighlightLarge"`), `tooltip` (string\|string[]), `width`/`height` (64/40 — **intrinsic size options**, not position defaults, so a caller's `position` can't zero them). Methods: `Value`, `Subtitle`, `Colors{...}` |
+| `LabeledValue` | inherits Frame; `label`, `value`, `icon`, `labelColor` (`"muted"`), `valueColor` (`"header"`), `iconSize` (16), `gap` (4), `height` (16, intrinsic). Methods: `Value` |
+| `IconListItem` | inherits Frame; `icon` (nil → bullet), `title`, `kind`, `subtitle`, `titleColor` (`"text"`), `subtitleColor` (`"muted"`), `iconSize` (20), `height` (32, intrinsic), `itemID` (real item tooltip) / `tooltip` (custom lines). Methods: `Set(data)` (pooled-reuse re-point) |
+| `Badge` | inherits Frame; `text`, `color` (`"header"`), `fill` (`"backdrop"`), `tooltip`; auto-sizes to text. Methods: `Text` (re-fits) |
 | `AutoWidget` | `parent`, `onClick`, `path`, `atlas`, `atlasSize`, `coords`, `vertexColor`, `position`, `label`, `font`, `color`, `justifyH` |
 | `EditBox` | `fontObj`, `autoFocus`, `text`, `cursorPosition` |
 | `CleanFrame` | `parent` (`UIParent`), `clamped` (true), `strata` (`MEDIUM`), `background` (`{0.114,0.141,0.165,1}`) |
