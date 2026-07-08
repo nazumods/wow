@@ -186,7 +186,6 @@ end
 ---@class WorldQuests: Broker
 ns.WorldQuests = ns:RegisterBroker("worldquests")
 
-local debounceGen = 0
 ns.WorldQuests.fields = {
   ---@type BrokerField
   rewards = {
@@ -195,16 +194,14 @@ ns.WorldQuests.fields = {
     -- ceiling in scanWorldQuests instead.
     get = scanWorldQuests,
     event = { "QUEST_LOG_UPDATE", "ZONE_CHANGED_NEW_AREA" },
-    -- QUEST_LOG_UPDATE fires in bursts as quest data streams in, so debounce: only
-    -- the last event in a burst runs the scan (a fresh trigger, so reset the retry
-    -- budget).  This also catches reward data that finished loading mid-burst.
+    -- QUEST_LOG_UPDATE fires in bursts as quest data streams in, so debounce (via
+    -- LibNAddOn's ns:debounce): only the last event in a burst runs the scan (a fresh
+    -- trigger, so reset the retry budget).  This also catches reward data that finished
+    -- loading mid-burst.
     eventHandler = function(field)
       local toon = ns.currentData
       if not toon then return end
-      debounceGen = debounceGen + 1
-      local gen = debounceGen
-      ns:after(SCAN_DEBOUNCE, function()
-        if gen ~= debounceGen then return end -- superseded by a later event in the burst
+      ns:debounce("worldquests.rewards", SCAN_DEBOUNCE, function()
         retries = 0
         field:set(field:get(toon, field.get_live()))
       end)
