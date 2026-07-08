@@ -8,7 +8,7 @@
 ## Dependencies: LibNAddOn, LibNUI
 ## OptionalDeps: Warbandeer_Characters
 ## X-NUI-DB: ShadowsOfUI_PostOfficeDB
-## X-NUI-DB-VERSION: 6
+## X-NUI-DB-VERSION: 7
 ## X-NUI-UI: LibNUI
 ## X-NUI-API: WarbandeerApi
 
@@ -23,3 +23,4 @@ carbonCopy.lua
 blackBook.lua
 quickAttach.lua
 doNotWant.lua
+select.lua
