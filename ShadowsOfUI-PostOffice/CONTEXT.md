@@ -5,10 +5,18 @@
 Headless mailbox helper (no window of its own). Re-derives Postal modules in LibNAddOn
 style — augments the native mail frames + exposes Settings-panel toggles. Phase 1 (Rake,
 TradeBlock, Wire, Express) is pure logic; Phase 2 (Forward, CarbonCopy) injects buttons
-onto the open-letter frames. LibNUI is pulled in solely for CarbonCopy's shared copy
-window (the Delves precedent). Ongoing port is scoped in the Postal fork's
-`docs/postoffice-port.md`; **re-derive, never copy Postal verbatim** (ARR license +
-Ace3→LibNAddOn mismatch).
+onto the open-letter frames; Phase 3 (BlackBook, QuickAttach) is the Send-Mail frame;
+Phase 4 (DoNotWant, Select) is the inbox rows via a shared decorator. LibNUI is pulled in
+solely for CarbonCopy's shared copy window (the Delves precedent). The port is complete;
+scoped in the Postal fork's `docs/postoffice-port.md`; **re-derive, never copy Postal
+verbatim** (ARR license + Ace3→LibNAddOn mismatch).
+
+**Postal's OpenAll is intentionally NOT ported** — Blizzard now ships a native "Open All"
+button (`OpenAllMailMixin`: `StartOpening`/`ShouldSkipCurrentMail`/…) that opens all mail
+event-driven (via `C_Mail.SetOpeningAll` + `MAIL_INBOX_UPDATE`), skips GM/CoD mail, and
+handles failed/bag-full items. Re-deriving it would reinvent a better-tested wheel for no
+user gain, so we leave the native button in place. (Our Select gives per-letter batch
+control on top; DoNotWant gives per-letter return/delete.)
 
 ## Files
 
