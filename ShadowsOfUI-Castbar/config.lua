@@ -28,17 +28,14 @@ function ns:_buildConfig()
     end,
   }
 
-  Label:new{ parent = win, text = "Text size", layer = ui.layer.Overlay,
-    position = { TopLeft = {win, ui.edge.TopLeft, 12, -78} } }
-  win._sizeVal = Label:new{ parent = win, color = "muted", layer = ui.layer.Overlay, justifyH = ui.justify.Right,
-    position = { TopRight = {win, ui.edge.TopRight, -12, -78} } }
   win._slider = Slider:new{
     parent = win, min = TEXT_MIN, max = TEXT_MAX, step = 1,
-    position = { TopLeft = {win, ui.edge.TopLeft, 14, -98}, TopRight = {win, ui.edge.TopRight, -14, -98}, Height = 16 },
+    label = "Text size",
+    valueFormat = function(v) return math.floor(v + 0.5) .. "px" end,
+    position = { TopLeft = {win, ui.edge.TopLeft, 14, -96}, TopRight = {win, ui.edge.TopRight, -14, -96}, Height = 16 },
     OnChange = function(_, value, userInput)
-      value = math.floor(value + 0.5)
-      win._sizeVal:Text(value .. "px")
       if userInput then
+        value = math.floor(value + 0.5)
         ns.db.textSize = value
         ns:ApplyTextSize(value)
       end
