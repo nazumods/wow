@@ -23,7 +23,7 @@ Bootstrapping factory every other addon depends on. `LibNAddOn(features)` wires 
 | `globals/icons.lua` | `ns.icons` — atlas/path constants for classes, roles, specs, factions, common UI |
 | `globals/items.lua` | `ns.wow.Items` — `GetIcon(itemID)`, `GetNumSlots(containerIndex)` |
 | `globals.lua` | `ns.linkGlobals(addOn, features)` — wires `lua`/`wow`/`icons`/`Colors`/`api`/`ui` onto the namespace |
-| `eventListener.lua` | `ns.createEventListener(addOn)` — event frame, `registerEvent`/`unregisterEvent`/`delay`, `onLoad`/`onLogin` hooks |
+| `eventListener.lua` | `ns.createEventListener(addOn)` — event frame, `registerEvent`/`unregisterEvent`/`delay`/`after`/`coalesce`, `onLoad`/`onLogin` hooks |
 | `cvar.lua` | `ns.linkCVarHelpers(addOn)` — `SetTemporaryCVar(cvar, value)` (backs up the user's original once, sets the new value, arms a `PLAYER_LOGOUT` restore), `RestoreCVar(cvar)` / `RestoreCVars()` (put originals back now; logout runs `RestoreCVars` automatically). Guards a transient override from getting stuck if the addon is disabled/uninstalled mid-override |
 | `tooltip.lua` | `ns.linkTooltipHelpers(addOn)` — `OnItemTooltip(fn)`: registers `fn(tooltip, data)` as a `TooltipDataProcessor` post-call for `Enum.TooltipDataType.Item`, pre-guarded against forbidden tooltips + nil data (and a no-op when the client lacks `TooltipDataProcessor`). Wraps the boilerplate every headless tooltip addon repeated |
 | `database.lua` | `ns.setupDB(name, addOn, ops)` — links `_G[dbName]` → `addOn.db`, triggers `MigrateDB` on version mismatch |
@@ -70,7 +70,7 @@ addOn.lua, addOn.wow, addOn.icons, addOn.Colors
 addOn.api (shared global, if configured), addOn.ui (LibNUI global, if configured)
 addOn.db (linked on ADDON_LOADED), addOn.commands, addOn.settingsCategory
 addOn.changelog (release history, if a changelog.lua ships)
-Methods:   GetMetadata, Print, hook, registerEvent, unregisterEvent, delay, after,
+Methods:   GetMetadata, Print, hook, registerEvent, unregisterEvent, delay, after, coalesce,
            registerCommand, SlashCmd, usage, SetTemporaryCVar, RestoreCVar, RestoreCVars,
            OnItemTooltip, RegisterSettings, GetSettingsParent, RegisterChangelog, ShowChangelog
 Lifecycle: onLoad, onLogin, MigrateDB, settingChanged, CompartmentClick
@@ -122,7 +122,7 @@ addOn:registerEvent("EVENT_NAME", handler, idx?)  -- handler list; idx inserts a
 addOn:unregisterEvent("EVENT_NAME", handler?)     -- nil handler clears all
 ```
 
-Dispatch order: the same-named method first, then the handler list in order. `delay(ms, fn)` is a one-shot debounce timer (OnUpdate); `fn` may be a function or a method-name string — a second call replaces the pending callback. `after(ms, fn)` fires `fn` once after `ms` milliseconds via `C_Timer.After`; supports unlimited concurrent calls. `onLogin(isLogin, isReload)` fires on `PLAYER_ENTERING_WORLD` only when `onLogin` is defined.
+Dispatch order: the same-named method first, then the handler list in order. `delay(ms, fn)` is a one-shot debounce timer (OnUpdate); `fn` may be a function or a method-name string — a second call replaces the pending callback. `after(ms, fn)` fires `fn` once after `ms` milliseconds via `C_Timer.After`; supports unlimited concurrent calls. `coalesce(key, ms, fn)` collapses a storm of same-`key` calls into a single **trailing-edge** fire: the first call schedules `fn` for `ms` later, calls arriving before it fires are dropped, and once it fires the key clears so the next call opens a fresh window. Unlike `delay` (one slot per addon, last call wins) each key coalesces independently; unlike `after` (every call fires) a burst collapses to one fire — for high-frequency events (`QUEST_LOG_UPDATE`, `CURRENCY_DISPLAY_UPDATE`) that would otherwise trigger a full refresh dozens of times a second. `onLogin(isLogin, isReload)` fires on `PLAYER_ENTERING_WORLD` only when `onLogin` is defined.
 
 ## Player API (`ns.wow.Player`)
 
@@ -177,7 +177,8 @@ Default callback calls `addOn:settingChanged(key, value, variable, setting)`.
 ## Gotchas
 
 - **`split(token, str)` takes the token FIRST**, opposite the usual convention; the token is a char class, so each character splits independently.
-- **`delay` keeps only one active timer per addon** — a second `delay` call replaces the pending OnUpdate, dropping the first callback. Use `after` when multiple concurrent timers are needed.
+- **`delay` keeps only one active timer per addon** — a second `delay` call replaces the pending OnUpdate, dropping the first callback. Use `after` when multiple concurrent timers are needed, or `coalesce` to collapse a same-key storm into one fire.
+- **`coalesce` fires the FIRST call's `fn`, not the last** — later same-key calls within the window are dropped entirely (their `fn` never runs), so close over stable state rather than expecting the newest closure to win. Fire is trailing-edge (`ms` after the first call), and the key clears on fire so the next call reopens the window.
 - **`maps.fill` is shallow** — it never recurses into existing sub-tables (the recursive branch is commented out); only `maps.merge` deep-merges.
 - **`sets.Set` iterates with `ipairs`** — only array-style input works; map-style arguments (`Set{q=123}`) silently produce an empty set.
 - **DB migration runs only when `version ~= db.version` AND `MigrateDB` is defined** — a fresh DB starts with `version == nil`, so the addon's `MigrateDB` must seed it from scratch.

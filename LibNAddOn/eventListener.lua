@@ -67,6 +67,8 @@ end
 ---@field unregisterEvent fun(self: AddOn, name: string, handler: function?) unregister an event handler for an event, or all handlers if handler is nil
 ---@field delay fun(self: AddOn, ms: number, fn: function|string) one-shot debounce timer; a second call replaces the pending callback
 ---@field after fun(self: AddOn, ms: number, fn: function) fire fn once after ms milliseconds; supports concurrent timers
+---@field _coalescing table<any, boolean> keys with a coalesced fire currently scheduled
+---@field coalesce fun(self: AddOn, key: any, ms: number, fn: function) collapse a storm of same-key calls into one trailing-edge fire ms later
 ---@field onLoad fun(self: AddOn) called when the add-on is loaded
 ---@field onLogin fun(self: AddOn, isLogin: boolean, isReload: boolean) called when the player logs in or the UI is reloaded
 ---@field ADDON_LOADED Event
@@ -79,6 +81,7 @@ function ns.createEventListener(addOn)
   local a = addOn
   a._eventListener = CreateFrame("Frame")
   a._eventHandlers = {}
+  a._coalescing = {}
   a._eventListener.OnEvent = OnEvent
   a.registerEvent = RegisterEvent
   a.unregisterEvent = UnregisterEvent
@@ -113,5 +116,23 @@ function ns.createEventListener(addOn)
 
   a.after = function(_, ms, fn)
     C_Timer.After(ms / 1000, fn)
+  end
+
+  -- Collapse a storm of same-`key` calls into a single trailing-edge fire: the
+  -- first call schedules `fn` for `ms` later, every call arriving before that
+  -- timer fires is dropped, and once it fires the key clears so the next call
+  -- opens a fresh window. Unlike `delay` (one slot per addon, last call wins)
+  -- each key coalesces independently; unlike `after` (every call fires) a burst
+  -- collapses to one fire. For high-frequency events (QUEST_LOG_UPDATE,
+  -- CURRENCY_DISPLAY_UPDATE) that would otherwise trigger a full refresh dozens
+  -- of times a second.
+  a.coalesce = function(self, key, ms, fn)
+    local pending = self._coalescing
+    if pending[key] then return end   -- a fire is already scheduled for this key
+    pending[key] = true
+    C_Timer.After(ms / 1000, function()
+      pending[key] = nil
+      fn()
+    end)
   end
 end
