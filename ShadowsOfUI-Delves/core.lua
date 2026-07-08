@@ -6,8 +6,6 @@ local ui = ns.ui
 -- "Changelog" button in settings (ns.changelog from changelog.lua).
 ns:RegisterChangelog("Shadows of UI")
 
-local floor = math.floor
-
 -- The tier a max-level character is assumed to run (the spec: Tier 11 for level-90s).
 local MAX_TIER = 11
 
@@ -19,13 +17,8 @@ function ns.AssumedTier()
   return ns.wow.Player:isMaxLevel() and MAX_TIER or nil
 end
 
--- Seconds -> "m:ss".
----@param seconds integer
----@return string
-function ns.FormatDuration(seconds)
-  local m = floor(seconds / 60)
-  return ("%d:%02d"):format(m, seconds - m * 60)
-end
+-- Seconds -> "m:ss" (the shared LibNAddOn formatter; kept as a local alias for the call sites).
+ns.FormatDuration = ns.lua.strings.duration
 
 -- The delve's specific name (GetScenarioInfo().name is the generic "Delves"), resolved the same
 -- way the tracker keys its runs so `/sdelves dump` looks them up correctly.

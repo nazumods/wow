@@ -3,6 +3,8 @@ local ns = select(2, ...)
 local sub = string.sub
 local gmatch = string.gmatch
 local insert = table.insert
+local floor = math.floor
+local format = string.format
 
 ---@class Lua
 ---@field strings Strings string utility functions
@@ -29,4 +31,20 @@ function strings.split(token, str)
     insert(result, part)
   end
   return result
+end
+
+---format a duration in seconds as a clock string. The shared formatter for run timers,
+---completion times, cooldowns, etc. (consumed by LibNUI's Timer widget).
+---@param seconds number?  elapsed/remaining seconds; nil/negative → 0, fractions floored
+---@param style string?  "m:ss" (default; minutes unbounded) | "h:mm:ss" | "auto" (h:mm:ss at ≥ 1h, else m:ss)
+---@return string
+function strings.duration(seconds, style)
+  seconds = floor(seconds or 0)
+  if seconds < 0 then seconds = 0 end
+  local m = floor(seconds / 60)
+  if style == "auto" then style = seconds >= 3600 and "h:mm:ss" or "m:ss" end
+  if style == "h:mm:ss" then
+    return format("%d:%02d:%02d", floor(m / 60), m % 60, seconds % 60)
+  end
+  return format("%d:%02d", m, seconds % 60)
 end

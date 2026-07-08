@@ -32,3 +32,12 @@ end, {
   background = "window",
 })
 ui.CleanFrame = CleanFrame
+
+-- Recolour the tooltip-style border at runtime (it defaults to the theme `border` token at
+-- construction) — e.g. an accent-bordered panel.
+---@param c string|table  colour token or rgba
+---@return CleanFrame
+function CleanFrame:BorderColor(c)
+  self.border._widget:SetBackdropBorderColor(unpack(self:ThemeColor(c)))
+  return self
+end

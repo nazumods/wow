@@ -13,7 +13,7 @@ ShadowsOfUI-Quests/-Reputations (same data-layer-consumer shape).
 
 | File | Purpose |
 |---|---|
-| `core.lua` | Bootstrap (`local ui = ns.ui`) + `ns.AssumedTier()` (T11 = `MAX_TIER` at the level cap via `ns.wow.Player:isMaxLevel()`, else nil → all-tiers fallback) + `ns.FormatDuration(sec)` (`m:ss`) + `/sdelves` (no arg: dump live delve state for tier/name calibration; `dump`: `GetDelveStats` for the delve you're in). Both render into the shared **copy window** (`ui.ToggleCopyWindow`) so the output can be pasted; only the short "not in a delve"/"no runs" guards stay `ns.Print`. |
+| `core.lua` | Bootstrap (`local ui = ns.ui`) + `ns.AssumedTier()` (T11 = `MAX_TIER` at the level cap via `ns.wow.Player:isMaxLevel()`, else nil → all-tiers fallback) + `ns.FormatDuration(sec)` (alias of the shared `ns.lua.strings.duration`, `m:ss`) + `/sdelves` (no arg: dump live delve state for tier/name calibration; `dump`: `GetDelveStats` for the delve you're in). Both render into the shared **copy window** (`ui.ToggleCopyWindow`) so the output can be pasted; only the short "not in a delve"/"no runs" guards stay `ns.Print`. |
 | `changelog.lua` | `ns.changelog` — newest-first `{version, notes}` release history for the in-game **Changelog** viewer (LibNAddOn). **Generated** — `release.sh` prepends each release; not hand-edited |
 | `tooltip.lua` | `hooksecurefunc(AreaPOIPinMixin, "OnMouseEnter", …)` → gate the pin to delves via `C_AreaPoiInfo.GetDelvesForMap(mapID)`, then `appendDelveTime`: pull the current character's entry from `WarbandeerApi:GetDelveStats(poiName, ns.AssumedTier())` and add a line (`Avg completion (T11): m:ss · N runs`, or `(all tiers)` for the aggregate, or a muted `No timed runs yet`), then re-`Show`. Shift hides it. |
 
