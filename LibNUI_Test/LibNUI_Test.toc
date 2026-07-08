@@ -10,6 +10,7 @@ table.lua
 table-dynamic.lua
 tab.lua
 theme.lua
+accent.lua
 model.lua
 slider.lua
 scrollframe.lua

@@ -80,6 +80,18 @@ local win = ui.TitleFrame:new{ title = "Mine", theme = myTheme }
 
 Any color option also accepts a token name string (e.g. `background = "window"`), resolved against the widget's active theme. Always build custom themes via `ui.Theme{}` — raw tables miss the dark-theme fallback.
 
+**Runtime theme swaps.** `theme:Apply{ colors = {...}, fonts = {...}, textures = {...} }` merges the given tokens into the theme **in place** and repaints registered widgets — so a settings control can switch an accent colour live:
+
+```lua
+-- register the parts of a widget that should follow the theme (once, at construction)
+myHeader:Themed(function(self) self.title:Color("header") end)
+
+-- later, from a settings control:
+myTheme:Apply{ colors = { header = {0.7, 0.5, 1, 1} } }   -- purple accent
+```
+
+`Region:Themed(fn)` runs `fn(self, theme)` immediately and again after every `Apply`. Widgets constructed *after* an `Apply` need no registration to get the new values — construction resolves tokens from the same (now-mutated) tables; register only what must restyle while already on screen. Registration is permanent: call it once per widget at construction, never per refresh. Note that widgets without a custom theme register on the shared dark theme, so `ui.themes.dark:Apply` affects every LibNUI-based addon — scope user-facing accent pickers to a custom theme.
+
 ---
 
 ## Constants
@@ -165,6 +177,7 @@ Base class for all positioned widgets.
 | `SetShown(bool)`              | Conditional show/hide                            |
 | `Alpha(a)`                    | Get/set alpha                                    |
 | `IsMouseOver()`               | Whether the cursor is within the region's hit rect |
+| `Themed(fn)`                  | Register `fn(self, theme)` to run now + after every `theme:Apply` (see *Themes*) |
 
 ### Callbacks
 

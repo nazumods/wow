@@ -2,13 +2,35 @@
 local ns = select(2, ...)
 ---@class LibNUI
 local ui = ns.ui
-local setmetatable = setmetatable
+local setmetatable, pairs, ipairs = setmetatable, pairs, ipairs
 
 ---@class Theme
 ---@field name string?
 ---@field colors table<string, number[]> rgba tables (0–1 channels) keyed by token name
 ---@field fonts table<string, table> fontInfo {path, size} tuples keyed by slot (title, header, body)
 ---@field textures table<string, string> texture paths keyed by slot
+---@field _themed function[] repaint callbacks registered via Region:Themed
+local Theme = {}
+
+local SLOTS = {"colors", "fonts", "textures"}
+
+-- Swap tokens at runtime: merge `overrides` into this theme IN PLACE (widgets resolve
+-- tokens from these same tables, so anything built after Apply styles itself with the
+-- new values automatically), then re-run every repaint registered via Region:Themed to
+-- restyle what's already on screen. Only the tokens given change; e.g. an accent swap is
+-- Apply{ colors = { header = {...} } }.
+---@param overrides { colors: table?, fonts: table?, textures: table? }
+---@return Theme
+function Theme:Apply(overrides)
+  for _, slot in ipairs(SLOTS) do
+    local src = overrides[slot]
+    if src then
+      for token, value in pairs(src) do self[slot][token] = value end
+    end
+  end
+  for _, repaint in ipairs(self._themed) do repaint() end
+  return self
+end
 
 -- The default "dark" theme: the styling LibNUI widgets have always shipped with.
 -- Widgets fall back to these tokens whenever no explicit option (and no custom
@@ -50,7 +72,9 @@ local dark = {
     titleIcon = "Interface/Icons/inv_10_tailoring2_banner_green.blp",
     closeIcon = "Interface/AddOns/LibNUI/media/close.blp",
   },
+  _themed = {},
 }
+setmetatable(dark, {__index = Theme})
 
 ---@type table<string, Theme> themes
 ui.themes = { dark = dark }
@@ -64,5 +88,6 @@ function ui.Theme(t)
   t.colors = setmetatable(t.colors or {}, {__index = dark.colors})
   t.fonts = setmetatable(t.fonts or {}, {__index = dark.fonts})
   t.textures = setmetatable(t.textures or {}, {__index = dark.textures})
-  return t
+  t._themed = {}
+  return setmetatable(t, {__index = Theme})
 end
