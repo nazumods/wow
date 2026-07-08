@@ -4,7 +4,7 @@ local ns = select(2, ...)
 -- Wire: when you enter a coin amount on the Send-Mail tab, fill a blank subject
 -- with that amount so the recipient sees what the letter contains. We only ever
 -- overwrite a subject we set ourselves, never one the player typed. (Mail subjects
--- don't render texture escapes, so we use the plain ns.PlainCoins string.)
+-- don't render texture escapes, so we use the plain ns.wow.CoinString string.)
 local ourSubject ---@type string?  the subject text we last wrote, so we don't clobber the player's
 local wired = false
 
@@ -16,7 +16,7 @@ local function onMoneyChanged()
   local current = box:GetText()
   if copper > 0 then
     if current == "" or current == ourSubject then
-      ourSubject = ns.PlainCoins(copper)
+      ourSubject = ns.wow.CoinString(copper)
       box:SetText(ourSubject)
     end
   elseif current == ourSubject then

@@ -19,6 +19,7 @@ Bootstrapping factory every other addon depends on. `LibNAddOn(features)` wires 
 | `globals/globalCommands.lua` | Suite-wide convenience slash commands (unscoped, registered directly on `SlashCmdList`): `/rl` (ReloadUI), `/fs` (framestack toggle), `/etc` (Edit Mode) |
 | `globals/colors.lua` | `ns.Colors` — class colors (0–1), `Strings` (color/icon escape codes), `rgba(r255,g255,b255,a01)`, `alpha(color, a)`, `hex(color)`/`code(color)`/`wrap(text, color)` (0–1 `{r,g,b}` → `"RRGGBB"`/`"|cffRRGGBB"`/`"|cff…|r"`), `className(name, classKey)` (class-colour a name) |
 | `globals/wow.lua` | `ns.wow` — `maxLevel`, `Armor` (+`byClass`/`types`), `ClassKeys`, `ClassByKey`, `ClassKeyByToken` (locale-independent classToken → PascalCase key), `Specializations` |
+| `globals/money.lua` | `ns.wow.CoinString(copper)` — plain-text coin string (`"1023g 4s 5c"`, omits zero denominations, `"0c"` for zero) for editable/plain text where `GetCoinTextureString`'s icon markup won't render. Pure (spec'd standalone in `money_spec.lua`); `ns.wow`-guarded so load order / spec loading is independent |
 | `globals/player.lua` | `ns.wow.Player`, `ns.wow.GreatVault`; `/lib player <method>` dump command |
 | `globals/icons.lua` | `ns.icons` — atlas/path constants for classes, roles, specs, factions, common UI |
 | `globals/items.lua` | `ns.wow.Items` — `GetIcon(itemID)`, `GetNumSlots(containerIndex)` |

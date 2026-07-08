@@ -17,16 +17,16 @@ local function invoiceLines(mailID)
     return {
       ITEM_PURCHASED_COLON .. " " .. itemName .. " (" .. won .. ")",
       SOLD_BY_COLON .. " " .. playerName,
-      AMOUNT_PAID_COLON .. " " .. ns.PlainCoins(bid),
+      AMOUNT_PAID_COLON .. " " .. ns.wow.CoinString(bid),
     }
   elseif kind == "seller" then
     return {
       ITEM_SOLD_COLON .. " " .. itemName,
       PURCHASED_BY_COLON .. " " .. playerName .. " (" .. won .. ")",
-      SALE_PRICE_COLON .. " " .. ns.PlainCoins(bid),
-      DEPOSIT_COLON .. " " .. ns.PlainCoins(deposit),
-      AUCTION_HOUSE_CUT_COLON .. " " .. ns.PlainCoins(consignment),
-      AMOUNT_RECEIVED_COLON .. " " .. ns.PlainCoins(bid + deposit - consignment),
+      SALE_PRICE_COLON .. " " .. ns.wow.CoinString(bid),
+      DEPOSIT_COLON .. " " .. ns.wow.CoinString(deposit),
+      AUCTION_HOUSE_CUT_COLON .. " " .. ns.wow.CoinString(consignment),
+      AMOUNT_RECEIVED_COLON .. " " .. ns.wow.CoinString(bid + deposit - consignment),
     }
   end
 end
