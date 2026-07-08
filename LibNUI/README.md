@@ -117,6 +117,10 @@ Region
     ├── SectionHeader
     ├── VirtualList
     ├── Accordion
+    ├── StatTile
+    ├── LabeledValue
+    ├── IconListItem
+    ├── Badge
     ├── MinimapButton
     ├── Cell
     ├── Dialog
@@ -793,6 +797,88 @@ acc:SetSections({
 | Callback                      | Description                                     |
 |-------------------------------|--------------------------------------------------|
 | `onToggle(key, expanded)`     | Fired when a header toggles                      |
+
+---
+
+## Content primitives: StatTile, LabeledValue, IconListItem, Badge
+
+Four small building blocks for dashboards and summary panels. They pair naturally with
+`VirtualList` (build them in `createRow`, re-point with their setters in `updateRow`).
+
+### StatTile
+
+Inherits `Frame`. A bordered "KPI" box: a big centred value on top, a small muted
+subtitle at the bottom, and a 1px border whose colour can express state
+(locked / unlocked / current). Lay several in a row for vault-slot-style strips.
+
+| Option          | Type          | Description                                            |
+|-----------------|---------------|--------------------------------------------------------|
+| `value`         | string/number | Big top text                                           |
+| `subtitle`      | string        | Small bottom text                                      |
+| `valueColor`    | string/table  | Value colour (default `"text"`)                        |
+| `subtitleColor` | string/table  | Subtitle colour (default `"muted"`)                    |
+| `borderColor`   | string/table  | 1px border colour (default `"divider"`)                |
+| `fill`          | string/table  | Inner fill colour (default `"backdrop"`)               |
+| `valueFont`     | string        | Font object for the value (default `GameFontHighlightLarge`) |
+| `tooltip`       | string/table  | Hover tooltip line(s)                                  |
+| `width`/`height`| number        | Intrinsic tile size (default 64×40); survives any `position` |
+
+Methods: `Value(v)`, `Subtitle(v)`, `Colors{value?, subtitle?, border?, fill?}` (one-call
+restyle; nil fields unchanged).
+
+### LabeledValue
+
+Inherits `Frame`. One "label: value" stat field — an optional small icon, a muted
+caption, and an accent value to its right. Stack several for a summary block.
+
+| Option       | Type          | Description                              |
+|--------------|---------------|------------------------------------------|
+| `label`      | string        | The field caption                        |
+| `value`      | string/number | Initial value text                       |
+| `icon`       | string/number | Optional icon left of the caption        |
+| `labelColor` | string/table  | Caption colour (default `"muted"`)       |
+| `valueColor` | string/table  | Value colour (default `"header"`)        |
+| `iconSize`   | number        | Icon size (default `16`)                |
+| `gap`        | number        | Px between icon/label/value (default `4`)|
+| `height`     | number        | Intrinsic row height (default `16`)      |
+
+Methods: `Value(v)` for live updates.
+
+### IconListItem
+
+Inherits `Frame`. A media list row: an icon (or a `•` bullet when there's no icon), a
+title line with an optional muted `kind` suffix, and a wrapped subtitle — the whole row
+hoverable for a tooltip (`itemID` shows the real item tooltip; otherwise `tooltip` lines).
+Anchor with a width (Left+Right) so the subtitle has room to wrap.
+
+| Option          | Type          | Description                                       |
+|-----------------|---------------|---------------------------------------------------|
+| `icon`          | string/number | Icon path/fileID; nil renders a bullet            |
+| `title`         | string        | First-line text                                   |
+| `kind`          | string        | Muted suffix (`"Name  •  Kind"`)                  |
+| `subtitle`      | string        | Wrapped second line                               |
+| `itemID`        | number        | Hover shows this item's real tooltip              |
+| `tooltip`       | string/table  | Hover lines when there's no `itemID`              |
+| `iconSize`      | number        | Icon size (default `20`)                          |
+| `height`        | number        | Intrinsic row height (default `32`)               |
+
+Methods: `Set(data)` — re-point the whole row at new content (the pooled-reuse /
+`VirtualList.updateRow` path); absent keys clear that part.
+
+### Badge
+
+Inherits `Frame`. An inline status pill: short coloured text on a subtle fill, auto-sized
+to the text — for `[B]`-style markers and status tags beside a name. Anchor its Left next
+to the text it decorates.
+
+| Option    | Type         | Description                                  |
+|-----------|--------------|----------------------------------------------|
+| `text`    | string       | Badge text (keep it short)                   |
+| `color`   | string/table | Text colour (default `"header"`)             |
+| `fill`    | string/table | Pill fill (default `"backdrop"`)             |
+| `tooltip` | string/table | Hover legend line(s)                         |
+
+Methods: `Text(v)` — set and re-fit the pill.
 
 ---
 
