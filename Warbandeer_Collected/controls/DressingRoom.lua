@@ -88,8 +88,7 @@ end
 ---@field _sex number?  the logged-in character's sex (2 = male, 3 = female); the body can't be re-gendered
 ---@field _form number  selected form index for multi-form races (Worgen/Dracthyr); 1 = default
 ---@field _formButtons table[]  reusable form-toggle button pool ({ box, border, label })
----@field _scaleSlider Slider  user resize slider (multiplier on top of the normalized size)
----@field _scaleLabel Label  scale value readout above the slider
+---@field _scaleSlider Slider  user resize slider (multiplier on top of the normalized size); its own `label`/`valueFormat` render the "Scale" caption + value readout
 ---@field _bg Texture  class-themed backdrop behind the model
 ---@field _tierBarL Texture  left slot-column difficulty-color gradient bar
 ---@field _tierBarR Texture  right slot-column difficulty-color gradient bar

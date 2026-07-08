@@ -108,21 +108,15 @@ function DressingRoom:_buildOverlays()
     self._formButtons[i] = { box = box, border = border, label = label }
   end
 
-  -- Scale slider: floats at the bottom-left of the model. A user resize multiplier on
-  -- top of the automatic per-race normalization (see Dress); Dress resets it to 1 on
-  -- each race change.
-  self._scaleLabel = Label:new{
-    parent = self, fontObj = "GameFontNormalSmall",
-    position = { BottomLeft = {self._model, ui.edge.BottomLeft, 8, 28} },
-    text = "Scale  1.00",
-  }
+  -- Scale slider: floats at the bottom-left of the model, with a "Scale" caption and a
+  -- live value readout floated above its ends. A user resize multiplier on top of the
+  -- automatic per-race normalization (see Dress); Dress resets it to 1 on each race change.
   self._scaleSlider = Slider:new{
     parent = self, min = 0.5, max = 3.0, step = 0.05, value = 1,
+    label = "Scale",
+    valueFormat = function(v) return ("%.2f"):format(v) end,
     position = { BottomLeft = {self._model, ui.edge.BottomLeft, 8, 12}, Width = 150, Height = 14 },
-    OnChange = function(_, v)
-      self._model:Scale(v)
-      self._scaleLabel:Text(("Scale  %.2f"):format(v))
-    end,
+    OnChange = function(_, v) self._model:Scale(v) end,
   }
   -- The slider overlaps the model frame; lift it above the mouse-enabled
   -- ModelScene so the thumb is grabbable instead of rotating the model.
