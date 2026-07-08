@@ -21,6 +21,7 @@ slashCommands.lua
 globals/globalCommands.lua
 globals/colors.lua
 globals/wow.lua
+globals/money.lua
 globals/player.lua
 globals/icons.lua
 globals/items.lua

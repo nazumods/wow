@@ -222,6 +222,12 @@ Contains various color-related constants and convenience functions:
 - `wrap(text, color)` -- wraps `text` in a colour escape: `"|cffRRGGBB<text>|r"`
 - `className(name, classKey)` -- wraps a character name in its class colour (PascalCase keys, e.g. `"DeathKnight"`, matching `Character.classKey`); returns the name unchanged when the class is unknown
 
+#### `myAddOn.wow`
+
+WoW game-data tables and helpers (`maxLevel`, `Armor`, class keys, `Specializations`, `Player`, `Items`), plus:
+
+- `CoinString(copper)` -- a plain-text coin string with no texture escapes, for editable or plain text (mail subjects, copy windows, chat) where `GetCoinTextureString`'s coin-icon markup wouldn't render. Omits zero denominations but returns `"0c"` for zero. e.g. `CoinString(10230405)` → `"1023g 4s 5c"`, `CoinString(10000)` → `"1g"`, `CoinString(0)` → `"0c"`
+
 #### `myAddOn.lua`
 
 For the purposes of the descriptions below:

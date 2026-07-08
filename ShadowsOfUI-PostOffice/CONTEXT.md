@@ -22,10 +22,10 @@ control on top; DoNotWant gives per-letter return/delete.)
 
 | File | Purpose |
 |---|---|
-| `core.lua` | `LibNAddOn` init, `Defaults`/`MigrateDB`, the mailbox lifecycle + `OnOpenMailUpdate` + `OnInboxRow` dispatches (see below), `ns.RefreshInbox`, settings-change routing, `RegisterSettings` (11 toggles), `ns.PlainCoins` helper, changelog button, `/spost`. |
+| `core.lua` | `LibNAddOn` init, `Defaults`/`MigrateDB`, the mailbox lifecycle + `OnOpenMailUpdate` + `OnInboxRow` dispatches (see below), `ns.RefreshInbox`, settings-change routing, `RegisterSettings` (11 toggles), changelog button, `/spost`. |
 | `rake.lua` | Snapshot `GetMoney()` on mail open, print the gain (`GetCoinTextureString`) on close. Report-only; does not auto-loot. |
 | `tradeBlock.lua` | `ns:SetTemporaryCVar("BlockTrades", 1)` on open, `RestoreCVar` on close; reacts to a live toggle while `ns._atMailbox`. |
-| `wire.lua` | Installs an `onValueChangedFunc` on `SendMailMoney` (lazily, first open) to fill a blank `SendMailSubjectEditBox` with `ns.PlainCoins`; only overwrites its own prior value. |
+| `wire.lua` | Installs an `onValueChangedFunc` on `SendMailMoney` (lazily, first open) to fill a blank `SendMailSubjectEditBox` with `ns.wow.CoinString`; only overwrites its own prior value. |
 | `express.lua` | Modifier-click shortcuts (lazy install, first open): replaces `InboxFrame_OnClick` for ctrl-click-return, posthooks `HandleModifiedItemClick` for alt-click-attach (+ optional auto-send), posthooks `InboxFrameItem_OnEnter` + `ns:OnItemTooltip` for hint lines. `db.express` / `db.expressAutoSend`. |
 | `forward.lua` | "Forward" button on `OpenMailFrame` (beside Reply). Switches to Send Mail, sets `FW:` subject + body, then shuttles attachments letter→bag→outgoing one at a time via an event-driven state machine (`TakeInboxItem` → `BAG_UPDATE_DELAYED` → `locate` by `itemID`+count; merged stacks are isolated through an empty bag slot: `SplitContainerItem` → `CURSOR_CHANGED` → park → `BAG_UPDATE_DELAYED` → pick up whole → `ClickSendMailItemButton`). Stackable-safe. Disabled on money/COD/insufficient bag space. `db.forward`. |
 | `carbonCopy.lua` | Small grow-on-hover button on `OpenMailScrollFrame` that copies the letter's sender/subject/body (+ auction invoice breakdown) into `ns.ui.ShowCopyWindow`. `db.carbonCopy`. |
@@ -85,7 +85,7 @@ v7 `select`).
   loads (first mailbox open), so Wire installs its hook lazily inside `OnMailShow`,
   guarded by a `wired` flag and a `SendMailMoney` presence check. Blizzard leaves
   `SendMailMoney.onValueChangedFunc` unset, so we own it.
-- **Coin strings are plain text** (`ns.PlainCoins`), not `GetCoinTextureString` — mail
+- **Coin strings are plain text** (`ns.wow.CoinString`), not `GetCoinTextureString` — mail
   subjects and the copy window don't render texture escapes.
 - **`BlockTrades` CVar** is set via `SetTemporaryCVar` (auto-restores on logout as a
   safety net if a close is missed).

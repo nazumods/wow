@@ -31,20 +31,6 @@ function ns:MigrateDB()
   db.version = 7
 end
 
--- Plain-text coin string (no texture escapes, for editable/subject text). e.g.
--- 10230405 copper -> "1023g 4s 5c"; omits zero parts. Shared by Wire + CarbonCopy.
-local floor = math.floor
-function ns.PlainCoins(copper)
-  local parts = {}
-  local g = floor(copper / 10000)
-  local s = floor(copper % 10000 / 100)
-  local c = copper % 100
-  if g > 0 then parts[#parts + 1] = g .. "g" end
-  if s > 0 then parts[#parts + 1] = s .. "s" end
-  if c > 0 or #parts == 0 then parts[#parts + 1] = c .. "c" end
-  return table.concat(parts, " ")
-end
-
 --------------------------------------------------------------------------------
 -- Mailbox lifecycle
 --
