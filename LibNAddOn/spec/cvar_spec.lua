@@ -67,4 +67,47 @@ describe("LibNAddOn CVar helpers", function()
     assert.equals("x", store["Brand new"])     -- left as-is, backup cleared
     assert.is_nil(addOn._cvarBackup["Brand new"])
   end)
+
+  describe("enforce mode", function()
+    it("arms a CVAR_UPDATE handler only when enforce is set", function()
+      addOn:SetTemporaryCVar("OutlineEngineMode", 1)          -- plain: no enforcement
+      assert.is_nil(addOn._events.CVAR_UPDATE)
+      addOn:SetTemporaryCVar("OutlineEngineMode", 1, true)    -- enforce
+      assert.is_function(addOn._events.CVAR_UPDATE)
+    end)
+
+    it("re-asserts the forced value when it drifts", function()
+      addOn:SetTemporaryCVar("OutlineEngineMode", 1, true)
+      store.OutlineEngineMode = "0"                            -- user/other code changes it
+      addOn._events.CVAR_UPDATE(addOn)                         -- simulate the CVAR_UPDATE
+      assert.equals("1", store.OutlineEngineMode)              -- forced back
+    end)
+
+    it("leaves non-enforced overrides alone on CVAR_UPDATE", function()
+      addOn:SetTemporaryCVar("OutlineEngineMode", 1, true)     -- arms the handler
+      addOn:SetTemporaryCVar("Foo", "baz")                     -- plain override
+      store.Foo = "changed"                                    -- user changes the plain one
+      addOn._events.CVAR_UPDATE(addOn)
+      assert.equals("changed", store.Foo)                      -- not re-asserted
+    end)
+
+    it("stops enforcing once the CVar is restored", function()
+      addOn:SetTemporaryCVar("OutlineEngineMode", 1, true)
+      addOn:RestoreCVar("OutlineEngineMode")
+      assert.is_nil(addOn._cvarEnforce.OutlineEngineMode)
+      store.OutlineEngineMode = "0"
+      addOn._events.CVAR_UPDATE(addOn)
+      assert.equals("0", store.OutlineEngineMode)              -- left as the user set it
+    end)
+
+    it("doesn't re-assert when the value already matches", function()
+      addOn:SetTemporaryCVar("OutlineEngineMode", 1, true)
+      local writes = 0
+      local realSet = _G.SetCVar
+      _G.SetCVar = function(k, v) writes = writes + 1; realSet(k, v) end
+      addOn._events.CVAR_UPDATE(addOn)                         -- value is already "1"
+      _G.SetCVar = realSet
+      assert.equals(0, writes)                                 -- no redundant write / no loop
+    end)
+  end)
 end)
