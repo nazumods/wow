@@ -38,6 +38,7 @@ AutoWidget.lua
 EditBox.lua
 ScrollFrame.lua
 SectionHeader.lua
+Timer.lua
 VirtualList.lua
 Accordion.lua
 

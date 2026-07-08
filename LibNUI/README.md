@@ -127,6 +127,7 @@ Region
     │   └── SecureButton
     ├── RadioGroup
     ├── SectionHeader
+    ├── Timer
     ├── VirtualList
     ├── Accordion
     ├── StatTile
@@ -692,6 +693,48 @@ checks it and clears the rest (re-clicking the selected row keeps it selected). 
 | Callback         | Description                                        |
 |------------------|----------------------------------------------------|
 | `onSelect(key)`  | Fired when the user picks a *different* option     |
+
+---
+
+## Timer
+
+Inherits `Frame` (wraps a `Label`, since FontStrings can't self-tick). A live-updating time
+display: counts up from `0:00`, or down from `duration` to `0:00` (firing `onFinish`). Ticks
+on the frame's `OnUpdate` and re-renders only when the formatted string changes. Auto-sizes
+to its text, so anchor it by an edge; style via `color` or `:Color`.
+
+```lua
+local t = LibNUI.Timer:new{ parent = card, color = "header", position = { TopRight = {...} } }
+t:Value(25):Start()   -- seed 0:25 (a run in progress) and tick up
+```
+
+### Constructor options
+
+| Option      | Type          | Description                                                        |
+|-------------|---------------|--------------------------------------------------------------------|
+| `format`    | string/fun    | A `ns.lua.strings.duration` style (`"m:ss"` default, `"h:mm:ss"`, `"auto"`) or `fun(seconds) -> string` |
+| `countdown` | bool          | Count down from `duration` to 0 instead of up (default `false`)   |
+| `duration`  | number        | Countdown start / total seconds (default `0`)                     |
+| `autoStart` | bool          | Start ticking on construction (default `false`)                   |
+| `overtime`  | bool          | A countdown keeps running past 0 into negative time (`-m:ss`), recoloured red (default `false`) |
+| `overtimeColor` | string/table | Colour applied while negative (default red)                    |
+| `color`     | string/table  | Text colour (forwarded to the label)                              |
+
+### Methods
+
+| Method        | Description                                                          |
+|---------------|---------------------------------------------------------------------|
+| `Start()`     | Start (or resume) ticking                                           |
+| `Stop()`      | Pause; the elapsed count is kept                                    |
+| `Reset()`     | Zero the count and re-render                                        |
+| `Value(sec)`  | Get the displayed seconds, or set them (seed a run already going)   |
+| `Color(...)`  | Set the text colour                                                 |
+
+### Callbacks
+
+| Callback       | Description                                    |
+|----------------|------------------------------------------------|
+| `onFinish()`   | Fired once when a countdown reaches 0          |
 
 ---
 

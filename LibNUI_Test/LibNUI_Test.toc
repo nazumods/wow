@@ -13,6 +13,7 @@ theme.lua
 accent.lua
 model.lua
 slider.lua
+timer.lua
 scrollframe.lua
 radiogroup.lua
 sectionheader.lua
@@ -22,6 +23,7 @@ accordion.lua
 primitives.lua
 polish.lua
 sortlist.lua
+delvecard.lua
 minimapbutton.lua
 filterdropdown.lua
 ring.lua
