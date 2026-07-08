@@ -46,6 +46,8 @@ StatTile.lua
 LabeledValue.lua
 IconListItem.lua
 Badge.lua
+TextLink.lua
+SortableHeaderRow.lua
 
 # "Clean UI" classes
 CleanFrame.lua

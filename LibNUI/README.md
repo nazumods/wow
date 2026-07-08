@@ -133,6 +133,8 @@ Region
     ├── LabeledValue
     ├── IconListItem
     ├── Badge
+    ├── TextLink
+    ├── SortableHeaderRow
     ├── MinimapButton
     ├── Cell
     ├── Dialog
@@ -220,6 +222,7 @@ Inherits `Region`. Wraps a Blizzard `Texture` widget.
 | `Coords(l,r,t,b)`        | `SetTexCoord`                         |
 | `Rotation(r)`            | Get/set render rotation (radians)     |
 | `Gradient(orient,min,max)`| `SetGradient` — re-apply a vertex gradient (ColorMixin min/max, alpha interpolated) over the base texture |
+| `DrawLayer(layer, sublevel?)` | Set the draw layer + optional sublevel (higher sublevel draws on top within a layer) |
 
 ---
 
@@ -240,6 +243,8 @@ Inherits `Region`. Wraps a `FontString`.
 | `color`     | table  | Text color `{r, g, b, a}`                             |
 | `justifyH`  | string | `ui.justify.Left/Center/Right`                        |
 | `justifyV`  | string | `ui.justify.Top/Middle/Bottom`                        |
+| `wordWrap`  | bool   | Pass `false` to truncate with an ellipsis instead of wrapping |
+| `tooltip`   | string/table | Hover tooltip line(s) — an invisible hit-rect overlays the text (FontStrings can't take mouse events) |
 
 ### Methods
 
@@ -249,6 +254,7 @@ Inherits `Region`. Wraps a `FontString`.
 | `Color(r,g,b,a)` | Set text color — accepts table        |
 | `StringWidth()` | Natural (unwrapped) width of the current text |
 | `UnboundedWidth()` | Single-line width ignoring wrapping and width constraints |
+| `DrawLayer(layer, sublevel?)` | Set the draw layer + optional sublevel |
 
 ---
 
@@ -437,6 +443,7 @@ note:Notify()
 | `dontShowAgain` | bool          | Show the "don't show again" checkbox (default `false`)          |
 | `dontShowText`  | string        | Checkbox label (default `"Don't show this again"`)              |
 | `duration`      | number        | Auto-hide after N seconds (default `nil` = manual dismiss)      |
+| `width`/`height`| number        | Intrinsic card size (default 360×170); survives any `position`  |
 
 ### Methods
 
@@ -465,6 +472,8 @@ Inherits `Frame`. A tabbed container: a tab button bar across the top and one co
 | `tabs`          | table    | List of tab label strings                            |
 | `tabHeight`     | number   | Height of the tab bar (default `24`)                 |
 | `tabWidth`      | number   | Width of each tab button (default `80`)              |
+| `autosize`      | bool     | Size each tab to its label text instead of `tabWidth` (default `false`) |
+| `tabPadding`    | number   | Horizontal padding inside an autosized tab (default `24`) |
 | `activeColor`   | table/str| Background color (or theme token) of the active tab  |
 | `inactiveColor` | table/str| Background color (or theme token) of inactive tabs   |
 | `onSelect`      | func     | `fun(self, index)` called when the selection changes |
@@ -496,6 +505,16 @@ Inherits `CleanFrame`. A text tooltip rendered as a list of lines. Auto-sizes to
 |---------|-------|-------------------------------------------------|
 | `lines` | table | List of line defs: `{text, background, onClick, onEnter, onLeave}` |
 | `inset` | number | Inner padding (default `3`)                    |
+
+### Methods (singleton `ui.tip`)
+
+| Method                        | Description                                                            |
+|-------------------------------|-------------------------------------------------------------------------|
+| `ClearLines()` / `AddLine(text, color?)` | Line-by-line fill                                           |
+| `Lines(title, ...)`           | One-call fill: clear + accent title + body lines; chainable            |
+| `AnchorTo(frame, anchor, dx?, dy?)` | GameTooltip-style anchor constants                               |
+| `AnchorBeside(frame, dx?, dy?)` | Side-flip anchor: prefers the frame's right, flips left at the screen edge. Call after content is set |
+| `MaxWidth(w)`                 | Cap the width (lines wrap); pass `nil` to clear                        |
 
 ---
 
@@ -561,6 +580,7 @@ Includes all `Frame` options, plus:
 | Method     | Description           |
 |------------|-----------------------|
 | `Text(t)`  | Get/set button text   |
+| `ConfirmFlash(text?, ms?)` | Flash a confirmation string (default `"Done!"`), restore the original after `ms` (default 1500) |
 
 ### Callbacks
 
@@ -745,6 +765,7 @@ For mixed row types, pass a `rowTypes` map and a `typeOf` selector instead of
 | `padding`   | number  | Inset around the stacked rows (default `4`)                          |
 | `rowHeight` | number  | Fallback row height when an `update` returns nil (default `20`)     |
 | `scrollbar` | bool    | Themed scrollbar on the viewport (default `true`)                    |
+| `emptyText` | string  | Muted centred placeholder shown when the item list is empty          |
 
 ### Methods
 
@@ -893,6 +914,38 @@ to the text it decorates.
 
 Methods: `Text(v)` — set and re-fit the pill.
 
+### TextLink
+
+Inherits `Frame` (Button-backed). A text-only hyperlink: an accent-coloured clickable
+label that brightens on hover and fires `onClick`. Auto-sizes to its text.
+
+| Option       | Type         | Description                              |
+|--------------|--------------|------------------------------------------|
+| `text`       | string       | Link text                                |
+| `color`      | string/table | Resting colour (default `"header"`)      |
+| `hoverColor` | string/table | Hover colour (default `"text"`)          |
+| `onClick`    | fun          | Click handler                            |
+
+Methods: `Text(v)` — set and re-fit.
+
+### SortableHeaderRow
+
+Inherits `Frame`. A standalone clickable column-header strip for custom lists (pairs
+with `VirtualList`; `TableFrame`'s sorting stays baked into its grid). Clicking a column
+selects it (ascending, or `descFirst`), clicking again flips the direction; the active
+column renders in the accent colour with an arrow. Sort your own data in `onSort` and
+re-render.
+
+| Option      | Type   | Description                                                        |
+|-------------|--------|--------------------------------------------------------------------|
+| `columns`   | table  | `{ key, label, width, justifyH?, descFirst? }` list                |
+| `sortKey` / `sortDesc` | any/bool | Initial sort state                                     |
+| `height`    | number | Strip height (default `20`)                                       |
+| `gap`       | number | Px between columns (default `2`)                                  |
+
+Methods: `Sort(key?, desc?)` — get the current `(key, descending)`, or set it
+programmatically (no `onSort`). Callback: `onSort(key, descending)` on user clicks.
+
 ---
 
 ## SecureButton
@@ -1005,6 +1058,8 @@ whether it came from user input. Set `step` to snap to increments.
 | `value`       | number | Initial value                                                |
 | `orientation` | string | `"HORIZONTAL"` (default) or `"VERTICAL"`                     |
 | `thickness`   | number | Track thickness in px (default 4)                            |
+| `label`       | string | Optional muted caption above the track's left end            |
+| `valueFormat` | func   | Optional `fun(value) -> string`; enables a live accent readout above the right end |
 | `OnChange`    | func   | `function(self, value, userInput)` on value change           |
 
 ### Methods
@@ -1115,7 +1170,7 @@ Inherits `Frame`. Renders a 2D grid with optional column and row headers, altern
 |---------------------|--------------------------------------------------------|
 | `onLoad()`          | Call after construction to load data and apply autosize |
 | `update()`          | Refresh cells from `self.data`                         |
-| `row(n)`            | Get row `n`                                            |
+| `row(n)`            | Get row `n` — a `TableRow`; `row:Highlighted(b)` marks it as the active row (translucent accent overlay; striping untouched) |
 | `col(n)`            | Get col `n`                                            |
 | `set(row, col, el)` | Assign a `Cell` or widget to a position                |
 | `addRow(info)`      | Append a row with info table                           |

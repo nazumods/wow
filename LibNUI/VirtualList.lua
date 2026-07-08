@@ -3,7 +3,7 @@ local ns = select(2, ...)
 ---@class LibNUI
 local ui = ns.ui
 local Class, max = ns.lua.Class, math.max
-local Frame, ScrollFrame = ui.Frame, ui.ScrollFrame
+local Frame, ScrollFrame, Label = ui.Frame, ui.ScrollFrame, ui.Label
 
 -- A pooled, variable-height, mixed-row-type list — the complement to TableFrame's fixed
 -- grid. Owns a scrolling viewport (themed auto-hiding scrollbar) and a pool of row frames
@@ -20,6 +20,8 @@ local Frame, ScrollFrame = ui.Frame, ui.ScrollFrame
 ---@field padding number     inset around the stacked rows in px (default 4)
 ---@field rowHeight number   fallback row height when an update returns nil (default 20)
 ---@field scrollbar boolean  themed scrollbar on the viewport (default true)
+---@field emptyText string?  muted placeholder shown centred when SetItems gets an empty list
+---@field _empty Label?      the lazy empty-state label
 ---@field items any[]?       initial items
 ---@field createRow fun(list: VirtualList): Frame  single-type: build one blank pooled row
 ---@field updateRow fun(list: VirtualList, row: Frame, item: any, index: integer): number?  populate; return height
@@ -125,6 +127,19 @@ function VirtualList:_layout()
   -- Hide the rows each pool didn't use this pass.
   for name, pool in pairs(self._pools) do
     for j = used[name] + 1, #pool do pool[j]:Hide() end
+  end
+
+  -- empty state: a muted centred placeholder instead of a blank viewport
+  if self.emptyText then
+    if #self._items == 0 and not self._empty then
+      self._empty = Label:new{
+        parent   = self,
+        text     = self.emptyText,
+        color    = "muted",
+        position = { Center = {} },
+      }
+    end
+    if self._empty then self._empty:SetShown(#self._items == 0) end
   end
 
   local contentH = (#self._items > 0) and (yCur - spacing + pad) or (pad * 2)

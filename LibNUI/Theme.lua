@@ -63,6 +63,7 @@ local dark = {
     rowOdd      = {0, 0, 0, 0},
     footer      = {0, 0, 0, 0.2},           -- footer row backdrop
     divider     = {1, 1, 1, 0.05},          -- 1px footer divider line
+    highlight   = {1, 215/255, 0, 0.25},    -- translucent active-row overlay (TableRow:Highlighted)
   },
   -- fontInfo {path, size} tuples; absent slots fall back to the Blizzard font
   -- objects the widgets used before themes existed (title → SystemFont_Med2,

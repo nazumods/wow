@@ -20,6 +20,8 @@ local C_Timer = C_Timer
 ---@field dontShowAgain boolean  show the "don't show again" checkbox (default false)
 ---@field dontShowText string    checkbox label (default "Don't show this again")
 ---@field duration number?       auto-hide after N seconds (default nil = manual dismiss)
+---@field width number           card width (default 360) — intrinsic, survives any `position`
+---@field height number          card height (default 170)
 ---@field onDismiss fun(self: Notification)?  fired on dismiss (button, close X, or Escape)
 ---@field onDontShowAgain fun(self: Notification, checked: boolean)?  fired when the checkbox toggles
 ---@field _bodyLabel Label
@@ -28,6 +30,8 @@ local C_Timer = C_Timer
 ---@field _dismissBtn Frame?
 ---@field _timer table?          pending auto-hide timer
 local Notification = Class(TitleFrame, function(self)
+  -- intrinsic size (not a `position` default: a caller's position table would replace it)
+  self:Size(self.width, self.height)
   -- Accent the title and drop TitleFrame's default titlebar icon in favour of the
   -- body icon; slide the title back to the left edge the icon used to clear.
   self.titlebar.title:Color("header")
@@ -97,7 +101,9 @@ end, {
   dismiss       = "Dismiss",
   dontShowAgain = false,
   dontShowText  = "Don't show this again",
-  position      = { Center = {}, Width = 360, Height = 170 },
+  width         = 360,
+  height        = 170,
+  position      = { Center = {} },
 })
 ui.Notification = Notification
 
