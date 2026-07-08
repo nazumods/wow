@@ -64,14 +64,13 @@ local Reputations = ns:RegisterBroker("reputations")
 --      UPDATE_FACTION events, but ASYNC (after get returns), so a synchronous in-scan flag
 --      can't catch them. Instead we stamp the scan-completion time and ignore any event
 --      landing within SELF_WINDOW of it — the echo can never schedule a new scan.
---   2. Generation-guarded debounce (like worldquests): only the last event in a burst runs.
---   3. Throttle: a scan never lands sooner than MIN_INTERVAL after the previous one, so a
+--   2. Throttle: a scan never lands sooner than MIN_INTERVAL after the previous one, so a
 --      sustained rep-gain stream can't fire a full walk more than once per window.
+--   3. Debounce (LibNAddOn's ns:debounce, like worldquests): only the last event in a burst runs.
 local SCAN_DEBOUNCE = 2 -- s: collapse a burst of UPDATE_FACTION into a single scan
 local MIN_INTERVAL  = 6 -- s: throttle — at most one faction walk per this window
 local SELF_WINDOW   = 1 -- s: ignore UPDATE_FACTION this soon after our own scan (its echo)
 
-local debounceGen = 0
 local lastScanAt  = 0   -- GetTime() of the last completed scan (0 = never)
 
 -- All factions the character has a standing with, keyed by factionID. Headers must be
@@ -111,18 +110,14 @@ Reputations.fields = {
       -- (1) Suppress the async echo of our own ExpandAllFactionHeaders.
       if now - lastScanAt < SELF_WINDOW then return end
 
-      -- (2) Debounce: each event supersedes the pending scan.
-      debounceGen = debounceGen + 1
-      local gen = debounceGen
-
-      -- (3) Throttle: never schedule the scan to land before MIN_INTERVAL has elapsed
+      -- (2) Throttle: never schedule the scan to land before MIN_INTERVAL has elapsed
       -- since the last one.
       local wait = SCAN_DEBOUNCE
       local earliest = lastScanAt + MIN_INTERVAL
       if now + wait < earliest then wait = earliest - now end
 
-      ns:after(wait * 1000, function()
-        if gen ~= debounceGen then return end -- superseded by a later event in the burst
+      -- (3) Debounce (via ns:debounce): each event supersedes the pending scan.
+      ns:debounce("reputations.factions", wait * 1000, function()
         toon.reputations.factions = field:get(toon, toon.reputations.factions)
         lastScanAt = GetTime() -- stamp AFTER get so the SELF_WINDOW covers the echo
       end)
