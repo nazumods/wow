@@ -73,4 +73,32 @@ describe("ns.lua.strings", function()
       assert.equals("1:00:00", strings.duration(3600, "auto"))
     end)
   end)
+
+  describe("stripEscapes", function()
+    it("strips a colour code and its reset", function()
+      assert.equals("Delver's Bounty", strings.stripEscapes("|cffffd700Delver's Bounty|r"))
+    end)
+
+    it("strips inline textures and atlases", function()
+      assert.equals("Gold", strings.stripEscapes("|TInterface\\Icons\\coin:16|tGold"))
+      assert.equals("Rank", strings.stripEscapes("|A:tier-star:16:16|aRank"))
+    end)
+
+    it("strips a mix of every escape type in one string", function()
+      assert.equals("Tier 8 done",
+        strings.stripEscapes("|cff00ff00Tier |A:star:12:12|a8|r |Ttex:10|tdone"))
+    end)
+
+    it("leaves a plain string untouched", function()
+      assert.equals("just text", strings.stripEscapes("just text"))
+    end)
+
+    it("passes nil through as nil", function()
+      assert.is_nil(strings.stripEscapes(nil))
+    end)
+
+    it("returns a single value (gsub count not leaked)", function()
+      assert.equals(1, select("#", strings.stripEscapes("|cffffffffx|r")))
+    end)
+  end)
 end)

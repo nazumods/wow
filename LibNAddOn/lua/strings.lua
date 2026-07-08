@@ -48,3 +48,18 @@ function strings.duration(seconds, style)
   end
   return format("%d:%02d", m, seconds % 60)
 end
+
+---strip WoW UI escape sequences, leaving the plain text: `|cAARRGGBB`…`|r` colour
+---codes, `|T…|t` inline textures, and `|A…|a` inline atlases. For feeding marked-up
+---API strings (delve/quest descriptions, tooltip lines) into contexts that re-colour or
+---measure the text, where embedded codes would corrupt the result.
+---@param str string?  the marked-up text; nil passes through as nil
+---@return string?  the plain text (nil when str is nil)
+function strings.stripEscapes(str)
+  if not str then return nil end
+  -- parens collapse gsub's (result, count) to just the string
+  return (str:gsub("|c%x%x%x%x%x%x%x%x", "")
+             :gsub("|r", "")
+             :gsub("|T.-|t", "")
+             :gsub("|A.-|a", ""))
+end

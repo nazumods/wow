@@ -14,7 +14,7 @@ Bootstrapping factory every other addon depends on. `LibNAddOn(features)` wires 
 | `lua/sets.lua` | `ns.lua.sets` — `Set(list)`, `values(t)` (values used as keys verbatim) |
 | `lua/lists.lua` | `ns.lua.lists` — `values`, `generate`, `map`, `filter`, `find`, `fold`, `prepend` |
 | `lua/class.lua` | `ns.lua.Class(parent, fn, defaults, ...)` — OOP class factory |
-| `lua/strings.lua` | `ns.lua.strings` — `startsWith(str, start)`, `split(token, str)`, `duration(seconds, style?)` |
+| `lua/strings.lua` | `ns.lua.strings` — `startsWith(str, start)`, `split(token, str)`, `duration(seconds, style?)`, `stripEscapes(str)` (strip `|c`/`|r` colour, `|T…|t` texture, `|A…|a` atlas; nil-safe) |
 | `slashCommands.lua` | `ns.registerSlashCommands`; adds `registerCommand`/`SlashCmd`/`usage` to addon. Self-bootstraps `/lib` |
 | `globals/globalCommands.lua` | Suite-wide convenience slash commands (unscoped, registered directly on `SlashCmdList`): `/rl` (ReloadUI), `/fs` (framestack toggle), `/etc` (Edit Mode) |
 | `globals/colors.lua` | `ns.Colors` — class colors (0–1), `Strings` (color/icon escape codes), `rgba(r255,g255,b255,a01)`, `alpha(color, a)`, `hex(color)`/`code(color)`/`wrap(text, color)` (0–1 `{r,g,b}` → `"RRGGBB"`/`"|cffRRGGBB"`/`"|cff…|r"`), `className(name, classKey)` (class-colour a name) |
