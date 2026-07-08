@@ -16,6 +16,8 @@ ui.fonts = ns.lua.maps.toMap({
 })
 
 ---@class Label: Region
+---@field tooltip string|string[]?  hover tooltip line(s); builds an invisible hit-rect over the text (FontStrings can't take mouse events)
+---@field _hit Frame?  the tooltip hit-rect frame
 local Label = Class(Region, function(self)
   if self.fontObj then self._widget:SetFontObject(self.fontObj) end
   -- fontInfo accepts a theme font slot name ("title", "header", "body") in
@@ -35,6 +37,23 @@ local Label = Class(Region, function(self)
   -- A width-constrained, non-wrapping FontString truncates with an ellipsis instead
   -- of flowing onto extra lines (e.g. long item names in a fixed-width list).
   if self.wordWrap == false then self._widget:SetWordWrap(false) end
+
+  -- tooltip: FontStrings can't take mouse events, so overlay an invisible frame
+  -- matched to the text's rect and hang the shared tooltip off it (ui.Frame/ui.tip
+  -- exist by the time a Label is constructed, despite loading after this file)
+  if self.tooltip then
+    local lines = type(self.tooltip) == "table" and self.tooltip or {self.tooltip}
+    self._hit = ui.Frame:new{ parent = self.parent }
+    self._hit:SetPoint(ui.edge.TopLeft, self)
+    self._hit:SetPoint(ui.edge.BottomRight, self)
+    self._hit._widget:EnableMouse(true)
+    self._hit:SetScript("OnEnter", function()
+      ui.tip:Lines(lines[1], unpack(lines, 2))
+      ui.tip:AnchorBeside(self._hit)
+      ui.tip:Show()
+    end)
+    self._hit:SetScript("OnLeave", function() ui.tip:Hide() end)
+  end
 end, {
   CreateWidget = function(self)
     return (self.parent._widget or self.parent):CreateFontString(self.name, self.layer, self.font)
@@ -96,5 +115,15 @@ function Label:Color(r, g, b, a)
     end
   end
   self._widget:SetTextColor(r, g, b, a)
+  return self
+end
+
+-- Set the draw layer (and optional sublevel for ordering within a layer). Sublevel
+-- stacks same-layer regions: a higher sublevel draws on top.
+---@param layer string  ui.layer.* constant
+---@param sublevel number?  0-based order within the layer (default 0)
+---@return Label
+function Label:DrawLayer(layer, sublevel)
+  self._widget:SetDrawLayer(layer, sublevel or 0)
   return self
 end

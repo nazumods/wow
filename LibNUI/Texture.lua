@@ -104,3 +104,12 @@ end
 function Texture:SliceMargins(l, t, r, b) self._widget:SetTextureSliceMargins(l, t, r, b) end
 ---@param mode number  Enum.UITextureSliceMode
 function Texture:SliceMode(mode) self._widget:SetTextureSliceMode(mode) end
+-- Set the draw layer (and optional sublevel for ordering within a layer). Sublevel
+-- stacks same-layer regions: a higher sublevel draws on top.
+---@param layer string  ui.layer.* constant
+---@param sublevel number?  0-based order within the layer (default 0)
+---@return Texture
+function Texture:DrawLayer(layer, sublevel)
+  self._widget:SetDrawLayer(layer, sublevel or 0)
+  return self
+end

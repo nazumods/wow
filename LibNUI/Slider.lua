@@ -3,7 +3,7 @@ local ns = select(2, ...)
 ---@class LibNUI
 local ui = ns.ui
 local Class = ns.lua.Class
-local Frame, Texture = ui.Frame, ui.Texture
+local Frame, Texture, Label = ui.Frame, ui.Texture, ui.Label
 
 -- https://warcraft.wiki.gg/wiki/UIOBJECT_Slider
 -- A value slider: a themed track with a draggable gold thumb. Drag or click to
@@ -17,6 +17,10 @@ local Frame, Texture = ui.Frame, ui.Texture
 ---@field orientation string  "HORIZONTAL" (default) | "VERTICAL"
 ---@field thickness number  track thickness in px (default 4)
 ---@field OnChange fun(self: Slider, value: number, userInput: boolean)?  value-changed callback
+---@field label string?  optional caption shown above the track's left end
+---@field valueFormat fun(value: number): string?  optional formatter; enables a live value readout above the track's right end
+---@field caption Label?  the caption Label (when `label` is set)
+---@field valueLabel Label?  the readout Label (when `valueFormat` is set)
 ---@field track Texture  the bar track behind the thumb
 ---@field _thumb Texture  the draggable handle
 local Slider = Class(Frame, function(self)
@@ -43,10 +47,32 @@ local Slider = Class(Frame, function(self)
   }
   w:SetThumbTexture(self._thumb._widget)
 
+  -- optional caption + live value readout, floating just above the track ends so they
+  -- add no layout height of their own
+  if self.label then
+    self.caption = Label:new{
+      parent = self, text = self.label, color = "muted",
+      font = ui.fonts.GameFontHighlightSmall,
+      position = { BottomLeft = {self, ui.edge.TopLeft, 0, 2} },
+    }
+  end
+  if self.valueFormat then
+    self.valueLabel = Label:new{
+      parent = self, color = "header", justifyH = ui.justify.Right,
+      font = ui.fonts.GameFontHighlightSmall,
+      position = { BottomRight = {self, ui.edge.TopRight, 0, 2} },
+    }
+  end
+
   w:SetScript("OnValueChanged", function(_, value, userInput)
+    if self.valueLabel then self.valueLabel:Text(self.valueFormat(value)) end
     if self.OnChange then self:OnChange(value, userInput) end
   end)
-  if self.value then w:SetValue(self.value) end
+  if self.value then
+    w:SetValue(self.value)
+    -- SetValue at the initial value may not fire OnValueChanged; seed the readout
+    if self.valueLabel then self.valueLabel:Text(self.valueFormat(self.value)) end
+  end
 end, {
   type = "Slider",
   min = 0,

@@ -276,6 +276,46 @@ function Tooltip:AnchorTo(frame, anchor, dx, dy)
   end
 end
 
+-- Fill the tooltip in one call: clear, add a header-coloured title line, then each
+-- extra argument as a normal text line (nil/empty arguments skipped). Returns self so a
+-- caller can chain an anchor + Show.
+---@param title string
+---@param ... string?  body lines
+---@return Tooltip
+function Tooltip:Lines(title, ...)
+  self:ClearLines()
+  self:AddLine(title, self:ThemeColor("header"))
+  for i = 1, select("#", ...) do
+    local line = select(i, ...)
+    if line and line ~= "" then self:AddLine(line) end
+  end
+  return self
+end
+
+-- Anchor beside a frame on whichever side has room: prefers hanging to the RIGHT of
+-- `frame`, flipping to the LEFT when the tooltip's current width would run past the
+-- screen edge. Call after the content is set (the width drives the decision) and before
+-- Show(). Comparison is effective-scale-normalised so differently scaled frames anchor
+-- correctly.
+---@param frame table|Frame  the frame to anchor against
+---@param dx number?  horizontal gap in pixels (default 4)
+---@param dy number?  y offset in pixels (default 0)
+---@return Tooltip
+function Tooltip:AnchorBeside(frame, dx, dy)
+  local f = (type(frame) == "table" and frame._widget) or frame
+  dx, dy = dx or 4, dy or 0
+  self._widget:ClearAllPoints()
+  local right = (f:GetRight() or 0) * f:GetEffectiveScale()
+  local screenRight = UIParent:GetRight() * UIParent:GetEffectiveScale()
+  local w = (self:Width() + dx) * self._widget:GetEffectiveScale()
+  if right + w <= screenRight then
+    self._widget:SetPoint("TOPLEFT", f, "TOPRIGHT", dx, dy)
+  else
+    self._widget:SetPoint("TOPRIGHT", f, "TOPLEFT", -dx, dy)
+  end
+  return self
+end
+
 -- Show realm and active specialization for a character, positioned via a LibNUI
 -- position table so callers can use any anchor layout they need.
 ---@param toon table WarbandeerApi character object

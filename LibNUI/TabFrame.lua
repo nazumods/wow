@@ -14,6 +14,8 @@ local BottomLeft, BottomRight = ui.edge.BottomLeft, ui.edge.BottomRight
 ---@field tabs          string[]                           label strings passed at construction
 ---@field tabHeight     number                             height of the tab button bar
 ---@field tabWidth      number                             width of each tab button
+---@field autosize      boolean                            size each tab to its label text instead of tabWidth (default false)
+---@field tabPadding    number                             total horizontal padding inside an autosized tab (default 24)
 ---@field activeColor   number[]|string                    background color (or theme token) of the selected tab button
 ---@field inactiveColor number[]|string                    background color (or theme token) of unselected tab buttons
 ---@field onSelect      fun(self: TabFrame, index: number)?  called when the selected tab changes
@@ -72,6 +74,11 @@ local TabFrame = Class(Frame, function(self)
       justifyH = "CENTER",
       justifyV = "MIDDLE",
     }
+    -- autosize: fit each tab to its label instead of the fixed tabWidth, so long
+    -- names aren't truncated and short ones don't waste bar space
+    if self.autosize then
+      btn:Width((btn.label:StringWidth() or 20) + self.tabPadding)
+    end
     local idx = i
     btn._widget:SetScript("OnClick", function() self:Select(idx) end)
 
@@ -91,6 +98,8 @@ local TabFrame = Class(Frame, function(self)
 end, {
   tabHeight     = 24,
   tabWidth      = 80,
+  autosize      = false,
+  tabPadding    = 24,
   activeColor   = "tabActive",
   inactiveColor = "tabInactive",
 })

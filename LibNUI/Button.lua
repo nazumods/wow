@@ -138,6 +138,10 @@ end
 ---@return string
 function Button:Text(text)
   if text ~= nil then
+    -- a template-less Button has no font: SetText would render nothing
+    if not self._widget:GetFontString() then
+      self._widget:SetNormalFontObject("GameFontHighlight")
+    end
     self._widget:SetText(text)
   end
   return self._widget:GetText()
@@ -147,6 +151,24 @@ end
 function Button:TextAlign(h)
   local fs = self._widget:GetFontString()
   if fs then fs:SetJustifyH(h) end
+end
+
+-- Transient action feedback: swap the button text to a confirmation string, then restore
+-- the original after `ms`. Re-flashing while a flash is pending keeps the original
+-- captured by the first flash, so rapid clicks can't bake the confirm text in.
+---@param text string?  confirmation text (default "Done!")
+---@param ms number?    restore delay in milliseconds (default 1500)
+---@return Button
+function Button:ConfirmFlash(text, ms)
+  if self._flashOriginal == nil then self._flashOriginal = self:Text() end
+  self._widget:SetText(text or "Done!")
+  self:delay(ms or 1500, function()
+    if self._flashOriginal ~= nil then
+      self._widget:SetText(self._flashOriginal)
+      self._flashOriginal = nil
+    end
+  end)
+  return self
 end
 
 function Button:OnReceiveDrag()
