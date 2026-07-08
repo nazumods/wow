@@ -381,6 +381,7 @@ std = {
     "SOLD_BY_COLON",
     "SendMailBodyEditBox",
     "TakeInboxItem",
+    "TakeInboxMoney",
     "UNKNOWN",
     "GetMoney",
     "GetMouseButtonClicked",

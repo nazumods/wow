@@ -1,6 +1,6 @@
 # ShadowsOfUI-PostOffice — CONTEXT
 
-**Deps:** LibNAddOn, LibNUI (optional Warbandeer_Characters → alts menu) · **Commands:** `/spost` · **DB:** `ShadowsOfUI_PostOfficeDB` (v6) · **UI lib:** LibNUI (copy window only)
+**Deps:** LibNAddOn, LibNUI (optional Warbandeer_Characters → alts menu) · **Commands:** `/spost` · **DB:** `ShadowsOfUI_PostOfficeDB` (v7) · **UI lib:** LibNUI (copy window only)
 
 Headless mailbox helper (no window of its own). Re-derives Postal modules in LibNAddOn
 style — augments the native mail frames + exposes Settings-panel toggles. Phase 1 (Rake,
@@ -14,7 +14,7 @@ Ace3→LibNAddOn mismatch).
 
 | File | Purpose |
 |---|---|
-| `core.lua` | `LibNAddOn` init, `Defaults`/`MigrateDB`, the mailbox lifecycle + `OnOpenMailUpdate` + `OnInboxRow` dispatches (see below), `ns.RefreshInbox`, settings-change routing, `RegisterSettings` (10 toggles), `ns.PlainCoins` helper, changelog button, `/spost`. |
+| `core.lua` | `LibNAddOn` init, `Defaults`/`MigrateDB`, the mailbox lifecycle + `OnOpenMailUpdate` + `OnInboxRow` dispatches (see below), `ns.RefreshInbox`, settings-change routing, `RegisterSettings` (11 toggles), `ns.PlainCoins` helper, changelog button, `/spost`. |
 | `rake.lua` | Snapshot `GetMoney()` on mail open, print the gain (`GetCoinTextureString`) on close. Report-only; does not auto-loot. |
 | `tradeBlock.lua` | `ns:SetTemporaryCVar("BlockTrades", 1)` on open, `RestoreCVar` on close; reacts to a live toggle while `ns._atMailbox`. |
 | `wire.lua` | Installs an `onValueChangedFunc` on `SendMailMoney` (lazily, first open) to fill a blank `SendMailSubjectEditBox` with `ns.PlainCoins`; only overwrites its own prior value. |
@@ -24,6 +24,7 @@ Ace3→LibNAddOn mismatch).
 | `blackBook.lua` | Recipient picker + autocomplete on the "To:" field: arrow button beside `SendMailNameEditBox` → `MenuUtil` menu (recently mailed inline, then Alts / Friends / Guild submenus, `SetScrollMode` 400, class-coloured via `ns.Colors.className`); inline `OnChar` completion from the same lists; Blizzard's autocomplete popup suppressed while on. Recent capture: `SendMailFrame_SendMail` posthook → commit on `MAIL_SEND_SUCCESS` (+ `AddHistoryLine`). Alts via optional `WarbandeerApi:GetAllCharacters()`. `db.blackBook`, `db.blackBookRecent`. |
 | `quickAttach.lua` | Column of ~12 trade-goods category buttons off the right edge of `MailFrame` (parented to `SendMailFrame`). Left-click bulk-attaches every matching stack from bags 0..reagent: `GetItemInfoInstant` class/subclass filter (`Enum.ItemClass.Tradegoods`, `sub == -1` = all), skip soulbound (`GetItemInfo` bindType == `Enum.ItemBind.OnAcquire`), whole-stack `PickupContainerItem` → `ClickSendMailItemButton(firstFreeSendSlot())` until the letter fills. Whole stacks are synchronous, so no split machinery. `db.quickAttach`. |
 | `doNotWant.lua` | Per-row return/delete icon on each inbox letter (first consumer of `ns.OnInboxRow`). Icon parented to `MailItemNExpireTime` so it follows the row layout; texture/tooltip per `InboxItemCanDelete` (delete vs return). Click returns (`ReturnInboxItem`) or deletes (`DeleteInboxItem`) with confirm popups for item/coin loss. `db.doNotWant`. |
+| `select.lua` | Checkbox per inbox row + Open/Return buttons on `InboxFrame`. **Owns the row re-layout** (indent rows / shrink width to make room for the checkboxes; DoNotWant's icon follows via the moved expire frame). Multi-select: plain / shift-range / ctrl-same-sender. Batch open/return is a throttled state machine (`_selectStep` on a raw-frame ticker, ~0.3s), processing selected indices **highest-first** so an emptied letter auto-deleting never shifts an index still queued; open takes attachments (highest slot first) then coin, skips CoD, stops on full bags. `db.select`. |
 | `changelog.lua` | `ns.changelog` release history (release.sh appends). |
 
 ## Mailbox lifecycle (core.lua)
@@ -60,14 +61,15 @@ Retail drives the mail window via the player-interaction manager; the legacy
 (the LibNAddOn default settings callback) dispatches to it. Used by TradeBlock to
 un-block immediately when disabled at the mailbox.
 
-## DB (`ShadowsOfUI_PostOfficeDB`, v6)
+## DB (`ShadowsOfUI_PostOfficeDB`, v7)
 
 Flat feature flags: `rake`, `tradeBlock`, `wire`, `express`, `forward`, `carbonCopy`,
-`blackBook`, `quickAttach`, `doNotWant` (all default `true`) and `expressAutoSend`
+`blackBook`, `quickAttach`, `doNotWant`, `select` (all default `true`) and `expressAutoSend`
 (default `false`), plus `blackBookRecent` (recently-mailed names, newest first, cap 15 —
 seeded explicitly in `MigrateDB`, kept out of `Defaults` so no instance aliases the shared
 table). `MigrateDB` adds missing keys non-destructively (v2 added `express*`; v3 `forward`
-+ `carbonCopy`; v4 `blackBook` + `blackBookRecent`; v5 `quickAttach`; v6 `doNotWant`).
++ `carbonCopy`; v4 `blackBook` + `blackBookRecent`; v5 `quickAttach`; v6 `doNotWant`;
+v7 `select`).
 
 ## Gotchas
 
@@ -130,6 +132,21 @@ table). `MigrateDB` adds missing keys non-destructively (v2 added `express*`; v3
   enable toggles — BlackBook already covers recipient selection, and scanning all bags
   (0..reagent) is the sensible default. Trimmed the button set to the common retail
   trade-goods categories.
+
+## Select notes
+
+- **Owns the inbox row layout.** `applyLayout(on)` toggles between Blizzard's values and
+  the indented ones (MailItem1 at 29/-68 vs 28/-80, width 280 vs 305, expire frame nudged).
+  DoNotWant re-uses the moved expire frame, so its icon follows for free — the whole point
+  of the shared decorator. Layout is idempotent and reverts on toggle-off.
+- **Batch state machine is idempotent by design.** Takes are async; the tick re-scans the
+  highest occupied attachment each step, so a take that hasn't registered just re-targets
+  the same (now-empty → no-op) slot next tick and self-corrects — no double-take harm.
+  Highest-index-first means an emptied letter auto-deleting never shifts a queued index.
+- **Deferred vs Postal (v1):** the front-insert re-index guard (Postal's `GetUniqueID`
+  tracking for mail arriving at the *front* mid-batch — rare, small window), `DisableInbox`
+  during processing (checkboxes hide + buttons disable instead), the KeepFreeSpace / verbose
+  / stack-merge-when-full refinements, and the "too much mail" chat rerouting.
 
 ## Express notes
 

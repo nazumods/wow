@@ -17,6 +17,7 @@ local Defaults = {
   blackBook = true,       -- recipient menu + autocomplete on the "To:" field
   quickAttach = true,     -- trade-goods category attach buttons beside Send Mail
   doNotWant = true,       -- per-row return/delete icon on each inbox letter
+  select = true,          -- inbox checkboxes + batch Open/Return buttons
 }
 
 function ns:MigrateDB()
@@ -27,7 +28,7 @@ function ns:MigrateDB()
   -- Table-valued state gets an explicit seed (kept out of Defaults so no instance
   -- ever aliases the shared defaults table).
   if db.blackBookRecent == nil then db.blackBookRecent = {} end -- recently-mailed names, newest first
-  db.version = 6
+  db.version = 7
 end
 
 -- Plain-text coin string (no texture escapes, for editable/subject text). e.g.
@@ -184,6 +185,10 @@ ns:RegisterSettings{
         label = "inbox return/delete icons", table = dbTable,
         tooltip = "Show a small icon on each inbox letter — click it to return the letter to its sender,"
           .. " or delete it (whichever it would do on expiry). Deletions ask for confirmation." },
+      { typ = "checkbox", key = "select", default = true, name = "Inbox select checkboxes",
+        label = "inbox select checkboxes", table = dbTable,
+        tooltip = "Add a checkbox to each inbox letter plus Open / Return buttons — tick letters and"
+          .. " batch-open (take all attachments + coin) or return them. Shift/Ctrl-click for range / same-sender." },
     },
   },
 }
