@@ -39,3 +39,39 @@ describe("LibNAddOn ns.wow.CoinString", function()
     assert.is_function(ns.wow.CoinString)
   end)
 end)
+
+describe("LibNAddOn ns.wow.GoldString", function()
+  local GoldString
+
+  before_each(function()
+    local ns = {}
+    assert(loadfile("LibNAddOn/globals/money.lua"))("LibNAddOn", ns)
+    GoldString = ns.wow.GoldString
+  end)
+
+  after_each(function()
+    _G.BreakUpLargeNumbers = nil -- undo any per-test stub
+  end)
+
+  it("truncates to whole gold", function()
+    assert.equal("1", GoldString(19999))   -- 1g 99s 99c -> 1
+    assert.equal("1023", GoldString(10230405))
+  end)
+
+  it("returns 0 for a zero amount", function()
+    assert.equal("0", GoldString(0))
+  end)
+
+  it("floors negative amounts toward minus infinity", function()
+    assert.equal("-2", GoldString(-12345)) -- matches math.floor semantics
+  end)
+
+  it("applies the client's grouping when BreakUpLargeNumbers exists", function()
+    _G.BreakUpLargeNumbers = function(n) return "[" .. n .. "]" end
+    assert.equal("[1234]", GoldString(12340000))
+  end)
+
+  it("falls back to a plain tostring without BreakUpLargeNumbers", function()
+    assert.equal("1234", GoldString(12340000))
+  end)
+end)

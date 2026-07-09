@@ -22,3 +22,15 @@ function ns.wow.CoinString(copper)
   if c > 0 or #parts == 0 then parts[#parts + 1] = c .. "c" end
   return table.concat(parts, " ")
 end
+
+-- Grouped gold-only amount with no coin suffix, e.g. 12345678 copper -> "1,234".
+-- Truncates to whole gold and applies the client's large-number grouping via
+-- BreakUpLargeNumbers (falling back to a plain tostring when it's unavailable, e.g.
+-- in specs). Callers append their own "g"/"g this week" suffix, so a bare
+-- right-aligned number column can adopt this too.
+---@param copper integer
+---@return string
+function ns.wow.GoldString(copper)
+  local gold = floor(copper / 10000)
+  return (BreakUpLargeNumbers or tostring)(gold)
+end

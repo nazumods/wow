@@ -29,7 +29,7 @@ table.insert(
       end
       if total == 0 then return "" end
       return {
-        text = BreakUpLargeNumbers(math.floor(total / 10000)),
+        text = ns.wow.GoldString(total),
         justifyH = ui.justify.Right,
         fontInfo = ns.theme.fonts.number,
         color = {1, 0.82, 0, 1},
