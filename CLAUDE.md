@@ -4,6 +4,8 @@
 
 This is a Windows environment. Prefer PowerShell for file/text operations (e.g. `\r\n` conversion, here-strings). Do **not** run PowerShell here-string syntax through the Bash tool — the `@` literal leaks into the output. Keep each shell's idioms in its own tool: don't mix Unix syntax into the PowerShell tool, and don't mix PowerShell syntax into the Bash tool.
 
+`zip` is **not** available in the Bash/MSYS environment. For packaging, use PowerShell `Compress-Archive` (or let the release tooling handle it) rather than a `zip` command.
+
 ## First Step: Read CONTEXT.md
 
 **At the start of every session, read `CONTEXT.md` in this directory.** It is the top-level index: the dependency graph, a one-line summary per addon, and the global slash command registry. Each addon's full code reference — file maps, class hierarchies, API surfaces, data structures, and constructor options — lives in its own `<addon>/CONTEXT.md` (linked from the root index). Load only the per-addon files relevant to the task; together they eliminate the need to re-read source files.
