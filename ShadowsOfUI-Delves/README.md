@@ -13,11 +13,13 @@ the level cap (where delve tiers don't apply) it falls back to an average across
 you've run, labelled *(all tiers)*. A delve you've entered but never finished, or one you
 haven't run yet, simply reads *No timed runs yet*.
 
-**While leveling**, a second line shows the average XP that delve earns you and the resulting
-XP-per-hour, so you can judge whether it's worth your time:
+**While leveling**, a second line shows the average XP that delve earns you — with, in brackets,
+how much of your **current level** that is — and the resulting XP-per-hour, so you can judge
+whether it's worth your time:
 
-> **Avg XP:** 42,300  · 745.0k XP/hr
+> **Avg XP:** 42,300 [12%]  · 745.0k XP/hr
 
+The `[12%]` is the run's average XP as a share of your whole current level (start to next ding).
 This line is **leveling-only** — it disappears at max level, where delves no longer grant XP.
 
 Hold **Shift** while hovering to hide the lines.
