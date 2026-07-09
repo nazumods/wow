@@ -194,7 +194,7 @@ local Overview = Class(Frame, function(self)
     trendIcon = TREND_ICON .. (madeGold > 0 and "trending_up.tga" or "trending_down.tga")
     trendColor = madeGold > 0 and c.green or c.red
   end
-  card(1, "Total Warband Wealth", ns.wow.GoldString(wealth) .. "g", c.gold,
+  card(1, "Total Warband Wealth", ns.wow.CoinString(wealth), c.gold,
        madeSub, trendIcon, trendColor)
   card(2, "Total Playtime", BreakUpLargeNumbers(math.floor(playSecs / 3600)) .. " hrs", c.text,
        BreakUpLargeNumbers(math.floor(patchSecs / 3600)) .. " hrs this patch · " .. count .. " chars")

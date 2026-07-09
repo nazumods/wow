@@ -10,8 +10,22 @@ describe("LibNAddOn ns.wow.CoinString", function()
     CoinString = ns.wow.CoinString
   end)
 
+  after_each(function()
+    _G.BreakUpLargeNumbers = nil -- undo any per-test stub
+  end)
+
   it("formats gold, silver and copper", function()
     assert.equal("1023g 4s 5c", CoinString(10230405))
+  end)
+
+  it("thousands-groups the gold part only when BreakUpLargeNumbers exists", function()
+    _G.BreakUpLargeNumbers = function(n) return "[" .. n .. "]" end
+    assert.equal("[1023]g 4s 5c", CoinString(10230405)) -- silver/copper ungrouped
+  end)
+
+  it("opts out of grouping with { grouped = false }", function()
+    _G.BreakUpLargeNumbers = function(n) return "[" .. n .. "]" end
+    assert.equal("1023g 4s 5c", CoinString(10230405, { grouped = false }))
   end)
 
   it("omits zero denominations", function()
@@ -73,5 +87,10 @@ describe("LibNAddOn ns.wow.GoldString", function()
 
   it("falls back to a plain tostring without BreakUpLargeNumbers", function()
     assert.equal("1234", GoldString(12340000))
+  end)
+
+  it("opts out of grouping with { grouped = false }", function()
+    _G.BreakUpLargeNumbers = function(n) return "[" .. n .. "]" end
+    assert.equal("1234", GoldString(12340000, { grouped = false }))
   end)
 end)
