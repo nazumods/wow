@@ -235,25 +235,32 @@ local SummaryView = Class(ui.Frame, function(self)
   -- resolved fresh each build so a settings toggle is reflected on rebuild. Each
   -- table gets its OWN column list + colInfo copy: SummaryColumnsDelayed appends the
   -- dynamic DMF column to each (via _columns / addCol), so a shared list would double-add.
-  -- Each roster lives in its own capped ScrollFrame (see layout/MAX_TABLE_H) so a tall
-  -- roster scrolls rather than growing the window off-screen; the table is the scroll
-  -- child, so hiding the scroll hides the table with it.
   local cols = ns.VisibleSummaryColumns()
   self._scrolls = {}
+  -- Build a roster table and host ONLY its row area in a ScrollFrame, so the header
+  -- row and the totals footer stay pinned while the rows scroll (a tall warband — or
+  -- the merged "both" roster — can exceed the screen). The table's `rowArea` becomes
+  -- the scroll child; the footer is re-anchored just below the scroll viewport (out of
+  -- the scroll area). Table (header cols + footer) and scroll (rows) are siblings in the
+  -- view, so layout() toggles BOTH per faction.
   local function makeTable(faction)
-    local scroll = ui.ScrollFrame:new{
-      parent = self,
-      scrollbar = true,
-      scrollbarWidth = SCROLLBAR_W,
-      position = { TopLeft = {0, 0} },
-    }
     local tbl = ClassSummary:new{
-      parent = scroll,
+      parent = self,
+      position = { TopLeft = {0, 0} },
       faction = faction,
       columns = ns.lua.lists.map(cols),
       colInfo = buildColInfo(cols),
     }
-    scroll:Child(tbl)
+    local scroll = ui.ScrollFrame:new{
+      parent = self,
+      scrollbar = true,
+      scrollbarWidth = SCROLLBAR_W,
+      position = { TopLeft = {0, -tbl.headerHeight} },
+    }
+    scroll:Child(tbl.rowArea)
+    tbl.footerRow:ClearAllPoints()
+    tbl.footerRow:TopLeft(scroll, ui.edge.BottomLeft, 0, 0)
+    tbl.footerRow:Width(tbl:Width())
     self._scrolls[faction] = scroll
     return tbl
   end
@@ -290,23 +297,30 @@ end
 
 function SummaryView:layout()
   for _, f in ipairs(FACTIONS) do
-    self._scrolls[f]:SetShown(self._faction == f)
+    local shown = self._faction == f
+    self[f]:SetShown(shown)            -- header cols + pinned totals footer
+    self._scrolls[f]:SetShown(shown)   -- the scrolling row area
   end
 
-  -- Cap the active roster at ~95% of the screen height: shorter tables show in full
-  -- (scrollbar hides itself), taller ones scroll. Reserve the scrollbar gutter only
-  -- when the bar is actually needed so short rosters keep a tight right edge.
+  -- Only the row area scrolls; the header + footer sit outside it. Cap the whole view
+  -- (header + rows + footer) at ~95% of the screen height — the rows get whatever is
+  -- left and scroll once they'd exceed it. Reserve the scrollbar gutter only while
+  -- actually scrolling so short rosters keep a tight right edge.
   local t = self:_activeTable()
   local scroll = self._scrolls[self._faction]
-  local fullH = t:Height()
-  local capH = min(maxTableHeight(), fullH)
-  local scrolling = fullH > capH + 0.5
+  local headerH, footerH = t.headerHeight, t.footerHeight
+  local rowsH = t.rowArea:Height()
+  local capH = min(maxTableHeight() - headerH - footerH, rowsH)
+  local scrolling = rowsH > capH + 0.5
   scroll:Height(capH)
   scroll:Width(t:Width() + (scrolling and SCROLLBAR_W or 0))
   scroll:Refresh()   -- recompute the scroll range for the (possibly re-sorted) rows
+  -- keep the table frame (its transparent column backgrounds) covering exactly the
+  -- header + visible rows + footer band
+  t:Height(headerH + capH + footerH)
 
   self:Width(scroll:Width())
-  self:Height(capH)
+  self:Height(headerH + capH + footerH)
 end
 
 ---@param mode "alliance"|"horde"|"both"
