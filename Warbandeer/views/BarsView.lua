@@ -279,10 +279,13 @@ end
 
 function BarsView:_getApplyFrame()
   if not self._applyFrame then
-    -- Parented to the view (shows/hides with it), docked below the main window.
+    -- Docked below the preview box (the stable right column), so the fixed-size
+    -- apply panel isn't shoved around by the dynamic character list. Anchored to
+    -- the preview's bottom-left, so it tracks the preview's height automatically.
+    local preview = self:_getPreviewFrame()
     self._applyFrame = ns.BarsApplyFrame:new{
       parent   = self,
-      position = { TopLeft = {ns.MainWindow or self, ui.edge.BottomLeft, 0, -8} },
+      position = { TopLeft = {preview, ui.edge.BottomLeft, 0, -8} },
     }
   end
   return self._applyFrame
@@ -290,8 +293,11 @@ end
 
 -- Show the preview + apply panels for a profile.
 function BarsView:_showSelection(p)
-  self:_getPreviewFrame():Set(p)
-  self:_getApplyFrame():Set(p)
+  local preview = self:_getPreviewFrame()
+  preview:Set(p)
+  local apply = self:_getApplyFrame()
+  apply._previewFrame = preview   -- lets the apply toggles highlight the matching preview bar
+  apply:Set(p)
 end
 
 function BarsView:_selectProfile(p)
