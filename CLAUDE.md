@@ -6,6 +6,8 @@ This is a Windows environment. Prefer PowerShell for file/text operations (e.g. 
 
 `zip` is **not** available in the Bash/MSYS environment. For packaging, use PowerShell `Compress-Archive` (or let the release tooling handle it) rather than a `zip` command.
 
+Route code search through the **Grep tool**, not Bash `grep`/`rg`. It handles multi-pattern searches via regex alternation (`A|B|C`), scopes to any directory with `path` (including reference repos like `wow-ui-source`), and filters with `glob`/`type` — so a scoped, multi-pattern search is one Grep call, and the results come back as clickable file links. Reserve Bash for genuine compounds a single tool can't express (grep piped into `sed -n`/`find`, or grep alongside a heredoc). Same for `find`→Glob and `cat`/`head`/`tail`-as-read→Read (piping `| head -N`/`| tail -N` onto a real command like git/luacheck/busted is fine).
+
 ## First Step: Read CONTEXT.md
 
 **At the start of every session, read `CONTEXT.md` in this directory.** It is the top-level index: the dependency graph, a one-line summary per addon, and the global slash command registry. Each addon's full code reference — file maps, class hierarchies, API surfaces, data structures, and constructor options — lives in its own `<addon>/CONTEXT.md` (linked from the root index). Load only the per-addon files relevant to the task; together they eliminate the need to re-read source files.
