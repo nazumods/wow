@@ -973,11 +973,12 @@ Methods: `Text(v)` — set and re-fit.
 
 ### SortableHeaderRow
 
-Inherits `Frame`. A standalone clickable column-header strip for custom lists (pairs
-with `VirtualList`; `TableFrame`'s sorting stays baked into its grid). Clicking a column
-selects it (ascending, or `descFirst`), clicking again flips the direction; the active
-column renders in the accent colour with an arrow. Sort your own data in `onSort` and
-re-render.
+Inherits `Frame`. A standalone clickable column-header strip for lists that aren't built
+on `TableFrame` — e.g. a header row above a `VirtualList`. (`TableFrame` has its own
+opt-in sortable columns; this is its counterpart for grid-less lists, sharing the same
+click/flip/arrow contract.) Clicking a column selects it (ascending, or `descFirst`),
+clicking again flips the direction; the active column renders in the accent colour with
+an arrow. Sort your own data in `onSort` and re-render.
 
 | Option      | Type   | Description                                                        |
 |-------------|--------|--------------------------------------------------------------------|
@@ -1189,7 +1190,7 @@ Inherits `Frame`. Renders a 2D grid with optional column and row headers, altern
 |-----------------|---------|---------------------------------------------------------------------------|
 | `colNames`      | table   | List of column header strings                                             |
 | `rowNames`      | table   | List of row header strings                                                |
-| `colInfo`       | table   | Per-column config: `{name, width, justifyH, atlas, atlasSize, padding, padLeft, color, backdrop, autosize}` |
+| `colInfo`       | table   | Per-column config: `{name, width, justifyH, atlas, atlasSize, padding, padLeft, color, backdrop, autosize, sortable, sortKey, descFirst}` |
 | `rowInfo`       | table   | Per-row config: `{name, height, justifyH, atlas, atlasSize, color, backdrop}` |
 | `numCols`       | number  | Column count (derived from `colNames` if omitted)                         |
 | `numRows`       | number  | Row count (derived from `rowNames` if omitted)                            |
@@ -1206,6 +1207,7 @@ Inherits `Frame`. Renders a 2D grid with optional column and row headers, altern
 | `headerFont`    | string  | Font for all headers                                                      |
 | `colHeaderFont` | string  | Font override for column headers                                          |
 | `rowHeaderFont` | string  | Font override for row headers                                             |
+| `onSort`        | func    | `function(self, key, descending)` fired when a `sortable` header is clicked (see **Sortable columns**) |
 
 ### Methods
 
@@ -1218,6 +1220,31 @@ Inherits `Frame`. Renders a 2D grid with optional column and row headers, altern
 | `set(row, col, el)` | Assign a `Cell` or widget to a position                |
 | `addRow(info)`      | Append a row with info table                           |
 | `addCol(info)`      | Append a column with info table                        |
+| `Sort(key?, desc?)` | Read the active sort as `(key, descending)`, or set it programmatically (restyles headers, does **not** fire `onSort`) |
+
+### Sortable columns
+
+Opt in per column via `colInfo`, mirroring `SortableHeaderRow`'s contract so the two feel like one system:
+
+- `sortable = true` — makes the column's header clickable and reserves room for an up/down arrow.
+- `sortKey` — stable identity passed to `onSort` (defaults to the column index).
+- `descFirst = true` — first click sorts descending (numeric "biggest first" columns).
+
+The active column renders in the accent colour with an arrow; other sortable headers rest muted. Clicking the active column flips direction; a new column starts at its natural direction. `TableFrame` owns the header UI + sort state; **the consumer owns the comparator and repaint** — it sorts its own data in `onSort` and calls `update()`. `TableFrame` never permutes `self.data` itself, so a consumer holding index-parallel state (row → object maps, per-row closures) stays aligned by re-sorting *before* rebuilding those rows.
+
+```lua
+local t = TableFrame:new{
+  colInfo = {
+    { name = "NAME", width = 90, sortable = true, sortKey = "name" },
+    { name = "SKILL", width = 44, sortable = true, sortKey = "skill", descFirst = true },
+  },
+  onSort = function(self, key, desc)
+    sortMyEntries(entries, key, desc)   -- consumer owns the comparator (missing = -inf, stable tiebreak)
+    self.data = rebuildRows(entries)
+    self:update()
+  end,
+}
+```
 
 ### Dynamic table gotcha
 
