@@ -56,16 +56,20 @@ that bar untouched (restore *and* clear pass). `nil` = all bars.
 
 ```lua
 {
-  version=1, captured=<time()>,
+  version=2, captured=<time()>,                            -- v2 adds barLayout
   char, realm, class (file token e.g. "MAGE"), classID,
   specID, spec (name), specIcon, level,
   slots    = { { id, type, index? | strindex? }, ... },   -- action bar slots 1..180
   binds    = { { command, key1?, key2? }, ... },
   macros   = { { id, name, icon, body }, ... },
-  petslots = { { id, type="token", strindex } | { id, type="spell", index }, ... },
+  petslots = { { id, type="token", strindex, tex } | { id, type="spell", index }, ... }, -- tex: token icon (v2, for cross-char preview)
   outfits  = { "Set Name", ... },                          -- equipment-set names only
   bindingSet = <1|2>,                                      -- GetCurrentBindingSet() at capture (1=account, 2=per-character)
   layoutName = <string?>,                                  -- active Edit Mode layout name (set by ns.CaptureLayouts())
+  barLayout  = { [bar] = { orientation, numIcons, numRows, enabled }, ... }, -- v2: REAL on-screen geometry
+                                                           -- via ns.wow.ReadActionBars() (addon-aware, Bartender/Dominos/ElvUI);
+                                                           -- keyed by slot-range bar (floor((slot-1)/12)+1). nil pre-v2 → preview
+                                                           -- falls back to the Edit Mode layout. Captured only when include.bars.
 }
 ```
 
