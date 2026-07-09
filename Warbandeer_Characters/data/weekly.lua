@@ -177,31 +177,31 @@ Weekly.fields = {
   },
 }
 
-ns:registerCommand("dump", "m+", function(self)
+ns:registerDump("m+", "Keystone", "dump keystone data", function(self, out)
   local ks = self.currentData.weeklies.keystone
   local dg = self.currentData.weeklies.dungeons
-  ns.Print("Keystone: " .. (ks and ("+"..ks) or "none"))
+  out:line("Keystone: " .. (ks and ("+"..ks) or "none"))
   if dg then
-    ns.Print("Dungeons: " .. dg.done .. "/" .. dg.max)
+    out:line("Dungeons: " .. dg.done .. "/" .. dg.max)
   else
-    ns.Print("Dungeons: 0")
+    out:line("Dungeons: 0")
   end
-end, "dump keystone data")
+end)
 
-ns:registerCommand("dump", "vault", function(self)
+ns:registerDump("vault", "Vault Rewards", "dump vault data", function(self, out)
   ---@type VaultRewards
   local vault = self.currentData.weeklies.vault
   if not vault or vault.best <= 0 then
-    ns.Print("No current vault data.")
+    out:line("No current vault data.")
     return
   end
 
-  ns.Print("Vault Rewards: " .. vault.best)
+  out:line("Vault Rewards: " .. vault.best)
   for ilvl,count in pairs(vault.counts) do
-    print(ilvl .. " x " .. count)
+    out:line(ilvl .. " x " .. count)
   end
 
   for k,v in pairs(vault.progress) do
-    print(k, ": " .. v.progress .. "/" .. v.max)
+    out:line(k, ": " .. v.progress .. "/" .. v.max)
   end
-end, "dump vault data")
+end)

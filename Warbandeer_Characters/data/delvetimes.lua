@@ -175,10 +175,10 @@ ns:registerEvent("SCENARIO_UPDATE", refreshActive)
 ns:registerEvent("SCENARIO_COMPLETED", recordCompletion)
 
 -- /wbc dump delves — recorded run-times for the current character (tooltip text can't be copied).
-ns:registerCommand("dump", "delves", function(self)
+ns:registerDump("delves", "Delve Run-Times", "dump delve run-times", function(_, out)
   local dt = ns.currentData and ns.currentData.delveTimes
-  if not dt or not dt.runs or not next(dt.runs) then ns.Print("No delve run-times recorded.") return end
-  ns.Print("Delve run-times:")
+  if not dt or not dt.runs or not next(dt.runs) then out:line("No delve run-times recorded.") return end
+  out:line("Delve run-times:")
   for _, entry in pairs(dt.runs) do
     for tier, list in pairs(entry.tiers) do
       local total = 0
@@ -190,13 +190,13 @@ ns:registerCommand("dump", "delves", function(self)
         for _, x in ipairs(xps) do xt = xt + x end
         xpStr = (" · avg %d XP over %d run(s)"):format(floor(xt / #xps + 0.5), #xps)
       end
-      print(("  %s [%s]: avg %ds over %d run(s)%s"):format(entry.name, tier > 0 and ("T" .. tier) or "T?", floor(total / #list + 0.5), #list, xpStr))
+      out:line(("  %s [%s]: avg %ds over %d run(s)%s"):format(entry.name, tier > 0 and ("T" .. tier) or "T?", floor(total / #list + 0.5), #list, xpStr))
     end
   end
   if dt.active then
-    ns.Print(("In progress: %s [T%s] for %ds"):format(dt.active.name or "?", dt.active.tier or 0, GetServerTime() - dt.active.start))
+    out:line(("In progress: %s [T%s] for %ds"):format(dt.active.name or "?", dt.active.tier or 0, GetServerTime() - dt.active.start))
   end
-end, "dump delve run-times")
+end)
 
 -- /wbc clear delves — reset the current character's recorded run-times (and any in-progress timer).
 ns:registerCommand("clear", "delves", function(self)

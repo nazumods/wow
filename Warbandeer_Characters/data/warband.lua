@@ -76,15 +76,15 @@ function ns:InitWarband()
   self:RolloverWarbandWeek()
 end
 
-ns:registerCommand("dump", "warband", function(self)
+ns:registerDump("warband", "Warband Wealth", "Dump warband wealth tracking", function(self, out)
   local w = self.db.warband
-  if not w then self.Print("No warband data yet."); return end
+  if not w then out:line("No warband data yet."); return end
   local g = function(copper) return math.floor((copper or 0) / 10000) end
-  self.Print("Warband Wealth:")
-  print("Bank gold: " .. g(w.bankGold) .. "g")
-  print("Total wealth: " .. g(self:GetWarbandWealth()) .. "g")
+  out:line("Warband Wealth:")
+  out:line("Bank gold: " .. g(w.bankGold) .. "g")
+  out:line("Total wealth: " .. g(self:GetWarbandWealth()) .. "g")
   if w.week then
-    print("Made this week: " .. g(self:GetWarbandWealth() - w.week.baseline) .. "g")
+    out:line("Made this week: " .. g(self:GetWarbandWealth() - w.week.baseline) .. "g")
   end
-  print(#(w.history or {}) .. " week(s) of history.")
-end, "Dump warband wealth tracking")
+  out:line(#(w.history or {}) .. " week(s) of history.")
+end)

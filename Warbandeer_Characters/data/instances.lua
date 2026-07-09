@@ -14,18 +14,18 @@ difficulties[16] = "Mythic"
 ---@class Character
 ---@field instances InstancesBroker?
 
-ns:registerCommand("dump", "locks", function(self)
+ns:registerDump("locks", "Instance Locks", "dump instance locks", function(_, out)
   if ns.currentData.instances.locks then
-    ns.Print("Instance locks:")
+    out:line("Instance locks:")
     for id,i in pairs(ns.currentData.instances.locks) do
       for d,l in pairs(i) do
-        print(l.name, id, difficulties[d], l.progress.."/"..l.total)
+        out:line(l.name, id, difficulties[d], l.progress.."/"..l.total)
       end
     end
   else
-    ns.Print("No instance locks found.")
+    out:line("No instance locks found.")
   end
-end, "dump instance locks")
+end)
 
 ---@class InstancesBroker: Broker
 local Instances = ns:RegisterBroker("instances")

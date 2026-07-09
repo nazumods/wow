@@ -76,18 +76,18 @@ Basic.fields = {
 local C_Bank = C_Bank
 local HasMaxBankTabs, FetchNumPurchasedBankTabs = C_Bank.HasMaxBankTabs, C_Bank.FetchNumPurchasedBankTabs
 
-ns:registerCommand("dump", "bank", function()
+ns:registerDump("bank", "Bank Expansion Info", "Dump bank expansion info", function(_, out)
   local character = 0
   local guild = 1
   local account = 2
-  ns.Print("Bank Expansion Info:")
-  ns.Print("Has Max Bank Account Space:", (HasMaxBankTabs(account) and "yes" or "no"))
-  ns.Print("Has Max Bank Guild Space:", (HasMaxBankTabs(guild) and "yes" or "no"))
-  ns.Print("Has Max Bank Character Space:", (HasMaxBankTabs(character) and "yes" or "no"))
-  ns.Print("Num Bank Account Tabs:", FetchNumPurchasedBankTabs(account))
-  ns.Print("Num Bank Guild Tabs:", FetchNumPurchasedBankTabs(guild))
-  ns.Print("Num Bank Character Tabs:", FetchNumPurchasedBankTabs(character))
-end, "Dump bank expansion info")
+  out:line("Bank Expansion Info:")
+  out:line("Has Max Bank Account Space:", (HasMaxBankTabs(account) and "yes" or "no"))
+  out:line("Has Max Bank Guild Space:", (HasMaxBankTabs(guild) and "yes" or "no"))
+  out:line("Has Max Bank Character Space:", (HasMaxBankTabs(character) and "yes" or "no"))
+  out:line("Num Bank Account Tabs:", FetchNumPurchasedBankTabs(account))
+  out:line("Num Bank Guild Tabs:", FetchNumPurchasedBankTabs(guild))
+  out:line("Num Bank Character Tabs:", FetchNumPurchasedBankTabs(character))
+end)
 
 local gt = {
   explorer = 207,
@@ -98,13 +98,13 @@ local gt = {
   mythic = 272,
 }
 
-ns:registerCommand("dump", "gt", function()
+ns:registerDump("gt", "Gear Tiers", "Gear Tier ilvl info", function(_, out)
   --local gt = ns.data.gearTiers
-  ns.Print("Gear Tier ilvl info:")
-  ns.Print("Explorer: "..gt.explorer)
-  ns.Print("Adventurer: "..gt.adventurer)
-  ns.Print("Veteran: "..gt.veteran)
-  ns.Print("Champion: "..gt.champion)
-  ns.Print("Hero: "..gt.hero)
-  ns.Print("Mythic: "..gt.mythic)
-end, "Gear Tier ilvl info")
+  out:line("Gear Tier ilvl info:")
+  out:line("Explorer: "..gt.explorer)
+  out:line("Adventurer: "..gt.adventurer)
+  out:line("Veteran: "..gt.veteran)
+  out:line("Champion: "..gt.champion)
+  out:line("Hero: "..gt.hero)
+  out:line("Mythic: "..gt.mythic)
+end)

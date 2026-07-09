@@ -57,17 +57,17 @@ Artifacts.fields = {
   },
 }
 
-ns:registerCommand("dump", "artifact", function()
+ns:registerDump("artifact", "Artifact Appearances", "dump legion artifacts appearance info", function(_, out)
   local t = ns.currentData
-  ns.Print("Artifact hidden")
+  out:line("Artifact hidden")
   for k,v in pairs(t.artifacts.hidden) do
-    ns.Print(k, v and "\124cff00ff00Yes\124r" or "\124cffff0000No\124r")
+    out:line(k, v and "\124cff00ff00Yes\124r" or "\124cffff0000No\124r")
   end
   for _, c in ipairs({{"Dungeon", 11152}, {"WQ", 11153}, {"Kills", 11154}}) do
     local _, _, _, a, g = GetAchievementCriteriaInfo(c[2], 1)
-    print(c[1], a, g)
+    out:line(c[1], a, g)
   end
-end, "dump legion artifacts appearance info")
+end)
 
 data.DeathKnight = {
   Blood = { hidden = 43646, },

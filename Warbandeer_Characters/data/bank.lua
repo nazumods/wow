@@ -305,20 +305,20 @@ function API:GetBankProfGear(skillID)
   return out
 end
 
-ns:registerCommand("dump", "bankgear", function(self)
+ns:registerDump("bankgear", "Bank Profession Gear", "Dump cached bank profession gear", function(_, out)
   local b = ns.db.bank
-  if not b then ns.Print("No bank gear scanned yet (open a bank)."); return end
-  ns.Print("Bank profession gear:")
+  if not b then out:line("No bank gear scanned yet (open a bank)."); return end
+  out:line("Bank profession gear:")
   local function show(label, data)
     if not data or not next(data.gear or {}) then return end
-    print(label .. " (" .. #data.gear .. " kinds):")
+    out:line(label .. " (" .. #data.gear .. " kinds):")
     for _, entry in ipairs(data.gear) do
       local name = C_Item.GetItemInfo(entry.itemID)
-      print("  " .. (name or entry.itemID) .. " x" .. entry.count
+      out:line("  " .. (name or entry.itemID) .. " x" .. entry.count
         .. " (skill " .. entry.skillID .. ")")
     end
   end
   show("Warband bank", b.warband)
   for charName, data in pairs(b.characters or {}) do show(charName .. "'s bank", data) end
   for guild, data in pairs(b.guilds or {}) do show(guild .. " guild bank", data) end
-end, "Dump cached bank profession gear")
+end)
