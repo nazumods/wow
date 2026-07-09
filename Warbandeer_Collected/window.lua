@@ -178,7 +178,7 @@ ns:OnRatingsChanged(function()
   ns.window:RefreshWanted()
 end)
 
--- Highlight the grid row of the set currently shown in the shared dressing room, and
+-- Draw the cell cursor on the set currently shown in the shared dressing room, and
 -- follow it as the user arrow-navigates (nil clears on close). No-op until opened.
 ns:OnDressedSetChanged(function(setId)
   if not ns.window then return end

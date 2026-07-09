@@ -28,8 +28,8 @@ local TableFrame = ui.TableFrame
 ---@field _playerRace number? cached canonical race id the rank pips resolve against
 ---@field _selectedRow number? lockout-panel selected row index (window grid only)
 ---@field _arrow Texture? lockout-selection arrow texture (window grid only, created lazily)
----@field _dressedSetId number? setId currently previewed in the shared dressing room (drives the row highlight; nil = none)
----@field _dressedRow number? row index currently highlighted for the dressed set (shifts on re-sort)
+---@field _dressedSetId number? setId currently previewed in the shared dressing room (drives the cell cursor; nil = none)
+---@field _dressedBox Frame? the white 4-edge cursor box re-anchored over the dressed set's cell (created lazily)
 ---@field onEnsureVisible fun(self: DataView, rowTop: number, rowH: number)?  host hook to scroll a row into view (see HighlightSet)
 ---@field _emptyMsg Label? centered empty-state message (created lazily; shown when "wanted only" matches nothing)
 ---@field embedded boolean? render trimmed for a host view (no lock column / lockout name-click)

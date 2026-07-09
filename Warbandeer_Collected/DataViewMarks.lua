@@ -55,38 +55,59 @@ function DataView:_applyCellMarks(cell, setId)
   end
 end
 
--- Highlight the row holding the set currently previewed in the shared dressing room
--- (a full-width TableRow overlay — LibNUI's TableRow:Highlighted), following the room
--- as the user arrow-navigates. A row is a group (many class setIds across columns);
--- the previewed setId lives in exactly one cell, so class nav (same group) keeps the
--- row while tier nav (sibling group) moves it. Broadcast from the room via
--- ns:OnDressedSetChanged; nil clears. `scroll` brings the row into view on open/nav
--- (via the host's onEnsureVisible hook) but not on a passive re-sort re-resolve.
----@param setId number?  the previewed set, or nil to clear the highlight
----@param scroll boolean?  scroll the matched row into view
+-- Thickness (px) of the dressed-set cursor's edges.
+local CURSOR = 2
+
+-- Lazily build the dressed-set cursor: a single reusable frame outlined by four white
+-- edge textures (the house 4-edge-outline idiom, cf. the dressing room's factionPanel),
+-- parented to the row area so it scrolls with the cells and lifted above them so the
+-- outline sits on top of the cell backdrops.
+function DataView:_ensureDressedBox()
+  if self._dressedBox then return end
+  local box = ui.Frame:new{ parent = self.rowArea }
+  box:Level(self.rowArea:Level() + 5)
+  local function edge(pos)
+    Texture:new{ parent = box, layer = ui.layer.Overlay, color = {1, 1, 1, 1}, position = pos }
+  end
+  edge{ TopLeft = {0, 0}, TopRight = {0, 0}, Height = CURSOR }
+  edge{ BottomLeft = {0, 0}, BottomRight = {0, 0}, Height = CURSOR }
+  edge{ TopLeft = {0, 0}, BottomLeft = {0, 0}, Width = CURSOR }
+  edge{ TopRight = {0, 0}, BottomRight = {0, 0}, Width = CURSOR }
+  self._dressedBox = box
+end
+
+-- Draw the cursor box around the exact cell of the set currently previewed in the
+-- shared dressing room, following the room as the user arrow-navigates: the previewed
+-- setId lives in one cell, so class nav (Step, same group row) slides the box left/right
+-- across columns and tier nav (StepTier, sibling group) moves it up/down to another row.
+-- Broadcast from the room via ns:OnDressedSetChanged; nil (close) hides it. `scroll`
+-- brings the cell's row into view on open/nav (via the host's onEnsureVisible hook) but
+-- not on a passive re-sort re-resolve.
+---@param setId number?  the previewed set, or nil to clear the cursor
+---@param scroll boolean?  scroll the matched cell's row into view
 function DataView:HighlightSet(setId, scroll)
   self._dressedSetId = setId
-  -- The highlighted row's index shifts on every re-sort, so always clear by the
-  -- tracked index before finding the set's current row.
-  if self._dressedRow and self.rows[self._dressedRow] then
-    self.rows[self._dressedRow]:Highlighted(false)
-  end
-  self._dressedRow = nil
-  if not setId then return end
-  for r = 1, #self.cells do
-    local row = self.cells[r]
-    for c = 1, #self.cols do
-      local data = row[c] and row[c].data
-      if type(data) == "table" and data.setId == setId then
-        self._dressedRow = r
-        self.rows[r]:Highlighted(true)
-        if scroll and self.onEnsureVisible then
-          self:onEnsureVisible((r - 1) * self.cellHeight, self.cellHeight)
+  if setId then
+    for r = 1, #self.cells do
+      local row = self.cells[r]
+      for c = 1, #self.cols do
+        local cell = row[c]
+        local data = cell and cell.data
+        if type(data) == "table" and data.setId == setId then
+          self:_ensureDressedBox()
+          self._dressedBox:TopLeft(cell, ui.edge.TopLeft, 0, 0)
+          self._dressedBox:BottomRight(cell, ui.edge.BottomRight, 0, 0)
+          self._dressedBox:Show()
+          if scroll and self.onEnsureVisible then
+            self:onEnsureVisible((r - 1) * self.cellHeight, self.cellHeight)
+          end
+          return
         end
-        return
       end
     end
   end
+  -- Cleared, or the set isn't currently visible (filtered out / other mode).
+  if self._dressedBox then self._dressedBox:Hide() end
 end
 
 -- Re-apply cell overlays from current DB state. Cheap enough to run on every

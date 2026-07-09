@@ -149,7 +149,7 @@ if WarbandeerCollectedApi and WarbandeerCollectedApi.OnRatingsChanged then
   end)
 end
 
--- Highlight the grid row of the set shown in the shared dressing room, following the
+-- Draw the cell cursor on the set shown in the shared dressing room, following the
 -- user's arrow navigation (nil clears on close). Registered once at load.
 if WarbandeerCollectedApi and WarbandeerCollectedApi.OnDressedSetChanged then
   WarbandeerCollectedApi:OnDressedSetChanged(function(setId)
