@@ -1,15 +1,33 @@
 ---@type Warbandeer
 local ns = select(2, ...)
 local ui = ns.ui
+local min = math.min
 local filter = ns.lua.lists.filter
 local Class, TableFrame, Texture, Button, Label = ns.lua.Class, ui.TableFrame, ui.Texture, ui.Button, ui.Label
 local theme = ns.theme
 
--- Faction accent colours for the toggle (Alliance blue / Horde red), matching
--- the ns.factionIcon tints.
+-- Faction modes, left→right (also the segment order).
+local FACTIONS = {"alliance", "horde", "both"}
+
+-- A roster that would exceed ~95% of the screen height scrolls instead of growing
+-- the window off the display — a large warband, or the merged "both" roster, can
+-- run past the bottom of the screen. The active table is hosted in a ScrollFrame
+-- capped at this height (whole table scrolls); shorter rosters fit fully and the
+-- themed scrollbar hides itself. Computed live so it tracks resolution / UI-scale
+-- changes; WINDOW_CHROME leaves room for the titlebar + Fit padding so the *window*
+-- stays within 95%, not just the table.
+local SCROLLBAR_W = 16
+local WINDOW_CHROME = 34
+local function maxTableHeight()
+  return UIParent:GetHeight() * 0.95 - WINDOW_CHROME
+end
+
+-- Faction accent colours for the toggle (Alliance blue / Horde red / Both gold),
+-- matching the ns.factionIcon tints; the neutral "both" state borrows the theme gold.
 local FACTION_COLOR = {
   alliance = {0.40, 0.733, 1.0, 1},
   horde    = {1.0,  0.125, 0.125, 1},
+  both     = theme.colors.gold,
 }
 
 -- Build the colInfo list for a given (visible) column set: shallow-copy each
@@ -45,8 +63,9 @@ local function buildColInfo(cols)
 end
 
 -- Per-faction roster table: one row per character, one column per SummaryColumn.
+-- `faction` selects the roster: a single side, or "both" for the merged warband list.
 ---@class ClassSummary: TableFrame
----@field isAlliance boolean      which faction's characters this table shows
+---@field faction "alliance"|"horde"|"both"  which roster this table shows
 ---@field columns SummaryColumn[] the visible columns this table renders (passed in)
 ---@field _columns SummaryColumn[] row-iteration list (columns + any dynamic DMF column)
 ---@field _toons Character[]      row index -> character (refreshed each OnBeforeShow)
@@ -83,18 +102,23 @@ local ClassSummary = Class(TableFrame, function(self)
 
   self:setFooter(self:GetFooterData(toons))
 end, {
-  isAlliance = true,
+  faction = "alliance",
   backdrop = {color = ns.Colors.TransparentBlack},
   footerBackdrop = {color = theme.colors.moduleHi},
 })
 
--- This table's faction roster, sorted by level/ilvl/name.
+-- This table's roster, sorted by level/ilvl/name. "both" returns the whole warband
+-- unfiltered (the faction column distinguishes the sides); a single-side table
+-- filters to that faction.
 ---@return Character[]
 function ClassSummary:GetCharacters()
   local toons = ns.api.GetAllCharacters() -- returns a copy
-  toons = filter(toons, function(t)
-    return t.isAlliance == self.isAlliance
-  end)
+  if self.faction ~= "both" then
+    local wantAlliance = self.faction == "alliance"
+    toons = filter(toons, function(t)
+      return t.isAlliance == wantAlliance
+    end)
+  end
   table.sort(toons, ns.byLevelIlvl)
   return toons
 end
@@ -197,41 +221,56 @@ end
 ---@class SummaryView: Frame
 ---@field alliance ClassSummary
 ---@field horde ClassSummary
----@field _showAlliance boolean  which faction table is visible
----@field _filter Frame?         titlebar faction toggle (built by BuildFilter)
+---@field both ClassSummary
+---@field _scrolls table<string, ScrollFrame>  faction mode -> the table's capped scroll host
+---@field _faction "alliance"|"horde"|"both"  which roster is visible
+---@field _segments table<string, Frame>?     titlebar faction segments (built by BuildFilter)
+---@field _filter Frame?                       titlebar faction segmented control
 local SummaryView = Class(ui.Frame, function(self)
   -- default to the current character's faction on first open
   local current = ns.api:GetCharacterData()
-  self._showAlliance = not current or current.isAlliance
+  self._faction = (not current or current.isAlliance) and "alliance" or "horde"
 
   -- The user-visible column set (identity columns + non-hidden toggleable ones),
   -- resolved fresh each build so a settings toggle is reflected on rebuild. Each
   -- table gets its OWN column list + colInfo copy: SummaryColumnsDelayed appends the
-  -- dynamic DMF column to both (via _columns / addCol), so a shared list would double-add.
+  -- dynamic DMF column to each (via _columns / addCol), so a shared list would double-add.
+  -- Each roster lives in its own capped ScrollFrame (see layout/MAX_TABLE_H) so a tall
+  -- roster scrolls rather than growing the window off-screen; the table is the scroll
+  -- child, so hiding the scroll hides the table with it.
   local cols = ns.VisibleSummaryColumns()
-  self.alliance = ClassSummary:new{
-    parent = self,
-    position = { TopLeft = {0, 0} },
-    columns = ns.lua.lists.map(cols),
-    colInfo = buildColInfo(cols),
-  }
-  self.horde = ClassSummary:new{
-    parent = self,
-    position = { TopLeft = {0, 0} },
-    isAlliance = false,
-    columns = ns.lua.lists.map(cols),
-    colInfo = buildColInfo(cols),
-  }
+  self._scrolls = {}
+  local function makeTable(faction)
+    local scroll = ui.ScrollFrame:new{
+      parent = self,
+      scrollbar = true,
+      scrollbarWidth = SCROLLBAR_W,
+      position = { TopLeft = {0, 0} },
+    }
+    local tbl = ClassSummary:new{
+      parent = scroll,
+      faction = faction,
+      columns = ns.lua.lists.map(cols),
+      colInfo = buildColInfo(cols),
+    }
+    scroll:Child(tbl)
+    self._scrolls[faction] = scroll
+    return tbl
+  end
+  self.alliance = makeTable("alliance")
+  self.horde    = makeTable("horde")
+  self.both     = makeTable("both")
 
   self:layout()
 
-  -- Cold-session FontString rasterization heal, mirroring Overview: the two
+  -- Cold-session FontString rasterization heal, mirroring Overview: the
   -- ClassSummary tables are built here on the first (lazy) open, so without this a
   -- cold-session first Summary open can render the identity cells blank. Idempotent —
   -- see ns.HealCellFonts.
   ns:after(50, function()
     ns.HealCellFonts(self.alliance)
     ns.HealCellFonts(self.horde)
+    ns.HealCellFonts(self.both)
   end)
 end, {
   name   = "summary",
@@ -241,82 +280,139 @@ SummaryView.name = "summary"
 SummaryView._title = "Summary"
 ns.views.SummaryView = SummaryView
 
-function SummaryView:layout()
-  local a = self._showAlliance
-  self.alliance:SetShown(a)
-  self.horde:SetShown(not a)
-
-  local t = a and self.alliance or self.horde
-  self:Width(t:Width())
-  self:Height(t:Height())
+-- The currently visible roster table.
+---@return ClassSummary
+function SummaryView:_activeTable()
+  if self._faction == "horde" then return self.horde end
+  if self._faction == "both" then return self.both end
+  return self.alliance
 end
 
-function SummaryView:toggleFaction()
-  self._showAlliance = not self._showAlliance
-  self._showHorde = not self._showAlliance
+function SummaryView:layout()
+  for _, f in ipairs(FACTIONS) do
+    self._scrolls[f]:SetShown(self._faction == f)
+  end
+
+  -- Cap the active roster at ~95% of the screen height: shorter tables show in full
+  -- (scrollbar hides itself), taller ones scroll. Reserve the scrollbar gutter only
+  -- when the bar is actually needed so short rosters keep a tight right edge.
+  local t = self:_activeTable()
+  local scroll = self._scrolls[self._faction]
+  local fullH = t:Height()
+  local capH = min(maxTableHeight(), fullH)
+  local scrolling = fullH > capH + 0.5
+  scroll:Height(capH)
+  scroll:Width(t:Width() + (scrolling and SCROLLBAR_W or 0))
+  scroll:Refresh()   -- recompute the scroll range for the (possibly re-sorted) rows
+
+  self:Width(scroll:Width())
+  self:Height(capH)
+end
+
+---@param mode "alliance"|"horde"|"both"
+function SummaryView:setFaction(mode)
+  if self._faction == mode then return end
+  self._faction = mode
   self:updateFilter()
+  self:_activeTable():OnBeforeShow()  -- refresh the newly shown roster before sizing
   self:layout()
   if ns.MainWindow then ns.MainWindow:Fit() end
 end
 
--- Faction toggle: the current faction's icon + name, tinted blue (Alliance) or
--- red (Horde) with a matching 1px border. Clicking flips to the other faction.
+-- Segment order, left to right, for both build + update.
+local FACTION_SEGS = {
+  { mode = "alliance", label = "ALLIANCE", icons = {true},        w = 82 },
+  { mode = "horde",    label = "HORDE",    icons = {false},       w = 62 },
+  { mode = "both",     label = "BOTH",     icons = {true, false}, w = 74 },
+}
+
+-- Faction filter: a joined 3-segment control (Alliance / Horde / Both), one active
+-- at a time. Each segment is a bordered box (butted together so the borders read as
+-- dividers), carrying its faction icon(s) + a mono-caps label; the "both" segment
+-- shows both crests. The active segment is tinted its faction accent (Alliance blue /
+-- Horde red / Both gold) on border + label, inactive ones muted + dimmed. Modelled on
+-- GearView's armor-type strip. Clicking a segment switches the shown roster.
 ---@param parent Frame
 ---@return Frame
 function SummaryView:BuildFilter(parent)
-  local FW, FH, PAD, ICON, GAP = 80, 20, 5, 14, 5
+  local BH, PAD, ICON, GAP, IGAP = 20, 6, 13, 4, 2
+  local totalW = 0
+  for _, s in ipairs(FACTION_SEGS) do totalW = totalW + s.w end
   local box = ui.Frame:new{
     parent = parent,
-    position = { Width = FW, Height = FH },
+    position = { Width = totalW, Height = BH },
   }
-  -- faction-coloured 1px border with a dark interior
-  box.border = Texture:new{
-    parent = box, layer = ui.layer.Background,
-    position = { All = true },
-  }
-  Texture:new{
-    parent = box, layer = ui.layer.Border, color = {0.05, 0.05, 0.06, 0.92},
-    position = { TopLeft = {1, -1}, BottomRight = {-1, 1} },
-  }
-  box.button = Button:new{
-    parent = box,
-    position = { All = true },
-    glow = false,
-    OnClick = function() self:toggleFaction() end,
-  }
-  box.icon = Texture:new{
-    parent = box.button, layer = ui.layer.Artwork,
-    position = { Left = {PAD, 0}, Size = {ICON, ICON} },
-  }
-  box.label = Label:new{
-    parent = box.button,
-    -- mono caps (like the column headers) — crisper than the soft Hanken display
-    -- font at this size, and consistent with the rest of the chrome
-    fontInfo = {theme.fonts.caps[1], 10},
-    position = { Left = {box.icon, ui.edge.Right, GAP, 0} },
-  }
-  -- dimmed at rest, full opacity on hover
-  box.button:Alpha(0.85)
-  box.button.OnEnter = function(b) b:Alpha(1) end
-  box.button.OnLeave = function(b) b:Alpha(0.85) end
+
+  self._segments = {}
+  local x = 0
+  for _, seg in ipairs(FACTION_SEGS) do
+    local b = ui.Frame:new{
+      parent = box,
+      position = { Left = {box, ui.edge.Left, x, 0}, Width = seg.w, Height = BH },
+    }
+    -- faction-accent 1px border with a dark interior
+    b.border = Texture:new{
+      parent = b, layer = ui.layer.Background,
+      position = { All = true },
+    }
+    Texture:new{
+      parent = b, layer = ui.layer.Border, color = {0.05, 0.05, 0.06, 0.92},
+      position = { TopLeft = {1, -1}, BottomRight = {-1, 1} },
+    }
+    b.button = Button:new{
+      parent = b,
+      position = { All = true },
+      glow = false,
+      OnClick = function() self:setFaction(seg.mode) end,
+    }
+    -- faction crest(s), laid out left→right so they never collide; the "both"
+    -- segment shows two slightly-smaller crests side by side.
+    local isz = #seg.icons > 1 and 11 or ICON
+    local ix = PAD
+    for _, isAlliance in ipairs(seg.icons) do
+      local ico = ns.factionIcon[isAlliance]
+      local t = Texture:new{
+        parent = b.button, layer = ui.layer.Artwork,
+        position = { Left = {ix, 0}, Size = {isz, isz} },
+      }
+      t:Texture(ico.path)
+      t:Coords(unpack(ico.coords))
+      t:SetVertexColor(unpack(ico.vertexColor))
+      ix = ix + isz + IGAP
+    end
+    local iconRight = ix - IGAP
+    b.label = Label:new{
+      parent = b.button,
+      -- mono caps (like the column headers) — crisper than the soft Hanken display
+      -- font at this size, and consistent with the rest of the chrome
+      fontInfo = {theme.fonts.caps[1], 10},
+      position = { Left = {iconRight + GAP, 0} },
+      text = seg.label,
+    }
+    self._segments[seg.mode] = b
+    x = x + seg.w
+  end
 
   self._filter = box
   self:updateFilter()
   return box
 end
 
--- Point the toggle at the currently shown faction (icon, name, accent colour).
+-- Tint each segment to reflect the active faction (accent border + label + full
+-- opacity vs. muted + dimmed).
 function SummaryView:updateFilter()
-  local f = self._filter
-  if not f then return end
-  local a = self._showAlliance
-  local ico = ns.factionIcon[a]
-  local col = a and FACTION_COLOR.alliance or FACTION_COLOR.horde
-  f.icon:Texture(ico.path)
-  f.icon:Coords(unpack(ico.coords))
-  f.icon:SetVertexColor(unpack(ico.vertexColor))
-  f.label:Text((a and "Alliance" or "Horde"):upper()):Color(col)
-  f.border:Color(col[1], col[2], col[3], 0.9)
+  if not self._segments then return end
+  for _, seg in ipairs(FACTION_SEGS) do
+    local b = self._segments[seg.mode]
+    if b then
+      local active = self._faction == seg.mode
+      local col = active and FACTION_COLOR[seg.mode] or theme.colors.muted
+      b.label:Color(col)
+      local bc = active and FACTION_COLOR[seg.mode] or theme.colors.border
+      b.border:Color(bc[1], bc[2], bc[3], active and 0.9 or 0.4)
+      b.button:Alpha(active and 1 or 0.7)
+    end
+  end
 end
 
 function SummaryView:OnBeforeShow()
@@ -327,7 +423,8 @@ function SummaryView:OnBeforeShow()
   -- DMF has no live event handler, so refresh it on show or the column stays
   -- stale after completing the faire quests this session
   ns.api:RefreshCurrentCharacterField("weeklies", "DMF")
-  self.alliance:OnBeforeShow()
-  self.horde:OnBeforeShow()
+  -- Only the visible roster needs a rebuild; setFaction refreshes the others as
+  -- they become active.
+  self:_activeTable():OnBeforeShow()
   self:layout()
 end
