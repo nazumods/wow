@@ -151,9 +151,11 @@ local function CapturePetBar()
   local slots = {}
   if not IsPetActive() then return slots end
   for i = 1, NUM_PET_ACTION_SLOTS do
-    local name, _, isToken, _, _, _, spellID = GetPetActionInfo(i)
+    local name, tex, isToken, _, _, _, spellID = GetPetActionInfo(i)
     if isToken then
-      slots[#slots+1] = { id = i, type = "token", strindex = name }
+      -- Keep the token's texture so the preview can draw the command icon on any
+      -- character (the token name alone can't be resolved to an icon cross-char).
+      slots[#slots+1] = { id = i, type = "token", strindex = name, tex = tex }
     elseif spellID then
       slots[#slots+1] = { id = i, type = "spell", index = spellID }
     end

@@ -11,9 +11,10 @@ local ICON_SZ, ICON_GAP = 22, 2
 local CELL    = ICON_SZ + ICON_GAP   -- 24px per slot including gap
 local BAR_GAP = 6                    -- gap between bar boxes
 local BOX_P   = 6                    -- inner padding of each bar box
-local LBL_W   = 36                   -- width of "Bar N" label
+local LBL_W   = 56                   -- width of the horizontal label ("Class 1" fits)
 local LBL_H   = 12                   -- height of "Bar N" label row
 local LBL_GAP = 4                    -- gap between label row and icons
+local STACK_W = 14                   -- width of the vertically-stacked label on vertical bars
 
 -- Edit Mode systemIndex (Enum.EditModeActionBarSystemIndices) → first action
 -- slot and binding command. 2/3 = bottom-left/right, 4/5 = right bars,
@@ -51,6 +52,7 @@ local BAR_ORDER = {
   { bar = 12, label = "Class 5", stance = true },
   { bar = 2,  label = "Bonus",   stance = true },
   { bar = 11, label = "Sky",     stance = true },
+  { pet = true, label = "Pet" },   -- from profile.petslots, not a slot range; a normal bar
 }
 
 -- Subtle gold outline marking the stance/class-page group apart from normal bars.
@@ -155,6 +157,36 @@ local function slotName(slot, macroMap)
   end
 end
 
+-- Pet-bar slot icon/name: spell abilities resolve by ID; command tokens use the
+-- texture captured with the profile (name-only can't resolve cross-character).
+local function petTex(slot)
+  if not slot then return nil end
+  if slot.type == "spell" then return GetSpellTex and GetSpellTex(slot.index) or nil end
+  return slot.tex   -- token (captured texture)
+end
+local function petName(slot)
+  if not slot then return nil end
+  if slot.type == "spell" then return GetSpellName and GetSpellName(slot.index) or nil end
+  return slot.strindex   -- token command name
+end
+
+-- Stack a short label vertically, one char per line, so it reads top-to-bottom down
+-- the side of a vertical bar (numbers kept whole after a blank line): "Class 2" ->
+-- "C\nl\na\ns\ns\n\n2". Matches the in-game bar overlay.
+local function stackText(s)
+  local parts = {}
+  for token in string.gmatch(s, "%S+") do
+    if string.match(token, "^%d+$") then
+      parts[#parts + 1] = token
+    else
+      local chars = {}
+      for k = 1, #token do chars[k] = string.sub(token, k, k) end
+      parts[#parts + 1] = table.concat(chars, "\n")
+    end
+  end
+  return table.concat(parts, "\n\n")
+end
+
 -- ─── BarsPreview ─────────────────────────────────────────────────────────────────
 
 ---@class BarsPreview: Frame
@@ -185,14 +217,13 @@ function BarsPreview:_barRow(i)
   }
   row = { rf = rf, _cells = {} }
 
+  -- Label + icon area are repositioned per render (horizontal bars label on top;
+  -- vertical bars label stacked down the left), so anchor them in _showBar.
   row.lbl = Label:new{
     parent = rf, fontInfo = theme.fonts.body, color = theme.colors.muted,
-    position = { TopLeft = {BOX_P, -BOX_P}, Width = LBL_W, Height = LBL_H },
+    justifyH = ui.justify.Center,
   }
-  row.iconArea = Frame:new{
-    parent = rf,
-    position = { TopLeft = {BOX_P, -(BOX_P + LBL_H + LBL_GAP)} },
-  }
+  row.iconArea = Frame:new{ parent = rf }
 
   for j = 1, 12 do
     local cell = Frame:new{
@@ -233,11 +264,13 @@ end
 -- ─── Render one bar ───────────────────────────────────────────────────────────
 -- isVert: fill cells top-to-bottom (column-major) and report orientation.
 
-function BarsPreview:_showBar(rowIdx, def, base, info, slotMap, macroMap, bindMap)
+function BarsPreview:_showBar(rowIdx, def, base, info, slotMap, macroMap, bindMap, petMap, stance)
   local row      = self:_barRow(rowIdx)
-  local numIcons = (info and info.numIcons) or 12
-  local stacks   = math.max(1, (info and info.numRows) or 1)
-  local isVert   = info and info.orientation == 1
+  local numIcons = (info and info.numIcons) or (def.pet and 10) or 12
+  -- A bar rendered as a stance bar (it replaces Bar 1) always draws as one
+  -- horizontal row in the dedicated stance area, whatever its real orientation.
+  local stacks   = stance and 1 or math.max(1, (info and info.numRows) or 1)
+  local isVert   = not stance and info and info.orientation == 1
 
   -- Edit Mode's "rows" setting counts stacks along the bar's short axis: rows
   -- when horizontal, columns when vertical.
@@ -250,17 +283,41 @@ function BarsPreview:_showBar(rowIdx, def, base, info, slotMap, macroMap, bindMa
     gridCols = math.ceil(numIcons / stacks)
   end
 
-  row.lbl:Text(def.label)
   row.rf.background:Color(theme.colors.module)  -- clear any leftover hover highlight
-  self._rowByBar[def.bar] = row
-  self:_stanceBorder(row, def.stance)
+  if def.bar then self._rowByBar[def.bar] = row end   -- pet has no slot-range bar
+
+  local iconW = gridCols * CELL - ICON_GAP
+  local iconH = gridRows * CELL - ICON_GAP
+
+  -- Horizontal bars: label on top, icons below. Vertical bars: label stacked down
+  -- the left, icons to its right (matches the in-game bar overlay). vColH is the
+  -- taller of the icon column and the stacked label, so a short bar's label isn't clipped.
+  local vColH = iconH
+  row.lbl:ClearAllPoints()
+  row.iconArea:ClearAllPoints()
+  if isVert then
+    row.lbl:Text(stackText(def.label))
+    row.lbl:JustifyH(ui.justify.Center)
+    row.lbl._widget:SetJustifyV("TOP")
+    row.lbl:Width(STACK_W)
+    vColH = math.max(iconH, row.lbl._widget:GetStringHeight())
+    row.lbl:Height(vColH)
+    row.lbl:SetPoint("TOPLEFT", row.rf, "TOPLEFT", BOX_P, -BOX_P)
+    row.iconArea:SetPoint("TOPLEFT", row.rf, "TOPLEFT", BOX_P + STACK_W + LBL_GAP, -BOX_P)
+  else
+    row.lbl:Text(def.label)
+    row.lbl:JustifyH(ui.justify.Left)
+    row.lbl._widget:SetJustifyV("MIDDLE")
+    row.lbl:SetPoint("TOPLEFT", row.rf, "TOPLEFT", BOX_P, -BOX_P)
+    row.lbl:Width(LBL_W); row.lbl:Height(LBL_H)
+    row.iconArea:SetPoint("TOPLEFT", row.rf, "TOPLEFT", BOX_P, -(BOX_P + LBL_H + LBL_GAP))
+  end
 
   for j = 1, 12 do
     local cell = row._cells[j]
     if j > numIcons then
       cell:Hide()
     else
-      local slotNum = base + j - 1
       -- Horizontal: fill left-to-right, rows growing upward (slot 1 is the
       -- bottom row, matching in-game). Vertical: fill top-to-bottom (column-major).
       local r, c
@@ -275,8 +332,20 @@ function BarsPreview:_showBar(rowIdx, def, base, info, slotMap, macroMap, bindMa
       cell:ClearAllPoints()
       cell:SetPoint("TOPLEFT", row.iconArea, "TOPLEFT", c * CELL, -r * CELL)
 
-      local tex = slotTex(slotMap[slotNum], macroMap)
-      cell._tipText = slotName(slotMap[slotNum], macroMap)
+      -- Pet rows draw from profile.petslots (keyed by pet slot id) with no keybinds;
+      -- normal bars draw from the action slot map.
+      local tex, key
+      if def.pet then
+        local pslot = petMap and petMap[j]
+        tex = petTex(pslot)
+        cell._tipText = petName(pslot)
+      else
+        local slotNum = base + j - 1
+        tex = slotTex(slotMap[slotNum], macroMap)
+        cell._tipText = slotName(slotMap[slotNum], macroMap)
+        local cmd = SLOT_CMD[slotNum]
+        key = cmd and bindMap and bindMap[cmd]
+      end
       if tex then
         cell.icon:Texture(tex)
         cell.icon:Show()
@@ -286,8 +355,6 @@ function BarsPreview:_showBar(rowIdx, def, base, info, slotMap, macroMap, bindMa
         cell.background:Color(0, 0, 0, 0.25)
       end
 
-      local cmd = SLOT_CMD[slotNum]
-      local key = cmd and bindMap and bindMap[cmd]
       if key then
         cell.kb:Text(key)
         cell.kb:Show()
@@ -299,36 +366,44 @@ function BarsPreview:_showBar(rowIdx, def, base, info, slotMap, macroMap, bindMa
     end
   end
 
-  local iconW = gridCols * CELL - ICON_GAP
-  local iconH = gridRows * CELL - ICON_GAP
   row.iconArea:Width(iconW)
   row.iconArea:Height(iconH)
-  row.rf:Width(BOX_P * 2 + math.max(iconW, LBL_W))
-  row.rf:Height(BOX_P * 2 + LBL_H + LBL_GAP + iconH)
+  if isVert then
+    row.rf:Width(BOX_P * 2 + STACK_W + LBL_GAP + iconW)
+    row.rf:Height(BOX_P * 2 + vColH)
+  else
+    row.rf:Width(BOX_P * 2 + math.max(iconW, LBL_W))
+    row.rf:Height(BOX_P * 2 + LBL_H + LBL_GAP + iconH)
+  end
   row.rf:Show()
   return isVert
 end
 
--- Lazily add (or toggle) a subtle gold outline marking a stance/class-page row.
--- Edges anchor to the bar box and track its size; pooled rows reused as normal
--- bars hide the outline.
-function BarsPreview:_stanceBorder(row, on)
-  if not row.border then
+-- A single subtle gold outline drawn around the whole stance area. Given the
+-- bounding box in the preview's coordinates (y negative = down), it lazily builds
+-- four edges on first use and hides them when there are no stance bars.
+local STANCE_PAD = 3
+function BarsPreview:_stanceOutline(left, top, right, bottom, on)
+  if not self._stanceBox then
     if not on then return end
-    local rf = row.rf
-    local function edge(pts)
-      return Texture:new{ parent = rf, color = STANCE_BORDER, layer = ui.layer.Overlay, position = pts }
+    local function edge()
+      return Texture:new{ parent = self, color = STANCE_BORDER, layer = ui.layer.Overlay, position = {} }
     end
-    row.border = {
-      edge{ TopLeft     = {rf, ui.edge.TopLeft,     0, 0}, TopRight    = {rf, ui.edge.TopRight,    0, 0}, Height = 1 },
-      edge{ BottomLeft  = {rf, ui.edge.BottomLeft,  0, 0}, BottomRight = {rf, ui.edge.BottomRight, 0, 0}, Height = 1 },
-      edge{ TopLeft     = {rf, ui.edge.TopLeft,     0, 0}, BottomLeft  = {rf, ui.edge.BottomLeft,  0, 0}, Width  = 1 },
-      edge{ TopRight    = {rf, ui.edge.TopRight,    0, 0}, BottomRight = {rf, ui.edge.BottomRight, 0, 0}, Width  = 1 },
-    }
+    self._stanceBox = { edge(), edge(), edge(), edge() }
   end
-  for _, e in ipairs(row.border) do
-    if on then e:Show() else e:Hide() end
+  local box = self._stanceBox
+  if not on then
+    for _, e in ipairs(box) do e:Hide() end
+    return
   end
+  local l, t, r, b = left - STANCE_PAD, top + STANCE_PAD, right + STANCE_PAD, bottom - STANCE_PAD
+  local w, h = r - l, t - b
+  -- top, bottom, left, right (1px), positioned from the preview's top-left
+  box[1]:ClearAllPoints(); box[1]:SetPoint("TOPLEFT", self, "TOPLEFT", l, t);     box[1]:Size(w, 1)
+  box[2]:ClearAllPoints(); box[2]:SetPoint("TOPLEFT", self, "TOPLEFT", l, b + 1); box[2]:Size(w, 1)
+  box[3]:ClearAllPoints(); box[3]:SetPoint("TOPLEFT", self, "TOPLEFT", l, t);     box[3]:Size(1, h)
+  box[4]:ClearAllPoints(); box[4]:SetPoint("TOPLEFT", self, "TOPLEFT", r, t);     box[4]:Size(1, h)
+  for _, e in ipairs(box) do e:Show() end
 end
 
 -- ─── Public API ───────────────────────────────────────────────────────────────
@@ -348,9 +423,10 @@ end
 function BarsPreview:Set(profile)
   if not profile then self:Hide(); return end
 
-  local slotMap, macroMap = {}, {}
-  for _, s in ipairs(profile.slots  or {}) do slotMap[s.id]  = s end
-  for _, m in ipairs(profile.macros or {}) do macroMap[m.id] = m end
+  local slotMap, macroMap, petMap = {}, {}, {}
+  for _, s in ipairs(profile.slots    or {}) do slotMap[s.id]  = s end
+  for _, m in ipairs(profile.macros   or {}) do macroMap[m.id] = m end
+  for _, p in ipairs(profile.petslots or {}) do petMap[p.id]   = p end
 
   -- Build command → formatted key map; prefer key1 over key2
   local bindMap = {}
@@ -361,43 +437,76 @@ function BarsPreview:Set(profile)
     end
   end
 
-  -- Prefer the real per-character geometry (addon-aware, captured with the profile);
-  -- fall back to the Edit Mode layout for profiles captured before barLayout existed
-  -- (or captured before frames were positioned, leaving it empty).
+  -- Real per-character geometry (addon-aware, captured with the profile); the Edit
+  -- Mode layout is the orientation fallback when a bar isn't currently on screen
+  -- (e.g. the main bar paged to a stance) or for pre-v2 profiles.
   local realLayout = profile.barLayout and next(profile.barLayout) and profile.barLayout or nil
-  local editLayout = (not realLayout and WarbandeerBarsApi and profile.layoutName
+  local editLayout = (WarbandeerBarsApi and profile.layoutName
     and WarbandeerBarsApi:GetLayout(profile.layoutName)) or nil
 
-  -- With real geometry, render every bar the character has enabled (even empty ones);
-  -- on the legacy path, render every bar that has slots. Track which rows are vertical.
+  -- The bar currently paging Bar 1 (the active stance/form/override page). A class
+  -- page / Bonus / Sky is a *real* stance bar only when it replaces Bar 1 — i.e. it
+  -- is this page, or it isn't a live bar of its own (an inactive page that only
+  -- shows in its stance). Determined per profile, so it works for any class.
+  local mainPage = realLayout and realLayout.mainPage
+
+  local function hasSlots(base)
+    for slot = base, base + 11 do
+      if slotMap[slot] then return true end
+    end
+    return false
+  end
+
   local n = 0
   self._rowByBar = {}
-  local hRows, vRows = {}, {}
+  local hRows, vRows, sRows = {}, {}, {}
   for _, def in ipairs(BAR_ORDER) do
-    local base = (def.bar - 1) * 12 + 1
-    local info, render
-    if realLayout then
-      info   = realLayout[def.bar]
-      render = info ~= nil
-    elseif def.sys then
-      -- Legacy path (pre-v2 profiles): only the 8 main bars, with slots, matching
-      -- pre-#419 behavior — no real geometry to place the stance pages by.
-      for slot = base, base + 11 do
-        if slotMap[slot] then render = true; break end
+    local info, render, base, stance
+    if def.pet then
+      -- Pet bar: grouped with the stance bars (it's special — different cell count —
+      -- and more like them than a normal active bar). Shown whenever a pet bar was
+      -- captured (hunters and warlocks always have one).
+      info   = realLayout and realLayout.pet or nil
+      render = next(petMap) ~= nil
+      stance = true
+    else
+      base = (def.bar - 1) * 12 + 1
+      local real = realLayout and realLayout[def.bar]
+      if def.sys then
+        -- A normal main bar is never hidden: render if it has content OR is enabled on
+        -- screen (a main bar paged to a stance reports no live buttons, but it's still a
+        -- real bar). Orientation: live geometry if shown, else Edit Mode, else default.
+        info   = real or (editLayout and editLayout[def.sys]) or nil
+        render = hasSlots(base) or real ~= nil
+        stance = false
+      elseif real and def.bar ~= mainPage then
+        -- A live class-page bar at its own position is just a normal bar (its real
+        -- orientation), not a stance bar.
+        info, render, stance = real, true, false
+      else
+        -- A real stance bar: the active main-bar page, or an inactive page that only
+        -- appears in its stance. Only shown when it actually has abilities on it (an
+        -- empty, unused stance page like a spare Class 5 stays hidden). Horizontal.
+        info   = real or nil
+        render = hasSlots(base)
+        stance = true
       end
-      info = editLayout and editLayout[def.sys] or nil
     end
     if render then
       n = n + 1
-      local isVert = self:_showBar(n, def, base, info, slotMap, macroMap, bindMap)
-      if isVert then vRows[#vRows + 1] = n else hRows[#hRows + 1] = n end
+      local isVert = self:_showBar(n, def, base, info, slotMap, macroMap, bindMap, petMap, stance)
+      if stance then sRows[#sRows + 1] = n
+      elseif isVert then vRows[#vRows + 1] = n
+      else hRows[#hRows + 1] = n end
     end
   end
   for j = n + 1, self._numBars do self._barRows[j].rf:Hide() end
   self._numBars = n
 
-  -- Horizontal bars stack top-to-bottom in a left column; vertical bars sit
-  -- side by side to its right (stacking them too would get really tall).
+  -- Three areas: (1) normal horizontal bars stack top-to-bottom in a left column;
+  -- (2) normal vertical bars sit side by side to its right; (3) the true stance bars
+  -- (whatever pages currently replace Bar 1) stack horizontally in a gold-outlined
+  -- area below both.
   local hMaxW = 0
   for _, ri in ipairs(hRows) do hMaxW = math.max(hMaxW, self._barRows[ri].rf:Width()) end
 
@@ -408,6 +517,7 @@ function BarsPreview:Set(profile)
     rf._widget:SetPoint("TOPLEFT", self._widget, "TOPLEFT", P, hy)
     hy = hy - rf:Height() - BAR_GAP
   end
+  local hBottom = (#hRows > 0) and (hy + BAR_GAP) or -P
 
   local vx, vMaxH = P + hMaxW + (#hRows > 0 and GAP or 0), 0
   for _, ri in ipairs(vRows) do
@@ -417,13 +527,32 @@ function BarsPreview:Set(profile)
     vx = vx + rf:Width() + GAP
     vMaxH = math.max(vMaxH, rf:Height())
   end
+  local vBottom = (#vRows > 0) and (-P - vMaxH) or -P
 
-  -- Resize self to fit both groups
-  local hColH = math.max(0, -hy - P - BAR_GAP)
-  local totalH = P + math.max(hColH, vMaxH)
-  local totalW = (#vRows > 0 and vx - GAP or P + hMaxW) + P
-  self:Width(math.max(totalW, P + 80 + P))
-  self:Height(totalH + P)
+  -- Stance area: start a gap below the taller of the two top areas (or at the top if
+  -- there are no normal bars). All stance bars are horizontal, so they stack cleanly.
+  local topBottom = math.min(hBottom, vBottom)
+  local sTop = ((#hRows > 0 or #vRows > 0) and #sRows > 0) and (topBottom - GAP - STANCE_PAD) or -P
+  local sy, sMaxW = sTop, 0
+  for _, ri in ipairs(sRows) do
+    local rf = self._barRows[ri].rf
+    rf:ClearAllPoints()
+    rf._widget:SetPoint("TOPLEFT", self._widget, "TOPLEFT", P, sy)
+    sy = sy - rf:Height() - BAR_GAP
+    sMaxW = math.max(sMaxW, rf:Width())
+  end
+  local sBottom = (#sRows > 0) and (sy + BAR_GAP) or topBottom
+
+  -- Single gold outline around the whole stance area.
+  self:_stanceOutline(P, sTop, P + sMaxW, sBottom, #sRows > 0)
+
+  -- Resize self to fit all three areas (stance outline adds a little padding).
+  local rightEdge = P + hMaxW
+  if #vRows > 0 then rightEdge = math.max(rightEdge, vx - GAP) end
+  if #sRows > 0 then rightEdge = math.max(rightEdge, P + sMaxW + STANCE_PAD) end
+  local bottomEdge = math.min(hBottom, vBottom, sBottom - (#sRows > 0 and STANCE_PAD or 0))
+  self:Width(math.max(rightEdge + P, P + 80 + P))
+  self:Height(-bottomEdge + P)
   self:Show()
 end
 

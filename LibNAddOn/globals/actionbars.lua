@@ -135,5 +135,33 @@ function ns.wow.ReadActionBars()
       out[bar] = info
     end
   end
+
+  -- Pet bar geometry lives outside the 1-180 slot model; report it under `pet`
+  -- (PetActionButtons are reused/repositioned by bar addons, so reading them by
+  -- name works for Bartender/Dominos/ElvUI too).
+  local petRects = {}
+  for i = 1, 12 do
+    local b = _G["PetActionButton" .. i]
+    if b and b:IsVisible() then
+      local l, r, bo, t = b:GetLeft(), b:GetRight(), b:GetBottom(), b:GetTop()
+      if l and r and bo and t then
+        petRects[#petRects + 1] = { left = l, right = r, bottom = bo, top = t }
+      end
+    end
+  end
+  local petInfo = ns.wow.classifyBarRects(petRects)
+  if petInfo then
+    petInfo.enabled = true
+    out.pet = petInfo
+  end
+
+  -- Which slot-range bar is currently paging the main action bar (Bar 1's screen
+  -- position) — the active stance/form/override page. Lets a consumer distinguish a
+  -- real stance bar (it replaces Bar 1) from a dedicated bar that merely uses
+  -- class-page slots, programmatically and class-agnostically.
+  local mainBtn = _G.ActionButton1
+  local mainSlot = mainBtn and actionSlot(mainBtn)
+  if mainSlot then out.mainPage = floor((mainSlot - 1) / 12) + 1 end
+
   return out
 end

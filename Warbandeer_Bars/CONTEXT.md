@@ -62,7 +62,7 @@ that bar untouched (restore *and* clear pass). `nil` = all bars.
   slots    = { { id, type, index? | strindex? }, ... },   -- action bar slots 1..180
   binds    = { { command, key1?, key2? }, ... },
   macros   = { { id, name, icon, body }, ... },
-  petslots = { { id, type="token", strindex } | { id, type="spell", index }, ... },
+  petslots = { { id, type="token", strindex, tex } | { id, type="spell", index }, ... }, -- tex: token icon (v2, for cross-char preview)
   outfits  = { "Set Name", ... },                          -- equipment-set names only
   bindingSet = <1|2>,                                      -- GetCurrentBindingSet() at capture (1=account, 2=per-character)
   layoutName = <string?>,                                  -- active Edit Mode layout name (set by ns.CaptureLayouts())
