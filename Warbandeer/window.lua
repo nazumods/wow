@@ -172,6 +172,23 @@ function MainWindow:SavePosition()
   ns.db.settings.windowPos = { x = x, y = y }
 end
 
+-- Bind an external LibNUI frame as a drag handle for this window: press-drag on it
+-- moves the window and persists the new position, exactly like the titlebar. Used by
+-- the Bars preview so its heading — which docks to the window and looks like a
+-- titlebar — drags the window it's anchored to. Keeps the window's `_widget` and
+-- persistence inside MainWindow (the handle stays a plain LibNUI Frame).
+---@param handle Frame  a LibNUI Frame whose press-drag should move this window
+---@return MainWindow
+function MainWindow:BindDragHandle(handle)
+  handle:EnableMouse(true)
+  handle:SetScript("OnMouseDown", function() self._widget:StartMoving() end)
+  handle:SetScript("OnMouseUp", function()
+    self._widget:StopMovingOrSizing()
+    self:SavePosition()
+  end)
+  return self
+end
+
 -- Apply the stored top-left anchor. With no stored position, the window is still
 -- centered (the construction-time anchor); SavePosition then freezes that center
 -- into a TOPLEFT anchor and records it.

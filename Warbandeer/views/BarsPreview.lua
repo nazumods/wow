@@ -563,11 +563,24 @@ end
 ---@class BarsPreviewFrame: CleanFrame
 ---@field title Label          "<character> — <spec>" heading
 ---@field _preview BarsPreview
+---@field _dragStrip Frame     invisible grip over the heading row; drags the main window
+---@field _dragBound boolean?  true once the strip has been wired to ns.MainWindow
 local BarsPreviewFrame = Class(CleanFrame, function(self)
   self.title = Label:new{
     parent   = self, fontInfo = theme.fonts.body, color = theme.colors.muted,
     position = { TopLeft = {P, -P}, Height = LBL_H },
     wordWrap = false,
+  }
+  -- Invisible grip over the heading row (only — leaves the preview cells below it
+  -- free for their hover tooltips). Anchored to both top corners so it spans the box
+  -- and tracks width changes; wired to drag the main window in Set() (see below).
+  self._dragStrip = Frame:new{
+    parent   = self,
+    position = {
+      TopLeft  = {self, ui.edge.TopLeft, 0, 0},
+      TopRight = {self, ui.edge.TopRight, 0, 0},
+      Height   = P + LBL_H,
+    },
   }
   self._preview = BarsPreview:new{
     parent   = self,
@@ -594,6 +607,12 @@ end
 ---@param profile table?
 function BarsPreviewFrame:Set(profile)
   if not profile then self:Hide(); return end
+  -- Bind the heading grip to the main window once it exists (it always does by the
+  -- time a profile is shown — the window must be open for the Bars view to appear).
+  if ns.MainWindow and not self._dragBound then
+    ns.MainWindow:BindDragHandle(self._dragStrip)
+    self._dragBound = true
+  end
   self.title:Text(profile.char .. "  \226\128\148  " .. (profile.spec or "?"))
   self._preview:Set(profile)
   local w = self._preview:Width()
