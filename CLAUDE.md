@@ -10,6 +10,8 @@ This is a Windows environment. Prefer PowerShell for file/text operations (e.g. 
 
 **At the start of every session, read `CONTEXT.md` in this directory.** It is the top-level index: the dependency graph, a one-line summary per addon, and the global slash command registry. Each addon's full code reference — file maps, class hierarchies, API surfaces, data structures, and constructor options — lives in its own `<addon>/CONTEXT.md` (linked from the root index). Load only the per-addon files relevant to the task; together they eliminate the need to re-read source files.
 
+The `CONTEXT.md` index covers the **suite**. For an unfamiliar **third-party** addon it doesn't cover (e.g. Bagnon/BagBrother, ClassCodex) — typically to design an integration seam against it — prefer an **Explore agent** to answer the specific question ("how does X create frame Y, and what's the stable path to reach it?") over inline Grep + full-file Reads. The agent returns just the conclusion, keeping that addon's large source files out of the main context.
+
 ## Project Overview
 
 WoW Retail addon suite by Nazuraki (Interface 120000+). No build step, no package manager. Testing is done in-game via `/reload`, except WoW-API-free modules which have busted unit tests.
