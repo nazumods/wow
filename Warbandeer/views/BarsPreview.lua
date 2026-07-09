@@ -31,11 +31,30 @@ for _b, _base in ipairs(BAR_BASE) do
   for _n = 1, 12 do SLOT_CMD[_base + _n - 1] = BAR_CMD[_b] .. _n end
 end
 
--- Profile bar index → its slot base → the Edit Mode sysIdx the preview renders it
--- under. Lets the apply panel's toggles (keyed by profile bar) highlight the right
--- preview box despite the two different numbering schemes.
-local BASE_TO_SYS = {}
-for _sys, _base in ipairs(BAR_BASE) do BASE_TO_SYS[_base] = _sys end
+-- Render order + display labels, keyed by slot-range bar (`floor((slot-1)/12)+1`,
+-- slot base = `(bar-1)*12+1`). The 8 main bars carry their Edit Mode `sys` index
+-- (for the legacy layout fallback); the class/stance pages and Bonus/Sky are marked
+-- `stance` so they render in a bordered group. Mirrors the apply panel's TOGGLES.
+local BAR_ORDER = {
+  { bar = 1,  sys = 1, label = "Bar 1" },
+  { bar = 6,  sys = 2, label = "Bar 2" },
+  { bar = 5,  sys = 3, label = "Bar 3" },
+  { bar = 3,  sys = 4, label = "Bar 4" },
+  { bar = 4,  sys = 5, label = "Bar 5" },
+  { bar = 13, sys = 6, label = "Bar 6" },
+  { bar = 14, sys = 7, label = "Bar 7" },
+  { bar = 15, sys = 8, label = "Bar 8" },
+  { bar = 7,  label = "Class 1", stance = true },
+  { bar = 8,  label = "Class 2", stance = true },
+  { bar = 9,  label = "Class 3", stance = true },
+  { bar = 10, label = "Class 4", stance = true },
+  { bar = 12, label = "Class 5", stance = true },
+  { bar = 2,  label = "Bonus",   stance = true },
+  { bar = 11, label = "Sky",     stance = true },
+}
+
+-- Subtle gold outline marking the stance/class-page group apart from normal bars.
+local STANCE_BORDER = { theme.colors.gold[1], theme.colors.gold[2], theme.colors.gold[3], 0.35 }
 
 -- Abbreviate a WoW key name to a compact label (e.g. "SHIFT-1" → "s-1")
 local function formatKey(key)
@@ -141,11 +160,11 @@ end
 ---@class BarsPreview: Frame
 ---@field _barRows  table[]
 ---@field _numBars  number
----@field _sysToRow table   Edit Mode sysIdx → the row currently rendering it
+---@field _rowByBar table   slot-range bar → the row currently rendering it (for hover highlight)
 local BarsPreview = Class(Frame, function(self)
   self._barRows  = {}
   self._numBars  = 0
-  self._sysToRow = {}
+  self._rowByBar = {}
   self:Height(P + 20 + P)
 end, {})
 ---@class Warbandeer
@@ -214,12 +233,11 @@ end
 -- ─── Render one bar ───────────────────────────────────────────────────────────
 -- isVert: fill cells top-to-bottom (column-major) and report orientation.
 
-function BarsPreview:_showBar(rowIdx, sysIdx, barLayout, slotMap, macroMap, bindMap)
+function BarsPreview:_showBar(rowIdx, def, base, info, slotMap, macroMap, bindMap)
   local row      = self:_barRow(rowIdx)
-  local numIcons = (barLayout and barLayout.numIcons) or 12
-  local stacks   = math.max(1, (barLayout and barLayout.numRows) or 1)
-  local base     = BAR_BASE[sysIdx]
-  local isVert   = barLayout and barLayout.orientation == 1
+  local numIcons = (info and info.numIcons) or 12
+  local stacks   = math.max(1, (info and info.numRows) or 1)
+  local isVert   = info and info.orientation == 1
 
   -- Edit Mode's "rows" setting counts stacks along the bar's short axis: rows
   -- when horizontal, columns when vertical.
@@ -232,9 +250,10 @@ function BarsPreview:_showBar(rowIdx, sysIdx, barLayout, slotMap, macroMap, bind
     gridCols = math.ceil(numIcons / stacks)
   end
 
-  row.lbl:Text("Bar " .. sysIdx)
+  row.lbl:Text(def.label)
   row.rf.background:Color(theme.colors.module)  -- clear any leftover hover highlight
-  self._sysToRow[sysIdx] = row
+  self._rowByBar[def.bar] = row
+  self:_stanceBorder(row, def.stance)
 
   for j = 1, 12 do
     local cell = row._cells[j]
@@ -290,15 +309,36 @@ function BarsPreview:_showBar(rowIdx, sysIdx, barLayout, slotMap, macroMap, bind
   return isVert
 end
 
+-- Lazily add (or toggle) a subtle gold outline marking a stance/class-page row.
+-- Edges anchor to the bar box and track its size; pooled rows reused as normal
+-- bars hide the outline.
+function BarsPreview:_stanceBorder(row, on)
+  if not row.border then
+    if not on then return end
+    local rf = row.rf
+    local function edge(pts)
+      return Texture:new{ parent = rf, color = STANCE_BORDER, layer = ui.layer.Overlay, position = pts }
+    end
+    row.border = {
+      edge{ TopLeft     = {rf, ui.edge.TopLeft,     0, 0}, TopRight    = {rf, ui.edge.TopRight,    0, 0}, Height = 1 },
+      edge{ BottomLeft  = {rf, ui.edge.BottomLeft,  0, 0}, BottomRight = {rf, ui.edge.BottomRight, 0, 0}, Height = 1 },
+      edge{ TopLeft     = {rf, ui.edge.TopLeft,     0, 0}, BottomLeft  = {rf, ui.edge.BottomLeft,  0, 0}, Width  = 1 },
+      edge{ TopRight    = {rf, ui.edge.TopRight,    0, 0}, BottomRight = {rf, ui.edge.BottomRight, 0, 0}, Width  = 1 },
+    }
+  end
+  for _, e in ipairs(row.border) do
+    if on then e:Show() else e:Hide() end
+  end
+end
+
 -- ─── Public API ───────────────────────────────────────────────────────────────
 
----Highlight (or clear) the preview row that renders a given profile bar index.
----No-op for bars the preview doesn't show (class pages, pet, empty bars).
+---Highlight (or clear) the preview row that renders a given slot-range bar.
+---No-op for bars the preview isn't currently showing (e.g. Pet, or a disabled bar).
 ---@param profileBar number
 ---@param on boolean
 function BarsPreview:HighlightProfileBar(profileBar, on)
-  local sysIdx = BASE_TO_SYS[(profileBar - 1) * 12 + 1]
-  local row = sysIdx and self._sysToRow[sysIdx]
+  local row = self._rowByBar[profileBar]
   if not row then return end
   row.rf.background:Color(on and theme.colors.selected or theme.colors.module)
 end
@@ -321,28 +361,36 @@ function BarsPreview:Set(profile)
     end
   end
 
-  local barsApi    = WarbandeerBarsApi
-  local layoutBars = (barsApi and profile.layoutName
-    and barsApi:GetLayout(profile.layoutName)) or {}
+  -- Prefer the real per-character geometry (addon-aware, captured with the profile);
+  -- fall back to the Edit Mode layout for profiles captured before barLayout existed
+  -- (or captured before frames were positioned, leaving it empty).
+  local realLayout = profile.barLayout and next(profile.barLayout) and profile.barLayout or nil
+  local editLayout = (not realLayout and WarbandeerBarsApi and profile.layoutName
+    and WarbandeerBarsApi:GetLayout(profile.layoutName)) or nil
 
-  -- Render all non-empty bars; track which row indices are vertical
+  -- With real geometry, render every bar the character has enabled (even empty ones);
+  -- on the legacy path, render every bar that has slots. Track which rows are vertical.
   local n = 0
-  self._sysToRow = {}
+  self._rowByBar = {}
   local hRows, vRows = {}, {}
-  for sysIdx = 1, #BAR_BASE do
-    local base = BAR_BASE[sysIdx]
-    local hasSeen = false
-    for slot = base, base + 11 do
-      if slotMap[slot] then hasSeen = true; break end
-    end
-    if hasSeen then
-      n = n + 1
-      local isVert = self:_showBar(n, sysIdx, layoutBars[sysIdx], slotMap, macroMap, bindMap)
-      if isVert then
-        vRows[#vRows + 1] = n
-      else
-        hRows[#hRows + 1] = n
+  for _, def in ipairs(BAR_ORDER) do
+    local base = (def.bar - 1) * 12 + 1
+    local info, render
+    if realLayout then
+      info   = realLayout[def.bar]
+      render = info ~= nil
+    elseif def.sys then
+      -- Legacy path (pre-v2 profiles): only the 8 main bars, with slots, matching
+      -- pre-#419 behavior — no real geometry to place the stance pages by.
+      for slot = base, base + 11 do
+        if slotMap[slot] then render = true; break end
       end
+      info = editLayout and editLayout[def.sys] or nil
+    end
+    if render then
+      n = n + 1
+      local isVert = self:_showBar(n, def, base, info, slotMap, macroMap, bindMap)
+      if isVert then vRows[#vRows + 1] = n else hRows[#hRows + 1] = n end
     end
   end
   for j = n + 1, self._numBars do self._barRows[j].rf:Hide() end

@@ -244,12 +244,17 @@ end
 function ns.Capture(include, accountMacros, charMacros)
   local overrides = BuildSpellOverrides()
   local profile = ProfileMeta()
-  profile.version  = 1
+  profile.version  = 2   -- v2 adds barLayout (real on-screen bar geometry)
   profile.captured = time()
   profile.slots    = include.bars     and CaptureSlots(overrides)                  or {}
   profile.binds    = include.bindings and CaptureBindings()                        or {}
   profile.macros   = include.macros   and CaptureMacros(accountMacros, charMacros) or {}
   profile.petslots = include.petbar   and CapturePetBar()                          or {}
   profile.outfits  = include.outfits  and CaptureOutfits()                         or {}
+  -- Real per-character bar geometry (orientation/shape/enabled) read from the live
+  -- buttons — addon-aware (Bartender/Dominos/ElvUI), unlike the Edit Mode layout.
+  -- Keyed by slot-range bar (1-15); the preview renders from this. Older profiles
+  -- lack it and fall back to the Edit Mode layout until re-captured.
+  profile.barLayout = include.bars and ns.wow.ReadActionBars() or nil
   return profile
 end
