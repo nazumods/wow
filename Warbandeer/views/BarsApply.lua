@@ -13,10 +13,10 @@ local LBL_H  = 12    -- title line
 local WARN_H = 10    -- "overwrites …" warning line
 local LEG_H  = 12    -- legend row (included / excluded swatches)
 local FOOT_H = 10    -- footnote line
-local TGL_H  = 20
-local NUM_W  = 26    -- numbered bar toggles
-local BTN_H  = 24    -- apply button
-local ACC_W  = 2     -- left accent bar on each toggle
+local TGL_H  = 28
+local NUM_W  = 32    -- numbered bar toggles
+local BTN_H  = 26    -- apply button
+local ACC_W  = 3     -- left accent bar on each toggle
 local SW     = 8     -- legend swatch size
 
 local HEAD_H = LBL_H + WARN_H
@@ -40,9 +40,9 @@ local TOGGLES = {
   { label = "C3",    bars = {9}  },
   { label = "C4",    bars = {10} },
   { label = "C5",    bars = {12} },
-  { label = "Bonus", bars = {2},  w = 50, off = true, nl = true },
-  { label = "Sky",   bars = {11}, w = 40, off = true },
-  { label = "Pet",   pet  = true, w = 40, off = true },
+  { label = "Bonus", bars = {2},  w = 64, off = true, nl = true },
+  { label = "Sky",   bars = {11}, w = 52, off = true },
+  { label = "Pet",   pet  = true, w = 52, off = true },
 }
 -- Exposed for barApplyDefaultsSettings.lua (one checkbox per toggle).
 ---@type table[]
@@ -111,7 +111,7 @@ local BarsApplyFrame = Class(CleanFrame, function(self)
       position = { TopLeft = {0, 0}, Width = ACC_W, Height = TGL_H },
     }
     b.label = Label:new{
-      parent   = b, fontInfo = theme.fonts.caps,
+      parent   = b, fontInfo = {theme.fonts.caps[1], 13}, color = theme.colors.muted,
       justifyH = ui.justify.Center,
       position = { All = true },
       text     = def.label:upper(),
@@ -193,7 +193,7 @@ function BarsApplyFrame:_paintToggle(b)
     b.accent:Color(theme.colors.gold)
   else
     b.background:Color(0, 0, 0, 0)
-    b.label:Color(theme.colors.faded)
+    b.label:Color(theme.colors.muted)
     b.accent:Color(theme.colors.red)
   end
 end
