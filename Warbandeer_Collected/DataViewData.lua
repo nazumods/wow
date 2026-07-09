@@ -157,7 +157,7 @@ function ns.CollectedRows(self)
           if self.onWantedToggle then self:onWantedToggle() end
           ns.RefreshInfoTip()
         else
-          ns.ShowDressingRoom(grp, set, self._reverse)
+          ns.ShowDressingRoom(grp, set)
         end
       end
       -- Upcoming (PTR): a muted dot, no count/completion shade.

@@ -219,13 +219,14 @@ function DressingRoom:StepTier(dir)
   end
 end
 
--- Step tiers by on-screen direction (-1 = the row above, +1 = below). The grid
--- can render newest-first (ns.Sets order reversed), so a visual "up" is a forward
--- data step there; mirror DataView's current `_reverse` so the arrows track what
--- the user sees.
+-- Step tiers by on-screen direction (-1 = the row above, +1 = below). A group's
+-- difficulty/variant rows always render in authored order — the grid's `a < b` tie-break
+-- within one base name, independent of the expansion sort direction (only the expansion
+-- ordering flips with the Sort toggle, never the tiers inside a group) — so the arrows
+-- map straight to StepTier: +1 = the next authored sibling = the row below.
 ---@param vdir number  -1 = move to the tier shown above, +1 = below
 function DressingRoom:StepTierVisual(vdir)
-  self:StepTier(self._reverse and -vdir or vdir)
+  self:StepTier(vdir)
 end
 
 -- Select the logged-in character's race + gender. Called when the window opens
