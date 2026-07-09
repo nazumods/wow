@@ -180,9 +180,9 @@ end)
 
 -- Draw the cell cursor on the set currently shown in the shared dressing room, and
 -- follow it as the user arrow-navigates (nil clears on close). No-op until opened.
-ns:OnDressedSetChanged(function(setId)
+ns:OnDressedSetChanged(function(setId, classIndex)
   if not ns.window then return end
-  ns.window.data:HighlightSet(setId, true)
+  ns.window.data:HighlightSet(setId, classIndex, true)
 end)
 
 ---@class Warbandeer_Collected

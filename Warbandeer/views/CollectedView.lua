@@ -152,9 +152,9 @@ end
 -- Draw the cell cursor on the set shown in the shared dressing room, following the
 -- user's arrow navigation (nil clears on close). Registered once at load.
 if WarbandeerCollectedApi and WarbandeerCollectedApi.OnDressedSetChanged then
-  WarbandeerCollectedApi:OnDressedSetChanged(function(setId)
+  WarbandeerCollectedApi:OnDressedSetChanged(function(setId, classIndex)
     local g = _view and _view.grid
-    if g then g:HighlightSet(setId, true) end
+    if g then g:HighlightSet(setId, classIndex, true) end
   end)
 end
 

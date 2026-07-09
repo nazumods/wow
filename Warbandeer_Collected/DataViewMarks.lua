@@ -77,23 +77,27 @@ function DataView:_ensureDressedBox()
 end
 
 -- Draw the cursor box around the exact cell of the set currently previewed in the
--- shared dressing room, following the room as the user arrow-navigates: the previewed
--- setId lives in one cell, so class nav (Step, same group row) slides the box left/right
--- across columns and tier nav (StepTier, sibling group) moves it up/down to another row.
--- Broadcast from the room via ns:OnDressedSetChanged; nil (close) hides it. `scroll`
--- brings the cell's row into view on open/nav (via the host's onEnsureVisible hook) but
--- not on a passive re-sort re-resolve.
+-- shared dressing room, following the room as the user arrow-navigates: class nav
+-- (Step, same group row) slides the box left/right across columns and tier nav
+-- (StepTier, sibling group) moves it up/down to another row. The cell is keyed by
+-- setId **and** classIndex (the class column), because PvP armour-type sets share one
+-- base setId across several class columns — setId alone would box the wrong (first)
+-- one. Broadcast from the room via ns:OnDressedSetChanged; nil (close) hides it.
+-- `scroll` brings the cell's row into view on open/nav (via the host's onEnsureVisible
+-- hook) but not on a passive re-sort re-resolve.
 ---@param setId number?  the previewed set, or nil to clear the cursor
+---@param classIndex number?  the set's class column (its slot in the positional grp.sets)
 ---@param scroll boolean?  scroll the matched cell's row into view
-function DataView:HighlightSet(setId, scroll)
+function DataView:HighlightSet(setId, classIndex, scroll)
   self._dressedSetId = setId
+  self._dressedClassIndex = classIndex
   if setId then
     for r = 1, #self.cells do
       local row = self.cells[r]
       for c = 1, #self.cols do
         local cell = row[c]
         local data = cell and cell.data
-        if type(data) == "table" and data.setId == setId then
+        if type(data) == "table" and data.setId == setId and data.classIndex == classIndex then
           self:_ensureDressedBox()
           self._dressedBox:TopLeft(cell, ui.edge.TopLeft, 0, 0)
           self._dressedBox:BottomRight(cell, ui.edge.BottomRight, 0, 0)

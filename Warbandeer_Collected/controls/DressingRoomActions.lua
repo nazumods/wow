@@ -150,6 +150,7 @@ function DressingRoom:_load(group, set)
   -- Class = the set's position in the (positional) group.sets array.
   local classId
   for i = 1, #group.sets do if group.sets[i] == set then classId = i; break end end
+  self._classIndex = classId
   self:_showClass(classId)
   self:_showRelease(group.release)
   self:_setTierBars(group.name)
@@ -158,8 +159,10 @@ function DressingRoom:_load(group, set)
   self:Dress()
   self:_refreshRatings()
   -- Every previewed-set change funnels through here (open + Step/StepTier arrow nav),
-  -- so broadcast it once from this choke point; the grids highlight the matching row.
-  ns:NotifyDressedSetChanged(set.id)
+  -- so broadcast it once from this choke point; the grids cursor the matching cell.
+  -- classId (the set's class column) is passed too: PvP sets share a base setId across
+  -- classes, so it's needed to pick the right column.
+  ns:NotifyDressedSetChanged(set.id, classId)
 end
 
 -- Move to the next/previous class set in the current group, wrapping and skipping
