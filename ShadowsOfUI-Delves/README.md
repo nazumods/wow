@@ -1,7 +1,7 @@
 # ShadowsOfUI-Delves
 
-Shows **how long a delve usually takes you** right on its map pin, so you can pick a run
-that fits the time you have.
+Shows **how long a delve usually takes you** — and, while you're leveling, **how much XP it's
+worth** — right on its map pin, so you can pick a run that fits the time you have.
 
 The addon quietly times every delve you complete and keeps a personal rolling average. Then,
 when you open the map and hover a delve's entrance pin, the tooltip gains a line:
@@ -13,7 +13,16 @@ the level cap (where delve tiers don't apply) it falls back to an average across
 you've run, labelled *(all tiers)*. A delve you've entered but never finished, or one you
 haven't run yet, simply reads *No timed runs yet*.
 
-Hold **Shift** while hovering to hide the line.
+**While leveling**, a second line shows the average XP that delve earns you — with, in brackets,
+how much of your **current level** that is — and the resulting XP-per-hour, so you can judge
+whether it's worth your time:
+
+> **Avg XP:** 42,300 [12%]  · 745.0k XP/hr
+
+The `[12%]` is the run's average XP as a share of your whole current level (start to next ding).
+This line is **leveling-only** — it disappears at max level, where delves no longer grant XP.
+
+Hold **Shift** while hovering to hide the lines.
 
 ## How the timing works
 
@@ -23,10 +32,12 @@ Hold **Shift** while hovering to hide the line.
   character gears up and gets faster.
 - Timing survives a `/reload` mid-run (it's anchored to server time), so you won't lose a run
   you reload during.
+- The average XP (and XP/hr) is a **rolling window** of your recent runs too, tracked the same
+  way — so it reflects your current leveling pace, not a stale number.
 - `/sdelves` shows the live delve state (a dev/diagnostic aid); `/sdelves dump` shows the
-  recorded average for the delve you're currently in. Both open a **copyable window** so the
-  output can be pasted. (Your full per-character history is visible via Warbandeer_Characters'
-  `/wbc dump delves`.)
+  recorded average time **and XP** for the delve you're currently in. Both open a **copyable
+  window** so the output can be pasted. (Your full per-character history is visible via
+  Warbandeer_Characters' `/wbc dump delves`.)
 
 ## Changelog
 

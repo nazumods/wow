@@ -116,6 +116,7 @@ std = {
     "SecondaryResourceBar",
 
     "AreaPOIPinMixin",
+    "DelveEntrancePinMixin",
     "CopyToClipboard",
     "CreateColor",
     "CreateFont",

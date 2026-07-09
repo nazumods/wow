@@ -1,11 +1,16 @@
 ---@type ShadowsOfUI_Delves
 local ns = select(2, ...)
 
+local floor = math.floor
+local Player = ns.wow.Player
 local LABEL = NORMAL_FONT_COLOR
 local MUTED = GRAY_FONT_COLOR
+local DETAIL = WHITE_FONT_COLOR -- the run-count / [%] / XP-hr detail text
+local VALUE = CreateColor(0.78, 0.44, 1.0) -- bright violet accent for the data value (a brighter take on epic purple, pops on the dark tooltip)
 
 -- Append the current character's average completion time for `poiName` to a tooltip (or a muted
--- "no runs" hint for a delve we haven't timed).  Returns false when there's nothing to show.
+-- "no runs" hint for a delve we haven't timed), plus an average-XP line for leveling characters.
+-- Returns false when there's nothing to show.
 ---@param tooltip table
 ---@param poiName string?
 ---@return boolean appended
@@ -21,9 +26,25 @@ local function appendDelveTime(tooltip, poiName)
   end
   if mine then
     local label = mine.scope ~= "all" and ("Avg completion (%s): "):format(mine.scope) or "Avg completion: "
-    local runs = MUTED:WrapTextInColorCode(("· %d run%s"):format(mine.count, mine.count == 1 and "" or "s"))
-    local tail = mine.scope == "all" and (" " .. MUTED:WrapTextInColorCode("(all tiers)")) or ""
-    tooltip:AddLine(LABEL:WrapTextInColorCode(label) .. ns.FormatDuration(mine.avg) .. "  " .. runs .. tail, nil, nil, nil, true)
+    local runs = DETAIL:WrapTextInColorCode(("· %d run%s"):format(mine.count, mine.count == 1 and "" or "s"))
+    local tail = mine.scope == "all" and (" " .. DETAIL:WrapTextInColorCode("(all tiers)")) or ""
+    tooltip:AddLine(LABEL:WrapTextInColorCode(label) .. VALUE:WrapTextInColorCode(ns.FormatDuration(mine.avg)) .. "  " .. runs .. tail, nil, nil, nil, true)
+
+    -- Leveling value: average XP per run + XP/hr (avg XP ÷ avg time).  Leveling-only — XP isn't
+    -- tracked at max level, and an explicit cap gate (mirroring ShadowsOfUI-QuestXP) drops any
+    -- stale leveling-run XP still lingering in the rolling window on a freshly-capped character.
+    if not Player:isMaxLevel() and mine.avgXp and mine.avgXp > 0 then
+      local xpLabel = mine.scope ~= "all" and ("Avg XP (%s): "):format(mine.scope) or "Avg XP: "
+      -- Share of a full level: avg XP over the current level's total XP (UnitXPMax, start-to-ding).
+      local maxXP = Player:GetMaxXP()
+      local pct = maxXP > 0 and (" " .. DETAIL:WrapTextInColorCode(("[%d%%]"):format(floor(mine.avgXp / maxXP * 100 + 0.5)))) or ""
+      local rate = ""
+      if mine.avg > 0 then
+        local perHour = floor(mine.avgXp / mine.avg * 3600 + 0.5)
+        rate = "  " .. DETAIL:WrapTextInColorCode(("· %s XP/hr"):format(AbbreviateNumbers(perHour)))
+      end
+      tooltip:AddLine(LABEL:WrapTextInColorCode(xpLabel) .. VALUE:WrapTextInColorCode(BreakUpLargeNumbers(mine.avgXp)) .. pct .. rate, nil, nil, nil, true)
+    end
   else
     tooltip:AddLine(MUTED:WrapTextInColorCode("No timed runs yet"), nil, nil, nil, true)
   end
@@ -57,7 +78,14 @@ local function onPinEnter(pin)
   if appendDelveTime(GameTooltip, name) then GameTooltip:Show() end
 end
 
--- Guarded so a client/mixin-name change just disables the hook (calibrated in-game) rather than erroring.
-if AreaPOIPinMixin and AreaPOIPinMixin.OnMouseEnter then
-  hooksecurefunc(AreaPOIPinMixin, "OnMouseEnter", onPinEnter)
-end
+-- Delve entrance pins use DelveEntrancePinMixin, which lives in Blizzard_SharedMapDataProviders —
+-- a LoadOnDemand package that only loads with the World Map, AFTER us. So the mixin is nil at
+-- login; defer the hook until that package loads (ContinueOnAddOnLoaded fires immediately if it's
+-- already up). We hook DelveEntrancePinMixin directly, not the AreaPOIPinMixin base: the delve pin
+-- is a CreateSubPin of it, and CreateSubPin COPIES the parent's methods, so a base-mixin hook never
+-- reaches the copy the pins actually call. Guarded so a client/mixin rename just disables the line.
+EventUtil.ContinueOnAddOnLoaded("Blizzard_SharedMapDataProviders", function()
+  if DelveEntrancePinMixin and DelveEntrancePinMixin.OnMouseEnter then
+    hooksecurefunc(DelveEntrancePinMixin, "OnMouseEnter", onPinEnter)
+  end
+end)
