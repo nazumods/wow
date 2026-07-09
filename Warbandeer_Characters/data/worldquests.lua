@@ -209,16 +209,19 @@ ns.WorldQuests.fields = {
   },
 }
 
-ns:registerCommand("dump", "wq", function()
-  ns.Print("World-quest zones scanned: " .. table.concat(wqZones(), ", "))
-  for _, c in pairs(ns.db.characters) do
+-- `self` arg restricts the dump to the current character (ns.currentData) — the
+-- common case when verifying a fresh scan; no arg dumps every character.
+ns:registerDump("wq", "World-Quest Rewards", "Dump cached world-quest gear rewards (arg: self)", function(_, out, args)
+  out:line("World-quest zones scanned: " .. table.concat(wqZones(), ", "))
+  local chars = args == "self" and { ns.currentData } or ns.db.characters
+  for _, c in pairs(chars) do
     local list = c.worldquests and c.worldquests.rewards
     if list and #list > 0 then
-      ns.Print(c.name .. ": " .. #list .. " cached WQ reward(s)")
+      out:line(c.name .. ": " .. #list .. " cached WQ reward(s)")
       for _, r in ipairs(list) do
-        print(("  %s +%s — %s (%s)"):format(r.link or r.itemID, r.ilvl or "?",
+        out:line(("  %s +%s — %s (%s)"):format(r.link or r.itemID, r.ilvl or "?",
           r.title or "?", r.zone or "?"))
       end
     end
   end
-end, "Dump cached world-quest gear rewards")
+end)

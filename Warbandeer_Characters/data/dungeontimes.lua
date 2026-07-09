@@ -180,34 +180,34 @@ ns:registerEvent("LFG_COMPLETION_REWARD", recordDungeon)
 ns:registerEvent("PLAYER_ENTERING_WORLD", refreshActive)
 
 -- /wbc dump dungeons — recorded run-times for the current character (tooltip text can't be copied).
-ns:registerCommand("dump", "dungeons", function()
+ns:registerDump("dungeons", "Dungeon Run-Times", "dump M+ / dungeon run-times", function(_, out)
   local dt = ns.currentData and ns.currentData.dungeonTimes
-  if not dt or not dt.runs or not next(dt.runs) then ns.Print("No dungeon run-times recorded.") return end
-  ns.Print("Dungeon run-times:")
+  if not dt or not dt.runs or not next(dt.runs) then out:line("No dungeon run-times recorded.") return end
+  out:line("Dungeon run-times:")
   local function avgOf(list)
     local t = 0
     for _, s in ipairs(list) do t = t + s end
     return floor(t / #list + 0.5)
   end
-  local function printBuckets(entry, timeField, xpField, labelFn)
+  local function showBuckets(entry, timeField, xpField, labelFn)
     local buckets = entry[timeField]
     if not buckets then return end
     for bucket, list in pairs(buckets) do
       local xps = entry[xpField] and entry[xpField][bucket]
       local xpStr = (xps and #xps > 0) and (" · avg %d XP over %d run(s)"):format(avgOf(xps), #xps) or ""
-      print(("  %s [%s]: avg %ds over %d run(s)%s"):format(entry.name, labelFn(bucket), avgOf(list), #list, xpStr))
+      out:line(("  %s [%s]: avg %ds over %d run(s)%s"):format(entry.name, labelFn(bucket), avgOf(list), #list, xpStr))
     end
   end
   for _, entry in pairs(dt.runs) do
-    printBuckets(entry, "tiers", "xps", function(l) return l > 0 and ("+" .. l) or "?" end)
-    printBuckets(entry, "diffs", "diffXps", ns.DungeonDifficultyLabel)
+    showBuckets(entry, "tiers", "xps", function(l) return l > 0 and ("+" .. l) or "?" end)
+    showBuckets(entry, "diffs", "diffXps", ns.DungeonDifficultyLabel)
   end
   if dt.active then
     local a = dt.active
     local tag = a.kind == "mplus" and ("+" .. (a.level or 0)) or ns.DungeonDifficultyLabel(a.diffID or 0)
-    ns.Print(("In progress: %s [%s] for %ds"):format(a.name or "?", tag, GetServerTime() - a.start))
+    out:line(("In progress: %s [%s] for %ds"):format(a.name or "?", tag, GetServerTime() - a.start))
   end
-end, "dump M+ / dungeon run-times")
+end)
 
 -- /wbc clear dungeons — reset the current character's recorded run-times (and any in-progress timer).
 ns:registerCommand("clear", "dungeons", function()

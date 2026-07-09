@@ -128,7 +128,7 @@ end
 -- Mirrors the tooltip's buildCraftable (current professions only) so it reveals
 -- exactly who is being credited with crafting what.  Optional arg filters to one
 -- gear skillLineID (e.g. /wbc dump profgear 164 for Blacksmithing gear).
-ns:registerCommand("dump", "profgear", function(self, args)
+ns:registerDump("profgear", "Craftable Gear", "Dump resolved craftable profession gear (arg: gear skillLineID)", function(_, out, args)
   local filter = tonumber(args)
   local byProf = {}
   for name, c in pairs(ns.db.characters) do
@@ -139,28 +139,27 @@ ns:registerCommand("dump", "profgear", function(self, args)
     for craftSkill, det in pairs(c.professions and c.professions.details or {}) do
       local bucket = active[craftSkill] and det.recipes and det.recipes.midnight
       for _, r in ipairs(bucket and bucket.learned or {}) do
-        local out = API:ResolveRecipeOutput(r.id)
-        if out and (not filter or out.skillID == filter) then
-          byProf[out.skillID] = byProf[out.skillID] or {}
-          local slot = byProf[out.skillID][out.equipLoc] or {}
-          byProf[out.skillID][out.equipLoc] = slot
-          local it = slot[out.itemID] or { rarity = out.rarity, crafters = {} }
-          slot[out.itemID] = it
+        local res = API:ResolveRecipeOutput(r.id)
+        if res and (not filter or res.skillID == filter) then
+          byProf[res.skillID] = byProf[res.skillID] or {}
+          local slot = byProf[res.skillID][res.equipLoc] or {}
+          byProf[res.skillID][res.equipLoc] = slot
+          local it = slot[res.itemID] or { rarity = res.rarity, crafters = {} }
+          slot[res.itemID] = it
           table.insert(it.crafters, name .. "(" .. craftSkill .. ":" .. (r.name or r.id) .. ")")
         end
       end
     end
   end
-  local lines = { "Craftable profession gear" .. (filter and (" for gear skill " .. filter) or "") .. ":" }
+  out:line("Craftable profession gear" .. (filter and (" for gear skill " .. filter) or "") .. ":")
   for skillID, slots in pairs(byProf) do
-    table.insert(lines, "== gear skill " .. skillID .. " ==")
+    out:line("== gear skill " .. skillID .. " ==")
     for equipLoc, items in pairs(slots) do
-      table.insert(lines, "  " .. equipLoc)
+      out:line("  " .. equipLoc)
       for itemID, it in pairs(items) do
-        table.insert(lines, ("    %s (%d) r%s <- %s"):format(
+        out:line(("    %s (%d) r%s <- %s"):format(
           C_Item.GetItemInfo(itemID) or "?", itemID, tostring(it.rarity), table.concat(it.crafters, ", ")))
       end
     end
   end
-  ns.ui.ShowCopyWindow("Craftable Gear", table.concat(lines, "\n"))
-end, "Dump resolved craftable profession gear (optional: gear skillLineID)")
+end)
