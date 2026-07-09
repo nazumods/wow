@@ -10,7 +10,9 @@ table.insert(
   ns.SummaryColumn:new{
     key = "gold", label = "Gold",
     name = "Gold",
-    width = 85,
+    -- wide enough for the footer's full g/s/c total (e.g. "1,234,567g 45s 12c"),
+    -- which is far longer than the gold-only per-character cells
+    width = 145,
     justifyH = ui.justify.Right,
     getData = function(t)
       if not t.currency or not t.currency.gold then return "" end
@@ -29,7 +31,7 @@ table.insert(
       end
       if total == 0 then return "" end
       return {
-        text = BreakUpLargeNumbers(math.floor(total / 10000)),
+        text = ns.wow.CoinString(total),
         justifyH = ui.justify.Right,
         fontInfo = ns.theme.fonts.number,
         color = {1, 0.82, 0, 1},
