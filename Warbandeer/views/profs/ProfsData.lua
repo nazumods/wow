@@ -68,13 +68,14 @@ end
 
 local function makeCharColInfo()
   local cols = {
-    { width = ICON_COL_W, backdrop = TRANSPARENT },
+    { width = ICON_COL_W, backdrop = TRANSPARENT },   -- faction icon: not sortable
+    -- Name sorts A→Z (ascending first); expansion columns sort by skill, biggest first.
     { name = "CHARACTER", width = CHAR_COL_W, backdrop = TRANSPARENT,
-      justifyH = ui.justify.Left },
+      justifyH = ui.justify.Left, sortable = true, sortKey = "name" },
   }
   for _, abbr in ipairs(EXP_ORDER) do
     insert(cols, { name = abbr:upper(), width = EXP_COL_W, backdrop = TRANSPARENT,
-      justifyH = ui.justify.Left })
+      justifyH = ui.justify.Left, sortable = true, sortKey = abbr, descFirst = true })
   end
   return cols
 end
@@ -177,6 +178,44 @@ local function buildCharList(toons, profName)
   return list
 end
 
+-- A character entry's skill level for one expansion column (abbr), or -inf when the
+-- character never learned that tier — so "—" rows park at the worst end and flip
+-- cleanly with the sort direction.
+local function entrySkill(entry, abbr)
+  local detail = entry.detail
+  if detail and detail.expansions then
+    for _, exp in ipairs(detail.expansions) do
+      if EXP_ABBR[exp.name] == abbr then return exp.skillLevel end
+    end
+  end
+  return -math.huge
+end
+
+-- Sort a char-list `entries` array in place for a TableFrame column sort. `key` is
+-- "name" (by character name) or an expansion abbr (by that tier's skill level, missing
+-- last). Character name is always the ascending tiebreak, so equal values keep a stable
+-- order (table.sort is unstable). Returns `entries` for chaining.
+---@param entries table[]  { toon, prof, detail } entries from buildCharList
+---@param key any          "name" or an expansion abbr
+---@param desc boolean     descending when true
+---@return table[]
+local function sortCharEntries(entries, key, desc)
+  sort(entries, function(a, b)
+    if key == "name" then
+      if a.toon.name ~= b.toon.name then
+        if desc then return a.toon.name > b.toon.name else return a.toon.name < b.toon.name end
+      end
+      return false
+    end
+    local sa, sb = entrySkill(a, key), entrySkill(b, key)
+    if sa ~= sb then
+      if desc then return sa > sb else return sa < sb end
+    end
+    return a.toon.name < b.toon.name
+  end)
+  return entries
+end
+
 ---@class Warbandeer
 ---@field profs table  shared data + helpers for the Professions view (see views/profs/ProfsData.lua)
 ns.profs = {
@@ -186,4 +225,5 @@ ns.profs = {
   makeGridColInfo = makeGridColInfo, makeCharColInfo = makeCharColInfo,
   makeEmptyRow = makeEmptyRow, rowDivider = rowDivider, skillCell = skillCell,
   buildBestSkills = buildBestSkills, buildCharList = buildCharList,
+  sortCharEntries = sortCharEntries,
 }

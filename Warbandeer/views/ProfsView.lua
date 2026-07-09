@@ -11,8 +11,8 @@ local insert, sort = table.insert, table.sort
 local P = ns.profs
 local EXP_ORDER, EXP_ABBR, PROF_ORDER, CHAR_LIST_H, VIEW_WIDTH, TRANSPARENT, SELECTED, DIM =
   P.EXP_ORDER, P.EXP_ABBR, P.PROF_ORDER, P.CHAR_LIST_H, P.VIEW_WIDTH, P.TRANSPARENT, P.SELECTED, P.DIM
-local makeGridColInfo, makeCharColInfo, makeEmptyRow, rowDivider, skillCell, buildBestSkills, buildCharList =
-  P.makeGridColInfo, P.makeCharColInfo, P.makeEmptyRow, P.rowDivider, P.skillCell, P.buildBestSkills, P.buildCharList
+local makeGridColInfo, makeCharColInfo, makeEmptyRow, rowDivider, skillCell, buildBestSkills, buildCharList, sortCharEntries =
+  P.makeGridColInfo, P.makeCharColInfo, P.makeEmptyRow, P.rowDivider, P.skillCell, P.buildBestSkills, P.buildCharList, P.sortCharEntries
 
 ---@class ProfsView: Frame
 ---@field gridTable TableFrame        Account Summary grid (professions x expansions)
@@ -23,6 +23,7 @@ local makeGridColInfo, makeCharColInfo, makeEmptyRow, rowDivider, skillCell, bui
 ---@field _visibleProfs string[]      profession name per visible grid row
 ---@field _toons Character[]?         all characters (refreshed each OnBeforeShow)
 ---@field _charToons Character[]      character per char-list row
+---@field _charEntries table[]        current char-list entries ({toon, prof, detail}), re-sorted on header click
 ---@field _charColCount integer       char-table column count (for empty-row padding)
 local ProfsView = Class(Frame, function(self)
   -- Account Summary grid: rows = professions, columns = expansions.
@@ -42,6 +43,9 @@ local ProfsView = Class(Frame, function(self)
     backdrop = TRANSPARENT,
     position = { TopLeft = { self.gridTable, ui.edge.BottomLeft, 0, -8 } },
   }
+  -- Clicking a sortable header re-sorts the current character list (TableFrame owns the
+  -- header UI + arrow; we own the comparator + repaint — see _sortCharList).
+  self.charTable.onSort = function(_, key, desc) self:_sortCharList(key, desc) end
 
   -- charTable.offsetY is the header height; the scroll starts just below the header.
   local scrollTop = 8 + self.charTable.offsetY
@@ -127,10 +131,31 @@ function ProfsView:restCharRow(i)
   end
 end
 
--- Rebuild the character list for profName; pass nil to clear the list.
+-- Rebuild the character list for profName; pass nil to clear the list. Re-applies the
+-- table's active column sort (if any) so a chosen sort persists across profession
+-- switches; a fresh selection with no active sort keeps buildCharList's default order.
 ---@param profName string|nil
 function ProfsView:RebuildCharList(profName)
-  local entries = profName and buildCharList(self._toons, profName) or {}
+  self._charEntries = profName and buildCharList(self._toons, profName) or {}
+  local key, desc = self.charTable:Sort()
+  if key then sortCharEntries(self._charEntries, key, desc) end
+  self:_renderCharRows()
+end
+
+-- onSort handler: re-sort the current entries by the clicked column and repaint. Kept
+-- separate from RebuildCharList so a header click never rebuilds the entry list.
+---@param key any      "name" or an expansion abbr
+---@param desc boolean
+function ProfsView:_sortCharList(key, desc)
+  sortCharEntries(self._charEntries, key, desc)
+  self:_renderCharRows()
+end
+
+-- Paint the char table from self._charEntries (already ordered): one row per entry,
+-- rebuilding the index-parallel _charToons + per-row hover/click closures together so a
+-- row click always opens the character now shown on that row.
+function ProfsView:_renderCharRows()
+  local entries = self._charEntries
   self._charToons = {}
 
   -- Build data rows for real characters.
