@@ -28,6 +28,10 @@ local TableFrame = ui.TableFrame
 ---@field _playerRace number? cached canonical race id the rank pips resolve against
 ---@field _selectedRow number? lockout-panel selected row index (window grid only)
 ---@field _arrow Texture? lockout-selection arrow texture (window grid only, created lazily)
+---@field _dressedSetId number? setId currently previewed in the shared dressing room (drives the cell cursor; nil = none)
+---@field _dressedClassIndex number? class column of the previewed set (with setId, pins the exact cell; PvP sets share a setId across classes)
+---@field _dressedBox Frame? the white 4-edge cursor box re-anchored over the dressed set's cell (created lazily)
+---@field onEnsureVisible fun(self: DataView, rowTop: number, rowH: number)?  host hook to scroll a row into view (see HighlightSet)
 ---@field _emptyMsg Label? centered empty-state message (created lazily; shown when "wanted only" matches nothing)
 ---@field embedded boolean? render trimmed for a host view (no lock column / lockout name-click)
 ---@field infoTipAnchor fun(cell: Cell): table?  host override for the hover InfoTip anchor (defaults to "above the cell")
@@ -77,6 +81,10 @@ function DataView:update()
   self:ResizeRows(real)
   self:_setEmpty(self._wantedOnly and real == 0)
   self:_refreshMarks()
+  -- Rows were rebuilt/re-sorted, so the dressed-set cell moved — re-resolve it (no
+  -- scroll: a passive re-sort/filter shouldn't yank the view). Clears if it's now
+  -- filtered out.
+  self:HighlightSet(self._dressedSetId, self._dressedClassIndex, false)
 end
 
 -- Row-area height reserved for the empty-state message (ResizeRows(0) collapses it).

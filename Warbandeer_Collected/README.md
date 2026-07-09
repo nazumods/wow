@@ -51,7 +51,10 @@ either one. A directional pad in the model's upper-right corner — `<`/`>` (or 
 **Left/Right arrow keys**) flips through the other classes' sets from the same
 instance, and `^`/`v` (or the **Up/Down arrow keys**) switches between that raid's
 difficulty tiers (Normal/Heroic/Mythic, etc.) for the same class — all without
-reopening. The slot columns down each side are tinted by the raid's difficulty,
+reopening. While the dressing room is open, the grid draws a **white box around the
+cell of the set you're viewing** and moves it as you arrow-navigate — left/right across
+the classes, up/down through the tiers (scrolling it into view if needed) — so you never
+lose your place in the list. The slot columns down each side are tinted by the raid's difficulty,
 reusing the familiar item-quality colors (LFR green, Normal blue, Heroic purple,
 Mythic gold), so you can tell at a glance which tier you're previewing. A badge in
 the model's lower-right corner shows which **expansion** the set is from (hover it

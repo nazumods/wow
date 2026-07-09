@@ -120,7 +120,7 @@ function ns.CollectedRows(self)
     -- Always emit a positional cell per class (blank {} where there's no set, e.g.
     -- Evoker in pre-Dragonflight raids). Returning nil would make table.insert drop
     -- the slot, shifting later classes left and leaving stale cells on re-sort.
-    local r = lists.map(grp.sets, function(set)
+    local r = lists.map(grp.sets, function(set, classIndex)
       -- Blank class slot (no set for this class in the group).
       if not set.id then return {} end
       -- Live row: only show sets the scan knows about. PTR (upcoming) row: every
@@ -157,13 +157,16 @@ function ns.CollectedRows(self)
           if self.onWantedToggle then self:onWantedToggle() end
           ns.RefreshInfoTip()
         else
-          ns.ShowDressingRoom(grp, set, self._reverse)
+          ns.ShowDressingRoom(grp, set)
         end
       end
       -- Upcoming (PTR): a muted dot, no count/completion shade.
+      -- classIndex (the set's slot in the positional grp.sets) disambiguates the
+      -- dressed-set cursor: PvP sets share one base setId across every class of an
+      -- armour type, so setId alone can't tell those columns apart (see HighlightSet).
       if isPtr then
         return {
-          setId = set.id,
+          setId = set.id, classIndex = classIndex,
           text = UPCOMING_GLYPH,
           justifyH = ui.justify.Center,
           color = UPCOMING,
@@ -172,14 +175,14 @@ function ns.CollectedRows(self)
       end
       if isComplete(status) then
         return {
-          setId = set.id,
+          setId = set.id, classIndex = classIndex,
           atlas = GreenCheck.atlas, atlasSize = GreenCheck.atlasSize,
           position = GreenCheck.position,
           onEnter = onEnter, onLeave = onLeave, onClick = onClick,
         }
       end
       return {
-          setId = set.id,
+          setId = set.id, classIndex = classIndex,
           text = status.total - status.collected,
           justifyH = ui.justify.Center,
           color = shades[max(1,floor(status.collected / status.total * 10))],

@@ -151,8 +151,8 @@ local _room
 
 ---Open the shared dressing room previewing a class set on a selectable race/gender.
 ---@class Warbandeer_Collected
----@field ShowDressingRoom fun(group: table, set: table, reverse: boolean?)  group/set are entries from ns.Sets; reverse mirrors the grid sort so Up/Down tier nav matches the on-screen order
-ns.ShowDressingRoom = function(group, set, reverse)
+---@field ShowDressingRoom fun(group: table, set: table)  group/set are entries from ns.Sets
+ns.ShowDressingRoom = function(group, set)
   -- A set the local client has no appearance data for — a PTR-only "upcoming" set on
   -- a live client: there's nothing for the 3D model to render, so don't open an empty
   -- viewer; point the user to the PTR instead. On a PTR client these resolve and the
@@ -169,10 +169,10 @@ ns.ShowDressingRoom = function(group, set, reverse)
   if not _room then
     _room = DressingRoom:new{}
     _room:RememberPosition(ns.db.dressPos)   -- restore + persist the user's dragged position
+    -- Clear the grid row highlight whenever the room closes — via OnHide so every path
+    -- lands here (Escape/UISpecialFrames, the close button, and HideDressingRoom alike).
+    _room._widget:HookScript("OnHide", function() ns:NotifyDressedSetChanged(nil) end)
   end
-
-  -- Track the grid's sort direction so the tier arrows match what the user sees.
-  _room._reverse = reverse ~= false
 
   -- Reset to the current character's race on a fresh open — the first ever (no race
   -- picked yet) or a reopen after closing; clicking another cell while it's already
@@ -192,18 +192,6 @@ ns.HideDressingRoom = function()
   if _room then _room:Hide() end
 end
 
----Keep an already-open dressing room's tier-nav direction in sync when the grid's
----sort flips (grid + room both open). `_reverse` is otherwise only captured at open
----(ShowDressingRoom), so without this the Up/Down / ^v tier arrows keep mapping to
----the pre-flip on-screen direction until the next cell click. No-op when closed —
----a reopen re-seeds `_reverse` from the passed `reverse`.
----@class Warbandeer_Collected
----@field SyncDressingRoomOrder fun(reverse: boolean)
-ns.SyncDressingRoomOrder = function(reverse)
-  if _room and _room._widget:IsShown() then
-    _room._reverse = reverse ~= false
-  end
-end
 
 ---Dev/verify helper: force a raw creature display id into the open dressing room
 ---model so a candidate RaceModels id can be eyeballed (no-op if not open). The

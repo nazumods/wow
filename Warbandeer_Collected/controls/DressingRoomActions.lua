@@ -150,6 +150,7 @@ function DressingRoom:_load(group, set)
   -- Class = the set's position in the (positional) group.sets array.
   local classId
   for i = 1, #group.sets do if group.sets[i] == set then classId = i; break end end
+  self._classIndex = classId
   self:_showClass(classId)
   self:_showRelease(group.release)
   self:_setTierBars(group.name)
@@ -157,6 +158,11 @@ function DressingRoom:_load(group, set)
   self:UpdateSlots()
   self:Dress()
   self:_refreshRatings()
+  -- Every previewed-set change funnels through here (open + Step/StepTier arrow nav),
+  -- so broadcast it once from this choke point; the grids cursor the matching cell.
+  -- classId (the set's class column) is passed too: PvP sets share a base setId across
+  -- classes, so it's needed to pick the right column.
+  ns:NotifyDressedSetChanged(set.id, classId)
 end
 
 -- Move to the next/previous class set in the current group, wrapping and skipping
@@ -213,13 +219,14 @@ function DressingRoom:StepTier(dir)
   end
 end
 
--- Step tiers by on-screen direction (-1 = the row above, +1 = below). The grid
--- can render newest-first (ns.Sets order reversed), so a visual "up" is a forward
--- data step there; mirror DataView's current `_reverse` so the arrows track what
--- the user sees.
+-- Step tiers by on-screen direction (-1 = the row above, +1 = below). A group's
+-- difficulty/variant rows always render in authored order — the grid's `a < b` tie-break
+-- within one base name, independent of the expansion sort direction (only the expansion
+-- ordering flips with the Sort toggle, never the tiers inside a group) — so the arrows
+-- map straight to StepTier: +1 = the next authored sibling = the row below.
 ---@param vdir number  -1 = move to the tier shown above, +1 = below
 function DressingRoom:StepTierVisual(vdir)
-  self:StepTier(self._reverse and -vdir or vdir)
+  self:StepTier(vdir)
 end
 
 -- Select the logged-in character's race + gender. Called when the window opens

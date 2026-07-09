@@ -46,6 +46,13 @@ local MainWindow = Class(TitleFrame, function(self)
     onWantedToggle = function() self:RefreshWanted() end,
     -- Refit the window to the (filtered) row count so the scroll range can't overscroll.
     onResized = function() self:_fitToGrid() end,
+    -- Scroll the dressed-set row into view (VerticalScroll clamps out-of-range targets).
+    onEnsureVisible = function(_, rowTop, rowH)
+      local s = self.scroll
+      local cur, view = s:VerticalScroll(), s:Height()
+      if rowTop < cur then s:VerticalScroll(rowTop)
+      elseif rowTop + rowH > cur + view then s:VerticalScroll(rowTop + rowH - view) end
+    end,
   }
   w = max(w, self.data:Width() + 4)
 
@@ -169,6 +176,13 @@ ns:OnRatingsChanged(function()
     if grid.onResized then grid:onResized() end           -- refit the window to the new count
   else grid:_refreshMarks() end
   ns.window:RefreshWanted()
+end)
+
+-- Draw the cell cursor on the set currently shown in the shared dressing room, and
+-- follow it as the user arrow-navigates (nil clears on close). No-op until opened.
+ns:OnDressedSetChanged(function(setId, classIndex)
+  if not ns.window then return end
+  ns.window.data:HighlightSet(setId, classIndex, true)
 end)
 
 ---@class Warbandeer_Collected

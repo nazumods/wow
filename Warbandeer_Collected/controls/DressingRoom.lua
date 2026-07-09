@@ -97,7 +97,7 @@ end
 ---@field _bgClass string?  current class file for the backdrop (remembered for the toggle)
 ---@field _group table?  the set-group the previewed set belongs to (Step cycles its sets)
 ---@field _set table?  the set entry currently previewed
----@field _reverse boolean  grid sort direction at open: true = newest-first, so Up/Down tier nav matches the on-screen order
+---@field _classIndex number?  the previewed set's class column (its slot in group.sets), broadcast for the grid cursor
 ---@field _classIcon Texture  class icon in the model's upper-left (mirrors the nav pad)
 ---@field _className string?  localized class name for the icon's hover tooltip
 ---@field _expIcon Texture  expansion badge in the model's bottom-right (mirrors the class icon)
@@ -196,7 +196,6 @@ end, {
   special = true,
   strata = "HIGH",
   position = { Center = {} },
-  _reverse = true,   -- matches DataView's newest-first default until ShowDressingRoom says otherwise
 })
 ---@class Warbandeer_Collected
 ---@field DressingRoom DressingRoom
