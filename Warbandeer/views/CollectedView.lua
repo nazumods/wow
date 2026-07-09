@@ -47,6 +47,14 @@ local CollectedView = Class(Frame, function(self)
     onWantedToggle = function() _view:RefreshWanted() end,
     -- Refit the scroll container to the (filtered) row count so it can't overscroll.
     onResized = function() _view:_fitToGrid() end,
+    -- Scroll the dressed-set row into view (VerticalScroll clamps out-of-range targets).
+    onEnsureVisible = function(_, rowTop, rowH)
+      local s = _view and _view.scroll
+      if not s then return end
+      local cur, view = s:VerticalScroll(), s:Height()
+      if rowTop < cur then s:VerticalScroll(rowTop)
+      elseif rowTop + rowH > cur + view then s:VerticalScroll(rowTop + rowH - view) end
+    end,
   }
 
   -- Shared filter strip (PTR / Wanted / Sort toggles + Expansion / Category dropdowns)
@@ -138,6 +146,15 @@ if WarbandeerCollectedApi and WarbandeerCollectedApi.OnRatingsChanged then
     if not g then return end
     if g._wantedOnly then g.data = g:GetData(); g:update() else g:_refreshMarks() end
     _view:RefreshWanted()
+  end)
+end
+
+-- Highlight the grid row of the set shown in the shared dressing room, following the
+-- user's arrow navigation (nil clears on close). Registered once at load.
+if WarbandeerCollectedApi and WarbandeerCollectedApi.OnDressedSetChanged then
+  WarbandeerCollectedApi:OnDressedSetChanged(function(setId)
+    local g = _view and _view.grid
+    if g then g:HighlightSet(setId, true) end
   end)
 end
 

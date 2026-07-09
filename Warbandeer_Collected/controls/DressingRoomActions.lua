@@ -157,6 +157,9 @@ function DressingRoom:_load(group, set)
   self:UpdateSlots()
   self:Dress()
   self:_refreshRatings()
+  -- Every previewed-set change funnels through here (open + Step/StepTier arrow nav),
+  -- so broadcast it once from this choke point; the grids highlight the matching row.
+  ns:NotifyDressedSetChanged(set.id)
 end
 
 -- Move to the next/previous class set in the current group, wrapping and skipping

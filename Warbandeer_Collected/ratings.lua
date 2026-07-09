@@ -146,3 +146,25 @@ end
 function ns:NotifyRatingsChanged()
   for _, fn in ipairs(self._ratingListeners) do fn() end
 end
+
+-- ─── Dressed-set highlight ───────────────────────────────────────────────────
+-- Same shared-dressing-room / multiple-grids problem as ratings: the room previews
+-- one set at a time and can't know which grid launched it, so it broadcasts the
+-- currently-shown setId (nil = closed / nothing shown) and every registered grid
+-- highlights its matching row (or clears). Fired from _load (open + arrow nav) and
+-- the room's OnHide.
+---@type fun(setId: number?)[]
+ns._dressedListeners = {}
+
+---Register a callback run whenever the dressing room's previewed set changes (it
+---receives the new setId, or nil when the room closes).
+---@param fn fun(setId: number?)
+function ns:OnDressedSetChanged(fn)
+  self._dressedListeners[#self._dressedListeners + 1] = fn
+end
+
+---Broadcast the dressing room's current set (nil to clear) to every registered grid.
+---@param setId number?
+function ns:NotifyDressedSetChanged(setId)
+  for _, fn in ipairs(self._dressedListeners) do fn(setId) end
+end

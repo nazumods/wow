@@ -55,6 +55,40 @@ function DataView:_applyCellMarks(cell, setId)
   end
 end
 
+-- Highlight the row holding the set currently previewed in the shared dressing room
+-- (a full-width TableRow overlay — LibNUI's TableRow:Highlighted), following the room
+-- as the user arrow-navigates. A row is a group (many class setIds across columns);
+-- the previewed setId lives in exactly one cell, so class nav (same group) keeps the
+-- row while tier nav (sibling group) moves it. Broadcast from the room via
+-- ns:OnDressedSetChanged; nil clears. `scroll` brings the row into view on open/nav
+-- (via the host's onEnsureVisible hook) but not on a passive re-sort re-resolve.
+---@param setId number?  the previewed set, or nil to clear the highlight
+---@param scroll boolean?  scroll the matched row into view
+function DataView:HighlightSet(setId, scroll)
+  self._dressedSetId = setId
+  -- The highlighted row's index shifts on every re-sort, so always clear by the
+  -- tracked index before finding the set's current row.
+  if self._dressedRow and self.rows[self._dressedRow] then
+    self.rows[self._dressedRow]:Highlighted(false)
+  end
+  self._dressedRow = nil
+  if not setId then return end
+  for r = 1, #self.cells do
+    local row = self.cells[r]
+    for c = 1, #self.cols do
+      local data = row[c] and row[c].data
+      if type(data) == "table" and data.setId == setId then
+        self._dressedRow = r
+        self.rows[r]:Highlighted(true)
+        if scroll and self.onEnsureVisible then
+          self:onEnsureVisible((r - 1) * self.cellHeight, self.cellHeight)
+        end
+        return
+      end
+    end
+  end
+end
+
 -- Re-apply cell overlays from current DB state. Cheap enough to run on every
 -- update()/re-sort; cells persist across re-sorts so their overlays do too.
 -- With `onlySetId` set, only cells carrying that setId are refreshed — used after

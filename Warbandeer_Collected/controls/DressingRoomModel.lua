@@ -169,6 +169,9 @@ ns.ShowDressingRoom = function(group, set, reverse)
   if not _room then
     _room = DressingRoom:new{}
     _room:RememberPosition(ns.db.dressPos)   -- restore + persist the user's dragged position
+    -- Clear the grid row highlight whenever the room closes — via OnHide so every path
+    -- lands here (Escape/UISpecialFrames, the close button, and HideDressingRoom alike).
+    _room._widget:HookScript("OnHide", function() ns:NotifyDressedSetChanged(nil) end)
   end
 
   -- Track the grid's sort direction so the tier arrows match what the user sees.

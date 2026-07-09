@@ -161,4 +161,9 @@ function API:PlayerRace() return ns:PlayerRace() end
 ---@param fn fun()
 function API:OnRatingsChanged(fn) ns:OnRatingsChanged(fn) end
 
+---Register a callback fired when the shared dressing room's previewed set changes
+---(receives the setId, or nil on close), so a consumer grid can highlight its row.
+---@param fn fun(setId: number?)
+function API:OnDressedSetChanged(fn) ns:OnDressedSetChanged(fn) end
+
 _G.WarbandeerCollectedApi = API
