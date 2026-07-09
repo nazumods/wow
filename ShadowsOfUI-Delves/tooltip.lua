@@ -73,7 +73,14 @@ local function onPinEnter(pin)
   if appendDelveTime(GameTooltip, name) then GameTooltip:Show() end
 end
 
--- Guarded so a client/mixin-name change just disables the hook (calibrated in-game) rather than erroring.
-if AreaPOIPinMixin and AreaPOIPinMixin.OnMouseEnter then
-  hooksecurefunc(AreaPOIPinMixin, "OnMouseEnter", onPinEnter)
-end
+-- Delve entrance pins use DelveEntrancePinMixin, which lives in Blizzard_SharedMapDataProviders —
+-- a LoadOnDemand package that only loads with the World Map, AFTER us. So the mixin is nil at
+-- login; defer the hook until that package loads (ContinueOnAddOnLoaded fires immediately if it's
+-- already up). We hook DelveEntrancePinMixin directly, not the AreaPOIPinMixin base: the delve pin
+-- is a CreateSubPin of it, and CreateSubPin COPIES the parent's methods, so a base-mixin hook never
+-- reaches the copy the pins actually call. Guarded so a client/mixin rename just disables the line.
+EventUtil.ContinueOnAddOnLoaded("Blizzard_SharedMapDataProviders", function()
+  if DelveEntrancePinMixin and DelveEntrancePinMixin.OnMouseEnter then
+    hooksecurefunc(DelveEntrancePinMixin, "OnMouseEnter", onPinEnter)
+  end
+end)
