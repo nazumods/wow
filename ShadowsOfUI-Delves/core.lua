@@ -45,7 +45,8 @@ SlashCmdList["SUI_DELVES"] = function(msg)
     if not stats then ns.Print(("No recorded runs for '%s'."):format(name)) return end
     local lines = { ("Delve stats for '%s':"):format(name) }
     for _, s in ipairs(stats) do
-      lines[#lines + 1] = ("  %s: %s (%s, %d run(s))"):format(s.name, ns.FormatDuration(s.avg), s.scope, s.count)
+      local xp = s.avgXp and (", avg %s XP over %d"):format(BreakUpLargeNumbers(s.avgXp), s.xpCount) or ""
+      lines[#lines + 1] = ("  %s: %s (%s, %d run(s)%s)"):format(s.name, ns.FormatDuration(s.avg), s.scope, s.count, xp)
     end
     ui.ToggleCopyWindow("Delve stats", table.concat(lines, "\n"))
     return

@@ -1,11 +1,14 @@
 ---@type ShadowsOfUI_Delves
 local ns = select(2, ...)
 
+local floor = math.floor
+local Player = ns.wow.Player
 local LABEL = NORMAL_FONT_COLOR
 local MUTED = GRAY_FONT_COLOR
 
 -- Append the current character's average completion time for `poiName` to a tooltip (or a muted
--- "no runs" hint for a delve we haven't timed).  Returns false when there's nothing to show.
+-- "no runs" hint for a delve we haven't timed), plus an average-XP line for leveling characters.
+-- Returns false when there's nothing to show.
 ---@param tooltip table
 ---@param poiName string?
 ---@return boolean appended
@@ -24,6 +27,19 @@ local function appendDelveTime(tooltip, poiName)
     local runs = MUTED:WrapTextInColorCode(("· %d run%s"):format(mine.count, mine.count == 1 and "" or "s"))
     local tail = mine.scope == "all" and (" " .. MUTED:WrapTextInColorCode("(all tiers)")) or ""
     tooltip:AddLine(LABEL:WrapTextInColorCode(label) .. ns.FormatDuration(mine.avg) .. "  " .. runs .. tail, nil, nil, nil, true)
+
+    -- Leveling value: average XP per run + XP/hr (avg XP ÷ avg time).  Leveling-only — XP isn't
+    -- tracked at max level, and an explicit cap gate (mirroring ShadowsOfUI-QuestXP) drops any
+    -- stale leveling-run XP still lingering in the rolling window on a freshly-capped character.
+    if not Player:isMaxLevel() and mine.avgXp and mine.avgXp > 0 then
+      local xpLabel = mine.scope ~= "all" and ("Avg XP (%s): "):format(mine.scope) or "Avg XP: "
+      local rate = ""
+      if mine.avg > 0 then
+        local perHour = floor(mine.avgXp / mine.avg * 3600 + 0.5)
+        rate = "  " .. MUTED:WrapTextInColorCode(("· %s XP/hr"):format(AbbreviateNumbers(perHour)))
+      end
+      tooltip:AddLine(LABEL:WrapTextInColorCode(xpLabel) .. BreakUpLargeNumbers(mine.avgXp) .. rate, nil, nil, nil, true)
+    end
   else
     tooltip:AddLine(MUTED:WrapTextInColorCode("No timed runs yet"), nil, nil, nil, true)
   end
