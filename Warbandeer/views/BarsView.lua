@@ -290,8 +290,11 @@ end
 
 -- Show the preview + apply panels for a profile.
 function BarsView:_showSelection(p)
-  self:_getPreviewFrame():Set(p)
-  self:_getApplyFrame():Set(p)
+  local preview = self:_getPreviewFrame()
+  preview:Set(p)
+  local apply = self:_getApplyFrame()
+  apply._previewFrame = preview   -- lets the apply toggles highlight the matching preview bar
+  apply:Set(p)
 end
 
 function BarsView:_selectProfile(p)

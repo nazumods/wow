@@ -31,6 +31,12 @@ for _b, _base in ipairs(BAR_BASE) do
   for _n = 1, 12 do SLOT_CMD[_base + _n - 1] = BAR_CMD[_b] .. _n end
 end
 
+-- Profile bar index → its slot base → the Edit Mode sysIdx the preview renders it
+-- under. Lets the apply panel's toggles (keyed by profile bar) highlight the right
+-- preview box despite the two different numbering schemes.
+local BASE_TO_SYS = {}
+for _sys, _base in ipairs(BAR_BASE) do BASE_TO_SYS[_base] = _sys end
+
 -- Abbreviate a WoW key name to a compact label (e.g. "SHIFT-1" → "s-1")
 local function formatKey(key)
   if not key then return nil end
@@ -135,9 +141,11 @@ end
 ---@class BarsPreview: Frame
 ---@field _barRows  table[]
 ---@field _numBars  number
+---@field _sysToRow table   Edit Mode sysIdx → the row currently rendering it
 local BarsPreview = Class(Frame, function(self)
-  self._barRows = {}
-  self._numBars = 0
+  self._barRows  = {}
+  self._numBars  = 0
+  self._sysToRow = {}
   self:Height(P + 20 + P)
 end, {})
 ---@class Warbandeer
@@ -225,6 +233,8 @@ function BarsPreview:_showBar(rowIdx, sysIdx, barLayout, slotMap, macroMap, bind
   end
 
   row.lbl:Text("Bar " .. sysIdx)
+  row.rf.background:Color(theme.colors.module)  -- clear any leftover hover highlight
+  self._sysToRow[sysIdx] = row
 
   for j = 1, 12 do
     local cell = row._cells[j]
@@ -282,6 +292,17 @@ end
 
 -- ─── Public API ───────────────────────────────────────────────────────────────
 
+---Highlight (or clear) the preview row that renders a given profile bar index.
+---No-op for bars the preview doesn't show (class pages, pet, empty bars).
+---@param profileBar number
+---@param on boolean
+function BarsPreview:HighlightProfileBar(profileBar, on)
+  local sysIdx = BASE_TO_SYS[(profileBar - 1) * 12 + 1]
+  local row = sysIdx and self._sysToRow[sysIdx]
+  if not row then return end
+  row.rf.background:Color(on and theme.colors.selected or theme.colors.module)
+end
+
 ---Populate from a profile and show; hide if profile is nil.
 ---@param profile table?
 function BarsPreview:Set(profile)
@@ -306,6 +327,7 @@ function BarsPreview:Set(profile)
 
   -- Render all non-empty bars; track which row indices are vertical
   local n = 0
+  self._sysToRow = {}
   local hRows, vRows = {}, {}
   for sysIdx = 1, #BAR_BASE do
     local base = BAR_BASE[sysIdx]
@@ -383,6 +405,13 @@ end, {
 ---@class Warbandeer
 ---@field BarsPreviewFrame BarsPreviewFrame
 ns.BarsPreviewFrame = BarsPreviewFrame
+
+---Forward a bar highlight to the inner preview (driven by the apply panel's toggle hover).
+---@param profileBar number
+---@param on boolean
+function BarsPreviewFrame:HighlightProfileBar(profileBar, on)
+  self._preview:HighlightProfileBar(profileBar, on)
+end
 
 ---Point the preview box at a profile and show it; hide if profile is nil.
 ---@param profile table?
