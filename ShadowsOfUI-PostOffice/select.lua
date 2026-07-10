@@ -75,13 +75,26 @@ local queue ---@type number[]?  selected indices, descending
 local qi ---@type number?
 local startCount ---@type number?  inbox letter count when the current letter began draining
 
-local function freeBagSlots()
-  local n = 0
-  for b = 0, (NUM_BAG_SLOTS or 4) do
-    local free, family = C_Container.GetContainerNumFreeSlots(b)
-    if family == 0 then n = n + free end -- general slots only
+local band = bit.band
+
+-- True if the letter's attachment in `slot` can actually be placed — some bag has a free
+-- slot that accepts it: a general bag (bagFamily 0 holds anything) or a specialized bag
+-- whose family the item matches (a crafting reagent into the reagent bag when the general
+-- bags are full). This is the engine's own bag-fit rule, so it agrees with where
+-- TakeInboxItem would route the item. Item-aware on purpose: a blanket "any free slot"
+-- count would pass a non-reagent when only the reagent bag is free, and TakeInboxItem
+-- couldn't place it — the letter would never empty and _selectStep would re-tick forever.
+local function attachmentFits(index, slot)
+  local itemID = select(2, GetInboxItem(index, slot))
+  local itemFamily = itemID and C_Item.GetItemFamily(itemID) or 0
+  for b = 0, (NUM_BAG_SLOTS or 4) + 1 do -- incl. the reagent bag (5), matching forward.lua
+    local free, bagFamily = C_Container.GetContainerNumFreeSlots(b)
+    if free and free > 0
+      and ((bagFamily or 0) == 0 or (itemFamily > 0 and band(bagFamily, itemFamily) ~= 0)) then
+      return true
+    end
   end
-  return n
+  return false
 end
 
 local function finish()
@@ -118,7 +131,7 @@ function ns._selectStep()
   for a = ATTACHMENTS_MAX_RECEIVE, 1, -1 do
     if GetInboxItem(index, a) then slot = a; break end
   end
-  if slot and freeBagSlots() > 0 then
+  if slot and attachmentFits(index, slot) then
     TakeInboxItem(index, slot)
     tick()
   elseif money and money > 0 then

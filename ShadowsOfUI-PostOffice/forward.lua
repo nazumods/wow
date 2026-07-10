@@ -37,12 +37,13 @@ local function freeBagSlots()
 end
 
 local takeNext -- forward declaration
+local reset    -- forward declaration (defined below; used by depositWholeAndContinue's bail)
 
 local function firstFreeSendSlot()
   for i = 1, ATTACH_MAX do
     if not HasSendMailItem(i) then return i end
   end
-  return 1
+  return nil -- all outgoing slots occupied; caller must bail (never attach onto slot 1)
 end
 
 local function findEmptyBagSlot()
@@ -57,7 +58,16 @@ end
 -- flips the mailbox back to the Inbox tab, so re-assert the Send Mail tab first.
 local function depositWholeAndContinue()
   MailFrameTab_OnClick(nil, 2)
-  ClickSendMailItemButton(firstFreeSendSlot())
+  local send = firstFreeSendSlot()
+  if not send then
+    -- No free outgoing slot. Unreachable given a letter carries at most ATTACHMENTS_MAX_SEND
+    -- items and we stop once it's empty — but never attach onto an occupied slot (that swaps
+    -- the held item and strands one on the cursor). Bail cleanly: drop the held item back to bags.
+    ClearCursor()
+    reset()
+    return
+  end
+  ClickSendMailItemButton(send)
   takeNext()
 end
 
@@ -114,7 +124,7 @@ end
 -- Abort any in-flight shuttle: drop every handler and clear state. Called when the mailbox
 -- closes mid-shuttle (mirrors select.lua) so a later bag/cursor change can't fire a deposit
 -- into a closed mail frame. Unregistering a handler that isn't active is a safe no-op.
-local function reset()
+function reset()
   ns:unregisterEvent("BAG_UPDATE_DELAYED", onBagUpdate)
   ns:unregisterEvent("BAG_UPDATE_DELAYED", onIsolated)
   ns:unregisterEvent("CURSOR_CHANGED", onCursorChanged)

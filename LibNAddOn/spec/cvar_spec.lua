@@ -110,4 +110,50 @@ describe("LibNAddOn CVar helpers", function()
       assert.equals(0, writes)                                 -- no redundant write / no loop
     end)
   end)
+
+  -- The client canonicalises some values to a different string than tostring(value)
+  -- (booleans -> "1"/"0", fractional floats -> "%f"). Enforce must compare against that
+  -- canonical readback, not tostring, or GetCVar ~= forced stays true forever and
+  -- EnforceCVars re-writes on every CVAR_UPDATE. Uses a store that canonicalises like the
+  -- client so tostring(value) and the readback genuinely differ.
+  describe("enforce mode with non-canonical value forms", function()
+    local a, s
+    before_each(function()
+      s = {}
+      _G.GetCVar = function(k) return s[k] end
+      _G.SetCVar = function(k, v)
+        if type(v) == "boolean" then v = v and "1" or "0"
+        elseif type(v) == "number" and v % 1 ~= 0 then v = string.format("%f", v)  -- 0.5 -> "0.500000"
+        else v = tostring(v) end
+        s[k] = v
+      end
+      local ns = {}
+      assert(loadfile("LibNAddOn/cvar.lua"))("LibNAddOn", ns)
+      a = { _events = {}, registerEvent = function(self, n, h) self._events[n] = h end }
+      ns.linkCVarHelpers(a)
+    end)
+
+    it("stores the canonical readback of a boolean, not tostring(true)", function()
+      a:SetTemporaryCVar("someBool", true, true)
+      assert.equals("1", s.someBool)
+      assert.equals("1", a._cvarEnforce.someBool)              -- "1", not "true"
+    end)
+
+    it("stores the canonical readback of a fractional value, not tostring(0.5)", function()
+      a:SetTemporaryCVar("someFloat", 0.5, true)
+      assert.equals("0.500000", s.someFloat)
+      assert.equals("0.500000", a._cvarEnforce.someFloat)      -- readback, not "0.5"
+    end)
+
+    it("doesn't thrash on an in-sync CVAR_UPDATE for non-canonical values", function()
+      a:SetTemporaryCVar("someBool", true, true)
+      a:SetTemporaryCVar("someFloat", 0.5, true)
+      local writes = 0
+      local realSet = _G.SetCVar
+      _G.SetCVar = function(k, v) writes = writes + 1; realSet(k, v) end
+      a._events.CVAR_UPDATE(a)                                 -- both already in sync
+      _G.SetCVar = realSet
+      assert.equals(0, writes)                                 -- old code: redundant writes / loop
+    end)
+  end)
 end)
