@@ -44,6 +44,9 @@ local MainWindow = Class(TitleFrame, function(self)
     colInfo = DataView.BuildColInfo(false),  -- windowed: includes the lock column
     -- Refresh this window's wanted tally after a Shift-click toggle in the grid.
     onWantedToggle = function() self:RefreshWanted() end,
+    -- Recompute the set/appearance/collected counter when the wanted-only filter flips
+    -- (VisibleCounts is filter-scoped), so it tracks the rows actually shown.
+    onFilterChanged = function() self:RefreshCounter() end,
     -- Refit the window to the (filtered) row count so the scroll range can't overscroll.
     onResized = function() self:_fitToGrid() end,
     -- Scroll the dressed-set row into view (VerticalScroll clamps out-of-range targets).

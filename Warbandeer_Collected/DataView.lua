@@ -37,6 +37,7 @@ local TableFrame = ui.TableFrame
 ---@field infoTipAnchor fun(cell: Cell): table?  host override for the hover InfoTip anchor (defaults to "above the cell")
 ---@field onWantedToggle fun(self: DataView)?  host callback fired after a Shift-click wanted toggle (refresh the host's header)
 ---@field onResized fun(self: DataView)?  host callback fired after a filter/PTR change shrinks or grows the row area, so the host can refit its scroll container (see _refilter / SetPtr)
+---@field onFilterChanged fun(self: DataView)?  host callback fired after the wanted-only filter flips, so the host can recompute its filter-scoped counter (see ToggleWantedOnly)
 local DataView = Class(TableFrame, function(self)
   -- autoadjust name width (col 1 embedded, col 2 in the window — lock takes col 1)
   local nameCol = self.embedded and 1 or 2

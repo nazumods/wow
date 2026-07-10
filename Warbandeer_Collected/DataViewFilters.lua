@@ -61,6 +61,10 @@ function DataView:ToggleWantedOnly()
   -- The row count changes (rows are now added/removed, not just blanked), so let the
   -- host refit its scroll container / window height to the new count.
   if self.onResized then self:onResized() end
+  -- The set/appearance/collected counter is filter-scoped (VisibleCounts honors
+  -- _wantedOnly), so recompute it too — reachable from both the strip's star and the
+  -- header's ★ N counter click.
+  if self.onFilterChanged then self:onFilterChanged() end
   return self._wantedOnly
 end
 

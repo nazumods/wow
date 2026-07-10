@@ -272,19 +272,24 @@ end
 ---expansion/category filter: the number of set **rows** shown, the total grid **cells**
 ---that hold a resolvable set (every green check or red number), and how many of those
 ---render a **green** check — a fully collected set (`isComplete`, however it got there).
+---When "wanted only" is active it mirrors the grid: whole rows with no wanted set are
+---skipped, and within a shown row only the wanted class cells count.
 ---@return number sets, number cells, number green
 function DataView:VisibleCounts()
   local sets, cells, green = 0, 0, 0
+  local wantedOnly = self._wantedOnly
   for _, grp in ipairs(ns.Sets) do
-    if matches(self, grp) then
+    if matches(self, grp) and (not wantedOnly or groupWanted(grp)) then
       sets = sets + 1
       local gsets = ns.db.sets[grp.id]
       if gsets then
         for _, set in ipairs(grp.sets) do
-          local s = set.id and gsets[set.id]
-          if s ~= nil then
-            cells = cells + 1
-            if isComplete(s) then green = green + 1 end
+          if set.id and (not wantedOnly or ns:IsWanted(set.id)) then
+            local s = gsets[set.id]
+            if s ~= nil then
+              cells = cells + 1
+              if isComplete(s) then green = green + 1 end
+            end
           end
         end
       end

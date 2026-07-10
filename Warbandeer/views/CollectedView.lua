@@ -45,6 +45,9 @@ local CollectedView = Class(Frame, function(self)
     -- cells); refresh this view's wanted tally after a Shift-click toggle.
     infoTipAnchor = ns.InfoTipPosition,
     onWantedToggle = function() _view:RefreshWanted() end,
+    -- Recompute the set/appearance/collected counter when the wanted-only filter flips
+    -- (VisibleCounts is filter-scoped), so it tracks the rows actually shown.
+    onFilterChanged = function() _view:_render() end,
     -- Refit the scroll container to the (filtered) row count so it can't overscroll.
     onResized = function() _view:_fitToGrid() end,
     -- Scroll the dressed-set row into view (VerticalScroll clamps out-of-range targets).
