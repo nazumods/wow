@@ -8,7 +8,9 @@ local floor = math.floor
 local Player = ns.wow.Player
 
 ---Whole-percent value of the currently-selected quest's XP reward, relative to the XP needed
----for the player's current level. Nil when there's nothing to show (max level, no XP reward).
+---for the player's current level. Nil when there's nothing to show (max level, no XP reward);
+---0 for a real reward worth under half a percent of the level (rounds down) — the display
+---layer renders that as "<1%" rather than a misleading "(0%)".
 ---@return number?
 local function GetRewardPercent()
   if Player:isMaxLevel() then return end
@@ -23,6 +25,16 @@ local function GetRewardPercent()
 end
 ns.GetRewardPercent = GetRewardPercent
 
+---The reward-percent tag to append: "(N%)" for a reward worth ≥1% of the level, "(<1%)"
+---for a real reward that rounds below 0.5% (so it never reads as a valueless "(0%)"), or
+---nil when there's nothing to show.
+---@return string?
+local function RewardPercentText()
+  local percent = GetRewardPercent()
+  if not percent then return end
+  return percent == 0 and "(<1%)" or ("(%d%%)"):format(percent)
+end
+
 -- MapQuestInfoRewardsFrame.XPFrame.Name is the FontString the map quest-log Details pane uses
 -- for the XP reward number (confirmed live via /framestack) — distinct from QuestInfoRewardsFrame,
 -- which NPC quest-greeting dialogs use, so this is inherently map-only. Whatever code populates it
@@ -33,11 +45,11 @@ local appending = false
 local function OnXPTextSet(fontString, text)
   if appending or not text then return end
 
-  local percent = GetRewardPercent()
-  if not percent then return end
+  local label = RewardPercentText()
+  if not label then return end
 
   appending = true
-  fontString:SetText(text .. " " .. GRAY_FONT_COLOR:WrapTextInColorCode(("(%d%%)"):format(percent)))
+  fontString:SetText(text .. " " .. GRAY_FONT_COLOR:WrapTextInColorCode(label))
   appending = false
 end
 
@@ -61,6 +73,5 @@ end
 SLASH_SUI_QUESTXP1 = "/squestxp"
 SlashCmdList["SUI_QUESTXP"] = function()
   local questID = C_QuestLog.GetSelectedQuest()
-  local percent = GetRewardPercent()
-  ns.Print(("Selected quest %d -> %s"):format(questID or 0, percent and ("(%d%%)"):format(percent) or "n/a"))
+  ns.Print(("Selected quest %d -> %s"):format(questID or 0, RewardPercentText() or "n/a"))
 end
