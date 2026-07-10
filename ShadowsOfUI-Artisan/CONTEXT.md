@@ -67,8 +67,19 @@ known yet; `onEnter` renders the breakdown tooltip (header = currency icon + nam
 - **Spellbook page** (`ns.UpdateBookBadges`): `ContinueOnAddOnLoaded("Blizzard_ProfessionsBook")`
   → `hooksecurefunc("ProfessionsBookFrame_Update", …)`. Iterates `PrimaryProfession1/2` +
   `SecondaryProfession1/2/3`, reads `frame.skillLine` (stamped by Blizzard's `FormatProfession`),
-  one badge per frame (`frame.soiArtisanBadge`) anchored under the lowest shown spell button's
-  `spellString` label; gated on `ARTISAN_CURRENCIES` so Cooking/Fishing/Archaeology show nothing.
+  one badge per frame (`frame.soiArtisanBadge`) anchored under **`SpellButton1`**'s `spellString`
+  label — always the profession's recipe-log / craft opener ("Inscription", "Herbalism Journal").
+  `SpellButton2`, when shown, is the gathering *passive* ("Herb Gathering"), so it must **not** be
+  the anchor (doing so floated the badge beside the wrong spell on gathering professions). Gated on
+  `ARTISAN_CURRENCIES` so Cooking/Fishing/Archaeology show nothing. **Also** renders an
+  uncaptured-detail **⚠** (`frame.soiDetailWarn`, `ns.icons.Warning` atlas, `WARN_SIZE` 33px) in the
+  open plaque area left of the spell-button column (anchored `RIGHT` of the top spell button's
+  `LEFT`, −24) when `WarbandeerApi:HasProfessionDetail(nil, skillLine)` is false — the same flag
+  Warbandeer's ProfsView shows, nudging the player to open the profession so its recipes get
+  recorded. Gated to the two **`PrimaryProfession`** frames (`PRIMARY`) — secondaries never record
+  expansion detail, so they'd always read "missing"; and to `hasProfession`. Mouse-enabled for its
+  tooltip. Anchor is set per-frame in `UpdateBookBadges` (top button is `SpellButton2` when shown,
+  else `SpellButton1`).
   Also gated on `frame.SpellButton1:IsShown()` — Blizzard never nils `frame.skillLine` when a slot
   empties (unlearned profession), so without the visibility check a stale skillLine would float a
   phantom badge in the now-empty slot.

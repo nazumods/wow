@@ -54,6 +54,7 @@ Data-collection backbone for the suite. Scans the active character each login/re
 ```lua
 WarbandeerApi:GetCurrentCharacter()       → string
 WarbandeerApi:GetCharacterData(char?)     → Character   -- live ref, NOT a copy (mutable)
+WarbandeerApi:HasProfessionDetail(char?, skillLineID) → boolean  -- per-expansion detail captured? (primary profs only; false = never opened)
 WarbandeerApi:GetNumCharacters()          → integer
 WarbandeerApi:GetNumMaxLevel()            → integer
 WarbandeerApi:GetAllCharacters()          → Character[]
