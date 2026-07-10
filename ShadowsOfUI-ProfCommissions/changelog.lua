@@ -6,6 +6,11 @@ local ns = select(2, ...)
 -- conventional-commit grouping used for the GitHub/CurseForge release notes.
 ---@type { version: string, notes: string }[]
 ns.changelog = {
+  { version = "12.0.7-r4", notes = [==[
+### Features
+- flag unlearned recipes with a red ⊗ in the Info column (#435)
+
+]==] },
   { version = "12.0.7-r3", notes = [==[
 ### Features
 - roll out in-game changelog viewer to all ShadowsOfUI addons (#340) (#376)

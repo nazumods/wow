@@ -6,6 +6,20 @@ local ns = select(2, ...)
 -- same conventional-commit grouping used for the GitHub/CurseForge release notes.
 ---@type { version: string, notes: string }[]
 ns.changelog = {
+  { version = "12.0.7-r18", notes = [==[
+### Features
+- flag characters with uncaptured profession detail (#434)
+- opt-in sortable columns (clickable header + sort arrow) (#432)
+- mark logged-in character with the shared gold row wash (#431)
+- add a Both-factions view via a 3-way faction control (#430)
+- consolidate Warbandeer gold display onto shared coin formatters (#429)
+- drag the window by the preview's heading strip (#423)
+- real-layout Bars preview (addon-aware) (#419) (#421)
+
+### Refactoring
+- adopt VirtualList for the faction-row list (#437)
+
+]==] },
   { version = "12.0.7-r17", notes = [==[
 ### Features
 - overhaul Bars Apply panel UX (#365) (#418)
