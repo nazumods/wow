@@ -82,6 +82,16 @@ function API:DeleteProfile(char, specID)
   if not next(byChar) then ns.db.profiles[char] = nil end
 end
 
+---Forget every stored profile for a character (resolves casing, like DeleteProfile).
+---@param char string
+---@return boolean deleted  false if the character had no stored profiles
+function API:DeleteCharacter(char)
+  char = resolveChar(char)
+  if not ns.db.profiles[char] then return false end
+  ns.db.profiles[char] = nil
+  return true
+end
+
 ---Apply a profile table to the current character.
 ---@param profile table
 ---@param include table? restore filter; defaults to the per-character settings
