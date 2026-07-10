@@ -24,8 +24,13 @@ local icon ---@type Texture?  our overlay icon, created lazily
 local function applyPosition()
   local p = ns.db.position
   if not p then return end
+  -- SetPoint offsets are in the button's OWN coordinate space; our saved x/y are in
+  -- UIParent units, so counter-convert by the button's effective scale relative to
+  -- UIParent (the minimap-size slider makes the button's cluster scale != 1). This is
+  -- the exact inverse of savePosition's fS/uiS, so the round-trip is scale-independent.
+  local scale = UIParent:GetEffectiveScale() / frame:GetEffectiveScale()
   frame:ClearAllPoints()
-  frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", p.x, p.y)
+  frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", p.x * scale, p.y * scale)
 end
 
 -- Restore Blizzard's original anchor and forget the saved position.
