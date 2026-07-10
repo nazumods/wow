@@ -6,11 +6,26 @@ local ns = select(2, ...)
 -- Click the icon to do that now. Deletions that would destroy items or coin confirm
 -- first. The first consumer of core's shared inbox-row decorator (ns.OnInboxRow).
 
-local pending ---@type number?     mail index awaiting a delete-confirm accept
+local pendingSig ---@type string?  fingerprint of the letter awaiting a delete-confirm accept
 local pendingMoney ---@type number? coin on that letter, for the money-confirm frame
 
+-- A letter's stable identity for the window a confirm dialog sits open — nothing is taken
+-- from it in that span, so sender/subject/money/CoD/attachment-count all hold. Mail is
+-- volatile (an arriving letter inserts at index 1 and shifts every index up), so we
+-- re-resolve the index by this fingerprint at accept time instead of trusting the numeric
+-- index captured at click time.
+local function inboxFingerprint(index)
+  local _, _, sender, subject, money, cod, _, hasItem = GetInboxHeaderInfo(index)
+  return table.concat({ sender or "", subject or "", money or 0, cod or 0, hasItem or 0 }, "\1")
+end
+
 local function deletePending()
-  if pending then DeleteInboxItem(pending); pending = nil end
+  local sig = pendingSig
+  pendingSig = nil
+  if not sig then return end
+  for i = 1, GetInboxNumItems() do
+    if inboxFingerprint(i) == sig then DeleteInboxItem(i); return end
+  end -- letter no longer present (already gone) — never delete a different, shifted-in letter
 end
 
 StaticPopupDialogs["SHADOWSOFUI_POSTOFFICE_DELETE_MAIL"] = {
@@ -41,10 +56,10 @@ local function onClick(self)
     if name then firstItem = name; break end
   end
   if firstItem then
-    pending = index
+    pendingSig = inboxFingerprint(index)
     StaticPopup_Show("SHADOWSOFUI_POSTOFFICE_DELETE_MAIL", firstItem)
   elseif money and money > 0 then
-    pending, pendingMoney = index, money
+    pendingSig, pendingMoney = inboxFingerprint(index), money
     StaticPopup_Show("SHADOWSOFUI_POSTOFFICE_DELETE_MONEY")
   else
     DeleteInboxItem(index) -- empty letter, nothing to lose
