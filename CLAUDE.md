@@ -156,6 +156,7 @@ Use `/dump <expr>` or `/run <lua>` to inspect live data. Output appears in the c
 
 - This codebase targets the **Lua 5.1** environment — do not use Lua 5.2+ features (`goto`, etc.).
 - Account for WoW 12.0 API changes when using icon/spell APIs (Blizzard renames/repurposes these across client versions).
+- The `mcp__wow-api__*` tools (`lookup_api`, `search_api`, etc.) index **namespaced Blizzard API only**. Lua stdlib globals that WoW exposes — `time`, `date`, `bit`, `string`, `math`, `table`, `os`-style calls — are **not** in that index; treat them as `os.*`/LuaJIT and reason from Lua semantics rather than `lookup_api`-ing them (a fuzzy match just returns unrelated `C_*` functions).
 - Verify `/wdebug` probes compile and stay under WoW's chat input length limit (255 chars including the prefix).
 - Render bars/overlays on the correct frame layer (not `BACKGROUND`) and verify z-order and mouse-grab behavior.
 - Creature-display models cannot be dressed — use a `ModelScene` actor for arbitrary races.
