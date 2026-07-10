@@ -316,11 +316,9 @@ function MidnightProfs:OnBeforeShow()
   -- build entries: {toon, row, keys}
   local entries = {}
   for _, toon in ipairs(toons) do
-    local nameText = toon.name
-    if toon.name == current then
-      nameText = nameText .. " |TInterface\\TargetingFrame\\UI-RaidTargetingIcon_1:14:14:0:0|t"
-    end
-    nameText = nameText .. " " .. C_GREY .. "(" .. toon.basic.level .. ")" .. C_END
+    -- The logged-in character is marked by a muted-gold row wash (see the row
+    -- backdrop loop below), consistent with the rest of the suite.
+    local nameText = toon.name .. " " .. C_GREY .. "(" .. toon.basic.level .. ")" .. C_END
     local row = {
       ns.factionIcon[toon.isAlliance],
       {
@@ -365,7 +363,11 @@ function MidnightProfs:OnBeforeShow()
   local rowData = {}
   for i, entry in ipairs(entries) do
     insert(rowData, entry.row)
-    self.tbl.rows[i]:backdropColor(unpack(rowBgColor(i)))
+    if entry.toon.name == current then
+      self.tbl.rows[i]:backdropColor(ns.theme.colors.selected)
+    else
+      self.tbl.rows[i]:backdropColor(unpack(rowBgColor(i)))
+    end
   end
   for i = #entries + 1, #self.tbl.rows do
     insert(rowData, emptyRow)
