@@ -22,7 +22,8 @@ It also **replaces** the stock **Reagents** column (the "Some / None / All" text
 column of two at-a-glance status icons:
 
 - **First-craft bonus** — a book icon appears when crafting that order's recipe would still earn
-  you the **first-craft bonus** (i.e. you haven't crafted it before).
+  you the **first-craft bonus** (i.e. you haven't crafted it before). If you **haven't learned** the
+  recipe, a red ⊗ shows instead — the bonus isn't claimable until you learn it.
 - **Reagents** — who supplies the materials: a green **check** when the customer provides *all*
   reagents, or a **warning** when *you'll* be providing some (yellow) or all (red) of them.
 
