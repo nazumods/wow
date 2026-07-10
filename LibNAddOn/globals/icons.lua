@@ -10,6 +10,7 @@ ns.icons = {
   Theatre = "UI-EventPoi-TheatreTroupe",
   Treasure = "Crosshair_lootall_32",
   BackArrow = "common-icon-backarrow-disable", -- 45x45
+  Warning = "transmog-icon-warning-small", -- yellow caution triangle (missing/stale data)
 -- preMidnight
   preMidnight = "UI-EventPoi-twilightascension",
   -- reputations
