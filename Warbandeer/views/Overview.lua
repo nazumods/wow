@@ -17,6 +17,9 @@ local TopAlts = ns.overview.TopAlts
 
 local P, GAP, STRIP_H, HEAD_H = 12, 8, 64, 16
 local TREND_ICON = "Interface\\AddOns\\Warbandeer\\icons\\"
+-- inline paragon reward-bag glyph for expansion-picker options that hold a claim
+local PARAGON_MARK = "|A:ParagonReputation_Bag:12:12|a"
+local BAR_TEX = "Interface\\AddOns\\Warbandeer\\media\\bar-rounded"
 
 -- caps label used for section headers ("REPUTATIONS", "TOP CHARACTERS", ...)
 local function capsHeader(parent, text, position)
@@ -41,6 +44,7 @@ local function buildTab(panel, expansionLevel, extraFactionIDs, achievementIds)
     extraFactionIDs = extraFactionIDs,
     position = { TopLeft = {0, -HEAD_H} },
   }
+  panel._bars = bars -- reachable so BuildFilter can total pending paragon rewards
   -- Achievements is moved into its own equal-thirds column by the caller once the
   -- shared column width is known; the X here is a placeholder.
   local achHead = capsHeader(panel, "Achievements", { TopLeft = {0, 0} })
@@ -265,6 +269,42 @@ end
 function Overview:BuildFilter(parent)
   local box = Frame:new{ parent = parent, position = { Height = 20 } }
 
+  -- Pending paragon claims per expansion (tallied when the panels were built; a claim
+  -- turned in mid-session clears on the next open, like the row indicators themselves).
+  local counts, total = {}, 0
+  for _, e in ipairs(EXPANSIONS) do
+    local n = self._panels[e.key]._bars.rewardCount or 0
+    counts[e.key] = n
+    total = total + n
+  end
+
+  -- Expansion options carry a leading reward-bag glyph when that expansion holds a claim.
+  local expOptions = {}
+  for _, e in ipairs(EXPANSIONS) do
+    expOptions[#expOptions + 1] = {
+      key = e.key,
+      label = (counts[e.key] > 0 and PARAGON_MARK .. " " or "") .. e.label,
+    }
+  end
+
+  -- Titlebar "N to claim" badge — an at-a-glance signal visible on any expansion tab,
+  -- shown only when at least one paragon reward is waiting.
+  local badge
+  if total > 0 then
+    badge = Frame:new{ parent = box, position = { TopLeft = {0, 0}, Height = 20 } }
+    local bg = Texture:new{ parent = badge, layer = ui.layer.Background, position = { All = true } }
+    bg:Texture(BAR_TEX); bg:SliceMargins(6, 6, 6, 6); bg:SliceMode(0)
+    bg:SetVertexColor(0.95, 0.75, 0.1, 0.16)
+    local icon = ns.overview.ParagonBag(badge, 14)
+    icon:Left(badge, ui.edge.Left, 7, 0)
+    local text = total .. " to claim"
+    Label:new{
+      parent = badge, fontInfo = theme.fonts.stat, color = theme.colors.gold,
+      text = text, position = { Left = {icon, ui.edge.Right, 5, 0} },
+    }
+    badge:Width(7 + 14 + 5 + #text * 6.2 + 8)
+  end
+
   local raid = ui.FilterDropdown:new{
     parent    = box,
     bordered  = true,
@@ -273,12 +313,12 @@ function Overview:BuildFilter(parent)
     width     = 110,
     menuWidth = 120,
     onSelect  = function(_, key) self.topAlts:SetRaid(key) end,
-    position  = { TopLeft = {0, 0} },
+    position  = badge and { TopLeft = {badge, ui.edge.TopRight, GAP, 0} } or { TopLeft = {0, 0} },
   }
   local exp = ui.FilterDropdown:new{
     parent    = box,
     bordered  = true,
-    options   = EXPANSIONS,
+    options   = expOptions,
     selected  = self._expansion,
     width     = 112,
     menuWidth = 130,
@@ -286,7 +326,9 @@ function Overview:BuildFilter(parent)
     position  = { TopLeft = {raid, ui.edge.TopRight, GAP, 0} },
   }
 
-  box:Width(raid:Width() + GAP + exp:Width())
+  local w = raid:Width() + GAP + exp:Width()
+  if badge then w = badge:Width() + GAP + w end
+  box:Width(w)
   self._filter = box
   return box
 end
