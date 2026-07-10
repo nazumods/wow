@@ -102,7 +102,15 @@ stacks one `LabeledBar` per major faction plus optional subfaction rows; data bu
 `colorFor(id, apiColor, fallback)`: `ns.data.factionColors[id]` override → API `factionFontColor` →
 fallback (subfaction falls back to parent). Maxed factions with paragon unlocked show **paragon
 progress on a darker-faction-colour track**; the value reads green **"paragon"**, swapping to raw
-`prog / threshold` on row hover (`LabeledBar.hoverValue`).
+`prog / threshold` on row hover (`LabeledBar.hoverValue`). A faction with a **claimable paragon
+reward** (`hasRewardPending`, the 4th return of `GetFactionParagonInfo` — live logged-in character
+only) instead reads gold **"claim"** beside an animated **reward bag** (`ns.overview.ParagonBag` —
+Blizzard `ParagonReputation_Bag` + `ParagonReputation_Glow` atlases with a looping scale/alpha
+pulse), carried through `paragonInfo`→`resolveProgress` as `reward` onto the row fragment (major
+factions, subfactions, and `extraFactionIDs` alike). Each `FactionBars` tallies `self.rewardCount`;
+`Overview:BuildFilter` sums it across expansions for a titlebar **"N to claim" badge** (shown only
+when >0, pulsing bag + count) and leading-`ParagonReputation_Bag`-marks the expansion-picker
+dropdown options that hold a claim. Counts are computed at panel build (refresh on reopen).
 
 **Constructor options:** `expansionLevel` (10=TWW, 11=Midnight; passed to `GetMajorFactionIDs`),
 `extraFactionIDs` (IDs the API omits, e.g. Silvermoon Court `2710`, Slayer's Duellum `2770`), `width`.

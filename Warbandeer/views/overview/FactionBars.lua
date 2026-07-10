@@ -2,7 +2,7 @@
 local ns = select(2, ...)
 local insert = table.insert
 local ui = ns.ui
-local Class, Frame = ns.lua.Class, ui.Frame
+local Class, Frame, Texture = ns.lua.Class, ui.Frame, ui.Texture
 local LabeledBar = ns.LabeledBar
 local theme = ns.theme
 local BottomLeft = ui.edge.BottomLeft
@@ -15,6 +15,50 @@ local IsFactionParagon = C_Reputation.IsFactionParagon
 local GetFactionParagonInfo = C_Reputation.GetFactionParagonInfo
 
 ns.overview = ns.overview or {}
+
+-- Blizzard atlases for a claimable paragon reward (the same the in-game rep UI shows).
+local ATLAS_BAG, ATLAS_GLOW = "ParagonReputation_Bag", "ParagonReputation_Glow"
+local PARAGON_BAG_SIZE = 14
+
+-- A small paragon reward bag with a glow halo and a looping breathe/pulse, flagging a
+-- maxed faction whose paragon chest is ready to claim. Returns the container Frame for
+-- the caller to anchor; WoW auto-pauses the animation while the frame is hidden.
+---@param parent Frame
+---@param size number?
+---@return Frame
+function ns.overview.ParagonBag(parent, size)
+  size = size or PARAGON_BAG_SIZE
+  local f = Frame:new{ parent = parent, position = { Width = size, Height = size } }
+  local glow = Texture:new{
+    parent = f, layer = ui.layer.Overlay, blendMode = "ADD",
+    position = { Center = {0, 0}, Width = size * 1.9, Height = size * 1.9 },
+  }
+  glow:Atlas(ATLAS_GLOW, false)
+  glow:SetVertexColor(1, 0.95, 0.6, 1)
+  glow._widget:SetAlpha(0.25)
+  local bag = Texture:new{
+    parent = f, layer = ui.layer.Overlay,
+    position = { Center = {0, 0}, Width = size, Height = size },
+  }
+  bag:Atlas(ATLAS_BAG, false)
+  bag:DrawLayer("OVERLAY", 2)
+
+  local scaleAg = f._widget:CreateAnimationGroup()
+  scaleAg:SetLooping("BOUNCE")
+  local sc = scaleAg:CreateAnimation("Scale")
+  sc:SetDuration(0.85); sc:SetScaleFrom(1, 1); sc:SetScaleTo(1.18, 1.18)
+  sc:SetOrigin("CENTER", 0, 0)
+  scaleAg:Play()
+
+  local glowAg = glow._widget:CreateAnimationGroup()
+  glowAg:SetLooping("BOUNCE")
+  local ga = glowAg:CreateAnimation("Alpha")
+  ga:SetDuration(0.85); ga:SetFromAlpha(0.2); ga:SetToAlpha(0.7)
+  glowAg:Play()
+
+  f._scaleAg, f._glowAg = scaleAg, glowAg
+  return f
+end
 
 -- Extract r,g,b,a from a ColorMixin or a plain {r,g,b,a} array.
 local function rgbaOf(color)
@@ -46,7 +90,8 @@ local function paragonInfo(factionID, r, g, b)
   local prog = cur % threshold
   if hasReward and prog == 0 then prog = threshold end -- a claimable bag = full bar
   return {
-    numbers = (hasReward and "! " or "") .. prog .. " / " .. threshold,
+    hasReward = hasReward,
+    numbers = prog .. " / " .. threshold,
     pct = prog / threshold,
     trackColor = r and {r * 0.3, g * 0.3, b * 0.3, 0.85} or nil,
   }
@@ -54,14 +99,16 @@ end
 
 -- Resolve a faction's bar fields into a row fragment. When maxed, prefer paragon
 -- progress (shown as "paragon" text on a darker faction-colored track, with the
--- raw numbers revealed on hover); otherwise show base-rep progress, or "complete"
--- when maxed with no paragon.
+-- raw numbers revealed on hover; a claimable paragon chest instead shows a gold
+-- bag + "claim"); otherwise show base-rep progress, or "complete" when maxed with
+-- no paragon.
 local function resolveProgress(factionID, atMax, valueText, pct, r, g, b)
   if atMax then
     local par = paragonInfo(factionID, r, g, b)
     if par then
-      return { value = "paragon", hoverValue = par.numbers, pct = par.pct,
-               done = false, paragon = true, trackColor = par.trackColor }
+      return { value = par.hasReward and "claim" or "paragon",
+               hoverValue = par.numbers, pct = par.pct, done = false,
+               paragon = true, reward = par.hasReward, trackColor = par.trackColor }
     end
     return { value = "complete", pct = 1, done = true }
   end
@@ -88,7 +135,7 @@ local function gatherFactions(expansionLevel, extraFactionIDs)
     local prog = resolveProgress(factionID, atMax, valueText, pct, r, g, b)
     insert(rows, {
       name = info.name, value = prog.value, hoverValue = prog.hoverValue,
-      pct = prog.pct, done = prog.done, paragon = prog.paragon,
+      pct = prog.pct, done = prog.done, paragon = prog.paragon, reward = prog.reward,
       nameColor = nameColor, fillColor = fillColor, trackColor = prog.trackColor,
     })
 
@@ -130,7 +177,7 @@ local function gatherFactions(expansionLevel, extraFactionIDs)
       local subProg = resolveProgress(subID, subAtMax, subValueText, subPct, sr, sg, sb)
       insert(rows, {
         name = subName, value = subProg.value, hoverValue = subProg.hoverValue,
-        pct = subProg.pct, done = subProg.done, paragon = subProg.paragon,
+        pct = subProg.pct, done = subProg.done, paragon = subProg.paragon, reward = subProg.reward,
         nameColor = subNameColor, fillColor = subFillColor, trackColor = subProg.trackColor, indent = true,
       })
     end
@@ -151,10 +198,11 @@ end
 ---@field expansionLevel number    LE_EXPANSION_* level whose major factions are shown
 ---@field extraFactionIDs number[] factions to append beyond GetMajorFactionIDs
 ---@field width number             bar/row width
+---@field rewardCount number        factions with a claimable paragon reward (for the picker badge)
 local FactionBars = Class(Frame, function(self)
   local c = theme.colors
   local rows = gatherFactions(self.expansionLevel, self.extraFactionIDs)
-  local totalH, prev = 0, nil
+  local totalH, prev, rewardCount = 0, nil, 0
   for i, r in ipairs(rows) do
     local bar = LabeledBar:new{
       parent = self,
@@ -166,14 +214,20 @@ local FactionBars = Class(Frame, function(self)
       nameColor = r.nameColor,
       barColor = r.fillColor or c.gold,
       trackColor = r.trackColor,
-      valueColor = (r.done or r.paragon) and c.green or c.muted,
+      valueColor = r.reward and c.gold or (r.done or r.paragon) and c.green or c.muted,
       hoverColor = c.muted,
       position = prev and { TopLeft = {prev, BottomLeft, 0, -7} } or { TopLeft = {0, 0} },
     }
+    -- a claimable paragon chest gets the animated reward bag left of its "claim" value
+    if r.reward then
+      rewardCount = rewardCount + 1
+      ns.overview.ParagonBag(bar):Right(bar.valueLabel, ui.edge.Left, -3, 0)
+    end
     if i > 1 then totalH = totalH + 7 end
     totalH = totalH + bar:Height()
     prev = bar
   end
+  self.rewardCount = rewardCount
   self:Width(self.width)
   self:Height(totalH)
 end, {
