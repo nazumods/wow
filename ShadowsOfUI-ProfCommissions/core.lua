@@ -153,6 +153,10 @@ end
 
 local COLUMN_HEADER = "Info"
 
+-- Red ⊗ marker (copy of LibNUI's unresolved.tga; this addon is standalone, no LibNUI dep) shown
+-- in place of the first-craft book when the recipe is unlearned — a bonus you can't claim yet.
+local UNLEARNED_ICON = [[Interface\AddOns\ShadowsOfUI-ProfCommissions\media\unresolved.tga]]
+
 -- Reagent-provision icon + tooltip per reagentState. All = customer covers everything (good);
 -- Some/None = you supply reagents (warning, escalating).
 local REAGENT_ICON = {
@@ -174,7 +178,26 @@ ShadowsOfUI_ProfCommissions_InfoCellMixin = CreateFromMixins(TableBuilderCellMix
 
 function ShadowsOfUI_ProfCommissions_InfoCellMixin:Populate(rowData)
   local order = rowData and rowData.option
-  self.FirstCraft:SetShown((order and order.spellID and C_TradeSkillUI.IsRecipeFirstCraft(order.spellID)) or false)
+  local spellID = order and order.spellID
+
+  -- First-craft bonus only matters if you can actually make the recipe. IsRecipeFirstCraft is
+  -- true for anything you've never crafted — including recipes you haven't *learned* — so gate on
+  -- GetRecipeInfo().learned (Blizzard's own claim check reads the same field) and swap in the red ⊗
+  -- unlearned marker rather than dangling a first-craft bonus that isn't claimable yet.
+  local info = spellID and C_TradeSkillUI.GetRecipeInfo(spellID)
+  if spellID and (not info or not info.learned) then
+    self.FirstCraft:SetTexture(UNLEARNED_ICON)
+    self.FirstCraft:SetTexCoord(0, 1, 0, 1) -- clear any atlas crop a prior first-craft state left on this recycled cell
+    self.FirstCraft:Show()
+    self._firstCraftState = "unlearned"
+  elseif spellID and C_TradeSkillUI.IsRecipeFirstCraft(spellID) then
+    self.FirstCraft:SetAtlas("Professions_Icon_FirstTimeCraft")
+    self.FirstCraft:Show()
+    self._firstCraftState = "first"
+  else
+    self.FirstCraft:Hide()
+    self._firstCraftState = nil
+  end
 
   local cfg = order and order.reagentState and REAGENT_ICON[order.reagentState]
   if cfg then
@@ -194,7 +217,11 @@ function ShadowsOfUI_ProfCommissions_InfoCellMixin:OnEnter()
   if not order then return end
   GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
   local shown = false
-  if self.FirstCraft:IsShown() then
+  if self._firstCraftState == "unlearned" then
+    tipLine("Recipe Unlearned", NORMAL_FONT_COLOR)
+    tipLine("You haven't learned this recipe yet.", RED_FONT_COLOR, true)
+    shown = true
+  elseif self._firstCraftState == "first" then
     tipLine("First Craft", NORMAL_FONT_COLOR)
     tipLine("Bonus reward the first time you craft this recipe.", GREEN_FONT_COLOR, true)
     shown = true

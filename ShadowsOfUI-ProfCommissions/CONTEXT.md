@@ -16,6 +16,7 @@ column** of two status icons — first-craft bonus + reagent provision. Patron (
 | `core.lua` | Both features: the `hooksecurefunc` on the commission cell mixin (reward-icon pool + rendering); the `ShadowsOfUI_ProfCommissions_InfoCellMixin` + `SetupTable` hook that repurposes the Reagents column; and the `/sprofcomm` command. |
 | `changelog.lua` | `ns.changelog` — newest-first `{version, notes}` release history for the in-game **Changelog** viewer (LibNAddOn). **Generated** — `release.sh` prepends each release; not hand-edited |
 | `column.xml` | The Info column's cell template (`ShadowsOfUI_ProfCommissions_InfoCellTemplate`) — a `passThroughButtons` Frame with two textures (`FirstCraft`, `Reagents`) and OnEnter/OnLeave wired to the mixin. |
+| `media/unresolved.tga` | Red ⊗ marker (a copy of LibNUI's `unresolved.tga`; this addon has no LibNUI dep) drawn on `FirstCraft` when the recipe is unlearned. |
 
 ## How it hooks
 
@@ -79,9 +80,13 @@ Reusing the Reagents column keeps its slot, 90px width, position, and sort. `Set
 every time (a momentary "Reagents"/text state is overwritten before paint).
 
 `ShadowsOfUI_ProfCommissions_InfoCellMixin` (`CreateFromMixins(TableBuilderCellMixin)`):
-- `Populate(rowData)` — `FirstCraft:SetShown(C_TradeSkillUI.IsRecipeFirstCraft(order.spellID))`;
-  `Reagents` atlas by `order.reagentState` — `Capacitance-General-WorkOrderCheckmark` (All, green),
-  `NPE_ExclamationPoint` (Some, yellow / None, red-tinted). Both fail safe to hidden on missing data.
+- `Populate(rowData)` — the `FirstCraft` texture is tri-state (tracked on `self._firstCraftState`):
+  **unlearned** recipe (`not GetRecipeInfo(spellID)` or `not .learned`, mirroring Blizzard's own
+  claim gate) → the red ⊗ `media/unresolved.tga` marker (`SetTexture`); else **first craft**
+  (`IsRecipeFirstCraft`) → the `Professions_Icon_FirstTimeCraft` book (`SetAtlas`); else hidden. The
+  unlearned check wins so a first-craft bonus you can't claim yet isn't dangled. `Reagents` atlas by
+  `order.reagentState` — `Capacitance-General-WorkOrderCheckmark` (All, green), `NPE_ExclamationPoint`
+  (Some, yellow / None, red-tinted). All fail safe to hidden on missing data.
 - `OnEnter`/`OnLeave` — row `HighlightTexture` + a `GameTooltip` summarising the shown icons
   (first-craft line + the reagent-provision line). `passThroughButtons` keeps the row click alive.
 

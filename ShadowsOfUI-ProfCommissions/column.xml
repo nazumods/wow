@@ -1,8 +1,9 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/">
 	<!-- Cell for the extra "Info" column on the crafter Crafting Orders list: two status icons —
-	     a first-craft-bonus book and a reagent-provision indicator. passThroughButtons lets the
-	     row keep its click while the cell still gets OnEnter/OnLeave for its tooltip (mirrors
-	     Blizzard's ProfessionsCrafterTableCellReagentsTemplate). -->
+	     a first-craft-bonus book (swapped in Populate to a red ⊗ unlearned marker when the recipe
+	     isn't learned) and a reagent-provision indicator. passThroughButtons lets the row keep its
+	     click while the cell still gets OnEnter/OnLeave for its tooltip (mirrors Blizzard's
+	     ProfessionsCrafterTableCellReagentsTemplate). -->
 	<Frame name="ShadowsOfUI_ProfCommissions_InfoCellTemplate" mixin="ShadowsOfUI_ProfCommissions_InfoCellMixin" enableMouse="true" passThroughButtons="LeftButton, RightButton" virtual="true">
 		<Size x="0" y="18"/>
 		<Scripts>
