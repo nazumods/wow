@@ -52,17 +52,21 @@ local function SetTemporaryCVar(self, cvar, value, enforce)
       self:registerEvent("PLAYER_LOGOUT", function(s) s:RestoreCVars() end)
     end
   end
+  self._cvarEnforceSuppress = true   -- our own write shouldn't count as drift
+  SetCVar(cvar, value)
+  self._cvarEnforceSuppress = false
   if enforce then
-    -- Store the forced value as a string so it compares equal to GetCVar's return.
-    self._cvarEnforce[cvar] = tostring(value)
+    -- Compare against the client's canonical echo (GetCVar *after* the write), not
+    -- tostring(value): the two only match for already-canonical forms (1 -> "1"). A
+    -- fractional (0.5 -> "0.500000") or boolean (true -> "1") value would never compare
+    -- equal, so EnforceCVars would re-write on every CVAR_UPDATE. Storing the readback
+    -- makes `forced` equal to whatever GetCVar returns by construction.
+    self._cvarEnforce[cvar] = GetCVar(cvar)
     if not self._cvarEnforceArmed then
       self._cvarEnforceArmed = true
       self:registerEvent("CVAR_UPDATE", EnforceCVars)
     end
   end
-  self._cvarEnforceSuppress = true   -- our own write shouldn't count as drift
-  SetCVar(cvar, value)
-  self._cvarEnforceSuppress = false
   return self
 end
 
