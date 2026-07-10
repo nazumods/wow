@@ -113,11 +113,24 @@ function ProfsView:RestoreGridRow(rowIdx)
   end
 end
 
+-- Resting backdrop for char row i: muted-gold wash for the logged-in character
+-- (the suite-wide "this is you" marker, see SummaryView/GearView), transparent
+-- otherwise. Padding rows have no toon, so they stay transparent.
+---@param i integer  index into self.charTable.rows
+function ProfsView:restCharRow(i)
+  local row, toon = self.charTable.rows[i], self._charToons[i]
+  if not row then return end
+  if toon and toon.name == ns.api.GetCurrentCharacter() then
+    row:backdropColor(theme.colors.selected)
+  else
+    row:backdropColor(0, 0, 0, 0)
+  end
+end
+
 -- Rebuild the character list for profName; pass nil to clear the list.
 ---@param profName string|nil
 function ProfsView:RebuildCharList(profName)
   local entries = profName and buildCharList(self._toons, profName) or {}
-  local current = ns.api.GetCurrentCharacter()
   self._charToons = {}
 
   -- Build data rows for real characters.
@@ -136,17 +149,13 @@ function ProfsView:RebuildCharList(profName)
       end
     end
 
-    local nameText = toon.name
-    if toon.name == current then
-      nameText = "|TInterface\\TargetingFrame\\UI-RaidTargetingIcon_1:14:14:14:14|t " .. nameText
-    end
-
     local row = {
       -- Faction icon.
       ns.factionIcon[toon.isAlliance],
-      -- Character name (class coloured; realm on hover).
+      -- Character name (class coloured; realm on hover). The logged-in character
+      -- is marked by a muted-gold row wash (see restCharRow), not inline.
       {
-        text    = nameText,
+        text    = toon.name,
         color   = Colors[toon.classKey],
         onEnter = function(s)
           ui.tip:AnchorTo(s, "ANCHOR_BOTTOMRIGHT", -10, 10)
@@ -187,10 +196,11 @@ function ProfsView:RebuildCharList(profName)
     insert(rowData, emptyRow)
   end
 
-  -- Rows stay transparent (the void surface shows through); a thin divider sits
-  -- above each real row, hidden on the empty padding rows.
+  -- Rows rest transparent (the void surface shows through) except the logged-in
+  -- character's gold wash; a thin divider sits above each real row, hidden on the
+  -- empty padding rows.
   for i, tblRow in ipairs(self.charTable.rows) do
-    tblRow:backdropColor(0, 0, 0, 0)
+    self:restCharRow(i)
     rowDivider(tblRow):SetShown(i <= #entries)
   end
 
@@ -220,8 +230,7 @@ function ProfsView:decorateCharRow(cells, i, toon)
       if onEnter then onEnter(s) end
     end
     copy.onLeave = function(s)
-      local row = self.charTable.rows[i]
-      if row then row:backdropColor(0, 0, 0, 0) end
+      self:restCharRow(i)
       if onLeave then onLeave(s) end
     end
     copy.onClick = function(s)
