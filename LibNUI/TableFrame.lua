@@ -36,6 +36,10 @@ local Top, Bottom = ui.edge.Top, ui.edge.Bottom
 ---@field footerBackdrop? table  backdrop for the footer row
 ---@field footerRow? table  the footer TableRow, created lazily by setFooter
 ---@field footerCells? table  footer Cell[] keyed by column index
+---@field onSort? fun(self: TableFrame, key: any, descending: boolean)  fired when a sortable header is clicked; the consumer sorts its own data and repaints (see `_clickSort`)
+---@field _sortKey? any  key of the active sort column (nil = unsorted)
+---@field _sortDesc? boolean  active sort direction
+---@field _sortCols? table[]  {col, key} for every sortable column, driven by `_refreshSortHeaders`
 local TableFrame = Class(Frame, function(self)
   if not self.colNames and self.colInfo then
     self.colNames = {}
@@ -58,6 +62,7 @@ local TableFrame = Class(Frame, function(self)
 
   self.cols = {}
   self.rows = {}
+  self._sortCols = {}
 
   if self.colNames then
     for i=1,#self.colNames do
@@ -85,9 +90,11 @@ local TableFrame = Class(Frame, function(self)
         font = self.colHeaderFont or self.headerFont,
         color = self.colInfo and self.colInfo[i].color,
         tooltip = self.colInfo and self.colInfo[i].tooltip,
+        sortable = self.colInfo and self.colInfo[i].sortable,
         backdrop = self.colInfo and self.colInfo[i].backdrop or self.backdrop or self.colBackdrop or
           {color = math.fmod(i, 2) == 0 and "colEven" or "colOdd"},
       })
+      self:_wireSortCol(self.cols[i], self.colInfo and self.colInfo[i], i)
     end
   end
 
@@ -209,6 +216,58 @@ function TableFrame:row(n) return self.rows[n] end
 ---@return TableCol
 function TableFrame:col(n) return self.cols[n] end
 
+-- ─── Sorting ────────────────────────────────────────────────────────────────
+-- Opt-in per column via colInfo (`sortable`, optional `sortKey`, `descFirst`). The
+-- frame owns the header UI + active-sort state; the consumer owns the comparator and
+-- repaint via `onSort` (TableFrame never permutes `self.data` itself, so a consumer's
+-- index-parallel state stays aligned). Mirrors SortableHeaderRow's contract.
+
+-- Point a freshly-built sortable column's header at `_clickSort` and record it so
+-- `_refreshSortHeaders` can restyle it. No-op for a column that didn't opt in.
+---@param col TableCol
+---@param info table?  the column's colInfo entry
+---@param i integer    column index (fallback sort key)
+function TableFrame:_wireSortCol(col, info, i)
+  if not (info and info.sortable) then return end
+  local key, descFirst = info.sortKey or i, info.descFirst
+  col.onHeaderClick = function() self:_clickSort(key, descFirst) end
+  self._sortCols[#self._sortCols + 1] = { col = col, key = key }
+end
+
+-- Restyle every sortable header for the current sort state (active = accent + arrow).
+function TableFrame:_refreshSortHeaders()
+  for _, c in ipairs(self._sortCols) do
+    c.col:SetSortState(c.key == self._sortKey, self._sortDesc or false)
+  end
+end
+
+-- A user clicked a sortable header: the active column flips direction, a new column
+-- starts at its natural direction (`descFirst` or ascending). Fires `onSort` so the
+-- consumer re-sorts its data and repaints.
+---@param key any
+---@param descFirst boolean?
+function TableFrame:_clickSort(key, descFirst)
+  if self._sortKey == key then
+    self._sortDesc = not self._sortDesc
+  else
+    self._sortKey, self._sortDesc = key, descFirst or false
+  end
+  self:_refreshSortHeaders()
+  if self.onSort then self:onSort(self._sortKey, self._sortDesc) end
+end
+
+-- Get the active sort as (key, descending), or set it programmatically (no `onSort`).
+-- Pass `key = nil` to read; set a key to make it the active sort and restyle headers.
+---@param key any?
+---@param descending boolean?
+---@return any, boolean|TableFrame
+function TableFrame:Sort(key, descending)
+  if key == nil then return self._sortKey, self._sortDesc or false end
+  self._sortKey, self._sortDesc = key, descending or false
+  self:_refreshSortHeaders()
+  return self
+end
+
 -- Position table for a cell in column `colN` spanning `rowFrame` vertically.
 -- Left/right anchors are inset by the column's horizontal pad so a column can
 -- breathe without padding the rows top/bottom. Padding is read per-column from
@@ -275,9 +334,11 @@ function TableFrame:addCol(info)
     justifyH = self.colInfo and self.colInfo[n].justifyH,
     font = self.colHeaderFont or self.headerFont,
     tooltip = self.colInfo and self.colInfo[n].tooltip,
+    sortable = self.colInfo[n].sortable,
     backdrop = self.colInfo and self.colInfo[n].backdrop or self.backdrop or self.colBackdrop or
       {color = math.fmod(n, 2) == 0 and "colEven" or "colOdd"},
   })
+  self:_wireSortCol(self.cols[n], self.colInfo[n], n)
   self:Width(self:Width()+w+padLeft)
   self.rowArea:Width(self.rowArea:Width()+w+padLeft)
   return self

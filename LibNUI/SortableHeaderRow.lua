@@ -7,8 +7,9 @@ local Frame, Label, Texture = ui.Frame, ui.Label, ui.Texture
 
 local ARROW_UP, ARROW_DOWN = "Interface/Buttons/Arrow-Up-Up", "Interface/Buttons/Arrow-Down-Up"
 
--- A standalone clickable column-header strip for custom lists (e.g. above a
--- VirtualList) — TableFrame's sorting is baked into its grid; this decouples it.
+-- A standalone clickable column-header strip for custom lists that aren't built on
+-- TableFrame — e.g. a header row above a VirtualList. (TableFrame has its own opt-in
+-- sortable columns via colInfo `sortable`; this is its counterpart for grid-less lists.)
 -- Clicking a column selects it ascending (or `descFirst`), clicking again flips the
 -- direction; the active column shows an arrow and renders in the accent colour.
 -- Consumers sort their own data in onSort and re-render.

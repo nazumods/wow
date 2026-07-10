@@ -9,12 +9,13 @@ local insert, sort = table.insert, table.sort
 -- (loaded before ProfsView.lua) so the view shell and its char-list methods read the
 -- same column factories, gradient cells, and per-expansion skill aggregation.
 
--- Ordered expansion columns (chronological).
-local EXP_ORDER = { "Clsc", "TBC", "WotLK", "Cata", "MoP", "WoD", "Leg", "BfA", "SL", "DF", "TWW", "Mid" }
+-- Ordered expansion columns (chronological). Abbreviations are kept short so the
+-- column headers stay compact (WotLK -> WLK avoids one outlier-wide header).
+local EXP_ORDER = { "Clsc", "TBC", "WLK", "Cata", "MoP", "WoD", "Leg", "BfA", "SL", "DF", "TWW", "Mid" }
 local EXP_ABBR = {
   ["Classic"]      = "Clsc",
   ["Outland"]      = "TBC",
-  ["Northrend"]    = "WotLK",
+  ["Northrend"]    = "WLK",
   ["Cataclysm"]    = "Cata",
   ["Pandaria"]     = "MoP",
   ["Draenor"]      = "WoD",
@@ -34,10 +35,11 @@ local PROF_ORDER = {
 }
 
 -- Column widths.  ICON + CHAR == PROF so expansion columns align between the two tables.
-local PROF_COL_W    = 110   -- profession-name column in the summary grid
+-- CHAR/EXP are sized to fit their header label plus the sortable-column sort arrow.
+local PROF_COL_W    = 114   -- profession-name column in the summary grid (= ICON + CHAR)
 local ICON_COL_W    = 20    -- faction icon in the character list
-local CHAR_COL_W    = 90    -- character name in the character list
-local EXP_COL_W     = 44    -- shared width for every expansion column
+local CHAR_COL_W    = 94    -- character name; fits "CHARACTER" + sort arrow
+local EXP_COL_W     = 48    -- expansion column; fits the widest label ("CATA") + sort arrow
 local CHAR_LIST_H   = 180   -- height of the scrollable character-list area
 
 local VIEW_WIDTH    = PROF_COL_W + #EXP_ORDER * EXP_COL_W  -- 638
@@ -68,13 +70,14 @@ end
 
 local function makeCharColInfo()
   local cols = {
-    { width = ICON_COL_W, backdrop = TRANSPARENT },
+    { width = ICON_COL_W, backdrop = TRANSPARENT },   -- faction icon: not sortable
+    -- Name sorts A→Z (ascending first); expansion columns sort by skill, biggest first.
     { name = "CHARACTER", width = CHAR_COL_W, backdrop = TRANSPARENT,
-      justifyH = ui.justify.Left },
+      justifyH = ui.justify.Left, sortable = true, sortKey = "name" },
   }
   for _, abbr in ipairs(EXP_ORDER) do
     insert(cols, { name = abbr:upper(), width = EXP_COL_W, backdrop = TRANSPARENT,
-      justifyH = ui.justify.Left })
+      justifyH = ui.justify.Left, sortable = true, sortKey = abbr, descFirst = true })
   end
   return cols
 end
@@ -177,6 +180,44 @@ local function buildCharList(toons, profName)
   return list
 end
 
+-- A character entry's skill level for one expansion column (abbr), or -inf when the
+-- character never learned that tier — so "—" rows park at the worst end and flip
+-- cleanly with the sort direction.
+local function entrySkill(entry, abbr)
+  local detail = entry.detail
+  if detail and detail.expansions then
+    for _, exp in ipairs(detail.expansions) do
+      if EXP_ABBR[exp.name] == abbr then return exp.skillLevel end
+    end
+  end
+  return -math.huge
+end
+
+-- Sort a char-list `entries` array in place for a TableFrame column sort. `key` is
+-- "name" (by character name) or an expansion abbr (by that tier's skill level, missing
+-- last). Character name is always the ascending tiebreak, so equal values keep a stable
+-- order (table.sort is unstable). Returns `entries` for chaining.
+---@param entries table[]  { toon, prof, detail } entries from buildCharList
+---@param key any          "name" or an expansion abbr
+---@param desc boolean     descending when true
+---@return table[]
+local function sortCharEntries(entries, key, desc)
+  sort(entries, function(a, b)
+    if key == "name" then
+      if a.toon.name ~= b.toon.name then
+        if desc then return a.toon.name > b.toon.name else return a.toon.name < b.toon.name end
+      end
+      return false
+    end
+    local sa, sb = entrySkill(a, key), entrySkill(b, key)
+    if sa ~= sb then
+      if desc then return sa > sb else return sa < sb end
+    end
+    return a.toon.name < b.toon.name
+  end)
+  return entries
+end
+
 ---@class Warbandeer
 ---@field profs table  shared data + helpers for the Professions view (see views/profs/ProfsData.lua)
 ns.profs = {
@@ -186,4 +227,5 @@ ns.profs = {
   makeGridColInfo = makeGridColInfo, makeCharColInfo = makeCharColInfo,
   makeEmptyRow = makeEmptyRow, rowDivider = rowDivider, skillCell = skillCell,
   buildBestSkills = buildBestSkills, buildCharList = buildCharList,
+  sortCharEntries = sortCharEntries,
 }
