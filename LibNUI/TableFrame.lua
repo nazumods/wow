@@ -184,14 +184,19 @@ function TableFrame:Autosize()
   local offset = s
   for i,c in ipairs(self.cols) do
     if self.autosize or (self.colInfo and self.colInfo[i].autosize) then
-      s = c.header.label._widget:GetUnboundedStringWidth()
+      -- Widest string in the column: the header, then every cell. An icon-only header or
+      -- cell has no .label (AutoWidget built a Texture instead), so skip it — a column with
+      -- no text anywhere keeps its configured width rather than nil-indexing the header or
+      -- collapsing to padding. Mirrors the row-header/cell guards above and below.
+      local widest
+      if c.header.label then widest = c.header.label._widget:GetUnboundedStringWidth() end
       for n = 1, #self.rows do
         if self.cells[n][i] and self.cells[n][i].label then
-          s = max(s, self.cells[n][i].label._widget:GetUnboundedStringWidth())
+          local cw = self.cells[n][i].label._widget:GetUnboundedStringWidth()
+          widest = widest and max(widest, cw) or cw
         end
       end
-      s = s + (self.padding or 2)
-      c:Width(s)
+      if widest then c:Width(widest + (self.padding or 2)) end
       if i == 1 then c:TopLeft(offset, 0) end
     end
     w = w + c:Width()
