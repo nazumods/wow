@@ -14,7 +14,7 @@ local theme = ns.theme
 -- broker via WarbandeerApi (per-faction `categoryId` is the locale-proof expansion key).
 --
 -- Layout constants + cell helpers live in views/reps/ReputationsData.lua (on ns.reps,
--- loaded first); the row pool + page rendering in views/reps/ReputationsRender.lua.
+-- loaded first); the VirtualList row builders + page rendering in views/reps/ReputationsRender.lua.
 local R = ns.reps
 local CONTENT_W, SCROLLBAR_W, MAX_H = R.CONTENT_W, R.SCROLLBAR_W, R.MAX_H
 local REL, EXP_NAMES, END, MUTED = R.REL, R.EXP_NAMES, R.END, R.MUTED
@@ -23,28 +23,27 @@ local standingText, classCode = R.standingText, R.classCode
 -- ─── View ─────────────────────────────────────────────────────────────────────
 
 ---@class ReputationsView: Frame
----@field scroll ScrollFrame
----@field list Frame                 scroll child holding the faction rows
+---@field list VirtualList           pooled faction-row list (owns its own scrolling viewport)
 ---@field emptyMsg Label
----@field _rows table[]              pooled faction rows
 ---@field _pages table[]             ordered pages { key, rel?, label, icon?, factions[] }
 ---@field _pageIdx integer           current page index
 ---@field _sel integer?              selected row index on the current page
----@field _viewH number              current viewport height (for scroll-into-view)
 ---@field _filter FilterDropdown?    titlebar expansion picker
 local ReputationsView = Class(Frame, function(self)
-  self.scroll = ui.ScrollFrame:new{
+  -- Faction rows live in a VirtualList (spacing/padding 0 keeps them pixel-flush like the
+  -- old hand-rolled pool). createRow/updateRow + the row-access selection UX live in
+  -- views/reps/ReputationsRender.lua.
+  self.list = ui.VirtualList:new{
     parent = self,
-    position = { TopLeft = {0, 0}, Width = CONTENT_W, Height = MAX_H },
+    position = { TopLeft = {0, 0}, Width = CONTENT_W + SCROLLBAR_W, Height = MAX_H },
+    scrollbar = true,
+    spacing = 0,
+    padding = 0,
+    rowHeight = R.ROW_H,
+    createRow = function(l) return self:_createRow(l) end,
+    updateRow = function(_, row, e, i) return self:_updateRow(row, e, i) end,
   }
-  self.list = Frame:new{
-    parent = self.scroll,
-    position = { TopLeft = {0, 0}, Width = CONTENT_W, Height = MAX_H },
-  }
-  self.scroll:Child(self.list)
-  self._rows = {}
   self._pageIdx = 1
-  self._viewH = MAX_H
 
   self.emptyMsg = Label:new{
     parent = self, fontInfo = theme.fonts.body, color = theme.colors.muted,
@@ -154,15 +153,15 @@ function ReputationsView:_pageOptions()
 end
 
 -- ─── Selection + navigation ───────────────────────────────────────────────────
--- Row pool + page rendering (_acquireRow / _renderPage / _highlight) live in
--- views/reps/ReputationsRender.lua.
+-- Row builders + page rendering (_createRow / _updateRow / _renderPage / _highlight) live
+-- in views/reps/ReputationsRender.lua.
 
 -- Highlight a row and show its warband-wide standing breakdown.
 function ReputationsView:_select(idx)
   self:_highlight(idx)
   if not self._sel then return end
   local e = self._pages[self._pageIdx].factions[self._sel]
-  local row = self._rows[self._sel]
+  local row = self.list:Row(self._sel)
   ns.AnchorTip(row)
   ui.tip:ClearLines()
   ui.tip:AddLine(e.name)
