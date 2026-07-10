@@ -179,11 +179,15 @@ function ProfsView:_renderCharRows()
       end
     end
 
-    -- A slot with no captured detail (window never opened for this character)
-    -- would render an all-"—" row indistinguishable from genuinely-zero skill.
-    -- Flag it with a caution glyph + tooltip so the gap is visible and actionable
-    -- (mirrors missing.lua's "professions (X)" report condition: detail == nil).
-    local noDetail = not detail
+    -- No per-expansion skill captured — either the detail entry is absent (window
+    -- never opened) OR it exists but its expansions list is empty (a scan fired
+    -- before the child skill-lines loaded, writing recipes/specPoints but no
+    -- expansions, which then sticks). Both render an all-"—" row indistinguishable
+    -- from genuinely-zero skill; flag with a caution glyph + tooltip so the gap is
+    -- visible and actionable. Every profession here carries expansion data (incl.
+    -- Cooking/Fishing), so an empty list is always a capture gap, never a tier-less
+    -- profession. Mirrors missing.lua's "professions (X)" report condition.
+    local noDetail = not (detail and detail.expansions and #detail.expansions > 0)
     local nameText = noDetail and (WARN .. " " .. toon.name) or toon.name
 
     local row = {

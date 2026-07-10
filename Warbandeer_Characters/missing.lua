@@ -155,7 +155,11 @@ function ns.getMissingFields(toon)
                               toon.basic.professions.fishing, toon.basic.professions.cooking }) do
       if prof and prof.name and prof.skillID then
         local detail = details and details[prof.skillID]
-        if not detail then
+        if not detail or not (detail.expansions and #detail.expansions > 0) then
+          -- No per-expansion skill captured: the detail entry is absent, or present
+          -- but its expansions list never populated (a TRADE_SKILL_SHOW scan that
+          -- fired before the child skill-lines loaded writes recipes/specPoints but
+          -- no expansions, and that sticks). Both leave the Professions view all-"—".
           table.insert(missingProfs, prof.name)
         elseif not detail.recipes and hasCurrentExpSkill(detail) then
           -- Trained the current expansion but recipes weren't captured: detail
