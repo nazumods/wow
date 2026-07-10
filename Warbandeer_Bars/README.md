@@ -40,7 +40,7 @@ WarbandeerBarsDB = {
   profiles = {
     ["Nazuraki"] = {
       [62] = {            -- specID (e.g. 62 = Arcane Mage)
-        version  = 1,
+        version  = 2,
         captured = 1717000000,        -- server time
         char     = "Nazuraki",
         realm    = "Area 52",
@@ -52,9 +52,12 @@ WarbandeerBarsDB = {
         level    = 80,
         slots    = { { id = 1, type = "spell", index = 30451 }, ... },
         binds    = { { command = "ACTIONBUTTON1", key1 = "1" }, ... },
+        bindingSet = 2,               -- GetCurrentBindingSet() at capture (1 = account, 2 = per-character)
         macros   = { { id = 1, name = "Burst", icon = "...", body = "#showtooltip\n..." }, ... },
         petslots = { { id = 1, type = "spell", index = 2649 }, ... },
         outfits  = { "Raid", "Mythic+" },
+        layoutName = "My Layout",     -- active Edit Mode layout name at capture (nil if none)
+        barLayout  = { [1] = { orientation = 0, numIcons = 12, numRows = 1, enabled = true }, ... }, -- v2: real on-screen bar geometry
       },
     },
   },

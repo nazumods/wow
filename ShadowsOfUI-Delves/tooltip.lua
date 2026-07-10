@@ -51,7 +51,8 @@ local function appendDelveTime(tooltip, poiName)
   return true
 end
 
--- Delve entrance pins build their tooltip in AreaPOIPinMixin:OnMouseEnter; hook it, gate to delve
+-- Delve entrance pins build their tooltip in DelveEntrancePinMixin:OnMouseEnter (hooked below,
+-- deferred — NOT the AreaPOIPinMixin base; see the block comment on the hook); gate to delve
 -- pins via C_AreaPoiInfo.GetDelvesForMap, append our line, and re-Show so the tooltip resizes
 -- around it (mirrors ShadowsOfUI-Quests).  Shift hides the block (suite convention).
 local function onPinEnter(pin)
