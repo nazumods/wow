@@ -73,6 +73,7 @@ end
 local mode ---@type "open"|"return"|nil
 local queue ---@type number[]?  selected indices, descending
 local qi ---@type number?
+local startCount ---@type number?  inbox letter count when the current letter began draining
 
 local function freeBagSlots()
   local n = 0
@@ -84,7 +85,7 @@ local function freeBagSlots()
 end
 
 local function finish()
-  mode, queue, qi = nil, nil, nil
+  mode, queue, qi, startCount = nil, nil, nil, nil
   if open then open:SetText("Open"); open:Enable(); open:Show() end
   if returnBtn then returnBtn:SetText("Return"); returnBtn:Enable(); returnBtn:Show() end
   ns.RefreshInbox()
@@ -103,9 +104,16 @@ function ns._selectStep()
   end
 
   -- open mode: take one attachment (highest slot first) or the coin, then re-tick on
-  -- the SAME letter; move on only once it holds nothing more.
+  -- the SAME letter; move on only once it holds nothing more. Mail indices are volatile:
+  -- when a letter empties it auto-deletes and the inbox re-indexes, sliding the next
+  -- letter into this index. Baseline the letter count when a letter begins draining; a
+  -- DROP means our letter auto-deleted, so a *different* (unselected) letter now sits at
+  -- this index — advance instead of draining it. (New mail only increases the count; that
+  -- rare front-insert re-index stays deferred, per CONTEXT's Select notes.)
+  if startCount == nil then startCount = GetInboxNumItems() end
+  if GetInboxNumItems() < startCount then checked[index] = nil; qi = qi + 1; startCount = nil; tick(); return end
   local money, cod = select(5, GetInboxHeaderInfo(index))
-  if cod and cod > 0 then checked[index] = nil; qi = qi + 1; tick(); return end -- never pay CoD
+  if cod and cod > 0 then checked[index] = nil; qi = qi + 1; startCount = nil; tick(); return end -- never pay CoD
   local slot
   for a = ATTACHMENTS_MAX_RECEIVE, 1, -1 do
     if GetInboxItem(index, a) then slot = a; break end
@@ -119,6 +127,7 @@ function ns._selectStep()
   else
     checked[index] = nil
     qi = qi + 1
+    startCount = nil
     tick()
   end
 end
@@ -128,7 +137,7 @@ local function startBatch(m)
   for index in pairs(checked) do q[#q + 1] = index end
   if #q == 0 then return end
   table.sort(q, function(a, b) return a > b end) -- highest first
-  mode, queue, qi = m, q, 1
+  mode, queue, qi, startCount = m, q, 1, nil
   local busy = m == "return" and returnBtn or open
   local hide = m == "return" and open or returnBtn
   busy:SetText("Working…"); busy:Disable()
@@ -193,7 +202,7 @@ ns.OnMailShow(function()
 end)
 ns.OnMailHide(function()
   ticker:Hide() -- abort any in-flight batch; the inbox is gone
-  mode, queue, qi = nil, nil, nil
+  mode, queue, qi, startCount = nil, nil, nil, nil
   wipe(checked)
   lastCheck = nil
 end)
