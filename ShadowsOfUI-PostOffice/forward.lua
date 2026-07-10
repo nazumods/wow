@@ -16,6 +16,7 @@ local LAST_BAG = (NUM_BAG_SLOTS or 4) + 1 -- backpack(0), four bags(1-4), reagen
 
 local button ---@type Button?
 local pending ---@type { id: number, count: number }?  the attachment currently in flight
+local active = false -- a shuttle is mid-flight (guards re-entry; cleared on completion/abort)
 
 -- First bag slot holding at least `count` of `itemID`; returns bag, slot, stackCount.
 local function locate(itemID, count)
@@ -110,6 +111,16 @@ local function onBagUpdate()
   end
 end
 
+-- Abort any in-flight shuttle: drop every handler and clear state. Called when the mailbox
+-- closes mid-shuttle (mirrors select.lua) so a later bag/cursor change can't fire a deposit
+-- into a closed mail frame. Unregistering a handler that isn't active is a safe no-op.
+local function reset()
+  ns:unregisterEvent("BAG_UPDATE_DELAYED", onBagUpdate)
+  ns:unregisterEvent("BAG_UPDATE_DELAYED", onIsolated)
+  ns:unregisterEvent("CURSOR_CHANGED", onCursorChanged)
+  pending, parking, isolated, active = nil, nil, nil, false
+end
+
 -- Take the next remaining attachment; onBagUpdate splits + attaches it, then recurses.
 function takeNext()
   local mailID = InboxFrame.openMailID
@@ -122,12 +133,15 @@ function takeNext()
       return
     end
   end
+  active = false -- no attachments left: shuttle complete, state is clean
 end
 
 local function doForward()
   if not ns.db.forward then return end
+  if active then return end -- a shuttle is already running; ignore the re-click (no double-register)
   local mailID = InboxFrame.openMailID
   if not mailID then return end
+  active = true
   MailFrameTab_OnClick(nil, 2) -- switch to the Send Mail tab
   SendMailNameEditBox:SetText("")
   local subject = OpenMailSubject:GetText() or ""
@@ -169,3 +183,4 @@ ns.OnMailShow(function()
   if OpenMailFrame then ensureButton() end
 end)
 ns.OnOpenMailUpdate(refresh)
+ns.OnMailHide(reset) -- mailbox closed: abort any in-flight shuttle so stale handlers can't fire
