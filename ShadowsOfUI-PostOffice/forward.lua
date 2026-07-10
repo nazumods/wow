@@ -12,13 +12,14 @@ local ns = select(2, ...)
 -- existing one we simply split our amount back off. A mail attachment never exceeds
 -- the item's max stack, so after taking there is always a slot holding >= that count.
 local ATTACH_MAX = ATTACHMENTS_MAX_SEND
+local LAST_BAG = (NUM_BAG_SLOTS or 4) + 1 -- backpack(0), four bags(1-4), reagent bag(5)
 
 local button ---@type Button?
 local pending ---@type { id: number, count: number }?  the attachment currently in flight
 
 -- First bag slot holding at least `count` of `itemID`; returns bag, slot, stackCount.
 local function locate(itemID, count)
-  for b = 0, 4 do
+  for b = 0, LAST_BAG do
     for s = 1, C_Container.GetContainerNumSlots(b) do
       local info = C_Container.GetContainerItemInfo(b, s)
       if info and info.itemID == itemID and (info.stackCount or 1) >= count then
@@ -30,7 +31,7 @@ end
 
 local function freeBagSlots()
   local n = 0
-  for b = 0, 4 do n = n + C_Container.GetContainerNumFreeSlots(b) end
+  for b = 0, LAST_BAG do n = n + C_Container.GetContainerNumFreeSlots(b) end
   return n
 end
 
@@ -44,7 +45,7 @@ local function firstFreeSendSlot()
 end
 
 local function findEmptyBagSlot()
-  for b = 0, 4 do
+  for b = 0, LAST_BAG do
     for s = 1, C_Container.GetContainerNumSlots(b) do
       if not C_Container.GetContainerItemInfo(b, s) then return b, s end
     end
