@@ -32,6 +32,9 @@ local Frame, ScrollFrame, Label = ui.Frame, ui.ScrollFrame, ui.Label
 ---@field _typeOf fun(item: any, index: integer): string
 ---@field _pools table<string, Frame[]>
 ---@field _items any[]
+---@field _rowAt Frame[]      item index → the live pooled row showing it (for :Row)
+---@field _topAt number[]     item index → its row's top offset in the content child (for :ScrollToItem)
+---@field _hAt number[]       item index → its row's height (for :ScrollToItem)
 local VirtualList = Class(Frame, function(self)
   self.scroll = ScrollFrame:new{
     parent    = self,
@@ -52,6 +55,7 @@ local VirtualList = Class(Frame, function(self)
   self._pools = {}
   for name in pairs(self.rowTypes) do self._pools[name] = {} end
   self._items = {}
+  self._rowAt, self._topAt, self._hAt = {}, {}, {}
 
   -- Rows anchor left+right to the child, so a width change reflows them; only the child
   -- width needs updating on resize (the scroll range is driven by content height).
@@ -96,6 +100,35 @@ function VirtualList:Refresh()
   return self
 end
 
+-- The live pooled row frame currently displaying item `index` (nil when out of range).
+-- Lets a consumer decorate the on-screen row for a *selectable* list — e.g. toggle a
+-- selection overlay on it. Single-type pools map slot⇒item-index 1:1, so this is exact.
+---@param index integer
+---@return Frame?
+function VirtualList:Row(index)
+  if not index or index < 1 or index > #self._items then return nil end
+  return self._rowAt[index]
+end
+
+-- Scroll item `index` minimally into view: only when its row sits above or below the
+-- current viewport (mirrors a plain list's arrow-key scroll-into-view). No-op when the
+-- viewport height isn't resolved yet, so a pre-layout call can't mis-scroll.
+---@param index integer
+---@return VirtualList
+function VirtualList:ScrollToItem(index)
+  if not index or index < 1 or index > #self._items then return self end
+  local top, h = self._topAt[index], self._hAt[index]
+  local viewH = self.scroll._widget:GetHeight()
+  if viewH <= 0 then viewH = self._widget:GetHeight() end
+  local cur = self.scroll:VerticalScroll()
+  if top < cur then
+    self.scroll:VerticalScroll(top)
+  elseif viewH > 0 and top + h > cur + viewH then
+    self.scroll:VerticalScroll(top + h - viewH)
+  end
+  return self
+end
+
 function VirtualList:_layout()
   self:_syncWidth()
 
@@ -121,6 +154,7 @@ function VirtualList:_layout()
     row:SetPoint("RIGHT",   self._child, "RIGHT",  -pad, 0)
     row:Height(h)
     row:Show()
+    self._rowAt[i], self._topAt[i], self._hAt[i] = row, yCur, h
     yCur = yCur + h + spacing
   end
 
