@@ -205,10 +205,12 @@ function BarsApplyFrame:_highlightBars(def, on)
   for _, bar in ipairs(def.bars) do preview:HighlightProfileBar(bar, on) end
 end
 
--- Apply button caption tracks the number of included toggles.
+-- Apply button caption tracks the number of included slot-range bars. The Pet toggle
+-- maps to include.petbar, not to a numbered/class bar, so it's excluded from the count
+-- (a pet-only selection reads a generic "APPLY").
 function BarsApplyFrame:_updateApplyLabel()
   local n = 0
-  for _, b in ipairs(self._toggles) do if b._on then n = n + 1 end end
+  for _, b in ipairs(self._toggles) do if b._on and not b._def.pet then n = n + 1 end end
   self.applyBtn:Text(n > 0 and ("APPLY " .. n .. " BAR" .. (n > 1 and "S" or "")) or "APPLY")
 end
 
