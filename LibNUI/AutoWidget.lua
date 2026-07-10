@@ -12,6 +12,12 @@ local Class, Button, Label, Texture = ns.lua.Class, ui.Button, ui.Label, ui.Text
 ---@field texture Texture?  created when a path/atlas option is given
 ---@field label Label?  created otherwise (the `label` option is the text)
 local AutoWidget = Class(nil, function(self)
+  -- The `label` option carries the text. self.label below is the Label *widget* — created
+  -- only in the text branch, and left nil for a texture/button — so every consumer can
+  -- treat `.label` as "a Label or nothing" (per @field label Label?). Leaving the raw text
+  -- string here would make `if x.label` truthy for an icon and blow up on `.label._widget`.
+  local text = self.label
+  self.label = nil
   if self.onClick then
     -- label/position/font options are not forwarded to Button; set them on
     -- self.button after construction if needed.
@@ -33,7 +39,7 @@ local AutoWidget = Class(nil, function(self)
   else
     self.label = Label:new{
       parent = self.parent,
-      text = self.label,
+      text = text,
       position = self.position or {All = true},
       font = self.font,
       fontInfo = self.fontInfo,

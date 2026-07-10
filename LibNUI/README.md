@@ -1200,7 +1200,7 @@ Inherits `Frame`. Renders a 2D grid with optional column and row headers, altern
 | `cellHeight`    | number  | Default cell height (default `20`)                                        |
 | `headerWidth`   | number  | Row header width (defaults to `cellWidth`)                                |
 | `headerHeight`  | number  | Column header height (defaults to `cellHeight`)                           |
-| `autosize`      | bool    | Auto-size all columns to content width                                    |
+| `autosize`      | bool    | Auto-size all columns to text-content width (icon-only columns keep their set width) |
 | `padding`       | number  | Padding added during auto-size                                            |
 | `backdrop`      | table   | Default backdrop for all cells                                            |
 | `colBackdrop`   | table   | Default backdrop for column headers                                       |
