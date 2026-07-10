@@ -29,6 +29,7 @@ local C_Timer = C_Timer
 ---@field _checkbox CheckButton?
 ---@field _dismissBtn Frame?
 ---@field _timer table?          pending auto-hide timer
+---@field _autoHiding boolean?   set while the auto-hide timer takes the card down (silences onDismiss)
 local Notification = Class(TitleFrame, function(self)
   -- intrinsic size (not a `position` default: a caller's position table would replace it)
   self:Size(self.width, self.height)
@@ -39,8 +40,11 @@ local Notification = Class(TitleFrame, function(self)
   self.titlebar.title:ClearAllPoints()
   self.titlebar.title:Left(self.titlebar, 10, 0)
 
-  -- Close X and Escape share the dismiss path (fire onDismiss, cancel the timer).
+  -- The close X, the Dismiss button, and Escape (UISpecialFrames hides the raw frame)
+  -- all funnel through OnHide → _onHide, so every teardown fires onDismiss and cancels
+  -- the auto-hide timer through one path.
   self.closeButton:SetScript("OnClick", function() self:_dismiss() end)
+  self:SetScript("OnHide", function() self:_onHide() end)
 
   if self.icon then
     self._iconTex = Texture:new{
@@ -115,17 +119,29 @@ function Notification:Notify()
   if self._timer then self._timer:Cancel(); self._timer = nil end
   self:Show()
   if self.duration then
-    self._timer = C_Timer.NewTimer(self.duration, function() self:Hide() end)
+    -- auto-hide: flag it so _onHide stays silent (a timeout is not a user dismiss)
+    self._timer = C_Timer.NewTimer(self.duration, function()
+      self._autoHiding = true
+      self:Hide()
+    end)
   end
   return self
 end
 
--- Take the card down and notify: cancels any pending auto-hide, hides, fires onDismiss.
--- Shared by the dismiss button, the close X, and Escape.
+-- Dismiss button / close X: just hide — _onHide does the teardown, so the button, the X,
+-- and Escape all converge on one path.
 function Notification:_dismiss()
-  if self._timer then self._timer:Cancel(); self._timer = nil end
   self:Hide()
-  if self.onDismiss then self:onDismiss() end
+end
+
+-- Every hide lands here: the Dismiss button, the close X, and Escape (which hides the raw
+-- frame via UISpecialFrames). Cancel any pending auto-hide and fire onDismiss — unless this
+-- was the auto-hide timer itself, which is not a user dismiss.
+function Notification:_onHide()
+  if self._timer then self._timer:Cancel(); self._timer = nil end
+  local auto = self._autoHiding
+  self._autoHiding = nil
+  if not auto and self.onDismiss then self:onDismiss() end
 end
 
 -- Get/set the body text.
