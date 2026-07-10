@@ -15,6 +15,7 @@ local ARROW_SZ = 10   -- matches SortableHeaderRow's arrow footprint
 ---@field onHeaderClick fun()?  fired when a sortable header is clicked (TableFrame drives the sort state)
 ---@field _sortArrow Texture?  up/down sort indicator, shown only while this column is the active sort
 ---@field _sortActiveColor string?  label colour token used while this column is the active sort
+---@field _headerPad number?  header content padding, reused to re-inset the label for the arrow
 local TableCol = Class(BgFrame, function(self)
   local p = self.padding or 0
 
@@ -45,11 +46,9 @@ local TableCol = Class(BgFrame, function(self)
       Size = {size, size},
     }
   else
-    -- Reserve room on the right for the sort arrow so a label can't overlap it.
-    local rInset = self.sortable and (p + ARROW_SZ + 2) or p
     contentPosition = {
       TopLeft = {p, -p},
-      BottomRight = {-rInset, p},
+      BottomRight = {-p, p},
     }
   end
   local content = ui.AutoWidget:new{
@@ -78,9 +77,12 @@ local TableCol = Class(BgFrame, function(self)
 
   -- Sortable header: the Button built above reports clicks to onHeaderClick (TableFrame
   -- owns the sort state); the label rests muted and brightens to the accent when active,
-  -- with an up/down arrow — SortableHeaderRow parity.
+  -- with an up/down arrow — SortableHeaderRow parity. The label keeps its full width at
+  -- rest and only cedes room for the arrow while active (SetSortState), so narrow columns
+  -- don't truncate their headers just for being sortable.
   if self.sortable then
     self._sortActiveColor = self.color or "header"
+    self._headerPad = p
     if content.label then content.label:Color("muted") end
     self._sortArrow = Texture:new{
       parent   = self.header,
@@ -115,13 +117,20 @@ end)
 ui.TableCol = TableCol
 
 -- Style this header for the current sort state: active => accent label + arrow (up =
--- ascending, down = descending); inactive => muted label, arrow hidden. No-op for a
--- non-sortable column.
+-- ascending, down = descending); inactive => muted label, arrow hidden. The label only
+-- gives up room for the arrow while active, so an inactive header isn't truncated.
+-- No-op for a non-sortable column.
 ---@param active boolean
 ---@param descending boolean
 function TableCol:SetSortState(active, descending)
   if not self._sortArrow then return end
-  self.header.label:Color(active and self._sortActiveColor or "muted")
+  local lbl, p = self.header.label, self._headerPad
+  if lbl then
+    lbl:Color(active and self._sortActiveColor or "muted")
+    lbl:ClearAllPoints()
+    lbl:SetPoint("TOPLEFT", self.header, "TOPLEFT", p, -p)
+    lbl:SetPoint("BOTTOMRIGHT", self.header, "BOTTOMRIGHT", active and -(p + ARROW_SZ + 2) or -p, p)
+  end
   self._sortArrow:SetShown(active)
   if active then self._sortArrow:Texture(descending and ARROW_DOWN or ARROW_UP) end
 end
