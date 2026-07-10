@@ -30,6 +30,18 @@ ns.overview.midnightAchievementIds = {
   61739, -- Sojourner of Harandar
   61864, -- Sojourner of Voidstorm
 }
+ns.overview.dragonflightAchievementIds = {
+  19458, -- A World Awoken (Dragonflight meta)
+  16585, -- Loremaster of the Dragon Isles
+  16334, -- Waking Hope (The Waking Shores story)
+  15394, -- Ohn'a'Roll (Ohn'ahran Plains story)
+  16336, -- Azure Spanner (The Azure Span story)
+  16363, -- Just Don't Ask Me to Spell It (Thaldraszus story)
+  16401, -- Sojourner of the Waking Shores
+  16405, -- Sojourner of Ohn'ahran Plains
+  16428, -- Sojourner of Azure Span
+  16398, -- Sojourner of Thaldraszus
+}
 
 -- Live completion colour for one achievement (41818 = the Midnight meta, also
 -- satisfied by its Heroic variant 41820). Read fresh so a mid-session earn recolours.

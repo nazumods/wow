@@ -60,8 +60,9 @@ end
 -- Expansions selectable via the titlebar dropdown. Each builds its own
 -- Reputations + Achievements panel; only the selected one is shown.
 local EXPANSIONS = {
-  { key = "midnight", label = "Midnight",       expansionLevel = 11, extraFactionIDs = {}, achievementIds = ns.overview.midnightAchievementIds },
-  { key = "wwi",      label = "The War Within", expansionLevel = 10, extraFactionIDs = {}, achievementIds = ns.overview.wwiAchievementIds },
+  { key = "midnight",     label = "Midnight",       expansionLevel = 11, extraFactionIDs = {}, achievementIds = ns.overview.midnightAchievementIds },
+  { key = "wwi",          label = "The War Within", expansionLevel = 10, extraFactionIDs = {}, achievementIds = ns.overview.wwiAchievementIds },
+  { key = "dragonflight", label = "Dragonflight",   expansionLevel = 9,  extraFactionIDs = {}, achievementIds = ns.overview.dragonflightAchievementIds },
 }
 
 -- Overview

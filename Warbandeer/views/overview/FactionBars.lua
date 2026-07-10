@@ -115,6 +115,17 @@ local function resolveProgress(factionID, atMax, valueText, pct, r, g, b)
   return { value = valueText, pct = pct, done = false }
 end
 
+-- Seasonal reputations name themselves "<type>: Season N" (e.g. "Delves: Season 1").
+-- seasonOf returns the season number (nil = evergreen); seasonKind returns the type
+-- label before ": Season" (e.g. "Delves"), so all of a type's seasons group together.
+local function seasonOf(name)
+  local n = name and name:match("Season%s+(%d+)")
+  return n and tonumber(n) or nil
+end
+local function seasonKind(name)
+  return name:match("^(.-):%s*Season") or name
+end
+
 -- Collect reputation rows for a given expansion. Each row carries fillColor (the
 -- faction color) and an optional trackColor (paragon). Mirrors the prior Factions
 -- table logic, plus a fill pct and paragon handling.
@@ -137,6 +148,7 @@ local function gatherFactions(expansionLevel, extraFactionIDs)
       name = info.name, value = prog.value, hoverValue = prog.hoverValue,
       pct = prog.pct, done = prog.done, paragon = prog.paragon, reward = prog.reward,
       nameColor = nameColor, fillColor = fillColor, trackColor = prog.trackColor,
+      season = seasonOf(info.name),
     })
 
     if not ns.data.minorFactions[factionID] then return end
@@ -178,7 +190,8 @@ local function gatherFactions(expansionLevel, extraFactionIDs)
       insert(rows, {
         name = subName, value = subProg.value, hoverValue = subProg.hoverValue,
         pct = subProg.pct, done = subProg.done, paragon = subProg.paragon, reward = subProg.reward,
-        nameColor = subNameColor, fillColor = subFillColor, trackColor = subProg.trackColor, indent = true,
+        nameColor = subNameColor, fillColor = subFillColor, trackColor = subProg.trackColor,
+        indent = true, season = seasonOf(subName),
       })
     end
   end
@@ -190,7 +203,24 @@ local function gatherFactions(expansionLevel, extraFactionIDs)
   for _, factionID in ipairs(extraFactionIDs) do
     if not seen[factionID] then pushFaction(factionID) end
   end
-  return rows
+
+  -- Move seasonal reps to the bottom, grouped by type (in first-appearance order) and
+  -- ordered by season within each group; evergreen reps keep their original order above.
+  local out, groups, order = {}, {}, {}
+  for _, r in ipairs(rows) do
+    if r.season then
+      local kind = seasonKind(r.name)
+      if not groups[kind] then groups[kind] = {}; order[#order + 1] = kind end
+      insert(groups[kind], r)
+    else
+      insert(out, r)
+    end
+  end
+  for _, kind in ipairs(order) do
+    table.sort(groups[kind], function(a, b) return a.season < b.season end)
+    for _, r in ipairs(groups[kind]) do insert(out, r) end
+  end
+  return out
 end
 
 -- Stack of reputation progress bars for one expansion.

@@ -64,7 +64,7 @@ Main viewer UI. Reads the data layer (`ns.api` ← `WarbandeerApi`) and renders 
 
 | name | _title | Parent | Key feature | `BuildFilter` |
 |---|---|---|---|---|
-| `overview` | Overview | Frame | Stat strip, reputations, achievements, top characters (per-raid RF/N/H/M set completion; set cells carry wanted-star + tier-letter overlays, Shift-click toggles wanted, live-refreshed on dressing-room rating edits — like the Collected view) | raid + expansion dropdowns |
+| `overview` | Overview | Frame | Stat strip, reputations, achievements, top characters (per-raid RF/N/H/M set completion; set cells carry wanted-star + tier-letter overlays, Shift-click toggles wanted, live-refreshed on dressing-room rating edits — like the Collected view). Expansion tabs Midnight / The War Within / Dragonflight (`expansionLevel` 11/10/9) | raid + expansion dropdowns |
 | `summary` | Summary | Frame | Three ClassSummary rosters (Alliance / Horde / Both-merged) | 3-way faction segmented control |
 | `detail` | Detail | Frame | Per-character detail + profession-intent editor + per-profession gear list | character picker |
 | `gear` | Gear | Frame | 4 armor-type tables, per-slot columns | armor-type buttons |
@@ -112,7 +112,14 @@ factions, subfactions, and `extraFactionIDs` alike). Each `FactionBars` tallies 
 when >0, pulsing bag + count) and leading-`ParagonReputation_Bag`-marks the expansion-picker
 dropdown options that hold a claim. Counts are computed at panel build (refresh on reopen).
 
-**Constructor options:** `expansionLevel` (10=TWW, 11=Midnight; passed to `GetMajorFactionIDs`),
+**Seasonal-rep grouping:** a **seasonal reputation** names itself `"<type>: Season N"` (e.g.
+`Delves: Season 1`). `gatherFactions` tags each row's `season` (`seasonOf` → `name:match("Season (%d+)")`,
+nil = evergreen) and, before returning, moves all seasonal rows to the **bottom** grouped by
+`seasonKind` (the label before `": Season"`, in first-appearance order) and sorted by season within
+each group — so e.g. every `Delves: Season N` sits together S1→S2→S3, then every `Prey: Season N`,
+below the evergreen reps. No filtering; all rows always show.
+
+**Constructor options:** `expansionLevel` (9=Dragonflight, 10=TWW, 11=Midnight; passed to `GetMajorFactionIDs`),
 `extraFactionIDs` (IDs the API omits, e.g. Silvermoon Court `2710`, Slayer's Duellum `2770`), `width`.
 
 **Subfaction tiers** (tried in order): (1) `GetMajorFactionData` → renown; (2)
