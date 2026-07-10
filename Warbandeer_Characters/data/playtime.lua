@@ -4,6 +4,7 @@ local GetBuildInfo = GetBuildInfo
 local RequestTimePlayed = RequestTimePlayed
 local GetServerTime = GetServerTime
 local date = date
+local time = time
 
 ---@class Character
 ---@field playtime PlaytimeBroker?
@@ -37,7 +38,13 @@ local function accrue(byDay, from, now)
   while from < now do
     local lt = date("*t", from)
     local dayKey = date("%Y-%m-%d", from)
-    local nextMidnight = from - (lt.hour * 3600 + lt.min * 60 + lt.sec) + 86400
+    -- Derive the next local midnight from the calendar, not a fixed +86400: on the two
+    -- DST-transition days a year the local day is 23h/25h long, so a hard 86400 lands an
+    -- hour off. Clear `isdst` (date() reports `from`'s DST state, which is wrong for the
+    -- next day across a transition) so time() re-derives it for the target day and
+    -- normalizes the day+1 overflow into the next month.
+    lt.hour, lt.min, lt.sec, lt.day, lt.isdst = 0, 0, 0, lt.day + 1, nil
+    local nextMidnight = time(lt)
     local chunkEnd = now < nextMidnight and now or nextMidnight
     byDay[dayKey] = (byDay[dayKey] or 0) + (chunkEnd - from)
     from = chunkEnd
