@@ -14,6 +14,11 @@ local EXP_ORDER, EXP_ABBR, PROF_ORDER, CHAR_LIST_H, VIEW_WIDTH, TRANSPARENT, SEL
 local makeGridColInfo, makeCharColInfo, makeEmptyRow, rowDivider, skillCell, buildBestSkills, buildCharList, sortCharEntries =
   P.makeGridColInfo, P.makeCharColInfo, P.makeEmptyRow, P.rowDivider, P.skillCell, P.buildBestSkills, P.buildCharList, P.sortCharEntries
 
+-- Caution glyph prefixed to a character whose per-expansion profession detail was
+-- never captured (the profession slot is known, but its window has never been
+-- opened, so details[skillID] is nil and every expansion cell would read "—").
+local WARN = ("|A:%s:12:12|a"):format(ns.icons.Warning)
+
 ---@class ProfsView: Frame
 ---@field gridTable TableFrame        Account Summary grid (professions x expansions)
 ---@field charTable TableFrame        per-profession character list
@@ -174,18 +179,31 @@ function ProfsView:_renderCharRows()
       end
     end
 
+    -- A slot with no captured detail (window never opened for this character)
+    -- would render an all-"—" row indistinguishable from genuinely-zero skill.
+    -- Flag it with a caution glyph + tooltip so the gap is visible and actionable
+    -- (mirrors missing.lua's "professions (X)" report condition: detail == nil).
+    local noDetail = not detail
+    local nameText = noDetail and (WARN .. " " .. toon.name) or toon.name
+
     local row = {
       -- Faction icon.
       ns.factionIcon[toon.isAlliance],
-      -- Character name (class coloured; realm on hover). The logged-in character
-      -- is marked by a muted-gold row wash (see restCharRow), not inline.
+      -- Character name (class coloured; realm on hover, plus a capture hint when flagged).
+      -- The logged-in character is marked by a muted-gold row wash (see restCharRow), not inline.
       {
-        text    = toon.name,
+        text    = nameText,
         color   = Colors[toon.classKey],
         onEnter = function(s)
           ui.tip:AnchorTo(s, "ANCHOR_BOTTOMRIGHT", -10, 10)
           ui.tip:ClearLines()
           ui.tip:AddLine(toon.realm)
+          if noDetail then
+            local o = theme.colors.orange
+            ui.tip:AddLine("Profession detail not captured", o[1], o[2], o[3])
+            local m = theme.colors.muted
+            ui.tip:AddLine("Open " .. entry.prof.name .. " on this character to record it", m[1], m[2], m[3])
+          end
           ui.tip:Show()
         end,
         onLeave = function() ui.tip:Hide() end,
