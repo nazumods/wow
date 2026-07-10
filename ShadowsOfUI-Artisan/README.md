@@ -15,7 +15,9 @@ your Moxie stays visible while you browse and fill orders.
 
 It also appears on the **spellbook's Professions page** (open the spellbook, **Professions**
 tab): each profession there gets the same badge tucked beneath its spell-button labels, so you
-can read every profession's Moxie at a glance.
+can read every profession's Moxie at a glance. If Warbandeer hasn't yet recorded a primary
+profession's recipes for this character, a **⚠** appears beside that profession (left of its
+spell buttons) — open that profession's window once to record it and the mark clears.
 
 **Hover the badge** for an account-wide breakdown: every character that has this profession,
 class-coloured, with how much of the currency each one holds — your **main crafter** first,

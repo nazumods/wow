@@ -19,6 +19,23 @@ function API:GetCharacterData(char)
   return ns.db.characters[char or ns.currentPlayer]
 end
 
+---Whether per-expansion profession detail has been recorded for `char` (default: current) on the
+---given trade-skill line. That detail is captured only when the profession's crafting window is
+---opened (TRADE_SKILL_SHOW), so a false result means the profession has never been scanned — the
+---condition behind ProfsView's "Profession detail not captured" ⚠. Keyed by the parent skill line
+---id (the value stamped as `frame.skillLine` on ProfessionsBook frames, and `skillID` from
+---Player:GetProfessions). Note: secondary professions (Cooking/Fishing/Archaeology) never record
+---expansion detail, so this is always false for them — gate callers to primary professions.
+---@param char? string
+---@param skillLineID integer
+---@return boolean
+function API:HasProfessionDetail(char, skillLineID)
+  local data = self:GetCharacterData(char)
+  local details = data and data.professions and data.professions.details
+  local detail = details and details[skillLineID]
+  return not not (detail and detail.expansions and #detail.expansions > 0)
+end
+
 ---Total number of tracked characters.
 ---@return integer
 function API:GetNumCharacters() return ns.db.numCharacters end

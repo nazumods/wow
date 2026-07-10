@@ -134,6 +134,34 @@ local BOOK_FRAMES = {
   "PrimaryProfession1", "PrimaryProfession2",
   "SecondaryProfession1", "SecondaryProfession2", "SecondaryProfession3",
 }
+-- Only primary professions record per-expansion recipe detail (secondaries never do), so the
+-- uncaptured-detail ⚠ is gated to these two frames.
+local PRIMARY = { PrimaryProfession1 = true, PrimaryProfession2 = true }
+
+-- A caution triangle shown when Warbandeer hasn't recorded a primary profession's per-expansion
+-- recipe detail (only capturable by opening its crafting window). Same glyph as Warbandeer's
+-- ProfsView; mouse-enabled for an explanatory nudge. Sits in the open plaque area left of the
+-- profession's spell buttons — the anchor is set per-frame in UpdateBookBadges (it keys off the
+-- top spell button, which differs by profession).
+local WARN_SIZE = 33
+local function makeWarn(frame)
+  local warn = CreateFrame("Frame", nil, frame)
+  warn:SetFrameLevel(frame:GetFrameLevel() + 5)
+  warn:SetSize(WARN_SIZE, WARN_SIZE)
+  warn:EnableMouse(true)
+  local tex = warn:CreateTexture(nil, "OVERLAY")
+  tex:SetAllPoints()
+  tex:SetAtlas(ns.icons.Warning)
+  warn:SetScript("OnEnter", function(self)
+    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+    GameTooltip:AddLine("Profession detail not captured")
+    GameTooltip:AddLine("Open this profession's window to record its recipes for Warbandeer.",
+      GREEN_FONT_COLOR.r, GREEN_FONT_COLOR.g, GREEN_FONT_COLOR.b, true)
+    GameTooltip:Show()
+  end)
+  warn:SetScript("OnLeave", GameTooltip_Hide)
+  return warn
+end
 
 function ns.UpdateBookBadges()
   for _, name in ipairs(BOOK_FRAMES) do
@@ -151,10 +179,11 @@ function ns.UpdateBookBadges()
       else
         frame.soiArtisanBadge = frame.soiArtisanBadge or makeBadge(frame, 5)
         if applyBadge(frame.soiArtisanBadge, skillLineID, currencyId) then
-          -- Anchor under the lowest shown spell-button label (e.g. "Enchanting",
-          -- "Skinning Journal") so the icon + amount read beneath that profession's spells.
-          local btn = (frame.SpellButton2 and frame.SpellButton2:IsShown())
-            and frame.SpellButton2 or frame.SpellButton1
+          -- Anchor under SpellButton1's label — always the profession's recipe-log / craft
+          -- opener ("Inscription", "Herbalism Journal"). SpellButton2, when shown, is the
+          -- gathering passive ("Herb Gathering"), so preferring it floated the badge beside the
+          -- wrong spell on gathering professions; SpellButton1 reads beneath the Journal for both.
+          local btn = frame.SpellButton1
           frame.soiArtisanBadge:ClearAllPoints()
           if btn and btn.spellString then
             frame.soiArtisanBadge:SetPoint("TOPLEFT", btn.spellString, "BOTTOMLEFT", 0, -3)
@@ -162,6 +191,29 @@ function ns.UpdateBookBadges()
             frame.soiArtisanBadge:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -10, -12)
           end
         end
+      end
+
+      -- Uncaptured-detail ⚠ (primary professions only). Mirrors the flag Warbandeer's ProfsView
+      -- shows, nudging the player to open the profession so its recipes get recorded. The spellbook
+      -- only shows the logged-in character, so this is inherently current-char.
+      local needsWarn = PRIMARY[name] and hasProfession and skillLineID
+        and ns.api and ns.api.HasProfessionDetail
+        and not ns.api:HasProfessionDetail(nil, skillLineID)
+      if needsWarn then
+        frame.soiDetailWarn = frame.soiDetailWarn or makeWarn(frame)
+        -- Sit in the open plaque area just left of the spell-button column, level with the top
+        -- button (SpellButton2 when shown, else SpellButton1 — the layout swaps by profession).
+        local topBtn = (frame.SpellButton2 and frame.SpellButton2:IsShown())
+          and frame.SpellButton2 or frame.SpellButton1
+        frame.soiDetailWarn:ClearAllPoints()
+        if topBtn then
+          frame.soiDetailWarn:SetPoint("RIGHT", topBtn, "LEFT", -24, 0)
+        else
+          frame.soiDetailWarn:SetPoint("LEFT", frame, "LEFT", 90, -20)
+        end
+        frame.soiDetailWarn:Show()
+      elseif frame.soiDetailWarn then
+        frame.soiDetailWarn:Hide()
       end
     end
   end
