@@ -30,6 +30,7 @@ character/spec's setup and import it onto the current character. Profiles are st
 :GetAllProfiles()                          → profile[] (flat)
 :Snapshot()                                → profile?  (capture + store now)
 :DeleteProfile(char, specID)
+:DeleteCharacter(char)                     → boolean  (forget all of a char's profiles; false if none)
 :Restore(profile, include?, silent?, barFilter?)
 :RestoreProfile(char, specID, include?, silent?, barFilter?) → boolean  (false if no such profile)
 :Capture(include?, accountMacros?, charMacros?)  → profile  (no store)
