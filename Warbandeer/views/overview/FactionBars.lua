@@ -115,6 +115,13 @@ local function resolveProgress(factionID, atMax, valueText, pct, r, g, b)
   return { value = valueText, pct = pct, done = false }
 end
 
+-- Seasonal reputations name themselves "<thing>: Season N" (e.g. "Delves: Season 1");
+-- every other faction is evergreen. Returns the season number, or nil when evergreen.
+local function seasonOf(name)
+  local n = name and name:match("Season%s+(%d+)")
+  return n and tonumber(n) or nil
+end
+
 -- Collect reputation rows for a given expansion. Each row carries fillColor (the
 -- faction color) and an optional trackColor (paragon). Mirrors the prior Factions
 -- table logic, plus a fill pct and paragon handling.
@@ -137,6 +144,7 @@ local function gatherFactions(expansionLevel, extraFactionIDs)
       name = info.name, value = prog.value, hoverValue = prog.hoverValue,
       pct = prog.pct, done = prog.done, paragon = prog.paragon, reward = prog.reward,
       nameColor = nameColor, fillColor = fillColor, trackColor = prog.trackColor,
+      season = seasonOf(info.name),
     })
 
     if not ns.data.minorFactions[factionID] then return end
@@ -178,7 +186,8 @@ local function gatherFactions(expansionLevel, extraFactionIDs)
       insert(rows, {
         name = subName, value = subProg.value, hoverValue = subProg.hoverValue,
         pct = subProg.pct, done = subProg.done, paragon = subProg.paragon, reward = subProg.reward,
-        nameColor = subNameColor, fillColor = subFillColor, trackColor = subProg.trackColor, indent = true,
+        nameColor = subNameColor, fillColor = subFillColor, trackColor = subProg.trackColor,
+        indent = true, season = seasonOf(subName),
       })
     end
   end
@@ -198,12 +207,16 @@ end
 ---@field expansionLevel number    LE_EXPANSION_* level whose major factions are shown
 ---@field extraFactionIDs number[] factions to append beyond GetMajorFactionIDs
 ---@field width number             bar/row width
----@field rewardCount number        factions with a claimable paragon reward (for the picker badge)
+---@field rewardCount number       factions with a claimable paragon reward (for the picker badge)
+---@field seasons number[]         sorted distinct season numbers among the seasonal reps
+---@field _rows table[]            ordered { bar = LabeledBar, season = number? }
+---@field _season number|string    currently shown season ("all" or a number)
 local FactionBars = Class(Frame, function(self)
   local c = theme.colors
   local rows = gatherFactions(self.expansionLevel, self.extraFactionIDs)
-  local totalH, prev, rewardCount = 0, nil, 0
-  for i, r in ipairs(rows) do
+  self._rows = {}
+  local seasonSet, rewardCount = {}, 0
+  for _, r in ipairs(rows) do
     local bar = LabeledBar:new{
       parent = self,
       width = self.width,
@@ -216,23 +229,59 @@ local FactionBars = Class(Frame, function(self)
       trackColor = r.trackColor,
       valueColor = r.reward and c.gold or (r.done or r.paragon) and c.green or c.muted,
       hoverColor = c.muted,
-      position = prev and { TopLeft = {prev, BottomLeft, 0, -7} } or { TopLeft = {0, 0} },
+      position = { TopLeft = {0, 0} }, -- real position assigned by _layout
     }
     -- a claimable paragon chest gets the animated reward bag left of its "claim" value
     if r.reward then
       rewardCount = rewardCount + 1
       ns.overview.ParagonBag(bar):Right(bar.valueLabel, ui.edge.Left, -3, 0)
     end
-    if i > 1 then totalH = totalH + 7 end
-    totalH = totalH + bar:Height()
-    prev = bar
+    self._rows[#self._rows + 1] = { bar = bar, season = r.season }
+    if r.season then seasonSet[r.season] = true end
   end
-  self.rewardCount = rewardCount
-  self:Width(self.width)
-  self:Height(totalH)
+  self.rewardCount = rewardCount -- unfiltered total, so the badge still counts hidden-season chests
+  self.seasons = {}
+  for s in pairs(seasonSet) do self.seasons[#self.seasons + 1] = s end
+  table.sort(self.seasons)
+  self._season = "all"
+  self:_layout()
 end, {
   expansionLevel = 10, -- LE_EXPANSION_THE_WAR_WITHIN
   extraFactionIDs = {},
   width = 230,
 })
+
+-- Stack the visible bars top-to-bottom. A seasonal bar shows only when its season is
+-- the selected one (or "all"); evergreen bars (season == nil) always show. Re-anchors
+-- the shown bars so a hidden row leaves no gap, and sizes the frame to the visible run.
+function FactionBars:_layout()
+  local totalH, prev = 0, nil
+  for _, e in ipairs(self._rows) do
+    local show = self._season == "all" or e.season == nil or e.season == self._season
+    e.bar:SetShown(show)
+    if show then
+      e.bar:ClearAllPoints()
+      if prev then
+        e.bar:TopLeft(prev, BottomLeft, 0, -7)
+        totalH = totalH + 7
+      else
+        e.bar:TopLeft(0, 0)
+      end
+      totalH = totalH + e.bar:Height()
+      prev = e.bar
+    end
+  end
+  self:Width(self.width)
+  self:Height(totalH)
+end
+
+-- Filter to a season ("all" or a number) and return the new height so the Overview can
+-- resize the panel around it.
+---@param season number|string
+---@return number
+function FactionBars:SetSeason(season)
+  self._season = season or "all"
+  self:_layout()
+  return self:Height()
+end
 ns.overview.FactionBars = FactionBars

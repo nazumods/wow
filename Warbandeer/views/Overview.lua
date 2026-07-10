@@ -32,25 +32,44 @@ local function capsHeader(parent, text, position)
   }
 end
 
+-- Sorted union of two season-number lists (seasonal reps + seasonal achievements).
+local function mergeSeasons(a, b)
+  local set, out = {}, {}
+  for _, s in ipairs(a) do set[s] = true end
+  for _, s in ipairs(b) do set[s] = true end
+  for s in pairs(set) do out[#out + 1] = s end
+  table.sort(out)
+  return out
+end
+
 -- Build one expansion's content into `panel`: a Reputations box (left) and an
 -- Achievements box (right), each under its own caps header. The two sit a box-gap
--- (GAP*2) apart so each can carry its own module background. Returns the reps and
--- achievements section sizes (width, height) for the caller to size those boxes.
-local function buildTab(panel, expansionLevel, extraFactionIDs, achievementIds)
+-- (GAP*2) apart so each can carry its own module background. Applies the expansion's
+-- default season (latest for the current expansion, "all" for finished ones) and
+-- stashes `panel._seasons`/`panel._season`. Returns the reps and achievements section
+-- sizes (width, height) for the caller to size those boxes.
+local function buildTab(panel, e, isCurrent)
   capsHeader(panel, "Reputations", { TopLeft = {0, 0} })
   local bars = FactionBars:new{
     parent = panel,
-    expansionLevel = expansionLevel,
-    extraFactionIDs = extraFactionIDs,
+    expansionLevel = e.expansionLevel,
+    extraFactionIDs = e.extraFactionIDs,
     position = { TopLeft = {0, -HEAD_H} },
   }
   panel._bars = bars -- reachable so BuildFilter can total pending paragon rewards
+  -- Seasons offered for this expansion = its seasonal reps ("… Season N") plus its
+  -- seasonal achievements (Keystone Master / AOTC). The current expansion opens on its
+  -- latest season; finished expansions open on "all".
+  panel._seasons = mergeSeasons(bars.seasons, ns.overview.achievementSeasons(e.achievementIds))
+  panel._season = (isCurrent and #panel._seasons > 0) and panel._seasons[#panel._seasons] or "all"
+  bars:SetSeason(panel._season)
   -- Achievements is moved into its own equal-thirds column by the caller once the
   -- shared column width is known; the X here is a placeholder.
   local achHead = capsHeader(panel, "Achievements", { TopLeft = {0, 0} })
   local ach = Achievements:new{
     parent = panel,
-    achievementIds = achievementIds,
+    achievementIds = e.achievementIds,
+    season = panel._season,
     position = { TopLeft = {0, -HEAD_H} },
   }
   panel._ach = ach -- reachable for the cold-session font heal (ns.HealCellFonts)
@@ -60,8 +79,9 @@ end
 -- Expansions selectable via the titlebar dropdown. Each builds its own
 -- Reputations + Achievements panel; only the selected one is shown.
 local EXPANSIONS = {
-  { key = "midnight", label = "Midnight",       expansionLevel = 11, extraFactionIDs = {}, achievementIds = ns.overview.midnightAchievementIds },
-  { key = "wwi",      label = "The War Within", expansionLevel = 10, extraFactionIDs = {}, achievementIds = ns.overview.wwiAchievementIds },
+  { key = "midnight",     label = "Midnight",       expansionLevel = 11, extraFactionIDs = {}, achievementIds = ns.overview.midnightAchievementIds },
+  { key = "wwi",          label = "The War Within", expansionLevel = 10, extraFactionIDs = {}, achievementIds = ns.overview.wwiAchievementIds },
+  { key = "dragonflight", label = "Dragonflight",   expansionLevel = 9,  extraFactionIDs = {}, achievementIds = ns.overview.dragonflightAchievementIds },
 }
 
 -- Overview
@@ -77,6 +97,9 @@ local EXPANSIONS = {
 ---@field _modAch Texture                achievements module background
 ---@field _expansion string?             currently selected expansion key
 ---@field _filter FilterDropdown?        titlebar expansion picker
+---@field _achX number                   panel-local X of the achievements box (season rebuilds)
+---@field _achIds table<string, table[]> expansion key -> raw season-tagged achievement list
+---@field _seasonDrops table<string, FilterDropdown>? per-expansion season pickers
 -- The live view instance, captured so the ratings-changed listener (registered once,
 -- below) refreshes whichever Top Characters table currently exists.
 local _view
@@ -91,7 +114,9 @@ local Overview = Class(Frame, function(self)
   -- box (left) and an achievements box (right); panels share the same anchor and
   -- only the selected one is shown. The two module backgrounds are siblings of the
   -- panels and resize to the active expansion's section heights.
-  self._panels, self._repsH, self._achH = {}, {}, {}
+  self._panels, self._repsH, self._achH, self._achIds = {}, {}, {}, {}
+  local maxLevel = 0
+  for _, e in ipairs(EXPANSIONS) do maxLevel = math.max(maxLevel, e.expansionLevel) end
   local repsW, achW = 0, 0
   local achHeads = {}                    -- expansion key -> achievements caps header
   for _, e in ipairs(EXPANSIONS) do
@@ -99,9 +124,10 @@ local Overview = Class(Frame, function(self)
       parent = self,
       position = { TopLeft = {P, -contentTop}, Hide = true },
     }
-    local bw, bh, aw, ah, achHead = buildTab(panel, e.expansionLevel, e.extraFactionIDs, e.achievementIds)
+    local bw, bh, aw, ah, achHead = buildTab(panel, e, e.expansionLevel == maxLevel)
     panel:Height(HEAD_H + math.max(bh, ah))
     self._panels[e.key] = panel
+    self._achIds[e.key] = e.achievementIds
     self._repsH[e.key] = HEAD_H + bh
     self._achH[e.key]  = HEAD_H + ah
     repsW = math.max(repsW, bw)
@@ -123,6 +149,7 @@ local Overview = Class(Frame, function(self)
   -- own content width.
   local colW = math.max(repsW, achW, self.topAlts:Width())
   local col0, col1, col2 = P, P + colW + GAP * 2, P + 2 * (colW + GAP * 2)
+  self._achX = col1 - P -- panel-local X of the achievements box, for season rebuilds
 
   -- shift each expansion's achievements box into column 1 (local X relative to the
   -- panel, which is anchored at col0); the panel spans columns 0–1 (reps + ach).
@@ -243,12 +270,38 @@ function Overview:selectExpansion(key)
     panel:SetShown(k == key)
   end
   self._expansion = key
+  -- Only the current expansion's season picker is shown (built lazily in BuildFilter).
+  if self._seasonDrops then
+    for k, drop in pairs(self._seasonDrops) do drop:SetShown(k == key) end
+  end
   local repsH, achH = self._repsH[key], self._achH[key]
   self._modReps:Height(repsH + 12)
   self._modAch:Height(achH + 12)
   self:Width(P + self._contentW + P)
   self:Height(self._contentTop + math.max(repsH, achH, self._altH) + P)
   if self.parent and self.parent.Fit then self.parent:Fit() end
+end
+
+-- Apply a season to one expansion's panel: re-filter its rep bars, rebuild its
+-- achievements box for the season (a TableFrame can't drop rows in place), and — if
+-- that expansion is the one on screen — resize the boxes and refit the window.
+---@param key string
+---@param season number|string
+function Overview:_applySeason(key, season)
+  local panel = self._panels[key]
+  panel._season = season
+  local repsH = HEAD_H + panel._bars:SetSeason(season)
+  panel._ach:SetShown(false)
+  panel._ach = Achievements:new{
+    parent = panel,
+    achievementIds = self._achIds[key],
+    season = season,
+    position = { TopLeft = {self._achX, -HEAD_H} },
+  }
+  local achH = HEAD_H + panel._ach:Height()
+  self._repsH[key], self._achH[key] = repsH, achH
+  panel:Height(math.max(repsH, achH))
+  if self._expansion == key then self:selectExpansion(key) end
 end
 
 -- Refresh the Top Characters gear columns each time the view shows, so a
@@ -326,8 +379,37 @@ function Overview:BuildFilter(parent)
     position  = { TopLeft = {raid, ui.edge.TopRight, GAP, 0} },
   }
 
+  -- Per-expansion season pickers, stacked at the same slot right of the expansion
+  -- picker; only the current expansion's shows. Options = All + one per season the
+  -- expansion has (seasonal reps + seasonal achievements); onSelect re-filters the panel.
+  local SEASON_W = 104
+  self._seasonDrops = {}
+  for _, e in ipairs(EXPANSIONS) do
+    local panel = self._panels[e.key]
+    if #panel._seasons > 0 then
+      local opts = { { key = "all", label = "All Seasons" } }
+      for _, s in ipairs(panel._seasons) do
+        opts[#opts + 1] = { key = s, label = "Season " .. s }
+      end
+      local ekey = e.key
+      local drop = ui.FilterDropdown:new{
+        parent    = box,
+        bordered  = true,
+        options   = opts,
+        selected  = panel._season,
+        width     = SEASON_W,
+        menuWidth = SEASON_W,
+        onSelect  = function(_, s) self:_applySeason(ekey, s) end,
+        position  = { TopLeft = {exp, ui.edge.TopRight, GAP, 0} },
+      }
+      drop:SetShown(e.key == self._expansion)
+      self._seasonDrops[e.key] = drop
+    end
+  end
+
   local w = raid:Width() + GAP + exp:Width()
   if badge then w = badge:Width() + GAP + w end
+  if self._seasonDrops[self._expansion] then w = w + GAP + SEASON_W end
   box:Width(w)
   self._filter = box
   return box
