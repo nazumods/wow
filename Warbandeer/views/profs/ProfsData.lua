@@ -9,12 +9,13 @@ local insert, sort = table.insert, table.sort
 -- (loaded before ProfsView.lua) so the view shell and its char-list methods read the
 -- same column factories, gradient cells, and per-expansion skill aggregation.
 
--- Ordered expansion columns (chronological).
-local EXP_ORDER = { "Clsc", "TBC", "WotLK", "Cata", "MoP", "WoD", "Leg", "BfA", "SL", "DF", "TWW", "Mid" }
+-- Ordered expansion columns (chronological). Abbreviations are kept short so the
+-- column headers stay compact (WotLK -> WLK avoids one outlier-wide header).
+local EXP_ORDER = { "Clsc", "TBC", "WLK", "Cata", "MoP", "WoD", "Leg", "BfA", "SL", "DF", "TWW", "Mid" }
 local EXP_ABBR = {
   ["Classic"]      = "Clsc",
   ["Outland"]      = "TBC",
-  ["Northrend"]    = "WotLK",
+  ["Northrend"]    = "WLK",
   ["Cataclysm"]    = "Cata",
   ["Pandaria"]     = "MoP",
   ["Draenor"]      = "WoD",
@@ -34,10 +35,11 @@ local PROF_ORDER = {
 }
 
 -- Column widths.  ICON + CHAR == PROF so expansion columns align between the two tables.
-local PROF_COL_W    = 110   -- profession-name column in the summary grid
+-- CHAR/EXP are sized to fit their header label plus the sortable-column sort arrow.
+local PROF_COL_W    = 114   -- profession-name column in the summary grid (= ICON + CHAR)
 local ICON_COL_W    = 20    -- faction icon in the character list
-local CHAR_COL_W    = 90    -- character name in the character list
-local EXP_COL_W     = 44    -- shared width for every expansion column
+local CHAR_COL_W    = 94    -- character name; fits "CHARACTER" + sort arrow
+local EXP_COL_W     = 48    -- expansion column; fits the widest label ("CATA") + sort arrow
 local CHAR_LIST_H   = 180   -- height of the scrollable character-list area
 
 local VIEW_WIDTH    = PROF_COL_W + #EXP_ORDER * EXP_COL_W  -- 638
