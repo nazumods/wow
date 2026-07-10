@@ -345,7 +345,7 @@ A `Broker` (from `broker.lua`) holds a `fields` table; each field is `{ get, eve
 ## SavedVariables (`WarbandeerCharDB`)
 
 ```lua
-{ version = 30, numCharacters, lastDailyReset, lastReset, lastSundayReset,
+{ version = 32, numCharacters, lastDailyReset, lastReset, lastSundayReset,
   characters = { ["Name"] = Character },
   -- account-wide warband wealth (v8); not per-character
   warband = {

@@ -172,10 +172,12 @@ CVar on in combat), these back up the user's original value and **guarantee it i
 on logout** — so disabling or uninstalling the addon while an override is live can never
 leave the CVar stuck at the addon's value.
 
-#### SetTemporaryCVar(cvar, value)
+#### SetTemporaryCVar(cvar, value, enforce)
 
 Sets `cvar` to `value`, remembering the user's original value the first time (a repeated
-call won't overwrite the remembered original) and arming a `PLAYER_LOGOUT` restore.
+call won't overwrite the remembered original) and arming a `PLAYER_LOGOUT` restore. Pass
+`enforce = true` to keep re-asserting the value whenever a `CVAR_UPDATE` shows it drifted
+(e.g. another addon contesting it in combat), instead of setting it once.
 
 #### RestoreCVar(cvar) / RestoreCVars()
 
@@ -258,6 +260,8 @@ Includes various convenience methods for working with Lists, Maps, Sets, Strings
 - `sets.values(tbl)` - return the values of a table as a Set
 - `strings.startsWith(str, start)` - returns true if str starts with start
 - `strings.split(token, str)` - returns a List of the substrings in str that are separated by token
+- `strings.duration(seconds, style)` - format seconds as a clock string (`"m:ss"` default, `"h:mm:ss"`, or `"auto"`); the shared formatter behind LibNUI's Timer widget
+- `strings.stripEscapes(str)` - strip WoW UI escape sequences (`|c…|r` colour, `|T…|t` textures, `|A…|a` atlases), leaving plain text (nil passes through)
 
 Also includes the `Class` function for defining inheritable, instantiatable objects.
 
