@@ -96,7 +96,14 @@ v7 `select`).
   It locates each taken item by `itemID`+count (not by which slot newly filled); a mail
   attachment never exceeds the item's max stack, so after taking there's always a slot
   with >= that count. (Postal disabled stackables here; this re-derivation supports
-  them — a deliberate improvement over the reference.)
+  them — a deliberate improvement over the reference.) All three bag scans run `0..LAST_BAG`
+  (`= (NUM_BAG_SLOTS or 4)+1`, like QuickAttach) so reagents auto-routed into the reagent
+  bag by `TakeInboxItem` are still found, not silently dropped.
+- **Forward tears down on mailbox close.** The async shuttle registers `BAG_UPDATE_DELAYED`/
+  `CURSOR_CHANGED`; `ns.OnMailHide(reset)` unregisters them and clears state (mirrors
+  `select.lua`) so a later bag/cursor change can't deposit into a closed mail frame. An
+  `active` flag guards re-entry — a second Forward click while a shuttle runs is ignored
+  (the handler list has no dedup, so a re-register would double-fire).
 - **A split stack can't be attached straight from the cursor.** `SplitContainerItem` is
   async — the bag still shows the old count in the same frame — and a split held on the
   cursor never fires `BAG_UPDATE_DELAYED`; `ClickSendMailItemButton` on that cursor
