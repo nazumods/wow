@@ -1,13 +1,5 @@
 # WoW AddOn Suite — Claude Instructions
 
-## Environment
-
-This is a Windows environment. Prefer PowerShell for file/text operations (e.g. `\r\n` conversion, here-strings). Do **not** run PowerShell here-string syntax through the Bash tool — the `@` literal leaks into the output. Keep each shell's idioms in its own tool: don't mix Unix syntax into the PowerShell tool, and don't mix PowerShell syntax into the Bash tool.
-
-`zip` is **not** available in the Bash/MSYS environment. For packaging, use PowerShell `Compress-Archive` (or let the release tooling handle it) rather than a `zip` command.
-
-Route code search through the **Grep tool**, not Bash `grep`/`rg`. It handles multi-pattern searches via regex alternation (`A|B|C`), scopes to any directory with `path` (including reference repos like `wow-ui-source`), and filters with `glob`/`type` — so a scoped, multi-pattern search is one Grep call, and the results come back as clickable file links. Reserve Bash for genuine compounds a single tool can't express (grep piped into `sed -n`/`find`, or grep alongside a heredoc). Same for `find`→Glob and `cat`/`head`/`tail`-as-read→Read (piping `| head -N`/`| tail -N` onto a real command like git/luacheck/busted is fine). This covers the **PowerShell analogs too**: recursive file discovery is a **Glob** job (`**/*.lua`) — never `Get-ChildItem -Recurse` (nor `dir /s`); `Select-String`→Grep and `Get-Content`→Read. Don't reach for a recursive shell listing to find files in *either* tool (and per the Environment rule, never run a PowerShell cmdlet like `Get-ChildItem` through the Bash tool — it's Git Bash).
-
 ## First Step: Read CONTEXT.md
 
 **At the start of every session, read `CONTEXT.md` in this directory.** It is the top-level index: the dependency graph, a one-line summary per addon, and the global slash command registry. Each addon's full code reference — file maps, class hierarchies, API surfaces, data structures, and constructor options — lives in its own `<addon>/CONTEXT.md` (linked from the root index). Load only the per-addon files relevant to the task; together they eliminate the need to re-read source files.
@@ -108,14 +100,12 @@ end
 
 ## Git & Commits
 
-**The `git-commit-safety` skill is the standing discipline for every commit and merge in every session** — invoke/apply it whenever you are about to `git add`, `git commit`, or merge (the `/pr` skill automates the same rules for a full branch → PR → merge ship). Its four non-negotiables: (1) write the commit message to a temp file and use `git commit -F` (or multiple `-m` flags), never an inline here-string; (2) print `git status` and confirm the staged set matches the user's stated scope **exactly** before staging — nothing else, and never another session's in-progress files; (3) reach `main` only via a PR-based **squash** merge with all required CI green; (4) after merge, verify a clean tree on an up-to-date `main`. The rules below are the WoW-suite specifics that sit on top of that baseline.
-
-**Routing:** when the user asks to ship a change — "ship it", "commit this", "open/make a PR", "/pr" — reach for the **`/pr` skill**, which runs branch → PR → CI-wait → squash-merge → verify-clean as one invocation. Prefer it over hand-rolling that loop as a string of `git`/`gh` Bash calls (repeating the ceremony per change is the main avoidable cost); drop to manual git only for steps `/pr` can't express.
+Every commit and merge follows a strict discipline: (1) write the commit message via `git commit -F <file>` or multiple `-m` flags, never an inline here-string; (2) confirm `git status` shows only the in-scope staged set before committing — nothing else; (3) reach `main` only via a PR-based **squash** merge with all required CI green; (4) after merge, verify a clean tree on an up-to-date `main`. The rules below are the WoW-suite specifics on top of that baseline.
 
 - Follow the [Conventional Commits](https://www.conventionalcommits.org/) spec (`type(scope): summary`, e.g. `feat(detail): show suggested gear upgrade`). Types: `feat`, `fix`, `doc`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert` (note `doc`, not `docs` — see below). Use `doc:` for doc-only changes.
 - Keep messages to a short one-liner. Let the code speak for itself — through being simple and clear, or via documentation and comments — rather than explaining it in the commit body.
-- Write commit messages with multiple `-m` flags or a temp file (`git commit -F`) — **never** bash/PowerShell here-strings, which reliably mangle messages in this environment. The same applies to **PR and issue bodies**: generate them with the **Write tool** into the scratchpad and pass via `--body-file` (or `-F`), never a `cat <<EOF` heredoc — one uniform, mangle-proof path for every multi-line body.
-- Only stage files explicitly in scope for the current task. Never stage another session's in-progress work, and never merge a whole branch when only a subset of changes was requested — confirm scope before staging, committing, or merging.
+- Write commit messages and PR/issue bodies via `-F`/`--body-file` or multiple `-m` flags — never shell here-strings or `cat <<EOF` heredocs, which mangle multi-line messages.
+- Only stage files explicitly in scope for the current task, and never merge a whole branch when only a subset of changes was requested — confirm scope before staging, committing, or merging.
 
 ## Versioning
 
