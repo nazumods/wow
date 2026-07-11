@@ -8,6 +8,7 @@ return {
       "ShadowsOfUI-Upgrade/spec",
       "Warbandeer_Bars/spec",
       "ShadowsOfUI-Collectibles/spec",
+      "ShadowsOfUI-HousingVendor/spec",
       "ShadowsOfUI-Known/spec",
     },
     lpath = "?.lua",
