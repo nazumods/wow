@@ -100,11 +100,10 @@ end
 
 ## Git & Commits
 
-Every commit and merge follows a strict discipline: (1) write the commit message via `git commit -F <file>` or multiple `-m` flags, never an inline here-string; (2) confirm `git status` shows only the in-scope staged set before committing — nothing else; (3) reach `main` only via a PR-based **squash** merge with all required CI green; (4) after merge, verify a clean tree on an up-to-date `main`. The rules below are the WoW-suite specifics on top of that baseline.
+Every commit and merge follows a strict discipline: (1) provide the commit message (and any PR/issue body) via `git commit -F <file>` / `--body-file` or multiple `-m` flags, never an inline here-string or `cat <<EOF` heredoc; (2) confirm `git status` shows only the in-scope staged set before committing — nothing else; (3) reach `main` only via a PR-based **squash** merge with all required CI green; (4) after merge, verify a clean tree on an up-to-date `main`. The rules below are the WoW-suite specifics on top of that baseline.
 
 - Follow the [Conventional Commits](https://www.conventionalcommits.org/) spec (`type(scope): summary`, e.g. `feat(detail): show suggested gear upgrade`). Types: `feat`, `fix`, `doc`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert` (note `doc`, not `docs` — see below). Use `doc:` for doc-only changes.
 - Keep messages to a short one-liner. Let the code speak for itself — through being simple and clear, or via documentation and comments — rather than explaining it in the commit body.
-- Write commit messages and PR/issue bodies via `-F`/`--body-file` or multiple `-m` flags — never shell here-strings or `cat <<EOF` heredocs, which mangle multi-line messages.
 - Only stage files explicitly in scope for the current task, and never merge a whole branch when only a subset of changes was requested — confirm scope before staging, committing, or merging.
 
 ## Versioning
@@ -128,7 +127,7 @@ Keep individual files to **200–300 lines maximum**. If a file grows beyond tha
 WoW-API-free code (currently LibNAddOn's `ns.lua.*` modules) has busted specs in `<addon>/spec/` inside each addon folder. Run the whole suite from the AddOns root:
 
 ```
-~\.lua51\bin\busted.bat
+busted
 ```
 
 - Spec roots are listed in `.busted` at the repo root (`ROOT = {...}`) — add the addon's `spec/` dir there when giving a new addon tests.
