@@ -112,7 +112,7 @@ end
 
 - Follow the [Conventional Commits](https://www.conventionalcommits.org/) spec (`type(scope): summary`, e.g. `feat(detail): show suggested gear upgrade`). Types: `feat`, `fix`, `doc`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert` (note `doc`, not `docs` — see below). Use `doc:` for doc-only changes.
 - Keep messages to a short one-liner. Let the code speak for itself — through being simple and clear, or via documentation and comments — rather than explaining it in the commit body.
-- Write commit messages with multiple `-m` flags or a temp file (`git commit -F`) — **never** bash/PowerShell here-strings, which reliably mangle messages in this environment.
+- Write commit messages with multiple `-m` flags or a temp file (`git commit -F`) — **never** bash/PowerShell here-strings, which reliably mangle messages in this environment. The same applies to **PR and issue bodies**: generate them with the **Write tool** into the scratchpad and pass via `--body-file` (or `-F`), never a `cat <<EOF` heredoc — one uniform, mangle-proof path for every multi-line body.
 - Only stage files explicitly in scope for the current task. Never stage another session's in-progress work, and never merge a whole branch when only a subset of changes was requested — confirm scope before staging, committing, or merging.
 
 ## Versioning
