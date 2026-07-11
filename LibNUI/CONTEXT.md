@@ -39,6 +39,7 @@ OOP UI widget library. Every widget wraps a backing WoW object (`self._widget`) 
 | `Badge.lua` | `Badge` — inline status pill: short coloured text on a subtle fill, auto-sized to the text (`_fit` on `Text` set); optional `tooltip` legend. For "[B]"-style markers beside a name |
 | `TextLink.lua` | `TextLink` — text-only hyperlink: accent label, brightens to `text` colour on hover, `onClick`; auto-sizes to its text (`Text(v)` re-fits). For About-panel links / inline actions where a full Button is too heavy |
 | `SortableHeaderRow.lua` | `SortableHeaderRow` — standalone clickable column-header strip for lists **not** built on TableFrame (e.g. above a VirtualList; TableFrame has its own opt-in sortable columns). `columns` = `{key,label,width,justifyH?,descFirst?}[]`; click selects a column (ascending, or `descFirst`), re-click flips; active column renders accent + arrow texture. `onSort(self,key,desc)` fires on user clicks; `Sort(key?,desc?)` gets/sets silently |
+| `BarsPreview.lua` | `BarsPreview` — read-only action-bar layout preview: renders a captured profile in its **real on-screen orientation** (horizontal bars stacked in a left column, vertical bars beside them, the true stance bars in a gold-outlined group below) from the per-profile `barLayout` captured via `ns.wow.ReadActionBars()`. Consumer-agnostic: icon/name **resolvers** (`resolveIcon/resolveName/resolvePetIcon/resolvePetName`) supply per-slot media (each addon's own profile slot schema), the styling colours are options, and an optional `editLayoutFor(profile)` supplies an orientation fallback. Programmatic, class-agnostic **stance detection** (a Class/Bonus/Sky page is a stance bar only when it replaces Bar 1 via `barLayout.mainPage`); empty stance pages hidden; pet grouped with the stance bars; vertical bars get a stacked label. `Set(profile)`, `HighlightBar(bar, on)`. Shared by Warbandeer's Bars preview and ABM |
 | `CleanFrame.lua` | `CleanFrame` — styled dark frame with tooltip border (base for windows); `BorderColor(c)` recolours the border at runtime (accent-bordered panels) |
 | `Cell.lua` | `Cell` — table cell (Frame); renders as Label or Texture, reused across re-sorts via `update`. Label cell-data keys: `text`, `color`, `justifyH`, `font` (font-object name), `fontInfo` (`{path,size}` tuple, re-applied on reuse) |
 | `TableCol.lua` | `TableCol` — column header (BgFrame); content surfaced as `header.label`/`header.texture`. `sortable` makes the header a clickable Button reporting to `onHeaderClick` (+ reserves room for an up/down arrow); `SetSortState(active, desc)` styles it (active = accent + arrow, inactive = muted) — driven by TableFrame's sort state |
@@ -87,6 +88,7 @@ Region
      ├─ Badge
      ├─ TextLink
      ├─ SortableHeaderRow
+     ├─ BarsPreview
      ├─ Cell
      ├─ TabFrame
      ├─ FilterDropdown
@@ -188,6 +190,7 @@ Any key matching a method on the instance is valid; tables are unpacked, scalars
 | `Badge` | inherits Frame; `text`, `color` (`"header"`), `fill` (`"backdrop"`), `tooltip`; auto-sizes to text. Methods: `Text` (re-fits) |
 | `TextLink` | inherits Frame (`type="Button"`); `text`, `color` (`"header"`), `hoverColor` (`"text"`), `onClick(self)`; auto-sizes. Methods: `Text` (re-fits) |
 | `SortableHeaderRow` | inherits Frame; `columns` (`{key,label,width,justifyH?,descFirst?}[]`), `sortKey`/`sortDesc` (initial), `height` (20), `gap` (2), `onSort(self,key,desc)`. Methods: `Sort(key?,desc?)` (get/set, no fire) |
+| `BarsPreview` | inherits Frame; slot resolvers `resolveIcon(slot,macroMap)→tex`, `resolveName(slot,macroMap)→str?`, `resolvePetIcon(slot)→tex`, `resolvePetName(slot)→str?`; `editLayoutFor(profile)→{[sys]=info}?` (optional orientation fallback); colours `rowColor` (`{1,1,1,0.05}`), `highlightColor` (`{0.9,0.8,0.5,0.15}`), `labelColor` (`"muted"`), `stanceColor` (`{1,0.82,0,0.35}`); `labelFontInfo` (`{path,size}`). Methods: `Set(profile)`, `HighlightBar(profileBar, on)` |
 | `AutoWidget` | `parent`, `onClick`, `path`, `atlas`, `atlasSize`, `coords`, `vertexColor`, `position`, `label`, `font`, `color`, `justifyH` |
 | `EditBox` | `fontObj`, `autoFocus`, `text`, `cursorPosition` |
 | `CleanFrame` | `parent` (`UIParent`), `clamped` (true), `strata` (`MEDIUM`), `background` (`{0.114,0.141,0.165,1}`) |

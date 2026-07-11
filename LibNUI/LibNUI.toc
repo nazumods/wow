@@ -49,6 +49,7 @@ IconListItem.lua
 Badge.lua
 TextLink.lua
 SortableHeaderRow.lua
+BarsPreview.lua
 
 # "Clean UI" classes
 CleanFrame.lua

@@ -136,6 +136,7 @@ Region
     ├── Badge
     ├── TextLink
     ├── SortableHeaderRow
+    ├── BarsPreview
     ├── MinimapButton
     ├── Cell
     ├── Dialog
