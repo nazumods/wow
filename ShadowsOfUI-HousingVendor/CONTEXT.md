@@ -31,14 +31,16 @@ One synchronous call drives everything: `C_HousingCatalog.GetCatalogEntryInfoByI
 Overlay is a `Frame` one level above each merchant item button, built lazily and reused. Three indicators, each in a corner clear of Blizzard's own stack-count number (bottom-right):
 
 - **count** — `NUMBER_FONT` (Arial Narrow) FontString, **bottom-left**; the `stored` number (white; dim grey when `stored == 0` but owned). Gated on `db.countBadge`.
-- **star** — Texture `Interface\TargetingFrame\UI-RaidTargetingIcon_1` (yellow star), **top-right**; shown when `bonusAvailable`. Gated on `db.bonusBadge`.
+- **star** — Texture atlas `auctionhouse-icon-favorite` (the gold favourite star the AH/profession windows use), **top-left**; shown when `bonusAvailable`. Gated on `db.bonusBadge`.
 - **check** — Texture `Interface\RaidFrame\ReadyCheck-Ready` (green check), **top-left**; shown when `owned`. Gated on `db.ownedCheck` (default off).
+
+The star and check share the top-left corner: `bonusAvailable` requires `total == 0` (unowned) and `owned` requires `total > 0`, so they are mutually exclusive and never both show. Top-right is deliberately left free for other addons' unowned-item markers.
 
 `updateMerchant` cleans then repaints all `MERCHANT_ITEMS_PER_PAGE` buttons (`_G["MerchantItem"..i.."ItemButton"]`, `GetMerchantItemLink((page-1)*perPage + i)`). Installed via `hooksecurefunc("MerchantFrame_UpdateMerchantInfo", …)` (runs after Blizzard repaints from scratch) + registered as a refresher (settings change re-renders the open window). `HOUSING_STORAGE_UPDATED` wipes the cache and repaints. `ns:onLogin` calls `C_HousingCatalog.CreateCatalogSearcher()` to prime owned-state (unavailable immediately after login).
 
 ## Gotchas
 
-- **File-stable, glyph-free indicators.** The star/check are `.blp` file textures (`UI-RaidTargetingIcon_1`, `ReadyCheck-Ready`) present in every client — chosen over atlas names (which Blizzard churns across patches) and over ★/✓ glyphs (not in every font). Count uses digits only.
+- **Glyph-free indicators.** The star is the `auctionhouse-icon-favorite` atlas (a widely-used, stable gold star that reads cleanly at ~14px); the check is the `ReadyCheck-Ready` `.blp` file texture; the count is digits. All avoid ★/✓ glyphs (not in every font). Note the individual raid-target-icon *files* (`UI-RaidTargetingIcon_N`) exist only for chat `|T…|t` markup — `SetTexture` on them fails to a broken-texture fallback, so the star uses the favourite **atlas**, not that path.
 - **`ns.db` is nil at file-load** — the surface reads it at runtime via `db(key)`; overlays build lazily on first paint.
 - **Owned but `stored == 0`** is a real state (every copy placed) — the count badge shows a dimmed `0`, not nothing, so "owned, none to place" stays legible.
 - **Catalog primes late.** Owned counts are empty for a moment after login; the login searcher + `HOUSING_STORAGE_UPDATED` refresh cover it, and unresolved decor is left uncached so it fills in rather than sticking blank.

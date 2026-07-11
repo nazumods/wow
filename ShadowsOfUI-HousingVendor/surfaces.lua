@@ -4,8 +4,8 @@ local ns = select(2, ...)
 local function db(key) return ns.db and ns.db[key] end
 
 local NUMBER_FONT = "Fonts\\ARIALN.TTF"
-local STAR_TEX = "Interface\\TargetingFrame\\UI-RaidTargetingIcon_1"  -- yellow star
-local CHECK_TEX = "Interface\\RaidFrame\\ReadyCheck-Ready"            -- green check
+local STAR_ATLAS = "auctionhouse-icon-favorite"           -- gold star (AH/profession favourite)
+local CHECK_TEX = "Interface\\RaidFrame\\ReadyCheck-Ready" -- green check
 
 -- Overlay layer for a merchant item button: a frame one level above the icon with
 -- three indicators, each in a corner clear of Blizzard's own stack-count number
@@ -17,14 +17,16 @@ local function ensureOverlay(button)
   o:SetFrameLevel(button:GetFrameLevel() + 1)
 
   local count = o:CreateFontString(nil, "OVERLAY")
-  count:SetFont(NUMBER_FONT, 13, "OUTLINE")
-  count:SetPoint("BOTTOMLEFT", 2, 2)
+  count:SetFont(NUMBER_FONT, 12, "OUTLINE")
+  count:SetPoint("BOTTOMLEFT", 4, 4)
   o.count = count
 
+  -- Star (unowned + bonus) and check (owned) are mutually exclusive, so they share
+  -- the top-left corner. Top-right is left free for other addons' unowned markers.
   local star = o:CreateTexture(nil, "OVERLAY")
-  star:SetTexture(STAR_TEX)
-  star:SetSize(13, 13)
-  star:SetPoint("TOPRIGHT", -1, -1)
+  star:SetAtlas(STAR_ATLAS)
+  star:SetSize(14, 14)
+  star:SetPoint("TOPLEFT", 1, -1)
   o.star = star
 
   local check = o:CreateTexture(nil, "OVERLAY")
