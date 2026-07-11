@@ -6,6 +6,10 @@
 
 The `CONTEXT.md` index covers the **suite**. For an unfamiliar **third-party** addon it doesn't cover (e.g. Bagnon/BagBrother, ClassCodex) — typically to design an integration seam against it — prefer an **Explore agent** to answer the specific question ("how does X create frame Y, and what's the stable path to reach it?") over inline Grep + full-file Reads. The agent returns just the conclusion, keeping that addon's large source files out of the main context.
 
+## Searching & Reading Files
+
+Route code search and file reads through the dedicated tools, not the shell: content search → the **Grep tool** (regex alternation `A|B|C`, `glob`/`type` filters, and `path` to scope to any directory — including reference repos like `wow-ui-source` — with clickable results); file discovery → the **Glob tool** (`**/*.lua`); reading a file → the **Read tool**. Reserve the shell for genuine compounds a single tool can't express (a `grep` piped into `sed -n`, or piping `| head -N`/`| tail -N` onto a real command like git/luacheck/busted).
+
 ## Project Overview
 
 WoW Retail addon suite by Nazuraki (Interface 120000+). No build step, no package manager. Testing is done in-game via `/reload`, except WoW-API-free modules which have busted unit tests.
