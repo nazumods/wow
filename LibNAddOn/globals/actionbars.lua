@@ -21,8 +21,11 @@ local BLIZZ_BARS = {
 
 -- Current paged action slot for a button, or nil if it isn't an action button.
 -- LibActionButton buttons expose _state_type/_state_action; Blizzard buttons carry
--- a plain .action field.
-local function actionSlot(btn)
+-- a plain .action field. Public so consumers that need the buttons themselves (e.g.
+-- an on-screen bar-label overlay) can share this instead of re-deriving it.
+---@param btn table an action button frame (LibActionButton or Blizzard)
+---@return integer? slot the paged action slot (1-180), or nil if not an action button
+function ns.wow.actionSlotOf(btn)
   local t = btn._state_type
   if t == nil then
     local a = btn.action
@@ -85,8 +88,13 @@ function ns.wow.classifyBarRects(rects)
   }
 end
 
--- Gather every candidate action button on screen from both sources.
-local function collectButtons(out)
+-- Gather every candidate action button on screen from both sources (LibActionButton
+-- bars → Bartender/Dominos/ElvUI, plus the Blizzard default bars). Public so consumers
+-- that anchor to the buttons themselves can share this discovery instead of duplicating
+-- the LAB + name-scan collection.
+---@return table[] buttons array of action button frames
+function ns.wow.collectActionButtons()
+  local out = {}
   local LAB = LibStub and LibStub("LibActionButton-1.0", true)
   if LAB and LAB.GetAllButtons then
     for btn in pairs(LAB:GetAllButtons()) do out[#out + 1] = btn end
@@ -97,6 +105,7 @@ local function collectButtons(out)
       if b then out[#out + 1] = b end
     end
   end
+  return out
 end
 
 -- Read the live action bars into a per-bar layout map keyed by slot-range bar
@@ -108,13 +117,12 @@ end
 -- preview.
 ---@return table<integer, table>  bar → { orientation, numIcons, numRows, enabled }
 function ns.wow.ReadActionBars()
-  local buttons = {}
-  collectButtons(buttons)
+  local buttons = ns.wow.collectActionButtons()
 
   local byBar = {}
   for _, b in ipairs(buttons) do
     if b:IsVisible() then
-      local slot = actionSlot(b)
+      local slot = ns.wow.actionSlotOf(b)
       if slot and slot >= 1 and slot <= 180 then
         local l, r, bo, t = b:GetLeft(), b:GetRight(), b:GetBottom(), b:GetTop()
         if l and r and bo and t then
@@ -160,7 +168,7 @@ function ns.wow.ReadActionBars()
   -- real stance bar (it replaces Bar 1) from a dedicated bar that merely uses
   -- class-page slots, programmatically and class-agnostically.
   local mainBtn = _G.ActionButton1
-  local mainSlot = mainBtn and actionSlot(mainBtn)
+  local mainSlot = mainBtn and ns.wow.actionSlotOf(mainBtn)
   if mainSlot then out.mainPage = floor((mainSlot - 1) / 12) + 1 end
 
   return out
