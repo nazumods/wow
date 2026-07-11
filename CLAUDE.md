@@ -127,7 +127,7 @@ Keep individual files to **200–300 lines maximum**. If a file grows beyond tha
 WoW-API-free code (currently LibNAddOn's `ns.lua.*` modules) has busted specs in `<addon>/spec/` inside each addon folder. Run the whole suite from the AddOns root:
 
 ```
-busted
+~\.lua51\bin\busted.bat
 ```
 
 - Spec roots are listed in `.busted` at the repo root (`ROOT = {...}`) — add the addon's `spec/` dir there when giving a new addon tests.
