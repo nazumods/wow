@@ -11,21 +11,24 @@ end
 
 local function makeProfile()
   local slots = {}
-  fillBar(slots, 1,  12)   -- Bar 1 (horizontal)
-  fillBar(slots, 49, 12)   -- Bar 3 / internal bar 5 (make it vertical below)
-  fillBar(slots, 73, 8)    -- Class 1 / internal bar 7 (stance page)
+  fillBar(slots, 1,  12)   -- Bar 1  (internal bar 1,  horizontal, bottom-centre)
+  fillBar(slots, 61, 12)   -- Bar 2  (internal bar 6,  horizontal, bottom-left)
+  fillBar(slots, 49, 12)   -- Bar 3  (internal bar 5,  vertical, right)
+  fillBar(slots, 73, 8)    -- Class 1 (internal bar 7, stance page — no barLayout entry)
   return {
     char  = "Testchar",
     spec  = "Preview",
     slots = slots,
     petslots = { { id = 1, type = "spell", index = 1 }, { id = 2, type = "spell", index = 1 } },
     binds = { { command = "ACTIONBUTTON1", key1 = "1" }, { command = "ACTIONBUTTON2", key1 = "SHIFT-2" } },
-    -- Real geometry: Bar 1 horizontal, internal bar 5 vertical, Class 1 + pet present.
+    -- Real geometry with screen positions → condensed-topographic layout: Bar 2
+    -- bottom-left, Bar 1 bottom-centre, Bar 3 vertical upper-right. Class 1 has no
+    -- barLayout entry (an inactive page) so it renders in the stance group with Pet.
     barLayout = {
-      [1]  = { orientation = 0, numIcons = 12, numRows = 1, enabled = true },
-      [5]  = { orientation = 1, numIcons = 12, numRows = 1, enabled = true },
-      [7]  = { orientation = 0, numIcons = 8,  numRows = 1, enabled = true },
-      pet  = { orientation = 0, numIcons = 2,  numRows = 1, enabled = true },
+      [1] = { orientation = 0, numIcons = 12, numRows = 1, enabled = true, x = 300, y = 40  },
+      [6] = { orientation = 0, numIcons = 12, numRows = 1, enabled = true, x = 40,  y = 40  },
+      [5] = { orientation = 1, numIcons = 12, numRows = 1, enabled = true, x = 700, y = 300 },
+      pet = { orientation = 0, numIcons = 2,  numRows = 1, enabled = true },
       mainPage = 1,
     },
   }

@@ -387,7 +387,7 @@ function BarsPreview:Set(profile)
 
   local n = 0
   self._rowByBar = {}
-  local hRows, vRows, sRows = {}, {}, {}
+  local normalBars, sRows = {}, {}
   for _, def in ipairs(BAR_ORDER) do
     local info, render, base, stance
     if def.pet then
@@ -418,62 +418,156 @@ function BarsPreview:Set(profile)
     if render then
       n = n + 1
       local isVert = self:_showBar(n, def, base, info, slotMap, macroMap, bindMap, petMap, stance)
-      if stance then sRows[#sRows + 1] = n
-      elseif isVert then vRows[#vRows + 1] = n
-      else hRows[#hRows + 1] = n end
+      if stance then
+        sRows[#sRows + 1] = n
+      else
+        -- Normal bars are placed by their real on-screen position (below).
+        normalBars[#normalBars + 1] = { idx = n, x = (info and info.x) or 0, y = (info and info.y) or 0, vert = isVert }
+      end
     end
   end
   for j = n + 1, self._numBars do self._barRows[j].rf:Hide() end
   self._numBars = n
 
-  -- Three areas: (1) normal horizontal bars stack top-to-bottom in a left column;
-  -- (2) normal vertical bars sit side by side to its right; (3) the true stance bars
-  -- stack horizontally in a gold-outlined area below both.
-  local hMaxW = 0
-  for _, ri in ipairs(hRows) do hMaxW = math.max(hMaxW, self._barRows[ri].rf:Width()) end
-
-  local hy = -P
-  for _, ri in ipairs(hRows) do
-    local rf = self._barRows[ri].rf
-    rf:ClearAllPoints()
-    rf._widget:SetPoint("TOPLEFT", self._widget, "TOPLEFT", P, hy)
-    hy = hy - rf:Height() - BAR_GAP
+  -- Normal bars (a fixed on-screen home) mirror their real topography, condensed:
+  -- the HORIZONTAL bars form a coordinate-compressed block (screen X→columns, Y→rows,
+  -- gaps removed, order + orientation preserved); the VERTICAL bars stack side-by-side
+  -- at the same height, docked to whichever side (left/right) they really sit relative
+  -- to the horizontal bars. Stance/Sky pages replace Bar 1 (no fixed home) + the pet
+  -- sit in a gold-outlined group centred below. Falls back to a single stacked column
+  -- when a profile predates barLayout (no positions).
+  local EPS = 20  -- screen px within which bars share a column/row
+  local function compress(bars, getAxis, descending)
+    local seen = {}
+    for _, b in ipairs(bars) do seen[getAxis(b)] = true end
+    local sorted = {}
+    for v in pairs(seen) do sorted[#sorted + 1] = v end
+    table.sort(sorted, function(a, c) if descending then return a > c else return a < c end end)
+    local idx, cur, last = {}, 0, nil
+    for _, v in ipairs(sorted) do
+      if last == nil or math.abs(v - last) > EPS then cur = cur + 1 end
+      idx[v], last = cur, v
+    end
+    return idx
   end
-  local hBottom = (#hRows > 0) and (hy + BAR_GAP) or -P
-
-  local vx, vMaxH = P + hMaxW + (#hRows > 0 and GAP or 0), 0
-  for _, ri in ipairs(vRows) do
-    local rf = self._barRows[ri].rf
-    rf:ClearAllPoints()
-    rf._widget:SetPoint("TOPLEFT", self._widget, "TOPLEFT", vx, -P)
-    vx = vx + rf:Width() + GAP
-    vMaxH = math.max(vMaxH, rf:Height())
+  local function avgX(bars)
+    if #bars == 0 then return 0 end
+    local s = 0; for _, b in ipairs(bars) do s = s + b.x end; return s / #bars
   end
-  local vBottom = (#vRows > 0) and (-P - vMaxH) or -P
 
-  -- Stance area: start a gap below the taller of the two top areas (or at the top if
-  -- there are no normal bars). All stance bars are horizontal, so they stack cleanly.
-  local topBottom = math.min(hBottom, vBottom)
-  local sTop = ((#hRows > 0 or #vRows > 0) and #sRows > 0) and (topBottom - GAP - STANCE_PAD) or -P
-  local sy, sMaxW = sTop, 0
+  local topoRight, topoBottom = P, -P
+  local hBottomY, hCenterX = -P, P  -- horizontal block's bottom + centre (stance anchors here)
+  if #normalBars > 0 then
+    local hasPos = false
+    for _, b in ipairs(normalBars) do if b.x ~= 0 or b.y ~= 0 then hasPos = true; break end end
+
+    if not hasPos then
+      local yy = -P
+      for _, b in ipairs(normalBars) do
+        local rf = self._barRows[b.idx].rf
+        rf:ClearAllPoints()
+        rf._widget:SetPoint("TOPLEFT", self._widget, "TOPLEFT", P, yy)
+        topoRight = math.max(topoRight, P + rf:Width())
+        yy = yy - rf:Height() - BAR_GAP
+      end
+      topoBottom = yy + BAR_GAP
+      hBottomY, hCenterX = topoBottom, P + (topoRight - P) / 2
+    else
+      local hBars, vBars = {}, {}
+      for _, b in ipairs(normalBars) do
+        if b.vert then vBars[#vBars + 1] = b else hBars[#hBars + 1] = b end
+      end
+
+      -- Horizontal block: coordinate-compressed grid, local offsets from (0,0).
+      local hW, hH = 0, 0
+      if #hBars > 0 then
+        local colOf = compress(hBars, function(b) return b.x end, false)
+        local rowOf = compress(hBars, function(b) return b.y end, true)  -- higher screen-Y = upper row
+        local colW, rowH, nCols, nRows = {}, {}, 0, 0
+        for _, b in ipairs(hBars) do
+          local rf = self._barRows[b.idx].rf
+          b.col, b.row = colOf[b.x], rowOf[b.y]
+          colW[b.col] = math.max(colW[b.col] or 0, rf:Width())
+          rowH[b.row] = math.max(rowH[b.row] or 0, rf:Height())
+          nCols = math.max(nCols, b.col); nRows = math.max(nRows, b.row)
+        end
+        local colX, rowYo, xa, ya = {}, {}, 0, 0
+        for c = 1, nCols do colX[c] = xa; xa = xa + (colW[c] or 0) + GAP end
+        for r = 1, nRows do rowYo[r] = ya; ya = ya + (rowH[r] or 0) + BAR_GAP end
+        for _, b in ipairs(hBars) do b.lx, b.ly = colX[b.col], rowYo[b.row] end
+        hW, hH = math.max(0, xa - GAP), math.max(0, ya - BAR_GAP)
+      end
+
+      -- Vertical block: side-by-side in screen-X order, all top-aligned.
+      local vW, vH = 0, 0
+      if #vBars > 0 then
+        table.sort(vBars, function(a, c) return a.x < c.x end)
+        local xa = 0
+        for _, b in ipairs(vBars) do
+          local rf = self._barRows[b.idx].rf
+          b.lx, b.ly = xa, 0
+          xa = xa + rf:Width() + GAP
+          vH = math.max(vH, rf:Height())
+        end
+        vW = math.max(0, xa - GAP)
+      end
+
+      -- Dock the vertical block on the side matching its real screen-X vs the
+      -- horizontal bars (right for a right-side setup, left for a left-side one).
+      local vRight = (#hBars == 0) or (avgX(vBars) >= avgX(hBars))
+      local hBaseX, vBaseX
+      if vRight then
+        hBaseX = P
+        vBaseX = P + hW + (hW > 0 and GAP or 0)
+      else
+        vBaseX = P
+        hBaseX = P + vW + (vW > 0 and GAP or 0)
+      end
+
+      for _, b in ipairs(hBars) do
+        local rf = self._barRows[b.idx].rf
+        rf:ClearAllPoints()
+        rf._widget:SetPoint("TOPLEFT", self._widget, "TOPLEFT", hBaseX + b.lx, -(P + b.ly))
+      end
+      for _, b in ipairs(vBars) do
+        local rf = self._barRows[b.idx].rf
+        rf:ClearAllPoints()
+        rf._widget:SetPoint("TOPLEFT", self._widget, "TOPLEFT", vBaseX + b.lx, -(P + b.ly))
+      end
+
+      topoRight  = math.max((#hBars > 0 and hBaseX + hW or P), (#vBars > 0 and vBaseX + vW or P))
+      topoBottom = -(P + math.max(hH, vH))
+      if #hBars > 0 then
+        hBottomY, hCenterX = -(P + hH), hBaseX + hW / 2
+      else
+        hBottomY, hCenterX = topoBottom, P + (topoRight - P) / 2
+      end
+    end
+  end
+
+  -- Stance / Sky / pet group: measured, then placed horizontally CENTRED over the
+  -- content width, in a single gold outline below the topographic area.
+  local sMaxW = 0
+  for _, ri in ipairs(sRows) do sMaxW = math.max(sMaxW, self._barRows[ri].rf:Width()) end
+  local contentW = math.max(topoRight - P, sMaxW)
+  -- Tuck the group just under the HORIZONTAL block (not below the taller vertical
+  -- bars), centred on it — it fills the empty space beneath the horizontal bars.
+  local centerX = (#normalBars > 0) and hCenterX or (P + sMaxW / 2)
+  local sTop = (#normalBars > 0 and #sRows > 0) and (hBottomY - GAP - STANCE_PAD) or -P
+  local sy = sTop
   for _, ri in ipairs(sRows) do
     local rf = self._barRows[ri].rf
     rf:ClearAllPoints()
-    rf._widget:SetPoint("TOPLEFT", self._widget, "TOPLEFT", P, sy)
+    rf._widget:SetPoint("TOPLEFT", self._widget, "TOPLEFT", centerX - rf:Width() / 2, sy)
     sy = sy - rf:Height() - BAR_GAP
-    sMaxW = math.max(sMaxW, rf:Width())
   end
-  local sBottom = (#sRows > 0) and (sy + BAR_GAP) or topBottom
+  local sBottom = (#sRows > 0) and (sy + BAR_GAP) or topoBottom
 
-  -- Single outline around the whole stance area.
-  self:_stanceOutline(P, sTop, P + sMaxW, sBottom, #sRows > 0)
+  self:_stanceOutline(centerX - sMaxW / 2, sTop, centerX + sMaxW / 2, sBottom, #sRows > 0)
 
-  -- Resize self to fit all three areas (stance outline adds a little padding).
-  local rightEdge = P + hMaxW
-  if #vRows > 0 then rightEdge = math.max(rightEdge, vx - GAP) end
-  if #sRows > 0 then rightEdge = math.max(rightEdge, P + sMaxW + STANCE_PAD) end
-  local bottomEdge = math.min(hBottom, vBottom, sBottom - (#sRows > 0 and STANCE_PAD or 0))
-  self:Width(math.max(rightEdge + P, P + 80 + P))
+  -- Resize self to fit the content width + both areas' depth.
+  local bottomEdge = math.min(topoBottom, sBottom - (#sRows > 0 and STANCE_PAD or 0))
+  self:Width(math.max(P + contentW + P, P + 80 + P))
   self:Height(-bottomEdge + P)
   self:Show()
 end

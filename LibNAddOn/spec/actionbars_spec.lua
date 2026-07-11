@@ -34,6 +34,12 @@ describe("LibNAddOn ns.wow.classifyBarRects", function()
     assert.equal(1, info.numRows)
   end)
 
+  it("reports the bounding-box screen left/top as x/y", function()
+    local info = classify({ rect(100, 50, 36, 36), rect(140, 50, 36, 36) })
+    assert.equal(100, info.x)   -- leftmost left edge
+    assert.equal(86, info.y)    -- top = bottom(50) + height(36)
+  end)
+
   it("classifies a single-column vertical bar", function()
     local info = classify(grid(1, 12))
     assert.equal(1, info.orientation)
