@@ -24,6 +24,7 @@ accordion.lua
 primitives.lua
 polish.lua
 sortlist.lua
+barspreview.lua
 delvecard.lua
 minimapbutton.lua
 filterdropdown.lua
