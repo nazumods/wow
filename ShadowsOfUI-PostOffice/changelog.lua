@@ -6,6 +6,11 @@ local ns = select(2, ...)
 -- conventional-commit grouping used for the GitHub/CurseForge release notes.
 ---@type { version: string, notes: string }[]
 ns.changelog = {
+  { version = "12.0.7-r5", notes = [==[
+### Bug Fixes
+- reagent-bag edge cases + LibNAddOn enforce round-trip (#447) (#459)
+
+]==] },
   { version = "12.0.7-r4", notes = [==[
 ### Bug Fixes
 - forward attachments into the reagent bag and tear down on mailbox close (#450)

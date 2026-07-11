@@ -6,6 +6,15 @@ local ns = select(2, ...)
 -- same conventional-commit grouping used for the GitHub/CurseForge release notes.
 ---@type { version: string, notes: string }[]
 ns.changelog = {
+  { version = "12.0.7-r19", notes = [==[
+### Features
+- add a Dragonflight tab and group seasonal reps to the bottom (#457)
+- flag claimable paragon rewards with a pulsing bag + picker badge (#456)
+
+### Bug Fixes
+- view/data consistency fixes + QuestXP sub-1% display (#448) (#458)
+
+]==] },
   { version = "12.0.7-r18", notes = [==[
 ### Features
 - flag characters with uncaptured profession detail (#434)

@@ -6,6 +6,11 @@ local ns = select(2, ...)
 -- conventional-commit grouping used for the GitHub/CurseForge release notes.
 ---@type { version: string, notes: string }[]
 ns.changelog = {
+  { version = "12.0.7-r5", notes = [==[
+### Documentation
+- correct five drifted doc/comment/annotation spots (#455)
+
+]==] },
   { version = "12.0.7-r4", notes = [==[
 ### Features
 - show avg XP + XP/hr on delve pin tooltip (leveling) (#414)
