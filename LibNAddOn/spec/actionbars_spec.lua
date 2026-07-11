@@ -62,3 +62,87 @@ describe("LibNAddOn ns.wow.classifyBarRects", function()
     assert.equal(1, info.numRows)
   end)
 end)
+
+-- ns.wow.actionSlotOf reads a button's paged slot from either the LibActionButton
+-- state fields or a Blizzard button's plain .action — no WoW API, so it's testable
+-- with plain fake button tables.
+describe("LibNAddOn ns.wow.actionSlotOf", function()
+  local slotOf
+
+  before_each(function()
+    local ns = {}
+    assert(loadfile("LibNAddOn/globals/actionbars.lua"))("LibNAddOn", ns)
+    slotOf = ns.wow.actionSlotOf
+  end)
+
+  it("reads a LibActionButton action button's paged slot", function()
+    assert.equal(42, slotOf({ _state_type = "action", _state_action = 42 }))
+  end)
+
+  it("ignores a LibActionButton button in a non-action state", function()
+    assert.is_nil(slotOf({ _state_type = "pet", _state_action = 3 }))
+  end)
+
+  it("ignores an action-state button with no numeric slot", function()
+    assert.is_nil(slotOf({ _state_type = "action", _state_action = nil }))
+  end)
+
+  it("reads a Blizzard button's .action slot", function()
+    assert.equal(7, slotOf({ action = 7 }))
+  end)
+
+  it("ignores a Blizzard button with a non-numeric action", function()
+    assert.is_nil(slotOf({ action = "nope" }))
+  end)
+
+  it("returns nil for a non-action button", function()
+    assert.is_nil(slotOf({}))
+  end)
+end)
+
+-- ns.wow.collectActionButtons gathers buttons from LibActionButton (if present) plus
+-- the Blizzard default bars by name. Scriptable via _G globals + a fake LibStub.
+describe("LibNAddOn ns.wow.collectActionButtons", function()
+  local collect
+  local created
+
+  before_each(function()
+    local ns = {}
+    assert(loadfile("LibNAddOn/globals/actionbars.lua"))("LibNAddOn", ns)
+    collect = ns.wow.collectActionButtons
+    created = {}
+  end)
+
+  after_each(function()
+    _G.LibStub = nil
+    for name in pairs(created) do _G[name] = nil end
+  end)
+
+  local function setGlobal(name, val) _G[name] = val; created[name] = true end
+
+  local function idSet(buttons)
+    local found = {}
+    for _, b in ipairs(buttons) do found[b.id] = true end
+    return found
+  end
+
+  it("returns Blizzard default-bar buttons when no LibActionButton is present", function()
+    _G.LibStub = function() return nil end
+    setGlobal("ActionButton1", { id = "ab1" })
+    setGlobal("MultiBarBottomLeftButton3", { id = "mbl3" })
+    local found = idSet(collect())
+    assert.is_true(found.ab1)
+    assert.is_true(found.mbl3)
+  end)
+
+  it("includes LibActionButton buttons plus the Blizzard fallback", function()
+    local labA, labB = { id = "labA" }, { id = "labB" }
+    local fakeLAB = { GetAllButtons = function() return { [labA] = true, [labB] = true } end }
+    _G.LibStub = function(name) return name == "LibActionButton-1.0" and fakeLAB or nil end
+    setGlobal("ActionButton1", { id = "ab1" })
+    local found = idSet(collect())
+    assert.is_true(found.labA)
+    assert.is_true(found.labB)
+    assert.is_true(found.ab1)
+  end)
+end)
