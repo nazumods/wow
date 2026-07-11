@@ -52,9 +52,10 @@ end
 -- `{ left, right, bottom, top }` in UI coordinates. Returns the fields the
 -- Warbandeer Bars preview's `_showBar` consumes — `orientation` (0=horizontal,
 -- 1=vertical), `numIcons`, and `numRows` (stacks along the short axis). Returns
--- nil for an empty rect list.
+-- nil for an empty rect list. `x`/`y` are the bounding box's screen left/top (UI
+-- coords), so a consumer can lay bars out by their real on-screen position.
 ---@param rects table[]  array of { left, right, bottom, top }
----@return table? info  { orientation = 0|1, numIcons = integer, numRows = integer }
+---@return table? info  { orientation = 0|1, numIcons = integer, numRows = integer, x = number, y = number }
 function ns.wow.classifyBarRects(rects)
   local n = #rects
   if n == 0 then return nil end
@@ -85,6 +86,8 @@ function ns.wow.classifyBarRects(rects)
     orientation = vertical and 1 or 0,
     numIcons    = n,
     numRows     = countClusters(centers, tol),
+    x           = minL,  -- bounding-box screen left
+    y           = maxT,  -- bounding-box screen top
   }
 end
 
@@ -110,7 +113,8 @@ end
 
 -- Read the live action bars into a per-bar layout map keyed by slot-range bar
 -- (`floor((slot-1)/12)+1`, 1-15 — the same bar model Warbandeer_Bars profiles use).
--- Each entry is `{ orientation, numIcons, numRows, enabled = true }`. Only bars with
+-- Each entry is `{ orientation, numIcons, numRows, enabled = true, x, y }` (x/y = the
+-- bar's bounding-box screen left/top, for laying bars out by real position). Only bars with
 -- visible, positioned buttons are included, so `enabled` reflects real on-screen state
 -- (an enabled-but-empty bar still reports, since its buttons are visible). Reads the
 -- currently logged-in character's bars — capture it per profile for a cross-character
