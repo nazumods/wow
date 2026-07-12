@@ -1,16 +1,24 @@
 ---@class ShadowsOfUI_HousingVendor: AddOn
 local ns = LibNAddOn(...)
 
--- Saved settings. Each overlay indicator is independently toggleable; the module
--- has a single surface (the merchant window), so there is no per-surface switch.
---   countBadge — the in-storage owned count, bottom-left of the icon
---   bonusBadge — the first-acquisition House XP bonus star, top-right
---   ownedCheck — a green "you own this" check, top-left (off: the count already
---                signals ownership; on for users who run without the count badge)
+-- Saved settings. Two groups: which *indicators* to draw (applied on every
+-- surface) and which *surfaces* to decorate.
+--   Indicators
+--     countBadge — the in-storage owned count, bottom-left of the icon
+--     bonusBadge — the first-acquisition House XP bonus star, top-left
+--     ownedCheck — a green "you own this" check, top-left (off: the count already
+--                  signals ownership; on for users who run without the count badge)
+--   Surfaces (the merchant window is always decorated — no toggle)
+--     bags   — decor in the Blizzard bags
+--     bank   — decor in the Blizzard bank
+--     bagnon — decor on Bagnon / Bagnonium bag buttons
 local Defaults = {
   countBadge = true,
   bonusBadge = true,
   ownedCheck = false,
+  bags = true,
+  bank = true,
+  bagnon = true,
 }
 
 function ns:MigrateDB()
@@ -18,7 +26,7 @@ function ns:MigrateDB()
   for k, v in pairs(Defaults) do
     if db[k] == nil then db[k] = v end -- non-destructive: only add missing keys
   end
-  db.version = 1
+  db.version = 2
 end
 
 -- Re-render every currently-visible surface. Surfaces register a refresher here so
@@ -50,6 +58,15 @@ ns:RegisterSettings{
       { typ = "checkbox", key = "ownedCheck", default = false, name = "Owned check",
         label = "owned check", table = dbTable,
         tooltip = "Add a green check to decor you already own. The storage count already implies ownership, so this is off by default." },
+      { typ = "checkbox", key = "bags", default = true, name = "In bags",
+        label = "in bags", table = dbTable,
+        tooltip = "Show the indicators on decor in your bags (the merchant window is always decorated)." },
+      { typ = "checkbox", key = "bank", default = true, name = "In bank",
+        label = "in bank", table = dbTable,
+        tooltip = "Show the indicators on decor in your bank." },
+      { typ = "checkbox", key = "bagnon", default = true, name = "In Bagnon",
+        label = "in Bagnon", table = dbTable,
+        tooltip = "Show the indicators on decor in Bagnon / Bagnonium bags (if you use them)." },
     },
   },
 }
@@ -59,12 +76,20 @@ ns:RegisterChangelog("Shadows of UI")
 
 -- Decor owned-state isn't available from the housing catalog immediately after
 -- login; kicking off a catalog search primes it (fires HOUSING_STORAGE_UPDATED
--- once ready, which the merchant surface listens for).
+-- once ready, which the handler below listens for).
 function ns:onLogin()
   if C_HousingCatalog and C_HousingCatalog.CreateCatalogSearcher then
     C_HousingCatalog.CreateCatalogSearcher()
   end
 end
+
+-- Buying/placing/redeeming decor changes the owned counts: drop the shared decor
+-- cache so the next paint re-queries the catalog, then repaint every visible
+-- surface (each refresher no-ops when its own frame is hidden).
+ns:registerEvent("HOUSING_STORAGE_UPDATED", function()
+  ns.WipeDecorCache()
+  ns.Refresh()
+end)
 
 -- ─── /shvendor ────────────────────────────────────────────────────────────────
 -- no arg      — print status
@@ -89,6 +114,8 @@ SlashCmdList["SUI_HVENDOR"] = function(msg)
     local db = ns.db
     ns:Print("indicators — storage count:", tostring(db.countBadge),
       "· first-acquisition star:", tostring(db.bonusBadge), "· owned check:", tostring(db.ownedCheck))
+    ns:Print("surfaces — merchant: always · bags:", tostring(db.bags),
+      "· bank:", tostring(db.bank), "· bagnon:", tostring(db.bagnon))
     ns:Print("  /shvendor itemtest")
   end
 end

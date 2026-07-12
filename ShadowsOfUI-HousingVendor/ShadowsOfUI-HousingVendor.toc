@@ -6,9 +6,13 @@
 ## Dependencies: LibNAddOn
 ## SavedVariables: ShadowsOfUI_HousingVendorDB
 ## X-NUI-DB: ShadowsOfUI_HousingVendorDB
-## X-NUI-DB-VERSION: 1
+## X-NUI-DB-VERSION: 2
+## X-NUI-API: HousingDecorApi
 
 core.lua
 changelog.lua
 decor.lua
+overlay.lua
 surfaces.lua
+bags.lua
+bagnon.lua
