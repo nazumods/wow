@@ -29,7 +29,7 @@ Bootstrapping factory every other addon depends on. `LibNAddOn(features)` wires 
 | `cvar.lua` | `ns.linkCVarHelpers(addOn)` — `SetTemporaryCVar(cvar, value, enforce?)` (backs up the user's original once, sets the new value, arms a `PLAYER_LOGOUT` restore), `RestoreCVar(cvar)` / `RestoreCVars()` (put originals back now; logout runs `RestoreCVars` automatically). Guards a transient override from getting stuck if the addon is disabled/uninstalled mid-override. **`enforce = true`** additionally re-asserts the value whenever a `CVAR_UPDATE` shows it drifted (user or another addon changed it), guarded by a suppress flag + value-compare so our own writes never loop; enforcement stops when the CVar is restored |
 | `tooltip.lua` | `ns.linkTooltipHelpers(addOn)` — `OnItemTooltip(fn)`: registers `fn(tooltip, data)` as a `TooltipDataProcessor` post-call for `Enum.TooltipDataType.Item`, pre-guarded against forbidden tooltips + nil data (and a no-op when the client lacks `TooltipDataProcessor`). Wraps the boilerplate every headless tooltip addon repeated |
 | `database.lua` | `ns.setupDB(name, addOn, ops)` — links `_G[dbName]` → `addOn.db`, triggers `MigrateDB` on version mismatch |
-| `settings.lua` | `ns.registerSettings(addOn, name, features)` — Blizzard Settings API (checkbox/slider/dropdown) |
+| `settings.lua` | `ns.registerSettings(addOn, name, features)` — Blizzard Settings API (checkbox/slider/dropdown/**element**, the last a settingless custom-frame initializer positioned in field order) |
 | `changelog.lua` | `ns.registerChangelog(addOn, name, parentName?)` — adds a **"Changelog"** button to the addon's settings category (via `CreateSettingsButtonInitializer` + `Settings.RegisterInitializer`, deferred to `ADDON_LOADED`) that opens `addOn.changelog` (a newest-first `{version, notes}` list from the addon's `changelog.lua`, appended at release by `release.sh`) in LibNUI's shared `CopyWindow`. Uses the addon's own category when it has one — resolved via `addOn.settingsCategoriesByTitle[_TITLE]` (set by `registerSettings`), so it lands on the right page whether that's a **top-level** category (Warbandeer) or a **subcategory** under a shared parent. An addon with **no settings of its own** still gets a home: a subcategory named `_TITLE` under `parentName` when given (the ShadowsOfUI-* addons pass `"Shadows of UI"`), else a top-level category. Display prefers `addOn.ui`, falls back to the global `LibNUI` if loaded, then chat. Adds `addOn:RegisterChangelog`/`ShowChangelog` |
 | `api.lua` | `LibNAddOn(features, o)` — top-level factory function (global) |
 
@@ -163,9 +163,12 @@ features.settings = {
       callback = function(setting, value) end },
     { typ = "slider", min = 0, max = 100, step = 1, ... },
     { typ = "dropdown", options = {"Option 1", "Option 2"}, ... },
+    { typ = "element", template = "MyVirtualFrameTemplate", initData = {} }, -- settingless custom frame
   } },
 }
 ```
+
+The `element` type takes no `key`/`table`/setting — it registers `Settings.CreateElementInitializer(template, initData)` at that position, so a bespoke panel (e.g. a live preview) renders in field order among the stock controls. `template` is a `virtual` XML frame whose mixin builds/updates it; the mixin must be a global (for the XML `mixin=`). Contrast the changelog button, which always appends at the end.
 
 A category with `parent = "<name>"` registers as a Settings **subcategory** under a shared parent group (created+registered once). The parent is keyed by name in a LibNAddOn-global table, so every addon (and every category) using the same name converges on one group. `addOn:GetSettingsParent(name)` exposes the same get-or-create for addons that build their panel another way (e.g. a LibNUI `SettingsFrame:RegisterSubcategory(parent, ...)`).
 

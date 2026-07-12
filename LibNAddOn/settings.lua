@@ -67,6 +67,17 @@ function Setting.dropdown(db, category, data, addOnName)
   )
 end
 
+---@class Setting
+---@field element fun(db: table, category: table, data: table, addOnName: string) inject a custom frame element (no backing setting)
+-- A settingless custom element positioned in field order: `data.template` is a
+-- virtual frame template name (its mixin builds/updates the frame), `data.initData`
+-- an optional table passed to the initializer. Lets an addon drop a bespoke panel
+-- (e.g. a live preview) in among its stock controls, rather than only appended at
+-- the end like the changelog button.
+function Setting.element(_, category, data)
+  Settings.RegisterInitializer(category, Settings.CreateElementInitializer(data.template, data.initData or {}))
+end
+
 ---@class AddOn
 ---@field settingsCategory table?
 ---@field settingsCategories table[]?
