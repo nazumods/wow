@@ -19,9 +19,17 @@ function ns.EnsureOverlay(button)
   o:SetAllPoints()
   o:SetFrameLevel(button:GetFrameLevel() + 1)
 
+  -- Every indicator starts hidden. Textures/FontStrings are created shown by
+  -- default, and ApplyOverlay only ever :Show()s the ones that pass their gate
+  -- (it leans on CleanOverlay to hide the rest). But on a button's FIRST paint
+  -- CleanOverlay runs before this overlay exists — a no-op — so without hiding
+  -- them here the freshly-created star/check/count would sit visible regardless of
+  -- settings or owned-state until the next repaint (reopen/toggle). That's the
+  -- "everything shows on first open" bug.
   local count = o:CreateFontString(nil, "OVERLAY")
   count:SetFont(NUMBER_FONT, 12, "OUTLINE")
   count:SetPoint("BOTTOMLEFT", 4, 4)
+  count:Hide()
   o.count = count
 
   -- Star (unowned + bonus) and check (owned) are mutually exclusive, so they share
@@ -30,12 +38,14 @@ function ns.EnsureOverlay(button)
   star:SetAtlas(STAR_ATLAS)
   star:SetSize(14, 14)
   star:SetPoint("TOPLEFT", 1, -1)
+  star:Hide()
   o.star = star
 
   local check = o:CreateTexture(nil, "OVERLAY")
   check:SetTexture(CHECK_TEX)
   check:SetSize(14, 14)
   check:SetPoint("TOPLEFT", 1, -1)
+  check:Hide()
   o.check = check
 
   button.shvOverlay = o
