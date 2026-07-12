@@ -7,6 +7,18 @@ local NUMBER_FONT = "Fonts\\ARIALN.TTF"
 local STAR_ATLAS = "auctionhouse-icon-favorite"           -- gold star (AH/profession favourite)
 local CHECK_TEX = "Interface\\RaidFrame\\ReadyCheck-Ready" -- green check
 
+-- Create an overlay indicator hidden. Textures/FontStrings are created shown by
+-- default, and ApplyOverlay only ever :Show()s the ones that pass their gate (it
+-- leans on CleanOverlay to hide the rest). But on a button's FIRST paint CleanOverlay
+-- runs before the overlay exists — a no-op — so an unhidden indicator would sit visible
+-- regardless of settings or owned-state until the next repaint (reopen/toggle): the
+-- "everything shows on first open" bug. Routing every indicator through here makes
+-- "starts hidden" structural, so a newly-added indicator can't reintroduce it.
+local function hidden(region)
+  region:Hide()
+  return region
+end
+
 -- Overlay layer for an item button (merchant / bags / bank / Bagnon): a frame one
 -- level above the icon with three indicators, each in a corner clear of the icon's
 -- own stack-count number (bottom-right). Built lazily and reused across refreshes.
@@ -19,33 +31,23 @@ function ns.EnsureOverlay(button)
   o:SetAllPoints()
   o:SetFrameLevel(button:GetFrameLevel() + 1)
 
-  -- Every indicator starts hidden. Textures/FontStrings are created shown by
-  -- default, and ApplyOverlay only ever :Show()s the ones that pass their gate
-  -- (it leans on CleanOverlay to hide the rest). But on a button's FIRST paint
-  -- CleanOverlay runs before this overlay exists — a no-op — so without hiding
-  -- them here the freshly-created star/check/count would sit visible regardless of
-  -- settings or owned-state until the next repaint (reopen/toggle). That's the
-  -- "everything shows on first open" bug.
-  local count = o:CreateFontString(nil, "OVERLAY")
+  local count = hidden(o:CreateFontString(nil, "OVERLAY"))
   count:SetFont(NUMBER_FONT, 12, "OUTLINE")
   count:SetPoint("BOTTOMLEFT", 4, 4)
-  count:Hide()
   o.count = count
 
   -- Star (unowned + bonus) and check (owned) are mutually exclusive, so they share
   -- the top-left corner. Top-right is left free for other addons' unowned markers.
-  local star = o:CreateTexture(nil, "OVERLAY")
+  local star = hidden(o:CreateTexture(nil, "OVERLAY"))
   star:SetAtlas(STAR_ATLAS)
   star:SetSize(14, 14)
   star:SetPoint("TOPLEFT", 1, -1)
-  star:Hide()
   o.star = star
 
-  local check = o:CreateTexture(nil, "OVERLAY")
+  local check = hidden(o:CreateTexture(nil, "OVERLAY"))
   check:SetTexture(CHECK_TEX)
   check:SetSize(14, 14)
   check:SetPoint("TOPLEFT", 1, -1)
-  check:Hide()
   o.check = check
 
   button.shvOverlay = o
