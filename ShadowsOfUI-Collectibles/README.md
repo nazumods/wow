@@ -8,7 +8,7 @@ pet, transmog appearance or housing decoration is worth buying, without hovering
 
 For every item on those frames:
 
-- **Already known** → tinted your chosen colour (red by default). Covers profession recipes,
+- **Already known** → tinted your chosen colour (soft blue by default). Covers profession recipes,
   toys, mounts, battle pets (including caged pets in the AH), housing decor, and a handful of
   hand-tracked quest blueprints and bundles. (Transmog/cosmetic appearances are not marked.)
 - **Still collectible** → tinted **green** (a collectible you don't have yet). Turn this off if
@@ -30,8 +30,8 @@ from your live collection regardless of which character you're on.
 
 Open the game's **Settings → AddOns → Shadows of UI → Collectible Tints** panel:
 
-- **Known-item tint** — Red / Green / Blue / Yellow / Cyan / Purple / Gray (for any other colour,
-  use `/scollect custom`).
+- **Known-item tint** — Blue / Red / Orange / Gold / Purple / Pink / Gray (soft, legible tints; for
+  any other colour, use `/scollect custom`).
 - **Desaturate known** — also grey out the icons of already-known items.
 - **Mark collectible** — tint still-collectible items green (on by default).
 - **Vendor / Auction House** — turn the tint on or off per frame.

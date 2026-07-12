@@ -2,16 +2,21 @@
 local ns = LibNAddOn(...)
 
 -- Preset known-item tints (0–1 rgb), indexed to match the settings dropdown below.
+-- These are deliberately light: each surface tints an icon by MULTIPLYING its
+-- texture by this colour, so a fully-saturated primary (e.g. {0,0,1}) zeroes two
+-- channels and renders the icon nearly black. Pastel tints keep the icon legible
+-- while still carrying an at-a-glance colour cast. Green is intentionally absent —
+-- it's reserved for the "still collectible" tint (ns.UncollectedColor).
 local PRESETS = {
-  { 1, 0, 0 },       -- Red
-  { 0, 1, 0 },       -- Green
-  { 0, 0, 1 },       -- Blue
-  { 1, 1, 0 },       -- Yellow
-  { 0, 1, 1 },       -- Cyan
-  { 1, 0, 1 },       -- Purple
-  { 0.5, 0.5, 0.5 }, -- Gray
+  { 0.45, 0.60, 1.00 }, -- Blue (default)
+  { 1.00, 0.40, 0.40 }, -- Red
+  { 1.00, 0.60, 0.25 }, -- Orange
+  { 1.00, 0.85, 0.35 }, -- Gold
+  { 0.70, 0.50, 1.00 }, -- Purple
+  { 1.00, 0.50, 0.80 }, -- Pink
+  { 0.55, 0.55, 0.55 }, -- Gray
 }
-local COLOR_OPTIONS = { "Red", "Green", "Blue", "Yellow", "Cyan", "Purple", "Gray" }
+local COLOR_OPTIONS = { "Blue", "Red", "Orange", "Gold", "Purple", "Pink", "Gray" }
 
 -- Fixed green tint for items that are still collectible (not yet owned/learned).
 ns.UncollectedColor = { 0, 1, 0 }
@@ -20,20 +25,31 @@ ns.UncollectedColor = { 0, 1, 0 }
 -- writes a preset into it; /scollect custom writes an arbitrary colour). Each
 -- surface is independently toggleable.
 local Defaults = {
-  r = 1, g = 0, b = 0,
-  knownColor = 1, -- Red, matches r/g/b above
+  r = 0.45, g = 0.60, b = 1.00,
+  knownColor = 1, -- Blue, matches r/g/b above
   monochrome = false,
   markUncollected = true,
   merchant = true,
   auctionHouse = true,
 }
 
+-- The pre-v2 factory default was pure red; a user still on it is moved to the new
+-- default tint. Anyone who picked another preset or a custom colour keeps their
+-- exact r/g/b — the saved colour is authoritative and is never overwritten here.
+local function isOldDefaultTint(db)
+  return db.knownColor == 1 and db.r == 1 and db.g == 0 and db.b == 0
+end
+
 function ns:MigrateDB()
   local db = self.db
+  local fromVersion = db.version -- nil on a fresh install
   for k, v in pairs(Defaults) do
     if db[k] == nil then db[k] = v end -- non-destructive: only add missing keys
   end
-  db.version = 1
+  if fromVersion == 1 and isOldDefaultTint(db) then
+    db.r, db.g, db.b = Defaults.r, Defaults.g, Defaults.b -- retire the pure-red default
+  end
+  db.version = 2
 end
 
 -- The current known-item tint, and whether known icons should be desaturated.

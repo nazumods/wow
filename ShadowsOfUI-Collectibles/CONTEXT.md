@@ -1,6 +1,6 @@
 # ShadowsOfUI-Collectibles
 
-**Deps:** LibNAddOn · **OptionalDeps:** Warbandeer_Characters, ShadowsOfUI-HousingVendor · **SavedVars:** `ShadowsOfUI_CollectiblesDB` (v1) · **Commands:** `/scollect` (`custom`, `itemtest`) · **API:** reads `WarbandeerApi` (`X-NUI-API`) + optional `WarbandeerDB` + optional `HousingDecorApi` (decor owned-state) · **UI:** none (no LibNUI)
+**Deps:** LibNAddOn · **OptionalDeps:** Warbandeer_Characters, ShadowsOfUI-HousingVendor · **SavedVars:** `ShadowsOfUI_CollectiblesDB` (v2) · **Commands:** `/scollect` (`custom`, `itemtest`) · **API:** reads `WarbandeerApi` (`X-NUI-API`) + optional `WarbandeerDB` + optional `HousingDecorApi` (decor owned-state) · **UI:** none (no LibNUI)
 
 Icon-tinting addon: colours already-known / still-collectible items on the **Merchant** and
 **Auction House** browse list. Replaces the standalone AlreadyKnown addon (re-derived in suite
@@ -12,11 +12,11 @@ style — hooks modeled on `ShadowsOfUI-Ilvl`, not copied). Assignment-form init
 
 | File | Purpose |
 |---|---|
-| `core.lua` | Init, `Defaults` + `MigrateDB` (non-destructive), refresher registry (`ns.AddRefresher`/`ns.Refresh`), `ns:settingChanged` (applies the colour preset only when the `knownColor` dropdown changed, so a custom colour survives other toggles), `ns.KnownColor()`, `ns.UncollectedColor`, `RegisterSettings` (5 fields), `ns:RegisterChangelog()` (Changelog button), `/scollect` (status / `custom` colour picker / `itemtest`). Loaded **first** so `AddRefresher` exists before `surfaces.lua` runs. |
+| `core.lua` | Init, `PRESETS`/`COLOR_OPTIONS` (7 **soft/pastel** known-item tints — the tint MULTIPLIES the icon texture, so light values stay legible; green is absent, reserved for `UncollectedColor`), `Defaults` (soft-blue default tint `{0.45,0.60,1.00}`, `knownColor=1`), `MigrateDB` (**v2**, non-destructive: v1→v2 moves only a user still on the retired pure-red factory default to soft blue; any chosen preset or `/scollect custom` colour is preserved), refresher registry (`ns.AddRefresher`/`ns.Refresh`), `ns:settingChanged` (applies the colour preset only when the `knownColor` dropdown changed, so a custom colour survives other toggles), `ns.KnownColor()`, `ns.UncollectedColor`, `RegisterSettings` (5 fields), `ns:RegisterChangelog()` (Changelog button), `/scollect` (status / `custom` colour picker / `itemtest`). Loaded **first** so `AddRefresher` exists before `surfaces.lua` runs. |
 | `changelog.lua` | `ns.changelog` — newest-first `{version, notes}` release history for the in-game **Changelog** viewer (LibNAddOn). **Generated** — `release.sh` prepends each release; not hand-edited |
 | `data.lua` | `ns.QuestItems` (itemID→questID), `ns.SpecialItems` (itemID→`{srcItemID, linkField, expected}`), `ns.ContainerItems` (itemID→contained itemIDs) — collectibles the game doesn't self-flag as known. Typed direct-assignment fields. |
 | `detect.lua` | `ns.IsKnown(link)` / `ns.IsCollectible(link)` + positive-only caches (`knownCache`/`collectibleCache`). |
-| `spec/` | busted unit tests for the tooltip-load negative-cache gating; excluded from zip + release detection. |
+| `spec/` | busted unit tests: `detect_spec.lua` (tooltip-load negative-cache gating), `core_spec.lua` (v1→v2 palette migration + preset invariants). Excluded from zip + release detection. |
 | `surfaces.lua` | `tintFor(link)` → r,g,b,desat; the two frame hooks (Merchant, Auction House — each gated on its toggle + registered as a refresher); `ns:onLogin` decor pre-cache. |
 
 ## Detection (`detect.lua`)
