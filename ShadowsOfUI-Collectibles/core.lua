@@ -2,19 +2,19 @@
 local ns = LibNAddOn(...)
 
 -- Preset known-item tints (0–1 rgb), indexed to match the settings dropdown below.
--- These are deliberately light: each surface tints an icon by MULTIPLYING its
--- texture by this colour, so a fully-saturated primary (e.g. {0,0,1}) zeroes two
--- channels and renders the icon nearly black. Pastel tints keep the icon legible
--- while still carrying an at-a-glance colour cast. Green is intentionally absent —
--- it's reserved for the "still collectible" tint (ns.UncollectedColor).
+-- Each surface tints an icon by MULTIPLYING its texture by this colour, so the
+-- balance is: hold one (or two) channels at full for a bold, obvious cast, while
+-- keeping the suppressed channels clear of zero (~0.15–0.45) so the icon doesn't
+-- crush to black and stays legible. Green is intentionally absent — it's reserved
+-- for the "still collectible" tint (ns.UncollectedColor).
 local PRESETS = {
-  { 0.45, 0.60, 1.00 }, -- Blue (default)
-  { 1.00, 0.40, 0.40 }, -- Red
-  { 1.00, 0.60, 0.25 }, -- Orange
-  { 1.00, 0.85, 0.35 }, -- Gold
-  { 0.70, 0.50, 1.00 }, -- Purple
-  { 1.00, 0.50, 0.80 }, -- Pink
-  { 0.55, 0.55, 0.55 }, -- Gray
+  { 0.25, 0.45, 1.00 }, -- Blue (default)
+  { 1.00, 0.25, 0.25 }, -- Red
+  { 1.00, 0.50, 0.15 }, -- Orange
+  { 1.00, 0.78, 0.20 }, -- Gold
+  { 0.60, 0.25, 1.00 }, -- Purple
+  { 1.00, 0.30, 0.68 }, -- Pink
+  { 0.42, 0.42, 0.42 }, -- Gray
 }
 local COLOR_OPTIONS = { "Blue", "Red", "Orange", "Gold", "Purple", "Pink", "Gray" }
 
@@ -25,7 +25,7 @@ ns.UncollectedColor = { 0, 1, 0 }
 -- writes a preset into it; /scollect custom writes an arbitrary colour). Each
 -- surface is independently toggleable.
 local Defaults = {
-  r = 0.45, g = 0.60, b = 1.00,
+  r = 0.25, g = 0.45, b = 1.00,
   knownColor = 1, -- Blue, matches r/g/b above
   monochrome = false,
   markUncollected = true,

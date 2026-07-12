@@ -4,7 +4,7 @@
 -- stubbed. Path is relative to the AddOns root, where busted runs.
 
 local UNCOLLECTED_GREEN = { 0, 1, 0 }
-local SOFT_BLUE = { 0.45, 0.60, 1.00 }
+local SOFT_BLUE = { 0.25, 0.45, 1.00 }
 
 local function loadCore()
   _G.SlashCmdList = {}
