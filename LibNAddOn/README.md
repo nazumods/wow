@@ -71,6 +71,12 @@ LibNAddOn{
           -- everything from checkbox, plus:
           options = {"Option 1", "Option 2"},
         },
+        {
+          -- a settingless custom frame, positioned in field order (no key/table):
+          typ = "element",
+          template = "MyVirtualFrameTemplate", -- a virtual XML frame; its mixin builds/updates it
+          initData = {},                        -- optional, passed to the initializer
+        },
       },
     },
   },

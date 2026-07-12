@@ -45,7 +45,7 @@ files["ShadowsOfUI-Quests/**/*.lua"] = {globals = {"SLASH_SUI_QUESTS1"}}
 files["ShadowsOfUI-Compartment/**/*.lua"] = {globals = {"SLASH_SUI_COMPARTMENT1"}}
 files["ShadowsOfUI-Delves/**/*.lua"] = {globals = {"SLASH_SUI_DELVES1"}}
 files["ShadowsOfUI-Castbar/**/*.lua"] = {globals = {"SLASH_SUI_CASTBAR1"}}
-files["ShadowsOfUI-Collectibles/**/*.lua"] = {globals = {"SLASH_SUI_COLLECT1"}}
+files["ShadowsOfUI-Collectibles/**/*.lua"] = {globals = {"SLASH_SUI_COLLECT1", "ShadowsOfUI_Collectibles_TintPreviewMixin"}}
 files["ShadowsOfUI-HousingVendor/**/*.lua"] = {globals = {"SLASH_SUI_HVENDOR1"}}
 files["ShadowsOfUI-ProfCommissions/**/*.lua"] = {globals = {"SLASH_SUI_PROFCOMM1", "ShadowsOfUI_ProfCommissions_InfoCellMixin"}}
 files["ShadowsOfUI-QuestXP/**/*.lua"] = {globals = {"SLASH_SUI_QUESTXP1"}}

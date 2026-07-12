@@ -1,0 +1,13 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+	<!-- Vendor-card tint preview for the Collectible Tints settings panel: a wrap-
+	     arrow tint stepper, three sample merchant rows (common/rare/epic) and a debug
+	     saturation slider. All children are built in Lua (OnLoad). The fixed height
+	     feeds the Settings list's extent calculator; the mixin is defined in
+	     preview.lua (loaded first). -->
+	<Frame name="ShadowsOfUI_Collectibles_TintPreviewTemplate" mixin="ShadowsOfUI_Collectibles_TintPreviewMixin" virtual="true">
+		<Size x="0" y="290"/>
+		<Scripts>
+			<OnLoad method="OnLoad"/>
+		</Scripts>
+	</Frame>
+</Ui>

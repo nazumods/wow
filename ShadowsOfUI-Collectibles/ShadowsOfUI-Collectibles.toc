@@ -7,7 +7,7 @@
 ## OptionalDeps: Warbandeer_Characters, ShadowsOfUI-HousingVendor
 ## SavedVariables: ShadowsOfUI_CollectiblesDB
 ## X-NUI-DB: ShadowsOfUI_CollectiblesDB
-## X-NUI-DB-VERSION: 1
+## X-NUI-DB-VERSION: 2
 ## X-NUI-API: WarbandeerApi
 
 core.lua
@@ -15,3 +15,5 @@ changelog.lua
 data.lua
 detect.lua
 surfaces.lua
+preview.lua
+preview.xml
