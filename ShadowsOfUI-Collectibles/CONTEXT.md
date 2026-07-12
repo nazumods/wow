@@ -1,6 +1,6 @@
 # ShadowsOfUI-Collectibles
 
-**Deps:** LibNAddOn · **OptionalDeps:** Warbandeer_Characters · **SavedVars:** `ShadowsOfUI_CollectiblesDB` (v1) · **Commands:** `/scollect` (`custom`, `itemtest`) · **API:** reads `WarbandeerApi` (`X-NUI-API`) + optional `WarbandeerDB` · **UI:** none (no LibNUI)
+**Deps:** LibNAddOn · **OptionalDeps:** Warbandeer_Characters, ShadowsOfUI-HousingVendor · **SavedVars:** `ShadowsOfUI_CollectiblesDB` (v1) · **Commands:** `/scollect` (`custom`, `itemtest`) · **API:** reads `WarbandeerApi` (`X-NUI-API`) + optional `WarbandeerDB` + optional `HousingDecorApi` (decor owned-state) · **UI:** none (no LibNUI)
 
 Icon-tinting addon: colours already-known / still-collectible items on the **Merchant** and
 **Auction House** browse list. Replaces the standalone AlreadyKnown addon (re-derived in suite
@@ -44,7 +44,7 @@ are cached (both states are monotonic).
     `ns.api:GetAllCharacters()`, matching the crafted name in `professions.details[skillLineID]
     .recipes[*].learned[].name`; needs `RECIPE_SUBCLASS_TO_SKILL`) **or** a current-char tooltip
     scan; **Misc/CompanionPet** → journal walk (icon+name match) **or** tooltip scan;
-    **Housing/Decor** → `C_HousingCatalog.GetCatalogEntryInfoByItem(link, true)` owned-stack subtype
+    **Housing/Decor** → `HousingDecorApi.EntryFor(link).owned` (**ShadowsOfUI-HousingVendor**'s shared detection, optional dep; the catalog derivation now lives only there)
     **or** the tooltip's "Total Owned:" count.
   - fallback: `scanTooltipKnown` (`C_TooltipInfo.GetHyperlink`) — `ITEM_SPELL_KNOWN`, the
     `ITEM_PET_KNOWN` pattern, or the decor "Total Owned:" line (`HOUSING_DECOR_OWNED_COUNT_FORMAT`,
