@@ -88,4 +88,11 @@ describe("ShadowsOfUI-HousingVendor decor", function()
       assert.equals(9, ns.DecorEntryFor("item:40").stored) -- re-queried
     end)
   end)
+
+  describe("shared decor API (X-NUI-API HousingDecorApi)", function()
+    it("exposes DecorEntryFor as ns.api.EntryFor for ShadowsOfUI-Collectibles", function()
+      local ns = hv.load()
+      assert.equals(ns.DecorEntryFor, ns.api.EntryFor)
+    end)
+  end)
 end)

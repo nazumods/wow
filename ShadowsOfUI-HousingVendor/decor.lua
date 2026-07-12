@@ -64,3 +64,10 @@ function ns.DecorEntryFor(link)
   if norm then cache[link] = norm end
   return norm
 end
+
+-- Expose the normalized decor lookup as the suite's single decor-detection source
+-- (X-NUI-API `HousingDecorApi`). ShadowsOfUI-Collectibles reads `.owned` from it
+-- instead of deriving owned-state from the catalog a second time. Guarded so the
+-- busted loader (which seeds an empty `ns.api`) — and any run without the API
+-- global — stays valid.
+if ns.api then ns.api.EntryFor = ns.DecorEntryFor end

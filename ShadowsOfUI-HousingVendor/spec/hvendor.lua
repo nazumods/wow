@@ -41,7 +41,9 @@ function M.load()
 
   _G.wipe = function(t) for k in pairs(t) do t[k] = nil end return t end
 
-  local ns = {}
+  -- `ns.api` is the shared X-NUI-API table LibNAddOn seeds in-game (HousingDecorApi);
+  -- provide an empty one so decor.lua's exposure of `EntryFor` runs and is testable.
+  local ns = { api = {} }
   assert(loadfile("ShadowsOfUI-HousingVendor/decor.lua"))("ShadowsOfUI-HousingVendor", ns)
   return ns, state
 end

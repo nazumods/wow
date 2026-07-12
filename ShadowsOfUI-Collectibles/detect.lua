@@ -86,12 +86,15 @@ local function knowsMount(mountID)
   return select(11, C_MountJournal.GetMountInfoByID(mountID)) and true or false
 end
 
+-- Owned-state for a decor item, delegated to ShadowsOfUI-HousingVendor's shared
+-- decor detection (X-NUI-API `HousingDecorApi`) so the catalog derivation lives in
+-- exactly one place. When HousingVendor isn't installed, the helper is absent and a
+-- false here falls through to scanTooltipKnown, whose "Total Owned:" line covers
+-- owned decor on its own (and reads even before the housing catalog has cached it).
 local function knowsDecor(link)
-  local getInfo = C_HousingCatalog and C_HousingCatalog.GetCatalogEntryInfoByItem
-  local info = getInfo and getInfo(link, true)
-  local sub = info and info.entryID and info.entryID.entrySubtype
-  return sub == Enum.HousingCatalogEntrySubtype.OwnedUnmodifiedStack
-    or sub == Enum.HousingCatalogEntrySubtype.OwnedModifiedStack
+  local api = _G.HousingDecorApi
+  local d = api and api.EntryFor and api.EntryFor(link)
+  return d ~= nil and d.owned
 end
 
 -- Lua pattern capturing the "owned" count from the decor tooltip's "Total Owned: N …"
