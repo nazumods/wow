@@ -8,7 +8,7 @@ Makes Blizzard's built-in `AddonCompartmentFrame` (the minimap addon-count butto
 
 | File | Purpose |
 |---|---|
-| `addon.lua` | Whole addon (assignment form). `MigrateDB` seeds `db.useIcon`. `onLoad` binds `frame = AddonCompartmentFrame`, captures `defaultPoint`, wires drag + icon, and hooks `UpdateDisplay`. File-locals: `applyPosition`/`resetPosition`/`savePosition`, `applyIcon`, `setupDrag`. Manual `SLASH_SUI_COMPARTMENT1 = "/scompartment"` (base opens settings, `reset` restores default position). |
+| `addon.lua` | Whole addon (assignment form). `MigrateDB` seeds `db.useIcon`. Settings: a single `useIcon` checkbox via **`ns:RegisterSettings`** (declarative subcategory under "Shadows of UI"), with `ns:settingChanged` re-running `applyIcon`. `onLoad` binds `frame = AddonCompartmentFrame`, captures `defaultPoint`, wires drag + icon, and hooks `UpdateDisplay` (no settings work). File-locals: `applyPosition`/`resetPosition`/`savePosition`, `applyIcon`, `setupDrag`, `dbTable`. Manual `SLASH_SUI_COMPARTMENT1 = "/scompartment"` (base opens `ns.settingsCategory`, `reset` restores default position). |
 | `changelog.lua` | `ns.changelog` — newest-first `{version, notes}` release history for the in-game **Changelog** viewer (LibNAddOn). **Generated** — `release.sh` prepends each release; not hand-edited |
 
 ## Gotchas
@@ -19,6 +19,7 @@ Makes Blizzard's built-in `AddonCompartmentFrame` (the minimap addon-count butto
 - **Icon replaces the count.** `applyIcon` shows an `OVERLAY` texture (sublevel 7, `SetTexCoord` trims the icon border) and `frame.Text:Hide()`s the number; toggling `useIcon` off hides the icon and re-shows `frame.Text`. Icon path is the file-local `ICON` constant (`inv_misc_gear_08`).
 - **`defaultPoint`** is `{ frame:GetPoint() }` captured in `onLoad` before any move, so `reset` can `SetPoint(unpack(defaultPoint))` to restore Blizzard's exact anchor without naming `GameTimeFrame`.
 - **No compartment func of its own** — this addon manipulates the shared frame; it does not register itself in the compartment.
+- **Settings use `ns:RegisterSettings`, not a hand-built `SettingsFrame`.** The declarative form records the category in `settingsCategoriesByTitle`, which is what `RegisterChangelog`'s `ADDON_LOADED` handler looks up to attach its "Changelog" button. A hand-built LibNUI `SettingsFrame:RegisterSubcategory` (the pre-fix approach) does *not* populate that table, so the changelog handler couldn't find the category and minted a **second** "Addon Compartment" subcategory under the parent (two rows in the list). Ordering is safe by construction: `setupDB` registers at `idx=1`, `RegisterSettings` at `idx=2`, changelog appends — so the settings handler always runs first.
 
 ## SavedVariables (`ShadowsOfUI_CompartmentDB`)
 

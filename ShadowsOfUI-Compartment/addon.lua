@@ -3,7 +3,24 @@ local ns = LibNAddOn(...)
 
 -- "Changelog" button in settings (ns.changelog from changelog.lua).
 ns:RegisterChangelog("Shadows of UI")
-local SettingsFrame = ns.ui.SettingsFrame
+
+-- Single-toggle settings panel, nested under the shared "Shadows of UI" group.
+-- Declarative (ns:RegisterSettings) rather than a hand-built LibNUI SettingsFrame so
+-- the category is recorded in settingsCategoriesByTitle — that is what lets the
+-- changelog button (registered above) find and reuse this same category instead of
+-- minting a second "Addon Compartment" subcategory under the parent.
+local function dbTable(db) return db end
+ns:RegisterSettings{
+  {
+    title = ns._TITLE,
+    parent = "Shadows of UI",
+    fields = {
+      { typ = "checkbox", key = "useIcon", default = true, name = "Custom icon",
+        label = "Use a custom icon (hides the addon count)", table = dbTable,
+        tooltip = "Replace Blizzard's addon-count number on the compartment button with a clean cog icon." },
+    },
+  },
+}
 
 -- Icon shown on the addon-compartment button when db.useIcon is on. A clean cog;
 -- change this one constant to use a different icon (texture path or atlas name).
@@ -67,6 +84,11 @@ local function applyIcon()
   end
 end
 
+-- The settings toggle flips db.useIcon; re-apply the icon/number swap on change.
+function ns:settingChanged()
+  applyIcon()
+end
+
 -- ALT+left-drag moves the button; a plain left-click still opens the addon menu.
 local function setupDrag()
   frame:SetMovable(true)
@@ -95,14 +117,6 @@ function ns:onLoad()
     applyPosition()
     applyIcon()
   end)
-
-  local settings = SettingsFrame:new{ headingText = ns._TITLE }
-  settings:AddToggleControl("Use a custom icon (hides the addon count)", ns.db, "useIcon").SettingChanged = function(_, _state)
-    applyIcon()
-  end
-  -- Keep the category so /scompartment can open straight to it (LibNUI's
-  -- RegisterSubcategory returns it but doesn't store it like ns:RegisterSettings does).
-  ns.settingsCategory = settings:RegisterSubcategory(ns:GetSettingsParent("Shadows of UI"), ns._TITLE)
 end
 
 -- /scompartment        → open settings
