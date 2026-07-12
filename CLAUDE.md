@@ -134,6 +134,12 @@ WoW-API-free code (currently LibNAddOn's `ns.lua.*` modules) has busted specs in
 ~\.lua51\bin\busted.bat
 ```
 
+Lint with the same toolchain — the strict `luacheck` CI gate (see below), scoped to the addon dirs you touched:
+
+```
+~\.lua51\bin\luacheck.bat <addon-dir> [<addon-dir> ...]
+```
+
 - Spec roots are listed in `.busted` at the repo root (`ROOT = {...}`) — add the addon's `spec/` dir there when giving a new addon tests.
 - `LibNAddOn/spec/libn.lua` loads LibNAddOn's pure-Lua files into a fresh `ns` with the WoW addon vararg (and stubs `Mixin`); specs call `libn.load()` per test. File paths in loaders are relative to the AddOns root (busted's cwd).
 - `spec/` dirs are excluded from the publish pipeline in two places — keep both in sync: the CurseForge zip (`publish.yml` `--exclude "${ADDON}/spec/*"`) and release change-detection (`release.sh` pathspec), so tests are never shipped and test-only commits never trigger a release.
