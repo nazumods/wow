@@ -6,6 +6,11 @@ local ns = select(2, ...)
 -- same conventional-commit grouping used for the GitHub/CurseForge release notes.
 ---@type { version: string, notes: string }[]
 ns.changelog = {
+  { version = "12.0.7-r20", notes = [==[
+### Features
+- add shared ui.BarsPreview widget; migrate Warbandeer onto it (#467)
+
+]==] },
   { version = "12.0.7-r19", notes = [==[
 ### Features
 - add a Dragonflight tab and group seasonal reps to the bottom (#457)
