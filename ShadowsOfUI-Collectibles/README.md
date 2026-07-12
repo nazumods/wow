@@ -30,8 +30,11 @@ from your live collection regardless of which character you're on.
 
 Open the game's **Settings → AddOns → Shadows of UI → Collectible Tints** panel:
 
-- **Known-item tint** — Blue / Red / Orange / Gold / Purple / Pink / Gray (bold, legible tints; for
-  any other colour, use `/scollect custom`).
+- **Known-item tint** — at the top of the panel, use the **◄ ►** arrows to cycle through the tints —
+  Blue / Cyan / Orange / Gold / Purple / Pink / Gray (bold, legible tints; wrapping around at the
+  ends). For any other colour, use `/scollect custom`. A **live side-by-side preview** shows three
+  sample vendor items (common / rare / epic) — an untinted control next to the tinted result — so you
+  can see the effect on real item icons, with sliders to preview muting the icon and text.
 - **Desaturate known** — also grey out the icons of already-known items.
 - **Mark collectible** — tint still-collectible items green (on by default).
 - **Vendor / Auction House** — turn the tint on or off per frame.

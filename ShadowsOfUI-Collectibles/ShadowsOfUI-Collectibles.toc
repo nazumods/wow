@@ -15,3 +15,5 @@ changelog.lua
 data.lua
 detect.lua
 surfaces.lua
+preview.lua
+preview.xml

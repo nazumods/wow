@@ -1,4 +1,6 @@
 ---@class ShadowsOfUI_Collectibles: AddOn
+---@field PRESETS number[][] preset known-item tints, indexed to the dropdown
+---@field COLOR_OPTIONS string[] dropdown labels for PRESETS
 local ns = LibNAddOn(...)
 
 -- Preset known-item tints (0–1 rgb), indexed to match the settings dropdown below.
@@ -9,14 +11,19 @@ local ns = LibNAddOn(...)
 -- for the "still collectible" tint (ns.UncollectedColor).
 local PRESETS = {
   { 0.25, 0.45, 1.00 }, -- Blue (default)
-  { 1.00, 0.25, 0.25 }, -- Red
+  { 0.20, 0.70, 0.95 }, -- Cyan
   { 1.00, 0.50, 0.15 }, -- Orange
   { 1.00, 0.78, 0.20 }, -- Gold
   { 0.60, 0.25, 1.00 }, -- Purple
   { 1.00, 0.30, 0.68 }, -- Pink
   { 0.42, 0.42, 0.42 }, -- Gray
 }
-local COLOR_OPTIONS = { "Blue", "Red", "Orange", "Gold", "Purple", "Pink", "Gray" }
+local COLOR_OPTIONS = { "Blue", "Cyan", "Orange", "Gold", "Purple", "Pink", "Gray" }
+
+-- Shared with the settings swatch preview (preview.lua), which renders one tinted
+-- dummy-item icon per preset and selects by writing the knownColor dropdown.
+ns.PRESETS = PRESETS
+ns.COLOR_OPTIONS = COLOR_OPTIONS
 
 -- Fixed green tint for items that are still collectible (not yet owned/learned).
 ns.UncollectedColor = { 0, 1, 0 }
@@ -68,8 +75,9 @@ function ns.Refresh()
   for _, fn in ipairs(ns._refreshers) do fn() end
 end
 
--- Applying the colour preset only when the dropdown itself changed keeps a custom
--- colour (set via /scollect custom) from being clobbered by unrelated toggles.
+-- Apply the preset colour only for the knownColor key (written by the preview's
+-- tint stepper) so a custom colour (set via /scollect custom) survives unrelated
+-- toggle changes.
 function ns:settingChanged(key)
   if key == "knownColor" then
     local p = PRESETS[ns.db.knownColor]
@@ -84,9 +92,9 @@ ns:RegisterSettings{
     title = ns._TITLE,
     parent = "Shadows of UI",
     fields = {
-      { typ = "dropdown", key = "knownColor", default = 1, options = COLOR_OPTIONS,
-        name = "Known-item tint", label = "known-item tint", table = dbTable,
-        tooltip = "Colour used to tint items you (or your alts) already know. Use /scollect custom for any colour." },
+      -- The tint picker + live preview (preview.lua); first field, so it sits at the
+      -- top of the panel where the old dropdown was.
+      { typ = "element", template = "ShadowsOfUI_Collectibles_TintPreviewTemplate" },
       { typ = "checkbox", key = "monochrome", default = false, name = "Desaturate known",
         label = "desaturate known", table = dbTable,
         tooltip = "Also grey out the icons of already-known items." },
