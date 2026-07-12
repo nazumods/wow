@@ -83,13 +83,25 @@ function ns:onLogin()
   end
 end
 
--- Buying/placing/redeeming decor changes the owned counts: drop the shared decor
--- cache so the next paint re-queries the catalog, then repaint every visible
--- surface (each refresher no-ops when its own frame is hidden).
-ns:registerEvent("HOUSING_STORAGE_UPDATED", function()
+-- Owned counts change on several signals, so hook all of them: buying / placing /
+-- redeeming already-owned decor (HOUSING_STORAGE_UPDATED and its per-entry sibling
+-- HOUSING_STORAGE_ENTRY_UPDATED), and *learning* a brand-new decor from the bags
+-- (NEW_HOUSING_ITEM_ACQUIRED — a first acquisition, which the coarse storage event
+-- doesn't cover). Without the acquisition event, learning one of two identical decor
+-- in the bags left the other copy's overlay stale until a /reload. On any of them,
+-- drop the shared decor cache so the next paint re-queries the catalog, then repaint
+-- every visible surface (each refresher no-ops when its own frame is hidden).
+local function refreshDecor()
   ns.WipeDecorCache()
   ns.Refresh()
-end)
+end
+for _, event in ipairs({
+  "HOUSING_STORAGE_UPDATED",
+  "HOUSING_STORAGE_ENTRY_UPDATED",
+  "NEW_HOUSING_ITEM_ACQUIRED",
+}) do
+  ns:registerEvent(event, refreshDecor)
+end
 
 -- ─── /shvendor ────────────────────────────────────────────────────────────────
 -- no arg      — print status
