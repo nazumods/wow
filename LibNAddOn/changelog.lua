@@ -55,8 +55,13 @@ function ns.registerChangelog(addOn, addOnName, parentName)
   addOn:registerEvent("ADDON_LOADED", function(self, name)
     if name ~= addOnName then return end
     if not (self.changelog and #self.changelog > 0) then return end
+    -- Prefer the addon's own category. `settingsCategoriesByTitle` covers the
+    -- declarative `ns:RegisterSettings` path; `self.settingsCategory` covers an addon
+    -- that built its panel imperatively (a LibNUI SettingsFrame) and recorded the
+    -- returned category there. Without the latter fallback the button couldn't find
+    -- that category and would mint a duplicate subcategory under the shared parent.
     local byTitle = self.settingsCategoriesByTitle or {}
-    local category = byTitle[self._TITLE]
+    local category = byTitle[self._TITLE] or self.settingsCategory
     if not category then
       category = parentName
         and Settings.RegisterVerticalLayoutSubcategory(ns.getSettingsParent(parentName), self._TITLE)

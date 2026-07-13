@@ -170,7 +170,7 @@ features.settings = {
 
 The `element` type takes no `key`/`table`/setting — it registers `Settings.CreateElementInitializer(template, initData)` at that position, so a bespoke panel (e.g. a live preview) renders in field order among the stock controls. `template` is a `virtual` XML frame whose mixin builds/updates it; the mixin must be a global (for the XML `mixin=`). Contrast the changelog button, which always appends at the end.
 
-A category with `parent = "<name>"` registers as a Settings **subcategory** under a shared parent group (created+registered once). The parent is keyed by name in a LibNAddOn-global table, so every addon (and every category) using the same name converges on one group. `addOn:GetSettingsParent(name)` exposes the same get-or-create for addons that build their panel another way (e.g. a LibNUI `SettingsFrame:RegisterSubcategory(parent, ...)`).
+A category with `parent = "<name>"` registers as a Settings **subcategory** under a shared parent group (created+registered once). The parent is keyed by name in a LibNAddOn-global table, so every addon (and every category) using the same name converges on one group. `addOn:GetSettingsParent(name)` exposes the same get-or-create for addons that build their panel another way (e.g. a LibNUI `SettingsFrame:RegisterSubcategory(parent, ...)`). Such addons should assign the returned category to `addOn.settingsCategory`, so `RegisterChangelog`'s button reuses that panel instead of minting a duplicate subcategory — the changelog fallback resolves the addon's category as `settingsCategoriesByTitle[_TITLE]` (declarative path) **or** `settingsCategory` (imperative path).
 
 Default callback calls `addOn:settingChanged(key, value, variable, setting)`.
 
