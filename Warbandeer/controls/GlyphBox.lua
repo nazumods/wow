@@ -242,7 +242,61 @@ function GlyphBox:Populate(char)
     y = y + hdr:Height() + HEADER_GAP
   end
 
-  -- Section 1 — applied glyphs for the selected spec, with a spec-icon picker above the list.
+  -- Section 1 — account-wide barbershop unlocks, as an icon grid (distinct icons): owned
+  -- full-colour with a gold border, missing dimmed.
+  if hasUnlocks then
+    local owned = 0
+    for _, it in ipairs(unlocks) do if it.unlocked then owned = owned + 1 end end
+    header("BARBERSHOP UNLOCKS", owned, #unlocks)
+    local perRow = max(1, floor((innerW + GAP) / (ICON + GAP)))
+    local col = 0
+    for _, it in ipairs(unlocks) do
+      ci = ci + 1
+      local cell = self:_cell(ci)
+      cell.frame:ClearAllPoints()
+      cell.frame:TopLeft(self, ui.edge.TopLeft, PAD + col * (ICON + GAP), -y)
+      local icon, link = itemVisual(it.itemID)
+      cell.icon:Texture(icon)
+      if it.unlocked then
+        cell.icon:SetVertexColor(1, 1, 1, 1)
+        cell.border:Show()
+      else
+        cell.icon:SetVertexColor(0.3, 0.3, 0.34, 1)
+        cell.border:Hide()
+      end
+      cell.frame._itemLink = link
+      cell.frame:Show()
+      col = col + 1
+      if col >= perRow then col = 0; y = y + ICON + GAP end
+    end
+    if col > 0 then y = y + ICON + GAP end
+    y = y + SECT_GAP
+  end
+
+  -- Section 2 — learned class unlocks (Druid Tome of the Wilds / Hunter Skill Tames), a labeled
+  -- list like the glyphs (known green, missing muted), headed by the class's own section title.
+  if hasLearned then
+    local owned = 0
+    for _, it in ipairs(learned) do if it.known then owned = owned + 1 end end
+    header((learnedTitle or "Learned"):upper(), owned, #learned)
+    for _, it in ipairs(learned) do
+      ri = ri + 1
+      local row = self:_row(ri)
+      row.frame:ClearAllPoints()
+      row.frame:TopLeft(self, ui.edge.TopLeft, PAD, -y)
+      row.frame:Width(innerW)
+      local icon, link = itemVisual(it.itemID)
+      row.icon:Texture(icon)
+      row.icon:SetVertexColor(it.known and 1 or 0.3, it.known and 1 or 0.3, it.known and 1 or 0.34, 1)
+      row.name:Text(it.label):Color(it.known and c.green or c.muted)
+      row.frame._itemLink = link
+      row.frame:Show()
+      y = y + ROW_H
+    end
+    y = y + SECT_GAP
+  end
+
+  -- Section 3 — applied glyphs for the selected spec, with a spec-icon picker above the list.
   if hasApplied then
     local owned = 0
     for _, it in ipairs(applied) do if it.applied then owned = owned + 1 end end
@@ -286,60 +340,6 @@ function GlyphBox:Populate(char)
       row.frame:Show()
       y = y + ROW_H
     end
-    y = y + SECT_GAP
-  end
-
-  -- Section 2 — learned class unlocks (Druid Tome of the Wilds / Hunter Skill Tames), a labeled
-  -- list like the glyphs (known green, missing muted), headed by the class's own section title.
-  if hasLearned then
-    local owned = 0
-    for _, it in ipairs(learned) do if it.known then owned = owned + 1 end end
-    header((learnedTitle or "Learned"):upper(), owned, #learned)
-    for _, it in ipairs(learned) do
-      ri = ri + 1
-      local row = self:_row(ri)
-      row.frame:ClearAllPoints()
-      row.frame:TopLeft(self, ui.edge.TopLeft, PAD, -y)
-      row.frame:Width(innerW)
-      local icon, link = itemVisual(it.itemID)
-      row.icon:Texture(icon)
-      row.icon:SetVertexColor(it.known and 1 or 0.3, it.known and 1 or 0.3, it.known and 1 or 0.34, 1)
-      row.name:Text(it.label):Color(it.known and c.green or c.muted)
-      row.frame._itemLink = link
-      row.frame:Show()
-      y = y + ROW_H
-    end
-    y = y + SECT_GAP
-  end
-
-  -- Section 3 — account-wide unlocks, as an icon grid (distinct icons): owned full-colour with
-  -- a gold border, missing dimmed.
-  if hasUnlocks then
-    local owned = 0
-    for _, it in ipairs(unlocks) do if it.unlocked then owned = owned + 1 end end
-    header("BARBERSHOP UNLOCKS", owned, #unlocks)
-    local perRow = max(1, floor((innerW + GAP) / (ICON + GAP)))
-    local col = 0
-    for _, it in ipairs(unlocks) do
-      ci = ci + 1
-      local cell = self:_cell(ci)
-      cell.frame:ClearAllPoints()
-      cell.frame:TopLeft(self, ui.edge.TopLeft, PAD + col * (ICON + GAP), -y)
-      local icon, link = itemVisual(it.itemID)
-      cell.icon:Texture(icon)
-      if it.unlocked then
-        cell.icon:SetVertexColor(1, 1, 1, 1)
-        cell.border:Show()
-      else
-        cell.icon:SetVertexColor(0.3, 0.3, 0.34, 1)
-        cell.border:Hide()
-      end
-      cell.frame._itemLink = link
-      cell.frame:Show()
-      col = col + 1
-      if col >= perRow then col = 0; y = y + ICON + GAP end
-    end
-    if col > 0 then y = y + ICON + GAP end
     y = y + SECT_GAP
   end
 
