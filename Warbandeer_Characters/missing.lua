@@ -1,6 +1,9 @@
 ---@type Warbandeer_Characters
 local ns = select(2, ...)
 local GetBuildInfo = GetBuildInfo
+local C_Spec = C_SpecializationInfo
+local GetNumSpecs = (C_Spec and C_Spec.GetNumSpecializationsForClassID) or _G.GetNumSpecializationsForClassID
+local GetSpecInfo = (C_Spec and C_Spec.GetSpecializationInfoForClassID) or _G.GetSpecializationInfoForClassID
 
 local patch = false
 
@@ -108,10 +111,27 @@ function ns.getMissingFields(toon)
   -- since the cache was added — its Detail appearance card shows nothing applied until it logs
   -- in. Only the active spec is readable per login, so playing other specs isn't flagged here.
   -- (Evoker has no appearance glyphs; a spec-less low-level character has none to gather.)
+  -- Applied appearance glyphs are captured per spec (only the active spec is readable per login).
+  -- No capture at all → just needs a login ("appearance glyphs"). Captured some specs → flag the
+  -- specific specs still missing, e.g. "appearance glyphs (Marksmanship, Survival)" — the specs to
+  -- play to fill them in. Evoker (no glyph catalog) and spec-less low-level characters aren't flagged.
   if ns.AppearanceGlyphs[toon.classId]
-      and toon.basic and toon.basic.specialization and toon.basic.specialization.id
-      and not (toon.glyphs and toon.glyphs.applied and next(toon.glyphs.applied)) then
-    table.insert(missing, "appearance glyphs")
+      and toon.basic and toon.basic.specialization and toon.basic.specialization.id then
+    local applied = toon.glyphs and toon.glyphs.applied
+    if not (applied and next(applied)) then
+      table.insert(missing, "appearance glyphs")
+    else
+      local gaps = {}
+      for i = 1, (GetNumSpecs(toon.classId) or 0) do
+        local specID, specName = GetSpecInfo(toon.classId, i)
+        if specID and not applied[specID] then
+          table.insert(gaps, specName or ("spec " .. specID))
+        end
+      end
+      if #gaps > 0 then
+        table.insert(missing, "appearance glyphs (" .. table.concat(gaps, ", ") .. ")")
+      end
+    end
   end
 
   -- Learned class unlocks (Druid Tome of the Wilds / Hunter Skill Tames) are captured each login
