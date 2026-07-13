@@ -126,6 +126,11 @@ below the evergreen reps. No filtering; all rows always show.
 `GetFriendshipReputation` with `maxLevel > 1` → friendship rep (e.g. Valeera `2744`); (3)
 `C_Reputation.GetFactionDataByID` → standard standing / `minorFactionMaxStanding[parentID]`.
 
+**Renown bar fill:** a non-maxed renown faction (major or subfaction) fills by **within-rank
+progress toward the next rank** (`renownReputationEarned / renownLevelThreshold`), *not* the rank
+count out of max — the rank stays in the value text (`level / max`) with the raw XP revealed on
+hover (`LabeledBar.hoverValue`). Friendship/standard subfactions fill by within-tier standing.
+
 ## SavedVariables (`WarbandeerDB`)
 
 ```lua
