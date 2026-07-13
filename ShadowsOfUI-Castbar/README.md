@@ -56,8 +56,8 @@ Found under **Options → AddOns → Shadows of UI → Cast Bars**:
 
 ## Dependencies
 
-- LibNAddOn
-- LibNUI
+- **LibNAddOn**
+- **LibNUI**
 
 ## Saved Data
 

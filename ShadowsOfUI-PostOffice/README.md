@@ -41,7 +41,7 @@ checkbox per feature, plus a **Changelog** button.
 
 ## Dependencies
 
-- **LibNAddOn** (required)
-- **LibNUI** (required — used for the copy-mail window)
-- **Warbandeer** (optional — with its Characters module installed, the recipient menu
-  and autocomplete include all your warband alts)
+- **LibNAddOn**
+- **LibNUI** — used for the copy-mail window.
+- **Warbandeer_Characters** *(optional)* — when installed, the recipient menu and
+  autocomplete include all your warband alts.

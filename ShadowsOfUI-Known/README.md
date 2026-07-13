@@ -47,7 +47,7 @@ normally need them.
 
 A **Changelog** button in this addon's settings (Options → AddOns → Shadows of UI → Recipe Learners) opens its release history in a scrollable, copyable window.
 
-## Requirements
+## Dependencies
 
 - **LibNAddOn**
 - **Warbandeer_Characters** — provides the per-character profession and learned-recipe

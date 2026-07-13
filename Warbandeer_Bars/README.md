@@ -140,4 +140,4 @@ Inspection/testing only (the data layer has no window):
 
 ## Dependencies
 
-`LibNAddOn` only — no LibNUI, no `Warbandeer_Characters`. Truly headless.
+- **LibNAddOn** — the only dependency. No LibNUI, no Warbandeer_Characters; truly headless.

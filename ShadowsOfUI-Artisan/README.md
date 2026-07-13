@@ -31,7 +31,7 @@ need it.
 
 A **Changelog** button in this addon's settings (Options → AddOns → Shadows of UI → Artisan Currency) opens its release history in a scrollable, copyable window.
 
-## Requirements
+## Dependencies
 
 - **LibNAddOn**
 - **Warbandeer_Characters** — records each character's profession list and currency amounts,

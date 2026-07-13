@@ -17,9 +17,10 @@ installed):
   already *starts with* the alias (e.g. alias `Naz` on `Nazuraki`); when disabled, the
   prefix applies on any name that isn't exactly the alias.
 
-## Requirements
+## Dependencies
 
-**LibNAddOn** and **LibNUI**.
+- **LibNAddOn**
+- **LibNUI**
 
 ## Saved data
 

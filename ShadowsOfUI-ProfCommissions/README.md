@@ -40,7 +40,7 @@ normally need.
 
 A **Changelog** button in this addon's settings (Options → AddOns → Shadows of UI → Prof Commissions) opens its release history in a scrollable, copyable window.
 
-## Requirements
+## Dependencies
 
 - **LibNAddOn**
 

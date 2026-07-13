@@ -13,6 +13,6 @@ tooltips, themes, …) so rendering and behavior can be verified in-game.
 
 See `LibNUI/CLAUDE.md` for how to add a test for a new widget.
 
-## Requirements
+## Dependencies
 
-**LibNUI** (and transitively LibNAddOn).
+- **LibNUI** (pulls in LibNAddOn transitively)

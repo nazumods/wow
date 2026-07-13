@@ -6,6 +6,6 @@ outlines when visibility matters, and the standard look the rest of the time.
 
 Fully automatic — no settings, no commands.
 
-## Requirements
+## Dependencies
 
-**LibNAddOn**.
+- **LibNAddOn**

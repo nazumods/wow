@@ -14,6 +14,7 @@ sweeps.
 
 A **Changelog** button in this addon's settings (Options → AddOns → Shadows of UI → GCD Bar) opens its release history in a scrollable, copyable window.
 
-## Requirements
+## Dependencies
 
-**LibNAddOn** and **LibNUI**.
+- **LibNAddOn**
+- **LibNUI**

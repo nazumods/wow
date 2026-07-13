@@ -43,7 +43,7 @@ Hold **Shift** while hovering to hide the lines.
 
 A **Changelog** button in this addon's settings (Options → AddOns → Shadows of UI → Delves) opens its release history in a scrollable, copyable window.
 
-## Requirements
+## Dependencies
 
 - **LibNAddOn**
 - **LibNUI** — provides the shared copyable window the `/sdelves` dev commands render into
