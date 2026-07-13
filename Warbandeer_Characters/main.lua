@@ -16,6 +16,8 @@ end, "Dump current character data")
 -- instead of printing directly, so the same content can render to chat (dump) or
 -- a copyable window (wdump — chat truncates and can't be copied). ns:registerDump
 -- registers both wrappers and records the dump so `wdump` (bare/*) can emit them all.
+-- Pass toWindow=true for a dump whose output is inherently too large for chat (e.g. a
+-- Hunter's full stable): its `dump <x>` variant then opens the copy window too.
 local dumps = {}
 
 local function makeBuffer()
@@ -32,20 +34,26 @@ local function makeBuffer()
 end
 
 ---@class Warbandeer_Characters
----@field registerDump fun(self, subcmd: string, title: string, description: string, body: fun(self, out: DumpBuffer, args: string))
+---@field registerDump fun(self, subcmd: string, title: string, description: string, body: fun(self, out: DumpBuffer, args: string), toWindow?: boolean)
 
 --- Register a dump subcommand that renders through a shared buffer, wiring up both
 --- `dump <subcmd>` (→ chat) and `wdump <subcmd>` (→ copyable window titled `title`).
+--- `toWindow` routes the `dump` variant to the copy window too, for output too large for chat.
 ---@param subcmd string
 ---@param title string window title used by the wdump variant
 ---@param description string
 ---@param body fun(self, out: DumpBuffer, args: string)
-function ns:registerDump(subcmd, title, description, body)
+---@param toWindow? boolean render the `dump <subcmd>` variant in the copy window (output too big for chat)
+function ns:registerDump(subcmd, title, description, body, toWindow)
   insert(dumps, { title = title, body = body })
   self:registerCommand("dump", subcmd, function(_, args)
     local buf = makeBuffer()
     body(self, buf, args)
-    for _, line in ipairs(buf.lines) do print(line) end
+    if toWindow then
+      ns.ui.ToggleCopyWindow(title, table.concat(buf.lines, "\n"))
+    else
+      for _, line in ipairs(buf.lines) do print(line) end
+    end
   end, description)
   self:registerCommand("wdump", subcmd, function(_, args)
     local buf = makeBuffer()

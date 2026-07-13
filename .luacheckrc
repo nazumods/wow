@@ -187,6 +187,7 @@ std = {
     "C_SpecializationInfo",
     "C_Spell",
     "C_SpellBook",
+    "C_StableInfo",
     "C_SuperTrack",
     "C_TaskQuest",
     "C_Texture",

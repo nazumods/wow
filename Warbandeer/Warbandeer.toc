@@ -31,6 +31,7 @@ controls\UpgradeMark.lua
 controls\SuggestedBox.lua
 controls\ConsumablesBox.lua
 controls\GlyphBox.lua
+controls\PetsPanel.lua
 controls\FlashItem.lua
 
 views\overview\FactionBars.lua

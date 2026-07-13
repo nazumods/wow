@@ -88,7 +88,7 @@ end, "Repair stored data (recount characters)")
 ---@field MigrateDB fun(self) Migrate database to latest version
 function ns:MigrateDB()
   local db = ns.db
-  if db.version == 32 then return end
+  if db.version == 35 then return end
   if not db.characters then db.characters = {} end
   if not db.numCharacters then
     db.numCharacters = countCharacters(db)
@@ -366,6 +366,15 @@ function ns:MigrateDB()
   -- the character is next seen, so rollback is lossless.
   if (db.version or 0) < 34 then
     db.version = 34
+  end
+
+  -- v35: per-character Hunter pet roster (`pets`: active Call-Pet slots + stabled pets, each with
+  -- name/family/level/spec + stable creatureID/displayID).  Additive and filled lazily by
+  -- data/pets.lua when a Hunter opens a stable master; nothing to seed — an older revision simply
+  -- lacks it (the Detail Pets button reads "visit a stable") until the character next visits one,
+  -- so rollback is lossless.
+  if (db.version or 0) < 35 then
+    db.version = 35
   end
 end
 
