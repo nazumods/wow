@@ -301,3 +301,43 @@ function ns.MergeGlyphStatus(list, specID, applied)
   end
   return out
 end
+
+-- Per-character *learned* class tomes — consumable items that permanently teach a spell to the
+-- character (`Use: Teaches you …`), so knowledge is PER CHARACTER (detected via
+-- C_SpellBook.IsSpellKnown on the taught spell). Currently just the Druid "Tome of the Wilds"
+-- set (Treant Form + Mount Form are the modern successors to the removed Glyph of the Treant /
+-- Glyph of the Stag). Keyed by classId → { itemID, spell, label } (spell = the taught spell id).
+-- Ids from Wowhead; verified in-game via `/wbc dump glyphs`.
+---@class TomeInfo
+---@field itemID integer   the tome item
+---@field spell integer    the spell it teaches (the IsSpellKnown target)
+---@field label string     item name (English; the probe verifies it live)
+
+---@type table<integer, TomeInfo[]>
+ns.LearnedTomes = {
+  [11] = { -- Druid — Tome of the Wilds
+    { itemID = 136787, spell = 114282, label = "Tome of the Wilds: Treant Form" },
+    { itemID = 136789, spell = 210053, label = "Tome of the Wilds: Mount Form" },
+    { itemID = 136794, spell = 164862, label = "Tome of the Wilds: Flap" },
+    { itemID = 136795, spell = 127757, label = "Tome of the Wilds: Charm Woodland Creature" },
+    { itemID = 136790, spell = 210065, label = "Tome of the Wilds: Track Beasts" },
+  },
+}
+
+-- Merge a class's learned-tome catalog with a character's known-spell set into a status list,
+-- preserving order. Pure — no WoW API — so it's unit-tested (spec/glyphs.lua).
+---@param list TomeInfo[]?                 the class's tome catalog
+---@param known table<integer, boolean>?   the character's known tome spell ids (nil = none scanned)
+---@return { itemID: integer, label: string, spell: integer, known: boolean }[]
+function ns.MergeTomeStatus(list, known)
+  local out = {}
+  for _, e in ipairs(list or {}) do
+    out[#out + 1] = {
+      itemID = e.itemID,
+      label = e.label,
+      spell = e.spell,
+      known = known ~= nil and known[e.spell] == true or false,
+    }
+  end
+  return out
+end

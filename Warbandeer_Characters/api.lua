@@ -416,6 +416,19 @@ function API:GetAppearanceUnlocks(charName)
   return out
 end
 
+---Learned class tomes for a character (currently the Druid "Tome of the Wilds" set — consumables
+---that permanently teach a spell): the class catalog (ns.LearnedTomes) merged with the character's
+---last-seen known-tome set. Per-character learned spells (not per-spec); last-seen (readable only
+---while logged in). Returns nil when the class has no tomes (every class but Druid).
+---@param charName string?
+---@return { itemID: integer, label: string, spell: integer, known: boolean }[]?
+function API:GetLearnedTomes(charName)
+  local c = self:GetCharacterData(charName)
+  local list = c and ns.LearnedTomes[c.classId]
+  if not list then return nil end
+  return ns.MergeTomeStatus(list, c.glyphs and c.glyphs.tomes or nil)
+end
+
 ---Synchronously re-fetch one broker field for the current character.
 ---Safe to call at any time; respects the maxLevel guard.
 ---@param brokerName string

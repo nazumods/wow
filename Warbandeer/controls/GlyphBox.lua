@@ -214,10 +214,12 @@ function GlyphBox:Populate(char)
   if not validSel then self._specSel = activeSpec or (specs[1] and specs[1].id) end
 
   local applied, scanned = ns.api:GetAppliedGlyphs(char.name, self._specSel)
+  local tomes = ns.api:GetLearnedTomes(char.name)
   local unlocks = ns.api:GetAppearanceUnlocks(char.name)
   local hasApplied = applied and #applied > 0
+  local hasTomes = tomes and #tomes > 0
   local hasUnlocks = unlocks and #unlocks > 0
-  if not hasApplied and not hasUnlocks then self:Hide(); return 0 end
+  if not hasApplied and not hasTomes and not hasUnlocks then self:Hide(); return 0 end
 
   local c = theme.colors
   local innerW = self:Width() - 2 * PAD
@@ -287,7 +289,30 @@ function GlyphBox:Populate(char)
     y = y + SECT_GAP
   end
 
-  -- Section 2 — account-wide unlocks, as an icon grid (distinct icons): owned full-colour with
+  -- Section 2 — learned class tomes (Druid Tome of the Wilds), a labeled list like the glyphs:
+  -- known in green, missing muted. The "Tome of the Wilds: " prefix is dropped (the header says it).
+  if hasTomes then
+    local owned = 0
+    for _, it in ipairs(tomes) do if it.known then owned = owned + 1 end end
+    header("TOME OF THE WILDS", owned, #tomes)
+    for _, it in ipairs(tomes) do
+      ri = ri + 1
+      local row = self:_row(ri)
+      row.frame:ClearAllPoints()
+      row.frame:TopLeft(self, ui.edge.TopLeft, PAD, -y)
+      row.frame:Width(innerW)
+      local icon, link = itemVisual(it.itemID)
+      row.icon:Texture(icon)
+      row.icon:SetVertexColor(it.known and 1 or 0.3, it.known and 1 or 0.3, it.known and 1 or 0.34, 1)
+      row.name:Text((it.label:gsub("^Tome of the Wilds: ", ""))):Color(it.known and c.green or c.muted)
+      row.frame._itemLink = link
+      row.frame:Show()
+      y = y + ROW_H
+    end
+    y = y + SECT_GAP
+  end
+
+  -- Section 3 — account-wide unlocks, as an icon grid (distinct icons): owned full-colour with
   -- a gold border, missing dimmed.
   if hasUnlocks then
     local owned = 0

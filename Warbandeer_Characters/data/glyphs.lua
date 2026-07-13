@@ -92,6 +92,22 @@ Glyphs.fields = {
     event = { "SPELLS_CHANGED", "PLAYER_SPECIALIZATION_CHANGED" },
     eventDelay = 1000,
   },
+  -- Learned class tomes (Druid "Tome of the Wilds") — consumables that permanently teach a
+  -- spell, so knowledge is per-character (not per-spec). `{ [spell] = true }` for the ids the
+  -- character knows; nil for a class with no tomes. Last-seen (readable only while logged in).
+  tomes = {
+    get = function(_, toon)
+      local list = ns.LearnedTomes[toon.classId]
+      if not list then return nil end
+      local known = {}
+      for _, e in ipairs(list) do
+        if C_SpellBook.IsSpellKnown(e.spell) then known[e.spell] = true end
+      end
+      return known
+    end,
+    event = "SPELLS_CHANGED",
+    eventDelay = 1000,
+  },
 }
 
 -- `/wbc dump glyphs` (+ `wdump glyphs`): the in-game verification probe. Prints each catalog
@@ -133,6 +149,18 @@ ns:registerDump("glyphs", "Appearance Glyphs",
       end
     else
       out:line("No applied-glyph catalog for this class.")
+    end
+
+    local tomes = ns.LearnedTomes[classId]
+    if tomes then
+      local known = (toon.glyphs and toon.glyphs.tomes) or {}
+      out:line(("Learned tomes (%d):"):format(#tomes))
+      for _, e in ipairs(tomes) do
+        out:line(("  %s  ->  %s  [%s]%s"):format(e.label,
+          GetItemName(e.itemID) or ("item:" .. e.itemID),
+          C_Spell.GetSpellName(e.spell) or ("spell:" .. e.spell),
+          known[e.spell] and "  <KNOWN>" or ""))
+      end
     end
 
     local unlocks = ns.AppearanceUnlocks[classId]

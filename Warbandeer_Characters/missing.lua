@@ -114,6 +114,14 @@ function ns.getMissingFields(toon)
     table.insert(missing, "appearance glyphs")
   end
 
+  -- Learned class tomes (Druid Tome of the Wilds) are captured each login via IsSpellKnown. A
+  -- class with tomes but no captured `glyphs.tomes` hasn't been seen since the cache was added,
+  -- so the Detail Tome-of-the-Wilds section can't show what it knows until it logs in. (The scan
+  -- stores an empty set when the character knows none, so a captured-but-empty toon isn't flagged.)
+  if ns.LearnedTomes[toon.classId] and not (toon.glyphs and toon.glyphs.tomes) then
+    table.insert(missing, "tome of the wilds")
+  end
+
   -- LumberAxe is a recorded boolean (has / doesn't have the Find Lumber tracking
   -- spell), so only a nil means the data was never captured. false is real data.
   if not toon.quests or toon.quests.LumberAxe == nil then
