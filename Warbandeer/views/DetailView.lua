@@ -13,6 +13,8 @@ local Colors = ns.Colors
 local BottomLeft, BottomRight = ui.edge.BottomLeft, ui.edge.BottomRight
 local BreakUpLargeNumbers = BreakUpLargeNumbers
 local D = ns.detail
+local HUNTER = 3        -- classId; only Hunters have a pet roster
+local PETS_BTN_H = 28   -- Detail's "Pets" button (toggles the docked roster panel)
 
 -- Header geometry: a faction/role icon column, then a race icon, then the class
 -- portrait, then the identity text — all derived from the shared layout metrics.
@@ -67,6 +69,8 @@ end
 ---@field suggestBox SuggestedBox
 ---@field consumeBox ConsumablesBox
 ---@field glyphBox GlyphBox
+---@field petsButton Button  Hunter-only; toggles the docked pet roster panel
+---@field petsPanel PetsPanel?  lazily-created docked pet roster (right of the window)
 local DetailView = Class(Frame, function(self)
   local c = theme.colors
   self._char = ns.api:GetCharacterData()
@@ -179,6 +183,18 @@ local DetailView = Class(Frame, function(self)
     if ns.MainWindow then ns.MainWindow:Fit() end
   end
 
+  -- Hunter-only: a button beneath the appearance box that toggles the docked pet roster panel
+  -- (self.petsPanel) — a big stable is far too much to inline. Positioned + labelled per character
+  -- in OnBeforeShow; hidden for non-Hunters.
+  self.petsButton = ui.Button:new{
+    parent     = self,
+    glow       = true,
+    background  = theme.colors.module,
+    position    = { TopLeft = {D.GEAR_X, -D.CONTENT_TOP}, Width = D.gearPanelW(D.GEAR_NAME_MIN), Height = PETS_BTN_H, Hide = true },
+    OnClick     = function() if self._char then self:_getPetsPanel():Toggle(self._char) end end,
+  }
+  self.petsButton:TextAlign("CENTER")
+
   self:Width(D.VIEW_WIDTH)
   self:Height(D.PROF_HEADER_Y + 40)
 end, {
@@ -214,6 +230,25 @@ function DetailView:OnNavigate()
 end
 
 -- ─── Lifecycle ────────────────────────────────────────────────────────────────
+
+-- Lazily create the docked Pets companion panel: parented to the view (so it hides when Detail is
+-- left or the window closes) and anchored to the main window's right edge, mirroring the Bars
+-- view's preview/apply companions. Toggled by the Hunter-only "Pets" button.
+---@return PetsPanel
+function DetailView:_getPetsPanel()
+  if not self.petsPanel then
+    -- Span the window's right edge top-to-bottom (docked, tracks window height), width set in Set().
+    local win = ns.MainWindow or self
+    self.petsPanel = ns.PetsPanel:new{
+      parent   = self,
+      position = {
+        TopLeft    = {win, ui.edge.TopRight, 8, 0},
+        BottomLeft = {win, ui.edge.BottomRight, 8, 0},
+      },
+    }
+  end
+  return self.petsPanel
+end
 
 function DetailView:OnBeforeShow()
   local char = self._char
@@ -360,7 +395,27 @@ function DetailView:OnBeforeShow()
   local glyphH = self.glyphBox:Populate(char)
   local glyphExtent = glyphH > 0 and (D.GAP + glyphH) or 0
 
-  local rightH = D.CONTENT_TOP + gearH + consExtent + glyphExtent + D.P
+  -- Hunter pet roster: a button (opening the dedicated Pets window) beneath whichever right-column
+  -- box is lowest. The roster itself is too large to inline, so only the button lives here.
+  local petsExtent = 0
+  if char.classId == HUNTER then
+    local pets = ns.api:GetPets(char.name)
+    local n = pets and (#pets.active + #pets.stable) or 0
+    self.petsButton:Text(n > 0 and ("Pets — " .. n) or "Pets")
+    local petsAnchor = glyphH > 0 and self.glyphBox
+      or (consH > 0 and self.consumeBox or self.gearPanel)
+    self.petsButton:ClearAllPoints()
+    self.petsButton:TopLeft(petsAnchor, BottomLeft, 0, -D.GAP)
+    self.petsButton:Width(D.gearPanelW(nameW))
+    self.petsButton:Show()
+    petsExtent = D.GAP + PETS_BTN_H
+    if self.petsPanel then self.petsPanel:Refresh(char) end  -- re-point an open panel at the new subject
+  else
+    self.petsButton:Hide()
+    if self.petsPanel then self.petsPanel:Hide() end
+  end
+
+  local rightH = D.CONTENT_TOP + gearH + consExtent + glyphExtent + petsExtent + D.P
 
   self:Width(D.GEAR_X + D.gearPanelW(nameW) + D.P)
   self:Height(math.max(leftH, rightH))

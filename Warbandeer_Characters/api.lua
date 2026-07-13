@@ -430,6 +430,18 @@ function API:GetLearnedUnlocks(charName)
   return ns.MergeLearnedStatus(list, c.glyphs and c.glyphs.unlocks or nil), ns.LearnedUnlockTitle[c.classId]
 end
 
+---A Hunter's last-seen pet roster: active Call-Pet slots + stabled pets, each a `PetRecord`
+---(name, family, level, spec, family icon, and the stable creatureID/displayID). Captured while
+---the character was at a stable master (the lists are only readable there); nil until it has
+---visited one, and always nil for non-Hunters. Data from the per-character `pets` cache
+---(data/pets.lua).
+---@param charName string?
+---@return PetsData?
+function API:GetPets(charName)
+  local c = self:GetCharacterData(charName)
+  return c and c.pets or nil
+end
+
 ---Synchronously re-fetch one broker field for the current character.
 ---Safe to call at any time; respects the maxLevel guard.
 ---@param brokerName string

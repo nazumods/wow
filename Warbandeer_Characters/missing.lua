@@ -142,6 +142,13 @@ function ns.getMissingFields(toon)
     table.insert(missing, (ns.LearnedUnlockTitle[toon.classId] or "class unlocks"):lower())
   end
 
+  -- A Hunter's pet roster (active + stabled) is captured only at a stable master (the lists aren't
+  -- readable elsewhere). A Hunter with no `pets` cache hasn't visited one since the field was added,
+  -- so its Detail Pets button reads "visit a stable" until it does. Non-Hunters have no stable.
+  if toon.classId == 3 and not toon.pets then
+    table.insert(missing, "stable pets")
+  end
+
   -- LumberAxe is a recorded boolean (has / doesn't have the Find Lumber tracking
   -- spell), so only a nil means the data was never captured. false is real data.
   if not toon.quests or toon.quests.LumberAxe == nil then

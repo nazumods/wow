@@ -240,8 +240,32 @@ local function refreshCollectedOnScan()
   end
 end
 
+-- Live-refresh the open Pets panel when the Hunter rearranges pets (active↔stable, or to/from the
+-- stable) or a pet's info changes (rename), so the docked panel tracks the change without a /reload.
+-- The data layer (Warbandeer_Characters) rescans `toon.pets` on these same events and loads first,
+-- so its handler runs before this one; the short debounce also coalesces the burst of
+-- PET_STABLE_UPDATE fires as pets are dragged around.
+local PETS_REFRESH_DELAY = 300  -- ms; coalesces a burst of pet moves (the data-layer rescan is synchronous)
+local petsRefreshGen = 0
+local function shownPetsPanel()
+  local view = ns.MainWindow and ns.MainWindow:ShownView()
+  return view and view.name == "detail" and view.petsPanel or nil
+end
+local function refreshPetsOnChange()
+  if not shownPetsPanel() then return end
+  petsRefreshGen = petsRefreshGen + 1
+  local gen = petsRefreshGen
+  ns:after(PETS_REFRESH_DELAY, function()
+    if gen ~= petsRefreshGen then return end   -- superseded by a later pet change
+    local panel = shownPetsPanel()
+    if panel then panel:Refresh() end          -- no-ops if the panel is toggled off
+  end)
+end
+
 function ns:onLoad()
   ns:registerEvent("PLAYER_EQUIPMENT_CHANGED", refreshDetailOnGearChange)
+  ns:registerEvent("PET_STABLE_UPDATE", refreshPetsOnChange)
+  ns:registerEvent("PET_INFO_UPDATE", refreshPetsOnChange)
   if WarbandeerCollectedApi and WarbandeerCollectedApi.OnScanned then
     WarbandeerCollectedApi:OnScanned(refreshCollectedOnScan)
   end
