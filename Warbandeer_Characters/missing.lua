@@ -103,6 +103,17 @@ function ns.getMissingFields(toon)
     table.insert(missing, "quest history")
   end
 
+  -- Applied appearance glyphs are captured per spec when a character (with a chosen spec) logs
+  -- in. A class that has glyphs and a spec, but no captured glyphs.applied, hasn't been seen
+  -- since the cache was added — its Detail appearance card shows nothing applied until it logs
+  -- in. Only the active spec is readable per login, so playing other specs isn't flagged here.
+  -- (Evoker has no appearance glyphs; a spec-less low-level character has none to gather.)
+  if ns.AppearanceGlyphs[toon.classId]
+      and toon.basic and toon.basic.specialization and toon.basic.specialization.id
+      and not (toon.glyphs and toon.glyphs.applied and next(toon.glyphs.applied)) then
+    table.insert(missing, "appearance glyphs")
+  end
+
   -- LumberAxe is a recorded boolean (has / doesn't have the Find Lumber tracking
   -- spell), so only a nil means the data was never captured. false is real data.
   if not toon.quests or toon.quests.LumberAxe == nil then
