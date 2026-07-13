@@ -45,6 +45,24 @@ The class name is the addon folder name with hyphens replaced by underscores. If
 also needs the addon name, keep it on its own line (`local ADDON_NAME = ...`) above the
 annotated import.
 
+## Dependencies
+
+Each addon declares its dependencies in its `.toc`:
+
+- `## Dependencies:` — addons that must load first; the addon won't load without them.
+  Almost everything lists `LibNAddOn`; addons with a UI also list `LibNUI`; addons that
+  read warband data also list `Warbandeer_Characters`. The two raw-WoW-API tweaks
+  (HideBagBar, BarNonce) declare none.
+- `## OptionalDeps:` — addons that aren't required but, when installed, are loaded first so
+  integration hooks resolve (e.g. `Warbandeer`, `ClassCodex`). Some optional integrations
+  (Baganator, Bagnon) are detected at runtime instead and aren't listed in the `.toc`.
+
+Keep the docs in step with the `.toc`. Every addon `README.md` carries a **`## Dependencies`**
+section — required libs/addons as bold bullets, optional ones marked
+`*(optional)* — what it unlocks` — and the root [README.md](README.md) addon tables carry
+**Requires** / **Optional** columns. When an addon's dependencies change, update the `.toc`,
+that addon's README section, and the root README columns in the same change.
+
 ## Testing
 
 - **In-game**: `/reload` after changes; `/nui test [key]` opens LibNUI's visual test
