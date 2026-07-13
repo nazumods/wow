@@ -472,6 +472,7 @@ std = {
     "UnitChannelInfo",
     "UnitClass",
     "UnitClassBase",
+    "UnitCreatureFamily",
     "UnitExists",
     "UnitGUID",
     "UnitHealth",

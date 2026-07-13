@@ -13,8 +13,9 @@ local Colors = ns.Colors
 local BottomLeft, BottomRight = ui.edge.BottomLeft, ui.edge.BottomRight
 local BreakUpLargeNumbers = BreakUpLargeNumbers
 local D = ns.detail
-local HUNTER = 3        -- classId; only Hunters have a pet roster
-local PETS_BTN_H = 28   -- Detail's "Pets" button (toggles the docked roster panel)
+local HUNTER = 3        -- classId; a stable of pets
+local WARLOCK = 9       -- classId; the other pet class — summoned demons instead of a stable
+local PETS_BTN_H = 28   -- Detail's "Pets"/"Demons" button (toggles the docked roster panel)
 
 -- Header geometry: a faction/role icon column, then a race icon, then the class
 -- portrait, then the identity text — all derived from the shared layout metrics.
@@ -69,8 +70,8 @@ end
 ---@field suggestBox SuggestedBox
 ---@field consumeBox ConsumablesBox
 ---@field glyphBox GlyphBox
----@field petsButton Button  Hunter-only; toggles the docked pet roster panel
----@field petsPanel PetsPanel?  lazily-created docked pet roster (right of the window)
+---@field petsButton Button  Hunter/Warlock; toggles the docked pet/demon roster panel
+---@field petsPanel PetsPanel?  lazily-created docked pet/demon roster (right of the window)
 local DetailView = Class(Frame, function(self)
   local c = theme.colors
   self._char = ns.api:GetCharacterData()
@@ -183,9 +184,9 @@ local DetailView = Class(Frame, function(self)
     if ns.MainWindow then ns.MainWindow:Fit() end
   end
 
-  -- Hunter-only: a button beneath the appearance box that toggles the docked pet roster panel
-  -- (self.petsPanel) — a big stable is far too much to inline. Positioned + labelled per character
-  -- in OnBeforeShow; hidden for non-Hunters.
+  -- Hunter/Warlock: a button beneath the appearance box that toggles the docked pet/demon roster
+  -- panel (self.petsPanel) — a big stable is far too much to inline. Positioned + labelled per
+  -- character in OnBeforeShow; hidden for classes with no pet roster.
   self.petsButton = ui.Button:new{
     parent     = self,
     glow       = true,
@@ -395,13 +396,22 @@ function DetailView:OnBeforeShow()
   local glyphH = self.glyphBox:Populate(char)
   local glyphExtent = glyphH > 0 and (D.GAP + glyphH) or 0
 
-  -- Hunter pet roster: a button (opening the dedicated Pets window) beneath whichever right-column
-  -- box is lowest. The roster itself is too large to inline, so only the button lives here.
+  -- Pet/demon roster: a button (opening the dedicated docked panel) beneath whichever right-column
+  -- box is lowest. The roster itself is too large to inline, so only the button lives here. Hunters
+  -- get "Pets — N" (active + stable), Warlocks "Demons — N" (summoned demons); no roster otherwise.
   local petsExtent = 0
-  if char.classId == HUNTER then
-    local pets = ns.api:GetPets(char.name)
-    local n = pets and (#pets.active + #pets.stable) or 0
-    self.petsButton:Text(n > 0 and ("Pets — " .. n) or "Pets")
+  if char.classId == HUNTER or char.classId == WARLOCK then
+    local n, label
+    if char.classId == WARLOCK then
+      local demons = ns.api:GetDemons(char.name)
+      n = demons and #demons.list or 0
+      label = n > 0 and ("Demons — " .. n) or "Demons"
+    else
+      local pets = ns.api:GetPets(char.name)
+      n = pets and (#pets.active + #pets.stable) or 0
+      label = n > 0 and ("Pets — " .. n) or "Pets"
+    end
+    self.petsButton:Text(label)
     local petsAnchor = glyphH > 0 and self.glyphBox
       or (consH > 0 and self.consumeBox or self.gearPanel)
     self.petsButton:ClearAllPoints()
