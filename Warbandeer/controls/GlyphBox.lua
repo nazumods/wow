@@ -134,7 +134,10 @@ end
 ---@param char Character
 ---@return number height
 function GlyphBox:Populate(char)
-  local applied = ns.api:GetAppliedGlyphs(char.name)
+  -- `scanned` is false when the character's *active* spec has never been scanned (an alt not
+  -- seen in this spec) — its applied state is unknown, not confirmed-none. WoW only exposes the
+  -- active spec's applied glyphs, so per-spec sets fill in as the character plays each spec.
+  local applied, scanned = ns.api:GetAppliedGlyphs(char.name)
   local unlocks = ns.api:GetAppearanceUnlocks(char.name)
   local hasApplied = applied and #applied > 0
   local hasUnlocks = unlocks and #unlocks > 0
@@ -145,14 +148,19 @@ function GlyphBox:Populate(char)
   local y = PAD
   local ri, ci, hi = 0, 0, 0
 
-  -- A section header with an owned/total count (green when complete).
-  local function header(title, owned, total)
+  -- A section header with an owned/total count (green when complete). `unknown` (the active
+  -- spec was never scanned) shows "? / total" instead — applied state is undiscovered, not none.
+  local function header(title, owned, total, unknown)
     hi = hi + 1
     local hdr = self:_header(hi)
     hdr:ClearAllPoints()
     hdr:TopLeft(self, ui.edge.TopLeft, PAD, -y)
-    hdr:Text(("%s   %d / %d"):format(title, owned, total))
-    hdr:Color((owned == total and total > 0) and c.green or c.muted)
+    if unknown then
+      hdr:Text(("%s   ? / %d"):format(title, total)):Color(c.muted)
+    else
+      hdr:Text(("%s   %d / %d"):format(title, owned, total))
+      hdr:Color((owned == total and total > 0) and c.green or c.muted)
+    end
     y = y + hdr:Height() + HEADER_GAP
   end
 
@@ -161,7 +169,7 @@ function GlyphBox:Populate(char)
   if hasApplied then
     local owned = 0
     for _, it in ipairs(applied) do if it.applied then owned = owned + 1 end end
-    header("APPEARANCE GLYPHS", owned, #applied)
+    header("APPEARANCE GLYPHS", owned, #applied, not scanned)
     for _, it in ipairs(applied) do
       ri = ri + 1
       local row = self:_row(ri)
