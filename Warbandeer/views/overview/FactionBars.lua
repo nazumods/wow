@@ -101,8 +101,9 @@ end
 -- progress (shown as "paragon" text on a darker faction-colored track, with the
 -- raw numbers revealed on hover; a claimable paragon chest instead shows a gold
 -- bag + "claim"); otherwise show base-rep progress, or "complete" when maxed with
--- no paragon.
-local function resolveProgress(factionID, atMax, valueText, pct, r, g, b)
+-- no paragon. hoverValue (raw renown XP for renown rows) rides onto the non-maxed
+-- fragment so the exact within-rank numbers surface on hover.
+local function resolveProgress(factionID, atMax, valueText, pct, r, g, b, hoverValue)
   if atMax then
     local par = paragonInfo(factionID, r, g, b)
     if par then
@@ -112,7 +113,7 @@ local function resolveProgress(factionID, atMax, valueText, pct, r, g, b)
     end
     return { value = "complete", pct = 1, done = true }
   end
-  return { value = valueText, pct = pct, done = false }
+  return { value = valueText, pct = pct, done = false, hoverValue = hoverValue }
 end
 
 -- Seasonal reputations name themselves "<type>: Season N" (e.g. "Delves: Season 1").
@@ -142,8 +143,12 @@ local function gatherFactions(expansionLevel, extraFactionIDs)
 
     local atMax = maxLevel ~= nil and info.renownLevel == maxLevel
     local valueText = info.renownLevel .. " / " .. (maxLevel or "?")
-    local pct = (maxLevel and maxLevel > 0) and info.renownLevel / maxLevel or 0
-    local prog = resolveProgress(factionID, atMax, valueText, pct, r, g, b)
+    -- Fill by progress within the current renown rank toward the next (renown XP), not
+    -- the rank count out of max; the rank stays in the value text, raw XP shown on hover.
+    local threshold = info.renownLevelThreshold or 0
+    local pct = threshold > 0 and info.renownReputationEarned / threshold or 0
+    local hoverText = threshold > 0 and (info.renownReputationEarned .. " / " .. threshold) or nil
+    local prog = resolveProgress(factionID, atMax, valueText, pct, r, g, b, hoverText)
     insert(rows, {
       name = info.name, value = prog.value, hoverValue = prog.hoverValue,
       pct = prog.pct, done = prog.done, paragon = prog.paragon, reward = prog.reward,
@@ -154,7 +159,7 @@ local function gatherFactions(expansionLevel, extraFactionIDs)
     if not ns.data.minorFactions[factionID] then return end
     for _, subID in ipairs(ns.data.minorFactions[factionID]) do
       local subMajor = GetMajorFactionData(subID)
-      local subName, subAtMax, subValueText, subPct
+      local subName, subAtMax, subValueText, subPct, subHover
       if subMajor and subMajor.renownLevel ~= nil then
         local subMax = subMajor.maxLevel
         if not subMax then
@@ -163,7 +168,10 @@ local function gatherFactions(expansionLevel, extraFactionIDs)
         end
         subAtMax = subMax and (subMajor.renownLevel == subMax)
         subValueText = subMajor.renownLevel .. " / " .. (subMax or "?")
-        subPct = (subMax and subMax > 0) and subMajor.renownLevel / subMax or 0
+        -- within-rank renown XP (see the major-faction path above), not the rank count
+        local subThreshold = subMajor.renownLevelThreshold or 0
+        subPct = subThreshold > 0 and subMajor.renownReputationEarned / subThreshold or 0
+        subHover = subThreshold > 0 and (subMajor.renownReputationEarned .. " / " .. subThreshold) or nil
         subName = subMajor.name
       else
         local friendInfo = GetFriendshipReputation(subID)
@@ -186,7 +194,7 @@ local function gatherFactions(expansionLevel, extraFactionIDs)
         end
       end
       local subNameColor, subFillColor, sr, sg, sb = colorFor(subID, nil, nameColor)
-      local subProg = resolveProgress(subID, subAtMax, subValueText, subPct, sr, sg, sb)
+      local subProg = resolveProgress(subID, subAtMax, subValueText, subPct, sr, sg, sb, subHover)
       insert(rows, {
         name = subName, value = subProg.value, hoverValue = subProg.hoverValue,
         pct = subProg.pct, done = subProg.done, paragon = subProg.paragon, reward = subProg.reward,
