@@ -104,6 +104,15 @@ LibNUI_Test is a LoadOnDemand visual test harness for LibNUI (`/nui test [key]`)
 
 ---
 
+## Apps (`apps/` — not addons, excluded from the release pipeline)
+
+| App | Summary | Reference |
+|---|---|---|
+| **warbandeer-desktop** | Tauri 2 + Svelte 5 desktop companion: reads SavedVariables (mlua) + combat logs, mirrors the Overview view. Released via `app-release.yml` (`app-*` tags). | [apps/warbandeer-desktop/CONTEXT.md](apps/warbandeer-desktop/CONTEXT.md) |
+| **warbandeer-discord** | Bun + TypeScript Discord bot: DMF/reset timers, weekly-reset + realm-up announcements (Blizzard API), GitHub release notifications. | [apps/warbandeer-discord/CONTEXT.md](apps/warbandeer-discord/CONTEXT.md) |
+
+---
+
 ## Slash Command Registry
 
 | Addon | Commands | Sub-commands |
