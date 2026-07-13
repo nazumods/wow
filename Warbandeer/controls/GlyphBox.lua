@@ -11,28 +11,36 @@ local RequestItem = C_Item.RequestLoadItemDataByID
 local QUESTION_ICON = 134400 -- inv_misc_questionmark, for an item whose icon isn't cached yet
 
 -- Appearance box (Detail view, right column beneath Consumables): the character's cosmetic
--- appearance state, in up to two icon-grid sections —
+-- appearance state, in up to two sections —
 --   * "Appearance Glyphs"  — glyphs APPLIED to the character's active-spec spells
---     (per-character/per-spec, WarbandeerApi:GetAppliedGlyphs).
+--     (per-character/per-spec, WarbandeerApi:GetAppliedGlyphs). Rendered as a labeled LIST:
+--     WoW glyph items nearly all share one generic per-class tome icon, so the name (not the
+--     icon) is what distinguishes them — applied glyphs are named in green, unapplied muted.
 --   * "Barbershop Unlocks"  — ACCOUNT-WIDE Druid Marks / travel-form glyphs + Warlock demon
---     Grimoires (WarbandeerApi:GetAppearanceUnlocks).
--- Each entry is an item icon: full-colour with a gold border when owned/applied, dimmed
--- otherwise; hover shows its item tooltip. The whole box hides (zero height) for a class with
+--     Grimoires (WarbandeerApi:GetAppearanceUnlocks). Rendered as an icon GRID (these have
+--     distinct icons): owned full-colour with a gold border, missing dimmed.
+-- Every entry hovers to its item tooltip. The whole box hides (zero height) for a class with
 -- neither system (e.g. Evoker). Modelled on ConsumablesBox / SuggestedBox (Populate → height).
 
 local PAD = 12          -- panel inner padding (matches the gear panel)
-local ICON = 26         -- icon edge
-local GAP = 5           -- gap between icons
-local HEADER_GAP = 6    -- section header → its grid
+local HEADER_GAP = 6    -- section header → its content
 local SECT_GAP = 12     -- gap between the two sections
+local ROW_H = 18        -- one glyph list row
+local ROW_ICON = 14     -- glyph list-row icon edge
+local ICON = 26         -- unlock grid icon edge
+local GAP = 5           -- gap between grid icons
 
 ---@class GlyphBox: Frame
----@field _cells table[]    pooled icon cells (flat pool across both sections)
----@field _n integer         number of cells currently visible
+---@field _rows table[]     pooled glyph list rows
+---@field _nRows integer     visible list rows
+---@field _cells table[]    pooled unlock grid cells
+---@field _nCells integer    visible grid cells
 ---@field _headers Label[]   pooled section-header labels
 local GlyphBox = Class(Frame, function(self)
+  self._rows = {}
+  self._nRows = 0
   self._cells = {}
-  self._n = 0
+  self._nCells = 0
   self._headers = {}
 end, {
   background = theme.colors.module,
@@ -53,8 +61,36 @@ function GlyphBox:_header(i)
   return h
 end
 
--- Grab (or lazily create) a pooled icon cell: an item icon with a gold "owned" border and a
--- hover that shows the item's tooltip. The current item link is stashed on the frame.
+-- Grab (or lazily create) a pooled glyph list row: a small icon + the glyph name, hovering
+-- to the item's tooltip. The current item link is stashed on the frame.
+---@param i integer
+---@return table
+function GlyphBox:_row(i)
+  local row = self._rows[i]
+  if row then return row end
+
+  local frame = Frame:new{ parent = self, position = { Height = ROW_H } }
+  local icon = Texture:new{
+    parent = frame, layer = ui.layer.Artwork,
+    position = { Left = { frame, ui.edge.Left, 0, 0 }, Width = ROW_ICON, Height = ROW_ICON },
+  }
+  local name = Label:new{
+    parent = frame, fontInfo = theme.fonts.body, justifyH = ui.justify.Left, wordWrap = false,
+    position = { Left = { frame, ui.edge.Left, ROW_ICON + 6, 0 }, Right = { frame, ui.edge.Right, 0, 0 } },
+  }
+  frame:EnableMouse(true)
+  frame:SetScript("OnEnter", function()
+    if frame._itemLink then ns.ShowItemTooltip(frame, frame._itemLink, nil, true) end
+  end)
+  frame:SetScript("OnLeave", function() ns.HideItemTooltip() end)
+
+  row = { frame = frame, icon = icon, name = name }
+  self._rows[i] = row
+  return row
+end
+
+-- Grab (or lazily create) a pooled unlock grid cell: an item icon with a gold "owned" border
+-- and a hover tooltip. The current item link is stashed on the frame.
 ---@param i integer
 ---@return table
 function GlyphBox:_cell(i)
@@ -83,6 +119,16 @@ function GlyphBox:_cell(i)
   return cell
 end
 
+-- Resolve an item's icon fileID (fallback to a question mark + request a load) and its link
+-- (fallback to a bare item link + request a load), for a cell/row about to show it.
+---@param itemID integer
+---@return integer icon, string link
+local function itemVisual(itemID)
+  local link = select(2, GetInfo(itemID))
+  if not link then RequestItem(itemID) end
+  return GetIcon(itemID) or QUESTION_ICON, link or ("item:" .. itemID)
+end
+
 -- Fill the box for `char` and return its content height (0 when the class has neither system —
 -- the box hides and reserves no space). The caller sets the box width first.
 ---@param char Character
@@ -96,43 +142,67 @@ function GlyphBox:Populate(char)
 
   local c = theme.colors
   local innerW = self:Width() - 2 * PAD
-  local perRow = max(1, floor((innerW + GAP) / (ICON + GAP)))
   local y = PAD
-  local ci, hi = 0, 0
+  local ri, ci, hi = 0, 0, 0
 
-  -- Render one section: a header with an owned/total count, then a wrapping icon grid.
-  local function section(title, items, ownedKey)
-    if not items or #items == 0 then return end
-    local owned = 0
-    for _, it in ipairs(items) do if it[ownedKey] then owned = owned + 1 end end
-
+  -- A section header with an owned/total count (green when complete).
+  local function header(title, owned, total)
     hi = hi + 1
     local hdr = self:_header(hi)
     hdr:ClearAllPoints()
     hdr:TopLeft(self, ui.edge.TopLeft, PAD, -y)
-    hdr:Text(("%s   %d / %d"):format(title, owned, #items))
-    hdr:Color((owned == #items) and c.green or c.muted)
+    hdr:Text(("%s   %d / %d"):format(title, owned, total))
+    hdr:Color((owned == total and total > 0) and c.green or c.muted)
     y = y + hdr:Height() + HEADER_GAP
+  end
 
+  -- Section 1 — applied glyphs, as a labeled list (glyph icons are near-identical, so the
+  -- name carries the meaning): applied names in green, unapplied muted + a dimmed icon.
+  if hasApplied then
+    local owned = 0
+    for _, it in ipairs(applied) do if it.applied then owned = owned + 1 end end
+    header("APPEARANCE GLYPHS", owned, #applied)
+    for _, it in ipairs(applied) do
+      ri = ri + 1
+      local row = self:_row(ri)
+      row.frame:ClearAllPoints()
+      row.frame:TopLeft(self, ui.edge.TopLeft, PAD, -y)
+      row.frame:Width(innerW)
+      local icon, link = itemVisual(it.itemID)
+      row.icon:Texture(icon)
+      row.icon:SetVertexColor(it.applied and 1 or 0.3, it.applied and 1 or 0.3, it.applied and 1 or 0.34, 1)
+      row.name:Text(it.label):Color(it.applied and c.green or c.muted)
+      row.frame._itemLink = link
+      row.frame:Show()
+      y = y + ROW_H
+    end
+    y = y + SECT_GAP
+  end
+
+  -- Section 2 — account-wide unlocks, as an icon grid (distinct icons): owned full-colour with
+  -- a gold border, missing dimmed.
+  if hasUnlocks then
+    local owned = 0
+    for _, it in ipairs(unlocks) do if it.unlocked then owned = owned + 1 end end
+    header("BARBERSHOP UNLOCKS", owned, #unlocks)
+    local perRow = max(1, floor((innerW + GAP) / (ICON + GAP)))
     local col = 0
-    for _, it in ipairs(items) do
+    for _, it in ipairs(unlocks) do
       ci = ci + 1
       local cell = self:_cell(ci)
       cell.frame:ClearAllPoints()
       cell.frame:TopLeft(self, ui.edge.TopLeft, PAD + col * (ICON + GAP), -y)
-      cell.icon:Texture(GetIcon(it.itemID) or QUESTION_ICON)
-      if it[ownedKey] then
+      local icon, link = itemVisual(it.itemID)
+      cell.icon:Texture(icon)
+      if it.unlocked then
         cell.icon:SetVertexColor(1, 1, 1, 1)
         cell.border:Show()
       else
         cell.icon:SetVertexColor(0.3, 0.3, 0.34, 1)
         cell.border:Hide()
       end
-      local _, link = GetInfo(it.itemID)
-      if not link then RequestItem(it.itemID) end
-      cell.frame._itemLink = link or ("item:" .. it.itemID)
+      cell.frame._itemLink = link
       cell.frame:Show()
-
       col = col + 1
       if col >= perRow then col = 0; y = y + ICON + GAP end
     end
@@ -140,11 +210,10 @@ function GlyphBox:Populate(char)
     y = y + SECT_GAP
   end
 
-  section("APPEARANCE GLYPHS", applied, "applied")
-  section("BARBERSHOP UNLOCKS", unlocks, "unlocked")
-
-  for i = ci + 1, self._n do self._cells[i].frame:Hide() end
-  self._n = ci
+  for i = ri + 1, self._nRows do self._rows[i].frame:Hide() end
+  self._nRows = ri
+  for i = ci + 1, self._nCells do self._cells[i].frame:Hide() end
+  self._nCells = ci
   for i = hi + 1, #self._headers do self._headers[i]:Hide() end
 
   y = y - SECT_GAP + PAD -- trim the trailing section gap, add bottom padding

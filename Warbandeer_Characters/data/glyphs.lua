@@ -93,6 +93,18 @@ ns:registerDump("glyphs", "Appearance Glyphs",
     local specID = currentSpecID()
     out:line(("Class %s (%d)  spec %s"):format(toon.className or "?", classId, tostring(specID)))
 
+    -- Live-scan diagnostic: exactly what the spellbook walk finds right now, independent of
+    -- the cached broker value — an empty result here on a character with a glyph applied means
+    -- the scan/link-parse is the problem, not the catalog mapping.
+    if specID then
+      local raw = scanAppliedGlyphs(specID)
+      local ids = {}
+      for g in pairs(raw) do ids[#ids + 1] = g end
+      table.sort(ids)
+      out:line(("Live spellbook scan: %d applied glyph id(s)%s"):format(#ids,
+        #ids > 0 and (" -> " .. table.concat(ids, ", ")) or ""))
+    end
+
     local glyphs = ns.AppearanceGlyphs[classId]
     if glyphs then
       local applied = (toon.glyphs and toon.glyphs.applied and specID and toon.glyphs.applied[specID]) or {}
