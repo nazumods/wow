@@ -120,9 +120,13 @@ function GlyphBox:_specBtn(i)
   frame:EnableMouse(true)
   frame:SetScript("OnEnter", function()
     if frame._specName then
+      local m = theme.colors.muted
       ns.AnchorTip(frame)
       ui.tip:ClearLines()
       ui.tip:AddLine(frame._specName)
+      -- Explain a dimmed spec: WoW only exposes the active spec's glyphs, so an unplayed spec's
+      -- applied state is unknown until it's next the active spec.
+      if not frame._hasData then ui.tip:AddLine("Not yet scanned — play this spec to capture", m[1], m[2], m[3]) end
       ui.tip:Show()
     end
   end)
@@ -259,6 +263,7 @@ function GlyphBox:Populate(char)
         if selected then btn.border:Show() else btn.border:Hide() end
         btn.frame._specId = sp.id
         btn.frame._specName = sp.name
+        btn.frame._hasData = hasData
         btn.frame:Show()
         x = x + SPEC_ICON + SPEC_GAP
       end
