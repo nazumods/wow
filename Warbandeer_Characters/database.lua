@@ -349,6 +349,15 @@ function ns:MigrateDB()
   if (db.version or 0) < 32 then
     db.version = 32
   end
+
+  -- v33: per-character applied-glyph cache (`glyphs.applied`: a last-seen, per-spec set of the
+  -- cosmetic glyph ids the character has applied to its spells).  Additive and filled lazily by
+  -- data/glyphs.lua as the character logs in / applies glyphs; nothing to seed — an older revision
+  -- simply lacks it (the Detail appearance card shows nothing applied) until the character is next
+  -- seen, so rollback is lossless.  Account-wide barbershop unlocks are read live and never stored.
+  if (db.version or 0) < 33 then
+    db.version = 33
+  end
 end
 
 ---@class Warbandeer_Characters

@@ -7,6 +7,7 @@ local unpack = unpack
 local StatCard = ns.StatCard
 local SuggestedBox = ns.SuggestedBox
 local ConsumablesBox = ns.ConsumablesBox
+local GlyphBox = ns.GlyphBox
 local theme = ns.theme
 local Colors = ns.Colors
 local BottomLeft, BottomRight = ui.edge.BottomLeft, ui.edge.BottomRight
@@ -65,6 +66,7 @@ end
 ---@field gearHeader Label
 ---@field suggestBox SuggestedBox
 ---@field consumeBox ConsumablesBox
+---@field glyphBox GlyphBox
 local DetailView = Class(Frame, function(self)
   local c = theme.colors
   self._char = ns.api:GetCharacterData()
@@ -164,6 +166,18 @@ local DetailView = Class(Frame, function(self)
     parent = self,
     position = { TopLeft = {D.GEAR_X, -D.CONTENT_TOP}, Width = D.gearPanelW(D.GEAR_NAME_MIN), Height = D.STRIP_H },
   }
+
+  -- Appearance box (applied glyphs + account barbershop unlocks), anchored beneath the
+  -- consumables box in OnBeforeShow (right column).
+  self.glyphBox = GlyphBox:new{
+    parent = self,
+    position = { TopLeft = {D.GEAR_X, -D.CONTENT_TOP}, Width = D.gearPanelW(D.GEAR_NAME_MIN), Height = D.STRIP_H },
+  }
+  -- The glyph box's spec picker changes its height, so re-run the layout when it switches spec.
+  self.glyphBox.onSpecChange = function()
+    self:OnBeforeShow()
+    if ns.MainWindow then ns.MainWindow:Fit() end
+  end
 
   self:Width(D.VIEW_WIDTH)
   self:Height(D.PROF_HEADER_Y + 40)
@@ -337,7 +351,16 @@ function DetailView:OnBeforeShow()
   local consH = self.consumeBox:Populate(char)
   local consExtent = consH > 0 and (D.GAP + consH) or 0
 
-  local rightH = D.CONTENT_TOP + gearH + consExtent + D.P
+  -- Appearance box beneath whichever of the gear panel / consumables box is lowest (the
+  -- consumables box hides itself to zero height, so anchor to the gear panel when it's off).
+  local rightAnchor = consH > 0 and self.consumeBox or self.gearPanel
+  self.glyphBox:ClearAllPoints()
+  self.glyphBox:TopLeft(rightAnchor, BottomLeft, 0, -D.GAP)
+  self.glyphBox:Width(D.gearPanelW(nameW))
+  local glyphH = self.glyphBox:Populate(char)
+  local glyphExtent = glyphH > 0 and (D.GAP + glyphH) or 0
+
+  local rightH = D.CONTENT_TOP + gearH + consExtent + glyphExtent + D.P
 
   self:Width(D.GEAR_X + D.gearPanelW(nameW) + D.P)
   self:Height(math.max(leftH, rightH))
