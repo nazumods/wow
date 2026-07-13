@@ -10,6 +10,8 @@ The `CONTEXT.md` index covers the **suite**. For an unfamiliar **third-party** a
 
 Route code search and file reads through the dedicated tools, not the shell: content search → the **Grep tool** (regex alternation `A|B|C`, `glob`/`type` filters, and `path` to scope to any directory — including reference repos like `wow-ui-source` — with clickable results); file discovery → the **Glob tool** (`**/*.lua`); reading a file → the **Read tool**. Reserve the shell for genuine compounds a single tool can't express (a `grep` piped into `sed -n`, or piping `| head -N`/`| tail -N` onto a real command like git/luacheck/busted).
 
+**The `CONTEXT.md` files are the exception to "read a file → Read":** their table rows are single lines that each run to several KB (the DetailView / SummaryColumns / migration rows are the extreme), so a small-looking `Read` line range (`offset`/`limit`) still pulls tens of KB into context — a 45-line window of `Warbandeer/CONTEXT.md` is ~44 KB. To pull one specific row (a file-map entry, an API method, a data-structure block), **Grep it** on a short unique substring (`output_mode: "content"`) instead of reading a line range; that returns just the row(s) you want. Read a contiguous range only when you genuinely need a span of the surrounding prose. This is the read-side companion to the "anchor the `Edit` on a short, unique substring" rule under **Documentation** — the same Grep both locates the row to read and gives you the substring the follow-up `Edit` anchors on.
+
 ## Project Overview
 
 WoW Retail addon suite by Nazuraki (Interface 120000+). No build step, no package manager. Testing is done in-game via `/reload`, except WoW-API-free modules which have busted unit tests.
