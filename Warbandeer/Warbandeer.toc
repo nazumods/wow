@@ -30,6 +30,7 @@ controls\IconStrip.lua
 controls\UpgradeMark.lua
 controls\SuggestedBox.lua
 controls\ConsumablesBox.lua
+controls\GlyphBox.lua
 controls\FlashItem.lua
 
 views\overview\FactionBars.lua

@@ -378,6 +378,42 @@ function API:GetDungeonStats(dungeonName, level, difficultyID)
   return out
 end
 
+---Applied cosmetic appearance glyphs for a character's active spec: the class catalog
+---(ns.AppearanceGlyphs) merged with the character's last-seen applied-glyph set for that
+---spec. Per-character and per-spec; `applied` is a snapshot from when the character was
+---last logged in (only the active spec's spellbook is readable). Returns nil when the class
+---has no glyph catalog (Evoker). The second return is false when the active spec has never
+---been scanned (so the caller can prompt to log in as that spec).
+---@param charName string?
+---@return { itemID: integer, label: string, glyph: integer, applied: boolean }[]?, boolean scanned
+function API:GetAppliedGlyphs(charName)
+  local c = self:GetCharacterData(charName)
+  local list = c and ns.AppearanceGlyphs[c.classId]
+  if not list then return nil, false end
+  local specID = c.basic and c.basic.specialization and c.basic.specialization.id
+  local applied = specID and c.glyphs and c.glyphs.applied and c.glyphs.applied[specID] or nil
+  return ns.MergeGlyphStatus(list, specID, applied), applied ~= nil
+end
+
+---Account-wide barbershop appearance unlocks for a character's class (Druid Marks +
+---travel-form glyphs, Warlock demon Grimoires). Unlock state is account-wide, read live via
+---C_QuestLog.IsQuestFlaggedCompletedOnAccount — so it's identical for every character of the
+---class and needs no per-character storage; the character only selects the class. Returns nil
+---when the class has no unlock catalog (every class but Druid + Warlock).
+---@param charName string?
+---@return { itemID: integer, label: string, spell: integer, unlocked: boolean }[]?
+function API:GetAppearanceUnlocks(charName)
+  local c = self:GetCharacterData(charName)
+  local list = c and ns.AppearanceUnlocks[c.classId]
+  if not list then return nil end
+  local done = C_QuestLog.IsQuestFlaggedCompletedOnAccount
+  local out = {}
+  for _, e in ipairs(list) do
+    insert(out, { itemID = e.itemID, label = e.label, spell = e.spell, unlocked = done(e.quest) == true })
+  end
+  return out
+end
+
 ---Synchronously re-fetch one broker field for the current character.
 ---Safe to call at any time; respects the maxLevel guard.
 ---@param brokerName string
