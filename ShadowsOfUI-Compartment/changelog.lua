@@ -6,6 +6,11 @@ local ns = select(2, ...)
 -- conventional-commit grouping used for the GitHub/CurseForge release notes.
 ---@type { version: string, notes: string }[]
 ns.changelog = {
+  { version = "12.0.7-r5", notes = [==[
+### Bug Fixes
+- dedupe "Addon Compartment" settings entry (#489)
+
+]==] },
   { version = "12.0.7-r4", notes = [==[
 ### Bug Fixes
 - counter-convert scale when restoring the button position (#452)

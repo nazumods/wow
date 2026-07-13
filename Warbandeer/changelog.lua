@@ -6,6 +6,15 @@ local ns = select(2, ...)
 -- same conventional-commit grouping used for the GitHub/CurseForge release notes.
 ---@type { version: string, notes: string }[]
 ns.changelog = {
+  { version = "12.0.7-r21", notes = [==[
+### Features
+- track learned class unlocks — Druid Tome of the Wilds + Hunter Skill Tames (#497)
+- track class appearance glyphs on the Detail view (#494)
+
+### Bug Fixes
+- renown bars fill by within-rank progress, not rank count (#493)
+
+]==] },
   { version = "12.0.7-r20", notes = [==[
 ### Features
 - add shared ui.BarsPreview widget; migrate Warbandeer onto it (#467)

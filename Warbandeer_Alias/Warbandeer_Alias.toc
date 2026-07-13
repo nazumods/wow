@@ -2,7 +2,7 @@
 ## Category: Warband
 ## Title: Alias
 ## Author: Nazuraki
-## Version: 12.0.7-r4
+## Version: 12.0.7-r5
 ## IconTexture: Interface\Icons\inv_10_tailoring2_banner_green
 ## SavedVariables: Warbandeer_AliasDB
 ## Dependencies: LibNAddOn, LibNUI
