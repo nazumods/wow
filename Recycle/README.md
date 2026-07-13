@@ -28,14 +28,12 @@ Found in the Blizzard settings panel:
 - **Silent** — suppress the gold summary printed after selling.
 - **Modifier Key** — Ctrl / Shift / Alt for the mark gesture.
 
-## Integration
+## Dependencies
 
-If **Baganator** is installed, marked items are registered as a junk plugin so they're
-highlighted in Baganator too.
-
-## Requirements
-
-**LibNAddOn** and **LibNUI**.
+- **LibNAddOn**
+- **LibNUI**
+- **Baganator** *(optional)* — marked items are registered as a junk plugin, so they're
+  highlighted in Baganator too.
 
 ## Saved data
 

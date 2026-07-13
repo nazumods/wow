@@ -71,9 +71,10 @@ Found under **Game Menu → Options → AddOns → Warbandeer → Logging**:
   Combat logging always starts off when the game launches, so this option re-enables it
   automatically each login. Turn it off to stop logging.
 
-## Requirements
+## Dependencies
 
-**LibNAddOn** and **LibNUI**.
+- **LibNAddOn**
+- **LibNUI**
 
 ## Saved data
 

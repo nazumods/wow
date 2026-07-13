@@ -72,9 +72,10 @@ the model.
 The addon compartment button (next to the minimap) also works: click to open,
 right-click to scan.
 
-## Requirements
+## Dependencies
 
-- **LibNAddOn** and **LibNUI** (libraries)
+- **LibNAddOn**
+- **LibNUI**
 - **Warbandeer_Characters** — provides character and lockout data.
 
 ## Saved data

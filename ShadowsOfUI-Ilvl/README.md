@@ -42,10 +42,13 @@ Changes apply immediately to anything already on screen.
 - `/silvl <itemID or item link>` — prints an item's level, quality and track
   (a small developer/debug helper).
 
-## Requirements
+## Dependencies
 
-**LibNAddOn**. Baganator and Bagnon (or Bagnonium) are optional — their integrations
-appear automatically when installed.
+- **LibNAddOn**
+- **Baganator** *(optional)* — adds the ilvl/upgrade badge to Baganator's bag and bank views.
+- **Bagnon / Bagnonium** *(optional)* — adds the badge to Bagnon's bag and bank views.
+
+Both integrations appear automatically when the addon is installed.
 
 ## Saved data
 

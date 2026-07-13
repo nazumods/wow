@@ -2,6 +2,10 @@
 
 A library of OOP UI classes wrapping Blizzard's frames and adding convenience and quality of life features.
 
+## Dependencies
+
+- **LibNAddOn**
+
 ## Setup
 
 List it in your `.toc`:

@@ -13,9 +13,10 @@ no reload needed.
 Settings are account-wide and keyed by class, so hiding the bar for Druids hides it on
 all your Druids.
 
-## Requirements
+## Dependencies
 
-**LibNAddOn** and **LibNUI**.
+- **LibNAddOn**
+- **LibNUI**
 
 ## Saved data
 

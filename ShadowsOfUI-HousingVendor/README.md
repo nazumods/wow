@@ -40,10 +40,10 @@ In **Options → AddOns → Shadows of UI → Housing Vendor**. The three **indi
 
 A **Changelog** button in this addon's settings opens its release history in a scrollable, copyable window.
 
-## Requirements
+## Dependencies
 
 - **LibNAddOn**
-- **Bagnon / Bagnonium** — optional; only needed for the Bagnon overlay.
+- **Bagnon / Bagnonium** *(optional)* — only needed for the Bagnon overlay.
 
 ## Notes
 

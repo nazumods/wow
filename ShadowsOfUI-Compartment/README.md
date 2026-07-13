@@ -29,8 +29,8 @@ Found under **Options → AddOns → Shadows of UI → Addon Compartment**:
 
 ## Dependencies
 
-- LibNAddOn
-- LibNUI
+- **LibNAddOn**
+- **LibNUI**
 
 ## Saved Data
 

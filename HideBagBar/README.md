@@ -5,3 +5,7 @@ the expand/collapse toggle. Nothing else — no settings, no database, no depend
 
 Your bags still work exactly as before (`B`, individual bag keybinds, etc.); only the
 buttons are hidden. To get the bag bar back, disable the addon and `/reload`.
+
+## Dependencies
+
+None — HideBagBar uses only the base WoW API (no LibNAddOn, no LibNUI).

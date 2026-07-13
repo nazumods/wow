@@ -33,4 +33,4 @@ Under **Options → AddOns → Shadows of UI → Mouselook Toggle**:
 
 ## Dependencies
 
-- LibNAddOn
+- **LibNAddOn**

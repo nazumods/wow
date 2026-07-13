@@ -22,7 +22,7 @@ quick "who's exalted with X?" lookup. The name may be partial (e.g. `the deeps` 
 
 A **Changelog** button in this addon's settings (Options → AddOns → Shadows of UI → Reputations) opens its release history in a scrollable, copyable window.
 
-## Requirements
+## Dependencies
 
 - **LibNAddOn**
 - **Warbandeer_Characters** — provides the per-character reputation data this addon reads

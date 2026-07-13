@@ -18,6 +18,6 @@ it.
 
 A **Changelog** button in this addon's settings (Options → AddOns → Shadows of UI → Darkmoon Faire) opens its release history in a scrollable, copyable window.
 
-## Requirements
+## Dependencies
 
-**LibNAddOn**.
+- **LibNAddOn**

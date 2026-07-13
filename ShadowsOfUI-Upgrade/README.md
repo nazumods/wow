@@ -120,7 +120,7 @@ enchant" with no suggested enchant.
 
 A **Changelog** button in this addon's settings (Options → AddOns → Shadows of UI → Gear Upgrades) opens its release history in a scrollable, copyable window.
 
-## Requirements
+## Dependencies
 
 - **LibNAddOn**
 - **Warbandeer_Characters** — records the equipped gear, bag gear and warband-bank gear this

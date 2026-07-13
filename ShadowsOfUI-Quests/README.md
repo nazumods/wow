@@ -17,7 +17,7 @@ when another character is actually on or has completed the quest.
 
 A **Changelog** button in this addon's settings (Options → AddOns → Shadows of UI → Quests) opens its release history in a scrollable, copyable window.
 
-## Requirements
+## Dependencies
 
 - **LibNAddOn**
 - **Warbandeer_Characters** — provides the per-character quest data this addon reads (active

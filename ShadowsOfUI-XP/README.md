@@ -14,6 +14,7 @@ No settings, no commands, no saved data — install it and level.
 
 A **Changelog** button in this addon's settings (Options → AddOns → Shadows of UI → XP Bar) opens its release history in a scrollable, copyable window.
 
-## Requirements
+## Dependencies
 
-**LibNAddOn** and **LibNUI**.
+- **LibNAddOn**
+- **LibNUI**

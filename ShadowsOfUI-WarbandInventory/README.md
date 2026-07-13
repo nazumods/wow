@@ -26,7 +26,7 @@ debugging aid and a quick "where is my…?" lookup you can run without finding t
 
 A **Changelog** button in this addon's settings (Options → AddOns → Shadows of UI → Warband Inventory) opens its release history in a scrollable, copyable window.
 
-## Requirements
+## Dependencies
 
 - **LibNAddOn**
 - **Warbandeer_Characters** — provides the per-character bag/bank item counts this addon

@@ -50,11 +50,13 @@ new frame is handled.
 - `/scollect itemtest` — (dev aid) print whether the item under your cursor reads as known /
   collectible.
 
-## Requirements
+## Dependencies
 
 - **LibNAddOn**
 - **Warbandeer_Characters** *(optional)* — enables the cross-alt recipe check. Without it, recipes
   are checked against the current character only; all other collectibles work regardless.
+- **ShadowsOfUI-HousingVendor** *(optional)* — when installed, decor owned-state is read from it
+  rather than recomputed, so decor tints and the vendor overlay stay consistent.
 
 ## Saved data
 

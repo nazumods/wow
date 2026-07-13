@@ -45,14 +45,15 @@ Found in the Blizzard settings panel:
 - **Bar Apply Defaults** — a subpanel of checkboxes setting which bars are pre-checked when the Bars view's Apply panel opens (Action Bars 1-8, Class Pages 1-5, and the Bonus / Skyriding / Pet bars). By default every bar is included except Bonus, Skyriding, and Pet. Changes take effect the next time you open the game.
 - **Changelog** — a button that opens Warbandeer's release history (newest first) in a scrollable, copyable window, so you can read what changed without leaving the game.
 
-## Requirements
+## Dependencies
 
-- **LibNAddOn** and **LibNUI** (libraries)
+- **LibNAddOn**
+- **LibNUI**
 - **Warbandeer_Characters** — the data layer that does the actual collecting.
   Warbandeer is only the viewer; without the data layer it has nothing to show.
-- *Optional:* **Warbandeer_Bars** for the Bars view.
-- *Optional:* **Collected** for the Collected view (it also supplies the expansion badges that label the Reputations view's pages; without it those pages fall back to plain text).
-- *Optional:* **ShadowsOfUI-Upgrade** for gear-upgrade markers, missing-enchant + wrong-enchant + empty-socket flags (Summary "Up"/"Ench"/"Gem" columns + Detail notes), and the Detail view's Suggested box. The Summary "Up" column counts how many slots have an available upgrade and is coloured **green** when at least one of them can be equipped right now (at or below the character's level — a warband-bank copy counts, since you can withdraw it), or **gold** when every available upgrade is still gated above the character's level. In the Detail gear list, a piece carrying the *wrong* (non-recommended) enchant shows a yellow "Wrong enchant" note; **right-click that row to accept the enchant on that item** (it asks to confirm, then stops flagging — right-click again to undo). `/wb enchants` lists everything you've accepted and `/wb enchants clear` resets the list. With **ClassCodex** also installed, the Detail view adds a **Consumables** box (recommended flask/potion/food/weapon-buff/augment-rune for the spec).
+- **Warbandeer_Bars** *(optional)* — for the Bars view.
+- **Warbandeer_Collected** *(optional)* — for the Collected view (it also supplies the expansion badges that label the Reputations view's pages; without it those pages fall back to plain text).
+- **ShadowsOfUI-Upgrade** *(optional)* — for gear-upgrade markers, missing-enchant + wrong-enchant + empty-socket flags (Summary "Up"/"Ench"/"Gem" columns + Detail notes), and the Detail view's Suggested box. The Summary "Up" column counts how many slots have an available upgrade and is coloured **green** when at least one of them can be equipped right now (at or below the character's level — a warband-bank copy counts, since you can withdraw it), or **gold** when every available upgrade is still gated above the character's level. In the Detail gear list, a piece carrying the *wrong* (non-recommended) enchant shows a yellow "Wrong enchant" note; **right-click that row to accept the enchant on that item** (it asks to confirm, then stops flagging — right-click again to undo). `/wb enchants` lists everything you've accepted and `/wb enchants clear` resets the list. With **ClassCodex** also installed, the Detail view adds a **Consumables** box (recommended flask/potion/food/weapon-buff/augment-rune for the spec).
 
 ## Saved data
 

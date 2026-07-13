@@ -3,6 +3,10 @@
 `LibNAddON` is an addOn for bootstrapping other addOns. It provides a single global function
 that takes a table of options, detailed below.
 
+## Dependencies
+
+None — LibNAddOn is the base library the rest of the suite builds on.
+
 ## Usage
 
 List it in your `.toc`:
