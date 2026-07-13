@@ -818,6 +818,7 @@ For mixed row types, pass a `rowTypes` map and a `typeOf` selector instead of
 | `SetItems(items)`    | (Re)render: acquire/reuse a row per item, stack, hide surplus, resize   |
 | `Content()`          | The content child that row builders parent into                         |
 | `Refresh()`          | Re-run the layout with the current items                                |
+| `EmptyText(text?)`   | Get/set the empty-state placeholder text, updating the live label — for a list reused across contexts that need a different hint per subject |
 | `Row(index)`         | The live pooled row currently showing item `index` (`nil` if out of range) — decorate it for a selectable list |
 | `ScrollToItem(index)`| Minimally scroll item `index` into view (only when it's above/below the viewport) |
 

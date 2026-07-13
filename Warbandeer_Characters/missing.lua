@@ -149,6 +149,14 @@ function ns.getMissingFields(toon)
     table.insert(missing, "stable pets")
   end
 
+  -- A Warlock's demon roster fills in per summon (there's no enumeration API — only the active demon is
+  -- readable). A Warlock with no `demons` cache hasn't summoned any since the field was added, so its
+  -- Detail Demons button reads "summon your demons". Only "never seen any" is flagged: the full demon
+  -- set is spec-dependent (Demonology alone gets the Felguard), so a partial roster can't be checked.
+  if toon.classId == 9 and not toon.demons then
+    table.insert(missing, "demons")
+  end
+
   -- LumberAxe is a recorded boolean (has / doesn't have the Find Lumber tracking
   -- spell), so only a nil means the data was never captured. false is real data.
   if not toon.quests or toon.quests.LumberAxe == nil then

@@ -75,6 +75,18 @@ ui.VirtualList = VirtualList
 ---@return Frame
 function VirtualList:Content() return self._child end
 
+-- Get/set the empty-state placeholder text. The `_empty` label caches the string at first render,
+-- so a setter is needed to re-message a list reused across contexts (e.g. a shared panel that shows
+-- a different empty hint per subject); it updates the live label in place when one already exists.
+---@param text string?
+---@return string|VirtualList
+function VirtualList:EmptyText(text)
+  if text == nil then return self.emptyText end
+  self.emptyText = text
+  if self._empty then self._empty:Text(text) end
+  return self
+end
+
 -- Fit the content child to the viewport width (minus the scrollbar gutter), so rows
 -- span the visible width and never trigger horizontal scroll.
 function VirtualList:_syncWidth()

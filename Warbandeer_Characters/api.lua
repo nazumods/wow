@@ -442,6 +442,24 @@ function API:GetPets(charName)
   return c and c.pets or nil
 end
 
+---A Warlock's last-seen demon roster: one `DemonRecord` (name, species, npcID) per demon family the
+---character has summoned, sorted by npcID for a stable display order regardless of summon sequence.
+---There's no enumeration API, so it fills in per summon (last-seen); nil until the Warlock has summoned
+---any demon, and always nil for non-Warlocks. Data from the per-character `demons` cache (data/demons.lua).
+---@param charName string?
+---@return DemonsData?
+function API:GetDemons(charName)
+  local c = self:GetCharacterData(charName)
+  local demons = c and c.demons
+  if not demons then return nil end
+  -- Return a sorted view rather than re-ordering the stored list on every read (the DB order is a
+  -- set — insertion order — and shouldn't mutate under a getter). The records are shared by reference.
+  local list = {}
+  for i, d in ipairs(demons.list) do list[i] = d end
+  table.sort(list, function(a, b) return (a.npcID or math.huge) < (b.npcID or math.huge) end)
+  return { scannedAt = demons.scannedAt, list = list }
+end
+
 ---Synchronously re-fetch one broker field for the current character.
 ---Safe to call at any time; respects the maxLevel guard.
 ---@param brokerName string

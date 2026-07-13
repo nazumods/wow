@@ -8,7 +8,7 @@
 ## Dependencies: LibNAddOn, LibNUI
 ## X-Curse-Project-ID: 1546588
 ## X-NUI-DB: WarbandeerCharDB
-## X-NUI-DB-VERSION: 35
+## X-NUI-DB-VERSION: 36
 ## X-NUI-COMMANDS: /characters, /wbc
 ## X-NUI-API: WarbandeerApi
 ## X-NUI-UI: LibNUI
@@ -56,6 +56,7 @@ data/artisancurrency.lua
 data/glyphinfo.lua
 data/glyphs.lua
 data/pets.lua
+data/demons.lua
 
 login.lua
 logging.lua

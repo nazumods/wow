@@ -88,7 +88,7 @@ end, "Repair stored data (recount characters)")
 ---@field MigrateDB fun(self) Migrate database to latest version
 function ns:MigrateDB()
   local db = ns.db
-  if db.version == 35 then return end
+  if db.version == 36 then return end
   if not db.characters then db.characters = {} end
   if not db.numCharacters then
     db.numCharacters = countCharacters(db)
@@ -375,6 +375,15 @@ function ns:MigrateDB()
   -- so rollback is lossless.
   if (db.version or 0) < 35 then
     db.version = 35
+  end
+
+  -- v36: per-character Warlock demon roster (`demons`: each summoned demon's last-seen name + species
+  -- + npcID).  Additive and filled lazily by data/demons.lua as the Warlock summons each demon (there's
+  -- no enumeration API — only the active demon is readable, so it fills in per summon); nothing to seed
+  -- — an older revision simply lacks it (the Detail Demons button reads "summon your demons") until the
+  -- character next summons one, so rollback is lossless.
+  if (db.version or 0) < 36 then
+    db.version = 36
   end
 end
 
