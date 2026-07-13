@@ -302,34 +302,56 @@ function ns.MergeGlyphStatus(list, specID, applied)
   return out
 end
 
--- Per-character *learned* class tomes — consumable items that permanently teach a spell to the
--- character (`Use: Teaches you …`), so knowledge is PER CHARACTER (detected via
--- C_SpellBook.IsSpellKnown on the taught spell). Currently just the Druid "Tome of the Wilds"
--- set (Treant Form + Mount Form are the modern successors to the removed Glyph of the Treant /
--- Glyph of the Stag). Keyed by classId → { itemID, spell, label } (spell = the taught spell id).
+-- Per-character *learned* class unlocks — items/skills that permanently grant an ability to the
+-- character (a "Use: Teaches you …" tome, a crafted matrix, a looted knowledge), so the state is
+-- PER CHARACTER, detected via C_SpellBook.IsSpellKnown on the granted spell. Two sets today:
+--   * Druid "Tome of the Wilds" (Treant Form + Mount Form are the modern successors to the
+--     removed Glyph of the Treant / Glyph of the Stag).
+--   * Hunter "Skill Tames" — special pet families that need an unlock before taming (Blood
+--     Beasts, Feathermanes, Direhorns, Mechanicals).
+-- Keyed by classId → { itemID, spell, label, races? }. `spell` = the granted spell (IsSpellKnown
+-- target); `races` (Mechanicals) = race file tokens that grant it innately (Goblin/Gnome hunters
+-- tame Mechanicals without the matrix). `ns.LearnedUnlockTitle` names the per-class card section.
 -- Ids from Wowhead; verified in-game via `/wbc dump glyphs`.
----@class TomeInfo
----@field itemID integer   the tome item
----@field spell integer    the spell it teaches (the IsSpellKnown target)
----@field label string     item name (English; the probe verifies it live)
+---@class UnlockLearn
+---@field itemID integer   the unlock item
+---@field spell integer    the granted spell (the IsSpellKnown target)
+---@field label string     display name (pet family / form; the probe verifies the item live)
+---@field races table<string, boolean>?  race file tokens that grant it innately (no item needed)
 
----@type table<integer, TomeInfo[]>
-ns.LearnedTomes = {
+---@type table<integer, UnlockLearn[]>
+ns.LearnedUnlocks = {
+  [3] = { -- Hunter — Skill Tames (special pet families that require an unlock)
+    { itemID = 166502, spell = 288956, label = "Blood Beasts" },
+    { itemID = 147580, spell = 242155, label = "Feathermanes" },  -- Hybrid Kinship (BM-only exotic)
+    { itemID = 94232,  spell = 138430, label = "Direhorns" },     -- Ancient Zandalari Knowledge
+    -- Mecha-Bond Imprint Matrix; Goblin/Gnome hunters tame Mechanicals innately. (Spell id may be
+    -- 209646 on 12.0.5+ — the probe confirms which resolves live.)
+    { itemID = 134125, spell = 205154, label = "Mechanicals", races = { Goblin = true, Gnome = true } },
+  },
   [11] = { -- Druid — Tome of the Wilds
-    { itemID = 136787, spell = 114282, label = "Tome of the Wilds: Treant Form" },
-    { itemID = 136789, spell = 210053, label = "Tome of the Wilds: Mount Form" },
-    { itemID = 136794, spell = 164862, label = "Tome of the Wilds: Flap" },
-    { itemID = 136795, spell = 127757, label = "Tome of the Wilds: Charm Woodland Creature" },
-    { itemID = 136790, spell = 210065, label = "Tome of the Wilds: Track Beasts" },
+    { itemID = 136787, spell = 114282, label = "Treant Form" },
+    { itemID = 136789, spell = 210053, label = "Mount Form" },
+    { itemID = 136794, spell = 164862, label = "Flap" },
+    { itemID = 136795, spell = 127757, label = "Charm Woodland Creature" },
+    { itemID = 136790, spell = 210065, label = "Track Beasts" },
   },
 }
 
--- Merge a class's learned-tome catalog with a character's known-spell set into a status list,
--- preserving order. Pure — no WoW API — so it's unit-tested (spec/glyphs.lua).
----@param list TomeInfo[]?                 the class's tome catalog
----@param known table<integer, boolean>?   the character's known tome spell ids (nil = none scanned)
+-- Per-class section title for the learned-unlock catalog (the Detail card header).
+---@type table<integer, string>
+ns.LearnedUnlockTitle = {
+  [3]  = "Skill Tames",
+  [11] = "Tome of the Wilds",
+}
+
+-- Merge a class's learned-unlock catalog with a character's known-spell set into a status list,
+-- preserving order. Pure — no WoW API — so it's unit-tested (spec/glyphs.lua). The known set
+-- already folds in any race-innate unlocks (the broker stamps those), so this only reads it.
+---@param list UnlockLearn[]?              the class's learned-unlock catalog
+---@param known table<integer, boolean>?   the character's known unlock spell ids (nil = none scanned)
 ---@return { itemID: integer, label: string, spell: integer, known: boolean }[]
-function ns.MergeTomeStatus(list, known)
+function ns.MergeLearnedStatus(list, known)
   local out = {}
   for _, e in ipairs(list or {}) do
     out[#out + 1] = {

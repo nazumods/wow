@@ -114,12 +114,12 @@ function ns.getMissingFields(toon)
     table.insert(missing, "appearance glyphs")
   end
 
-  -- Learned class tomes (Druid Tome of the Wilds) are captured each login via IsSpellKnown. A
-  -- class with tomes but no captured `glyphs.tomes` hasn't been seen since the cache was added,
-  -- so the Detail Tome-of-the-Wilds section can't show what it knows until it logs in. (The scan
-  -- stores an empty set when the character knows none, so a captured-but-empty toon isn't flagged.)
-  if ns.LearnedTomes[toon.classId] and not (toon.glyphs and toon.glyphs.tomes) then
-    table.insert(missing, "tome of the wilds")
+  -- Learned class unlocks (Druid Tome of the Wilds / Hunter Skill Tames) are captured each login
+  -- via IsSpellKnown. A class with unlocks but no captured `glyphs.unlocks` hasn't been seen since
+  -- the cache was added, so the Detail card can't show what it has until it logs in. (The scan
+  -- stores an empty set when the character has none, so a captured-but-empty toon isn't flagged.)
+  if ns.LearnedUnlocks[toon.classId] and not (toon.glyphs and toon.glyphs.unlocks) then
+    table.insert(missing, (ns.LearnedUnlockTitle[toon.classId] or "class unlocks"):lower())
   end
 
   -- LumberAxe is a recorded boolean (has / doesn't have the Find Lumber tracking

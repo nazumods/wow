@@ -416,17 +416,18 @@ function API:GetAppearanceUnlocks(charName)
   return out
 end
 
----Learned class tomes for a character (currently the Druid "Tome of the Wilds" set — consumables
----that permanently teach a spell): the class catalog (ns.LearnedTomes) merged with the character's
----last-seen known-tome set. Per-character learned spells (not per-spec); last-seen (readable only
----while logged in). Returns nil when the class has no tomes (every class but Druid).
+---Learned class unlocks for a character (Druid "Tome of the Wilds", Hunter "Skill Tames") —
+---items/skills that permanently grant an ability: the class catalog (ns.LearnedUnlocks) merged
+---with the character's last-seen known set (which already folds in innate racial grants, e.g.
+---Goblin/Gnome Mechanical taming). Per-character (not per-spec); last-seen. The second return is
+---the per-class section title ("Tome of the Wilds" / "Skill Tames"). nil when the class has none.
 ---@param charName string?
----@return { itemID: integer, label: string, spell: integer, known: boolean }[]?
-function API:GetLearnedTomes(charName)
+---@return { itemID: integer, label: string, spell: integer, known: boolean }[]?, string? title
+function API:GetLearnedUnlocks(charName)
   local c = self:GetCharacterData(charName)
-  local list = c and ns.LearnedTomes[c.classId]
+  local list = c and ns.LearnedUnlocks[c.classId]
   if not list then return nil end
-  return ns.MergeTomeStatus(list, c.glyphs and c.glyphs.tomes or nil)
+  return ns.MergeLearnedStatus(list, c.glyphs and c.glyphs.unlocks or nil), ns.LearnedUnlockTitle[c.classId]
 end
 
 ---Synchronously re-fetch one broker field for the current character.

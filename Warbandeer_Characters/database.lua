@@ -359,11 +359,11 @@ function ns:MigrateDB()
     db.version = 33
   end
 
-  -- v34: per-character learned-tome cache (`glyphs.tomes`: a set of the class-tome spell ids the
-  -- character knows — currently the Druid "Tome of the Wilds" set).  Additive to the v33 glyphs
-  -- broker and filled lazily by data/glyphs.lua as the character logs in / uses a tome; nothing to
-  -- seed — an older revision simply lacks it (the Detail Tome-of-the-Wilds section shows nothing
-  -- known) until the character is next seen, so rollback is lossless.
+  -- v34: per-character learned-unlock cache (`glyphs.unlocks`: a set of the class-unlock spell ids
+  -- the character has — Druid "Tome of the Wilds", Hunter "Skill Tames").  Additive to the v33
+  -- glyphs broker and filled lazily by data/glyphs.lua as the character logs in / learns an unlock;
+  -- nothing to seed — an older revision simply lacks it (the Detail card shows nothing known) until
+  -- the character is next seen, so rollback is lossless.
   if (db.version or 0) < 34 then
     db.version = 34
   end

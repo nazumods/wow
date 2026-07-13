@@ -92,16 +92,19 @@ Glyphs.fields = {
     event = { "SPELLS_CHANGED", "PLAYER_SPECIALIZATION_CHANGED" },
     eventDelay = 1000,
   },
-  -- Learned class tomes (Druid "Tome of the Wilds") — consumables that permanently teach a
-  -- spell, so knowledge is per-character (not per-spec). `{ [spell] = true }` for the ids the
-  -- character knows; nil for a class with no tomes. Last-seen (readable only while logged in).
-  tomes = {
+  -- Learned class unlocks (Druid "Tome of the Wilds", Hunter "Skill Tames") — items/skills that
+  -- permanently grant an ability, so per-character (not per-spec). `{ [spell] = true }` for the ids
+  -- the character has, via IsSpellKnown OR an innate racial grant (e.g. Goblin/Gnome hunters tame
+  -- Mechanicals without the matrix); nil for a class with no unlocks. Last-seen (logged-in only).
+  unlocks = {
     get = function(_, toon)
-      local list = ns.LearnedTomes[toon.classId]
+      local list = ns.LearnedUnlocks[toon.classId]
       if not list then return nil end
       local known = {}
       for _, e in ipairs(list) do
-        if C_SpellBook.IsSpellKnown(e.spell) then known[e.spell] = true end
+        if C_SpellBook.IsSpellKnown(e.spell) or (e.races and e.races[toon.race]) then
+          known[e.spell] = true
+        end
       end
       return known
     end,
@@ -151,11 +154,11 @@ ns:registerDump("glyphs", "Appearance Glyphs",
       out:line("No applied-glyph catalog for this class.")
     end
 
-    local tomes = ns.LearnedTomes[classId]
-    if tomes then
-      local known = (toon.glyphs and toon.glyphs.tomes) or {}
-      out:line(("Learned tomes (%d):"):format(#tomes))
-      for _, e in ipairs(tomes) do
+    local learned = ns.LearnedUnlocks[classId]
+    if learned then
+      local known = (toon.glyphs and toon.glyphs.unlocks) or {}
+      out:line(("%s (%d):"):format(ns.LearnedUnlockTitle[classId] or "Learned unlocks", #learned))
+      for _, e in ipairs(learned) do
         out:line(("  %s  ->  %s  [%s]%s"):format(e.label,
           GetItemName(e.itemID) or ("item:" .. e.itemID),
           C_Spell.GetSpellName(e.spell) or ("spell:" .. e.spell),
