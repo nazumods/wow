@@ -8,7 +8,7 @@ Hides the Blizzard `StanceBar` per class by reparenting it onto a hidden frame. 
 
 | File | Purpose |
 |---|---|
-| `addon.lua` | Whole addon (assignment form). `MigrateDB` seeds `db.hide`; `onLoad` applies the saved state for the current class and builds the `SettingsFrame` with one toggle per supported class, nesting it under the shared "Shadows of UI" parent via `settings:RegisterSubcategory(ns:GetSettingsParent("Shadows of UI"), ns._TITLE)`; file-local `update(classId, hide)` reparents `StanceBar` |
+| `addon.lua` | Whole addon (assignment form). `MigrateDB` seeds `db.hide`; `onLoad` applies the saved state for the current class and builds the `SettingsFrame` with one toggle per supported class, nesting it under the shared "Shadows of UI" parent via `settings:RegisterSubcategory(ns:GetSettingsParent("Shadows of UI"), ns._TITLE)` (captured into `ns.settingsCategory` so a future changelog reuses this panel rather than duplicating it); file-local `update(classId, hide)` reparents `StanceBar` |
 
 ## Gotchas
 
