@@ -11,12 +11,16 @@ local GetItemName = C_Item.GetItemNameByID
 local IsAccountQuestDone = C_QuestLog.IsQuestFlaggedCompletedOnAccount
 
 -- The `glyphs` broker records which cosmetic glyphs the character has *applied* to its
--- spells. Detection mirrors the community GlyphList addon: walk the class + active-spec
--- spellbook, and for each known spell pull the glyph id embedded in its hyperlink
--- (…::<glyph>:…). Only the logged-in character's spellbook is readable, and only for the
--- active spec, so `applied` is a last-seen per-spec snapshot (keyed by spec id). Account-
--- wide barbershop unlocks (Marks / Grimoires) are NOT stored here — they're read live from
--- C_QuestLog by the API, since they're identical across every character of the class.
+-- spells, keyed by spec id. Detection mirrors the community GlyphList addon: walk the
+-- spellbook and for each known spell pull the glyph id embedded in its hyperlink
+-- (…::<glyph>:…). We scan EVERY spec tab (grouped by the tab's spec) so a single scan can
+-- capture all of a character's specs — but WoW only reliably surfaces the ACTIVE spec's
+-- applied glyphs, so an inactive spec's tab may expose nothing until that spec is played.
+-- The active spec therefore always gets a (possibly empty) entry — "scanned, none applied" is
+-- distinguishable from "not yet discovered" — while an inactive spec is stored only once a
+-- glyph is actually found there. Only the logged-in character is readable, so `applied` is a
+-- last-seen per-spec snapshot. Account-wide barbershop unlocks (Marks / Grimoires) are NOT
+-- stored here — the API reads them live from C_QuestLog (identical across the class).
 
 -- Numeric id of the active specialization (nil before specs are chosen at low level).
 local function currentSpecID()
@@ -25,16 +29,29 @@ local function currentSpecID()
   return (C_SpecializationInfo.GetSpecializationInfo(idx))
 end
 
--- Set of glyph ids applied across the character's class + active-spec spellbook. A spell's
--- link carries its applied glyph as the `::<glyph>:` field; unglyphed spells have none.
----@param specID integer
----@return table<integer, boolean>
-local function scanAppliedGlyphs(specID)
-  local applied = {}
+-- Extract a spell link's applied glyph id (…::<glyph>:…) into the spec's set. Unglyphed spells
+-- parse to id 0 (the empty `::0` field) — skip them.
+local function addGlyph(bySpec, spec, link)
+  local glyph = link and tonumber(link:match("%b::(%d+)"))
+  if glyph and glyph ~= 0 then
+    bySpec[spec] = bySpec[spec] or {}
+    bySpec[spec][glyph] = true
+  end
+end
+
+-- Applied glyph ids across every spec tab, grouped by spec id. The active spec always gets an
+-- entry (even empty); an inactive spec only when a glyph is found in its tab (so a spec WoW
+-- won't surface stays "undiscovered", not falsely "none").
+---@param activeSpecID integer
+---@return table<integer, table<integer, boolean>>
+local function scanAllSpecs(activeSpecID)
+  local bySpec = { [activeSpecID] = {} }
   for i = 2, C_SpellBook.GetNumSpellBookSkillLines() do
     local info = C_SpellBook.GetSpellBookSkillLineInfo(i)
-    -- The class tab (offSpecID nil) and the active spec's tab only; skip other specs'.
-    if info and (info.offSpecID == nil or info.offSpecID == specID) then
+    if info then
+      -- The general/class tab (offSpecID nil) reflects the active spec; a spec tab carries its
+      -- own spec id.
+      local spec = info.offSpecID or activeSpecID
       for j = info.itemIndexOffset + 1, info.itemIndexOffset + info.numSpellBookItems do
         local itemType, actionID = C_SpellBook.GetSpellBookItemType(j, PLAYER_BANK)
         if itemType == FLYOUT then
@@ -42,21 +59,16 @@ local function scanAppliedGlyphs(specID)
           for s = 1, (numSpells or 0) do
             local spellID = GetFlyoutSlotInfo(actionID, s)
             if spellID and IsSpellKnown(spellID) then
-              local link = C_Spell.GetSpellLink(spellID)
-              local glyph = link and tonumber(link:match("%b::(%d+)"))
-              if glyph and glyph ~= 0 then applied[glyph] = true end
+              addGlyph(bySpec, spec, C_Spell.GetSpellLink(spellID))
             end
           end
         elseif actionID and IsSpellKnown(actionID) then
-          local link = C_SpellBook.GetSpellBookItemLink(j, PLAYER_BANK)
-          local glyph = link and tonumber(link:match("%b::(%d+)"))
-          -- Unglyphed spells parse to glyph id 0 (the empty `::0` field) — skip them.
-          if glyph and glyph ~= 0 then applied[glyph] = true end
+          addGlyph(bySpec, spec, C_SpellBook.GetSpellBookItemLink(j, PLAYER_BANK))
         end
       end
     end
   end
-  return applied
+  return bySpec
 end
 
 ---@class Character
@@ -68,13 +80,13 @@ local Glyphs = ns:RegisterBroker("glyphs")
 
 Glyphs.fields = {
   applied = {
-    -- Merge-preserving: only the active spec's set is rescanned; other specs' cached
-    -- snapshots survive (a character can carry different glyphs per spec).
+    -- Merge-preserving: overwrite each spec the scan captured (always the active spec, plus any
+    -- inactive spec that surfaced a glyph); specs the scan didn't touch keep their cached set.
     get = function(_, _, currentValue)
       local specID = currentSpecID()
       if not specID then return currentValue end
       local store = currentValue or {}
-      store[specID] = scanAppliedGlyphs(specID)
+      for spec, set in pairs(scanAllSpecs(specID)) do store[spec] = set end
       return store
     end,
     event = { "SPELLS_CHANGED", "PLAYER_SPECIALIZATION_CHANGED" },
@@ -82,9 +94,9 @@ Glyphs.fields = {
   },
 }
 
--- `/wbc dump glyphs` (+ `wdump glyphs`): the in-game verification probe. Prints each
--- catalog entry's stored label beside its live-resolved item name — a wrong item id shows
--- a mismatched (or missing) name — plus the applied/unlocked state for the current char.
+-- `/wbc dump glyphs` (+ `wdump glyphs`): the in-game verification probe. Prints each catalog
+-- entry's stored label beside its live-resolved item name (a wrong item id shows a mismatch),
+-- the live per-spec scan (so all-spec capture is verifiable), and the applied/unlocked state.
 ns:registerDump("glyphs", "Appearance Glyphs",
   "Applied glyphs + account appearance unlocks for the current character's class",
   function(_, out)
@@ -92,24 +104,29 @@ ns:registerDump("glyphs", "Appearance Glyphs",
     if not toon then out:line("No current character."); return end
     local classId = toon.classId
     local specID = currentSpecID()
-    out:line(("Class %s (%d)  spec %s"):format(toon.className or "?", classId, tostring(specID)))
+    out:line(("Class %s (%d)  active spec %s"):format(toon.className or "?", classId, tostring(specID)))
 
-    -- Live-scan diagnostic: exactly what the spellbook walk finds right now, independent of
-    -- the cached broker value — an empty result here on a character with a glyph applied means
-    -- the scan/link-parse is the problem, not the catalog mapping.
+    -- Live per-spec scan: exactly what the spellbook walk finds now (all spec tabs), independent
+    -- of the cache — reveals whether a single scan captured inactive specs, and rules the
+    -- scan/link-parse in or out as the culprit for an empty result.
     if specID then
-      local raw = scanAppliedGlyphs(specID)
-      local ids = {}
-      for g in pairs(raw) do ids[#ids + 1] = g end
-      table.sort(ids)
-      out:line(("Live spellbook scan: %d applied glyph id(s)%s"):format(#ids,
-        #ids > 0 and (" -> " .. table.concat(ids, ", ")) or ""))
+      local bySpec = scanAllSpecs(specID)
+      local specs = {}
+      for sp in pairs(bySpec) do specs[#specs + 1] = sp end
+      table.sort(specs)
+      for _, sp in ipairs(specs) do
+        local ids = {}
+        for g in pairs(bySpec[sp]) do ids[#ids + 1] = g end
+        table.sort(ids)
+        out:line(("Live scan spec %d: %d glyph(s)%s"):format(sp, #ids,
+          #ids > 0 and (" -> " .. table.concat(ids, ", ")) or ""))
+      end
     end
 
     local glyphs = ns.AppearanceGlyphs[classId]
     if glyphs then
       local applied = (toon.glyphs and toon.glyphs.applied and specID and toon.glyphs.applied[specID]) or {}
-      out:line(("Applied glyphs (%d):"):format(#glyphs))
+      out:line(("Applied glyphs — active spec catalog (%d):"):format(#glyphs))
       for _, e in ipairs(glyphs) do
         out:line(("  %s  ->  %s%s"):format(e.label, GetItemName(e.itemID) or ("item:" .. e.itemID),
           applied[e.glyph] and "  <APPLIED>" or ""))

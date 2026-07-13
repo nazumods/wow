@@ -378,19 +378,21 @@ function API:GetDungeonStats(dungeonName, level, difficultyID)
   return out
 end
 
----Applied cosmetic appearance glyphs for a character's active spec: the class catalog
+---Applied cosmetic appearance glyphs for one of a character's specs: the class catalog
 ---(ns.AppearanceGlyphs) merged with the character's last-seen applied-glyph set for that
----spec. Per-character and per-spec; `applied` is a snapshot from when the character was
----last logged in (only the active spec's spellbook is readable). Returns nil when the class
----has no glyph catalog (Evoker). The second return is false when the active spec has never
----been scanned (so the caller can prompt to log in as that spec).
+---spec. Per-character and per-spec; `applied` is a snapshot from when the character last
+---played that spec (only the logged-in character's spellbook is readable). `specID` defaults
+---to the character's active spec. Returns nil when the class has no glyph catalog (Evoker).
+---The second return is false when that spec has never been scanned (its applied state is
+---unknown, not confirmed-none — the caller can show "?" instead of "0").
 ---@param charName string?
+---@param specID integer?  which spec to report (default: the character's active spec)
 ---@return { itemID: integer, label: string, glyph: integer, applied: boolean }[]?, boolean scanned
-function API:GetAppliedGlyphs(charName)
+function API:GetAppliedGlyphs(charName, specID)
   local c = self:GetCharacterData(charName)
   local list = c and ns.AppearanceGlyphs[c.classId]
   if not list then return nil, false end
-  local specID = c.basic and c.basic.specialization and c.basic.specialization.id
+  specID = specID or (c.basic and c.basic.specialization and c.basic.specialization.id)
   local applied = specID and c.glyphs and c.glyphs.applied and c.glyphs.applied[specID] or nil
   return ns.MergeGlyphStatus(list, specID, applied), applied ~= nil
 end

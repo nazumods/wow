@@ -173,6 +173,11 @@ local DetailView = Class(Frame, function(self)
     parent = self,
     position = { TopLeft = {D.GEAR_X, -D.CONTENT_TOP}, Width = D.gearPanelW(D.GEAR_NAME_MIN), Height = D.STRIP_H },
   }
+  -- The glyph box's spec picker changes its height, so re-run the layout when it switches spec.
+  self.glyphBox.onSpecChange = function()
+    self:OnBeforeShow()
+    if ns.MainWindow then ns.MainWindow:Fit() end
+  end
 
   self:Width(D.VIEW_WIDTH)
   self:Height(D.PROF_HEADER_Y + 40)

@@ -10,15 +10,19 @@ local GetInfo = C_Item.GetItemInfo
 local RequestItem = C_Item.RequestLoadItemDataByID
 local QUESTION_ICON = 134400 -- inv_misc_questionmark, for an item whose icon isn't cached yet
 
+local C_Spec = C_SpecializationInfo
+local GetNumSpecs = (C_Spec and C_Spec.GetNumSpecializationsForClassID) or _G.GetNumSpecializationsForClassID
+local GetSpecInfo = (C_Spec and C_Spec.GetSpecializationInfoForClassID) or _G.GetSpecializationInfoForClassID
+
 -- Appearance box (Detail view, right column beneath Consumables): the character's cosmetic
 -- appearance state, in up to two sections —
---   * "Appearance Glyphs"  — glyphs APPLIED to the character's active-spec spells
---     (per-character/per-spec, WarbandeerApi:GetAppliedGlyphs). Rendered as a labeled LIST:
---     WoW glyph items nearly all share one generic per-class tome icon, so the name (not the
---     icon) is what distinguishes them — applied glyphs are named in green, unapplied muted.
+--   * "Appearance Glyphs"  — glyphs APPLIED to the character's spells, PER SPEC. A spec-icon
+--     picker selects which spec to show; it defaults to the character's active spec. Applied
+--     state is discovered per spec (WoW only surfaces the active spec's glyphs reliably), so a
+--     spec never captured reads "? / N" (unknown), not "0 / N". Rendered as a labeled LIST:
+--     glyph items nearly all share one generic tome icon, so the name distinguishes them.
 --   * "Barbershop Unlocks"  — ACCOUNT-WIDE Druid Marks / travel-form glyphs + Warlock demon
---     Grimoires (WarbandeerApi:GetAppearanceUnlocks). Rendered as an icon GRID (these have
---     distinct icons): owned full-colour with a gold border, missing dimmed.
+--     Grimoires (WarbandeerApi:GetAppearanceUnlocks). Rendered as an icon GRID.
 -- Every entry hovers to its item tooltip. The whole box hides (zero height) for a class with
 -- neither system (e.g. Evoker). Modelled on ConsumablesBox / SuggestedBox (Populate → height).
 
@@ -29,23 +33,55 @@ local ROW_H = 18        -- one glyph list row
 local ROW_ICON = 14     -- glyph list-row icon edge
 local ICON = 26         -- unlock grid icon edge
 local GAP = 5           -- gap between grid icons
+local SPEC_ICON = 20    -- spec-picker button edge
+local SPEC_GAP = 5      -- gap between spec buttons
+local STRIP_GAP = 8     -- spec strip → glyph list
 
 ---@class GlyphBox: Frame
----@field _rows table[]     pooled glyph list rows
----@field _nRows integer     visible list rows
----@field _cells table[]    pooled unlock grid cells
----@field _nCells integer    visible grid cells
----@field _headers Label[]   pooled section-header labels
+---@field onSpecChange fun()?  called when the spec picker changes, so the host re-lays-out
+---@field _char Character?    the character last populated (spec selection resets on change)
+---@field _specSel integer?   the currently-selected spec id
+---@field _rows table[]        pooled glyph list rows
+---@field _nRows integer
+---@field _cells table[]      pooled unlock grid cells
+---@field _nCells integer
+---@field _specBtns table[]   pooled spec-picker buttons
+---@field _nSpecBtns integer
+---@field _headers Label[]    pooled section-header labels
 local GlyphBox = Class(Frame, function(self)
   self._rows = {}
   self._nRows = 0
   self._cells = {}
   self._nCells = 0
+  self._specBtns = {}
+  self._nSpecBtns = 0
   self._headers = {}
 end, {
   background = theme.colors.module,
 })
 ns.GlyphBox = GlyphBox
+
+-- The class's specs as { id, name, icon }, in spec order (static class data; works for alts).
+---@param classId integer
+---@return { id: integer, name: string, icon: integer }[]
+local function classSpecs(classId)
+  local out = {}
+  for i = 1, (GetNumSpecs(classId) or 0) do
+    local id, name, _, icon = GetSpecInfo(classId, i)
+    if id then out[#out + 1] = { id = id, name = name, icon = icon } end
+  end
+  return out
+end
+
+-- Resolve an item's icon fileID (fallback to a question mark + request a load) and its link
+-- (fallback to a bare item link + request a load), for a cell/row about to show it.
+---@param itemID integer
+---@return integer icon, string link
+local function itemVisual(itemID)
+  local link = select(2, GetInfo(itemID))
+  if not link then RequestItem(itemID) end
+  return GetIcon(itemID) or QUESTION_ICON, link or ("item:" .. itemID)
+end
 
 -- Grab (or lazily create) a pooled section-header label.
 ---@param i integer
@@ -61,8 +97,49 @@ function GlyphBox:_header(i)
   return h
 end
 
--- Grab (or lazily create) a pooled glyph list row: a small icon + the glyph name, hovering
--- to the item's tooltip. The current item link is stashed on the frame.
+-- Grab (or lazily create) a pooled spec-picker button: a spec icon that selects its spec on
+-- click and shows the spec name on hover. Selected has a gold border + full colour; a spec with
+-- captured data is normal; one never scanned is dimmed.
+---@param i integer
+---@return table
+function GlyphBox:_specBtn(i)
+  local b = self._specBtns[i]
+  if b then return b end
+
+  local frame = Frame:new{ parent = self, position = { Width = SPEC_ICON, Height = SPEC_ICON } }
+  local border = Texture:new{
+    parent = frame, layer = ui.layer.Background, color = theme.colors.gold,
+    position = {
+      TopLeft     = { frame, ui.edge.TopLeft, -1, 1 },
+      BottomRight = { frame, ui.edge.BottomRight, 1, -1 },
+      Hide = true,
+    },
+  }
+  local icon = Texture:new{ parent = frame, layer = ui.layer.Artwork, position = { All = true } }
+
+  frame:EnableMouse(true)
+  frame:SetScript("OnEnter", function()
+    if frame._specName then
+      ns.AnchorTip(frame)
+      ui.tip:ClearLines()
+      ui.tip:AddLine(frame._specName)
+      ui.tip:Show()
+    end
+  end)
+  frame:SetScript("OnLeave", function() ui.tip:Hide() end)
+  frame:SetScript("OnMouseUp", function()
+    if frame._specId and frame._specId ~= self._specSel then
+      self._specSel = frame._specId
+      if self.onSpecChange then self.onSpecChange() end
+    end
+  end)
+
+  b = { frame = frame, icon = icon, border = border }
+  self._specBtns[i] = b
+  return b
+end
+
+-- Grab (or lazily create) a pooled glyph list row: a small icon + the glyph name.
 ---@param i integer
 ---@return table
 function GlyphBox:_row(i)
@@ -89,8 +166,7 @@ function GlyphBox:_row(i)
   return row
 end
 
--- Grab (or lazily create) a pooled unlock grid cell: an item icon with a gold "owned" border
--- and a hover tooltip. The current item link is stashed on the frame.
+-- Grab (or lazily create) a pooled unlock grid cell: an item icon with a gold "owned" border.
 ---@param i integer
 ---@return table
 function GlyphBox:_cell(i)
@@ -119,25 +195,21 @@ function GlyphBox:_cell(i)
   return cell
 end
 
--- Resolve an item's icon fileID (fallback to a question mark + request a load) and its link
--- (fallback to a bare item link + request a load), for a cell/row about to show it.
----@param itemID integer
----@return integer icon, string link
-local function itemVisual(itemID)
-  local link = select(2, GetInfo(itemID))
-  if not link then RequestItem(itemID) end
-  return GetIcon(itemID) or QUESTION_ICON, link or ("item:" .. itemID)
-end
-
 -- Fill the box for `char` and return its content height (0 when the class has neither system —
 -- the box hides and reserves no space). The caller sets the box width first.
 ---@param char Character
 ---@return number height
 function GlyphBox:Populate(char)
-  -- `scanned` is false when the character's *active* spec has never been scanned (an alt not
-  -- seen in this spec) — its applied state is unknown, not confirmed-none. WoW only exposes the
-  -- active spec's applied glyphs, so per-spec sets fill in as the character plays each spec.
-  local applied, scanned = ns.api:GetAppliedGlyphs(char.name)
+  -- Selected spec: reset to the character's active spec when the subject changes; otherwise keep
+  -- the picker's choice across re-renders. Fall back to the active/first spec if it went stale.
+  local activeSpec = char.basic and char.basic.specialization and char.basic.specialization.id
+  if char ~= self._char then self._char = char; self._specSel = activeSpec end
+  local specs = classSpecs(char.classId)
+  local validSel = false
+  for _, sp in ipairs(specs) do if sp.id == self._specSel then validSel = true; break end end
+  if not validSel then self._specSel = activeSpec or (specs[1] and specs[1].id) end
+
+  local applied, scanned = ns.api:GetAppliedGlyphs(char.name, self._specSel)
   local unlocks = ns.api:GetAppearanceUnlocks(char.name)
   local hasApplied = applied and #applied > 0
   local hasUnlocks = unlocks and #unlocks > 0
@@ -146,10 +218,10 @@ function GlyphBox:Populate(char)
   local c = theme.colors
   local innerW = self:Width() - 2 * PAD
   local y = PAD
-  local ri, ci, hi = 0, 0, 0
+  local ri, ci, hi, si = 0, 0, 0, 0
 
-  -- A section header with an owned/total count (green when complete). `unknown` (the active
-  -- spec was never scanned) shows "? / total" instead — applied state is undiscovered, not none.
+  -- A section header with an owned/total count (green when complete). `unknown` (the spec was
+  -- never scanned) shows "? / total" instead — applied state is undiscovered, not none.
   local function header(title, owned, total, unknown)
     hi = hi + 1
     local hdr = self:_header(hi)
@@ -164,12 +236,35 @@ function GlyphBox:Populate(char)
     y = y + hdr:Height() + HEADER_GAP
   end
 
-  -- Section 1 — applied glyphs, as a labeled list (glyph icons are near-identical, so the
-  -- name carries the meaning): applied names in green, unapplied muted + a dimmed icon.
+  -- Section 1 — applied glyphs for the selected spec, with a spec-icon picker above the list.
   if hasApplied then
     local owned = 0
     for _, it in ipairs(applied) do if it.applied then owned = owned + 1 end end
     header("APPEARANCE GLYPHS", owned, #applied, not scanned)
+
+    -- Spec picker strip (only worth showing when the class has more than one spec).
+    if #specs > 1 then
+      local storedBySpec = char.glyphs and char.glyphs.applied
+      local x = PAD
+      for _, sp in ipairs(specs) do
+        si = si + 1
+        local btn = self:_specBtn(si)
+        btn.frame:ClearAllPoints()
+        btn.frame:TopLeft(self, ui.edge.TopLeft, x, -y)
+        btn.icon:Texture(sp.icon or QUESTION_ICON)
+        local selected = sp.id == self._specSel
+        local hasData = storedBySpec and storedBySpec[sp.id] ~= nil
+        local shade = selected and 1 or (hasData and 0.75 or 0.4)
+        btn.icon:SetVertexColor(shade, shade, shade, 1)
+        if selected then btn.border:Show() else btn.border:Hide() end
+        btn.frame._specId = sp.id
+        btn.frame._specName = sp.name
+        btn.frame:Show()
+        x = x + SPEC_ICON + SPEC_GAP
+      end
+      y = y + SPEC_ICON + STRIP_GAP
+    end
+
     for _, it in ipairs(applied) do
       ri = ri + 1
       local row = self:_row(ri)
@@ -222,6 +317,8 @@ function GlyphBox:Populate(char)
   self._nRows = ri
   for i = ci + 1, self._nCells do self._cells[i].frame:Hide() end
   self._nCells = ci
+  for i = si + 1, self._nSpecBtns do self._specBtns[i].frame:Hide() end
+  self._nSpecBtns = si
   for i = hi + 1, #self._headers do self._headers[i]:Hide() end
 
   y = y - SECT_GAP + PAD -- trim the trailing section gap, add bottom padding
