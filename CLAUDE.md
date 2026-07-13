@@ -37,6 +37,7 @@ Upkeep rules:
 - **Changed slash commands, settings, dependencies, API surface, or DB version** → update the addon's `README.md`, its `CONTEXT.md`, and the root `CONTEXT.md` registry/index in the same change.
 - **New/changed public methods or ns fields** → LuaLS annotations are part of the change, not a follow-up.
 - Use the `doc:` conventional-commit type for doc-only commits — `.md` changes never trigger a release.
+- **Editing a long `CONTEXT.md` row or migration paragraph** → anchor the `Edit` on a short, unique substring inside it, not the whole row. These rows run long and their em-dashes, apostrophes, and inline values (e.g. `1000ms` vs `1s`) drift, so a full-row `old_string` often fails the exact-match; Grep the current text first when unsure.
 
 ## Coding Conventions
 
