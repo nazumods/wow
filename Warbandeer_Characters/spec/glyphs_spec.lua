@@ -96,3 +96,49 @@ describe("Warbandeer_Characters appearance catalog integrity", function()
     end
   end)
 end)
+
+describe("Warbandeer_Characters ns.MergeLearnedStatus", function()
+  local ns
+  before_each(function() ns = wbchar.load() end)
+
+  local function unlockCatalog()
+    return {
+      { itemID = 1, spell = 100, label = "Unlock A" },
+      { itemID = 2, spell = 200, label = "Unlock B" },
+    }
+  end
+
+  it("returns an empty list for a nil or empty catalog", function()
+    assert.same({}, ns.MergeLearnedStatus(nil, {}))
+    assert.same({}, ns.MergeLearnedStatus({}, {}))
+  end)
+
+  it("marks an unlock known only when its spell is in the known set, preserving order", function()
+    local out = ns.MergeLearnedStatus(unlockCatalog(), { [200] = true })
+    assert.equal(2, #out)
+    assert.equal("Unlock A", out[1].label)
+    assert.is_false(out[1].known)
+    assert.equal("Unlock B", out[2].label)
+    assert.is_true(out[2].known)
+    assert.equal(1, out[1].itemID)
+    assert.equal(100, out[1].spell)
+  end)
+
+  it("treats a nil known set as nothing known", function()
+    local out = ns.MergeLearnedStatus(unlockCatalog(), nil)
+    for _, e in ipairs(out) do assert.is_false(e.known) end
+  end)
+
+  it("gives every learned-unlock entry an itemID, spell and label; Druid + Hunter present, titled", function()
+    for classId, list in pairs(ns.LearnedUnlocks) do
+      for _, e in ipairs(list) do
+        assert.is_number(e.itemID)
+        assert.is_number(e.spell)
+        assert.is_string(e.label)
+      end
+      assert.is_string(ns.LearnedUnlockTitle[classId])
+    end
+    assert.is_not_nil(ns.LearnedUnlocks[3])  -- Hunter
+    assert.is_not_nil(ns.LearnedUnlocks[11]) -- Druid
+  end)
+end)

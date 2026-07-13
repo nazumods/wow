@@ -416,6 +416,20 @@ function API:GetAppearanceUnlocks(charName)
   return out
 end
 
+---Learned class unlocks for a character (Druid "Tome of the Wilds", Hunter "Skill Tames") —
+---items/skills that permanently grant an ability: the class catalog (ns.LearnedUnlocks) merged
+---with the character's last-seen known set (which already folds in innate racial grants, e.g.
+---Goblin/Gnome Mechanical taming). Per-character (not per-spec); last-seen. The second return is
+---the per-class section title ("Tome of the Wilds" / "Skill Tames"). nil when the class has none.
+---@param charName string?
+---@return { itemID: integer, label: string, spell: integer, known: boolean }[]?, string? title
+function API:GetLearnedUnlocks(charName)
+  local c = self:GetCharacterData(charName)
+  local list = c and ns.LearnedUnlocks[c.classId]
+  if not list then return nil end
+  return ns.MergeLearnedStatus(list, c.glyphs and c.glyphs.unlocks or nil), ns.LearnedUnlockTitle[c.classId]
+end
+
 ---Synchronously re-fetch one broker field for the current character.
 ---Safe to call at any time; respects the maxLevel guard.
 ---@param brokerName string
