@@ -44,13 +44,14 @@ local function scanAppliedGlyphs(specID)
             if spellID and IsSpellKnown(spellID) then
               local link = C_Spell.GetSpellLink(spellID)
               local glyph = link and tonumber(link:match("%b::(%d+)"))
-              if glyph then applied[glyph] = true end
+              if glyph and glyph ~= 0 then applied[glyph] = true end
             end
           end
         elseif actionID and IsSpellKnown(actionID) then
           local link = C_SpellBook.GetSpellBookItemLink(j, PLAYER_BANK)
           local glyph = link and tonumber(link:match("%b::(%d+)"))
-          if glyph then applied[glyph] = true end
+          -- Unglyphed spells parse to glyph id 0 (the empty `::0` field) — skip them.
+          if glyph and glyph ~= 0 then applied[glyph] = true end
         end
       end
     end
