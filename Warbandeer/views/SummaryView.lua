@@ -100,11 +100,41 @@ local ClassSummary = Class(TableFrame, function(self)
   end
 
   self:setFooter(self:GetFooterData(toons))
+
+  -- Size any opted-in column (e.g. Titles) to the widest cell it actually shows. We resize the
+  -- column and grow the table + rowArea by the delta directly rather than calling
+  -- TableFrame:Autosize, whose width recompute is the plain sum of column widths and so drops the
+  -- per-column gutters this view inserts (COL_GUTTER) — under-sizing the frame and spilling the
+  -- last column past the window edge.
+  for i, info in ipairs(self.colInfo) do
+    if info.autosize then self:AutosizeColumn(i) end
+  end
 end, {
   faction = "alliance",
   backdrop = {color = ns.Colors.TransparentBlack},
   footerBackdrop = {color = theme.colors.moduleHi},
 })
+
+-- Resize column `i` to the widest text it currently renders (its header + every cell), then grow
+-- the table + rowArea by the delta so the gutter-spaced column chain and the pinned footer stay
+-- aligned (see the call site for why TableFrame:Autosize can't be used here). Cells and the footer
+-- cell anchor to their column's edges, so the resize reflows them and every column after it.
+---@param i integer  column index to size
+function ClassSummary:AutosizeColumn(i)
+  local col = self.cols[i]
+  if not col then return end
+  local widest = (col.header.label and col.header.label:UnboundedWidth()) or 0
+  for r = 1, #self.rows do
+    local cell = self.cells[r] and self.cells[r][i]
+    if cell and cell.label then widest = math.max(widest, cell.label:UnboundedWidth()) end
+  end
+  local target = math.ceil(widest) + 6  -- +6: a little breathing room before the next column
+  local delta = target - col:Width()
+  if delta == 0 then return end
+  col:Width(target)
+  self:Width(self:Width() + delta)
+  self.rowArea:Width(self.rowArea:Width() + delta)
+end
 
 -- This table's roster, sorted by level/ilvl/name. "both" returns the whole warband
 -- unfiltered (the faction column distinguishes the sides); a single-side table

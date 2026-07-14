@@ -12,6 +12,7 @@ local Class = ns.lua.Class
 ---@field getFooter? fun(toons:Character[]):any  optional footer cell data builder, given all rows
 ---@field key? string   stable id for the show/hide setting; nil = always-on identity column
 ---@field label? string display name in the "Summary Columns" settings panel
+---@field autosize? boolean  size the column to its widest displayed cell instead of a fixed `width` (e.g. Titles → the longest current title shown)
 ---@field colInfo table
 ns.SummaryColumn = Class(nil, function(self)
   local path, coords
@@ -28,6 +29,7 @@ ns.SummaryColumn = Class(nil, function(self)
   self.colInfo = {
     name = self.name,
     width = self.width,
+    autosize = self.autosize,
     justifyH = self.justifyH,
     backdrop = {color = Colors.TransparentBlack},
     padLeft = self.padLeft,
@@ -47,6 +49,7 @@ end, {
   label = nil,       -- settings-panel display name (for toggleable columns)
   name = nil,
   width = 20,
+  autosize = nil,   -- true: size the column to its widest displayed cell (else fixed `width`)
   justifyH = Left,
   padLeft = nil,
   icon = nil,

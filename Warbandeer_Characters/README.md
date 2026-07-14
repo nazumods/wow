@@ -59,6 +59,10 @@ data through the `WarbandeerApi` global.
   (how long you were logged in, by calendar day), so Warbandeer's Playtime view can show Today and
   the last 7 days. Per-day history starts from when this version is first installed and counts only
   time spent logged in (offline time is never added).
+- **Titles** are recorded each login (and whenever you earn or change one) — the player titles each
+  character has collected, plus its current (featured) title — so Warbandeer's Summary view gains a
+  **Titles** column showing each character's current title, with the full title and its earned-title
+  count on hover.
 
 ## Settings
 
