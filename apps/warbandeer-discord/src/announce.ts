@@ -27,9 +27,17 @@ export function startScheduler(client: Client): void {
   setInterval(tick, TICK_MS);
 }
 
-async function announce(client: Client, message: string): Promise<void> {
-  const channel = await client.channels.fetch(config.announceChannelId);
-  if (!channel?.isSendable()) throw new Error("ANNOUNCE_CHANNEL_ID is not a sendable channel");
+type AnnounceKind = "dmf" | "weeklyReset" | "serverUp" | "release";
+
+// Per-kind channel routing: future announcement kinds plug in here (see issue #528).
+function channelFor(kind: AnnounceKind): string {
+  return kind === "release" ? config.releaseAnnounceChannelId : config.announceChannelId;
+}
+
+async function announce(client: Client, kind: AnnounceKind, message: string): Promise<void> {
+  const channelId = channelFor(kind);
+  const channel = await client.channels.fetch(channelId);
+  if (!channel?.isSendable()) throw new Error(`Announce channel ${channelId} is not sendable`);
   await channel.send(message);
   console.log("[announce]", message);
 }
@@ -59,7 +67,7 @@ async function checkDmf(client: Client): Promise<void> {
   const key = `${window.start.getUTCFullYear()}-${window.start.getUTCMonth() + 1}`;
   if (state.dmfAnnouncedFor === key) return;
   const closes = Math.floor(window.end.getTime() / 1000);
-  await announce(client, `🎪 The **Darkmoon Faire** is open! It runs until <t:${closes}:F>.`);
+  await announce(client, "dmf", `🎪 The **Darkmoon Faire** is open! It runs until <t:${closes}:F>.`);
   state.dmfAnnouncedFor = key;
   await saveState();
 }
@@ -70,7 +78,7 @@ async function checkWeeklyReset(client: Client): Promise<void> {
   if (now.getTime() - last.getTime() > RESET_ANNOUNCE_WINDOW_MS) return;
   const key = last.toISOString();
   if (state.weeklyAnnouncedFor === key) return;
-  await announce(client, "📅 **Weekly reset!** Vault, lockouts, and quests have rolled over.");
+  await announce(client, "weeklyReset", "📅 **Weekly reset!** Vault, lockouts, and quests have rolled over.");
   state.weeklyAnnouncedFor = key;
   await saveState();
   if (realmWatchConfigured()) {
@@ -88,7 +96,7 @@ async function checkRealmWatch(client: Client): Promise<void> {
   if (status === "DOWN") {
     realmWatch.sawDown = true;
   } else if (realmWatch.sawDown && state.serversUpAnnouncedFor !== realmWatch.resetIso) {
-    await announce(client, `🟢 **${config.realmSlug}** is back up — servers are live!`);
+    await announce(client, "serverUp", `🟢 **${config.realmSlug}** is back up — servers are live!`);
     state.serversUpAnnouncedFor = realmWatch.resetIso;
     await saveState();
     realmWatch = undefined;
@@ -106,7 +114,7 @@ async function checkReleases(client: Client): Promise<void> {
   }
   const seen = new Set(state.seenReleaseIds);
   for (const release of releases.filter((r) => !seen.has(r.id)).reverse()) {
-    await announce(client, `📦 New release: **${release.name}**\n${release.url}`);
+    await announce(client, "release", `📦 New release: **${release.name}**\n${release.url}`);
     state.seenReleaseIds.push(release.id);
   }
   await saveState();
