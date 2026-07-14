@@ -129,7 +129,7 @@ describe("Warbandeer_Characters ns.MergeLearnedStatus", function()
     for _, e in ipairs(out) do assert.is_false(e.known) end
   end)
 
-  it("gives every learned-unlock entry an itemID, spell and label; Druid + Hunter present, titled", function()
+  it("gives every learned-unlock entry an itemID, spell and label, and titles every class", function()
     for classId, list in pairs(ns.LearnedUnlocks) do
       for _, e in ipairs(list) do
         assert.is_number(e.itemID)
@@ -138,7 +138,25 @@ describe("Warbandeer_Characters ns.MergeLearnedStatus", function()
       end
       assert.is_string(ns.LearnedUnlockTitle[classId])
     end
-    assert.is_not_nil(ns.LearnedUnlocks[3])  -- Hunter
-    assert.is_not_nil(ns.LearnedUnlocks[11]) -- Druid
+    -- Every class with a class-book set is present (Paladin, Hunter, Rogue, DK, Shaman, Mage,
+    -- Monk, Druid). Priest/Warrior/Demon Hunter/Evoker have no class books, so must not appear.
+    for _, classId in ipairs({ 2, 3, 4, 6, 7, 8, 10, 11 }) do
+      assert.is_not_nil(ns.LearnedUnlocks[classId], "missing learned-unlock class " .. classId)
+    end
+    assert.is_nil(ns.LearnedUnlocks[1])  -- Warrior
+    assert.is_nil(ns.LearnedUnlocks[5])  -- Priest
+    assert.is_nil(ns.LearnedUnlocks[12]) -- Demon Hunter
+  end)
+
+  it("has no duplicate itemID or spell within a class", function()
+    for classId, list in pairs(ns.LearnedUnlocks) do
+      local seenItem, seenSpell = {}, {}
+      for _, e in ipairs(list) do
+        assert.is_nil(seenItem[e.itemID], "duplicate itemID " .. e.itemID .. " in class " .. classId)
+        assert.is_nil(seenSpell[e.spell], "duplicate spell " .. e.spell .. " in class " .. classId)
+        seenItem[e.itemID] = true
+        seenSpell[e.spell] = true
+      end
+    end
   end)
 end)

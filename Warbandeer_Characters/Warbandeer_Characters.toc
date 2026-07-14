@@ -54,6 +54,7 @@ data/artifacts.lua
 data/concentration.lua
 data/artisancurrency.lua
 data/glyphinfo.lua
+data/learnedunlocks.lua
 data/challengetames.lua
 data/collectiblesources.lua
 data/glyphs.lua

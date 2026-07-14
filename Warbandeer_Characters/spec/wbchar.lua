@@ -9,6 +9,7 @@ local M = {}
 -- Pure files this addon exposes for unit testing (extend as more pure logic is added).
 local FILES = {
   "data/glyphinfo.lua",
+  "data/learnedunlocks.lua",
   "data/challengetames.lua",
 }
 
