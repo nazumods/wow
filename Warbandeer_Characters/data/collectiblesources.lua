@@ -4,7 +4,7 @@ local ns = select(2, ...)
 -- Curated "how to obtain" hint text for every collectible on the Detail appearance card
 -- (Warbandeer's GlyphBox), keyed by itemID: the cosmetic appearance glyphs (ns.AppearanceGlyphs),
 -- the Warlock demon Grimoires + Druid Marks/travel glyphs (ns.AppearanceUnlocks), and the Hunter
--- Skill Tames + Druid Tome of the Wilds (ns.LearnedUnlocks). WarbandeerApi's GetAppliedGlyphs /
+-- Tomes + Druid Tome of the Wilds (ns.LearnedUnlocks). WarbandeerApi's GetAppliedGlyphs /
 -- GetAppearanceUnlocks / GetLearnedUnlocks attach this as each entry's `source` field, and the UI
 -- appends it to the item tooltip when the entry is still UNOWNED/UNAPPLIED. Sourced from Wowhead +
 -- Warcraft Wiki and in-game-verified (2026-07-13). For the learned tames the item name is omitted
@@ -254,11 +254,21 @@ ns.CollectibleSources = {
   [211081] = SEEDBLOOM,
   [211280] = "Drops from Tindral Sageswift, Amirdrassil (any difficulty)",
 
-  -- === Hunter Skill Tames (ns.LearnedUnlocks[3]) — item name omitted; row tooltip shows it ===
+  -- === Hunter Tomes (ns.LearnedUnlocks[3]) — item name omitted; row tooltip shows it ===
+  -- Skill Tames
   [166502] = "Hunter-only drop from Zul, Reborn (Uldir raid)",
   [147580] = "Buy from Pan the Kind Hand, Trueshot Lodge (Hunter order hall)",
   [94232]  = "Rare drop from Zandalari Dinomancers, Isle of Giants (Pandaria)",
   [134125] = "Crafted by Engineering (Goblin/Gnome hunters tame innately)",
+  [180705] = "Drops from rare Huntmaster Petrus, Revendreth",
+  [183123] = "50g from San Redscale, Jade Forest (Exalted, Order of the Cloud Serpent)",
+  [183124] = "Zone drop in Maldraxxus; also Plaguefall dungeon bosses",
+  [201791] = "Renown 23 with the Valdrakken Accord (Kaelstrasz, Valdrakken)",
+  [211314] = "Awarded with Reins of Anu'relos from Mythic Fyrakk, Amirdrassil",
+  [264895] = "Drops from rares in Harandar (Midnight)",
+  -- Utility ability tomes
+  [136783] = "50g from the Nesingwary vendors (Sholazar Basin / Trueshot Lodge)",
+  [136781] = "50g from the Nesingwary vendors (Sholazar Basin / Trueshot Lodge)",
 
   -- === Druid Tome of the Wilds (ns.LearnedUnlocks[11]) ===
   [136787] = TOME,

@@ -274,7 +274,7 @@ function GlyphBox:Populate(char)
     y = y + SECT_GAP
   end
 
-  -- Section 2 — learned class unlocks (Druid Tome of the Wilds / Hunter Skill Tames), a labeled
+  -- Section 2 — learned class unlocks (Druid Tome of the Wilds / Hunter Tomes & Tames), a labeled
   -- list like the glyphs (known green, missing muted), headed by the class's own section title.
   if hasLearned then
     local owned = 0

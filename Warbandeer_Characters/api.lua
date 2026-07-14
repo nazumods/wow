@@ -427,11 +427,11 @@ function API:GetAppearanceUnlocks(charName)
   return attachSources(out)
 end
 
----Learned class unlocks for a character (Druid "Tome of the Wilds", Hunter "Skill Tames") —
+---Learned class unlocks for a character (Druid "Tome of the Wilds", Hunter "Tomes & Tames") —
 ---items/skills that permanently grant an ability: the class catalog (ns.LearnedUnlocks) merged
 ---with the character's last-seen known set (which already folds in innate racial grants, e.g.
 ---Goblin/Gnome Mechanical taming). Per-character (not per-spec); last-seen. The second return is
----the per-class section title ("Tome of the Wilds" / "Skill Tames"). nil when the class has none.
+---the per-class section title ("Tome of the Wilds" / "Tomes & Tames"). nil when the class has none.
 ---@param charName string?
 ---@return { itemID: integer, label: string, spell: integer, known: boolean, source: string? }[]?, string? title
 function API:GetLearnedUnlocks(charName)
