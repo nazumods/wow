@@ -31,8 +31,8 @@ local ns = select(2, ...)
 -- Ashran); Lightning Paw is an exotic Duskwood spirit-beast fox (moved out of Mechanical). The old
 -- Iron Juggernaut (npc 71466) was dropped — it is the untameable raid boss; its tameable form is the
 -- Grey Juggernaut craft below. `/wbc dump tames` remains the way to confirm/extend: a wrong id simply
--- reads "missing" until corrected (never a false owned). NOTE: Fenryr's key (95674) is the encounter
--- boss; if a tamed Fenryr reports the copy id (119990) instead, re-key it — verify in-game.
+-- reads "missing" until corrected (never a false owned). Fenryr keys on the tameable copy (npc 119990,
+-- which spawns after the Halls of Valor encounter); the boss (95674) is NOT what a tamed pet reports.
 
 ---@class ChallengeTame
 ---@field label string       display name (the pet's proper name, e.g. "Loque'nahak")
@@ -63,7 +63,7 @@ ns.ChallengeTames = {
     howTo = "Spirit owl above the Sanctuary of Malorne, Mount Hyjal (needs the questline). Tame mid-air via Slow Fall. Exotic (BM)." },
   { label = "Gara",        creatureID = 88708, category = "Spirit Beasts", note = "Shadowmoon Valley (Draenor)",
     howTo = "No spawn: a Draenor (Shadowmoon Valley) Void quest chain: Spirit Effigy, enter the Void realm, kill Xan, then tame. Exotic (BM)." },
-  { label = "Fenryr",      creatureID = 95674, category = "Spirit Beasts", note = "Halls of Valor",
+  { label = "Fenryr",      creatureID = 119990, category = "Spirit Beasts", note = "Halls of Valor",
     howTo = "Solo Halls of Valor on Mythic: kill Hymdall then Fenryr, then tame the copy in his den. Exotic (Beast Mastery only)." },
   { label = "Lightning Paw", creatureID = 118244, category = "Spirit Beasts", note = "Duskwood",
     howTo = "Duskwood: stealthed exotic fox in glowing-eye bushes; reveal with Flare or Track Hidden. Exotic (Beast Mastery only)." },
