@@ -106,3 +106,30 @@ ns:registerDump("pets", "Hunter Pets",
     section("Active", pets.active)
     section("Stable", pets.stable)
   end, true)
+
+-- `/wbc dump tames` (+ `wdump tames`): verify the Challenge-Tames catalog (data/challengetames.lua)
+-- against the current Hunter's captured roster — each entry's label, creatureID (+ displayID for a
+-- recolor entry) and OWNED (naming the matched pet) / missing, grouped by category. The in-game loop
+-- that confirms a seed creatureID/displayID actually matches a stored pet before it's locked in; pair
+-- with `dump pets` (which prints each owned pet's creature/display) to source a recolor's displayID.
+-- toWindow=true — the catalog is longer than a chat dump wants.
+ns:registerDump("tames", "Challenge Tames",
+  "Owned/missing rare 'secret' tames for the current Hunter, matched by creatureID/displayID",
+  function(_, out)
+    local toon = ns.currentData
+    if not toon then out:line("No current character."); return end
+    if toon.classId ~= HUNTER then out:line("Not a Hunter."); return end
+    local tames = ns.api:GetChallengeTames()
+    if not tames then out:line("No challenge-tames catalog."); return end
+    local owned = 0
+    for _, t in ipairs(tames) do if t.owned then owned = owned + 1 end end
+    out:line(("Challenge Tames — %d / %d owned:"):format(owned, #tames))
+    local cat
+    for _, t in ipairs(tames) do
+      if t.category ~= cat then cat = t.category; out:line(cat .. ":") end
+      local key = t.displayID and ("creature %d / display %d"):format(t.creatureID, t.displayID)
+        or ("creature %d"):format(t.creatureID)
+      out:line(("  %s  [%s]%s"):format(t.label, key,
+        t.owned and ("  <OWNED as %s>"):format(t.petName or "?") or ""))
+    end
+  end, true)

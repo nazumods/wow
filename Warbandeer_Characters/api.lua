@@ -3,7 +3,9 @@ local ns = select(2, ...)
 local insert = table.insert
 local sort = table.sort
 local floor = math.floor
+local next = next
 local GetServerTime = GetServerTime
+local HUNTER = 3 -- classId; only Hunters have a stable / challenge tames
 
 ---@class WarbandeerAPI
 local API = ns.api
@@ -451,6 +453,49 @@ end
 function API:GetPets(charName)
   local c = self:GetCharacterData(charName)
   return c and c.pets or nil
+end
+
+---A Hunter's curated "Challenge Tames" checklist: the static `ns.ChallengeTames` catalog (rare/secret
+---tames) merged against the character's captured pet roster (active + stable) into an owned/missing
+---list, matching the locale-independent `creatureID` (and, for a recolor entry, its pinned `displayID`).
+---Owned entries carry the matched pet's family `icon` + its (renameable) `petName`. Returns the full
+---list for any Hunter — a roster never captured yields all-missing (the aspirational checklist still
+---shows) — and nil for non-Hunters. These tames are aspirational, so they never feed `/wbc missing`.
+---@param charName string?
+---@return { label: string, creatureID: integer, displayID: integer?, category: string, note: string?, owned: boolean, icon: integer?, petName: string? }[]?
+function API:GetChallengeTames(charName)
+  local c = self:GetCharacterData(charName)
+  if not c or c.classId ~= HUNTER then return nil end
+  -- Owned id sets from the captured roster (active Call-Pet slots + stabled pets), plus a
+  -- creatureID→displayID→pet index so an owned entry can borrow the matched pet's icon + name.
+  local ownedCreatures, ownedDisplays, byPet = {}, {}, {}
+  local pets = c.pets
+  if pets then
+    for _, list in ipairs({ pets.active, pets.stable }) do
+      for _, p in ipairs(list) do
+        ownedCreatures[p.creatureID] = true
+        local displays = ownedDisplays[p.creatureID]
+        if not displays then displays = {}; ownedDisplays[p.creatureID] = displays end
+        displays[p.displayID] = true
+        local pByDisplay = byPet[p.creatureID]
+        if not pByDisplay then pByDisplay = {}; byPet[p.creatureID] = pByDisplay end
+        pByDisplay[p.displayID] = p
+      end
+    end
+  end
+  local merged = ns.MergeChallengeTames(ns.ChallengeTames, ownedCreatures, ownedDisplays)
+  for _, e in ipairs(merged) do
+    if e.owned then
+      local pByDisplay = byPet[e.creatureID]
+      -- A pinned-display entry borrows that exact recolor's pet; a creatureID-only entry any recolor.
+      local p
+      if pByDisplay then
+        if e.displayID then p = pByDisplay[e.displayID] else p = select(2, next(pByDisplay)) end
+      end
+      if p then e.icon = p.icon; e.petName = p.name end
+    end
+  end
+  return merged
 end
 
 ---A Warlock's last-seen demon roster: one `DemonRecord` (name, species, npcID) per demon family the

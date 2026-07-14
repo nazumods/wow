@@ -17,7 +17,10 @@ local insert = table.insert
 -- does the same). A titlebar strip matching the main window's (the shared `"titlebar"` token + the
 -- `title` font, with a drag grip that moves the whole window) sits above one scrolling VirtualList:
 -- for a Hunter, an "ACTIVE PETS" section (the Call Pet slots) then a "STABLE" section — each pet a
--- row with its family icon, name, family, level and spec, fed from WarbandeerApi:GetPets. The panel
+-- row with its family icon, name, family, level and spec, fed from WarbandeerApi:GetPets — then a
+-- "CHALLENGE TAMES" owned/missing checklist (WarbandeerApi:GetChallengeTames): the curated rare/secret
+-- tames matched against the captured roster, owned rows full-colour + green (naming your pet), missing
+-- rows dimmed with a how-to note, in the spirit of the Collected view. The panel
 -- is class-aware: for a Warlock (the other pet class, with no stable) it instead shows one "DEMONS"
 -- section — a row per summoned demon with a per-species icon + `name • species` — fed from
 -- WarbandeerApi:GetDemons (last-seen, filling in as the Warlock summons each demon). Section headers
@@ -26,9 +29,11 @@ local insert = table.insert
 local W          = 300  -- panel width
 local PAD        = 8
 local TITLEBAR_H = 30   -- matches the main window titlebar height
-local HEADER_ROW_H = 24 -- an "ACTIVE PETS" / "STABLE" / "DEMONS" caps header row (text + underline rule)
-local PET_ROW_H  = 32   -- one pet row (icon + name + level/spec sub-line)
+local HEADER_ROW_H = 24 -- an "ACTIVE PETS" / "STABLE" / "CHALLENGE TAMES" / "DEMONS" caps header row (text + rule)
+local PET_ROW_H  = 32   -- one pet row (icon + name + level/spec sub-line); also a challenge-tame row
 local DEMON_ROW_H = 28  -- one demon row (icon + `name • species`; no sub-line, so tighter than a pet)
+local TAME_ICON_SIZE = 20 -- challenge-tame row icon edge (matches the pet-row icon)
+local TAME_ICON  = "Interface\\Icons\\ability_hunter_beasttaming" -- generic icon for a missing (un-tamed) tame
 local WARLOCK    = 9    -- classId; the other pet class — its roster is summoned demons, not a stable
 
 -- One pet as an IconListItem's content: family icon, name + muted family suffix, and a small
@@ -158,6 +163,38 @@ local PetsPanel = Class(CleanFrame, function(self)
           return DEMON_ROW_H
         end,
       },
+      -- One challenge tame (Hunter): a beast icon + the tame's name + a sub-line, tinted by owned
+      -- state — owned is the captured pet's family icon at full colour with a green name and an "as
+      -- <your pet's name>" sub-line; missing is a dim generic tame icon with a muted name and the
+      -- tame's zone/how-to note. Mirrors the GlyphBox owned/missing treatment.
+      tame = {
+        create = function(list)
+          local row = Frame:new{ parent = list:Content() }
+          row.icon = Texture:new{
+            parent = row, layer = ui.layer.Artwork, coords = { 0.08, 0.92, 0.08, 0.92 },
+            position = { TopLeft = { row, ui.edge.TopLeft, 0, -1 }, Width = TAME_ICON_SIZE, Height = TAME_ICON_SIZE },
+          }
+          row.name = Label:new{
+            parent = row, fontInfo = theme.fonts.body, justifyH = ui.justify.Left, wordWrap = false,
+            position = { TopLeft = { row, ui.edge.TopLeft, TAME_ICON_SIZE + 6, -1 }, TopRight = { row, ui.edge.TopRight, 0, -1 } },
+          }
+          row.sub = Label:new{
+            parent = row, fontInfo = theme.fonts.bodySmall, color = theme.colors.muted,
+            justifyH = ui.justify.Left, wordWrap = false,
+            position = { TopLeft = { row.name, ui.edge.BottomLeft, 0, -2 }, TopRight = { row, ui.edge.TopRight, 0, 0 } },
+          }
+          return row
+        end,
+        update = function(_, row, item)
+          local t, c = item.tame, theme.colors
+          row.icon:Texture((t.owned and t.icon) or TAME_ICON)
+          local lit = t.owned and 1 or 0.3
+          row.icon:SetVertexColor(lit, lit, t.owned and 1 or 0.34, 1)
+          row.name:Text(t.label):Color(t.owned and c.green or c.muted)
+          row.sub:Text(t.owned and ("as " .. (t.petName or "?")) or (t.note or ""))
+          return PET_ROW_H
+        end,
+      },
     },
     position = {
       TopLeft     = { self, ui.edge.TopLeft,     PAD, -(TITLEBAR_H + PAD) },
@@ -204,6 +241,16 @@ function PetsPanel:Set(char)
       for _, p in ipairs(pets.active) do insert(items, { type = "pet", pet = p }) end
       insert(items, { type = "header", title = "STABLE", count = #pets.stable })
       for _, p in ipairs(pets.stable) do insert(items, { type = "pet", pet = p }) end
+    end
+    -- Challenge Tames checklist beneath the roster: the curated rare/"secret" tames matched against
+    -- the captured pets (owned full-colour, missing dimmed). Shows for any Hunter even before a stable
+    -- visit (all missing then), so the aspirational list is always visible; count is owned / total.
+    local tames = ns.api:GetChallengeTames(char.name)
+    if tames then
+      local owned = 0
+      for _, t in ipairs(tames) do if t.owned then owned = owned + 1 end end
+      insert(items, { type = "header", title = "CHALLENGE TAMES", count = ("%d / %d"):format(owned, #tames) })
+      for _, t in ipairs(tames) do insert(items, { type = "tame", tame = t }) end
     end
   end
   self:Width(W)
