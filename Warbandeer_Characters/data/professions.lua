@@ -53,10 +53,48 @@ ns.CURRENT_RECIPE_EXP = "Midnight"
 ---@field details table<integer, ProfDetail>?
 ---@field gear table<integer, ProfGear>? keyed by parent skillLineID
 
+-- True when the stored profession detail shows the character has trained the current
+-- expansion's skill line. Only then is recipe capture expected, so only then does a nil
+-- recipes table mean "missing data" rather than "not trained yet". (Moved here from
+-- missing.lua so the professions completeness check lives beside the data it reads.)
+local function hasCurrentExpSkill(detail)
+  if not detail or not detail.expansions then return false end
+  for _, exp in ipairs(detail.expansions) do
+    if exp.name == ns.CURRENT_RECIPE_EXP and (exp.maxSkillLevel or 0) > 0 then
+      return true
+    end
+  end
+  return false
+end
+
 ns.Professions = ns:RegisterBroker("professions")
 
 ns.Professions.fields = {
   details = {
+    -- Missing report: flag each profession with no captured per-expansion skill ("professions
+    -- (…)"), and each trained in the current expansion but with no captured recipes ("recipes
+    -- (…)"). A profession simply not trained this expansion is intentionally not reported. Two
+    -- possible labels, so return a list.
+    missing = { order = 270, check = function(toon)
+      if not (toon.basic and toon.basic.professions) then return end
+      local details = toon.professions and toon.professions.details
+      local missingProfs, missingRecipes = {}, {}
+      for _, prof in ipairs({ toon.basic.professions.primary, toon.basic.professions.secondary,
+                              toon.basic.professions.fishing, toon.basic.professions.cooking }) do
+        if prof and prof.name and prof.skillID then
+          local detail = details and details[prof.skillID]
+          if not detail or not (detail.expansions and #detail.expansions > 0) then
+            insert(missingProfs, prof.name)
+          elseif not detail.recipes and hasCurrentExpSkill(detail) then
+            insert(missingRecipes, prof.name)
+          end
+        end
+      end
+      local out = {}
+      if #missingProfs > 0 then insert(out, "professions (" .. table.concat(missingProfs, ", ") .. ")") end
+      if #missingRecipes > 0 then insert(out, "recipes (" .. table.concat(missingRecipes, ", ") .. ")") end
+      return out
+    end },
     -- On login/refresh, preserve whatever was cached from prior TRADE_SKILL_SHOW scans.
     get = function(self, toon, currentValue)
       return currentValue or {}

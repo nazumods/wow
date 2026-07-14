@@ -322,3 +322,14 @@ ns:registerDump("bankgear", "Bank Profession Gear", "Dump cached bank profession
   for charName, data in pairs(b.characters or {}) do show(charName .. "'s bank", data) end
   for guild, data in pairs(b.guilds or {}) do show(guild .. " guild bank", data) end
 end)
+
+-- Missing report: a character's bank is scanned only when it opens one (the store stamps a
+-- record even for an empty bank), so no entry under db.bank.characters means "never scanned".
+-- Account-wide cache, not a per-character broker field, so it registers here.
+ns:RegisterMissing{
+  order = 60,
+  check = function(toon)
+    local banks = ns.db.bank and ns.db.bank.characters
+    if not (banks and banks[toon.name]) then return "bank contents" end
+  end,
+}

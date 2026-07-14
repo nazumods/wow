@@ -28,6 +28,7 @@ Weekly.fields = {
   ---@class WeeklyBroker
   ---@field DMF boolean
   DMF = {
+    missing = false,
     ids = ValueList(DMFQuests),
     resetOn = ns.RESET_SUNDAY,
     get = function(_, _, current)
@@ -46,6 +47,7 @@ Weekly.fields = {
     end,
   },
   preMidnight = {
+    missing = false,
     ids = Set{87308,91795},
     resetOn = ns.RESET_WEEKLY,
     get = function(self, _, current)
@@ -69,6 +71,7 @@ Weekly.fields = {
   ---@class WeeklyBroker
   ---@field delversBounty boolean  the weekly Delver's Bounty treasure (quest 86371) claimed this week
   delversBounty = {
+    missing = false,
     ids = Set{86371},
     maxLevel = true,
     resetOn = ns.RESET_WEEKLY,
@@ -88,6 +91,7 @@ Weekly.fields = {
   ---@class WeeklyBroker
   ---@field caches integer
   caches = {
+    missing = false,
     ids = Set{
       93595, 93766, 93769, 88998, 89507, -- Midnight
       --84736, 84737, 84738, 84739, -- WWI cache 1-4 Season 1 & 2
@@ -121,6 +125,7 @@ Weekly.fields = {
   ---@class WeeklyBroker
   ---@field vault VaultRewards
   vault = {
+    missing = false,
     maxLevel = true,
     resetOn = ns.RESET_WEEKLY,
     get = function(_, _, current)
@@ -136,6 +141,7 @@ Weekly.fields = {
   ---@class WeeklyBroker
   ---@field hasUnclaimedVault boolean
   hasUnclaimedVault = {
+    missing = false,
     maxLevel = true,
     resetOn = ns.RESET_WEEKLY,
     get = function() return C_WeeklyRewards.HasAvailableRewards() end,
@@ -147,6 +153,7 @@ Weekly.fields = {
   ---@class WeeklyBroker
   ---@field keystone integer? current keystone level, nil if none
   keystone = {
+    missing = false,
     maxLevel = true,
     resetOn = ns.RESET_WEEKLY,
     get = function()
@@ -157,6 +164,7 @@ Weekly.fields = {
   ---@class WeeklyBroker
   ---@field dungeons {done: integer, max: integer}? M+ runs done and vault max threshold
   dungeons = {
+    missing = false,
     maxLevel = true,
     resetOn = ns.RESET_WEEKLY,
     get = function(_, _, current)

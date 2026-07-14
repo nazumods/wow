@@ -57,6 +57,7 @@ local QuestLog = ns:RegisterBroker("questlog")
 
 QuestLog.fields = {
   active = {
+    missing = { label = "quest history", order = 100 },
     get = function() return scanActive() end,
     event = { "QUEST_ACCEPTED", "QUEST_REMOVED", "QUEST_TURNED_IN" },
     eventDelay = 1000,
@@ -64,6 +65,7 @@ QuestLog.fields = {
   -- Full re-pack of GetAllCompletedQuestIDs (tens of thousands of ids) — cheap enough at
   -- login + on the (debounced) turn-in event, which coalesces quest-chain bursts.
   completed = {
+    missing = false,
     get = function() return pack(C_QuestLog.GetAllCompletedQuestIDs() or {}) end,
     event = "QUEST_TURNED_IN",
     eventDelay = 3000,

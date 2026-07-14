@@ -189,6 +189,7 @@ ns.WorldQuests = ns:RegisterBroker("worldquests")
 ns.WorldQuests.fields = {
   ---@type BrokerField
   rewards = {
+    missing = false,
     -- Not maxLevel-gated: some world quests (and their gear rewards) are available
     -- before the level cap.  Fully-geared characters are skipped by the ilvl
     -- ceiling in scanWorldQuests instead.

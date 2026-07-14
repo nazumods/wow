@@ -91,3 +91,10 @@ ns:registerDump("demons", "Warlock Demons",
       out:line(("  %s — %s  [npc %s]"):format(d.name, d.species, tostring(d.npcID or "?")))
     end
   end)
+
+-- Missing report: a Warlock's demons fill in per summon (no enumeration API), so a Warlock
+-- with no `demons` cache hasn't summoned any since the field was added. Non-Warlocks have none.
+ns:RegisterMissing{
+  order = 140,
+  check = function(toon) if toon.classId == WARLOCK and not toon.demons then return "demons" end end,
+}

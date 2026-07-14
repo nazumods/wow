@@ -44,6 +44,7 @@ local DelveQuests = {
 ns.Quests = ns:RegisterBroker("quests")
 ns.Quests.fields = {
   UndermineStoryMode = {
+    missing = false,
     ids = Set{86204},
     maxLevel = true,
     get = function(_, _, currentValue)
@@ -57,6 +58,7 @@ ns.Quests.fields = {
     end,
   },
   WWIRep = {
+    missing = false,
     ids = Values(WWIRepQuests),
     maxLevel = true,
     get = function()
@@ -81,6 +83,9 @@ ns.Quests.fields = {
     end,
   },
   LumberAxe = {
+    -- false is real data (character lacks the Find Lumber tracking spell); only a nil
+    -- never-captured value is missing.
+    missing = { label = "lumber axe", order = 150 },
     get = function(_, _, currentValue)
       return currentValue or HasTrackingSpell(FIND_LUMBER_SPELL)
     end,
@@ -90,6 +95,7 @@ ns.Quests.fields = {
     end,
   },
   delves = {
+    missing = false,
     ids = Values(DelveQuests),
     get = function()
       local d = { complete = true, missing = 0 }
@@ -113,6 +119,7 @@ ns.Quests.fields = {
   -- earned it. Captured per character so the Catalyst column can show it cross-alt.
   -- Sticky: an earned achievement is never lost.
   CatalystUnbound = {
+    missing = false,
     get = function(_, _, currentValue)
       return currentValue or (select(13, GetAchievementInfo(61519)) or false)
     end,

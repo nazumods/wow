@@ -63,6 +63,7 @@ end
 -- Profession equipment: 3 inventory slots per profession (tool + 2 accessories).
 -- Keyed by parent skillLineID so it survives the per-expansion variant churn.
 ns.Professions.fields.gear = {
+  missing = false,
   get = function(self, toon, currentValue)
     if not C_TradeSkillUI or not C_TradeSkillUI.GetProfessionSlots then
       return currentValue or {}

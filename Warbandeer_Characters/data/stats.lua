@@ -42,6 +42,7 @@ local Stats = ns:RegisterBroker("stats")
 -- value the paperdoll displays.
 Stats.fields = {
   secondary = {
+    missing = { label = "secondary stats", maxLevel = true, order = 260 },
     get = function()
       return {
         crit        = { pct = safe(GetCritChance()),    rating = safe(GetCombatRating(CR_CRIT)) },

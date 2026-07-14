@@ -33,6 +33,7 @@ Instances.fields = {
   ---@class InstancesBroker
   ---@field locks any -- TODO
   locks = {
+    missing = false,
     resetOn = ns.RESET_WEEKLY,
     get = function()
       local locks = {}

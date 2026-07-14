@@ -133,3 +133,10 @@ ns:registerDump("tames", "Challenge Tames",
         t.owned and ("  <OWNED as %s>"):format(t.petName or "?") or ""))
     end
   end, true)
+
+-- Missing report: a Hunter's roster is only readable at a stable master, so a Hunter with no
+-- `pets` cache hasn't visited one since the field was added. Non-Hunters have no stable.
+ns:RegisterMissing{
+  order = 130,
+  check = function(toon) if toon.classId == HUNTER and not toon.pets then return "stable pets" end end,
+}

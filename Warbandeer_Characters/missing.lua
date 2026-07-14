@@ -1,30 +1,22 @@
 ---@type Warbandeer_Characters
 local ns = select(2, ...)
-local GetBuildInfo = GetBuildInfo
-local C_Spec = C_SpecializationInfo
-local GetNumSpecs = (C_Spec and C_Spec.GetNumSpecializationsForClassID) or _G.GetNumSpecializationsForClassID
-local GetSpecInfo = (C_Spec and C_Spec.GetSpecializationInfoForClassID) or _G.GetSpecializationInfoForClassID
+local insert = table.insert
+local sort = table.sort
+local huge = math.huge
 
-local patch = false
+-- Self-registering missing-data report. Each broker field declares its own completeness
+-- criteria co-located with the field (a `missing` descriptor — see broker.lua's
+-- MissingDescriptor), and non-broker caches register a provider via ns:RegisterMissing.
+-- This file is a generic WALKER over those declarations: it no longer hardcodes one check
+-- per field, so a new tracked field participates automatically (add a broker field and it's
+-- covered; a field with no declaration is auto-flagged until it opts in or out, surfaced by
+-- ns:AuditMissing / `/wbc missing audit`).
 
--- True when the stored profession detail shows the character has trained the
--- current expansion's skill line.  Only then is recipe capture expected, so only
--- then does a nil recipes table mean "missing data" rather than "not trained yet".
-local function hasCurrentExpSkill(detail)
-  if not detail or not detail.expansions then return false end
-  for _, exp in ipairs(detail.expansions) do
-    if exp.name == ns.CURRENT_RECIPE_EXP and (exp.maxSkillLevel or 0) > 0 then
-      return true
-    end
-  end
-  return false
-end
-
--- Warbandeer_Bars is optional, so its API is reached via the global. A profile
--- captured since the layout-snapshot upgrade always has bindingSet (1 or 2), so
--- a nil there means the character hasn't been re-snapshotted (logged in) since.
--- Returns the missing-report entry, or nil when the bars data is complete
--- (or Warbandeer_Bars isn't loaded).
+-- Warbandeer_Bars is optional, so its API is reached via the global. A profile captured
+-- since the layout-snapshot upgrade always has bindingSet (1 or 2), so a nil there means the
+-- character hasn't been re-snapshotted (logged in) since. Returns the missing-report entry,
+-- or nil when the bars data is complete (or Warbandeer_Bars isn't loaded). This is the one
+-- provider with no data-file home — Warbandeer_Bars is a separate, optional addon.
 local function missingBars(name)
   local api = WarbandeerBarsApi
   if not (api and name) then return end
@@ -42,196 +34,80 @@ local function missingBars(name)
   return "bars snapshot (" .. table.concat(stale, ", ") .. ")"
 end
 
+ns:RegisterMissing{
+  order = 50,
+  check = function(toon) return missingBars(toon.name) end,
+}
+
+-- The merged, order-sorted completeness entries: one per broker field carrying a `missing`
+-- declaration, plus every ns:RegisterMissing provider. Built once, lazily, on the first
+-- report (missing.lua loads after every data file, so all brokers/providers are registered
+-- by then). Each entry's `eval(toon)` returns a label, a list of labels, or nil.
+local entries
+
+local function buildEntries()
+  entries = {}
+  local seq = 0
+  local function add(order, maxLevel, eval)
+    seq = seq + 1
+    insert(entries, { order = order or huge, seq = seq, maxLevel = maxLevel, eval = eval })
+  end
+
+  for _, bname in ipairs(ns.brokerOrder) do
+    for fname, field in pairs(ns.brokers[bname].fields or {}) do
+      local d = field.missing
+      if d ~= false then
+        if d == nil then
+          -- Undeclared: opt-out default — a nil stored value is "missing" (respecting the
+          -- field's own maxLevel gather-gate), labelled by field name. A new field is
+          -- covered automatically; the audit nags until it declares a proper descriptor
+          -- (or `missing = false`).
+          add(huge, field.maxLevel, function(toon)
+            if (toon[bname] and toon[bname][fname]) == nil then return fname end
+          end)
+        else
+          if type(d) == "function" then d = { check = d } end
+          local check, label = d.check, d.label
+          add(d.order, d.maxLevel, function(toon)
+            local v = toon[bname] and toon[bname][fname]
+            if check then return check(toon, v) end
+            if v == nil then return label end
+          end)
+        end
+      end
+    end
+  end
+
+  for _, p in ipairs(ns.missingProviders) do
+    add(p.order, p.maxLevel, p.check)
+  end
+
+  -- Explicit `order` reproduces the historical per-line sequence exactly; ties (and
+  -- undeclared fields, which share order = huge) fall back to registration order.
+  sort(entries, function(a, b)
+    if a.order ~= b.order then return a.order < b.order end
+    return a.seq < b.seq
+  end)
+end
+
+-- The list of missing-data labels for one character, in report order. Evaluates every entry
+-- whose maxLevel gate passes (only at the level cap), flattening each label / label-list.
+---@class Warbandeer_Characters
+---@field getMissingFields fun(toon: Character): string[]
 function ns.getMissingFields(toon)
-  if not patch then patch = select(1, GetBuildInfo()) end
+  if not entries then buildEntries() end
   local missing = {}
-
-  -- gold/total are recorded numbers; 0 is valid data (a broke or freshly-tracked
-  -- character), so only a nil means the value was never captured.
-  if not toon.currency or toon.currency.gold == nil then
-    table.insert(missing, "gold")
-  end
-
-  if not toon.playtime or toon.playtime.total == nil then
-    table.insert(missing, "playtime")
-  elseif not toon.playtime.byPatch or toon.playtime.byPatch[patch] == nil then
-    table.insert(missing, "playtime (this patch)")
-  end
-
-  if not toon.lastRefresh then table.insert(missing, "lastRefresh") end
-
-  -- guid is stamped every login (added in DB v30); a nil means the character hasn't
-  -- logged in since, so external tools keying off it (e.g. a character-list sorter)
-  -- can't yet identify it from character-list-order.txt's raw GUID fragments.
-  if not toon.guid then table.insert(missing, "guid") end
-
-  local bars = missingBars(toon.name)
-  if bars then table.insert(missing, bars) end
-
-  -- Bank profession gear is captured only when the character opens their bank.
-  -- The store stamps scannedAt even when the bank holds no profession gear, so a
-  -- missing entry (not an empty gear list) is what flags "never scanned".
-  local banks = ns.db.bank and ns.db.bank.characters
-  if not (banks and banks[toon.name]) then
-    table.insert(missing, "bank contents")
-  end
-
-  -- Bag item counts (the warband-stock tooltip's per-character totals) are captured
-  -- by the `inventory` broker, which only runs while the character is logged in. The
-  -- broker always returns a table, so a nil counts means the character hasn't been
-  -- seen since the index was added (its stock won't show in the tooltip until it logs in).
-  if not toon.inventory or toon.inventory.counts == nil then
-    table.insert(missing, "bag contents")
-  end
-
-  -- Mail contents are captured only while the character has a mailbox open. The scan
-  -- stamps a count even for an empty inbox, so a missing count means "never visited a
-  -- mailbox" — its expiries can't warn and its attachments are absent from the stock
-  -- tooltip. (A record may exist with only the new-mail flag set, from UPDATE_PENDING_MAIL.)
-  if not toon.mail or toon.mail.count == nil then
-    table.insert(missing, "mail")
-  end
-
-  -- Reputations are captured each login (and on change), so a nil means the character
-  -- hasn't been seen since the cache was added — its standings won't appear in
-  -- ShadowsOfUI-Reputations' cross-alt block.
-  if not toon.reputations then
-    table.insert(missing, "reputations")
-  end
-
-  -- Quest log (active + completed history) is captured each login; a nil means the
-  -- character hasn't been seen since the cache was added, so it won't appear in
-  -- ShadowsOfUI-Quests' "also on / completed by" block.
-  if not toon.questlog then
-    table.insert(missing, "quest history")
-  end
-
-  -- Applied appearance glyphs are captured per spec when a character (with a chosen spec) logs
-  -- in. A class that has glyphs and a spec, but no captured glyphs.applied, hasn't been seen
-  -- since the cache was added — its Detail appearance card shows nothing applied until it logs
-  -- in. Only the active spec is readable per login, so playing other specs isn't flagged here.
-  -- (Evoker has no appearance glyphs; a spec-less low-level character has none to gather.)
-  -- Applied appearance glyphs are captured per spec (only the active spec is readable per login).
-  -- No capture at all → just needs a login ("appearance glyphs"). Captured some specs → flag the
-  -- specific specs still missing, e.g. "appearance glyphs (Marksmanship, Survival)" — the specs to
-  -- play to fill them in. Evoker (no glyph catalog) and spec-less low-level characters aren't flagged.
-  if ns.AppearanceGlyphs[toon.classId]
-      and toon.basic and toon.basic.specialization and toon.basic.specialization.id then
-    local applied = toon.glyphs and toon.glyphs.applied
-    if not (applied and next(applied)) then
-      table.insert(missing, "appearance glyphs")
-    else
-      local gaps = {}
-      for i = 1, (GetNumSpecs(toon.classId) or 0) do
-        local specID, specName = GetSpecInfo(toon.classId, i)
-        if specID and not applied[specID] then
-          table.insert(gaps, specName or ("spec " .. specID))
-        end
-      end
-      if #gaps > 0 then
-        table.insert(missing, "appearance glyphs (" .. table.concat(gaps, ", ") .. ")")
+  local atMax = toon.basic and toon.basic.level == ns.wow.maxLevel
+  for _, e in ipairs(entries) do
+    if not (e.maxLevel and not atMax) then
+      local r = e.eval(toon)
+      if type(r) == "table" then
+        for _, label in ipairs(r) do insert(missing, label) end
+      elseif r then
+        insert(missing, r)
       end
     end
   end
-
-  -- Learned class unlocks (Druid Tome of the Wilds / Hunter Tomes & Tames) are captured each login
-  -- via IsSpellKnown. A class with unlocks but no captured `glyphs.unlocks` hasn't been seen since
-  -- the cache was added, so the Detail card can't show what it has until it logs in. (The scan
-  -- stores an empty set when the character has none, so a captured-but-empty toon isn't flagged.)
-  if ns.LearnedUnlocks[toon.classId] and not (toon.glyphs and toon.glyphs.unlocks) then
-    table.insert(missing, (ns.LearnedUnlockTitle[toon.classId] or "class unlocks"):lower())
-  end
-
-  -- A Hunter's pet roster (active + stabled) is captured only at a stable master (the lists aren't
-  -- readable elsewhere). A Hunter with no `pets` cache hasn't visited one since the field was added,
-  -- so its Detail Pets button reads "visit a stable" until it does. Non-Hunters have no stable.
-  if toon.classId == 3 and not toon.pets then
-    table.insert(missing, "stable pets")
-  end
-
-  -- A Warlock's demon roster fills in per summon (there's no enumeration API — only the active demon is
-  -- readable). A Warlock with no `demons` cache hasn't summoned any since the field was added, so its
-  -- Detail Demons button reads "summon your demons". Only "never seen any" is flagged: the full demon
-  -- set is spec-dependent (Demonology alone gets the Felguard), so a partial roster can't be checked.
-  if toon.classId == 9 and not toon.demons then
-    table.insert(missing, "demons")
-  end
-
-  -- LumberAxe is a recorded boolean (has / doesn't have the Find Lumber tracking
-  -- spell), so only a nil means the data was never captured. false is real data.
-  if not toon.quests or toon.quests.LumberAxe == nil then
-    table.insert(missing, "lumber axe")
-  end
-
-  if toon.basic and toon.basic.level == ns.wow.maxLevel then
-    if toon.equipment and toon.equipment.slots and not toon.equipment.trackScanned then
-      table.insert(missing, "upgrade track data")
-    end
-    -- Alts last scanned before the GetItemGemID empty-socket fix carry stale socket
-    -- counts (the old GetItemStats parse over-counted gemmed items under the Midnight
-    -- Gem Manager); flag until they re-log and rescan with the corrected logic.
-    if toon.equipment and toon.equipment.slots and not toon.equipment.socketScanned then
-      table.insert(missing, "gem socket data")
-    end
-    if not toon.currency or toon.currency.HeroDawncrest == nil then
-      table.insert(missing, "hero dawncrest")
-    end
-    if not toon.currency or toon.currency.MythDawncrest == nil then
-      table.insert(missing, "myth dawncrest")
-    end
-    if not toon.currency or toon.currency.Catalyst == nil then
-      table.insert(missing, "catalyst charges")
-    end
-    if not toon.currency or toon.currency.NebulousVoidcore == nil then
-      table.insert(missing, "nebulous voidcores")
-    end
-    if not toon.currency or toon.currency.UntaintedManaCrystal == nil then
-      table.insert(missing, "untainted mana-crystals")
-    end
-    if not toon.currency or toon.currency.ShardOfDundun == nil then
-      table.insert(missing, "shard of dundun")
-    end
-    if not toon.currency or toon.currency.FieldAccolade == nil then
-      table.insert(missing, "field accolade")
-    end
-    if not toon.currency or toon.currency.UnalloyedAbundance == nil then
-      table.insert(missing, "unalloyed abundance")
-    end
-    if not toon.stats or toon.stats.secondary == nil then
-      table.insert(missing, "secondary stats")
-    end
-  end
-
-  if toon.basic and toon.basic.professions then
-    local details = toon.professions and toon.professions.details
-    local missingProfs, missingRecipes = {}, {}
-    for _, prof in ipairs({ toon.basic.professions.primary, toon.basic.professions.secondary,
-                              toon.basic.professions.fishing, toon.basic.professions.cooking }) do
-      if prof and prof.name and prof.skillID then
-        local detail = details and details[prof.skillID]
-        if not detail or not (detail.expansions and #detail.expansions > 0) then
-          -- No per-expansion skill captured: the detail entry is absent, or present
-          -- but its expansions list never populated (a TRADE_SKILL_SHOW scan that
-          -- fired before the child skill-lines loaded writes recipes/specPoints but
-          -- no expansions, and that sticks). Both leave the Professions view all-"—".
-          table.insert(missingProfs, prof.name)
-        elseif not detail.recipes and hasCurrentExpSkill(detail) then
-          -- Trained the current expansion but recipes weren't captured: detail
-          -- predates recipe tracking, or the prof window hasn't been reopened since.
-          -- (A character that simply hasn't trained the current-expansion skill is
-          -- intentionally not reported here — that's expected, not missing data.)
-          table.insert(missingRecipes, prof.name)
-        end
-      end
-    end
-    if #missingProfs > 0 then
-      table.insert(missing, "professions (" .. table.concat(missingProfs, ", ") .. ")")
-    end
-    if #missingRecipes > 0 then
-      table.insert(missing, "recipes (" .. table.concat(missingRecipes, ", ") .. ")")
-    end
-  end
-
   return missing
 end
 local getMissingFields = ns.getMissingFields
@@ -262,6 +138,24 @@ function ns:getMissingReport()
   return missing
 end
 
+-- Broker fields with no completeness stance (neither a `missing` descriptor nor an explicit
+-- `missing = false`). These are auto-flagged by the walker, so this is the forcing function
+-- that keeps the report complete by construction: a clean build returns nothing.
+---@class Warbandeer_Characters
+---@field AuditMissing fun(self): string[] "<broker>.<field>" names lacking a completeness declaration
+function ns:AuditMissing()
+  local undeclared = {}
+  for _, bname in ipairs(self.brokerOrder) do
+    for fname, field in pairs(self.brokers[bname].fields or {}) do
+      if field.missing == nil then
+        insert(undeclared, bname .. "." .. fname)
+      end
+    end
+  end
+  sort(undeclared)
+  return undeclared
+end
+
 ns:registerCommand("missing", "", function(self)
   local missing = self:getMissingReport()
 
@@ -286,3 +180,27 @@ ns:registerCommand("missing", "me", function(self)
     ns.Print("No missing data.")
   end
 end, "List the current character's missing data")
+
+ns:registerCommand("missing", "audit", function(self)
+  local undeclared = self:AuditMissing()
+  if #undeclared == 0 then
+    ns.Print("Every broker field declares a completeness stance.")
+    return
+  end
+  ns.Print(#undeclared .. " broker field(s) with no `missing` declaration (auto-flagged by "
+    .. "default — add a descriptor or `missing = false`):")
+  for _, f in ipairs(undeclared) do print("  " .. f) end
+end, "Audit broker fields lacking a completeness declaration (dev)")
+
+-- Dev nudge: shortly after load, warn once if any broker field ships with no completeness
+-- stance. Silent in a clean build (every field declares a descriptor or `missing = false`),
+-- so users never see it — it only fires when a field is added without one, catching exactly
+-- the "someone forgot to update the report" gap this system removes.
+C_Timer.After(10, function()
+  local undeclared = ns:AuditMissing()
+  if #undeclared > 0 then
+    ns.Print(("missing: %d broker field(s) undeclared for completeness (%s) — add a `missing` "
+      .. "descriptor or `missing = false`; see /wbc missing audit."):format(
+      #undeclared, table.concat(undeclared, ", ")))
+  end
+end)

@@ -50,10 +50,21 @@ ns.LAST_RESET = LAST_RESET
 ns.LAST_SUNDAY_RESET = LAST_SUNDAY_RESET
 
 
+---A field's completeness declaration for the `/wbc missing` report (see missing.lua).
+---A descriptor (or bare function) makes the field *tracked*; `false` opts it out
+---explicitly; a nil `missing` (undeclared) is auto-flagged so a new field can't
+---silently escape the report — `ns:AuditMissing` / `/wbc missing audit` surface it.
+---@class MissingDescriptor
+---@field label string? label emitted when the field's stored value is nil (default check)
+---@field maxLevel boolean? only flag at max level
+---@field order integer? position within the per-character report line (ascending; unset sorts last)
+---@field check (fun(toon: Character, value: any): string|string[]|nil)? custom evaluator returning label(s)
+
 ---@class BrokerField
 ---@field get fun(self: BrokerField, toon: Character, currentValue: any?): any
 ---@field maxLevel boolean?
 ---@field order integer?
+---@field missing MissingDescriptor|false|(fun(toon: Character, value: any): string|string[]|nil)?
 ---@field reset? fun(self: BrokerField, toon: Character): any
 ---@field resetOn string?
 ---@field [string] any
@@ -172,6 +183,23 @@ function ns:RegisterBroker(name)
   self.brokers[name] = Broker:new{name = name}
   insert(self.brokerOrder, name)
   return self.brokers[name]
+end
+
+---A completeness provider for the `/wbc missing` report backing data that ISN'T a broker
+---field (account-wide caches, top-level character fields, optional-addon data). Registered
+---co-located with the data it checks; missing.lua's walker evaluates it in `order` alongside
+---the broker fields' own `missing` descriptors, so a new cache participates the same way.
+---@class MissingProvider
+---@field order integer? position within the per-character report line (ascending; unset sorts last)
+---@field maxLevel boolean? only evaluate at max level
+---@field check fun(toon: Character): string|string[]|nil evaluator returning label(s), or nil when complete
+
+---@class Warbandeer_Characters
+---@field missingProviders MissingProvider[] non-broker completeness providers
+---@field RegisterMissing fun(self, provider: MissingProvider)
+ns.missingProviders = {}
+function ns:RegisterMissing(provider)
+  insert(self.missingProviders, provider)
 end
 
 ---@class WarbandeerCharactersDB

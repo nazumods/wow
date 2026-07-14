@@ -16,6 +16,7 @@ local Inventory = ns:RegisterBroker("inventory")
 
 Inventory.fields = {
   counts = {
+    missing = { label = "bag contents", order = 70 },
     event = "BAG_UPDATE_DELAYED",
     eventDelay = 500,
     get = function()

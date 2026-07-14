@@ -67,6 +67,7 @@ Titles.fields = {
   -- scan. The login refresh() queues this field too, so an alt's list is captured the next time
   -- it plays even if no title event fires that session.
   known = {
+    missing = false,
     get = function() return scanKnown() end,
     event = "KNOWN_TITLES_UPDATE",
     eventDelay = 1000,
@@ -74,6 +75,7 @@ Titles.fields = {
   -- The featured title changes on selection (UNIT_NAME_UPDATE for the player) and when a title is
   -- learned or lost (KNOWN_TITLES_UPDATE).
   current = {
+    missing = false,
     get = function() return currentTitle() end,
     event = { "KNOWN_TITLES_UPDATE", "UNIT_NAME_UPDATE" },
     eventDelay = 1000,
@@ -81,6 +83,7 @@ Titles.fields = {
   -- The featured title's display name, captured beside `current` so the Summary column renders an
   -- alt's title straight from the cache (no live GetTitleName per row).
   currentName = {
+    missing = false,
     get = function() return currentTitleName() end,
     event = { "KNOWN_TITLES_UPDATE", "UNIT_NAME_UPDATE" },
     eventDelay = 1000,

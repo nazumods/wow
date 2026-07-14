@@ -49,6 +49,7 @@ end
 ns.Concentration = ns:RegisterBroker("concentration")
 ns.Concentration.fields = {
   data = {
+    missing = false,
     -- Called at login and on CURRENCY_DISPLAY_UPDATE. No profession window needed.
     get = function(self, toon, currentValue)
       local result = {}
