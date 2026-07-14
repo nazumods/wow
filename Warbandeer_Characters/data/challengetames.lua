@@ -16,12 +16,14 @@ local ns = select(2, ...)
 -- These tames are aspirational (a Hunter is never "done" collecting them), so — like the Collected
 -- view — they must NOT drive the `/wbc missing` report.
 --
--- PROVENANCE / VERIFICATION: the ids below are a seed of the well-known single-appearance tames from
--- the Wowhead guide. WoW's stable `creatureID` is locale-proof but its exact value (and every recolor
--- `displayID`) can only be confirmed against a real roster in-game — run `/wbc dump tames` on a Hunter
--- that owns some to verify a seed id, and `/wbc dump pets` to read the stored creature/display of an
--- owned recolor before adding its `displayID` entry. Expand the catalog from those dumps; a wrong seed
--- id simply reads "missing" until corrected (never a false owned).
+-- PROVENANCE / VERIFICATION: creatureIDs are sourced from Wowhead's Secret Hunter Pets guide — each
+-- pet's `npc=<id>` link, whose npc id equals the stable `creatureID` — and spot-confirmed against real
+-- rosters in-game via `/wbc dump tames` / `/wbc dump pets` (Arcturis 38453, Ghostcrawler 50051,
+-- Anthriss 54338, Karkin 50959, Blue Juggernaut 107676 all matched owned pets). Note: the Iron
+-- Juggernaut "paints" and the Molten Front spider "recolors" are DISTINCT creatureIDs (not displayID
+-- variants of one creature), so every entry here keys on `creatureID` alone — the optional `displayID`
+-- field stays for a future family that genuinely shares one creatureID. `/wbc dump tames` remains the
+-- way to confirm/extend: a wrong id simply reads "missing" until corrected (never a false owned).
 
 ---@class ChallengeTame
 ---@field label string       display name (the pet's proper name, e.g. "Loque'nahak")
@@ -32,22 +34,33 @@ local ns = select(2, ...)
 
 ---@type ChallengeTame[]
 ns.ChallengeTames = {
-  -- Spirit Beasts — Wrath of the Lich King (single-appearance rare spawns).
+  -- Spirit Beasts — the marquee rare-spawn tames (WotLK → Legion).
   { label = "Loque'nahak", creatureID = 32517, category = "Spirit Beasts", note = "Sholazar Basin" },
   { label = "Gondria",     creatureID = 33776, category = "Spirit Beasts", note = "Zul'Drak" },
   { label = "Skoll",       creatureID = 35189, category = "Spirit Beasts", note = "The Storm Peaks" },
   { label = "Arcturis",    creatureID = 38453, category = "Spirit Beasts", note = "Grizzly Hills" },
-  -- Spirit Beasts — Cataclysm.
-  { label = "Ghostcrawler", creatureID = 46990, category = "Spirit Beasts", note = "Abyssal Depths" },
-  { label = "Ban'thalos",   creatureID = 50063, category = "Spirit Beasts", note = "Mount Hyjal" },
-  { label = "Ankha",        creatureID = 51107, category = "Spirit Beasts", note = "Mount Hyjal" },
-  { label = "Magria",       creatureID = 51099, category = "Spirit Beasts", note = "Mount Hyjal" },
-  -- Molten Front (Firelands) — the classic taming challenges.
-  { label = "Deth'tilac",  creatureID = 50005, category = "Molten Front", note = "Molten Front — elite challenge tame" },
-  { label = "Kirix",       creatureID = 50052, category = "Molten Front", note = "Molten Front" },
-  { label = "Skitterflame", creatureID = 50054, category = "Molten Front", note = "Molten Front" },
-  { label = "Anthriss",    creatureID = 50058, category = "Molten Front", note = "Molten Front" },
-  { label = "Karkin",      creatureID = 50051, category = "Molten Front", note = "Molten Front" },
+  { label = "Ghostcrawler", creatureID = 50051, category = "Spirit Beasts", note = "Abyssal Depths" },
+  { label = "Ankha",       creatureID = 54318, category = "Spirit Beasts", note = "Mount Hyjal" },
+  { label = "Magria",      creatureID = 54319, category = "Spirit Beasts", note = "Mount Hyjal" },
+  { label = "Ban'thalos",  creatureID = 54320, category = "Spirit Beasts", note = "Mount Hyjal" },
+  { label = "Fenryr",      creatureID = 95674, category = "Spirit Beasts", note = "Halls of Valor" },
+  -- Molten Front (Firelands 4.2) — the classic taming challenges.
+  { label = "Deth'tilac",  creatureID = 54322, category = "Molten Front", note = "Molten Front — elite challenge tame" },
+  { label = "Kirix",       creatureID = 54323, category = "Molten Front", note = "Molten Front" },
+  { label = "Solix",       creatureID = 54321, category = "Molten Front", note = "Molten Front" },
+  { label = "Skitterflame", creatureID = 54324, category = "Molten Front", note = "Molten Front" },
+  { label = "Anthriss",    creatureID = 54338, category = "Molten Front", note = "Molten Front" },
+  { label = "Terrorpene",  creatureID = 50058, category = "Molten Front", note = "Mount Hyjal — fire tortoise" },
+  { label = "Skarr",       creatureID = 50815, category = "Molten Front", note = "Molten Front" },
+  { label = "Karkin",      creatureID = 50959, category = "Molten Front", note = "Molten Front" },
+  -- Mechanical tames (Pandaria → Warlords) — the Juggernaut "paints" are distinct creatures, not recolors.
+  { label = "Iron Juggernaut", creatureID = 71466,  category = "Mechanical", note = "Siege of Orgrimmar" },
+  { label = "Grey Juggernaut", creatureID = 107679, category = "Mechanical", note = "Tanaan Jungle" },
+  { label = "Blue Juggernaut", creatureID = 107676, category = "Mechanical", note = "Tanaan Jungle" },
+  { label = "Green Juggernaut", creatureID = 107677, category = "Mechanical", note = "Tanaan Jungle" },
+  { label = "Teal Juggernaut", creatureID = 107678, category = "Mechanical", note = "Tanaan Jungle" },
+  { label = "Lightning Paw", creatureID = 118244, category = "Mechanical", note = "Draenor" },
+  { label = "Sabertron",   creatureID = 139328, category = "Mechanical", note = "Ashran" },
 }
 
 -- Merge the catalog with a Hunter's owned-pet id sets into an owned/missing status list, preserving
