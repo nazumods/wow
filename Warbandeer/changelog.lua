@@ -6,6 +6,20 @@ local ns = select(2, ...)
 -- same conventional-commit grouping used for the GitHub/CurseForge release notes.
 ---@type { version: string, notes: string }[]
 ns.changelog = {
+  { version = "12.0.7-r22", notes = [==[
+### Features
+- track Warlock green fire (The Codex of Xerrath) as a collectible (#523)
+- add how-to-obtain hints to the Challenge Tames checklist (#520)
+- match Hunter pets against a curated Challenge Tames checklist (#517)
+- track Hunter ability tomes and fill missing skill tames (#512)
+- show how-to-obtain hint for unowned appearance collectibles (#511)
+- track Warlock demons (name + species) in the Demons panel (#505)
+- track hunter pets (active + stable) in a docked roster panel (#502)
+
+### Bug Fixes
+- gate the scrollbar gutter on the same range the bar shows on (#519)
+
+]==] },
   { version = "12.0.7-r21", notes = [==[
 ### Features
 - track learned class unlocks — Druid Tome of the Wilds + Hunter Skill Tames (#497)
