@@ -3,8 +3,9 @@ local ns = select(2, ...)
 
 -- Curated "how to obtain" hint text for every collectible on the Detail appearance card
 -- (Warbandeer's GlyphBox), keyed by itemID: the cosmetic appearance glyphs (ns.AppearanceGlyphs),
--- the Warlock demon Grimoires + Druid Marks/travel glyphs (ns.AppearanceUnlocks), and the Hunter
--- Tomes + Druid Tome of the Wilds (ns.LearnedUnlocks). WarbandeerApi's GetAppliedGlyphs /
+-- the Warlock demon Grimoires + Druid Marks/travel glyphs (ns.AppearanceUnlocks), and the class
+-- books (ns.LearnedUnlocks — Hunter Tomes & Tames, Druid Tome of the Wilds, per-class Legion tomes).
+-- WarbandeerApi's GetAppliedGlyphs /
 -- GetAppearanceUnlocks / GetLearnedUnlocks attach this as each entry's `source` field, and the UI
 -- appends it to the item tooltip when the entry is still UNOWNED/UNAPPLIED. Sourced from Wowhead +
 -- Warcraft Wiki and in-game-verified (2026-07-13). For the learned tames the item name is omitted
@@ -269,6 +270,8 @@ ns.CollectibleSources = {
   -- Utility ability tomes
   [136783] = "50g from the Nesingwary vendors (Sholazar Basin / Trueshot Lodge)",
   [136781] = "50g from the Nesingwary vendors (Sholazar Basin / Trueshot Lodge)",
+  [136782] = "50g from the Dalaran engineering vendors (Hobart Grapplehammer / Bryan Landers)",
+  [136780] = "50g from Outfitter Reynolds, Trueshot Lodge (Highmountain)",
 
   -- === Druid Tome of the Wilds (ns.LearnedUnlocks[11]) ===
   [136787] = TOME,
@@ -276,4 +279,27 @@ ns.CollectibleSources = {
   [136794] = TOME,
   [136795] = TOME,
   [136790] = TOME,
+
+  -- === Class-book tomes (ns.LearnedUnlocks — Paladin/Rogue/DK/Shaman/Mage/Monk) ===
+  -- Paladin — Divine Tome
+  [136801] = "50g from Miranda Breechlock, Sanctum of Light (Light's Hope Chapel, EPL)",
+  -- Rogue — Dirty Tricks
+  [136803] = "50g from Kelsey Steelspark, the Underbelly (Dalaran)",
+  -- Death Knight — Necrophile Tome
+  [136796] = "50g from Quartermaster Ozorg, Acherus: The Ebon Hold",
+  -- Shaman — Tomes of Hex
+  [136972] = "50g from Cravitz Lorent, the Underbelly (Dalaran)",
+  [136938] = "50g from Elementalist Sharvak, Throne of the Elements (Nagrand)",
+  [136969] = "Drops from Nal'tira, The Arcway",
+  -- Mage — Mystical Tomes
+  [136797] = "50g from Endora Moorehead, Sisters Sorcerous (Dalaran)",
+  [136799] = "50g from Endora Moorehead, Sisters Sorcerous (Dalaran)",
+  [44709]  = "2,500g (2,000g at Exalted Kirin Tor) from Endora Moorehead, Dalaran",
+  [120138] = "Drops from hozen & monkeys, Pandaria",
+  [44793]  = "100 Noblegarden Chocolate from Noblegarden vendors (holiday)",
+  [120137] = "Drops from Arctic Grizzlies, Dragonblight (~0.5%)",
+  [120140] = "Drops from porcupines, Pandaria",
+  [22739]  = "Fished from Cataclysm-zone fishing pools",
+  -- Monk — Meditation Manual
+  [136800] = "50g from Master Hwang, Peak of Serenity (Kun-Lai Summit)",
 }
