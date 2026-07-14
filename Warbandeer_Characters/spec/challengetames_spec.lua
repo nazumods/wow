@@ -4,7 +4,7 @@ local wbchar = require("Warbandeer_Characters.spec.wbchar")
 -- counts) and two recolor entries that share one creatureID but pin different displayIDs.
 local function catalog()
   return {
-    { label = "Single",   creatureID = 100, category = "A", note = "zone A" },
+    { label = "Single",   creatureID = 100, category = "A", note = "zone A", howTo = "how A" },
     { label = "RecolorX", creatureID = 200, displayID = 10, category = "B" },
     { label = "RecolorY", creatureID = 200, displayID = 20, category = "B" },
   }
@@ -59,6 +59,7 @@ describe("Warbandeer_Characters ns.MergeChallengeTames", function()
     assert.is_nil(out[1].displayID)
     assert.equal("A", out[1].category)
     assert.equal("zone A", out[1].note)
+    assert.equal("how A", out[1].howTo)
     assert.equal(20, out[3].displayID)
   end)
 end)
@@ -79,6 +80,7 @@ describe("Warbandeer_Characters ns.ChallengeTames catalog integrity", function()
       assert.is_string(e.category)
       if e.displayID ~= nil then assert.is_number(e.displayID) end
       if e.note ~= nil then assert.is_string(e.note) end
+      if e.howTo ~= nil then assert.is_string(e.howTo) end
     end
   end)
 
