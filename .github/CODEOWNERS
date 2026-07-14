@@ -1,0 +1,3 @@
+# Only these paths require a code-owner review; all other changes are unaffected.
+/apps/warbandeer-desktop/ @nazumods
+/apps/warbandeer-discord/ @nazumods
