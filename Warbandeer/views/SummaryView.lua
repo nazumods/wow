@@ -1,7 +1,6 @@
 ---@type Warbandeer
 local ns = select(2, ...)
 local ui = ns.ui
-local min = math.min
 local filter = ns.lua.lists.filter
 local Class, TableFrame, Texture, Button, Label = ns.lua.Class, ui.TableFrame, ui.Texture, ui.Button, ui.Label
 local theme = ns.theme
@@ -304,17 +303,22 @@ function SummaryView:layout()
 
   -- Only the row area scrolls; the header + footer sit outside it. Cap the whole view
   -- (header + rows + footer) at ~95% of the screen height — the rows get whatever is
-  -- left and scroll once they'd exceed it. Reserve the scrollbar gutter only while
-  -- actually scrolling so short rosters keep a tight right edge.
+  -- left and scroll once they'd exceed it. The scrollbar's visibility and its reserved
+  -- gutter both derive from one truth: the live scroll range (`scroll:Scrolls()`, the
+  -- same range `_syncScrollbar` reads) — so a short roster keeps a tight, bar-free right
+  -- edge and the two can never disagree.
   local t = self:_activeTable()
   local scroll = self._scrolls[self._faction]
   local headerH, footerH = t.headerHeight, t.footerHeight
   local rowsH = t.rowArea:Height()
-  local capH = min(maxTableHeight() - headerH - footerH, rowsH)
-  local scrolling = rowsH > capH + 0.5
+  local avail = maxTableHeight() - headerH - footerH
+  -- Cap the viewport at the available height, but treat a roster within ~0.5px of
+  -- fitting as fitting, so float noise never trips a scrollbar for a full roster.
+  local capH = rowsH <= avail + 0.5 and rowsH or avail
   scroll:Height(capH)
+  scroll:Refresh()   -- settle the scroll range for this viewport + (possibly re-sorted) rows
+  local scrolling = scroll:Scrolls()   -- reserve the gutter iff the bar is actually showing
   scroll:Width(t:Width() + (scrolling and SCROLLBAR_W or 0))
-  scroll:Refresh()   -- recompute the scroll range for the (possibly re-sorted) rows
   -- keep the table frame (its transparent column backgrounds) covering exactly the
   -- header + visible rows + footer band
   t:Height(headerH + capH + footerH)
