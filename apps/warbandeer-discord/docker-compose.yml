@@ -1,0 +1,12 @@
+services:
+  bot:
+    build: .
+    container_name: warbandeer-discord
+    env_file: .env
+    volumes:
+      - state:/app/data
+    restart: unless-stopped
+    init: true
+
+volumes:
+  state:

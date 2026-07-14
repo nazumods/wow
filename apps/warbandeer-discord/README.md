@@ -32,6 +32,12 @@ All times are posted as Discord timestamps, so everyone sees them in their own t
 
    `bun run dev` restarts on file changes; `bun run check` typechecks.
 
+   Or with **Docker** (reads the same `.env`; state persists in a named volume):
+
+   ```
+   docker compose up -d --build
+   ```
+
 ## Behavior notes
 
 - Announcement state persists in `data/state.json`, so restarts never repeat an announcement.
