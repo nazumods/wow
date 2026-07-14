@@ -2,66 +2,45 @@
 local ns = select(2, ...)
 ---@type LibNUI
 local ui = ns.ui
-local Right = ui.justify.Right
+local Left = ui.justify.Left
 
--- Titles: how many player titles each character has earned (data from the Warbandeer_Characters
--- `titles` broker; last-seen, logged-in char only). The count is the cell; hovering lists the
--- character's titles, marking the featured (active) one. The footer is the DISTINCT count across
--- the warband (a title held by several alts counts once), so it reads as the account's collection
--- size rather than a meaningless sum.
-local GOLD = "|cffffd100" -- featured-title highlight
+-- Titles: each character's current (featured) title — the one shown after its name in-game (data
+-- from the Warbandeer_Characters `titles` broker; last-seen, logged-in char only). Long titles
+-- truncate in the cell (wordWrap = false) and the hover shows the full title plus how many titles
+-- the character has earned. Blank for an alt not seen since the titles broker landed, and for a
+-- character with no title selected. (The full earned/earnable browser is a separate Titles view.)
 
 table.insert(
   ns.SummaryColumns,
   ns.SummaryColumn:new{
     key = "titles", label = "Titles",
     name = "Titles",
-    width = 44,
-    justifyH = Right,
+    width = 140,
+    justifyH = Left,
     tooltip = {
       "Titles",
-      "Player titles this character has earned. Hover for the list (the featured title is"
-        .. " highlighted). Titles are only readable while a character is logged in, so an alt"
-        .. " shows its last-seen set.",
+      "Each character's current (featured) title. Hover a cell for the full title and how many"
+        .. " titles that character has earned. Only readable while a character is logged in, so an"
+        .. " alt shows its last-seen title.",
     },
     getData = function(toon)
       local t = toon.titles
-      local known = t and t.known
-      if not known then return "" end
-      return {
-        text = #known,
-        justifyH = Right,
-        fontInfo = ns.theme.fonts.number,
-        onEnter = function(self)
+      -- Always return a table (never a bare string) carrying wordWrap = false, so every cell in
+      -- this column is created non-wrapping — re-sorts remap characters across cells, and a cell
+      -- first built empty must still truncate a long title that later lands in it.
+      local cell = { text = (t and t.currentName) or "", justifyH = Left, wordWrap = false }
+      if t and t.known then
+        local n = #t.known
+        cell.onEnter = function(self)
           ns.AnchorTip(self)
           ui.tip:ClearLines()
-          ui.tip:AddLine(("%s — %d title(s)"):format(toon.name, #known))
-          if #known == 0 then ui.tip:AddLine("|cff808080No titles earned|r") end
-          for _, e in ipairs(known) do
-            if e.id == t.current then
-              ui.tip:AddLine(GOLD .. e.name .. "  (featured)|r")
-            else
-              ui.tip:AddLine(e.name)
-            end
-          end
+          ui.tip:AddLine(t.currentName or "|cff808080No title selected|r")
+          ui.tip:AddLine(("|cffffffff%d|r title%s earned"):format(n, n == 1 and "" or "s"))
           ui.tip:Show()
-        end,
-        onLeave = function() ui.tip:Hide() end,
-      }
-    end,
-    -- Footer: titles collected across the whole warband, counted once each (union by id).
-    getFooter = function(toons)
-      local seen, n = {}, 0
-      for _, toon in ipairs(toons) do
-        local known = toon.titles and toon.titles.known
-        if known then
-          for _, e in ipairs(known) do
-            if not seen[e.id] then seen[e.id] = true; n = n + 1 end
-          end
         end
+        cell.onLeave = function() ui.tip:Hide() end
       end
-      if n == 0 then return "" end
-      return { text = n, justifyH = Right, color = {1, 1, 1, 0.6} }
+      return cell
     end,
   }
 )

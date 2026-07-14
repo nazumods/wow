@@ -82,6 +82,9 @@ function Cell:Label()
       fontInfo = data.fontInfo,
       position = { All = true },
       justifyH = data.justifyH or ui.justify.Left,
+      -- wordWrap = false lets a fixed-width cell truncate long text with an ellipsis
+      -- instead of wrapping onto extra lines and overflowing the row (e.g. long titles).
+      wordWrap = data.wordWrap,
     }
   end
 end

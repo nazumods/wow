@@ -527,10 +527,10 @@ function API:GetDemons(charName)
   return { scannedAt = demons.scannedAt, list = list }
 end
 
----A character's earned player titles: the `known` list (`{ id, name }`, sorted by name) plus the
----featured `current` title id (nil when none is active). Only the logged-in character's titles are
----readable, so this is a last-seen snapshot; nil until the character has been seen since v37. Data
----from the per-character `titles` cache (data/titles.lua).
+---A character's earned player titles: the `known` list (`{ id, name }`, sorted by name), the
+---featured `current` title id, and its `currentName` display name (both nil when none is active).
+---Only the logged-in character's titles are readable, so this is a last-seen snapshot; nil until the
+---character has been seen since v37. Data from the per-character `titles` cache (data/titles.lua).
 ---@param charName string?
 ---@return TitlesBroker?
 function API:GetTitles(charName)

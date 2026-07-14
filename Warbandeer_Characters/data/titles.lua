@@ -40,6 +40,14 @@ local function currentTitle()
   return nil
 end
 
+-- The featured title's trimmed display name (nil when none), stored alongside the id so the
+-- Summary column can render an alt's title without a live per-render lookup.
+local function currentTitleName()
+  local id = currentTitle()
+  local name = id and GetTitleName(id)
+  return name and strtrim(name) or nil
+end
+
 ---@class TitleRecord
 ---@field id integer titleMaskID
 ---@field name string trimmed display name
@@ -47,6 +55,7 @@ end
 ---@class TitlesBroker: Broker
 ---@field known TitleRecord[]?  earned player titles (last-seen; logged-in character only)
 ---@field current integer?  featured/active titleMaskID (nil when no title is active)
+---@field currentName string?  featured/active title display name (nil when none) — Summary column source
 
 ---@class Character
 ---@field titles TitlesBroker?
@@ -69,6 +78,13 @@ Titles.fields = {
     event = { "KNOWN_TITLES_UPDATE", "UNIT_NAME_UPDATE" },
     eventDelay = 1000,
   },
+  -- The featured title's display name, captured beside `current` so the Summary column renders an
+  -- alt's title straight from the cache (no live GetTitleName per row).
+  currentName = {
+    get = function() return currentTitleName() end,
+    event = { "KNOWN_TITLES_UPDATE", "UNIT_NAME_UPDATE" },
+    eventDelay = 1000,
+  },
 }
 
 -- `/wbc dump titles` (+ `wdump titles`): the in-game verification probe. Prints the live scan
@@ -86,8 +102,10 @@ ns:registerDump("titles", "Player Titles",
     out:line(("Live scan: %d title(s); featured %s"):format(#known,
       current and (currentName or "?") .. " (" .. current .. ")" or "none"))
     local stored = toon.titles and toon.titles.known
+    local storedFeatured = toon.titles and toon.titles.current
     out:line(("Stored: %d title(s)%s"):format(stored and #stored or 0,
-      (toon.titles and toon.titles.current) and (", featured id " .. toon.titles.current) or ""))
+      storedFeatured and (", featured %s (%d)"):format(
+        (toon.titles.currentName or "?"), storedFeatured) or ""))
     for _, e in ipairs(known) do
       out:line(("  [%d] %s%s"):format(e.id, e.name, e.id == current and "  <FEATURED>" or ""))
     end
