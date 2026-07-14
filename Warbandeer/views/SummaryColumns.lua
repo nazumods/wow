@@ -13,6 +13,7 @@ local Class = ns.lua.Class
 ---@field key? string   stable id for the show/hide setting; nil = always-on identity column
 ---@field label? string display name in the "Summary Columns" settings panel
 ---@field autosize? boolean  size the column to its widest displayed cell instead of a fixed `width` (e.g. Titles → the longest current title shown)
+---@field minWidth? number  floor (px) an autosize column never shrinks below (e.g. Gold → keep the grand total clear of the neighbour total)
 ---@field colInfo table
 ns.SummaryColumn = Class(nil, function(self)
   local path, coords
@@ -30,6 +31,7 @@ ns.SummaryColumn = Class(nil, function(self)
     name = self.name,
     width = self.width,
     autosize = self.autosize,
+    minWidth = self.minWidth,
     justifyH = self.justifyH,
     backdrop = {color = Colors.TransparentBlack},
     padLeft = self.padLeft,
@@ -50,6 +52,7 @@ end, {
   name = nil,
   width = 20,
   autosize = nil,   -- true: size the column to its widest displayed cell (else fixed `width`)
+  minWidth = nil,   -- optional px floor an autosize column never shrinks below
   justifyH = Left,
   padLeft = nil,
   icon = nil,
