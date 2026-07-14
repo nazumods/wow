@@ -132,6 +132,11 @@ function ClassSummary:AutosizeColumn(i)
     if cell and cell.label then widest = math.max(widest, cell.label:UnboundedWidth()) end
   end
   local target = math.ceil(widest) + 6  -- +6: a little breathing room before the next column
+  -- Honour an optional minWidth floor: e.g. Gold shrinks to its data cells but stays
+  -- wide enough that its (detached, far wider) g/s/c grand total clears the neighbour
+  -- footer total to its left whenever the Titles buffer column is visible (#540).
+  local minW = self.colInfo[i] and self.colInfo[i].minWidth
+  if minW and target < minW then target = minW end
   local delta = target - col:Width()
   if delta == 0 then return end
   col:Width(target)

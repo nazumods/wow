@@ -10,9 +10,14 @@ table.insert(
   ns.SummaryColumn:new{
     key = "gold", label = "Gold",
     name = "Gold",
-    -- wide enough for the footer's full g/s/c total (e.g. "1,234,567g 45s 12c"),
-    -- which is far longer than the gold-only per-character cells
-    width = 145,
+    -- Size to the widest gold *cell*, not the footer: AutosizeColumn measures the
+    -- header + data cells only. The g/s/c grand total is far wider, but the detached
+    -- footer (#535) lets it overflow left into the footer band instead of clamping
+    -- the column — so the data area no longer carries the total's width (#540).
+    autosize = true,
+    -- ...but never below this floor, so the wide g/s/c grand total still clears the
+    -- Played total to its left whenever the Titles buffer column is visible (#540).
+    minWidth = 90,
     justifyH = ui.justify.Right,
     getData = function(t)
       if not t.currency or not t.currency.gold then return "" end
