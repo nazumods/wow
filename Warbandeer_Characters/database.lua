@@ -88,7 +88,7 @@ end, "Repair stored data (recount characters)")
 ---@field MigrateDB fun(self) Migrate database to latest version
 function ns:MigrateDB()
   local db = ns.db
-  if db.version == 36 then return end
+  if db.version == 37 then return end
   if not db.characters then db.characters = {} end
   if not db.numCharacters then
     db.numCharacters = countCharacters(db)
@@ -384,6 +384,16 @@ function ns:MigrateDB()
   -- character next summons one, so rollback is lossless.
   if (db.version or 0) < 36 then
     db.version = 36
+  end
+
+  -- v37: per-character earned-titles cache (`titles`: the `known` list of player titles the
+  -- character has, plus the featured `current` title id).  Additive and filled lazily by
+  -- data/titles.lua as the character logs in / earns or selects a title (only the logged-in
+  -- character's titles are readable, so it's a last-seen snapshot); nothing to seed — an older
+  -- revision simply lacks it (the Summary Titles column is blank for that character) until it's
+  -- next seen, so rollback is lossless.
+  if (db.version or 0) < 37 then
+    db.version = 37
   end
 end
 
