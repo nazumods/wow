@@ -134,7 +134,7 @@ local function makeSlider(self, anchor, dx, dy, text, initial, apply)
 
   local slider = CreateFrame("Frame", nil, self, "MinimalSliderWithSteppersTemplate")
   slider:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 4, -6)
-  slider:SetWidth(240)
+  slider:SetWidth(195) -- fits the left controls column, clear of the preview column
   slider:Init(initial, 0, 1, 20) -- 0..1 in 0.05 steps
   slider:RegisterCallback(MinimalSliderWithSteppersMixin.Event.OnValueChanged, function(_, value)
     apply(value)
@@ -144,26 +144,51 @@ local function makeSlider(self, anchor, dx, dy, text, initial, apply)
   return slider
 end
 
-local COLUMN_GAP = 210 -- horizontal offset from the control column to the tinted one
+local COLUMN_GAP = 175 -- horizontal offset from an untinted card to its tinted twin
+local PREVIEW_X = 230   -- left edge of the preview column, right of the controls column
 
 local function build(self)
-  -- Left column = untinted control; right column = the tinted twin. Same items side
-  -- by side so the tint's effect (and the sliders) read against a baseline.
-  local controlLabel = self:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-  controlLabel:SetPoint("TOPLEFT", self, "TOPLEFT", 12, -10)
-  controlLabel:SetText("Not tinted")
+  -- Left = controls column (tint stepper + the two sliders); right = preview, each
+  -- item's untinted control card beside its tinted twin so the tint's effect (and the
+  -- sliders) read against a baseline.
 
-  -- Right-column header: wrap-arrow tint stepper (the native dropdown's own arrows
-  -- only clamp; these wrap).
+  -- Controls column: a "Tint" caption over the wrap-arrow stepper (the native
+  -- dropdown's own arrows only clamp; these wrap), then the two debug sliders.
+  local controlsHeader = self:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+  controlsHeader:SetPoint("TOPLEFT", self, "TOPLEFT", 12, -10)
+  controlsHeader:SetText("Tint")
+
   local back = makeArrow(self, "common-dropdown-icon-back", "Previous tint (wraps around)", -1)
-  back:SetPoint("TOPLEFT", self, "TOPLEFT", 12 + COLUMN_GAP, -6)
+  back:SetPoint("TOPLEFT", controlsHeader, "BOTTOMLEFT", 4, -8)
   local tintName = self:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
   tintName:SetPoint("LEFT", back, "RIGHT", 6, 0)
-  tintName:SetWidth(74)
+  tintName:SetWidth(90)
   tintName:SetJustifyH("CENTER")
   self.tintName = tintName
   local fwd = makeArrow(self, "common-dropdown-icon-next", "Next tint (wraps around)", 1)
   fwd:SetPoint("LEFT", tintName, "RIGHT", 6, 0)
+
+  -- Debug sliders (preview-only; not saved, not applied to the real tinting). They
+  -- affect only the tinted column, so the control column stays the baseline.
+  self.saturation = 0.5
+  self.dim = 0.5
+  local satSlider = makeSlider(self, back, -4, -16, "Icon & text saturation", 0.5,
+    function(v) self.saturation = v end)
+  makeSlider(self, satSlider, -4, -12, "Icon dim", 0.5,
+    function(v) self.dim = v end)
+
+  -- Preview column: a "Preview" header over an untinted/tinted pair of sample columns,
+  -- captioned so each item reads as a normal/coloured pair.
+  local previewHeader = self:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+  previewHeader:SetPoint("TOPLEFT", self, "TOPLEFT", PREVIEW_X, -10)
+  previewHeader:SetText("Preview")
+
+  local untintedLabel = self:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+  untintedLabel:SetPoint("TOPLEFT", previewHeader, "BOTTOMLEFT", 0, -6)
+  untintedLabel:SetText("Not tinted")
+  local tintedLabel = self:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+  tintedLabel:SetPoint("TOPLEFT", untintedLabel, "TOPLEFT", COLUMN_GAP, 0)
+  tintedLabel:SetText("Tinted")
 
   -- Each row: an untinted control card (left, never touched by updateCard) and its
   -- tinted twin (right, +COLUMN_GAP).
@@ -174,7 +199,7 @@ local function build(self)
     if prevControl then
       control:SetPoint("TOPLEFT", prevControl, "BOTTOMLEFT", 0, -6)
     else
-      control:SetPoint("TOPLEFT", controlLabel, "BOTTOMLEFT", 4, -12)
+      control:SetPoint("TOPLEFT", untintedLabel, "BOTTOMLEFT", 4, -12)
     end
     prevControl = control
 
@@ -182,16 +207,6 @@ local function build(self)
     tinted:SetPoint("TOPLEFT", control, "TOPLEFT", COLUMN_GAP, 0)
     self.rows[i] = tinted
   end
-
-  -- Debug sliders (preview-only; not saved, not applied to the real tinting). They
-  -- affect only the tinted column, so the control column stays the baseline.
-  -- Saturation starts at 0% (fully desaturated); icon dim at 0% (no dim).
-  self.saturation = 0.5
-  self.dim = 0.5
-  local satSlider = makeSlider(self, prevControl, -4, -14, "Icon & text saturation", 0.5,
-    function(v) self.saturation = v end)
-  makeSlider(self, satSlider, -4, -12, "Icon dim", 0.5,
-    function(v) self.dim = v end)
 end
 
 ShadowsOfUI_Collectibles_TintPreviewMixin = {}
