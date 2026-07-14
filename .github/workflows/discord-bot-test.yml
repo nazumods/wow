@@ -1,0 +1,37 @@
+name: discord-bot-test
+
+# PR/push gate for the Discord bot — the analogue of `app-test.yml`, but for
+# `apps/warbandeer-discord`: TypeScript typecheck + bun unit tests. Path-scoped
+# so it only runs when the bot (or this workflow) changes.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/warbandeer-discord/**"
+      - ".github/workflows/discord-bot-test.yml"
+  pull_request:
+    paths:
+      - "apps/warbandeer-discord/**"
+      - ".github/workflows/discord-bot-test.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/warbandeer-discord
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bun run check
+
+      - name: Unit tests
+        run: bun test
