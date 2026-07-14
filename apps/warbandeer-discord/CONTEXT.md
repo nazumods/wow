@@ -11,9 +11,10 @@
 | File | Responsibility |
 |---|---|
 | `src/index.ts` | Client login (Guilds intent only), slash-command registration (guild if `GUILD_ID`, else global), starts the scheduler |
-| `src/config.ts` | Env config from `.env` — exports the `config` singleton; throws at import time on missing required vars |
+| `src/config.ts` | Env config from `.env` — pure `resolveConfig(env)` (exported for tests) + the `config` singleton resolved from `process.env`; throws at import time on missing required vars |
 | `src/commands.ts` | `/dmf`, `/reset`, `/status` handlers; Discord `<t:…>` timestamp helpers |
-| `src/announce.ts` | 60 s tick scheduler: DMF-open + weekly-reset announcements, realm-up watch, release polling; posts to `ANNOUNCE_CHANNEL_ID` |
+| `src/announce.ts` | 60 s tick scheduler: DMF-open + weekly-reset announcements, realm-up watch, release polling; routes per `AnnounceKind` via `channelFor()` — releases → `RELEASE_ANNOUNCE_CHANNEL_ID` (falls back to `ANNOUNCE_CHANNEL_ID`), everything else → `ANNOUNCE_CHANNEL_ID` |
+| `src/config.test.ts` | bun tests for `resolveConfig`: release-channel fallback, required-var and region validation |
 | `src/state.ts` | Announcement dedup state, persisted to `data/state.json` (gitignored) |
 | `src/wow/dmf.ts` | DMF schedule math: first Sunday of month 00:01 in `config.dmfTimezone`, one week; IANA-timezone-correct (two-pass DST conversion) |
 | `src/wow/reset.ts` | Daily/weekly reset math (fixed UTC: us = Tue 15:00, eu = Wed 04:00) |
@@ -34,9 +35,12 @@
 
 ## Gotchas
 
-- `config.ts` reads env at import time — tests/scripts must set `DISCORD_TOKEN` and
-  `ANNOUNCE_CHANNEL_ID` **before** importing any module that imports it.
+- `config.ts` reads env at import time (the `config` singleton) — tests/scripts must set
+  `DISCORD_TOKEN` and `ANNOUNCE_CHANNEL_ID` **before** importing any module that imports it
+  (see `config.test.ts`: env vars + dynamic import). Config *logic* is testable without env
+  games via the pure `resolveConfig(env)`.
 - DMF "first Sunday" is realm-**local** (e.g. EU window starts Saturday 22:01/23:01 UTC).
 - Weekly-reset detection compares `now` against `lastWeeklyReset()` within a 10-min window —
   the tick cadence must stay well under that window.
-- Run `bun run check` (tsc) after changes; there is no lint/CI for `apps/` TypeScript.
+- Run `bun run check` (tsc) and `bun test` after changes — CI runs both on every PR/push
+  touching this app (`.github/workflows/discord-bot-test.yml`, path-scoped). No lint beyond tsc.
