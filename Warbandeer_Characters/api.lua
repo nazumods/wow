@@ -378,6 +378,17 @@ function API:GetDungeonStats(dungeonName, level, difficultyID)
   return out
 end
 
+-- Attach the curated obtain-source hint (ns.CollectibleSources[itemID], from data/
+-- collectiblesources.lua) as each entry's `source`, so the Detail appearance card can show
+-- "how to obtain" beside an unowned glyph / unlock / tame. Mutates + returns the list; nil-safe.
+---@param list table[]?
+---@return table[]?
+local function attachSources(list)
+  local src = list and ns.CollectibleSources
+  if src then for _, e in ipairs(list) do e.source = src[e.itemID] end end
+  return list
+end
+
 ---Applied cosmetic appearance glyphs for one of a character's specs: the class catalog
 ---(ns.AppearanceGlyphs) merged with the character's last-seen applied-glyph set for that
 ---spec. Per-character and per-spec; `applied` is a snapshot from when the character last
@@ -387,14 +398,14 @@ end
 ---unknown, not confirmed-none — the caller can show "?" instead of "0").
 ---@param charName string?
 ---@param specID integer?  which spec to report (default: the character's active spec)
----@return { itemID: integer, label: string, glyph: integer, applied: boolean }[]?, boolean scanned
+---@return { itemID: integer, label: string, glyph: integer, applied: boolean, source: string? }[]?, boolean scanned
 function API:GetAppliedGlyphs(charName, specID)
   local c = self:GetCharacterData(charName)
   local list = c and ns.AppearanceGlyphs[c.classId]
   if not list then return nil, false end
   specID = specID or (c.basic and c.basic.specialization and c.basic.specialization.id)
   local applied = specID and c.glyphs and c.glyphs.applied and c.glyphs.applied[specID] or nil
-  return ns.MergeGlyphStatus(list, specID, applied), applied ~= nil
+  return attachSources(ns.MergeGlyphStatus(list, specID, applied)), applied ~= nil
 end
 
 ---Account-wide barbershop appearance unlocks for a character's class (Druid Marks +
@@ -403,7 +414,7 @@ end
 ---class and needs no per-character storage; the character only selects the class. Returns nil
 ---when the class has no unlock catalog (every class but Druid + Warlock).
 ---@param charName string?
----@return { itemID: integer, label: string, spell: integer, unlocked: boolean }[]?
+---@return { itemID: integer, label: string, spell: integer, unlocked: boolean, source: string? }[]?
 function API:GetAppearanceUnlocks(charName)
   local c = self:GetCharacterData(charName)
   local list = c and ns.AppearanceUnlocks[c.classId]
@@ -413,7 +424,7 @@ function API:GetAppearanceUnlocks(charName)
   for _, e in ipairs(list) do
     insert(out, { itemID = e.itemID, label = e.label, spell = e.spell, unlocked = done(e.quest) == true })
   end
-  return out
+  return attachSources(out)
 end
 
 ---Learned class unlocks for a character (Druid "Tome of the Wilds", Hunter "Skill Tames") —
@@ -422,12 +433,12 @@ end
 ---Goblin/Gnome Mechanical taming). Per-character (not per-spec); last-seen. The second return is
 ---the per-class section title ("Tome of the Wilds" / "Skill Tames"). nil when the class has none.
 ---@param charName string?
----@return { itemID: integer, label: string, spell: integer, known: boolean }[]?, string? title
+---@return { itemID: integer, label: string, spell: integer, known: boolean, source: string? }[]?, string? title
 function API:GetLearnedUnlocks(charName)
   local c = self:GetCharacterData(charName)
   local list = c and ns.LearnedUnlocks[c.classId]
   if not list then return nil end
-  return ns.MergeLearnedStatus(list, c.glyphs and c.glyphs.unlocks or nil), ns.LearnedUnlockTitle[c.classId]
+  return attachSources(ns.MergeLearnedStatus(list, c.glyphs and c.glyphs.unlocks or nil)), ns.LearnedUnlockTitle[c.classId]
 end
 
 ---A Hunter's last-seen pet roster: active Call-Pet slots + stabled pets, each a `PetRecord`

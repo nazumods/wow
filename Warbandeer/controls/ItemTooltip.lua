@@ -14,7 +14,7 @@ local CreateFrame, UIParent = CreateFrame, UIParent
 -- `SkipUpgradeBlock` opt-out (read by ShadowsOfUI-Upgrade's tooltip post-call) so
 -- the "Upgrade for:" line is suppressed on these private tooltips.
 ---@class Warbandeer
----@field ShowItemTooltip fun(frame: table, link: string, compareLink?: string, noUpgradeBlock?: boolean)
+---@field ShowItemTooltip fun(frame: table, link: string, compareLink?: string, noUpgradeBlock?: boolean, obtain?: string)
 ---@field HideItemTooltip fun()                             hide it
 ---@field ShowEnchantTooltip fun(frame: table, suggestion: table)  recommended-enchant detail
 ---@field ShowGemTooltip fun(frame: table, suggestion: table)  recommended-gem detail
@@ -92,7 +92,8 @@ end
 ---@param link string          equipped item hyperlink
 ---@param compareLink string?  suggested-upgrade item hyperlink (shows a comparison tooltip)
 ---@param noUpgradeBlock boolean?  suppress ShadowsOfUI-Upgrade's "Upgrade for:" line
-function ns.ShowItemTooltip(frame, link, compareLink, noUpgradeBlock)
+---@param obtain string?  "How to obtain" hint appended below the item tooltip (unowned collectibles)
+function ns.ShowItemTooltip(frame, link, compareLink, noUpgradeBlock, obtain)
   local right = ns.TooltipSide() == 2
   local gt = getItemTip()
   gt.SkipUpgradeBlock = noUpgradeBlock or nil
@@ -100,6 +101,14 @@ function ns.ShowItemTooltip(frame, link, compareLink, noUpgradeBlock)
 
   if not compareLink then
     gt:SetHyperlink(link)
+    -- "How to obtain" hint for an unowned collectible (Detail appearance card): a gold header +
+    -- the muted, wrapping source line, appended below the item's own tooltip.
+    if obtain then
+      local g, m = theme.colors.gold, theme.colors.muted
+      gt:AddLine(" ")
+      gt:AddLine("How to obtain", g[1], g[2], g[3])
+      gt:AddLine(obtain, m[1], m[2], m[3], true)
+    end
     gt:Show()
     styleTooltip(gt)
     if compareTip then compareTip:Hide() end

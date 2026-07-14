@@ -161,7 +161,7 @@ function GlyphBox:_row(i)
   }
   frame:EnableMouse(true)
   frame:SetScript("OnEnter", function()
-    if frame._itemLink then ns.ShowItemTooltip(frame, frame._itemLink, nil, true) end
+    if frame._itemLink then ns.ShowItemTooltip(frame, frame._itemLink, nil, true, frame._obtain) end
   end)
   frame:SetScript("OnLeave", function() ns.HideItemTooltip() end)
 
@@ -190,7 +190,7 @@ function GlyphBox:_cell(i)
 
   frame:EnableMouse(true)
   frame:SetScript("OnEnter", function()
-    if frame._itemLink then ns.ShowItemTooltip(frame, frame._itemLink, nil, true) end
+    if frame._itemLink then ns.ShowItemTooltip(frame, frame._itemLink, nil, true, frame._obtain) end
   end)
   frame:SetScript("OnLeave", function() ns.HideItemTooltip() end)
 
@@ -265,6 +265,7 @@ function GlyphBox:Populate(char)
         cell.border:Hide()
       end
       cell.frame._itemLink = link
+      cell.frame._obtain = (not it.unlocked) and it.source or nil
       cell.frame:Show()
       col = col + 1
       if col >= perRow then col = 0; y = y + ICON + GAP end
@@ -290,6 +291,7 @@ function GlyphBox:Populate(char)
       row.icon:SetVertexColor(it.known and 1 or 0.3, it.known and 1 or 0.3, it.known and 1 or 0.34, 1)
       row.name:Text(it.label):Color(it.known and c.green or c.muted)
       row.frame._itemLink = link
+      row.frame._obtain = (not it.known) and it.source or nil
       row.frame:Show()
       y = y + ROW_H
     end
@@ -337,6 +339,7 @@ function GlyphBox:Populate(char)
       row.icon:SetVertexColor(it.applied and 1 or 0.3, it.applied and 1 or 0.3, it.applied and 1 or 0.34, 1)
       row.name:Text(it.label):Color(it.applied and c.green or c.muted)
       row.frame._itemLink = link
+      row.frame._obtain = (not it.applied) and it.source or nil
       row.frame:Show()
       y = y + ROW_H
     end
