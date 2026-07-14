@@ -169,7 +169,7 @@ WarbandeerApi:GetChallengeTames(char?)     → { label, creatureID, displayID?, 
     -- stable), matching locale-independent creatureID (+ a pinned displayID for a recolor entry).
     -- owned entries carry the matched pet's family icon + its (renameable) petName.  returns the
     -- full list for any Hunter (empty roster → all-missing, so the aspirational list still shows);
-    -- nil for non-Hunters.  aspirational → never feeds /wbc missing.  Drives the PetsPanel section
+    -- nil for non-Hunters.  aspirational → never feeds /wbc missing.  Drives Warbandeer's ChallengeTamesPanel
 ```
 
 `GearCandidate` = `{ link, itemID, ilvl?, equipLoc, classID, subClassID, quality?, reqLevel? }` (ilvl is the
@@ -303,7 +303,7 @@ pets = {                                               -- v35; event scanner (da
   stable = { PetRecord, ... },                          -- stabled pets
                                                          --   PetRecord = { name, family, level, spec, icon, creatureID, displayID, exotic }
 }?                                                     -- nil until the Hunter has visited a stable; always nil for non-Hunters
-                                                       -- (matched against the static ns.ChallengeTames catalog by GetChallengeTames → the PetsPanel Challenge-Tames checklist; the catalog isn't stored)
+                                                       -- (matched against the static ns.ChallengeTames catalog by GetChallengeTames → Warbandeer's ChallengeTamesPanel checklist; the catalog isn't stored)
 demons = {                                             -- v36; event scanner (data/demons.lua); Warlock-only, last-seen per summon
   scannedAt,                                            -- server time of the last demon capture (any demon)
   list = { DemonRecord, ... },                          -- one record per demon family seen, npcID-deduped, first-seen order

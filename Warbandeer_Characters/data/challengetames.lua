@@ -43,6 +43,7 @@ ns.ChallengeTames = {
   { label = "Ankha",       creatureID = 54318, category = "Spirit Beasts", note = "Mount Hyjal" },
   { label = "Magria",      creatureID = 54319, category = "Spirit Beasts", note = "Mount Hyjal" },
   { label = "Ban'thalos",  creatureID = 54320, category = "Spirit Beasts", note = "Mount Hyjal" },
+  { label = "Gara",        creatureID = 88708, category = "Spirit Beasts", note = "Shadowmoon Valley (Draenor)" },
   { label = "Fenryr",      creatureID = 95674, category = "Spirit Beasts", note = "Halls of Valor" },
   -- Molten Front (Firelands 4.2) — the classic taming challenges.
   { label = "Deth'tilac",  creatureID = 54322, category = "Molten Front", note = "Molten Front — elite challenge tame" },

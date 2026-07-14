@@ -70,8 +70,9 @@ end
 ---@field suggestBox SuggestedBox
 ---@field consumeBox ConsumablesBox
 ---@field glyphBox GlyphBox
----@field petsButton Button  Hunter/Warlock; toggles the docked pet/demon roster panel
+---@field petsButton Button  Hunter/Warlock; toggles the docked pet/demon roster panel (+ Challenge Tames for Hunters)
 ---@field petsPanel PetsPanel?  lazily-created docked pet/demon roster (right of the window)
+---@field tamesPanel ChallengeTamesPanel?  lazily-created Hunter Challenge-Tames checklist (right of the pets panel)
 local DetailView = Class(Frame, function(self)
   local c = theme.colors
   self._char = ns.api:GetCharacterData()
@@ -192,7 +193,17 @@ local DetailView = Class(Frame, function(self)
     glow       = true,
     background  = theme.colors.module,
     position    = { TopLeft = {D.GEAR_X, -D.CONTENT_TOP}, Width = D.gearPanelW(D.GEAR_NAME_MIN), Height = PETS_BTN_H, Hide = true },
-    OnClick     = function() if self._char then self:_getPetsPanel():Toggle(self._char) end end,
+    OnClick     = function()
+      local char = self._char
+      if not char then return end
+      local pp = self:_getPetsPanel()
+      pp:Toggle(char)
+      -- Keep the Challenge-Tames sibling (Hunter-only) in the same open/closed state as the pets panel.
+      if char.classId == HUNTER then
+        local tp = self:_getTamesPanel()
+        if pp:IsOpen() then tp:Set(char) else tp:Hide() end
+      end
+    end,
   }
   self.petsButton:TextAlign("CENTER")
 
@@ -249,6 +260,24 @@ function DetailView:_getPetsPanel()
     }
   end
   return self.petsPanel
+end
+
+-- Lazily create the Challenge-Tames companion panel, docked to the right of the pets panel (Hunter-
+-- only), top-to-bottom so it tracks the window height. Kept in step with the pets panel by the Pets
+-- button + OnBeforeShow, so the checklist lives beside the roster instead of buried beneath a big stable.
+---@return ChallengeTamesPanel
+function DetailView:_getTamesPanel()
+  if not self.tamesPanel then
+    local anchor = self:_getPetsPanel()
+    self.tamesPanel = ns.ChallengeTamesPanel:new{
+      parent   = self,
+      position = {
+        TopLeft    = {anchor, ui.edge.TopRight, 8, 0},
+        BottomLeft = {anchor, ui.edge.BottomRight, 8, 0},
+      },
+    }
+  end
+  return self.tamesPanel
 end
 
 function DetailView:OnBeforeShow()
@@ -420,9 +449,14 @@ function DetailView:OnBeforeShow()
     self.petsButton:Show()
     petsExtent = D.GAP + PETS_BTN_H
     if self.petsPanel then self.petsPanel:Refresh(char) end  -- re-point an open panel at the new subject
+    -- Keep the Challenge-Tames sibling in step: re-point it for a Hunter, hide it for a Warlock (no tames).
+    if self.tamesPanel then
+      if char.classId == HUNTER then self.tamesPanel:Refresh(char) else self.tamesPanel:Hide() end
+    end
   else
     self.petsButton:Hide()
     if self.petsPanel then self.petsPanel:Hide() end
+    if self.tamesPanel then self.tamesPanel:Hide() end
   end
 
   local rightH = D.CONTENT_TOP + gearH + consExtent + glyphExtent + petsExtent + D.P
