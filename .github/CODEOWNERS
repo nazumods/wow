@@ -1,0 +1,6 @@
+# Only these paths require a code-owner review; all other changes are unaffected.
+/.github/CODEOWNERS @nazumods
+/LibNAddOn/ @nazumods
+/LibNUI/ @nazumods
+/apps/warbandeer-desktop/ @nazumods
+/apps/warbandeer-discord/ @nazumods

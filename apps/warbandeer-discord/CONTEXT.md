@@ -19,6 +19,8 @@
 | `src/wow/reset.ts` | Daily/weekly reset math (fixed UTC: us = Tue 15:00, eu = Wed 04:00) |
 | `src/wow/realm.ts` | Blizzard client-credentials OAuth + connected-realm status search (`UP`/`DOWN`) |
 | `src/github.ts` | GitHub releases API client (drafts filtered out) |
+| `Dockerfile` | `oven/bun:1-slim` (Debian — Intl IANA timezones), prod-only install, non-root `bun` user, `VOLUME /app/data` |
+| `docker-compose.yml` | `docker compose up -d --build`: `env_file: .env`, named volume `state` → `/app/data`, `restart: unless-stopped` |
 
 ## Behavior
 
