@@ -107,6 +107,28 @@ local ChallengeTamesPanel = Class(CleanFrame, function(self)
             justifyH = ui.justify.Left, wordWrap = false,
             position = { TopLeft = { row.name, ui.edge.BottomLeft, 0, -2 }, TopRight = { row, ui.edge.TopRight, 0, 0 } },
           }
+          -- Hover shows the full obtain detail (missing) or the matched pet (owned) — the inline
+          -- sub-line is a non-wrapping 260px strip, too cramped for the how-to text.
+          row:EnableMouse(true)
+          row:SetScript("OnEnter", function()
+            if not row._label then return end
+            local c = theme.colors
+            ns.AnchorTip(row)
+            ui.tip:ClearLines()
+            ui.tip:MaxWidth(300)  -- cap width so the long howTo wraps instead of running off-screen
+            ui.tip:AddLine(row._label)
+            if row._owned then
+              local g = c.green
+              ui.tip:AddLine("Owned" .. (row._petName and (" as " .. row._petName) or ""), g[1], g[2], g[3])
+            elseif row._howTo then
+              local gold, m = c.gold, c.muted
+              ui.tip:AddLine("How to obtain", gold[1], gold[2], gold[3])
+              ui.tip:AddLine(row._howTo, m[1], m[2], m[3])
+            end
+            ui.tip:Show()
+          end)
+          -- Reset the shared tooltip's width cap on leave so it doesn't linger for other views.
+          row:SetScript("OnLeave", function() ui.tip:Hide(); ui.tip:MaxWidth(nil) end)
           return row
         end,
         update = function(_, row, item)
@@ -116,6 +138,7 @@ local ChallengeTamesPanel = Class(CleanFrame, function(self)
           row.icon:SetVertexColor(lit, lit, t.owned and 1 or 0.34, 1)
           row.name:Text(t.label):Color(t.owned and c.green or c.muted)
           row.sub:Text(t.owned and ("as " .. (t.petName or "?")) or (t.note or ""))
+          row._label, row._owned, row._petName, row._howTo = t.label, t.owned, t.petName, t.howTo
           return TAME_ROW_H
         end,
       },
