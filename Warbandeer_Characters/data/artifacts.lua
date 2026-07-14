@@ -21,6 +21,7 @@ Artifacts.fields = {
   ---@class ArtifactBroker
   ---@field hidden { SpecializationKey: boolean }
   hidden = {
+    missing = false,
     get = function(_, toon)
       if not data[toon.classKey] then return {} end
       return maps.map(data[toon.classKey], function(v)
@@ -33,6 +34,7 @@ Artifacts.fields = {
   ---@class ArtifactBroker
   ---@field hiddenColors { wq: Progress, dungeon: Progress, kills: Progress }
   hiddenColors = {
+    missing = false,
     ids = {wq = 11153, dungeon = 11152, kills = 11154},
     get = function(self, toon)
       -- Evokers don't have an artifact weapon
@@ -46,6 +48,7 @@ Artifacts.fields = {
   },
 
   classHall = {
+    missing = false,
     data = {-288,-272,3,7,6,0,8,4,9,5,2,1},
     get = function(self, toon)
       -- Evokers don't have class hall

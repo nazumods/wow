@@ -82,6 +82,7 @@ local lastScanAt  = 0   -- GetTime() of the last completed scan (0 = never)
 -- inherit the right expansion.
 Reputations.fields = {
   factions = {
+    missing = { label = "reputations", order = 90 },
     get = function()
       if C_Reputation.ExpandAllFactionHeaders then C_Reputation.ExpandAllFactionHeaders() end
       local reps = {}

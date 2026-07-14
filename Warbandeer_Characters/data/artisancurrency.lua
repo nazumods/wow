@@ -51,6 +51,7 @@ end
 ns.ArtisanCurrency = ns:RegisterBroker("artisanCurrency")
 ns.ArtisanCurrency.fields = {
   data = {
+    missing = false,
     -- Called at login and on CURRENCY_DISPLAY_UPDATE. No profession window needed.
     get = function(self, toon, currentValue)
       local result = {}

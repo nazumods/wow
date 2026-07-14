@@ -90,3 +90,17 @@ function Playtime:Init(toon)
   C_Timer.NewTicker(ACCRUE_INTERVAL, flush)
   ns:registerEvent("PLAYER_LOGOUT", flush)
 end
+
+-- Missing report: no total played captured (never queried since tracking) → "playtime";
+-- captured but not stamped for the current client patch → "playtime (this patch)". Not a
+-- broker field (playtime is filled via the async TIME_PLAYED_MSG), so it registers here.
+local patch = select(1, GetBuildInfo())
+ns:RegisterMissing{
+  order = 20,
+  check = function(toon)
+    if not toon.playtime or toon.playtime.total == nil then return "playtime" end
+    if not toon.playtime.byPatch or toon.playtime.byPatch[patch] == nil then
+      return "playtime (this patch)"
+    end
+  end,
+}

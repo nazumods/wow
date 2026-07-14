@@ -79,6 +79,7 @@ ns.GearBag = ns:RegisterBroker("gearbag")
 ns.GearBag.fields = {
   ---@type BrokerField
   items = {
+    missing = false,
     get = scanBags,
     event = "BAG_UPDATE_DELAYED",
     eventDelay = 500,

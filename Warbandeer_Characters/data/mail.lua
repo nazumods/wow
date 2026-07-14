@@ -102,3 +102,11 @@ function ns:WarnExpiringMail()
   for _, w in ipairs(soon) do insert(parts, ("%s (%dd)"):format(w.name, w.days)) end
   ns.Print("Mail expiring soon on: " .. table.concat(parts, ", "))
 end
+
+-- Missing report: mail is captured only while a mailbox is open (count stamped even for an
+-- empty inbox), so a nil count means the character has never visited one since tracking began.
+-- Last-seen cache, not a broker field, so it registers here.
+ns:RegisterMissing{
+  order = 80,
+  check = function(toon) if not toon.mail or toon.mail.count == nil then return "mail" end end,
+}

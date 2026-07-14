@@ -8,6 +8,7 @@ local Currency = ns:RegisterBroker("currency")
 
 Currency.fields = {
   RestoredCofferKey = {
+    missing = false,
     id = 3028,
     -- GetCurrencyInfo returns nil for a currency the character hasn't discovered yet,
     -- so guard the index (consumers coalesce nil → 0).
@@ -17,10 +18,14 @@ Currency.fields = {
     end,
   },
   gold = {
+    -- 0 is valid data (a broke / freshly-tracked character); the default nil-check
+    -- flags only a never-captured value.
+    missing = { label = "gold", order = 10 },
     get = function() return GetMoney() end,
     event = "PLAYER_MONEY",
   },
   CofferKeyShard = {
+    missing = false,
     id = 3310, -- Coffer Key Shard
     get = function(self)
       local info = GetCurrencyInfo(self.id)
@@ -47,6 +52,7 @@ Currency.fields = {
     end,
   },
   Catalyst = {
+    missing = { label = "catalyst charges", maxLevel = true, order = 200 },
     id = 3378, -- Dawnlight Manaflux (Catalyst charges): banks 1 per two weeks, no weekly-earn caps
     get = function(self)
       local info = GetCurrencyInfo(self.id)
@@ -62,6 +68,7 @@ Currency.fields = {
     eventFilter = function(self, _, currencyID) return currencyID == self.id end,
   },
   HeroDawncrest = {
+    missing = { label = "hero dawncrest", maxLevel = true, order = 180 },
     id = 3345,
     get = function(self)
       local info = GetCurrencyInfo(self.id)
@@ -83,6 +90,7 @@ Currency.fields = {
     end,
   },
   NebulousVoidcore = {
+    missing = { label = "nebulous voidcores", maxLevel = true, order = 210 },
     id = 3418, -- season-total cap (totalEarned vs maxQuantity) grows by 2 each weekly reset
     get = function(self)
       local info = GetCurrencyInfo(self.id)
@@ -111,6 +119,7 @@ Currency.fields = {
     end,
   },
   FieldAccolade = {
+    missing = { label = "field accolade", maxLevel = true, order = 240 },
     id = 3405,
     get = function(self)
       local info = GetCurrencyInfo(self.id)
@@ -118,6 +127,7 @@ Currency.fields = {
     end,
   },
   UnalloyedAbundance = {
+    missing = { label = "unalloyed abundance", maxLevel = true, order = 250 },
     id = 3377,
     get = function(self)
       local info = GetCurrencyInfo(self.id)
@@ -125,6 +135,7 @@ Currency.fields = {
     end,
   },
   MythDawncrest = {
+    missing = { label = "myth dawncrest", maxLevel = true, order = 190 },
     id = 3347,
     get = function(self)
       local info = GetCurrencyInfo(self.id)
@@ -146,6 +157,7 @@ Currency.fields = {
     end,
   },
   UntaintedManaCrystal = {
+    missing = { label = "untainted mana-crystals", maxLevel = true, order = 220 },
     id = 3356, -- weekly earn cap (maxWeeklyQuantity 250); hard cap 1000
     get = function(self)
       local info = GetCurrencyInfo(self.id)
@@ -167,6 +179,7 @@ Currency.fields = {
     end,
   },
   ShardOfDundun = {
+    missing = { label = "shard of dundun", maxLevel = true, order = 230 },
     -- (3376) Empowers the Abundance world event. Earn up to 8 per week
     -- (maxWeeklyQuantity) and hold at most 8 (maxQuantity) — you can't earn while
     -- full. "Done this week" is therefore EITHER constraint hit: holding the cap, OR

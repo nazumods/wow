@@ -80,6 +80,27 @@ local Glyphs = ns:RegisterBroker("glyphs")
 
 Glyphs.fields = {
   applied = {
+    -- Missing report: no capture at all → "appearance glyphs" (needs a login); some specs
+    -- captured → name the specs still missing, e.g. "appearance glyphs (Marksmanship, Survival)"
+    -- (the specs to play to fill them). Only the active spec is readable per login. Evoker (no
+    -- glyph catalog) and spec-less low-level characters aren't flagged.
+    missing = { order = 110, check = function(toon)
+      if not (ns.AppearanceGlyphs[toon.classId]
+          and toon.basic and toon.basic.specialization and toon.basic.specialization.id) then return end
+      local applied = toon.glyphs and toon.glyphs.applied
+      if not (applied and next(applied)) then return "appearance glyphs" end
+      local C_Spec = C_SpecializationInfo
+      local getNum = (C_Spec and C_Spec.GetNumSpecializationsForClassID) or _G.GetNumSpecializationsForClassID
+      local getInfo = (C_Spec and C_Spec.GetSpecializationInfoForClassID) or _G.GetSpecializationInfoForClassID
+      local gaps = {}
+      for i = 1, (getNum and getNum(toon.classId) or 0) do
+        local specID, specName = getInfo(toon.classId, i)
+        if specID and not applied[specID] then
+          table.insert(gaps, specName or ("spec " .. specID))
+        end
+      end
+      if #gaps > 0 then return "appearance glyphs (" .. table.concat(gaps, ", ") .. ")" end
+    end },
     -- Merge-preserving: overwrite each spec the scan captured (always the active spec, plus any
     -- inactive spec that surfaced a glyph); specs the scan didn't touch keep their cached set.
     get = function(_, _, currentValue)
@@ -97,6 +118,13 @@ Glyphs.fields = {
   -- the character has, via IsSpellKnown OR an innate racial grant (e.g. Goblin/Gnome hunters tame
   -- Mechanicals without the matrix); nil for a class with no unlocks. Last-seen (logged-in only).
   unlocks = {
+    -- Flag a class that HAS learnable unlocks but has no captured `unlocks` set yet (needs a
+    -- login); labelled by the class's unlock title (Druid "tome of the wilds", …).
+    missing = { order = 120, check = function(toon)
+      if ns.LearnedUnlocks[toon.classId] and not (toon.glyphs and toon.glyphs.unlocks) then
+        return (ns.LearnedUnlockTitle[toon.classId] or "class unlocks"):lower()
+      end
+    end },
     get = function(_, toon)
       local list = ns.LearnedUnlocks[toon.classId]
       if not list then return nil end

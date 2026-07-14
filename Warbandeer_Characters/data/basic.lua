@@ -14,6 +14,7 @@ Basic.fields = {
   ---@class BasicBroker
   ---@field level integer
   level = {
+    missing = false,
     order = 0, -- make sure this is updated first
     get = function() return Player:GetLevel() end,
     event = "PLAYER_LEVEL_UP",
@@ -27,6 +28,7 @@ Basic.fields = {
   -- gem / mastery recommendations and the role icon) must follow the PLAYED spec, so it
   -- prefers `active` over the loot spec. Refreshes when the player swaps spec.
   specialization = {
+    missing = false,
     get = function()
       local pid, primarySpec = Player:GetPrimarySpecialization()
       local aid, activeSpec = Player:GetActiveSpecialization()
@@ -45,6 +47,7 @@ Basic.fields = {
   ---@class BasicBroker: Broker
   ---@field professions {primary:any?, secondary:any?, fishing:any?, cooking:any?}?
   professions = {
+    missing = false,
     get = function()
       local professions = Player:GetProfessions()
       return {
@@ -58,6 +61,7 @@ Basic.fields = {
   ---@class BasicBroker: Broker
   ---@field xp {percent:number, restPercent:number, isResting:boolean, recordedAt:integer}?
   xp = {
+    missing = false,
     get = function()
       local maxXP = Player:GetMaxXP()
       if not maxXP or maxXP == 0 then return nil end

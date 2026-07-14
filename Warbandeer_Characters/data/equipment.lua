@@ -118,6 +118,7 @@ Equipment.fields = {
   ---@class EquipmentBroker
   ---@field slots any -- TODO
   slots = {
+    missing = false,
     get = function(_, _, currentValue)
       local existing = currentValue or {}
       local slots = {}
@@ -179,19 +180,32 @@ Equipment.fields = {
   ---@class EquipmentBroker
   ---@field ilvl integer
   ilvl = {
+    missing = false,
     get = function()
       return Player:GetAverageItemLevel()
     end,
   },
   trackScanned = {
+    -- Flag "upgrade track data" only once gear IS scanned (slots present) but this marker
+    -- wasn't set — an alt scanned before track capture. Max-level only.
+    missing = { maxLevel = true, order = 160, check = function(toon)
+      if toon.equipment and toon.equipment.slots and not toon.equipment.trackScanned then
+        return "upgrade track data"
+      end
+    end },
     get = function() return true end,
   },
   -- Set once a character's gear has been scanned with the GetItemGemID-based empty-socket
   -- count (vs the old GetItemStats parse the Midnight Gem Manager broke). Absent on an alt
   -- last scanned before that fix, so its stored `slots.*.emptySockets` are unreliable —
-  -- `missing.lua` flags "gem socket data" until it re-logs and rescans. Marker only (no
-  -- migration): nil = not yet rescanned.
+  -- flagged "gem socket data" (its `missing` check below) until it re-logs and rescans.
+  -- Marker only (no migration): nil = not yet rescanned.
   socketScanned = {
+    missing = { maxLevel = true, order = 170, check = function(toon)
+      if toon.equipment and toon.equipment.slots and not toon.equipment.socketScanned then
+        return "gem socket data"
+      end
+    end },
     get = function() return true end,
   },
 }

@@ -443,3 +443,11 @@ end
 ns:registerEvent("PLAYER_GUILD_UPDATE", function()
   if ns.currentData then ns.currentData.guild = GetGuildInfo("player") end
 end)
+
+-- Missing report: guid is stamped each login by ns:initialize (DB v30); nil means the
+-- character hasn't logged in since, so tools keying off it can't identify it from
+-- character-list-order.txt's raw GUID fragments.
+ns:RegisterMissing{
+  order = 40,
+  check = function(toon) if not toon.guid then return "guid" end end,
+}

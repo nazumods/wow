@@ -22,6 +22,7 @@ local Items = ns:RegisterBroker("items")
 local LAST_BAG_IDX = NUM_BAG_SLOTS + 1
 Items.fields = {
   bags = {
+    missing = false,
     get = function()
       local bags = {}
       for i = 1, LAST_BAG_IDX do
@@ -35,6 +36,7 @@ Items.fields = {
     end,
   },
   reagentBag = {
+    missing = false,
     get = function()
       return { id = BagID(LAST_BAG_IDX), slots = GetNumSlots(LAST_BAG_IDX)}
     end,

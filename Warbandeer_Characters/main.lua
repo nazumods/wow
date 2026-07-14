@@ -111,3 +111,10 @@ function ns:refreshQueue()
   end
   self:delay(100, "refreshQueue")
 end
+
+-- Missing report: lastRefresh is stamped above when a full field scan completes; nil means
+-- the character has never completed one (never logged in since the addon tracked it).
+ns:RegisterMissing{
+  order = 30,
+  check = function(toon) if not toon.lastRefresh then return "lastRefresh" end end,
+}
