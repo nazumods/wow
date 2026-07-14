@@ -100,6 +100,13 @@ local ClassSummary = Class(TableFrame, function(self)
   end
 
   self:setFooter(self:GetFooterData(toons))
+
+  -- Autosize any column that opted in (e.g. Titles → the widest current title shown). Cells and
+  -- the footer cell anchor to their column's edges, so resizing one column reflows the rest;
+  -- SummaryView:layout() then re-fits the scroll viewport + window to the new table width.
+  for _, info in pairs(self.colInfo or {}) do
+    if info.autosize then self:Autosize(); break end
+  end
 end, {
   faction = "alliance",
   backdrop = {color = ns.Colors.TransparentBlack},

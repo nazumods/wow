@@ -1285,7 +1285,6 @@ data = {{"value1", "value2"}}
 data = {
   {
     {text = "value", color = {1,0,0,1}, justifyH = "LEFT", font = "...",
-     wordWrap = false,  -- truncate long text with an ellipsis instead of wrapping
      onClick = function(cell) end,
      onEnter = function(cell) end,
      onLeave = function(cell) end},
