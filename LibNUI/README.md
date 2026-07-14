@@ -1217,6 +1217,9 @@ Inherits `Frame`. Renders a 2D grid with optional column and row headers, altern
 | `colHeaderFont` | string  | Font override for column headers                                          |
 | `rowHeaderFont` | string  | Font override for row headers                                             |
 | `onSort`        | func    | `function(self, key, descending)` fired when a `sortable` header is clicked (see **Sortable columns**) |
+| `footerHeight`  | number  | Height of the footer row (defaults to `cellHeight`)                       |
+| `footerBackdrop`| table   | Backdrop for the footer row (defaults to the `footer` color token)        |
+| `detachedFooter`| bool    | Opt in to content-sized footer cells decoupled from column widths (see **Footer row**) |
 
 ### Methods
 
@@ -1229,6 +1232,7 @@ Inherits `Frame`. Renders a 2D grid with optional column and row headers, altern
 | `set(row, col, el)` | Assign a `Cell` or widget to a position                |
 | `addRow(info)`      | Append a row with info table                           |
 | `addCol(info)`      | Append a column with info table                        |
+| `setFooter(data)`   | Build (or refresh) a totals footer pinned below the rows; `data` is a per-column-index map of cell data (columns absent render no footer cell) — see **Footer row** |
 | `Sort(key?, desc?)` | Read the active sort as `(key, descending)`, or set it programmatically (restyles headers, does **not** fire `onSort`) |
 
 ### Sortable columns
@@ -1254,6 +1258,19 @@ local t = TableFrame:new{
   end,
 }
 ```
+
+### Footer row
+
+`setFooter(data)` builds (or refreshes) a totals row pinned below the data rows, with its own backdrop (`footerBackdrop`) and a divider above it. `data` is keyed by **column index** — a column absent from the map renders no footer cell — and the call is re-runnable to refresh (reused cells are updated in place), so it can be paired with `update()`.
+
+```lua
+t:setFooter{
+  [1] = {text = "5 max, 2 lvl", justifyH = "LEFT"},
+  [4] = {text = "1,234,567g 45s 12c", justifyH = "RIGHT", color = {1, 0.82, 0, 1}},
+}
+```
+
+By default each footer cell **spans its column** (anchored left→right, like a data cell), so its width is clamped to the column. That couples the two: a column can't shrink below its footer's aggregate total (typically far wider than any single cell). Opt into **`detachedFooter = true`** to break the coupling — each footer cell is instead sized to its own content and anchored to its column by the single edge matching its `justifyH` (right/left/center). The total then renders in full, overflowing into the empty footer space beside it, while the column is free to `autosize` down to its per-row values. For fixed-width columns the two modes render identically; the difference only shows once a column shrinks below its total.
 
 ### Dynamic table gotcha
 

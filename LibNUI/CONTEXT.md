@@ -211,15 +211,15 @@ tooltip = { _widget, owner, point, itemId, toyId, spellId, mountSpellId }
 
 ## TableFrame
 
-Constructor options: `colNames`, `rowNames`, `colInfo`, `rowInfo`, `numCols`, `numRows`, `cellWidth` (100), `cellHeight` (20), `headerWidth`, `headerHeight`, `headerFont`, `colHeaderFont`, `rowHeaderFont`, `padding` (2), `autosize`, `backdrop`, `colBackdrop`, `data`, `GetData`, `footerHeight`, `footerBackdrop`.
+Constructor options: `colNames`, `rowNames`, `colInfo`, `rowInfo`, `numCols`, `numRows`, `cellWidth` (100), `cellHeight` (20), `headerWidth`, `headerHeight`, `headerFont`, `colHeaderFont`, `rowHeaderFont`, `padding` (2), `autosize`, `backdrop`, `colBackdrop`, `data`, `GetData`, `footerHeight`, `footerBackdrop`, `detachedFooter`.
 
 Sub-fields: `self.cols` (TableCol[]), `self.rows` (TableRow[]), `self.cells` (Cell[][]), `self.rowArea` (Frame), `self.footerRow` / `self.footerCells` (lazy).
 
-Methods: `onLoad()`, `row(n)`, `col(n)`, `set(row, col, element)`, `addCol(info)`, `addRow(info)`, `update()`, `setFooter(data)`, `Sort(key?, desc?)`.
+Methods: `onLoad()`, `row(n)`, `col(n)`, `set(row, col, element)`, `addCol(info)`, `addRow(info)`, `update()`, `setFooter(data)`, `detachedFooterPosition(colN, justifyH)`, `Sort(key?, desc?)`.
 
 - `colInfo` fields: `name`, `width`, `atlas`, `atlasSize`, `padding`, `padLeft`, `justifyH`, `color`, `backdrop`, `autosize`, `tooltip` (string or string[], shown on header hover via `ui.tip`), `sortable`/`sortKey`/`descFirst` (see below).
 - `rowInfo` fields: `name`, `height`, `atlas`, `atlasSize`, `justifyH`, `color`, `backdrop`.
-- `setFooter(data)`: lazily builds a footer TableRow pinned below `rowArea`; `data` keyed by column index (columns absent render no footer cell). Re-callable to refresh.
+- `setFooter(data)`: lazily builds a footer TableRow pinned below `rowArea`; `data` keyed by column index (columns absent render no footer cell). Re-callable to refresh. Default footer cells span their column (via `cellPosition`), so a column can't shrink below its aggregate total. Opt into **`detachedFooter = true`** to decouple: each footer cell is sized to its own content and anchored to its column's bottom by the single edge matching its `justifyH` (right→`BottomRight`, left→`BottomLeft`, center→`Bottom`) via `detachedFooterPosition`, so a data column can `autosize` below its (wider) total while the total overflows into the empty footer space beside it. The column bottom coincides with the footer band (columns span to the table bottom), so the edge anchor lands the cell in the footer row while tracking its column horizontally. Fixed-width columns render identically in both modes. Consumed by Warbandeer's `ClassSummary`.
 - **Sortable columns (opt-in):** `colInfo[i].sortable = true` makes that `TableCol` header clickable (with `sortKey` = stable id defaulting to the column index, `descFirst` = descending-first for numeric columns). `onSort(self, key, desc)` fires on a user click; the frame owns the header UI + active-sort state (`_sortKey`/`_sortDesc`/`_sortCols`, `_clickSort` flip-on-reclick, `_refreshSortHeaders`), **the consumer owns the comparator + repaint** (sort your own data, call `update()`). `Sort(key?, desc?)` reads/sets the active sort without firing `onSort`. The active header renders accent + up/down arrow (via `TableCol:SetSortState`), others rest muted — same contract as `SortableHeaderRow`. TableFrame never permutes `self.data`, so index-parallel consumer state stays aligned.
 
 ## TitleFrame / TabFrame sub-fields

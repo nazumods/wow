@@ -113,6 +113,9 @@ end, {
   faction = "alliance",
   backdrop = {color = ns.Colors.TransparentBlack},
   footerBackdrop = {color = theme.colors.moduleHi},
+  -- Footer totals size to their own content and anchor to their column by one edge,
+  -- so a data column stays free to autosize below its (far wider) aggregate total.
+  detachedFooter = true,
 })
 
 -- Resize column `i` to the widest text it currently renders (its header + every cell), then grow
