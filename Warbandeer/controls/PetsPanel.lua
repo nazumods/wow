@@ -17,7 +17,11 @@ local insert = table.insert
 -- does the same). A titlebar strip matching the main window's (the shared `"titlebar"` token + the
 -- `title` font, with a drag grip that moves the whole window) sits above one scrolling VirtualList:
 -- for a Hunter, an "ACTIVE PETS" section (the Call Pet slots) then a "STABLE" section — each pet a
--- row with its family icon, name, family, level and spec, fed from WarbandeerApi:GetPets. The panel
+-- row with its family icon, name, family, level and spec, fed from WarbandeerApi:GetPets. Pets that
+-- would render identically (same name, family, spec — e.g. the many collected skins of one artifact
+-- pet like Hati, all "Hati • Spirit Beast") collapse into a single "×N" row so a large stable stays
+-- readable. The curated Challenge-Tames checklist lives in its own sibling panel docked further right
+-- (ChallengeTamesPanel), not inline here. The panel
 -- is class-aware: for a Warlock (the other pet class, with no stable) it instead shows one "DEMONS"
 -- section — a row per summoned demon with a per-species icon + `name • species` — fed from
 -- WarbandeerApi:GetDemons (last-seen, filling in as the Warlock summons each demon). Section headers
@@ -39,14 +43,36 @@ local WARLOCK    = 9    -- classId; the other pet class — its roster is summon
 -- character's level. The effective level of every pet is the character's, so that's what we show.
 ---@param p PetRecord
 ---@param level integer  the character's level (every pet's effective level)
+---@param count integer  how many identical pets collapsed into this row (≥ 1; shows "×N" when > 1)
 ---@return table
-local function petData(p, level)
+local function petData(p, level, count)
   return {
     icon = p.icon,
-    title = p.name,
+    title = count > 1 and ("%s  ×%d"):format(p.name, count) or p.name,
     kind = p.family,
     subtitle = ("Lv %d · %s%s"):format(level, p.spec, p.exotic and " · Exotic" or ""),
   }
+end
+
+-- Collapse pets that would render identically — same name, family, spec and exotic flag (the level is
+-- always the character's) — into one row carrying a count, so a stable full of one pet's skins (e.g.
+-- the many Hati appearances, every one "Hati • Spirit Beast · Tenacity · Exotic") reads as a single
+-- "Hati ×N" instead of a wall of dupes. Preserves first-seen order.
+---@param list PetRecord[]
+---@return { pet: PetRecord, count: integer }[]
+local function collapsePets(list)
+  local out, index = {}, {}
+  for _, p in ipairs(list) do
+    local key = ("%s|%s|%s|%s"):format(p.name, p.family, p.spec, tostring(p.exotic))
+    local at = index[key]
+    if at then
+      out[at].count = out[at].count + 1
+    else
+      index[key] = #out + 1
+      out[#out + 1] = { pet = p, count = 1 }
+    end
+  end
+  return out
 end
 
 -- Per-species demon icons, keyed by the locale-proof npcID captured in the pet GUID. The summon-spell
@@ -142,11 +168,11 @@ local PetsPanel = Class(CleanFrame, function(self)
           return HEADER_ROW_H
         end,
       },
-      -- One pet.
+      -- One pet (or a run of identical pets collapsed into a single "×N" row).
       pet = {
         create = function(list) return IconListItem:new{ parent = list:Content(), height = PET_ROW_H } end,
         update = function(_, row, item)
-          row:Set(petData(item.pet, self._level))
+          row:Set(petData(item.pet, self._level, item.count or 1))
           return PET_ROW_H
         end,
       },
@@ -200,10 +226,12 @@ function PetsPanel:Set(char)
     self.list:EmptyText("No pets recorded — visit a stable master.")
     local pets = ns.api:GetPets(char.name)
     if pets then
+      -- Header counts stay the true totals; identical pets collapse to one "×N" row (so the visible
+      -- rows still account for every pet, just without the visual dupes).
       insert(items, { type = "header", title = "ACTIVE PETS", count = #pets.active })
-      for _, p in ipairs(pets.active) do insert(items, { type = "pet", pet = p }) end
+      for _, e in ipairs(collapsePets(pets.active)) do insert(items, { type = "pet", pet = e.pet, count = e.count }) end
       insert(items, { type = "header", title = "STABLE", count = #pets.stable })
-      for _, p in ipairs(pets.stable) do insert(items, { type = "pet", pet = p }) end
+      for _, e in ipairs(collapsePets(pets.stable)) do insert(items, { type = "pet", pet = e.pet, count = e.count }) end
     end
   end
   self:Width(W)
@@ -216,6 +244,11 @@ end
 function PetsPanel:Toggle(char)
   if self._widget:IsShown() then self:Hide() else self:Set(char) end
 end
+
+-- Whether the panel is currently shown, so the Detail view can keep the sibling Challenge-Tames panel
+-- in the same open/closed state as this one.
+---@return boolean
+function PetsPanel:IsOpen() return self._widget:IsShown() end
 
 -- Re-render while already open: re-point at `char` (the Detail subject changed) or, with no arg,
 -- re-read the current subject (a live pet change — an active↔stable move or a rename). A no-op when

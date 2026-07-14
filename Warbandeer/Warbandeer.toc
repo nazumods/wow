@@ -32,6 +32,7 @@ controls\SuggestedBox.lua
 controls\ConsumablesBox.lua
 controls\GlyphBox.lua
 controls\PetsPanel.lua
+controls\ChallengeTamesPanel.lua
 controls\FlashItem.lua
 
 views\overview\FactionBars.lua
