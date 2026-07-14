@@ -9,6 +9,7 @@ init.lua
 table.lua
 table-dynamic.lua
 table-icon.lua
+table-footer.lua
 tab.lua
 theme.lua
 accent.lua

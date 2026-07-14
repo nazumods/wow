@@ -36,6 +36,7 @@ local Top, Bottom = ui.edge.Top, ui.edge.Bottom
 ---@field footerBackdrop? table  backdrop for the footer row
 ---@field footerRow? table  the footer TableRow, created lazily by setFooter
 ---@field footerCells? table  footer Cell[] keyed by column index
+---@field detachedFooter? boolean  opt-in: size footer cells to their own content and anchor each to its column by the justify-matching edge (instead of spanning the column), so a data column can autosize below its footer total's width
 ---@field onSort? fun(self: TableFrame, key: any, descending: boolean)  fired when a sortable header is clicked; the consumer sorts its own data and repaints (see `_clickSort`)
 ---@field _sortKey? any  key of the active sort column (nil = unsorted)
 ---@field _sortDesc? boolean  active sort direction
@@ -379,6 +380,32 @@ function TableFrame:addRow(info)
   return self
 end
 
+-- Position a *detached* footer cell (opt-in via `detachedFooter`). Instead of
+-- spanning its column (Left→Right, which clamps the cell to the column width), the
+-- cell anchors to the column's BOTTOM by the single edge matching its justification
+-- and is sized to its own content by the caller. Columns span down to the table
+-- bottom, which coincides with the footer band, so anchoring to the column bottom
+-- lands the cell in the footer row while tracking its column horizontally — this is
+-- what decouples the footer's width from the column's: a data column can autosize to
+-- its values while a wider total overflows into the empty footer space beside it.
+-- Padding matches cellPosition's per-column hPad resolution.
+---@param colN integer
+---@param justifyH string  the cell's ui.justify constant (Left/Center/Right)
+---@return table
+function TableFrame:detachedFooterPosition(colN, justifyH)
+  local info = self.colInfo and self.colInfo[colN]
+  local hPad = (info and info.hPad) or self.hPad or 0
+  local padL = (info and info.hPadL) or hPad
+  local padR = (info and info.hPadR) or hPad
+  local col = self.cols[colN]
+  if justifyH == ui.justify.Right then
+    return { BottomRight = {col, ui.edge.BottomRight, -padR, 0}, Height = self.footerHeight }
+  elseif justifyH == ui.justify.Center then
+    return { Bottom = {col, ui.edge.Bottom, 0, 0}, Height = self.footerHeight }
+  end
+  return { BottomLeft = {col, ui.edge.BottomLeft, padL, 0}, Height = self.footerHeight }
+end
+
 -- Build (or refresh) a footer row pinned below the data rows. `data` is a
 -- per-column map of cell data (same shape as a row's cell data) keyed by column
 -- index; columns absent from `data` get no footer cell. Reuses footer cells on
@@ -413,14 +440,25 @@ function TableFrame:setFooter(data)
   end
   for colN, cellData in pairs(data) do
     if not self.footerCells[colN] then
+      local justifyH = (type(cellData) == "table" and cellData.justifyH) or ui.justify.Left
       self.footerCells[colN] = Cell:new{
         parent = self,
         name = "$parentFooterCell"..colN,
-        position = self:cellPosition(colN, self.footerRow),
+        position = self.detachedFooter and self:detachedFooterPosition(colN, justifyH)
+          or self:cellPosition(colN, self.footerRow),
         data = cellData,
       }
     else
       self.footerCells[colN]:update(cellData)
+    end
+    -- A detached footer cell is sized to its own content (not clamped to the
+    -- column), so a wide aggregate total overflows into neighbouring empty footer
+    -- space instead of forcing the column wider. Re-measured on every refresh:
+    -- the total's text width changes with the data (and the cell anchors by one
+    -- edge, so the width simply grows/shrinks away from that edge).
+    if self.detachedFooter then
+      local cell = self.footerCells[colN]
+      cell:Width(math.ceil(cell.label and cell.label:UnboundedWidth() or 0) + 2)
     end
   end
   return self
