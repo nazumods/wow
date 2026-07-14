@@ -92,7 +92,7 @@ Glyphs.fields = {
     event = { "SPELLS_CHANGED", "PLAYER_SPECIALIZATION_CHANGED" },
     eventDelay = 1000,
   },
-  -- Learned class unlocks (Druid "Tome of the Wilds", Hunter "Skill Tames") — items/skills that
+  -- Learned class unlocks (Druid "Tome of the Wilds", Hunter "Tomes & Tames") — items/skills that
   -- permanently grant an ability, so per-character (not per-spec). `{ [spell] = true }` for the ids
   -- the character has, via IsSpellKnown OR an innate racial grant (e.g. Goblin/Gnome hunters tame
   -- Mechanicals without the matrix); nil for a class with no unlocks. Last-seen (logged-in only).

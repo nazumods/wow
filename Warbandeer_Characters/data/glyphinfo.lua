@@ -307,8 +307,11 @@ end
 -- PER CHARACTER, detected via C_SpellBook.IsSpellKnown on the granted spell. Two sets today:
 --   * Druid "Tome of the Wilds" (Treant Form + Mount Form are the modern successors to the
 --     removed Glyph of the Treant / Glyph of the Stag).
---   * Hunter "Skill Tames" — special pet families that need an unlock before taming (Blood
---     Beasts, Feathermanes, Direhorns, Mechanicals).
+--   * Hunter "Tomes & Tames" — two kinds: Skill Tames (special pet families that need an unlock
+--     before taming — Blood Beasts, Feathermanes, Direhorns, Mechanicals, Gargon, Cloud Serpents,
+--     Undead, Dragonkin, Nah'qi, Florafaun) and utility ability tomes (Aspect of the Chameleon,
+--     Fetch). Abilities with no collectible item — Eyes of the Beast (baseline at 29) and Ottuk
+--     Taming (Renown-granted) — are excluded, since every entry needs a real item to show.
 -- Keyed by classId → { itemID, spell, label, races? }. `spell` = the granted spell (IsSpellKnown
 -- target); `races` (Mechanicals) = race file tokens that grant it innately (Goblin/Gnome hunters
 -- tame Mechanicals without the matrix). `ns.LearnedUnlockTitle` names the per-class card section.
@@ -321,13 +324,23 @@ end
 
 ---@type table<integer, UnlockLearn[]>
 ns.LearnedUnlocks = {
-  [3] = { -- Hunter — Skill Tames (special pet families that require an unlock)
-    { itemID = 166502, spell = 288956, label = "Blood Beasts" },
-    { itemID = 147580, spell = 242155, label = "Feathermanes" },  -- Hybrid Kinship (BM-only exotic)
-    { itemID = 94232,  spell = 138430, label = "Direhorns" },     -- Ancient Zandalari Knowledge
+  [3] = { -- Hunter — Skill Tames + utility ability tomes (title "Tomes & Tames")
+    -- Skill Tames — special pet families that require an unlock before taming.
+    { itemID = 166502, spell = 288956,  label = "Blood Beasts" },
+    { itemID = 147580, spell = 242155,  label = "Feathermanes" },   -- Hybrid Kinship (BM-only exotic)
+    { itemID = 94232,  spell = 138430,  label = "Direhorns" },      -- Ancient Zandalari Knowledge
     -- Mecha-Bond Imprint Matrix; Goblin/Gnome hunters tame Mechanicals innately. (Spell id may be
     -- 209646 on 12.0.5+ — the probe confirms which resolves live.)
-    { itemID = 134125, spell = 205154, label = "Mechanicals", races = { Goblin = true, Gnome = true } },
+    { itemID = 134125, spell = 205154,  label = "Mechanicals", races = { Goblin = true, Gnome = true } },
+    { itemID = 180705, spell = 334850,  label = "Gargon" },         -- Gargon Training Manual
+    { itemID = 183123, spell = 340826,  label = "Cloud Serpents" }, -- How to School Your Serpent
+    { itemID = 183124, spell = 340825,  label = "Undead" },         -- Simple Tome of Bone-Binding
+    { itemID = 201791, spell = 394788,  label = "Dragonkin" },      -- How to Train a Dragonkin
+    { itemID = 211314, spell = 428736,  label = "Nah'qi" },         -- Cinder of Companionship
+    { itemID = 264895, spell = 1272785, label = "Florafaun" },      -- Trials of the Florafaun Hunter
+    -- Utility ability tomes — teach a hunter/pet skill (not a tame); sold by the Nesingwary vendors.
+    { itemID = 136783, spell = 61648,   label = "Aspect of the Chameleon" }, -- The Art of Concealment
+    { itemID = 136781, spell = 125050,  label = "Fetch" },                   -- Pet Training Manual: Fetch
   },
   [11] = { -- Druid — Tome of the Wilds
     { itemID = 136787, spell = 114282, label = "Treant Form" },
@@ -341,7 +354,7 @@ ns.LearnedUnlocks = {
 -- Per-class section title for the learned-unlock catalog (the Detail card header).
 ---@type table<integer, string>
 ns.LearnedUnlockTitle = {
-  [3]  = "Skill Tames",
+  [3]  = "Tomes & Tames",
   [11] = "Tome of the Wilds",
 }
 

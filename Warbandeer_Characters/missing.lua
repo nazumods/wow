@@ -134,7 +134,7 @@ function ns.getMissingFields(toon)
     end
   end
 
-  -- Learned class unlocks (Druid Tome of the Wilds / Hunter Skill Tames) are captured each login
+  -- Learned class unlocks (Druid Tome of the Wilds / Hunter Tomes & Tames) are captured each login
   -- via IsSpellKnown. A class with unlocks but no captured `glyphs.unlocks` hasn't been seen since
   -- the cache was added, so the Detail card can't show what it has until it logs in. (The scan
   -- stores an empty set when the character has none, so a captured-but-empty toon isn't flagged.)
