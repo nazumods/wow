@@ -55,16 +55,18 @@ function ns.registerChangelog(addOn, addOnName, parentName)
   addOn:registerEvent("ADDON_LOADED", function(self, name)
     if name ~= addOnName then return end
     if not (self.changelog and #self.changelog > 0) then return end
-    -- Prefer the addon's own category. `settingsCategoriesByTitle` covers the
-    -- declarative `ns:RegisterSettings` path; `self.settingsCategory` covers an addon
-    -- that built its panel imperatively (a LibNUI SettingsFrame) and recorded the
-    -- returned category there. Without the latter fallback the button couldn't find
-    -- that category and would mint a duplicate subcategory under the shared parent.
+    -- Prefer a category the addon recorded — `settingsCategoriesByTitle` (declarative
+    -- `ns:RegisterSettings`) or `self.settingsCategory` (an imperative LibNUI
+    -- SettingsFrame panel). If it recorded neither — an addon that built its panel some
+    -- other way, or an older one predating that bookkeeping — resolve it structurally:
+    -- getSettingsSubcategory reuses an existing subcategory of this title under the
+    -- parent instead of minting a second one, so the button lands on the addon's single
+    -- settings page however it registered — no duplicate line under the parent.
     local byTitle = self.settingsCategoriesByTitle or {}
     local category = byTitle[self._TITLE] or self.settingsCategory
     if not category then
       category = parentName
-        and Settings.RegisterVerticalLayoutSubcategory(ns.getSettingsParent(parentName), self._TITLE)
+        and ns.getSettingsSubcategory(parentName, self._TITLE)
         or ns.getSettingsParent(self._TITLE)
     end
     -- tooltip (arg 4) is invoked as a function, so pass nil rather than a string;

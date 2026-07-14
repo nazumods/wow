@@ -103,6 +103,23 @@ end
 ns.getSettingsParent = getParent
 
 ---@class LibNAddOn
+---@field getSettingsSubcategory fun(parentName: string, title: string): table get-or-create a subcategory by title under a shared parent
+-- Get-or-create the subcategory titled `title` under the shared parent `parentName`.
+-- `Settings.RegisterVerticalLayoutSubcategory` is NOT idempotent — each call adds
+-- another line under the parent — so scan the parent's existing subcategories first and
+-- reuse a match, however it was registered (declarative `registerSettings`, an
+-- imperative LibNUI `SettingsFrame`, or an earlier call). Mirrors `getParent`'s
+-- get-or-create for top-level categories, letting callers reuse an addon's own page
+-- without having to track the returned category themselves.
+function ns.getSettingsSubcategory(parentName, title)
+  local parent = getParent(parentName)
+  for _, sub in ipairs(parent:GetSubcategories()) do
+    if sub:GetName() == title then return sub end
+  end
+  return Settings.RegisterVerticalLayoutSubcategory(parent, title)
+end
+
+---@class LibNAddOn
 ---@field registerSettings fun(addOn: AddOn, addOnName: string, features: table) register settings for an add-on
 function ns.registerSettings(addOn, addOnName, features)
   addOn:registerEvent("ADDON_LOADED", function(self, name)
