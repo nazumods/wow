@@ -3,7 +3,7 @@ local ns = select(2, ...)
 
 -- Curated "how to obtain" hint text for every collectible on the Detail appearance card
 -- (Warbandeer's GlyphBox), keyed by itemID: the cosmetic appearance glyphs (ns.AppearanceGlyphs),
--- the Warlock demon Grimoires + Druid Marks/travel glyphs (ns.AppearanceUnlocks), and the class
+-- the Warlock demon Grimoires + green fire + Druid Marks/travel glyphs (ns.AppearanceUnlocks), and the class
 -- books (ns.LearnedUnlocks — Hunter Tomes & Tames, Druid Tome of the Wilds, per-class Legion tomes).
 -- WarbandeerApi's GetAppliedGlyphs /
 -- GetAppearanceUnlocks / GetLearnedUnlocks attach this as each entry's `source` field, and the UI
@@ -176,6 +176,12 @@ ns.CollectibleSources = {
   [139436] = "Inscription — reward from the Legion Inscription quest, Azsuna",
   [203762] = "Inscription — recipe from Scridorsa the Chiseler, Zaralek Cavern",
   [217590] = NIGHTFAE,
+
+  -- === Warlock green fire (ns.AppearanceUnlocks[9], progressive) ===
+  -- Keyed to whichever step the row currently shows: the starter tome until the chain begins,
+  -- then the Codex reward until the scenario is completed (account-wide thereafter).
+  [92426]  = "Loot the Sealed Tome of the Lost Legion (rare demon drop) and fuse it with a Healthstone to begin the green fire questline",
+  [92441]  = "Continue the green fire questline, then defeat Kanrethad in the Pursuing the Black Harvest scenario",
 
   -- === Warlock demon Grimoires (ns.AppearanceUnlocks[9]) ===
   [129018] = AH,

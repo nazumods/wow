@@ -21,8 +21,8 @@ local GetSpecInfo = (C_Spec and C_Spec.GetSpecializationInfoForClassID) or _G.Ge
 --     state is discovered per spec (WoW only surfaces the active spec's glyphs reliably), so a
 --     spec never captured reads "? / N" (unknown), not "0 / N". Rendered as a labeled LIST:
 --     glyph items nearly all share one generic tome icon, so the name distinguishes them.
---   * "Barbershop Unlocks"  — ACCOUNT-WIDE Druid Marks / travel-form glyphs + Warlock demon
---     Grimoires (WarbandeerApi:GetAppearanceUnlocks). Rendered as an icon GRID.
+--   * "Appearance Unlocks"  — ACCOUNT-WIDE Druid Marks / travel-form glyphs + Warlock demon
+--     Grimoires + green fire (WarbandeerApi:GetAppearanceUnlocks). Rendered as an icon GRID.
 -- Every entry hovers to its item tooltip. The whole box hides (zero height) for a class with
 -- neither system (e.g. Evoker). Modelled on ConsumablesBox / SuggestedBox (Populate → height).
 
@@ -242,12 +242,12 @@ function GlyphBox:Populate(char)
     y = y + hdr:Height() + HEADER_GAP
   end
 
-  -- Section 1 — account-wide barbershop unlocks, as an icon grid (distinct icons): owned
+  -- Section 1 — account-wide appearance unlocks, as an icon grid (distinct icons): owned
   -- full-colour with a gold border, missing dimmed.
   if hasUnlocks then
     local owned = 0
     for _, it in ipairs(unlocks) do if it.unlocked then owned = owned + 1 end end
-    header("BARBERSHOP UNLOCKS", owned, #unlocks)
+    header("APPEARANCE UNLOCKS", owned, #unlocks)
     local perRow = max(1, floor((innerW + GAP) / (ICON + GAP)))
     local col = 0
     for _, it in ipairs(unlocks) do
