@@ -115,3 +115,12 @@ function ScrollFrame:_syncScrollbar()
   sb:Value(self._widget:GetVerticalScroll())
   self._syncing = false
 end
+
+-- Whether the content currently overflows the viewport (the view can scroll / the themed
+-- scrollbar is showing). This is the single truth behind both scroll affordances — the
+-- scrollbar's own show/hide (`_syncScrollbar`) reads the same range — so a consumer that
+-- reserves a scrollbar gutter can gate it on this and stay in lockstep with the bar.
+---@return boolean
+function ScrollFrame:Scrolls()
+  return self._widget:GetVerticalScrollRange() > 0
+end

@@ -1066,6 +1066,7 @@ are unaffected.
 | `Child(child)`          | Get/set scroll child                                             |
 | `VerticalScroll(offset)`| Get/set vertical offset (pixels); clamped to range when setting. Syncs the themed scrollbar thumb when one is built |
 | `Refresh()`             | Recompute the scroll range (via `UpdateScrollChildRect`) after the child's content extent changed, then re-clamp the offset so it can't stay scrolled into empty space, and re-fit the themed scrollbar. The range tracks the child's **content extent** (its shown sub-frames), not its set height — a caller that shrinks the child must also hide the frames below (see `TableFrame:ResizeRows`) or the range stays full |
+| `Scrolls()`             | Whether the content currently overflows the viewport (the view can scroll / the themed scrollbar is showing). The single truth behind both scroll affordances — the same range `_syncScrollbar` reads — so a consumer reserving a scrollbar gutter can gate it on this and stay in lockstep with the bar's own show/hide |
 
 ---
 
