@@ -410,11 +410,13 @@ function API:GetAppliedGlyphs(charName, specID)
   return attachSources(ns.MergeGlyphStatus(list, specID, applied)), applied ~= nil
 end
 
----Account-wide barbershop appearance unlocks for a character's class (Druid Marks +
----travel-form glyphs, Warlock demon Grimoires). Unlock state is account-wide, read live via
+---Account-wide appearance unlocks for a character's class (Druid Marks + travel-form glyphs,
+---Warlock demon Grimoires + the green fire unlock). Unlock state is account-wide, read live via
 ---C_QuestLog.IsQuestFlaggedCompletedOnAccount — so it's identical for every character of the
----class and needs no per-character storage; the character only selects the class. Returns nil
----when the class has no unlock catalog (every class but Druid + Warlock).
+---class and needs no per-character storage; the character only selects the class. A progressive
+---row (green fire) resolves its itemID to the next step — the questline starter item until the
+---account has begun the chain, then the reward item — so the cell always points at what to do
+---next. Returns nil when the class has no unlock catalog (every class but Druid + Warlock).
 ---@param charName string?
 ---@return { itemID: integer, label: string, spell: integer, unlocked: boolean, source: string? }[]?
 function API:GetAppearanceUnlocks(charName)
@@ -424,7 +426,16 @@ function API:GetAppearanceUnlocks(charName)
   local done = C_QuestLog.IsQuestFlaggedCompletedOnAccount
   local out = {}
   for _, e in ipairs(list) do
-    insert(out, { itemID = e.itemID, label = e.label, spell = e.spell, unlocked = done(e.quest) == true })
+    local unlocked = done(e.quest) == true
+    -- Progressive unlock (green fire): before it's earned, surface the NEXT step — the questline
+    -- starter item until the account has begun the chain, then the reward item. `startItem`/
+    -- `startQuest` are set only on such rows; the resolved itemID drives the cell icon, tooltip
+    -- and obtain hint (attachSources keys on it). A plain unlock keeps its single item.
+    local itemID = e.itemID
+    if e.startItem and not unlocked and done(e.startQuest) ~= true then
+      itemID = e.startItem
+    end
+    insert(out, { itemID = itemID, label = e.label, spell = e.spell, unlocked = unlocked })
   end
   return attachSources(out)
 end

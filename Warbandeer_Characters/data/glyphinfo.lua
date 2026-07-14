@@ -10,10 +10,14 @@ local ns = select(2, ...)
 --    Each entry carries the `glyph` id embedded in an applied spell's hyperlink
 --    (…::<glyph>:…) — the value the broker matches — plus the `specs` it's usable by.
 --
---  * `ns.AppearanceUnlocks` — Druid barbershop **Marks** / travel-form glyphs and
---    Warlock demon **Grimoires**. These are ACCOUNT-WIDE unlocks (identical for every
---    character of the class), read live via C_QuestLog.IsQuestFlaggedCompletedOnAccount,
---    so they need no per-character storage. Only Druid + Warlock have them.
+--  * `ns.AppearanceUnlocks` — Druid barbershop **Marks** / travel-form glyphs, Warlock
+--    demon **Grimoires**, and the Warlock **green fire** unlock (The Codex of Xerrath).
+--    These are ACCOUNT-WIDE unlocks (identical for every character of the class), read
+--    live via C_QuestLog.IsQuestFlaggedCompletedOnAccount, so they need no per-character
+--    storage. Only Druid + Warlock have them. A `startItem`/`startQuest` pair marks a
+--    PROGRESSIVE unlock (green fire): until earned, the row surfaces the next step — the
+--    questline starter item until the account has begun the chain, then the reward item
+--    (resolved in api.lua's GetAppearanceUnlocks).
 --
 -- Item / glyph / quest / spell ids are ported from the community GlyphList addon's
 -- GlyphData.lua (kept current per patch) and confirmed in-game via `/wbc dump glyphs`,
@@ -196,14 +200,20 @@ ns.AppearanceGlyphs = {
 }
 
 ---@class UnlockInfo
----@field itemID integer   the unlock item (Mark / Grimoire / travel glyph)
+---@field itemID integer   the unlock item (Mark / Grimoire / travel glyph / reward)
 ---@field quest integer    account-completed quest that grants the unlock
 ---@field spell integer    the unlock/appearance spell (reference)
 ---@field label string     item name (English; the probe verifies it live)
+---@field startItem integer?   progressive unlock only: questline starter item, shown until the chain begins
+---@field startQuest integer?  progressive unlock only: account-completed quest marking the chain as started
 
 ---@type table<integer, UnlockInfo[]>
 ns.AppearanceUnlocks = {
-  [9] = { -- Warlock — demon Grimoires (barbershop demon appearances)
+  [9] = { -- Warlock — green fire (progressive) + demon Grimoires (barbershop demon appearances)
+    -- Green fire: account-wide once the Pursuing the Black Harvest scenario is completed. Before
+    -- then the row shows the next step — the Sealed Tome of the Lost Legion (startItem 92426) until
+    -- the questline is begun (startQuest 32295 An Unusual Tome), then the Codex reward (itemID 92441).
+    { itemID = 92441, quest = 32326, spell = 101508, label = "The Codex of Xerrath", startItem = 92426, startQuest = 32295 },
     { itemID = 139314, quest = 76370, spell = 219460, label = "Grimoire of the Abyssal" },
     { itemID = 213016, quest = 79457, spell = 433534, label = "Grimoire of the Abyssal Darkglare" },
     { itemID = 212750, quest = 79359, spell = 432954, label = "Grimoire of the Ancient Observer" },
