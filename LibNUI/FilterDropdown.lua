@@ -34,6 +34,7 @@ local openOne
 ---@field onSelect  fun(self: FilterDropdown, key: any)?  fired when the selection changes
 ---@field width     number   button width
 ---@field menuWidth number   minimum menu width (the menu is never narrower than the button and widens to fit its longest option)
+---@field maxMenuHeight number  cap (px) beyond which the option panel scrolls instead of growing (default 400)
 ---@field bordered  boolean? draw a framed background + 1px border (matches toggle buttons)
 ---@field button    Button
 ---@field label     Label
@@ -76,10 +77,11 @@ local FilterDropdown = Class(Frame, function(self)
   self:Width(self.width)
   self:Height(ROW_H)
 end, {
-  options   = {},
-  width     = 96,
-  menuWidth = 0,
-  bordered  = false,
+  options       = {},
+  width         = 96,
+  menuWidth     = 0,
+  maxMenuHeight = 400,
+  bordered      = false,
 })
 ui.FilterDropdown = FilterDropdown
 
@@ -103,15 +105,32 @@ function FilterDropdown:_buildMenu()
   }
   self.menu = menu
 
+  -- A very long option list (e.g. a full category taxonomy) would run off-screen, so once
+  -- the rows exceed `maxMenuHeight` the menu caps its height and scrolls. Short menus (the
+  -- common case) keep the exact flat layout — rows parent straight to `menu`, no scroll —
+  -- so existing consumers are unchanged.
+  local fullH = #self.options * ROW_H
+  local needsScroll = fullH > self.maxMenuHeight
+  local rowParent, firstY, gutter = menu, -1, 0
+  if needsScroll then
+    self._scroll = ui.ScrollFrame:new{
+      parent = menu, scrollbar = true,
+      position = { TopLeft = {1, -1}, BottomRight = {-1, 1} },
+    }
+    self._menuContent = Frame:new{ parent = self._scroll, position = { Size = {1, 1} } }
+    self._scroll:Child(self._menuContent)
+    rowParent, firstY, gutter = self._menuContent, 0, self._scroll.scrollbarWidth or 16
+  end
+
   self._rows = {}
   local widest = 0
   for i, opt in ipairs(self.options) do
     local row = Frame:new{
-      parent     = menu,
+      parent     = rowParent,
       background = {1, 1, 1, 0},
       position   = {
-        TopLeft = i == 1 and {1, -1} or {self._rows[i - 1], ui.edge.BottomLeft},
-        Right   = {menu, ui.edge.Right, -1, 0},
+        TopLeft = i == 1 and {needsScroll and 0 or 1, firstY} or {self._rows[i - 1], ui.edge.BottomLeft},
+        Right   = {rowParent, ui.edge.Right, needsScroll and 0 or -1, 0},
         Height  = ROW_H,
       },
     }
@@ -135,8 +154,16 @@ function FilterDropdown:_buildMenu()
     widest = max(widest, row.label:UnboundedWidth())
     insert(self._rows, row)
   end
-  menu:Width(max(self.width, self.menuWidth, widest + 2 * PAD_X + 2))
-  menu:Height(#self.options * ROW_H + 2)
+  local menuW = max(self.width, self.menuWidth, widest + 2 * PAD_X + 2) + gutter
+  menu:Width(menuW)
+  if needsScroll then
+    self._menuContent:Width(menuW - 2 - gutter)
+    self._menuContent:Height(fullH)
+    menu:Height(self.maxMenuHeight + 2)
+    self._scroll:Refresh()
+  else
+    menu:Height(fullH + 2)
+  end
 
   -- Esc closes (only) the open menu: consuming the key stops it from also closing a
   -- parent window. Other keys propagate so bindings still work while the menu is up.
@@ -167,6 +194,7 @@ function FilterDropdown:_openMenu()
       opt.enabled == false and GREY or (opt.key == self.selected and "header" or "text"))
   end
   self.chevron:Rotation(math.pi)
+  if self._scroll then self._scroll:VerticalScroll(0) end   -- a scrolling menu re-opens at the top
   self.menu:EnableKeyboard(true)
   self.menu:SetPropagateKeyboardInput(true)
   self.menu:registerEvent("GLOBAL_MOUSE_DOWN")
