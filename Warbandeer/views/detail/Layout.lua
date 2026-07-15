@@ -76,6 +76,13 @@ function D.gearPanelW(nameW) return D.gearInnerW(nameW) + 2 * D.GEAR_PAD end
 
 D.VIEW_WIDTH = D.GEAR_X + D.gearPanelW(D.GEAR_NAME_MIN) + D.P
 
+-- ─── Appearance column (third column) ─────────────────────────────────────────
+-- The appearance / collections box (class mounts, learned tomes, applied glyphs) and
+-- the pet-roster button live in a third column to the right of the gear panel, so the
+-- window spreads across the screen instead of growing off the bottom. Fixed width —
+-- wide enough for the longest glyph / mount name to render without truncating.
+D.APPEAR_W = 340
+
 -- vertical centring of each element inside a profession panel
 D.ICON_Y, D.BAR_Y, D.DD_Y = (D.ROW_H - D.ICON_W) / 2, 8, (D.ROW_H - 20) / 2
 D.BAR_X = D.ROW_PAD + D.ICON_W + D.ICON_GAP
