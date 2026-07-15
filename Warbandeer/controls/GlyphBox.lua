@@ -15,16 +15,21 @@ local GetNumSpecs = (C_Spec and C_Spec.GetNumSpecializationsForClassID) or _G.Ge
 local GetSpecInfo = (C_Spec and C_Spec.GetSpecializationInfoForClassID) or _G.GetSpecializationInfoForClassID
 
 -- Appearance box (Detail view, right column beneath Consumables): the character's cosmetic
--- appearance state, in up to two sections —
+-- appearance state, in up to four sections, in render order —
+--   * "Class Mounts"  — the class's Legion order-hall mounts + spec-gated colour tints
+--     (WarbandeerApi:GetClassMounts). ACCOUNT-WIDE; a labeled LIST (tint recolors share a model,
+--     so the name distinguishes them). Each row hovers to a MOUNT tooltip.
+--   * "Appearance Unlocks"  — ACCOUNT-WIDE Druid Marks / travel-form glyphs + Warlock demon
+--     Grimoires + green fire (WarbandeerApi:GetAppearanceUnlocks). Rendered as an icon GRID.
+--   * the class's learned unlocks — Druid "Tome of the Wilds" / Hunter "Tomes & Tames"
+--     (WarbandeerApi:GetLearnedUnlocks), a labeled LIST headed by the class's own title.
 --   * "Appearance Glyphs"  — glyphs APPLIED to the character's spells, PER SPEC. A spec-icon
 --     picker selects which spec to show; it defaults to the character's active spec. Applied
 --     state is discovered per spec (WoW only surfaces the active spec's glyphs reliably), so a
---     spec never captured reads "? / N" (unknown), not "0 / N". Rendered as a labeled LIST:
---     glyph items nearly all share one generic tome icon, so the name distinguishes them.
---   * "Appearance Unlocks"  — ACCOUNT-WIDE Druid Marks / travel-form glyphs + Warlock demon
---     Grimoires + green fire (WarbandeerApi:GetAppearanceUnlocks). Rendered as an icon GRID.
--- Every entry hovers to its item tooltip. The whole box hides (zero height) for a class with
--- neither system (e.g. Evoker). Modelled on ConsumablesBox / SuggestedBox (Populate → height).
+--     spec never captured reads "? / N" (unknown), not "0 / N". A labeled LIST like the others.
+-- Every entry hovers to its item (or mount) tooltip. The whole box hides (zero height) for a
+-- class with none of these (e.g. Evoker). Modelled on ConsumablesBox / SuggestedBox (Populate →
+-- height); the list sections share the pooled _row + the listRow() fill helper.
 
 local PAD = 12          -- panel inner padding (matches the gear panel)
 local HEADER_GAP = 6    -- section header → its content
@@ -41,7 +46,7 @@ local STRIP_GAP = 8     -- spec strip → glyph list
 ---@field onSpecChange fun()?  called when the spec picker changes, so the host re-lays-out
 ---@field _char Character?    the character last populated (spec selection resets on change)
 ---@field _specSel integer?   the currently-selected spec id
----@field _rows table[]        pooled glyph list rows
+---@field _rows table[]        pooled list rows (mounts / Tomes / applied glyphs)
 ---@field _nRows integer
 ---@field _cells table[]      pooled unlock grid cells
 ---@field _nCells integer
@@ -161,7 +166,13 @@ function GlyphBox:_row(i)
   }
   frame:EnableMouse(true)
   frame:SetScript("OnEnter", function()
-    if frame._itemLink then ns.ShowItemTooltip(frame, frame._itemLink, nil, true, frame._obtain) end
+    -- One shared list row serves item rows (glyphs / Tomes) and mount rows; each populate sets one
+    -- of _mountSpell / _itemLink and clears the other, so branch on whichever is present.
+    if frame._mountSpell then
+      ns.ShowMountTooltip(frame, frame._mountSpell, frame._obtain)
+    elseif frame._itemLink then
+      ns.ShowItemTooltip(frame, frame._itemLink, nil, true, frame._obtain)
+    end
   end)
   frame:SetScript("OnLeave", function() ns.HideItemTooltip() end)
 
@@ -216,10 +227,12 @@ function GlyphBox:Populate(char)
   local applied, scanned = ns.api:GetAppliedGlyphs(char.name, self._specSel)
   local learned, learnedTitle = ns.api:GetLearnedUnlocks(char.name)
   local unlocks = ns.api:GetAppearanceUnlocks(char.name)
+  local mounts = ns.api:GetClassMounts(char.name)
   local hasApplied = applied and #applied > 0
   local hasLearned = learned and #learned > 0
   local hasUnlocks = unlocks and #unlocks > 0
-  if not hasApplied and not hasLearned and not hasUnlocks then self:Hide(); return 0 end
+  local hasMounts = mounts and #mounts > 0
+  if not hasApplied and not hasLearned and not hasUnlocks and not hasMounts then self:Hide(); return 0 end
 
   local c = theme.colors
   local innerW = self:Width() - 2 * PAD
@@ -242,7 +255,43 @@ function GlyphBox:Populate(char)
     y = y + hdr:Height() + HEADER_GAP
   end
 
-  -- Section 1 — account-wide appearance unlocks, as an icon grid (distinct icons): owned
+  -- Position + fill the next pooled list row: a small icon + a name coloured by `owned`, hovering
+  -- to a tooltip. For an item row pass `itemID` (icon/link via itemVisual, item tooltip); for a
+  -- mount row pass `iconFile` + `mountSpell` (icon direct, mount tooltip). Exactly one of `itemID`
+  -- / `mountSpell` is set per row; the other tooltip field is cleared so the pooled row stays safe.
+  local function listRow(label, owned, obtain, itemID, iconFile, mountSpell)
+    ri = ri + 1
+    local row = self:_row(ri)
+    row.frame:ClearAllPoints()
+    row.frame:TopLeft(self, ui.edge.TopLeft, PAD, -y)
+    row.frame:Width(innerW)
+    local link
+    local icon = iconFile or QUESTION_ICON
+    if itemID then icon, link = itemVisual(itemID) end
+    row.icon:Texture(icon)
+    local shade = owned and 1 or 0.3
+    row.icon:SetVertexColor(shade, shade, owned and 1 or 0.34, 1)
+    row.name:Text(label):Color(owned and c.green or c.muted)
+    row.frame._itemLink = link          -- nil for a mount row
+    row.frame._mountSpell = mountSpell   -- nil for an item row
+    row.frame._obtain = (not owned) and obtain or nil
+    row.frame:Show()
+    y = y + ROW_H
+  end
+
+  -- Section 1 — class mounts (order-hall mounts + spec-gated colour tints), a labeled list like
+  -- the Tomes: tint recolors share a near-identical model, so the name disambiguates them. Owned
+  -- green + full-colour icon, missing muted + dimmed, with the obtain hint on hover. Account-wide,
+  -- so the count is identical for every character of the class.
+  if hasMounts then
+    local owned = 0
+    for _, it in ipairs(mounts) do if it.owned then owned = owned + 1 end end
+    header("CLASS MOUNTS", owned, #mounts)
+    for _, it in ipairs(mounts) do listRow(it.label, it.owned, it.source, nil, it.icon, it.mountSpell) end
+    y = y + SECT_GAP
+  end
+
+  -- Section 2 — account-wide appearance unlocks, as an icon grid (distinct icons): owned
   -- full-colour with a gold border, missing dimmed.
   if hasUnlocks then
     local owned = 0
@@ -274,31 +323,17 @@ function GlyphBox:Populate(char)
     y = y + SECT_GAP
   end
 
-  -- Section 2 — learned class unlocks (Druid Tome of the Wilds / Hunter Tomes & Tames), a labeled
+  -- Section 3 — learned class unlocks (Druid Tome of the Wilds / Hunter Tomes & Tames), a labeled
   -- list like the glyphs (known green, missing muted), headed by the class's own section title.
   if hasLearned then
     local owned = 0
     for _, it in ipairs(learned) do if it.known then owned = owned + 1 end end
     header((learnedTitle or "Learned"):upper(), owned, #learned)
-    for _, it in ipairs(learned) do
-      ri = ri + 1
-      local row = self:_row(ri)
-      row.frame:ClearAllPoints()
-      row.frame:TopLeft(self, ui.edge.TopLeft, PAD, -y)
-      row.frame:Width(innerW)
-      local icon, link = itemVisual(it.itemID)
-      row.icon:Texture(icon)
-      row.icon:SetVertexColor(it.known and 1 or 0.3, it.known and 1 or 0.3, it.known and 1 or 0.34, 1)
-      row.name:Text(it.label):Color(it.known and c.green or c.muted)
-      row.frame._itemLink = link
-      row.frame._obtain = (not it.known) and it.source or nil
-      row.frame:Show()
-      y = y + ROW_H
-    end
+    for _, it in ipairs(learned) do listRow(it.label, it.known, it.source, it.itemID) end
     y = y + SECT_GAP
   end
 
-  -- Section 3 — applied glyphs for the selected spec, with a spec-icon picker above the list.
+  -- Section 4 — applied glyphs for the selected spec, with a spec-icon picker above the list.
   if hasApplied then
     local owned = 0
     for _, it in ipairs(applied) do if it.applied then owned = owned + 1 end end
@@ -328,21 +363,7 @@ function GlyphBox:Populate(char)
       y = y + SPEC_ICON + STRIP_GAP
     end
 
-    for _, it in ipairs(applied) do
-      ri = ri + 1
-      local row = self:_row(ri)
-      row.frame:ClearAllPoints()
-      row.frame:TopLeft(self, ui.edge.TopLeft, PAD, -y)
-      row.frame:Width(innerW)
-      local icon, link = itemVisual(it.itemID)
-      row.icon:Texture(icon)
-      row.icon:SetVertexColor(it.applied and 1 or 0.3, it.applied and 1 or 0.3, it.applied and 1 or 0.34, 1)
-      row.name:Text(it.label):Color(it.applied and c.green or c.muted)
-      row.frame._itemLink = link
-      row.frame._obtain = (not it.applied) and it.source or nil
-      row.frame:Show()
-      y = y + ROW_H
-    end
+    for _, it in ipairs(applied) do listRow(it.label, it.applied, it.source, it.itemID) end
     y = y + SECT_GAP
   end
 

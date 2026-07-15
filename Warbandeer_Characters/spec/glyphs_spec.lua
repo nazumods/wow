@@ -97,6 +97,41 @@ describe("Warbandeer_Characters appearance catalog integrity", function()
   end)
 end)
 
+describe("Warbandeer_Characters ns.ClassMounts catalog integrity", function()
+  local ns
+  before_each(function() ns = wbchar.load() end)
+
+  it("gives every entry a spellID or itemID and a string label", function()
+    for classId, list in pairs(ns.ClassMounts) do
+      for _, e in ipairs(list) do
+        assert.is_true(type(e.spellID) == "number" or type(e.itemID) == "number",
+          "class " .. classId .. " entry '" .. tostring(e.label) .. "' needs a spellID or itemID")
+        assert.is_string(e.label)
+      end
+    end
+  end)
+
+  it("has a roster for every class but Evoker (13)", function()
+    for classId = 1, 12 do
+      assert.is_not_nil(ns.ClassMounts[classId], "missing class-mount roster for class " .. classId)
+    end
+    assert.is_nil(ns.ClassMounts[13])
+  end)
+
+  -- Distinct raw catalog ids only; two entries resolving to the same mountID (the tint-collapse
+  -- risk) can't be caught without C_MountJournal — that's the `/wbc dump mounts` in-game gate.
+  it("has no duplicate spellID/itemID within a class", function()
+    for classId, list in pairs(ns.ClassMounts) do
+      local seen = {}
+      for _, e in ipairs(list) do
+        local id = e.spellID and ("s" .. e.spellID) or ("i" .. e.itemID)
+        assert.is_nil(seen[id], "duplicate id " .. id .. " in class " .. classId)
+        seen[id] = true
+      end
+    end
+  end)
+end)
+
 describe("Warbandeer_Characters ns.MergeLearnedStatus", function()
   local ns
   before_each(function() ns = wbchar.load() end)

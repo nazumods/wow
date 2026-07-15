@@ -9,6 +9,7 @@ local M = {}
 -- Pure files this addon exposes for unit testing (extend as more pure logic is added).
 local FILES = {
   "data/glyphinfo.lua",
+  "data/classmounts.lua",
   "data/learnedunlocks.lua",
   "data/challengetames.lua",
 }
@@ -16,6 +17,10 @@ local FILES = {
 ---@return table ns  a fresh namespace with the pure modules loaded
 function M.load()
   local ns = {}
+  -- data/classmounts.lua registers its `/wbc dump mounts` probe at load. The probe body (the only
+  -- WoW-API user in the file) never runs under test, so a no-op registerDump lets the pure catalog
+  -- load without the addon core — same idea as libn.lua stubbing Mixin.
+  ns.registerDump = function() end
   for _, f in ipairs(FILES) do
     assert(loadfile("Warbandeer_Characters/" .. f))("Warbandeer_Characters", ns)
   end

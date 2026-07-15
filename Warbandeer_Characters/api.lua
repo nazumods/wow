@@ -440,6 +440,37 @@ function API:GetAppearanceUnlocks(charName)
   return attachSources(out)
 end
 
+---Class mounts for a character — the class's Legion order-hall mounts + spec-gated colour tints
+---(ns.ClassMounts) resolved live against the account-wide mount journal. Mount collection is
+---account-wide, so owned state is identical for every character of the class and needs no
+---per-character storage — the character only selects which roster to show (the GetAppearanceUnlocks
+---pattern). Each entry resolves its mountID from a summon spellID or teaching itemID, then reads
+---name/icon/collected from C_MountJournal.GetMountInfoByID (icon is present even for an uncollected
+---mount; isCollected is the 11th return). An unresolvable id still yields its row (owned = false),
+---so a wrong id reads "missing", never a false owned. nil when the class has no roster (Evoker).
+---@param charName string?
+---@return { label: string, mountSpell: integer?, icon: integer?, owned: boolean, source: string? }[]?
+function API:GetClassMounts(charName)
+  local c = self:GetCharacterData(charName)
+  local list = c and ns.ClassMounts[c.classId]
+  if not list then return nil end
+  local fromSpell, fromItem = C_MountJournal.GetMountFromSpell, C_MountJournal.GetMountFromItem
+  local infoByID = C_MountJournal.GetMountInfoByID
+  local out = {}
+  for _, e in ipairs(list) do
+    local mountID = (e.spellID and fromSpell(e.spellID)) or (e.itemID and fromItem(e.itemID))
+    local mountSpell, icon, owned
+    if mountID then
+      local _, sp, ic = infoByID(mountID)
+      mountSpell, icon = sp, ic
+      owned = select(11, infoByID(mountID)) == true
+    end
+    insert(out, { label = e.label, mountSpell = mountSpell, icon = icon,
+                  owned = owned == true, source = e.source })
+  end
+  return out
+end
+
 ---Learned class unlocks for a character (Druid "Tome of the Wilds", Hunter "Tomes & Tames") —
 ---items/skills that permanently grant an ability: the class catalog (ns.LearnedUnlocks) merged
 ---with the character's last-seen known set (which already folds in innate racial grants, e.g.
