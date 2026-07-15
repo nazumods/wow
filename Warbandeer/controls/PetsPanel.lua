@@ -41,16 +41,28 @@ local WARLOCK    = 9    -- classId; the other pet class — its roster is summon
 -- always the hunter's level, a stabled one scales up when summoned), so the stored PetInfo.level is
 -- a stale last-active value for pets not used recently — it varies and can even exceed the
 -- character's level. The effective level of every pet is the character's, so that's what we show.
+-- The row also carries a hover `tooltip` (IconListItem renders it via ui.tip): the name plus the
+-- full family / spec / level / exotic detail — legibly stacked where the non-wrapping sub-line is
+-- cramped — and, for a collapsed "×N" row, how many pets folded into it. (The collapse groups on
+-- name, so those pets share a name and only their appearance differs — nothing nameable to list —
+-- hence a count rather than a name roster.)
 ---@param p PetRecord
 ---@param level integer  the character's level (every pet's effective level)
 ---@param count integer  how many identical pets collapsed into this row (≥ 1; shows "×N" when > 1)
 ---@return table
 local function petData(p, level, count)
+  local tooltip = {
+    ns.Colors.wrap(p.name, theme.colors.gold),
+    ("%s · %s%s"):format(p.family, p.spec, p.exotic and " · Exotic" or ""),
+    ("Level %d"):format(level),
+  }
+  if count > 1 then tooltip[#tooltip + 1] = ("Collapsed from %d pets"):format(count) end
   return {
     icon = p.icon,
     title = count > 1 and ("%s  ×%d"):format(p.name, count) or p.name,
     kind = p.family,
     subtitle = ("Lv %d · %s%s"):format(level, p.spec, p.exotic and " · Exotic" or ""),
+    tooltip = tooltip,
   }
 end
 
@@ -90,7 +102,9 @@ local DEMON_ICON = {
 local DEMON_ICON_FALLBACK = "Interface\\Icons\\spell_shadow_metamorphosis"
 
 -- One demon as an IconListItem's content: its per-species icon and a `name • species` title line (no
--- sub-line — a demon has no level/spec, unlike a Hunter pet).
+-- sub-line — a demon has no level/spec, unlike a Hunter pet). The row also carries a hover `tooltip`
+-- (rendered by IconListItem via ui.tip): name, species, and the last-seen date — the one datum not
+-- already inline, surfacing how stale a not-recently-summoned demon's record is.
 ---@param d DemonRecord
 ---@return table
 local function demonData(d)
@@ -98,6 +112,11 @@ local function demonData(d)
     icon  = (d.npcID and DEMON_ICON[d.npcID]) or DEMON_ICON_FALLBACK,
     title = d.name,
     kind  = d.species,
+    tooltip = {
+      ns.Colors.wrap(d.name, theme.colors.gold),
+      d.species,
+      ("Last seen %s"):format(date("%b %d", d.seenAt)),
+    },
   }
 end
 
