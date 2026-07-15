@@ -528,7 +528,7 @@ Inherits `CleanFrame`. A text tooltip rendered as a list of lines. Auto-sizes to
 
 A compact select control: a labelled button that drops an attached panel of options. The panel hangs flush under the button's left edge, is never narrower than the button (widening to fit a long option), and its option text shares the button label's inset — button and menu read as one control. On open, the current selection renders gold and the chevron flips; picking an option updates the button label and fires `onSelect`.
 
-The menu closes on Esc (consumed, so it stays out of a parent window's Escape handling), on any click outside the control, and when the dropdown itself hides; only one `FilterDropdown` menu is open at a time.
+The menu closes on Esc (consumed, so it stays out of a parent window's Escape handling), on any click outside the control, and when the dropdown itself hides; only one `FilterDropdown` menu is open at a time. A long option list (taller than `maxMenuHeight`) caps its height and scrolls (with the themed scrollbar); shorter menus keep the flat, un-scrolled layout unchanged.
 
 ### Constructor options
 
@@ -539,6 +539,7 @@ The menu closes on Esc (consumed, so it stays out of a parent window's Escape ha
 | `onSelect`  | `fun(self, key)` fired when the selection changes                           |
 | `width`     | Button width (default 96)                                                   |
 | `menuWidth` | Minimum menu width (default 0 — the menu is at least as wide as the button and grows to fit its longest option) |
+| `maxMenuHeight` | Height (px) beyond which the option panel scrolls instead of growing off-screen (default 400) |
 | `bordered`  | Draw a framed background + 1px border, matching toggle buttons (default false)|
 
 ### Methods
