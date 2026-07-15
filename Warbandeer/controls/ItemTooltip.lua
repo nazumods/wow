@@ -18,6 +18,7 @@ local CreateFrame, UIParent = CreateFrame, UIParent
 ---@field HideItemTooltip fun()                             hide it
 ---@field ShowEnchantTooltip fun(frame: table, suggestion: table)  recommended-enchant detail
 ---@field ShowGemTooltip fun(frame: table, suggestion: table)  recommended-gem detail
+---@field ShowMountTooltip fun(frame: table, mountSpellID: integer, obtain?: string)  class-mount detail
 
 -- Dark, near-black border for these item tooltips (the theme's tan `border` token
 -- reads too bright here) — matches the look of a darkened-UI tooltip.
@@ -203,6 +204,32 @@ function ns.ShowGemTooltip(frame, suggestion)
   else
     gt:ClearLines()
     gt:AddLine(suggestion.name or "Recommended gem", 1, 0.82, 0)
+  end
+  gt:Show()
+  styleTooltip(gt)
+end
+
+-- Hover detail for a class mount (Detail appearance card's CLASS MOUNTS list). Renders the mount
+-- the way Blizzard's Mount Journal does — SetMountBySpellID → name + source + collected state — on
+-- the shared private item frame, with the same gold "How to obtain" block appended for an unowned
+-- mount. `mountSpellID` is the mount's summon spell (WarbandeerApi:GetClassMounts `mountSpell`).
+-- Reuses `itemTip`, so ns.HideItemTooltip hides it.
+---@param frame table          LibNUI widget or raw frame to anchor against
+---@param mountSpellID integer mount summon spell id
+---@param obtain string?       "How to obtain" hint appended below (unowned mounts)
+function ns.ShowMountTooltip(frame, mountSpellID, obtain)
+  local right = ns.TooltipSide() == 2
+  local gt = getItemTip()
+  gt.SkipUpgradeBlock = true
+  gt:SetOwner(frame._widget or frame, right and "ANCHOR_RIGHT" or "ANCHOR_LEFT")
+  gt:SetMountBySpellID(mountSpellID)
+  -- Same "How to obtain" hint as ShowItemTooltip: a gold header + the muted, wrapping source line,
+  -- appended below the mount's own tooltip (SetMountBySpellID has already populated it).
+  if obtain then
+    local g, m = theme.colors.gold, theme.colors.muted
+    gt:AddLine(" ")
+    gt:AddLine("How to obtain", g[1], g[2], g[3])
+    gt:AddLine(obtain, m[1], m[2], m[3], true)
   end
   gt:Show()
   styleTooltip(gt)
