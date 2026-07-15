@@ -38,7 +38,7 @@ local ns = select(2, ...)
 ---@type table<integer, ClassMountInfo[]>
 ns.ClassMounts = {
   [1] = { -- Warrior (Skyhold)
-    { itemID = 142232, label = "Bloodthirsty War Wyrm",
+    { itemID = 142232, label = "Battlelord's Bloodthirsty War Wyrm",
       source = "Warrior order hall (Skyhold): class-mount campaign reward." },
   },
   [2] = { -- Paladin (Sanctum of Light) — Highlord's Charger + spec tints (separate collectibles)
@@ -54,11 +54,11 @@ ns.ClassMounts = {
       source = "Argent Tournament quartermaster (Paladin only), as a Champion of the Argent Crusade." },
   },
   [3] = { -- Hunter (Trueshot Lodge) — Wolfhawk tints (separate collectibles)
-    { itemID = 142227, label = "Loyal Wolfhawk",
+    { itemID = 142227, label = "Huntmaster's Loyal Wolfhawk",
       source = "Hunter order hall (Trueshot Lodge): class-mount campaign reward." },
-    { itemID = 142226, label = "Fierce Wolfhawk",
+    { itemID = 142226, label = "Huntmaster's Fierce Wolfhawk",
       source = "Hunter order hall: class-mount tint, unlocked alongside the Loyal Wolfhawk." },
-    { itemID = 142228, label = "Dire Wolfhawk",
+    { itemID = 142228, label = "Huntmaster's Dire Wolfhawk",
       source = "Hunter order hall: class-mount tint, unlocked alongside the Loyal Wolfhawk." },
   },
   [4] = { -- Rogue (Hall of Shadows) — Shadowblade's Omen steeds (4 separate tints)
@@ -66,9 +66,9 @@ ns.ClassMounts = {
       source = "Rogue order hall (Hall of Shadows): class-mount campaign reward." },
     { itemID = 143491, label = "Shadowblade's Baneful Omen",
       source = "Rogue order hall: class-mount tint, unlocked alongside the Murderous Omen." },
-    { itemID = 143490, label = "Shadowblade's Lethal Omen",
+    { itemID = 143490, label = "Shadowblade's Crimson Omen",
       source = "Rogue order hall: class-mount tint, unlocked alongside the Murderous Omen." },
-    { itemID = 143492, label = "Shadowblade's Ruthless Omen",
+    { itemID = 143492, label = "Shadowblade's Lethal Omen",
       source = "Rogue order hall: class-mount tint, unlocked alongside the Murderous Omen." },
   },
   [5] = { -- Priest (Netherlight Temple)
@@ -86,7 +86,7 @@ ns.ClassMounts = {
       source = "Automatically learned by every Death Knight." },
   },
   [7] = { -- Shaman (The Maelstrom / Heart of Azeroth)
-    { itemID = 143489, label = "Raging Tempest",
+    { itemID = 143489, label = "Farseer's Raging Tempest",
       source = "Shaman order hall (The Maelstrom): class-mount campaign reward." },
   },
   [8] = { -- Mage (Hall of the Guardian)
@@ -106,7 +106,7 @@ ns.ClassMounts = {
       source = "Monk order hall (Peak of Serenity): class-mount campaign reward." },
   },
   [11] = { -- Druid (The Dreamgrove)
-    { itemID = 143638, label = "Lunarwing",
+    { itemID = 143638, label = "Archdruid's Lunarwing Form",
       source = "Druid order hall (The Dreamgrove): class-mount campaign reward (Moon-Kissed Feather)." },
   },
   [12] = { -- Demon Hunter (Fel Hammer)
