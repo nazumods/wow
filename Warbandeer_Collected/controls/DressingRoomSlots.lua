@@ -41,16 +41,38 @@ function ns.SetSlotPieces(setID)
   return out
 end
 
+-- Resolve a single appearance source to its paper-doll slot id (nil if it maps to
+-- no shown slot — e.g. a weapon). Lets Dress drop the sources of slots the user has
+-- toggled off. Same equip-location mapping as ns.SetSlotPieces, one source at a time.
+---@param sourceID number
+---@return number?
+function ns.SourceSlot(sourceID)
+  local info = GetSourceInfo(sourceID)
+  local itemID = info and info.itemID
+  local loc = itemID and select(4, GetItemInfoInstant(itemID))
+  return loc and EQUIP_SLOT[loc]
+end
+
 -- Reopen the class and borrow the layout primitives DressingRoom.lua shares with
 -- us (it loads first; see the explicit exports just after its class definition).
 local DressingRoom = ns.DressingRoom
 local selBox, IDLE = DressingRoom._selBox, DressingRoom._IDLE
+local SELECTED = DressingRoom._k.SELECTED
 local PAD, MODELH = DressingRoom._PAD, DressingRoom._MODELH
 
 -- slot-status colors + the question-mark fallback icon (used only here)
 local GREEN    = {0, 104/255, 55/255, 1}   -- piece collected
 local RED      = {165/255, 0, 38/255, 1}   -- piece missing
 local QUESTION = 134400                    -- inv_misc_questionmark fileID
+local DIM      = 0.30                       -- icon vertex value for a slot toggled off the model
+
+-- Grey a slot icon when its piece is toggled off the model; full color when worn.
+---@param icon Texture
+---@param hidden boolean?
+local function slotDim(icon, hidden)
+  local v = hidden and DIM or 1
+  icon:SetVertexColor(v, v, v, 1)
+end
 
 -- Equipment-slot columns flanking the model (paper-doll style). Slot ids are
 -- inventory slots, also the GetSourcesForSlot key. Four/five per side.
@@ -65,8 +87,9 @@ local RIGHT_SLOTS = { {10, "Hands"}, {6, "Waist"},   {7, "Legs"},  {8, "Feet"} }
 DressingRoom.MODEL_INSET = COLINSET + SLOT + PAD
 
 -- Build one paper-doll equipment slot: a framed icon that shows the set piece for
--- `slotID` and opens the in-game item tooltip on hover. Registered on room._slots
--- and refreshed per set by UpdateSlots.
+-- `slotID`, opens the in-game item tooltip on hover, and left-click toggles the
+-- piece on/off the model. Registered on room._slots and refreshed per set by
+-- UpdateSlots.
 ---@param room DressingRoom
 ---@param slotID number  inventory slot id
 ---@param x number
@@ -90,9 +113,15 @@ local function buildSlot(room, slotID, x, y, side)
     if not entry.itemID then return end
     GameTooltip:SetOwner(f, anchor)
     GameTooltip:SetItemByID(entry.itemID)
+    GameTooltip:AddLine(room._hiddenSlots[entry.slotID] and "Click to show on the model"
+      or "Click to hide from the model", 0.6, 0.6, 0.6)
     GameTooltip:Show()
   end)
   box._widget:SetScript("OnLeave", function() GameTooltip:Hide() end)
+  -- Left-click toggles this piece on/off the model; empty/unresolved slots stay inert.
+  box._widget:SetScript("OnMouseUp", function(_, button)
+    if button == "LeftButton" and entry.itemID then room:ToggleSlot(entry) end
+  end)
 
   room._slots[#room._slots + 1] = entry
 end
@@ -117,12 +146,14 @@ end
 ---@param winW number
 function DressingRoom:_buildSlots(winW)
   self._slots = {}
+  self._hiddenSlots = {}   -- inventory slot ids toggled off the model (reset per set in _load)
   layoutColumn(self, LEFT_SLOTS, COLINSET, "left")
   layoutColumn(self, RIGHT_SLOTS, winW - COLINSET - SLOT, "right")
 end
 
 -- Fill the paper-doll slots with the current set's pieces: icon + status border
--- (green collected / red missing), and the itemID each slot's tooltip shows.
+-- (green collected / red missing), the itemID each slot's tooltip shows, and the
+-- greyed-out dim for any slot the user has toggled off the model.
 function DressingRoom:UpdateSlots()
   local set = self._set
   if not set then return end
@@ -161,12 +192,14 @@ function DressingRoom:UpdateSlots()
       e.icon:Texture(tex or QUESTION)
       e.icon:Show()
       e.border:Color(collected and GREEN or RED)
+      slotDim(e.icon, self._hiddenSlots[e.slotID])   -- keep a toggled-off slot greyed across refreshes
     else
       -- No piece for this slot in the set: show the "unresolved" marker.
       e.itemID = nil
       e.icon:Texture(ui.media.unresolved)
       e.icon:Show()
       e.border:Color(IDLE)
+      slotDim(e.icon, false)
     end
   end
 
@@ -180,4 +213,42 @@ function DressingRoom:UpdateSlots()
       self:UpdateSlots()
     end)
   end
+end
+
+-- Toggle whether a slot's piece is worn on the model — applied in place (TryOn /
+-- UndressSlot, no full model reload). Greys/ungreys the slot icon and re-syncs the
+-- Undress button (which is just "all slots hidden").
+---@param e table  a slot entry from self._slots
+function DressingRoom:ToggleSlot(e)
+  local hidden = not self._hiddenSlots[e.slotID]
+  self._hiddenSlots[e.slotID] = hidden or nil
+  -- Re-set the remembered outfit (re-adds a re-shown piece via TryOn), then strip
+  -- the one slot when hiding — TryOn alone can't remove an already-worn piece.
+  self._model:Outfit(self:_currentSources())
+  if hidden then self._model:UndressSlot(e.slotID) end
+  slotDim(e.icon, hidden)
+  self:_syncUndressBorder()
+end
+
+-- Re-apply every slot's dim from _hiddenSlots (after a master show/hide) without
+-- re-fetching icons.
+function DressingRoom:_refreshSlotDims()
+  for _, e in ipairs(self._slots) do
+    if e.itemID then slotDim(e.icon, self._hiddenSlots[e.slotID]) end
+  end
+end
+
+-- True while at least one piece-bearing slot is still worn.
+---@return boolean
+function DressingRoom:_anyWorn()
+  for _, e in ipairs(self._slots) do
+    if e.itemID and not self._hiddenSlots[e.slotID] then return true end
+  end
+  return false
+end
+
+-- Light the Undress button while everything is hidden (the master toggle is just
+-- "all slots off"), idle while anything is worn.
+function DressingRoom:_syncUndressBorder()
+  self._undressBorder:Color(self:_anyWorn() and IDLE or SELECTED)
 end

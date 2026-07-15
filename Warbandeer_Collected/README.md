@@ -40,8 +40,11 @@ Click an appearance to open a 3D dressing
 room showing the set worn by any playable **race** you pick — handy for
 deciding what a transmog will actually look like. Like the character sheet, each
 piece sits in its equipment slot down the sides (green border = collected, red =
-still missing); hover a slot for the in-game item tooltip. There's an **Undress**
-toggle to strip the set off and see the bare race, a **Background** toggle for a
+still missing); hover a slot for the in-game item tooltip, and **click a slot to
+toggle that piece on or off the model** (its icon greys out while it's off) to see
+how the set looks without a helm, cloak, and so on. The **Undress** toggle is the
+bulk version — it strips every piece off at once to show the bare race (click it
+again to redress). There's also a **Background** toggle for a
 class-themed backdrop, a scale slider to resize the model, and a **Reset View**
 button to snap the camera back to its starting rotation, zoom, pan, and scale. The model always
 uses your own character's **gender** (a model that can actually wear the set is
