@@ -50,7 +50,7 @@ ns.ClassMounts = {
       source = "Paladin order hall: class-mount spec tint, unlocked alongside the Golden Charger." },
     { itemID = 143504, label = "Highlord's Vigilant Charger",
       source = "Paladin order hall: class-mount spec tint, unlocked alongside the Golden Charger." },
-    { itemID = 47179, label = "Reins of the Argent Charger",
+    { itemID = 47179, label = "Argent Charger",
       source = "Argent Tournament quartermaster (Paladin only), as a Champion of the Argent Crusade." },
   },
   [3] = { -- Hunter (Trueshot Lodge) — Wolfhawk tints (separate collectibles)
