@@ -150,7 +150,7 @@ local DetailView = Class(Frame, function(self)
     position = { TopLeft = {D.P, -D.PROF_HEADER_Y} },
   }
 
-  -- Gear list down the right column: one row per equipped slot.
+  -- Gear list down the middle column: one row per equipped slot.
   self.gearPanel = Frame:new{
     parent = self, background = c.module,
     position = { TopLeft = {D.GEAR_X, -D.CONTENT_TOP}, Width = D.gearPanelW(D.GEAR_NAME_MIN), Height = D.STRIP_H },
@@ -167,14 +167,14 @@ local DetailView = Class(Frame, function(self)
     position = { TopLeft = {D.P, -D.PROF_HEADER_Y}, Width = D.PANEL_W, Height = D.STRIP_H },
   }
 
-  -- Recommended consumables, anchored beneath the gear panel in OnBeforeShow (right column).
+  -- Recommended consumables, anchored beneath the gear panel in OnBeforeShow (middle column).
   self.consumeBox = ConsumablesBox:new{
     parent = self,
     position = { TopLeft = {D.GEAR_X, -D.CONTENT_TOP}, Width = D.gearPanelW(D.GEAR_NAME_MIN), Height = D.STRIP_H },
   }
 
-  -- Appearance box (applied glyphs + account barbershop unlocks), anchored beneath the
-  -- consumables box in OnBeforeShow (right column).
+  -- Appearance box (applied glyphs + account barbershop unlocks) — heads the third column,
+  -- positioned right of the gear panel in OnBeforeShow.
   self.glyphBox = GlyphBox:new{
     parent = self,
     position = { TopLeft = {D.GEAR_X, -D.CONTENT_TOP}, Width = D.gearPanelW(D.GEAR_NAME_MIN), Height = D.STRIP_H },
@@ -401,7 +401,7 @@ function DetailView:OnBeforeShow()
   -- content bottom while laying out rows.
   local leftH = profsBottomY + suggExtent + D.P
 
-  -- Right column height (gear panel).
+  -- Middle column: gear panel height (consumables fold in below).
   local gearH = D.GEAR_PAD + self.gearHeader:Height()
   if g > 0 then gearH = gearH + D.GEAR_HEADER_GAP + gearRowsH end
   gearH = gearH + D.GEAR_PAD
@@ -416,18 +416,25 @@ function DetailView:OnBeforeShow()
   local consH = self.consumeBox:Populate(char)
   local consExtent = consH > 0 and (D.GAP + consH) or 0
 
-  -- Appearance box beneath whichever of the gear panel / consumables box is lowest (the
-  -- consumables box hides itself to zero height, so anchor to the gear panel when it's off).
-  local rightAnchor = consH > 0 and self.consumeBox or self.gearPanel
-  self.glyphBox:ClearAllPoints()
-  self.glyphBox:TopLeft(rightAnchor, BottomLeft, 0, -D.GAP)
-  self.glyphBox:Width(D.gearPanelW(nameW))
-  local glyphH = self.glyphBox:Populate(char)
-  local glyphExtent = glyphH > 0 and (D.GAP + glyphH) or 0
+  -- ─── Third column (appearance & collections) ───────────────────────────────
+  -- The middle column (gear + consumables) can run long, and the appearance box
+  -- (class mounts / tomes / applied glyphs) is the tallest block of all — stacked
+  -- beneath it, the window grew off the bottom while the left column sat half-empty.
+  -- So the appearance box and the pet-roster button move into a third column to the
+  -- right of the gear panel, spreading the view across the screen. Col 3 starts at
+  -- the gear panel's right edge (the panel autosizes, so its width is only known now).
+  local col3X = D.GEAR_X + D.gearPanelW(nameW) + D.GAP
 
-  -- Pet/demon roster: a button (opening the dedicated docked panel) beneath whichever right-column
-  -- box is lowest. The roster itself is too large to inline, so only the button lives here. Hunters
-  -- get "Pets — N" (active + stable), Warlocks "Demons — N" (summoned demons); no roster otherwise.
+  -- Appearance box at the top of col 3, aligned with the gear panel / stat-card band.
+  self.glyphBox:ClearAllPoints()
+  self.glyphBox:TopLeft(self, ui.edge.TopLeft, col3X, -D.CONTENT_TOP)
+  self.glyphBox:Width(D.APPEAR_W)
+  local glyphH = self.glyphBox:Populate(char)
+
+  -- Pet/demon roster: a button (opening the dedicated docked panel) beneath the appearance
+  -- box in col 3. The roster itself is too large to inline, so only the button lives here.
+  -- Hunters get "Pets — N" (active + stable), Warlocks "Demons — N"; no roster otherwise.
+  -- (A pet class always has an appearance box; the no-glyph branch is defensive.)
   local petsExtent = 0
   if char.classId == HUNTER or char.classId == WARLOCK then
     local n, label
@@ -441,13 +448,16 @@ function DetailView:OnBeforeShow()
       label = n > 0 and ("Pets — " .. n) or "Pets"
     end
     self.petsButton:Text(label)
-    local petsAnchor = glyphH > 0 and self.glyphBox
-      or (consH > 0 and self.consumeBox or self.gearPanel)
     self.petsButton:ClearAllPoints()
-    self.petsButton:TopLeft(petsAnchor, BottomLeft, 0, -D.GAP)
-    self.petsButton:Width(D.gearPanelW(nameW))
+    if glyphH > 0 then
+      self.petsButton:TopLeft(self.glyphBox, BottomLeft, 0, -D.GAP)
+      petsExtent = D.GAP + PETS_BTN_H
+    else
+      self.petsButton:TopLeft(self, ui.edge.TopLeft, col3X, -D.CONTENT_TOP)
+      petsExtent = PETS_BTN_H
+    end
+    self.petsButton:Width(D.APPEAR_W)
     self.petsButton:Show()
-    petsExtent = D.GAP + PETS_BTN_H
     if self.petsPanel then self.petsPanel:Refresh(char) end  -- re-point an open panel at the new subject
     -- Keep the Challenge-Tames sibling in step: re-point it for a Hunter, hide it for a Warlock (no tames).
     if self.tamesPanel then
@@ -459,10 +469,18 @@ function DetailView:OnBeforeShow()
     if self.tamesPanel then self.tamesPanel:Hide() end
   end
 
-  local rightH = D.CONTENT_TOP + gearH + consExtent + glyphExtent + petsExtent + D.P
+  -- Column heights → the window fits the tallest of the three.
+  local col2H = D.CONTENT_TOP + gearH + consExtent + D.P
+  local hasCol3 = glyphH > 0 or petsExtent > 0
+  local col3H = hasCol3 and (D.CONTENT_TOP + glyphH + petsExtent + D.P) or 0
 
-  self:Width(D.GEAR_X + D.gearPanelW(nameW) + D.P)
-  self:Height(math.max(leftH, rightH))
+  -- Reserve the third column's width only when it has content: a class with neither an
+  -- appearance box nor a pet roster (e.g. Evoker) keeps the two-column width (gear rightmost).
+  local viewW = hasCol3 and (col3X + D.APPEAR_W + D.P)
+    or (D.GEAR_X + D.gearPanelW(nameW) + D.P)
+
+  self:Width(viewW)
+  self:Height(math.max(leftH, col2H, col3H))
 end
 
 function DetailView:update() end
