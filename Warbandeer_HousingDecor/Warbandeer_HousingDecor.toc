@@ -1,0 +1,28 @@
+## Interface: 120007
+## Category: Warband
+## Title: Housing Decor
+## Author: Nazuraki
+## Version: 12.0.7-r0
+## IconTexture: Interface\Icons\garrison_building_storehouse
+## SavedVariables: WarbandeerHousingDecorDB
+## AddonCompartmentFunc: WarbandeerHousingDecor_OnAddonCompartmentClick
+## Dependencies: LibNAddOn, LibNUI
+## X-NUI-DB: WarbandeerHousingDecorDB
+## X-NUI-DB-VERSION: 1
+## X-NUI-COMMANDS: /housingdecor, /wbdecor
+## X-NUI-COMPARTMENT: WarbandeerHousingDecor_OnAddonCompartmentClick
+## X-NUI-UI: LibNUI
+
+init.lua
+commands.lua
+
+catalog.lua
+ratings.lua
+api.lua
+scan.lua
+
+controls\InfoTip.lua
+
+list.lua
+filters.lua
+window.lua
