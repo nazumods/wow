@@ -9,6 +9,7 @@ local UnitClassBase = UnitClassBase
 ---@field characters table<string, Character> Character data indexed by character name
 ---@field numCharacters integer total number of characters
 ---@field warband WarbandData account-wide warband bank gold + weekly wealth tracking
+---@field travelersLog TravelersLogData account-wide monthly Traveler's Log progress + rewards-waiting
 ---@field ui table legacy account-wide UI prefs (the wmissing copy-window font size moved to LibNUIDB.copyFontSize; kept for rollback safety)
 ---@field settings {combatLogging: boolean} account-wide addon settings (Settings panel)
 
@@ -88,7 +89,7 @@ end, "Repair stored data (recount characters)")
 ---@field MigrateDB fun(self) Migrate database to latest version
 function ns:MigrateDB()
   local db = ns.db
-  if db.version == 37 then return end
+  if db.version == 38 then return end
   if not db.characters then db.characters = {} end
   if not db.numCharacters then
     db.numCharacters = countCharacters(db)
@@ -395,6 +396,14 @@ function ns:MigrateDB()
   if (db.version or 0) < 37 then
     db.version = 37
   end
+
+  -- v38: account-wide Traveler's Log (Trading Post monthly activity) progress + rewards-
+  -- waiting snapshot (`travelersLog`).  Additive and self-seeded by data/travelerslog.lua
+  -- at login; nothing to seed here — an older revision simply lacks it (the Overview
+  -- Traveler's Log strip stays hidden) until the next login, so rollback is lossless.
+  if (db.version or 0) < 38 then
+    db.version = 38
+  end
 end
 
 ---@class Warbandeer_Characters
@@ -435,6 +444,7 @@ function ns:initialize()
 
   self:InitBrokers()
   self:InitWarband()
+  self:InitTravelersLog()
 end
 
 -- Guild info can read back nil at PLAYER_LOGIN (before the roster loads) and also

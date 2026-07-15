@@ -180,6 +180,8 @@ std = {
     "C_MythicPlus",
     "C_PaperDollInfo",
     "C_PartyInfo",
+    "C_PerksActivities",
+    "C_PerksProgram",
     "C_PetJournal",
     "C_PlayerInfo",
     "C_ProfSpecs",
