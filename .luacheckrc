@@ -20,6 +20,7 @@ include_files = {
   "ShadowsOfUI-PostOffice/**/*.lua", "ShadowsOfUI-HousingVendor/**/*.lua",
   "Warbandeer/**/*.lua", "Warbandeer_Alias/**/*.lua", "Warbandeer_Bars/**/*.lua",
   "Warbandeer_Characters/**/*.lua", "Warbandeer_Collected/**/*.lua",
+  "Warbandeer_HousingDecor/**/*.lua",
 }
 
 -- CI installs the Lua toolchain into the workspace (leafo/gh-actions-lua and
@@ -110,6 +111,7 @@ std = {
     "WarbandeerApi",
     "WarbandeerBarsApi",
     "WarbandeerCollectedApi",
+    "WarbandeerHousingDecorApi",
     "WarbandeerDB",
 
     "PrimaryResourceBar",

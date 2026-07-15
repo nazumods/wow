@@ -63,6 +63,7 @@ ns.viewOrder = {
   "midnightprofs",
   "bars",
   "collected",
+  "decor",
   "reputations",
 }
 

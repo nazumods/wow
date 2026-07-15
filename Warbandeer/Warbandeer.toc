@@ -7,7 +7,7 @@
 ## SavedVariables: WarbandeerDB
 ## AddonCompartmentFunc: Warbandeer_OnAddonCompartmentClick
 ## Dependencies: LibNAddOn, LibNUI, Warbandeer_Characters
-## OptionalDeps: Warbandeer_Bars, Warbandeer_Collected, ShadowsOfUI-Upgrade
+## OptionalDeps: Warbandeer_Bars, Warbandeer_Collected, Warbandeer_HousingDecor, ShadowsOfUI-Upgrade
 ## X-Curse-Project-ID: 1546586
 ## X-NUI-DB: WarbandeerDB
 ## X-NUI-DB-VERSION: 7
@@ -102,6 +102,7 @@ views\BarsApply.lua
 views\barApplyDefaultsSettings.lua
 views\BarsView.lua
 views\CollectedView.lua
+views\HousingDecorView.lua
 views\reps\ReputationsData.lua
 views\ReputationsView.lua
 views\reps\ReputationsRender.lua

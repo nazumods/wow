@@ -11,6 +11,7 @@ return {
       "ShadowsOfUI-Collectibles/spec",
       "ShadowsOfUI-HousingVendor/spec",
       "ShadowsOfUI-Known/spec",
+      "Warbandeer_HousingDecor/spec",
     },
     lpath = "?.lua",
     verbose = true,

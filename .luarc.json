@@ -59,6 +59,7 @@
     "WarbandeerApi",
     "WarbandeerBarsApi",
     "WarbandeerCollectedApi",
+    "WarbandeerHousingDecorApi",
     "WarbandeerDB",
 
     "PrimaryResourceBar",
