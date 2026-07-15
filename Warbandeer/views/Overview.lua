@@ -85,7 +85,18 @@ local Overview = Class(Frame, function(self)
   _view = self
   local c = theme.colors
   local BLEED = 6                        -- module/strip outer bleed (matches module bg padding)
-  local contentTop = P + STRIP_H + GAP
+
+  -- Account-wide Traveler's Log strip sits between the stat strip and the grid; when
+  -- shown it pushes the grid (panels, Top Characters, all module backgrounds) down by
+  -- its height. `tl` is the snapshot; nil or no-thresholds-yet means no strip, no offset.
+  local tl = ns.api.GetTravelersLog and ns.api.GetTravelersLog()
+  local showTL = tl and tl.max and tl.max > 0
+  local TL_NAME_H = (theme.fonts.body[2] or 13) + 6   -- LabeledBar name-row height
+  local TL_BAR_TH = 10                                 -- LabeledBar bar thickness
+  local TL_ROW_H  = (theme.fonts.body[2] or 13) + 6    -- rewards-waiting line height
+  local TL_H = HEAD_H + TL_NAME_H + TL_BAR_TH + 6 + TL_ROW_H
+  local stripTop = P + STRIP_H + GAP
+  local contentTop = stripTop + (showTL and (TL_H + GAP) or 0)
   self._contentTop = contentTop
 
   -- Reputations + Achievements, one panel per expansion. Each panel holds a reps
@@ -154,6 +165,58 @@ local Overview = Class(Frame, function(self)
     parent = self, layer = ui.layer.Artwork, color = c.module,
     position = { TopLeft = {col2 - 6, -(contentTop - 6)}, Width = colW + 12, Height = self._altH + 12 },
   }
+
+  -- Traveler's Log — account-wide monthly Trading Post progress. A caps-headed strip
+  -- above the grid: a % bar (raw earned/max on hover) with the current Tender balance
+  -- and reset countdown on the right, and a rewards-waiting line beneath.
+  if showTL then
+    Texture:new{
+      parent = self, layer = ui.layer.Artwork, color = c.module,
+      position = { TopLeft = {P - 6, -(stripTop - 6)}, Width = self._contentW + 12, Height = TL_H + 12 },
+    }
+    capsHeader(self, "Traveler's Log", { TopLeft = {P, -stripTop} })
+    local days = math.max(0, math.floor(((tl.resetAt or 0) - GetServerTime()) / 86400))
+    Label:new{
+      parent = self, fontInfo = theme.fonts.stat, color = c.muted,
+      text = BreakUpLargeNumbers(tl.tender or 0) .. " Trader's Tender   ·   resets in " .. days .. "d",
+      justifyH = ui.justify.Right,
+      position = { TopRight = {-P, -stripTop} },
+    }
+    ns.LabeledBar:new{
+      parent = self,
+      width = self._contentW,
+      barHeight = TL_BAR_TH,
+      label = "Traveler's Log — " .. (tl.monthName or "?"),
+      value = math.floor((tl.pct or 0) * 100 + 0.5) .. "%",
+      hoverValue = (tl.earned or 0) .. " / " .. (tl.max or 0),
+      pct = tl.pct or 0,
+      valueColor = c.gold,
+      hoverColor = c.muted,
+      position = { TopLeft = {P, -(stripTop + HEAD_H)} },
+    }
+    -- rewards line: a gold call-to-collect (bag glyph, pending Tender, reward item
+    -- icons) when a chest is waiting, else a muted "all collected".
+    local r = tl.rewards or {}
+    local rewardText, rewardColor
+    if (r.count or 0) > 0 then
+      local s = "|A:ParagonReputation_Bag:14:14|a Rewards waiting — collect at the Trading Post"
+      if (r.pendingTender or 0) > 0 then
+        s = s .. "   ·   " .. BreakUpLargeNumbers(r.pendingTender) .. " Trader's Tender"
+      end
+      for _, id in ipairs(r.items or {}) do
+        local icon = C_Item.GetItemIconByID(id)
+        if icon then s = s .. "  |T" .. icon .. ":16|t" end
+      end
+      rewardText, rewardColor = s, c.gold
+    else
+      rewardText, rewardColor = "All rewards collected", c.muted
+    end
+    Label:new{
+      parent = self, fontInfo = theme.fonts.body, color = rewardColor,
+      text = rewardText,
+      position = { TopLeft = {P, -(stripTop + HEAD_H + TL_NAME_H + TL_BAR_TH + 6)} },
+    }
+  end
 
   -- Stat strip — one card per content column, each overlaying its column's box.
   local cardX = {col0, col1, col2}

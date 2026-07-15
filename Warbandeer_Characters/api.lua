@@ -100,6 +100,12 @@ end
 ---@return WarbandWeekRecord[]
 function API:GetWealthHistory() return (ns.db.warband and ns.db.warband.history) or {} end
 
+---Account-wide monthly Traveler's Log snapshot: Trading Post activity-bar progress
+---(`pct`, `earned`/`max`), rewards waiting to collect, current Trader's Tender, and the
+---monthly reset time.  nil until the store is seeded at first login on DB v38.
+---@return TravelersLogData?
+function API:GetTravelersLog() return ns.db.travelersLog end
+
 ---Equippable gear a character has loose in its own bags + personal bank.  Bags
 ---come from the per-character `gearbag` broker; the bank list is the last scan of
 ---that character's personal bank (empty until they've opened it).  Both lists are
