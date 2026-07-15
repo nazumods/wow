@@ -6,6 +6,19 @@ local ns = select(2, ...)
 -- same conventional-commit grouping used for the GitHub/CurseForge release notes.
 ---@type { version: string, notes: string }[]
 ns.changelog = {
+  { version = "12.0.7-r23", notes = [==[
+### Features
+- Traveler's Log progress + rewards-waiting tracker (#553)
+- housing decor collection tracker (Warbandeer_HousingDecor sibling) (#551)
+- spread the Detail view across three columns (#547)
+- track class mounts + spec tints in the appearance card (#545)
+- per-character current-title column backed by a titles broker (#537)
+
+### Refactoring
+- autosize the Gold column via a new minWidth floor (#540) (#544)
+- decouple the totals footer from column widths (#541)
+
+]==] },
   { version = "12.0.7-r22", notes = [==[
 ### Features
 - track Warlock green fire (The Codex of Xerrath) as a collectible (#523)
