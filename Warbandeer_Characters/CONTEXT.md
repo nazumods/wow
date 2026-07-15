@@ -156,9 +156,11 @@ WarbandeerApi:GetClassMounts(char?)        → { label, mountSpell, icon, owned,
     -- account-wide class mounts for the char's CLASS (Legion order-hall mounts + spec-gated colour
     -- tints): the ns.ClassMounts catalog resolved live against the mount journal — mountID from
     -- C_MountJournal.GetMountFromSpell/Item, then GetMountInfoByID for name/icon/isCollected.
-    -- `owned` is identical for every character of the class (no storage); an unresolvable id still
-    -- yields its row (owned=false, reads "missing").  DK is ONE entry whose colour follows the spec
-    -- (not three).  nil for a class with no roster (Evoker).  Drives the Detail card's CLASS MOUNTS list
+    -- `owned` is identical for every character of the class (no storage); an id that doesn't resolve
+    -- yields its row (owned=false, reads "missing").  GetMountFromItem returns nil until the item's
+    -- data is loaded, so login.lua warms the catalog items + this getter re-requests any cold one (a
+    -- later render resolves).  DK is ONE entry whose colour follows the spec (not three).  nil for a
+    -- class with no roster (Evoker).  Drives the Detail card's CLASS MOUNTS list
 WarbandeerApi:GetLearnedUnlocks(char?)     → { itemID, label, spell, known, source? }[]?, title
     -- each entry's `source` (GetAppliedGlyphs / GetAppearanceUnlocks / GetLearnedUnlocks) = the
     -- curated "how to obtain" hint from data/collectiblesources.lua, shown in the Detail tooltip for

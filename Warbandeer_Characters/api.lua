@@ -446,8 +446,10 @@ end
 ---per-character storage — the character only selects which roster to show (the GetAppearanceUnlocks
 ---pattern). Each entry resolves its mountID from a summon spellID or teaching itemID, then reads
 ---name/icon/collected from C_MountJournal.GetMountInfoByID (icon is present even for an uncollected
----mount; isCollected is the 11th return). An unresolvable id still yields its row (owned = false),
----so a wrong id reads "missing", never a false owned. nil when the class has no roster (Evoker).
+---mount; isCollected is the 11th return). An id that doesn't resolve still yields its row (owned =
+---false) — a wrong id reads "missing", never a false owned. GetMountFromItem returns nil for an item
+---whose data isn't loaded yet, so login warms the catalog items (login.lua) and this getter re-requests
+---any still-cold item; a later render then resolves it. nil when the class has no roster (Evoker).
 ---@param charName string?
 ---@return { label: string, mountSpell: integer?, icon: integer?, owned: boolean, source: string? }[]?
 function API:GetClassMounts(charName)
@@ -464,6 +466,8 @@ function API:GetClassMounts(charName)
       local _, sp, ic = infoByID(mountID)
       mountSpell, icon = sp, ic
       owned = select(11, infoByID(mountID)) == true
+    elseif e.itemID then
+      C_Item.RequestLoadItemDataByID(e.itemID)  -- cold item → GetMountFromItem nil; warm for next render
     end
     insert(out, { label = e.label, mountSpell = mountSpell, icon = icon,
                   owned = owned == true, source = e.source })
