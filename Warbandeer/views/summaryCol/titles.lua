@@ -7,9 +7,10 @@ local Left = ui.justify.Left
 -- Titles: each character's current (featured) title — the one shown after its name in-game (data
 -- from the Warbandeer_Characters `titles` broker; last-seen, logged-in char only). The column
 -- autosizes to the widest title currently displayed (so it takes no more room than it needs), and
--- the hover shows the full title plus how many titles the character has earned. Blank for an alt
--- not seen since the titles broker landed, and for a character with no title selected. (The full
--- earned/earnable browser is a separate Titles view.)
+-- the hover shows the full title plus how many titles the character has earned. A character we've
+-- seen but who has "No Title" set shows a muted white "--" placeholder; blank only for an alt not
+-- seen since the titles broker landed (no title data at all). (The full earned/earnable browser is
+-- a separate Titles view.)
 
 table.insert(
   ns.SummaryColumns,
@@ -27,6 +28,13 @@ table.insert(
     getData = function(toon)
       local t = toon.titles
       local cell = { text = (t and t.currentName) or "", justifyH = Left }
+      if t and t.known and not t.currentName then
+        -- Seen this character, and it has actively set "No Title": show a solid white "--". White
+        -- (not muted) because this is a real, chosen state, not absent data — an alt not seen since
+        -- the titles broker landed (nil `titles`) has no title data at all, so it stays blank.
+        cell.text = "--"
+        cell.color = { 1, 1, 1, 1 }
+      end
       if t and t.known then
         local n = #t.known
         cell.onEnter = function(self)
