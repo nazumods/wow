@@ -263,10 +263,14 @@ end
 ---@field _faction "alliance"|"horde"|"both"  which roster is visible
 ---@field _segments table<string, Frame>?     titlebar faction segments (built by BuildFilter)
 ---@field _filter Frame?                       titlebar faction segmented control
+---@field _healed table<string, boolean>       faction tables already font-healed while visible
 local SummaryView = Class(ui.Frame, function(self)
   -- default to the current character's faction on first open
   local current = ns.api:GetCharacterData()
   self._faction = (not current or current.isAlliance) and "alliance" or "horde"
+  -- Tracks which faction tables have had their cold-session font heal applied while
+  -- visible (see _healFaction) — the two that start hidden can't be healed up front.
+  self._healed = {}
 
   -- The user-visible column set (identity columns + non-hidden toggleable ones),
   -- resolved fresh each build so a settings toggle is reflected on rebuild. Each
@@ -307,15 +311,13 @@ local SummaryView = Class(ui.Frame, function(self)
 
   self:layout()
 
-  -- Cold-session FontString rasterization heal, mirroring Overview: the
-  -- ClassSummary tables are built here on the first (lazy) open, so without this a
-  -- cold-session first Summary open can render the identity cells blank. Idempotent —
-  -- see ns.HealCellFonts.
-  ns:after(50, function()
-    ns.HealCellFonts(self.alliance)
-    ns.HealCellFonts(self.horde)
-    ns.HealCellFonts(self.both)
-  end)
+  -- Cold-session FontString rasterization heal (see ns.HealCellFonts). Only the
+  -- initially-shown roster can be healed here: the glitch re-rasterizes a string
+  -- only while it is actually being drawn, and layout() has just hidden the other
+  -- two tables — so those are healed the first time they're switched to, in
+  -- _healFaction. (Healing all three up front leaves the hidden Alliance/Both name,
+  -- Played and Titles cells blank until /reload.)
+  self:_healFaction(self._faction)
 end, {
   name   = "summary",
   background = theme.colors.window,
@@ -372,7 +374,26 @@ function SummaryView:setFaction(mode)
   self:updateFilter()
   self:_activeTable():OnBeforeShow()  -- refresh the newly shown roster before sizing
   self:layout()
+  self:_healFaction(mode)             -- heal now that this roster is visible (see below)
   if ns.MainWindow then ns.MainWindow:Fit() end
+end
+
+-- Apply the cold-session cell-font heal to a faction's table one tick after it first
+-- becomes visible, once per faction. The rasterization glitch (ns.HealCellFonts) only
+-- re-rasterizes a string that is actually being drawn, so a table healed while hidden
+-- keeps its blank name/Played/Titles cells; the login character's side is healed at
+-- build, the other two the first time they're switched to. Marked healed only once the
+-- heal actually runs on the still-visible table — so switching away inside the 50ms
+-- window before it fires re-heals on the next switch-to instead of being lost. No-op
+-- after the first successful heal (the glitch never recurs within a session).
+---@param faction "alliance"|"horde"|"both"
+function SummaryView:_healFaction(faction)
+  if self._healed[faction] then return end
+  ns:after(50, function()
+    if self._faction ~= faction then return end  -- switched away before firing; retry next time
+    self._healed[faction] = true
+    ns.HealCellFonts(self[faction])
+  end)
 end
 
 -- Segment order, left to right, for both build + update.
