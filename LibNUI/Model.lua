@@ -289,3 +289,11 @@ function Model:Undress() if self._actor then self._actor:Undress() end; return s
 
 ---@return Model
 function Model:Dress() if self._actor then self._actor:Dress() end; return self end
+
+-- Strip a single equipment slot's item off the model, leaving the rest worn — the
+-- removal half of a paper-doll per-slot toggle (TryOn re-adds a slot's piece, this
+-- takes one off). Does not touch the remembered Outfit; the caller re-sets that so
+-- an async re-skin honors the change.
+---@param slot number  inventory slot id
+---@return Model
+function Model:UndressSlot(slot) if self._actor then self._actor:UndressSlot(slot) end; return self end

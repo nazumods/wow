@@ -31,7 +31,7 @@ function DressingRoom:_buildControls(controls)
   }
   self._undressBorder = selBox(undressBox)
   Button:new{ parent = undressBox, position = { All = true }, glow = false,
-    OnClick = function() self:SetUndressed(not self._undressed) end }
+    OnClick = function() self:ToggleUndress() end }
   Label:new{ parent = undressBox, justifyH = ui.justify.Center,
     position = { Left = {6, 0}, Right = {-6, 0} }, text = "Undress" }
 

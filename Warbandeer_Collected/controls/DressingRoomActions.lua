@@ -75,11 +75,23 @@ function DressingRoom:SetForm(i)
 end
 
 
----@param undressed boolean  true to strip the set off the model
+-- Master show/hide: the Undress button is just a bulk per-slot toggle — hide every
+-- piece-bearing slot when anything's worn, else restore all.
+function DressingRoom:ToggleUndress()
+  self:SetUndressed(self:_anyWorn())
+end
+
+---@param undressed boolean  true to strip every slot off the model, false to restore all
 function DressingRoom:SetUndressed(undressed)
-  self._undressed = undressed
-  self._undressBorder:Color(undressed and SELECTED or IDLE)
-  self:Dress()
+  for _, e in ipairs(self._slots) do
+    if e.itemID then self._hiddenSlots[e.slotID] = undressed or nil end
+  end
+  -- Apply in place (no reload): re-set the outfit (redress re-adds every piece via
+  -- TryOn), then bare the whole body when undressing — TryOn alone can't strip.
+  self._model:Outfit(self:_currentSources())
+  if undressed then self._model:Undress() end
+  self:_refreshSlotDims()
+  self:_syncUndressBorder()
 end
 
 -- ── Ratings ────────────────────────────────────────────────────────────────--
@@ -143,6 +155,7 @@ end
 function DressingRoom:_load(group, set)
   self._group = group
   self._set = set
+  wipe(self._hiddenSlots)   -- per-set toggles: each set opens fully dressed
   self:Title(set.name)
   -- Set id (right of the title) + its hover tooltip = the master-grid group name.
   self._masterName = group.name
@@ -157,6 +170,7 @@ function DressingRoom:_load(group, set)
   self._slotRetries = 0
   self:UpdateSlots()
   self:Dress()
+  self:_syncUndressBorder()   -- wiped toggles → fully worn → Undress button idle
   self:_refreshRatings()
   -- Every previewed-set change funnels through here (open + Step/StepTier arrow nav),
   -- so broadcast it once from this choke point; the grids cursor the matching cell.

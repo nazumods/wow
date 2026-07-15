@@ -11,6 +11,21 @@ local DressingRoom = ns.DressingRoom
 local k = DressingRoom._k
 local SELECTED, IDLE, tierBar = k.SELECTED, k.IDLE, k.tierBar
 
+-- The transmog sources the model should currently wear: the previewed set's full
+-- appearance list (`GetAllSourceIDs`) minus the sources of any slot the user has
+-- toggled off (`_hiddenSlots`). Sources that map to no shown slot — e.g. weapons —
+-- have no toggle and always stay on. Shared by Dress (a full re-skin) and the
+-- in-place slot/undress toggles (which avoid a reload).
+---@return number[]
+function DressingRoom:_currentSources()
+  local sources = {}
+  for _, src in ipairs(GetAllSourceIDs(self._set.id)) do
+    local slot = ns.SourceSlot(src)
+    if not (slot and self._hiddenSlots[slot]) then sources[#sources + 1] = src end
+  end
+  return sources
+end
+
 -- Render the selected race on a DRESSABLE actor, then put on the previewed set.
 -- We always use the customRaceID-overridden player unit: it renders any race
 -- textured AND can wear transmog / undress. The exact-gender creature-display path
@@ -32,12 +47,9 @@ function DressingRoom:Dress()
 
   -- Decide the outfit BEFORE (re)loading the model. The re-skin loads async and
   -- resets the actor to its default body once the load finishes, so the model
-  -- re-applies this on its load callback (Model:Outfit). Empty = undressed.
-  local sources = {}
-  if not self._undressed then
-    for _, src in ipairs(GetAllSourceIDs(self._set.id)) do sources[#sources + 1] = src end
-  end
-  m:Outfit(sources)
+  -- re-applies this on its load callback (Model:Outfit). _currentSources drops the
+  -- pieces the user toggled off (all slots off = undressed).
+  m:Outfit(self:_currentSources())
 
   -- Set normalization BEFORE the re-skin: `Model:Unit` arms the re-apply machinery
   -- (load callback + backstop) right then, and a synchronous load (e.g. the logged-in

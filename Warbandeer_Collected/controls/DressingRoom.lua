@@ -104,13 +104,13 @@ end
 ---@field _expName string?  expansion name for the badge's hover tooltip
 ---@field _idLabel Label  set-id text in the title bar (left of the close button)
 ---@field _masterName string?  master-grid group name for the id label's hover tooltip
----@field _undressed boolean?  hide the set to show the bare race body
----@field _undressBorder Texture  undress-toggle border (gold while active)
+---@field _undressBorder Texture  undress-toggle border (gold while every slot is toggled off)
 ---@field _wantedBorder Texture  wanted-toggle border (gold while the set is wanted)
 ---@field _rankBtns table<string, { border: Texture }>  tier buttons keyed by letter
 ---@field _raceOnly boolean  edit/show the per-race override instead of the baseline
 ---@field _raceOnlyBorder Texture  per-race-override toggle border (gold while active)
 ---@field _slots table[]  paper-doll slot entries ({ slotID, icon, border, itemID? })
+---@field _hiddenSlots table<number, true>  inventory slot ids toggled off the model (reset per set)
 ---@field _slotTimer table?  cancelable icon-refresh timer
 ---@field _slotRetries number?  remaining icon-refresh attempts
 ---@field _buildModel fun(self: DressingRoom)  build the model + backdrop + tier bars (DressingRoomBuild.lua)
