@@ -1,6 +1,6 @@
 # Warbandeer_Characters (Data Layer)
 
-**Deps:** LibNAddOn, LibNUI · **SavedVars:** `WarbandeerCharDB` (v38) · **Commands:** `/characters`, `/wbc` · **API:** `WarbandeerApi`
+**Deps:** LibNAddOn, LibNUI · **SavedVars:** `WarbandeerCharDB` (v39) · **Commands:** `/characters`, `/wbc` · **API:** `WarbandeerApi`
 
 Data-collection backbone for the suite. Scans the active character each login/refresh and stores everything in `WarbandeerCharDB`, exposing it to the rest of the suite through the `WarbandeerApi` global. Per-field scanning is driven by the **broker** system (`broker.lua`).
 
@@ -33,6 +33,7 @@ Data-collection backbone for the suite. Scans the active character each login/re
 | `data/recipegear.lua` | Account-wide `db.recipeGear` cache (recipe → prof-gear output: itemID/rarity/equipLoc/target skillID), build-stamped; `WarbandeerApi:ResolveRecipeOutput`, `WarbandeerApi:ClassifyProfGearItem` (item → prof skillID/equipLoc, shared with the bank scanner), `WarbandeerApi:ClassifyGearItem` (item → equippable equipLoc/classID/subClassID, shared by `gearbag`/`bank`) |
 | `data/concentration.lua` | Broker `concentration`: `data` — Midnight concentration currency per crafting prof, keyed by parent skillLineID |
 | `data/artisancurrency.lua` | Broker `artisanCurrency`: `data` — current-expansion artisan crafting currency (Midnight's per-profession "Artisan's … Moxie", every prof incl. gathering), keyed by parent skillLineID. Consumed by ShadowsOfUI-Artisan |
+| `data/professionknowledge.lua` | Broker `professionKnowledge`: `data` — per-Midnight-profession WEEKLY knowledge-point progress (treatise / weekly-quest / treasure / gathering), keyed by parent skillLineID; each source a `{done,total}` plus an aggregate `{done,total}`. Read from hidden quest flags (`C_QuestLog.IsQuestFlaggedCompleted`) against the static `ns.ProfessionKnowledge` table (Midnight quest IDs, cross-checked vs the WeeklyKnowledge addon), captured on login + `QUEST_TURNED_IN`, sticky vs transient reads, `resetOn = RESET_WEEKLY`. Pure `ns.SummarizeProfessionKnowledge` / `ns.MergeProfessionKnowledge` (+ `ns.ProfessionKnowledgeSources`) unit-tested in `spec/professionknowledge_spec.lua`. `WarbandeerApi:GetProfessionKnowledge`; `/wbc dump knowledge` (+ `wdump knowledge`). Consumed by Warbandeer's Midnight Profs view; retires the WeeklyKnowledge addon |
 | `data/glyphinfo.lua` | The static appearance-glyph catalog (loaded before the broker): `ns.AppearanceGlyphs` (per-character APPLIED cosmetic glyphs, keyed by classId → `{itemID, glyph, label, specs?}`; `glyph` is the id embedded in an applied spell's hyperlink, `specs` the usable spec set) + `ns.AppearanceUnlocks` (ACCOUNT-WIDE Druid Marks/travel glyphs + Warlock demon Grimoires + the Warlock green fire unlock, keyed by classId → `{itemID, quest, spell, label, startItem?, startQuest?}`; the optional `startItem`/`startQuest` mark a PROGRESSIVE row (green fire) whose displayed item advances with questline progress, resolved in `api.lua`). Ids ported from the community GlyphList addon and verified in-game via `/wbc dump glyphs`. Also the pure `ns.MergeGlyphStatus(list, specID, applied)` helper (unit-tested in `spec/glyphs_spec.lua`). The per-character LEARNED class-unlock catalog (`ns.LearnedUnlocks`) split out into `data/learnedunlocks.lua` |
 | `data/classmounts.lua` | The static class-mount catalog (loaded after `glyphinfo.lua`): `ns.ClassMounts`, keyed by classId → `{spellID?/itemID?, label, source?}` — the class's Legion order-hall mounts + spec-gated colour tints as ACCOUNT-WIDE collectibles (all classes but Evoker). `api.lua`'s `GetClassMounts` resolves each id to a mountID (`C_MountJournal.GetMountFromSpell/Item`) then reads name/icon/`isCollected` live. Tints with distinct item ids are separate entries; DK is ONE entry whose colour follows the active spec (not three). `source` is an inline "how to obtain" hint (not `collectiblesources.lua`, since tint mounts lack a teaching itemID). Registers `/wbc dump mounts` (+ `wdump mounts`), the in-game id/label verification probe. `ns.ClassMounts` integrity is unit-tested in `spec/glyphs_spec.lua` |
 | `data/learnedunlocks.lua` | The static `ns.LearnedUnlocks` catalog (split out of `glyphinfo.lua`; loaded right after it) — per-character LEARNED class unlocks keyed by classId → `{itemID, spell, label, races?}`, where `spell` is the granted spell checked via `C_SpellBook.IsSpellKnown` and `races` marks an innate grant (Goblin/Gnome Mechanical taming). Populated for 8 classes: the Legion class-order-hall cosmetic/utility tomes (Paladin `[2]` Divine Tome, Rogue `[4]` Dirty Tricks, DK `[6]` Necrophile Tome, Shaman `[7]` Tomes of Hex, Mage `[8]` Mystical Tomes incl. the Polymorph variants, Monk `[10]` Meditation Manual, Hunter `[3]` Fireworks/Play Dead), plus the two predating sets — Druid `[11]` "Tome of the Wilds" and Hunter `[3]` "Tomes & Tames" (Skill Tames + utility tomes). Abilities with no collectible item are excluded (Eyes of the Beast, Ottuk Taming, Polymorph: Pig). Also `ns.LearnedUnlockTitle` (per-class card-section name) and the pure `ns.MergeLearnedStatus(list, known)` helper (unit-tested in `spec/glyphs_spec.lua`). Ids from Wowhead, verified in-game via `/wbc dump glyphs` |
@@ -111,6 +112,9 @@ WarbandeerApi:GetQuestStatus(questID)      → { active: {name,classKey}[], comp
     -- by name); nil when none.  Drives ShadowsOfUI-Quests
 WarbandeerApi:GetReputations(char?)        → table<factionID, FactionStanding>?
     -- a character's cached faction standings; nil until seen since v21
+WarbandeerApi:GetProfessionKnowledge(char?) → table<skillLineID, ProfessionKnowledgeEntry>?
+    -- a character's weekly profession knowledge (per-source {done,total} + aggregate);
+    -- nil until seen since v39.  Drives Warbandeer's Midnight Profs "Know" column
 WarbandeerApi:GetFactionStandings(factionID) → { name, classKey, label, rank, done, paragon? }[]?
     -- every tracked character's standing with one faction, highest rank first;
     -- nil when no character has any standing.  Drives ShadowsOfUI-Reputations
@@ -315,6 +319,11 @@ concentration = {
 artisanCurrency = {
   data = { [skillLineID] = { name, currencyId, quantity, maxQuantity, lastUpdated } }?,
                                                        -- current-expansion artisan crafting currency per crafting prof
+}
+professionKnowledge = {                                -- v39; broker (data/professionknowledge.lua); weekly, cleared on RESET_WEEKLY
+  data = { [skillLineID] = { treatise = {done,total}?, weeklyQuest = {done,total}?,
+                             treasure = {done,total}?, gathering = {done,total}?,
+                             done, total } }?,          -- per-Midnight-profession weekly knowledge-point progress
 }
 glyphs = {                                             -- v33/v34; broker (data/glyphs.lua)
   applied = { [specID] = { [glyph] = true } }?,        -- cosmetic glyph ids applied, per spec (all specs captured where WoW exposes them; active spec always present); last-seen
