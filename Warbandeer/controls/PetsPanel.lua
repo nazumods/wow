@@ -189,7 +189,7 @@ local PetsPanel = Class(CleanFrame, function(self)
       },
       -- One pet (or a run of identical pets collapsed into a single "×N" row).
       pet = {
-        create = function(list) return IconListItem:new{ parent = list:Content(), height = PET_ROW_H } end,
+        create = function(list) return IconListItem:new{ parent = list:Content(), height = PET_ROW_H, tooltipAnchor = "LR/LL" } end,
         update = function(_, row, item)
           row:Set(petData(item.pet, self._level, item.count or 1))
           return PET_ROW_H
@@ -197,7 +197,7 @@ local PetsPanel = Class(CleanFrame, function(self)
       },
       -- One demon (Warlock).
       demon = {
-        create = function(list) return IconListItem:new{ parent = list:Content(), height = DEMON_ROW_H } end,
+        create = function(list) return IconListItem:new{ parent = list:Content(), height = DEMON_ROW_H, tooltipAnchor = "LR/LL" } end,
         update = function(_, row, item)
           row:Set(demonData(item.demon))
           return DEMON_ROW_H
