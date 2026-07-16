@@ -1,7 +1,7 @@
 # Warbandeer
 
 **Your whole warband at a glance.** Warbandeer is a multi-view dashboard for all the
-characters you play: gear, professions, gold, reputations, playtime, crafting plans,
+characters you play: gear, professions, gold, reputations, titles, playtime, crafting plans,
 and more — collected automatically as you log between characters and presented in one
 window.
 
@@ -29,6 +29,7 @@ The minimap button opens the window on left-click and drags to reposition. Right
 | Collected | Transmog-set collection grid by class and tier, with wanted-set stars and tier-rank markers (requires Collected) |
 | Housing Decor | Account-wide housing decor catalog — every decor with its owned count, category/unowned/wanted filters and a name search, and wanted stars you set with Shift-click (requires Housing Decor) |
 | Reputations | Faction standings across your whole warband, one page per expansion: each faction shows the highest standing any character reached (and an Alliance/Horde marker for side-locked reps); hover a faction to see every character's standing. Switch expansions with the pulldown or the Up/Down arrow keys, and move between factions with Left/Right |
+| Titles | Every player title in one browsable list — earned by your warband (a title any character has earned, with which ones shown on hover) and the ones still unearned. Filter with the pulldown (All / Earned / Unearned) or the Left/Right arrow keys, move between titles with Up/Down. With the optional **Epithet** addon installed, titles are coloured by rarity, the hover shows each title's source, and an extra **Earnable** filter lists the unearned titles you can still get |
 
 Every view is also reachable directly, e.g. `/wb gear`, `/wb profs`, `/wb playtime`.
 
@@ -56,6 +57,7 @@ Found in the Blizzard settings panel:
 - **Warbandeer_Collected** *(optional)* — for the Collected view (it also supplies the expansion badges that label the Reputations view's pages; without it those pages fall back to plain text).
 - **Warbandeer_HousingDecor** *(optional)* — for the Housing Decor view.
 - **ShadowsOfUI-Upgrade** *(optional)* — for gear-upgrade markers, missing-enchant + wrong-enchant + empty-socket flags (Summary "Up"/"Ench"/"Gem" columns + Detail notes), and the Detail view's Suggested box. The Summary "Up" column counts how many slots have an available upgrade and is coloured **green** when at least one of them can be equipped right now (at or below the character's level — a warband-bank copy counts, since you can withdraw it), or **gold** when every available upgrade is still gated above the character's level. In the Detail gear list, a piece carrying the *wrong* (non-recommended) enchant shows a yellow "Wrong enchant" note; **right-click that row to accept the enchant on that item** (it asks to confirm, then stops flagging — right-click again to undo). `/wb enchants` lists everything you've accepted and `/wb enchants clear` resets the list. With **ClassCodex** also installed, the Detail view adds a **Consumables** box (recommended flask/potion/food/weapon-buff/augment-rune for the spec).
+- **Epithet** *(optional)* — enriches the Titles view. When installed, its title catalog is read live (nothing is copied or stored) so titles are coloured by rarity, the hover shows each title's source, and the Titles view gains an **Earnable** filter listing the unearned titles that can still be obtained. Without it, the Titles view still works as an earned/unearned browser.
 
 ## Saved data
 
