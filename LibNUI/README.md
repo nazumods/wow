@@ -945,8 +945,17 @@ Anchor with a width (Left+Right) so the subtitle has room to wrap.
 | `subtitle`      | string        | Wrapped second line                               |
 | `itemID`        | number        | Hover shows this item's real tooltip              |
 | `tooltip`       | string/table  | Hover lines when there's no `itemID`              |
+| `tooltipAnchor` | string        | Which way the `tooltip` opens (default `"LL/UR"`) |
 | `iconSize`      | number        | Icon size (default `20`)                          |
 | `height`        | number        | Intrinsic row height (default `32`)               |
+
+`tooltipAnchor` keys pin the tip's corner onto the row's corner as `"<tipCorner>/<rowCorner>"`,
+using the corner shorthand `LL` / `LR` / `UL` / `UR` (Lower|Upper × Left|Right). The tip opens
+toward its own opposite corner, so pick by which way it should extend — a right-docked list wants
+it to open leftward (`"LR/LL"`) or stay within its own width (`"LR/LR"`) rather than fly off to the
+right (`"LL/UR"`, the default): `LL/UR` up-right, `LR/UL` up-left, `UL/LR` down-right, `UR/LL`
+down-left, `LR/LL` beside-left, `LL/LR` beside-right, `LR/LR` above right-aligned, `LL/LL` above
+left-aligned.
 
 Methods: `Set(data)` — re-point the whole row at new content (the pooled-reuse /
 `VirtualList.updateRow` path); absent keys clear that part.

@@ -6,12 +6,29 @@ local Class = ns.lua.Class
 local Frame, Label, Texture = ui.Frame, ui.Label, ui.Texture
 local GameTooltip = GameTooltip
 
+-- Where the hover `tooltip` opens relative to the row, keyed "<tipCorner>/<rowCorner>" in corner
+-- shorthand LL / LR / UL / UR (Lower|Upper × Left|Right). SetPoint pins the tip's corner onto the
+-- row's corner, so the tip extends toward its own opposite corner; the small offset nudges it clear
+-- of the edge. Pick by which way the tip should open: the default flies up-and-right ("LL/UR"), which
+-- a right-docked list (e.g. Warbandeer's PetsPanel, pinned to the window's right edge) wants to avoid
+-- — such a list keeps the tip within its own width ("LR/LR") or opens it leftward ("LR/LL"/"LR/UL").
+local TIP_ANCHORS = {
+  ["LL/UR"] = { ui.edge.BottomLeft,  ui.edge.TopRight,     2,  2 },  -- opens up + right (default)
+  ["LR/UL"] = { ui.edge.BottomRight, ui.edge.TopLeft,     -2,  2 },  -- opens up + left
+  ["UL/LR"] = { ui.edge.TopLeft,     ui.edge.BottomRight,  2, -2 },  -- opens down + right
+  ["UR/LL"] = { ui.edge.TopRight,    ui.edge.BottomLeft,  -2, -2 },  -- opens down + left
+  ["LR/LL"] = { ui.edge.BottomRight, ui.edge.BottomLeft,  -2,  0 },  -- beside, to the left  (bottoms level)
+  ["LL/LR"] = { ui.edge.BottomLeft,  ui.edge.BottomRight,  2,  0 },  -- beside, to the right (bottoms level)
+  ["LR/LR"] = { ui.edge.BottomRight, ui.edge.BottomRight, -2,  2 },  -- above, right edges aligned
+  ["LL/LL"] = { ui.edge.BottomLeft,  ui.edge.BottomLeft,   2,  2 },  -- above, left edges aligned
+}
+
 -- A media list row: an icon (or a coloured bullet when there's no icon), a title line
 -- with an optional muted "kind" suffix, and a wrapped subtitle beneath — the whole row
 -- hoverable for a tooltip (`itemID` → the real item tooltip; else `tooltip` lines via
--- ui.tip). Sized for reward/inventory-style lists; pairs naturally with VirtualList
--- (build in createRow, re-point with the setters in updateRow). Anchor with a width
--- (Left+Right) so the subtitle has room to wrap.
+-- ui.tip, opened on the `tooltipAnchor` side). Sized for reward/inventory-style lists;
+-- pairs naturally with VirtualList (build in createRow, re-point with the setters in
+-- updateRow). Anchor with a width (Left+Right) so the subtitle has room to wrap.
 ---@class IconListItem: Frame
 ---@field icon string|number?   icon path/fileID; nil renders a bullet instead
 ---@field title string?          first-line text
@@ -23,6 +40,7 @@ local GameTooltip = GameTooltip
 ---@field height number          row height (default 32) — intrinsic, survives any `position`; a VirtualList updateRow's returned height overrides it
 ---@field itemID number?         hover shows this item's real tooltip
 ---@field tooltip string|string[]?  hover tooltip lines when there's no itemID
+---@field tooltipAnchor string   which way the `tooltip` opens; a TIP_ANCHORS key (default "LL/UR" — up-and-right)
 ---@field titleLabel Label
 ---@field subtitleLabel Label
 ---@field _icon Texture
@@ -65,7 +83,8 @@ local IconListItem = Class(Frame, function(self)
       ui.tip:ClearLines()
       for _, l in ipairs(lines) do ui.tip:AddLine(l) end
       ui.tip:ClearAllPoints()
-      ui.tip:SetPoint(ui.edge.BottomLeft, self._widget, ui.edge.TopRight, 2, 2)
+      local a = TIP_ANCHORS[self.tooltipAnchor] or TIP_ANCHORS["LL/UR"]
+      ui.tip:SetPoint(a[1], self._widget, a[2], a[3], a[4])
       ui.tip:Show()
     end
   end)
@@ -79,6 +98,7 @@ end, {
   subtitleColor = "muted",
   iconSize      = 20,
   height        = 32,
+  tooltipAnchor = "LL/UR",
 })
 ui.IconListItem = IconListItem
 
