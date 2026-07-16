@@ -89,7 +89,7 @@ end, "Repair stored data (recount characters)")
 ---@field MigrateDB fun(self) Migrate database to latest version
 function ns:MigrateDB()
   local db = ns.db
-  if db.version == 38 then return end
+  if db.version == 39 then return end
   if not db.characters then db.characters = {} end
   if not db.numCharacters then
     db.numCharacters = countCharacters(db)
@@ -403,6 +403,14 @@ function ns:MigrateDB()
   -- Traveler's Log strip stays hidden) until the next login, so rollback is lossless.
   if (db.version or 0) < 38 then
     db.version = 38
+  end
+
+  -- v39: per-character weekly profession knowledge (`professionKnowledge` broker).  Additive and
+  -- self-seeded by data/professionknowledge.lua at login (and cleared each weekly reset); nothing
+  -- to seed here — an older revision simply lacks it (Warbandeer's Midnight professions view shows
+  -- no knowledge column for that character) until the next login, so rollback is lossless.
+  if (db.version or 0) < 39 then
+    db.version = 39
   end
 end
 

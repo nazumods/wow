@@ -12,6 +12,7 @@ local FILES = {
   "data/classmounts.lua",
   "data/learnedunlocks.lua",
   "data/challengetames.lua",
+  "data/professionknowledge.lua",
 }
 
 ---@return table ns  a fresh namespace with the pure modules loaded
@@ -21,6 +22,10 @@ function M.load()
   -- WoW-API user in the file) never runs under test, so a no-op registerDump lets the pure catalog
   -- load without the addon core — same idea as libn.lua stubbing Mixin.
   ns.registerDump = function() end
+  -- data/professionknowledge.lua registers its broker at load; the broker's get (the file's only
+  -- WoW-API user) never runs under test, so a stub RegisterBroker returning a bare object lets the
+  -- pure catalog + summariser load without the addon core.
+  ns.RegisterBroker = function() return {} end
   for _, f in ipairs(FILES) do
     assert(loadfile("Warbandeer_Characters/" .. f))("Warbandeer_Characters", ns)
   end

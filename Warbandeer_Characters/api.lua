@@ -237,6 +237,17 @@ function API:GetReputations(charName)
   return c and c.reputations and c.reputations.factions or nil
 end
 
+---A character's weekly profession knowledge, keyed by parent skillLineID (each a per-source
+---`{done,total}` plus an aggregate `done`/`total`).  Captured each login + on QUEST_TURNED_IN and
+---cleared at the weekly reset.  nil until the character has been seen since v39, or empty when it
+---has no knowledge-tracked professions.  See `ProfessionKnowledgeEntry`.
+---@param charName string?
+---@return table<integer, ProfessionKnowledgeEntry>?
+function API:GetProfessionKnowledge(charName)
+  local c = ns.db.characters[charName or ns.currentPlayer]
+  return c and c.professionKnowledge and c.professionKnowledge.data or nil
+end
+
 ---Every tracked character's standing with one faction, highest first.  Each entry is the
 ---character's `FactionStanding` plus `name`/`classKey` (for class colouring).  nil when no
 ---character has any standing with that faction.

@@ -63,6 +63,12 @@ data through the `WarbandeerApi` global.
   character has collected, plus its current (featured) title — so Warbandeer's Summary view gains a
   **Titles** column showing each character's current title, with the full title and its earned-title
   count on hover.
+- **Weekly profession knowledge** is tracked per character (and cleared each weekly reset) — for each
+  profession, which of this week's knowledge-point sources you've collected: the treatise, the weekly
+  trainer / Artisan's Consortium quest, treasure knowledge, and gathering knowledge. Warbandeer's
+  Midnight Profs view gains a **Know** column (collected / available this week, with a per-profession
+  breakdown on hover), so you can see at a glance which characters still have knowledge to pick up.
+  This replaces the standalone WeeklyKnowledge addon.
 
 ## Settings
 
