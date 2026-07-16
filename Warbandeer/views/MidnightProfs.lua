@@ -28,6 +28,16 @@ local ICON_COL_W = 20
 local CHAR_COL_W = 90
 local PROF_COL_W     = 100  -- gathering / fishing / cooking
 local PROF_CON_COL_W = 142  -- crafting profs with concentration (6 chars wider)
+local KNOW_COL_W     = 52   -- per-character weekly knowledge summary
+
+-- Weekly profession knowledge sources (data/professionknowledge.lua), in tooltip order with
+-- display labels. The source keys mirror Warbandeer_Characters' ProfessionKnowledgeSources.
+local KNOWLEDGE_SOURCES = {
+  { key = "treatise",    label = "Treatise" },
+  { key = "weeklyQuest", label = "Weekly Quest" },
+  { key = "treasure",    label = "Treasure" },
+  { key = "gathering",   label = "Gathering" },
+}
 
 local TRANSPARENT = { color = Colors.TransparentBlack }
 
@@ -116,6 +126,9 @@ local function profCell(toon, prof)
     text = text .. " " .. recipeCol .. "(" .. recipePct .. "%)" .. C_END
   end
 
+  -- Weekly profession knowledge for this profession, if tracked (data/professionknowledge.lua).
+  local know = toon.professionKnowledge and toon.professionKnowledge.data and toon.professionKnowledge.data[prof.id]
+
   return {
     text      = text,
     justifyH  = ui.justify.Center,
@@ -133,6 +146,62 @@ local function profCell(toon, prof)
       end
       if recipePct then
         ui.tip:AddLine("Recipes: " .. recipeLearned .. " / " .. recipeTotal .. " (" .. recipePct .. "%)")
+      end
+      if know then
+        ui.tip:AddLine("Weekly Knowledge: " .. know.done .. " / " .. know.total)
+      end
+      ui.tip:Show()
+    end,
+    onLeave = function() ui.tip:Hide() end,
+  }
+end
+
+-- Aggregate a character's weekly profession knowledge across their tracked professions, in
+-- display order. Returns points collected, points available, and per-profession rows (for the
+-- summary column's tooltip). Reads the professionKnowledge broker; empty for pre-v39 characters.
+local function charKnowledge(toon)
+  local data = toon.professionKnowledge and toon.professionKnowledge.data
+  local done, total, rows = 0, 0, {}
+  if data then
+    for _, id in ipairs(PROF_ORDER) do
+      local entry = data[id]
+      if entry then
+        done, total = done + entry.done, total + entry.total
+        insert(rows, { name = PROF_INFO[id].name, entry = entry })
+      end
+    end
+  end
+  return done, total, rows
+end
+
+-- The per-character "Know" summary cell: collected/available this reset, coloured by completeness,
+-- with a per-profession, per-source breakdown tooltip. "—" when no profession is knowledge-tracked.
+local function knowledgeCell(toon)
+  local done, total, rows = charKnowledge(toon)
+  local text
+  if total == 0 then
+    text = C_GREY .. "—" .. C_END
+  else
+    local col = done >= total and C_GREEN or (done == 0 and C_ORANGE or C_WHITE)
+    text = col .. done .. "/" .. total .. C_END
+  end
+  return {
+    text     = text,
+    justifyH = ui.justify.Center,
+    onEnter = function(self)
+      ui.tip:AnchorTo(self, "ANCHOR_BOTTOMRIGHT", -10, 10)
+      ui.tip:ClearLines()
+      ui.tip:AddLine("Weekly Knowledge")
+      if #rows == 0 then
+        ui.tip:AddLine("No knowledge-tracked professions.")
+      else
+        for _, r in ipairs(rows) do
+          ui.tip:AddLine(r.name .. ": " .. r.entry.done .. " / " .. r.entry.total)
+          for _, s in ipairs(KNOWLEDGE_SOURCES) do
+            local src = r.entry[s.key]
+            if src then ui.tip:AddLine("  " .. s.label .. ": " .. src.done .. " / " .. src.total) end
+          end
+        end
       end
       ui.tip:Show()
     end,
@@ -183,6 +252,12 @@ local function buildColInfo(profs)
       tooltip  = prof.name .. (prof.hasCon and " — skill [concentration] (recipes%)" or " — skill (recipes%)"),
     })
   end
+  insert(cols, {
+    name     = "Know",
+    width    = KNOW_COL_W,
+    backdrop = TRANSPARENT,
+    tooltip  = "Weekly profession knowledge collected / available this reset",
+  })
   return cols
 end
 
@@ -227,7 +302,7 @@ function MidnightProfs:BuildTable(profs)
   }
   self._profKey = profKey(profs)
   self._profs   = profs
-  self._numCols = 2 + #profs
+  self._numCols = 2 + #profs + 1  -- faction + Character + professions + Know
   self._sortCol = nil
   -- wire sort click on each column header
   for i, col in ipairs(self.tbl.cols) do
@@ -330,12 +405,14 @@ function MidnightProfs:OnBeforeShow()
         onLeave = ns.HideCharacterTooltip,
       },
     }
-    -- sort keys: col1=faction, col2=name, col3+=prof skill
+    -- sort keys: col1=faction, col2=name, col3..=prof skill, last=knowledge points collected
     local keys = { toon.isAlliance and 1 or 0, toon.name }
     for _, prof in ipairs(self._profs) do
       insert(row, profCell(toon, prof))
       insert(keys, profSortKey(toon, prof))
     end
+    insert(row, knowledgeCell(toon))
+    insert(keys, (charKnowledge(toon)))
     insert(entries, { toon = toon, row = row, keys = keys })
   end
 
