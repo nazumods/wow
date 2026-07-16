@@ -65,6 +65,7 @@ ns.viewOrder = {
   "collected",
   "decor",
   "reputations",
+  "titles",
 }
 
 -- https://wowpedia.fandom.com/wiki/Category:HOWTOs

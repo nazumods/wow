@@ -5,6 +5,7 @@ return {
     -- release change-detection (release.sh).
     ROOT = {
       "LibNAddOn/spec",
+      "Warbandeer/spec",
       "Warbandeer_Characters/spec",
       "ShadowsOfUI-Upgrade/spec",
       "Warbandeer_Bars/spec",
