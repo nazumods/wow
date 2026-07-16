@@ -6,6 +6,18 @@ local ns = select(2, ...)
 -- same conventional-commit grouping used for the GitHub/CurseForge release notes.
 ---@type { version: string, notes: string }[]
 ns.changelog = {
+  { version = "12.0.7-r24", notes = [==[
+### Features
+- Titles view — earned + earnable browser with optional Epithet enrichment (#562)
+- per-character weekly profession knowledge tracking (#561)
+- hover tooltips on Pets panel rows (pets + demons) (#558)
+- show a white "--" for characters with "No Title" set (#557)
+
+### Bug Fixes
+- restore the gap between Traveler's Log and the section grid (#559)
+- heal cell fonts when each faction table first becomes visible (#554)
+
+]==] },
   { version = "12.0.7-r23", notes = [==[
 ### Features
 - Traveler's Log progress + rewards-waiting tracker (#553)
