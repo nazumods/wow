@@ -1,13 +1,15 @@
 local warbandeer = require("Warbandeer.spec.warbandeer")
 
 -- Synthetic universe of five titles (ids are title mask ids — they need not be contiguous).
+-- `current` = the logged-in character knows the title (the account-wide oracle): 10 & 40 are
+-- account-wide, 30 is a character-specific title only an alt (Zephyr) holds.
 local function universe()
   return {
-    { id = 10, name = "the Explorer" },
-    { id = 20, name = "the Insane" },
-    { id = 30, name = "the Kingslayer" },
-    { id = 40, name = "Battlemaster" },
-    { id = 50, name = "Chef" },
+    { id = 10, name = "the Explorer",   current = true  },
+    { id = 20, name = "the Insane",     current = false },
+    { id = 30, name = "the Kingslayer", current = false },
+    { id = 40, name = "Battlemaster",   current = true  },
+    { id = 50, name = "Chef",           current = false },
   }
 end
 
@@ -41,7 +43,7 @@ describe("Warbandeer ns.ComputeTitles", function()
   it("returns an empty list and zero counts for an empty universe", function()
     local r = ns.ComputeTitles({}, characters(), nil)
     assert.same({}, r.list)
-    assert.same({ total = 0, earned = 0, unearned = 0, earnable = 0 }, r.counts)
+    assert.same({ total = 0, earned = 0, unearned = 0, earnable = 0, unearnable = 0 }, r.counts)
   end)
 
   it("tolerates nil universe and nil characters", function()
@@ -88,6 +90,27 @@ describe("Warbandeer ns.ComputeTitles", function()
     assert.equal(1, r.counts.earnable)
   end)
 
+  it("splits the unearned titles into earnable + unearnable, which sum to unearned", function()
+    local r = ns.ComputeTitles(universe(), characters(), epithet())
+    -- unearned = 20 (obtainable "no") + 50 (obtainable "yes"). earnable = {50}; unearnable = {20}.
+    local m = byId(r.list)
+    assert.is_true(m[20].unearnable)   -- obtainable "no"
+    assert.is_false(m[50].unearnable)  -- earnable
+    assert.is_false(m[30].unearnable)  -- earned
+    assert.equal(1, r.counts.earnable)
+    assert.equal(1, r.counts.unearnable)
+    assert.equal(r.counts.unearned, r.counts.earnable + r.counts.unearnable)
+  end)
+
+  it("treats a 'feat' obtainability as unearnable", function()
+    local uni = { { id = 70, name = "Deathbringer" } } -- unearned (no `current`)
+    local r = ns.ComputeTitles(uni, {}, { [70] = { titleID = 70, obtainable = "feat" } })
+    local m = byId(r.list)
+    assert.is_true(m[70].unearnable)
+    assert.is_false(m[70].earnable)
+    assert.equal(1, r.counts.unearnable)
+  end)
+
   it("attaches the matched Epithet entry by titleID", function()
     local r = ns.ComputeTitles(universe(), characters(), epithet())
     local m = byId(r.list)
@@ -96,20 +119,43 @@ describe("Warbandeer ns.ComputeTitles", function()
     assert.is_nil(m[10].epithet)  -- no catalog entry for id 10
   end)
 
-  it("degrades cleanly without Epithet — no enrichment, nothing earnable", function()
+  it("degrades cleanly without Epithet — no enrichment, nothing earnable or unearnable", function()
     local r = ns.ComputeTitles(universe(), characters(), nil)
     for _, e in ipairs(r.list) do
       assert.is_nil(e.epithet)
       assert.is_false(e.earnable)
+      assert.is_false(e.unearnable)
     end
     assert.equal(0, r.counts.earnable)
+    assert.equal(0, r.counts.unearnable)
   end)
 
   it("treats a character with no known list as owning nothing", function()
+    local uni = { { id = 10, name = "the Explorer" } } -- no `current` ⇒ not account-wide
     local chars = { { name = "Fresh", known = nil }, { name = "Alto", known = { { id = 10 } } } }
-    local r = ns.ComputeTitles(universe(), chars, nil)
+    local r = ns.ComputeTitles(uni, chars, nil)
     local m = byId(r.list)
     assert.same({ "Alto" }, m[10].owners)
+    assert.equal(1, r.counts.earned)
+    assert.is_false(m[10].accountWide)
+  end)
+
+  it("marks a title account-wide when the logged-in character knows it (the oracle)", function()
+    local r = ns.ComputeTitles(universe(), characters(), nil)
+    local m = byId(r.list)
+    assert.is_true(m[10].accountWide)   -- current = true
+    assert.is_true(m[40].accountWide)   -- current = true
+    assert.is_false(m[30].accountWide)  -- only Zephyr holds it; current char doesn't know it
+    assert.is_false(m[20].accountWide)  -- unearned
+  end)
+
+  it("counts an account-wide title as earned even when no stored alt lists it yet", function()
+    local uni = { { id = 60, name = "Loremaster", current = true } }
+    local r = ns.ComputeTitles(uni, { { name = "Alto", known = nil } }, nil)
+    local m = byId(r.list)
+    assert.is_true(m[60].earned)
+    assert.is_true(m[60].accountWide)
+    assert.same({}, m[60].owners)
     assert.equal(1, r.counts.earned)
   end)
 

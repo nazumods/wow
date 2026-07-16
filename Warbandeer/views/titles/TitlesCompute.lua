@@ -12,9 +12,11 @@ local sort, insert = table.sort, table.insert
 ---@class TitleEntry
 ---@field id integer         titleMaskID (joins GetTitleName/IsTitleKnown + Epithet titleID)
 ---@field name string        trimmed display name
----@field earned boolean     at least one warband character has earned it
+---@field earned boolean     the warband has it (an alt owns it, or the current character knows it)
+---@field accountWide boolean  the current (logged-in) character knows it ⇒ available warband-wide
 ---@field owners string[]    names of characters that have earned it (empty when unearned)
 ---@field earnable boolean   unearned AND Epithet reports it obtainable == "yes"
+---@field unearnable boolean  unearned AND Epithet marks it not obtainable (obtainable == "no"/"feat")
 ---@field epithet table?     the matched Epithet catalog entry (nil without Epithet)
 
 ---@class TitlesCounts
@@ -22,6 +24,7 @@ local sort, insert = table.sort, table.insert
 ---@field earned integer
 ---@field unearned integer
 ---@field earnable integer
+---@field unearnable integer  unearned and Epithet marks it not obtainable (no/feat)
 
 ---@class TitlesResult
 ---@field list TitleEntry[]
@@ -45,20 +48,28 @@ function ns.ComputeTitles(universe, characters, epithetById)
     end
   end
 
-  local list, earnedN, earnableN = {}, 0, 0
+  local list, earnedN, earnableN, unearnableN = {}, 0, 0, 0
   for _, t in ipairs(universe or {}) do
     local o = owners[t.id]
-    local earned = o ~= nil
+    -- `current` (the logged-in character knows it) is the account-wide oracle. A title counts as
+    -- earned by the warband either because an alt owns it OR because the current character knows it
+    -- (an account-wide title the alts' stored lists may not have caught up to yet).
+    local accountWide = t.current == true
+    local earned = o ~= nil or accountWide
     local ep = epithetById and epithetById[t.id]
-    local earnable = (not earned) and ep ~= nil and ep.obtainable == "yes"
-    if earned then
-      earnedN = earnedN + 1
-      sort(o, function(a, b) return a < b end)
-    end
+    local obtainable = ep and ep.obtainable
+    -- Earnable / unearnable partition the *unearned* titles by Epithet's obtainability. Both need an
+    -- Epithet entry, so with Epithet absent nothing is either (the view keeps those as plain
+    -- "Unearned"); an unearned title with an entry but no yes/no/feat verdict stays neither too.
+    local earnable = (not earned) and obtainable == "yes"
+    local unearnable = (not earned) and (obtainable == "no" or obtainable == "feat")
+    if earned then earnedN = earnedN + 1 end
+    if o then sort(o, function(a, b) return a < b end) end
     if earnable then earnableN = earnableN + 1 end
+    if unearnable then unearnableN = unearnableN + 1 end
     insert(list, {
-      id = t.id, name = t.name, earned = earned,
-      owners = o or {}, earnable = earnable, epithet = ep or nil,
+      id = t.id, name = t.name, earned = earned, accountWide = accountWide,
+      owners = o or {}, earnable = earnable, unearnable = unearnable, epithet = ep or nil,
     })
   end
 
@@ -70,6 +81,9 @@ function ns.ComputeTitles(universe, characters, epithetById)
   local total = #list
   return {
     list = list,
-    counts = { total = total, earned = earnedN, unearned = total - earnedN, earnable = earnableN },
+    counts = {
+      total = total, earned = earnedN, unearned = total - earnedN,
+      earnable = earnableN, unearnable = unearnableN,
+    },
   }
 end

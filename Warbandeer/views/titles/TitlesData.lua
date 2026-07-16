@@ -2,6 +2,7 @@
 local ns = select(2, ...)
 local GetNumTitles = GetNumTitles
 local GetTitleName = GetTitleName
+local IsTitleKnown = IsTitleKnown
 local strtrim = strtrim
 local insert = table.insert
 local ITEM_QUALITY_COLORS = ITEM_QUALITY_COLORS
@@ -11,8 +12,8 @@ local ITEM_QUALITY_COLORS = ITEM_QUALITY_COLORS
 -- pure categoriser (views/titles/TitlesCompute.lua, ns.ComputeTitles) so the WoW/Epithet reads
 -- stay out of the busted-tested core. Exposed on `ns.titles` (loaded before TitlesView.lua).
 
-local ROW_H, CONTENT_W, SCROLLBAR_W = 24, 340, 20
-local ICON, MARK_W = 16, 64
+local ROW_H, CONTENT_W, SCROLLBAR_W = 24, 360, 20
+local ICON, MARK_W = 16, 80
 local MAX_H = 18 * ROW_H -- viewport cap; longer lists scroll
 
 -- Every valid player title as { id = titleMaskID, name = <trimmed display name> }. Mirrors the
@@ -25,7 +26,10 @@ local function scanUniverse()
     local name, playerTitle = GetTitleName(i)
     if name and playerTitle then
       local clean = strtrim(name)
-      if clean ~= "" then insert(list, { id = i, name = clean }) end
+      -- `current` = the logged-in character knows this title. Account-wide titles propagate to
+      -- every character, so the live current-character IsTitleKnown is the account-wide oracle:
+      -- true ⇒ the title is warband-wide; false while an alt owns it ⇒ character-specific.
+      if clean ~= "" then insert(list, { id = i, name = clean, current = IsTitleKnown(i) }) end
     end
   end
   return list
@@ -42,12 +46,14 @@ local function gatherCharacters()
   return chars
 end
 
--- Rarity colour escape ("|cffRRGGBB") for an Epithet entry's quality (`q`, 1-5), or nil when
--- there's no Epithet entry / quality — the caller then falls back to its earned/unearned colour.
+-- Rarity colour markup for an Epithet entry's quality (`q`, 1-5), or nil when there's no Epithet
+-- entry / quality (caller then falls back to its earned/unearned colour). `ITEM_QUALITY_COLORS[q]
+-- .hex` is `GenerateHexColorMarkup()` output — already the full `|cffRRGGBB` escape, so it's
+-- returned as-is (prepending another `|c` double-prefixes it and leaks a literal `|c`).
 local function rarityCode(ep)
   local q = ep and ep.q
   local c = q and ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[q]
-  return c and c.hex and ("|c" .. c.hex) or nil
+  return c and c.hex or nil
 end
 
 -- The installed Epithet addon's catalog re-keyed by titleID for a direct join to the client's

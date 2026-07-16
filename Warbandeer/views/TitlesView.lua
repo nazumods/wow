@@ -83,10 +83,15 @@ function TitlesView:_refreshData()
   self._classByName = {}
   for _, c in ipairs(chars) do self._classByName[c.name] = c.classKey end
 
-  local earned, unearned, earnable = {}, {}, {}
+  local earned, unearned, earnable, unearnable = {}, {}, {}, {}
   for _, e in ipairs(self._all) do
-    if e.earned then insert(earned, e) else insert(unearned, e) end
-    if e.earnable then insert(earnable, e) end
+    if e.earned then
+      insert(earned, e)
+    else
+      insert(unearned, e)
+      if e.earnable then insert(earnable, e)
+      elseif e.unearnable then insert(unearnable, e) end
+    end
   end
 
   local counts = result.counts
@@ -95,9 +100,11 @@ function TitlesView:_refreshData()
     { key = "earned",   label = ("Earned (%d)"):format(counts.earned),     list = earned },
     { key = "unearned", label = ("Unearned (%d)"):format(counts.unearned), list = unearned },
   }
-  -- Earnable only means something with Epithet's obtainability data.
+  -- Earnable/Unearnable split the unearned titles by Epithet's obtainability, so they only carry
+  -- meaning with Epithet loaded.
   if epById then
-    insert(statuses, { key = "earnable", label = ("Earnable (%d)"):format(counts.earnable), list = earnable })
+    insert(statuses, { key = "earnable",   label = ("Earnable (%d)"):format(counts.earnable),     list = earnable })
+    insert(statuses, { key = "unearnable", label = ("Unearnable (%d)"):format(counts.unearnable), list = unearnable })
   end
   self._statuses = statuses
   if self._statusIdx > #statuses then self._statusIdx = 1 end
@@ -140,11 +147,17 @@ function TitlesView:_select(idx)
 
   if e.earnable then
     ui.tip:AddLine("|cffffd200Earnable now|r")
-  elseif not e.earned and ep and (ep.obtainable == "no" or ep.obtainable == "feat") then
-    ui.tip:AddLine(MUTED .. "Not currently obtainable" .. END)
+  elseif e.unearnable then
+    ui.tip:AddLine("|cffdb6666Not currently obtainable|r")
   end
 
-  if e.earned then
+  if not e.earned then
+    ui.tip:AddLine(MUTED .. "Not earned by any character" .. END)
+  elseif e.accountWide then
+    -- Account-wide (available to every character) — an owner roster would just be noise.
+    ui.tip:AddLine("|cff40bf40Earned by Warband|r")
+  else
+    -- Character-specific (e.g. a PvP season title) — show exactly which characters hold it.
     local o = e.owners
     local shown = min(#o, 12)
     ui.tip:AddLine("Earned by:")
@@ -152,8 +165,6 @@ function TitlesView:_select(idx)
       ui.tip:AddLine("  " .. ns.Colors.className(o[i], self._classByName[o[i]]))
     end
     if #o > shown then ui.tip:AddLine(MUTED .. ("  +%d more"):format(#o - shown) .. END) end
-  else
-    ui.tip:AddLine(MUTED .. "Not earned by any character" .. END)
   end
   ui.tip:Show()
 end

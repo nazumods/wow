@@ -11,6 +11,7 @@ local ROW_H, MAX_H, ICON, MARK_W = T.ROW_H, T.MAX_H, T.ICON, T.MARK_W
 local rarityCode = T.rarityCode
 local CHECK = "Interface\\RaidFrame\\ReadyCheck-Ready" -- earned marker
 local END, GOLD = "|r", "|cffffd200"
+local RED, RED_CODE = {0.86, 0.40, 0.40}, "|cffdb6666" -- unearnable (can't currently get it)
 
 -- ─── Rows ─────────────────────────────────────────────────────────────────────
 -- VirtualList row builders. A pooled row's slot maps 1:1 to its item index, so the row carries
@@ -52,9 +53,13 @@ function TitlesView:_updateRow(row, e, i)
   else
     row.check._widget:Hide()
     row.name:Text(e.name)
-    row.name:Color(theme.colors.muted)
+    -- Unearnable titles read red; ordinary unearned (earnable or unknown) stay muted.
+    row.name:Color(e.unearnable and RED or theme.colors.muted)
   end
-  row.mark:Text(e.earnable and (GOLD .. "Earnable" .. END) or "")
+  -- Right-column status tag, sharing one column: gold "Earnable" or red "Unearnable".
+  if e.earnable then row.mark:Text(GOLD .. "Earnable" .. END)
+  elseif e.unearnable then row.mark:Text(RED_CODE .. "Unearnable" .. END)
+  else row.mark:Text("") end
   if i == self._sel then row.background:Color(theme.colors.hover) else row.background:Color(0, 0, 0, 0) end
   return ROW_H
 end
