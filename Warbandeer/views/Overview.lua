@@ -96,7 +96,10 @@ local Overview = Class(Frame, function(self)
   local TL_ROW_H  = (theme.fonts.body[2] or 13) + 6    -- rewards-waiting line height
   local TL_H = HEAD_H + TL_NAME_H + TL_BAR_TH + 6 + TL_ROW_H
   local stripTop = P + STRIP_H + GAP
-  local contentTop = stripTop + (showTL and (TL_H + GAP) or 0)
+  -- GAP + BLEED*2: a plain GAP is swallowed by the strip's and the grid's 6px module
+  -- bleeds (which meet in the middle), leaving them touching; the extra BLEED*2 restores
+  -- a visible GAP-sized gutter between the Traveler's Log strip and the grid below.
+  local contentTop = stripTop + (showTL and (TL_H + GAP + BLEED * 2) or 0)
   self._contentTop = contentTop
 
   -- Reputations + Achievements, one panel per expansion. Each panel holds a reps
