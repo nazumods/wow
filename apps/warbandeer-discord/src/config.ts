@@ -13,6 +13,7 @@ export interface Config {
   githubToken?: string;
   dmfTimezone: string;
   reportRoleId?: string;
+  commandPrefix: string;
 }
 
 /** `/report` project token → GitHub `owner/repo`. The slash-command choices are built from
@@ -48,6 +49,16 @@ export function resolveConfig(env: Env): Config {
 
   const announceChannelId = required("ANNOUNCE_CHANNEL_ID");
 
+  // Optional prefix for slash-command names, so a second (debug/staging) bot can run in the
+  // same server without command collisions. Discord requires lowercase command names.
+  const commandPrefix = optional("COMMAND_PREFIX") ?? "";
+  if (commandPrefix && !/^[a-z0-9_-]{1,20}$/.test(commandPrefix)) {
+    throw new Error(
+      `COMMAND_PREFIX must be 1-20 chars of lowercase letters, numbers, "-" or "_" ` +
+        `(Discord slash-command name rules), got "${commandPrefix}"`,
+    );
+  }
+
   return {
     discordToken: required("DISCORD_TOKEN"),
     announceChannelId,
@@ -62,6 +73,7 @@ export function resolveConfig(env: Env): Config {
     dmfTimezone:
       optional("DMF_TIMEZONE") ?? (region === "us" ? "America/Los_Angeles" : "Europe/Paris"),
     reportRoleId: optional("REPORT_ROLE_ID"),
+    commandPrefix,
   };
 }
 

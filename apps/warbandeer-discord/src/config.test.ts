@@ -38,6 +38,15 @@ describe("resolveConfig", () => {
     expect(() => resolveConfig({ ...base, WOW_REGION: "kr" })).toThrow(/WOW_REGION/);
   });
 
+  test("command prefix defaults to empty and passes through when set", () => {
+    expect(resolveConfig(base).commandPrefix).toBe("");
+    expect(resolveConfig({ ...base, COMMAND_PREFIX: "r_" }).commandPrefix).toBe("r_");
+  });
+
+  test("rejects an uppercase / invalid COMMAND_PREFIX", () => {
+    expect(() => resolveConfig({ ...base, COMMAND_PREFIX: "R_" })).toThrow(/COMMAND_PREFIX/);
+  });
+
   test("REPORT_ROLE_ID is optional and passes through", () => {
     expect(resolveConfig(base).reportRoleId).toBeUndefined();
     expect(resolveConfig({ ...base, REPORT_ROLE_ID: "42" }).reportRoleId).toBe("42");

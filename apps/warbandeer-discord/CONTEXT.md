@@ -11,11 +11,12 @@
 | File | Responsibility |
 |---|---|
 | `src/index.ts` | Client login (Guilds intent only), slash-command registration (guild if `GUILD_ID`, else global), starts the scheduler; routes interactions — chat commands → `handleCommand`, `/report` modal submits → `handleReportModal` |
-| `src/config.ts` | Env config from `.env` — pure `resolveConfig(env)` (exported for tests) + the `config` singleton; throws at import time on missing required vars. Also the `/report` project→repo map (`REPORT_PROJECTS` + `repoForProject`) and `reportRoleId` |
-| `src/commands.ts` | `/dmf`, `/reset`, `/status`, `/report` command builders + dispatch; Discord `<t:…>` timestamp helpers |
+| `src/config.ts` | Env config from `.env` — pure `resolveConfig(env)` (exported for tests) + the `config` singleton resolved from `process.env`; throws at import time on missing required vars or an invalid `COMMAND_PREFIX`. Also the `/report` project→repo map (`REPORT_PROJECTS` + `repoForProject`) and `reportRoleId` |
+| `src/commands.ts` | `/dmf`, `/reset`, `/status`, `/report` command builders + dispatch; `cmd(name)` builds every command under `config.commandPrefix`, `bareName()` strips it back off on dispatch; Discord `<t:…>` timestamp helpers |
 | `src/report.ts` | `/report` flow: role gate (reads roles from the interaction — no Members intent), Title/Description modal, then `createIssue` in the mapped repo labeled `automated`; `reportBody` footer names the reporter (plain username, no mention) |
 | `src/announce.ts` | 60 s tick scheduler: DMF-open + weekly-reset announcements, realm-up watch, release polling; routes per `AnnounceKind` via `channelFor()` — releases → `RELEASE_ANNOUNCE_CHANNEL_ID` (falls back to `ANNOUNCE_CHANNEL_ID`), everything else → `ANNOUNCE_CHANNEL_ID` |
-| `src/config.test.ts` | bun tests for `resolveConfig` (fallback, required-var, region, `REPORT_ROLE_ID`) + report helpers (`repoForProject`, `reportBody`) |
+| `src/config.test.ts` | bun tests for `resolveConfig` (release-channel fallback, required-var, region, `COMMAND_PREFIX`, `REPORT_ROLE_ID`) + report helpers (`repoForProject`, `reportBody`) |
+| `src/commands.test.ts` | bun tests for `bareName()`: strips the prefix, no-op when unset, passes an unprefixed name through unmangled |
 | `src/state.ts` | Announcement dedup state, persisted to `data/state.json` (gitignored) |
 | `src/wow/dmf.ts` | DMF schedule math: first Sunday of month 00:01 in `config.dmfTimezone`, one week; IANA-timezone-correct (two-pass DST conversion) |
 | `src/wow/reset.ts` | Daily/weekly reset math (fixed UTC: us = Tue 15:00, eu = Wed 04:00) |
@@ -50,5 +51,17 @@
 - DMF "first Sunday" is realm-**local** (e.g. EU window starts Saturday 22:01/23:01 UTC).
 - Weekly-reset detection compares `now` against `lastWeeklyReset()` within a 10-min window —
   the tick cadence must stay well under that window.
+- `COMMAND_PREFIX` (empty by default) namespaces every slash-command name so a second
+  debug/staging bot can share a server without command collisions (`r_` → `/r_dmf`). It must be
+  lowercase (Discord rejects uppercase names); `resolveConfig` validates and throws otherwise.
+  A second bot is its own Discord application/token with its own state volume — and since
+  `index.ts`'s `rest.put` fully replaces an application's command set, switching the prefix and
+  restarting removes the old names automatically.
+- **Build every command with `cmd(name)`, never a bare `new SlashCommandBuilder().setName("foo")`.**
+  A hand-written name registers outside the namespace, and dispatch then has to cope with it:
+  `bareName()` only strips the prefix when the name actually starts with it. An earlier
+  unconditional `slice(prefix.length)` turned an unprefixed `update` into `date`, matching no
+  case — the command appeared in Discord and silently did nothing. `cmd()` makes that
+  unrepresentable; `bareName()`'s tolerance is the backstop.
 - Run `bun run check` (tsc) and `bun test` after changes — CI runs both on every PR/push
   touching this app (`.github/workflows/discord-bot-test.yml`, path-scoped). No lint beyond tsc.
