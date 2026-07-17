@@ -64,6 +64,7 @@ data/glyphs.lua
 data/pets.lua
 data/demons.lua
 data/titles.lua
+data/housinginfo.lua
 data/housing.lua
 data/travelerslog.lua
 

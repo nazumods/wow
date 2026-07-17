@@ -53,6 +53,8 @@ Data-collection backbone for the suite. Scans the active character each login/re
 | `data/playtime.lua` | Broker `playtime`: `total` seconds + `byPatch` baseline (async via `TIME_PLAYED_MSG`), plus `byDay` — per-character logged-in seconds per **local** calendar day (`"YYYY-MM-DD"` → seconds). `byDay` is **wall-clock session accounting**, independent of the async `/played` query: an `anchor` server-time is stamped at `Init` (login) and a `flush` folds `[anchor, now]` into the day buckets via `accrue` (splitting the span at local midnight), driven by a 60s `C_Timer.NewTicker` + `PLAYER_LOGOUT`. Offline time is never counted — the anchor resets at each login, so the gap since the previous session's last flush is dropped. The ticker bounds crash-loss (a hard exit skips `PLAYER_LOGOUT`) and keeps today's bucket fresh for a live view. Local-day keys (date() with no `!`) so an evening session lands on one human day instead of splitting at UTC midnight |
 | `data/weekly.lua` | Broker `weeklies`: `DMF`, `preMidnight`, `delversBounty` (weekly Delver's Bounty treasure claimed — quest 86371; sticky on `QUEST_TURNED_IN` until the weekly reset, max-level only), `caches`, `vault`, `vaultSlots` (per-slot Great Vault detail — reward ilvl per track slot, built via `ns.SummarizeVaultSlots`; `WEEKLY_REWARDS_UPDATE` 1000ms), `hasUnclaimedVault`, `keystone`, `dungeons`; `/wbc dump m+`, `/wbc dump vault` |
 | `data/vaultslots.lua` | Pure (WoW-API-free, unit-tested) vault helpers: `ns.SummarizeVaultSlots` (activities → per-track `Raid`/`Dungeons`/`World` slots ordered by threshold, each with reward ilvl), `ns.RaidLocks` (instance-lock store → raid-only, sorted by difficulty rank then progress), `ns.RaidDifficultyLabel`. Feeds `data/weekly.lua`'s `vaultSlots` field, `WarbandeerApi:GetRaidLocks`, and Warbandeer's Great Vault view |
+| `data/housing.lua` | Broker `housing` (field `active`: the neighborhoodGUID this character is feeding; `missing = false` — endeavors are optional) + account-wide capture: caches per-neighborhood faction + endeavor (title/progress/required/resetAt/`xp` = `GetAvailableHouseXP`) and per-house level/favor into `db.housing` from `PLAYER_HOUSE_LIST_UPDATED` / `HOUSE_LEVEL_FAVOR_UPDATED` + the field's get. Never mutates the active/viewing neighborhood (taint). `/wbc dump housing`. (issue #550) |
+| `data/housinginfo.lua` | Pure (WoW-API-free, unit-tested) housing shapes + shapers: `ns.ShapeHousing` (a character's `active` neighborhood → `{ active = "alliance"\|"horde", title }`), `ns.ShapeHouses` (join `houses` + `neighborhoods` → per-faction `HouseView` for the Overview). Feeds `WarbandeerApi:GetHousing`/`GetHouses` |
 | `data/instances.lua` | Broker `instances`: `locks`; `/wbc refresh locks`, `/wbc dump locks` |
 | `data/equipment.lua` | Broker `equipment`: `slots`, `ilvl`, `trackScanned`, `socketScanned` (marker set once gear is scanned with the GetItemGemID socket count — its `missing` descriptor flags "gem socket data" for alts last scanned before that fix); loads item data before reading. Each slot also records `emptySockets` (v15) — `emptySocketCount(link)` = `C_Item.GetItemNumSockets` minus the sockets that hold a gem (`C_Item.GetItemGemID` per socket, mirroring Blizzard's paperdoll socket display). **Not** the `GetItemStats` `EMPTY_SOCKET_*` keys: the Midnight Gem Manager applies gems outside the stat block, so a gemmed item still reports those keys and would falsely read as needing a gem. Captured here while the item is loaded so it persists + reads warband-wide. Each slot also records `enchant` — the applied permanent-enchant **name** read from the live tooltip (`C_TooltipInfo.GetInventoryItem` → the `ENCHANTED_TOOLTIP_LINE` "Enchanted: %s" line, trailing quality-tier atlas markup stripped), e.g. "Enchant Helm - Rune of Avoidance"; nil when unenchanted. Same "Enchant <Slot> - <X>" form as the recommendations, so ShadowsOfUI-Upgrade can flag a WRONG enchant warband-wide |
 | `data/stats.lua` | Broker `stats`: `secondary` (v16) — `{ crit, haste, mastery, versatility }`, each `{ pct, rating }` (effective % + gear combat rating) from the live `GetCritChance`/`GetHaste`/`GetMasteryEffect`/`GetCombatRatingBonus` + `GetCombatRating` APIs (logged-in char only), so it's a last-seen snapshot read warband-wide. `mastery` also carries its active-spec passive `spell` id (`GetSpecializationMasterySpells`), letting Detail name the mastery + show its spec-specific effect. Refreshes on `COMBAT_RATING_UPDATE`. Drives Warbandeer's Detail stat grid. **Secret values:** these APIs can return WoW "secret" numbers (tainted addon code can't do arithmetic on them); each is passed through `safe()` (`canaccessvalue` guard, retail-only) and stored as **nil** when secret, so the snapshot is always safe to read + serialize (Detail's delta/radar math would otherwise taint) |
@@ -199,6 +201,14 @@ WarbandeerApi:GetTitles(char?)             → TitlesBroker?
     -- string? }; each TitleRecord = { id, name } (known sorted by name).  Last-seen (logged-in char
     -- only); nil until the character has been seen since v37.  Drives Warbandeer's Summary Titles
     -- column (current title); `known` feeds a follow-up earned/earnable Titles view
+WarbandeerApi:GetHousing(char?)            → { active, title? }?
+    -- which neighborhood endeavor a character is feeding now: active = "alliance"|"horde" (the faction house
+    -- its endeavor XP flows to) + that endeavor's title; nil when none.  Per-character, last-seen (ns.ShapeHousing).
+    -- Drives Warbandeer's Summary Endeavors column
+WarbandeerApi:GetHouses()                  → { alliance?, horde? }?
+    -- account-wide per-house view (HouseView = { name, level, favor, title, progress, required, resetAt, xp });
+    -- xp = GetAvailableHouseXP (House XP still earnable this cycle — a countdown).  nil until a house is captured
+    -- (ns.ShapeHouses).  Drives Warbandeer's Overview Houses section
 ```
 
 `GearCandidate` = `{ link, itemID, ilvl?, equipLoc, classID, subClassID, quality?, reqLevel? }` (ilvl is the
@@ -348,6 +358,9 @@ titles = {                                             -- v37; broker (data/titl
   current,                                             -- featured/active titleMaskID (nil when no title is active)
   currentName,                                         -- featured title display name (nil when none) — Summary column source
 }?                                                     -- nil until the character is seen since v37; drives Warbandeer's Summary Titles column (current title) via API:GetTitles
+housing = {                                             -- v40; broker `active` field (data/housing.lua); per-character
+  active,                                              -- neighborhoodGUID this character is currently feeding (nil when in no endeavor)
+}?                                                     -- account-wide house/endeavor data lives in db.housing, not here; drives the Summary Endeavors column via API:GetHousing
 quests = {
   UndermineStoryMode,
   WWIRep = { complete, missing, Dornogal, Assembly, Hallowfall, Azjkahet, Undermine, Arathi, Karesh },
@@ -443,7 +456,7 @@ A `Broker` (from `broker.lua`) holds a `fields` table; each field is `{ get, eve
 ## SavedVariables (`WarbandeerCharDB`)
 
 ```lua
-{ version = 38, numCharacters, lastDailyReset, lastReset, lastSundayReset,
+{ version = 40, numCharacters, lastDailyReset, lastReset, lastSundayReset,
   characters = { ["Name"] = Character },
   -- account-wide Traveler's Log (Trading Post monthly activity) snapshot (v38); shared,
   -- self-seeded + refreshed by data/travelerslog.lua from the C_Perks* APIs each login/update
@@ -452,6 +465,11 @@ A `Broker` (from `broker.lua`) holds a `fields` table; each field is `{ get, eve
     earned, max, pct,                      -- points earned (capped), monthly cap, earned/max
     completedCount, totalCount, tender,    -- activities done/total, current Trader's Tender balance
     rewards = { count, pendingTender, items = { itemID } },  -- uncollected chests waiting + Tender/items
+  },
+  -- account-wide housing/endeavor store (v40); per-neighborhood faction + endeavor, per-house level/favor
+  housing = {
+    neighborhoods = { [neighborhoodGUID] = { isAlliance?, name?, title?, progress?, required?, resetAt?, xp? } },  -- xp = GetAvailableHouseXP (still-earnable this cycle)
+    houses = { [houseGUID] = { neighborhoodGUID?, name?, level?, favor? } },
   },
   -- account-wide warband wealth (v8); not per-character
   warband = {

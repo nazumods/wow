@@ -4,21 +4,15 @@ local pairs, ipairs, next = pairs, ipairs, next
 local tostring, format = tostring, string.format
 local GetServerTime = GetServerTime
 
--- Per-character neighborhood-endeavor + house-XP capture (issue #550).
+-- Per-character neighborhood-endeavor + account-wide house tracking (issue #550).
 --
--- Housing reads are almost all ASYNC: C_Housing.GetPlayerOwnedHouses() returns nothing
--- synchronously — the owned-house list only arrives via PLAYER_HOUSE_LIST_UPDATED, and
--- per-house level/favor only via HOUSE_LEVEL_FAVOR_UPDATED (in response to
--- GetCurrentHouseLevelFavor). The neighborhood endeavor is sync-readable once loaded
--- (GetNeighborhoodInitiativeInfo().isLoaded), warmed by RequestNeighborhoodInitiativeInfo.
--- So this broker CAPTURES from those events + a login kick rather than a plain get, and
--- never mutates the active/viewing neighborhood (SetActiveNeighborhood/SetViewingNeighborhood
--- have real side effects and taint risk). It's a last-seen snapshot, like `titles`/`demons`.
---
--- FIRST CUT — pending the in-game `/wbc dump housing` probe. The exact "earned XP" field
--- and whether reads work outside the housing UI are confirmed by that probe before the
--- Summary column is finalized; the probe's live section is the source of truth regardless
--- of whether this capture guesses right.
+-- The #550 probes settled the semantics: only the SUBSCRIPTION (which endeavor a character is
+-- feeding) is per-character; house favor/level + endeavor progress are account-wide PER HOUSE. So
+-- the per-character `active` is a BROKER FIELD (below) — that joins the login-refresh + event
+-- machinery and the missing-report audit for free — while the account-wide house identity + endeavor
+-- state are cached in `db.housing` from the async house events + the `active` field's get. We never
+-- mutate the active/viewing neighborhood (side-effect + taint). Data shapes + the pure shapers live
+-- in data/housinginfo.lua (WoW-API-free, unit-tested); this file is the WoW-API capture side.
 
 local H = C_Housing
 local GetPlayerOwnedHouses      = H and H.GetPlayerOwnedHouses
@@ -40,40 +34,8 @@ local GetAvailableHouseXP           = I and I.GetAvailableHouseXP
 local IsInitiativeEnabled           = I and I.IsInitiativeEnabled
 local PlayerHasInitiativeAccess     = I and I.PlayerHasInitiativeAccess
 
--- Account-wide neighborhood/house identity. *Which* house a neighborhood belongs to
--- (Horde vs Alliance) is account-global, so it lives here — that lets an offline alt's
--- cached per-character contribution be labelled by faction without that alt being logged
--- in. Per-house level/favor (the house's total, not per-contributor) is cached alongside.
----@class HousingNeighborhood
----@field isAlliance boolean?  absolute faction of the neighborhood (nil until resolved)
----@field name string?         neighborhood display name
-
----@class HousingHouse
----@field neighborhoodGUID string?
----@field name string?
----@field level integer?
----@field favor integer?
-
----@class HousingAccount
----@field neighborhoods table<string, HousingNeighborhood>  keyed by neighborhoodGUID
----@field houses table<string, HousingHouse>                keyed by houseGUID
-
----@class WarbandeerCharactersDB
----@field housing HousingAccount?
-
--- Per-character endeavor state. XP is credited AT EARN TIME to the subscribed
--- neighborhood, so a character that switches keeps an independent running total per
--- neighborhood until that neighborhood's cycle resets.
----@class HousingBroker: Broker
----@field subscribed string?              active (subscribed) neighborhoodGUID
----@field earned table<string, integer>   neighborhoodGUID -> this char's contribution this cycle
----@field cycle table<string, integer>    neighborhoodGUID -> currentCycleID the `earned` was recorded under
----@field availableXP integer?            unspent earned house-XP pool (current subscription)
----@field title string?                   current endeavor title
----@field scannedAt integer?              last capture (epoch)
-
----@class Character
----@field housing HousingBroker?
+-- Data shapes (HousingNeighborhood/House/Account/Char) + the pure ns.ShapeHousing live in
+-- data/housinginfo.lua (WoW-API-free, unit-tested); this file is the WoW-API capture side.
 
 -- Lazily ensure the account-wide housing store exists (also bumped in MigrateDB v40).
 ---@return HousingAccount
@@ -85,8 +47,8 @@ end
 
 -- Resolve + remember a neighborhood's absolute faction. DoesFactionMatchNeighborhood
 -- answers "does this neighborhood match the CURRENT character's faction?", so combined
--- with the current character's own faction it yields an absolute Horde/Alliance tag we
--- can store account-wide and reuse to label an offline alt's cached contribution.
+-- with the current character's own faction it yields an absolute Horde/Alliance tag we can
+-- store account-wide and reuse to label an offline alt's cached contribution.
 local function recordNeighborhood(guid, name)
   if not guid then return end
   local nb = account().neighborhoods[guid]
@@ -99,8 +61,8 @@ local function recordNeighborhood(guid, name)
 end
 
 -- PLAYER_HOUSE_LIST_UPDATED delivers the owned-house list (GetPlayerOwnedHouses returns
--- nothing synchronously). Cache each house's identity + neighborhood, then kick a
--- favor request per house so HOUSE_LEVEL_FAVOR_UPDATED fills in level/favor.
+-- nothing synchronously). Cache each house's identity + neighborhood, then kick a favor
+-- request per house so HOUSE_LEVEL_FAVOR_UPDATED fills in level/favor.
 ns:registerEvent("PLAYER_HOUSE_LIST_UPDATED", function(_, houseInfos)
   if not houseInfos then return end
   local acct = account()
@@ -125,34 +87,37 @@ ns:registerEvent("HOUSE_LEVEL_FAVOR_UPDATED", function(_, favor)
   house.favor = favor.houseFavor
 end)
 
+-- Per-character endeavor state as a BROKER FIELD, so it participates in the missing-report audit
+-- (missing.lua walks broker fields; a direct `toon.housing` write would silently escape it). `active`
+-- is the neighborhood this character is currently feeding. The field's get (queued at login, fired on
+-- NEIGHBORHOOD_INITIATIVE_UPDATED by the broker machinery) reads the loaded initiative and also
+-- captures that neighborhood's ACCOUNT-WIDE endeavor state (title/progress/reset) — readable only for
+-- the active neighborhood, so whichever character is subscribed keeps it fresh. It reads
+-- info.neighborhoodGUID (only set once loaded), not GetActiveNeighborhood which can transiently return
+-- a not-yet-loaded neighborhood right after a switch/login. `missing = false`: being in an endeavor is
+-- optional (like `titles`), so a character without one isn't "missing" anything.
 local Housing = ns:RegisterBroker("housing")
 Housing.fields = {
-  ---@class HousingBroker
-  ---@field endeavor HousingBroker
-  endeavor = {
+  active = {
     missing = false,
-    -- Reads the currently-loaded (subscribed) initiative synchronously and merges it into
-    -- the per-neighborhood `earned` map. Also kicks the async house-list + initiative
-    -- refresh so the next capture (and the events they raise) have fresh data. Sticky: a
-    -- transient/early read where nothing is loaded keeps the existing per-neighborhood totals.
     get = function(_, _, current)
-      current = current or { earned = {}, cycle = {} }
-      current.earned = current.earned or {}
-      current.cycle = current.cycle or {}
-      if GetPlayerOwnedHouses then GetPlayerOwnedHouses() end
+      if GetPlayerOwnedHouses then GetPlayerOwnedHouses() end          -- kick the async house list
       if RequestNeighborhoodInitiativeInfo then RequestNeighborhoodInitiativeInfo() end
-      if GetActiveNeighborhood then current.subscribed = GetActiveNeighborhood() end
       local info = GetNeighborhoodInitiativeInfo and GetNeighborhoodInitiativeInfo()
       if info and info.isLoaded and info.neighborhoodGUID then
         local guid = info.neighborhoodGUID
-        current.earned[guid] = info.playerTotalContribution
-        current.cycle[guid] = info.currentCycleID
-        current.title = info.title
         recordNeighborhood(guid)
+        local nb = account().neighborhoods[guid]
+        nb.title = info.title
+        nb.progress = info.currentProgress
+        nb.required = info.progressRequired
+        nb.resetAt = GetServerTime() + (info.duration or 0)
+        -- House XP still earnable this cycle ("Available" — a countdown, surfaced only in the
+        -- Overview endeavor tooltip as "you can still earn", not as a headline count-up).
+        if GetAvailableHouseXP then nb.xp = GetAvailableHouseXP() end
+        return guid
       end
-      if GetAvailableHouseXP then current.availableXP = GetAvailableHouseXP() end
-      current.scannedAt = GetServerTime()
-      return current
+      return current  -- sticky: keep the last-seen active endeavor when nothing is loaded
     end,
     event = "NEIGHBORHOOD_INITIATIVE_UPDATED",
     eventDelay = 500,
@@ -161,8 +126,7 @@ Housing.fields = {
 
 -- `/wbc dump housing` (+ `/wbc wdump housing`): the in-game reconnaissance probe. Kicks the
 -- async requests at the top (so a second run a few seconds later shows warmed data), then
--- dumps every live housing/initiative read + the account cache + this character's stored
--- state, so the real API behaviour (field values, readability by context) is confirmable.
+-- dumps every live housing/initiative read + the account cache + this character's stored state.
 local function bool(fn) return tostring(fn and fn()) end
 local function faction(isAlliance)
   if isAlliance == nil then return "?" end
@@ -201,8 +165,7 @@ ns:registerDump("housing", "Housing / Endeavors",
     out:line("GetAvailableHouseXP: " .. tostring(GetAvailableHouseXP and GetAvailableHouseXP()))
     local info = GetNeighborhoodInitiativeInfo and GetNeighborhoodInitiativeInfo()
     if not info then
-      out:line("GetNeighborhoodInitiativeInfo: nil (not loaded — run again in a few seconds," ..
-               " or open the Housing dashboard)")
+      out:line("GetNeighborhoodInitiativeInfo: nil (run again in a few seconds)")
     else
       out:line("initiative.isLoaded: " .. tostring(info.isLoaded) ..
                "  neighborhoodGUID: " .. tostring(info.neighborhoodGUID))
@@ -219,7 +182,7 @@ ns:registerDump("housing", "Housing / Endeavors",
 
     out:line("== owned houses (account cache, async) ==")
     if not acct or not next(acct.houses) then
-      out:line("(none cached yet — GetPlayerOwnedHouses is async; run again in a few seconds)")
+      out:line("(none cached yet — run again in a few seconds)")
     else
       for guid, h in pairs(acct.houses) do
         local nb = h.neighborhoodGUID and acct.neighborhoods[h.neighborhoodGUID]
@@ -229,19 +192,18 @@ ns:registerDump("housing", "Housing / Endeavors",
       end
     end
 
+    out:line("== account neighborhoods (endeavor, account-wide) ==")
+    if not acct or not next(acct.neighborhoods) then
+      out:line("(none captured yet — run again in a few seconds)")
+    else
+      for guid, nb in pairs(acct.neighborhoods) do
+        out:line(format("  %s (%s) | %s  %s/%s | resetAt=%s", tostring(guid), faction(nb.isAlliance),
+          tostring(nb.title), tostring(nb.progress), tostring(nb.required), tostring(nb.resetAt)))
+      end
+    end
+
     out:line("== stored per-character housing (this char) ==")
     local hb = toon.housing
     if not hb then out:line("(nil — no capture yet)"); return end
-    out:line("subscribed: " .. tostring(hb.subscribed) ..
-             "  availableXP: " .. tostring(hb.availableXP) .. "  title: " .. tostring(hb.title))
-    out:line("scannedAt: " .. tostring(hb.scannedAt))
-    if hb.earned and next(hb.earned) then
-      for guid, xp in pairs(hb.earned) do
-        local nb = acct and acct.neighborhoods[guid]
-        out:line(format("  earned[%s] = %s  (%s, cycle %s)", tostring(guid), tostring(xp),
-          faction(nb and nb.isAlliance), tostring(hb.cycle and hb.cycle[guid])))
-      end
-    else
-      out:line("  earned: (empty)")
-    end
+    out:line("active: " .. tostring(hb.active))
   end)

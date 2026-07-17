@@ -96,10 +96,20 @@ local Overview = Class(Frame, function(self)
   local TL_ROW_H  = (theme.fonts.body[2] or 13) + 6    -- rewards-waiting line height
   local TL_H = HEAD_H + TL_NAME_H + TL_BAR_TH + 6 + TL_ROW_H
   local stripTop = P + STRIP_H + GAP
-  -- GAP + BLEED*2: a plain GAP is swallowed by the strip's and the grid's 6px module
-  -- bleeds (which meet in the middle), leaving them touching; the extra BLEED*2 restores
-  -- a visible GAP-sized gutter between the Traveler's Log strip and the grid below.
-  local contentTop = stripTop + (showTL and (TL_H + GAP + BLEED * 2) or 0)
+  -- GAP + BLEED*2: a plain GAP is swallowed by a strip's and the grid's 6px module bleeds (which
+  -- meet in the middle), leaving them touching; the extra BLEED*2 restores a visible GAP-sized gutter.
+  local tlBlock = showTL and (TL_H + GAP + BLEED * 2) or 0
+
+  -- Houses (endeavors) strip — account-wide house level/favor + current endeavor, stacked below the
+  -- Traveler's Log strip. Two faction-house blocks (Alliance | Horde) side by side, each a
+  -- name/level/favor line over an endeavor progress bar. `houses` is nil until a house is captured.
+  local houses = ns.api.GetHouses and ns.api.GetHouses()
+  local showHouses = (houses and (houses.alliance or houses.horde)) and true or false
+  local HOUSE_LB_H = (theme.fonts.body[2] or 13) + 6 + 8   -- LabeledBar: name row + 8px bar
+  local HOUSE_HEAD_H = (theme.fonts.body[2] or 13) + 6     -- the house name/level/favor line
+  local HOUSES_H = HEAD_H + HOUSE_HEAD_H + 2 + HOUSE_LB_H  -- caps header + one house block
+  local housesTop = stripTop + tlBlock
+  local contentTop = housesTop + (showHouses and (HOUSES_H + GAP + BLEED * 2) or 0)
   self._contentTop = contentTop
 
   -- Reputations + Achievements, one panel per expansion. Each panel holds a reps
@@ -219,6 +229,67 @@ local Overview = Class(Frame, function(self)
       text = rewardText,
       position = { TopLeft = {P, -(stripTop + HEAD_H + TL_NAME_H + TL_BAR_TH + 6)} },
     }
+  end
+
+  -- Houses (endeavors) — account-wide per-house level/favor (the house's lifetime XP) over its
+  -- current endeavor's progress bar (counts up toward the goal; reset on hover). Two blocks
+  -- (Alliance | Horde) side by side; the crest is a pre-coloured endeavor TGA.
+  if showHouses then
+    local ALLIANCE_BAR, HORDE_BAR = {0.40, 0.733, 1.0, 1}, {1.0, 0.20, 0.20, 1}
+    local CREST = "Interface\\AddOns\\Warbandeer\\icons\\endeavor-"
+    Texture:new{
+      parent = self, layer = ui.layer.Artwork, color = c.module,
+      position = { TopLeft = {P - 6, -(housesTop - 6)}, Width = self._contentW + 12, Height = HOUSES_H + 12 },
+    }
+    capsHeader(self, "Houses", { TopLeft = {P, -housesTop} })
+    local half = (self._contentW - GAP) / 2
+    local blockTop = housesTop + HEAD_H
+    local function houseBlock(x, view, faction)
+      if not view then return end
+      local crest = Texture:new{
+        parent = self, layer = ui.layer.Artwork,
+        position = { TopLeft = {x, -blockTop}, Size = {14, 14} },
+      }
+      crest:Texture(CREST .. faction)
+      local head = view.name or (faction == "alliance" and "Alliance House" or "Horde House")
+      if view.level then head = head .. "  ·  Lvl " .. view.level end
+      if view.favor then head = head .. "  ·  " .. BreakUpLargeNumbers(view.favor) .. " XP" end
+      Label:new{
+        parent = self, fontInfo = theme.fonts.body, color = c.text, text = head,
+        position = { TopLeft = {x + 18, -blockTop} },
+      }
+      local pct = (view.progress and view.required and view.required > 0) and (view.progress / view.required) or 0
+      local val = (view.progress and view.required)
+        and (BreakUpLargeNumbers(math.floor(view.progress + 0.5)) .. " / " .. BreakUpLargeNumbers(view.required)) or ""
+      local resetTxt = view.resetAt
+        and ("resets in " .. math.max(0, math.floor((view.resetAt - GetServerTime()) / 86400)) .. "d") or nil
+      ns.LabeledBar:new{
+        parent = self, width = half, barHeight = 8,
+        label = view.title or "No active endeavor",
+        value = val, pct = pct,
+        barColor = faction == "alliance" and ALLIANCE_BAR or HORDE_BAR,
+        valueColor = c.muted,
+        -- endeavor tooltip: the still-earnable House XP (the "Available" countdown) + progress + reset
+        onEnter = function(bar)
+          ns.AnchorTip(bar)
+          ui.tip:ClearLines()
+          ui.tip:AddLine(view.title or "Endeavor")
+          if view.xp then
+            ui.tip:AddLine(("You can still earn |cffffffff%s|r House XP"):format(BreakUpLargeNumbers(view.xp)))
+          end
+          if view.progress and view.required then
+            ui.tip:AddLine(("Neighborhood progress: %s / %s"):format(
+              BreakUpLargeNumbers(math.floor(view.progress + 0.5)), BreakUpLargeNumbers(view.required)))
+          end
+          if resetTxt then ui.tip:AddLine(resetTxt) end
+          ui.tip:Show()
+        end,
+        onLeave = function() ui.tip:Hide() end,
+        position = { TopLeft = {x, -(blockTop + HOUSE_HEAD_H + 2)} },
+      }
+    end
+    houseBlock(P, houses.alliance, "alliance")
+    houseBlock(P + half + GAP, houses.horde, "horde")
   end
 
   -- Stat strip — one card per content column, each overlaying its column's box.

@@ -413,12 +413,12 @@ function ns:MigrateDB()
     db.version = 39
   end
 
-  -- v40: account-wide housing store (`db.housing`: neighborhood faction map + per-house
-  -- level/favor) plus the per-character `housing` endeavor broker (subscribed neighborhood
-  -- + earned house XP per neighborhood).  Additive and self-seeded — data/housing.lua lazily
-  -- creates `db.housing` and each character's `housing` table on capture; nothing to seed
-  -- here, so an older revision simply lacks it (the Summary Endeavors column is blank for
-  -- that character) until it next logs in, so rollback is lossless.
+  -- v40: account-wide housing store (`db.housing`: per-neighborhood faction + endeavor
+  -- title/progress/reset + per-house level/favor) plus the per-character `housing` broker
+  -- (`active`: the neighborhood each character is feeding).  Additive and self-seeded —
+  -- data/housing.lua lazily creates `db.housing`, and the broker seeds each character's `housing`
+  -- table; nothing to seed here, so an older revision simply lacks it (the Summary Endeavors column
+  -- is blank) until it next logs in, so rollback is lossless.
   if (db.version or 0) < 40 then
     db.version = 40
   end
