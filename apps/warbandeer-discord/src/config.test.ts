@@ -37,3 +37,50 @@ describe("resolveConfig", () => {
     expect(() => resolveConfig({ ...base, WOW_REGION: "kr" })).toThrow(/WOW_REGION/);
   });
 });
+
+describe("resolveConfig — self-update", () => {
+  test("self-update is off and unconfigured by default", () => {
+    const config = resolveConfig(base);
+    expect(config.gitSha).toBeUndefined();
+    expect(config.autoUpdate).toBe(false);
+    expect(config.adminUserIds).toEqual([]);
+  });
+
+  test("GIT_SHA resolves, and an empty one disables self-update", () => {
+    expect(resolveConfig({ ...base, GIT_SHA: "abc1234" }).gitSha).toBe("abc1234");
+    expect(resolveConfig({ ...base, GIT_SHA: "" }).gitSha).toBeUndefined();
+  });
+
+  test("AUTO_UPDATE is on only for exactly \"true\"", () => {
+    expect(resolveConfig({ ...base, AUTO_UPDATE: "true" }).autoUpdate).toBe(true);
+    expect(resolveConfig({ ...base, AUTO_UPDATE: "false" }).autoUpdate).toBe(false);
+    expect(resolveConfig({ ...base, AUTO_UPDATE: "1" }).autoUpdate).toBe(false);
+    expect(resolveConfig({ ...base, AUTO_UPDATE: "" }).autoUpdate).toBe(false);
+  });
+
+  test("ADMIN_USER_IDS splits on commas", () => {
+    expect(resolveConfig({ ...base, ADMIN_USER_IDS: "111,222" }).adminUserIds).toEqual([
+      "111",
+      "222",
+    ]);
+  });
+
+  test("ADMIN_USER_IDS tolerates whitespace and stray commas", () => {
+    expect(resolveConfig({ ...base, ADMIN_USER_IDS: " 111 , ,222, " }).adminUserIds).toEqual([
+      "111",
+      "222",
+    ]);
+  });
+
+  test("ADMIN_USER_IDS dedupes", () => {
+    expect(resolveConfig({ ...base, ADMIN_USER_IDS: "111,111,222" }).adminUserIds).toEqual([
+      "111",
+      "222",
+    ]);
+  });
+
+  test("ADMIN_USER_IDS empty yields nobody", () => {
+    expect(resolveConfig({ ...base, ADMIN_USER_IDS: "" }).adminUserIds).toEqual([]);
+    expect(resolveConfig({ ...base, ADMIN_USER_IDS: " , " }).adminUserIds).toEqual([]);
+  });
+});

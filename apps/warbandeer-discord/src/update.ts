@@ -1,0 +1,64 @@
+import { config } from "./config";
+
+// Self-update detection. The bot has no releases of its own (apps/ is excluded from
+// the release pipeline), so "am I stale?" is answered by comparing the commit this
+// build was made from (GIT_SHA, baked in at image build) against the newest commit
+// on the default branch that touched the bot's own directory.
+
+const BOT_PATH = "apps/warbandeer-discord";
+const BOT_BRANCH = "main";
+
+export type UpdateDecision =
+  /** No GIT_SHA baked in — we can't tell what we're running. */
+  | "disabled"
+  /** Running the newest bot commit. */
+  | "current"
+  /** Stale: exit and let the orchestrator bring up the new code. */
+  | "restart"
+  /** Stale, but we already exited for this sha and came back unchanged. */
+  | "suppressed";
+
+/** Tolerant of short vs full shas, so GIT_SHA can be either. */
+export function sameSha(a: string, b: string): boolean {
+  const len = Math.min(a.length, b.length);
+  if (len === 0) return false;
+  return a.slice(0, len).toLowerCase() === b.slice(0, len).toLowerCase();
+}
+
+/**
+ * Whether a stale build should exit to be replaced.
+ *
+ * `attemptedSha` is the sha we last exited for. If we're back and still stale for
+ * that same sha, the orchestrator isn't supplying new code — exiting again would
+ * just loop, so suppress it. `force` (an admin's /update) overrides that.
+ */
+export function decideUpdate(o: {
+  runningSha?: string;
+  latestSha: string;
+  attemptedSha?: string;
+  force?: boolean;
+}): UpdateDecision {
+  if (!o.runningSha) return "disabled";
+  if (sameSha(o.runningSha, o.latestSha)) return "current";
+  if (!o.force && o.attemptedSha && sameSha(o.attemptedSha, o.latestSha)) return "suppressed";
+  return "restart";
+}
+
+/** Newest commit touching the bot's directory on the default branch. */
+export async function fetchLatestBotSha(): Promise<string> {
+  const headers: Record<string, string> = {
+    Accept: "application/vnd.github+json",
+    "User-Agent": "warbandeer-discord",
+  };
+  if (config.githubToken) headers.Authorization = `Bearer ${config.githubToken}`;
+  const res = await fetch(
+    `https://api.github.com/repos/${config.githubRepo}/commits` +
+      `?sha=${BOT_BRANCH}&path=${encodeURIComponent(BOT_PATH)}&per_page=1`,
+    { headers },
+  );
+  if (!res.ok) throw new Error(`GitHub commits query failed: ${res.status}`);
+  const data = (await res.json()) as { sha: string }[];
+  const sha = data[0]?.sha;
+  if (!sha) throw new Error(`No commits found for ${BOT_PATH} on ${BOT_BRANCH}`);
+  return sha;
+}
