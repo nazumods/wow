@@ -1,6 +1,11 @@
 services:
   bot:
-    build: .
+    build:
+      context: .
+      args:
+        # Pass the commit so the bot can tell when it's stale:
+        #   GIT_SHA=$(git rev-parse HEAD) docker compose up -d --build
+        GIT_SHA: ${GIT_SHA:-}
     container_name: warbandeer-discord
     env_file: .env
     volumes:
