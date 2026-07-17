@@ -7,6 +7,7 @@ export interface BotState {
   dmfAnnouncedFor?: string; // "2026-7"
   weeklyAnnouncedFor?: string; // ISO timestamp of the reset announced
   serversUpAnnouncedFor?: string; // ISO timestamp of the reset whose recovery was announced
+  attemptedUpdateToSha?: string; // sha we last exited to update to; guards against an exit loop
 }
 
 const DATA_DIR = join(import.meta.dir, "..", "data");
