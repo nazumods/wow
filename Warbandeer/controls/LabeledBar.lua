@@ -39,6 +39,8 @@ end
 ---@field hoverValue string?  alternate value text shown while the row is hovered
 ---@field hoverColor number[]? color for the hovered value (defaults to muted)
 ---@field onClick    fun(self: LabeledBar, button: string)?  optional click action; enables mouse clicks
+---@field onEnter    fun(self: LabeledBar)?  optional hover callback (e.g. show a tooltip)
+---@field onLeave    fun(self: LabeledBar)?  optional un-hover callback
 ---@field highlight  Texture   row hover highlight (behind the text; the bar lightens its own colours)
 ---@field nameLabel  Label
 ---@field valueLabel Label
@@ -120,12 +122,14 @@ local LabeledBar = Class(Frame, function(self)
     self.bar.fill:SetVertexColor(lighten(self.barColor or c.gold))
     self.bar.backdrop:SetVertexColor(lighten(self.trackColor or c.track))
     if self.hoverValue then self.valueLabel:Text(self.hoverValue):Color(self.hoverColor or c.muted) end
+    if self.onEnter then self.onEnter(self) end
   end)
   self:SetScript("OnLeave", function()
     self.highlight:SetVertexColor(1, 1, 1, 0)
     self.bar.fill:SetVertexColor(unpack(self.barColor or c.gold))
     self.bar.backdrop:SetVertexColor(unpack(self.trackColor or c.track))
     if self.hoverValue then self.valueLabel:Text(self.value):Color(self.valueColor or c.muted) end
+    if self.onLeave then self.onLeave(self) end
   end)
 
   -- optional click action (e.g. open the relevant profession window)

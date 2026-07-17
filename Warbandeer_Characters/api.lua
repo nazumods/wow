@@ -600,6 +600,34 @@ function API:GetTitles(charName)
   return c and c.titles or nil
 end
 
+---Which neighborhood endeavor a character is actively feeding right now, for the Summary
+---"Endeavors" column: `active` is the faction house its endeavor XP currently flows to, with that
+---endeavor's `title`. nil when the character has no resolvable active endeavor (never seen since
+---v40, below the housing level, or not currently in one). Only the logged-in character's state is
+---readable, so an alt's is last-seen. The house-XP pools are account-wide (shown in the Overview),
+---not per-character — only the subscription is. Faction is resolved from the account neighborhood map.
+---@param charName string?
+---@return { active: ("alliance"|"horde"), title: string? }?
+function API:GetHousing(charName)
+  local c = self:GetCharacterData(charName)
+  local hb = c and c.housing
+  if not hb then return nil end
+  return ns.ShapeHousing(hb.active, ns.db.housing and ns.db.housing.neighborhoods)
+end
+
+---The account-wide house/endeavor snapshot for the Overview: each faction house's `level` + `favor`
+---(the house's lifetime XP) and its current endeavor (`title`, `progress`/`required` toward this
+---cycle's goal, `resetAt`). Account-wide — identical for every character — so it's keyed by faction,
+---not per-character. nil until any character has captured a house (see data/housing.lua).
+---@return { alliance: HouseView?, horde: HouseView? }?
+function API:GetHouses()
+  local hs = ns.db.housing
+  if not hs then return nil end
+  local out = ns.ShapeHouses(hs.houses, hs.neighborhoods)
+  if not (out.alliance or out.horde) then return nil end
+  return out
+end
+
 ---Synchronously re-fetch one broker field for the current character.
 ---Safe to call at any time; respects the maxLevel guard.
 ---@param brokerName string
