@@ -1,148 +1,99 @@
-"""Generate an addon logo in the suite's flag style — identical every time.
+"""Generate an addon logo in the suite's Warbandeer crest style — identical every time.
 
-Reuses the Warbandeer_Collected photo flag as the base: masks out its word,
-inpaints the cloth, and re-sets the requested text along the original word's
-own flow curve, with typography measured from the original (tall-letter
-height 166px, ~24px stems, condensed blackletter, pale halo).
+Reuses the Warbandeer crest base (stag emblem, WARBANDEER title banner, purple
+ribbon reading "ADDON NAME"): erases the ribbon's placeholder text and resets
+it with the given text in the measured house typography (bold sans, tan ink),
+sized to fit the ribbon between its fixed flanking arrow glyphs.
 
 Usage (from anywhere):
-    python Tooling/make_addon_logo.py Inventory --out ShadowsOfUI-WarbandInventory/logo.png
+    python Tooling/make_addon_logo.py Characters --out Warbandeer_Characters/logo.png
 
-Only the text varies; every other parameter is a fixed constant so repeated
-runs (and future logos) come out in exactly the same style. Output is a
-1024x1024 PNG like the sibling logos.
+Only the ribbon text varies; every other parameter is a fixed constant so
+repeated runs (and future logos) come out in exactly the same style. Output is
+a 1024x1024 PNG like the sibling logos.
 
-Requires: pillow, numpy, opencv-python-headless, and the Windows font
-Old English Text MT (C:/Windows/Fonts/OLDENGL.TTF).
+Requires: pillow, and the Windows font Arial Bold (C:/Windows/Fonts/arialbd.ttf).
 """
 import argparse
 import os
 
-import numpy as np
-import cv2
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 TOOLING_DIR = os.path.dirname(os.path.abspath(__file__))
-DEFAULT_SOURCE = os.path.join(TOOLING_DIR, "assets", "warbandeer_flag_base.png")
-FONT = r"C:/Windows/Fonts/OLDENGL.TTF"
+DEFAULT_SOURCE = os.path.join(TOOLING_DIR, "assets", "warbandeer_base.png")
 
-# --- fixed style constants (measured from the original logos) ---
-FONT_SIZE = 230          # gives the original's 166px tall-letter height
-TARGET_W = 740           # condensed word width (original word is 688px)
-STROKE = 2               # pre-thicken stems so they land ~24px after condense
-INK = np.array([21.0, 21.0, 18.0])
-HALO_COL = np.array([175.0, 205.0, 120.0])
-TEXT_BAND = (slice(300, 640), slice(140, 900))   # where the source word lives
+FONT_CANDIDATES = [
+    r"C:/Windows/Fonts/arialbd.ttf",
+    "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+    "/Library/Fonts/Arial Bold.ttf",
+]
+
+# --- fixed style constants (measured from the crest base's own source art,
+# a 400x400 image; output is upscaled to match the sibling logos) ---
+OUT_SIZE = 1024
+SOURCE_SIZE = 400
+SCALE = OUT_SIZE / SOURCE_SIZE
+
+RIBBON_FILL = (81, 63, 81)          # sampled purple ribbon fill
+TEXT_COLOR = (191, 176, 138)        # sampled tan ink
+# placeholder text's erase zone (source-image px), clear of the ribbon's
+# flanking arrow glyphs (arrows sit at x 125-133 and x 265-273)
+ERASE_BOX = (137, 309, 263, 329)
+CAP_HEIGHT = 34                     # target rendered cap-height, in OUT_SIZE px
+SLOT_PAD = 10                       # margin kept clear of the erase box edges, in OUT_SIZE px
+
+
+def _load_font(size):
+    for path in FONT_CANDIDATES:
+        if os.path.exists(path):
+            return ImageFont.truetype(path, size)
+    raise FileNotFoundError("no Arial Bold found in: " + ", ".join(FONT_CANDIDATES))
 
 
 def make_logo(text, source=DEFAULT_SOURCE, out="logo.png"):
-    im = Image.open(source).convert("RGB")
-    a = np.asarray(im)
-    size = im.size[0]
+    im = Image.open(source).convert("RGB").resize((OUT_SIZE, OUT_SIZE), Image.LANCZOS)
+    x0, y0, x1, y1 = (round(v * SCALE) for v in ERASE_BOX)
 
-    # -----------------------------------------------------------
-    # 1. Mask the source text (dark glyph pixels inside the flag).
-    # -----------------------------------------------------------
-    dark = (a[:, :, 0] < 80) & (a[:, :, 1] < 80) & (a[:, :, 2] < 70)
-    region = np.zeros_like(dark)
-    region[TEXT_BAND] = True
-    mask = (dark & region).astype(np.uint8) * 255
+    # erase the placeholder text with a soft-edged fill — the ribbon is a flat
+    # color, so a plain rectangle blends invisibly into the surrounding purple
+    fill_layer = Image.new("RGB", im.size, RIBBON_FILL)
+    mask = Image.new("L", im.size, 0)
+    ImageDraw.Draw(mask).rectangle([x0, y0, x1, y1], fill=255)
+    mask = mask.filter(ImageFilter.GaussianBlur(3))
+    im = Image.composite(fill_layer, im, mask)
 
-    # original text geometry BEFORE dilation
-    ys, xs = np.where(mask > 0)
-    x0, x1, y0, y1 = xs.min(), xs.max(), ys.min(), ys.max()
-    # per-column vertical centreline of the source text -> flow curve
-    cols, cys = [], []
-    for x in range(x0, x1 + 1):
-        yy = np.where(mask[:, x] > 0)[0]
-        if len(yy) > 4:
-            cols.append(x)
-            cys.append(yy.mean())
-    poly = np.polyfit(cols, cys, 3)          # cubic follows the cloth wave
-    flow = np.poly1d(poly)
-
-    # dilate mask to cover antialiased edges + halo, then inpaint
-    kern = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (25, 25))
-    grown = cv2.dilate(mask, kern)
-    bgr = cv2.cvtColor(a, cv2.COLOR_RGB2BGR)
-    clean = cv2.inpaint(bgr, grown, 15, cv2.INPAINT_NS)
-    # the inpaint leaves subtle bright blotches where glyphs/halo were —
-    # low-pass just the masked region so it reads as smooth cloth
-    blurred = cv2.GaussianBlur(clean, (0, 0), 12)
-    feather = cv2.GaussianBlur(grown, (0, 0), 6).astype(np.float64) / 255.0
-    clean = (clean.astype(np.float64) * (1 - feather[:, :, None] * 0.85)
-             + blurred.astype(np.float64) * feather[:, :, None] * 0.85)
-    clean_rgb = cv2.cvtColor(clean.astype(np.uint8), cv2.COLOR_BGR2RGB)
-
-    # -----------------------------------------------------------
-    # 2. Render the text flat, condense, then bend along the flow.
-    # -----------------------------------------------------------
-    probe = Image.new("L", (1400, 500), 0)
+    # size the text from the target cap-height, then condense to fit the slot
+    # width if the word is too wide for it
+    text = text.upper()
+    slot_w = (x1 - SLOT_PAD) - (x0 + SLOT_PAD)
+    probe = Image.new("L", (10, 10), 0)
     pd = ImageDraw.Draw(probe)
-    font = ImageFont.truetype(FONT, FONT_SIZE)
-    tb = pd.textbbox((0, 0), text, font=font, stroke_width=STROKE)
-    tw, th = tb[2] - tb[0], tb[3] - tb[1]
-    txt = Image.new("L", (tw + 40, th + 120), 0)
-    td = ImageDraw.Draw(txt)
-    td.text((20 - tb[0], 40 - tb[1]), text, font=font, fill=255,
-            stroke_width=STROKE, stroke_fill=255)
-    # horizontal condense to the target width
-    ratio = TARGET_W / tw
-    txt = txt.resize((int(txt.width * ratio), txt.height), Image.LANCZOS)
-    txt_a = np.asarray(txt)
+    probe_size = 100
+    cap_box = pd.textbbox((0, 0), "AH", font=_load_font(probe_size))
+    size = max(10, round(probe_size * CAP_HEIGHT / (cap_box[3] - cap_box[1])))
+    font = _load_font(size)
+    tb = pd.textbbox((0, 0), text, font=font)
+    tw = tb[2] - tb[0]
+    if tw > slot_w:
+        size = max(10, int(size * slot_w / tw))
+        font = _load_font(size)
+        tb = pd.textbbox((0, 0), text, font=font)
+        tw = tb[2] - tb[0]
 
-    # place: same horizontal centre as the source word
     cx = (x0 + x1) / 2
-    left = int(cx - txt.width / 2)
-    mean_flow = np.mean([flow(x) for x in range(x0, x1 + 1)])
+    cy = round((ERASE_BOX[1] + ERASE_BOX[3]) / 2 * SCALE)
+    d = ImageDraw.Draw(im)
+    d.text((cx - tw / 2 - tb[0], cy - (tb[3] - tb[1]) / 2 - tb[1]), text, font=font, fill=TEXT_COLOR)
 
-    canvas = Image.fromarray(clean_rgb).convert("RGB")
-    overlay = np.zeros((size, size), dtype=np.float64)
-    for sx in range(txt.width):
-        gx = left + sx
-        if not (0 <= gx < size):
-            continue
-        dy = flow(min(max(gx, x0), x1)) - mean_flow   # cloth flow offset
-        col = txt_a[:, sx]
-        yy = np.where(col > 0)[0]
-        if len(yy) == 0:
-            continue
-        # column centred on flow line
-        ccy = (y0 + y1) / 2 + dy
-        top = int(round(ccy - txt.height / 2))
-        for sy in yy:
-            gy = top + sy
-            if 0 <= gy < size:
-                overlay[gy, gx] = max(overlay[gy, gx], col[sy] / 255.0)
-
-    # slight blur to match photographic antialiasing
-    overlay_img = Image.fromarray((overlay * 255).astype(np.uint8))
-    overlay_img = overlay_img.filter(ImageFilter.GaussianBlur(0.7))
-    ov = np.asarray(overlay_img).astype(np.float64) / 255.0
-
-    out_a = np.asarray(canvas).astype(np.float64)
-
-    # pale halo around the glyphs (the originals have one) — blurred and
-    # slightly grown copy of the glyph alpha, drawn beneath the ink
-    halo_img = overlay_img.filter(ImageFilter.MaxFilter(5))
-    halo_img = halo_img.filter(ImageFilter.GaussianBlur(2.2))
-    halo = np.asarray(halo_img).astype(np.float64) / 255.0
-    halo = np.clip(halo - ov, 0, 1)            # ring only, not under ink
-    ha = halo[:, :, None] * 0.55
-    out_a = out_a * (1 - ha) + HALO_COL[None, None, :] * ha
-
-    # near-black ink on top
-    alpha = ov[:, :, None] * 0.96
-    out_a = out_a * (1 - alpha) + INK[None, None, :] * alpha
-    Image.fromarray(out_a.astype(np.uint8)).save(out)
+    im.save(out)
     print("saved", out)
 
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("text", help="word to set on the flag (e.g. Inventory)")
+    ap.add_argument("text", help="ribbon suffix to set (e.g. Characters)")
     ap.add_argument("--source", default=DEFAULT_SOURCE,
-                    help="base flag photo (default: Tooling/assets/warbandeer_flag_base.png)")
+                    help="base crest PNG (default: Tooling/assets/warbandeer_base.png)")
     ap.add_argument("--out", default="logo.png", help="output PNG path")
     args = ap.parse_args()
     make_logo(args.text, args.source, args.out)
