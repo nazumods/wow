@@ -13,5 +13,20 @@ services:
     restart: unless-stopped
     init: true
 
+  # Opt-in: exposes a future local API to the internet without opening inbound
+  # firewall ports. Requires CLOUDFLARE_TUNNEL_TOKEN in .env (see README). Start with:
+  #   docker compose --profile tunnel up -d --build
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: warbandeer-discord-tunnel
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    restart: unless-stopped
+    depends_on:
+      - bot
+    profiles:
+      - tunnel
+
 volumes:
   state:
