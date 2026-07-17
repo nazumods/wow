@@ -12,6 +12,7 @@ export interface Config {
   githubRepo: string;
   githubToken?: string;
   dmfTimezone: string;
+  commandPrefix: string;
 }
 
 type Env = Record<string, string | undefined>;
@@ -35,6 +36,16 @@ export function resolveConfig(env: Env): Config {
 
   const announceChannelId = required("ANNOUNCE_CHANNEL_ID");
 
+  // Optional prefix for slash-command names, so a second (debug/staging) bot can run in the
+  // same server without command collisions. Discord requires lowercase command names.
+  const commandPrefix = optional("COMMAND_PREFIX") ?? "";
+  if (commandPrefix && !/^[a-z0-9_-]{1,20}$/.test(commandPrefix)) {
+    throw new Error(
+      `COMMAND_PREFIX must be 1-20 chars of lowercase letters, numbers, "-" or "_" ` +
+        `(Discord slash-command name rules), got "${commandPrefix}"`,
+    );
+  }
+
   return {
     discordToken: required("DISCORD_TOKEN"),
     announceChannelId,
@@ -48,6 +59,7 @@ export function resolveConfig(env: Env): Config {
     githubToken: optional("GITHUB_TOKEN"),
     dmfTimezone:
       optional("DMF_TIMEZONE") ?? (region === "us" ? "America/Los_Angeles" : "Europe/Paris"),
+    commandPrefix,
   };
 }
 

@@ -21,7 +21,7 @@ All times are posted as Discord timestamps, so everyone sees them in their own t
 
    (`2048` = Send Messages. No privileged intents are needed.)
 
-2. **Configure**: copy `.env.example` to `.env` and fill it in. `DISCORD_TOKEN` and `ANNOUNCE_CHANNEL_ID` are required (right-click a channel → Copy Channel ID, with Developer Mode enabled). Set `RELEASE_ANNOUNCE_CHANNEL_ID` to post release notifications to their own channel (optional — they go to `ANNOUNCE_CHANNEL_ID` if unset). Set `GUILD_ID` so slash commands register instantly. For `/status` and server-up announcements, create a client at <https://develop.battle.net> and set `BLIZZARD_CLIENT_ID`, `BLIZZARD_CLIENT_SECRET`, and `WOW_REALM`.
+2. **Configure**: copy `.env.example` to `.env` and fill it in. `DISCORD_TOKEN` and `ANNOUNCE_CHANNEL_ID` are required (right-click a channel → Copy Channel ID, with Developer Mode enabled). Set `RELEASE_ANNOUNCE_CHANNEL_ID` to post release notifications to their own channel (optional — they go to `ANNOUNCE_CHANNEL_ID` if unset). Set `GUILD_ID` so slash commands register instantly. For `/status` and server-up announcements, create a client at <https://develop.battle.net> and set `BLIZZARD_CLIENT_ID`, `BLIZZARD_CLIENT_SECRET`, and `WOW_REALM`. To run a second **debug/staging** bot in the same server, set `COMMAND_PREFIX` (e.g. `r_`) so its commands register as `/r_dmf`, `/r_reset`, `/r_status` instead of colliding with the live bot's — lowercase only (Discord rule).
 
 3. **Run** ([Bun](https://bun.sh) required):
 
@@ -44,6 +44,7 @@ All times are posted as Discord timestamps, so everyone sees them in their own t
 - The first release poll seeds silently (no backlog spam); only releases published after that are announced.
 - The server-up watch only reports recovery if it actually observed the realm **down** after reset — quiet weeks with no maintenance produce no message. It gives up after 3 hours.
 - Releases publish from a daily cron at 14:00 UTC, so GitHub is only polled in a 90-minute window after that (every 5 minutes), plus once at startup to catch anything published while the bot was offline.
+- `COMMAND_PREFIX` lets a second (debug) instance run in the same server: it prefixes every slash-command name (e.g. `r_` → `/r_status`). A second instance needs its own Discord application/token and its own state volume.
 
 ## Files
 

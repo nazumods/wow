@@ -12,18 +12,23 @@ import { realmStatus, realmWatchConfigured } from "./wow/realm";
 const ts = (d: Date, style: "F" | "R" = "F") => `<t:${Math.floor(d.getTime() / 1000)}:${style}>`;
 const when = (d: Date) => `${ts(d)} (${ts(d, "R")})`;
 
+// COMMAND_PREFIX namespaces the command names (e.g. `r_` → `r_dmf`) so a second debug/staging
+// bot can coexist in the same server. Empty by default → plain `dmf`/`reset`/`status`.
+const prefix = config.commandPrefix;
+
 export const commandData: RESTPostAPIChatInputApplicationCommandsJSONBody[] = [
-  new SlashCommandBuilder().setName("dmf").setDescription("Darkmoon Faire schedule"),
+  new SlashCommandBuilder().setName(`${prefix}dmf`).setDescription("Darkmoon Faire schedule"),
   new SlashCommandBuilder()
-    .setName("reset")
+    .setName(`${prefix}reset`)
     .setDescription("Next daily and weekly reset times"),
   new SlashCommandBuilder()
-    .setName("status")
+    .setName(`${prefix}status`)
     .setDescription(`Realm status${config.realmSlug ? ` for ${config.realmSlug}` : ""}`),
 ].map((c) => c.toJSON());
 
 export async function handleCommand(interaction: ChatInputCommandInteraction): Promise<void> {
-  switch (interaction.commandName) {
+  // Strip COMMAND_PREFIX back off so dispatch is identical whether or not a prefix is set.
+  switch (interaction.commandName.slice(prefix.length)) {
     case "dmf": {
       const { active, window } = currentOrNextDmf();
       await interaction.reply(
