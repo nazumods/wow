@@ -139,6 +139,34 @@ Weekly.fields = {
     eventDelay = 1000,
   },
   ---@class WeeklyBroker
+  ---@field vaultSlots VaultTracks  per-track (Raid/Dungeons/World) three-slot detail with reward ilvls
+  vaultSlots = {
+    missing = false,
+    maxLevel = true,
+    resetOn = ns.RESET_WEEKLY,
+    -- Per-slot Great Vault detail for the vault view's pips + tooltip: three slots per track, each
+    -- carrying its own reward item level. The aggregate `vault` field (via Player:GetRewardOptions)
+    -- is left as-is for the summary column; this walks the same C_WeeklyRewards activities so each
+    -- slot keeps the ilvl the aggregate collapses away. ilvl is resolved only for unlocked slots.
+    get = function(_, _, current)
+      local acts = GetActivities()
+      -- transient/early API return — keep existing data rather than wiping
+      if not acts or #acts == 0 then return current end
+      local raw = {}
+      for _, a in ipairs(acts) do
+        local ilvl
+        if a.progress >= a.threshold then
+          local link = C_WeeklyRewards.GetExampleRewardItemHyperlinks(a.id)
+          if link then ilvl = C_Item.GetDetailedItemLevelInfo(link) end
+        end
+        raw[#raw + 1] = { type = a.type, threshold = a.threshold, progress = a.progress, ilvl = ilvl }
+      end
+      return ns.SummarizeVaultSlots(raw)
+    end,
+    event = "WEEKLY_REWARDS_UPDATE",
+    eventDelay = 1000,
+  },
+  ---@class WeeklyBroker
   ---@field hasUnclaimedVault boolean
   hasUnclaimedVault = {
     missing = false,

@@ -1,12 +1,13 @@
 ---@class Warbandeer: AddOn
 local ns = LibNAddOn(...)
 
-local Views = {"Overview", "Races", "Summary", "Gear", "Detail", "Roles", "Professions"}
+local Views = {"Overview", "Races", "Summary", "Gear", "Detail", "Roles", "Professions", "Great Vault"}
 
 -- Parallel view-key list: index i in Views maps to the view name ns.viewKeys[i].
 -- Kept adjacent so the two lists stay in sync. Used by MainWindow to resolve
--- db.settings.defaultView (a 1-based index) to an actual view name.
-ns.viewKeys = {"overview", "races", "summary", "gear", "detail", "roles", "profs"}
+-- db.settings.defaultView (a 1-based index) to an actual view name. New entries append
+-- (keeping existing indices stable, so a stored defaultView needs no migration).
+ns.viewKeys = {"overview", "races", "summary", "gear", "detail", "roles", "profs", "vault"}
 
 -- Index → side for the character-tooltip anchor (see CharacterTooltip.lua).
 ns.TOOLTIP_SIDES = {"Left", "Right"}
@@ -51,6 +52,7 @@ ns.views = {}
 ns.viewOrder = {
   "overview",
   "summary",
+  "vault",
   "detail",
   "gear",
   "roles",
