@@ -27,7 +27,7 @@
 | `src/wow/realm.ts` | Blizzard client-credentials OAuth + connected-realm status search (`UP`/`DOWN`) |
 | `src/github.ts` | GitHub API client: releases (drafts filtered) + `createIssue` / idempotent `ensureLabel` for `/report` (both need `GITHUB_TOKEN` with issues:write) |
 | `Dockerfile` | `oven/bun:1-slim` (Debian — Intl IANA timezones), prod-only install, non-root `bun` user, `VOLUME /app/data`, `ARG/ENV GIT_SHA` |
-| `docker-compose.yml` | `GIT_SHA=$(git rev-parse HEAD) docker compose up -d --build`: `env_file: .env`, `GIT_SHA` build arg, named volume `state` → `/app/data`, `restart: unless-stopped` |
+| `docker-compose.yml` | `GIT_SHA=$(git rev-parse HEAD) docker compose up -d --build`: `env_file: .env`, `GIT_SHA` build arg, named volume `state` → `/app/data`, `restart: unless-stopped`. Opt-in `cloudflared` sidecar (`profiles: [tunnel]`, needs `CLOUDFLARE_TUNNEL_TOKEN`) for exposing a future local API without inbound firewall ports |
 
 ## Behavior
 
@@ -88,6 +88,12 @@
   dies before `editReply` lands.
 - Run `bun run check` (tsc) and `bun test` after changes — CI runs both on every PR/push
   touching this app (`.github/workflows/discord-bot-test.yml`, path-scoped). No lint beyond tsc.
+- **`cloudflared` currently has nothing to route to** — the bot exposes no HTTP port yet
+  (that's the desktop-app API work, tracked separately). It's pure plumbing for now: an
+  opt-in sidecar (`--profile tunnel`) that joins the bot's Compose network, so a future
+  local server is reachable at `http://bot:<port>` once one exists and a public hostname
+  is mapped to it in the Cloudflare dashboard. The bot process itself never reads
+  `CLOUDFLARE_TUNNEL_TOKEN` — only the sidecar container does.
 - Every `*.test.ts` that reaches the `config` singleton (directly or transitively — `update.ts`
   and `commands.ts` both do) must prime `DISCORD_TOKEN`/`ANNOUNCE_CHANNEL_ID` and use a dynamic
   `await import()`, or it throws when run **standalone**. A full-suite `bun test` can mask this:

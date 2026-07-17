@@ -66,6 +66,22 @@ Behavior:
 - If the bot exits to update and comes back on the same build, it says so once in the log and **stops trying** — a misconfigured deploy produces a warning, not a restart loop. `/update` overrides that suppression.
 - Without `GIT_SHA`, self-update reports itself disabled rather than guessing.
 
+## Cloudflare Tunnel
+
+An opt-in sidecar for exposing a future local API (e.g. for the desktop app) to the internet without opening any inbound firewall ports. It's currently just plumbing — the bot has no HTTP server yet — but sets up the tunnel ahead of that work.
+
+1. In the [Cloudflare Zero Trust dashboard](https://one.dash.cloudflare.com/), go to **Networks → Tunnels**, create a tunnel, choose the **Docker** connector, and copy the token it gives you.
+2. Set `CLOUDFLARE_TUNNEL_TOKEN` in `.env`.
+3. Start it alongside the bot:
+
+   ```
+   GIT_SHA=$(git rev-parse HEAD) docker compose --profile tunnel up -d --build
+   ```
+
+   Without `--profile tunnel`, the sidecar doesn't start — a normal `docker compose up` is unaffected and doesn't need the token.
+
+Once the bot exposes a local port, map a public hostname to it (`http://bot:<port>`) in the tunnel's **Public Hostname** settings in the dashboard.
+
 ## Behavior notes
 
 - Announcement state persists in `data/state.json`, so restarts never repeat an announcement.
