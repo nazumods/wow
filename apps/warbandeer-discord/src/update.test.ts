@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { decideUpdate, sameSha } from "./update";
+
+// `update.ts` pulls in the `config` singleton, which resolves process.env at import
+// time — satisfy the required vars before importing so this file runs standalone.
+process.env.DISCORD_TOKEN ??= "test-token";
+process.env.ANNOUNCE_CHANNEL_ID ??= "100";
+const { decideUpdate, sameSha } = await import("./update");
 
 const OLD = "a".repeat(40);
 const NEW = "b".repeat(40);

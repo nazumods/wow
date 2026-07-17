@@ -1,4 +1,6 @@
 import { config } from "./config";
+import { state, saveState } from "./state";
+import { requestRestart } from "./restart";
 
 // Self-update detection. The bot has no releases of its own (apps/ is excluded from
 // the release pipeline), so "am I stale?" is answered by comparing the commit this
@@ -61,4 +63,50 @@ export async function fetchLatestBotSha(): Promise<string> {
   const sha = data[0]?.sha;
   if (!sha) throw new Error(`No commits found for ${BOT_PATH} on ${BOT_BRANCH}`);
   return sha;
+}
+
+export interface UpdateCheck {
+  decision: UpdateDecision;
+  latestSha: string;
+}
+
+/**
+ * Compare this build against the newest bot commit and, when stale, ask for a
+ * restart so the orchestrator can bring up the new code. `force` is an admin's
+ * explicit /update: it overrides the anti-loop suppression.
+ *
+ * The restart is only *requested* — `restart.ts` holds it until any in-flight
+ * announcement and state write have finished.
+ */
+export async function checkForUpdate(force = false): Promise<UpdateCheck> {
+  if (!config.gitSha) return { decision: "disabled", latestSha: "" };
+
+  const latestSha = await fetchLatestBotSha();
+  const decision = decideUpdate({
+    runningSha: config.gitSha,
+    latestSha,
+    attemptedSha: state.attemptedUpdateToSha,
+    force,
+  });
+
+  if (decision === "current" && state.attemptedUpdateToSha) {
+    // The update landed — clear the marker so a later one isn't wrongly suppressed.
+    state.attemptedUpdateToSha = undefined;
+    await saveState();
+  }
+
+  if (decision === "suppressed") {
+    console.warn(
+      `[update] ${latestSha.slice(0, 7)} still pending after a restart — the orchestrator ` +
+        `is not supplying new code. Rebuild the image (see README); not exiting again.`,
+    );
+  }
+
+  if (decision === "restart") {
+    state.attemptedUpdateToSha = latestSha;
+    await saveState();
+    requestRestart(`update ${config.gitSha.slice(0, 7)} -> ${latestSha.slice(0, 7)}`);
+  }
+
+  return { decision, latestSha };
 }

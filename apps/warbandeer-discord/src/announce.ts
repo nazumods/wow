@@ -5,6 +5,8 @@ import { currentOrNextDmf } from "./wow/dmf";
 import { lastWeeklyReset } from "./wow/reset";
 import { realmStatus, realmWatchConfigured } from "./wow/realm";
 import { fetchReleases } from "./github";
+import { checkForUpdate } from "./update";
+import { restartPending, withCritical } from "./restart";
 
 const TICK_MS = 60 * 1000;
 const RESET_ANNOUNCE_WINDOW_MS = 10 * 60 * 1000;
@@ -17,7 +19,11 @@ const RELEASE_CRON_HOUR_UTC = 14;
 const RELEASE_WINDOW_MS = 90 * 60 * 1000;
 const RELEASE_POLL_GAP_MS = 5 * 60 * 1000;
 
+// Bot commits land at any hour, so — unlike releases — this polls on a flat cadence.
+const UPDATE_POLL_GAP_MS = 15 * 60 * 1000;
+
 let lastReleasePollAt = 0;
+let lastUpdatePollAt = 0;
 // Active only on reset day: waits for the realm to go DOWN, announces recovery.
 let realmWatch: { resetIso: string; sawDown: boolean; startedAt: number } | undefined;
 
@@ -43,10 +49,25 @@ async function announce(client: Client, kind: AnnounceKind, message: string): Pr
 }
 
 async function onTick(client: Client): Promise<void> {
-  await checkDmf(client);
-  await checkWeeklyReset(client);
-  await checkRealmWatch(client);
-  if (shouldPollReleases(new Date())) await checkReleases(client);
+  if (restartPending()) return; // on the way out — don't start work we can't finish
+  // The whole tick is one critical section: a restart requested by the update check
+  // below lands only once every announcement and state write has settled.
+  await withCritical(async () => {
+    await checkDmf(client);
+    await checkWeeklyReset(client);
+    await checkRealmWatch(client);
+    if (shouldPollReleases(new Date())) await checkReleases(client);
+    if (config.autoUpdate && shouldPollUpdate()) await checkAutoUpdate();
+  });
+}
+
+function shouldPollUpdate(): boolean {
+  return Date.now() - lastUpdatePollAt >= UPDATE_POLL_GAP_MS;
+}
+
+async function checkAutoUpdate(): Promise<void> {
+  lastUpdatePollAt = Date.now();
+  await checkForUpdate();
 }
 
 function shouldPollReleases(now: Date): boolean {
