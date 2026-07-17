@@ -422,6 +422,15 @@ function ns:MigrateDB()
   if (db.version or 0) < 40 then
     db.version = 40
   end
+
+  -- v41: per-character owned-keystone dungeon (`weeklies.keystoneMap`: the challenge-map id of the
+  -- keystone the character holds, paired with the existing `weeklies.keystone` level).  Additive and
+  -- filled lazily by data/weekly.lua on CHALLENGE_MODE_COMPLETED / each refresh, reset weekly; nothing
+  -- to seed — an older revision simply lacks it (the Summary M+ cell tooltip shows level-only) until
+  -- the character next completes a key, so rollback is lossless.
+  if (db.version or 0) < 41 then
+    db.version = 41
+  end
 end
 
 ---@class Warbandeer_Characters
