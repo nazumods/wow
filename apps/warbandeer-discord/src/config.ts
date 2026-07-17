@@ -19,6 +19,20 @@ export interface Config {
   autoUpdate: boolean;
   /** Discord user IDs allowed to run /update. Empty = nobody. */
   adminUserIds: string[];
+  reportRoleId?: string;
+  commandPrefix: string;
+}
+
+/** `/report` project token → GitHub `owner/repo`. The slash-command choices are built from
+ * these keys, so an unrecognized project token can't reach the handler. */
+export const REPORT_PROJECTS: Record<string, string> = {
+  wow: "nazumods/wow",
+  abm: "roshne/ActionBarMaster",
+};
+
+/** The GitHub repo a `/report` project token maps to, or undefined if unknown. */
+export function repoForProject(project: string): string | undefined {
+  return REPORT_PROJECTS[project];
 }
 
 type Env = Record<string, string | undefined>;
@@ -51,6 +65,16 @@ export function resolveConfig(env: Env): Config {
 
   const announceChannelId = required("ANNOUNCE_CHANNEL_ID");
 
+  // Optional prefix for slash-command names, so a second (debug/staging) bot can run in the
+  // same server without command collisions. Discord requires lowercase command names.
+  const commandPrefix = optional("COMMAND_PREFIX") ?? "";
+  if (commandPrefix && !/^[a-z0-9_-]{1,20}$/.test(commandPrefix)) {
+    throw new Error(
+      `COMMAND_PREFIX must be 1-20 chars of lowercase letters, numbers, "-" or "_" ` +
+        `(Discord slash-command name rules), got "${commandPrefix}"`,
+    );
+  }
+
   return {
     discordToken: required("DISCORD_TOKEN"),
     announceChannelId,
@@ -68,6 +92,8 @@ export function resolveConfig(env: Env): Config {
     botBranch: optional("BOT_BRANCH") ?? "main",
     autoUpdate: optional("AUTO_UPDATE") === "true",
     adminUserIds: list("ADMIN_USER_IDS"),
+    reportRoleId: optional("REPORT_ROLE_ID"),
+    commandPrefix,
   };
 }
 
