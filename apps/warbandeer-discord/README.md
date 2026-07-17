@@ -8,6 +8,7 @@ Discord bot for the guild channel: WoW timers and announcements.
 - **Resets** — `/reset` shows the next daily and weekly reset; announces the weekly reset when it happens.
 - **Server-up watch** — after the weekly reset, polls the Blizzard API for your realm's status; if the realm goes down for maintenance, announces when it comes back up. `/status` checks the realm on demand.
 - **Release notifications** — polls GitHub and announces new releases of the addon suite.
+- **Issue reports** — `/report` lets members with a configured role file a GitHub issue (Title + Description via a popup form) straight into the mapped project's repo (`wow`, `abm`), labeled `automated` and noting who filed it.
 
 All times are posted as Discord timestamps, so everyone sees them in their own timezone.
 
@@ -21,7 +22,7 @@ All times are posted as Discord timestamps, so everyone sees them in their own t
 
    (`2048` = Send Messages. No privileged intents are needed.)
 
-2. **Configure**: copy `.env.example` to `.env` and fill it in. `DISCORD_TOKEN` and `ANNOUNCE_CHANNEL_ID` are required (right-click a channel → Copy Channel ID, with Developer Mode enabled). Set `RELEASE_ANNOUNCE_CHANNEL_ID` to post release notifications to their own channel (optional — they go to `ANNOUNCE_CHANNEL_ID` if unset). Set `GUILD_ID` so slash commands register instantly. For `/status` and server-up announcements, create a client at <https://develop.battle.net> and set `BLIZZARD_CLIENT_ID`, `BLIZZARD_CLIENT_SECRET`, and `WOW_REALM`. To run a second **debug/staging** bot in the same server, set `COMMAND_PREFIX` (e.g. `r_`) so its commands register as `/r_dmf`, `/r_reset`, `/r_status` instead of colliding with the live bot's — lowercase only (Discord rule).
+2. **Configure**: copy `.env.example` to `.env` and fill it in. `DISCORD_TOKEN` and `ANNOUNCE_CHANNEL_ID` are required (right-click a channel → Copy Channel ID, with Developer Mode enabled). Set `RELEASE_ANNOUNCE_CHANNEL_ID` to post release notifications to their own channel (optional — they go to `ANNOUNCE_CHANNEL_ID` if unset). Set `GUILD_ID` so slash commands register instantly. For `/status` and server-up announcements, create a client at <https://develop.battle.net> and set `BLIZZARD_CLIENT_ID`, `BLIZZARD_CLIENT_SECRET`, and `WOW_REALM`. To enable `/report`, set `REPORT_ROLE_ID` (the Discord role allowed to file reports) and give `GITHUB_TOKEN` a PAT with **issues:write** on the reportable repos. To run a second **debug/staging** bot in the same server, set `COMMAND_PREFIX` (e.g. `r_`) so its commands register as `/r_dmf`, `/r_reset`, `/r_status` instead of colliding with the live bot's — lowercase only (Discord rule).
 
 3. **Run** ([Bun](https://bun.sh) required):
 
@@ -50,12 +51,13 @@ All times are posted as Discord timestamps, so everyone sees them in their own t
 
 | File | Responsibility |
 |---|---|
-| `src/index.ts` | Client login, slash-command registration, wiring |
-| `src/config.ts` | Env config (`.env`) |
-| `src/commands.ts` | `/dmf`, `/reset`, `/status` handlers |
+| `src/index.ts` | Client login, command registration, interaction routing (commands + `/report` modals) |
+| `src/config.ts` | Env config (`.env`); `/report` project→repo map |
+| `src/commands.ts` | `/dmf`, `/reset`, `/status`, `/report` handlers |
+| `src/report.ts` | `/report` — role gate, modal form, files a GitHub issue |
 | `src/announce.ts` | Scheduler tick: DMF/reset/release announcements, realm watch |
 | `src/state.ts` | Announcement dedup state (`data/state.json`) |
 | `src/wow/dmf.ts` | Darkmoon Faire schedule math (timezone-correct) |
 | `src/wow/reset.ts` | Daily/weekly reset math per region |
 | `src/wow/realm.ts` | Blizzard OAuth + connected-realm status |
-| `src/github.ts` | GitHub releases API client |
+| `src/github.ts` | GitHub API: releases + `/report` issue creation |

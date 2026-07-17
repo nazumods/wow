@@ -4,7 +4,8 @@ import {
   type ChatInputCommandInteraction,
   type RESTPostAPIChatInputApplicationCommandsJSONBody,
 } from "discord.js";
-import { config } from "./config";
+import { config, REPORT_PROJECTS } from "./config";
+import { handleReportCommand } from "./report";
 import { currentOrNextDmf } from "./wow/dmf";
 import { nextDailyReset, nextWeeklyReset } from "./wow/reset";
 import { realmStatus, realmWatchConfigured } from "./wow/realm";
@@ -35,6 +36,15 @@ export const commandData: RESTPostAPIChatInputApplicationCommandsJSONBody[] = [
   cmd("status").setDescription(
     `Realm status${config.realmSlug ? ` for ${config.realmSlug}` : ""}`,
   ),
+  cmd("report")
+    .setDescription("File a GitHub issue for a project")
+    .addStringOption((o) =>
+      o
+        .setName("project")
+        .setDescription("Which project the report is about")
+        .setRequired(true)
+        .addChoices(...Object.keys(REPORT_PROJECTS).map((k) => ({ name: k, value: k }))),
+    ),
 ].map((c) => c.toJSON());
 
 export async function handleCommand(interaction: ChatInputCommandInteraction): Promise<void> {
@@ -74,6 +84,10 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
       } catch (err) {
         await interaction.editReply(`⚠️ Could not query realm status: ${(err as Error).message}`);
       }
+      return;
+    }
+    case "report": {
+      await handleReportCommand(interaction);
       return;
     }
   }

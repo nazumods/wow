@@ -4,7 +4,8 @@ import { describe, expect, test } from "bun:test";
 // required vars before pulling the module in.
 process.env.DISCORD_TOKEN ??= "test-token";
 process.env.ANNOUNCE_CHANNEL_ID ??= "100";
-const { resolveConfig } = await import("./config");
+const { resolveConfig, repoForProject } = await import("./config");
+const { reportBody } = await import("./report");
 
 const base = {
   DISCORD_TOKEN: "test-token",
@@ -44,5 +45,24 @@ describe("resolveConfig", () => {
 
   test("rejects an uppercase / invalid COMMAND_PREFIX", () => {
     expect(() => resolveConfig({ ...base, COMMAND_PREFIX: "R_" })).toThrow(/COMMAND_PREFIX/);
+  });
+
+  test("REPORT_ROLE_ID is optional and passes through", () => {
+    expect(resolveConfig(base).reportRoleId).toBeUndefined();
+    expect(resolveConfig({ ...base, REPORT_ROLE_ID: "42" }).reportRoleId).toBe("42");
+  });
+});
+
+describe("report helpers", () => {
+  test("repoForProject maps known tokens and rejects unknown", () => {
+    expect(repoForProject("wow")).toBe("nazumods/wow");
+    expect(repoForProject("abm")).toBe("roshne/ActionBarMaster");
+    expect(repoForProject("nope")).toBeUndefined();
+  });
+
+  test("reportBody keeps the description and names the reporter", () => {
+    const b = reportBody("it crashed on login", "alice");
+    expect(b).toContain("it crashed on login");
+    expect(b).toContain("alice");
   });
 });

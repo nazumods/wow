@@ -1,6 +1,7 @@
 import { Client, Events, GatewayIntentBits, REST, Routes } from "discord.js";
 import { config } from "./config";
 import { commandData, handleCommand } from "./commands";
+import { isReportModal, handleReportModal } from "./report";
 import { startScheduler } from "./announce";
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
@@ -19,11 +20,14 @@ client.once(Events.ClientReady, async (c) => {
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {
-  if (!interaction.isChatInputCommand()) return;
   try {
-    await handleCommand(interaction);
+    if (interaction.isChatInputCommand()) {
+      await handleCommand(interaction);
+    } else if (interaction.isModalSubmit() && isReportModal(interaction.customId)) {
+      await handleReportModal(interaction);
+    }
   } catch (err) {
-    console.error(`[/${interaction.commandName}]`, err);
+    console.error("[interaction]", err);
   }
 });
 

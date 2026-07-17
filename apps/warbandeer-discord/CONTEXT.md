@@ -2,25 +2,26 @@
 
 > **Purpose:** Discord bot (Bun + TypeScript, discord.js v14) for the guild channel:
 > DMF open/close + reset timers (`/dmf`, `/reset`), weekly-reset announcement with a
-> post-reset realm-up watch via the Blizzard API (`/status`), and GitHub release
-> announcements for this repo. Not an addon — lives in `apps/`, excluded from the
-> release pipeline.
+> post-reset realm-up watch via the Blizzard API (`/status`), GitHub release
+> announcements for this repo, and a `/report` command that files GitHub issues from Discord.
+> Not an addon — lives in `apps/`, excluded from the release pipeline.
 
 ## File Map
 
 | File | Responsibility |
 |---|---|
-| `src/index.ts` | Client login (Guilds intent only), slash-command registration (guild if `GUILD_ID`, else global), starts the scheduler |
-| `src/config.ts` | Env config from `.env` — pure `resolveConfig(env)` (exported for tests) + the `config` singleton resolved from `process.env`; throws at import time on missing required vars or an invalid `COMMAND_PREFIX` |
-| `src/commands.ts` | `/dmf`, `/reset`, `/status` handlers; `cmd(name)` builds every command under `config.commandPrefix`, `bareName()` strips it back off on dispatch; Discord `<t:…>` timestamp helpers |
+| `src/index.ts` | Client login (Guilds intent only), slash-command registration (guild if `GUILD_ID`, else global), starts the scheduler; routes interactions — chat commands → `handleCommand`, `/report` modal submits → `handleReportModal` |
+| `src/config.ts` | Env config from `.env` — pure `resolveConfig(env)` (exported for tests) + the `config` singleton resolved from `process.env`; throws at import time on missing required vars or an invalid `COMMAND_PREFIX`. Also the `/report` project→repo map (`REPORT_PROJECTS` + `repoForProject`) and `reportRoleId` |
+| `src/commands.ts` | `/dmf`, `/reset`, `/status`, `/report` command builders + dispatch; `cmd(name)` builds every command under `config.commandPrefix`, `bareName()` strips it back off on dispatch; Discord `<t:…>` timestamp helpers |
+| `src/report.ts` | `/report` flow: role gate (reads roles from the interaction — no Members intent), Title/Description modal, then `createIssue` in the mapped repo labeled `automated`; `reportBody` footer names the reporter (plain username, no mention) |
 | `src/announce.ts` | 60 s tick scheduler: DMF-open + weekly-reset announcements, realm-up watch, release polling; routes per `AnnounceKind` via `channelFor()` — releases → `RELEASE_ANNOUNCE_CHANNEL_ID` (falls back to `ANNOUNCE_CHANNEL_ID`), everything else → `ANNOUNCE_CHANNEL_ID` |
-| `src/config.test.ts` | bun tests for `resolveConfig`: release-channel fallback, required-var, region, and `COMMAND_PREFIX` validation |
+| `src/config.test.ts` | bun tests for `resolveConfig` (release-channel fallback, required-var, region, `COMMAND_PREFIX`, `REPORT_ROLE_ID`) + report helpers (`repoForProject`, `reportBody`) |
 | `src/commands.test.ts` | bun tests for `bareName()`: strips the prefix, no-op when unset, passes an unprefixed name through unmangled |
 | `src/state.ts` | Announcement dedup state, persisted to `data/state.json` (gitignored) |
 | `src/wow/dmf.ts` | DMF schedule math: first Sunday of month 00:01 in `config.dmfTimezone`, one week; IANA-timezone-correct (two-pass DST conversion) |
 | `src/wow/reset.ts` | Daily/weekly reset math (fixed UTC: us = Tue 15:00, eu = Wed 04:00) |
 | `src/wow/realm.ts` | Blizzard client-credentials OAuth + connected-realm status search (`UP`/`DOWN`) |
-| `src/github.ts` | GitHub releases API client (drafts filtered out) |
+| `src/github.ts` | GitHub API client: releases (drafts filtered) + `createIssue` / idempotent `ensureLabel` for `/report` (both need `GITHUB_TOKEN` with issues:write) |
 | `Dockerfile` | `oven/bun:1-slim` (Debian — Intl IANA timezones), prod-only install, non-root `bun` user, `VOLUME /app/data` |
 | `docker-compose.yml` | `docker compose up -d --build`: `env_file: .env`, named volume `state` → `/app/data`, `restart: unless-stopped` |
 
@@ -36,6 +37,13 @@
 
 ## Gotchas
 
+- **`/report`** (`src/report.ts`) is disabled unless BOTH `REPORT_ROLE_ID` and `GITHUB_TOKEN`
+  are set (it replies "not configured" otherwise). `project` is a fixed choices list, so an
+  unknown project can't reach the handler; the modal `customId` (`report:<project>`) carries the
+  selection to the submit handler. `ensureLabel` treats HTTP 422 (label already exists) as success,
+  so `/report` never fails on a missing `automated` label — it creates it on first use. Role check
+  reads `member.roles` from the interaction payload (cached manager **or** raw `string[]`), so no
+  privileged Members intent is needed.
 - `config.ts` reads env at import time (the `config` singleton) — tests/scripts must set
   `DISCORD_TOKEN` and `ANNOUNCE_CHANNEL_ID` **before** importing any module that imports it
   (see `config.test.ts`: env vars + dynamic import). Config *logic* is testable without env

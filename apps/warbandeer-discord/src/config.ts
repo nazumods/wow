@@ -12,7 +12,20 @@ export interface Config {
   githubRepo: string;
   githubToken?: string;
   dmfTimezone: string;
+  reportRoleId?: string;
   commandPrefix: string;
+}
+
+/** `/report` project token → GitHub `owner/repo`. The slash-command choices are built from
+ * these keys, so an unrecognized project token can't reach the handler. */
+export const REPORT_PROJECTS: Record<string, string> = {
+  wow: "nazumods/wow",
+  abm: "roshne/ActionBarMaster",
+};
+
+/** The GitHub repo a `/report` project token maps to, or undefined if unknown. */
+export function repoForProject(project: string): string | undefined {
+  return REPORT_PROJECTS[project];
 }
 
 type Env = Record<string, string | undefined>;
@@ -59,6 +72,7 @@ export function resolveConfig(env: Env): Config {
     githubToken: optional("GITHUB_TOKEN"),
     dmfTimezone:
       optional("DMF_TIMEZONE") ?? (region === "us" ? "America/Los_Angeles" : "Europe/Paris"),
+    reportRoleId: optional("REPORT_ROLE_ID"),
     commandPrefix,
   };
 }
