@@ -80,6 +80,10 @@ views\summaryColumnsSettings.lua
 views\SummaryView.lua
 views\GearView.lua
 
+views\VaultColumns.lua
+views\VaultRoster.lua
+views\VaultView.lua
+
 views\detail\Layout.lua
 views\DetailView.lua
 views\detail\Professions.lua

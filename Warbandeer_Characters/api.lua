@@ -21,6 +21,16 @@ function API:GetCharacterData(char)
   return ns.db.characters[char or ns.currentPlayer]
 end
 
+---This week's raid lockouts for `char` (default: current), sorted most-prestigious then
+---most-progressed (see ns.RaidLocks). The Great Vault view shows [1] as the primary raid and lists
+---the rest in its tooltip; empty when nothing is locked.
+---@param char? string
+---@return RaidLock[]
+function API:GetRaidLocks(char)
+  local data = self:GetCharacterData(char)
+  return ns.RaidLocks(data and data.instances and data.instances.locks)
+end
+
 ---Whether per-expansion profession detail has been recorded for `char` (default: current) on the
 ---given trade-skill line. That detail is captured only when the profession's crafting window is
 ---opened (TRADE_SKILL_SHOW), so a false result means the profession has never been scanned — the

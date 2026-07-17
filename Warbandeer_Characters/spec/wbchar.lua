@@ -13,6 +13,7 @@ local FILES = {
   "data/learnedunlocks.lua",
   "data/challengetames.lua",
   "data/professionknowledge.lua",
+  "data/vaultslots.lua",
 }
 
 ---@return table ns  a fresh namespace with the pure modules loaded

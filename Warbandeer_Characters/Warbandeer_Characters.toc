@@ -46,6 +46,7 @@ data/dungeontimes.lua
 data/worldquests.lua
 data/daily.lua
 data/playtime.lua
+data/vaultslots.lua
 data/weekly.lua
 data/instances.lua
 data/equipment.lua
