@@ -58,7 +58,8 @@ Setup:
 
 Behavior:
 
-- Staleness is "the newest commit on `main` touching `apps/warbandeer-discord` isn't my `GIT_SHA`", checked at startup and every 15 minutes when `AUTO_UPDATE=true`, and on demand via `/update`.
+- Staleness is "the newest commit on `BOT_BRANCH` (default `main`) touching `apps/warbandeer-discord` isn't my `GIT_SHA`", checked at startup and every 15 minutes when `AUTO_UPDATE=true`, and on demand via `/update`.
+- `BOT_BRANCH` must name a branch that exists on `GITHUB_REPO` — it's queried through the GitHub API, so a branch that only exists on your machine can't be used. Point a staging deploy at its own pushed branch. A deploy running something unpushed should build **without** `GIT_SHA` instead, so self-update reports itself disabled rather than reporting a permanent, undeliverable update.
 - The bot exits with code **75** (distinct from a crash, so a supervisor can tell an update apart from a failure).
 - A restart never lands mid-announcement: it waits for the in-flight tick and its `data/state.json` write to finish.
 - If the bot exits to update and comes back on the same build, it says so once in the log and **stops trying** — a misconfigured deploy produces a warning, not a restart loop. `/update` overrides that suppression.

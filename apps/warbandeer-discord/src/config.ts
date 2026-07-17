@@ -14,6 +14,8 @@ export interface Config {
   dmfTimezone: string;
   /** Commit this build was made from, baked in via the GIT_SHA build arg. Absent = self-update disabled. */
   gitSha?: string;
+  /** Branch self-update measures staleness against. Must exist on `githubRepo`. */
+  botBranch: string;
   autoUpdate: boolean;
   /** Discord user IDs allowed to run /update. Empty = nobody. */
   adminUserIds: string[];
@@ -63,6 +65,7 @@ export function resolveConfig(env: Env): Config {
     dmfTimezone:
       optional("DMF_TIMEZONE") ?? (region === "us" ? "America/Los_Angeles" : "Europe/Paris"),
     gitSha: optional("GIT_SHA"),
+    botBranch: optional("BOT_BRANCH") ?? "main",
     autoUpdate: optional("AUTO_UPDATE") === "true",
     adminUserIds: list("ADMIN_USER_IDS"),
   };

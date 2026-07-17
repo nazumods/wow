@@ -46,6 +46,15 @@ describe("resolveConfig — self-update", () => {
     expect(config.adminUserIds).toEqual([]);
   });
 
+  test("BOT_BRANCH defaults to main and overrides when set", () => {
+    expect(resolveConfig(base).botBranch).toBe("main");
+    expect(resolveConfig({ ...base, BOT_BRANCH: "staging" }).botBranch).toBe("staging");
+  });
+
+  test("an empty BOT_BRANCH falls back to main rather than querying no branch", () => {
+    expect(resolveConfig({ ...base, BOT_BRANCH: "" }).botBranch).toBe("main");
+  });
+
   test("GIT_SHA resolves, and an empty one disables self-update", () => {
     expect(resolveConfig({ ...base, GIT_SHA: "abc1234" }).gitSha).toBe("abc1234");
     expect(resolveConfig({ ...base, GIT_SHA: "" }).gitSha).toBeUndefined();

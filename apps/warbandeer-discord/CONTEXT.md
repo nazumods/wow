@@ -15,7 +15,7 @@
 | `src/commands.ts` | `/dmf`, `/reset`, `/status`, `/update` handlers; `isAdmin()` allowlist gate; Discord `<t:…>` timestamp helpers |
 | `src/announce.ts` | 60 s tick scheduler: DMF-open + weekly-reset announcements, realm-up watch, release polling; routes per `AnnounceKind` via `channelFor()` — releases → `RELEASE_ANNOUNCE_CHANNEL_ID` (falls back to `ANNOUNCE_CHANNEL_ID`), everything else → `ANNOUNCE_CHANNEL_ID` |
 | `src/config.test.ts` | bun tests for `resolveConfig`: release-channel fallback, required-var and region validation, self-update vars |
-| `src/update.ts` | Self-update: pure `decideUpdate()` + `sameSha()`, `fetchLatestBotSha()` (newest `main` commit touching `apps/warbandeer-discord`), stateful `checkForUpdate(force)` |
+| `src/update.ts` | Self-update: pure `decideUpdate()` + `sameSha()`, `fetchLatestBotSha()` (newest `config.botBranch` commit touching `apps/warbandeer-discord`), stateful `checkForUpdate(force)` |
 | `src/update.test.ts` | bun tests for `decideUpdate`/`sameSha`: staleness, short-sha prefixes, anti-loop suppression, `force` |
 | `src/restart.ts` | Ref-counted critical section + `requestRestart()`; exits `RESTART_EXIT_CODE` (75); `setExitFn`/`resetForTest` for tests |
 | `src/restart.test.ts` | bun tests: immediate vs deferred exit, nesting, exit-once, release-on-throw |
@@ -37,10 +37,11 @@
 - **Release polling** follows the repo's daily release cron (14:00 UTC, `.github/workflows/release.yml`):
   polls every 5 min inside a 90-min window from 14:00 UTC, plus once at startup to catch
   anything published while the bot was offline. First-ever poll seeds `seenReleaseIds` silently.
-- **Self-update** compares baked-in `GIT_SHA` against the newest `main` commit touching the bot's
-  dir (flat 15-min cadence + startup, only when `AUTO_UPDATE=true`; `/update` checks on demand
-  with `force`). Stale → persist `attemptedUpdateToSha`, then exit 75 for the orchestrator to
-  respawn. `/update` is gated on the `ADMIN_USER_IDS` allowlist and fails closed when empty.
+- **Self-update** compares baked-in `GIT_SHA` against the newest `BOT_BRANCH` (default `main`)
+  commit touching the bot's dir (flat 15-min cadence + startup, only when `AUTO_UPDATE=true`;
+  `/update` checks on demand with `force`). Stale → persist `attemptedUpdateToSha`, then exit 75
+  for the orchestrator to respawn. `/update` is gated on the `ADMIN_USER_IDS` allowlist and fails
+  closed when empty.
 
 ## Gotchas
 
@@ -56,6 +57,11 @@
   registry image + Watchtower-style updater). The `attemptedUpdateToSha` marker exists precisely
   because the naive version exit-loops forever against a non-cooperating orchestrator: once the
   bot has exited for a sha and come back unchanged, it warns instead of exiting again.
+- **`BOT_BRANCH` is queried through the GitHub API, so it must exist on the remote.** A deploy
+  running a local-only branch (e.g. an unpushed integration branch that merges several PRs)
+  can't point at it — and since such a branch never equals any remote branch's tip, self-update
+  there reports a permanent update it can never deliver. Build those **without `GIT_SHA`** so
+  self-update disables itself honestly instead.
 - `requestRestart()` exits **immediately** when no critical section is open — anything that must
   survive the exit (a Discord reply, a state write) has to run inside `withCritical()`. The
   `/update` handler wraps its `checkForUpdate` for exactly this reason; without it the process

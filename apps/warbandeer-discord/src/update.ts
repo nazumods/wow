@@ -8,7 +8,6 @@ import { requestRestart } from "./restart";
 // on the default branch that touched the bot's own directory.
 
 const BOT_PATH = "apps/warbandeer-discord";
-const BOT_BRANCH = "main";
 
 export type UpdateDecision =
   /** No GIT_SHA baked in — we can't tell what we're running. */
@@ -46,7 +45,7 @@ export function decideUpdate(o: {
   return "restart";
 }
 
-/** Newest commit touching the bot's directory on the default branch. */
+/** Newest commit touching the bot's directory on `config.botBranch`. */
 export async function fetchLatestBotSha(): Promise<string> {
   const headers: Record<string, string> = {
     Accept: "application/vnd.github+json",
@@ -55,13 +54,18 @@ export async function fetchLatestBotSha(): Promise<string> {
   if (config.githubToken) headers.Authorization = `Bearer ${config.githubToken}`;
   const res = await fetch(
     `https://api.github.com/repos/${config.githubRepo}/commits` +
-      `?sha=${BOT_BRANCH}&path=${encodeURIComponent(BOT_PATH)}&per_page=1`,
+      `?sha=${encodeURIComponent(config.botBranch)}&path=${encodeURIComponent(BOT_PATH)}&per_page=1`,
     { headers },
   );
-  if (!res.ok) throw new Error(`GitHub commits query failed: ${res.status}`);
+  // 404 here is usually BOT_BRANCH naming a branch that doesn't exist on the remote.
+  if (!res.ok) {
+    throw new Error(
+      `GitHub commits query failed: ${res.status} (repo ${config.githubRepo}, branch ${config.botBranch})`,
+    );
+  }
   const data = (await res.json()) as { sha: string }[];
   const sha = data[0]?.sha;
-  if (!sha) throw new Error(`No commits found for ${BOT_PATH} on ${BOT_BRANCH}`);
+  if (!sha) throw new Error(`No commits found for ${BOT_PATH} on ${config.botBranch}`);
   return sha;
 }
 
