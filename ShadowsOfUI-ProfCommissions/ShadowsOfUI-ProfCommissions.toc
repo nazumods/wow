@@ -5,6 +5,7 @@
 ## Version: 12.0.7-r4
 ## IconTexture: Interface\Icons\inv_misc_treasurechest01
 ## Dependencies: LibNAddOn
+## X-Curse-Project-ID: 1615367
 
 core.lua
 changelog.lua
