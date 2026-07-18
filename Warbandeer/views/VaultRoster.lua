@@ -44,6 +44,9 @@ ns.VaultRoster = VaultRoster
 ---@return Character[]
 function VaultRoster:GetCharacters()
   local toons = ns.api.GetAllCharacters()  -- returns a copy
+  -- The Great Vault is a max-level-only feature, so hide levellers entirely: below max they
+  -- have no vault data at all, so their rows would just be blank noise.
+  toons = filter(toons, function(t) return (t.basic.level or 0) >= ns.wow.maxLevel end)
   if self.faction ~= "both" then
     local wantAlliance = self.faction == "alliance"
     toons = filter(toons, function(t) return t.isAlliance == wantAlliance end)
@@ -61,15 +64,14 @@ function VaultRoster:GetRowData(toon)
   return cells
 end
 
--- Resting backdrop: gold wash for the logged-in character, dimmed for still-levelling characters.
+-- Resting backdrop: gold wash for the logged-in character, transparent otherwise. The roster is
+-- max-level-only (see GetCharacters), so there are no levellers to dim here.
 ---@param i integer
 function VaultRoster:restRow(i)
   local row, toon = self.rows[i], self._toons[i]
   if not row then return end
   if toon and toon.name == ns.api.GetCurrentCharacter() then
     row:backdropColor(theme.colors.selected)
-  elseif toon and (toon.basic.level or 0) < ns.wow.maxLevel then
-    row:backdropColor(0, 0, 0, 0.22)
   else
     row:backdropColor(0, 0, 0, 0)
   end
