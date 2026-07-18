@@ -1,6 +1,6 @@
 # Warbandeer (Main UI)
 
-**Deps:** LibNAddOn, LibNUI, Warbandeer_Characters · **OptionalDeps:** Warbandeer_Bars (`bars` view), Warbandeer_Collected (`collected` view), Warbandeer_HousingDecor (`decor` view), ShadowsOfUI-Upgrade (gear-upgrade markers) · **SavedVars:** `WarbandeerDB` (v6) · **Commands:** `/warband`, `/wb` (+ one per view) · **Reads:** `WarbandeerApi`, `WarbandeerBarsApi`, `WarbandeerCollectedApi`, `WarbandeerHousingDecorApi`, `ShadowsOfUI_UpgradeApi` · **UI:** LibNUI
+**Deps:** LibNAddOn, LibNUI, Warbandeer_Characters · **OptionalDeps:** Warbandeer_Bars (`bars` view), Warbandeer_Collected (`collected` view), Warbandeer_HousingDecor (`decor` view), ShadowsOfUI-Upgrade (gear-upgrade markers) · **SavedVars:** `WarbandeerDB` (v7) · **Commands:** `/warband`, `/wb` (+ one per view) · **Reads:** `WarbandeerApi`, `WarbandeerBarsApi`, `WarbandeerCollectedApi`, `WarbandeerHousingDecorApi`, `ShadowsOfUI_UpgradeApi` · **UI:** LibNUI
 
 Main viewer UI. Reads the data layer (`ns.api` ← `WarbandeerApi`) and renders it across a set of views switched from a left icon rail.
 
