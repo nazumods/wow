@@ -45,6 +45,9 @@ function DressingRoom:Dress()
   -- others are the entry itself.
   local form = self:_resolvedForm()
 
+  -- Weapon-cosmetic groups preview a held weapon, not armor — a separate render path.
+  if self._group and self._group.kind then return self:_dressWeapon(m, form) end
+
   -- Decide the outfit BEFORE (re)loading the model. The re-skin loads async and
   -- resets the actor to its default body once the load finishes, so the model
   -- re-applies this on its load callback (Model:Outfit). _currentSources drops the
@@ -77,6 +80,79 @@ function DressingRoom:Dress()
   local renderRace = (form and form.race) or self._raceID
   if renderRace == ns.CanonRace(playerRace) then renderRace = nil end
   m:Unit("player", renderRace, form and form.useNativeForm)
+end
+
+-- The player's equipped main-hand appearance (itemModifiedAppearanceID) — the host
+-- weapon an illusion's enchant shimmer renders on (an illusion has nothing to sit on
+-- by itself). nil when nothing's equipped.
+---@return number?
+function ns.HostWeaponAppearance()
+  local mh = GetInventoryItemID("player", INVSLOT_MAINHAND)
+  return mh and select(2, C_TransmogCollection.GetItemInfo(mh)) or nil
+end
+
+-- Weapon-cosmetic preview (#516): render the char's race holding the previewed piece —
+-- an arsenal weapon appearance (via Outfit → TryOn), or a host weapon with the enchant
+-- illusion layered on (via Model:SlotTransmog). Bare body; the focus is the weapon. The
+-- up/down nav cycles `_weaponPiece` through the cell's pieces (see StepTierVisual).
+-- Decision B: the logged-in character's race only.
+---@param m Model
+---@param form table?
+function DressingRoom:_dressWeapon(m, form)
+  local set = self._set
+  local idx = self._weaponPiece or 1
+  m:ClearSlotTransmog(INVSLOT_MAINHAND)
+  if self._group.kind == "illusion" then
+    m:Outfit({})   -- bare; the illusion rides the host weapon applied below
+    local piece = set.illusions[idx]
+    local host = ns.HostWeaponAppearance()
+    if piece and host then m:SlotTransmog(INVSLOT_MAINHAND, host, { illusionID = piece.sourceID }) end
+  else   -- arsenal: preview the one weapon appearance
+    local itemID = set.pieces[idx]
+    local ima = itemID and select(2, C_TransmogCollection.GetItemInfo(itemID))
+    m:Outfit(ima and { ima } or {})
+  end
+
+  self:_titleWeapon()   -- surface the previewed piece's real name in the title bar
+
+  m:Aggressiveness(form and form.normalize or ns.NORMALIZE_AGGRESSIVENESS)
+  m:Scale(1)
+  self._scaleSlider:Value(1)
+  local _, _, playerRace = UnitRace("player")
+  local renderRace = (form and form.race) or self._raceID
+  if renderRace == ns.CanonRace(playerRace) then renderRace = nil end
+  m:Unit("player", renderRace, form and form.useNativeForm)
+end
+
+-- Title the window with the previewed weapon piece's real name (+ position when the
+-- cell holds several: "Frostbrand (2/5)"). Illusion names resolve synchronously via
+-- GetIllusionStrings; arsenal item names load async, so retitle shortly (capped, no
+-- re-skin) until the name is cached, guarding against a set/piece change mid-wait.
+function DressingRoom:_titleWeapon()
+  local set, idx = self._set, self._weaponPiece or 1
+  local name, count
+  if self._group.kind == "illusion" then
+    count = #set.illusions
+    local piece = set.illusions[idx]
+    name = piece and C_TransmogCollection.GetIllusionStrings(piece.sourceID)
+  else
+    count = #set.pieces
+    local itemID = set.pieces[idx]
+    name = itemID and C_Item.GetItemNameByID(itemID)
+    if itemID and not name then C_Item.RequestLoadItemDataByID(itemID) end
+  end
+  self:Title((name or set.name) .. (count and count > 1 and (" (%d/%d)"):format(idx, count) or ""))
+
+  if self._weaponTitleTimer then self._weaponTitleTimer:Cancel(); self._weaponTitleTimer = nil end
+  if not name and (self._weaponTitleTries or 0) < 10 then
+    self._weaponTitleTries = (self._weaponTitleTries or 0) + 1
+    self._weaponTitleTimer = C_Timer.NewTimer(0.2, function()
+      self._weaponTitleTimer = nil
+      if self._set == set and (self._weaponPiece or 1) == idx then self:_titleWeapon() end
+    end)
+  else
+    self._weaponTitleTries = 0
+  end
 end
 
 -- Point the title-bar class icon at the class in column `classId` (hidden if the
@@ -165,12 +241,13 @@ local _room
 ---@class Warbandeer_Collected
 ---@field ShowDressingRoom fun(group: table, set: table)  group/set are entries from ns.Sets
 ns.ShowDressingRoom = function(group, set)
-  -- A set the local client has no appearance data for — a PTR-only "upcoming" set on
-  -- a live client: there's nothing for the 3D model to render, so don't open an empty
+  -- A set the local client has no appearance data for — a PTR-only "upcoming" set on a
+  -- live client: there's nothing for the 3D model to render, so don't open an empty
   -- viewer; point the user to the PTR instead. On a PTR client these resolve and the
-  -- preview opens normally. (Live sets, incl. Trading Post variants, always return
-  -- pieces here even when per-slot sources are empty, so they're never gated.)
-  if set and set.id then
+  -- preview opens normally. (Live sets, incl. Trading Post variants, always return pieces
+  -- here.) Weapon-cosmetic groups (kind) have synthetic ids with no C_TransmogSets
+  -- sources, so skip this gate — they render via _dressWeapon on the char's own race.
+  if not (group and group.kind) and set and set.id then
     local src = GetAllSourceIDs(set.id)
     if not src or #src == 0 then
       ns.Print(('"%s" is upcoming on the PTR — log into the PTR to preview it in 3D.'):format(set.name or ("set " .. tostring(set.id))))

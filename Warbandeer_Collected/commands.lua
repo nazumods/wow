@@ -120,6 +120,37 @@ ns:registerCommand("release", nil, function(_, args)
   ns.Print(("Preview release %d (%s)"):format(n, ns.Releases[n]))
 end, "dev: preview an expansion badge by release index 1..12 (eyeball each icon)")
 
+-- Owned count for one weapon-cosmetic cell (data/weapons.lua). Illusions live on
+-- C_TransmogCollection, not C_TransmogSets: an illusion is owned iff
+-- GetIllusionInfo(sid).isCollected; an arsenal weapon iff PlayerHasTransmog(itemID).
+-- Writes db.sets in the SAME shape as the armor path (true = fully owned, else
+-- {collected,total} so the grid shades a partial bundle like a partial set) and bumps
+-- the running totals. A cell with nothing resolvable yet (e.g. an arsenal whose pieces
+-- list is still empty) records nothing and renders blank.
+function ns:_scanWeaponSet(grp, set)
+  local n, total = 0, 0
+  if grp.kind == "illusion" then
+    for _, piece in ipairs(set.illusions) do
+      total = total + 1
+      local info = C_TransmogCollection.GetIllusionInfo(piece.sourceID)
+      if info and info.isCollected then n = n + 1 end
+    end
+  else   -- "arsenal"
+    for _, itemID in ipairs(set.pieces) do
+      total = total + 1
+      if C_TransmogCollection.PlayerHasTransmog(itemID) then n = n + 1 end
+    end
+  end
+  if total == 0 then return end
+  self.db.total = self.db.total + 1
+  if n >= total then
+    self.db.collected = self.db.collected + 1
+    self.db.sets[grp.id][set.id] = true
+  else
+    self.db.sets[grp.id][set.id] = { collected = n, total = total }
+  end
+end
+
 -- Rebuild db.sets/collected/total from the live transmog APIs and refresh the open
 -- window. Leaves the rating keys (wanted/rank/raceRank) untouched. Silent so the
 -- collection-change event can call it without chat spam; the command prints.
@@ -133,7 +164,10 @@ function ns:Scan()
     self.db.sets[grp.id] = self.db.sets[grp.id] or {}
     for _, set in ipairs(grp.sets) do
       if set.id then
-        if isCollected(set.id) then
+        if grp.kind then
+          -- Weapon-cosmetic group (illusions / arsenals) — different API surface.
+          self:_scanWeaponSet(grp, set)
+        elseif isCollected(set.id) then
           self.db.total = self.db.total + 1
           self.db.sets[grp.id][set.id] = true
           self.db.collected = self.db.collected + 1

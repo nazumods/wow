@@ -105,7 +105,7 @@ local function buildSlot(room, slotID, x, y, side)
     parent = box, layer = ui.layer.Artwork,
     position = { TopLeft = {2, -2}, BottomRight = {-2, 2}, Hide = true },
   }
-  local entry = { slotID = slotID, icon = icon, border = border }
+  local entry = { slotID = slotID, icon = icon, border = border, box = box }
 
   local anchor = side == "left" and "ANCHOR_LEFT" or "ANCHOR_RIGHT"
   box._widget:EnableMouse(true)
@@ -149,6 +149,15 @@ function DressingRoom:_buildSlots(winW)
   self._hiddenSlots = {}   -- inventory slot ids toggled off the model (reset per set in _load)
   layoutColumn(self, LEFT_SLOTS, COLINSET, "left")
   layoutColumn(self, RIGHT_SLOTS, winW - COLINSET - SLOT, "right")
+end
+
+-- Show or hide the paper-doll slot columns as a whole. Hidden in weapon-cosmetic
+-- preview (illusions / arsenals have no armor slots); re-shown for armor sets.
+---@param show boolean
+function DressingRoom:_showSlots(show)
+  for _, e in ipairs(self._slots) do
+    if show then e.box:Show() else e.box:Hide() end
+  end
 end
 
 -- Fill the paper-doll slots with the current set's pieces: icon + status border
