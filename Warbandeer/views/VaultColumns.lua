@@ -142,7 +142,11 @@ ns.VaultColumns = {
     getData = function(t) return trackCell(t, "Dungeons") end,
   },
   SummaryColumn:new{
-    name = "World", key = "vaultWorld", label = "World", width = 60, justifyH = Center,
+    key = "vaultWorld", label = "World", width = 60, justifyH = Center,
+    -- Map glyph header (house-style) for the World track
+    iconPath = "Interface\\AddOns\\Warbandeer\\icons\\worldMap.tga",
+    iconColor = ns.theme.colors.muted,
+    tooltip = { "World", "Great Vault progress from world activities." },
     getData = function(t) return trackCell(t, "World") end,
   },
   -- owned keystone (+level)
