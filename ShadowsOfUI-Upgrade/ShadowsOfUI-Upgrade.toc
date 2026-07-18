@@ -6,6 +6,7 @@
 ## Dependencies: LibNAddOn, Warbandeer_Characters
 ## OptionalDeps: ClassCodex
 ## X-NUI-API: WarbandeerApi
+## X-Curse-Project-ID: 1615392
 
 core.lua
 changelog.lua

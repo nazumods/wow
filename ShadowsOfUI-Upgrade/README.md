@@ -1,4 +1,4 @@
-# ShadowsOfUI-Upgrade
+# Shadows of UI: Upgrade
 
 Finds **gear upgrades** (and flags gear **missing its enchant**) for your whole warband and
 shows them where you make keep-or-sell decisions: on item tooltips, and across Warbandeer's
@@ -115,10 +115,6 @@ logged-in character) — a debugging aid; you won't normally need it. `/supgrade
 [name]` opens a copyable window explaining how each missing-enchant slot resolves (which
 source supplied the recommendation, or why none did) — useful when a slot shows "Missing
 enchant" with no suggested enchant.
-
-## Changelog
-
-A **Changelog** button in this addon's settings (Options → AddOns → Shadows of UI → Gear Upgrades) opens its release history in a scrollable, copyable window.
 
 ## Dependencies
 
