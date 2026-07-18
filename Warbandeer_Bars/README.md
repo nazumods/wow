@@ -90,7 +90,7 @@ Bindings and outfits default **off** so importing buttons doesn't silently rewri
 
 -- Capture / store
 :Snapshot()                                  --> profile?   (capture current char now, and store)
-:DeleteProfile(char, specID)
+:DeleteProfile(char, specID)                 --> boolean    (forget one profile; false if the char had no such spec)
 :DeleteCharacter(char)                       --> boolean    (forget all of a char's profiles; false if none)
 
 -- Apply to the current character

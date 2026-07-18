@@ -85,4 +85,39 @@ describe("ShadowsOfUI-Collectibles detect — tooltip-load negative-cache gating
       assert.is_true(ns.IsKnown(LINK))                 -- cached positive survives
     end)
   end)
+
+  describe("IsKnown (L2 — recipe cross-alt negative must not lock before the item name loads)", function()
+    before_each(function()
+      -- A crafting recipe whose crafted item an alt already knows. subClassID 1 maps to
+      -- skill line 165 in detect.lua's RECIPE_SUBCLASS_TO_SKILL; craftedName() strips the
+      -- "Recipe:" prefix, so the stored learned name is the bare "Foo".
+      ns.api = {
+        GetAllCharacters = function()
+          return {
+            { professions = { details = { [165] = { recipes = {
+              main = { learned = { { name = "Foo" } } },
+            } } } } },
+          }
+        end,
+      }
+    end)
+
+    it("does not cache false while the item name is unloaded, then recovers to alt-known", function()
+      -- Name unloaded (GetItemInfo → nil) but the tooltip HAS loaded with no "already
+      -- known" line for THIS char: the cross-alt check can't run, so a false is a lie.
+      state.itemInfo[ID] = { classID = Enum.ItemClass.Recipe, subClassID = 1 }  -- name = nil
+      state.tooltip[LINK] = { "Recipe: Foo" }
+      assert.is_false(ns.IsKnown(LINK))                -- unknown *for now* (name missing)
+      state.itemInfo[ID].name = "Recipe: Foo"          -- name resolves
+      assert.is_true(ns.IsKnown(LINK))                 -- recovers — was NOT locked false
+    end)
+
+    it("still caches the negative once the name is loaded and no alt knows it", function()
+      state.itemInfo[ID] = { name = "Recipe: Bar", classID = Enum.ItemClass.Recipe, subClassID = 1 }
+      state.tooltip[LINK] = { "Recipe: Bar" }          -- loaded; this char doesn't know it
+      assert.is_false(ns.IsKnown(LINK))
+      state.tooltip[LINK] = { "Already known." }        -- would flip live...
+      assert.is_false(ns.IsKnown(LINK))                 -- ...but the reliable negative holds
+    end)
+  end)
 end)

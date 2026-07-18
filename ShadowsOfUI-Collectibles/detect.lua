@@ -187,10 +187,16 @@ function ns.IsKnown(link)
   local _, _, _, _, itemIcon, classID, subClassID = GetItemInfoInstant(itemID or link)
   local itemName = itemID and GetItemInfo(itemID)
   local known, sawTooltip
+  -- The recipe (cross-alt) and companion-pet (name+icon) branches key off itemName,
+  -- which loads asynchronously via GetItemInfo. Until it arrives their match short-
+  -- circuits to a false negative that must not be cached (see the negative gate below).
+  local needsName = false
   if classID == Enum.ItemClass.Recipe then
+    needsName = true
     known = anyAltKnowsRecipe(RECIPE_SUBCLASS_TO_SKILL[subClassID], craftedName(itemName))
     if not known then known, sawTooltip = scanTooltipKnown(link) end
   elseif classID == Enum.ItemClass.Miscellaneous and subClassID == Enum.ItemMiscellaneousSubclass.CompanionPet then
+    needsName = true
     known = knowsCompanion(itemName, itemIcon)
     if not known then known, sawTooltip = scanTooltipKnown(link) end
   elseif classID == Enum.ItemClass.Housing and subClassID == Enum.ItemHousingSubclass.Decor then
@@ -202,10 +208,11 @@ function ns.IsKnown(link)
 
   if known then
     knownCache[link] = true
-  elseif sawTooltip then
-    -- Trust a negative only once the tooltip actually loaded: the "already known"
-    -- line resolves on its own schedule, so an unloaded tooltip reads as a false
-    -- negative. Wiped anyway on a collection-gain event.
+  elseif sawTooltip and not (needsName and not itemName) then
+    -- Trust a negative only once the tooltip actually loaded AND — for the name-keyed
+    -- recipe/companion branches — the item name has resolved; otherwise the cross-alt /
+    -- companion match ran on missing data and would lock a false "not known" (e.g. an
+    -- alt-known recipe at the AH) until a collection-gain event. Wiped on such an event.
     knownCache[link] = false
   end
   return known

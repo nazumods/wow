@@ -27,7 +27,11 @@ session: positives always; negatives only from the expensive tooltip-scanned fal
 once the tooltip actually loaded. The load signal is the tooltip scan itself (`C_TooltipInfo.GetHyperlink`
 returned a populated `data.lines`), **not** a `GetItemInfo` name proxy: the "already known / Teaches you"
 line resolves on its own schedule, so gating on the base item name would cache a false negative while the
-tooltip is still filling in (permanent for `IsCollectible`, whose negatives are never wiped). Known-negatives
+tooltip is still filling in (permanent for `IsCollectible`, whose negatives are never wiped). One nuance for
+`IsKnown`: its recipe (cross-alt) and companion-pet branches derive the answer partly from `GetItemInfo`'s
+**name** (an alt-known recipe / name-matched pet), so *those* negatives are additionally gated on the name
+having loaded — else an alt-known recipe at the AH (tooltip populated before the name) locks a false "not
+known" until a collection-gain event. Known-negatives
 are wiped (+ `ns.Refresh()`) on collection-gain events (`NEW_RECIPE_LEARNED`, `NEW_MOUNT_ADDED`,
 `NEW_PET_ADDED`, `TOYS_UPDATED`, `TRANSMOG_COLLECTION_SOURCE_ADDED`, `QUEST_TURNED_IN`,
 `HOUSING_STORAGE_UPDATED`); collectible-negatives are permanent (an item's type never changes). The cheap

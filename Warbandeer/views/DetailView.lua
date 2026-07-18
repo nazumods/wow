@@ -459,9 +459,16 @@ function DetailView:OnBeforeShow()
     self.petsButton:Width(D.APPEAR_W)
     self.petsButton:Show()
     if self.petsPanel then self.petsPanel:Refresh(char) end  -- re-point an open panel at the new subject
-    -- Keep the Challenge-Tames sibling in step: re-point it for a Hunter, hide it for a Warlock (no tames).
+    -- Keep the Challenge-Tames sibling in step with the pets panel's open state (as the Pets button
+    -- does): for a Hunter with the roster open, Set() opens + re-points it beside the roster — a bare
+    -- Refresh() is a no-op while hidden, so a Warlock→Hunter switch would otherwise leave it closed.
+    -- (tamesPanel is only ever created alongside petsPanel, so the IsOpen() below is safe.)
     if self.tamesPanel then
-      if char.classId == HUNTER then self.tamesPanel:Refresh(char) else self.tamesPanel:Hide() end
+      if char.classId == HUNTER and self.petsPanel:IsOpen() then
+        self.tamesPanel:Set(char)
+      else
+        self.tamesPanel:Hide()
+      end
     end
   else
     self.petsButton:Hide()
