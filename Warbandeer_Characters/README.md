@@ -71,7 +71,7 @@ data through the `WarbandeerApi` global.
   This replaces the standalone WeeklyKnowledge addon.
 - **Great Vault + weekly lockouts** are tracked per character (and cleared each weekly reset): each
   track's (Raid / Mythic+ / World) reward slots and the item level each would grant, your owned
-  keystone and Mythic+ run count, the raid lockouts you're saved to this week, and whether the weekly
+  keystone (dungeon + level) and Mythic+ run count, the raid lockouts you're saved to this week, and whether the weekly
   Delver's Bounty is claimed. Warbandeer's **Great Vault** view surfaces the whole warband at a glance.
 - **Neighborhood endeavors + house XP** are tracked: which endeavor each character is currently
   feeding (its faction house's crest) shows in a new **Endeavors** column in the Summary view; and the

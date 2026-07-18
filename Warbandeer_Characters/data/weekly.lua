@@ -5,6 +5,7 @@ local Player = ns.wow.Player
 local IsQuestFlaggedCompleted = C_QuestLog.IsQuestFlaggedCompleted
 local GetActivities = C_WeeklyRewards.GetActivities
 local GetOwnedKeystoneLevel = C_MythicPlus.GetOwnedKeystoneLevel
+local GetOwnedKeystoneChallengeMapID = C_MythicPlus.GetOwnedKeystoneChallengeMapID
 
 local DMFQuests = {
   Alchemy = 29506,
@@ -190,6 +191,20 @@ Weekly.fields = {
     event = "CHALLENGE_MODE_COMPLETED",
   },
   ---@class WeeklyBroker
+  ---@field keystoneMap integer? challenge-map id of the owned keystone's dungeon, nil if none
+  keystoneMap = {
+    -- Parallels `keystone` (the level) so the two stay in lockstep: same reset + event, updated
+    -- together on a completed key. Stores the raw challenge-map id (what C_ChallengeMode.GetMapUIInfo
+    -- consumes); the dungeon name is resolved at render time, so it's always current-client-correct.
+    missing = false,
+    maxLevel = true,
+    resetOn = ns.RESET_WEEKLY,
+    get = function()
+      return GetOwnedKeystoneChallengeMapID()  -- MayReturnNothing: nil when no keystone
+    end,
+    event = "CHALLENGE_MODE_COMPLETED",
+  },
+  ---@class WeeklyBroker
   ---@field dungeons {done: integer, max: integer}? M+ runs done and vault max threshold
   dungeons = {
     missing = false,
@@ -215,8 +230,11 @@ Weekly.fields = {
 
 ns:registerDump("m+", "Keystone", "dump keystone data", function(self, out)
   local ks = self.currentData.weeklies.keystone
+  local map = self.currentData.weeklies.keystoneMap
   local dg = self.currentData.weeklies.dungeons
-  out:line("Keystone: " .. (ks and ("+"..ks) or "none"))
+  local name
+  if map then name = C_ChallengeMode.GetMapUIInfo(map) end
+  out:line("Keystone: " .. (ks and ((name and (name .. " ") or "") .. "+" .. ks) or "none"))
   if dg then
     out:line("Dungeons: " .. dg.done .. "/" .. dg.max)
   else
