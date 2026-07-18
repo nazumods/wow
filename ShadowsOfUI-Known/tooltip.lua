@@ -114,10 +114,45 @@ renderKnownBy = function(tooltip, list, skillLineAbilityID)
   end
 end
 
+-- Class-colour an online crafter; grey out an offline one (they can't craft for you now).
+---@param e GuildCrafterEntry
+local function colorCrafter(e)
+  if not e.online then return GRAY_FONT_COLOR:WrapTextInColorCode(e.name) end
+  return ns.Colors.className(e.name, e.classKey)
+end
+
+-- "Guild crafters:" line(s), mirroring renderKnownBy's shape (1 inline; >1 a header plus up
+-- to 5 names, then "and N more."), plus a grey "querying..." placeholder while the async
+-- guild query is in flight. Nothing shows when off-guild or no guildmate can craft it.
+---@param recipeID integer
+local function renderGuildCrafters(tooltip, recipeID)
+  local list, state = ns.GuildCrafters(recipeID, tooltip)
+  if state == "pending" then
+    tooltip:AddLine(LABEL:WrapTextInColorCode("Guild crafters:")
+      .. " " .. GRAY_FONT_COLOR:WrapTextInColorCode("querying..."))
+    return
+  end
+  if not list or #list == 0 then return end
+  local n = #list
+  if n == 1 then
+    tooltip:AddLine(LABEL:WrapTextInColorCode("Guild crafters:") .. " " .. colorCrafter(list[1]))
+    return
+  end
+  tooltip:AddLine(LABEL:WrapTextInColorCode("Guild crafters:"))
+  local shown = n > 5 and 4 or n
+  for i = 1, shown do
+    tooltip:AddLine("  " .. colorCrafter(list[i]))
+  end
+  if n > shown then
+    tooltip:AddLine(GRAY_FONT_COLOR:WrapTextInColorCode(("  and %d more."):format(n - shown)))
+  end
+end
+
 ns:OnItemTooltip(function(tooltip)
   local recipeID, skillLineAbilityID = customerOrderRecipe(tooltip)
   if not recipeID then return end
   renderKnownBy(tooltip, ns.BuildKnownBy(recipeID), skillLineAbilityID)
+  renderGuildCrafters(tooltip, recipeID)
 end)
 
 -- /sknown <itemID>            — print the learnable list for a recipe item
@@ -134,6 +169,17 @@ SlashCmdList["SUI_KNOWN"] = function(msg)
     ns.Print(("Known by (%d):"):format(#list))
     for _, e in ipairs(list) do
       ns.Print((" - %s  lvl %d, rank %d"):format(e.name, e.level, e.rank))
+    end
+    return
+  end
+  local gcRecipe = tonumber(msg:match("^%s*guildcrafters%s+(%d+)"))
+  if gcRecipe then
+    local glist, gstate = ns.GuildCrafters(gcRecipe)
+    if gstate == "pending" then ns.Print("Guild crafters: querying - run the command again in a moment.") return end
+    if not glist or #glist == 0 then ns.Print("No guild crafters for recipe", gcRecipe) return end
+    ns.Print(("Guild crafters (%d):"):format(#glist))
+    for _, e in ipairs(glist) do
+      ns.Print((" - %s  (%s)"):format(e.name, e.online and "online" or "offline"))
     end
     return
   end

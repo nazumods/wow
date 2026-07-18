@@ -10,4 +10,5 @@
 
 core.lua
 changelog.lua
+guild.lua
 tooltip.lua
