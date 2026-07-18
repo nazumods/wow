@@ -19,9 +19,10 @@ local function pip(complete)
   return ("|T%s:%d:%d|t"):format(complete and PIP_FULL or PIP_EMPTY, PIP_SZ, PIP_SZ)
 end
 
--- Per-track display label + the noun each slot threshold counts (raid bosses / M+ runs / world
--- activities), used in the pip tooltip.
-local TRACK_LABEL = { Raid = "Raid", Dungeons = "Mythic+", World = "World" }
+-- Per-track display label + the noun each slot threshold counts (raid bosses / dungeon runs / world
+-- activities), used in the pip tooltip. The middle track is the vault's Heroic/Mythic/Timewalking
+-- "Dungeons" track (not M+-only), matching the in-game Great Vault requirement text.
+local TRACK_LABEL = { Raid = "Raid", Dungeons = "Dungeons", World = "World" }
 local TRACK_UNIT  = { Raid = "bosses", Dungeons = "runs", World = "activities" }
 local KEY_COLOR = { 0.62, 0.80, 1.0, 1 }  -- keystone "+N" (light blue)
 
@@ -68,7 +69,7 @@ local function aggTooltip(self, agg, key)
   tip:Show()
 end
 
--- One track's pip cell (Raid / Mythic+ / World), `key` = a vault activity-type name. Prefers the
+-- One track's pip cell (Raid / Dungeons / World), `key` = a vault activity-type name. Prefers the
 -- per-slot `vaultSlots` detail (pips + per-slot reward ilvl); falls back to the aggregate `vault`
 -- field's unlocked count (pips only) for a character seen this week before vaultSlots was captured.
 -- Blank only when the character has no vault data at all this reset (e.g. never logged in / below max).
@@ -128,11 +129,12 @@ ns.VaultColumns = {
     getData = function(t) return trackCell(t, "Raid") end,
   },
   SummaryColumn:new{
-    key = "vaultMPlus", label = "Mythic+", width = 60, justifyH = Center,
-    -- Group Finder eye header (house-style glyph of groupfinder-eye-single) for the M+ track
+    key = "vaultDungeons", label = "Dungeons", width = 60, justifyH = Center,
+    -- Group Finder eye header (house-style glyph of groupfinder-eye-single) for the Dungeons track
     iconPath = "Interface\\AddOns\\Warbandeer\\icons\\lfgEye.tga",
     iconColor = ns.theme.colors.muted,
-    tooltip = { "Mythic+", "Great Vault progress from Mythic+ dungeon runs." },
+    -- Not just M+: the vault's middle track also counts Heroic / Mythic / Timewalking dungeons.
+    tooltip = { "Dungeons", "Great Vault progress from Heroic, Mythic, or Timewalking dungeon runs." },
     getData = function(t) return trackCell(t, "Dungeons") end,
   },
   SummaryColumn:new{
