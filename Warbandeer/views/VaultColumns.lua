@@ -128,7 +128,11 @@ ns.VaultColumns = {
     getData = function(t) return trackCell(t, "Raid") end,
   },
   SummaryColumn:new{
-    name = "M+", key = "vaultMPlus", label = "Mythic+", width = 60, justifyH = Center,
+    key = "vaultMPlus", label = "Mythic+", width = 60, justifyH = Center,
+    -- Group Finder eye header (house-style glyph of groupfinder-eye-single) for the M+ track
+    iconPath = "Interface\\AddOns\\Warbandeer\\icons\\lfgEye.tga",
+    iconColor = ns.theme.colors.muted,
+    tooltip = { "Mythic+", "Great Vault progress from Mythic+ dungeon runs." },
     getData = function(t) return trackCell(t, "Dungeons") end,
   },
   SummaryColumn:new{
