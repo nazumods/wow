@@ -1,4 +1,4 @@
-# ShadowsOfUI-Quests
+# Shadows of UI: Quests
 
 Tells you **which of your other characters are on — or have already completed — a quest**, so
 you can see at a glance who still needs it.
@@ -13,16 +13,11 @@ when another character is actually on or has completed the quest.
 
 `/squests <questID>` prints the same status to chat — a testing aid and a quick lookup.
 
-## Changelog
-
-A **Changelog** button in this addon's settings (Options → AddOns → Shadows of UI → Quests) opens its release history in a scrollable, copyable window.
-
 ## Dependencies
 
 - **LibNAddOn**
 - **Warbandeer_Characters** — provides the per-character quest data this addon reads (active
   quests and completed-quest history, captured automatically each login).
-- **Warbandeer** *(optional)* — not required; listed only for sensible load order.
 
 ## Notes
 
