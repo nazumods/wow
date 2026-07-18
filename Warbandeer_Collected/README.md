@@ -1,4 +1,4 @@
-# Warbandeer_Collected
+# Warbandeer: Collected
 
 A **transmog set tracker** for your whole warband. It shows a grid of instance tier
 sets versus your characters, with the number of appearances each character can still

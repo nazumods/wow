@@ -13,6 +13,7 @@
 ## X-NUI-COMPARTMENT: WarbandeerCollected_OnAddonCompartmentClick
 ## X-NUI-API: WarbandeerApi
 ## X-NUI-UI: LibNUI
+## X-Curse-Project-ID: 1615351
 
 init.lua
 commands.lua
