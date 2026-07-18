@@ -5,6 +5,7 @@
 ## Version: 12.0.7-r3
 ## Author: Nazuraki
 ## Dependencies: LibNAddOn
+## X-Curse-Project-ID: 1615396
 
 core.lua
 changelog.lua

@@ -1,4 +1,4 @@
-# ShadowsOfUI-QuestXP
+# Shadows of UI: QuestXP
 
 Shows **what percentage of a level** a quest's XP reward is worth, right next to the XP reward
 in the quest log.
@@ -8,10 +8,6 @@ the "You will receive" rewards section, you'll see a muted `(3%)` — how much o
 level that reward is worth.
 
 `/squestxp` prints the computed percentage for the currently selected quest — a testing/debug aid.
-
-## Changelog
-
-A **Changelog** button in this addon's settings (Options → AddOns → Shadows of UI → Quest XP) opens its release history in a scrollable, copyable window.
 
 ## Dependencies
 
