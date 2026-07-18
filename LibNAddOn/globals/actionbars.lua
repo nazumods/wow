@@ -119,7 +119,7 @@ end
 -- (an enabled-but-empty bar still reports, since its buttons are visible). Reads the
 -- currently logged-in character's bars — capture it per profile for a cross-character
 -- preview.
----@return table<integer, table>  bar → { orientation, numIcons, numRows, enabled }
+---@return table  bar(1-15) → { orientation, numIcons, numRows, enabled, x, y }, plus `pet` (same shape) and `mainPage` (the slot-range bar paging the main bar)
 function ns.wow.ReadActionBars()
   local buttons = ns.wow.collectActionButtons()
 
