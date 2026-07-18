@@ -123,12 +123,12 @@ ns.VaultColumns = {
     getData = function(t) return { text = t.basic and t.basic.level or "", justifyH = Left } end,
   },
   -- Great Vault tracks — three slot pips each
-  SummaryColumn:new{ name = "Raid",  width = 60, justifyH = Center, getData = function(t) return trackCell(t, "Raid") end },
-  SummaryColumn:new{ name = "M+",    width = 60, justifyH = Center, getData = function(t) return trackCell(t, "Dungeons") end },
-  SummaryColumn:new{ name = "World", width = 60, justifyH = Center, getData = function(t) return trackCell(t, "World") end },
+  SummaryColumn:new{ name = "Raid", key = "raid", label = "Raid", width = 60, justifyH = Center, getData = function(t) return trackCell(t, "Raid") end },
+  SummaryColumn:new{ name = "M+", key = "mplus", label = "Mythic+", width = 60, justifyH = Center, getData = function(t) return trackCell(t, "Dungeons") end },
+  SummaryColumn:new{ name = "World", key = "world", label = "World", width = 60, justifyH = Center, getData = function(t) return trackCell(t, "World") end },
   -- owned keystone (+level)
   SummaryColumn:new{
-    name = "Key", width = 42, justifyH = Center,
+    name = "Key", key = "keystone", label = "Key", width = 42, justifyH = Center,
     getData = function(t)
       local w = t.weeklies
       if not w then return "" end
@@ -152,7 +152,7 @@ ns.VaultColumns = {
   },
   -- primary raid lockout (tooltip lists them all)
   SummaryColumn:new{
-    name = "Raid Lock", width = 118, justifyH = Left,
+    name = "Raid Lock", key = "raidLock", label = "Raid Lock", width = 118, justifyH = Left,
     getData = function(t)
       local locks = ns.api:GetRaidLocks(t.name)
       if #locks == 0 then return "" end
@@ -176,7 +176,7 @@ ns.VaultColumns = {
   },
   -- Delver's Bounty (weekly)
   SummaryColumn:new{
-    name = "D-Bounty", width = 74, justifyH = Center,
+    name = "D-Bounty", key = "delversBounty", label = "D-Bounty", width = 74, justifyH = Center,
     getData = function(t)
       local w = t.weeklies
       if not w then return "" end
@@ -185,3 +185,20 @@ ns.VaultColumns = {
     end,
   },
 }
+
+-- The visible columns in display order: every always-on identity column (no `key`) plus each
+-- toggleable column the user hasn't hidden. Visibility lives in db.settings.vaultColumns[key]
+-- (missing/true = shown, false = hidden). Built fresh each Vault (re)build so a settings toggle
+-- takes effect on the next render. The Vault twin of ns.VisibleSummaryColumns.
+---@class Warbandeer
+---@field VisibleVaultColumns fun(): SummaryColumn[]
+function ns.VisibleVaultColumns()
+  local shown = ns.db.settings.vaultColumns or {}
+  local out = {}
+  for _, c in ipairs(ns.VaultColumns) do
+    if not c.key or shown[c.key] ~= false then
+      out[#out + 1] = c
+    end
+  end
+  return out
+end

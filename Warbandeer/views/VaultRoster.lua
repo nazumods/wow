@@ -12,6 +12,7 @@ local filter = ns.lua.lists.filter
 -- logged-in character's gold wash, dimmed levellers) without touching it.
 ---@class VaultRoster: TableFrame
 ---@field faction "alliance"|"horde"|"both"  which roster this table shows
+---@field columns SummaryColumn[]  the visible columns this table renders (passed in by VaultView)
 ---@field _toons Character[]  row index -> character (refreshed each OnBeforeShow)
 local VaultRoster = Class(TableFrame, function(self)
   self._toons = self:GetCharacters()
@@ -56,7 +57,7 @@ end
 ---@return table
 function VaultRoster:GetRowData(toon)
   local cells = {}
-  for n, c in ipairs(ns.VaultColumns) do cells[n] = c.getData(toon) or "" end
+  for n, c in ipairs(self.columns) do cells[n] = c.getData(toon) or "" end
   return cells
 end
 

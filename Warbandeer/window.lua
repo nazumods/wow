@@ -258,3 +258,20 @@ function ns.RefreshSummaryColumns()
   w.views.summary = nil
   if wasCurrent then w:view("summary") end
 end
+
+-- Rebuild the Great Vault view so a column show/hide setting takes effect — the Vault twin of
+-- RefreshSummaryColumns. The view is forgotten so getView reconstructs it fresh against the new
+-- VisibleVaultColumns set: rebuilt immediately (and re-pointed) if it's the current view, else
+-- picked up lazily on the next navigation to it. No-op until the window + view exist.
+---@class Warbandeer
+---@field RefreshVaultColumns fun()
+function ns.RefreshVaultColumns()
+  local w = ns.MainWindow
+  local view = w and w.views and w.views.vault
+  if not view then return end
+  local wasCurrent = w._view == view
+  view:Hide()
+  if view._filter then view._filter:Hide() end
+  w.views.vault = nil
+  if wasCurrent then w:view("vault") end
+end
