@@ -123,12 +123,21 @@ ns.VaultColumns = {
     getData = function(t) return { text = t.basic and t.basic.level or "", justifyH = Left } end,
   },
   -- Great Vault tracks — three slot pips each
-  SummaryColumn:new{ name = "Raid", key = "raid", label = "Raid", width = 60, justifyH = Center, getData = function(t) return trackCell(t, "Raid") end },
-  SummaryColumn:new{ name = "M+", key = "mplus", label = "Mythic+", width = 60, justifyH = Center, getData = function(t) return trackCell(t, "Dungeons") end },
-  SummaryColumn:new{ name = "World", key = "world", label = "World", width = 60, justifyH = Center, getData = function(t) return trackCell(t, "World") end },
+  SummaryColumn:new{
+    name = "Raid", key = "vaultRaid", label = "Raid", width = 60, justifyH = Center,
+    getData = function(t) return trackCell(t, "Raid") end,
+  },
+  SummaryColumn:new{
+    name = "M+", key = "vaultMPlus", label = "Mythic+", width = 60, justifyH = Center,
+    getData = function(t) return trackCell(t, "Dungeons") end,
+  },
+  SummaryColumn:new{
+    name = "World", key = "vaultWorld", label = "World", width = 60, justifyH = Center,
+    getData = function(t) return trackCell(t, "World") end,
+  },
   -- owned keystone (+level)
   SummaryColumn:new{
-    name = "Key", key = "keystone", label = "Key", width = 42, justifyH = Center,
+    name = "Key", key = "vaultKeystone", label = "Key", width = 42, justifyH = Center,
     getData = function(t)
       local w = t.weeklies
       if not w then return "" end
@@ -152,7 +161,7 @@ ns.VaultColumns = {
   },
   -- primary raid lockout (tooltip lists them all)
   SummaryColumn:new{
-    name = "Raid Lock", key = "raidLock", label = "Raid Lock", width = 118, justifyH = Left,
+    name = "Raid Lock", key = "vaultRaidLock", label = "Raid Lock", width = 118, justifyH = Left,
     getData = function(t)
       local locks = ns.api:GetRaidLocks(t.name)
       if #locks == 0 then return "" end
@@ -176,7 +185,7 @@ ns.VaultColumns = {
   },
   -- Delver's Bounty (weekly)
   SummaryColumn:new{
-    name = "D-Bounty", key = "delversBounty", label = "D-Bounty", width = 74, justifyH = Center,
+    name = "D-Bounty", key = "vaultDelversBounty", label = "D-Bounty", width = 74, justifyH = Center,
     getData = function(t)
       local w = t.weeklies
       if not w then return "" end
