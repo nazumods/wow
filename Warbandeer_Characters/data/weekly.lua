@@ -142,7 +142,14 @@ Weekly.fields = {
   ---@class WeeklyBroker
   ---@field vaultSlots VaultTracks  per-track (Raid/Dungeons/World) three-slot detail with reward ilvls
   vaultSlots = {
-    missing = false,
+    -- Opt into /wbc missing (the pip columns): a blank pip row means the character has NO vault
+    -- data at all this reset — neither the per-slot detail here NOR the aggregate `vault` fallback
+    -- (mirrors VaultColumns' trackCell) — a max-level alt not logged in since the weekly reset.
+    -- Max-level gated (endgame) and reset weekly with the field, so it self-clears on next login.
+    missing = { maxLevel = true, order = 110, check = function(toon)
+      local w = toon.weeklies
+      if not (w and (w.vaultSlots or w.vault)) then return "vault" end
+    end },
     maxLevel = true,
     resetOn = ns.RESET_WEEKLY,
     -- Per-slot Great Vault detail for the vault view's pips + tooltip: three slots per track, each
