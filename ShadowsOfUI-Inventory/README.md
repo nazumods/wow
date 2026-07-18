@@ -22,18 +22,12 @@ gear, which Shift already does).
 `/swinv <itemID or item link>` prints the same breakdown to chat for a given item — both a
 debugging aid and a quick "where is my…?" lookup you can run without finding the item first.
 
-## Changelog
-
-A **Changelog** button in this addon's settings (Options → AddOns → Shadows of UI → Warband Inventory) opens its release history in a scrollable, copyable window.
-
 ## Dependencies
 
 - **LibNAddOn**
 - **Warbandeer_Characters** — provides the per-character bag/bank item counts this addon
   reads. (No extra scanning is added here; it surfaces data Warbandeer_Characters already
   collects.)
-- **Warbandeer** *(optional)* — not required; listed only so load order is sensible when
-  it's installed.
 
 ## Notes
 

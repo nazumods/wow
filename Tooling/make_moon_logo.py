@@ -24,7 +24,12 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
 TOOLING_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_SOURCE = os.path.join(TOOLING_DIR, "assets", "shadowsofui_moon_base.png")
-FONT = r"C:/Windows/Fonts/times.ttf"
+FONT_CANDIDATES = [
+    r"C:/Windows/Fonts/times.ttf",
+    "/Library/Fonts/Times New Roman.ttf",
+    "/System/Library/Fonts/Supplemental/Times New Roman.ttf",
+]
+FONT = next((p for p in FONT_CANDIDATES if os.path.exists(p)), FONT_CANDIDATES[0])
 
 # --- fixed style constants (measured from the XP / Known originals) ---
 CONDENSE = 0.944          # original aspect 4.089 vs Times' 4.333
