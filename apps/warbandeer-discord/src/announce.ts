@@ -3,14 +3,16 @@ import { config } from "./config";
 import { state, saveState } from "./state";
 import { currentOrNextDmf } from "./wow/dmf";
 import { lastWeeklyReset } from "./wow/reset";
-import { realmStatus, realmWatchConfigured } from "./wow/realm";
+import { realmStatus, realmWatchConfigured, decideRealmTransition, type RealmStatus } from "./wow/realm";
 import { fetchReleases } from "./github";
 import { checkForUpdate } from "./update";
 import { restartPending, withCritical } from "./restart";
 
 const TICK_MS = 60 * 1000;
 const RESET_ANNOUNCE_WINDOW_MS = 10 * 60 * 1000;
-const REALM_WATCH_MAX_MS = 3 * 3600 * 1000;
+// Poll the realm continuously (not only around reset) so an unscheduled outage at any hour is
+// caught. The gap keeps the Blizzard call cadence gentle while still catching short outages.
+const REALM_POLL_GAP_MS = 2 * 60 * 1000;
 
 // Releases publish from a daily cron at 14:00 UTC (.github/workflows/release.yml),
 // so poll only inside a window after it — plus once at startup to catch anything
@@ -24,8 +26,7 @@ const UPDATE_POLL_GAP_MS = 15 * 60 * 1000;
 
 let lastReleasePollAt = 0;
 let lastUpdatePollAt = 0;
-// Active only on reset day: waits for the realm to go DOWN, announces recovery.
-let realmWatch: { resetIso: string; sawDown: boolean; startedAt: number } | undefined;
+let lastRealmPollAt = 0;
 
 export function startScheduler(client: Client): void {
   const tick = () => onTick(client).catch((err) => console.error("[tick]", err));
@@ -33,7 +34,7 @@ export function startScheduler(client: Client): void {
   setInterval(tick, TICK_MS);
 }
 
-type AnnounceKind = "dmf" | "weeklyReset" | "serverUp" | "release";
+type AnnounceKind = "dmf" | "weeklyReset" | "serverUp" | "serverDown" | "release";
 
 // Per-kind channel routing: future announcement kinds plug in here (see issue #528).
 function channelFor(kind: AnnounceKind): string {
@@ -55,7 +56,7 @@ async function onTick(client: Client): Promise<void> {
   await withCritical(async () => {
     await checkDmf(client);
     await checkWeeklyReset(client);
-    await checkRealmWatch(client);
+    await checkRealm(client);
     if (shouldPollReleases(new Date())) await checkReleases(client);
     if (config.autoUpdate && shouldPollUpdate()) await checkAutoUpdate();
   });
@@ -102,25 +103,31 @@ async function checkWeeklyReset(client: Client): Promise<void> {
   await announce(client, "weeklyReset", "📅 **Weekly reset!** Vault, lockouts, and quests have rolled over.");
   state.weeklyAnnouncedFor = key;
   await saveState();
-  if (realmWatchConfigured()) {
-    realmWatch = { resetIso: key, sawDown: false, startedAt: Date.now() };
-  }
 }
 
-async function checkRealmWatch(client: Client): Promise<void> {
-  if (!realmWatch) return;
-  if (Date.now() - realmWatch.startedAt > REALM_WATCH_MAX_MS) {
-    realmWatch = undefined; // no maintenance this week
+// Continuously watch the realm and announce every UP↔DOWN transition, so an outage at any hour
+// is reported — not only weekly-reset maintenance. A Blizzard error is swallowed: it must never
+// masquerade as a DOWN, nor block the rest of the tick.
+async function checkRealm(client: Client): Promise<void> {
+  if (!realmWatchConfigured()) return;
+  if (Date.now() - lastRealmPollAt < REALM_POLL_GAP_MS) return;
+  lastRealmPollAt = Date.now();
+  let status: RealmStatus;
+  try {
+    status = await realmStatus();
+  } catch (err) {
+    console.error("[realm]", err);
     return;
   }
-  const status = await realmStatus();
-  if (status === "DOWN") {
-    realmWatch.sawDown = true;
-  } else if (realmWatch.sawDown && state.serversUpAnnouncedFor !== realmWatch.resetIso) {
+  const transition = decideRealmTransition(state.realmStatus, status);
+  if (transition === "down") {
+    await announce(client, "serverDown", `🔴 **${config.realmSlug}** is down — servers are offline.`);
+  } else if (transition === "up") {
     await announce(client, "serverUp", `🟢 **${config.realmSlug}** is back up — servers are live!`);
-    state.serversUpAnnouncedFor = realmWatch.resetIso;
+  }
+  if (state.realmStatus !== status) {
+    state.realmStatus = status;
     await saveState();
-    realmWatch = undefined;
   }
 }
 

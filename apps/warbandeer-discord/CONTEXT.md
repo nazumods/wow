@@ -1,8 +1,8 @@
 # warbandeer-discord — Code Context
 
 > **Purpose:** Discord bot (Bun + TypeScript, discord.js v14) for the guild channel:
-> DMF open/close + reset timers (`/dmf`, `/reset`), weekly-reset announcement with a
-> post-reset realm-up watch via the Blizzard API (`/status`), GitHub release
+> DMF open/close + reset timers (`/dmf`, `/reset`), weekly-reset announcement, a
+> continuous realm up/down watch via the Blizzard API (`/status`), GitHub release
 > announcements for this repo, and a `/report` command that files GitHub issues from Discord.
 > Not an addon — lives in `apps/`, excluded from the release pipeline.
 
@@ -14,7 +14,7 @@
 | `src/config.ts` | Env config from `.env` — pure `resolveConfig(env)` (exported for tests) + the `config` singleton resolved from `process.env`; throws at import time on missing required vars or an invalid `COMMAND_PREFIX`. Also the `/report` project→repo map (`REPORT_PROJECTS` + `repoForProject`) + `reportRoleId`, and the self-update config (`gitSha`, `botBranch`, `autoUpdate`, `adminUserIds`) |
 | `src/commands.ts` | `/dmf`, `/reset`, `/status`, `/update`, `/report` command builders + dispatch; `cmd(name)` builds every command under `config.commandPrefix`, `bareName()` strips it back off on dispatch; `isAdmin()` allowlist gate for `/update`; Discord `<t:…>` timestamp helpers |
 | `src/report.ts` | `/report` flow: role gate (reads roles from the interaction — no Members intent), Title/Description modal, then `createIssue` in the mapped repo labeled `automated`; `reportBody` footer names the reporter (plain username, no mention) |
-| `src/announce.ts` | 60 s tick scheduler: DMF-open + weekly-reset announcements, realm-up watch, release polling; routes per `AnnounceKind` via `channelFor()` — releases → `RELEASE_ANNOUNCE_CHANNEL_ID` (falls back to `ANNOUNCE_CHANNEL_ID`), everything else → `ANNOUNCE_CHANNEL_ID` |
+| `src/announce.ts` | 60 s tick scheduler: DMF-open + weekly-reset announcements, continuous realm up/down watch (`checkRealm`, polls every `REALM_POLL_GAP_MS` = 2 min whenever `realmWatchConfigured()`), release polling; routes per `AnnounceKind` via `channelFor()` — releases → `RELEASE_ANNOUNCE_CHANNEL_ID` (falls back to `ANNOUNCE_CHANNEL_ID`), everything else → `ANNOUNCE_CHANNEL_ID` |
 | `src/config.test.ts` | bun tests for `resolveConfig` (release-channel fallback, required-var, region, `COMMAND_PREFIX`, `REPORT_ROLE_ID`, self-update vars) + report helpers (`repoForProject`, `reportBody`) |
 | `src/commands.test.ts` | bun tests for `isAdmin` (allowlist hit/miss, fails closed, whole-id match) + `bareName()` (strips the prefix, no-op when unset, passes an unprefixed name through unmangled) |
 | `src/update.ts` | Self-update: pure `decideUpdate()` + `sameSha()`, `fetchLatestBotSha()` (newest `config.botBranch` commit touching `apps/warbandeer-discord`), stateful `checkForUpdate(force)` |
@@ -24,17 +24,21 @@
 | `src/state.ts` | Announcement dedup state, persisted to `data/state.json` (gitignored) |
 | `src/wow/dmf.ts` | DMF schedule math: first Sunday of month 00:01 in `config.dmfTimezone`, one week; IANA-timezone-correct (two-pass DST conversion) |
 | `src/wow/reset.ts` | Daily/weekly reset math (fixed UTC: us = Tue 15:00, eu = Wed 04:00) |
-| `src/wow/realm.ts` | Blizzard client-credentials OAuth + connected-realm status search (`UP`/`DOWN`) |
+| `src/wow/realm.ts` | Blizzard client-credentials OAuth + connected-realm status search (`UP`/`DOWN`); pure `decideRealmTransition(prev, next)` → `"up"`/`"down"`/`null` (first observation seeds silently) |
+| `src/wow/realm.test.ts` | bun tests for `decideRealmTransition`: seed-silent first observation, no-change, UP→DOWN, DOWN→UP |
 | `src/github.ts` | GitHub API client: releases (drafts filtered) + `createIssue` / idempotent `ensureLabel` for `/report` (both need `GITHUB_TOKEN` with issues:write) |
 | `Dockerfile` | `oven/bun:1-slim` (Debian — Intl IANA timezones), prod-only install, non-root `bun` user, `VOLUME /app/data`, `ARG/ENV GIT_SHA` |
 | `docker-compose.yml` | `GIT_SHA=$(git rev-parse HEAD) docker compose up -d --build`: `env_file: .env`, `GIT_SHA` build arg, named volume `state` → `/app/data`, `restart: unless-stopped`. Opt-in `cloudflared` sidecar (`profiles: [tunnel]`, needs `CLOUDFLARE_TUNNEL_TOKEN`) for exposing a future local API without inbound firewall ports |
 
 ## Behavior
 
-- **Dedup keys** in `BotState`: `dmfAnnouncedFor` (`"YYYY-M"`), `weeklyAnnouncedFor` /
-  `serversUpAnnouncedFor` (reset ISO), `seenReleaseIds` (capped at 100). Restarts never re-announce.
-- **Realm watch** arms at the weekly reset (only if Blizzard creds + `WOW_REALM` configured),
-  polls each tick, announces recovery only after actually observing `DOWN`, gives up after 3 h.
+- **Dedup keys** in `BotState`: `dmfAnnouncedFor` (`"YYYY-M"`), `weeklyAnnouncedFor` (reset ISO),
+  `realmStatus` (last observed `UP`/`DOWN`), `seenReleaseIds` (capped at 100). Restarts never re-announce.
+- **Realm watch** runs continuously whenever Blizzard creds + `WOW_REALM` are configured (not tied
+  to the weekly reset): polls every `REALM_POLL_GAP_MS` (2 min) and announces every UP↔DOWN
+  transition. `state.realmStatus` persists the last reading, so the first observation seeds silently
+  (no phantom transition on a fresh install or restart) and restarts never re-announce. A Blizzard
+  API error is logged and skipped — it never masquerades as a `DOWN`.
 - **Release polling** follows the repo's daily release cron (14:00 UTC, `.github/workflows/release.yml`):
   polls every 5 min inside a 90-min window from 14:00 UTC, plus once at startup to catch
   anything published while the bot was offline. First-ever poll seeds `seenReleaseIds` silently.

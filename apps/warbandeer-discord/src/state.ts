@@ -1,12 +1,13 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
+import type { RealmStatus } from "./wow/realm";
 
 // Persisted so restarts never re-announce something already posted.
 export interface BotState {
   seenReleaseIds: number[];
   dmfAnnouncedFor?: string; // "2026-7"
   weeklyAnnouncedFor?: string; // ISO timestamp of the reset announced
-  serversUpAnnouncedFor?: string; // ISO timestamp of the reset whose recovery was announced
+  realmStatus?: RealmStatus; // last observed realm status; drives up/down transition announcements
   attemptedUpdateToSha?: string; // sha we last exited to update to; guards against an exit loop
 }
 
