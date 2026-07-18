@@ -15,7 +15,7 @@ local function decorTheme()
 end
 
 ---Top-level Housing Decor window: titled frame holding the decor list + a collected /
----wanted counter. The list (a VirtualList) scrolls internally, so the window is a fixed
+---wanted counter. The list (a windowed list) scrolls internally, so the window is a fixed
 ---size — no dynamic grid-fitting.
 ---@class DecorWindow: TitleFrame
 ---@field list HousingDecorList  the decor list grid

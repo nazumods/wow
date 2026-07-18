@@ -75,9 +75,8 @@ function API:OnRatingsChanged(fn) ns:OnRatingsChanged(fn) end
 ---in `controls/InfoTip.lua`).
 ---@param entry HousingDecorEntry  the hovered entry
 ---@param parent Frame  the hovered row to anchor against / level above
----@param position table  LibNUI position spec
-function API:ShowInfoTip(entry, parent, position)
-  ns.ShowInfoTip(entry, parent, position)
+function API:ShowInfoTip(entry, parent)
+  ns.ShowInfoTip(entry, parent)
 end
 
 ---Hide the shared InfoTip (no-op if never shown).
