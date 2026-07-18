@@ -138,6 +138,10 @@ end
 -- frame via UISpecialFrames). Cancel any pending auto-hide and fire onDismiss — unless this
 -- was the auto-hide timer itself, which is not a user dismiss.
 function Notification:_onHide()
+  -- OnHide also fires when an ancestor hides (UIParent: cinematic, Alt-Z) while our own
+  -- shown-flag stays true. Only a real dismiss (self:Hide() → widget not shown) should cancel
+  -- the auto-hide timer or record a dismissal; ignore ancestor-driven hides.
+  if self._widget:IsShown() then return end
   if self._timer then self._timer:Cancel(); self._timer = nil end
   local auto = self._autoHiding
   self._autoHiding = nil

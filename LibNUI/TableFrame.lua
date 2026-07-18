@@ -157,7 +157,9 @@ function TableFrame:ResizeRows(n)
     rowH = rowH + (self.rowInfo[i] and self.rowInfo[i].height or self.cellHeight)
   end
   self.rowArea:Height(rowH)
-  self:Height(self.offsetY + rowH)
+  -- Include the detached footer band (setFooter grows the frame by footerHeight once); without
+  -- it a ResizeRows after setFooter would size over the footer cells anchored to the column bottoms.
+  self:Height(self.offsetY + rowH + (self.footerRow and self.footerHeight or 0))
   -- Show exactly n rows: hide the rest *and their cells* (cells parent to the row area,
   -- not the row). A ScrollFrame derives its range from the scroll child's content extent,
   -- not its set height — rows left shown below the shrunk row area would keep the range
