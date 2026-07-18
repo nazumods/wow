@@ -11,6 +11,7 @@ return {
       "Warbandeer_Bars/spec",
       "ShadowsOfUI-Collectibles/spec",
       "ShadowsOfUI-HousingVendor/spec",
+      "ShadowsOfUI-PostOffice/spec",
       "ShadowsOfUI-Known/spec",
       "Warbandeer_HousingDecor/spec",
     },

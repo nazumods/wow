@@ -31,7 +31,7 @@ control on top; DoNotWant gives per-letter return/delete.)
 | `carbonCopy.lua` | Small grow-on-hover button on `OpenMailScrollFrame` that copies the letter's sender/subject/body (+ auction invoice breakdown) into `ns.ui.ShowCopyWindow`. `db.carbonCopy`. |
 | `blackBook.lua` | Recipient picker + autocomplete on the "To:" field: arrow button beside `SendMailNameEditBox` → `MenuUtil` menu (recently mailed inline, then Alts / Friends / Guild submenus, `SetScrollMode` 400, class-coloured via `ns.Colors.className`); inline `OnChar` completion from the same lists; Blizzard's autocomplete popup suppressed while on. Recent capture: `SendMailFrame_SendMail` posthook → commit on `MAIL_SEND_SUCCESS` (+ `AddHistoryLine`). Alts via optional `WarbandeerApi:GetAllCharacters()`. `db.blackBook`, `db.blackBookRecent`. |
 | `quickAttach.lua` | Column of ~12 trade-goods category buttons off the right edge of `MailFrame` (parented to `SendMailFrame`). Left-click bulk-attaches every matching stack from bags 0..reagent: `GetItemInfoInstant` class/subclass filter (`Enum.ItemClass.Tradegoods`, `sub == -1` = all), skip soulbound (`GetItemInfo` bindType == `Enum.ItemBind.OnAcquire`), whole-stack `PickupContainerItem` → `ClickSendMailItemButton(firstFreeSendSlot())` until the letter fills. Whole stacks are synchronous, so no split machinery. `db.quickAttach`. |
-| `doNotWant.lua` | Per-row return/delete icon on each inbox letter (first consumer of `ns.OnInboxRow`). Icon parented to `MailItemNExpireTime` so it follows the row layout; texture/tooltip per `InboxItemCanDelete` (delete vs return). Click returns (`ReturnInboxItem`) or deletes (`DeleteInboxItem`) with confirm popups for item/coin loss. `db.doNotWant`. |
+| `doNotWant.lua` | Per-row return/delete icon on each inbox letter (first consumer of `ns.OnInboxRow`). Icon parented to `MailItemNExpireTime` so it follows the row layout; texture/tooltip per `InboxItemCanDelete` (delete vs return). Click returns (`ReturnInboxItem`) or deletes (`DeleteInboxItem`) with confirm popups for item/coin loss; the delete target is re-picked at accept time by `ns.ResolveDeleteIndex` (captured click-time index while it still holds the clicked letter, else a fingerprint scan — see gotcha). `db.doNotWant`. |
 | `select.lua` | Checkbox per inbox row + Open/Return buttons on `InboxFrame`. **Owns the row re-layout** (indent rows / shrink width to make room for the checkboxes; DoNotWant's icon follows via the moved expire frame). Multi-select: plain / shift-range / ctrl-same-sender. Batch open/return is a throttled state machine (`_selectStep` on a raw-frame ticker, ~0.3s), processing selected indices **highest-first** so an emptied letter auto-deleting never shifts an index still queued; open takes attachments (highest slot first) then coin, skips CoD, stops on full bags. `db.select`. |
 | `changelog.lua` | `ns.changelog` release history (release.sh appends). |
 
@@ -112,6 +112,15 @@ v7 `select`).
   `BAG_UPDATE_DELAYED` (verified non-empty) → pick the stack up whole → attach. Also:
   emptying a letter flips the mailbox back to the Inbox tab, so re-assert the Send
   Mail tab (`MailFrameTab_OnClick(nil, 2)`) before every deposit.
+- **DoNotWant delete targets the captured index first, the fingerprint second.** A confirm
+  dialog leaves the mailbox live, so the clicked letter can shift (arriving mail inserts at
+  index 1 and bumps every index up). `inboxFingerprint` (sender+subject+money+cod+itemCount,
+  deliberately *omitting* the ticking daysLeft) is **not** unique — two "Auction expired"
+  letters for the same item at different counts collide — so `ns.ResolveDeleteIndex` deletes
+  the **captured click-time index** while its fingerprint still matches (exact even for twins)
+  and only falls back to the first-match fingerprint scan once the index has shifted; when the
+  letter is simply gone it deletes nothing. This restores the pre-#449 exactness that the
+  fingerprint-only #449 fix regressed (#581). Pure logic, unit-tested in `spec/doNotWant_spec.lua`.
 
 ## BlackBook notes
 
