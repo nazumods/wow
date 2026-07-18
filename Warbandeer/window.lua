@@ -144,6 +144,20 @@ function MainWindow:ShownView()
   if self._widget:IsShown() then return self._view end
 end
 
+-- Minimum window width so a narrow view (e.g. the Great Vault with most columns
+-- hidden) never shrinks the window below what the titlebar needs. The titlebar packs
+-- the title label (inset 33px from the left) and, for views that have one, the faction
+-- filter control anchored just left of the close button; too narrow and the two collide.
+-- Filter-less views contribute 0 for the filter term. The +30 covers the inter-element
+-- gaps and the close button's right inset.
+---@return number
+function MainWindow:_titlebarMinWidth()
+  local titleW  = self.titlebar.title:UnboundedWidth()
+  local filterW = (self._view and self._view._filter and self._view._filter:Width()) or 0
+  local closeW  = self.closeButton:Width()
+  return 33 + titleW + filterW + closeW + 30
+end
+
 function MainWindow:Fit()
   if not self._view then return end
   -- Capture the top-left corner *before* resizing so the window grows down/right
@@ -151,7 +165,7 @@ function MainWindow:Fit()
   -- symmetrically and appear to re-center on every view switch.
   local w = self._widget
   local left, top = w:GetLeft(), w:GetTop()
-  self:Width(self._view:Width()  + 6)
+  self:Width(math.max(self._view:Width() + 6, self:_titlebarMinWidth()))
   self:Height(self._view:Height() + 30)
   if left and top then
     w:ClearAllPoints()
