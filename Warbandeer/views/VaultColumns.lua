@@ -183,16 +183,6 @@ ns.VaultColumns = {
       }
     end,
   },
-  -- Delver's Bounty (weekly)
-  SummaryColumn:new{
-    name = "D-Bounty", key = "vaultDelversBounty", label = "D-Bounty", width = 74, justifyH = Center,
-    getData = function(t)
-      local w = t.weeklies
-      if not w then return "" end
-      if w.delversBounty then return ns.GreenCheck end
-      return (w.vaultSlots or w.keystone or w.dungeons) and ns.ZeroDashC or ""
-    end,
-  },
 }
 
 -- The visible columns in display order: every always-on identity column (no `key`) plus each
