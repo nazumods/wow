@@ -228,11 +228,10 @@ local function weaponTip(group, set)
   if group.kind == "illusion" then
     for _, piece in ipairs(set.illusions) do
       total = total + 1
-      local sid = piece.sourceID or ns._resolveIllusion(piece.match)
-      local info = sid and C_TransmogCollection.GetIllusionInfo(sid)
+      local info = C_TransmogCollection.GetIllusionInfo(piece.sourceID)
       local owned = info and info.isCollected
       if owned then n = n + 1 end
-      local name = (sid and C_TransmogCollection.GetIllusionStrings(sid)) or piece.match
+      local name = C_TransmogCollection.GetIllusionStrings(piece.sourceID) or ("illusion " .. piece.sourceID)
       local c = owned and WTIP_GREEN or WTIP_RED
       GameTooltip:AddLine(name, c[1], c[2], c[3])
     end

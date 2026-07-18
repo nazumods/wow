@@ -17,11 +17,12 @@ local tinsert = tinsert
 -- `grp.sets` is POSITIONAL: index = classId (1 Warrior .. 13 Evoker), {} where a class
 -- has no collectible. CollectedRows renders index i in class column i and pads the rest.
 --
--- Illusion cells resolve their sourceID at scan/hover time by matching the illusion NAME
--- substring (`match`) against C_TransmogCollection.GetIllusions() (cached — see
--- ns._resolveIllusion). Zero-maintenance and works on enUS out of the box; a hard
--- `sourceID` on a piece overrides the match for locale-independence (fill from
--- `/dump C_TransmogCollection.GetIllusions()` if a non-enUS client ever needs it).
+-- Illusion cells carry a hard `sourceID` (confirmed 2026-07-18) and are checked via
+-- GetIllusionInfo(sourceID).isCollected, which reads ACCOUNT-WIDE and CROSS-CLASS.
+-- (GetIllusions() only enumerates the CURRENT character's usable illusions, so matching
+-- names against it can't see a class illusion on the wrong class — hence hard ids.
+-- Gathered by dumping GetIllusions() on each class; ids run ~5000+, unrelated to the
+-- smaller DBC record ids from earlier research.)
 
 local GID_ILLUSIONS, GID_ARSENALS = 9000001, 9000002
 
@@ -33,19 +34,18 @@ tinsert(ns.Sets, {
   kind = "illusion",
   sets = {
     {}, {}, {},                                                         -- 1 Warrior, 2 Paladin, 3 Hunter
-    -- Candidate illusion sourceIDs from #504 research (verify vs `/dump C_TransmogCollection.GetIllusions()`,
-    -- then add `sourceID = N` to a piece for locale-safe resolution): Poisoned 35, Razorice 51,
-    -- Earthliving 52, Flametongue 53, Frostbrand 54, Rockbiter 55, Windfury 56. Until verified, the
-    -- cached name substring `match` resolves the real sourceID at runtime (enUS).
     { id = 9000104, classId = 4, name = "Illusion: Poisoned",           -- 4 Rogue
-      illusions = { { match = "Poisoned" } } },
+      illusions = { { sourceID = 5364 } } },
     {},                                                                 -- 5 Priest
     { id = 9000106, classId = 6, name = "Illusion: Rune of Razorice",   -- 6 Death Knight
-      illusions = { { match = "Razorice" } } },
+      illusions = { { sourceID = 5869 } } },
     { id = 9000107, classId = 7, name = "Shaman Weapon Imbues",         -- 7 Shaman (5 brands)
       illusions = {
-        { match = "Flametongue" }, { match = "Frostbrand" }, { match = "Earthliving" },
-        { match = "Windfury" },    { match = "Rockbiter" },
+        { sourceID = 5872 },   -- Flametongue
+        { sourceID = 5873 },   -- Frostbrand
+        { sourceID = 5871 },   -- Earthliving
+        { sourceID = 5875 },   -- Windfury
+        { sourceID = 5874 },   -- Rockbiter
       } },
     -- 8..13 padded blank by CollectedRows
   },

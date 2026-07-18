@@ -120,22 +120,6 @@ ns:registerCommand("release", nil, function(_, args)
   ns.Print(("Preview release %d (%s)"):format(n, ns.Releases[n]))
 end, "dev: preview an expansion badge by release index 1..12 (eyeball each icon)")
 
--- Resolve an enchant illusion's sourceID by matching a name substring against the live
--- illusion collection. Only HITS are cached (illusions never change) — a miss is retried
--- next call, so an early scan before the illusion collection has streamed in doesn't
--- permanently poison the cache for a substring that will resolve once data loads.
-ns._illusionMatch = {}
-function ns._resolveIllusion(match)
-  if not match then return nil end
-  local hit = ns._illusionMatch[match]
-  if hit then return hit end
-  for _, ill in ipairs(C_TransmogCollection.GetIllusions()) do
-    local nm = C_TransmogCollection.GetIllusionStrings(ill.sourceID)
-    if nm and nm:find(match, 1, true) then ns._illusionMatch[match] = ill.sourceID; return ill.sourceID end
-  end
-  return nil
-end
-
 -- Owned count for one weapon-cosmetic cell (data/weapons.lua). Illusions live on
 -- C_TransmogCollection, not C_TransmogSets: an illusion is owned iff
 -- GetIllusionInfo(sid).isCollected; an arsenal weapon iff PlayerHasTransmog(itemID).
@@ -148,8 +132,7 @@ function ns:_scanWeaponSet(grp, set)
   if grp.kind == "illusion" then
     for _, piece in ipairs(set.illusions) do
       total = total + 1
-      local sid = piece.sourceID or ns._resolveIllusion(piece.match)
-      local info = sid and C_TransmogCollection.GetIllusionInfo(sid)
+      local info = C_TransmogCollection.GetIllusionInfo(piece.sourceID)
       if info and info.isCollected then n = n + 1 end
     end
   else   -- "arsenal"
