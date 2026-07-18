@@ -26,16 +26,17 @@ local function maxTableHeight()
   return UIParent:GetHeight() * 0.95 - WINDOW_CHROME
 end
 
--- colInfo for the vault columns: uppercased headers, a gutter left of every column but the first,
--- and the outer columns inset off the table edge. A fresh list per table.
-local function buildColInfo()
-  return map(ns.VaultColumns, function(c, i)
+-- colInfo for a (visible) vault column set: uppercased headers, a gutter left of every column but
+-- the first, and the outer columns inset off the table edge. A fresh list per table.
+---@param cols SummaryColumn[]
+local function buildColInfo(cols)
+  return map(cols, function(c, i)
     local info = {}
     for k, v in pairs(c.colInfo) do info[k] = v end
     if info.name and info.name ~= "" then info.name = info.name:upper() end
     if i > 1 then info.padLeft = (info.padLeft or 0) + COL_GUTTER end
     if i == 1 then info.hPadL = 8 end
-    if i == #ns.VaultColumns then info.hPadR = 8 end
+    if i == #cols then info.hPadR = 8 end
     return info
   end)
 end
@@ -56,6 +57,10 @@ local VaultView = Class(ui.Frame, function(self)
   self._healed = {}
   self._scrolls = {}
 
+  -- The user-visible column set (identity columns + non-hidden toggleable ones), resolved once so
+  -- all three faction tables render the same columns; a settings toggle is picked up on rebuild.
+  local cols = ns.VisibleVaultColumns()
+
   -- Each table renders its header + column backgrounds; only its row area scrolls (hosted in a
   -- ScrollFrame just below the header), so header + footer stay pinned for a tall warband.
   local function makeTable(faction)
@@ -63,7 +68,8 @@ local VaultView = Class(ui.Frame, function(self)
       parent = self,
       position = { TopLeft = { 0, 0 } },
       faction = faction,
-      colInfo = buildColInfo(),
+      columns = cols,
+      colInfo = buildColInfo(cols),
     }
     local scroll = ui.ScrollFrame:new{
       parent = self,
@@ -173,7 +179,6 @@ function VaultView:OnBeforeShow()
   ns.api:RefreshCurrentCharacterField("weeklies", "keystone")
   ns.api:RefreshCurrentCharacterField("weeklies", "dungeons")
   ns.api:RefreshCurrentCharacterField("weeklies", "hasUnclaimedVault")
-  ns.api:RefreshCurrentCharacterField("weeklies", "delversBounty")
   ns.api:RefreshCurrentCharacterField("instances", "locks")
   self:_activeTable():OnBeforeShow()
   self:layout()

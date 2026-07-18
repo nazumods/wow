@@ -118,7 +118,7 @@ end
 ---@field db WarbandeerDB
 
 ---@class WarbandeerDB: AddOnDatabase
----@field settings {defaultView: integer, tooltipSide: integer, summaryColumns: table<string, boolean>, consumables: table<string, boolean>, barApplyDefaults: table<string, boolean>}
+---@field settings {defaultView: integer, tooltipSide: integer, summaryColumns: table<string, boolean>, vaultColumns: table<string, boolean>, consumables: table<string, boolean>, barApplyDefaults: table<string, boolean>}
 ---@field profIntent table<string,table<integer,string>> map of character name and skillLineID to crafter intent
 ---@field ignoredEnchants table<string, boolean> per-item accepted wrong-enchants, key "<itemID>:<enchantID>"
 
@@ -166,6 +166,13 @@ function ns:MigrateDB()
     -- default (every bar on except Bonus / Sky / Pet), so an empty table changes nothing.
     db.settings.barApplyDefaults = db.settings.barApplyDefaults or {}
     db.version = 7
+  end
+  if db.version < 8 then
+    -- Per-column Great Vault visibility: vaultColumns[columnKey] = false hides it.
+    -- Absent/true = shown, so an empty table means every column visible (default).
+    -- Mirrors summaryColumns for the separate Great Vault column registry.
+    db.settings.vaultColumns = db.settings.vaultColumns or {}
+    db.version = 8
   end
 end
 

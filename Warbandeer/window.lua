@@ -144,6 +144,20 @@ function MainWindow:ShownView()
   if self._widget:IsShown() then return self._view end
 end
 
+-- Minimum window width so a narrow view (e.g. the Great Vault with most columns
+-- hidden) never shrinks the window below what the titlebar needs. The titlebar packs
+-- the title label (inset 33px from the left) and, for views that have one, the faction
+-- filter control anchored just left of the close button; too narrow and the two collide.
+-- Filter-less views contribute 0 for the filter term. The +30 covers the inter-element
+-- gaps and the close button's right inset.
+---@return number
+function MainWindow:_titlebarMinWidth()
+  local titleW  = self.titlebar.title:UnboundedWidth()
+  local filterW = (self._view and self._view._filter and self._view._filter:Width()) or 0
+  local closeW  = self.closeButton:Width()
+  return 33 + titleW + filterW + closeW + 30
+end
+
 function MainWindow:Fit()
   if not self._view then return end
   -- Capture the top-left corner *before* resizing so the window grows down/right
@@ -151,7 +165,7 @@ function MainWindow:Fit()
   -- symmetrically and appear to re-center on every view switch.
   local w = self._widget
   local left, top = w:GetLeft(), w:GetTop()
-  self:Width(self._view:Width()  + 6)
+  self:Width(math.max(self._view:Width() + 6, self:_titlebarMinWidth()))
   self:Height(self._view:Height() + 30)
   if left and top then
     w:ClearAllPoints()
@@ -257,4 +271,21 @@ function ns.RefreshSummaryColumns()
   if view._filter then view._filter:Hide() end
   w.views.summary = nil
   if wasCurrent then w:view("summary") end
+end
+
+-- Rebuild the Great Vault view so a column show/hide setting takes effect — the Vault twin of
+-- RefreshSummaryColumns. The view is forgotten so getView reconstructs it fresh against the new
+-- VisibleVaultColumns set: rebuilt immediately (and re-pointed) if it's the current view, else
+-- picked up lazily on the next navigation to it. No-op until the window + view exist.
+---@class Warbandeer
+---@field RefreshVaultColumns fun()
+function ns.RefreshVaultColumns()
+  local w = ns.MainWindow
+  local view = w and w.views and w.views.vault
+  if not view then return end
+  local wasCurrent = w._view == view
+  view:Hide()
+  if view._filter then view._filter:Hide() end
+  w.views.vault = nil
+  if wasCurrent then w:view("vault") end
 end

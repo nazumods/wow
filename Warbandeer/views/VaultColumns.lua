@@ -19,9 +19,10 @@ local function pip(complete)
   return ("|T%s:%d:%d|t"):format(complete and PIP_FULL or PIP_EMPTY, PIP_SZ, PIP_SZ)
 end
 
--- Per-track display label + the noun each slot threshold counts (raid bosses / M+ runs / world
--- activities), used in the pip tooltip.
-local TRACK_LABEL = { Raid = "Raid", Dungeons = "Mythic+", World = "World" }
+-- Per-track display label + the noun each slot threshold counts (raid bosses / dungeon runs / world
+-- activities), used in the pip tooltip. The middle track is the vault's Heroic/Mythic/Timewalking
+-- "Dungeons" track (not M+-only), matching the in-game Great Vault requirement text.
+local TRACK_LABEL = { Raid = "Raid", Dungeons = "Dungeons", World = "World" }
 local TRACK_UNIT  = { Raid = "bosses", Dungeons = "runs", World = "activities" }
 local KEY_COLOR = { 0.62, 0.80, 1.0, 1 }  -- keystone "+N" (light blue)
 
@@ -68,7 +69,7 @@ local function aggTooltip(self, agg, key)
   tip:Show()
 end
 
--- One track's pip cell (Raid / Mythic+ / World), `key` = a vault activity-type name. Prefers the
+-- One track's pip cell (Raid / Dungeons / World), `key` = a vault activity-type name. Prefers the
 -- per-slot `vaultSlots` detail (pips + per-slot reward ilvl); falls back to the aggregate `vault`
 -- field's unlocked count (pips only) for a character seen this week before vaultSlots was captured.
 -- Blank only when the character has no vault data at all this reset (e.g. never logged in / below max).
@@ -123,12 +124,34 @@ ns.VaultColumns = {
     getData = function(t) return { text = t.basic and t.basic.level or "", justifyH = Left } end,
   },
   -- Great Vault tracks — three slot pips each
-  SummaryColumn:new{ name = "Raid",  width = 60, justifyH = Center, getData = function(t) return trackCell(t, "Raid") end },
-  SummaryColumn:new{ name = "M+",    width = 60, justifyH = Center, getData = function(t) return trackCell(t, "Dungeons") end },
-  SummaryColumn:new{ name = "World", width = 60, justifyH = Center, getData = function(t) return trackCell(t, "World") end },
+  SummaryColumn:new{
+    key = "vaultRaid", label = "Raid", width = 60, justifyH = Center,
+    -- Dragon-head glyph header (house-style, tuned for contrast) for the Raid track
+    iconPath = "Interface\\AddOns\\Warbandeer\\icons\\raidDragon.tga",
+    iconColor = ns.theme.colors.muted,
+    tooltip = { "Raid", "Great Vault progress from raid boss kills." },
+    getData = function(t) return trackCell(t, "Raid") end,
+  },
+  SummaryColumn:new{
+    key = "vaultDungeons", label = "Dungeons", width = 60, justifyH = Center,
+    -- Group Finder eye header (house-style glyph of groupfinder-eye-single) for the Dungeons track
+    iconPath = "Interface\\AddOns\\Warbandeer\\icons\\lfgEye.tga",
+    iconColor = ns.theme.colors.muted,
+    -- Not just M+: the vault's middle track also counts Heroic / Mythic / Timewalking dungeons.
+    tooltip = { "Dungeons", "Great Vault progress from Heroic, Mythic, or Timewalking dungeon runs." },
+    getData = function(t) return trackCell(t, "Dungeons") end,
+  },
+  SummaryColumn:new{
+    key = "vaultWorld", label = "World", width = 60, justifyH = Center,
+    -- Map glyph header (house-style) for the World track
+    iconPath = "Interface\\AddOns\\Warbandeer\\icons\\worldMap.tga",
+    iconColor = ns.theme.colors.muted,
+    tooltip = { "World", "Great Vault progress from world activities." },
+    getData = function(t) return trackCell(t, "World") end,
+  },
   -- owned keystone (+level)
   SummaryColumn:new{
-    name = "Key", width = 42, justifyH = Center,
+    name = "Key", key = "vaultKeystone", label = "Key", width = 42, justifyH = Center,
     getData = function(t)
       local w = t.weeklies
       if not w then return "" end
@@ -152,7 +175,7 @@ ns.VaultColumns = {
   },
   -- primary raid lockout (tooltip lists them all)
   SummaryColumn:new{
-    name = "Raid Lock", width = 118, justifyH = Left,
+    name = "Raid Lock", key = "vaultRaidLock", label = "Raid Lock", width = 118, justifyH = Left,
     getData = function(t)
       local locks = ns.api:GetRaidLocks(t.name)
       if #locks == 0 then return "" end
@@ -174,14 +197,21 @@ ns.VaultColumns = {
       }
     end,
   },
-  -- Delver's Bounty (weekly)
-  SummaryColumn:new{
-    name = "D-Bounty", width = 74, justifyH = Center,
-    getData = function(t)
-      local w = t.weeklies
-      if not w then return "" end
-      if w.delversBounty then return ns.GreenCheck end
-      return (w.vaultSlots or w.keystone or w.dungeons) and ns.ZeroDashC or ""
-    end,
-  },
 }
+
+-- The visible columns in display order: every always-on identity column (no `key`) plus each
+-- toggleable column the user hasn't hidden. Visibility lives in db.settings.vaultColumns[key]
+-- (missing/true = shown, false = hidden). Built fresh each Vault (re)build so a settings toggle
+-- takes effect on the next render. The Vault twin of ns.VisibleSummaryColumns.
+---@class Warbandeer
+---@field VisibleVaultColumns fun(): SummaryColumn[]
+function ns.VisibleVaultColumns()
+  local shown = ns.db.settings.vaultColumns or {}
+  local out = {}
+  for _, c in ipairs(ns.VaultColumns) do
+    if not c.key or shown[c.key] ~= false then
+      out[#out + 1] = c
+    end
+  end
+  return out
+end

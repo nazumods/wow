@@ -10,7 +10,7 @@
 ## OptionalDeps: Warbandeer_Bars, Warbandeer_Collected, Warbandeer_HousingDecor, ShadowsOfUI-Upgrade, Epithet
 ## X-Curse-Project-ID: 1546586
 ## X-NUI-DB: WarbandeerDB
-## X-NUI-DB-VERSION: 7
+## X-NUI-DB-VERSION: 8
 ## X-NUI-COMMANDS: /warband, /wb
 ## X-NUI-COMPARTMENT: Warbandeer_OnAddonCompartmentClick
 ## X-NUI-API: WarbandeerApi
@@ -84,6 +84,7 @@ views\GearView.lua
 views\VaultColumns.lua
 views\VaultRoster.lua
 views\VaultView.lua
+views\vaultColumnsSettings.lua
 
 views\detail\Layout.lua
 views\DetailView.lua

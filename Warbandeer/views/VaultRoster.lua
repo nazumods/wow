@@ -12,6 +12,7 @@ local filter = ns.lua.lists.filter
 -- logged-in character's gold wash, dimmed levellers) without touching it.
 ---@class VaultRoster: TableFrame
 ---@field faction "alliance"|"horde"|"both"  which roster this table shows
+---@field columns SummaryColumn[]  the visible columns this table renders (passed in by VaultView)
 ---@field _toons Character[]  row index -> character (refreshed each OnBeforeShow)
 local VaultRoster = Class(TableFrame, function(self)
   self._toons = self:GetCharacters()
@@ -43,6 +44,9 @@ ns.VaultRoster = VaultRoster
 ---@return Character[]
 function VaultRoster:GetCharacters()
   local toons = ns.api.GetAllCharacters()  -- returns a copy
+  -- The Great Vault is a max-level-only feature, so hide levellers entirely: below max they
+  -- have no vault data at all, so their rows would just be blank noise.
+  toons = filter(toons, function(t) return (t.basic.level or 0) >= ns.wow.maxLevel end)
   if self.faction ~= "both" then
     local wantAlliance = self.faction == "alliance"
     toons = filter(toons, function(t) return t.isAlliance == wantAlliance end)
@@ -56,19 +60,18 @@ end
 ---@return table
 function VaultRoster:GetRowData(toon)
   local cells = {}
-  for n, c in ipairs(ns.VaultColumns) do cells[n] = c.getData(toon) or "" end
+  for n, c in ipairs(self.columns) do cells[n] = c.getData(toon) or "" end
   return cells
 end
 
--- Resting backdrop: gold wash for the logged-in character, dimmed for still-levelling characters.
+-- Resting backdrop: gold wash for the logged-in character, transparent otherwise. The roster is
+-- max-level-only (see GetCharacters), so there are no levellers to dim here.
 ---@param i integer
 function VaultRoster:restRow(i)
   local row, toon = self.rows[i], self._toons[i]
   if not row then return end
   if toon and toon.name == ns.api.GetCurrentCharacter() then
     row:backdropColor(theme.colors.selected)
-  elseif toon and (toon.basic.level or 0) < ns.wow.maxLevel then
-    row:backdropColor(0, 0, 0, 0.22)
   else
     row:backdropColor(0, 0, 0, 0)
   end
