@@ -4,7 +4,7 @@ import { state, saveState } from "./state";
 import { currentOrNextDmf } from "./wow/dmf";
 import { lastWeeklyReset } from "./wow/reset";
 import { realmStatus, realmWatchConfigured, decideRealmTransition, type RealmStatus } from "./wow/realm";
-import { fetchReleases } from "./github";
+import { fetchReleases, decideReleaseAnnouncements } from "./github";
 import { checkForUpdate } from "./update";
 import { restartPending, withCritical } from "./restart";
 
@@ -133,17 +133,23 @@ async function checkRealm(client: Client): Promise<void> {
 
 async function checkReleases(client: Client): Promise<void> {
   lastReleasePollAt = Date.now();
-  const releases = await fetchReleases();
-  // First run seeds silently so a fresh install doesn't spam the backlog.
-  if (state.seenReleaseIds.length === 0) {
-    state.seenReleaseIds = releases.map((r) => r.id);
-    await saveState();
-    return;
+  // Poll each watched repo independently: one repo's fetch failure (e.g. a bad name → 404)
+  // must not starve the others' announcements on this tick.
+  for (const repo of config.watchedRepos) {
+    try {
+      await checkRepoReleases(client, repo);
+    } catch (err) {
+      console.error(`[release] ${repo}`, err);
+    }
   }
-  const seen = new Set(state.seenReleaseIds);
-  for (const release of releases.filter((r) => !seen.has(r.id)).reverse()) {
+}
+
+async function checkRepoReleases(client: Client, repo: string): Promise<void> {
+  const releases = await fetchReleases(repo);
+  const { toAnnounce, nextSeen } = decideReleaseAnnouncements(releases, state.seenReleaseIds[repo]);
+  for (const release of toAnnounce) {
     await announce(client, "release", `📦 New release: **${release.name}**\n${release.url}`);
-    state.seenReleaseIds.push(release.id);
   }
+  state.seenReleaseIds[repo] = nextSeen;
   await saveState();
 }

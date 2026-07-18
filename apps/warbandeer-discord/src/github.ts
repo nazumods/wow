@@ -7,17 +7,14 @@ export interface Release {
   url: string;
 }
 
-export async function fetchReleases(): Promise<Release[]> {
+export async function fetchReleases(repo: string): Promise<Release[]> {
   const headers: Record<string, string> = {
     Accept: "application/vnd.github+json",
     "User-Agent": "warbandeer-discord",
   };
   if (config.githubToken) headers.Authorization = `Bearer ${config.githubToken}`;
-  const res = await fetch(
-    `https://api.github.com/repos/${config.githubRepo}/releases?per_page=15`,
-    { headers },
-  );
-  if (!res.ok) throw new Error(`GitHub releases query failed: ${res.status}`);
+  const res = await fetch(`https://api.github.com/repos/${repo}/releases?per_page=15`, { headers });
+  if (!res.ok) throw new Error(`GitHub releases query failed for ${repo}: ${res.status}`);
   const data = (await res.json()) as {
     id: number;
     name: string | null;
@@ -29,6 +26,30 @@ export async function fetchReleases(): Promise<Release[]> {
   return data
     .filter((r) => !r.draft)
     .map((r) => ({ id: r.id, name: r.name ?? r.tag_name, tag: r.tag_name, url: r.html_url }));
+}
+
+export interface ReleaseAnnouncements {
+  /** Releases to post now, oldest-first (so a burst reads in publish order). */
+  toAnnounce: Release[];
+  /** The repo's new seen-id list to persist. */
+  nextSeen: number[];
+}
+
+/**
+ * Decide what to announce for one repo. `seen` is the repo's persisted seen-id list, or
+ * `undefined` when it has never been polled — the first poll seeds silently (announce
+ * nothing, remember everything) so a freshly watched repo never dumps its backlog. A repo
+ * seeded with no releases keeps a defined (empty) list, so its genuine first release later
+ * still announces.
+ */
+export function decideReleaseAnnouncements(
+  releases: Release[],
+  seen: number[] | undefined,
+): ReleaseAnnouncements {
+  if (seen === undefined) return { toAnnounce: [], nextSeen: releases.map((r) => r.id) };
+  const seenSet = new Set(seen);
+  const toAnnounce = releases.filter((r) => !seenSet.has(r.id)).reverse();
+  return { toAnnounce, nextSeen: [...seen, ...toAnnounce.map((r) => r.id)] };
 }
 
 export interface CreatedIssue {

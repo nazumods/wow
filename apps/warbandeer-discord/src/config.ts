@@ -10,6 +10,9 @@ export interface Config {
   blizzardClientId?: string;
   blizzardClientSecret?: string;
   githubRepo: string;
+  /** Repos whose releases get announced (`owner/repo`). Distinct from `githubRepo`, which
+   * anchors self-update; defaults to `[githubRepo]`. */
+  watchedRepos: string[];
   githubToken?: string;
   dmfTimezone: string;
   /** Commit this build was made from, baked in via the GIT_SHA build arg. Absent = self-update disabled. */
@@ -65,6 +68,11 @@ export function resolveConfig(env: Env): Config {
 
   const announceChannelId = required("ANNOUNCE_CHANNEL_ID");
 
+  const githubRepo = optional("GITHUB_REPO") ?? "nazumods/wow";
+  // Repos whose releases get announced. Distinct from githubRepo (self-update's anchor);
+  // an empty/unset WATCHED_REPOS falls back to just githubRepo, i.e. the prior behavior.
+  const watchedRepos = list("WATCHED_REPOS");
+
   // Optional prefix for slash-command names, so a second (debug/staging) bot can run in the
   // same server without command collisions. Discord requires lowercase command names.
   const commandPrefix = optional("COMMAND_PREFIX") ?? "";
@@ -84,7 +92,8 @@ export function resolveConfig(env: Env): Config {
     realmSlug: optional("WOW_REALM"),
     blizzardClientId: optional("BLIZZARD_CLIENT_ID"),
     blizzardClientSecret: optional("BLIZZARD_CLIENT_SECRET"),
-    githubRepo: optional("GITHUB_REPO") ?? "nazumods/wow",
+    githubRepo,
+    watchedRepos: watchedRepos.length ? watchedRepos : [githubRepo],
     githubToken: optional("GITHUB_TOKEN"),
     dmfTimezone:
       optional("DMF_TIMEZONE") ?? (region === "us" ? "America/Los_Angeles" : "Europe/Paris"),

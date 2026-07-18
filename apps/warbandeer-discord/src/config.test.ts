@@ -51,6 +51,27 @@ describe("resolveConfig", () => {
     expect(resolveConfig(base).reportRoleId).toBeUndefined();
     expect(resolveConfig({ ...base, REPORT_ROLE_ID: "42" }).reportRoleId).toBe("42");
   });
+
+  test("watchedRepos defaults to just the configured GITHUB_REPO", () => {
+    expect(resolveConfig(base).watchedRepos).toEqual(["nazumods/wow"]);
+    expect(resolveConfig({ ...base, GITHUB_REPO: "acme/thing" }).watchedRepos).toEqual([
+      "acme/thing",
+    ]);
+  });
+
+  test("WATCHED_REPOS parses, trims, and dedupes a comma-separated list", () => {
+    expect(
+      resolveConfig({
+        ...base,
+        WATCHED_REPOS: "nazumods/wow, roshne/ActionBarMaster , nazumods/wow",
+      }).watchedRepos,
+    ).toEqual(["nazumods/wow", "roshne/ActionBarMaster"]);
+  });
+
+  test("an empty WATCHED_REPOS falls back to GITHUB_REPO", () => {
+    expect(resolveConfig({ ...base, WATCHED_REPOS: "" }).watchedRepos).toEqual(["nazumods/wow"]);
+    expect(resolveConfig({ ...base, WATCHED_REPOS: " , " }).watchedRepos).toEqual(["nazumods/wow"]);
+  });
 });
 
 describe("report helpers", () => {
