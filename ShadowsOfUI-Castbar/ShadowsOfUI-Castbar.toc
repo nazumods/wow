@@ -9,6 +9,7 @@
 ## X-NUI-DB: ShadowsOfUI_CastbarDB
 ## X-NUI-DB-VERSION: 3
 ## X-NUI-UI: LibNUI
+## X-Curse-Project-ID: 1615366
 
 core.lua
 changelog.lua

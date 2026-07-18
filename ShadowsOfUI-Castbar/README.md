@@ -1,4 +1,4 @@
-# Cast Bars
+# Shadows of UI: Castbar
 
 Minimal, movable cast bars for your **target**, **focus target**, and **yourself**, in the
 clean "Shadows of UI" style. They show what's being cast — spell icon, name, and remaining
