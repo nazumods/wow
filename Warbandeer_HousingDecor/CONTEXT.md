@@ -29,7 +29,7 @@ Mirrors `WarbandeerCollectedApi`. A plain global table published as the last lin
 - `API:Counts()` → `collected, total` (from the last scan) · `API:IsScanned()` → `#ns._entries > 0` (this session) · `API:Entries()` → the live `HousingDecorEntry[]` · `API:WantedCount()`.
 - `API:OnScanned(fn)` — fired after each `ns:Scan()` rebuilds the snapshot.
 - `API:IsWanted`/`SetWanted`/`ToggleWanted` + `API:OnRatingsChanged(fn)` — the account-wide wanted DB, mutated through one place so both grids stay in sync.
-- `API:ShowInfoTip(entry, parent, position)` / `API:HideInfoTip()` — lazy forwarders to `ns.ShowInfoTip`/`HideInfoTip`.
+- `API:ShowInfoTip(entry, parent)` / `API:HideInfoTip()` — lazy forwarders to `ns.ShowInfoTip`/`HideInfoTip`.
 - `API.List` — the `HousingDecorList` grid class; build with `embedded = true` to reuse it in a host view. `API.WantedIcon` — the wanted-star atlas.
 
 ## Data (`scan.lua`, `catalog.lua`)

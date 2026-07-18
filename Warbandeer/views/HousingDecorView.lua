@@ -16,7 +16,7 @@ local Class, Frame, Label = ns.lua.Class, ui.Frame, ui.Label
 local _view
 
 local CONTENT_W = 470   -- view content width
-local LIST_H = 470      -- list viewport height (the VirtualList scrolls internally)
+local LIST_H = 470      -- list viewport height (the windowed list scrolls internally)
 
 ---@class HousingDecorView: Frame
 ---@field grid HousingDecorList  the shared decor list (the sibling addon's own list, embedded)
