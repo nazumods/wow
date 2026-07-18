@@ -1,7 +1,8 @@
 # ShadowsOfUI-Known
 
 Adds profession recipe-knowledge lines to tooltips, telling you at a glance which of your
-characters can learn — or already know — a recipe.
+characters can learn — or already know — a recipe, and which of your **guildmates** can
+craft it.
 
 ## Learnable by
 
@@ -42,6 +43,22 @@ list). It shows in two places:
 `/sknown <itemID>` prints the Learnable list to chat for a given recipe item, and `/sknown
 knownby <recipeID>` prints the Known-by list for a recipe — debugging aids; you won't
 normally need them.
+
+## Guild crafters
+
+On the **Place Crafting Order** browse list, the tooltip also gains a **"Guild crafters:"**
+line naming the guild members who can craft the hovered recipe — the natural complement to
+the "Known by:" line, especially when none of *your* characters can. Online crafters are
+listed first in their class colour; offline ones are greyed out. The list is capped like the
+others (five names, or four plus "and N more.").
+
+This reads Blizzard's own guild recipe data, so there's nothing to sync and no setup. Because
+it's fetched live the first time you hover a recipe, the line may briefly read **"Guild
+crafters: querying..."** before the names appear. A few recipes have gaps in Blizzard's guild
+data and won't return crafters even when a guildmate knows them.
+
+The line only appears while you're in a guild. `/sknown guildcrafters <recipeID>` prints the
+list to chat — another debugging aid.
 
 ## Changelog
 

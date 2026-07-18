@@ -18,4 +18,15 @@ function M.load(minSkill)
   return ns
 end
 
+-- Loads ShadowsOfUI-Known/guild.lua against a minimal fake environment so the pure
+-- ns.SortGuildCrafters comparator can be unit-tested. guild.lua's only load-time side
+-- effects are two ns:registerEvent calls (stubbed) — the C_* API is only touched at
+-- runtime (short-circuited to nil at load here).
+---@return table ns
+function M.loadGuild()
+  local ns = { registerEvent = function() end }
+  assert(loadfile("ShadowsOfUI-Known/guild.lua"))("ShadowsOfUI-Known", ns)
+  return ns
+end
+
 return M
