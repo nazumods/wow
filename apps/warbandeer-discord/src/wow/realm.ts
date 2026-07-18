@@ -25,6 +25,17 @@ async function getToken(): Promise<string> {
   return token.value;
 }
 
+// Decide what (if anything) to announce given the last-known status and a fresh reading.
+// A missing `prev` is the first observation: seed it silently so a fresh install or a
+// restart never posts a phantom transition. `null` = announce nothing.
+export function decideRealmTransition(
+  prev: RealmStatus | undefined,
+  next: RealmStatus,
+): "up" | "down" | null {
+  if (prev === undefined || prev === next) return null;
+  return next === "DOWN" ? "down" : "up";
+}
+
 export async function realmStatus(): Promise<RealmStatus> {
   const url =
     `https://${config.region}.api.blizzard.com/data/wow/search/connected-realm` +

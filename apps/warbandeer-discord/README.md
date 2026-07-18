@@ -6,7 +6,7 @@ Discord bot for the guild channel: WoW timers and announcements.
 
 - **Darkmoon Faire** — `/dmf` shows when the Faire opens/closes; announces in the channel when it opens (first Sunday of each month, computed in realm-local time with DST handled).
 - **Resets** — `/reset` shows the next daily and weekly reset; announces the weekly reset when it happens.
-- **Server-up watch** — after the weekly reset, polls the Blizzard API for your realm's status; if the realm goes down for maintenance, announces when it comes back up. `/status` checks the realm on demand.
+- **Server status** — continuously polls the Blizzard API for your realm's status and announces whenever it goes **down** or comes back **up** — for any outage, not just weekly-reset maintenance. `/status` checks the realm on demand.
 - **Release notifications** — polls GitHub and announces new releases of the addon suite.
 - **Self-update** — `/update` (admins only) restarts the bot onto the latest build, so code changes don't need someone on the box. See [Self-update](#self-update).
 - **Issue reports** — `/report` lets members with a configured role file a GitHub issue (Title + Description via a popup form) straight into the mapped project's repo (`wow`, `abm`), labeled `automated` and noting who filed it.
@@ -86,7 +86,7 @@ Once the bot exposes a local port, map a public hostname to it (`http://bot:<por
 
 - Announcement state persists in `data/state.json`, so restarts never repeat an announcement.
 - The first release poll seeds silently (no backlog spam); only releases published after that are announced.
-- The server-up watch only reports recovery if it actually observed the realm **down** after reset — quiet weeks with no maintenance produce no message. It gives up after 3 hours.
+- The server status watch runs continuously (whenever `WOW_REALM` + Blizzard credentials are set), polling every 2 minutes and announcing each up/down transition once. The first reading after a start seeds silently, so a fresh install or restart never posts a phantom up/down.
 - Releases publish from a daily cron at 14:00 UTC, so GitHub is only polled in a 90-minute window after that (every 5 minutes), plus once at startup to catch anything published while the bot was offline.
 - `COMMAND_PREFIX` lets a second (debug) instance run in the same server: it prefixes every slash-command name (e.g. `r_` → `/r_status`). A second instance needs its own Discord application/token and its own state volume.
 
