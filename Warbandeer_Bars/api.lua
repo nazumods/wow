@@ -74,12 +74,14 @@ function API:Snapshot() return ns.Snapshot() end
 ---Forget a stored profile.
 ---@param char string
 ---@param specID number
+---@return boolean deleted  false if the character had no such stored profile
 function API:DeleteProfile(char, specID)
   char = resolveChar(char)
   local byChar = ns.db.profiles[char]
-  if not byChar then return end
+  if not byChar or byChar[specID] == nil then return false end
   byChar[specID] = nil
   if not next(byChar) then ns.db.profiles[char] = nil end
+  return true
 end
 
 ---Forget every stored profile for a character (resolves casing, like DeleteProfile).

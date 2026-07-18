@@ -49,8 +49,11 @@ ns:registerCommand("forget", nil, function(_, args)
   end
   local specID = tonumber(specStr)
   if specID then
-    ns.api:DeleteProfile(char, specID)
-    ns.Print(("Forgot %s spec %d."):format(char, specID))
+    if ns.api:DeleteProfile(char, specID) then
+      ns.Print(("Forgot %s spec %d."):format(char, specID))
+    else
+      ns.Print(("No stored profile for %s spec %d. Try /wbb list."):format(char, specID))
+    end
   elseif ns.api:DeleteCharacter(char) then -- resolves casing; false if nothing to forget
     ns.Print(("Forgot all profiles for %s."):format(char))
   else
