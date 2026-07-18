@@ -97,6 +97,7 @@ end
 
 ---Re-render the grid + header after a scan rebuilds the snapshot (called by ns:Scan).
 function MainWindow:Refresh()
+  self.list:RefreshCategoryFilter()   -- rebuild the Category options if this scan first populated them
   self.list:Render()   -- fires onFilterChanged → RefreshCounter
   self:RefreshWanted()
 end

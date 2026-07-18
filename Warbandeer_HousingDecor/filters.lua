@@ -158,9 +158,15 @@ function HousingDecorList:BuildFilterStrip(parent)
   self._syncWantedBtn = function() wantedBorder:Color(self._wantedOnly and gold or divider) end
   x = x + IB + GAP
 
-  FilterDropdown:new{
+  -- The category options come from the live scan snapshot; a window opened during the login
+  -- race (before the first async catalog scan lands) sees only "All decor". FilterDropdown bakes
+  -- its menu once, so keep the refs RefreshCategoryFilter() needs to swap in a fresh one later.
+  self._filterStrip, self._catX, self._catW = strip, x, DW
+  local catOpts = self:CategoryOptions()
+  self._catOptCount = #catOpts
+  self._catDropdown = FilterDropdown:new{
     parent = strip, position = { TopLeft = { x, 0 } }, width = DW, menuWidth = 190,
-    bordered = true, selected = "all", options = self:CategoryOptions(),
+    bordered = true, selected = "all", options = catOpts,
     onSelect = function(_, key) self:_applyCategoryKey(key) end,
   }
   x = x + DW + GAP
@@ -177,4 +183,24 @@ function HousingDecorList:BuildFilterStrip(parent)
 
   strip:Width(x)
   return strip
+end
+
+---Swap in a freshly-optioned Category dropdown after a scan first populates the catalog. The
+---dropdown snapshots CategoryOptions() at build time; a window opened during the login race (before
+---the first async scan returned) holds only "All decor" and never rebuilds on its own. The host
+---calls this from its scan refresh. A no-op once the option set already matches the snapshot, so
+---repeated scans don't churn; the current selection is preserved across the swap.
+function HousingDecorList:RefreshCategoryFilter()
+  if not self._catDropdown then return end
+  local opts = self:CategoryOptions()
+  if #opts == self._catOptCount then return end   -- option set unchanged → nothing to rebuild
+  self._catOptCount = #opts
+  local key = (self._subcategory ~= "all" and ("s:" .. self._subcategory))
+    or (self._category ~= "all" and ("c:" .. self._category)) or "all"
+  self._catDropdown:Hide()   -- FilterDropdown can't re-option in place; retire the stale one
+  self._catDropdown = FilterDropdown:new{
+    parent = self._filterStrip, position = { TopLeft = { self._catX, 0 } },
+    width = self._catW, menuWidth = 190, bordered = true, selected = key, options = opts,
+    onSelect = function(_, k) self:_applyCategoryKey(k) end,
+  }
 end
