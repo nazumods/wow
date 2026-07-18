@@ -9,6 +9,7 @@
 ## X-NUI-DB: ShadowsOfUI_CollectiblesDB
 ## X-NUI-DB-VERSION: 2
 ## X-NUI-API: WarbandeerApi
+## X-Curse-Project-ID: 1615359
 
 core.lua
 changelog.lua

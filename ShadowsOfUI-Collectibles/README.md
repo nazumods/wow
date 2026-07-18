@@ -1,4 +1,4 @@
-# ShadowsOfUI-Collectibles
+# Shadows of UI: Collectibles
 
 Tints the icons of items you **already know** — and items you can **still collect** — on the
 merchant window and the Auction House browse list. See at a glance whether a recipe, toy, mount,
