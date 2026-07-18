@@ -7,25 +7,44 @@ local ns = select(2, ...)
 -- first. The first consumer of core's shared inbox-row decorator (ns.OnInboxRow).
 
 local pendingSig ---@type string?  fingerprint of the letter awaiting a delete-confirm accept
+local pendingIndex ---@type number? inbox index of that letter, captured at click time
 local pendingMoney ---@type number? coin on that letter, for the money-confirm frame
 
 -- A letter's stable identity for the window a confirm dialog sits open — nothing is taken
--- from it in that span, so sender/subject/money/CoD/attachment-count all hold. Mail is
--- volatile (an arriving letter inserts at index 1 and shifts every index up), so we
--- re-resolve the index by this fingerprint at accept time instead of trusting the numeric
--- index captured at click time.
+-- from it in that span, so sender/subject/money/CoD/attachment-count all hold. It deliberately
+-- omits daysLeft (position 7), which ticks down during the confirm window; the trade-off is that
+-- two distinct letters (e.g. two "Auction expired" mails for the same item at different counts)
+-- can share a fingerprint, so the fingerprint alone can't single out the clicked letter — the
+-- captured index disambiguates that in ResolveDeleteIndex.
 local function inboxFingerprint(index)
   local _, _, sender, subject, money, cod, _, hasItem = GetInboxHeaderInfo(index)
   return table.concat({ sender or "", subject or "", money or 0, cod or 0, hasItem or 0 }, "\1")
 end
 
+-- Pick which inbox letter a confirmed delete should remove. The index captured at click time is
+-- authoritative *while it still holds the clicked letter* (its fingerprint still matches) — this
+-- deletes exactly that letter even when another carries an identical fingerprint. Only when mail
+-- arriving during the confirm has shifted every index up does the captured index stop matching;
+-- then fall back to the first fingerprint match, and delete nothing if the letter is simply gone
+-- (never a different, shifted-in letter).
+---@param sig string fingerprint captured when the confirm opened
+---@param index number? inbox index captured at click time
+---@param numItems number current GetInboxNumItems()
+---@param fingerprintAt fun(i: number): string fingerprint of the letter at inbox index i
+---@return number? index to delete, or nil when the letter is no longer present
+function ns.ResolveDeleteIndex(sig, index, numItems, fingerprintAt)
+  if index and index <= numItems and fingerprintAt(index) == sig then return index end
+  for i = 1, numItems do
+    if fingerprintAt(i) == sig then return i end
+  end
+end
+
 local function deletePending()
-  local sig = pendingSig
-  pendingSig = nil
+  local sig, index = pendingSig, pendingIndex
+  pendingSig, pendingIndex = nil, nil
   if not sig then return end
-  for i = 1, GetInboxNumItems() do
-    if inboxFingerprint(i) == sig then DeleteInboxItem(i); return end
-  end -- letter no longer present (already gone) — never delete a different, shifted-in letter
+  local target = ns.ResolveDeleteIndex(sig, index, GetInboxNumItems(), inboxFingerprint)
+  if target then DeleteInboxItem(target) end
 end
 
 StaticPopupDialogs["SHADOWSOFUI_POSTOFFICE_DELETE_MAIL"] = {
@@ -56,10 +75,10 @@ local function onClick(self)
     if name then firstItem = name; break end
   end
   if firstItem then
-    pendingSig = inboxFingerprint(index)
+    pendingSig, pendingIndex = inboxFingerprint(index), index
     StaticPopup_Show("SHADOWSOFUI_POSTOFFICE_DELETE_MAIL", firstItem)
   elseif money and money > 0 then
-    pendingSig, pendingMoney = inboxFingerprint(index), money
+    pendingSig, pendingIndex, pendingMoney = inboxFingerprint(index), index, money
     StaticPopup_Show("SHADOWSOFUI_POSTOFFICE_DELETE_MONEY")
   else
     DeleteInboxItem(index) -- empty letter, nothing to lose
