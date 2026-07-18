@@ -11,10 +11,16 @@ local tests = LibNUITest.tests
 -- Selector window
 -- -----------------------------------------------------------------------
 
-local ROW_H = 44
-local BTN_W = 70
-local WIN_W = 440
-local WIN_H = 38 + #tests * ROW_H + 12
+local ROW_H  = 44
+local BTN_W  = 70
+local TEXT_W = 320                        -- name/description label width within a column
+local PAD    = 12                         -- window inner padding
+local COL_GAP = 20                        -- gap between columns
+local COLS   = 2
+local COL_W  = TEXT_W + 12 + BTN_W         -- one column: text block + gap + Launch button
+local WIN_W  = PAD + COL_W * COLS + COL_GAP * (COLS - 1) + PAD
+local ROWS_PER_COL = math.ceil(#tests / COLS)
+local WIN_H  = 38 + ROWS_PER_COL * ROW_H + 12
 
 ---@type TitleFrame?
 local selectorFrame
@@ -35,7 +41,12 @@ local function openSelector()
   selectorFrame = f
 
   for i, test in ipairs(tests) do
-    local rowTopY = -(38 + (i - 1) * ROW_H)
+    -- Column-major fill: the left column takes the first ROWS_PER_COL tests
+    -- top-to-bottom, then the right column.
+    local col = math.floor((i - 1) / ROWS_PER_COL)
+    local row = (i - 1) % ROWS_PER_COL
+    local ox  = PAD + col * (COL_W + COL_GAP)
+    local rowTopY = -(38 + row * ROW_H)
 
     -- Test name
     LibNUI.Label:new{
@@ -44,8 +55,8 @@ local function openSelector()
       fontObj  = "GameFontNormal",
       justifyH = LibNUI.edge.Left,
       position = {
-        TopLeft = {10, rowTopY - 5},
-        Width   = WIN_W - BTN_W - 30,
+        TopLeft = {ox, rowTopY - 5},
+        Width   = TEXT_W,
       },
     }
 
@@ -56,12 +67,12 @@ local function openSelector()
       fontObj  = "GameFontDisable",
       justifyH = LibNUI.edge.Left,
       position = {
-        TopLeft = {10, rowTopY - 23},
-        Width   = WIN_W - BTN_W - 30,
+        TopLeft = {ox, rowTopY - 23},
+        Width   = TEXT_W,
       },
     }
 
-    -- Launch button, centred vertically within the row
+    -- Launch button, at the column's right edge, centred vertically within the row
     local btnTopY = rowTopY - math.floor((ROW_H - 22) / 2)
     local runFn = test.run
     local btn = LibNUI.Frame:new{
@@ -69,7 +80,7 @@ local function openSelector()
       template = "UIPanelButtonTemplate",
       parent   = f,
       position = {
-        TopRight = {f, LibNUI.edge.TopRight, -10, btnTopY},
+        TopLeft = {ox + TEXT_W + 12, btnTopY},
         Width    = BTN_W,
         Height   = 22,
       },
