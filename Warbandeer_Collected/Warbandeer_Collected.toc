@@ -23,6 +23,7 @@ data\sets_late.lua
 data\sets_expand.lua
 data\sets_ptr.lua
 data\sets_review.lua
+data\weapons.lua
 data\models.lua
 
 ratings.lua

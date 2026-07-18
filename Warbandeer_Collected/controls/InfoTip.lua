@@ -205,11 +205,57 @@ local function render(group, set, parent, position)
   end
 end
 
+-- Weapon-cosmetic groups (illusions / arsenals, kind-tagged in data/weapons.lua) have no
+-- armor slots — they live on C_TransmogCollection, not C_TransmogSets — so they get a
+-- lightweight native tooltip listing owned status instead of the per-slot armor table
+-- above (whose fixed 9 slot rows can't express a 5-illusion or 15-weapon bundle).
+-- Cursor-anchored, like the grid's expansion-name hover. A richer themed weapon tip and
+-- the 3D dressing-room preview are the in-game follow-up (see Warbandeer_Collected/CONTEXT.md).
+local WTIP_GREEN, WTIP_RED, WTIP_GREY = {0.3, 0.85, 0.4}, {0.9, 0.35, 0.35}, {0.7, 0.7, 0.7}
+local function weaponTip(group, set)
+  GameTooltip:SetOwner(UIParent, "ANCHOR_CURSOR")
+  GameTooltip:SetText(set.name, 1, 1, 1)
+
+  -- Wanted / rank line, mirroring the armor tip's status.
+  local race = ns:PlayerRace()
+  if ns:IsWanted(set.id) then GameTooltip:AddLine("Wanted", 1, 0.82, 0) end
+  local rank = ns:EffectiveRank(set.id, race)
+  if rank then
+    GameTooltip:AddLine(ns:RaceRank(set.id, race) and ("Tier " .. rank .. " (race)") or ("Tier " .. rank), 1, 0.82, 0)
+  end
+
+  local n, total = 0, 0
+  if group.kind == "illusion" then
+    for _, piece in ipairs(set.illusions) do
+      total = total + 1
+      local sid = piece.sourceID or ns._resolveIllusion(piece.match)
+      local info = sid and C_TransmogCollection.GetIllusionInfo(sid)
+      local owned = info and info.isCollected
+      if owned then n = n + 1 end
+      local name = (sid and C_TransmogCollection.GetIllusionStrings(sid)) or piece.match
+      local c = owned and WTIP_GREEN or WTIP_RED
+      GameTooltip:AddLine(name, c[1], c[2], c[3])
+    end
+  else   -- arsenal: potentially 15 pieces — show a count + the source item, not a list.
+    for _, itemID in ipairs(set.pieces) do
+      total = total + 1
+      if C_TransmogCollection.PlayerHasTransmog(itemID) then n = n + 1 end
+    end
+    if set.arsenal then
+      GameTooltip:AddLine("From " .. (C_Item.GetItemNameByID(set.arsenal) or "a Legion arsenal"), WTIP_GREY[1], WTIP_GREY[2], WTIP_GREY[3])
+    end
+  end
+  GameTooltip:AddLine(("Collected  %d / %d"):format(n, total), WTIP_GREY[1], WTIP_GREY[2], WTIP_GREY[3])
+  GameTooltip:Show()
+end
+
 ---Show the shared InfoTip for a transmog set, positioned relative to a cell.
 ---@class Warbandeer_Collected
 ---@field ShowInfoTip fun(group: table, set: table, parent: Frame, position: table) group/set are entries from ns.Sets; position is a LibNUI position spec
 ns.ShowInfoTip = function(group, set, parent, position)
   cancelRetry()
+  -- Weapon groups have no per-slot armor data; a native summary tooltip instead.
+  if group.kind then weaponTip(group, set); return end
   _retries = 12   -- ~1.8s of re-renders while item names load in
   render(group, set, parent, position)
 end
@@ -220,6 +266,7 @@ end
 ns.HideInfoTip = function()
   cancelRetry()
   if _tooltip then _tooltip:Hide() end
+  GameTooltip:Hide()   -- also dismiss the native weapon-group tip (see weaponTip)
 end
 
 ---Re-render the currently shown tip in place, so a wanted/rank change made while

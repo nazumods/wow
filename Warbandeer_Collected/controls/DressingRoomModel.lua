@@ -165,6 +165,15 @@ local _room
 ---@class Warbandeer_Collected
 ---@field ShowDressingRoom fun(group: table, set: table)  group/set are entries from ns.Sets
 ns.ShowDressingRoom = function(group, set)
+  -- Weapon-cosmetic groups (illusions / arsenals, kind-tagged) preview a held weapon with
+  -- an enchant illusion via ui.Model:SlotTransmog — the in-game follow-up (see CONTEXT.md).
+  -- Their synthetic ids aren't C_TransmogSets sets, so the armor viewer below can't render
+  -- them; for now the grid + hover carry collected status. Note it and return.
+  if group and group.kind then
+    ns.Print(('%s — collected status shows in the grid and on hover; the 3D weapon preview is coming soon.'):format(set and set.name or "Weapon set"))
+    return
+  end
+
   -- A set the local client has no appearance data for — a PTR-only "upcoming" set on
   -- a live client: there's nothing for the 3D model to render, so don't open an empty
   -- viewer; point the user to the PTR instead. On a PTR client these resolve and the
