@@ -18,16 +18,11 @@ The cross-alt standings appear in two places:
 quick "who's exalted with X?" lookup. The name may be partial (e.g. `the deeps` resolves
 *The Assembly of the Deeps*).
 
-## Changelog
-
-A **Changelog** button in this addon's settings (Options → AddOns → Shadows of UI → Reputations) opens its release history in a scrollable, copyable window.
-
 ## Dependencies
 
 - **LibNAddOn**
 - **Warbandeer_Characters** — provides the per-character reputation data this addon reads
   (captured automatically each login and whenever your reputation changes).
-- **Warbandeer** *(optional)* — not required; listed only for sensible load order.
 
 ## Notes
 
