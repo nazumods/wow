@@ -111,7 +111,12 @@ function Frame:RemoveScript(event) self._widget:SetScript(event, nil); return se
 function Frame:EnableKeyboard(enabled) self._widget:EnableKeyboard(enabled); return self end
 ---@param propagate boolean  pass handled keys on to the next frame / default bindings (false consumes the key)
 ---@return Frame
-function Frame:SetPropagateKeyboardInput(propagate) self._widget:SetPropagateKeyboardInput(propagate); return self end
+function Frame:SetPropagateKeyboardInput(propagate)
+  -- Restricted for insecure code in combat lockdown (Patch 10.1.5) — calling it then fires
+  -- ADDON_ACTION_BLOCKED. It no-ops in combat anyway, so skip it and dodge the taint error.
+  if not InCombatLockdown() then self._widget:SetPropagateKeyboardInput(propagate) end
+  return self
+end
 function Frame:listenForEvents()
   if self._listening then return end
   self._listening = true

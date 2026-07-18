@@ -213,21 +213,23 @@ function DressingRoom:_buildOverlays()
   -- propagated, so default keybindings (and Escape, via the `special` registration)
   -- keep working.
   self._widget:EnableKeyboard(true)
-  self._widget:SetScript("OnKeyDown", function(f, key)
+  self._widget:SetScript("OnKeyDown", function(_, key)
+    -- Route through the LibNUI Frame wrapper (self) so propagation toggles are skipped in
+    -- combat lockdown instead of firing a taint error.
     if key == "LEFT" then
-      f:SetPropagateKeyboardInput(false)
+      self:SetPropagateKeyboardInput(false)
       self:Step(-1)
     elseif key == "RIGHT" then
-      f:SetPropagateKeyboardInput(false)
+      self:SetPropagateKeyboardInput(false)
       self:Step(1)
     elseif key == "UP" then
-      f:SetPropagateKeyboardInput(false)
+      self:SetPropagateKeyboardInput(false)
       self:StepTierVisual(-1)
     elseif key == "DOWN" then
-      f:SetPropagateKeyboardInput(false)
+      self:SetPropagateKeyboardInput(false)
       self:StepTierVisual(1)
     else
-      f:SetPropagateKeyboardInput(true)
+      self:SetPropagateKeyboardInput(true)
     end
   end)
 end

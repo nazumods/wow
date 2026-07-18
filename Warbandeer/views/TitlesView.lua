@@ -55,7 +55,7 @@ local TitlesView = Class(Frame, function(self)
   local w = self._widget
   w:EnableKeyboard(false)
   w:SetScript("OnKeyDown", function(_, key) self:_onKey(key) end)
-  w:HookScript("OnShow", function() w:EnableKeyboard(true); w:SetPropagateKeyboardInput(true) end)
+  w:HookScript("OnShow", function() w:EnableKeyboard(true); self:SetPropagateKeyboardInput(true) end)
   w:HookScript("OnHide", function() w:EnableKeyboard(false); ui.tip:Hide() end)
 
   self:Width(CONTENT_W + SCROLLBAR_W)
@@ -183,12 +183,13 @@ function TitlesView:_flipStatus(d)
 end
 
 function TitlesView:_onKey(key)
-  local w = self._widget
-  if key == "UP" then w:SetPropagateKeyboardInput(false); self:_select((self._sel or 1) - 1)
-  elseif key == "DOWN" then w:SetPropagateKeyboardInput(false); self:_select((self._sel or 1) + 1)
-  elseif key == "LEFT" then w:SetPropagateKeyboardInput(false); self:_flipStatus(-1)
-  elseif key == "RIGHT" then w:SetPropagateKeyboardInput(false); self:_flipStatus(1)
-  else w:SetPropagateKeyboardInput(true) end
+  -- Route through the LibNUI Frame wrapper (self, not the raw widget) so the propagation
+  -- toggle is skipped in combat lockdown instead of firing a taint error.
+  if key == "UP" then self:SetPropagateKeyboardInput(false); self:_select((self._sel or 1) - 1)
+  elseif key == "DOWN" then self:SetPropagateKeyboardInput(false); self:_select((self._sel or 1) + 1)
+  elseif key == "LEFT" then self:SetPropagateKeyboardInput(false); self:_flipStatus(-1)
+  elseif key == "RIGHT" then self:SetPropagateKeyboardInput(false); self:_flipStatus(1)
+  else self:SetPropagateKeyboardInput(true) end
 end
 
 -- ─── Filter + lifecycle ─────────────────────────────────────────────────────────
