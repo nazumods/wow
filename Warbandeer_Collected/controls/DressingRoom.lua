@@ -111,6 +111,9 @@ end
 ---@field _raceOnlyBorder Texture  per-race-override toggle border (gold while active)
 ---@field _slots table[]  paper-doll slot entries ({ slotID, icon, border, itemID? })
 ---@field _hiddenSlots table<number, true>  inventory slot ids toggled off the model (reset per set)
+---@field _weaponPiece number?  index of the previewed piece within a weapon-cosmetic cell (up/down nav cycles it)
+---@field _weaponTitleTimer table?  cancelable retitle timer (arsenal item names load async)
+---@field _weaponTitleTries number?  remaining retitle attempts
 ---@field _slotTimer table?  cancelable icon-refresh timer
 ---@field _slotRetries number?  remaining icon-refresh attempts
 ---@field _buildModel fun(self: DressingRoom)  build the model + backdrop + tier bars (DressingRoomBuild.lua)

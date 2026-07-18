@@ -166,9 +166,20 @@ function DressingRoom:_load(group, set)
   self._classIndex = classId
   self:_showClass(classId)
   self:_showRelease(group.release)
-  self:_setTierBars(group.name)
-  self._slotRetries = 0
-  self:UpdateSlots()
+  if group.kind then
+    -- Weapon-cosmetic preview: no armor slots, no difficulty tier bars. Up/down nav
+    -- cycles the cell's pieces from the first (see _stepWeaponPiece).
+    self._weaponPiece = 1
+    self:_showSlots(false)
+    self._tierBarL:Hide()
+    self._tierBarR:Hide()
+    if self._slotTimer then self._slotTimer:Cancel(); self._slotTimer = nil end
+  else
+    self:_showSlots(true)
+    self:_setTierBars(group.name)
+    self._slotRetries = 0
+    self:UpdateSlots()
+  end
   self:Dress()
   self:_syncUndressBorder()   -- wiped toggles → fully worn → Undress button idle
   self:_refreshRatings()
@@ -240,7 +251,22 @@ end
 -- map straight to StepTier: +1 = the next authored sibling = the row below.
 ---@param vdir number  -1 = move to the tier shown above, +1 = below
 function DressingRoom:StepTierVisual(vdir)
+  -- Weapon-cosmetic cells have no difficulty tiers; up/down cycles their pieces instead.
+  if self._group and self._group.kind then return self:_stepWeaponPiece(vdir) end
   self:StepTier(vdir)
+end
+
+-- Cycle the previewed weapon piece within the current cell (an arsenal's weapon
+-- appearances, or a Shaman cell's illusion brands), wrapping. Driven by the up/down nav
+-- in weapon-cosmetic preview, where there are no tiers to step.
+---@param dir number  -1 = previous piece, +1 = next
+function DressingRoom:_stepWeaponPiece(dir)
+  local set = self._set
+  local list = set and (self._group.kind == "illusion" and set.illusions or set.pieces)
+  if not list or #list < 2 then return end
+  local cur = (self._weaponPiece or 1) - 1                -- to 0-based
+  self._weaponPiece = (cur + dir) % #list + 1             -- step, wrap, back to 1-based
+  self:Dress()
 end
 
 -- Select the logged-in character's race + gender. Called when the window opens

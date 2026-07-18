@@ -64,6 +64,26 @@ the model's lower-right corner shows which **expansion** the set is from (hover 
 for the expansion name). The window stays open until you close it (Escape or the X); drag to spin
 the model.
 
+## Class weapon cosmetics
+
+The **Weapons** category (in the Category filter) tracks the class-specific weapon
+cosmetics that are easy to miss:
+
+- **Illusions** — the class weapon-enchant illusions: the Death Knight's Rune of
+  Razorice, the Rogue's Poisoned, and the Shaman's five weapon imbues (Flametongue,
+  Frostbrand, Earthliving, Windfury, Rockbiter).
+- **Arsenals** — the Legion class weapon-appearance bundles: the Death Knight's
+  Armaments of the Ebon Blade, the Paladin's Armaments of the Silver Hand, and the
+  Demon Hunter's Warglaives of Azzinoth.
+
+Each cell counts how many pieces you still need (read **account-wide**, so it's right
+no matter which character you're on), hover it for the per-piece owned/missing
+breakdown, and Shift-click to flag it wanted just like a set. Click a Weapons cell to
+open the dressing room holding the piece on your own character — for an **arsenal** it
+shows the weapon appearance; for an **illusion** it lays the enchant shimmer over your
+equipped weapon. Use the **Up/Down** nav to cycle through the pieces (the 15 Ebon
+weapons, the 5 Shaman brands); the title names the one you're viewing.
+
 ## Usage
 
 | Command | What it does |
