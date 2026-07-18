@@ -55,7 +55,12 @@ local function updateCard(self)
     card.name:SetTextColor(desaturate(card.qr, card.qg, card.qb, sat))
   end
   if self.tintName then
-    self.tintName:SetText(ns.COLOR_OPTIONS[(ns.db and ns.db.knownColor) or 1] or "")
+    -- After /scollect custom the tint is an arbitrary r/g/b with knownColor left pointing at the
+    -- old preset, so label it "Custom" whenever the live colour no longer matches that preset.
+    local k = (ns.db and ns.db.knownColor) or 1
+    local p = ns.PRESETS[k]
+    local named = p and ns.db and ns.db.r == p[1] and ns.db.g == p[2] and ns.db.b == p[3]
+    self.tintName:SetText(named and (ns.COLOR_OPTIONS[k] or "") or "Custom")
   end
 end
 

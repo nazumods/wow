@@ -2,7 +2,7 @@
 
 Tints the icons of items you **already know** — and items you can **still collect** — on the
 merchant window and the Auction House browse list. See at a glance whether a recipe, toy, mount,
-pet, transmog appearance or housing decoration is worth buying, without hovering every single item.
+pet or housing decoration is worth buying, without hovering every single item.
 
 ## What it marks
 
