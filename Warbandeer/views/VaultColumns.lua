@@ -125,7 +125,11 @@ ns.VaultColumns = {
   },
   -- Great Vault tracks — three slot pips each
   SummaryColumn:new{
-    name = "Raid", key = "vaultRaid", label = "Raid", width = 60, justifyH = Center,
+    key = "vaultRaid", label = "Raid", width = 60, justifyH = Center,
+    -- Dragon-head glyph header (house-style, tuned for contrast) for the Raid track
+    iconPath = "Interface\\AddOns\\Warbandeer\\icons\\raidDragon.tga",
+    iconColor = ns.theme.colors.muted,
+    tooltip = { "Raid", "Great Vault progress from raid boss kills." },
     getData = function(t) return trackCell(t, "Raid") end,
   },
   SummaryColumn:new{
