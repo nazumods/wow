@@ -212,8 +212,10 @@ std = {
     "C_WeeklyRewards",
     "Constants",
     "Enum",
+    "ItemUtil",
     "Settings",
 
+    "INVSLOT_MAINHAND",
     "CAMERA_MODIFICATION_TYPE_DISCARD",
     "CAMERA_TRANSITION_TYPE_IMMEDIATE",
     "ORBIT_CAMERA_MOUSE_MODE_NOTHING",

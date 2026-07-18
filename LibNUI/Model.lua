@@ -39,6 +39,7 @@ local SPIN_MAX = 12
 ---@field _scale number  user scale multiplier, re-applied after each async model load (1 = the normalized size)
 ---@field _aggressiveness number  bounding-box normalization strength 0..1 (0 = the model's natural size, 1 = forced to ~human-male size); default 0 (opt-in)
 ---@field _outfit number[]?  remembered transmog sources, re-applied after each async model load (empty = undressed)
+---@field _slotMog table<number, {info: table, ignoreChildItems: boolean}>?  remembered per-slot ItemTransmogInfo (keyed by inventory slot), re-applied after each async model load
 local Model = Class(Frame, function(self)
   -- Borrow the dressup scene so we inherit its camera + a player actor.
   self._widget:TransitionToModelSceneID(
@@ -148,6 +149,7 @@ function Model:_reapply()
     self._actor:SetYaw(self._yaw)
     self:_applyScale()
     self:_applyOutfit()
+    self:_applySlotMog()
   end
   self._actor:SetOnModelLoadedCallback(apply)
   apply()
@@ -168,6 +170,17 @@ function Model:_applyOutfit()
   for _, src in ipairs(self._outfit) do self._actor:TryOn(src) end
 end
 
+-- Re-apply the remembered per-slot transmog overrides after every model (re)load,
+-- AFTER _applyOutfit so a precise SlotTransmog wins over the base outfit for its slot.
+-- SetItemTransmogInfo state (appearance + illusion + secondary) is wiped by an async
+-- re-skin just like TryOn'd sources, so it must be re-applied on the load callback too.
+function Model:_applySlotMog()
+  if not self._actor or not self._slotMog then return end
+  for slot, rec in pairs(self._slotMog) do
+    self._actor:SetItemTransmogInfo(rec.info, slot, rec.ignoreChildItems)
+  end
+end
+
 -- Remember the outfit to (re)apply after every model (re)load: a list of transmog
 -- appearance sources (sourceIDs); an empty list = fully undressed. Applied now and
 -- on each subsequent re-skin, so it survives the async model load. Call before
@@ -177,6 +190,41 @@ end
 function Model:Outfit(sources)
   self._outfit = sources
   self:_applyOutfit()
+  return self
+end
+
+-- Precisely set ONE equipment slot's transmog, including the extras a bare TryOn can't
+-- express: an enchant **illusion** (weapon slots), a **secondary appearance** (split
+-- shoulders, or a Legion artifact's paired off-hand), and control over child items.
+-- Routes through the actor's SetItemTransmogInfo — the same primitive Blizzard's own
+-- dressing room uses — so it composes with Outfit/TryOn (which set the base look): the
+-- override is re-applied last for its slot after each async re-skin. Pass appearanceID 0
+-- to render the slot bare. `slot` is an inventory slot id (INVSLOT_MAINHAND,
+-- INVSLOT_SHOULDER, …). Typical illusion preview:
+--   model:SlotTransmog(INVSLOT_MAINHAND, hostWeaponAppearanceID, { illusionID = sid })
+---@param slot number  inventory slot id the transmog targets
+---@param appearanceID number  itemModifiedAppearanceID for the slot (0 = none)
+---@param opts {secondaryAppearanceID: number?, illusionID: number?, ignoreChildItems: boolean?}?  ignoreChildItems defaults true
+---@return Model
+function Model:SlotTransmog(slot, appearanceID, opts)
+  opts = opts or {}
+  self._slotMog = self._slotMog or {}
+  self._slotMog[slot] = {
+    info = ItemUtil.CreateItemTransmogInfo(appearanceID, opts.secondaryAppearanceID, opts.illusionID),
+    ignoreChildItems = opts.ignoreChildItems ~= false,   -- default true
+  }
+  self:_applySlotMog()
+  return self
+end
+
+-- Forget a slot's SlotTransmog override so a subsequent re-skin no longer re-applies it
+-- (the base Outfit/TryOn look then governs that slot again). Does not restrip the model
+-- in place — call before a re-skin, or follow with a fresh Outfit/Dress. No-op if the
+-- slot has no override.
+---@param slot number  inventory slot id previously passed to SlotTransmog
+---@return Model
+function Model:ClearSlotTransmog(slot)
+  if self._slotMog then self._slotMog[slot] = nil end
   return self
 end
 
