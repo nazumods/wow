@@ -94,12 +94,14 @@ end)
 -- captures that neighborhood's ACCOUNT-WIDE endeavor state (title/progress/reset) — readable only for
 -- the active neighborhood, so whichever character is subscribed keeps it fresh. It reads
 -- info.neighborhoodGUID (only set once loaded), not GetActiveNeighborhood which can transiently return
--- a not-yet-loaded neighborhood right after a switch/login. `missing = false`: being in an endeavor is
--- optional (like `titles`), so a character without one isn't "missing" anything.
+-- a not-yet-loaded neighborhood right after a switch/login. Opts into `/wbc missing` as "endeavor" (at
+-- any level): `active` is sticky (never reset), so a nil value means the character has never fed a
+-- neighborhood endeavor — surfaced as a character not participating in the housing initiative.
 local Housing = ns:RegisterBroker("housing")
 Housing.fields = {
   active = {
-    missing = false,
+    -- feeds /wbc missing ("endeavor") whenever a character has no active endeavor (active == nil)
+    missing = { label = "endeavor", order = 130 },
     get = function(_, _, current)
       if GetPlayerOwnedHouses then GetPlayerOwnedHouses() end          -- kick the async house list
       if RequestNeighborhoodInitiativeInfo then RequestNeighborhoodInitiativeInfo() end
