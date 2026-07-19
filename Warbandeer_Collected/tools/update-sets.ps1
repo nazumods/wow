@@ -84,6 +84,10 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+# Identify ourselves to wago.tools on every request (same UA as Tooling/lint-stale-ids.ps1), so the
+# suite's automated traffic is attributable rather than an anonymous client. One default covers every
+# Invoke-WebRequest below — the per-mode CSV helpers and the /api/builds lookups alike.
+$PSDefaultParameterValues['Invoke-WebRequest:UserAgent'] = 'Warbandeer-suite-ci (github.com/nazumods/wow)'
 $SetsFile = (Resolve-Path -LiteralPath $SetsFile).Path
 
 # Single source of truth for deliberately-excluded wago groups/rows (tools/excludes.txt),
