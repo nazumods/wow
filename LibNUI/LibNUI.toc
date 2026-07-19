@@ -50,6 +50,7 @@ Badge.lua
 TextLink.lua
 SortableHeaderRow.lua
 BarsPreview.lua
+BorderBox.lua
 
 # "Clean UI" classes
 CleanFrame.lua
