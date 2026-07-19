@@ -63,6 +63,9 @@ jobs:
               - 'Warbandeer_Characters/data/professioninfo.lua'
               - 'Warbandeer_Characters/data/classmounts.lua'
               - 'Warbandeer_Collected/data/weapons.lua'
+              - 'Warbandeer_Characters/data/glyphinfo.lua'
+              - 'Warbandeer_Characters/data/learnedunlocks.lua'
+              - 'Warbandeer_Characters/data/collectiblesources.lua'
 
       # pwsh is preinstalled on the GitHub-hosted ubuntu image. Skipped (job stays green) when no
       # linted data file changed, so the check is safe to mark required in branch protection.
