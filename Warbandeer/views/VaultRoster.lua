@@ -34,11 +34,48 @@ local VaultRoster = Class(TableFrame, function(self)
       color = theme.colors.divider,
     }
   end
+  self:AutosizeColumns()  -- fit the Raid Lockouts column to its widest cell (see AutosizeColumn)
 end, {
   faction = "alliance",
   backdrop = { color = ns.Colors.TransparentBlack },
 })
 ns.VaultRoster = VaultRoster
+
+-- Size every autosize-flagged column (colInfo.autosize) to the widest text it renders. The Vault
+-- twin of ClassSummary:AutosizeColumn: VaultRoster is a plain TableFrame, so it can't use
+-- TableFrame:Autosize — that width recompute is a bare column-width sum that drops this view's
+-- per-column gutters (COL_GUTTER) and would spill the last column past the window edge.
+function VaultRoster:AutosizeColumns()
+  for i, info in ipairs(self.colInfo) do
+    if info.autosize then self:AutosizeColumn(i) end
+  end
+end
+
+-- Resize column `i` to the widest text it currently renders (its header + every cell), then grow
+-- the table + rowArea by the delta so the gutter-spaced column chain stays aligned. Cells anchor to
+-- their column's edges (inset by the column's hPad), so the resize reflows them and every later
+-- column. The header carries no inset (this view sets no per-column `padding`); each cell's text is
+-- inset by the column's hPadL/hPadR (see TableFrame:cellPosition), so it needs that much more room.
+---@param i integer  column index to size
+function VaultRoster:AutosizeColumn(i)
+  local col = self.cols[i]
+  if not col then return end
+  local info = self.colInfo[i] or {}
+  local hPad = info.hPad or self.hPad or 0
+  local padL, padR = info.hPadL or hPad, info.hPadR or hPad
+  local widest = (col.header.label and col.header.label:UnboundedWidth()) or 0
+  for r = 1, #self.rows do
+    local cell = self.cells[r] and self.cells[r][i]
+    if cell and cell.label then widest = math.max(widest, cell.label:UnboundedWidth() + padL + padR) end
+  end
+  local target = math.ceil(widest) + 4  -- a little breathing room before the window edge
+  if info.minWidth and target < info.minWidth then target = info.minWidth end
+  local delta = target - col:Width()
+  if delta == 0 then return end
+  col:Width(target)
+  self:Width(self:Width() + delta)
+  self.rowArea:Width(self.rowArea:Width() + delta)
+end
 
 -- This table's roster, sorted by level/ilvl/name. "both" is the whole warband; a single side filters.
 ---@return Character[]
@@ -118,4 +155,5 @@ function VaultRoster:OnBeforeShow()
   end
   self:update()
   for i in ipairs(self.rows) do self:restRow(i) end
+  self:AutosizeColumns()  -- re-fit the Raid Lockouts column to this roster's widest cell
 end

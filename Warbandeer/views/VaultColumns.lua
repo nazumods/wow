@@ -19,12 +19,14 @@ local function pip(complete)
   return ("|T%s:%d:%d|t"):format(complete and PIP_FULL or PIP_EMPTY, PIP_SZ, PIP_SZ)
 end
 
+-- Exposed so the Vault view's footer legend renders the same pip glyphs the cells use.
+ns.VaultPip = pip
+
 -- Per-track display label + the noun each slot threshold counts (raid bosses / dungeon runs / world
 -- activities), used in the pip tooltip. The middle track is the vault's Heroic/Mythic/Timewalking
 -- "Dungeons" track (not M+-only), matching the in-game Great Vault requirement text.
 local TRACK_LABEL = { Raid = "Raid", Dungeons = "Dungeons", World = "World" }
 local TRACK_UNIT  = { Raid = "bosses", Dungeons = "runs", World = "activities" }
-local KEY_COLOR = { 0.62, 0.80, 1.0, 1 }  -- keystone "+N" (light blue)
 
 -- Short "Nd Nh" (or "Nh Nm" / "Nm") until a lockout resets; nil epoch → nil.
 local function resetIn(epoch)
@@ -149,33 +151,9 @@ ns.VaultColumns = {
     tooltip = { "World", "Great Vault progress from world activities." },
     getData = function(t) return trackCell(t, "World") end,
   },
-  -- owned keystone (+level)
-  SummaryColumn:new{
-    name = "Key", key = "vaultKeystone", label = "Key", width = 42, justifyH = Center,
-    getData = function(t)
-      local w = t.weeklies
-      if not w then return "" end
-      local ks, dg = w.keystone, w.dungeons
-      if not ks then
-        return (w.vaultSlots or dg) and ns.ZeroDashC or ""  -- max-level with no key vs. below-max
-      end
-      return {
-        text = "+" .. ks, justifyH = Center, color = KEY_COLOR,
-        onEnter = function(self)
-          tip:AnchorTo(self, "ANCHOR_BOTTOMRIGHT", -10, 10)
-          tip:ClearLines()
-          tip:AddLine("Owned keystone: +" .. ks)
-          if dg then tip:AddLine(("Mythic+ this week: %d run%s"):format(dg.done, dg.done == 1 and "" or "s")) end
-          tip:AddLine("Great Vault unlocks at 1 / 4 / 8 runs")
-          tip:Show()
-        end,
-        onLeave = function() tip:Hide() end,
-      }
-    end,
-  },
   -- primary raid lockout (tooltip lists them all)
   SummaryColumn:new{
-    name = "Raid Lock", key = "vaultRaidLock", label = "Raid Lock", width = 118, justifyH = Left,
+    name = "Raid Lockouts", key = "vaultRaidLock", label = "Raid Lockouts", autosize = true, justifyH = Left,
     getData = function(t)
       local locks = ns.api:GetRaidLocks(t.name)
       if #locks == 0 then return "" end
@@ -204,6 +182,7 @@ ns.VaultColumns = {
 -- (missing/true = shown, false = hidden). Built fresh each Vault (re)build so a settings toggle
 -- takes effect on the next render. The Vault twin of ns.VisibleSummaryColumns.
 ---@class Warbandeer
+---@field VaultPip fun(complete: boolean): string
 ---@field VisibleVaultColumns fun(): SummaryColumn[]
 function ns.VisibleVaultColumns()
   local shown = ns.db.settings.vaultColumns or {}

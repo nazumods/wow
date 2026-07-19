@@ -45,7 +45,9 @@ end
 ---@field alliance VaultRoster
 ---@field horde VaultRoster
 ---@field both VaultRoster
----@field footer Label                        warband tally under the table
+---@field footer Label                        warband tally under the table (left)
+---@field legend Label                        pip legend under the table (right of the footer)
+---@field emptyMsg Label                       centered placeholder when the roster has no max-level chars
 ---@field _scrolls table<string, ScrollFrame>  faction mode -> the table's capped scroll host
 ---@field _faction "alliance"|"horde"|"both"
 ---@field _segments table<string, Frame>?      titlebar faction segments (built by BuildFilter)
@@ -92,6 +94,23 @@ local VaultView = Class(ui.Frame, function(self)
     position = { TopLeft = { 2, -1 } },
   }
 
+  -- Right-aligned pip legend on the footer line, so the gold-disc = unlocked / muted-ring =
+  -- locked meaning of the track pips reads at a glance without hovering a cell (anchored in layout).
+  self.legend = Label:new{
+    parent = self,
+    color = { 1, 1, 1, 0.55 },
+    justifyH = ui.justify.Right,
+  }
+
+  -- Centered placeholder when the active roster has no max-level characters: the Great Vault is a
+  -- max-level-only feature, so a warband of levellers (or a faction side with none) has nothing to show.
+  self.emptyMsg = Label:new{
+    parent = self,
+    color = theme.colors.muted,
+    justifyH = ui.justify.Center,
+    position = { Top = { 0, -26 }, Hide = true },
+  }
+
   self:layout()
   self:_healFaction(self._faction)
 end, {
@@ -122,11 +141,16 @@ function VaultView:_updateFooter()
 end
 
 function VaultView:layout()
+  local empty = #self:_activeTable()._toons == 0
   for _, f in ipairs(FACTIONS) do
-    local shown = self._faction == f
+    local shown = self._faction == f and not empty
     self[f]:SetShown(shown)
     self._scrolls[f]:SetShown(shown)
   end
+  if empty then return self:_layoutEmpty() end
+  self.emptyMsg:Hide()
+  self.footer:Show()
+  self.legend:Show()
 
   local t = self:_activeTable()
   local scroll = self._scrolls[self._faction]
@@ -145,8 +169,31 @@ function VaultView:layout()
   self.footer:ClearAllPoints()
   self.footer:TopLeft(scroll, ui.edge.BottomLeft, 2, -4)
 
+  self.legend:Text(ns.VaultPip(true) .. " unlocked   " .. ns.VaultPip(false) .. " locked")
+  self.legend:ClearAllPoints()
+  self.legend:TopRight(scroll, ui.edge.BottomRight, -2, -4)
+
   self:Width(scroll:Width())
   self:Height(headerH + capH + FOOTER_H)
+end
+
+-- Size the view around the centered empty-state message. The tables and their scroll hosts are
+-- already hidden by layout() before this runs; the footer + legend belong to the populated layout.
+function VaultView:_layoutEmpty()
+  self.footer:Hide()
+  self.legend:Hide()
+  local msg
+  if self._faction == "both" then
+    msg = "No max-level characters yet — the Great Vault unlocks at level " .. ns.wow.maxLevel .. "."
+  else
+    msg = "No max-level " .. (self._faction == "alliance" and "Alliance" or "Horde") .. " characters."
+  end
+  self.emptyMsg:Text(msg)
+  local w = self.emptyMsg:UnboundedWidth() + 40  -- breathing room on both sides of the message
+  self.emptyMsg:Width(w)
+  self.emptyMsg:Show()
+  self:Width(w)
+  self:Height(64)
 end
 
 ---@param mode "alliance"|"horde"|"both"
