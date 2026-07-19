@@ -5,6 +5,12 @@ on:
     branches: [main]
   pull_request:
 
+# Supersede an in-flight run when a PR gets new commits (the synchronize pile-up); main runs are
+# left to finish so they keep the build-keyed wago cache warm for PRs to restore.
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   busted:
     runs-on: ubuntu-latest
@@ -69,6 +75,18 @@ jobs:
 
       # pwsh is preinstalled on the GitHub-hosted ubuntu image. Skipped (job stays green) when no
       # linted data file changed, so the check is safe to mark required in branch protection.
+      # Resolve the live build once (a ~1KB call) — it keys the CSV cache and pins the lint, so a
+      # run pulls the heavy tables only when Blizzard shipped a new build since the cache warmed.
+      - name: Resolve wago build
+        if: success() && steps.changed.outputs.data == 'true'
+        id: build
+        run: echo "version=$(curl -sf -A 'Warbandeer-suite-ci (github.com/nazumods/wow)' https://wago.tools/api/builds/wow/latest | jq -r .version)" >> "$GITHUB_OUTPUT"
+      - name: Restore wago CSV cache for this build
+        if: success() && steps.changed.outputs.data == 'true'
+        uses: actions/cache@v4
+        with:
+          path: .wago-cache
+          key: wago-csv-${{ steps.build.outputs.version }}
       - name: Lint hand-authored ids
-        if: steps.changed.outputs.data == 'true'
-        run: pwsh Tooling/lint-stale-ids.ps1
+        if: success() && steps.changed.outputs.data == 'true'
+        run: pwsh Tooling/lint-stale-ids.ps1 -Build "${{ steps.build.outputs.version }}" -CacheDir .wago-cache
