@@ -4,7 +4,9 @@ name: Lint stale ids
 # test.yml catches a bad id the moment someone *edits* a data file; this catches the other
 # direction — a Blizzard patch that removes/renames an id with no PR to trigger on, leaving a
 # hardcoded id pointing at nothing (a blank/mismatched row in-game). Runs daily against the
-# latest live build; because a stale id doesn't self-heal, it fails every day until the data
+# latest live build, with heavy CSVs pulled only when the build changed (a build-keyed cache —
+# safe because drift is caused BY a build change, which busts the key). Because a stale id
+# doesn't self-heal, it fails every day until the data
 # file is fixed, and (like update-collected-sets.yml) two failures in a row raise a tracking
 # issue — so a one-off wago.tools blip is retried next day, while real drift is surfaced.
 on:
@@ -27,11 +29,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Full check against the latest live build (no -SkipBig: drift can hit the Item-backed
-      # rules too). pwsh is preinstalled on ubuntu runners. Exit 1 on any stale fail-rule id.
+      # Resolve the live build once (a ~1KB call) and key the CSV cache on it, so heavy tables are
+      # pulled only when a new build shipped. Shares the build-keyed cache the PR gate warms on main.
+      - name: Resolve wago build
+        id: build
+        run: echo "version=$(curl -sf -A 'Warbandeer-suite-ci (github.com/nazumods/wow)' https://wago.tools/api/builds/wow/latest | jq -r .version)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: .wago-cache
+          key: wago-csv-${{ steps.build.outputs.version }}
+
+      # Full check against that build (no -SkipBig: drift can hit the Item-backed rules too).
+      # pwsh is preinstalled on ubuntu runners. Exit 1 on any stale fail-rule id.
       - name: Validate hand-authored ids against live client DB2
         shell: pwsh
-        run: ./Tooling/lint-stale-ids.ps1
+        run: ./Tooling/lint-stale-ids.ps1 -Build "${{ steps.build.outputs.version }}" -CacheDir .wago-cache
 
   # Two consecutive failures (a stale id that persists across days, not a one-off wago blip)
   # open or comment on a tracking issue; a successful run closes it.

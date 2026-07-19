@@ -122,3 +122,6 @@ ProfessionShoppingList
 /EnhanceQoLTooltip
 /EnhanceQoLUnitFrames
 /EnhanceQoLVendor
+
+# stale-id lint local CSV cache (build-keyed; CI uses actions/cache, local runs pass -CacheDir)
+.wago-cache/

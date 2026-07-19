@@ -31,12 +31,17 @@
   Usage:
     pwsh Tooling/lint-stale-ids.ps1              # full (pulls Item, the one big table)
     pwsh Tooling/lint-stale-ids.ps1 -SkipBig     # skip big-table rules (fast; races/prof/mount-spell)
-    pwsh Tooling/lint-stale-ids.ps1 -Build 12.0.7.68453
+    pwsh Tooling/lint-stale-ids.ps1 -Build 12.0.7.68453 -CacheDir .wago-cache
   Exit 0 = every fail-rule id resolves; 1 = one or more stale.
+
+  wago politeness: -CacheDir <dir> reads/writes each table's CSV under <dir> instead of re-pulling,
+  and both CI workflows wrap it in an actions/cache keyed on the resolved build -- so wago's heavy
+  endpoints are hit ~once per client build, not per run. All requests send an identifying User-Agent.
 #>
 param(
   [string]$Build,
-  [switch]$SkipBig
+  [switch]$SkipBig,
+  [string]$CacheDir
 )
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path $PSScriptRoot -Parent
@@ -81,29 +86,52 @@ $rules = @(
   @{ file='Warbandeer_Characters/data/glyphinfo.lua';          label='glyphinfo.quest';               rx='(?:quest|startQuest)\s*=\s*(\d+)'; table='QuestV2';         col='ID'; sev='fail'; big=$true  }
 )
 
-# ── resolve build (same source of truth as update-sets.ps1 / verify-weapons.ps1) ──
-$builds = (Invoke-WebRequest -Uri 'https://wago.tools/api/builds' -UseBasicParsing).Content | ConvertFrom-Json
-if (-not $Build) { $Build = $builds.wow[0].version }
-Write-Host "Linting hand-authored ids against wow build $Build`n" -ForegroundColor Cyan
+# Identify ourselves so heavy automated traffic to wago.tools is attributable, not anonymous.
+$wagoHeaders = @{ 'User-Agent' = 'Warbandeer-suite-ci (github.com/nazumods/wow)' }
 
-# ── id-set per (table,col), fetched once and cached ──
+# ── resolve build -- skipped entirely when the caller pins -Build (the CI workflows resolve it once
+# for the cache key and pass it through, so a cached run makes no /api/builds call either) ──
+if (-not $Build) {
+  $Build = ((Invoke-WebRequest -Uri 'https://wago.tools/api/builds/wow/latest' -Headers $wagoHeaders -UseBasicParsing).Content | ConvertFrom-Json).version
+}
+if ($CacheDir -and -not (Test-Path $CacheDir)) { New-Item -ItemType Directory -Path $CacheDir | Out-Null }
+Write-Host ("Linting hand-authored ids against wow build $Build{0}`n" -f $(if ($CacheDir) { " (cache $CacheDir)" } else { "" })) -ForegroundColor Cyan
+
+# ── table CSV text: fetched once per run, and when -CacheDir is set, persisted per build on disk
+# so a re-run for the same build reads it instead of re-pulling. The CI workflows wrap <CacheDir>
+# in a build-keyed actions/cache, so wago's heavy endpoints are hit ~once per client build. ──
+$csvCache = @{}
+function Get-Csv([string]$table) {
+  if ($csvCache.ContainsKey($table)) { return $csvCache[$table] }
+  $file = if ($CacheDir) { Join-Path $CacheDir "$table.csv" } else { $null }
+  if ($file -and (Test-Path $file)) {
+    $text = Get-Content -Raw $file
+  } else {
+    $text = (Invoke-WebRequest -Uri "https://wago.tools/db2/$table/csv?build=$Build" -Headers $wagoHeaders -UseBasicParsing).Content
+    if ($file) { Set-Content -Path $file -Value $text -NoNewline }
+  }
+  $csvCache[$table] = $text
+  return $text
+}
+
+# ── id-set per (table,col), built once from the table CSV and cached ──
 $setCache = @{}
 function Get-IdSet($table, $col, $big) {
   $key = "$table|$col"
   if ($setCache.ContainsKey($key)) { return $setCache[$key] }
+  $text = Get-Csv $table
   $set = @{}
-  $url = "https://wago.tools/db2/$table/csv?build=$Build"
   if ($big) {
     # Huge table: ID is column 1, so hash the first field of each raw line (ConvertFrom-Csv is
     # minutes-slow at six-figure rows). Big rules only ever target the first-column ID.
     if ($col -ne 'ID') { throw "big-table rule for $table must key on ID (col 1), got $col" }
-    foreach ($line in (Invoke-WebRequest -Uri $url -UseBasicParsing).Content -split "`n") {
+    foreach ($line in $text -split "`n") {
       $c = $line.IndexOf(','); if ($c -gt 0) { $id = $line.Substring(0, $c); if ($id -match '^\d+$') { $set[[int]$id] = $true } }
     }
   } else {
     # Small table: ConvertFrom-Csv handles the quoted, comma-bearing *_lang string columns that a
     # naive split would misalign (the id column often sits after several localized name fields).
-    (Invoke-WebRequest -Uri $url -UseBasicParsing).Content | ConvertFrom-Csv | ForEach-Object {
+    $text | ConvertFrom-Csv | ForEach-Object {
       $v = $_.$col; if ($v -ne $null -and $v -ne '') { $set[[int]$v] = $true }
     }
   }
