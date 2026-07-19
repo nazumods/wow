@@ -141,6 +141,7 @@ Region
     ├── TextLink
     ├── SortableHeaderRow
     ├── BarsPreview
+    ├── BorderBox
     ├── MinimapButton
     ├── Cell
     ├── Dialog
@@ -352,6 +353,33 @@ local f = LibNUI.CleanFrame:new{
 }
 f:Center()
 f:Size(400, 300)
+```
+
+---
+
+## BorderBox
+
+Inherits `Frame`. A thin rectangular outline — four edge textures hugging the frame's own rect, with a transparent interior (it draws only the border). Each edge is two-point-anchored to a pair of the frame's corners, so it stretches with the frame and a resize needs no re-layout. Overlay it on content, or anchor it to a sub-region to frame just that part (e.g. a border around an icon + its number inside a composite [`Cell`](#cell-data-format)).
+
+### Constructor options
+
+| Option      | Type              | Description                                      |
+|-------------|-------------------|--------------------------------------------------|
+| `thickness` | number            | Edge width in px (default `1`)                   |
+| `color`     | string \| number[] | Edge colour: theme token or rgba (default `"border"`) |
+
+### Methods
+
+| Method          | Description                          |
+|-----------------|--------------------------------------|
+| `Color(c)`      | Recolour all four edges (chainable)  |
+| `Thickness(t)`  | Set edge thickness in px (chainable) |
+
+```lua
+-- a 1px gold outline hugging an icon
+local box = LibNUI.BorderBox:new{ parent = cell, color = {1, 0.82, 0, 1} }
+box:SetPoint("TOPLEFT", icon, "TOPLEFT", -2, 2)
+box:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", 2, -2)
 ```
 
 ---
@@ -1273,6 +1301,29 @@ data = {
   }
 }
 ```
+
+#### Composite cells
+
+A cell whose data has a `parts` array renders **multiple positioned elements** (icons + labels) instead of a single texture or label, with an optional 1–2px **border box** ([`BorderBox`](#borderbox)) around a sub-region — e.g. a crest icon and its number framed together:
+
+```lua
+{
+  parts = {
+    -- each part is a texture (path/atlas) or label (text) spec plus a `position` table
+    { path = "...crest", position = { Left = {"cell", "LEFT", 4, 0}, Size = {14, 14} } },  -- part 1
+    { text = "1,240", color = "muted", position = { Left = {1, "RIGHT", 3, 0} } },          -- part 2
+  },
+  border = {                                                   -- optional
+    color = {1, 0.82, 0, 1}, thickness = 1,
+    position = { TopLeft = {1, "TOPLEFT", -2, 2}, BottomRight = {2, "BOTTOMRIGHT", 2, -2} },
+  },
+  onEnter = function(cell) end, onLeave = function(cell) end,   -- handlers work as usual
+}
+```
+
+- **Symbolic anchor targets** — in a part's or the border's `position`, an anchor arg's target may be the string `"cell"` (the cell itself) or an integer `N` (part `N`'s widget). A part may only anchor to an *earlier* part. Only anchor keys (`Left`, `TopLeft`, `Center`, …) are resolved; scalar keys like `Size` pass through. `Center = {}` (no target) still anchors to the cell.
+- **Recycling** — composite cells survive re-sorts: parts are reused when the kind matches and rebuilt otherwise, and a cell transitions cleanly between composite and plain (single texture/label / empty string) data.
+- **Autosize** — a composite cell has no single `.label`, so `TableFrame:Autosize` skips it; give composite columns a fixed `width` (via `colInfo`).
 
 ---
 
