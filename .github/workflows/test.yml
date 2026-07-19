@@ -43,3 +43,29 @@ jobs:
 
       - name: Run luacheck
         run: luacheck . --codes
+
+  # Validate the hand-authored WoW id literals in the static data files against the live client
+  # DB2 (wago.tools). Gated on the linted files so a PR that touches no id-bearing data never
+  # depends on wago being up; when it does run, a stale/typo'd id fails the build.
+  stale-ids:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: changed
+        with:
+          filters: |
+            data:
+              - 'Tooling/lint-stale-ids.ps1'
+              - 'Warbandeer_Characters/data/races.lua'
+              - 'Warbandeer_Characters/data/professioninfo.lua'
+              - 'Warbandeer_Characters/data/classmounts.lua'
+              - 'Warbandeer_Collected/data/weapons.lua'
+
+      # pwsh is preinstalled on the GitHub-hosted ubuntu image. Skipped (job stays green) when no
+      # linted data file changed, so the check is safe to mark required in branch protection.
+      - name: Lint hand-authored ids
+        if: steps.changed.outputs.data == 'true'
+        run: pwsh Tooling/lint-stale-ids.ps1
