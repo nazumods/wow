@@ -553,6 +553,9 @@ function BarsPreview:Set(profile)
   -- Tuck the group just under the HORIZONTAL block (not below the taller vertical
   -- bars), centred on it — it fills the empty space beneath the horizontal bars.
   local centerX = (#normalBars > 0) and hCenterX or (P + sMaxW / 2)
+  -- A wide stance page under a narrow horizontal block can push the group's left edge
+  -- (centerX - sMaxW/2) past the widget's own P margin; clamp so it never escapes left.
+  centerX = math.max(centerX, P + sMaxW / 2)
   local sTop = (#normalBars > 0 and #sRows > 0) and (hBottomY - GAP - STANCE_PAD) or -P
   local sy = sTop
   for _, ri in ipairs(sRows) do

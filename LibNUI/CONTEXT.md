@@ -14,7 +14,7 @@ OOP UI widget library. Every widget wraps a backing WoW object (`self._widget`) 
 | `Region.lua` | `Region` — abstract base; anchoring/size/visibility/alpha + declarative `position` system |
 | `Texture.lua` | `Texture` — wraps WoW Texture (atlas, color, coords, nine-slice, runtime `Gradient`, `Rotation`, `DrawLayer(layer, sublevel?)`) |
 | `Label.lua` | `Label` — wraps FontString; `Text`, `Color`, `JustifyH`, `StringWidth`, `UnboundedWidth`. `tooltip` option (string\|string[]) overlays an invisible hit-rect frame (FontStrings can't take mouse) showing the lines via `ui.tip:Lines` + `AnchorBeside`. `DrawLayer(layer, sublevel?)` for sub-layer stacking |
-| `Frame.lua` | `Frame` — core frame wrapper: events, dragging, per-frame `onUpdate`, `delay`; `SetScript`/`RemoveScript`, `EnableKeyboard`/`SetPropagateKeyboardInput` (receive keys + consume vs pass through — e.g. trap Esc) |
+| `Frame.lua` | `Frame` — core frame wrapper: events, dragging, per-frame `onUpdate`, `delay`; `SetScript`/`RemoveScript`, `EnableKeyboard`/`SetPropagateKeyboardInput` (receive keys + consume vs pass through — e.g. trap Esc; `SetPropagateKeyboardInput` no-ops in combat lockdown, taint-safe since 10.1.5) |
 | `BgFrame.lua` | `BgFrame` — Frame with auto-created backdrop Texture; `backdropColor`/`backdropTexture` |
 | `Dialog.lua` | `Dialog` — DIALOG-strata frame with Blizzard title bar, Escape-to-close; `makeTitlebarDraggable` |
 | `StatusBar.lua` | `StatusBar` — fill bar with backdrop/texture/orientation; `Color`, `Texture`, `SetValue` |

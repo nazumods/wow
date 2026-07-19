@@ -309,7 +309,7 @@ Includes all `Region` options, plus:
 | `Attribute(name, value)`      | Get/set frame attribute                                 |
 | `EnableMouse(enabled)`        | Toggle mouse interactivity (defaults to true)           |
 | `EnableKeyboard(enabled)`     | Receive keyboard input (so an `OnKeyDown` handler fires) |
-| `SetPropagateKeyboardInput(p)`| Pass handled keys on (`true`) or consume them (`false`) — e.g. trap Esc |
+| `SetPropagateKeyboardInput(p)`| Pass handled keys on (`true`) or consume them (`false`) — e.g. trap Esc. No-ops in combat lockdown (the call is taint-restricted since 10.1.5) |
 | `Level(level)`                | Get/set frame level                                     |
 | `Raise()`                     | Raise the frame above its siblings within its strata    |
 
