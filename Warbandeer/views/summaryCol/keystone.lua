@@ -33,6 +33,11 @@ table.insert(
           ui.tip:AddLine("Mythic+ Keystone")
           if name then ui.tip:AddLine(name, 1, 1, 1) end
           ui.tip:AddLine(("Keystone: |cffffffff+%d|r"):format(k))
+          -- Great Vault framing folded in from the (removed) Vault view Key column: this week's
+          -- M+ run count + the 1 / 4 / 8 slot-unlock thresholds.
+          local dg = t.weeklies.dungeons
+          if dg then ui.tip:AddLine(("Mythic+ this week: %d run%s"):format(dg.done, dg.done == 1 and "" or "s")) end
+          ui.tip:AddLine("Great Vault unlocks at 1 / 4 / 8 runs")
           ui.tip:Show()
         end,
         onLeave = function() ui.tip:Hide() end,
