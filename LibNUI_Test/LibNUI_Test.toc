@@ -10,6 +10,7 @@ table.lua
 table-dynamic.lua
 table-icon.lua
 table-footer.lua
+table-composite.lua
 tab.lua
 theme.lua
 accent.lua
