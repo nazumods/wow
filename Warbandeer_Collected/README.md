@@ -84,6 +84,24 @@ shows the weapon appearance; for an **illusion** it lays the enchant shimmer ove
 equipped weapon. Use the **Up/Down** nav to cycle through the pieces (the 15 Ebon
 weapons, the 5 Shaman brands); the title names the one you're viewing.
 
+## Weapon & illusion look builder
+
+Finish a transmog right in the dressing room. The **Weapons** button at the top of the
+model opens a **look builder** panel docked to the right, so you can add a weapon and an
+enchant illusion to the armor set you're previewing — all on the model at once.
+
+- **Weapons** tab — pick a weapon type from the dropdown (only the types your class can
+  transmog are listed), then click any weapon you've collected to hold it on the model.
+  Names are colored by item quality and show where the weapon comes from; hover for the
+  full item tooltip. Shields and other off-hands equip to the off-hand, everything else
+  to the main hand.
+- **Illusions** tab — the enchant illusions your class can use, green when you've
+  collected them. Click one and its shimmer lays over the weapon you're holding (or your
+  character's currently-equipped weapon if you haven't picked one).
+
+Click an equipped piece again to take it back off. Drag the panel's header to move the
+whole window.
+
 ## Usage
 
 | Command | What it does |

@@ -24,6 +24,7 @@ data\sets_expand.lua
 data\sets_ptr.lua
 data\sets_review.lua
 data\weapons.lua
+data\weaponbrowser.lua
 data\models.lua
 
 ratings.lua
@@ -37,6 +38,7 @@ controls\DressingRoomControls.lua
 controls\DressingRoomActions.lua
 controls\DressingRoomModel.lua
 controls\DressingRoomSlots.lua
+controls\WeaponPicker.lua
 
 DataView.lua
 DataViewData.lua
