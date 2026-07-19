@@ -15,6 +15,10 @@ feeds both render paths:
 > CurseForge zip and from release change-detection, so editing it never ships or
 > triggers a release.
 
+> For the full map of what wago.tools exposes — every product, API endpoint, and the
+> 1103-table DB2 catalog this generator pulls from — see
+> [`wago-tools-reference.md`](wago-tools-reference.md).
+
 ## It's automated
 
 `.github/workflows/update-collected-sets.yml` runs **weekly (and on demand)**: it
