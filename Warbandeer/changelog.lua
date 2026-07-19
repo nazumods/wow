@@ -6,6 +6,18 @@ local ns = select(2, ...)
 -- same conventional-commit grouping used for the GitHub/CurseForge release notes.
 ---@type { version: string, notes: string }[]
 ns.changelog = {
+  { version = "12.0.7-r27", notes = [==[
+### Features
+- render the docked Bars preview at reduced scale to fit (#606)
+- /wb debug on|off toggle for column-boundary guides (#603)
+- empty state, pip legend, and autosizing Raid Lockouts column (#601)
+- Great Vault view polish (#599)
+
+### Bug Fixes
+- resolve DB-version and doc/signature drift (#585, #586 items 2-5) (#593)
+- five low-severity behavior nits (tames panel, buyback overlay, decor login-race, collectibles AH race, /wbb forget) (#592)
+
+]==] },
   { version = "12.0.7-r26", notes = [==[
 ### Features
 - track M+ keystone dungeon per character (#578)

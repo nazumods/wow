@@ -6,6 +6,12 @@ local ns = select(2, ...)
 -- conventional-commit grouping used for the GitHub/CurseForge release notes.
 ---@type { version: string, notes: string }[]
 ns.changelog = {
+  { version = "12.0.7-r4", notes = [==[
+### Maintenance
+- add logo
+- add curse project
+
+]==] },
   { version = "12.0.7-r3", notes = [==[
 ### Bug Fixes
 - view/data consistency fixes + QuestXP sub-1% display (#448) (#458)
