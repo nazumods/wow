@@ -120,6 +120,40 @@ ns:registerCommand("release", nil, function(_, args)
   ns.Print(("Preview release %d (%s)"):format(n, ns.Releases[n]))
 end, "dev: preview an expansion badge by release index 1..12 (eyeball each icon)")
 
+-- dev: exercise the #596 weapon-browser data layer with no UI — vet the category enumeration
+-- and per-appearance source resolution against the live transmog API. No arg lists every weapon
+-- category with its owned/total counts + capability flags; an arg (category-name substring) samples
+-- that category's appearances, each with its resolved "where from" line. Copy window (see wdump).
+ns:registerCommand("weapons", nil, function(_, args)
+  local cats = ns.WeaponCategories()
+  local filter = (args or ""):lower():match("^%s*(.-)%s*$")
+  if filter == "" then
+    local lines = {}
+    for _, c in ipairs(cats) do
+      local apps, owned = ns.WeaponAppearances(c.category), 0
+      for _, a in ipairs(apps) do if a.isCollected then owned = owned + 1 end end
+      lines[#lines + 1] = ("%2d  %-22s  %4d/%4d  %s%s%s"):format(c.category, c.name, owned, #apps,
+        c.canMainHand and "M" or "-", c.canOffHand and "O" or "-", c.canHaveIllusions and "i" or "-")
+    end
+    ui.ShowCopyWindow("Weapon browser — categories", table.concat(lines, "\n"))
+    ns.Print(("%d weapon categories (owned/total; M=mainhand O=offhand i=illusions)"):format(#cats))
+    return
+  end
+  local match
+  for _, c in ipairs(cats) do if c.name:lower():find(filter, 1, true) then match = c; break end end
+  if not match then ns.Print("No weapon category matching '" .. filter .. "'"); return end
+  local apps, lines = ns.WeaponAppearances(match.category), {}
+  for i = 1, math.min(#apps, 40) do
+    local a = apps[i]
+    local src = ns.WeaponSource(a.visualID)
+    lines[#lines + 1] = ("%s  visual %-6d  src %-8s  %s"):format(a.isCollected and "[x]" or "[ ]",
+      a.visualID, src and tostring(src.sourceID) or "-", src and (src.text or src.name or "?") or "(none)")
+  end
+  ui.ShowCopyWindow(("Weapon browser — %s (%d of %d)"):format(match.name, #lines, #apps),
+    table.concat(lines, "\n"))
+  ns.Print(("%s: %d appearances"):format(match.name, #apps))
+end, "dev: verify the #596 weapon-browser data layer (no arg = categories; <name> samples sources)")
+
 -- Owned count for one weapon-cosmetic cell (data/weapons.lua). Illusions live on
 -- C_TransmogCollection, not C_TransmogSets: an illusion is owned iff
 -- GetIllusionInfo(sid).isCollected; an arsenal weapon iff PlayerHasTransmog(itemID).

@@ -121,6 +121,24 @@ end
 ---@field _buildControls fun(self: DressingRoom, controls: Frame)  build the toggle + ratings rows (DressingRoomControls.lua)
 ---@field _buildRacePanels fun(self: DressingRoom, controls: Frame, d: table)  build the race selector (DressingRoomControls.lua)
 ---@field _buildSlots fun(self: DressingRoom, winW: number)  build the paper-doll slot columns (DressingRoomSlots.lua)
+---@field _picker Frame?  the docked weapon/illusion picker pane, lazily built on first open (WeaponPicker.lua)
+---@field _pickerCats WeaponCategory[]  the class-usable weapon categories (dropdown source)
+---@field _pickerCatByID table<number, WeaponCategory>  category id → descriptor (main/off-hand slot routing)
+---@field _pickerCat FilterDropdown  the category selector (illusions + weapon types)
+---@field _pickerList VirtualList  the appearance / illusion list
+---@field _pickerCategory number?  the active weapon category (Enum.TransmogCollectionType)
+---@field _pickerMode string  the active pane mode ("weapons" | "illusions")
+---@field _pickerTabs Frame  the Weapons|Illusions tab row
+---@field _modeTab table<string, Texture>  mode-tab borders (gold on the active mode)
+---@field _pickerSlotOff boolean  whether the active weapon category equips to the off-hand
+---@field _lookMH number?  the composed look's main-hand weapon appearance sourceID
+---@field _lookOH number?  the composed look's off-hand weapon appearance sourceID
+---@field _lookIllusion number?  the composed look's enchant illusion sourceID (rides the main-hand)
+---@field _pickerNameTimer table?  cancelable async item-name refresh timer
+---@field _weaponToggleBorder Texture  the "Weapons" toggle-button border (gold while the pane is open)
+---@field _buildWeaponToggle fun(self: DressingRoom)  build the picker toggle button (WeaponPicker.lua)
+---@field _buildWeaponPicker fun(self: DressingRoom)  build the docked picker pane (WeaponPicker.lua)
+---@field ToggleWeaponPicker fun(self: DressingRoom, force: boolean?)  show/hide the picker pane (WeaponPicker.lua)
 local ROWH = 26         -- toggle-button height
 local TOPGAP = ROWH + PAD
 local PANELSTOP = TOPGAP + ROWH + PAD   -- faction panels sit below TWO control rows (toggles + ratings)
@@ -185,6 +203,7 @@ DressingRoom = Class(TitleFrame, function(self)
   self:_buildModel()
   self:_buildSlots(winW)
   self:_buildOverlays()
+  self:_buildWeaponToggle()
   self:_buildControls(controls)
   self:_buildRacePanels(controls, {
     alliance = alliance, neutral = neutral, horde = horde,
