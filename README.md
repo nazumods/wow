@@ -21,6 +21,7 @@ unlock extra functionality when they're also installed. Each addon's own README 
 |---|---|---|---|
 | [LibNAddOn](LibNAddOn/README.md) | — | — | Bootstrapping library: addon init, events, saved-variable DB, settings panels, slash commands, Lua utilities. Required by almost everything below. |
 | [LibNUI](LibNUI/README.md) | LibNAddOn | — | OOP UI widget library wrapping Blizzard frames (windows, tables, tabs, buttons, themes). |
+| [LibNUI-ModelViewer](LibNUI-ModelViewer/README.md) | LibNAddOn + LibNUI | — | 3D model-viewer widget (`ui.Model`) extracted from LibNUI; only addons that show a character/transmog viewer need it. |
 | [LibNUI_Test](LibNUI_Test/README.md) | LibNUI | — | Load-on-demand visual test gallery for LibNUI (`/nui test`). Developers only. |
 
 ### Warbandeer
@@ -29,7 +30,7 @@ unlock extra functionality when they're also installed. Each addon's own README 
 |---|---|---|---|
 | [Warbandeer_Characters](Warbandeer_Characters/README.md) | LibNAddOn + LibNUI | — | Data layer: scans and stores every character you log into (gear, professions, gold, currencies, lockouts, playtime…). No UI. |
 | [Warbandeer](Warbandeer/README.md) | LibNAddOn + LibNUI + Warbandeer_Characters | Warbandeer_Bars, Warbandeer_Collected, Warbandeer_HousingDecor, ShadowsOfUI-Upgrade | The main viewer UI (`/wb`): 13 views over your whole warband. |
-| [Warbandeer_Collected](Warbandeer_Collected/README.md) | LibNAddOn + LibNUI + Warbandeer_Characters | — | Transmog set collection tracker (`/collected`) with wanted flags and S–F tier ranking. |
+| [Warbandeer_Collected](Warbandeer_Collected/README.md) | LibNAddOn + LibNUI + LibNUI-ModelViewer + Warbandeer_Characters | — | Transmog set collection tracker (`/collected`) with wanted flags and S–F tier ranking. |
 | [Warbandeer_HousingDecor](Warbandeer_HousingDecor/README.md) | LibNAddOn + LibNUI | — | Account-wide housing decor collection tracker (`/housingdecor`) with owned counts, filters, and wanted flags. |
 | [Warbandeer_Bars](Warbandeer_Bars/README.md) | LibNAddOn | — | Headless action-bar/keybind/macro profile layer, per character + spec. |
 | [Warbandeer_Alias](Warbandeer_Alias/README.md) | LibNAddOn + LibNUI | — | Prefixes your guild chat messages with an alias so guildmates recognize your alts. |

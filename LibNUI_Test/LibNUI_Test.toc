@@ -3,7 +3,7 @@
 ## Title: LibNUI Test
 ## Author: Nazuraki
 ## LoadOnDemand: 1
-## Dependencies: LibNUI
+## Dependencies: LibNUI, LibNUI-ModelViewer
 
 init.lua
 table.lua

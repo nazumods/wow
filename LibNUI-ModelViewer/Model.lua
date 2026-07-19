@@ -1,5 +1,5 @@
----@type LibNUI_AddOn
-local ns = select(2, ...)
+---@class LibNUI_ModelViewer: AddOn
+local ns = LibNAddOn(...)
 ---@class LibNUI
 local ui = ns.ui
 local Class = ns.lua.Class

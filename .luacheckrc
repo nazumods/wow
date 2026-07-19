@@ -8,7 +8,8 @@ max_comment_line_length = 500
 -- churn with every install. Add new suite addons here.
 include_files = {
   "BarNonce/**/*.lua", "CombatOutline/**/*.lua", "HideBagBar/**/*.lua", "HideStanceBar/**/*.lua",
-  "LibNAddOn/**/*.lua", "LibNUI/**/*.lua", "LibNUI_Test/**/*.lua", "MouselookToggle/**/*.lua",
+  "LibNAddOn/**/*.lua", "LibNUI/**/*.lua", "LibNUI-ModelViewer/**/*.lua", "LibNUI_Test/**/*.lua",
+  "MouselookToggle/**/*.lua",
   "Recycle/**/*.lua",
   "ShadowsOfUI-DMF/**/*.lua", "ShadowsOfUI-GCD/**/*.lua", "ShadowsOfUI-Ilvl/**/*.lua",
   "ShadowsOfUI-Known/**/*.lua", "ShadowsOfUI-Upgrade/**/*.lua", "ShadowsOfUI-XP/**/*.lua",

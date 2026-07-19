@@ -6,7 +6,7 @@
 ## IconTexture: Interface\Icons\inv_10_tailoring2_banner_green
 ## SavedVariables: WarbandeerCollectedDB
 ## AddonCompartmentFunc: WarbandeerCollected_OnAddonCompartmentClick
-## Dependencies: LibNAddOn, LibNUI, Warbandeer_Characters
+## Dependencies: LibNAddOn, LibNUI, LibNUI-ModelViewer, Warbandeer_Characters
 ## X-NUI-DB: WarbandeerCollectedDB
 ## X-NUI-DB-VERSION: 4
 ## X-NUI-COMMANDS: /collected, /collect

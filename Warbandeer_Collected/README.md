@@ -99,6 +99,7 @@ right-click to scan.
 
 - **LibNAddOn**
 - **LibNUI**
+- **LibNUI-ModelViewer** — the 3D `ui.Model` viewer used by the dressing room.
 - **Warbandeer_Characters** — provides character and lockout data.
 
 ## Saved data

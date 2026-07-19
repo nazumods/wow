@@ -27,7 +27,6 @@ BgFrame.lua
 Dialog.lua
 StatusBar.lua
 Slider.lua
-Model.lua
 RingSelector.lua
 Button.lua
 SecureButton.lua
