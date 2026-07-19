@@ -1,0 +1,10 @@
+## Interface: 120007
+## Category: Lib
+## Title: LibNUI ModelViewer
+## Author: Nazuraki
+## Version: 12.0.7-r0
+## IconTexture: Interface\Icons\Ability_Rogue_Disguise
+## Dependencies: LibNAddOn, LibNUI
+## X-NUI-UI: LibNUI
+
+Model.lua
