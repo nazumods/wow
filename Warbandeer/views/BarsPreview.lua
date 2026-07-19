@@ -11,6 +11,11 @@ local theme = ns.theme
 
 local P     = 12   -- outer padding (shared with the preview widget's own P)
 local LBL_H = 12   -- heading row height
+-- The condensed-topographic layout (LibNUI #469) renders wider than the old stacked
+-- one, so the docked box can overflow the screen edge (#468). Render the preview at a
+-- reduced scale so its footprint fits the box without clipping (0.7 clears the
+-- widest real profiles — bars spread across the screen — with margin to spare).
+local SCALE = 0.7
 
 local GetSpellTex  = (C_Spell and C_Spell.GetSpellTexture) or _G.GetSpellTexture
 local GetSpellName = (C_Spell and C_Spell.GetSpellName)    or _G.GetSpellInfo
@@ -139,7 +144,10 @@ local BarsPreviewFrame = Class(CleanFrame, function(self)
   }
   self._preview = ui.BarsPreview:new{
     parent   = self,
-    position = { TopLeft = {0, -(P + LBL_H)}, Hide = true },
+    scale    = SCALE,
+    -- SetPoint offsets are measured in the frame's own (scaled) space, so divide by
+    -- SCALE to keep the preview's top LBL_H+P px below the box top after scaling.
+    position = { TopLeft = {0, -(P + LBL_H) / SCALE}, Hide = true },
     resolveIcon    = slotTex,
     resolveName    = slotName,
     resolvePetIcon = petTex,
@@ -180,10 +188,11 @@ function BarsPreviewFrame:Set(profile)
   end
   self.title:Text(profile.char .. "  \226\128\148  " .. (profile.spec or "?"))
   self._preview:Set(profile)
-  local w = self._preview:Width()
+  -- The preview renders at SCALE, so its on-screen footprint is its logical size
+  -- times SCALE; wrap the box to that.
+  local w = self._preview:Width() * SCALE
   self.title:Width(w - 2 * P)
   self:Width(w)
-  self._preview._widget:SetWidth(w)
-  self:Height(P + LBL_H + self._preview:Height())
+  self:Height(P + LBL_H + self._preview:Height() * SCALE)
   self:Show()
 end
