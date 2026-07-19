@@ -41,3 +41,19 @@ ns:registerCommand("enchants", "clear", function(self)
   local view = ns.MainWindow and ns.MainWindow:ShownView()
   if view and view.name == "detail" then view:OnBeforeShow(); ns.MainWindow:Fit() end
 end, "Clear all accepted wrong-enchants")
+
+-- Dev toggle (/wb debug on|off; bare /wb debug prints status): overlay 1px vertical guides at
+-- each Summary column boundary so column autosize/reflow alignment can be checked in-game.
+-- Persisted in db.settings.debug (default off); toggling rebuilds the Summary view (via
+-- ns.RefreshSummaryColumns) so it takes effect immediately.
+local function setDebug(self, on)
+  self.db.settings.debug = on
+  self.Print("Summary column guides " .. (on and "on" or "off") .. ".")
+  ns.RefreshSummaryColumns()
+end
+
+ns:registerCommand("debug", "on", function(self) setDebug(self, true) end, "Show Summary column-boundary guides (dev)")
+ns:registerCommand("debug", "off", function(self) setDebug(self, false) end, "Hide Summary column-boundary guides (dev)")
+ns:registerCommand("debug", "", function(self)
+  self.Print("Summary column guides are " .. (self.db.settings.debug and "on" or "off") .. ". Use /wb debug on|off.")
+end, "Column-guide debug status (dev)")

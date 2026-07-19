@@ -118,7 +118,7 @@ end
 ---@field db WarbandeerDB
 
 ---@class WarbandeerDB: AddOnDatabase
----@field settings {defaultView: integer, tooltipSide: integer, summaryColumns: table<string, boolean>, vaultColumns: table<string, boolean>, consumables: table<string, boolean>, barApplyDefaults: table<string, boolean>}
+---@field settings {defaultView: integer, tooltipSide: integer, summaryColumns: table<string, boolean>, vaultColumns: table<string, boolean>, consumables: table<string, boolean>, barApplyDefaults: table<string, boolean>, debug: boolean}
 ---@field profIntent table<string,table<integer,string>> map of character name and skillLineID to crafter intent
 ---@field ignoredEnchants table<string, boolean> per-item accepted wrong-enchants, key "<itemID>:<enchantID>"
 

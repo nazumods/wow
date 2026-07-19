@@ -109,6 +109,10 @@ local ClassSummary = Class(TableFrame, function(self)
   for i, info in ipairs(self.colInfo) do
     if info.autosize then self:AutosizeColumn(i) end
   end
+
+  -- Dev-only column-boundary guides (toggled by /wb debug); off by default. Built last so
+  -- they sit at the final, post-autosize column boundaries.
+  if ns.db.settings.debug then self:_buildColumnGuides() end
 end, {
   faction = "alliance",
   backdrop = {color = ns.Colors.TransparentBlack},
@@ -142,6 +146,27 @@ function ClassSummary:AutosizeColumn(i)
   col:Width(target)
   self:Width(self:Width() + delta)
   self.rowArea:Width(self.rowArea:Width() + delta)
+end
+
+-- Dev debug (/wb debug on): a 1px vertical guide at each column's right edge, so column
+-- autosize/reflow alignment can be eyeballed in-game — do the cells and the detached footer
+-- totals stay on their column boundaries after a column resizes? Parented into rowArea so the
+-- guides clip to the scroll viewport and draw over the scrolled cells (the header/footer bands
+-- are out of scope); anchored to each TableCol's right edge, drawn after AutosizeColumn so they
+-- sit at the final boundaries. A /wb debug toggle rebuilds the view so they appear/vanish.
+function ClassSummary:_buildColumnGuides()
+  for i = 1, #self.cols - 1 do
+    Texture:new{
+      parent = self.rowArea,
+      layer = ui.layer.Overlay,
+      position = {
+        TopLeft = {self.cols[i], ui.edge.TopRight, 0, 0},
+        BottomLeft = {self.cols[i], ui.edge.BottomRight, 0, 0},
+        Width = 1,
+      },
+      color = {1, 0, 0, 0.8},
+    }
+  end
 end
 
 -- This table's roster, sorted by level/ilvl/name. "both" returns the whole warband
