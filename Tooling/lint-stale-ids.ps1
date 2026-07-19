@@ -24,6 +24,9 @@
     * professioninfo.spellID is skipped (would need the huge Spell table for marginal value).
     * weapons illusion sourceIDs map to TransmogIllusion.SpellItemEnchantmentID, NOT .ID (.ID runs
       2..103, the sourceIDs ~5000+); weapons arsenal/pieces itemIDs -> Item.ID.
+    * Medium tier (glyphinfo/learnedunlocks/collectiblesources) all resolved cleanly — unlike the
+      cheap tier's challengetames, SpellName (~404k rows) and QuestV2 keep the old spell/quest ids,
+      so glyph->GlyphProperties.ID, spell->SpellName.ID, quest/startQuest->QuestV2.ID all hard-check.
 
   Usage:
     pwsh Tooling/lint-stale-ids.ps1              # full (pulls Item, the one big table)
@@ -67,6 +70,15 @@ $rules = @(
   # (NOT .ID); arsenal/pieces itemIDs are real Item rows. Folded in from verify-weapons.ps1.
   @{ file='Warbandeer_Collected/data/weapons.lua';         label='weapons.illusionSourceID';         rx='sourceID\s*=\s*(\d+)';           table='TransmogIllusion'; col='SpellItemEnchantmentID'; sev='fail'; big=$false }
   @{ file='Warbandeer_Collected/data/weapons.lua';         label='weapons.arsenalItemID';            extract=$extractArsenalItems;        table='Item';      col='ID';            sev='fail'; big=$true  }
+  # Medium tier — the larger catalogs. All mappings probed & confirmed (no trimmed source like
+  # challengetames): glyph->GlyphProperties.ID, spell->SpellName.ID, quest/startQuest->QuestV2.ID.
+  @{ file='Warbandeer_Characters/data/collectiblesources.lua'; label='collectiblesources.itemID';    rx='\[(\d+)\]\s*=';                    table='Item';            col='ID'; sev='fail'; big=$true  }
+  @{ file='Warbandeer_Characters/data/learnedunlocks.lua';     label='learnedunlocks.itemID';         rx='itemID\s*=\s*(\d+)';               table='Item';            col='ID'; sev='fail'; big=$true  }
+  @{ file='Warbandeer_Characters/data/learnedunlocks.lua';     label='learnedunlocks.spell';          rx='spell\s*=\s*(\d+)';                table='SpellName';       col='ID'; sev='fail'; big=$true  }
+  @{ file='Warbandeer_Characters/data/glyphinfo.lua';          label='glyphinfo.itemID';              rx='(?:itemID|startItem)\s*=\s*(\d+)'; table='Item';            col='ID'; sev='fail'; big=$true  }
+  @{ file='Warbandeer_Characters/data/glyphinfo.lua';          label='glyphinfo.glyph';               rx='glyph\s*=\s*(\d+)';                table='GlyphProperties'; col='ID'; sev='fail'; big=$false }
+  @{ file='Warbandeer_Characters/data/glyphinfo.lua';          label='glyphinfo.spell';               rx='spell\s*=\s*(\d+)';                table='SpellName';       col='ID'; sev='fail'; big=$true  }
+  @{ file='Warbandeer_Characters/data/glyphinfo.lua';          label='glyphinfo.quest';               rx='(?:quest|startQuest)\s*=\s*(\d+)'; table='QuestV2';         col='ID'; sev='fail'; big=$true  }
 )
 
 # ── resolve build (same source of truth as update-sets.ps1 / verify-weapons.ps1) ──
