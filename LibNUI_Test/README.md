@@ -16,3 +16,4 @@ See `LibNUI/CLAUDE.md` for how to add a test for a new widget.
 ## Dependencies
 
 - **LibNUI** (pulls in LibNAddOn transitively)
+- **LibNUI-ModelViewer** — provides the `ui.Model` widget the `model` / `slottransmog` tests exercise
