@@ -39,8 +39,10 @@ local openOne
 ---@field button    Button
 ---@field label     Label
 ---@field chevron   Texture  down arrow on the button's right edge; flipped while the menu is open
----@field menu      Frame    the option panel
----@field _rows     Frame[]  option row frames (each carries a `.label` and hover `.background`)
+---@field menu      Frame    the option panel (built once; rows are pooled + relaid by _layoutMenu)
+---@field _rows     Frame[]  pooled option row frames (each carries a `.label` and hover `.background`); reused across SetOptions, surplus hidden
+---@field _scroll   ScrollFrame?  lazily built viewport, present only once an option count exceeds `maxMenuHeight` (the flat layout has none)
+---@field _menuContent Frame?  the scroll viewport's row host (paired with `_scroll`)
 local FilterDropdown = Class(Frame, function(self)
   if self.bordered then
     Texture:new{ parent = self, layer = ui.layer.Background, position = { All = true }, color = "divider" }
@@ -85,8 +87,10 @@ end, {
 })
 ui.FilterDropdown = FilterDropdown
 
--- Build the option panel: bordered like a bordered button, hanging flush under
--- the button's left edge, sized to the wider of the button and its options.
+-- Build the option panel ONCE: a bordered frame hanging flush under the button's left edge,
+-- with its Esc / click-away handling. The option ROWS + panel size are (re)built by _layoutMenu,
+-- which pools the rows — so SetOptions can swap the whole option list without recreating the
+-- panel or leaking row frames.
 function FilterDropdown:_buildMenu()
   local menu = Frame:new{
     parent   = UIParent,
@@ -104,66 +108,7 @@ function FilterDropdown:_buildMenu()
     position = { TopLeft = {1, -1}, BottomRight = {-1, 1} },
   }
   self.menu = menu
-
-  -- A very long option list (e.g. a full category taxonomy) would run off-screen, so once
-  -- the rows exceed `maxMenuHeight` the menu caps its height and scrolls. Short menus (the
-  -- common case) keep the exact flat layout — rows parent straight to `menu`, no scroll —
-  -- so existing consumers are unchanged.
-  local fullH = #self.options * ROW_H
-  local needsScroll = fullH > self.maxMenuHeight
-  local rowParent, firstY, gutter = menu, -1, 0
-  if needsScroll then
-    self._scroll = ui.ScrollFrame:new{
-      parent = menu, scrollbar = true,
-      position = { TopLeft = {1, -1}, BottomRight = {-1, 1} },
-    }
-    self._menuContent = Frame:new{ parent = self._scroll, position = { Size = {1, 1} } }
-    self._scroll:Child(self._menuContent)
-    rowParent, firstY, gutter = self._menuContent, 0, self._scroll.scrollbarWidth or 16
-  end
-
   self._rows = {}
-  local widest = 0
-  for i, opt in ipairs(self.options) do
-    local row = Frame:new{
-      parent     = rowParent,
-      background = {1, 1, 1, 0},
-      position   = {
-        TopLeft = i == 1 and {needsScroll and 0 or 1, firstY} or {self._rows[i - 1], ui.edge.BottomLeft},
-        Right   = {rowParent, ui.edge.Right, needsScroll and 0 or -1, 0},
-        Height  = ROW_H,
-      },
-    }
-    row.label = Label:new{
-      parent   = row,
-      text     = opt.label,
-      justifyH = ui.edge.Left,
-      wordWrap = false,
-      position = { Left = {PAD_X - 1, 0}, Right = {-PAD_X, 0} },
-    }
-    if opt.enabled ~= false then
-      row:SetScript("OnEnter", function() row.background:Color(1, 1, 1, 0.15) end)
-      row:SetScript("OnLeave", function() row.background:Color(1, 1, 1, 0) end)
-      row:SetScript("OnMouseUp", function()
-        self:_closeMenu()
-        if self.selected == opt.key then return end
-        self:Select(opt.key)
-        if self.onSelect then self:onSelect(opt.key) end
-      end)
-    end
-    widest = max(widest, row.label:UnboundedWidth())
-    insert(self._rows, row)
-  end
-  local menuW = max(self.width, self.menuWidth, widest + 2 * PAD_X + 2) + gutter
-  menu:Width(menuW)
-  if needsScroll then
-    self._menuContent:Width(menuW - 2 - gutter)
-    self._menuContent:Height(fullH)
-    menu:Height(self.maxMenuHeight + 2)
-    self._scroll:Refresh()
-  else
-    menu:Height(fullH + 2)
-  end
 
   -- Esc closes (only) the open menu: consuming the key stops it from also closing a
   -- parent window. Other keys propagate so bindings still work while the menu is up.
@@ -181,6 +126,98 @@ function FilterDropdown:_buildMenu()
   menu:SetScript("OnEvent", function()
     if not (menu:IsMouseOver() or self:IsMouseOver()) then self:_closeMenu() end
   end)
+
+  self:_layoutMenu()
+end
+
+-- Acquire (reuse-or-create) pooled row `i` and point it at `opt`: re-parent + re-anchor it under
+-- `rowParent`, set its label, reset the hover fill, show it, and (re)wire its click. Rewiring
+-- every layout is required — a pooled row still carries the PREVIOUS option's closures, so a
+-- SetOptions swap must recapture the current `opt`. A disabled option gets an inert row (no
+-- hover/click scripts). New rows append sequentially, so `self._rows[i]` and the pool grow in step.
+---@param i integer
+---@param opt table
+---@param rowParent Frame
+---@param firstY number
+---@param needsScroll boolean
+---@return Frame
+function FilterDropdown:_row(i, opt, rowParent, firstY, needsScroll)
+  local row = self._rows[i]
+  if not row then
+    row = Frame:new{ parent = rowParent, background = {1, 1, 1, 0} }
+    row.label = Label:new{
+      parent = row, justifyH = ui.edge.Left, wordWrap = false,
+      position = { Left = {PAD_X - 1, 0}, Right = {-PAD_X, 0} },
+    }
+    insert(self._rows, row)
+  end
+  row:Parent(rowParent)
+  row:ClearAllPoints()
+  row:Position{
+    TopLeft = i == 1 and {needsScroll and 0 or 1, firstY} or {self._rows[i - 1], ui.edge.BottomLeft},
+    Right   = {rowParent, ui.edge.Right, needsScroll and 0 or -1, 0},
+    Height  = ROW_H,
+  }
+  row.label:Text(opt.label)
+  row.background:Color(1, 1, 1, 0)
+  local enabled = opt.enabled ~= false
+  row:SetScript("OnEnter", enabled and function() row.background:Color(1, 1, 1, 0.15) end or nil)
+  row:SetScript("OnLeave", enabled and function() row.background:Color(1, 1, 1, 0) end or nil)
+  row:SetScript("OnMouseUp", enabled and function()
+    self:_closeMenu()
+    if self.selected == opt.key then return end
+    self:Select(opt.key)
+    if self.onSelect then self:onSelect(opt.key) end
+  end or nil)
+  row:Show()
+  return row
+end
+
+-- (Re)build the option rows and size the panel for the current `self.options`, reusing pooled
+-- rows (a SetOptions swap reuses frames instead of leaking them) and hiding the surplus. A list
+-- taller than `maxMenuHeight` (e.g. a full category taxonomy) caps the panel height and scrolls
+-- (rows parent to a lazily built ScrollFrame content, a gutter reserved for the scrollbar);
+-- shorter lists keep the flat, direct-child layout so existing consumers render pixel-identically.
+-- The scroll container is built once on first need and shown/hidden as the count crosses the cap;
+-- rows re-parent between the flat panel and the scroll content across that transition.
+function FilterDropdown:_layoutMenu()
+  local fullH = #self.options * ROW_H
+  local needsScroll = fullH > self.maxMenuHeight
+  if needsScroll and not self._scroll then
+    self._scroll = ui.ScrollFrame:new{
+      parent = self.menu, scrollbar = true,
+      position = { TopLeft = {1, -1}, BottomRight = {-1, 1} },
+    }
+    self._menuContent = Frame:new{ parent = self._scroll, position = { Size = {1, 1} } }
+    self._scroll:Child(self._menuContent)
+  end
+  local rowParent, firstY, gutter
+  if needsScroll then
+    self._scroll:Show()
+    rowParent, firstY, gutter = self._menuContent, 0, self._scroll.scrollbarWidth or 16
+  else
+    if self._scroll then self._scroll:Hide() end
+    rowParent, firstY, gutter = self.menu, -1, 0
+  end
+
+  local widest = 0
+  for i, opt in ipairs(self.options) do
+    local row = self:_row(i, opt, rowParent, firstY, needsScroll)
+    widest = max(widest, row.label:UnboundedWidth())
+  end
+  -- Hide the pooled rows this option set didn't use (a shorter list than a prior one).
+  for i = #self.options + 1, #self._rows do self._rows[i]:Hide() end
+
+  local menuW = max(self.width, self.menuWidth, widest + 2 * PAD_X + 2) + gutter
+  self.menu:Width(menuW)
+  if needsScroll then
+    self._menuContent:Width(menuW - 2 - gutter)
+    self._menuContent:Height(fullH)
+    self.menu:Height(self.maxMenuHeight + 2)
+    self._scroll:Refresh()
+  else
+    self.menu:Height(fullH + 2)
+  end
 end
 
 -- Open this menu, first closing any other dropdown's menu (only one open at a
@@ -232,4 +269,25 @@ function FilterDropdown:Select(key)
   self.selected = key
   self.label:Text(self:labelFor(key))
   return self
+end
+
+-- Replace the option list and re-lay-out the drop menu. The panel is built once at construction
+-- and its rows are pooled, so changing what a live dropdown offers goes through here: it closes
+-- any open menu, swaps `options`, and re-runs the layout (reusing row frames, recomputing the
+-- flat/scrolling layout for the new count). The selection resolves to `selected` when it's a
+-- valid key of the new list, else the current key if it survives, else the first option — and
+-- the button label refreshes to match (without firing `onSelect`, like Select). Used when a
+-- dropdown is repointed at a subject with a different option set (e.g. the weapon look-builder
+-- re-scoping to another class's weapon types).
+---@param options table[]  new `{ key, label, enabled? }` specs
+---@param selected any?  preferred key to select; ignored if absent from `options`
+---@return FilterDropdown
+function FilterDropdown:SetOptions(options, selected)
+  self:_closeMenu()
+  self.options = options
+  self:_layoutMenu()
+  if selected == nil or self:labelFor(selected) == "" then
+    selected = self:labelFor(self.selected) ~= "" and self.selected or (options[1] and options[1].key)
+  end
+  return self:Select(selected)
 end
