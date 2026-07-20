@@ -111,11 +111,14 @@ end
 ---@field _raceOnlyBorder Texture  per-race-override toggle border (gold while active)
 ---@field _slots table[]  paper-doll slot entries ({ slotID, icon, border, itemID? })
 ---@field _hiddenSlots table<number, true>  inventory slot ids toggled off the model (reset per set)
+---@field _weaponSlots table[]  bottom-center weapon-slot entries ({ hand, label, icon, border, box, itemID? }) (DressingRoomWeaponSlots.lua)
 ---@field _weaponPiece number?  index of the previewed piece within a weapon-cosmetic cell (up/down nav cycles it)
 ---@field _weaponTitleTimer table?  cancelable retitle timer (arsenal item names load async)
 ---@field _weaponTitleTries number?  remaining retitle attempts
 ---@field _slotTimer table?  cancelable icon-refresh timer
 ---@field _slotRetries number?  remaining icon-refresh attempts
+---@field _weaponSlotTimer table?  cancelable weapon-slot icon-refresh timer
+---@field _weaponSlotRetries number?  remaining weapon-slot icon-refresh attempts
 ---@field _buildModel fun(self: DressingRoom)  build the model + backdrop + tier bars (DressingRoomBuild.lua)
 ---@field _buildOverlays fun(self: DressingRoom)  build the on-model overlays (DressingRoomBuild.lua)
 ---@field _buildControls fun(self: DressingRoom, controls: Frame)  build the toggle + ratings rows (DressingRoomControls.lua)
@@ -131,16 +134,21 @@ end
 ---@field _pickerMode string  the active pane mode ("weapons" | "illusions")
 ---@field _pickerTabs Frame  the Weapons|Illusions tab row
 ---@field _modeTab table<string, Texture>  mode-tab borders (gold on the active mode)
----@field _pickerSlotOff boolean  whether the active weapon category equips to the off-hand
+---@field _pickerTabBox table<string, Frame>  mode-tab boxes (the Illusions tab is hidden for the off-hand)
+---@field _pickerHand string  which slot the picker targets ("main" | "off") — filters the dropdown + routes picks
+---@field _pickerSlotOff boolean  whether picks route to the off-hand (follows _pickerHand)
 ---@field _lookMH number?  the composed look's main-hand weapon appearance sourceID
 ---@field _lookOH number?  the composed look's off-hand weapon appearance sourceID
 ---@field _lookIllusion number?  the composed look's enchant illusion sourceID (rides the main-hand)
 ---@field _pickerNameTimer table?  cancelable async item-name refresh timer
----@field _weaponToggleBorder Texture  the "Weapons" toggle-button border (gold while the pane is open)
----@field _buildWeaponToggle fun(self: DressingRoom)  build the picker toggle button (WeaponPicker.lua)
+---@field _buildWeaponSlots fun(self: DressingRoom)  build the bottom-center weapon-slot pair (DressingRoomWeaponSlots.lua)
+---@field _showWeaponSlots fun(self: DressingRoom, show: boolean)  show/hide the weapon-slot pair (DressingRoomWeaponSlots.lua)
+---@field UpdateWeaponSlots fun(self: DressingRoom, retry: boolean?)  fill the weapon slots from the composed look (DressingRoomWeaponSlots.lua)
+---@field _clearWeaponSlot fun(self: DressingRoom, hand: string)  clear a hand's picked weapon — the right-click gesture (DressingRoomWeaponSlots.lua)
 ---@field _buildWeaponPicker fun(self: DressingRoom)  build the docked picker pane (WeaponPicker.lua)
----@field ToggleWeaponPicker fun(self: DressingRoom, force: boolean?)  show/hide the picker pane (WeaponPicker.lua)
+---@field ToggleWeaponPicker fun(self: DressingRoom, force: boolean?, hand: string?)  show/hide the picker pane, targeting a hand (WeaponPicker.lua)
 ---@field _rescopePicker fun(self: DressingRoom)  re-scope the picker (weapon types + illusions) to the previewed set's class (WeaponPicker.lua)
+---@field _applyPickerHand fun(self: DressingRoom)  filter the picker to the target hand + repopulate the list (WeaponPicker.lua)
 local ROWH = 26         -- toggle-button height
 local TOPGAP = ROWH + PAD
 local PANELSTOP = TOPGAP + ROWH + PAD   -- faction panels sit below TWO control rows (toggles + ratings)
@@ -205,7 +213,7 @@ DressingRoom = Class(TitleFrame, function(self)
   self:_buildModel()
   self:_buildSlots(winW)
   self:_buildOverlays()
-  self:_buildWeaponToggle()
+  self:_buildWeaponSlots()
   self:_buildControls(controls)
   self:_buildRacePanels(controls, {
     alliance = alliance, neutral = neutral, horde = horde,

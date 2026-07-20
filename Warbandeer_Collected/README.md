@@ -86,27 +86,28 @@ weapons, the 5 Shaman brands); the title names the one you're viewing.
 
 ## Weapon & illusion look builder
 
-Finish a transmog right in the dressing room. The **Weapons** button at the top of the
-model opens a **look builder** panel docked to the right, so you can add a weapon and an
-enchant illusion to the armor set you're previewing — all on the model at once.
+Finish a transmog right in the dressing room. The model has **main-hand and off-hand
+weapon slots across the bottom**, just like the character sheet. Click a slot to open a
+**look builder** panel docked to the right and add a weapon (and an enchant illusion) to
+the armor set you're previewing — all on the model at once.
 
-- **Weapons** tab — pick a weapon type from the dropdown (only the types the set's own
-  class can transmog are listed, so a Warrior set offers plate weapons even while you're
-  on a Mage), then click any weapon you've collected to hold it on the model. Names are
-  colored by item quality and show where the weapon comes from; hover for the full item
-  tooltip. Shields and other off-hands equip to the off-hand, everything else to the main
-  hand.
-- **Illusions** tab — the enchant illusions the set's class can use, green when you've
-  collected them (including that class's own weapon shimmers — a Shaman set's imbues, a
-  Death Knight set's runeforge — even on another class). Click one and its shimmer lays
-  over the weapon you're holding (or your character's currently-equipped weapon if you
-  haven't picked one).
+- Click the **main-hand** or **off-hand** slot to open the picker for that hand. The
+  weapon-type dropdown lists only the types that go in that hand and that the set's own
+  class can transmog (so a Warrior set offers plate weapons even while you're on a Mage).
+  Click any weapon you've collected to hold it on the model; it then shows in the slot,
+  with a green border. Names are colored by item quality and show where the weapon comes
+  from — hover for the full item tooltip.
+- The **Illusions** tab (on the main-hand picker) lists the enchant illusions the set's
+  class can use, green when you've collected them — including that class's own weapon
+  shimmers (a Shaman set's imbues, a Death Knight set's runeforge) even on another class.
+  Click one and its shimmer lays over the weapon you're holding (or your character's
+  currently-equipped weapon if you haven't picked one).
 
-Step to another class's set (the arrow keys, or the nav pad) and the panel re-scopes to
+Step to another class's set (the arrow keys, or the nav pad) and the picker re-scopes to
 that class's weapons and illusions.
 
-Click an equipped piece again to take it back off. Drag the panel's header to move the
-whole window.
+**Right-click a weapon slot to clear it** (or click the equipped weapon again in the
+picker). Drag the panel's header to move the whole window.
 
 ## Usage
 

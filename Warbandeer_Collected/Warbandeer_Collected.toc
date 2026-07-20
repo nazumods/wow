@@ -39,6 +39,7 @@ controls\DressingRoomActions.lua
 controls\DressingRoomModel.lua
 controls\DressingRoomSlots.lua
 controls\WeaponPicker.lua
+controls\DressingRoomWeaponSlots.lua
 
 DataView.lua
 DataViewData.lua
