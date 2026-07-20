@@ -167,18 +167,24 @@ function DressingRoom:_load(group, set)
   self:_showClass(classId)
   self:_showRelease(group.release)
   if group.kind then
-    -- Weapon-cosmetic preview: no armor slots, no difficulty tier bars. Up/down nav
-    -- cycles the cell's pieces from the first (see _stepWeaponPiece).
+    -- Weapon-cosmetic preview: no armor slots, no weapon slots, no difficulty tier bars (its own
+    -- held-weapon render is the focus). Close the look builder and up/down nav cycles the cell's
+    -- pieces from the first (see _stepWeaponPiece).
     self._weaponPiece = 1
     self:_showSlots(false)
+    self:_showWeaponSlots(false)
     self._tierBarL:Hide()
     self._tierBarR:Hide()
     if self._slotTimer then self._slotTimer:Cancel(); self._slotTimer = nil end
+    if self._weaponSlotTimer then self._weaponSlotTimer:Cancel(); self._weaponSlotTimer = nil end
+    if self._picker then self:ToggleWeaponPicker(false) end
   else
     self:_showSlots(true)
+    self:_showWeaponSlots(true)
     self:_setTierBars(group.name)
     self._slotRetries = 0
     self:UpdateSlots()
+    self:UpdateWeaponSlots()   -- reflect any persisted look on the bottom weapon slots
   end
   self:Dress()
   self:_syncUndressBorder()   -- wiped toggles → fully worn → Undress button idle

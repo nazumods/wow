@@ -40,31 +40,23 @@ local ROW_H   = 34                -- list row height
 local PANEL   = { 0.05, 0.05, 0.06, 0.96 }   -- opaque pane fill (a standalone frame's theme bg is alpha-0)
 local OWNED   = { 0.30, 0.85, 0.40 }         -- collected tint (illusions have no item quality)
 
--- The "Weapons" toggle, floated at the model's top edge (built at construction from the room
--- constructor). Gold border while the picker pane is open; above the ModelScene so it clicks.
-function DressingRoom:_buildWeaponToggle()
-  local box = Frame:new{
-    parent = self,
-    position = { Top = {self._model, ui.edge.Top, 0, -8}, Width = 96, Height = ROWH },
-  }
-  self._weaponToggleBorder = selBox(box)
-  Button:new{ parent = box, position = { All = true }, glow = false,
-    OnClick = function() self:ToggleWeaponPicker() end }
-  Label:new{ parent = box, justifyH = ui.justify.Center,
-    position = { Left = {4, 0}, Right = {-4, 0} }, text = "Weapons" }
-  box:Level(self._model:Level() + 10)
-end
-
 -- Show/hide the docked picker pane (building + populating it on first open). `force` sets an
--- explicit state; nil toggles.
+-- explicit state; nil toggles. `hand` re-targets the picker at the main/off-hand slot: it filters
+-- the category dropdown to that hand's weapon types and routes picks there (the weapon slots are
+-- the entry point — see DressingRoomWeaponSlots.lua).
 ---@param force boolean?
-function DressingRoom:ToggleWeaponPicker(force)
+---@param hand string?  "main" | "off"
+function DressingRoom:ToggleWeaponPicker(force, hand)
   if not self._picker then self:_buildWeaponPicker() end
+  if hand then self._pickerHand = hand end
   if force == nil then force = not self._picker._widget:IsShown() end
-  -- Opening after the previewed class changed (Steps while closed don't rescope): re-scope first.
-  if force and self._pickerClass ~= self._classIndex then self:_rescopePicker() end
+  if force then
+    -- Opening: re-scope to the previewed class if it changed (Steps while closed don't rescope) —
+    -- which re-applies the hand filter too — else just (re)apply the current target hand.
+    if self._pickerClass ~= self._classIndex then self:_rescopePicker() else self:_applyPickerHand() end
+  end
   self._picker:SetShown(force)
-  self._weaponToggleBorder:Color(force and SELECTED or IDLE)
+  self:UpdateWeaponSlots()   -- reflect the open/targeted state on the weapon-slot borders
 end
 
 -- Build the docked pane: an opaque, 1px-outlined panel down the window's right edge, with a drag
@@ -111,9 +103,11 @@ function DressingRoom:_buildWeaponPicker()
     position = { TopLeft = {PAD, -(PAD + 22)}, Width = PICKERW - 2 * PAD, Height = ROWH },
   }
   self._modeTab = {}
+  self._pickerTabBox = {}   -- tab boxes, so _applyPickerHand can hide the Illusions tab for the off-hand
   local tw = (PICKERW - 2 * PAD - 4) / 2
   local function tab(mode, label, x)
     local box = Frame:new{ parent = self._pickerTabs, position = { TopLeft = {x, 0}, Width = tw, Height = ROWH } }
+    self._pickerTabBox[mode] = box
     self._modeTab[mode] = selBox(box)
     Button:new{ parent = box, position = { All = true }, glow = false, OnClick = function() self:_setPickerMode(mode) end }
     Label:new{ parent = box, justifyH = ui.justify.Center, position = { Left = {2, 0}, Right = {-2, 0} }, text = label }
@@ -174,16 +168,29 @@ function DressingRoom:_rescopePicker()
   self._pickerClass = self._classIndex
   self._pickerCats = ns.WeaponCategories(self._classIndex)
   self._pickerCatByID = {}
-  local opts = {}
+  for _, c in ipairs(self._pickerCats) do self._pickerCatByID[c.category] = c end
+  self:_applyPickerHand()
+end
+
+-- Apply the current target hand (self._pickerHand) to the pane: filter the weapon-category
+-- dropdown to that hand's categories (canMainHand / canOffHand), keeping the current category if
+-- it's still valid else the first available; hide the Illusions tab for the off-hand (illusions
+-- ride the main hand, so they're only offered there); then repopulate the active mode. Shared by
+-- the open path and the class re-scope so both honour the hand + class scoping in one place.
+function DressingRoom:_applyPickerHand()
+  local off = self._pickerHand == "off"
+  self._pickerTabBox.illusions:SetShown(not off)
+  if off and self._pickerMode == "illusions" then self._pickerMode = "weapons" end
+  local opts, valid = {}, false
   for _, c in ipairs(self._pickerCats) do
-    self._pickerCatByID[c.category] = c
-    opts[#opts + 1] = { key = c.category, label = c.name }
+    if (off and c.canOffHand) or (not off and c.canMainHand) then
+      opts[#opts + 1] = { key = c.category, label = c.name }
+      if c.category == self._pickerCategory then valid = true end
+    end
   end
-  if not self._pickerCatByID[self._pickerCategory] then
-    self._pickerCategory = self._pickerCats[1] and self._pickerCats[1].category
-  end
+  if not valid then self._pickerCategory = opts[1] and opts[1].key end
   self._pickerCat:SetOptions(opts, self._pickerCategory)
-  if self._pickerMode == "illusions" then self:_populateIllusions() else self:_populateWeapons() end
+  self:_setPickerMode(self._pickerMode or "weapons")
 end
 
 -- One list row: a selection border, a name line, and a subtitle. Clickable (applies the piece to
@@ -249,11 +256,10 @@ function DressingRoom:_pickCategory(categoryID)
 end
 
 -- Populate the active weapon category's COLLECTED appearances, each resolved to its WeaponSource.
--- `_pickerSlotOff` records whether this category equips to the off-hand (shields / holdables), so
--- clicks and the selection border target the right slot.
+-- `_pickerSlotOff` follows the target hand (the dropdown is already filtered to hand-appropriate
+-- categories), so clicks and the selection border target the right slot.
 function DressingRoom:_populateWeapons()
-  local cat = self._pickerCatByID[self._pickerCategory]
-  self._pickerSlotOff = (cat and not cat.canMainHand and cat.canOffHand) or false
+  self._pickerSlotOff = self._pickerHand == "off"   -- the dropdown is hand-filtered, so route by hand
   local items = {}
   for _, app in ipairs(ns.WeaponAppearances(self._pickerCategory, self._classIndex)) do
     if app.isCollected then
@@ -314,4 +320,5 @@ function DressingRoom:_applyLook()
     m:SlotTransmog(INVSLOT_MAINHAND, self._lookMH or 0)
   end
   m:SlotTransmog(INVSLOT_OFFHAND, self._lookOH or 0)
+  self:UpdateWeaponSlots()   -- keep the bottom weapon slots showing the current look
 end
