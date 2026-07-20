@@ -90,14 +90,20 @@ Finish a transmog right in the dressing room. The **Weapons** button at the top 
 model opens a **look builder** panel docked to the right, so you can add a weapon and an
 enchant illusion to the armor set you're previewing — all on the model at once.
 
-- **Weapons** tab — pick a weapon type from the dropdown (only the types your class can
-  transmog are listed), then click any weapon you've collected to hold it on the model.
-  Names are colored by item quality and show where the weapon comes from; hover for the
-  full item tooltip. Shields and other off-hands equip to the off-hand, everything else
-  to the main hand.
-- **Illusions** tab — the enchant illusions your class can use, green when you've
-  collected them. Click one and its shimmer lays over the weapon you're holding (or your
-  character's currently-equipped weapon if you haven't picked one).
+- **Weapons** tab — pick a weapon type from the dropdown (only the types the set's own
+  class can transmog are listed, so a Warrior set offers plate weapons even while you're
+  on a Mage), then click any weapon you've collected to hold it on the model. Names are
+  colored by item quality and show where the weapon comes from; hover for the full item
+  tooltip. Shields and other off-hands equip to the off-hand, everything else to the main
+  hand.
+- **Illusions** tab — the enchant illusions the set's class can use, green when you've
+  collected them (including that class's own weapon shimmers — a Shaman set's imbues, a
+  Death Knight set's runeforge — even on another class). Click one and its shimmer lays
+  over the weapon you're holding (or your character's currently-equipped weapon if you
+  haven't picked one).
+
+Step to another class's set (the arrow keys, or the nav pad) and the panel re-scopes to
+that class's weapons and illusions.
 
 Click an equipped piece again to take it back off. Drag the panel's header to move the
 whole window.

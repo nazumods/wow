@@ -188,6 +188,11 @@ function DressingRoom:_load(group, set)
   -- classId (the set's class column) is passed too: PvP sets share a base setId across
   -- classes, so it's needed to pick the right column.
   ns:NotifyDressedSetChanged(set.id, classId)
+  -- Keep an open look-builder scoped to the previewed set's class. Only on an actual class change
+  -- (a Step across columns) — a same-class StepTier leaves the picker's category selection alone.
+  if self._picker and self._picker._widget:IsShown() and self._pickerClass ~= self._classIndex then
+    self:_rescopePicker()
+  end
 end
 
 -- Move to the next/previous class set in the current group, wrapping and skipping
