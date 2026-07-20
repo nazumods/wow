@@ -6,6 +6,14 @@ local ns = select(2, ...)
 -- same conventional-commit grouping used for the GitHub/CurseForge release notes.
 ---@type { version: string, notes: string }[]
 ns.changelog = {
+  { version = "12.0.7-r28", notes = [==[
+### Bug Fixes
+- SetPropagateKeyboardInput combat guard, three widget nits, action-bar doc drift (#582, #583, #586) (#594)
+
+### Maintenance
+- finish renaming
+
+]==] },
   { version = "12.0.7-r27", notes = [==[
 ### Features
 - render the docked Bars preview at reduced scale to fit (#606)
