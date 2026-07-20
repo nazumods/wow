@@ -1,6 +1,6 @@
 ## Interface: 120007
 ## Category: Warband
-## Title: Housing Decor
+## Title: Decor
 ## Author: Nazuraki
 ## Version: 12.0.7-r3
 ## IconTexture: Interface\Icons\garrison_building_storehouse

@@ -1,4 +1,4 @@
-# Warbandeer_HousingDecor
+# Warbandeer_Decor
 
 **Deps:** LibNAddOn, LibNUI · **OptionalDeps:** none · **SavedVars:** `WarbandeerHousingDecorDB` (v1) · **Commands:** `/housingdecor`, `/wbdecor` (`""` open, `scan`, `wanted`) — `/decor` is deliberately avoided (a common third-party decor-vendor addon owns it) · **API:** publishes `WarbandeerHousingDecorApi` (hardcoded in `api.lua`, not `X-NUI-API`) · **UI:** LibNUI (`X-NUI-UI`)
 

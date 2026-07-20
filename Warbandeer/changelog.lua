@@ -45,7 +45,7 @@ ns.changelog = {
   { version = "12.0.7-r23", notes = [==[
 ### Features
 - Traveler's Log progress + rewards-waiting tracker (#553)
-- housing decor collection tracker (Warbandeer_HousingDecor sibling) (#551)
+- housing decor collection tracker (Warbandeer_Decor sibling) (#551)
 - spread the Detail view across three columns (#547)
 - track class mounts + spec tints in the appearance card (#545)
 - per-character current-title column backed by a titles broker (#537)

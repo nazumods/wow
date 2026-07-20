@@ -4,9 +4,9 @@ local ui = ns.ui
 local theme = ns.theme
 local Class, Frame, Label = ns.lua.Class, ui.Frame, ui.Label
 
--- Housing decor collection grid. The grid itself is the sibling Warbandeer_HousingDecor
+-- Housing decor collection grid. The grid itself is the sibling Warbandeer_Decor
 -- addon's own list, reused in `embedded` mode via the WarbandeerHousingDecorApi global
--- (OptionalDep) — one source of truth, maintained in Warbandeer_HousingDecor/list.lua.
+-- (OptionalDep) — one source of truth, maintained in Warbandeer_Decor/list.lua.
 -- This view owns only the surrounding chrome: the filter strip and the header counter.
 --
 -- The whole view is registered (see the bottom of the file) only when the Housing Decor

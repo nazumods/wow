@@ -13,7 +13,7 @@ return {
       "ShadowsOfUI-HousingVendor/spec",
       "ShadowsOfUI-PostOffice/spec",
       "ShadowsOfUI-Known/spec",
-      "Warbandeer_HousingDecor/spec",
+      "Warbandeer_Decor/spec",
     },
     lpath = "?.lua",
     verbose = true,

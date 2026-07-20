@@ -7,7 +7,7 @@
 ## SavedVariables: WarbandeerDB
 ## AddonCompartmentFunc: Warbandeer_OnAddonCompartmentClick
 ## Dependencies: LibNAddOn, LibNUI, Warbandeer_Characters
-## OptionalDeps: Warbandeer_Bars, Warbandeer_Collected, Warbandeer_HousingDecor, ShadowsOfUI-Upgrade, Epithet
+## OptionalDeps: Warbandeer_Bars, Warbandeer_Collected, Warbandeer_Decor, ShadowsOfUI-Upgrade, Epithet
 ## X-Curse-Project-ID: 1546586
 ## X-NUI-DB: WarbandeerDB
 ## X-NUI-DB-VERSION: 8
