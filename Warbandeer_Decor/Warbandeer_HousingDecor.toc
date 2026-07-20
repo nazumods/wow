@@ -12,6 +12,7 @@
 ## X-NUI-COMMANDS: /housingdecor, /wbdecor
 ## X-NUI-COMPARTMENT: WarbandeerHousingDecor_OnAddonCompartmentClick
 ## X-NUI-UI: LibNUI
+## X-Curse-Project-ID: 1617350
 
 init.lua
 commands.lua

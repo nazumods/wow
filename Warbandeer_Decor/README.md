@@ -1,4 +1,4 @@
-# Warbandeer_HousingDecor
+# Warbandeer: Decor
 
 A **housing decor collection tracker** for your warband. Housing decor is collected
 **account-wide** — every character shares one storage and the same houses — so this is a
