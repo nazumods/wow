@@ -575,6 +575,7 @@ The menu closes on Esc (consumed, so it stays out of a parent window's Escape ha
 | Method          | Description                                                  |
 |-----------------|--------------------------------------------------------------|
 | `Select(key)`   | Re-point at `key` (updates the label) **without** firing `onSelect` |
+| `SetOptions(options, selected?)` | Replace the option list and re-lay-out the menu (the panel is built once at construction; its rows are pooled and reused, so a swap leaks no frames). Selects `selected` when it's a valid key of the new list, else the current key if it survives, else the first option; refreshes the label. **Without** firing `onSelect` |
 | `labelFor(key)` | The display label for a key (empty string if not found)      |
 
 ```lua
