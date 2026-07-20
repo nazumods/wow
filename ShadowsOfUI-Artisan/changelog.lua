@@ -6,6 +6,11 @@ local ns = select(2, ...)
 -- conventional-commit grouping used for the GitHub/CurseForge release notes.
 ---@type { version: string, notes: string }[]
 ns.changelog = {
+  { version = "12.0.7-r6", notes = [==[
+### Maintenance
+- add curse project
+
+]==] },
   { version = "12.0.7-r5", notes = [==[
 ### Features
 - flag uncaptured profession detail on the spellbook page (#436)
