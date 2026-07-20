@@ -122,7 +122,8 @@ end
 ---@field _buildRacePanels fun(self: DressingRoom, controls: Frame, d: table)  build the race selector (DressingRoomControls.lua)
 ---@field _buildSlots fun(self: DressingRoom, winW: number)  build the paper-doll slot columns (DressingRoomSlots.lua)
 ---@field _picker Frame?  the docked weapon/illusion picker pane, lazily built on first open (WeaponPicker.lua)
----@field _pickerCats WeaponCategory[]  the class-usable weapon categories (dropdown source)
+---@field _pickerCats WeaponCategory[]  the previewed set's class's usable weapon categories (dropdown source)
+---@field _pickerClass number?  chrClassID the picker is currently scoped to (weapons + illusions); rescoped on class change
 ---@field _pickerCatByID table<number, WeaponCategory>  category id → descriptor (main/off-hand slot routing)
 ---@field _pickerCat FilterDropdown  the category selector (illusions + weapon types)
 ---@field _pickerList VirtualList  the appearance / illusion list
@@ -139,6 +140,7 @@ end
 ---@field _buildWeaponToggle fun(self: DressingRoom)  build the picker toggle button (WeaponPicker.lua)
 ---@field _buildWeaponPicker fun(self: DressingRoom)  build the docked picker pane (WeaponPicker.lua)
 ---@field ToggleWeaponPicker fun(self: DressingRoom, force: boolean?)  show/hide the picker pane (WeaponPicker.lua)
+---@field _rescopePicker fun(self: DressingRoom)  re-scope the picker (weapon types + illusions) to the previewed set's class (WeaponPicker.lua)
 local ROWH = 26         -- toggle-button height
 local TOPGAP = ROWH + PAD
 local PANELSTOP = TOPGAP + ROWH + PAD   -- faction panels sit below TWO control rows (toggles + ratings)

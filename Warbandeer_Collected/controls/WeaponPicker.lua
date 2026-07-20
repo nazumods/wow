@@ -22,8 +22,9 @@ local selBox, SELECTED, IDLE, PAD, ROWH = k.selBox, k.SELECTED, k.IDLE, k.PAD, k
 -- pane between two modes (illusions are a peer of weapons, not a weapon "type", so they get their
 -- own tab rather than hiding among the weapon-category dropdown): Weapons mode shows the category
 -- dropdown + weapon list; Illusions mode drops the dropdown and shows the illusion list. Both are
--- class-scoped for now (weapons via WeaponCategories/GetCategoryInfo, illusions via GetIllusions;
--- nazumods/wow#608 tracks moving both to the previewed SET's class).
+-- scoped to the PREVIEWED SET's class (self._classIndex), not the logged-in viewer's (#608): the
+-- weapon dropdown lists that class's usable types and the illusion tab that class's illusions.
+-- _rescopePicker re-derives both when the previewed class changes (Step across class columns).
 --
 -- Composition (the look is three independent slots, re-applied together by _applyLook):
 --   * main-hand weapon  self._lookMH   (a weapon appearance sourceID)
@@ -60,6 +61,8 @@ end
 function DressingRoom:ToggleWeaponPicker(force)
   if not self._picker then self:_buildWeaponPicker() end
   if force == nil then force = not self._picker._widget:IsShown() end
+  -- Opening after the previewed class changed (Steps while closed don't rescope): re-scope first.
+  if force and self._pickerClass ~= self._classIndex then self:_rescopePicker() end
   self._picker:SetShown(force)
   self._weaponToggleBorder:Color(force and SELECTED or IDLE)
 end
@@ -67,7 +70,8 @@ end
 -- Build the docked pane: an opaque, 1px-outlined panel down the window's right edge, with a drag
 -- header, the Weapons|Illusions tab row, the weapon-category dropdown, and the scrollable list.
 function DressingRoom:_buildWeaponPicker()
-  self._pickerCats = ns.WeaponCategories()
+  self._pickerClass = self._classIndex
+  self._pickerCats = ns.WeaponCategories(self._classIndex)
   self._pickerCatByID = {}
   for _, c in ipairs(self._pickerCats) do self._pickerCatByID[c.category] = c end
 
@@ -161,6 +165,27 @@ function DressingRoom:_setPickerMode(mode)
   end
 end
 
+-- Re-scope the picker to the currently previewed set's class: rebuild the weapon-category list +
+-- dropdown for that class (keeping the current category if the new class still has it, else the
+-- first available), and repopulate the active mode (the illusion list is class-scoped too). Called
+-- when the previewed class changes with the pane already built — Stepping across class columns
+-- (from _load, while shown) or reopening the pane after such a Step.
+function DressingRoom:_rescopePicker()
+  self._pickerClass = self._classIndex
+  self._pickerCats = ns.WeaponCategories(self._classIndex)
+  self._pickerCatByID = {}
+  local opts = {}
+  for _, c in ipairs(self._pickerCats) do
+    self._pickerCatByID[c.category] = c
+    opts[#opts + 1] = { key = c.category, label = c.name }
+  end
+  if not self._pickerCatByID[self._pickerCategory] then
+    self._pickerCategory = self._pickerCats[1] and self._pickerCats[1].category
+  end
+  self._pickerCat:SetOptions(opts, self._pickerCategory)
+  if self._pickerMode == "illusions" then self:_populateIllusions() else self:_populateWeapons() end
+end
+
 -- One list row: a selection border, a name line, and a subtitle. Clickable (applies the piece to
 -- the look), and hover shows a weapon's real item tooltip (illusions have no item, so no tooltip).
 ---@param list VirtualList
@@ -230,7 +255,7 @@ function DressingRoom:_populateWeapons()
   local cat = self._pickerCatByID[self._pickerCategory]
   self._pickerSlotOff = (cat and not cat.canMainHand and cat.canOffHand) or false
   local items = {}
-  for _, app in ipairs(ns.WeaponAppearances(self._pickerCategory)) do
+  for _, app in ipairs(ns.WeaponAppearances(self._pickerCategory, self._classIndex)) do
     if app.isCollected then
       local src = ns.WeaponSource(app.visualID)
       if src then items[#items + 1] = { kind = "w", visualID = app.visualID, src = src } end
@@ -240,12 +265,12 @@ function DressingRoom:_populateWeapons()
   self:_scheduleNameFill()
 end
 
--- Populate the class-usable enchant illusions (GetIllusions, via ns.Illusions), skipping the
--- "no illusion" hide entry. Names resolve synchronously, so no async name-fill needed.
+-- Populate the previewed set's class's enchant illusions (via ns.Illusions), skipping the "no
+-- illusion" hide entry. Names resolve synchronously, so no async name-fill needed.
 function DressingRoom:_populateIllusions()
   self._pickerSlotOff = false
   local items = {}
-  for _, ill in ipairs(ns.Illusions()) do items[#items + 1] = { kind = "i", ill = ill } end
+  for _, ill in ipairs(ns.Illusions(self._classIndex)) do items[#items + 1] = { kind = "i", ill = ill } end
   self._pickerList:SetItems(items)
 end
 
