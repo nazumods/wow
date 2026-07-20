@@ -1,4 +1,4 @@
-# ShadowsOfUI-Artisan
+# Shadows of UI: Artisan
 
 Adds a small **currency badge** to the **profession (crafting) window**, right beside Blizzard's
 own Concentration readout, showing how much of that profession's **expansion crafting currency**
@@ -26,10 +26,6 @@ shows its live amount; alts show the amount last recorded when you played them.
 
 `/sartisan [name]` prints the same breakdown to chat — a debugging aid; you won't normally
 need it.
-
-## Changelog
-
-A **Changelog** button in this addon's settings (Options → AddOns → Shadows of UI → Artisan Currency) opens its release history in a scrollable, copyable window.
 
 ## Dependencies
 
