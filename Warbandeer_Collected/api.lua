@@ -166,4 +166,10 @@ function API:OnRatingsChanged(fn) ns:OnRatingsChanged(fn) end
 ---@param fn fun(setId: number?, classIndex: number?)
 function API:OnDressedSetChanged(fn) ns:OnDressedSetChanged(fn) end
 
+---Register a callback fired when the shared dressing room's previewed **weapon cell** changes,
+---so a consumer's Weapons grid can box the matching cell. The callback receives the source
+---group + weapon type (nil on close, or when an armour set is shown instead).
+---@param fn fun(source: table?, weaponType: number?)
+function API:OnDressedWeaponCellChanged(fn) ns:OnDressedWeaponCellChanged(fn) end
+
 _G.WarbandeerCollectedApi = API

@@ -96,12 +96,15 @@ function ns.WeaponRows(self)
         local onEnter = function() ns.ShowWeaponCellTip(grp, t, visuals) end
         local onLeave = function() GameTooltip:Hide() end
         local onClick = function() ns.PreviewWeaponCell(grp, t, visuals) end
+        -- `_source`/`_type` identify the cell so the dressed-weapon cursor can find it
+        -- (the weapon analogue of a cell's setId/classIndex — see WeaponView:HighlightWeaponCell).
         if coll >= total then
           r[ci] = { atlas = GreenCheck.atlas, atlasSize = false, position = GreenCheck.position,
-            onEnter = onEnter, onLeave = onLeave, onClick = onClick }
+            onEnter = onEnter, onLeave = onLeave, onClick = onClick, _source = grp, _type = t }
         else
           r[ci] = { text = total - coll, justifyH = ui.justify.Center,
-            color = shades[max(1, floor(coll / total * 10))], onEnter = onEnter, onLeave = onLeave, onClick = onClick }
+            color = shades[max(1, floor(coll / total * 10))], onEnter = onEnter, onLeave = onLeave,
+            onClick = onClick, _source = grp, _type = t }
         end
       end
     end
@@ -132,6 +135,8 @@ function ns.ShowWeaponCellTip(grp, t, visuals)
     end
     local src = ns.WeaponSource(v)
     local name = (src and src.name) or ("Appearance " .. v)
+    -- Suffix the boss-drop difficulty (muted gold) so same-named recolours read apart, matching the chooser.
+    if src and src.difficulty then name = name .. "  |cffb0a060" .. src.difficulty .. "|r" end
     -- Atlas check/redx (the grid's own icons) render reliably in the tooltip font, unlike a raw
     -- ✓/✗ glyph (which shows as a missing-glyph box).
     local mark = ("|A:%s:12:12|a "):format(cmap[v] and ns.icons.CheckGreen or ns.icons.RedX)
@@ -140,38 +145,34 @@ function ns.ShowWeaponCellTip(grp, t, visuals)
   GameTooltip:Show()
 end
 
--- Drill-in: open the shared dressing room previewing a weapon cell's looks on the player's
--- character. The cell's looks are grouped by item **name** into distinct weapons, each carrying its
--- colour **variants** — recolours of one weapon usually share a name (e.g. "Dawnforged Edge"), so
--- they collapse into one chooser row whose variants ↑/↓ cycles. A synthetic weapon-cosmetic group
--- (kind="arsenal", weaponCell=true) drives the existing weapon render path + the WeaponCellPicker
--- chooser. Looks with no resolvable source are skipped; unresolved names request a load (the chooser
--- + title refresh once cached) and group under a placeholder until then.
+-- Drill-in: open the shared dressing room previewing a weapon cell's individual looks on the player's
+-- character. `set._looks` is the flat list of the cell's looks (each resolved via WeaponSource to its
+-- OWN appearance sourceID — what the model renders — plus a representative itemID for the name); the
+-- WeaponCellPicker chooser lists them and ↑/↓ steps through them
+-- (see _stepWeaponPiece), while ←/→ jumps to the source's adjacent weapon TYPE (see Step) — hence the
+-- group carries `_source`/`_type`. A synthetic weapon-cosmetic group (kind="arsenal", weaponCell=true)
+-- drives the existing weapon render path. Looks with no resolvable source are skipped.
 ---@param grp table
 ---@param t number
 ---@param visuals number[]
 function ns.PreviewWeaponCell(grp, t, visuals)
-  local byName, order = {}, {}
+  local looks = {}
   for _, v in ipairs(visuals) do
     local src = ns.WeaponSource(v)
     if src and src.itemID then
-      local nm = src.name or ("Appearance " .. v)
-      if not src.name then C_Item.RequestLoadItemDataByID(src.itemID) end
-      local w = byName[nm]
-      if not w then w = { name = nm, looks = {} }; byName[nm] = w; order[#order + 1] = nm end
-      w.looks[#w.looks + 1] = { visualID = v, itemID = src.itemID, isCollected = src.isCollected }
+      if not src.name then C_Item.RequestLoadItemDataByID(src.itemID) end   -- name fills in on the chooser/title retry
+      looks[#looks + 1] = { visualID = v, itemID = src.itemID, sourceID = src.sourceID,
+        difficulty = src.difficulty, isCollected = src.isCollected }
     end
   end
-  if #order == 0 then
+  if #looks == 0 then
     ns.Print("No previewable looks here yet — item data is still loading; hover the cell, then click again.")
     return
   end
-  table.sort(order)
-  local weapons = {}
-  for _, nm in ipairs(order) do weapons[#weapons + 1] = byName[nm] end
   local set = { name = ("%s — %s"):format(grp.name, ns.WeaponTypeName[t] or "Weapon"),
-    _weapons = weapons, _offHand = (t == 18 or t == 19) }   -- Shield / Held-in-off-hand render in the off hand
-  local group = { kind = "arsenal", weaponCell = true, name = grp.name, release = grp.release, sets = { set } }
+    _looks = looks, _offHand = (t == 18 or t == 19) }   -- Shield / Held-in-off-hand render in the off hand
+  local group = { kind = "arsenal", weaponCell = true, name = grp.name, release = grp.release,
+    sets = { set }, _source = grp, _type = t }   -- _source/_type let ←/→ step to adjacent weapon types
   ns.ShowDressingRoom(group, set)
 end
 

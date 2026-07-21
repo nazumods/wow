@@ -199,3 +199,26 @@ end
 function ns:NotifyDressedSetChanged(setId, classIndex)
   for _, fn in ipairs(self._dressedListeners) do fn(setId, classIndex) end
 end
+
+-- The weapon grid's parallel to the dressed-set bus: previewing (or ←/→ cycling) a
+-- weapon cell broadcasts the shown source group + weapon type so the Weapons grid can
+-- box the matching cell, exactly as HighlightSet boxes an armour cell. A weapon cell is
+-- keyed by (source, type) rather than (setId, classIndex). Same shared-room reasoning:
+-- the room can't know which grid launched it, so it broadcasts and grids self-resolve.
+---@type fun(source: table?, weaponType: number?)[]
+ns._dressedWeaponListeners = {}
+
+---Register a callback run whenever the dressing room's previewed weapon cell changes
+---(it receives the source group + weapon type, or nil when the room closes or an armour
+---set is shown instead).
+---@param fn fun(source: table?, weaponType: number?)
+function ns:OnDressedWeaponCellChanged(fn)
+  self._dressedWeaponListeners[#self._dressedWeaponListeners + 1] = fn
+end
+
+---Broadcast the dressing room's current weapon cell (nil to clear) to every registered grid.
+---@param source table?
+---@param weaponType number?
+function ns:NotifyDressedWeaponCellChanged(source, weaponType)
+  for _, fn in ipairs(self._dressedWeaponListeners) do fn(source, weaponType) end
+end

@@ -5,7 +5,9 @@ sets versus your characters, with the number of appearances each character can s
 collect. Use the title-bar buttons to flip the row order between oldest and newest
 expansion first, hover a set to see its pieces (collected vs missing), and click a
 row to see which of your characters are locked out of that instance — so you always
-know who to run it on next.
+know who to run it on next. An **Armor / Weapons** toggle at the top of the window
+switches the grid between your armor sets and your weapon collection (see **Weapons
+view** below).
 
 ## PTR preview
 
@@ -63,6 +65,26 @@ Mythic gold), so you can tell at a glance which tier you're previewing. A badge 
 the model's lower-right corner shows which **expansion** the set is from (hover it
 for the expansion name). The window stays open until you close it (Escape or the X); drag to spin
 the model.
+
+## Weapons view
+
+The **Armor / Weapons** toggle at the top of the window flips the whole grid between
+your armor sets and your **weapons**. In Weapons mode the rows become weapon
+**sources** — each raid, dungeon, and world boss, plus per-expansion buckets for
+Quest, Vendor, World Drop, Crafted, Trading Post and Achievement weapons — and the
+columns become the **weapon types** (one-handed swords, staves, bows, off-hands, and
+so on). Each cell works just like the armor grid: the number of appearances you still
+need, shaded red→green by how close you are (a green check when you've collected them
+all). Hover a cell for the list of individual weapons in it, each with a collected
+mark and its **difficulty** (LFR / Normal / Heroic / Mythic). Sort by expansion and
+filter by expansion or source category, exactly like the armor grid.
+
+**Click a cell** to open the dressing room holding those weapons on your own
+character, with a chooser listing every look in that cell — the same-named difficulty
+recolours told apart by their **difficulty** label. Use **↑/↓** to step through the
+looks and **←/→** to jump to the neighbouring weapon type from the same source; the
+grid draws a white box around the cell you're viewing so you never lose your place.
+Mark a look with the **★** button to add it to your weapon wanted list.
 
 ## Class weapon cosmetics
 
@@ -135,7 +157,7 @@ right-click to scan.
 ## Saved data
 
 `WarbandeerCollectedDB` (account-wide): scanned set/appearance counts, plus your
-wanted flags and tier ranks (baseline + per-race). Ratings are kept separately from
+wanted flags and tier ranks (baseline + per-race) and your wanted weapon looks. Ratings are kept separately from
 the scan data, so re-scanning never clears them. The collection window and the set
 preview window also remember where you last dragged them, so they reopen in place
 instead of re-centering.

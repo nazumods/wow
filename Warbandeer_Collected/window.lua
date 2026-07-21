@@ -130,6 +130,14 @@ local MainWindow = Class(TitleFrame, function(self)
     },
     colInfo = ns.WeaponView.BuildColInfo(),
     onResized = function() self:_fitToGrid() end,
+    -- Scroll the dressed-weapon row into view (weaponScroll is assigned just below; the
+    -- closure only reads it at highlight time, by which point it exists).
+    onEnsureVisible = function(_, rowTop, rowH)
+      local s = self.weaponScroll
+      local cur, view = s:VerticalScroll(), s:Height()
+      if rowTop < cur then s:VerticalScroll(rowTop)
+      elseif rowTop + rowH > cur + view then s:VerticalScroll(rowTop + rowH - view) end
+    end,
   }
   self.weapons:Hide()   -- SetMode resizes the window to the active grid's width, so the window
                         -- starts at the armor width and widens on the toggle to Weapons.
@@ -276,6 +284,13 @@ end)
 ns:OnDressedSetChanged(function(setId, classIndex)
   if not ns.window then return end
   ns.window.data:HighlightSet(setId, classIndex, true)
+end)
+
+-- Same for the Weapons grid: box the (source, type) cell of the weapon currently in the
+-- dressing room, following ←/→ type-stepping (nil clears on close / when an armor set is shown).
+ns:OnDressedWeaponCellChanged(function(source, weaponType)
+  if not ns.window then return end
+  ns.window.weapons:HighlightWeaponCell(source, weaponType, true)
 end)
 
 ---@class Warbandeer_Collected

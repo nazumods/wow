@@ -149,6 +149,15 @@ local CollectedView = Class(Frame, function(self)
       position = { TopLeft = {0, -TOP} },
       colInfo = WarbandeerCollectedApi.WeaponView.BuildColInfo(),
       onResized = function() _view:_fitToGrid() end,
+      -- Scroll the dressed-weapon row into view (weaponScroll is assigned just below;
+      -- the closure only reads it at highlight time).
+      onEnsureVisible = function(_, rowTop, rowH)
+        local s = _view and _view.weaponScroll
+        if not s then return end
+        local cur, view = s:VerticalScroll(), s:Height()
+        if rowTop < cur then s:VerticalScroll(rowTop)
+        elseif rowTop + rowH > cur + view then s:VerticalScroll(rowTop + rowH - view) end
+      end,
     }
     self.weaponGrid:Hide()
     local weaponW = self.weaponGrid:Width()
@@ -219,6 +228,15 @@ if WarbandeerCollectedApi and WarbandeerCollectedApi.OnDressedSetChanged then
   WarbandeerCollectedApi:OnDressedSetChanged(function(setId, classIndex)
     local g = _view and _view.grid
     if g then g:HighlightSet(setId, classIndex, true) end
+  end)
+end
+
+-- Same for the Weapons grid: box the (source, type) cell of the weapon shown in the dressing
+-- room, following ←/→ type-stepping (nil clears on close / when an armor set is shown).
+if WarbandeerCollectedApi and WarbandeerCollectedApi.OnDressedWeaponCellChanged then
+  WarbandeerCollectedApi:OnDressedWeaponCellChanged(function(source, weaponType)
+    local g = _view and _view.weaponGrid
+    if g then g:HighlightWeaponCell(source, weaponType, true) end
   end)
 end
 

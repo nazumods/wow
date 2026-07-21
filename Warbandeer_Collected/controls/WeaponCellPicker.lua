@@ -11,20 +11,20 @@ local DressingRoom = ns.DressingRoom
 local k = DressingRoom._k
 local selBox, SELECTED, IDLE, PAD = k.selBox, k.SELECTED, k.IDLE, k.PAD
 
--- Weapon-cell chooser: a pane docked to the dressing room's right edge listing the cell's distinct
--- weapons (the cell's looks grouped by item name in ns.PreviewWeaponCell). Clicking a weapon previews
--- it on the character; ↑/↓ then cycles that weapon's colour variants (see _stepWeaponPiece). Each row
--- shows a ★ when any of its variants is Wanted, and its name is tinted green when any is collected.
--- Mutually exclusive with the look-builder picker (a weapon-cell preview closes that), so both can
--- dock to the same edge. Reopens the DressingRoom class.
+-- Weapon-cell chooser: a pane docked to the dressing room's right edge listing the cell's individual
+-- looks (the previewed weapon-cell set's `_looks`). Clicking a look previews it; **↑/↓ steps through
+-- the list** (see _stepWeaponPiece) and **←/→ jumps to the source's adjacent weapon type** (see Step).
+-- Each row shows a ★ when its look is Wanted, and its name is tinted green when collected. Mutually
+-- exclusive with the look-builder picker (a weapon-cell preview closes that), so both dock to the same
+-- edge. Reopens the DressingRoom class.
 
-local PANEW = 210                              -- docked pane width
+local PANEW = 340                              -- docked pane width (wide enough for a name + difficulty tag)
 local GAP   = 6                                -- gap between the window and the pane
 local ROW_H = 28                               -- list row height
 local PANEL = { 0.05, 0.05, 0.06, 0.96 }       -- opaque pane fill (a standalone frame's theme bg is alpha-0)
 local OWNED = { 0.30, 0.85, 0.40 }             -- collected tint
 
--- Build the docked pane (an opaque, 1px-outlined panel) + its scrollable weapon list. Lazy.
+-- Build the docked pane (an opaque, 1px-outlined panel) + its scrollable look list. Lazy.
 function DressingRoom:_buildCellChooser()
   local pane = Frame:new{
     parent = self, background = PANEL,
@@ -37,7 +37,7 @@ function DressingRoom:_buildCellChooser()
   Texture:new{ parent = pane, layer = ui.layer.Border, color = IDLE,
     position = { TopLeft = {-1, 1}, BottomRight = {1, -1} } }
   Label:new{ parent = pane, fontObj = "GameFontNormal",
-    position = { TopLeft = {PAD, -PAD} }, text = "Weapons in this cell" }
+    position = { TopLeft = {PAD, -PAD} }, text = "Weapons from this source" }
   self._cellPane = pane
 
   self._cellList = VirtualList:new{
@@ -62,43 +62,38 @@ function DressingRoom:_makeCellRow(list)
   row.star = Texture:new{ parent = row, layer = ui.layer.Artwork, atlas = ns.WantedIcon, atlasSize = false,
     position = { Right = {-5, 0}, Size = {12, 12}, Hide = true } }
   row._widget:EnableMouse(true)
-  row._widget:SetScript("OnMouseUp", function() self:SelectCellWeapon(row._idx) end)
+  row._widget:SetScript("OnMouseUp", function() self:SelectCellLook(row._idx) end)
   return row
 end
 
--- Re-point a pooled row at a weapon `{ idx, weapon = { name, looks = { {visualID, itemID, isCollected} } } }`.
--- Name from the first look's live item name (async; falls back to the grouped name); variant count in
--- parentheses when > 1; green tint if any variant is collected; ★ if any variant is Wanted; gold border
--- on the currently-selected weapon.
+-- Re-point a pooled row at a look `{ idx, look = {visualID, itemID, isCollected} }`: name from the live
+-- item name (async; a fallback until cached), green when collected, ★ when Wanted, gold border on the
+-- currently-shown look (self._weaponPiece).
 ---@param row Frame
 ---@param item table
 ---@return number
 function DressingRoom:_fillCellRow(row, item)
   row._idx = item.idx
-  local w = item.weapon
-  local first = w.looks[1]
-  local nm = GetItemNameByID(first.itemID)
-  if not nm then RequestLoadItemDataByID(first.itemID); nm = w.name end
-  local variants = #w.looks
-  row.name:Text(variants > 1 and ("%s  (%d)"):format(nm, variants) or nm)
-  local owned, wanted = false, false
-  for _, lk in ipairs(w.looks) do
-    if lk.isCollected then owned = true end
-    if ns:IsWeaponWanted(lk.visualID) then wanted = true end
-  end
-  row.name:Color(owned and OWNED or "muted")
-  row.star:SetShown(wanted)
-  row.border:Color(item.idx == (self._weaponItem or 1) and SELECTED or IDLE)
+  local look = item.look
+  local nm = GetItemNameByID(look.itemID)
+  if not nm then RequestLoadItemDataByID(look.itemID); nm = "Appearance " .. look.visualID end
+  -- Suffix the boss-drop difficulty (muted gold) so a cell's same-named difficulty recolours read
+  -- apart — "Brazier of the Dissonant Dirge  Heroic". Non-drop looks (quest/vendor) show just the name.
+  if look.difficulty then nm = nm .. "  |cffb0a060" .. look.difficulty .. "|r" end
+  row.name:Text(nm)
+  row.name:Color(look.isCollected and OWNED or "muted")
+  row.star:SetShown(ns:IsWeaponWanted(look.visualID))
+  row.border:Color(item.idx == (self._weaponPiece or 1) and SELECTED or IDLE)
   return ROW_H
 end
 
--- Populate + show the chooser for `weapons` (the previewed weapon-cell set's `_weapons`). Names load
--- async, so refresh once shortly after so grouped names/marks fill in.
----@param weapons table[]
-function DressingRoom:ShowCellChooser(weapons)
+-- Populate + show the chooser for `looks` (the previewed weapon-cell set's `_looks`). Names load async,
+-- so refresh once shortly after so blank names + collected/wanted marks fill in.
+---@param looks table[]
+function DressingRoom:ShowCellChooser(looks)
   if not self._cellPane then self:_buildCellChooser() end
   local items = {}
-  for i, w in ipairs(weapons or {}) do items[#items + 1] = { idx = i, weapon = w } end
+  for i, lk in ipairs(looks or {}) do items[#items + 1] = { idx = i, look = lk } end
   self._cellList:SetItems(items)
   self._cellPane:Show()
   if self._cellNameTimer then self._cellNameTimer:Cancel() end
@@ -112,12 +107,10 @@ function DressingRoom:HideCellChooser()
   if self._cellPane then self._cellPane:Hide() end
 end
 
--- Select a weapon in the chooser: preview its first colour variant, reset the variant cursor, and
--- refresh the ★ + row highlights. ↑/↓ then cycles this weapon's variants.
+-- Select a look in the chooser: preview it, then refresh the ★ + row highlight.
 ---@param idx number
-function DressingRoom:SelectCellWeapon(idx)
-  self._weaponItem = idx
-  self._weaponPiece = 1
+function DressingRoom:SelectCellLook(idx)
+  self._weaponPiece = idx
   self:Dress()
   self:_refreshRatings()
   if self._cellList then self._cellList:Refresh() end

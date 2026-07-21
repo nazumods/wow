@@ -107,12 +107,14 @@ function DressingRoom:_dressWeapon(m, form)
     -- FORCE it onto the hand with SlotTransmog rather than Outfit — Outfit drops a weapon the
     -- character's class can't equip (an axe wouldn't show for a caster), while SlotTransmog renders
     -- any appearance on any character (the look-builder relies on this). Shields/off-hands → off hand.
-    local w = set._weapons[self._weaponItem or 1]
-    local look = w and w.looks[idx]
-    local ima = look and select(2, C_TransmogCollection.GetItemInfo(look.itemID))
+    -- Render the SPECIFIC appearance's source (WeaponSource picked it per visualID), NOT the item's
+    -- default modified-appearance: GetItemInfo(itemID) returns the base-difficulty look, so several
+    -- distinct visuals of one base weapon (e.g. difficulty recolours) would all collapse to one render.
+    -- SlotTransmog takes an appearance sourceID directly, exactly as the look-builder does.
+    local look = set._looks[idx]
     m:Outfit({})   -- bare body; the weapon is the focus, forced on below
     m:ClearSlotTransmog(INVSLOT_OFFHAND)
-    if ima then m:SlotTransmog(set._offHand and INVSLOT_OFFHAND or INVSLOT_MAINHAND, ima) end
+    if look and look.sourceID then m:SlotTransmog(set._offHand and INVSLOT_OFFHAND or INVSLOT_MAINHAND, look.sourceID) end
   elseif self._group.kind == "illusion" then
     m:Outfit({})   -- bare; the illusion rides the host weapon applied below
     local piece = set.illusions[idx]
@@ -143,11 +145,11 @@ function DressingRoom:_titleWeapon()
   local set, idx = self._set, self._weaponPiece or 1
   local name, count
   if self._group.weaponCell then
-    local w = set._weapons[self._weaponItem or 1]
-    count = w and #w.looks
-    local look = w and w.looks[idx]
+    count = #set._looks
+    local look = set._looks[idx]
     name = look and C_Item.GetItemNameByID(look.itemID)
     if look and not name then C_Item.RequestLoadItemDataByID(look.itemID) end
+    if name and look.difficulty then name = name .. " — " .. look.difficulty end   -- disambiguate difficulty recolours
   elseif self._group.kind == "illusion" then
     count = #set.illusions
     local piece = set.illusions[idx]
@@ -277,7 +279,10 @@ ns.ShowDressingRoom = function(group, set)
     _room:RememberPosition(ns.db.dressPos)   -- restore + persist the user's dragged position
     -- Clear the grid row highlight whenever the room closes — via OnHide so every path
     -- lands here (Escape/UISpecialFrames, the close button, and HideDressingRoom alike).
-    _room._widget:HookScript("OnHide", function() ns:NotifyDressedSetChanged(nil) end)
+    _room._widget:HookScript("OnHide", function()
+      ns:NotifyDressedSetChanged(nil)
+      ns:NotifyDressedWeaponCellChanged(nil)
+    end)
   end
 
   -- Reset to the current character's race on a fresh open — the first ever (no race
