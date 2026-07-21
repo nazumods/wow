@@ -359,3 +359,48 @@ groups from the audit.
 > **Coverage ceiling.** Overlap labels and cosmetic (`class=0`) pieces mean a few
 > *appearances* per mega-set can't be shown in a per-class grid — this captures every
 > **group**, not literally every appearance. Validate in-game with `/collected coverage`.
+
+## Regenerating the weapon sources (`-Weapons`)
+
+The **Weapons view** (the `Armor / Weapons` grid toggle) is backed by
+[`../data/weaponsources.lua`](../data/weaponsources.lua) (`ns.WeaponSources`), owned
+wholesale by **`-Weapons`** — every weapon + off-hand **appearance** bucketed by **source**
+(row) × **weapon type** (column), per expansion:
+
+```
+pwsh ./update-sets.ps1 -Weapons          # regenerate data/weaponsources.lua
+pwsh ./update-sets.ps1 -Weapons -Check    # staleness only, write nothing (exit 1 if stale)
+```
+
+Unlike armor, **Blizzard never grouped weapons into `TransmogSet` records**, so the grouping
+is **derived from DB2** (no hand-curation, no `expand-groups.txt` equivalent). The join:
+
+| Signal | Table | Gives |
+|---|---|---|
+| source **type** | `ItemModifiedAppearance.TransmogSourceTypeEnum` | `Enum.TransmogSource` per appearance (drop/quest/vendor/world/craft/achiev/TP) |
+| specific **source** | `CollectableSourceInfo` + `CollectableSource{Encounter,Quest,Vendor}Sparse` | the encounter / quest map / vendor map |
+| weapon **type** (column) | `Item.ClassID/SubclassID/InventoryType` | `Enum.TransmogCollectionType` (ClassID 2; **Shield/Holdable are Armor class 4**) |
+| instance **expansion** | `JournalTier` via `JournalTierXInstance` | release — **not `Map.ExpansionID`**, which is 0 for brand-new maps (filter the `9000` "Current Season" tier) |
+| raid vs dungeon | `Map.InstanceType` | 2 = Raid, 1 = Dungeon, 0 = World Boss |
+
+Values in `types` are `ItemAppearanceID`s (the visuals); the in-game scan resolves collected
+state per visual. Design decisions baked in (see the design doc — `Notes/wow-collected-weapons-view-design.md`):
+
+- **One representative source per visual**, priority **drop > quest > vendor > TP > world > craft > achiev**.
+- **Dungeon/raid wings merge** into the base instance (`Dire Maul - Gordok Commons` → `Dire Maul`).
+- **PvP weapons stay under `Vendor`** (no clean offline PvP signal yet) — a future refinement.
+- **Artifact weapons are excluded** (`ArtifactAppearance*` is a separate spec-coupled subsystem) — a fast-follow.
+- Appearances whose expansion can't be resolved land in a **`release = 0`** ("Other") bucket, not dropped.
+
+**Ownership & cadence.** The file is regenerated wholesale each run; refresh it by re-running
+`-Weapons` (never hand-edit). Row ids are **stable** — instance rows `9_200_000 + JournalInstanceID`,
+per-expansion aggregates `9_300_000 + …` — clear of armor `setId`s and the `weapons.lua`
+illusion/arsenal ids. Guards mirror the other modes (row floors on `Item`/`ItemModifiedAppearance`,
+a min-placed floor, a build stamp that updates only on a real change). It downloads a broader table
+set than the armor pass — notably **`ItemSparse` (~50 MB)**, streamed for just `ID`+`ExpansionID`.
+Run it **weekly** (a dedicated `update-collected-weapons.yml` workflow, mirroring the set-refresh
+one, is the intended automation — pending) and after a content patch.
+
+> **Verify in-game** after a refresh: `/reload`, toggle to Weapons, and spot-check a raid
+> (Molten Core's `Dagger` cell should read 4). A `/collected coverage` weapons variant catches
+> rows that resolve offline but render empty on a live client.
