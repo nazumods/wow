@@ -31,6 +31,7 @@
 | `src/github.ts` | GitHub API client: `fetchReleases(repo)` (drafts filtered) + pure `decideReleaseAnnouncements(releases, seen)` (seed-silently on `seen===undefined`, else announce unseen oldest-first) + `createIssue` / idempotent `ensureLabel` for `/report` (both need `GITHUB_TOKEN` with issues:write) |
 | `Dockerfile` | `oven/bun:1-slim` (Debian — Intl IANA timezones), prod-only install, non-root `bun` user, `VOLUME /app/data`, `ARG/ENV GIT_SHA` |
 | `docker-compose.yml` | `GIT_SHA=$(git rev-parse HEAD) docker compose up -d --build`: `env_file: .env`, `GIT_SHA` build arg, named volume `state` → `/app/data`, `restart: unless-stopped`. Opt-in `cloudflared` sidecar (`profiles: [tunnel]`, needs `CLOUDFLARE_TUNNEL_TOKEN`) for exposing a future local API without inbound firewall ports |
+| `ops/bot-ops.sh` + `ops/README.md` | Operator admin surface for the desktop app's **Ops** tab (`apps/warbandeer-desktop`): whitelisted `status`/`logs`/`restart`/`env-get`/`env-set` over docker+`.env`, invoked over SSH. Secrets are never read/written (whitelist excludes them); env-set backs up then `-p warbandeer-discord-debug up -d --force-recreate`. The only privileged surface — the desktop app just SSHes to it |
 
 ## Behavior
 

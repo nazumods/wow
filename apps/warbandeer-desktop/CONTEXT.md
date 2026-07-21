@@ -1,13 +1,13 @@
 # apps/warbandeer-desktop
 
-> **Purpose:** Tauri 2 + Svelte 5 desktop companion (not an addon — lives under `apps/`, excluded from the addon release pipeline). The Rust backend loads `Warbandeer_Characters.lua` SavedVariables by executing it in an embedded Lua 5.1 VM (`mlua`, vendored) and deserializing the `WarbandeerCharDB` global, lists/summarizes `Logs/WoWCombatLog*.txt`, and reads/writes `character-list-order.txt` (character-select reordering, ported from the retired standalone WarbandeerCharacterSort WPF app). The frontend mirrors the Warbandeer addon's Overview view in the "void-dark" theme. Three tabs: **Overview**, **Logs**, **Sort**.
+> **Purpose:** Tauri 2 + Svelte 5 desktop companion (not an addon — lives under `apps/`, excluded from the addon release pipeline). The Rust backend loads `Warbandeer_Characters.lua` SavedVariables by executing it in an embedded Lua 5.1 VM (`mlua`, vendored) and deserializing the `WarbandeerCharDB` global, lists/summarizes `Logs/WoWCombatLog*.txt`, and reads/writes `character-list-order.txt` (character-select reordering, ported from the retired standalone WarbandeerCharacterSort WPF app). The frontend mirrors the Warbandeer addon's Overview view in the "void-dark" theme. Tabs: **Overview**, **Logs**, **Sort**, and an operator-only **Ops** tab (hidden unless `ops.json` is present) that drives the `warbandeer-discord` bot on the box over SSH.
 
 ## Files
 
 | File | Purpose |
 |---|---|
 | **Rust backend (`src-tauri/`)** | |
-| `src/lib.rs` | Tauri builder — registers the 8 commands (see command surface) |
+| `src/lib.rs` | Tauri builder — registers the 14 commands (see command surface) |
 | `src/main.rs` | Thin entry point calling `lib.rs::run()` |
 | `src/wow.rs` | Locate `_retail_` (override/`WOW_DIR` → exe/cwd ancestor with `WTF/Account` → default install path); find SavedVariables per account; list accounts with an order file |
 | `src/savedvars.rs` | `load_char_db(path)` — exec the file in a fresh `mlua` Lua 5.1 VM, deserialize global `WarbandeerCharDB` via `LuaSerdeExt` |
@@ -15,6 +15,7 @@
 | `src/overview.rs` | `get_overview` — computes the Overview payload (stat strip, best-standing-per-faction reps, top char per class); mirrors `Warbandeer/views/Overview.lua` + `overview/TopAlts.lua` + `FactionBars.lua`. Has an end-to-end test against the live install (skips if none) |
 | `src/combatlog.rs` | `list_combat_logs` (newest first) + `summarize_combat_log` — streaming CLEU parse: unique `ENCOUNTER_START` names, damage-by-source top 10 |
 | `src/charorder.rs` | Parse/resolve/save `character-list-order.txt` + the remembered-order file; timestamped backups; extensive unit tests |
+| `src/botops.rs` | Operator-only: `ops_config` gate + `bot_status`/`bot_logs`/`bot_restart`/`bot_env_get`/`bot_env_set`, all shelling `ssh` to the box's `apps/warbandeer-discord/ops/bot-ops.sh` (the only privileged surface). Config from `ops.json` (app config dir, or `WARBANDEER_OPS_CONFIG`); absent ⇒ `ops_config` returns `None` and the tab stays hidden. Unit tests for config parse + payload deser |
 | **Svelte frontend (`src/`)** | |
 | `main.ts`, `App.svelte` | Mount; titlebar (version via `getVersion()`, account), tab switch, load/refresh, error state |
 | `lib/api.ts` | Thin typed `invoke()` wrappers, one per Rust command |
@@ -27,6 +28,7 @@
 | `lib/components/CharacterSort.svelte` | Sort tab controller (751 lines, the big one): account picker, sort/lock/gap state, drag-and-drop, Save to WoW / Remember this order |
 | `lib/components/ProfessionChoiceDialog.svelte` | Modal asking which of two crafting professions leads (dual-crafter ambiguity) |
 | `lib/components/Achievements.svelte` | Placeholder — achievements aren't in SavedVariables |
+| `lib/components/BotOps.svelte` | Operator-only Ops tab: status bar (running/realm), restart (confirmed), an env form over the non-secret whitelist (dirty-tracked, apply → recreate, confirmed), and a log tail. `App.svelte` renders it before the WoW-data gate so it works with no install |
 | **Build & release** | |
 | `vite.config.ts`, `svelte.config.js`, `tsconfig*.json` | Vite on fixed port 1420 (`strictPort`), `src-tauri/` excluded from watch |
 | `src-tauri/tauri.conf.json` | `productName` "Warbandeer", **`version` = release source of truth**, `bundle.active: false` (portable exe only) |
@@ -53,6 +55,17 @@ All commands take an optional `wowDir` override (frontend always passes `null` t
 | `save_character_order(account, ordered)` | backup path | Backs up first (see Gotchas), then writes CRLF `Version: 2` file |
 | `get_remembered_order(account)` | `OrderLine[] \| null` | `null` = nothing remembered yet |
 | `remember_character_order(account, ordered)` | `()` | Overwrites `character-list-order - Memory.txt` in the account dir, no backup (intended) |
+
+Operator-only ops commands (no `wowDir`; all shell `ssh <cfg.ssh> "bash <cfg.remoteDir>/ops/bot-ops.sh …"`, see `../warbandeer-discord/ops/README.md`):
+
+| Command | Returns | Notes |
+|---|---|---|
+| `ops_config` | `OpsConfig \| null` | The gate — `null` (no `ops.json`) ⇒ frontend hides the Ops tab. A malformed config errors so a typo is visible |
+| `bot_status` | `BotStatus` | running / status line / image / last realm status (parsed from the helper's JSON) |
+| `bot_logs(lines?)` | `string` | Container log tail (default 200, capped 5000) |
+| `bot_restart` | `string` | In-place restart, no env reload |
+| `bot_env_get` | `Record<string,string>` | Current values of the non-secret editable keys only |
+| `bot_env_set(changes)` | `EnvSetResult` | Whitelisted `.env` edit on the box → backup + `--force-recreate`; a no-op skips the restart |
 
 ## Character Sort model
 
@@ -82,3 +95,4 @@ Version lives in **three places kept in sync by hand**: `src-tauri/tauri.conf.js
 - **`bundle.active: false`** — `npm run tauri build` emits only the portable `src-tauri/target/release/*.exe`; enabling bundling would break `app-release.yml`'s `ls …/*.exe` staging assumption.
 - **mlua is vendored C** — building needs the MSVC toolchain Rust already links with; first builds are slow.
 - **Clippy is a hard gate** (`-D warnings` in `app-test.yml`), matching the suite's strict-luacheck policy.
+- **Ops tab is operator-only and dormant by default** — no `ops.json` ⇒ `ops_config` returns `None` ⇒ the tab never renders, so shipped builds are inert for end users. The privileged work lives entirely in the box's `ops/bot-ops.sh`; the Rust side only shells `ssh` with fixed subcommand names + validated numbers (env changes go over stdin), so **bot secrets never traverse the wire** and the whitelist is enforced on the box, not in the app.

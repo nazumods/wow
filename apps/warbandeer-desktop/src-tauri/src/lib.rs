@@ -1,3 +1,4 @@
+mod botops;
 mod charorder;
 mod combatlog;
 mod model;
@@ -17,6 +18,12 @@ pub fn run() {
             charorder::save_character_order,
             charorder::get_remembered_order,
             charorder::remember_character_order,
+            botops::ops_config,
+            botops::bot_status,
+            botops::bot_logs,
+            botops::bot_restart,
+            botops::bot_env_get,
+            botops::bot_env_set,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

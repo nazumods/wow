@@ -5,6 +5,10 @@ import type {
   CombatLogSummary,
   CharacterOrderPayload,
   OrderLine,
+  OpsConfig,
+  BotStatus,
+  EnvChange,
+  EnvSetResult,
 } from "./types";
 
 // Thin wrappers over the Rust commands. `wowDir` is optional — the backend
@@ -56,4 +60,36 @@ export function rememberCharacterOrder(
   wowDir?: string | null,
 ): Promise<void> {
   return invoke("remember_character_order", { account, ordered, wowDir: wowDir ?? null });
+}
+
+// ── Bot ops (operator-only) ────────────────────────────────────────────────
+// All of these shell out to the box's ops/bot-ops.sh over SSH. `opsConfig`
+// returns null when ops mode isn't configured — the panel stays hidden then.
+
+export function opsConfig(): Promise<OpsConfig | null> {
+  return invoke("ops_config");
+}
+
+export function botStatus(): Promise<BotStatus> {
+  return invoke("bot_status");
+}
+
+/** Tail the container log (default 200, capped at 5000 by the backend). */
+export function botLogs(lines?: number): Promise<string> {
+  return invoke("bot_logs", { lines: lines ?? null });
+}
+
+/** Restart the bot process in place (no env reload). Returns the compose output. */
+export function botRestart(): Promise<string> {
+  return invoke("bot_restart");
+}
+
+/** Current values of the non-secret, editable env keys. */
+export function botEnvGet(): Promise<Record<string, string>> {
+  return invoke("bot_env_get");
+}
+
+/** Apply env changes and (if anything really changed) recreate the container to load them. */
+export function botEnvSet(changes: EnvChange[]): Promise<EnvSetResult> {
+  return invoke("bot_env_set", { changes });
 }
