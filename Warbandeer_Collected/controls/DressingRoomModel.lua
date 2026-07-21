@@ -102,7 +102,18 @@ function DressingRoom:_dressWeapon(m, form)
   local set = self._set
   local idx = self._weaponPiece or 1
   m:ClearSlotTransmog(INVSLOT_MAINHAND)
-  if self._group.kind == "illusion" then
+  if self._group.weaponCell then
+    -- Weapon-cell preview: the chosen weapon's current colour variant (looks grouped by item).
+    -- FORCE it onto the hand with SlotTransmog rather than Outfit — Outfit drops a weapon the
+    -- character's class can't equip (an axe wouldn't show for a caster), while SlotTransmog renders
+    -- any appearance on any character (the look-builder relies on this). Shields/off-hands → off hand.
+    local w = set._weapons[self._weaponItem or 1]
+    local look = w and w.looks[idx]
+    local ima = look and select(2, C_TransmogCollection.GetItemInfo(look.itemID))
+    m:Outfit({})   -- bare body; the weapon is the focus, forced on below
+    m:ClearSlotTransmog(INVSLOT_OFFHAND)
+    if ima then m:SlotTransmog(set._offHand and INVSLOT_OFFHAND or INVSLOT_MAINHAND, ima) end
+  elseif self._group.kind == "illusion" then
     m:Outfit({})   -- bare; the illusion rides the host weapon applied below
     local piece = set.illusions[idx]
     local host = ns.HostWeaponAppearance()
@@ -131,7 +142,13 @@ end
 function DressingRoom:_titleWeapon()
   local set, idx = self._set, self._weaponPiece or 1
   local name, count
-  if self._group.kind == "illusion" then
+  if self._group.weaponCell then
+    local w = set._weapons[self._weaponItem or 1]
+    count = w and #w.looks
+    local look = w and w.looks[idx]
+    name = look and C_Item.GetItemNameByID(look.itemID)
+    if look and not name then C_Item.RequestLoadItemDataByID(look.itemID) end
+  elseif self._group.kind == "illusion" then
     count = #set.illusions
     local piece = set.illusions[idx]
     name = piece and C_TransmogCollection.GetIllusionStrings(piece.sourceID)

@@ -65,6 +65,34 @@ function ns:WantedCount()
   return n
 end
 
+-- ─── Weapon Wanted (per appearance) ──────────────────────────────────────────
+-- The Weapons view flags individual weapon LOOKS (a cell holds several), so its wanted
+-- state is keyed by the appearance's visualID (ItemAppearanceID), separate from the
+-- set `wanted` table. Notifies the same OnRatingsChanged listeners so grids live-refresh.
+
+---@param visualID number
+---@return boolean
+function ns:IsWeaponWanted(visualID)
+  return self.db.weaponWanted[visualID] == true
+end
+
+---Flip a weapon look's wanted flag; returns the new state.
+---@param visualID number
+---@return boolean
+function ns:ToggleWeaponWanted(visualID)
+  local now = not self:IsWeaponWanted(visualID) or nil
+  self.db.weaponWanted[visualID] = now
+  return now == true
+end
+
+---Number of weapon looks currently flagged wanted.
+---@return number
+function ns:WeaponWantedCount()
+  local n = 0
+  for _ in pairs(self.db.weaponWanted) do n = n + 1 end
+  return n
+end
+
 -- ─── Rank ──────────────────────────────────────────────────────────────────--
 
 ---Baseline (race-independent) tier for a set, or nil if unranked.

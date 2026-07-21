@@ -57,7 +57,8 @@ function DressingRoom:_buildControls(controls)
     parent = controls, position = { TopLeft = {0, -TOPGAP}, Width = 86, Height = ROWH },
   }
   self._wantedBorder = selBox(wantBox)
-  self._ratingsBoxes[#self._ratingsBoxes + 1] = wantBox
+  -- wantBox is deliberately NOT in _ratingsBoxes: it stays shown for weapon cells (per-look Wanted),
+  -- while the rank/clear/This-race boxes below are hidden there (weapons have no S–F rank).
   Texture:new{ parent = wantBox, layer = ui.layer.Artwork, atlas = ns.WantedIcon, atlasSize = false,
     position = { Left = {6, 0}, Size = {14, 14} } }
   Button:new{ parent = wantBox, position = { All = true }, glow = false,

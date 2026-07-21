@@ -140,26 +140,37 @@ function ns.ShowWeaponCellTip(grp, t, visuals)
   GameTooltip:Show()
 end
 
--- Drill-in: open the shared dressing room previewing a weapon cell's individual looks on the
--- player's character. Builds a synthetic weapon-cosmetic group (kind="arsenal", so the existing
--- _dressWeapon render + ↑/↓ piece-cycling apply) whose "pieces" are the cell's looks resolved to a
--- representative itemID via WeaponSource; the weaponCell flag makes the dressing room hide the class
--- icon + armor ratings row. Looks with no resolvable source (item data not loaded / off this client)
--- are skipped; if none resolve, a hint is printed.
+-- Drill-in: open the shared dressing room previewing a weapon cell's looks on the player's
+-- character. The cell's looks are grouped by item **name** into distinct weapons, each carrying its
+-- colour **variants** — recolours of one weapon usually share a name (e.g. "Dawnforged Edge"), so
+-- they collapse into one chooser row whose variants ↑/↓ cycles. A synthetic weapon-cosmetic group
+-- (kind="arsenal", weaponCell=true) drives the existing weapon render path + the WeaponCellPicker
+-- chooser. Looks with no resolvable source are skipped; unresolved names request a load (the chooser
+-- + title refresh once cached) and group under a placeholder until then.
 ---@param grp table
 ---@param t number
 ---@param visuals number[]
 function ns.PreviewWeaponCell(grp, t, visuals)
-  local pieces = {}
+  local byName, order = {}, {}
   for _, v in ipairs(visuals) do
     local src = ns.WeaponSource(v)
-    if src and src.itemID then pieces[#pieces + 1] = src.itemID end
+    if src and src.itemID then
+      local nm = src.name or ("Appearance " .. v)
+      if not src.name then C_Item.RequestLoadItemDataByID(src.itemID) end
+      local w = byName[nm]
+      if not w then w = { name = nm, looks = {} }; byName[nm] = w; order[#order + 1] = nm end
+      w.looks[#w.looks + 1] = { visualID = v, itemID = src.itemID, isCollected = src.isCollected }
+    end
   end
-  if #pieces == 0 then
+  if #order == 0 then
     ns.Print("No previewable looks here yet — item data is still loading; hover the cell, then click again.")
     return
   end
-  local set = { name = ("%s — %s"):format(grp.name, ns.WeaponTypeName[t] or "Weapon"), pieces = pieces }
+  table.sort(order)
+  local weapons = {}
+  for _, nm in ipairs(order) do weapons[#weapons + 1] = byName[nm] end
+  local set = { name = ("%s — %s"):format(grp.name, ns.WeaponTypeName[t] or "Weapon"),
+    _weapons = weapons, _offHand = (t == 18 or t == 19) }   -- Shield / Held-in-off-hand render in the off hand
   local group = { kind = "arsenal", weaponCell = true, name = grp.name, release = grp.release, sets = { set } }
   ns.ShowDressingRoom(group, set)
 end

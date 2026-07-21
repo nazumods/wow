@@ -101,6 +101,13 @@ end
 -- is on, else the baseline). Called from _load (set change) and SetRace.
 function DressingRoom:_refreshRatings()
   if not self._set then return end
+  -- Weapon-cell: only the ★ Wanted button applies (no S–F rank), keyed to the shown look.
+  if self._group and self._group.weaponCell then
+    local w = self._set._weapons[self._weaponItem or 1]
+    local look = w and w.looks[self._weaponPiece or 1]
+    self._wantedBorder:Color(look and ns:IsWeaponWanted(look.visualID) and SELECTED or IDLE)
+    return
+  end
   local setId = self._set.id
   self._wantedBorder:Color(ns:IsWanted(setId) and SELECTED or IDLE)
   local shown
@@ -119,6 +126,16 @@ end
 
 function DressingRoom:ToggleWanted()
   if not self._set then return end
+  -- Weapon-cell: flag the CURRENTLY-SHOWN look (its visualID), not a set id.
+  if self._group and self._group.weaponCell then
+    local w = self._set._weapons[self._weaponItem or 1]
+    local look = w and w.looks[self._weaponPiece or 1]
+    if look then ns:ToggleWeaponWanted(look.visualID) end
+    self:_refreshRatings()
+    self:_ratingsChanged()
+    if self._cellList then self._cellList:Refresh() end   -- the chooser row's ★ tracks it
+    return
+  end
   ns:ToggleWanted(self._set.id)
   self:_refreshRatings()
   self:_ratingsChanged()
@@ -175,6 +192,7 @@ function DressingRoom:_load(group, set)
     -- held-weapon render is the focus). Close the look builder and up/down nav cycles the cell's
     -- pieces from the first (see _stepWeaponPiece).
     self._weaponPiece = 1
+    self._weaponItem = 1
     self:_showSlots(false)
     self:_showWeaponSlots(false)
     self._tierBarL:Hide()
@@ -182,6 +200,8 @@ function DressingRoom:_load(group, set)
     if self._slotTimer then self._slotTimer:Cancel(); self._slotTimer = nil end
     if self._weaponSlotTimer then self._weaponSlotTimer:Cancel(); self._weaponSlotTimer = nil end
     if self._picker then self:ToggleWeaponPicker(false) end
+    -- A weapon-source cell shows the chooser (its weapons grouped by item); illusion/arsenal don't.
+    if group.weaponCell then self:ShowCellChooser(set._weapons) else self:HideCellChooser() end
   else
     self:_showSlots(true)
     self:_showWeaponSlots(true)
@@ -189,6 +209,7 @@ function DressingRoom:_load(group, set)
     self._slotRetries = 0
     self:UpdateSlots()
     self:UpdateWeaponSlots()   -- reflect any persisted look on the bottom weapon slots
+    self:HideCellChooser()
   end
   self:Dress()
   self:_syncUndressBorder()   -- wiped toggles → fully worn → Undress button idle
@@ -277,11 +298,18 @@ end
 ---@param dir number  -1 = previous piece, +1 = next
 function DressingRoom:_stepWeaponPiece(dir)
   local set = self._set
-  local list = set and (self._group.kind == "illusion" and set.illusions or set.pieces)
+  local list
+  if self._group.weaponCell then
+    local w = set and set._weapons[self._weaponItem or 1]   -- cycle within the chosen weapon's variants
+    list = w and w.looks
+  else
+    list = set and (self._group.kind == "illusion" and set.illusions or set.pieces)
+  end
   if not list or #list < 2 then return end
   local cur = (self._weaponPiece or 1) - 1                -- to 0-based
   self._weaponPiece = (cur + dir) % #list + 1             -- step, wrap, back to 1-based
   self:Dress()
+  if self._group.weaponCell then self:_refreshRatings() end   -- the ★ tracks the shown variant
 end
 
 -- Select the logged-in character's race + gender. Called when the window opens
