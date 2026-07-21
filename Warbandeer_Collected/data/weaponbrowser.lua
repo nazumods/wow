@@ -191,6 +191,33 @@ function ns.WeaponSource(visualID)
   return info
 end
 
+local _collectedMap               -- [visualID] = true for every collected weapon appearance (all classes; wiped on collection change)
+
+---Account-wide collected-appearance lookup for the Weapons grid: `[visualID] = true` for every
+---weapon appearance the account owns, across ALL classes. Built by sweeping each weapon category
+---under every class filter (GetCategoryAppearances is class-scoped, so a single unfiltered pass would
+---miss a caster's un-wieldable-but-collected 2H axes); the account-wide `isCollected` is the same
+---wherever a visual surfaces, so the union is correct. Cached (a ~200-call build); wiped on
+---TRANSMOG_COLLECTION_UPDATED so a freshly learned weapon flips on the next scan. The wardrobe class
+---filter is snapshot/restored around the sweep so global state is untouched.
+---@return table<number, boolean>
+function ns:WeaponCollectedMap()
+  if _collectedMap then return _collectedMap end
+  local map = {}
+  local prev = C_TransmogCollection.GetClassFilter()
+  for classID = 1, #ns.icons.classes do
+    C_TransmogCollection.SetClassFilter(classID)
+    for _, cat in ipairs(WEAPON_CATEGORIES) do
+      for _, a in ipairs(GetCategoryAppearances(cat) or {}) do
+        if a.isCollected then map[a.visualID] = true end
+      end
+    end
+  end
+  C_TransmogCollection.SetClassFilter(prev)
+  _collectedMap = map
+  return map
+end
+
 local _illusions = {}             -- [classID] = WeaponIllusion[] (wiped on collection change)
 
 -- Restricted (class-specific) enchant illusions — the shimmer effects only one class can apply
@@ -263,4 +290,5 @@ ns:registerEvent("TRANSMOG_COLLECTION_UPDATED", function()
   _appearances = {}
   _sources = {}
   _illusions = {}
+  _collectedMap = nil
 end)

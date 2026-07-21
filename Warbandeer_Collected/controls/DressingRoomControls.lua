@@ -51,11 +51,13 @@ function DressingRoom:_buildControls(controls)
   -- buttons write the per-race override when "This race" is active, else the
   -- baseline. _refreshRatings (from _load / SetRace) syncs the gold highlights.
   self._raceOnly = false
+  self._ratingsBoxes = {}   -- hidden for weapon-cell previews (weapons have no S–F rank row)
 
   local wantBox = Frame:new{
     parent = controls, position = { TopLeft = {0, -TOPGAP}, Width = 86, Height = ROWH },
   }
   self._wantedBorder = selBox(wantBox)
+  self._ratingsBoxes[#self._ratingsBoxes + 1] = wantBox
   Texture:new{ parent = wantBox, layer = ui.layer.Artwork, atlas = ns.WantedIcon, atlasSize = false,
     position = { Left = {6, 0}, Size = {14, 14} } }
   Button:new{ parent = wantBox, position = { All = true }, glow = false,
@@ -71,6 +73,7 @@ function DressingRoom:_buildControls(controls)
       parent = controls, position = { TopLeft = {tx, -TOPGAP}, Width = TW, Height = ROWH },
     }
     self._rankBtns[letter] = { border = selBox(box) }
+    self._ratingsBoxes[#self._ratingsBoxes + 1] = box
     Texture:new{ parent = box, layer = ui.layer.Artwork, color = ns.RankColors[letter],
       position = { TopLeft = {2, -2}, BottomRight = {-2, 2} } }
     Button:new{ parent = box, position = { All = true }, glow = false,
@@ -85,6 +88,7 @@ function DressingRoom:_buildControls(controls)
     parent = controls, position = { TopLeft = {tx, -TOPGAP}, Width = 24, Height = ROWH },
   }
   selBox(clearBox)
+  self._ratingsBoxes[#self._ratingsBoxes + 1] = clearBox
   Button:new{ parent = clearBox, position = { All = true }, glow = false,
     OnClick = function() self:SetRank(nil) end }
   Label:new{ parent = clearBox, justifyH = ui.justify.Center, position = { All = true }, text = "–" }
@@ -95,6 +99,7 @@ function DressingRoom:_buildControls(controls)
     parent = controls, position = { TopLeft = {GRIDW - 104, -TOPGAP}, Width = 104, Height = ROWH },
   }
   self._raceOnlyBorder = selBox(raceBox)
+  self._ratingsBoxes[#self._ratingsBoxes + 1] = raceBox
   Button:new{ parent = raceBox, position = { All = true }, glow = false,
     OnClick = function() self:SetRaceOnly(not self._raceOnly) end }
   Label:new{ parent = raceBox, justifyH = ui.justify.Center,

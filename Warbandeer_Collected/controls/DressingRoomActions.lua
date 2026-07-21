@@ -163,7 +163,11 @@ function DressingRoom:_load(group, set)
   -- Class = the set's position in the (positional) group.sets array.
   local classId
   for i = 1, #group.sets do if group.sets[i] == set then classId = i; break end end
+  -- A weapon-source cell isn't class-specific: hide the class icon/backdrop and the armor ratings
+  -- row (weapons get per-look Wanted next, not the S–F rank row).
+  if group.weaponCell then classId = nil end
   self._classIndex = classId
+  if self._ratingsBoxes then for _, b in ipairs(self._ratingsBoxes) do b:SetShown(not group.weaponCell) end end
   self:_showClass(classId)
   self:_showRelease(group.release)
   if group.kind then

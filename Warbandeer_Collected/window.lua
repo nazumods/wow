@@ -75,10 +75,11 @@ local MainWindow = Class(TitleFrame, function(self)
 
   -- Counter rides the grid's header row, over the group-name column and in line with
   -- the class icons (matches the embedded view); gold wanted tally to its right.
-  local hdrPad = (self.data.headerHeight - (titleFont and titleFont[2] or 14)) / 2
   self.counter = Label:new{
     parent = self, fontInfo = titleFont, color = theme.colors.text,
-    position = { TopLeft = {self.data, ui.edge.TopLeft, 2, -hdrPad} },
+    -- The counter rides the filter-strip row (right of the dropdowns) in both modes — matching the
+    -- weapon view — so the grid header row is just the class icons.
+    position = { TopLeft = {self.filterStrip, ui.edge.TopRight, 12, -3} },
     text = "",
   }
   self.wantedCount = Label:new{
@@ -97,7 +98,7 @@ local MainWindow = Class(TitleFrame, function(self)
     },
   }
   counterHover:EnableMouse(true)
-  counterHover:SetScript("OnEnter", function(f) self.data:ShowCountTooltip(f) end)
+  counterHover:SetScript("OnEnter", function(f) (self.active or self.data):ShowCountTooltip(f) end)
   counterHover:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
   -- The gold wanted tally toggles WANTED ONLY on click (same as the filter button).
@@ -112,6 +113,64 @@ local MainWindow = Class(TitleFrame, function(self)
   wantedHover:SetScript("OnMouseUp", function() self.data:ToggleWanted() end)
   wantedHover:SetScript("OnEnter", function(f) self.data:ShowWantedTooltip(f) end)
   wantedHover:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+  -- ── Armor / Weapons mode ──────────────────────────────────────────────────
+  -- A second grid (WeaponView) with its own strip + scroll, hidden until toggled. The
+  -- persistent Armor/Weapons segmented toggle (far left of the strip row) swaps which trio is
+  -- shown via SetMode. Armor is the default and stays fully intact when Weapons is off; the two
+  -- grids overlap (same anchors), so only their SetShown state differs.
+  self.active, self.activeScroll, self._weaponsMode = self.data, self.scroll, false
+  local TOGGLE_W, TGAP = 92, 6
+
+  self.weapons = ns.WeaponView:new{
+    parent = self,
+    position = {
+      TopLeft = {self.titlebar, ui.edge.BottomLeft, 2, -2 - TOP},
+      TopRight = {self.titlebar, ui.edge.BottomRight, -2, -2 - TOP},
+    },
+    colInfo = ns.WeaponView.BuildColInfo(),
+    onResized = function() self:_fitToGrid() end,
+  }
+  self.weapons:Hide()   -- SetMode resizes the window to the active grid's width, so the window
+                        -- starts at the armor width and widens on the toggle to Weapons.
+
+  self.weaponStrip = self.weapons:BuildFilterStrip(self)
+  self.weaponStrip:Position({ TopLeft = {self.titlebar, ui.edge.BottomLeft, 2 + TOGGLE_W + TGAP, -2} })
+  self.weaponStrip:Hide()
+
+  self.weaponScroll = ScrollFrame:new{
+    parent = self,
+    position = {
+      TopLeft = {self.titlebar, ui.edge.BottomLeft, 2, -2 - TOP - self.weapons.headerHeight},
+      BottomRight = {self, ui.edge.BottomRight, -2, 2},
+    },
+  }
+  self.weaponScroll:Child(self.weapons.rowArea)
+  self.weaponScroll:Hide()
+
+  -- Shift the armor strip right to clear the persistent toggle at the far left.
+  self.filterStrip:Position({ TopLeft = {self.titlebar, ui.edge.BottomLeft, 2 + TOGGLE_W + TGAP, -2} })
+
+  -- The persistent Armor/Weapons segmented toggle (two halves; the active half gets the gold border).
+  local off = {0.05, 0.05, 0.06, 0.92}
+  local seg = ui.Frame:new{ parent = self,
+    position = { TopLeft = {self.titlebar, ui.edge.BottomLeft, 2, -2}, Width = TOGGLE_W, Height = STRIP_H } }
+  ui.Texture:new{ parent = seg, layer = ui.layer.Background, position = { All = true }, color = off }
+  local capsFont = theme.fonts.caps and {theme.fonts.caps[1], 10} or nil
+  local function segHalf(x, label, weapons)
+    local cell = ui.Frame:new{ parent = seg, position = { TopLeft = {x, 0}, Width = TOGGLE_W / 2, Height = STRIP_H } }
+    local border = ui.Texture:new{ parent = cell, layer = ui.layer.Background, position = { All = true },
+      color = weapons and off or gold }
+    ui.Texture:new{ parent = cell, layer = ui.layer.Border, position = { TopLeft = {1, -1}, BottomRight = {-1, 1} },
+      color = {0.09, 0.09, 0.11, 0.95} }
+    local btn = ui.Button:new{ parent = cell, position = { All = true }, glow = false,
+      OnClick = function() self:SetMode(weapons) end }
+    Label:new{ parent = btn, fontInfo = capsFont, justifyH = ui.justify.Center,
+      position = { All = true }, text = label, color = theme.colors.text }
+    return border
+  end
+  self._segArmor = segHalf(0, "Armor", false)
+  self._segWeapons = segHalf(TOGGLE_W / 2, "Weapons", true)
 
   self:RefreshCounter()
   self:RefreshWanted()
@@ -129,14 +188,41 @@ end, {
   level = 580,
 })
 
+---Switch the window between the armor grid and the weapon grid (the Armor/Weapons toggle).
+---Swaps which (grid + strip + scroll) trio is shown, re-points the counter + scroll refit at the
+---active grid, hides the armor-only wanted tally, recolors the toggle, and resizes to the active
+---grid's width. No-op if already in the requested mode.
+---@param weapons boolean
+function MainWindow:SetMode(weapons)
+  if self._weaponsMode == weapons then return end
+  self._weaponsMode = weapons
+  self.active = weapons and self.weapons or self.data
+  self.activeScroll = weapons and self.weaponScroll or self.scroll
+  self.data:SetShown(not weapons); self.filterStrip:SetShown(not weapons); self.scroll:SetShown(not weapons)
+  self.weapons:SetShown(weapons); self.weaponStrip:SetShown(weapons); self.weaponScroll:SetShown(weapons)
+  self.wantedCount:SetShown(not weapons)   -- the wanted tally is armor-only
+  local theme = self:Theme()
+  local gold, off = theme.colors.gold or theme.colors.header, {0.05, 0.05, 0.06, 0.92}
+  self._segArmor:Color(weapons and off or gold)
+  self._segWeapons:Color(weapons and gold or off)
+  -- The weapon name column is too narrow to hold the counter over the header, so in weapon mode
+  -- the counter rides the strip row (right of the dropdowns); armor keeps it over the header.
+  self.counter:Position(weapons and { TopLeft = {self.weaponStrip, ui.edge.TopRight, 12, -3} }
+    or { TopLeft = {self.filterStrip, ui.edge.TopRight, 12, -3} })
+  self:Width(max(110, self.active:Width() + (weapons and 20 or 4)))   -- +scrollbar room in weapon mode
+  self:RefreshCounter()
+  self:_fitToGrid()
+end
+
 ---Cap the visible grid at the shared `DataView.MAX_HEIGHT` and size the window with the
 ---same header + cap + margin math as the embedded view, plus the filter strip. Called at
 ---construction and again on every filter/PTR change (via the grid's `onResized` hook), so
 ---the window shrinks to the filtered row count and the scroll range refits — no overscroll.
 function MainWindow:_fitToGrid()
-  local capH = min(self.data.MAX_HEIGHT, self.data.rowArea:Height())
-  self:Height(self.titlebar:Height() + self._top + self.data.headerHeight + capH + 4)
-  self.scroll:Refresh()   -- the scroll frame tracks the window's BottomRight; recompute its range
+  local grid, scroll = self.active or self.data, self.activeScroll or self.scroll
+  local capH = min(grid.MAX_HEIGHT, grid.rowArea:Height())
+  self:Height(self.titlebar:Height() + self._top + grid.headerHeight + capH + 4)
+  scroll:Refresh()   -- the scroll frame tracks the window's BottomRight; recompute its range
 end
 
 ---Refresh the running wanted-set count in the header. The star is drawn from the
@@ -149,6 +235,13 @@ end
 ---cells with a set / green-check cells, tracking the active filter via VisibleCounts); in
 ---PTR PREVIEW mode the grid is only the upcoming sets, so it becomes a "+N upcoming" tally.
 function MainWindow:RefreshCounter()
+  if self._weaponsMode then
+    local sources, apps, coll = self.weapons:VisibleCounts()
+    self.counter:Text(("%d sources · %d/%d collected"):format(sources, coll, apps))
+    local tf = collectedTheme().fonts.title
+    if tf then self.counter:Font({tf[1], 12}) end
+    return
+  end
   if self.data._ptr then
     local seen, n = {}, 0
     for _, grp in ipairs(ns.PtrSets) do
@@ -159,14 +252,11 @@ function MainWindow:RefreshCounter()
     self.counter:Text(("+%d sets upcoming%s"):format(n, ns.PtrBuild and (" · PTR " .. ns.PtrBuild.ptr) or ""))
   else
     local sets, cells, green = self.data:VisibleCounts()
-    self.counter:Text(("%d sets · %d appearances · %d collected"):format(sets, cells, green))
+    self.counter:Text(("%d sets · %d/%d collected"):format(sets, green, cells))
   end
-  -- The PTR line (with the build) is longer than the live count, so shrink the counter
-  -- font in PTR mode to keep it clear of the class icons (matches the embedded view).
+  -- The counter sits in the strip row in every mode, so keep it at the compact strip font.
   local titleFont = collectedTheme().fonts.title
-  if titleFont then
-    self.counter:Font(self.data._ptr and {titleFont[1], 12} or titleFont)
-  end
+  if titleFont then self.counter:Font({titleFont[1], 12}) end
 end
 
 -- Live-refresh this window's grid + wanted counter when a rating changes anywhere

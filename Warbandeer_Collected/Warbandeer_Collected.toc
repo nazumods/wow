@@ -46,4 +46,8 @@ DataView.lua
 DataViewData.lua
 DataViewFilters.lua
 DataViewMarks.lua
+
+WeaponViewData.lua
+WeaponView.lua
+
 window.lua
