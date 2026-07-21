@@ -1,16 +1,24 @@
 <script lang="ts">
-  import type { Overview, CombatLogFile } from "./lib/types";
+  import type { Overview, CombatLogFile, OpsTargetInfo } from "./lib/types";
   import { getVersion } from "@tauri-apps/api/app";
-  import { getOverview, listCombatLogs } from "./lib/api";
+  import { getOverview, listCombatLogs, opsConfig } from "./lib/api";
   import OverviewView from "./lib/components/Overview.svelte";
   import CombatLogPanel from "./lib/components/CombatLogPanel.svelte";
   import CharacterSort from "./lib/components/CharacterSort.svelte";
+  import BotOps from "./lib/components/BotOps.svelte";
 
   let overview = $state<Overview | null>(null);
   let logs = $state<CombatLogFile[]>([]);
   let error = $state<string | null>(null);
   let loading = $state(true);
-  let tab = $state<"overview" | "logs" | "sort">("overview");
+  let tab = $state<"overview" | "logs" | "sort" | "ops">("overview");
+
+  // Operator-only Ops tab: shown only when ops mode is configured (ops.json present).
+  // A broken or absent config resolves to null, keeping the tab hidden in normal builds.
+  let ops = $state<OpsTargetInfo[] | null>(null);
+  opsConfig()
+    .then((c) => (ops = c))
+    .catch(() => (ops = null));
 
   // App version, read from tauri.conf.json (the field the release pipeline bumps).
   let version = $state("");
@@ -50,12 +58,18 @@
       Logs{#if logs.length}<span class="badge">{logs.length}</span>{/if}
     </button>
     <button class:active={tab === "sort"} onclick={() => (tab = "sort")}> Sort </button>
+    {#if ops && ops.length}
+      <button class:active={tab === "ops"} onclick={() => (tab = "ops")}> Ops </button>
+    {/if}
   </nav>
   <button class="refresh" onclick={load} title="Reload saved data">⟳</button>
 </header>
 
 <main>
-  {#if loading}
+  {#if tab === "ops" && ops && ops.length}
+    <!-- Independent of the WoW-data load: ops mode must work even on a box with no install. -->
+    <BotOps targets={ops} />
+  {:else if loading}
     <div class="state">Loading saved data…</div>
   {:else if error}
     <div class="state err">
@@ -68,7 +82,7 @@
       <OverviewView data={overview} />
     {:else if tab === "logs"}
       <CombatLogPanel {logs} />
-    {:else}
+    {:else if tab === "sort"}
       <CharacterSort />
     {/if}
   {/if}

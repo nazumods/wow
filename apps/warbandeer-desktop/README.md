@@ -21,6 +21,7 @@ the game. The first view is a desktop mirror of the addon's **Overview**.
 | Achievements | not persisted to SavedVariables | ⛔ placeholder (needs live game state) |
 | Combat logs | `Logs/WoWCombatLog*.txt` | ✅ list + lightweight CLEU summary (encounters, top damage) |
 | Character Sort | `WTF/Account/<name>/character-list-order.txt` | ✅ reorder the character-select list (see below) |
+| Ops (operator-only) | the `warbandeer-discord` bot on the box, over SSH | 🔧 hidden unless `ops.json` is present (see below) |
 
 ## Character Sort
 
@@ -51,6 +52,36 @@ Dual-crafting characters (two crafting professions, no gathering) have no automa
 sort priority between them — the **Profession** sort mode asks which one leads via a
 dialog; the answer is remembered (per-character, in the app's local storage) and can be
 revisited later with **Prof choices…**.
+
+## Ops (operator mode)
+
+An optional, operator-only **Ops** tab manages the self-hosted `warbandeer-discord` bot(s) from
+your desktop — check status, tail logs, restart, and edit **non-secret** settings (announce
+channels, watched realm/repos, etc.), with a **debug/prod switch** when you configure more than one
+bot — all driving the box over SSH. It's **hidden unless you opt in** with an `ops.json`, so normal
+builds never show it and end users can ignore this.
+
+To enable it, create `%APPDATA%\com.nazuraki.warbandeer\ops.json` listing the bot(s) to manage:
+
+```json
+{
+  "targets": [
+    {
+      "name": "debug",
+      "ssh": "you@your-box",
+      "remoteDir": "~/repos/wow-debug/apps/warbandeer-discord",
+      "project": "warbandeer-discord-debug",
+      "container": "warbandeer-discord"
+    }
+  ]
+}
+```
+
+`project`/`container` are optional (default to debug's); the old single-bot shape
+(`{ "ssh": "...", "remoteDir": "..." }`) still works as one `debug` target. Key-based SSH to each
+host must work (the app reuses your key), and that host must have the `ops/bot-ops.sh` helper — see
+[`../warbandeer-discord/ops/README.md`](../warbandeer-discord/ops/README.md) for the full config
+(incl. adding a prod bot), the editable-key whitelist, and why secrets are never touched.
 
 ## Data location
 

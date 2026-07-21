@@ -87,3 +87,33 @@ export interface OrderLine {
   realmGuid: string;
   position: number;
 }
+
+// ── Bot ops panel (src-tauri/src/botops.rs) ──────────────────────────────────
+// Operator-only, gated: opsConfig() returns null unless an ops.json is present.
+
+// One managed bot, as surfaced to the target switch (compose internals stay in Rust).
+export interface OpsTargetInfo {
+  name: string; // switch label, e.g. "debug" / "prod"
+  ssh: string; // SSH destination, for display
+}
+
+export interface BotStatus {
+  running: boolean;
+  status: string; // docker status line, e.g. "Up 3 days"
+  image: string;
+  realmStatus: string; // last-observed realm status ("UP"/"DOWN"/"")
+}
+
+export interface EnvChange {
+  key: string;
+  value: string;
+}
+
+export interface EnvSetResult {
+  ok: boolean;
+  changed: string[]; // keys that actually changed
+  recreated: boolean; // whether the container was force-recreated to apply
+  backup?: string | null; // path of the .env backup taken before applying
+  note?: string | null; // e.g. "no changes"
+  log?: string | null; // docker compose output
+}
