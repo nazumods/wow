@@ -172,22 +172,32 @@ function DressingRoom:_rescopePicker()
   self:_applyPickerHand()
 end
 
+-- Off-hand-SLOT categories: shields + off-hand frills. GetCategoryInfo can't tell these from a
+-- two-handed weapon by flag — a Shield and a TwoHSword report IDENTICAL isWeapon/canMainHand/
+-- canOffHand (both canOffHand=false, since that flag is "can be a dual-wield off-hand WEAPON",
+-- which neither is) — so the slot split needs an explicit set, not a flag test.
+local OFF_HAND_ONLY = {
+  [Enum.TransmogCollectionType.Shield]   = true,
+  [Enum.TransmogCollectionType.Holdable] = true,
+}
+
 -- Apply the current target hand (self._pickerHand) to the pane: filter the weapon-category
--- dropdown to that hand's categories (main-hand = anything not off-hand-only; off-hand = canOffHand), keeping the current category if
--- it's still valid else the first available; hide the Illusions tab for the off-hand (illusions
--- ride the main hand, so they're only offered there); then repopulate the active mode. Shared by
--- the open path and the class re-scope so both honour the hand + class scoping in one place.
+-- dropdown to that hand's categories (main-hand = anything NOT off-hand-only; off-hand = the
+-- off-hand-only set + dual-wield 1H via canOffHand), keeping the current category if it's still
+-- valid else the first available; hide the Illusions tab for the off-hand (illusions ride the
+-- main hand, so they're only offered there); then repopulate the active mode. Shared by the open
+-- path and the class re-scope so both honour the hand + class scoping in one place.
 function DressingRoom:_applyPickerHand()
   local off = self._pickerHand == "off"
   self._pickerTabBox.illusions:SetShown(not off)
   if off and self._pickerMode == "illusions" then self._pickerMode = "weapons" end
   local opts, valid = {}, false
   for _, c in ipairs(self._pickerCats) do
-    -- Main-hand dropdown = everything that isn't off-hand-ONLY: 2H, ranged, and wands all report
-    -- canMainHand=false (that flag means "one-handed main-hand") but canOffHand=false, so include
-    -- them via `not canOffHand`. Only shields/holdables (canOffHand, not canMainHand) are kept out.
-    -- Off-hand dropdown = canOffHand (1H weapons + shields + holdables).
-    if (off and c.canOffHand) or (not off and (c.canMainHand or not c.canOffHand)) then
+    -- Off-hand dropdown = the off-hand-only set (shields/holdables) + dual-wield 1H (`canOffHand`).
+    -- Main-hand dropdown = everything NOT off-hand-only (1H, 2H, ranged, wands). Shields report the
+    -- SAME flags as 2H weapons, so only the explicit OFF_HAND_ONLY set can tell them apart.
+    local offHandOnly = OFF_HAND_ONLY[c.category]
+    if (off and (offHandOnly or c.canOffHand)) or (not off and not offHandOnly) then
       opts[#opts + 1] = { key = c.category, label = c.name }
       if c.category == self._pickerCategory then valid = true end
     end
