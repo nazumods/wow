@@ -1,7 +1,5 @@
 ---@type Warbandeer_Collected
 local ns = select(2, ...)
-local floor, max = math.floor, math.max
-local ui = ns.ui
 local lists = ns.lua.lists
 local GameTooltip = GameTooltip
 
@@ -36,18 +34,8 @@ ns.WeaponTypeName = { [12] = "Wand", [13] = "One-Handed Axe", [14] = "One-Handed
   [22] = "Two-Handed Mace", [23] = "Staff", [24] = "Polearm", [25] = "Bow", [26] = "Gun",
   [27] = "Crossbow", [28] = "Warglaive" }
 
--- Same 10-shade red→green completion gradient as the armor grid (DataViewData.shades), so the
--- two views read identically: cell text is the uncollected count tinted by the collected fraction.
-local shades = {
-  {165/255, 0/255, 38/255, 1}, {215/255, 48/255, 39/255, 1}, {244/255, 109/255, 67/255},
-  {253/255, 174/255, 97/255}, {254/255, 224/255, 139/255}, {217/255, 239/255, 139/255},
-  {166/255, 217/255, 106/255}, {102/255, 189/255, 99/255}, {26/255, 152/255, 80/255},
-  {0, 104/255, 55/255},
-}
-local GreenCheck = { atlas = ns.icons.CheckGreen, atlasSize = false, position = { Center = {}, Size = {13, 13} } }
-
--- A row's name minus a trailing "(variant)" suffix — the alphabetization key within an expansion.
-local function baseName(name) return (name:gsub("%s*%b()%s*$", "")) end
+-- The completion cell (green check / count + red→green shade), the expansion sort, and the shared
+-- gradient live in GridShared.lua (ns.CompletionCell / sortByExpansion) — identical to the armor grid.
 
 -- A weapon source group passes the active expansion/category filter. Module-level (like armor's
 -- `matches`) since WeaponRows runs during base-table construction, before the methods are mixed.
@@ -72,16 +60,7 @@ function ns.WeaponRows(self)
   for i = 1, #ns.WeaponSources do
     if matches(self, ns.WeaponSources[i]) then order[#order + 1] = i end
   end
-  table.sort(order, function(a, b)
-    local ra, rb = ns.WeaponSources[a].release or 0, ns.WeaponSources[b].release or 0
-    if ra ~= rb then
-      if self._reverse then return ra > rb end
-      return ra < rb
-    end
-    local na, nb = baseName(ns.WeaponSources[a].name), baseName(ns.WeaponSources[b].name)
-    if na ~= nb then return na < nb end
-    return a < b
-  end)
+  ns.sortByExpansion(order, ns.WeaponSources, self._reverse)
   return lists.map(order, function(srcIdx)
     local grp = ns.WeaponSources[srcIdx]
     local r = {}
@@ -98,14 +77,9 @@ function ns.WeaponRows(self)
         local onClick = function() ns.PreviewWeaponCell(grp, t, visuals) end
         -- `_source`/`_type` identify the cell so the dressed-weapon cursor can find it
         -- (the weapon analogue of a cell's setId/classIndex — see WeaponView:HighlightWeaponCell).
-        if coll >= total then
-          r[ci] = { atlas = GreenCheck.atlas, atlasSize = false, position = GreenCheck.position,
-            onEnter = onEnter, onLeave = onLeave, onClick = onClick, _source = grp, _type = t }
-        else
-          r[ci] = { text = total - coll, justifyH = ui.justify.Center,
-            color = shades[max(1, floor(coll / total * 10))], onEnter = onEnter, onLeave = onLeave,
-            onClick = onClick, _source = grp, _type = t }
-        end
+        r[ci] = ns.CompletionCell(coll, total, {
+          onEnter = onEnter, onLeave = onLeave, onClick = onClick, _source = grp, _type = t,
+        })
       end
     end
     -- Prepend the name cell (expansion badge + source name), inert — tinsert at 1 shifts the

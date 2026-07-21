@@ -1,18 +1,10 @@
 ---@type Warbandeer_Collected
 local ns = select(2, ...)
-local floor, max = math.floor, math.max
 local ui, api = ns.ui, ns.api
 local lists = ns.lua.lists
 local Texture = ui.Texture
 local GameTooltip = GameTooltip
 local DataView = ns.DataView
-
-local GreenCheck = {
-  atlas = ns.icons.CheckGreen,
-  atlasSize = false,
-  -- Centered, ~one character wide so it lines up with the numeric count cells.
-  position = { Center = {}, Size = {13, 13} },
-}
 
 -- PTR mode marks every existing set "upcoming" rather than counting collected
 -- pieces (the live client has no collection data for sets that aren't out yet).
@@ -26,13 +18,6 @@ local UPCOMING_GLYPH = "•"
 -- indexing `status`, so passing the boolean `true` is safe.
 local function isComplete(status)
   return status == true or status.collected >= status.total
-end
-
--- A row's name without its trailing "(variant)" suffix — the key the grid alphabetizes
--- on within an expansion, so a set's difficulty/variant rows stay grouped (and in their
--- authored order, e.g. Raid Finder→Mythic) rather than scattering by suffix.
-local function baseName(name)
-  return (name:gsub("%s*%b()%s*$", ""))
 end
 
 -- A group passes the active filters. A module-level function (not a method) because
@@ -61,19 +46,6 @@ local function groupWanted(grp)
   return false
 end
 
-local shades = {
-  {165/255,   0/255,  38/255, 1},
-  {215/255,  48/255,  39/255, 1},
-  {244/255, 109/255,  67/255},
-  {253/255, 174/255,  97/255},
-  {254/255, 224/255, 139/255},
-  {217/255, 239/255, 139/255},
-  {166/255, 217/255, 106/255},
-  {102/255, 189/255,  99/255},
-  { 26/255, 152/255,  80/255},
-  {      0, 104/255,  55/255},
-}
-
 ---The grid's row data: one row per set group (lock + name + one cell per class),
 ---sorted by expansion (newest-first by default) then alphabetically within an
 ---expansion. Module function (not a method) because the base TableFrame calls it via
@@ -100,18 +72,9 @@ function ns.CollectedRows(self)
       order[#order + 1] = i
     end
   end
-  table.sort(order, function(a, b)
-    local ra, rb = source[a].release or 0, source[b].release or 0
-    if ra ~= rb then
-      if self._reverse then return ra > rb end
-      return ra < rb
-    end
-    -- Within an expansion: alphabetical by base name (A→Z regardless of sort direction);
-    -- same base name (a set's variant/difficulty rows) falls back to authored order.
-    local na, nb = baseName(source[a].name), baseName(source[b].name)
-    if na ~= nb then return na < nb end
-    return a < b
-  end)
+  -- Sort by expansion (newest-first by default) then alphabetically within it — shared with the
+  -- weapons grid; a set's variant/difficulty rows fall back to authored order via the index tie-break.
+  ns.sortByExpansion(order, source, self._reverse)
   return lists.map(order, function(srcIdx, dispIdx)
     local grp = source[srcIdx]
     local isPtr = self._ptr
@@ -173,23 +136,14 @@ function ns.CollectedRows(self)
           onEnter = onEnter, onLeave = onLeave, onClick = onClick,
         }
       end
-      if isComplete(status) then
-        return {
-          setId = set.id, classIndex = classIndex,
-          atlas = GreenCheck.atlas, atlasSize = GreenCheck.atlasSize,
-          position = GreenCheck.position,
-          onEnter = onEnter, onLeave = onLeave, onClick = onClick,
-        }
-      end
-      return {
-          setId = set.id, classIndex = classIndex,
-          text = status.total - status.collected,
-          justifyH = ui.justify.Center,
-          color = shades[max(1,floor(status.collected / status.total * 10))],
-          onEnter = onEnter,
-          onLeave = onLeave,
-          onClick = onClick,
-        }
+      -- A completed set (scan flagged the base set = boolean `true`, or every appearance owned)
+      -- shows the green check; otherwise the uncollected count shaded by the collected fraction.
+      local collected = status == true and 1 or status.collected
+      local total = status == true and 1 or status.total
+      return ns.CompletionCell(collected, total, {
+        setId = set.id, classIndex = classIndex,
+        onEnter = onEnter, onLeave = onLeave, onClick = onClick,
+      })
     end)
     -- grp.sets can stop short of the newest classes (e.g. no Demon Hunter/Evoker
     -- entry in a Vanilla raid), leaving those columns without a cell. Pad to the

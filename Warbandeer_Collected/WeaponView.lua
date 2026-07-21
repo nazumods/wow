@@ -63,58 +63,21 @@ end
 WeaponView.MAX_HEIGHT = 460
 WeaponView.STRIP_H = 20
 
--- Thickness (px) of the dressed-weapon cursor's edges (matches the armour grid's cursor).
-local CURSOR = 2
-
--- Lazily build the dressed-weapon cursor: one reusable frame outlined by four white edge
--- textures, parented to the row area so it scrolls with the cells and lifted above them so
--- the outline sits on top of the cell backdrops. Mirrors DataView:_ensureDressedBox.
-function WeaponView:_ensureDressedBox()
-  if self._dressedBox then return end
-  local box = ui.Frame:new{ parent = self.rowArea }
-  box:Level(self.rowArea:Level() + 5)
-  local function edge(pos)
-    Texture:new{ parent = box, layer = ui.layer.Overlay, color = {1, 1, 1, 1}, position = pos }
-  end
-  edge{ TopLeft = {0, 0}, TopRight = {0, 0}, Height = CURSOR }
-  edge{ BottomLeft = {0, 0}, BottomRight = {0, 0}, Height = CURSOR }
-  edge{ TopLeft = {0, 0}, BottomLeft = {0, 0}, Width = CURSOR }
-  edge{ TopRight = {0, 0}, BottomRight = {0, 0}, Width = CURSOR }
-  self._dressedBox = box
-end
-
--- Box the exact cell of the weapon currently previewed in the shared dressing room,
--- following it as ←/→ steps across weapon-type columns (same source row). Keyed by
--- (source, type) — the identity stamped on each cell's data in WeaponRows. Broadcast from
--- the room via ns:OnDressedWeaponCellChanged; nil (close / an armour set shown) hides it.
--- `scroll` brings the cell's row into view (via the host's onEnsureVisible hook).
+-- Box the exact cell of the weapon currently previewed in the shared dressing room, following it as
+-- ←/→ steps across weapon-type columns (same source row). Keyed by (source, type) — the identity
+-- stamped on each cell's data in WeaponRows. Broadcast from the room via ns:OnDressedWeaponCellChanged;
+-- nil (close / an armour set shown) hides it. `scroll` brings the cell's row into view (via the host's
+-- onEnsureVisible hook). The cursor box + cell scan are shared with the armor grid — see
+-- ns.HighlightGridCell / ns.EnsureDressedCursor (the weapon analogue of DataView:HighlightSet).
 ---@param source table?  the previewed source group, or nil to clear the cursor
 ---@param weaponType number?  the previewed weapon type (pins the column)
 ---@param scroll boolean?  scroll the matched cell's row into view
 function WeaponView:HighlightWeaponCell(source, weaponType, scroll)
   self._dressedSource = source
   self._dressedType = weaponType
-  if source then
-    for r = 1, #self.cells do
-      local row = self.cells[r]
-      for c = 1, #self.cols do
-        local cell = row[c]
-        local data = cell and cell.data
-        if type(data) == "table" and data._source == source and data._type == weaponType then
-          self:_ensureDressedBox()
-          self._dressedBox:TopLeft(cell, ui.edge.TopLeft, 0, 0)
-          self._dressedBox:BottomRight(cell, ui.edge.BottomRight, 0, 0)
-          self._dressedBox:Show()
-          if scroll and self.onEnsureVisible then
-            self:onEnsureVisible((r - 1) * self.cellHeight, self.cellHeight)
-          end
-          return
-        end
-      end
-    end
-  end
-  -- Cleared, or the cell isn't currently visible (filtered out / armor mode).
-  if self._dressedBox then self._dressedBox:Hide() end
+  ns.HighlightGridCell(self, source and function(data)
+    return data._source == source and data._type == weaponType
+  end or nil, scroll)
 end
 
 -- Column layout: an autosized name column (col 1) then one narrow column per weapon type
