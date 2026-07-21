@@ -2,13 +2,16 @@
   // Operator-only panel: drives the Warbandeer debug bot on the box via the Rust ops
   // commands (which shell out to ops/bot-ops.sh over SSH). Shown only when ops mode is
   // configured — App resolves opsConfig() and passes the resulting cfg here.
-  import type { OpsConfig, BotStatus, EnvSetResult } from "../types";
+  import type { OpsTargetInfo, BotStatus, EnvSetResult } from "../types";
   import { botStatus, botLogs, botRestart, botEnvGet, botEnvSet } from "../api";
 
   interface Props {
-    cfg: OpsConfig;
+    targets: OpsTargetInfo[];
   }
-  let { cfg }: Props = $props();
+  let { targets }: Props = $props();
+
+  // Which bot the panel is acting on; the selector switches it (debug/prod).
+  let selected = $state(0);
 
   // The non-secret keys the panel edits, in display order. Mirrors the whitelist in
   // ops/bot-ops.sh (the authority) — secrets are intentionally absent and can't be set here.
@@ -39,10 +42,10 @@
 
   const changed = $derived(FIELDS.filter((f) => (draft[f.key] ?? "") !== (env[f.key] ?? "")));
 
-  async function loadState() {
+  async function loadState(t = selected) {
     error = null;
     try {
-      const [st, ev] = await Promise.all([botStatus(), botEnvGet()]);
+      const [st, ev] = await Promise.all([botStatus(t), botEnvGet(t)]);
       status = st;
       env = ev;
       draft = { ...ev };
@@ -51,16 +54,19 @@
     }
   }
 
-  // Runs once on mount (reads no reactive state).
+  // Runs on mount and whenever the selected target changes: clear transient UI, then reload.
   $effect(() => {
-    loadState();
+    logs = "";
+    notice = null;
+    confirming = null;
+    loadState(selected);
   });
 
   async function fetchLogs() {
     busy = true;
     error = null;
     try {
-      logs = await botLogs(logLines);
+      logs = await botLogs(selected, logLines);
     } catch (e) {
       error = String(e);
     } finally {
@@ -74,7 +80,7 @@
     error = null;
     notice = null;
     try {
-      await botRestart();
+      await botRestart(selected);
       notice = "Bot restarted.";
       await loadState();
     } catch (e) {
@@ -91,6 +97,7 @@
     notice = null;
     try {
       const res: EnvSetResult = await botEnvSet(
+        selected,
         changed.map((f) => ({ key: f.key, value: draft[f.key] ?? "" })),
       );
       notice = res.recreated
@@ -107,14 +114,24 @@
 
 <div class="panel">
   <div class="statusbar">
+    {#if targets.length > 1}
+      <label class="target">
+        Bot
+        <select bind:value={selected}>
+          {#each targets as t, i (t.name)}
+            <option value={i}>{t.name}</option>
+          {/each}
+        </select>
+      </label>
+    {/if}
     <span class="dot" class:on={status?.running} class:off={status && !status.running}></span>
     <span class="stxt">{status ? status.status || (status.running ? "running" : "stopped") : "…"}</span>
     {#if status?.realmStatus}
       <span class="realm" class:down={status.realmStatus === "DOWN"}>realm {status.realmStatus}</span>
     {/if}
-    <span class="host num">{cfg.ssh}</span>
+    <span class="host num">{targets[selected]?.ssh}</span>
     <div class="spacer"></div>
-    <button class="btn" onclick={loadState} disabled={busy} title="Reload status + env">⟳</button>
+    <button class="btn" onclick={() => loadState()} disabled={busy} title="Reload status + env">⟳</button>
     <button class="btn danger" onclick={() => (confirming = "restart")} disabled={busy}>Restart</button>
   </div>
 
@@ -177,6 +194,21 @@
     align-items: center;
     gap: 10px;
     padding: 8px 0;
+  }
+  .target {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .target select {
+    background: var(--window);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text);
+    padding: 2px 6px;
+    font-size: 12px;
   }
   .dot {
     width: 9px;

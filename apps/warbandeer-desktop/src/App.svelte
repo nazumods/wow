@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Overview, CombatLogFile, OpsConfig } from "./lib/types";
+  import type { Overview, CombatLogFile, OpsTargetInfo } from "./lib/types";
   import { getVersion } from "@tauri-apps/api/app";
   import { getOverview, listCombatLogs, opsConfig } from "./lib/api";
   import OverviewView from "./lib/components/Overview.svelte";
@@ -15,7 +15,7 @@
 
   // Operator-only Ops tab: shown only when ops mode is configured (ops.json present).
   // A broken or absent config resolves to null, keeping the tab hidden in normal builds.
-  let ops = $state<OpsConfig | null>(null);
+  let ops = $state<OpsTargetInfo[] | null>(null);
   opsConfig()
     .then((c) => (ops = c))
     .catch(() => (ops = null));
@@ -58,7 +58,7 @@
       Logs{#if logs.length}<span class="badge">{logs.length}</span>{/if}
     </button>
     <button class:active={tab === "sort"} onclick={() => (tab = "sort")}> Sort </button>
-    {#if ops}
+    {#if ops && ops.length}
       <button class:active={tab === "ops"} onclick={() => (tab = "ops")}> Ops </button>
     {/if}
   </nav>
@@ -66,9 +66,9 @@
 </header>
 
 <main>
-  {#if tab === "ops" && ops}
+  {#if tab === "ops" && ops && ops.length}
     <!-- Independent of the WoW-data load: ops mode must work even on a box with no install. -->
-    <BotOps cfg={ops} />
+    <BotOps targets={ops} />
   {:else if loading}
     <div class="state">Loading saved data…</div>
   {:else if error}

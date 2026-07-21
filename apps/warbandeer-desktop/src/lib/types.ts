@@ -91,9 +91,10 @@ export interface OrderLine {
 // ── Bot ops panel (src-tauri/src/botops.rs) ──────────────────────────────────
 // Operator-only, gated: opsConfig() returns null unless an ops.json is present.
 
-export interface OpsConfig {
-  ssh: string; // SSH destination, e.g. "roshne@192.168.7.48"
-  remoteDir: string; // remote bot dir holding .env + ops/bot-ops.sh
+// One managed bot, as surfaced to the target switch (compose internals stay in Rust).
+export interface OpsTargetInfo {
+  name: string; // switch label, e.g. "debug" / "prod"
+  ssh: string; // SSH destination, for display
 }
 
 export interface BotStatus {

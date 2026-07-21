@@ -55,20 +55,33 @@ revisited later with **Prof choices…**.
 
 ## Ops (operator mode)
 
-An optional, operator-only **Ops** tab manages the self-hosted `warbandeer-discord` bot from
-your desktop — check its status, tail its logs, restart it, and edit its **non-secret** settings
-(announce channels, watched realm/repos, etc.) — driving the box over SSH. It's **hidden unless
-you opt in** with an `ops.json`, so normal builds never show it and end users can ignore this.
+An optional, operator-only **Ops** tab manages the self-hosted `warbandeer-discord` bot(s) from
+your desktop — check status, tail logs, restart, and edit **non-secret** settings (announce
+channels, watched realm/repos, etc.), with a **debug/prod switch** when you configure more than one
+bot — all driving the box over SSH. It's **hidden unless you opt in** with an `ops.json`, so normal
+builds never show it and end users can ignore this.
 
-To enable it, create `%APPDATA%\com.nazuraki.warbandeer\ops.json`:
+To enable it, create `%APPDATA%\com.nazuraki.warbandeer\ops.json` listing the bot(s) to manage:
 
 ```json
-{ "ssh": "you@your-box", "remoteDir": "~/path/to/apps/warbandeer-discord" }
+{
+  "targets": [
+    {
+      "name": "debug",
+      "ssh": "you@your-box",
+      "remoteDir": "~/repos/wow-debug/apps/warbandeer-discord",
+      "project": "warbandeer-discord-debug",
+      "container": "warbandeer-discord"
+    }
+  ]
+}
 ```
 
-Key-based SSH to the box must already work (the app reuses your key), and the box must have the
-`ops/bot-ops.sh` helper — see [`../warbandeer-discord/ops/README.md`](../warbandeer-discord/ops/README.md)
-for the helper, the editable-key whitelist, and why secrets are never touched.
+`project`/`container` are optional (default to debug's); the old single-bot shape
+(`{ "ssh": "...", "remoteDir": "..." }`) still works as one `debug` target. Key-based SSH to each
+host must work (the app reuses your key), and that host must have the `ops/bot-ops.sh` helper — see
+[`../warbandeer-discord/ops/README.md`](../warbandeer-discord/ops/README.md) for the full config
+(incl. adding a prod bot), the editable-key whitelist, and why secrets are never touched.
 
 ## Data location
 

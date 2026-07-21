@@ -5,7 +5,7 @@ import type {
   CombatLogSummary,
   CharacterOrderPayload,
   OrderLine,
-  OpsConfig,
+  OpsTargetInfo,
   BotStatus,
   EnvChange,
   EnvSetResult,
@@ -64,32 +64,34 @@ export function rememberCharacterOrder(
 
 // ── Bot ops (operator-only) ────────────────────────────────────────────────
 // All of these shell out to the box's ops/bot-ops.sh over SSH. `opsConfig`
-// returns null when ops mode isn't configured — the panel stays hidden then.
+// returns null when ops mode isn't configured — the panel stays hidden then;
+// otherwise it lists the managed bots, and every command takes the selected
+// target's index so the panel can switch bots (debug/prod).
 
-export function opsConfig(): Promise<OpsConfig | null> {
+export function opsConfig(): Promise<OpsTargetInfo[] | null> {
   return invoke("ops_config");
 }
 
-export function botStatus(): Promise<BotStatus> {
-  return invoke("bot_status");
+export function botStatus(target: number): Promise<BotStatus> {
+  return invoke("bot_status", { target });
 }
 
 /** Tail the container log (default 200, capped at 5000 by the backend). */
-export function botLogs(lines?: number): Promise<string> {
-  return invoke("bot_logs", { lines: lines ?? null });
+export function botLogs(target: number, lines?: number): Promise<string> {
+  return invoke("bot_logs", { target, lines: lines ?? null });
 }
 
 /** Restart the bot process in place (no env reload). Returns the compose output. */
-export function botRestart(): Promise<string> {
-  return invoke("bot_restart");
+export function botRestart(target: number): Promise<string> {
+  return invoke("bot_restart", { target });
 }
 
 /** Current values of the non-secret, editable env keys. */
-export function botEnvGet(): Promise<Record<string, string>> {
-  return invoke("bot_env_get");
+export function botEnvGet(target: number): Promise<Record<string, string>> {
+  return invoke("bot_env_get", { target });
 }
 
 /** Apply env changes and (if anything really changed) recreate the container to load them. */
-export function botEnvSet(changes: EnvChange[]): Promise<EnvSetResult> {
-  return invoke("bot_env_set", { changes });
+export function botEnvSet(target: number, changes: EnvChange[]): Promise<EnvSetResult> {
+  return invoke("bot_env_set", { target, changes });
 }

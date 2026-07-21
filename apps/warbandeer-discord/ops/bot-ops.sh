@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 #
-# bot-ops.sh — the ONLY privileged surface for the Warbandeer debug-bot admin panel.
+# bot-ops.sh — the ONLY privileged surface for the Warbandeer bot admin panels (debug or prod).
 #
-# The desktop app's Ops panel (apps/warbandeer-desktop) never runs docker or edits the
-# bot's .env itself: it invokes this script over SSH, one subcommand at a time. Keeping the
-# whitelist and the apply logic here — versioned and reviewable — means bot secrets never
-# leave the box, and the panel can only do the fixed set of operations below.
+# The desktop Ops panels (apps/warbandeer-desktop, and roshne's wow-companion) never run docker or
+# edit the bot's .env themselves: they invoke this script over SSH, one subcommand at a time, and
+# pass BOT_OPS_PROJECT / BOT_OPS_CONTAINER to pick which bot. Keeping the whitelist and the apply
+# logic here — versioned and reviewable — means bot secrets never leave the box, and the panels can
+# only do the fixed set of operations below.
 #
 # Subcommands:
 #   status        Print JSON: container running?, status line, image, realm status.
@@ -16,9 +17,11 @@
 #                 .env, apply only real changes, then `up -d --force-recreate` to load them.
 #
 # Design notes:
-#   - The compose project name is hardcoded (`-p PROJECT`): it is NOT set in a non-interactive
-#     SSH shell's environment, so a bare `docker compose` would default to the directory name
-#     and fail to see the running container. (Learned the hard way.)
+#   - The compose project + container come from BOT_OPS_PROJECT / BOT_OPS_CONTAINER (the caller
+#     passes them per selected bot), defaulting to the debug bot. The project MUST be passed with
+#     `-p` because it is NOT set in a non-interactive SSH shell's environment — a bare `docker
+#     compose` would default to the directory name and miss the running container. (Learned the hard
+#     way.) Both are validated to a safe charset since they're interpolated into docker commands.
 #   - Secrets (DISCORD_TOKEN, BLIZZARD_CLIENT_SECRET, GITHUB_TOKEN, ...) are deliberately absent
 #     from ALLOWED. env-get never reads them out; env-set never writes them. Edit those by hand
 #     with nano on the box.
@@ -26,9 +29,19 @@
 #     comment/blank/secret lines are preserved verbatim.
 set -euo pipefail
 
-PROJECT="warbandeer-discord-debug"
-CONTAINER="warbandeer-discord"
+# Target bot: defaults to the debug bot; a panel passes these per selected target (debug/prod).
+PROJECT="${BOT_OPS_PROJECT:-warbandeer-discord-debug}"
+CONTAINER="${BOT_OPS_CONTAINER:-warbandeer-discord}"
 LOGS_MAX=5000
+
+[[ "$PROJECT" =~ ^[A-Za-z0-9_.-]+$ ]] || {
+  echo "bot-ops: invalid BOT_OPS_PROJECT" >&2
+  exit 1
+}
+[[ "$CONTAINER" =~ ^[A-Za-z0-9_.-]+$ ]] || {
+  echo "bot-ops: invalid BOT_OPS_CONTAINER" >&2
+  exit 1
+}
 
 # Project dir = this script's parent's parent (ops/ lives inside the bot dir, beside .env).
 BOT_DIR="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"

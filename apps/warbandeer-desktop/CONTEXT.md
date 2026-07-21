@@ -15,7 +15,7 @@
 | `src/overview.rs` | `get_overview` — computes the Overview payload (stat strip, best-standing-per-faction reps, top char per class); mirrors `Warbandeer/views/Overview.lua` + `overview/TopAlts.lua` + `FactionBars.lua`. Has an end-to-end test against the live install (skips if none) |
 | `src/combatlog.rs` | `list_combat_logs` (newest first) + `summarize_combat_log` — streaming CLEU parse: unique `ENCOUNTER_START` names, damage-by-source top 10 |
 | `src/charorder.rs` | Parse/resolve/save `character-list-order.txt` + the remembered-order file; timestamped backups; extensive unit tests |
-| `src/botops.rs` | Operator-only: `ops_config` gate + `bot_status`/`bot_logs`/`bot_restart`/`bot_env_get`/`bot_env_set`, all shelling `ssh` to the box's `apps/warbandeer-discord/ops/bot-ops.sh` (the only privileged surface). Config from `ops.json` (app config dir, or `WARBANDEER_OPS_CONFIG`); absent ⇒ `ops_config` returns `None` and the tab stays hidden. Unit tests for config parse + payload deser |
+| `src/botops.rs` | Operator-only: `ops_config` gate + `bot_status`/`bot_logs`/`bot_restart`/`bot_env_get`/`bot_env_set`, all shelling `ssh` to the box's `apps/warbandeer-discord/ops/bot-ops.sh` (the only privileged surface). **Multi-target**: `ops.json` lists bots (debug/prod, each ssh/remoteDir + compose project/container); every command takes a `target` index and passes `BOT_OPS_PROJECT`/`BOT_OPS_CONTAINER`. Legacy flat `{ssh,remoteDir}` = one `debug` target. Config from the app config dir or `WARBANDEER_OPS_CONFIG`; absent ⇒ `ops_config` returns `None` and the tab stays hidden. Unit tests for multi/flat parse, injection-reject + payload deser |
 | **Svelte frontend (`src/`)** | |
 | `main.ts`, `App.svelte` | Mount; titlebar (version via `getVersion()`, account), tab switch, load/refresh, error state |
 | `lib/api.ts` | Thin typed `invoke()` wrappers, one per Rust command |
@@ -28,7 +28,7 @@
 | `lib/components/CharacterSort.svelte` | Sort tab controller (751 lines, the big one): account picker, sort/lock/gap state, drag-and-drop, Save to WoW / Remember this order |
 | `lib/components/ProfessionChoiceDialog.svelte` | Modal asking which of two crafting professions leads (dual-crafter ambiguity) |
 | `lib/components/Achievements.svelte` | Placeholder — achievements aren't in SavedVariables |
-| `lib/components/BotOps.svelte` | Operator-only Ops tab: status bar (running/realm), restart (confirmed), an env form over the non-secret whitelist (dirty-tracked, apply → recreate, confirmed), and a log tail. `App.svelte` renders it before the WoW-data gate so it works with no install |
+| `lib/components/BotOps.svelte` | Operator-only Ops tab: a target (debug/prod) selector when >1 bot, status bar (running/realm), restart (confirmed), an env form over the non-secret whitelist (dirty-tracked, apply → recreate, confirmed), and a log tail. `App.svelte` renders it before the WoW-data gate so it works with no install |
 | **Build & release** | |
 | `vite.config.ts`, `svelte.config.js`, `tsconfig*.json` | Vite on fixed port 1420 (`strictPort`), `src-tauri/` excluded from watch |
 | `src-tauri/tauri.conf.json` | `productName` "Warbandeer", **`version` = release source of truth**, `bundle.active: false` (portable exe only) |
@@ -56,16 +56,16 @@ All commands take an optional `wowDir` override (frontend always passes `null` t
 | `get_remembered_order(account)` | `OrderLine[] \| null` | `null` = nothing remembered yet |
 | `remember_character_order(account, ordered)` | `()` | Overwrites `character-list-order - Memory.txt` in the account dir, no backup (intended) |
 
-Operator-only ops commands (no `wowDir`; all shell `ssh <cfg.ssh> "bash <cfg.remoteDir>/ops/bot-ops.sh …"`, see `../warbandeer-discord/ops/README.md`):
+Operator-only ops commands (no `wowDir`; each takes the selected `target` index and shells `ssh <ssh> "BOT_OPS_PROJECT=<p> BOT_OPS_CONTAINER=<c> bash <remoteDir>/ops/bot-ops.sh …"`, see `../warbandeer-discord/ops/README.md`):
 
 | Command | Returns | Notes |
 |---|---|---|
-| `ops_config` | `OpsConfig \| null` | The gate — `null` (no `ops.json`) ⇒ frontend hides the Ops tab. A malformed config errors so a typo is visible |
-| `bot_status` | `BotStatus` | running / status line / image / last realm status (parsed from the helper's JSON) |
-| `bot_logs(lines?)` | `string` | Container log tail (default 200, capped 5000) |
-| `bot_restart` | `string` | In-place restart, no env reload |
-| `bot_env_get` | `Record<string,string>` | Current values of the non-secret editable keys only |
-| `bot_env_set(changes)` | `EnvSetResult` | Whitelisted `.env` edit on the box → backup + `--force-recreate`; a no-op skips the restart |
+| `ops_config` | `OpsTargetInfo[] \| null` | The gate + switch options — `null` (no `ops.json`) ⇒ tab hidden; else the list of bots. A malformed config errors so a typo is visible |
+| `bot_status(target)` | `BotStatus` | running / status line / image / last realm status (parsed from the helper's JSON) |
+| `bot_logs(target, lines?)` | `string` | Container log tail (default 200, capped 5000) |
+| `bot_restart(target)` | `string` | In-place restart, no env reload |
+| `bot_env_get(target)` | `Record<string,string>` | Current values of the non-secret editable keys only |
+| `bot_env_set(target, changes)` | `EnvSetResult` | Whitelisted `.env` edit on the box → backup + `--force-recreate`; a no-op skips the restart |
 
 ## Character Sort model
 
