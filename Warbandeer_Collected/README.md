@@ -108,6 +108,9 @@ the armor set you're previewing — all on the model at once.
 Step to another class's set (the arrow keys, or the nav pad) and the picker re-scopes to
 that class's weapons and illusions.
 
+A two-handed main-hand (a staff, a 2H sword) fills both hands, so picking one greys out the
+off-hand slot — switch back to a one-hander and your off-hand pick comes back.
+
 **Right-click a weapon slot to clear it** (or click the equipped weapon again in the
 picker). Drag the panel's header to move the whole window.
 

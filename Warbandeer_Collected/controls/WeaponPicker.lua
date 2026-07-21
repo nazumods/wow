@@ -293,6 +293,21 @@ function DressingRoom:_scheduleNameFill()
   end)
 end
 
+-- Weapon categories that occupy BOTH hands (no off-hand possible) — a main-hand pick in one of
+-- these greys out the off-hand slot (#618). A POSITIVE list, deliberately not `not canOffHand`:
+-- that flag means "can sit in the off-hand slot", which also excludes wands (a caster runs a wand
+-- + off-hand) and would depend on how warglaives (dual-wield) are flagged. This names the real 2H.
+local TWO_HANDED = {
+  [Enum.TransmogCollectionType.TwoHAxe]   = true,
+  [Enum.TransmogCollectionType.TwoHSword] = true,
+  [Enum.TransmogCollectionType.TwoHMace]  = true,
+  [Enum.TransmogCollectionType.Polearm]   = true,
+  [Enum.TransmogCollectionType.Staff]     = true,
+  [Enum.TransmogCollectionType.Bow]       = true,
+  [Enum.TransmogCollectionType.Crossbow]  = true,
+  [Enum.TransmogCollectionType.Gun]       = true,
+}
+
 -- Toggle a clicked piece into/out of the look: an illusion, or a weapon in its slot (off-hand for
 -- shields/holdables, else main-hand). Clicking the applied piece again clears that slot.
 ---@param item table
@@ -305,7 +320,14 @@ function DressingRoom:_equipRow(item)
     self._lookOH = (self._lookOH == sid) and nil or sid
   else
     local sid = item.src.sourceID
-    self._lookMH = (self._lookMH == sid) and nil or sid
+    if self._lookMH == sid then
+      self._lookMH, self._lookMH2H = nil, nil          -- toggling the applied weapon off
+    else
+      self._lookMH = sid
+      -- Grey the off-hand while a two-handed main-hand is composed (#618).
+      local cat = self._pickerCatByID[self._pickerCategory]
+      self._lookMH2H = (cat and TWO_HANDED[cat.category]) or nil
+    end
   end
   self:_applyLook()
   self._pickerList:Refresh()   -- re-color the selection borders
@@ -323,6 +345,8 @@ function DressingRoom:_applyLook()
   else
     m:SlotTransmog(INVSLOT_MAINHAND, self._lookMH or 0)
   end
-  m:SlotTransmog(INVSLOT_OFFHAND, self._lookOH or 0)
+  -- A two-handed main-hand occupies both hands, so suppress the off-hand appearance (the pick is
+  -- kept — it returns when the main-hand goes back to a 1H or empties). #618.
+  m:SlotTransmog(INVSLOT_OFFHAND, (not self._lookMH2H and self._lookOH) or 0)
   self:UpdateWeaponSlots()   -- keep the bottom weapon slots showing the current look
 end
