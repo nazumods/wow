@@ -173,7 +173,7 @@ function DressingRoom:_rescopePicker()
 end
 
 -- Apply the current target hand (self._pickerHand) to the pane: filter the weapon-category
--- dropdown to that hand's categories (canMainHand / canOffHand), keeping the current category if
+-- dropdown to that hand's categories (main-hand = anything not off-hand-only; off-hand = canOffHand), keeping the current category if
 -- it's still valid else the first available; hide the Illusions tab for the off-hand (illusions
 -- ride the main hand, so they're only offered there); then repopulate the active mode. Shared by
 -- the open path and the class re-scope so both honour the hand + class scoping in one place.
@@ -183,7 +183,11 @@ function DressingRoom:_applyPickerHand()
   if off and self._pickerMode == "illusions" then self._pickerMode = "weapons" end
   local opts, valid = {}, false
   for _, c in ipairs(self._pickerCats) do
-    if (off and c.canOffHand) or (not off and c.canMainHand) then
+    -- Main-hand dropdown = everything that isn't off-hand-ONLY: 2H, ranged, and wands all report
+    -- canMainHand=false (that flag means "one-handed main-hand") but canOffHand=false, so include
+    -- them via `not canOffHand`. Only shields/holdables (canOffHand, not canMainHand) are kept out.
+    -- Off-hand dropdown = canOffHand (1H weapons + shields + holdables).
+    if (off and c.canOffHand) or (not off and (c.canMainHand or not c.canOffHand)) then
       opts[#opts + 1] = { key = c.category, label = c.name }
       if c.category == self._pickerCategory then valid = true end
     end
