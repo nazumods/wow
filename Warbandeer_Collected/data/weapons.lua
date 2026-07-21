@@ -35,11 +35,14 @@ tinsert(ns.Sets, {
   sets = {
     {}, {}, {},                                                         -- 1 Warrior, 2 Paladin, 3 Hunter
     { id = 9000104, classId = 4, name = "Illusion: Poisoned",           -- 4 Rogue
+      obtain = "Rogue only — the applied weapon-poison shimmer",
       illusions = { { sourceID = 5364 } } },
     {},                                                                 -- 5 Priest
     { id = 9000106, classId = 6, name = "Illusion: Rune of Razorice",   -- 6 Death Knight
+      obtain = "Death Knight only — the Rune of Razorice runeforge",
       illusions = { { sourceID = 5869 } } },
     { id = 9000107, classId = 7, name = "Shaman Weapon Imbues",         -- 7 Shaman (5 brands)
+      obtain = "Shaman only — weapon imbues (Flametongue, Frostbrand, etc.)",
       illusions = {
         { sourceID = 5872 },   -- Flametongue
         { sourceID = 5873 },   -- Frostbrand
@@ -61,10 +64,12 @@ tinsert(ns.Sets, {
     {},                                                                 -- 1 Warrior
     { id = 9000202, classId = 2, name = "Arsenal: Armaments of the Silver Hand",  -- 2 Paladin
       arsenal = 141371,
+      obtain = "Broken Shore — bought from Warmage Kath'leen for Nethershards",
       pieces = { 141653, 141654, 141368, 141367, 141370, 150953 } },   -- verify 150953 (Ardent Gavel, an ID outlier) in-game
     {}, {}, {},                                                         -- 3 Hunter, 4 Rogue, 5 Priest
     { id = 9000206, classId = 6, name = "Arsenal: Armaments of the Ebon Blade",   -- 6 Death Knight
       arsenal = 141372,
+      obtain = "Broken Shore — bought from Warmage Kath'leen for Nethershards",
       pieces = {   -- 5 weapon types x 3 tints (Bloodied / Icy / Unholy), itemIDs 141362-141382
         141375, 141379, 141366, 141377, 141365,   -- Bloodied  Warsword/Warblade/Halberd/Blade/Axe
         141376, 141363, 141373, 141362, 141381,   -- Icy
@@ -73,6 +78,7 @@ tinsert(ns.Sets, {
     {}, {}, {}, {}, {},                                                 -- 7 Shaman .. 11 Druid
     { id = 9000212, classId = 12, name = "Arsenal: The Warglaives of Azzinoth",   -- 12 Demon Hunter
       arsenal = 150372,
+      obtain = "Black Temple, Burning Crusade Timewalking — drops from Illidan Stormrage",
       pieces = { 151137, 151138 } },   -- DH 7.2.5 main-hand + off-hand; verify vs the TBC pair 32837/32838 in-game
     -- 13 Evoker padded blank
   },
