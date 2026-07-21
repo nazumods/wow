@@ -245,6 +245,17 @@ local function weaponTip(group, set)
     end
   end
   GameTooltip:AddLine(("Collected  %d / %d"):format(n, total), WTIP_GREY[1], WTIP_GREY[2], WTIP_GREY[3])
+
+  -- "How to obtain" for an INCOMPLETE set: the curated `obtain` on the set (illusions AND arsenals
+  -- are both hand-authored). NOT the illusion API's sourceText — it traces each shimmer to the
+  -- OLDEST item bearing that visual (Flametongue → "Ragnaros in Molten Core"), not the class-ability
+  -- path, so it misleads here. Mirrors the glyph obtain hint (Warbandeer/controls/ItemTooltip.lua):
+  -- a blank spacer, a gold header, then the muted, wrapping source line. Complete sets add nothing.
+  if n < total and set.obtain then
+    GameTooltip:AddLine(" ")
+    GameTooltip:AddLine("How to obtain", 1, 0.82, 0)
+    GameTooltip:AddLine(set.obtain, WTIP_GREY[1], WTIP_GREY[2], WTIP_GREY[3], true)
+  end
   GameTooltip:Show()
 end
 

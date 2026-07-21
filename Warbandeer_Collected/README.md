@@ -78,7 +78,9 @@ cosmetics that are easy to miss:
 
 Each cell counts how many pieces you still need (read **account-wide**, so it's right
 no matter which character you're on), hover it for the per-piece owned/missing
-breakdown, and Shift-click to flag it wanted just like a set. Click a Weapons cell to
+breakdown — plus, while you're still missing pieces, a **How to obtain** line for where
+to get them (which class each illusion is locked to, and the Broken Shore / Timewalking
+source for the Legion arsenals) — and Shift-click to flag it wanted just like a set. Click a Weapons cell to
 open the dressing room holding the piece on your own character — for an **arsenal** it
 shows the weapon appearance; for an **illusion** it lays the enchant shimmer over your
 equipped weapon. Use the **Up/Down** nav to cycle through the pieces (the 15 Ebon
