@@ -2,7 +2,6 @@
 local ns = select(2, ...)
 local ui, Colors = ns.ui, ns.Colors
 local lists, prepend = ns.lua.lists, ns.lua.lists.prepend
-local Texture, Label = ui.Texture, ui.Label
 local GameTooltip = GameTooltip
 local DataView = ns.DataView
 
@@ -131,24 +130,10 @@ function DataView:ShowWantedTooltip(owner)
   GameTooltip:Show()
 end
 
----Dropdown option specs for the expansion filter: "All" then one per release present
----in `ns.Sets` (newest first), each label prefixed with the expansion badge.
+---Dropdown option specs for the expansion filter (shared with the weapons grid — see
+---`ns.expansionBadgeOptions`): "All" then one per release present in `ns.Sets`, newest-first, badged.
 ---@return table[]  `{ key, label }` specs for `ui.FilterDropdown`
-function DataView:ExpansionOptions()
-  local seen = {}
-  for _, g in ipairs(ns.Sets) do seen[g.release] = true end
-  local rels = {}
-  for r in pairs(seen) do rels[#rels + 1] = r end
-  table.sort(rels, function(a, b) return a > b end)
-  -- The "show all" option is labelled with the dimension, so the button names what it
-  -- filters (e.g. "Expansion") when nothing is selected, and still means no filter.
-  local opts = { { key = "all", label = "Expansion" } }
-  for _, r in ipairs(rels) do
-    local icon = ns.ReleaseIcons[r]
-    opts[#opts + 1] = { key = r, label = (icon and ("|T%s:0|t "):format(icon) or "") .. (ns.Releases[r] or r) }
-  end
-  return opts
-end
+function DataView:ExpansionOptions() return ns.expansionBadgeOptions(ns.Sets) end
 
 -- Display order for the category filter; categories present in ns.Sets but unlisted
 -- here are appended so the menu never silently drops one.
@@ -180,58 +165,17 @@ function DataView:BuildFilterStrip(parent, onModeChanged)
   local theme = self:Theme()
   -- Dark's `header` token is the same gold, so the toggles read on/off without void-dark.
   local gold, divider = theme.colors.gold or theme.colors.header, theme.colors.divider
-  local caps = theme.fonts.caps
   -- Expansion names get long ("Wrath of the Lich King"), so that dropdown is wider.
-  local BW, BH, PAD, GAP, DW, DW_EXP = 48, DataView.STRIP_H, 8, 6, 110, 190
-  local IB, IPAD = BH, 2  -- icon toggles are square (BH×BH) with an IPAD glyph inset
+  local BW, BH, GAP, DW, DW_EXP = 48, DataView.STRIP_H, 6, 110, 190
+  local IB = BH
   local TEX = [[Interface\AddOns\Warbandeer_Collected\textures\]]
   local NEWEST_ICON, OLDEST_ICON = TEX .. "sort-newest", TEX .. "sort-oldest"
   local strip = ui.Frame:new{ parent = parent, position = { Height = BH } }
 
-  -- One framed toggle. A `text` spec builds a caption pill (BW wide); an `atlas`
-  -- or `tex` spec builds a square icon button (BH×BH) with a hover GameTooltip
-  -- (`tip` returns the string). Returns the recolorable border + the face — a
-  -- caption Label for text, or the icon Texture for icons (retint via SetVertexColor,
-  -- swap art via Texture()).
-  local function toggle(spec)
-    local isIcon = spec.atlas or spec.tex
-    local b = ui.Frame:new{ parent = strip,
-      position = { TopLeft = {spec.x, 0}, Width = isIcon and IB or BW, Height = BH } }
-    local border = Texture:new{
-      parent = b, layer = ui.layer.Background, position = { All = true },
-      color = spec.active and gold or divider,
-    }
-    Texture:new{
-      parent = b, layer = ui.layer.Border, color = {0.05, 0.05, 0.06, 0.92},
-      position = { TopLeft = {1, -1}, BottomRight = {-1, 1} },
-    }
-    local btn = ui.Button:new{ parent = b, position = { All = true }, glow = false, OnClick = spec.onClick,
-      OnEnter = spec.tip and function(s)
-        GameTooltip:SetOwner(s._widget, "ANCHOR_BOTTOMRIGHT")
-        GameTooltip:SetText(spec.tip()); GameTooltip:Show()
-      end or nil,
-      OnLeave = spec.tip and function() GameTooltip:Hide() end or nil,
-    }
-    if isIcon then
-      -- `tint = false` keeps an already-colored atlas (the gold star) at its native
-      -- color; an explicit color tints a white silhouette (the calendar's gold,
-      -- independent of the border); otherwise the glyph tracks the active/off border.
-      local vc
-      if spec.tint ~= false then vc = spec.tint or (spec.active and gold or divider) end
-      local icon = Texture:new{
-        parent = btn, layer = ui.layer.Artwork,
-        atlas = spec.atlas, atlasSize = spec.atlas and false or nil, path = spec.tex,
-        vertexColor = vc,
-        position = { TopLeft = {IPAD, -IPAD}, BottomRight = {-IPAD, IPAD} },
-      }
-      return border, icon
-    end
-    local label = Label:new{
-      parent = btn, fontInfo = caps and {caps[1], 10} or nil, justifyH = ui.justify.Center,
-      position = { Left = {PAD, 0}, Right = {-PAD, 0} }, text = spec.text,
-    }
-    return border, label
-  end
+  -- Each toggle is the shared filter-strip button primitive (border + icon pill / caption + Button);
+  -- it reads the strip's height + the grid theme, so the call just supplies x / face / handlers.
+  -- Returns the recolorable border + the face (an icon Texture or a caption Label). See GridShared.lua.
+  local function toggle(spec) return ns.filterToggle(strip, theme, spec) end
 
   -- Warbandeer order: PTR (text) / Wanted (★) / Sort (calendar) toggles, then dropdowns.
   -- Running x cursor since the icon toggles are narrower than the text pill.
