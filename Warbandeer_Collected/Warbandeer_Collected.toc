@@ -43,6 +43,8 @@ controls\WeaponPicker.lua
 controls\DressingRoomWeaponSlots.lua
 controls\WeaponCellPicker.lua
 
+GridShared.lua
+
 DataView.lua
 DataViewData.lua
 DataViewFilters.lua
