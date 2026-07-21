@@ -1,0 +1,11 @@
+dev:
+	npm run tauri dev
+
+build:
+	npm run tauri build
+
+check:
+	npm run check
+
+run:
+	cmd //c start "" "src-tauri/target/release/warbandeer-desktop.exe"
