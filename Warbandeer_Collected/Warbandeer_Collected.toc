@@ -25,6 +25,7 @@ data\sets_ptr.lua
 data\sets_review.lua
 data\weapons.lua
 data\weaponbrowser.lua
+data\weaponsources.lua
 data\models.lua
 
 ratings.lua

@@ -80,7 +80,12 @@ param(
   [string]$ReviewFile = (Join-Path $PSScriptRoot '..' 'data' 'sets_review.lua'),
   # Output file for the -Expand block — its own data file (loaded after sets.lua in the
   # .toc) so the generated rows don't bloat the hand-curated body. Owned wholesale by -Expand.
-  [string]$ExpandSetsFile = (Join-Path $PSScriptRoot '..' 'data' 'sets_expand.lua')
+  [string]$ExpandSetsFile = (Join-Path $PSScriptRoot '..' 'data' 'sets_expand.lua'),
+  # Weapons mode: generate data/weaponsources.lua (ns.WeaponSources) — every weapon/off-hand
+  # APPEARANCE bucketed by source (row) x weapon type (column), derived from DB2. Blizzard never
+  # grouped weapons into TransmogSet records, so the grouping is derived. Self-contained; see UPDATING.md.
+  [switch]$Weapons,
+  [string]$WeaponsFile = (Join-Path $PSScriptRoot '..' 'data' 'weaponsources.lua')
 )
 
 $ErrorActionPreference = 'Stop'
@@ -991,6 +996,217 @@ if ($PtrDelta) {
   $newText = ($L -join "`n").TrimEnd() + "`n"
   [System.IO.File]::WriteAllText($PtrFile, $newText, [System.Text.UTF8Encoding]::new($false))
   Write-Host "Wrote $PtrFile ($($buckets.Count) upcoming row(s))." -ForegroundColor Green
+  exit 0
+}
+
+# ── Weapons mode ─────────────────────────────────────────────────────────────
+# Emit data/weaponsources.lua (ns.WeaponSources): every weapon + off-hand APPEARANCE
+# bucketed by SOURCE (row) x weapon TYPE (column). Unlike armor, Blizzard never grouped
+# weapons into TransmogSet records, so the grouping is DERIVED from DB2:
+#   ItemModifiedAppearance.TransmogSourceTypeEnum -> coarse source bucket (every appearance)
+#   CollectableSourceInfo + CollectableSource{Encounter,Quest,Vendor}Sparse -> the specific source
+#   Item.ClassID/SubclassID/InventoryType -> weapon type (ClassID 2; Shield/Holdable are Armor class 4)
+#   JournalTier via JournalTierXInstance -> instance expansion (Map.ExpansionID is 0 for new maps)
+#   Map.InstanceType -> Raid (2) / Dungeon (1) / World Boss (0)
+# One representative source per visual: drop > quest > vendor > TP > world > craft > achiev.
+# Dungeon/raid wings (Dire Maul - X, Stratholme - X) merge into the base instance. Self-contained;
+# exits before the normal live refresh. See UPDATING.md ("Regenerating the weapon sources").
+if ($Weapons) {
+  $tmp = Join-Path ([IO.Path]::GetTempPath()) 'wbc-weapons'
+  New-Item -ItemType Directory -Force -Path $tmp | Out-Null
+
+  # Resolve the build (pin it — the bare endpoint serves PTR/beta too).
+  $wBuilds = (Invoke-WebRequest -Uri 'https://wago.tools/api/builds' -UseBasicParsing -ErrorAction Stop).Content | ConvertFrom-Json
+  if (-not $Build) { $Build = $wBuilds.$Product[0].version }
+  $wMatch = $wBuilds.$Product | Where-Object { $_.version -eq $Build } | Select-Object -First 1
+  $wDate  = if ($wMatch) { ($wMatch.created_at -split ' ')[0] } else { '' }
+  Write-Host "Weapon sources against $Product build $Build $wDate" -ForegroundColor Cyan
+
+  function WFetch([string]$table) {
+    $out = Join-Path $tmp "$table.csv"
+    $url = "https://wago.tools/db2/$table/csv?build=$Build"
+    Write-Host "Fetching $url" -ForegroundColor Cyan
+    Invoke-WebRequest -Uri $url -UseBasicParsing -OutFile $out -ErrorAction Stop
+    return $out
+  }
+  function WEsc([string]$s) { $s.Replace('\', '\\').Replace('"', '\"') }
+  function WCols($rows, [string]$table, [string[]]$cols) {
+    foreach ($c in $cols) { if ($c -notin $rows[0].PSObject.Properties.Name) { throw "$table CSV missing '$c' column — aborting." } }
+  }
+  # Item.ClassID/SubclassID/InventoryType -> Enum.TransmogCollectionType id (null = not a weapon/off-hand).
+  function WType($it) {
+    if (-not $it) { return $null }
+    $c = [int]$it.ClassID; $s = [int]$it.SubclassID; $iv = [int]$it.InventoryType
+    if ($c -eq 2) {
+      switch ($s) { 0 {13} 1 {20} 2 {25} 3 {26} 4 {15} 5 {22} 6 {24} 7 {14} 8 {21}
+                    9 {28} 10 {23} 13 {17} 15 {16} 18 {27} 19 {12} default {$null} }
+    } elseif ($c -eq 4) {
+      if ($s -eq 6) { 18 } elseif ($iv -eq 23) { 19 } else { $null }   # Shield / Held In Off-hand
+    } else { $null }
+  }
+
+  # --- item + appearance tables ---
+  $item = @{}
+  Import-Csv (WFetch 'Item') | ForEach-Object { $item[$_.ID] = $_ }
+  if ($item.Count -lt 50000) { throw "Item under 50000 rows ($($item.Count)) — incomplete download, aborting." }
+  $ima = Import-Csv (WFetch 'ItemModifiedAppearance')
+  WCols $ima 'ItemModifiedAppearance' @('ItemID', 'ItemAppearanceID', 'TransmogSourceTypeEnum')
+  if ($ima.Count -lt 50000) { throw "ItemModifiedAppearance under 50000 rows ($($ima.Count)) — incomplete download, aborting." }
+
+  # ItemSparse -> ExpansionID (0-based). ~50 MB; stream just ID + ExpansionID (quoted-CSV-safe).
+  Add-Type -AssemblyName Microsoft.VisualBasic
+  $itemExp = @{}
+  $tp = New-Object Microsoft.VisualBasic.FileIO.TextFieldParser((WFetch 'ItemSparse'))
+  $tp.TextFieldType = 'Delimited'; $tp.SetDelimiters(','); $tp.HasFieldsEnclosedInQuotes = $true
+  $hdr = $tp.ReadFields(); $idIdx = [Array]::IndexOf($hdr, 'ID'); $exIdx = [Array]::IndexOf($hdr, 'ExpansionID')
+  if ($idIdx -lt 0 -or $exIdx -lt 0) { throw 'ItemSparse CSV missing ID/ExpansionID column — aborting.' }
+  while (-not $tp.EndOfData) { $f = $tp.ReadFields(); $itemExp[$f[$idIdx]] = [int]$f[$exIdx] }
+  $tp.Close()
+
+  # --- source-detail lookups (the specific encounter/quest/vendor per appearance) ---
+  $imaToCs = @{}
+  foreach ($r in (Import-Csv (WFetch 'CollectableSourceInfo'))) {
+    if ($r.HouseDecorID -eq '0' -and $r.ItemModifiedAppearanceID -ne '0' -and -not $imaToCs.ContainsKey($r.ItemModifiedAppearanceID)) {
+      $imaToCs[$r.ItemModifiedAppearanceID] = $r.ID } }
+  $csToEnc = @{}; foreach ($r in (Import-Csv (WFetch 'CollectableSourceEncounterSparse'))) { if (-not $csToEnc.ContainsKey($r.CollectableSourceInfoID)) { $csToEnc[$r.CollectableSourceInfoID] = $r.JournalEncounterID } }
+  $csToQMap = @{}; foreach ($r in (Import-Csv (WFetch 'CollectableSourceQuestSparse'))) { if (-not $csToQMap.ContainsKey($r.CollectableSourceInfoID)) { $csToQMap[$r.CollectableSourceInfoID] = $r.QuestMapID } }
+  $csToVMap = @{}; foreach ($r in (Import-Csv (WFetch 'CollectableSourceVendorSparse'))) { if (-not $csToVMap.ContainsKey($r.CollectableSourceInfoID)) { $csToVMap[$r.CollectableSourceInfoID] = $r.VendorMapID } }
+
+  # --- journal + map lookups ---
+  $encToInst = @{}; foreach ($r in (Import-Csv (WFetch 'JournalEncounter'))) { $encToInst[$r.ID] = $r.JournalInstanceID }
+  $jInst = @{}; foreach ($r in (Import-Csv (WFetch 'JournalInstance'))) { $jInst[$r.ID] = $r }
+  $jMap  = @{}; foreach ($r in (Import-Csv (WFetch 'Map'))) { $jMap[$r.ID] = $r }
+  # Instance expansion via its real Journal tier (Map.ExpansionID is 0 for brand-new maps).
+  $tierExp = @{}; foreach ($r in (Import-Csv (WFetch 'JournalTier'))) { $tierExp[$r.ID] = [int]$r.Expansion }
+  $instTiers = @{}
+  foreach ($r in (Import-Csv (WFetch 'JournalTierXInstance'))) {
+    $e = $tierExp[$r.JournalTierID]
+    if ($e) { if (-not $instTiers.ContainsKey($r.JournalInstanceID)) { $instTiers[$r.JournalInstanceID] = New-Object System.Collections.ArrayList }
+              [void]$instTiers[$r.JournalInstanceID].Add($e) } }
+
+  function WMapRel($mapId) { if ($mapId -and $jMap.ContainsKey($mapId)) { [int]$jMap[$mapId].ExpansionID + 1 } else { 0 } }
+  function WInstRel($insId, $mapId) {
+    if ($instTiers.ContainsKey($insId)) {
+      $reals = @($instTiers[$insId] | Where-Object { $_ -gt 0 -and $_ -lt 9000 })   # drop the "Current Season" pseudo-tier (9000)
+      if ($reals.Count) { return [int]((($reals | Measure-Object -Minimum).Minimum) / 100) }
+    }
+    return (WMapRel $mapId)
+  }
+  function WItemRel($itemId) { if ($itemExp.ContainsKey($itemId)) { $e = $itemExp[$itemId]; if ($e -lt 0) { 0 } else { $e + 1 } } else { 0 } }
+
+  # --- index weapon visuals (dedup by ItemAppearanceID = the visual) ---
+  $visType = @{}; $visImas = @{}
+  foreach ($m in $ima) {
+    $wt = WType $item[$m.ItemID]
+    if (-not $wt) { continue }
+    $aid = $m.ItemAppearanceID
+    if (-not $visType.ContainsKey($aid)) { $visType[$aid] = $wt; $visImas[$aid] = New-Object System.Collections.ArrayList }
+    [void]$visImas[$aid].Add(@{ ima = $m.ID; src = [int]$m.TransmogSourceTypeEnum; item = $m.ItemID })
+  }
+
+  # --- resolve each visual to one representative row ---
+  $PRIO = 1, 2, 3, 10, 4, 8, 7   # drop > quest > vendor > trading post > world > craft > achievement
+  $wRows = @{}
+  function WAdd($key, $name, $cat, $rel, $minInst, $typeId, $aid) {
+    if (-not $wRows.ContainsKey($key)) { $wRows[$key] = @{ name = $name; cat = $cat; rel = $rel; minInst = $minInst; types = @{} } }
+    $R = $wRows[$key]
+    if ($minInst -and (-not $R.minInst -or $minInst -lt $R.minInst)) { $R.minInst = $minInst }
+    if (-not $R.types.ContainsKey($typeId)) { $R.types[$typeId] = New-Object 'System.Collections.Generic.HashSet[int]' }
+    [void]$R.types[$typeId].Add([int]$aid)
+  }
+  $placed = 0
+  foreach ($aid in $visType.Keys) {
+    $wt = $visType[$aid]; $done = $false
+    foreach ($st in $PRIO) {
+      foreach ($c in ($visImas[$aid] | Where-Object { $_.src -eq $st })) {
+        if ($st -eq 1) {
+          $ci = $imaToCs[$c.ima]; if (-not $ci) { continue }
+          $enc = $csToEnc[$ci];   if (-not $enc) { continue }
+          $insId = $encToInst[$enc]; if (-not $insId) { continue }
+          $ii = $jInst[$insId]; if (-not $ii) { continue }
+          $mp = $jMap[$ii.MapID]; $it = if ($mp) { [int]$mp.InstanceType } else { -1 }
+          $cat = switch ($it) { 2 {'Raid'} 1 {'Dungeon'} 0 {'World Boss'} default {$null} }
+          if (-not $cat) { continue }
+          $nm = ($ii.Name_lang -split ' - ', 2)[0]   # merge wings (Dire Maul - X, Stratholme - X)
+          $rel = WInstRel $insId $ii.MapID
+          WAdd "INST|$nm|$rel" $nm $cat $rel ([int]$insId) $wt $aid; $done = $true; break
+        } elseif ($st -eq 2) {
+          $ci = $imaToCs[$c.ima]; $qm = if ($ci) { $csToQMap[$ci] } else { $null }
+          $rel = if ($qm) { WMapRel $qm } else { 0 }; if ($rel -eq 0) { $rel = WItemRel $c.item }
+          WAdd "QUEST|$rel" 'Quest' 'Quest' $rel $null $wt $aid; $done = $true; break
+        } elseif ($st -eq 3) {
+          $ci = $imaToCs[$c.ima]; $vm = if ($ci) { $csToVMap[$ci] } else { $null }
+          $rel = if ($vm) { WMapRel $vm } else { 0 }; if ($rel -eq 0) { $rel = WItemRel $c.item }
+          WAdd "VENDOR|$rel" 'Vendor' 'Vendor' $rel $null $wt $aid; $done = $true; break
+        } elseif ($st -eq 10) { $rel = WItemRel $c.item; WAdd "TP|$rel" 'Trading Post' 'Trading Post' $rel $null $wt $aid; $done = $true; break }
+          elseif ($st -eq 4) { $rel = WItemRel $c.item; WAdd "WORLD|$rel" 'World Drop' 'World Drop' $rel $null $wt $aid; $done = $true; break }
+          elseif ($st -eq 8) { $rel = WItemRel $c.item; WAdd "CRAFT|$rel" 'Crafted' 'Crafted' $rel $null $wt $aid; $done = $true; break }
+          elseif ($st -eq 7) { $rel = WItemRel $c.item; WAdd "ACHIEV|$rel" 'Achievement' 'Achievement' $rel $null $wt $aid; $done = $true; break }
+      }
+      if ($done) { break }
+    }
+    if ($done) { $placed++ }
+  }
+  if ($placed -lt 3000) { throw "Only $placed weapon appearances placed (<3000) — incomplete data, aborting." }
+  Write-Host "Placed $placed weapon appearances into $($wRows.Count) source rows." -ForegroundColor Cyan
+
+  # --- emit ns.WeaponSources ---
+  # Stable synthetic ids: instance rows 9_200_000 + min JournalInstanceID (wings share the min);
+  # per-expansion aggregates 9_300_000 + categoryIndex*20 + release. Both ranges clear the armor
+  # setIds (< ~100k) and the weapons.lua illusion/arsenal ids (9_000_0xx).
+  $catIdx = @{ 'Quest' = 1; 'Vendor' = 2; 'World Drop' = 3; 'Crafted' = 4; 'Trading Post' = 5; 'Achievement' = 6 }
+  function WRowId($r) { if ($r.minInst) { 9200000 + [int]$r.minInst } else { $ci = $catIdx[$r.cat]; if (-not $ci) { $ci = 9 }; 9300000 + $ci * 20 + [int]$r.rel } }
+  $catRank = @{ 'Raid' = 1; 'Dungeon' = 2; 'World Boss' = 3; 'Quest' = 4; 'Vendor' = 5; 'World Drop' = 6; 'Crafted' = 7; 'Trading Post' = 8; 'Achievement' = 9 }
+  $typeOrder = 13, 14, 15, 16, 17, 20, 21, 22, 24, 23, 28, 25, 27, 26, 12, 18, 19   # grid column order (matches the look-builder)
+  $ordered = $wRows.Values | Sort-Object @{ e = { [int]$_.rel } }, @{ e = { $catRank[$_.cat] } }, @{ e = { $_.name } }
+
+  $L = [System.Collections.Generic.List[string]]::new()
+  $L.Add('---@type Warbandeer_Collected')
+  $L.Add('local ns = select(2, ...)')
+  $L.Add('local tinsert = tinsert')
+  $L.Add('-- luacheck: no max line length')
+  $L.Add("-- Generated from wago.tools ($Product build $Build$(if($wDate){", $wDate"})) by tools/update-sets.ps1 -Weapons.")
+  $L.Add('-- Every weapon/off-hand APPEARANCE bucketed by source (row) x weapon type (column);')
+  $L.Add('-- types are keyed by Enum.TransmogCollectionType, values are ItemAppearanceIDs (visuals).')
+  $L.Add('-- Derived wholesale from DB2 — do not hand-edit; regenerate with -Weapons. See UPDATING.md.')
+  $L.Add('')
+  $L.Add('---@class Warbandeer_Collected')
+  $L.Add('---@field WeaponSources table[] weapon-appearance source groups: `{ id, name, release, category, types = { [transmogCollectionType] = { visualID... } } }`')
+  $L.Add('ns.WeaponSources = {}')
+  $L.Add('')
+  foreach ($r in $ordered) {
+    $L.Add('tinsert(ns.WeaponSources, {')
+    $L.Add("  id = $(WRowId $r),")
+    $L.Add("  name = ""$(WEsc $r.name)"",")
+    $L.Add("  release = $([int]$r.rel),")
+    $L.Add("  category = ""$($r.cat)"",")
+    $L.Add('  types = {')
+    foreach ($t in $typeOrder) {
+      if ($r.types.ContainsKey($t)) {
+        $vids = (($r.types[$t] | Sort-Object) -join ', ')
+        $L.Add("    [$t] = { $vids },")
+      }
+    }
+    $L.Add('  },')
+    $L.Add('})')
+    $L.Add('')
+  }
+  $newText = ($L -join "`n").TrimEnd() + "`n"
+
+  # Staleness: compare ignoring the build-stamp line, so a build bump with identical data is no diff.
+  function WStrip([string]$s) { (($s -split "`n") | Where-Object { $_ -notmatch '^-- Generated from wago\.tools' }) -join "`n" }
+  $cur = if (Test-Path -LiteralPath $WeaponsFile) { [System.IO.File]::ReadAllText($WeaponsFile) } else { '' }
+  $wChanged = (WStrip $cur) -ne (WStrip $newText)
+  if ($Check) {
+    if ($wChanged) { Write-Host 'weaponsources.lua is OUT OF DATE.' -ForegroundColor Yellow; exit 1 }
+    Write-Host 'weaponsources.lua is up to date.' -ForegroundColor Green; exit 0
+  }
+  if ($wChanged) {
+    [System.IO.File]::WriteAllText($WeaponsFile, $newText, [System.Text.UTF8Encoding]::new($false))
+    Write-Host "Wrote $WeaponsFile ($($ordered.Count) source rows, $placed appearances)." -ForegroundColor Green
+  } else {
+    Write-Host 'No changes — weaponsources.lua already current.' -ForegroundColor Green
+  }
   exit 0
 }
 
