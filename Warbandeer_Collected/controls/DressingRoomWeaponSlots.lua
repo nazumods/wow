@@ -41,7 +41,10 @@ local HANDS = {
 ---@param e table  the weapon-slot entry
 local function slotTooltip(room, f, e)
   GameTooltip:SetOwner(f, "ANCHOR_RIGHT")
-  if e.itemID then
+  if e.hand == "off" and room._lookMH2H then
+    GameTooltip:SetText(e.label)
+    GameTooltip:AddLine("Two-handed weapon equipped — no off-hand", 0.6, 0.6, 0.6)
+  elseif e.itemID then
     GameTooltip:SetItemByID(e.itemID)
     GameTooltip:AddLine("Left-click to change, right-click to clear", 0.6, 0.6, 0.6)
   else
@@ -74,6 +77,7 @@ local function buildWeaponSlot(room, spec)
   box._widget:SetScript("OnEnter", function(f) slotTooltip(room, f, entry) end)
   box._widget:SetScript("OnLeave", function() GameTooltip:Hide() end)
   box._widget:SetScript("OnMouseUp", function(_, button)
+    if entry.hand == "off" and room._lookMH2H then return end   -- 2H main-hand: off-hand unavailable (#618)
     if button == "LeftButton" then
       local open = room._picker and room._picker._widget:IsShown()
       if open and room._pickerHand == entry.hand then
@@ -133,7 +137,15 @@ function DressingRoom:UpdateWeaponSlots(retry)
       e.itemID = nil
       e.icon:Texture(e.empty)
     end
-    if open and self._pickerHand == e.hand then
+    -- A two-handed main-hand disables the off-hand: dim its icon (0.3, matching the armor slots'
+    -- toggled-off dim) and hold the border idle, whatever pick it's keeping. Otherwise full color +
+    -- the normal status / selection border. #618.
+    local disabled = e.hand == "off" and self._lookMH2H
+    local v = disabled and 0.3 or 1
+    e.icon:SetVertexColor(v, v, v, 1)
+    if disabled then
+      e.border:Color(IDLE)
+    elseif open and self._pickerHand == e.hand then
       e.border:Color(SELECTED)                                   -- picker open on this hand
     elseif itemID then
       e.border:Color(info.isCollected and GREEN or RED)
@@ -162,7 +174,7 @@ function DressingRoom:_clearWeaponSlot(hand)
     self._lookOH = nil
   else
     if not self._lookMH then return end
-    self._lookMH = nil
+    self._lookMH, self._lookMH2H = nil, nil
   end
   self:_applyLook()
   if self._picker and self._picker._widget:IsShown() then self._pickerList:Refresh() end

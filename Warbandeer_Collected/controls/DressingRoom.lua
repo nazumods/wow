@@ -138,6 +138,7 @@ end
 ---@field _pickerHand string  which slot the picker targets ("main" | "off") — filters the dropdown + routes picks
 ---@field _pickerSlotOff boolean  whether picks route to the off-hand (follows _pickerHand)
 ---@field _lookMH number?  the composed look's main-hand weapon appearance sourceID
+---@field _lookMH2H boolean?  whether the main-hand pick is two-handed (occupies both hands) — greys the off-hand slot (#618)
 ---@field _lookOH number?  the composed look's off-hand weapon appearance sourceID
 ---@field _lookIllusion number?  the composed look's enchant illusion sourceID (rides the main-hand)
 ---@field _pickerNameTimer table?  cancelable async item-name refresh timer
