@@ -102,7 +102,20 @@ function DressingRoom:_dressWeapon(m, form)
   local set = self._set
   local idx = self._weaponPiece or 1
   m:ClearSlotTransmog(INVSLOT_MAINHAND)
-  if self._group.kind == "illusion" then
+  if self._group.weaponCell then
+    -- Weapon-cell preview: the chosen weapon's current colour variant (looks grouped by item).
+    -- FORCE it onto the hand with SlotTransmog rather than Outfit — Outfit drops a weapon the
+    -- character's class can't equip (an axe wouldn't show for a caster), while SlotTransmog renders
+    -- any appearance on any character (the look-builder relies on this). Shields/off-hands → off hand.
+    -- Render the SPECIFIC appearance's source (WeaponSource picked it per visualID), NOT the item's
+    -- default modified-appearance: GetItemInfo(itemID) returns the base-difficulty look, so several
+    -- distinct visuals of one base weapon (e.g. difficulty recolours) would all collapse to one render.
+    -- SlotTransmog takes an appearance sourceID directly, exactly as the look-builder does.
+    local look = set._looks[idx]
+    m:Outfit({})   -- bare body; the weapon is the focus, forced on below
+    m:ClearSlotTransmog(INVSLOT_OFFHAND)
+    if look and look.sourceID then m:SlotTransmog(set._offHand and INVSLOT_OFFHAND or INVSLOT_MAINHAND, look.sourceID) end
+  elseif self._group.kind == "illusion" then
     m:Outfit({})   -- bare; the illusion rides the host weapon applied below
     local piece = set.illusions[idx]
     local host = ns.HostWeaponAppearance()
@@ -131,7 +144,13 @@ end
 function DressingRoom:_titleWeapon()
   local set, idx = self._set, self._weaponPiece or 1
   local name, count
-  if self._group.kind == "illusion" then
+  if self._group.weaponCell then
+    count = #set._looks
+    local look = set._looks[idx]
+    name = look and C_Item.GetItemNameByID(look.itemID)
+    if look and not name then C_Item.RequestLoadItemDataByID(look.itemID) end
+    if name and look.difficulty then name = name .. " — " .. look.difficulty end   -- disambiguate difficulty recolours
+  elseif self._group.kind == "illusion" then
     count = #set.illusions
     local piece = set.illusions[idx]
     name = piece and C_TransmogCollection.GetIllusionStrings(piece.sourceID)
@@ -260,7 +279,10 @@ ns.ShowDressingRoom = function(group, set)
     _room:RememberPosition(ns.db.dressPos)   -- restore + persist the user's dragged position
     -- Clear the grid row highlight whenever the room closes — via OnHide so every path
     -- lands here (Escape/UISpecialFrames, the close button, and HideDressingRoom alike).
-    _room._widget:HookScript("OnHide", function() ns:NotifyDressedSetChanged(nil) end)
+    _room._widget:HookScript("OnHide", function()
+      ns:NotifyDressedSetChanged(nil)
+      ns:NotifyDressedWeaponCellChanged(nil)
+    end)
   end
 
   -- Reset to the current character's race on a fresh open — the first ever (no race

@@ -144,7 +144,10 @@ ns.Broker = Broker
 ---Re-fetch every field's value for a character, in field order.
 ---@param toon Character
 function Broker:Update(toon)
-  if not self.fields then return end
+  -- Same guard as Reset (belt-and-suspenders): every current caller passes the
+  -- already-Init'd currentData, so `toon[self.name]` is always present today —
+  -- but bail rather than nil-index if a future caller hands us an un-Init'd toon.
+  if not self.fields or not toon[self.name] then return end
   for _, name in ipairs(self.fieldOrder) do
     toon[self.name][name] = self.fields[name]:get(toon, toon[self.name][name])
   end
@@ -154,7 +157,12 @@ end
 ---@param type integer reset cadence: ns.RESET_SUNDAY, ns.RESET_DAILY, or ns.RESET_WEEKLY
 ---@param toon Character
 function Broker:Reset(type, toon)
-  if self.fields then
+  -- Skip a toon with no data table for this broker yet. InitBrokers Init's only
+  -- the current character, so an alt that hasn't logged in since this broker was
+  -- added has no `toon[self.name]` table — its table (and values) are created on
+  -- that alt's own next Init. Nothing to reset here, and indexing the nil table
+  -- is the #624 login crash.
+  if self.fields and toon[self.name] then
     for _,name in ipairs(self.fieldOrder) do
       if self.fields[name].resetOn == type then
         toon[self.name][name] = self.fields[name]:reset(toon)

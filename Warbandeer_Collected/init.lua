@@ -18,5 +18,8 @@ function ns:MigrateDB()
   -- /reload. Seeded empty; populated by TitleFrame:RememberPosition.
   if not db.dressPos then db.dressPos = {} end   -- set-preview (dressing room) window
   if not db.windowPos then db.windowPos = {} end -- main collection window
-  db.version = 4
+  -- v5: per-appearance weapon Wanted flags for the Weapons view, keyed by the globally-unique
+  -- ItemAppearanceID (visualID). Independent of the set `wanted` table (which is keyed by setId).
+  if not db.weaponWanted then db.weaponWanted = {} end   -- [visualID] = true
+  db.version = 5
 end

@@ -30,6 +30,12 @@ local _view
 ---@field wantedCount Label running "★ N" wanted-set count (mirrors the /collected window)
 ---@field emptyMsg Label
 ---@field _top number grid top offset (filter strip + gap) — _fitToGrid re-derives the height from it
+---@field weaponGrid WeaponView? the weapon-source grid (Armor/Weapons toggle); nil if the addon predates it
+---@field weaponStrip Frame? the weapon grid's filter strip
+---@field weaponScroll ScrollFrame? scroll container for the weapon grid's row area
+---@field active DataView|WeaponView the currently-shown grid (armor default, or weapon)
+---@field activeScroll ScrollFrame the currently-shown scroll container
+---@field _weaponsMode boolean? true when the weapon grid is shown (the Armor/Weapons toggle)
 local CollectedView = Class(Frame, function(self)
   _view = self
   local STRIP_H, GAP = WarbandeerCollectedApi.DataView.STRIP_H, 6
@@ -81,10 +87,11 @@ local CollectedView = Class(Frame, function(self)
 
   -- Counter rides the grid's header row (over the name column, in line with the class
   -- icons), below the filter strip. Created after the grid so it draws above the header.
-  local hdrPad = (headerH - theme.fonts.title[2]) / 2
   self.counter = Label:new{
     parent = self, fontInfo = theme.fonts.title, color = theme.colors.text,
-    position = { TopLeft = {2, -(TOP + hdrPad)} },
+    -- The counter rides the filter-strip row (right of the dropdowns) in both modes — matching the
+    -- weapon view — so the grid header row is just the class icons.
+    position = { TopLeft = {self.filterStrip, ui.edge.TopRight, 12, -3} },
     text = "",
   }
   self.wantedCount = Label:new{
@@ -103,7 +110,7 @@ local CollectedView = Class(Frame, function(self)
     },
   }
   counterHover:EnableMouse(true)
-  counterHover:SetScript("OnEnter", function(f) self.grid:ShowCountTooltip(f) end)
+  counterHover:SetScript("OnEnter", function(f) (self.active or self.grid):ShowCountTooltip(f) end)
   counterHover:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
   -- The gold wanted tally toggles WANTED ONLY on click (same as the filter button).
@@ -127,6 +134,69 @@ local CollectedView = Class(Frame, function(self)
     justifyH = ui.justify.Center,
     position = { Top = {0, -(TOP + headerH + 28)}, Width = gridW, Height = 20, Hide = true },
   }
+
+  -- ── Armor / Weapons mode ──────────────────────────────────────────────────
+  -- A second grid (Collected's WeaponView, via the API global) with its own strip + scroll,
+  -- hidden until toggled; the persistent Armor/Weapons toggle (far left of the strip row) swaps
+  -- trios via SetMode. Built only when the sibling addon exposes WeaponView (same OptionalDep gate
+  -- as the grid). The armor grid is the default and stays intact when Weapons is off.
+  self.active, self.activeScroll, self._weaponsMode = self.grid, self.scroll, false
+  if WarbandeerCollectedApi.WeaponView then
+    local TOGGLE_W, TGAP = 92, 6
+
+    self.weaponGrid = WarbandeerCollectedApi.WeaponView:new{
+      parent = self,
+      position = { TopLeft = {0, -TOP} },
+      colInfo = WarbandeerCollectedApi.WeaponView.BuildColInfo(),
+      onResized = function() _view:_fitToGrid() end,
+      -- Scroll the dressed-weapon row into view (weaponScroll is assigned just below;
+      -- the closure only reads it at highlight time).
+      onEnsureVisible = function(_, rowTop, rowH)
+        local s = _view and _view.weaponScroll
+        if not s then return end
+        local cur, view = s:VerticalScroll(), s:Height()
+        if rowTop < cur then s:VerticalScroll(rowTop)
+        elseif rowTop + rowH > cur + view then s:VerticalScroll(rowTop + rowH - view) end
+      end,
+    }
+    self.weaponGrid:Hide()
+    local weaponW = self.weaponGrid:Width()
+
+    self.weaponStrip = self.weaponGrid:BuildFilterStrip(self)
+    self.weaponStrip:Position({ TopLeft = {TOGGLE_W + TGAP, 0} })
+    self.weaponStrip:Hide()
+
+    self.weaponScroll = ui.ScrollFrame:new{
+      parent = self,
+      position = { TopLeft = {0, -(TOP + headerH)}, Width = weaponW, Height = capH },
+    }
+    self.weaponScroll:Child(self.weaponGrid.rowArea)
+    self.weaponScroll:Hide()
+
+    -- Shift the armor strip right to clear the persistent toggle at the far left.
+    self.filterStrip:Position({ TopLeft = {TOGGLE_W + TGAP, 0} })
+
+    -- The persistent Armor/Weapons segmented toggle (active half gets the gold border).
+    local off = {0.05, 0.05, 0.06, 0.92}
+    local gold = theme.colors.gold or theme.colors.header
+    local seg = Frame:new{ parent = self, position = { TopLeft = {0, 0}, Width = TOGGLE_W, Height = STRIP_H } }
+    ui.Texture:new{ parent = seg, layer = ui.layer.Background, position = { All = true }, color = off }
+    local capsFont = theme.fonts.caps and {theme.fonts.caps[1], 10} or nil
+    local function segHalf(x, label, weapons)
+      local cell = Frame:new{ parent = seg, position = { TopLeft = {x, 0}, Width = TOGGLE_W / 2, Height = STRIP_H } }
+      local border = ui.Texture:new{ parent = cell, layer = ui.layer.Background, position = { All = true },
+        color = weapons and off or gold }
+      ui.Texture:new{ parent = cell, layer = ui.layer.Border, position = { TopLeft = {1, -1}, BottomRight = {-1, 1} },
+        color = {0.09, 0.09, 0.11, 0.95} }
+      local btn = ui.Button:new{ parent = cell, position = { All = true }, glow = false,
+        OnClick = function() _view:SetMode(weapons) end }
+      Label:new{ parent = btn, fontInfo = capsFont, justifyH = ui.justify.Center,
+        position = { All = true }, text = label, color = theme.colors.text }
+      return border
+    end
+    self._segArmor = segHalf(0, "Armor", false)
+    self._segWeapons = segHalf(TOGGLE_W / 2, "Weapons", true)
+  end
 
   self:Width(gridW + SCROLLBAR_W)
   self:_fitToGrid()
@@ -161,10 +231,45 @@ if WarbandeerCollectedApi and WarbandeerCollectedApi.OnDressedSetChanged then
   end)
 end
 
+-- Same for the Weapons grid: box the (source, type) cell of the weapon shown in the dressing
+-- room, following ←/→ type-stepping (nil clears on close / when an armor set is shown).
+if WarbandeerCollectedApi and WarbandeerCollectedApi.OnDressedWeaponCellChanged then
+  WarbandeerCollectedApi:OnDressedWeaponCellChanged(function(source, weaponType)
+    local g = _view and _view.weaponGrid
+    if g then g:HighlightWeaponCell(source, weaponType, true) end
+  end)
+end
+
 -- Refresh counts, grid data, and the empty-state message each time the view shows
 -- (so a /collected scan run after the view was built is reflected on next open).
 function CollectedView:OnBeforeShow()
   self:_render()
+end
+
+---Switch the embedded view between the armor grid and the weapon grid (the Armor/Weapons toggle).
+---Swaps which (grid + strip + scroll) trio is shown, re-points the counter + refit at the active
+---grid, hides the armor-only wanted tally, recolors the toggle, resizes to the active grid, and asks
+---the Warbandeer window to re-fit. No-op if the weapon grid is unavailable or already in that mode.
+---@param weapons boolean
+function CollectedView:SetMode(weapons)
+  if not self.weaponGrid or self._weaponsMode == weapons then return end
+  self._weaponsMode = weapons
+  self.active = weapons and self.weaponGrid or self.grid
+  self.activeScroll = weapons and self.weaponScroll or self.scroll
+  self.grid:SetShown(not weapons); self.filterStrip:SetShown(not weapons); self.scroll:SetShown(not weapons)
+  self.weaponGrid:SetShown(weapons); self.weaponStrip:SetShown(weapons); self.weaponScroll:SetShown(weapons)
+  self.wantedCount:SetShown(not weapons)   -- the wanted tally is armor-only
+  local gold, off = theme.colors.gold or theme.colors.header, {0.05, 0.05, 0.06, 0.92}
+  self._segArmor:Color(weapons and off or gold)
+  self._segWeapons:Color(weapons and gold or off)
+  -- Weapon mode: the narrow name column can't hold the counter over the header, so ride the strip
+  -- row (right of the dropdowns); armor restores it over the header.
+  self.counter:Position(weapons and { TopLeft = {self.weaponStrip, ui.edge.TopRight, 12, -3} }
+    or { TopLeft = {self.filterStrip, ui.edge.TopRight, 12, -3} })
+  self:Width((weapons and self.weaponGrid:Width() or self.grid:Width()) + SCROLLBAR_W)
+  self:_render()
+  self:_fitToGrid()
+  if ns.MainWindow then ns.MainWindow:Fit() end
 end
 
 -- Cap the visible grid at the shared `DataView.MAX_HEIGHT` and size the scroll container
@@ -172,10 +277,11 @@ end
 -- (via the grid's `onResized` hook), so the scroll range tracks the filtered row count and
 -- can't overscroll into empty space below the rows.
 function CollectedView:_fitToGrid()
-  local capH = min(self.grid.MAX_HEIGHT, self.grid.rowArea:Height())
-  self.scroll:Height(capH)
-  self:Height(self._top + self.grid.headerHeight + capH + 4)
-  self.scroll:Refresh()   -- recompute the scroll range for the new child height
+  local grid, scroll = self.active or self.grid, self.activeScroll or self.scroll
+  local capH = min(grid.MAX_HEIGHT, grid.rowArea:Height())
+  scroll:Height(capH)
+  self:Height(self._top + grid.headerHeight + capH + 4)
+  scroll:Refresh()   -- recompute the scroll range for the new child height
 end
 
 -- Show/hide the grid (header icons + scrolling rows) as a unit, so the empty-state
@@ -195,6 +301,17 @@ end
 -- Render the active dataset. PTR PREVIEW shows only the upcoming sets (no scan
 -- needed for the upcoming rows); live-only mode shows collected/total and needs a scan.
 function CollectedView:_render()
+  -- Weapon mode: no scan gate (WeaponView computes collected state live via ns:WeaponCollectedMap),
+  -- no wanted tally; just the source/appearance/collected counts and a data refresh.
+  if self._weaponsMode then
+    self.emptyMsg:Hide()
+    self.wantedCount:Text("")
+    local sources, apps, coll = self.weaponGrid:VisibleCounts()
+    self.counter:Text(("%d sources · %d/%d collected"):format(sources, coll, apps))
+    self.counter:Font({theme.fonts.title[1], 12})
+    self.weaponGrid.data = self.weaponGrid:GetData(); self.weaponGrid:update()
+    return
+  end
   local api = WarbandeerCollectedApi
   local ptr = self.grid._ptr
   if not ptr and not api:IsScanned() then
@@ -215,11 +332,10 @@ function CollectedView:_render()
     self.counter:Text(("+%d sets upcoming%s"):format(n, api.PtrBuild and (" · PTR " .. api.PtrBuild.ptr) or ""))
   else
     local sets, cells, green = self.grid:VisibleCounts()   -- tracks the active expansion/category filter
-    self.counter:Text(("%d sets · %d appearances · %d collected"):format(sets, cells, green))
+    self.counter:Text(("%d sets · %d/%d collected"):format(sets, green, cells))
   end
-  -- The PTR line (with the build) is longer than the live count, so shrink the counter
-  -- font in PTR mode so it stays within the name column, clear of the class icons.
-  self.counter:Font(ptr and {theme.fonts.title[1], 12} or theme.fonts.title)
+  -- The counter sits in the strip row in every mode, so keep it at the compact strip font.
+  self.counter:Font({theme.fonts.title[1], 12})
   self:RefreshWanted()
   self.grid.data = self.grid:GetData()
   self.grid:update()

@@ -48,6 +48,7 @@ local GetAppearanceSourceDrops = C_TransmogCollection.GetAppearanceSourceDrops
 ---@field sourceType number        Enum.TransmogSource
 ---@field quality number?          best Enum.ItemQuality across the appearance's sources (nil if unknown)
 ---@field text string?             resolved "<encounter>, <instance>" drop line, else the generic source label
+---@field difficulty string?       boss-drop difficulty label(s) ("Heroic", "Normal, Heroic"), nil for non-drop sources
 
 ---@class WeaponIllusion
 ---@field sourceID number          illusion sourceID — feed to Model:SlotTransmog opts.illusionID
@@ -101,6 +102,29 @@ local function sourceText(source)
     return d.instance   -- spread across encounters/instances: name the first instance
   end
   return _G["TRANSMOG_SOURCE_" .. (source.sourceType or 0)]
+end
+
+-- ", " between multiple difficulties, matching the wardrobe's own tooltip delimiter.
+local DIFF_DELIM = _G["PLAYER_LIST_DELIMITER"] or ", "
+-- Blizzard's LFR difficulty reads in full as "Looking For Raid" (locale-resolved via PLAYER_DIFFICULTY3);
+-- abbreviate it to "LFR" so the label stays short. Normal/Heroic/Mythic are already terse.
+local LFR_FULL = _G["PLAYER_DIFFICULTY3"]
+
+-- The boss-drop difficulty label(s) for a picked source — the same journal list the wardrobe tooltip
+-- shows ("Heroic"; "Normal, Heroic" when one appearance drops across difficulties). nil for non-drop
+-- sources (quest/vendor/craft have no difficulty) or when the journal carries no drop entry. Used to
+-- distinguish a cell's same-named difficulty recolours in the drill-in chooser + title.
+---@param source WeaponSource
+---@return string?
+local function sourceDifficulty(source)
+  local drops = GetAppearanceSourceDrops(source.sourceID)
+  local d = drops and drops[1]
+  if not (d and d.difficulties and d.difficulties[1]) then return end
+  local out = {}
+  for i, name in ipairs(d.difficulties) do
+    out[i] = (LFR_FULL and name == LFR_FULL) and "LFR" or name
+  end
+  return table.concat(out, DIFF_DELIM)
 end
 
 -- Run `fn` with the wardrobe's class filter temporarily set to `classID`, restoring the prior
@@ -185,10 +209,37 @@ function ns.WeaponSource(visualID)
   local info = {
     sourceID = pick.sourceID, itemID = pick.itemID, name = pick.name,
     isCollected = pick.isCollected, sourceType = pick.sourceType,
-    quality = quality, text = sourceText(pick),
+    quality = quality, text = sourceText(pick), difficulty = sourceDifficulty(pick),
   }
   _sources[visualID] = info
   return info
+end
+
+local _collectedMap               -- [visualID] = true for every collected weapon appearance (all classes; wiped on collection change)
+
+---Account-wide collected-appearance lookup for the Weapons grid: `[visualID] = true` for every
+---weapon appearance the account owns, across ALL classes. Built by sweeping each weapon category
+---under every class filter (GetCategoryAppearances is class-scoped, so a single unfiltered pass would
+---miss a caster's un-wieldable-but-collected 2H axes); the account-wide `isCollected` is the same
+---wherever a visual surfaces, so the union is correct. Cached (a ~200-call build); wiped on
+---TRANSMOG_COLLECTION_UPDATED so a freshly learned weapon flips on the next scan. The wardrobe class
+---filter is snapshot/restored around the sweep so global state is untouched.
+---@return table<number, boolean>
+function ns:WeaponCollectedMap()
+  if _collectedMap then return _collectedMap end
+  local map = {}
+  local prev = C_TransmogCollection.GetClassFilter()
+  for classID = 1, #ns.icons.classes do
+    C_TransmogCollection.SetClassFilter(classID)
+    for _, cat in ipairs(WEAPON_CATEGORIES) do
+      for _, a in ipairs(GetCategoryAppearances(cat) or {}) do
+        if a.isCollected then map[a.visualID] = true end
+      end
+    end
+  end
+  C_TransmogCollection.SetClassFilter(prev)
+  _collectedMap = map
+  return map
 end
 
 local _illusions = {}             -- [classID] = WeaponIllusion[] (wiped on collection change)
@@ -263,4 +314,5 @@ ns:registerEvent("TRANSMOG_COLLECTION_UPDATED", function()
   _appearances = {}
   _sources = {}
   _illusions = {}
+  _collectedMap = nil
 end)

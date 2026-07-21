@@ -101,6 +101,12 @@ end
 -- is on, else the baseline). Called from _load (set change) and SetRace.
 function DressingRoom:_refreshRatings()
   if not self._set then return end
+  -- Weapon-cell: only the ★ Wanted button applies (no S–F rank), keyed to the shown look.
+  if self._group and self._group.weaponCell then
+    local look = self._set._looks[self._weaponPiece or 1]
+    self._wantedBorder:Color(look and ns:IsWeaponWanted(look.visualID) and SELECTED or IDLE)
+    return
+  end
   local setId = self._set.id
   self._wantedBorder:Color(ns:IsWanted(setId) and SELECTED or IDLE)
   local shown
@@ -119,6 +125,15 @@ end
 
 function DressingRoom:ToggleWanted()
   if not self._set then return end
+  -- Weapon-cell: flag the CURRENTLY-SHOWN look (its visualID), not a set id.
+  if self._group and self._group.weaponCell then
+    local look = self._set._looks[self._weaponPiece or 1]
+    if look then ns:ToggleWeaponWanted(look.visualID) end
+    self:_refreshRatings()
+    self:_ratingsChanged()
+    if self._cellList then self._cellList:Refresh() end   -- the chooser row's ★ tracks it
+    return
+  end
   ns:ToggleWanted(self._set.id)
   self:_refreshRatings()
   self:_ratingsChanged()
@@ -163,7 +178,11 @@ function DressingRoom:_load(group, set)
   -- Class = the set's position in the (positional) group.sets array.
   local classId
   for i = 1, #group.sets do if group.sets[i] == set then classId = i; break end end
+  -- A weapon-source cell isn't class-specific: hide the class icon/backdrop and the armor ratings
+  -- row (weapons get per-look Wanted next, not the S–F rank row).
+  if group.weaponCell then classId = nil end
   self._classIndex = classId
+  if self._ratingsBoxes then for _, b in ipairs(self._ratingsBoxes) do b:SetShown(not group.weaponCell) end end
   self:_showClass(classId)
   self:_showRelease(group.release)
   if group.kind then
@@ -178,6 +197,8 @@ function DressingRoom:_load(group, set)
     if self._slotTimer then self._slotTimer:Cancel(); self._slotTimer = nil end
     if self._weaponSlotTimer then self._weaponSlotTimer:Cancel(); self._weaponSlotTimer = nil end
     if self._picker then self:ToggleWeaponPicker(false) end
+    -- A weapon-source cell shows the chooser (its looks); illusion/arsenal don't.
+    if group.weaponCell then self:ShowCellChooser(set._looks) else self:HideCellChooser() end
   else
     self:_showSlots(true)
     self:_showWeaponSlots(true)
@@ -185,6 +206,7 @@ function DressingRoom:_load(group, set)
     self._slotRetries = 0
     self:UpdateSlots()
     self:UpdateWeaponSlots()   -- reflect any persisted look on the bottom weapon slots
+    self:HideCellChooser()
   end
   self:Dress()
   self:_syncUndressBorder()   -- wiped toggles → fully worn → Undress button idle
@@ -194,6 +216,11 @@ function DressingRoom:_load(group, set)
   -- classId (the set's class column) is passed too: PvP sets share a base setId across
   -- classes, so it's needed to pick the right column.
   ns:NotifyDressedSetChanged(set.id, classId)
+  -- Parallel broadcast for the Weapons grid: a weapon cell carries no setId, so the line
+  -- above clears armour grids; this boxes the (source, type) cell — nil for an armour set
+  -- so the weapon grid clears instead. Covers open + ←/→ type-stepping (both re-enter here).
+  ns:NotifyDressedWeaponCellChanged(group.weaponCell and group._source or nil,
+                                    group.weaponCell and group._type or nil)
   -- Keep an open look-builder scoped to the previewed set's class. Only on an actual class change
   -- (a Step across columns) — a same-class StepTier leaves the picker's category selection alone.
   if self._picker and self._picker._widget:IsShown() and self._pickerClass ~= self._classIndex then
@@ -205,6 +232,20 @@ end
 -- empty class slots (the data has gaps for classes absent from a tier).
 ---@param dir number  +1 = next, -1 = previous
 function DressingRoom:Step(dir)
+  -- Weapon-source cell: ←/→ steps to the adjacent weapon TYPE the source has (rebuilds the preview).
+  if self._group and self._group.weaponCell then
+    local grp, t = self._group._source, self._group._type
+    if not grp then return end
+    local avail, cur = {}, nil
+    for _, ty in ipairs(ns.WeaponTypeOrder) do
+      if grp.types[ty] then avail[#avail + 1] = ty; if ty == t then cur = #avail end end
+    end
+    if not cur or #avail < 2 then return end
+    cur = (cur - 1 + dir) % #avail + 1
+    local newT = avail[cur]
+    ns.PreviewWeaponCell(grp, newT, grp.types[newT])
+    return
+  end
   local sets = self._group and self._group.sets
   if not sets then return end
   local n = #sets
@@ -273,11 +314,20 @@ end
 ---@param dir number  -1 = previous piece, +1 = next
 function DressingRoom:_stepWeaponPiece(dir)
   local set = self._set
-  local list = set and (self._group.kind == "illusion" and set.illusions or set.pieces)
+  local list
+  if self._group.weaponCell then
+    list = set and set._looks                              -- ↑/↓ steps through the cell's looks
+  else
+    list = set and (self._group.kind == "illusion" and set.illusions or set.pieces)
+  end
   if not list or #list < 2 then return end
   local cur = (self._weaponPiece or 1) - 1                -- to 0-based
   self._weaponPiece = (cur + dir) % #list + 1             -- step, wrap, back to 1-based
   self:Dress()
+  if self._group.weaponCell then
+    self:_refreshRatings()                                -- the ★ tracks the shown look
+    if self._cellList then self._cellList:Refresh() end   -- move the chooser highlight to it
+  end
 end
 
 -- Select the logged-in character's race + gender. Called when the window opens
