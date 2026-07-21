@@ -4,7 +4,6 @@ local max = math.max
 local ui = ns.ui
 local Colors = ns.Colors
 local Class = ns.lua.Class
-local Texture = ui.Texture
 local TableFrame = ui.TableFrame
 local lists, prepend = ns.lua.lists, ns.lua.lists.prepend
 local GameTooltip = GameTooltip
@@ -111,23 +110,10 @@ end
 ---@return number, number, number
 function WeaponView:VisibleCounts() return ns.WeaponVisibleCounts(self) end
 
--- Expansion filter options: "All" then one per release present in ns.WeaponSources (newest first,
--- badged); release 0 (unresolved-expansion) shows as "Other".
+-- Expansion filter options (shared with the armor grid — see ns.expansionBadgeOptions): "All" then one
+-- per release present in ns.WeaponSources (newest first, badged); release 0 shows as "Other".
 ---@return table[]
-function WeaponView:ExpansionOptions()
-  local seen = {}
-  for _, g in ipairs(ns.WeaponSources) do seen[g.release] = true end
-  local rels = {}
-  for r in pairs(seen) do rels[#rels + 1] = r end
-  table.sort(rels, function(a, b) return a > b end)
-  local opts = { { key = "all", label = "Expansion" } }
-  for _, r in ipairs(rels) do
-    local icon = ns.ReleaseIcons[r]
-    local name = ns.Releases[r] or (r == 0 and "Other" or tostring(r))
-    opts[#opts + 1] = { key = r, label = (icon and ("|T%s:0|t "):format(icon) or "") .. name }
-  end
-  return opts
-end
+function WeaponView:ExpansionOptions() return ns.expansionBadgeOptions(ns.WeaponSources) end
 
 local CATEGORY_ORDER = { "Raid", "Dungeon", "World Boss", "Quest", "Vendor", "World Drop", "Crafted", "Trading Post", "Achievement" }
 ---@return table[]
@@ -158,35 +144,26 @@ end
 ---@return Frame
 function WeaponView:BuildFilterStrip(parent)
   local theme = self:Theme()
-  local gold, divider = theme.colors.gold or theme.colors.header, theme.colors.divider
+  local gold = theme.colors.gold or theme.colors.header
   local BH, GAP, DW, DW_EXP = WeaponView.STRIP_H, 6, 110, 190
-  local IB, IPAD = BH, 2
+  local IB = BH
   local TEX = [[Interface\AddOns\Warbandeer_Collected\textures\]]
   local NEWEST_ICON, OLDEST_ICON = TEX .. "sort-newest", TEX .. "sort-oldest"
   local strip = ui.Frame:new{ parent = parent, position = { Height = BH } }
 
-  -- Sort toggle (neutral border, always-on control; the gold calendar glyph carries the direction).
-  local b = ui.Frame:new{ parent = strip, position = { TopLeft = {0, 0}, Width = IB, Height = BH } }
-  Texture:new{ parent = b, layer = ui.layer.Background, position = { All = true }, color = divider }
-  Texture:new{ parent = b, layer = ui.layer.Border, color = {0.05, 0.05, 0.06, 0.92},
-    position = { TopLeft = {1, -1}, BottomRight = {-1, 1} } }
+  -- Sort toggle (neutral border, always-on control; the gold calendar glyph carries the direction) —
+  -- the shared filter-strip button primitive, same as the armor strip's Sort toggle.
   local sortIcon
-  local btn = ui.Button:new{ parent = b, position = { All = true }, glow = false,
-    OnClick = function()
+  sortIcon = select(2, ns.filterToggle(strip, theme, {
+    x = 0, tex = NEWEST_ICON, tint = gold,
+    tip = function() return self._reverse and "Newest first — click for oldest first"
+                                           or "Oldest first — click for newest first" end,
+    onClick = function()
       local rev = self:ToggleOrder()
       sortIcon:Texture(rev and NEWEST_ICON or OLDEST_ICON)
       if self.onResized then self:onResized() end
     end,
-    OnEnter = function(s)
-      GameTooltip:SetOwner(s._widget, "ANCHOR_BOTTOMRIGHT")
-      GameTooltip:SetText(self._reverse and "Newest first — click for oldest first"
-                                         or "Oldest first — click for newest first")
-      GameTooltip:Show()
-    end,
-    OnLeave = function() GameTooltip:Hide() end,
-  }
-  sortIcon = Texture:new{ parent = btn, layer = ui.layer.Artwork, path = NEWEST_ICON, vertexColor = gold,
-    position = { TopLeft = {IPAD, -IPAD}, BottomRight = {-IPAD, IPAD} } }
+  }))
 
   local dx = IB + GAP
   ui.FilterDropdown:new{

@@ -2,7 +2,8 @@
 local ns = select(2, ...)
 local floor, max = math.floor, math.max
 local ui = ns.ui
-local Frame, Texture = ui.Frame, ui.Texture
+local Frame, Texture, Label, Button = ui.Frame, ui.Texture, ui.Label, ui.Button
+local GameTooltip = GameTooltip
 
 -- Shared grid primitives used by BOTH the armor grid (DataView*) and the weapon grid (WeaponView*):
 -- the red→green completion cell + gradient, the expansion row-sort, and the dressed-cell cursor.
@@ -18,6 +19,8 @@ local Frame, Texture = ui.Frame, ui.Texture
 ---@field sortByExpansion fun(order: number[], source: table[], reverse: boolean?)
 ---@field EnsureDressedCursor fun(grid: table)
 ---@field HighlightGridCell fun(grid: table, match: (fun(data: table): boolean)?, scroll: boolean?)
+---@field expansionBadgeOptions fun(source: table[]): table[]
+---@field filterToggle fun(strip: table, theme: table, spec: table): table, table
 
 -- 10-shade red→green completion gradient: a cell's uncollected count is tinted by the collected
 -- fraction (index 1 = none collected → red, 10 = all → green). Shared so both grids read alike.
@@ -120,4 +123,71 @@ function ns.HighlightGridCell(grid, match, scroll)
     end
   end
   if grid._dressedBox then grid._dressedBox:Hide() end
+end
+
+-- Dropdown option specs for the expansion filter: "All" (labelled with the dimension, so the button
+-- names what it filters when nothing's picked) then one per release present in `source`, newest-first,
+-- each label prefixed with the expansion badge; an unresolved release (0) shows as "Other". Shared by
+-- both grids' ExpansionOptions (armor over ns.Sets, weapons over ns.WeaponSources).
+---@param source table[]
+---@return table[]  { key, label } specs for ui.FilterDropdown
+function ns.expansionBadgeOptions(source)
+  local seen = {}
+  for _, g in ipairs(source) do seen[g.release] = true end
+  local rels = {}
+  for r in pairs(seen) do rels[#rels + 1] = r end
+  table.sort(rels, function(a, b) return a > b end)
+  local opts = { { key = "all", label = "Expansion" } }
+  for _, r in ipairs(rels) do
+    local icon = ns.ReleaseIcons[r]
+    local name = ns.Releases[r] or (r == 0 and "Other" or tostring(r))
+    opts[#opts + 1] = { key = r, label = (icon and ("|T%s:0|t "):format(icon) or "") .. name }
+  end
+  return opts
+end
+
+-- One filter-strip toggle button: a framed control (a recolorable border + a 1px inner border + a
+-- Button) carrying either a caption pill (spec.text, BW wide) or a square tinted icon (spec.atlas or
+-- spec.tex, BH×BH, with an optional hover tooltip from spec.tip). Returns the border (recolor via
+-- :Color) + the face — a Label for text, or the icon Texture (retint via :Color, swap art via
+-- :Texture). Both grids' BuildFilterStrip build their toggles through this; the strip's own height is
+-- the button height, and gold/divider/caps come from the grid theme.
+---@param strip table  the filter strip (its Height() sets the button height)
+---@param theme table  the grid's resolved theme (colors.gold/header/divider, fonts.caps)
+---@param spec table   { x, text | atlas | tex, active?, tint?, tip?, onClick }
+---@return table border, table face
+function ns.filterToggle(strip, theme, spec)
+  local gold = theme.colors.gold or theme.colors.header
+  local divider = theme.colors.divider
+  local caps = theme.fonts.caps
+  local BH = strip:Height()
+  local BW, IB, IPAD, PAD = 48, BH, 2, 8   -- text-pill width; icons are square (BH); glyph inset; label inset
+  local isIcon = spec.atlas or spec.tex
+  local b = Frame:new{ parent = strip,
+    position = { TopLeft = {spec.x, 0}, Width = isIcon and IB or BW, Height = BH } }
+  local border = Texture:new{ parent = b, layer = ui.layer.Background, position = { All = true },
+    color = spec.active and gold or divider }
+  Texture:new{ parent = b, layer = ui.layer.Border, color = {0.05, 0.05, 0.06, 0.92},
+    position = { TopLeft = {1, -1}, BottomRight = {-1, 1} } }
+  local btn = Button:new{ parent = b, position = { All = true }, glow = false, OnClick = spec.onClick,
+    OnEnter = spec.tip and function(s)
+      GameTooltip:SetOwner(s._widget, "ANCHOR_BOTTOMRIGHT")
+      GameTooltip:SetText(spec.tip()); GameTooltip:Show()
+    end or nil,
+    OnLeave = spec.tip and function() GameTooltip:Hide() end or nil,
+  }
+  if isIcon then
+    -- tint=false keeps an already-colored atlas (the gold star) at native color; an explicit color
+    -- tints a white silhouette independent of the border; else the glyph tracks the active/off border.
+    local vc
+    if spec.tint ~= false then vc = spec.tint or (spec.active and gold or divider) end
+    local icon = Texture:new{ parent = btn, layer = ui.layer.Artwork,
+      atlas = spec.atlas, atlasSize = spec.atlas and false or nil, path = spec.tex,
+      vertexColor = vc,
+      position = { TopLeft = {IPAD, -IPAD}, BottomRight = {-IPAD, IPAD} } }
+    return border, icon
+  end
+  local label = Label:new{ parent = btn, fontInfo = caps and {caps[1], 10} or nil,
+    justifyH = ui.justify.Center, position = { Left = {PAD, 0}, Right = {-PAD, 0} }, text = spec.text }
+  return border, label
 end
