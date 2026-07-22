@@ -46,6 +46,21 @@ local TARGETS = {
 -- Shared with the companion picker/slot files, which read a target's look field + slot id.
 DressingRoom._TARGETS = TARGETS
 
+-- Toggle a slot's pick: clicking the applied piece again clears it.
+--
+-- Deliberately a function and not the obvious `(cur == sid) and nil or sid` one-liner — that
+-- expression is BROKEN and cannot clear anything. In Lua `true and nil` evaluates to nil, which is
+-- falsy, so the `or` branch always wins and the "clear" case re-assigns the same pick. It shipped
+-- that way on the illusion and off-hand toggles, where re-clicking the applied piece silently did
+-- nothing. Any new toggle goes through here.
+---@param cur number?  the slot's current pick
+---@param sid number  the clicked piece's sourceID
+---@return number?
+function DressingRoom._togglePick(cur, sid)
+  if cur == sid then return nil end
+  return sid
+end
+
 -- The composed-look sourceID currently sitting in the target's slot (nil when nothing's picked).
 ---@return number?
 function DressingRoom:_targetLook()

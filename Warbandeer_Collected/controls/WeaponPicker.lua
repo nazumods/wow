@@ -157,11 +157,9 @@ DressingRoom._TWO_HANDED = TWO_HANDED
 ---@param item table
 function DressingRoom:_equipWeaponRow(item)
   if item.kind == "i" then
-    local sid = item.ill.sourceID
-    self._lookIllusion = (self._lookIllusion == sid) and nil or sid
+    self._lookIllusion = DressingRoom._togglePick(self._lookIllusion, item.ill.sourceID)
   elseif self._pickerTarget == "off" then
-    local sid = item.src.sourceID
-    self._lookOH = (self._lookOH == sid) and nil or sid
+    self._lookOH = DressingRoom._togglePick(self._lookOH, item.src.sourceID)
   else
     local sid = item.src.sourceID
     if self._lookMH == sid then

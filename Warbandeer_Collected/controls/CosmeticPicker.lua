@@ -73,6 +73,5 @@ end
 ---@param item table
 function DressingRoom:_equipCosmeticRow(item)
   local field = TARGETS[self._pickerTarget].look
-  local sid = item.src.sourceID
-  self[field] = (self[field] == sid) and nil or sid
+  self[field] = DressingRoom._togglePick(self[field], item.src.sourceID)
 end
