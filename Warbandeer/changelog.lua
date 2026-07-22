@@ -6,6 +6,11 @@ local ns = select(2, ...)
 -- same conventional-commit grouping used for the GitHub/CurseForge release notes.
 ---@type { version: string, notes: string }[]
 ns.changelog = {
+  { version = "12.0.7-r29", notes = [==[
+### Features
+- Weapons view — Armor/Weapons grid toggle, drill-in, difficulty labels (#626)
+
+]==] },
   { version = "12.0.7-r28", notes = [==[
 ### Bug Fixes
 - SetPropagateKeyboardInput combat guard, three widget nits, action-bar doc drift (#582, #583, #586) (#594)
