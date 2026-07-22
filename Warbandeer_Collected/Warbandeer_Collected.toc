@@ -29,6 +29,7 @@ data\weaponsources.lua
 data\models.lua
 
 ratings.lua
+outfitcodec.lua
 api.lua
 
 controls\InfoTip.lua

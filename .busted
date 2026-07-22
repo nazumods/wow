@@ -14,6 +14,7 @@ return {
       "ShadowsOfUI-PostOffice/spec",
       "ShadowsOfUI-Known/spec",
       "Warbandeer_Decor/spec",
+      "Warbandeer_Collected/spec",
     },
     lpath = "?.lua",
     verbose = true,
