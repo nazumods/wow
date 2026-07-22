@@ -17,6 +17,27 @@ local DressingRoom = ns.DressingRoom
 ---@class DressingRoom
 ---@field ComposeOutfit fun(self: DressingRoom): table[]
 ---@field ApplyOutfit fun(self: DressingRoom, list: table[]): DressingRoom
+---@field ClearOutfitArmor fun(self: DressingRoom)
+
+---Drop the per-slot overrides an applied outfit left on the model's ARMOR slots, so the next
+---previewed set skins those slots itself.
+---
+---`Model` re-applies every SlotTransmog override after each async re-skin — that persistence is
+---the whole point for the look builder, whose weapon picks are meant to outlive stepping between
+---sets. But an applied outfit writes overrides across the armor slots too, and those must not
+---survive: without this, `Dress()` re-skins to the new set and the stale outfit immediately
+---repaints over it, slot by slot.
+---
+---Scoped by walking the paper-doll slot entries rather than a duplicated list of slot ids, so it
+---tracks whatever the columns hold. Cosmetic entries (shirt/tabard) are skipped deliberately:
+---like the weapons, they're the user's own composed-look picks, not something the previewed set
+---supplies. Call before a re-skin — `ClearSlotTransmog` forgets the override but doesn't restrip
+---the model in place.
+function DressingRoom:ClearOutfitArmor()
+  for _, e in ipairs(self._slots or {}) do
+    if not e.cosmetic then self._model:ClearSlotTransmog(e.slotID) end
+  end
+end
 
 ---Everything the room is currently showing, as an outfit list.
 ---

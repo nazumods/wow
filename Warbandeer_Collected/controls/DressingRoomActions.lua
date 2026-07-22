@@ -171,6 +171,12 @@ function DressingRoom:_load(group, set)
   self._group = group
   self._set = set
   wipe(self._hiddenSlots)   -- per-set toggles: each set opens fully dressed
+  -- An applied outfit (ApplyOutfit / `/collected outfit import`) leaves per-slot overrides that
+  -- the model re-asserts after every re-skin. Drop the armor ones here — before the Dress() below
+  -- — or they'd repaint over whatever set is being loaded. Unconditional: a weapon-cosmetic
+  -- preview renders a bare body, so stale armor would show up there too. The composed look's
+  -- weapons/cosmetics are deliberately left alone; they outlive a set change.
+  self:ClearOutfitArmor()
   self:Title(set.name)
   -- Set id (right of the title) + its hover tooltip = the master-grid group name.
   self._masterName = group.name
