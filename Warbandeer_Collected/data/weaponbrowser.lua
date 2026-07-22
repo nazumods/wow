@@ -39,6 +39,7 @@ local GetAppearanceSourceDrops = C_TransmogCollection.GetAppearanceSourceDrops
 ---@class WeaponAppearance
 ---@field visualID number          appearance id (GetCategoryAppearances .visualID); feed to WeaponSource
 ---@field isCollected boolean      account-wide collected state
+---@field isHideVisual boolean?    the slot-emptying "Hidden ..." appearance; only data/cosmeticbrowser.lua carries it
 
 ---@class WeaponSource
 ---@field sourceID number          itemModifiedAppearanceID — feed to Model:TryOn / Model:SlotTransmog

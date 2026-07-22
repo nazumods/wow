@@ -131,8 +131,9 @@ right and add a piece to the armor set you're previewing — all on the model at
   with either, so this list is the only place they turn up — and unlike the weapon lists it
   shows the ones you haven't collected too, each row marked with a **green check** if you own
   it and a **red X** if you don't. You can still try an unowned one on the model and share it
-  in an exported look. **Shift-click a row** to flag it wanted (a gold star), the same way you
-  flag a set in the grid.
+  in an exported look. **Hidden Shirt** and **Hidden Tabard** are pinned to the top of their
+  lists, since they're what you reach for to leave the slot deliberately empty. **Shift-click a
+  row** to flag it wanted (a gold star), the same way you flag a set in the grid.
 
 Step to another class's set (the arrow keys, or the nav pad) and the picker re-scopes to
 that class's weapons and illusions.

@@ -43,16 +43,25 @@ end
 -- `/collected outfit export` exactly like an owned one. `showStatus` turns on the row's
 -- green-check / red-X mark and its shift-click Wanted star, which only earn their space on a list
 -- that shows both states.
+---
+---"Hidden Shirt" / "Hidden Tabard" (`isHideVisual`) is pinned to the top: it's the one row reached
+---for most often — it's how a look deliberately empties the slot — and the API returns it buried
+---mid-list. A two-bucket partition rather than a `table.sort`, so it stays stable and everything
+---else keeps the wardrobe's own order. (Blizzard sorts on the same flag but only as a late
+---tiebreak, below collected/usable/favourite; pinning it first is a deliberate divergence.)
 ---@param cat CosmeticCategory?
 function DressingRoom:_populateCosmetics(cat)
-  local items = {}
+  local items, rest = {}, {}
   if cat then
     for _, app in ipairs(ns.CosmeticAppearances(cat.category)) do
       local src = ns.AppearanceSource(app.visualID)
       if src then
-        items[#items + 1] = { kind = "w", visualID = app.visualID, src = src, showStatus = true }
+        local row = { kind = "w", visualID = app.visualID, src = src, showStatus = true }
+        local bucket = app.isHideVisual and items or rest
+        bucket[#bucket + 1] = row
       end
     end
+    for _, row in ipairs(rest) do items[#items + 1] = row end
   end
   self._pickerList:SetItems(items)
   self:_scheduleNameFill()

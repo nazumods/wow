@@ -71,13 +71,18 @@ end
 ---`ns.WeaponAppearances` so the picker can render either through one row builder; resolve a
 ---chosen visual to a usable source with `ns.AppearanceSource`. Cached per category, wiped on
 ---TRANSMOG_COLLECTION_UPDATED.
+---
+---`isHideVisual` is carried through as well — it marks the "Hidden Shirt" / "Hidden Tabard"
+---appearance, the one that empties the slot. Blizzard's own wardrobe drops those from its grid
+---entirely (`WardrobeItemsCollectionMixin:FilterVisuals`) because it offers hiding through a
+---separate control; we have no such control, so the picker keeps them and pins them first.
 ---@param category number  Enum.TransmogCollectionType
 ---@return WeaponAppearance[]
 function ns.CosmeticAppearances(category)
   if _appearances[category] then return _appearances[category] end
   local out = {}
   for _, v in ipairs(GetCategoryAppearances(category) or {}) do
-    out[#out + 1] = { visualID = v.visualID, isCollected = v.isCollected }
+    out[#out + 1] = { visualID = v.visualID, isCollected = v.isCollected, isHideVisual = v.isHideVisual }
   end
   _appearances[category] = out
   return out
