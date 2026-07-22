@@ -208,6 +208,16 @@ local ARMOR_LABEL = {
   [Enum.ItemArmorSubclass.Mail] = "Mail",   [Enum.ItemArmorSubclass.Plate] = "Plate",
 }
 
+-- The ONLY slots whose subclass reports the wearer's armour type. A positive list, because the
+-- exceptions aren't guessable: a **cloak is always Cloth** and a **shirt is always Cloth** whatever
+-- your class, and a **tabard is Generic** — so a plate set with a cloak reads Plate + Cloth and
+-- looks "mixed", which made effectively every complete set derive as "Any". Weapons are out for the
+-- obvious reason (their subclasses are Sword, Axe, …).
+local ARMOR_SLOTS = {
+  INVSLOT_HEAD, INVSLOT_SHOULDER, INVSLOT_CHEST, INVSLOT_WRIST,
+  INVSLOT_HAND, INVSLOT_WAIST, INVSLOT_LEGS, INVSLOT_FEET,
+}
+
 ---The armour type a look is made of — the filter key for "which of my characters could wear this",
 ---which is what actually groups a leather set across a rogue, a druid and a demon hunter.
 ---
@@ -216,17 +226,17 @@ local ARMOR_LABEL = {
 ---weapon-only looks. `GetItemInfoInstant` is synchronous and needs no cached item data (it's the
 ---same call `ns.SourceSlot` uses), so this costs nothing at save time.
 ---
----"Any" when the pieces disagree, are all cosmetic, or there are none — all cases where no single
----armour type gates who can wear it.
+---Only `ARMOR_SLOTS` are consulted — see the note there for why cloaks, shirts and tabards have to
+---be left out. "Any" when those pieces disagree, are all cosmetic, or there are none: every case
+---where no single armour type gates who can wear the look.
 ---@param list table[]
 ---@return string
 function ns.OutfitArmorType(list)
   local found
-  for _, slotID in ipairs(ns.OutfitSlotOrder) do
+  for _, slotID in ipairs(ARMOR_SLOTS) do
     local info = list[slotID]
     local appearanceID = info and info.appearanceID or 0
-    -- Weapons carry their own subclasses (Sword, Axe, …) and say nothing about armour type.
-    if appearanceID > 0 and slotID ~= INVSLOT_MAINHAND and slotID ~= INVSLOT_OFFHAND then
+    if appearanceID > 0 then
       local src = GetSourceInfo(appearanceID)
       local subclass = src and src.itemID and select(7, GetItemInfoInstant(src.itemID))
       local label = subclass and ARMOR_LABEL[subclass]
