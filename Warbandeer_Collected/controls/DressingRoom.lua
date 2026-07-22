@@ -112,6 +112,7 @@ end
 ---@field _slots table[]  paper-doll slot entries ({ slotID, icon, border, itemID?, cosmetic? }) — cosmetic ones are picker-driven, not set pieces
 ---@field _cosmeticSlots table[]  the shirt/tabard subset of _slots ({ slotID, label, target, look, empty, ... }) (DressingRoomCosmeticSlots.lua)
 ---@field _hiddenSlots table<number, true>  inventory slot ids toggled off the model (reset per set)
+---@field _undressed boolean?  the master Undress toggle's state — greys the composed-look slots, which have no _hiddenSlots entry (reset per set)
 ---@field _weaponSlots table[]  bottom-center weapon-slot entries ({ hand, label, icon, border, box, itemID? }) (DressingRoomWeaponSlots.lua)
 ---@field _weaponPiece number?  index of the previewed piece within a weapon-cosmetic cell (up/down nav cycles it)
 ---@field _weaponTitleTimer table?  cancelable retitle timer (arsenal item names load async)

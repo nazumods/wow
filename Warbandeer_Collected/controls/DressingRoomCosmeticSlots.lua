@@ -113,6 +113,10 @@ function DressingRoom:UpdateCosmeticSlots(retry)
       e.itemID = nil
       e.icon:Texture(e.empty)
     end
+    -- The master Undress bares the composed look off the model, so grey these with the armor
+    -- rather than leave them reading as worn. Icon only — the status border stays.
+    local v = self._undressed and 0.3 or 1
+    e.icon:SetVertexColor(v, v, v, 1)
     if open and self._pickerTarget == e.target then
       e.border:Color(SELECTED)                                   -- picker open on this slot
     elseif itemID then

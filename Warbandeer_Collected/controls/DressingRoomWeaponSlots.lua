@@ -141,8 +141,12 @@ function DressingRoom:UpdateWeaponSlots(retry)
     -- A two-handed main-hand disables the off-hand: dim its icon (0.3, matching the armor slots'
     -- toggled-off dim) and hold the border idle, whatever pick it's keeping. Otherwise full color +
     -- the normal status / selection border. #618.
+    --
+    -- The master Undress dims BOTH slots too — it bares the composed look off the model along with
+    -- the armor, so leaving these reading as worn would contradict the doll. Only the icon greys;
+    -- the status border stays, exactly as a toggled-off armor slot keeps its green/red.
     local disabled = e.hand == "off" and self._lookMH2H
-    local v = disabled and 0.3 or 1
+    local v = (disabled or self._undressed) and 0.3 or 1
     e.icon:SetVertexColor(v, v, v, 1)
     if disabled then
       e.border:Color(IDLE)
