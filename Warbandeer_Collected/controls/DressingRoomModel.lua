@@ -101,7 +101,17 @@ end
 function DressingRoom:_dressWeapon(m, form)
   local set = self._set
   local idx = self._weaponPiece or 1
+  -- Strip EVERY composed-look slot before rendering: each branch below shows a BARE body with the
+  -- previewed piece as the focus, and a SlotTransmog override outlives the re-skin, so anything
+  -- left here keeps re-appearing on that body — with all of the look-builder's slots hidden in
+  -- this mode, leaving no way to take it off. All four together, up front, rather than per branch:
+  -- the off-hand used to be cleared only on the weapon-cell path, so an arsenal or illusion
+  -- preview rendered a composed off-hand it never asked for. The picks stay on the room; _load's
+  -- armor branch re-asserts them through _applyLook when a set is previewed again. #641.
   m:ClearSlotTransmog(INVSLOT_MAINHAND)
+  m:ClearSlotTransmog(INVSLOT_OFFHAND)
+  m:ClearSlotTransmog(INVSLOT_BODY)
+  m:ClearSlotTransmog(INVSLOT_TABARD)
   if self._group.weaponCell then
     -- Weapon-cell preview: the chosen weapon's current colour variant (looks grouped by item).
     -- FORCE it onto the hand with SlotTransmog rather than Outfit — Outfit drops a weapon the
@@ -113,7 +123,6 @@ function DressingRoom:_dressWeapon(m, form)
     -- SlotTransmog takes an appearance sourceID directly, exactly as the look-builder does.
     local look = set._looks[idx]
     m:Outfit({})   -- bare body; the weapon is the focus, forced on below
-    m:ClearSlotTransmog(INVSLOT_OFFHAND)
     if look and look.sourceID then m:SlotTransmog(set._offHand and INVSLOT_OFFHAND or INVSLOT_MAINHAND, look.sourceID) end
   elseif self._group.kind == "illusion" then
     m:Outfit({})   -- bare; the illusion rides the host weapon applied below

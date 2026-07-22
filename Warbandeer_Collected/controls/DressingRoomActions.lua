@@ -84,13 +84,30 @@ end
 ---@param undressed boolean  true to strip every slot off the model, false to restore all
 function DressingRoom:SetUndressed(undressed)
   for _, e in ipairs(self._slots) do
-    if e.itemID then self._hiddenSlots[e.slotID] = undressed or nil end
+    -- Cosmetic slots have no per-slot toggle and aren't set pieces, so they take no _hiddenSlots
+    -- entry; the composed look re-applies them below.
+    if e.itemID and not e.cosmetic then self._hiddenSlots[e.slotID] = undressed or nil end
   end
   -- Apply in place (no reload): re-set the outfit (redress re-adds every piece via
   -- TryOn), then bare the whole body when undressing — TryOn alone can't strip.
+  --
+  -- Undress bares EVERYTHING, the composed look included: Model:Undress strips the slots set
+  -- through SetItemTransmogInfo along with the armor, which is what "show the bare race" should
+  -- mean. But the re-dress path only re-TryOns the outfit's sources and never re-asserts those
+  -- per-slot overrides, so without the _applyLook here the weapons, illusion, shirt and tabard
+  -- stay gone until the next model re-skin happens to restore them (#650).
+  --
+  -- Tracked explicitly rather than derived from `_anyWorn()`: hiding every armor slot one at a
+  -- time leaves the composed look genuinely ON the model (ToggleSlot's UndressSlot only bares its
+  -- own armor slot), so only this master toggle may grey the weapon/cosmetic icons.
+  self._undressed = undressed or nil
   self._model:Outfit(self:_currentSources())
-  if undressed then self._model:Undress() end
+  if undressed then self._model:Undress() else self:_applyLook() end
   self:_refreshSlotDims()
+  -- The composed-look slots have no _hiddenSlots entry, so _refreshSlotDims doesn't reach them —
+  -- repaint them here so their icons grey with the armor instead of still reading as worn.
+  self:UpdateWeaponSlots()
+  self:UpdateCosmeticSlots()
   self:_syncUndressBorder()
 end
 
@@ -171,6 +188,7 @@ function DressingRoom:_load(group, set)
   self._group = group
   self._set = set
   wipe(self._hiddenSlots)   -- per-set toggles: each set opens fully dressed
+  self._undressed = nil     -- …including the master Undress state
   -- An applied outfit (ApplyOutfit / `/collected outfit import`) leaves per-slot overrides that
   -- the model re-asserts after every re-skin. Drop the armor ones here — before the Dress() below
   -- — or they'd repaint over whatever set is being loaded. Unconditional: a weapon-cosmetic
@@ -202,7 +220,8 @@ function DressingRoom:_load(group, set)
     self._tierBarR:Hide()
     if self._slotTimer then self._slotTimer:Cancel(); self._slotTimer = nil end
     if self._weaponSlotTimer then self._weaponSlotTimer:Cancel(); self._weaponSlotTimer = nil end
-    if self._picker then self:ToggleWeaponPicker(false) end
+    if self._cosmeticSlotTimer then self._cosmeticSlotTimer:Cancel(); self._cosmeticSlotTimer = nil end
+    if self._picker then self:TogglePicker(false) end
     -- A weapon-source cell shows the chooser (its looks); illusion/arsenal don't.
     if group.weaponCell then self:ShowCellChooser(set._looks) else self:HideCellChooser() end
   else
@@ -211,7 +230,11 @@ function DressingRoom:_load(group, set)
     self:_setTierBars(group.name)
     self._slotRetries = 0
     self:UpdateSlots()
-    self:UpdateWeaponSlots()   -- reflect any persisted look on the bottom weapon slots
+    -- Re-assert the composed look (and repaint its slots) rather than just repainting them: a
+    -- weapon-cosmetic detour CLEARS the model's weapon + cosmetic overrides (see _dressWeapon), so
+    -- coming back to an armor set has to put them on again or the slots would show a look the
+    -- model isn't wearing. Runs before Dress() below, so the re-skin re-applies them on load.
+    self:_applyLook()
     self:HideCellChooser()
   end
   self:Dress()

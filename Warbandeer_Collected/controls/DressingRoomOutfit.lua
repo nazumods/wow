@@ -148,5 +148,6 @@ function DressingRoom:ApplyOutfit(list)
   self._lookMH2H      = isTwoHanded(self._lookMH) or nil
 
   self:UpdateWeaponSlots()
+  self:UpdateCosmeticSlots()
   return self
 end
