@@ -26,7 +26,8 @@ local GRIDW, ROWH, ROW3 = k.GRIDW, k.ROWH, k.ROW3
 -- character can't collect" (the game drops those silently) without a modal.
 
 local DROPW, NAMEW, BTNW, GAP = 180, 170, 66, 6
-local CONFIRM_S = 4   -- seconds an armed button stays armed before reverting
+local CONFIRM_S = 4      -- seconds an armed button stays armed before reverting
+local SAVE_RETRIES = 10  -- capped re-checks while item data streams (0.3s apart, ~3s total)
 
 -- One labelled button in the row: a framed box with a click target and a centered caption, whose
 -- text can be swapped when armed. Returns a small handle the actions drive.
@@ -157,9 +158,17 @@ end
 ---Save the composed look: overwrite the selected set when the name still matches it, else create
 ---a new one. Warns (and arms) when the look carries slots this character can't collect, because
 ---the game drops those silently on write.
-function DressingRoom:SaveOutfit()
-  local armed = self._armed == self._outfitSave
-  self:_disarmOutfit()
+---@param retry boolean?  internal: true on the self-scheduled re-run while item data streams
+function DressingRoom:SaveOutfit(retry)
+  if not retry then
+    -- A fresh click: remember whether the unusable warning was already acknowledged (the retry
+    -- chain below has to carry that through), reset the streaming budget, and drop any retry
+    -- still pending from an earlier click.
+    self._saveArmed = self._armed == self._outfitSave
+    self._saveRetries = 0
+    self:_disarmOutfit()
+    if self._saveTimer then self._saveTimer:Cancel(); self._saveTimer = nil end
+  end
 
   local list = self:ComposeOutfit()
   local issues = ns.OutfitIssues(list)
@@ -167,13 +176,28 @@ function DressingRoom:SaveOutfit()
     ns.Print("Nothing to save — the preview is empty.")
     return
   end
+  -- `PlayerCanCollectSource` can't answer while item data is still streaming, and writing from a
+  -- half-known answer risks silently dropping slots. Wait it out on the same capped-retry timer
+  -- the slot icons use, rather than making the user click Save a second time. (The command form
+  -- deliberately doesn't retry — a scripted call is one-shot and can simply be re-run.)
   if issues.pending then
-    ns.Print("Item data is still loading — try again in a moment.")
+    if self._saveRetries >= SAVE_RETRIES then
+      ns.Print("Item data is still loading — try again in a moment.")
+      return
+    end
+    if self._saveRetries == 0 then
+      ns.Print("Item data is still loading — saving as soon as it arrives.")
+    end
+    self._saveRetries = self._saveRetries + 1
+    self._saveTimer = C_Timer.NewTimer(0.3, function()
+      self._saveTimer = nil
+      self:SaveOutfit(true)
+    end)
     return
   end
   -- `unusable` is armour-type/class/faction validity, NOT ownership: an appearance you simply
   -- haven't collected saves fine. This fires when the look was composed from another class's set.
-  if #issues.unusable > 0 and not armed then
+  if #issues.unusable > 0 and not self._saveArmed then
     local names = {}
     for i, slotID in ipairs(issues.unusable) do names[i] = ns.SlotLabel(slotID) end
     ns.Print(("%d of %d slots can't be collected by this character and will be dropped: %s")

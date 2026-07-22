@@ -137,6 +137,9 @@ end
 ---@field _outfitRetries number?  remaining outfit-slot icon-refresh attempts
 ---@field _armed table?  the row button currently awaiting a confirming second click
 ---@field _armTimer table?  cancelable disarm timer
+---@field _saveTimer table?  cancelable retry timer for a save waiting on streaming item data
+---@field _saveRetries number?  streaming-data re-checks used by the pending save
+---@field _saveArmed boolean?  whether the pending save already cleared the unusable warning
 ---@field _wantBox Frame  the Wanted button's box (hidden in outfit mode) (DressingRoomControls.lua)
 ---@field _buildOutfits fun(self: DressingRoom, controls: Frame)  build the outfit row (DressingRoomOutfits.lua)
 ---@field RefreshOutfits fun(self: DressingRoom)  repopulate the saved-set dropdown (DressingRoomOutfits.lua)
