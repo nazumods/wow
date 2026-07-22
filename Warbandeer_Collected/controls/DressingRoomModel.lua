@@ -303,6 +303,16 @@ ns.HideDressingRoom = function()
   if _room then _room:Hide() end
 end
 
+---The shared dressing room while it's on screen, else nil — the entry point for anything that
+---acts on "the look currently being previewed" (the outfit compose/export path, the
+---`/collected outfit` commands). Deliberately nil for a closed room rather than a hidden
+---instance, so callers get one "nothing to act on" answer instead of two.
+---@class Warbandeer_Collected
+---@field OpenDressingRoom fun(): DressingRoom?
+ns.OpenDressingRoom = function()
+  if _room and _room._widget:IsShown() then return _room end
+end
+
 
 ---Dev/verify helper: force a raw creature display id into the open dressing room
 ---model so a candidate RaceModels id can be eyeballed (no-op if not open). The

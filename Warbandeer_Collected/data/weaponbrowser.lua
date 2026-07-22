@@ -215,6 +215,14 @@ function ns.WeaponSource(visualID)
   return info
 end
 
+---Category-agnostic alias for the resolver above. Nothing in it is weapon-specific — it only asks
+---the appearance API for a visual's sources — so it resolves shirts, tabards and armor exactly as
+---it does weapons. New callers (data/cosmeticbrowser.lua, outfit.lua) use this name; `WeaponSource`
+---stays for its existing call sites, so the two are the same function under two names.
+---@class Warbandeer_Collected
+---@field AppearanceSource fun(visualID: number): WeaponSource|false
+ns.AppearanceSource = ns.WeaponSource
+
 local _collectedMap               -- [visualID] = true for every collected weapon appearance (all classes; wiped on collection change)
 
 ---Account-wide collected-appearance lookup for the Weapons grid: `[visualID] = true` for every

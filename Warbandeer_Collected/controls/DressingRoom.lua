@@ -141,6 +141,8 @@ end
 ---@field _lookMH2H boolean?  whether the main-hand pick is two-handed (occupies both hands) — greys the off-hand slot (#618)
 ---@field _lookOH number?  the composed look's off-hand weapon appearance sourceID
 ---@field _lookIllusion number?  the composed look's enchant illusion sourceID (rides the main-hand)
+---@field _lookShirt number?  the composed look's shirt appearance sourceID (INVSLOT_BODY; picked in the cosmetic slots)
+---@field _lookTabard number?  the composed look's tabard appearance sourceID (INVSLOT_TABARD)
 ---@field _pickerNameTimer table?  cancelable async item-name refresh timer
 ---@field _buildWeaponSlots fun(self: DressingRoom)  build the bottom-center weapon-slot pair (DressingRoomWeaponSlots.lua)
 ---@field _showWeaponSlots fun(self: DressingRoom, show: boolean)  show/hide the weapon-slot pair (DressingRoomWeaponSlots.lua)

@@ -318,6 +318,11 @@ local TWO_HANDED = {
   [Enum.TransmogCollectionType.Gun]       = true,
 }
 
+-- Shared with the outfit path (controls/DressingRoomOutfit.lua), which has to re-derive
+-- `_lookMH2H` when it loads a look it didn't compose. This file owns the list — see the comment
+-- above for why it has to be an explicit set rather than a capability-flag test.
+DressingRoom._TWO_HANDED = TWO_HANDED
+
 -- Toggle a clicked piece into/out of the look: an illusion, or a weapon in its slot (off-hand for
 -- shields/holdables, else main-hand). Clicking the applied piece again clears that slot.
 ---@param item table

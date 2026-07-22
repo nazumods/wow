@@ -26,10 +26,12 @@ data\sets_review.lua
 data\weapons.lua
 data\weaponbrowser.lua
 data\weaponsources.lua
+data\cosmeticbrowser.lua
 data\models.lua
 
 ratings.lua
 outfitcodec.lua
+outfit.lua
 api.lua
 
 controls\InfoTip.lua
@@ -43,6 +45,7 @@ controls\DressingRoomSlots.lua
 controls\WeaponPicker.lua
 controls\DressingRoomWeaponSlots.lua
 controls\WeaponCellPicker.lua
+controls\DressingRoomOutfit.lua
 
 GridShared.lua
 
