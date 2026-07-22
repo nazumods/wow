@@ -146,6 +146,28 @@ off-hand slot — switch back to a one-hander and your off-hand pick comes back.
 **Right-click a slot to clear it** (or click the piece again in the picker). Drag the
 panel's header to move the whole window.
 
+## Saving a look
+
+The preview window has an **outfit row** under the ratings — a dropdown of the transmog
+sets you've saved in game, a name field, and **Save**, **Rename** and **Delete**.
+
+- Pick a set from the dropdown to **load** it: the model, the equipment slots, the weapons
+  and the shirt and tabard all change to that look.
+- **Save** writes what's on screen. Leave the name as the selected set's to overwrite it,
+  or type a new one to save a new set. These are the game's own saved sets — they show up
+  at the transmogrifier just like ones you made there, and you don't need to be near one
+  to save.
+- **Delete** asks once (the button changes to *Confirm?*) before it removes anything.
+
+If the look uses pieces your current character could never collect — a plate set while
+you're on a cloth wearer — Save tells you which slots and how many, and waits for a second
+click. The game silently drops those slots when it writes, so the set you'd get back would
+be missing them. Pieces you simply **haven't collected yet** are fine and save normally.
+
+While a saved set is loaded the window shows its name, and the rating buttons are hidden —
+an outfit isn't one of the tracked sets, so there's nothing to rate. Click any set in the
+grid to go back to normal previewing.
+
 ## Sharing a look
 
 Any look you've put together in the preview window can be turned into the same
@@ -182,6 +204,8 @@ transmog set in game, because the game drops slots your character can't use.
 | `/collected outfit export` | Copy the previewed look as a shareable `/customset` string |
 | `/collected outfit import <string>` | Dress the preview from a `/customset` string |
 | `/collected outfit list` | List the transmog sets saved in game |
+| `/collected outfit save <name>` | Save the previewed look as a transmog set (overwrites a matching name) |
+| `/collected outfit load <name>` | Dress the preview from a saved transmog set |
 
 The addon compartment button (next to the minimap) also works: click to open,
 right-click to scan.
@@ -197,7 +221,8 @@ right-click to scan.
 
 `WarbandeerCollectedDB` (account-wide): scanned set/appearance counts, plus your
 wanted flags and tier ranks (baseline + per-race) and your wanted weapon looks,
-shirt/tabard appearances and illusions. Ratings are kept separately from
+shirt/tabard appearances and illusions, plus which saved outfit the row last loaded. The
+saved outfits themselves live in the game's own transmog store, not here. Ratings are kept separately from
 the scan data, so re-scanning never clears them. The collection window and the set
 preview window also remember where you last dragged them, so they reopen in place
 instead of re-centering.
