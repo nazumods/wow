@@ -164,10 +164,10 @@ sets you've saved in game, a name field, and **Save**, **Rename** and **Delete**
 - Buttons that can't do anything are greyed: Save until you've named a new set, Rename and Delete
   until you've picked one.
 
-If the look uses pieces your current character could never collect — a plate set while
-you're on a cloth wearer — Save tells you which slots and how many, and waits for a second
-click. The game silently drops those slots when it writes, so the set you'd get back would
-be missing them. Pieces you simply **haven't collected yet** are fine and save normally.
+**Any look saves whole**, whatever your character can wear. A plate set saved from a Druid
+comes back complete, and pieces you simply haven't collected yet save normally too — so you
+can build and keep a look for an alt. Actually *wearing* it is a separate matter: a
+transmogrifier still only lets a character wear what its class can equip.
 
 While a saved set is loaded the window shows its name, and the rating buttons are hidden —
 an outfit isn't one of the tracked sets, so there's nothing to rate. Click any set in the
@@ -194,10 +194,8 @@ send it to doesn't need this addon.
 don't own yet, which makes it a good way to pass a wishlist look around. The export marks
 those slots `(not owned)` so you can see at a glance which ones you're still chasing.
 
-If you're previewing **another class's** set, the export also flags any piece your current
-character could never collect — a plate set while you're on a cloth wearer, say. Those
-share and re-import perfectly well; it only matters if you later save the look as a
-transmog set in game, because the game drops slots your character can't use.
+**Another class's set is fine too.** A plate set exported from a Druid shares, re-imports and
+saves complete — nothing is dropped for being the wrong armour type.
 
 ## Usage
 

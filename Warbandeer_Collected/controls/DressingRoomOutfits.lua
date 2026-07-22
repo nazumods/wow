@@ -90,7 +90,6 @@ end
 -- ratings row and above the race panels.
 ---@param controls Frame  the bottom controls strip built by the constructor
 function DressingRoom:_buildOutfits(controls)
-  self._saveAck = {}   -- which of Save's confirmations the current attempt has already answered
   self._outfitRow = Frame:new{
     parent = controls, position = { TopLeft = {0, -ROW3}, Width = GRIDW, Height = ROWH },
   }

@@ -25,16 +25,17 @@ function DressingRoom:LoadOutfit(customSetID)
   self:EnterOutfitMode(name or "Outfit", list)
 end
 ---Save the composed look: overwrite the selected set, or create one when "+ New Custom Set" is
----picked. Two conditions ask before writing — slots this character can't collect (the game drops
----them silently) and a name that's already taken — each acknowledged independently, so a look
----that trips both is asked both questions rather than having the second answered by accident.
+---picked. One condition asks before writing — a name that's already taken, offered as an
+---overwrite. Nothing checks cross-class usability: measured in game, a plate set saved from a
+---Druid round-trips complete, because the slot-clearing described in Blizzard's docs lives in
+---their `WardrobeCustomSetManager` UI layer, which a direct `NewCustomSet` call never touches.
 ---@param retry boolean?  internal: true on the self-scheduled re-run while item data streams
 function DressingRoom:SaveOutfit(retry)
   if not retry then
-    -- A click on an UNARMED Save is a fresh attempt, so forget what was previously acknowledged;
-    -- clicking the armed button keeps them, which is what turns the arm into an answer. Also
-    -- resets the streaming budget and drops any retry still pending from an earlier click.
-    if self._armed ~= self._outfitSave then wipe(self._saveAck) end
+    -- Whether the duplicate-name question has already been answered: clicking the ARMED button
+    -- keeps the answer, clicking an unarmed one starts fresh. Held in a field so the streaming
+    -- retry chain below carries it. Also resets the retry budget and drops a pending retry.
+    self._saveArmed = self._armed == self._outfitSave
     self._saveRetries = 0
     self:_disarmOutfit()
     if self._saveTimer then self._saveTimer:Cancel(); self._saveTimer = nil end
@@ -46,10 +47,9 @@ function DressingRoom:SaveOutfit(retry)
     ns.Print("Nothing to save — the preview is empty.")
     return
   end
-  -- `PlayerCanCollectSource` can't answer while item data is still streaming, and writing from a
-  -- half-known answer risks silently dropping slots. Wait it out on the same capped-retry timer
-  -- the slot icons use, rather than making the user click Save a second time. (The command form
-  -- deliberately doesn't retry — a scripted call is one-shot and can simply be re-run.)
+  -- Item data still streaming: the composed list isn't fully knowable yet, so wait it out on the
+  -- same capped-retry timer the slot icons use rather than making the user click Save again. (The
+  -- command form deliberately doesn't retry — a scripted call is one-shot and can just be re-run.)
   if issues.pending then
     if self._saveRetries >= SAVE_RETRIES then
       ns.Print("Item data is still loading — try again in a moment.")
@@ -65,18 +65,6 @@ function DressingRoom:SaveOutfit(retry)
     end)
     return
   end
-  -- `unusable` is armour-type/class/faction validity, NOT ownership: an appearance you simply
-  -- haven't collected saves fine. This fires when the look was composed from another class's set.
-  if #issues.unusable > 0 and not self._saveAck.unusable then
-    self._saveAck.unusable = true   -- the arm IS the question; the next click is the answer
-    local names = {}
-    for i, slotID in ipairs(issues.unusable) do names[i] = ns.SlotLabel(slotID) end
-    ns.Print(("%d of %d slots can't be collected by this character and will be dropped: %s")
-      :format(#issues.unusable, issues.filled, table.concat(names, ", ")))
-    self:_armOutfit(self._outfitSave, "Save anyway?")
-    return
-  end
-
   -- **The dropdown decides**, mirroring Blizzard's own row: a saved set selected means overwrite
   -- it, "+ New Custom Set" means create with the typed name. Deliberately NOT "a changed name
   -- means save-as" — that rule was invisible, and it left the name field doing two jobs. While a
@@ -92,8 +80,7 @@ function DressingRoom:SaveOutfit(retry)
     -- the row's existing arm-then-confirm instead of a modal.
     for _, s in ipairs(ns.CustomSets()) do
       if s.name == name then
-        if not self._saveAck.duplicate then
-          self._saveAck.duplicate = true
+        if not self._saveArmed then
           self:_armOutfit(self._outfitSave, "Overwrite?")
           return
         end

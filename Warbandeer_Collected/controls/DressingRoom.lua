@@ -139,7 +139,7 @@ end
 ---@field _armTimer table?  cancelable disarm timer
 ---@field _saveTimer table?  cancelable retry timer for a save waiting on streaming item data
 ---@field _saveRetries number?  streaming-data re-checks used by the pending save
----@field _saveAck table<string, true>  which of Save's confirmations (`unusable`, `duplicate`) the current attempt has answered
+---@field _saveArmed boolean?  whether the duplicate-name overwrite question has already been answered
 ---@field _wantBox Frame  the Wanted button's box (hidden in outfit mode) (DressingRoomControls.lua)
 ---@field _buildOutfits fun(self: DressingRoom, controls: Frame)  build the outfit row (DressingRoomOutfits.lua)
 ---@field RefreshOutfits fun(self: DressingRoom)  repopulate the saved-set dropdown (DressingRoomOutfits.lua)

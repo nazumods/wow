@@ -36,7 +36,7 @@ local SLOT_LABEL = {
 ---@class Warbandeer_Collected
 ---@field SlotLabel fun(slotID: number): string
 ---@field SanitizeOutfit fun(list: table[]): table[]
----@field OutfitIssues fun(list: table[]): { unusable: number[], pending: boolean, filled: number }
+---@field OutfitIssues fun(list: table[]): { pending: boolean, filled: number }
 ---@field OutfitIcon fun(list: table[]): number?
 ---@field OutfitSummary fun(list: table[]): string
 ---@field CustomSets fun(): { id: number, name: string, icon: number }[]
@@ -74,37 +74,36 @@ function ns.SanitizeOutfit(list)
   return list
 end
 
----What would stop this outfit being saved as a custom set.
+---What would stop this outfit being written yet: how many slots it fills, and whether the answer
+---is still knowable.
 ---
----The game **silently drops** every slot whose appearance this character can't collect (Blizzard's
----own save path clears them before writing), so callers surface `unusable` before writing rather
----than after. That matters here because the grid previews **every class's** sets: composing a
----plate tier set on a cloth wearer and saving it would quietly produce a near-empty set.
+---`pending` means item data is still streaming, so the caller should wait rather than write from a
+---half-known list.
 ---
----`unusable`, NOT "uncollected" — `PlayerCanCollectSource`'s second return means *"this character
----is able to collect this appearance"* (armour type / class / faction validity), which is **not**
----the same as owning it. Verified in game: sources the player demonstrably did not own still
----answered `canCollect = true`. An appearance you simply haven't collected yet saves fine, which
----is why nothing here reports collection state — `ns.OutfitSummary` marks that separately, off
----`AppearanceSourceInfo.isCollected`.
+---**There is deliberately no "this character can't use it" check**, though two earlier revisions
+---had one. Both premises were measured false in game (2026-07-22):
 ---
----`pending` means item data is still streaming and the answer isn't knowable yet — the caller
----should retry shortly rather than treat those slots as unusable.
+---* *"The game drops slots this character can't collect."* That clearing lives in Blizzard's
+---  `WardrobeCustomSetManager:EvaluateAppearances`, a **UI-layer** step. A direct
+---  `C_TransmogCollection.NewCustomSet` call never goes through it — a plate set saved from a
+---  Druid round-tripped complete, every slot intact.
+---* *"`PlayerCanCollectSource`'s `canCollect` reports armour-type/class validity."* It doesn't.
+---  On a Druid, with the wardrobe class filter correctly reading Druid, a plate appearance still
+---  answered `canCollect = true`. The flag can't distinguish the case it was being used for.
+---
+---Wearing such a set at a transmogrifier is a separate gate and may well refuse — but that is an
+---*application* question, not a *storage* one, and `PlayerCanCollectSource` is not the signal for
+---it (`C_Transmog.CanTransmogItemWithItem` and the slot-level checks are the honest source).
 ---@param list table[]
----@return { unusable: number[], pending: boolean, filled: number }
+---@return { pending: boolean, filled: number }
 function ns.OutfitIssues(list)
-  local out = { unusable = {}, pending = false, filled = 0 }
+  local out = { pending = false, filled = 0 }
   for _, slotID in ipairs(ns.OutfitSlotOrder) do
     local info = list[slotID]
     local appearanceID = info and info.appearanceID or 0
     if appearanceID > 0 then
       out.filled = out.filled + 1
-      local hasAllData, canCollect = PlayerCanCollectSource(appearanceID)
-      if not hasAllData then
-        out.pending = true
-      elseif not canCollect then
-        out.unusable[#out.unusable + 1] = slotID
-      end
+      if not (PlayerCanCollectSource(appearanceID)) then out.pending = true end
     end
   end
   return out
@@ -129,9 +128,9 @@ end
 ---`/collected outfit export`, so what the string encodes can be eyeballed against what the model
 ---shows.
 ---
----Two independent markers, deliberately not conflated (see `ns.OutfitIssues`): `not owned` is
----collection state, which costs nothing to share and saves fine; `UNUSABLE` means this character
----can't collect the appearance at all, so a save would silently drop that slot.
+---`not owned` marks collection state only — it costs nothing to share and saves fine. There is no
+---"unusable" marker any more: the claim it made (that such slots are dropped on save) was measured
+---false, see `ns.OutfitIssues`.
 ---@param list table[]
 ---@return string
 function ns.OutfitSummary(list)
@@ -141,7 +140,6 @@ function ns.OutfitSummary(list)
     local appearanceID = info and info.appearanceID or 0
     if appearanceID > 0 then
       local src = GetSourceInfo(appearanceID)
-      local _, canCollect = PlayerCanCollectSource(appearanceID)
       local extra = ""
       if info.illusionID and info.illusionID > 0 then
         extra = extra .. (" + illusion %d"):format(info.illusionID)
@@ -151,11 +149,10 @@ function ns.OutfitSummary(list)
       end
       -- `src.isCollected` is the same per-source ownership flag the paper-doll slots colour their
       -- borders from, so this column matches the green/red the user is looking at.
-      lines[#lines + 1] = ("%-14s %-8d %s%s%s%s"):format(
+      lines[#lines + 1] = ("%-14s %-8d %s%s%s"):format(
         ns.SlotLabel(slotID), appearanceID,
         (src and src.name) or "(name pending)", extra,
-        (src and not src.isCollected) and "   (not owned)" or "",
-        canCollect and "" or "   [UNUSABLE BY THIS CHARACTER — dropped on save]")
+        (src and not src.isCollected) and "   (not owned)" or "")
     end
   end
   if #lines == 0 then return "(empty outfit)" end
