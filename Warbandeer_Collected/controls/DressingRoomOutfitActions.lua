@@ -25,8 +25,16 @@ local SAVE_RETRIES = 10  -- capped re-checks while item data streams (0.3s apart
 function DressingRoom:_outfitMeta(list)
   local name, realm = UnitFullName("player")
   local _, class = UnitClass("player")
+  -- `_classIndex` is the class column of the last set clicked in the GRID, which in outfit mode is
+  -- not what's on the model — so re-saving a loaded look there would relabel it with an unrelated
+  -- class. Carry the entry's own `forClass` instead; only a real set preview derives a fresh one.
   local forClass
-  if self._classIndex then forClass = select(2, GetClassInfo(self._classIndex)) end
+  if self._outfit then
+    local entry = self._outfitSel and ns.LibraryOutfit(self._outfitSel)
+    forClass = entry and entry.forClass
+  elseif self._classIndex then
+    forClass = select(2, GetClassInfo(self._classIndex))
+  end
   return {
     char = realm and realm ~= "" and (name .. "-" .. realm) or name,
     class = class,
