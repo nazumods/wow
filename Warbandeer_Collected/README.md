@@ -45,8 +45,9 @@ piece sits in its equipment slot down the sides (green border = collected, red =
 still missing); hover a slot for the in-game item tooltip, and **click a slot to
 toggle that piece on or off the model** (its icon greys out while it's off) to see
 how the set looks without a helm, cloak, and so on. The **Undress** toggle is the
-bulk version — it strips every piece off at once to show the bare race (click it
-again to redress). There's also a **Background** toggle for a
+bulk version — it strips every piece off at once to show the bare race, weapons
+and shirt and tabard included (click it again and everything you had on comes
+back). There's also a **Background** toggle for a
 class-themed backdrop, a scale slider to resize the model, and a **Reset View**
 button to snap the camera back to its starting rotation, zoom, pan, and scale. The model always
 uses your own character's **gender** (a model that can actually wear the set is
@@ -108,12 +109,12 @@ shows the weapon appearance; for an **illusion** it lays the enchant shimmer ove
 equipped weapon. Use the **Up/Down** nav to cycle through the pieces (the 15 Ebon
 weapons, the 5 Shaman brands); the title names the one you're viewing.
 
-## Weapon & illusion look builder
+## Look builder
 
 Finish a transmog right in the dressing room. The model has **main-hand and off-hand
-weapon slots across the bottom**, just like the character sheet. Click a slot to open a
-**look builder** panel docked to the right and add a weapon (and an enchant illusion) to
-the armor set you're previewing — all on the model at once.
+weapon slots across the bottom** and **shirt and tabard slots down the left**, just like
+the character sheet. Click any of them to open a **look builder** panel docked to the
+right and add a piece to the armor set you're previewing — all on the model at once.
 
 - Click the **main-hand** or **off-hand** slot to open the picker for that hand. The
   weapon-type dropdown lists only the types that go in that hand and that the set's own
@@ -126,6 +127,9 @@ the armor set you're previewing — all on the model at once.
   shimmers (a Shaman set's imbues, a Death Knight set's runeforge) even on another class.
   Click one and its shimmer lays over the weapon you're holding (or your character's
   currently-equipped weapon if you haven't picked one).
+- Click the **shirt** or **tabard** slot to browse the ones you've collected. No set in
+  the game comes with either, so these two are yours to pick — the same panel opens,
+  listing just that category.
 
 Step to another class's set (the arrow keys, or the nav pad) and the picker re-scopes to
 that class's weapons and illusions.
@@ -133,8 +137,8 @@ that class's weapons and illusions.
 A two-handed main-hand (a staff, a 2H sword) fills both hands, so picking one greys out the
 off-hand slot — switch back to a one-hander and your off-hand pick comes back.
 
-**Right-click a weapon slot to clear it** (or click the equipped weapon again in the
-picker). Drag the panel's header to move the whole window.
+**Right-click a slot to clear it** (or click the piece again in the picker). Drag the
+panel's header to move the whole window.
 
 ## Sharing a look
 
