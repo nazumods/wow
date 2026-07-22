@@ -108,7 +108,8 @@ function DressingRoom:SaveOutfit(retry)
     return
   end
   self._outfitID = id
-  self._outfitName:Text(overwriteName or name)
+  -- The field is deliberately left as the user typed it: an overwrite doesn't touch names, so
+  -- resetting it here would destroy a name they were part-way through entering for Rename.
   self:RefreshOutfits()
   ns.Print(overwrite and ("Overwrote \"%s\"."):format(overwriteName or "set")
     or ("Saved \"%s\"."):format(name))

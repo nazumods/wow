@@ -113,7 +113,14 @@ function DressingRoom:_buildOutfits(controls)
     parent = nameBox, position = { TopLeft = {6, -1}, BottomRight = {-4, 1} },
   }
   self._outfitName._widget:SetScript("OnEscapePressed", function(f) f:ClearFocus() end)
-  self._outfitName._widget:SetScript("OnEnterPressed", function(f) f:ClearFocus(); self:SaveOutfit() end)
+  -- Enter commits whatever the field is FOR in the current mode: while a set is selected the name
+  -- belongs to Rename (Save overwrites and ignores it), and only "+ New Custom Set" makes it the
+  -- name of something being saved. Routing Enter to Save in both modes silently discarded a name
+  -- typed against a selected set.
+  self._outfitName._widget:SetScript("OnEnterPressed", function(f)
+    f:ClearFocus()
+    if self._outfitID then self:RenameOutfit() else self:SaveOutfit() end
+  end)
   self._outfitName._widget:SetScript("OnTextChanged", function() self:_syncOutfitButtons() end)
 
   local bx = DROPW + GAP + NAMEW + GAP
