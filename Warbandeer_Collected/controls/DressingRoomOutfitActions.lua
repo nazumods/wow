@@ -14,6 +14,27 @@ local SAVE_RETRIES = 10  -- capped re-checks while item data streams (0.3s apart
 -- character's custom sets, which is the only place that needs Blizzard's name filter and 25-set
 -- cap (both enforced by `ns.SaveCustomSet` in outfit.lua).
 
+-- Everything a save should remember about where a look came from. Captured now because none of it
+-- survives otherwise: the stored string is appearance ids and nothing else.
+--
+-- `class` and `forClass` are genuinely different and both matter. `class` is whoever pressed Save
+-- — provenance. `forClass` is the class of the SET being previewed, which is often someone else
+-- entirely (the room previews every class's sets), and is what you'd hunt by when dressing an alt.
+---@param list table[]
+---@return OutfitMeta
+function DressingRoom:_outfitMeta(list)
+  local name, realm = UnitFullName("player")
+  local _, class = UnitClass("player")
+  local forClass
+  if self._classIndex then forClass = select(2, GetClassInfo(self._classIndex)) end
+  return {
+    char = realm and realm ~= "" and (name .. "-" .. realm) or name,
+    class = class,
+    forClass = forClass,
+    armor = ns.OutfitArmorType(list),
+  }
+end
+
 ---Load a saved look from the library, switching the room into outfit mode.
 ---@param name string  a library outfit name
 function DressingRoom:LoadOutfit(name)
@@ -29,6 +50,9 @@ function DressingRoom:LoadOutfit(name)
   -- never repurposed, and a rollback still has to find what it wrote.)
   if ns.db then ns.db.lastLibraryOutfit = name end
   self:EnterOutfitMode(name, list)
+  local origin = ns.OutfitOrigin(ns.LibraryOutfit(name))
+  ns.Print(origin ~= "" and ("Loaded \"%s\" — saved by %s."):format(name, origin)
+    or ("Loaded \"%s\"."):format(name))
 end
 
 ---Save the composed look into the library.
@@ -91,7 +115,7 @@ function DressingRoom:SaveOutfit(retry)
     target = name
   end
 
-  local ok, err = ns.SaveLibraryOutfit(target, list)
+  local ok, err = ns.SaveLibraryOutfit(target, list, self:_outfitMeta(list))
   if not ok then
     ns.Print("Couldn't save: " .. err)
     return

@@ -29,14 +29,28 @@ local ns = select(2, ...)
 ---@class LibraryOutfit
 ---@field name string  the user's name for it, unique within the library
 ---@field look string  the `/customset v1 …` encoding of the outfit
+---@field char string?  "Name-Realm" of whoever saved it
+---@field class string?  that character's class file ("DRUID") — provenance, NOT what the look is for
+---@field forClass string?  class file of the SET the look was composed from ("WARRIOR")
+---@field armor string?  armour type the look's pieces are ("Leather"), or "Any"
+
+---@class OutfitMeta
+---@field char string?
+---@field class string?
+---@field forClass string?
+---@field armor string?
 
 ---@class Warbandeer_Collected
 ---@field LibraryOutfits fun(): LibraryOutfit[]
 ---@field LibraryOutfit fun(name: string): LibraryOutfit?, number?
 ---@field LibraryOutfitList fun(name: string): table[]?, string?
----@field SaveLibraryOutfit fun(name: string, list: table[]): boolean, string?
+---@field SaveLibraryOutfit fun(name: string, list: table[], meta: OutfitMeta?): boolean, string?
 ---@field RenameLibraryOutfit fun(oldName: string, newName: string): boolean, string?
 ---@field DeleteLibraryOutfit fun(name: string): boolean
+
+-- The provenance fields a save records. Captured at save time because none of it can be recovered
+-- later: the encoded look carries appearance ids and nothing about where it came from.
+local META = { "char", "class", "forClass", "armor" }
 
 -- Trim, so a name that's only whitespace reads as empty and " x " and "x" can't both exist.
 ---@param name string?
@@ -89,23 +103,27 @@ end
 ---Save `list` under `name`, replacing an entry of the same name in place.
 ---
 ---Replacing in place rather than removing and appending keeps the library's order stable: re-saving
----the third look leaves it third instead of jumping to the end.
+---the third look leaves it third instead of jumping to the end. `meta` (who saved it, which class,
+---which set's class, the armour type) overwrites the stored provenance on a replace — the entry now
+---holds a different look, so the old attribution would be a lie.
 ---@param name string
 ---@param list table[]
+---@param meta OutfitMeta?  provenance; the caller collects it, this file just stores it
 ---@return boolean ok, string? err
-function ns.SaveLibraryOutfit(name, list)
+function ns.SaveLibraryOutfit(name, list, meta)
   name = clean(name)
   if name == "" then return false, "a name is required" end
-  local look = ns.EncodeOutfit(list)
   local entry = ns.LibraryOutfit(name)
-  if entry then
-    entry.look = look
-    return true
+  if not entry then
+    entry = { name = name }
+    local outfits = ns.LibraryOutfits()
+    outfits[#outfits + 1] = entry
   end
-  local outfits = ns.LibraryOutfits()
-  outfits[#outfits + 1] = { name = name, look = look }
+  entry.look = ns.EncodeOutfit(list)
+  for _, field in ipairs(META) do entry[field] = meta and meta[field] or nil end
   return true
 end
+
 
 ---Rename a saved look. Keeping its own name is allowed, so re-committing an untouched field isn't
 ---an error.

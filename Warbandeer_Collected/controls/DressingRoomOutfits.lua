@@ -148,7 +148,10 @@ function DressingRoom:RefreshOutfits()
   if not self._outfitDrop then return end
   local opts, stillThere = {}, false
   for _, o in ipairs(ns.LibraryOutfits()) do
-    opts[#opts + 1] = { key = o.name, label = o.name }
+    -- Class-coloured by the class the look is FOR, falling back to the saver's. 150px has no room
+    -- for "— Triandra (Druid)", but the colour carries the same signal for free; the full
+    -- provenance is one hover away in `/collected outfit list`.
+    opts[#opts + 1] = { key = o.name, label = ns.ClassColored(o.name, o.forClass or o.class) }
     if o.name == self._outfitSel then stillThere = true end
   end
   if not stillThere then self._outfitSel = nil end

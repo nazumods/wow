@@ -62,7 +62,14 @@ local function outfitList()
   local lib, sets = ns.LibraryOutfits(), ns.CustomSets()
   local max = C_TransmogCollection.GetNumMaxCustomSets()
   local lines = { ("Library (account-wide) — %d"):format(#lib) }
-  for _, o in ipairs(lib) do lines[#lines + 1] = "  " .. o.name end
+  for _, o in ipairs(lib) do
+    -- Full provenance here, where there's width for it: who saved it, their class, its armour type,
+    -- and which class's set it was built from.
+    local origin = ns.OutfitOrigin(o)
+    local forClass = o.forClass and ns.ClassLabel(o.forClass)
+    lines[#lines + 1] = ("  %-28s %s%s"):format(o.name, origin,
+      forClass and ("   (a %s look)"):format(forClass) or "")
+  end
   if #lib == 0 then lines[#lines + 1] = "  (empty)" end
   lines[#lines + 1] = ""
   lines[#lines + 1] = ("This character's transmog sets — %d/%s"):format(#sets, tostring(max))
@@ -132,8 +139,7 @@ local function outfitLoad(name)
     ns.Print(("No saved look named \"%s\". Try /collected outfit list."):format(name))
     return
   end
-  room:LoadOutfit(look)
-  ns.Print(("Loaded \"%s\"."):format(look))
+  room:LoadOutfit(look)   -- prints its own confirmation, with the look's provenance
 end
 
 ---@param name string

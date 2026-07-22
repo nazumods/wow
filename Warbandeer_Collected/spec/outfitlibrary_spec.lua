@@ -66,6 +66,42 @@ describe("outfit library", function()
     end)
   end)
 
+  describe("provenance", function()
+    local META = { char = "Triandra-Silvermoon", class = "DRUID", forClass = "WARRIOR", armor = "Plate" }
+
+    it("stores the fields the caller collected", function()
+      ns.SaveLibraryOutfit("mog", ns.EmptyOutfitList(), META)
+      local entry = ns.LibraryOutfit("mog")
+      assert.equal("Triandra-Silvermoon", entry.char)
+      assert.equal("DRUID", entry.class)
+      assert.equal("WARRIOR", entry.forClass)   -- the SET's class, not the saver's
+      assert.equal("Plate", entry.armor)
+    end)
+
+    it("overwrites provenance when the look is replaced", function()
+      -- The entry now holds a different look, so keeping the old attribution would be a lie.
+      ns.SaveLibraryOutfit("mog", ns.EmptyOutfitList(), META)
+      ns.SaveLibraryOutfit("mog", lookWith(ns, 7019), { char = "Other-Realm", class = "MAGE" })
+      local entry = ns.LibraryOutfit("mog")
+      assert.equal("Other-Realm", entry.char)
+      assert.equal("MAGE", entry.class)
+      assert.is_nil(entry.forClass)   -- absent in the new meta, so cleared rather than inherited
+      assert.is_nil(entry.armor)
+    end)
+
+    it("saves without provenance when none is given", function()
+      -- The command path and any caller that can't determine it must still work.
+      assert.is_true(ns.SaveLibraryOutfit("mog", ns.EmptyOutfitList()))
+      assert.is_nil(ns.LibraryOutfit("mog").char)
+    end)
+
+    it("survives a rename", function()
+      ns.SaveLibraryOutfit("mog", ns.EmptyOutfitList(), META)
+      ns.RenameLibraryOutfit("mog", "renamed")
+      assert.equal("Triandra-Silvermoon", ns.LibraryOutfit("renamed").char)
+    end)
+  end)
+
   describe("LibraryOutfit", function()
     it("returns the entry and its index", function()
       ns.SaveLibraryOutfit("a", ns.EmptyOutfitList())
