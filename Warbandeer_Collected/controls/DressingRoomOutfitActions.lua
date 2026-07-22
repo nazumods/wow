@@ -107,20 +107,22 @@ function DressingRoom:SaveOutfit(retry)
     return
   end
 
-  local target, overwrote = self._outfitSel, self._outfitSel ~= nil
-  if not target then
-    local name = self:_typedOutfitName()
-    -- Creating over a name already in the library: OFFER to replace it rather than refusing, the
-    -- same question Blizzard's own save prompt asks — typing an existing name almost always means
-    -- "replace that one".
-    if ns.LibraryOutfit(name) then
-      if not self._saveArmed then
-        self:_armOutfit(self._outfitSave, "Overwrite?")
-        return
-      end
-      overwrote = true
-    end
-    target = name
+  -- **The typed name decides what gets written**, not the dropdown selection. The field sits right
+  -- beside Save and reads as "the name I'm saving under", so selecting one look, typing a different
+  -- name and clicking Save must save THAT name — not silently replace the selected entry, which is
+  -- destructive and unrecoverable. (An earlier revision followed Blizzard's "selection decides"
+  -- rule; that works for them because their name prompt is a separate modal, not a live field.)
+  --
+  -- An empty field falls back to the selection, so Save still means "update this one" when the
+  -- name hasn't been touched.
+  local target = self:_typedOutfitName()
+  if target == "" then target = self._outfitSel end
+  local overwrote = ns.LibraryOutfit(target) ~= nil
+  -- Replacing the entry you have selected needs no confirmation — that's plainly "update this".
+  -- Landing on a DIFFERENT existing entry is the surprising case, so ask first.
+  if overwrote and target ~= self._outfitSel and not self._saveArmed then
+    self:_armOutfit(self._outfitSave, ("Replace %s?"):format(target))
+    return
   end
 
   local ok, err = ns.SaveLibraryOutfit(target, list, self:_outfitMeta(list))

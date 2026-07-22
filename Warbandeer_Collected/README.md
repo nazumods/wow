@@ -162,12 +162,12 @@ what this works around.
   and its armour type** — so months later you still know that leather look came from your rogue.
   Names in the dropdown are tinted the class colour of **whoever saved them**, and
   `/collected outfit list` spells the rest out.
-- **Save** writes what's on screen into whichever look the dropdown has selected. To keep a new
-  one instead, pick **+ New Look** at the bottom of the dropdown, type a name, and Save.
+- **Save** writes what's on screen under **whatever name is in the box**. Leave it as the selected
+  look's name to update that one; type a different name and you get a new look, with the original
+  untouched. **+ New Look** at the bottom of the dropdown just clears the box to start fresh.
 - **Rename** changes the selected look's name to whatever's in the name field.
-- **Delete** asks once (the button changes to *Confirm?*) before removing anything. Saving a new
-  look under a name you already use asks the same way — it offers to **replace** that one rather
-  than making you pick another name.
+- **Delete** asks once (the button changes to *Confirm?*) before removing anything. Saving under a
+  name that belongs to a *different* look asks the same way, so you can't overwrite one by accident.
 - **Push** copies the selected look into *this* character's transmog sets, so you can wear it at
   a transmogrifier. That's the only step that's per-character, and the only one the game's
   25-set limit applies to.
