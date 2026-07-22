@@ -71,3 +71,20 @@ changed. It is **not** auto-merged, on purpose:
 > The bundle is embedded in the exe, so its path triggers `app-release.yml`. GitHub releases
 > are immutable, so merging a data change **without bumping the app version** fails the
 > release build. Pair every data refresh with a version bump in the same PR.
+
+## Consuming the bundle from another repo
+
+The desktop app embeds the file at compile time, so it never fetches it. For consumers
+*outside* this repo, `.github/workflows/publish-static-data.yml` attaches the bundle to a
+GitHub release after it lands on `main`:
+
+- **Tag:** `app-static-data-v<build>-<sha8>` — the `app-` prefix is load-bearing, it's what
+  keeps the CurseForge publisher (`publish.yml`) from picking the release up. The `<sha8>`
+  makes the tag content-addressed so a re-run is a no-op rather than an immutable-release
+  error.
+- **Asset:** always `static-data.json`.
+- **Resolving the newest:** list releases and take the first tag prefixed `app-static-data-v`
+  (they're newest-first). The releases are published with `--latest=false`, so the repo's
+  "Latest release" badge is unaffected — don't use the `/releases/latest` endpoint.
+
+`nazumods/wow` is public, so the fetch needs no authentication.
