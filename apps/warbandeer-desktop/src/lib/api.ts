@@ -9,6 +9,7 @@ import type {
   BotStatus,
   EnvChange,
   EnvSetResult,
+  CurrencyMeta,
 } from "./types";
 
 // Thin wrappers over the Rust commands. `wowDir` is optional — the backend
@@ -60,6 +61,20 @@ export function rememberCharacterOrder(
   wowDir?: string | null,
 ): Promise<void> {
   return invoke("remember_character_order", { account, ordered, wowDir: wowDir ?? null });
+}
+
+// ── Static game data (offline lookup layer) ────────────────────────────────
+// Constant client data baked into the exe at build time from wago.tools, so the
+// app can render currency names/icons that SavedVariables only store ids for.
+
+/** Metadata for a currency id, or null if the bundle doesn't know it. */
+export function getCurrencyMeta(id: number): Promise<CurrencyMeta | null> {
+  return invoke("get_currency_meta", { id });
+}
+
+/** The client build the embedded bundle was generated from (diagnostics). */
+export function staticDataBuild(): Promise<string> {
+  return invoke("static_data_build");
 }
 
 // ── Bot ops (operator-only) ────────────────────────────────────────────────

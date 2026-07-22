@@ -117,3 +117,11 @@ export interface EnvSetResult {
   note?: string | null; // e.g. "no changes"
   log?: string | null; // docker compose output
 }
+
+/** Mirrors `staticdata::CurrencyMeta` — constant client data, not character state. */
+export interface CurrencyMeta {
+  name: string;
+  icon: string | null; // bare icon name ("inv_misc_coin_01"), null when DB2 has none
+  maxQty: number; // 0 = uncapped
+  quality: number;
+}
