@@ -116,13 +116,15 @@ function DressingRoom:_buildOutfits(controls)
     parent = nameBox, position = { TopLeft = {6, -1}, BottomRight = {-4, 1} },
   }
   self._outfitName._widget:SetScript("OnEscapePressed", function(f) f:ClearFocus() end)
-  -- Enter commits whatever the field is FOR in the current mode: while a look is selected the name
-  -- belongs to Rename (Save overwrites it and ignores the field), and only "+ New Look" makes it
-  -- the name of something being saved. Routing Enter to Save in both modes silently discarded a
-  -- name typed against a selected look.
+  -- Enter is **always Save**, never Rename. The field names what you're saving, so committing it
+  -- means "save under this name" — and Save is now non-destructive to other entries, while Rename
+  -- moves an existing look and can't be undone. An earlier revision routed Enter to Rename while a
+  -- look was selected; typing a new name and pressing Enter then RENAMED the loaded look instead
+  -- of saving a new one, which is exactly the surprise a keyboard shortcut must never spring.
+  -- Renaming is the Rename button's job, deliberately requiring a deliberate click.
   self._outfitName._widget:SetScript("OnEnterPressed", function(f)
     f:ClearFocus()
-    if self._outfitSel then self:RenameOutfit() else self:SaveOutfit() end
+    self:SaveOutfit()
   end)
   self._outfitName._widget:SetScript("OnTextChanged", function() self:_syncOutfitButtons() end)
 

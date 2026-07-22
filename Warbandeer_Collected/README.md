@@ -165,7 +165,8 @@ what this works around.
 - **Save** writes what's on screen under **whatever name is in the box**. Leave it as the selected
   look's name to update that one; type a different name and you get a new look, with the original
   untouched. **+ New Look** at the bottom of the dropdown just clears the box to start fresh.
-- **Rename** changes the selected look's name to whatever's in the name field.
+- **Rename** changes the selected look's name to whatever's in the name field. It's the only thing
+  that renames — pressing Enter in the box always saves, never renames.
 - **Delete** asks once (the button changes to *Confirm?*) before removing anything. Saving under a
   name that belongs to a *different* look asks the same way, so you can't overwrite one by accident.
 - **Push** copies the selected look into *this* character's transmog sets, so you can wear it at
