@@ -121,7 +121,10 @@ function DressingRoom:SaveOutfit(retry)
   -- Replacing the entry you have selected needs no confirmation — that's plainly "update this".
   -- Landing on a DIFFERENT existing entry is the surprising case, so ask first.
   if overwrote and target ~= self._outfitSel and not self._saveArmed then
-    self:_armOutfit(self._outfitSave, ("Replace %s?"):format(target))
+    -- The caption stays SHORT — a row button is 62px and wraps, so naming the target there spilled
+    -- over three lines and out of the box. Chat has the width to say which look is at risk.
+    ns.Print(("\"%s\" already exists — click Save again to replace it."):format(target))
+    self:_armOutfit(self._outfitSave, "Replace?")
     return
   end
 

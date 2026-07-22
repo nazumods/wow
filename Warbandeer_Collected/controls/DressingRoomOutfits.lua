@@ -48,7 +48,11 @@ local function rowButton(room, x, label, onClick)
     parent = room._outfitRow, position = { TopLeft = {x, 0}, Width = BTNW, Height = ROWH },
   }
   local btn = { box = box, border = selBox(box), text = label }
-  btn.label = Label:new{ parent = box, justifyH = ui.justify.Center,
+  -- `wordWrap = false` is structural, not cosmetic: the box is a fixed ROWH tall, so a caption that
+  -- wraps grows the label out of it and over the row below (an armed "Replace <name>?" did exactly
+  -- that across three lines). Armed captions are kept short too — this just makes the layout
+  -- impossible to break from a caption alone.
+  btn.label = Label:new{ parent = box, justifyH = ui.justify.Center, wordWrap = false,
     position = { Left = {2, 0}, Right = {-2, 0} }, text = label }
   -- Disabled buttons grey their caption and swallow the click, rather than firing and printing a
   -- refusal — the same "don't offer what won't work" Blizzard's own name prompt uses.
