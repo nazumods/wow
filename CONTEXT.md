@@ -117,6 +117,14 @@ LibNUI_Test is a LoadOnDemand visual test harness for LibNUI (`/nui test [key]`)
 
 ---
 
+## External References (sibling repos on disk, not part of this repo)
+
+| Repo | What it is | When to reach for it |
+|---|---|---|
+| **battlenet-api-research** (`R:\repos\battlenet-api-research`) | Offline, diff-able capture of the Battle.net → WoW **Web REST API** — the Web-API equivalent of what `wow-ui-source` is for addons. Three layers: browsable docs (`docs/INDEX.md`), a generated OpenAPI 3.1 spec (`openapi/battlenet-wow.openapi.json`, 217 paths), captured 200-response schemas per endpoint (`openapi/responses/*.schema.json`), and a typed TS client (`client/`). Downstream consumer: `R:\repos\wow-companion` (Tauri app — client secret in the OS keychain, token exchange in Rust, calls proxied so the webview never sees the secret). | Any "does the Web API expose X / what does it return" question — `jq` the spec and the response schemas rather than re-deriving from third-party client libraries or the JS-rendered dev portal. Two gotchas worth knowing up front: **character**-scoped `/profile/wow/character/...` endpoints work on client credentials alone (only `/profile/user/wow/*` needs user OAuth), and there is **no currency endpoint** — currency name/icon metadata comes from wago.tools `CurrencyTypes` instead. |
+
+---
+
 ## Slash Command Registry
 
 | Addon | Commands | Sub-commands |
