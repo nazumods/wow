@@ -48,10 +48,13 @@ function DressingRoom:ComposeOutfit()
   mh.illusionID = self._lookIllusion or 0
   -- The main-hand secondary is a discriminator, not an appearance: -1 means "an ordinary
   -- weapon", 0 means "a paired Legion artifact, derive the off-hand from me". Getting this
-  -- backwards makes the game invent an off-hand, so set it through the mixin rather than by hand.
-  local isPaired = self._lookMH
-    and GetCategoryForItem(self._lookMH) == Enum.TransmogCollectionType.Paired
-  mh:ConfigureSecondaryForMainHand(isPaired or false)
+  -- backwards makes the game invent an off-hand, so set it through the mixin rather than by hand
+  -- — and only when a weapon is actually held, since an empty hand has nothing to discriminate
+  -- and should stay at the empty list's 0.
+  if self._lookMH then
+    mh:ConfigureSecondaryForMainHand(
+      GetCategoryForItem(self._lookMH) == Enum.TransmogCollectionType.Paired)
+  end
 
   -- A two-handed main-hand occupies both hands, so the off-hand pick is suppressed exactly as it
   -- is on the model (#618) — the outfit records what is actually being worn, not what is parked.
