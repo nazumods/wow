@@ -146,6 +146,33 @@ off-hand slot — switch back to a one-hander and your off-hand pick comes back.
 **Right-click a slot to clear it** (or click the piece again in the picker). Drag the
 panel's header to move the whole window.
 
+## Saving a look
+
+The preview window has an **outfit row** under the ratings — a dropdown of the transmog
+sets you've saved in game, a name field, and **Save**, **Rename** and **Delete**.
+
+- Pick a set from the dropdown to **load** it: the model, the equipment slots, the weapons
+  and the shirt and tabard all change to that look.
+- **Save** writes what's on screen into whichever set the dropdown has selected. To make a
+  new one instead, pick **+ New Custom Set** at the bottom of the dropdown, type a name, and
+  Save. These are the game's own saved sets — they show up in the Dressing Room's set list
+  just like ones you made there, and you don't need to be at a transmogrifier to save.
+- **Rename** changes the selected set's name to whatever's in the name field.
+- **Delete** asks once (the button changes to *Confirm?*) before it removes anything. If you save
+  a new set under a name you already have, Save asks the same way — it offers to **overwrite**
+  that set rather than making you pick another name.
+- Buttons that can't do anything are greyed: Save until you've named a new set, Rename and Delete
+  until you've picked one.
+
+**Any look saves whole**, whatever your character can wear. A plate set saved from a Druid
+comes back complete, and pieces you simply haven't collected yet save normally too — so you
+can build and keep a look for an alt. Actually *wearing* it is a separate matter: a
+transmogrifier still only lets a character wear what its class can equip.
+
+While a saved set is loaded the window shows its name, and the rating buttons are hidden —
+an outfit isn't one of the tracked sets, so there's nothing to rate. Click any set in the
+grid to go back to normal previewing.
+
 ## Sharing a look
 
 Any look you've put together in the preview window can be turned into the same
@@ -167,10 +194,8 @@ send it to doesn't need this addon.
 don't own yet, which makes it a good way to pass a wishlist look around. The export marks
 those slots `(not owned)` so you can see at a glance which ones you're still chasing.
 
-If you're previewing **another class's** set, the export also flags any piece your current
-character could never collect — a plate set while you're on a cloth wearer, say. Those
-share and re-import perfectly well; it only matters if you later save the look as a
-transmog set in game, because the game drops slots your character can't use.
+**Another class's set is fine too.** A plate set exported from a Druid shares, re-imports and
+saves complete — nothing is dropped for being the wrong armour type.
 
 ## Usage
 
@@ -182,6 +207,8 @@ transmog set in game, because the game drops slots your character can't use.
 | `/collected outfit export` | Copy the previewed look as a shareable `/customset` string |
 | `/collected outfit import <string>` | Dress the preview from a `/customset` string |
 | `/collected outfit list` | List the transmog sets saved in game |
+| `/collected outfit save <name>` | Save the previewed look as a transmog set (overwrites a matching name) |
+| `/collected outfit load <name>` | Dress the preview from a saved transmog set |
 
 The addon compartment button (next to the minimap) also works: click to open,
 right-click to scan.
@@ -197,7 +224,8 @@ right-click to scan.
 
 `WarbandeerCollectedDB` (account-wide): scanned set/appearance counts, plus your
 wanted flags and tier ranks (baseline + per-race) and your wanted weapon looks,
-shirt/tabard appearances and illusions. Ratings are kept separately from
+shirt/tabard appearances and illusions, plus which saved outfit the row last loaded. The
+saved outfits themselves live in the game's own transmog store, not here. Ratings are kept separately from
 the scan data, so re-scanning never clears them. The collection window and the set
 preview window also remember where you last dragged them, so they reopen in place
 instead of re-centering.

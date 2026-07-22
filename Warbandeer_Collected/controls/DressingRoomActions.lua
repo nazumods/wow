@@ -117,7 +117,7 @@ end
 -- and the gold highlight on the active tier (the per-race override when "This race"
 -- is on, else the baseline). Called from _load (set change) and SetRace.
 function DressingRoom:_refreshRatings()
-  if not self._set then return end
+  if not self._set or self._outfit then return end   -- an outfit has no set id to rate
   -- Weapon-cell: only the ★ Wanted button applies (no S–F rank), keyed to the shown look.
   if self._group and self._group.weaponCell then
     local look = self._set._looks[self._weaponPiece or 1]
@@ -189,6 +189,14 @@ function DressingRoom:_load(group, set)
   self._set = set
   wipe(self._hiddenSlots)   -- per-set toggles: each set opens fully dressed
   self._undressed = nil     -- …including the master Undress state
+  -- Previewing a set is the only way out of outfit mode: drop the applied list and restore the
+  -- set-keyed furniture it hid (the class icon, tier bars and ratings row are re-shown below).
+  self._outfit = nil
+  if self._outfitTimer then self._outfitTimer:Cancel(); self._outfitTimer = nil end
+  -- A save waiting on streaming item data must not fire against a set the user has since left.
+  if self._saveTimer then self._saveTimer:Cancel(); self._saveTimer = nil end
+  self:_disarmOutfit()
+  if self._wantBox then self._wantBox:Show() end
   -- An applied outfit (ApplyOutfit / `/collected outfit import`) leaves per-slot overrides that
   -- the model re-asserts after every re-skin. Drop the armor ones here — before the Dress() below
   -- — or they'd repaint over whatever set is being loaded. Unconditional: a weapon-cosmetic
@@ -261,6 +269,10 @@ end
 -- empty class slots (the data has gaps for classes absent from a tier).
 ---@param dir number  +1 = next, -1 = previous
 function DressingRoom:Step(dir)
+  -- A loaded outfit isn't part of any group, so there's nothing to step through; `_group`/`_set`
+  -- still hold the last previewed set and stepping them would silently swap the look out from
+  -- under the user. Pick a set from a grid to leave outfit mode.
+  if self._outfit then return end
   -- Weapon-source cell: ←/→ steps to the adjacent weapon TYPE the source has (rebuilds the preview).
   if self._group and self._group.weaponCell then
     local grp, t = self._group._source, self._group._type
@@ -296,7 +308,7 @@ end
 -- tier's first real set if it lacks the current class column.
 ---@param dir number  +1 = next tier, -1 = previous tier
 function DressingRoom:StepTier(dir)
-  if not self._group then return end
+  if not self._group or self._outfit then return end   -- see Step: an outfit has no siblings
   -- Siblings live in the same table as the previewed group — ns.PtrSets for an upcoming
   -- set (whose difficulty/variant rows share the base group id), else live ns.Sets.
   local source = ns.Sets

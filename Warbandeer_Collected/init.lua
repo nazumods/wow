@@ -28,5 +28,8 @@ function ns:MigrateDB()
   -- …and the illusion list's, keyed by illusion sourceID instead: illusions have no visualID, and
   -- the two id spaces overlap numerically, so they can't share a table.
   if not db.illusionWanted then db.illusionWanted = {} end   -- [sourceID] = true
-  db.version = 6
+  -- v7: the custom set the outfit row last loaded, so the dropdown reopens where it left off.
+  -- A plain id (not a table) — the set itself lives in the game's own store, not ours.
+  if db.lastOutfit == nil then db.lastOutfit = false end   -- customSetID | false
+  db.version = 7
 end
