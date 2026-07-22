@@ -127,9 +127,12 @@ right and add a piece to the armor set you're previewing — all on the model at
   shimmers (a Shaman set's imbues, a Death Knight set's runeforge) even on another class.
   Click one and its shimmer lays over the weapon you're holding (or your character's
   currently-equipped weapon if you haven't picked one).
-- Click the **shirt** or **tabard** slot to browse the ones you've collected. No set in
-  the game comes with either, so these two are yours to pick — the same panel opens,
-  listing just that category.
+- Click the **shirt** or **tabard** slot to browse **every** one in the game. No set comes
+  with either, so this list is the only place they turn up — and unlike the weapon lists it
+  shows the ones you haven't collected too, each row marked with a **green check** if you own
+  it and a **red X** if you don't. You can still try an unowned one on the model and share it
+  in an exported look. **Shift-click a row** to flag it wanted (a gold star), the same way you
+  flag a set in the grid.
 
 Step to another class's set (the arrow keys, or the nav pad) and the picker re-scopes to
 that class's weapons and illusions.
@@ -190,7 +193,8 @@ right-click to scan.
 ## Saved data
 
 `WarbandeerCollectedDB` (account-wide): scanned set/appearance counts, plus your
-wanted flags and tier ranks (baseline + per-race) and your wanted weapon looks. Ratings are kept separately from
+wanted flags and tier ranks (baseline + per-race) and your wanted weapon looks and
+shirt/tabard appearances. Ratings are kept separately from
 the scan data, so re-scanning never clears them. The collection window and the set
 preview window also remember where you last dragged them, so they reopen in place
 instead of re-centering.

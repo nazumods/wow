@@ -21,5 +21,9 @@ function ns:MigrateDB()
   -- v5: per-appearance weapon Wanted flags for the Weapons view, keyed by the globally-unique
   -- ItemAppearanceID (visualID). Independent of the set `wanted` table (which is keyed by setId).
   if not db.weaponWanted then db.weaponWanted = {} end   -- [visualID] = true
-  db.version = 5
+  -- v6: per-appearance shirt/tabard Wanted flags for the dressing room's cosmetic picker, keyed
+  -- by the same globally-unique ItemAppearanceID. Its own table rather than db.weaponWanted so a
+  -- wanted shirt never counts as a wanted weapon (#641).
+  if not db.cosmeticWanted then db.cosmeticWanted = {} end   -- [visualID] = true
+  db.version = 6
 end

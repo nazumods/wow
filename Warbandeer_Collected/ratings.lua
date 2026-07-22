@@ -93,6 +93,35 @@ function ns:WeaponWantedCount()
   return n
 end
 
+-- ─── Cosmetic Wanted (per appearance) ────────────────────────────────────────
+-- Shirts and tabards are the one browse surface that lists appearances you DON'T own (a set
+-- never supplies either, so the picker is the only place they surface at all), which is what
+-- makes a wishlist flag meaningful there. Keyed by visualID like the weapon flags, but its own
+-- table: a wanted shirt must not inflate WeaponWantedCount or show up in a Weapons-view filter.
+
+---@param visualID number
+---@return boolean
+function ns:IsCosmeticWanted(visualID)
+  return self.db.cosmeticWanted[visualID] == true
+end
+
+---Flip a shirt/tabard appearance's wanted flag; returns the new state.
+---@param visualID number
+---@return boolean
+function ns:ToggleCosmeticWanted(visualID)
+  local now = not self:IsCosmeticWanted(visualID) or nil
+  self.db.cosmeticWanted[visualID] = now
+  return now == true
+end
+
+---Number of shirt/tabard appearances currently flagged wanted.
+---@return number
+function ns:CosmeticWantedCount()
+  local n = 0
+  for _ in pairs(self.db.cosmeticWanted) do n = n + 1 end
+  return n
+end
+
 -- ─── Rank ──────────────────────────────────────────────────────────────────--
 
 ---Baseline (race-independent) tier for a set, or nil if unranked.

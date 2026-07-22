@@ -35,17 +35,22 @@ function DressingRoom:_applyCosmeticTarget()
   self:_populateCosmetics(cat)
 end
 
--- Populate a cosmetic category's COLLECTED appearances, each resolved to a usable source. Only
--- collected ones are listed, matching the weapon list: the picker composes a look you could
--- actually wear, and an uncollected shirt has no source to render from anyway.
+-- Populate a cosmetic category's appearances — **all** of them, owned or not, unlike the weapon
+-- lists. These two slots are a browse-and-wish surface rather than a pick-what-you-own one: no set
+-- ever supplies a shirt or a tabard, so this pane is the only place the full range surfaces at all.
+-- Nothing technical forces the filter either way — `ns.AppearanceSource` resolves an unowned visual
+-- to its first source, and an unowned appearance renders on the model and exports through
+-- `/collected outfit export` exactly like an owned one. `showStatus` turns on the row's
+-- green-check / red-X mark and its shift-click Wanted star, which only earn their space on a list
+-- that shows both states.
 ---@param cat CosmeticCategory?
 function DressingRoom:_populateCosmetics(cat)
   local items = {}
   if cat then
     for _, app in ipairs(ns.CosmeticAppearances(cat.category)) do
-      if app.isCollected then
-        local src = ns.AppearanceSource(app.visualID)
-        if src then items[#items + 1] = { kind = "w", visualID = app.visualID, src = src } end
+      local src = ns.AppearanceSource(app.visualID)
+      if src then
+        items[#items + 1] = { kind = "w", visualID = app.visualID, src = src, showStatus = true }
       end
     end
   end

@@ -28,6 +28,8 @@ local GAP     = 6                 -- gap between the window and the pane
 local ROW_H   = 34                -- list row height
 local PANEL   = { 0.05, 0.05, 0.06, 0.96 }   -- opaque pane fill (a standalone frame's theme bg is alpha-0)
 local OWNED   = { 0.30, 0.85, 0.40 }         -- collected tint (illusions have no item quality)
+local MARK    = 12                -- collected/wanted marker size
+local NAMEX   = 5 + MARK + 5      -- name inset, clearing the leading collected/missing mark
 
 -- Every slot the picker can point at. `kind` picks the pane's shape and which companion file
 -- drives it: a "weapon" target gets the mode tabs + the category dropdown, a "cosmetic" one gets
@@ -170,17 +172,27 @@ function DressingRoom:_anchorPickerList(anchor)
   }
 end
 
--- One list row: a selection border, a name line, and a subtitle. Clickable (applies the piece to
--- the look), and hover shows a real item tooltip (illusions have no item, so no tooltip).
+-- One list row: a selection border, a leading collected/missing mark, a name line, a subtitle, and
+-- a trailing Wanted star. Clicking applies the piece to the look, shift-clicking flags it wanted,
+-- and hover shows a real item tooltip (illusions have no item, so no tooltip).
+--
+-- The two markers only appear on lists that show uncollected entries — the cosmetic ones. The
+-- weapon lists are collected-only, so a check on every row would be noise and a wishlist flag
+-- would be meaningless there. The name is inset past the mark either way, so both lists' text
+-- starts on the same edge.
 ---@param list VirtualList
 ---@return Frame
 function DressingRoom:_makeRow(list)
   local row = Frame:new{ parent = list:Content(), position = { Height = ROW_H } }
   row.border = selBox(row)
+  row.status = Texture:new{ parent = row, layer = ui.layer.Artwork, atlasSize = false,
+    position = { Left = {5, 0}, Size = {MARK, MARK}, Hide = true } }
+  row.star = Texture:new{ parent = row, layer = ui.layer.Artwork, atlas = ns.WantedIcon,
+    atlasSize = false, position = { Right = {-5, 0}, Size = {MARK, MARK}, Hide = true } }
   row.name = Label:new{ parent = row, justifyH = ui.justify.Left, wordWrap = false,
-    position = { TopLeft = {6, -3}, Right = {-6, 0} } }
+    position = { TopLeft = {NAMEX, -3}, Right = {-(NAMEX), 0} } }
   row.src = Label:new{ parent = row, fontObj = "GameFontDisableSmall", justifyH = ui.justify.Left,
-    wordWrap = false, position = { TopLeft = {row.name, ui.edge.BottomLeft, 0, -1}, Right = {-6, 0} } }
+    wordWrap = false, position = { TopLeft = {row.name, ui.edge.BottomLeft, 0, -1}, Right = {-(NAMEX), 0} } }
   row._widget:EnableMouse(true)
   row._widget:SetScript("OnEnter", function(f)
     if not row._itemID then return end
@@ -189,14 +201,18 @@ function DressingRoom:_makeRow(list)
     GameTooltip:Show()
   end)
   row._widget:SetScript("OnLeave", function() GameTooltip:Hide() end)
-  row._widget:SetScript("OnMouseUp", function() self:_equipRow(row._item) end)
+  row._widget:SetScript("OnMouseUp", function()
+    if IsShiftKeyDown() then self:_toggleRowWanted(row._item) else self:_equipRow(row._item) end
+  end)
   return row
 end
 
--- Re-point a pooled row at an appearance (`{kind="w", visualID, src}` — a weapon, shirt or tabard,
--- all resolved through ns.AppearanceSource to the same shape) or an illusion (`{kind="i", ill}`):
--- appearances show the item name quality-coloured + source line + item tooltip; illusions show the
--- illusion name tinted by collected state. The gold border marks the piece applied to the target.
+-- Re-point a pooled row at an appearance (`{kind="w", visualID, src, showStatus?}` — a weapon,
+-- shirt or tabard, all resolved through ns.AppearanceSource to the same shape) or an illusion
+-- (`{kind="i", ill}`): appearances show the item name quality-coloured + source line + item
+-- tooltip; illusions show the illusion name tinted by collected state. The gold border marks the
+-- piece applied to the target. `showStatus` adds the green-check / red-X collected mark and the
+-- Wanted star — set only by the cosmetic lists, the ones that show what you don't own.
 ---@param row Frame
 ---@param item table
 ---@return number
@@ -205,6 +221,8 @@ function DressingRoom:_fillRow(row, item)
   if item.kind == "i" then
     local ill = item.ill
     row._itemID = nil
+    row.status:Hide()
+    row.star:Hide()
     row.name:Text(ill.name or ("Illusion " .. ill.sourceID))
     row.name:Color(ill.isCollected and OWNED or "muted")
     row.src:Text("")
@@ -219,8 +237,26 @@ function DressingRoom:_fillRow(row, item)
     row.name:Color(qc and {qc.r, qc.g, qc.b} or (src.isCollected and OWNED or "muted"))
     row.src:Text(src.text or "")
     row.border:Color(src.sourceID == self:_targetLook() and SELECTED or IDLE)
+    if item.showStatus then
+      row.status:Atlas(src.isCollected and ns.icons.CheckGreen or ns.icons.RedX, false)
+      row.status:Show()
+      row.star:SetShown(ns:IsCosmeticWanted(item.visualID))
+    else
+      row.status:Hide()
+      row.star:Hide()
+    end
   end
   return ROW_H
+end
+
+-- Shift-click gesture: flag an appearance wanted (a wishlist mark, since these lists show pieces
+-- you don't own). Only the lists that carry the marker respond — a plain weapon row falls through
+-- to the ordinary equip click.
+---@param item table?
+function DressingRoom:_toggleRowWanted(item)
+  if not (item and item.showStatus) then return end
+  ns:ToggleCosmeticWanted(item.visualID)
+  self._pickerList:Refresh()
 end
 
 -- Item names load async; refresh once shortly so blank names fill in (guarded, cancelable).
