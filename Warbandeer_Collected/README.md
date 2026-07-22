@@ -153,10 +153,11 @@ sets you've saved in game, a name field, and **Save**, **Rename** and **Delete**
 
 - Pick a set from the dropdown to **load** it: the model, the equipment slots, the weapons
   and the shirt and tabard all change to that look.
-- **Save** writes what's on screen. Leave the name as the selected set's to overwrite it,
-  or type a new one to save a new set. These are the game's own saved sets — they show up
-  at the transmogrifier just like ones you made there, and you don't need to be near one
-  to save.
+- **Save** writes what's on screen into whichever set the dropdown has selected. To make a
+  new one instead, pick **+ New Custom Set** at the bottom of the dropdown, type a name, and
+  Save. These are the game's own saved sets — they show up in the Dressing Room's set list
+  just like ones you made there, and you don't need to be at a transmogrifier to save.
+- **Rename** changes the selected set's name to whatever's in the name field.
 - **Delete** asks once (the button changes to *Confirm?*) before it removes anything.
 
 If the look uses pieces your current character could never collect — a plate set while

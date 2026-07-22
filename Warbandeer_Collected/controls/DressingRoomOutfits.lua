@@ -26,6 +26,9 @@ local GRIDW, ROWH, ROW3 = k.GRIDW, k.ROWH, k.ROW3
 -- character can't collect" (the game drops those silently) without a modal.
 
 local DROPW, NAMEW, BTNW, GAP = 180, 170, 66, 6
+-- Dropdown key for the trailing "create a new set" entry. A STRING so it can never collide with a
+-- custom set id — those are small non-negative integers and `0` is a real one (measured in game).
+local NEW_SET = "__new__"
 local CONFIRM_S = 4      -- seconds an armed button stays armed before reverting
 local SAVE_RETRIES = 10  -- capped re-checks while item data streams (0.3s apart, ~3s total)
 
@@ -86,7 +89,7 @@ function DressingRoom:_buildOutfits(controls)
   -- nothing about creation order and must not be sorted on.
   self._outfitDrop = FilterDropdown:new{
     parent = self._outfitRow, bordered = true, width = DROPW, options = {},
-    onSelect = function(_, id) self:LoadOutfit(id) end,
+    onSelect = function(_, key) self:_selectOutfit(key) end,
     position = { TopLeft = {0, 0} },
   }
 
@@ -129,7 +132,19 @@ function DressingRoom:RefreshOutfits()
     if s.id == self._outfitID then stillThere = true end
   end
   if not stillThere then self._outfitID = nil end
-  self._outfitDrop:SetOptions(opts, self._outfitID)
+  -- The trailing "new" entry mirrors Blizzard's own custom-set dropdown: creating is a mode the
+  -- user CHOOSES, not something inferred from having edited the name field.
+  opts[#opts + 1] = { key = NEW_SET, label = "+ New Custom Set" }
+  self._outfitDrop:SetOptions(opts, self._outfitID or NEW_SET)
+end
+
+---Dropdown handler: load a saved set, or switch the row into "create a new one" mode.
+---@param key number|string  a custom set id, or the NEW_SET sentinel
+function DressingRoom:_selectOutfit(key)
+  if key ~= NEW_SET then return self:LoadOutfit(key) end
+  self._outfitID = nil
+  self._outfitName:Text("")
+  self._outfitName._widget:SetFocus()
 end
 
 ---Load a saved custom set into the room, switching it into outfit mode.
@@ -206,12 +221,14 @@ function DressingRoom:SaveOutfit(retry)
     return
   end
 
+  -- **The dropdown decides**, mirroring Blizzard's own row: a saved set selected means overwrite
+  -- it, "+ New Custom Set" means create with the typed name. Deliberately NOT "a changed name
+  -- means save-as" — that rule was invisible, and it left the name field doing two jobs. While a
+  -- set is selected the field belongs to Rename, and `SaveCustomSet` ignores it when given an id.
   local name = typedName(self)
-  -- Overwrite only when the field still names the selected set; a changed name means "save a new
-  -- one", which is what makes this single button cover both.
-  local overwrite
-  for _, s in ipairs(ns.CustomSets()) do
-    if s.id == self._outfitID and s.name == name then overwrite = s.id end
+  local overwrite, overwriteName = self._outfitID, nil
+  if overwrite then
+    for _, s in ipairs(ns.CustomSets()) do if s.id == overwrite then overwriteName = s.name end end
   end
 
   local id, err = ns.SaveCustomSet(name, list, overwrite)
@@ -220,8 +237,10 @@ function DressingRoom:SaveOutfit(retry)
     return
   end
   self._outfitID = id
+  self._outfitName:Text(overwriteName or name)
   self:RefreshOutfits()
-  ns.Print(overwrite and ("Overwrote \"%s\"."):format(name) or ("Saved \"%s\"."):format(name))
+  ns.Print(overwrite and ("Overwrote \"%s\"."):format(overwriteName or "set")
+    or ("Saved \"%s\"."):format(name))
 end
 
 ---Rename the selected set to whatever is in the name field.

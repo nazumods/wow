@@ -144,6 +144,7 @@ end
 ---@field _buildOutfits fun(self: DressingRoom, controls: Frame)  build the outfit row (DressingRoomOutfits.lua)
 ---@field RefreshOutfits fun(self: DressingRoom)  repopulate the saved-set dropdown (DressingRoomOutfits.lua)
 ---@field LoadOutfit fun(self: DressingRoom, customSetID: number)  load a saved set into the room (DressingRoomOutfits.lua)
+---@field _selectOutfit fun(self: DressingRoom, key: number|string)  dropdown handler: load a set, or enter "new set" mode (DressingRoomOutfits.lua)
 ---@field SaveOutfit fun(self: DressingRoom)  write the composed look to the custom-set store (DressingRoomOutfits.lua)
 ---@field RenameOutfit fun(self: DressingRoom)  rename the selected saved set (DressingRoomOutfits.lua)
 ---@field DeleteOutfit fun(self: DressingRoom)  delete the selected saved set, arm-then-confirm (DressingRoomOutfits.lua)
