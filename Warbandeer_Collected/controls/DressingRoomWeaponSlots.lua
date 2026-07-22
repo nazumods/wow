@@ -12,8 +12,9 @@ local GameTooltip, C_Timer = GameTooltip, C_Timer
 -- bottom center, mirroring Blizzard's paper doll (armor down the sides, weapons across
 -- the bottom). Unlike the armor columns (DressingRoomSlots.lua) these aren't C_TransmogSets
 -- slots — they're the look-builder's composed weapons (_lookMH / _lookOH), and clicking one
--- is the entry point to the docked picker (WeaponPicker.lua), replacing the old floating
--- "Weapons" button. Reopens the DressingRoom class.
+-- is the entry point to the docked picker (AppearancePicker.lua), replacing the old floating
+-- "Weapons" button. The shirt/tabard slots (DressingRoomCosmeticSlots.lua) work the same way.
+-- Reopens the DressingRoom class.
 local DressingRoom = ns.DressingRoom
 local k = DressingRoom._k
 local selBox, SELECTED, IDLE = k.selBox, k.SELECTED, k.IDLE
@@ -80,10 +81,10 @@ local function buildWeaponSlot(room, spec)
     if entry.hand == "off" and room._lookMH2H then return end   -- 2H main-hand: off-hand unavailable (#618)
     if button == "LeftButton" then
       local open = room._picker and room._picker._widget:IsShown()
-      if open and room._pickerHand == entry.hand then
-        room:ToggleWeaponPicker(false)          -- already open on this hand → close
+      if open and room._pickerTarget == entry.hand then
+        room:TogglePicker(false)             -- already open on this hand → close
       else
-        room:ToggleWeaponPicker(true, entry.hand)  -- open / switch to this hand
+        room:TogglePicker(true, entry.hand)  -- open / switch to this hand
       end
     elseif button == "RightButton" then
       room:_clearWeaponSlot(entry.hand)
@@ -96,7 +97,7 @@ end
 -- Build the bottom-center weapon-slot pair. Called once from the constructor (after the
 -- model exists — the slots anchor to it).
 function DressingRoom:_buildWeaponSlots()
-  self._pickerHand = "main"
+  self._pickerTarget = "main"   -- the picker opens on the main hand until a slot re-points it
   self._weaponSlots = {}
   for _, spec in ipairs(HANDS) do buildWeaponSlot(self, spec) end
 end
@@ -145,7 +146,7 @@ function DressingRoom:UpdateWeaponSlots(retry)
     e.icon:SetVertexColor(v, v, v, 1)
     if disabled then
       e.border:Color(IDLE)
-    elseif open and self._pickerHand == e.hand then
+    elseif open and self._pickerTarget == e.hand then
       e.border:Color(SELECTED)                                   -- picker open on this hand
     elseif itemID then
       e.border:Color(info.isCollected and GREEN or RED)

@@ -42,8 +42,11 @@ controls\DressingRoomControls.lua
 controls\DressingRoomActions.lua
 controls\DressingRoomModel.lua
 controls\DressingRoomSlots.lua
+controls\AppearancePicker.lua
 controls\WeaponPicker.lua
+controls\CosmeticPicker.lua
 controls\DressingRoomWeaponSlots.lua
+controls\DressingRoomCosmeticSlots.lua
 controls\WeaponCellPicker.lua
 controls\DressingRoomOutfit.lua
 

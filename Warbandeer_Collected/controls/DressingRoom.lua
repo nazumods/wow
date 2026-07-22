@@ -109,7 +109,8 @@ end
 ---@field _rankBtns table<string, { border: Texture }>  tier buttons keyed by letter
 ---@field _raceOnly boolean  edit/show the per-race override instead of the baseline
 ---@field _raceOnlyBorder Texture  per-race-override toggle border (gold while active)
----@field _slots table[]  paper-doll slot entries ({ slotID, icon, border, itemID? })
+---@field _slots table[]  paper-doll slot entries ({ slotID, icon, border, itemID?, cosmetic? }) — cosmetic ones are picker-driven, not set pieces
+---@field _cosmeticSlots table[]  the shirt/tabard subset of _slots ({ slotID, label, target, look, empty, ... }) (DressingRoomCosmeticSlots.lua)
 ---@field _hiddenSlots table<number, true>  inventory slot ids toggled off the model (reset per set)
 ---@field _weaponSlots table[]  bottom-center weapon-slot entries ({ hand, label, icon, border, box, itemID? }) (DressingRoomWeaponSlots.lua)
 ---@field _weaponPiece number?  index of the previewed piece within a weapon-cosmetic cell (up/down nav cycles it)
@@ -119,24 +120,26 @@ end
 ---@field _slotRetries number?  remaining icon-refresh attempts
 ---@field _weaponSlotTimer table?  cancelable weapon-slot icon-refresh timer
 ---@field _weaponSlotRetries number?  remaining weapon-slot icon-refresh attempts
+---@field _cosmeticSlotTimer table?  cancelable cosmetic-slot icon-refresh timer
+---@field _cosmeticSlotRetries number?  remaining cosmetic-slot icon-refresh attempts
 ---@field _buildModel fun(self: DressingRoom)  build the model + backdrop + tier bars (DressingRoomBuild.lua)
 ---@field _buildOverlays fun(self: DressingRoom)  build the on-model overlays (DressingRoomBuild.lua)
 ---@field _buildControls fun(self: DressingRoom, controls: Frame)  build the toggle + ratings rows (DressingRoomControls.lua)
 ---@field _buildRacePanels fun(self: DressingRoom, controls: Frame, d: table)  build the race selector (DressingRoomControls.lua)
 ---@field _buildSlots fun(self: DressingRoom, winW: number)  build the paper-doll slot columns (DressingRoomSlots.lua)
----@field _picker Frame?  the docked weapon/illusion picker pane, lazily built on first open (WeaponPicker.lua)
+---@field _picker Frame?  the docked appearance picker pane, lazily built on first open (AppearancePicker.lua)
+---@field _pickerTitle Label  the pane's header caption, retitled per target
 ---@field _pickerCats WeaponCategory[]  the previewed set's class's usable weapon categories (dropdown source)
 ---@field _pickerClass number?  chrClassID the picker is currently scoped to (weapons + illusions); rescoped on class change
 ---@field _pickerCatByID table<number, WeaponCategory>  category id → descriptor (main/off-hand slot routing)
----@field _pickerCat FilterDropdown  the category selector (illusions + weapon types)
+---@field _pickerCat FilterDropdown  the category selector (weapon types; hidden for a cosmetic target)
 ---@field _pickerList VirtualList  the appearance / illusion list
 ---@field _pickerCategory number?  the active weapon category (Enum.TransmogCollectionType)
----@field _pickerMode string  the active pane mode ("weapons" | "illusions")
----@field _pickerTabs Frame  the Weapons|Illusions tab row
+---@field _pickerMode string  the active pane mode ("weapons" | "illusions") — weapon targets only
+---@field _pickerTabs Frame  the Weapons|Illusions tab row (hidden for a cosmetic target)
 ---@field _modeTab table<string, Texture>  mode-tab borders (gold on the active mode)
 ---@field _pickerTabBox table<string, Frame>  mode-tab boxes (the Illusions tab is hidden for the off-hand)
----@field _pickerHand string  which slot the picker targets ("main" | "off") — filters the dropdown + routes picks
----@field _pickerSlotOff boolean  whether picks route to the off-hand (follows _pickerHand)
+---@field _pickerTarget string  which slot the picker targets ("main" | "off" | "shirt" | "tabard") — shapes the pane + routes picks
 ---@field _lookMH number?  the composed look's main-hand weapon appearance sourceID
 ---@field _lookMH2H boolean?  whether the main-hand pick is two-handed (occupies both hands) — greys the off-hand slot (#618)
 ---@field _lookOH number?  the composed look's off-hand weapon appearance sourceID
@@ -148,10 +151,19 @@ end
 ---@field _showWeaponSlots fun(self: DressingRoom, show: boolean)  show/hide the weapon-slot pair (DressingRoomWeaponSlots.lua)
 ---@field UpdateWeaponSlots fun(self: DressingRoom, retry: boolean?)  fill the weapon slots from the composed look (DressingRoomWeaponSlots.lua)
 ---@field _clearWeaponSlot fun(self: DressingRoom, hand: string)  clear a hand's picked weapon — the right-click gesture (DressingRoomWeaponSlots.lua)
----@field _buildWeaponPicker fun(self: DressingRoom)  build the docked picker pane (WeaponPicker.lua)
----@field ToggleWeaponPicker fun(self: DressingRoom, force: boolean?, hand: string?)  show/hide the picker pane, targeting a hand (WeaponPicker.lua)
+---@field _buildCosmeticSlot fun(self: DressingRoom, spec: table, x: number, y: number, side: string)  build one shirt/tabard column slot (DressingRoomCosmeticSlots.lua)
+---@field UpdateCosmeticSlots fun(self: DressingRoom, retry: boolean?)  fill the shirt/tabard slots from the composed look (DressingRoomCosmeticSlots.lua)
+---@field _clearCosmeticSlot fun(self: DressingRoom, target: string)  clear a cosmetic slot's pick — the right-click gesture (DressingRoomCosmeticSlots.lua)
+---@field _buildPicker fun(self: DressingRoom)  build the docked picker pane (AppearancePicker.lua)
+---@field TogglePicker fun(self: DressingRoom, force: boolean?, target: string?)  show/hide the picker pane, targeting a slot (AppearancePicker.lua)
+---@field _applyPickerTarget fun(self: DressingRoom)  re-shape the pane for the current target + repopulate (AppearancePicker.lua)
+---@field _anchorPickerList fun(self: DressingRoom, anchor: Frame)  re-anchor the list under the pane's current furniture (AppearancePicker.lua)
+---@field _targetLook fun(self: DressingRoom): number?  the sourceID picked into the targeted slot (AppearancePicker.lua)
+---@field _applyLook fun(self: DressingRoom)  re-assert the whole composed look on the model (AppearancePicker.lua)
+---@field _rescopeWeapons fun(self: DressingRoom)  re-derive the previewed class's weapon categories (WeaponPicker.lua)
 ---@field _rescopePicker fun(self: DressingRoom)  re-scope the picker (weapon types + illusions) to the previewed set's class (WeaponPicker.lua)
----@field _applyPickerHand fun(self: DressingRoom)  filter the picker to the target hand + repopulate the list (WeaponPicker.lua)
+---@field _applyWeaponTarget fun(self: DressingRoom)  shape the pane for a weapon target + repopulate the list (WeaponPicker.lua)
+---@field _applyCosmeticTarget fun(self: DressingRoom)  shape the pane for a shirt/tabard target + repopulate (CosmeticPicker.lua)
 local ROWH = 26         -- toggle-button height
 local TOPGAP = ROWH + PAD
 local PANELSTOP = TOPGAP + ROWH + PAD   -- faction panels sit below TWO control rows (toggles + ratings)

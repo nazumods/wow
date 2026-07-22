@@ -74,17 +74,30 @@ local function slotDim(icon, hidden)
   icon:SetVertexColor(v, v, v, 1)
 end
 
--- Equipment-slot columns flanking the model (paper-doll style). Slot ids are
--- inventory slots, also the GetSourcesForSlot key. Four/five per side.
+-- Equipment-slot columns flanking the model (paper-doll style), in Blizzard's own paper-doll
+-- order. Slot ids are inventory slots, also the GetSourcesForSlot key. Six left / five right.
+--
+-- The two `target`-bearing entries are the COSMETIC slots (#641): shirt and tabard are never set
+-- pieces, so they're built and refreshed by controls/DressingRoomCosmeticSlots.lua off the composed
+-- look instead of by UpdateSlots off the previewed set. `target` is the picker target a click on
+-- them opens. Six slots is 6*44 + 5*16 = 344px, well inside MODELH, and layoutColumn centres each
+-- column independently — so the uneven split needs no other geometry change.
 local SLOT     = 44   -- slot button size
 local SLOTGAP  = 16   -- vertical gap between slots
 local COLINSET = 8    -- column distance from the window edge
-local LEFT_SLOTS  = { {1, "Head"},  {3, "Shoulder"}, {15, "Back"}, {5, "Chest"}, {9, "Wrist"} }
-local RIGHT_SLOTS = { {10, "Hands"}, {6, "Waist"},   {7, "Legs"},  {8, "Feet"} }
+local LEFT_SLOTS  = {
+  {1, "Head"}, {3, "Shoulder"}, {15, "Back"}, {5, "Chest"},
+  {INVSLOT_BODY, "Shirt", target = "shirt"}, {INVSLOT_TABARD, "Tabard", target = "tabard"},
+}
+local RIGHT_SLOTS = { {9, "Wrist"}, {10, "Hands"}, {6, "Waist"}, {7, "Legs"}, {8, "Feet"} }
 
 -- How far the model is inset from each window edge to clear a slot column. Read
 -- back by the constructor in DressingRoom.lua when anchoring the model.
 DressingRoom.MODEL_INSET = COLINSET + SLOT + PAD
+
+-- The column's slot metric, published for the cosmetic slots — they're built by a companion file
+-- but have to size themselves identically to their column neighbours.
+DressingRoom._k.SLOT = SLOT
 
 -- Build one paper-doll equipment slot: a framed icon that shows the set piece for
 -- `slotID`, opens the in-game item tooltip on hover, and left-click toggles the
@@ -128,8 +141,9 @@ end
 
 -- Lay out one vertically-centered column of slots at column x (each column is
 -- centered independently, so the two sides can hold a different number of slots).
+-- A `target`-bearing entry is a cosmetic slot, built by its own companion file.
 ---@param room DressingRoom
----@param slots table[]  { {slotID, label}, ... }
+---@param slots table[]  { {slotID, label, target?}, ... }
 ---@param x number
 ---@param side string  "left"|"right"
 local function layoutColumn(room, slots, x, side)
@@ -137,7 +151,8 @@ local function layoutColumn(room, slots, x, side)
   local colH = n * SLOT + (n - 1) * SLOTGAP
   local startY = -(30 + PAD) - (MODELH - colH) / 2
   for i, s in ipairs(slots) do
-    buildSlot(room, s[1], x, startY - (i - 1) * (SLOT + SLOTGAP), side)
+    local y = startY - (i - 1) * (SLOT + SLOTGAP)
+    if s.target then room:_buildCosmeticSlot(s, x, y, side) else buildSlot(room, s[1], x, y, side) end
   end
 end
 
@@ -146,6 +161,7 @@ end
 ---@param winW number
 function DressingRoom:_buildSlots(winW)
   self._slots = {}
+  self._cosmeticSlots = {}   -- the shirt/tabard subset of _slots (DressingRoomCosmeticSlots.lua)
   self._hiddenSlots = {}   -- inventory slot ids toggled off the model (reset per set in _load)
   layoutColumn(self, LEFT_SLOTS, COLINSET, "left")
   layoutColumn(self, RIGHT_SLOTS, winW - COLINSET - SLOT, "right")
@@ -179,36 +195,40 @@ function DressingRoom:UpdateSlots()
 
   local missing = false
   for _, e in ipairs(self._slots) do
-    local sources = GetSourcesForSlot(set.id, e.slotID)
-    local _, p = find(sources, function(s) return primary[s.sourceID] end)
-    local itemID, collected
-    if p then
-      local info = GetSourceInfo(p.sourceID)
-      itemID = info and info.itemID
-      collected = any(sources, function(s) return s.isCollected end)
-    else
-      -- Per-slot API gave nothing (Trading Post / variant set): bucket the set's
-      -- pieces by equip location instead.
-      fallback = fallback or ns.SetSlotPieces(set.id)
-      local fb = fallback[e.slotID]
-      if fb then itemID, collected = fb.itemID, fb.isCollected end
-    end
+    -- Cosmetic slots (shirt/tabard) are picker-driven, not set pieces — a set never carries one,
+    -- so there is nothing to look up here. UpdateCosmeticSlots owns them. #641.
+    if not e.cosmetic then
+      local sources = GetSourcesForSlot(set.id, e.slotID)
+      local _, p = find(sources, function(s) return primary[s.sourceID] end)
+      local itemID, collected
+      if p then
+        local info = GetSourceInfo(p.sourceID)
+        itemID = info and info.itemID
+        collected = any(sources, function(s) return s.isCollected end)
+      else
+        -- Per-slot API gave nothing (Trading Post / variant set): bucket the set's
+        -- pieces by equip location instead.
+        fallback = fallback or ns.SetSlotPieces(set.id)
+        local fb = fallback[e.slotID]
+        if fb then itemID, collected = fb.itemID, fb.isCollected end
+      end
 
-    if itemID then
-      e.itemID = itemID
-      local tex = GetItemIcon(itemID)
-      if not tex then RequestItem(itemID); missing = true end
-      e.icon:Texture(tex or QUESTION)
-      e.icon:Show()
-      e.border:Color(collected and GREEN or RED)
-      slotDim(e.icon, self._hiddenSlots[e.slotID])   -- keep a toggled-off slot greyed across refreshes
-    else
-      -- No piece for this slot in the set: show the "unresolved" marker.
-      e.itemID = nil
-      e.icon:Texture(ui.media.unresolved)
-      e.icon:Show()
-      e.border:Color(IDLE)
-      slotDim(e.icon, false)
+      if itemID then
+        e.itemID = itemID
+        local tex = GetItemIcon(itemID)
+        if not tex then RequestItem(itemID); missing = true end
+        e.icon:Texture(tex or QUESTION)
+        e.icon:Show()
+        e.border:Color(collected and GREEN or RED)
+        slotDim(e.icon, self._hiddenSlots[e.slotID])   -- keep a toggled-off slot greyed across refreshes
+      else
+        -- No piece for this slot in the set: show the "unresolved" marker.
+        e.itemID = nil
+        e.icon:Texture(ui.media.unresolved)
+        e.icon:Show()
+        e.border:Color(IDLE)
+        slotDim(e.icon, false)
+      end
     end
   end
 
@@ -240,18 +260,20 @@ function DressingRoom:ToggleSlot(e)
 end
 
 -- Re-apply every slot's dim from _hiddenSlots (after a master show/hide) without
--- re-fetching icons.
+-- re-fetching icons. Cosmetic slots have no on/off toggle, so they're never dimmed.
 function DressingRoom:_refreshSlotDims()
   for _, e in ipairs(self._slots) do
-    if e.itemID then slotDim(e.icon, self._hiddenSlots[e.slotID]) end
+    if e.itemID and not e.cosmetic then slotDim(e.icon, self._hiddenSlots[e.slotID]) end
   end
 end
 
--- True while at least one piece-bearing slot is still worn.
+-- True while at least one piece-bearing slot is still worn. Cosmetic slots don't count: the
+-- Undress button is the master switch for the previewed SET's pieces, and a picked shirt would
+-- otherwise keep it reading "something is worn" with the whole set hidden.
 ---@return boolean
 function DressingRoom:_anyWorn()
   for _, e in ipairs(self._slots) do
-    if e.itemID and not self._hiddenSlots[e.slotID] then return true end
+    if e.itemID and not e.cosmetic and not self._hiddenSlots[e.slotID] then return true end
   end
   return false
 end
