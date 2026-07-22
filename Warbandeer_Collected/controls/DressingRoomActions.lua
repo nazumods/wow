@@ -230,8 +230,11 @@ function DressingRoom:_load(group, set)
     self:_setTierBars(group.name)
     self._slotRetries = 0
     self:UpdateSlots()
-    self:UpdateWeaponSlots()     -- reflect any persisted look on the bottom weapon slots
-    self:UpdateCosmeticSlots()   -- …and on the shirt/tabard slots (also carried across sets)
+    -- Re-assert the composed look (and repaint its slots) rather than just repainting them: a
+    -- weapon-cosmetic detour CLEARS the model's weapon + cosmetic overrides (see _dressWeapon), so
+    -- coming back to an armor set has to put them on again or the slots would show a look the
+    -- model isn't wearing. Runs before Dress() below, so the re-skin re-applies them on load.
+    self:_applyLook()
     self:HideCellChooser()
   end
   self:Dress()
