@@ -136,6 +136,32 @@ off-hand slot — switch back to a one-hander and your off-hand pick comes back.
 **Right-click a weapon slot to clear it** (or click the equipped weapon again in the
 picker). Drag the panel's header to move the whole window.
 
+## Sharing a look
+
+Any look you've put together in the preview window can be turned into the same
+`/customset` string the game itself uses, so you can paste it to a friend, keep it in a
+note, or drop it back in later.
+
+- `/collected outfit export` copies the look on screen into a window you can select and
+  copy from. It also lists every slot it captured, so you can check the string against
+  what you're looking at.
+- `/collected outfit import <string>` dresses the open preview from a string — either one
+  of yours or one someone sends you.
+- `/collected outfit list` shows the transmog sets you've saved in game, and how many of
+  your slots are used.
+
+The string works both ways with the game's own `/customset` command, so the person you
+send it to doesn't need this addon.
+
+**Pieces you haven't collected are fine to share.** A string carries appearances you
+don't own yet, which makes it a good way to pass a wishlist look around. The export marks
+those slots `(not owned)` so you can see at a glance which ones you're still chasing.
+
+If you're previewing **another class's** set, the export also flags any piece your current
+character could never collect — a plate set while you're on a cloth wearer, say. Those
+share and re-import perfectly well; it only matters if you later save the look as a
+transmog set in game, because the game drops slots your character can't use.
+
 ## Usage
 
 | Command | What it does |
@@ -143,6 +169,9 @@ picker). Drag the panel's header to move the whole window.
 | `/collected` or `/collect` | Open/close the window |
 | `/collected scan` | Rebuild collection data from the game's transmog APIs |
 | `/collected wanted` | List the sets you've flagged as wanted |
+| `/collected outfit export` | Copy the previewed look as a shareable `/customset` string |
+| `/collected outfit import <string>` | Dress the preview from a `/customset` string |
+| `/collected outfit list` | List the transmog sets saved in game |
 
 The addon compartment button (next to the minimap) also works: click to open,
 right-click to scan.
