@@ -8,7 +8,7 @@
 ## AddonCompartmentFunc: WarbandeerCollected_OnAddonCompartmentClick
 ## Dependencies: LibNAddOn, LibNUI, LibNUI-ModelViewer, Warbandeer_Characters
 ## X-NUI-DB: WarbandeerCollectedDB
-## X-NUI-DB-VERSION: 6
+## X-NUI-DB-VERSION: 7
 ## X-NUI-COMMANDS: /collected, /collect
 ## X-NUI-COMPARTMENT: WarbandeerCollected_OnAddonCompartmentClick
 ## X-NUI-API: WarbandeerApi
@@ -32,6 +32,7 @@ data\models.lua
 ratings.lua
 outfitcodec.lua
 outfit.lua
+outfitcommands.lua
 api.lua
 
 controls\InfoTip.lua
@@ -49,6 +50,7 @@ controls\DressingRoomWeaponSlots.lua
 controls\DressingRoomCosmeticSlots.lua
 controls\WeaponCellPicker.lua
 controls\DressingRoomOutfit.lua
+controls\DressingRoomOutfits.lua
 
 GridShared.lua
 

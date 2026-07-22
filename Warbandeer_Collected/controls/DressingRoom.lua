@@ -128,6 +128,23 @@ end
 ---@field _buildControls fun(self: DressingRoom, controls: Frame)  build the toggle + ratings rows (DressingRoomControls.lua)
 ---@field _buildRacePanels fun(self: DressingRoom, controls: Frame, d: table)  build the race selector (DressingRoomControls.lua)
 ---@field _buildSlots fun(self: DressingRoom, winW: number)  build the paper-doll slot columns (DressingRoomSlots.lua)
+---@field _outfit table[]?  the applied custom set's outfit list — outfit mode while set (DressingRoomOutfit.lua)
+---@field _outfitID number?  the selected saved custom set's id
+---@field _outfitRow Frame  the third control row (dropdown + name + Save/Rename/Delete)
+---@field _outfitDrop FilterDropdown  the saved-custom-set selector
+---@field _outfitName EditBox  the name field, shared by save and rename
+---@field _outfitTimer table?  cancelable outfit-slot icon-refresh timer
+---@field _outfitRetries number?  remaining outfit-slot icon-refresh attempts
+---@field _armed table?  the row button currently awaiting a confirming second click
+---@field _armTimer table?  cancelable disarm timer
+---@field _wantBox Frame  the Wanted button's box (hidden in outfit mode) (DressingRoomControls.lua)
+---@field _buildOutfits fun(self: DressingRoom, controls: Frame)  build the outfit row (DressingRoomOutfits.lua)
+---@field RefreshOutfits fun(self: DressingRoom)  repopulate the saved-set dropdown (DressingRoomOutfits.lua)
+---@field LoadOutfit fun(self: DressingRoom, customSetID: number)  load a saved set into the room (DressingRoomOutfits.lua)
+---@field SaveOutfit fun(self: DressingRoom)  write the composed look to the custom-set store (DressingRoomOutfits.lua)
+---@field RenameOutfit fun(self: DressingRoom)  rename the selected saved set (DressingRoomOutfits.lua)
+---@field DeleteOutfit fun(self: DressingRoom)  delete the selected saved set, arm-then-confirm (DressingRoomOutfits.lua)
+---@field _disarmOutfit fun(self: DressingRoom)  revert an armed row button to its resting caption (DressingRoomOutfits.lua)
 ---@field _picker Frame?  the docked appearance picker pane, lazily built on first open (AppearancePicker.lua)
 ---@field _pickerTitle Label  the pane's header caption, retitled per target
 ---@field _pickerCats WeaponCategory[]  the previewed set's class's usable weapon categories (dropdown source)
@@ -168,8 +185,11 @@ end
 ---@field _applyWeaponTarget fun(self: DressingRoom)  shape the pane for a weapon target + repopulate the list (WeaponPicker.lua)
 ---@field _applyCosmeticTarget fun(self: DressingRoom)  shape the pane for a shirt/tabard target + repopulate (CosmeticPicker.lua)
 local ROWH = 26         -- toggle-button height
+-- Three stacked control rows, each ROWH tall with PAD between: toggles (Undress/Background) at 0,
+-- ratings at TOPGAP, outfits at ROW3. The faction panels start below all three.
 local TOPGAP = ROWH + PAD
-local PANELSTOP = TOPGAP + ROWH + PAD   -- faction panels sit below TWO control rows (toggles + ratings)
+local ROW3 = 2 * (ROWH + PAD)
+local PANELSTOP = 3 * (ROWH + PAD)
 
 -- Forward-declared so the constructor closure can read DressingRoom.MODEL_INSET
 -- (set by the companion DressingRoomSlots.lua) as an upvalue at instantiation.
@@ -233,6 +253,7 @@ DressingRoom = Class(TitleFrame, function(self)
   self:_buildOverlays()
   self:_buildWeaponSlots()
   self:_buildControls(controls)
+  self:_buildOutfits(controls)
   self:_buildRacePanels(controls, {
     alliance = alliance, neutral = neutral, horde = horde,
     aW = aW, aH = aH, nW = nW, nH = nH, hW = hW, hH = hH, panelsH = panelsH,
@@ -262,7 +283,7 @@ DressingRoom._MODELH = MODELH
 -- Constants + helpers shared with the build/controls/actions/model companion files.
 DressingRoom._k = {
   SELECTED = SELECTED, IDLE = IDLE, selBox = selBox, tierBar = tierBar,
-  GRIDW = GRIDW, PAD = PAD, ROWH = ROWH, TOPGAP = TOPGAP, MODELH = MODELH,
+  GRIDW = GRIDW, PAD = PAD, ROWH = ROWH, TOPGAP = TOPGAP, ROW3 = ROW3, MODELH = MODELH,
   CELL = CELL, STEP = STEP, PANELPAD = PANELPAD, RACEICON_CROP = RACEICON_CROP,
   AHCOLS = AHCOLS, PANELGAP = PANELGAP, PANELSTOP = PANELSTOP, PBORDER = PBORDER,
   ALLIANCE_COLOR = ALLIANCE_COLOR, HORDE_COLOR = HORDE_COLOR, NEUTRAL_COLOR = NEUTRAL_COLOR,

@@ -58,7 +58,9 @@ function DressingRoom:_buildControls(controls)
   }
   self._wantedBorder = selBox(wantBox)
   -- wantBox is deliberately NOT in _ratingsBoxes: it stays shown for weapon cells (per-look Wanted),
-  -- while the rank/clear/This-race boxes below are hidden there (weapons have no S–F rank).
+  -- while the rank/clear/This-race boxes below are hidden there (weapons have no S–F rank). Kept on
+  -- self so outfit mode can hide it — an outfit has neither a set id nor a look to flag.
+  self._wantBox = wantBox
   Texture:new{ parent = wantBox, layer = ui.layer.Artwork, atlas = ns.WantedIcon, atlasSize = false,
     position = { Left = {6, 0}, Size = {14, 14} } }
   Button:new{ parent = wantBox, position = { All = true }, glow = false,

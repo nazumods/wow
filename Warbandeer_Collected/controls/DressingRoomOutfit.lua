@@ -1,7 +1,15 @@
 ---@type Warbandeer_Collected
 local ns = select(2, ...)
 local GetCategoryForItem = C_TransmogCollection.GetCategoryForItem
+local GetSourceInfo = C_TransmogCollection.GetSourceInfo
+local GetItemIcon = C_Item.GetItemIconByID
+local RequestItem = C_Item.RequestLoadItemDataByID
+local C_Timer = C_Timer
 local DressingRoom = ns.DressingRoom
+-- Slot status colors, matching the armor columns' green/red (DressingRoomSlots.lua owns the
+-- originals; outfit mode paints the same slots, so it has to agree with them).
+local OUTFIT_GREEN = {0, 104/255, 55/255, 1}
+local OUTFIT_RED   = {165/255, 0, 38/255, 1}
 
 -- The room-coupled half of the outfit layer: turning what the dressing room is currently
 -- showing into an `itemTransmogInfoList`, and dressing the room from one. Reopens the
@@ -18,6 +26,8 @@ local DressingRoom = ns.DressingRoom
 ---@field ComposeOutfit fun(self: DressingRoom): table[]
 ---@field ApplyOutfit fun(self: DressingRoom, list: table[]): DressingRoom
 ---@field ClearOutfitArmor fun(self: DressingRoom)
+---@field EnterOutfitMode fun(self: DressingRoom, name: string, list: table[])
+---@field UpdateSlotsFromOutfit fun(self: DressingRoom, retry: boolean?)
 
 ---Drop the per-slot overrides an applied outfit left on the model's ARMOR slots, so the next
 ---previewed set skins those slots itself.
@@ -150,4 +160,82 @@ function DressingRoom:ApplyOutfit(list)
   self:UpdateWeaponSlots()
   self:UpdateCosmeticSlots()
   return self
+end
+
+-- ── Outfit mode ────────────────────────────────────────────────────────────────--
+--
+-- A loaded custom set is a look that is NOT a `ns.Sets` entry, so the room can't drive its armor
+-- columns off `self._set` the way `UpdateSlots` does. The room already had one such alternate
+-- mode — `group.kind`, the weapon-cosmetic preview — and `_load` branches on it; this is the
+-- parallel: `self._outfit` holds the applied list, the armor slots render from THAT, and
+-- everything keyed to a set id (rank buttons, Wanted, the id label, the class icon, the
+-- difficulty tier bars) is hidden because an outfit has no set to rate. Previewing any set again
+-- runs `_load`, which clears the mode.
+
+---Show a loaded custom set: apply it, retitle to the set's name, and swap the room into
+---outfit mode. `_load` is the only way back out.
+---@param name string
+---@param list table[]
+function DressingRoom:EnterOutfitMode(name, list)
+  self:ApplyOutfit(list)
+  self._outfit = list
+  self:Title(name)
+  self._idLabel:Text("")
+  self._masterName = nil
+  self:_showClass(nil)          -- an outfit belongs to no class
+  self._tierBarL:Hide()
+  self._tierBarR:Hide()
+  if self._ratingsBoxes then for _, b in ipairs(self._ratingsBoxes) do b:Hide() end end
+  if self._wantBox then self._wantBox:Hide() end
+  self:_showSlots(true)
+  self:_showWeaponSlots(true)
+  self:HideCellChooser()
+  self:UpdateSlotsFromOutfit()
+  self:_syncUndressBorder()
+  -- Both grids clear their cursor: what's on screen is no longer one of their cells.
+  ns:NotifyDressedSetChanged(nil)
+  ns:NotifyDressedWeaponCellChanged(nil, nil)
+end
+
+---Fill the armor slots from the applied outfit instead of from a previewed set — the outfit-mode
+---counterpart of `UpdateSlots`. Same icon/status/retry behaviour, but each slot reads its
+---appearance straight out of the list. Cosmetic slots are skipped as ever (UpdateCosmeticSlots
+---owns them, and ApplyOutfit already fed them from the same list).
+---@param retry boolean?  internal: true on the self-scheduled re-run
+function DressingRoom:UpdateSlotsFromOutfit(retry)
+  local list = self._outfit
+  if not list then return end
+  if not retry then self._outfitRetries = 0 end
+  local missing = false
+  for _, e in ipairs(self._slots or {}) do
+    if not e.cosmetic then
+      local info = list[e.slotID]
+      local appearanceID = info and info.appearanceID or 0
+      local src = appearanceID > 0 and GetSourceInfo(appearanceID) or nil
+      if src and src.itemID then
+        e.itemID = src.itemID
+        local tex = GetItemIcon(src.itemID)
+        if not tex then RequestItem(src.itemID); missing = true end
+        e.icon:Texture(tex or ns.ui.media.unresolved)
+        e.icon:Show()
+        e.border:Color(src.isCollected and OUTFIT_GREEN or OUTFIT_RED)
+      else
+        -- Empty slot in the outfit: the same "nothing here" marker an unused set slot shows.
+        e.itemID = nil
+        e.icon:Texture(ns.ui.media.unresolved)
+        e.icon:Show()
+        e.border:Color(DressingRoom._IDLE)
+      end
+      e.icon:SetVertexColor(1, 1, 1, 1)   -- outfit slots have no per-slot hide toggle to dim
+    end
+  end
+
+  if self._outfitTimer then self._outfitTimer:Cancel(); self._outfitTimer = nil end
+  if missing and (self._outfitRetries or 0) < 10 then
+    self._outfitRetries = (self._outfitRetries or 0) + 1
+    self._outfitTimer = C_Timer.NewTimer(0.2, function()
+      self._outfitTimer = nil
+      self:UpdateSlotsFromOutfit(true)
+    end)
+  end
 end

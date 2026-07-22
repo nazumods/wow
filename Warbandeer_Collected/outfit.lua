@@ -42,6 +42,7 @@ local SLOT_LABEL = {
 ---@field CustomSets fun(): { id: number, name: string, icon: number }[]
 ---@field CustomSetOutfit fun(customSetID: number): table[]?
 ---@field SaveCustomSet fun(name: string, list: table[], customSetID: number?): number?, string?
+---@field RenameCustomSet fun(customSetID: number, name: string): boolean, string?
 ---@field DeleteCustomSet fun(customSetID: number)
 
 ---Localized name for an equipment slot ("Head", "Shirt", "Tabard", …).
@@ -181,13 +182,30 @@ function ns.CustomSetOutfit(customSetID)
   return GetCustomSetList(customSetID)
 end
 
+-- Shared name validation for the write paths: non-empty, allowed by the game's own filter, and
+-- not already taken by a DIFFERENT set (`exceptID` lets a rename keep its own name). Checked up
+-- front because the C calls fail SILENTLY — `NewCustomSet` returns nil, `RenameCustomSet` simply
+-- doesn't rename — which reads as "the button did nothing". Returns nil when the name is fine,
+-- else the message to show.
+---@param name string
+---@param exceptID number?  a set id allowed to already hold this name
+---@return string?
+local function nameError(name, exceptID)
+  if not name or name == "" then return "a name is required" end
+  if not IsValidCustomSetName(name) then return ("\"%s\" isn't an allowed name"):format(name) end
+  for _, s in ipairs(ns.CustomSets()) do
+    if s.name == name and s.id ~= exceptID then
+      return ("a set named \"%s\" already exists"):format(name)
+    end
+  end
+end
+
 ---Write an outfit to the custom-set store — overwriting `customSetID` when given, else creating
 ---a new set named `name`.
 ---
----Validates up front rather than letting the C call no-op: `NewCustomSet` simply returns nil at
----the cap, and an invalid name is rejected silently, both of which read as "the button did
----nothing". A duplicate name is reported rather than resolved — overwrite-versus-rename is the
----caller's decision to put to the user.
+---Validates up front rather than letting the C call no-op (see `nameError`). A duplicate name is
+---reported rather than resolved — overwrite-versus-rename is the caller's decision to put to the
+---user.
 ---@param name string
 ---@param list table[]
 ---@param customSetID number?  overwrite this set instead of creating one
@@ -198,23 +216,29 @@ function ns.SaveCustomSet(name, list, customSetID)
     return customSetID
   end
 
-  if not name or name == "" then return nil, "a name is required" end
-  if not IsValidCustomSetName(name) then return nil, ("\"%s\" isn't an allowed name"):format(name) end
+  local err = nameError(name)
+  if err then return nil, err end
 
-  local sets = ns.CustomSets()
-  for _, s in ipairs(sets) do
-    if s.name == name then
-      return nil, ("a set named \"%s\" already exists"):format(name)
-    end
-  end
   local max = GetNumMaxCustomSets()
-  if max and #sets >= max then
+  if max and #ns.CustomSets() >= max then
     return nil, ("you already have the maximum of %d saved sets"):format(max)
   end
 
   local id = C_TransmogCollection.NewCustomSet(name, ns.OutfitIcon(list), list)
   if not id then return nil, "the game refused to save the set" end
   return id
+end
+
+---Rename a saved custom set. Same up-front validation as the save path, except the set is allowed
+---to keep its own name (so re-clicking Rename with the field untouched isn't an error).
+---@param customSetID number
+---@param name string
+---@return boolean ok, string? err
+function ns.RenameCustomSet(customSetID, name)
+  local err = nameError(name, customSetID)
+  if err then return false, err end
+  C_TransmogCollection.RenameCustomSet(customSetID, name)
+  return true
 end
 
 ---Delete a saved custom set.
