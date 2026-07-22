@@ -291,16 +291,33 @@ function DressingRoom:_applyLook()
   if self._lookIllusion then
     local host = self._lookMH or ns.HostWeaponAppearance() or 0
     m:SlotTransmog(INVSLOT_MAINHAND, host, { illusionID = self._lookIllusion })
+  elseif self._lookMH then
+    m:SlotTransmog(INVSLOT_MAINHAND, self._lookMH)
   else
-    m:SlotTransmog(INVSLOT_MAINHAND, self._lookMH or 0)
+    self:_bareSlot(INVSLOT_MAINHAND)
   end
   -- A two-handed main-hand occupies both hands, so suppress the off-hand appearance (the pick is
   -- kept — it returns when the main-hand goes back to a 1H or empties). #618.
-  m:SlotTransmog(INVSLOT_OFFHAND, (not self._lookMH2H and self._lookOH) or 0)
+  local offHand = not self._lookMH2H and self._lookOH
+  if offHand then m:SlotTransmog(INVSLOT_OFFHAND, offHand) else self:_bareSlot(INVSLOT_OFFHAND) end
   -- Shirt and tabard ride here rather than in the previewed set's outfit: transmog sets never
   -- carry either, so these two slots are picker-only and this is their sole apply path (#641).
-  m:SlotTransmog(INVSLOT_BODY, self._lookShirt or 0)
-  m:SlotTransmog(INVSLOT_TABARD, self._lookTabard or 0)
+  if self._lookShirt then m:SlotTransmog(INVSLOT_BODY, self._lookShirt) else self:_bareSlot(INVSLOT_BODY) end
+  if self._lookTabard then m:SlotTransmog(INVSLOT_TABARD, self._lookTabard) else self:_bareSlot(INVSLOT_TABARD) end
   self:UpdateWeaponSlots()     -- keep the bottom weapon slots showing the current look
   self:UpdateCosmeticSlots()   -- …and the shirt/tabard slots in the left column
+end
+
+-- Take one composed-look slot off the model outright.
+--
+-- NOT `SlotTransmog(slot, 0)`, which is what this used to do: appearance 0 is `NoTransmogID`, and
+-- setting it records "no transmog override for this slot" rather than "wear nothing there" — the
+-- actor keeps whatever it was last given, so a cleared shirt went on rendering while its slot icon
+-- had already gone empty. `UndressSlot` strips the slot in place (the same primitive ToggleSlot
+-- uses for armor, for the same reason its comment gives: TryOn alone can't remove a worn piece),
+-- and the override is dropped alongside it so an async re-skin doesn't put the piece back.
+---@param slot number  inventory slot id
+function DressingRoom:_bareSlot(slot)
+  self._model:ClearSlotTransmog(slot)
+  self._model:UndressSlot(slot)
 end

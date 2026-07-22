@@ -162,6 +162,7 @@ end
 ---@field _targetLook fun(self: DressingRoom): number?  the sourceID picked into the targeted slot (AppearancePicker.lua)
 ---@field _toggleRowWanted fun(self: DressingRoom, item: table?)  shift-click gesture: flag a shirt/tabard appearance wanted (AppearancePicker.lua)
 ---@field _applyLook fun(self: DressingRoom)  re-assert the whole composed look on the model (AppearancePicker.lua)
+---@field _bareSlot fun(self: DressingRoom, slot: number)  strip one composed-look slot off the model in place (AppearancePicker.lua)
 ---@field _rescopeWeapons fun(self: DressingRoom)  re-derive the previewed class's weapon categories (WeaponPicker.lua)
 ---@field _rescopePicker fun(self: DressingRoom)  re-scope the picker (weapon types + illusions) to the previewed set's class (WeaponPicker.lua)
 ---@field _applyWeaponTarget fun(self: DressingRoom)  shape the pane for a weapon target + repopulate the list (WeaponPicker.lua)
