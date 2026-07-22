@@ -139,7 +139,7 @@ end
 ---@field _armTimer table?  cancelable disarm timer
 ---@field _saveTimer table?  cancelable retry timer for a save waiting on streaming item data
 ---@field _saveRetries number?  streaming-data re-checks used by the pending save
----@field _saveArmed boolean?  whether the pending save already cleared the unusable warning
+---@field _saveAck table<string, true>  which of Save's confirmations (`unusable`, `duplicate`) the current attempt has answered
 ---@field _wantBox Frame  the Wanted button's box (hidden in outfit mode) (DressingRoomControls.lua)
 ---@field _buildOutfits fun(self: DressingRoom, controls: Frame)  build the outfit row (DressingRoomOutfits.lua)
 ---@field RefreshOutfits fun(self: DressingRoom)  repopulate the saved-set dropdown (DressingRoomOutfits.lua)
@@ -149,6 +149,9 @@ end
 ---@field RenameOutfit fun(self: DressingRoom)  rename the selected saved set (DressingRoomOutfits.lua)
 ---@field DeleteOutfit fun(self: DressingRoom)  delete the selected saved set, arm-then-confirm (DressingRoomOutfits.lua)
 ---@field _disarmOutfit fun(self: DressingRoom)  revert an armed row button to its resting caption (DressingRoomOutfits.lua)
+---@field _armOutfit fun(self: DressingRoom, btn: table, caption: string)  arm a row button for a confirming second click (DressingRoomOutfits.lua)
+---@field _typedOutfitName fun(self: DressingRoom): string  the name field's contents, trimmed (DressingRoomOutfits.lua)
+---@field _syncOutfitButtons fun(self: DressingRoom)  grey the row buttons that can't act right now (DressingRoomOutfits.lua)
 ---@field _picker Frame?  the docked appearance picker pane, lazily built on first open (AppearancePicker.lua)
 ---@field _pickerTitle Label  the pane's header caption, retitled per target
 ---@field _pickerCats WeaponCategory[]  the previewed set's class's usable weapon categories (dropdown source)

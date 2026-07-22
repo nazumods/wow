@@ -158,7 +158,11 @@ sets you've saved in game, a name field, and **Save**, **Rename** and **Delete**
   Save. These are the game's own saved sets — they show up in the Dressing Room's set list
   just like ones you made there, and you don't need to be at a transmogrifier to save.
 - **Rename** changes the selected set's name to whatever's in the name field.
-- **Delete** asks once (the button changes to *Confirm?*) before it removes anything.
+- **Delete** asks once (the button changes to *Confirm?*) before it removes anything. If you save
+  a new set under a name you already have, Save asks the same way — it offers to **overwrite**
+  that set rather than making you pick another name.
+- Buttons that can't do anything are greyed: Save until you've named a new set, Rename and Delete
+  until you've picked one.
 
 If the look uses pieces your current character could never collect — a plate set while
 you're on a cloth wearer — Save tells you which slots and how many, and waits for a second

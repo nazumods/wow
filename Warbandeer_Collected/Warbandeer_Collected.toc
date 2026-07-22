@@ -51,6 +51,7 @@ controls\DressingRoomCosmeticSlots.lua
 controls\WeaponCellPicker.lua
 controls\DressingRoomOutfit.lua
 controls\DressingRoomOutfits.lua
+controls\DressingRoomOutfitActions.lua
 
 GridShared.lua
 
