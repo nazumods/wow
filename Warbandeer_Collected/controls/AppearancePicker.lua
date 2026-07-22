@@ -233,15 +233,15 @@ end
 ---@return number
 function DressingRoom:_fillRow(row, item)
   row._item = item
+  local collected
   if item.kind == "i" then
     local ill = item.ill
     row._itemID = nil
-    row.status:Hide()
-    row.star:Hide()
     row.name:Text(ill.name or ("Illusion " .. ill.sourceID))
     row.name:Color(ill.isCollected and OWNED or "muted")
     row.src:Text("")
     row.border:Color(ill.sourceID == self._lookIllusion and SELECTED or IDLE)
+    collected = ill.isCollected
   else
     local src = item.src
     row._itemID = src.itemID
@@ -252,14 +252,22 @@ function DressingRoom:_fillRow(row, item)
     row.name:Color(qc and {qc.r, qc.g, qc.b} or (src.isCollected and OWNED or "muted"))
     row.src:Text(src.text or "")
     row.border:Color(src.sourceID == self:_targetLook() and SELECTED or IDLE)
-    if item.showStatus then
-      row.status:Atlas(src.isCollected and ns.icons.CheckGreen or ns.icons.RedX, false)
-      row.status:Show()
-      row.star:SetShown(ns:IsCosmeticWanted(item.visualID))
-    else
-      row.status:Hide()
-      row.star:Hide()
-    end
+    collected = src.isCollected
+  end
+  -- The collected mark + wanted star ride on any list that shows pieces you don't own (the
+  -- cosmetic ones and the illusions); the collected-only weapon lists opt out via `showStatus`.
+  -- The two wanted stores are keyed differently — visualID for appearances, sourceID for
+  -- illusions — so the lookup branches rather than sharing one call.
+  if item.showStatus then
+    row.status:Atlas(collected and ns.icons.CheckGreen or ns.icons.RedX, false)
+    row.status:Show()
+    local wanted
+    if item.kind == "i" then wanted = ns:IsIllusionWanted(item.ill.sourceID)
+    else wanted = ns:IsCosmeticWanted(item.visualID) end
+    row.star:SetShown(wanted)
+  else
+    row.status:Hide()
+    row.star:Hide()
   end
   return ROW_H
 end
@@ -270,7 +278,11 @@ end
 ---@param item table?
 function DressingRoom:_toggleRowWanted(item)
   if not (item and item.showStatus) then return end
-  ns:ToggleCosmeticWanted(item.visualID)
+  if item.kind == "i" then
+    ns:ToggleIllusionWanted(item.ill.sourceID)
+  else
+    ns:ToggleCosmeticWanted(item.visualID)
+  end
   self._pickerList:Refresh()
 end
 

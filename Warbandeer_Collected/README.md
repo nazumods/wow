@@ -126,7 +126,9 @@ right and add a piece to the armor set you're previewing — all on the model at
   class can use, green when you've collected them — including that class's own weapon
   shimmers (a Shaman set's imbues, a Death Knight set's runeforge) even on another class.
   Click one and its shimmer lays over the weapon you're holding (or your character's
-  currently-equipped weapon if you haven't picked one).
+  currently-equipped weapon if you haven't picked one). This list shows every illusion that
+  class can use, collected or not, each marked with a **green check** or a **red X** —
+  **shift-click** one to flag it wanted.
 - Click the **shirt** or **tabard** slot to browse **every** one in the game. No set comes
   with either, so this list is the only place they turn up — and unlike the weapon lists it
   shows the ones you haven't collected too, each row marked with a **green check** if you own
@@ -194,8 +196,8 @@ right-click to scan.
 ## Saved data
 
 `WarbandeerCollectedDB` (account-wide): scanned set/appearance counts, plus your
-wanted flags and tier ranks (baseline + per-race) and your wanted weapon looks and
-shirt/tabard appearances. Ratings are kept separately from
+wanted flags and tier ranks (baseline + per-race) and your wanted weapon looks,
+shirt/tabard appearances and illusions. Ratings are kept separately from
 the scan data, so re-scanning never clears them. The collection window and the set
 preview window also remember where you last dragged them, so they reopen in place
 instead of re-centering.

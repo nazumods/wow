@@ -25,5 +25,8 @@ function ns:MigrateDB()
   -- by the same globally-unique ItemAppearanceID. Its own table rather than db.weaponWanted so a
   -- wanted shirt never counts as a wanted weapon (#641).
   if not db.cosmeticWanted then db.cosmeticWanted = {} end   -- [visualID] = true
+  -- …and the illusion list's, keyed by illusion sourceID instead: illusions have no visualID, and
+  -- the two id spaces overlap numerically, so they can't share a table.
+  if not db.illusionWanted then db.illusionWanted = {} end   -- [sourceID] = true
   db.version = 6
 end

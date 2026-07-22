@@ -125,9 +125,15 @@ end
 
 -- Populate the previewed set's class's enchant illusions (via ns.Illusions), skipping the "no
 -- illusion" hide entry. Names resolve synchronously, so no async name-fill needed.
+--
+-- Like the cosmetic lists and unlike the weapon ones, this shows illusions you DON'T own, so the
+-- rows carry `showStatus`: the green-check / red-X collected mark and the shift-click Wanted star.
+-- (The list was always unfiltered; before #641 the only owned/unowned signal was the name tint.)
 function DressingRoom:_populateIllusions()
   local items = {}
-  for _, ill in ipairs(ns.Illusions(self._classIndex)) do items[#items + 1] = { kind = "i", ill = ill } end
+  for _, ill in ipairs(ns.Illusions(self._classIndex)) do
+    items[#items + 1] = { kind = "i", ill = ill, showStatus = true }
+  end
   self._pickerList:SetItems(items)
 end
 

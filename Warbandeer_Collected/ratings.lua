@@ -122,6 +122,35 @@ function ns:CosmeticWantedCount()
   return n
 end
 
+-- ─── Illusion Wanted (per illusion) ──────────────────────────────────────────
+-- The illusion list, like the cosmetic ones, shows illusions you don't own, so it earns the same
+-- wishlist flag. Keyed by the illusion's **sourceID**, not a visualID — illusions have no visual
+-- id, and the two id spaces overlap numerically, so sharing `cosmeticWanted` would eventually
+-- star the wrong row.
+
+---@param sourceID number  an illusion sourceID
+---@return boolean
+function ns:IsIllusionWanted(sourceID)
+  return self.db.illusionWanted[sourceID] == true
+end
+
+---Flip an illusion's wanted flag; returns the new state.
+---@param sourceID number
+---@return boolean
+function ns:ToggleIllusionWanted(sourceID)
+  local now = not self:IsIllusionWanted(sourceID) or nil
+  self.db.illusionWanted[sourceID] = now
+  return now == true
+end
+
+---Number of illusions currently flagged wanted.
+---@return number
+function ns:IllusionWantedCount()
+  local n = 0
+  for _ in pairs(self.db.illusionWanted) do n = n + 1 end
+  return n
+end
+
 -- ─── Rank ──────────────────────────────────────────────────────────────────--
 
 ---Baseline (race-independent) tier for a set, or nil if unranked.
