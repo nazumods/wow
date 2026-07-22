@@ -15,6 +15,7 @@
 | `src/overview.rs` | `get_overview` — computes the Overview payload (stat strip, best-standing-per-faction reps, top char per class); mirrors `Warbandeer/views/Overview.lua` + `overview/TopAlts.lua` + `FactionBars.lua`. Has an end-to-end test against the live install (skips if none) |
 | `src/combatlog.rs` | `list_combat_logs` (newest first) + `summarize_combat_log` — streaming CLEU parse: unique `ENCOUNTER_START` names, damage-by-source top 10 |
 | `src/charorder.rs` | Parse/resolve/save `character-list-order.txt` + the remembered-order file; timestamped backups; extensive unit tests |
+| `src/staticdata.rs` | Offline lookup layer — `data/static-data.json` embedded via `include_str!`, parsed once into a `OnceLock`. `currency(id)` resolves a currency id to name / icon name / cap / quality. Generated data, never hand-edited |
 | `src/botops.rs` | Operator-only: `ops_config` gate + `bot_status`/`bot_logs`/`bot_restart`/`bot_env_get`/`bot_env_set`, all shelling `ssh` to the box's `apps/warbandeer-discord/ops/bot-ops.sh` (the only privileged surface). **Multi-target**: `ops.json` lists bots (debug/prod, each ssh/remoteDir + compose project/container); every command takes a `target` index and passes `BOT_OPS_PROJECT`/`BOT_OPS_CONTAINER`. Legacy flat `{ssh,remoteDir}` = one `debug` target. Config from the app config dir or `WARBANDEER_OPS_CONFIG`; absent ⇒ `ops_config` returns `None` and the tab stays hidden. Unit tests for multi/flat parse, injection-reject + payload deser |
 | **Svelte frontend (`src/`)** | |
 | `main.ts`, `App.svelte` | Mount; titlebar (version via `getVersion()`, account), tab switch, load/refresh, error state |
@@ -29,6 +30,11 @@
 | `lib/components/ProfessionChoiceDialog.svelte` | Modal asking which of two crafting professions leads (dual-crafter ambiguity) |
 | `lib/components/Achievements.svelte` | Placeholder — achievements aren't in SavedVariables |
 | `lib/components/BotOps.svelte` | Operator-only Ops tab: a target (debug/prod) selector when >1 bot, status bar (running/realm), restart (confirmed), an env form over the non-secret whitelist (dirty-tracked, apply → recreate, confirmed), and a log tail. `App.svelte` renders it before the WoW-data gate so it works with no install |
+| **Generated data** | |
+| `src-tauri/data/static-data.json` | **Generated** currency lookup bundle (~220 KB, 1,490 rows) from wago.tools `CurrencyTypes` + the `interface/icons/` listfile. Records its source build, carries no timestamp (so an unchanged build regenerates byte-identically) |
+| `tools/update-static-data.ps1` | The generator — pins a wago build, asserts the DB2 schema, resolves `InventoryIconFileID` → icon name, guards row floor / deletion % / icon-resolution %. `-Check` is the staleness gate, `-CacheDir` avoids refetching the ~2 MB listfile |
+| `tools/UPDATING.md` | Regeneration workflow, guard rationale, and the release-trigger warning |
+| `../../.github/workflows/update-static-data.yml` | **Weekly** refresh → PR only when the data changed; runs `cargo test --lib staticdata` against the fresh asset. Never auto-merged (see Gotchas) |
 | **Build & release** | |
 | `vite.config.ts`, `svelte.config.js`, `tsconfig*.json` | Vite on fixed port 1420 (`strictPort`), `src-tauri/` excluded from watch |
 | `src-tauri/tauri.conf.json` | `productName` "Warbandeer", **`version` = release source of truth**, `bundle.active: false` (portable exe only) |
@@ -55,6 +61,13 @@ All commands take an optional `wowDir` override (frontend always passes `null` t
 | `save_character_order(account, ordered)` | backup path | Backs up first (see Gotchas), then writes CRLF `Version: 2` file |
 | `get_remembered_order(account)` | `OrderLine[] \| null` | `null` = nothing remembered yet |
 | `remember_character_order(account, ordered)` | `()` | Overwrites `character-list-order - Memory.txt` in the account dir, no backup (intended) |
+
+Static-data commands — no `wowDir`, no disk access; they read the embedded bundle, so they work with no WoW install at all:
+
+| Command | Returns | Notes |
+|---|---|---|
+| `get_currency_meta(id)` | `CurrencyMeta \| null` | From the embedded bundle, not SavedVariables; `null` for an id the bundle doesn't know |
+| `static_data_build` | `string` | Client build the embedded bundle came from — surfaces a stale bundle in diagnostics |
 
 Operator-only ops commands (no `wowDir`; each takes the selected `target` index and shells `ssh <ssh> "BOT_OPS_PROJECT=<p> BOT_OPS_CONTAINER=<c> bash <remoteDir>/ops/bot-ops.sh …"`, see `../warbandeer-discord/ops/README.md`):
 
@@ -94,5 +107,8 @@ Version lives in **three places kept in sync by hand**: `src-tauri/tauri.conf.js
 - **Overview's Rust test hits the live install** (`real_data_pipeline`) — it exercises the real SavedVariables when present and skips cleanly on CI.
 - **`bundle.active: false`** — `npm run tauri build` emits only the portable `src-tauri/target/release/*.exe`; enabling bundling would break `app-release.yml`'s `ls …/*.exe` staging assumption.
 - **mlua is vendored C** — building needs the MSVC toolchain Rust already links with; first builds are slow.
+- **A static-data refresh must carry a version bump.** `data/static-data.json` lives under `apps/warbandeer-desktop/**`, which is `app-release.yml`'s trigger path, and it's embedded with `include_str!` so a data change really does need a new exe. Releases are immutable, so merging a refresh PR without bumping the version fails the release build. That's why `update-static-data.yml` is weekly, PR-only, and never auto-merged.
+- **The static-data bundle carries no generation timestamp** — only its source build. Adding one would make every scheduled run produce a diff, so the weekly refresh would open an empty-diff PR forever. The generator also normalises to LF, because CI regenerates on ubuntu while humans regenerate on Windows.
+- **Most currencies legitimately have no icon.** ~916 of 1,490 `CurrencyTypes` rows carry `InventoryIconFileID = 0`, so `CurrencyMeta.icon` is `None` for them — that's DB2, not a broken join. The generator counts those separately from ids that *had* a FileDataID and still missed the listfile; only the latter is a signal, and only that one is threshold-guarded.
 - **Clippy is a hard gate** (`-D warnings` in `app-test.yml`), matching the suite's strict-luacheck policy.
 - **Ops tab is operator-only and dormant by default** — no `ops.json` ⇒ `ops_config` returns `None` ⇒ the tab never renders, so shipped builds are inert for end users. The privileged work lives entirely in the box's `ops/bot-ops.sh`; the Rust side only shells `ssh` with fixed subcommand names + validated numbers (env changes go over stdin), so **bot secrets never traverse the wire** and the whitelist is enforced on the box, not in the app.
