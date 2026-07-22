@@ -174,21 +174,22 @@ local function outfitExport()
   -- String first so it's the top of the selection; the per-slot listing below is what lets a
   -- mismatch between the string and the model be spotted at a glance.
   local body = { ns.EncodeOutfit(list), "", ns.OutfitSummary(list) }
-  if #issues.uncollected > 0 then
+  if #issues.unusable > 0 then
     local names = {}
-    for i, slotID in ipairs(issues.uncollected) do names[i] = ns.SlotLabel(slotID) end
+    for i, slotID in ipairs(issues.unusable) do names[i] = ns.SlotLabel(slotID) end
     body[#body + 1] = ""
-    body[#body + 1] = ("NOTE: %d of %d pieces aren't collected (%s). The string above carries them"):format(
-      #issues.uncollected, issues.filled, table.concat(names, ", "))
-    body[#body + 1] = "and re-imports fine, but saving this look as a custom set would drop them."
+    body[#body + 1] = ("NOTE: %d of %d pieces can't be collected by this character (%s) —"):format(
+      #issues.unusable, issues.filled, table.concat(names, ", "))
+    body[#body + 1] = "the string above carries them and re-imports fine, but saving this look as a"
+    body[#body + 1] = "custom set would silently drop those slots. Pieces merely not owned yet are fine."
   end
   if issues.pending then
     body[#body + 1] = ""
-    body[#body + 1] = "NOTE: some item data is still loading — re-run to re-check collected state."
+    body[#body + 1] = "NOTE: some item data is still loading — re-run to re-check."
   end
   ui.ShowCopyWindow("Outfit export", table.concat(body, "\n"))
   ns.Print(("Exported %d slots%s."):format(issues.filled,
-    #issues.uncollected > 0 and (", %d not collected"):format(#issues.uncollected) or ""))
+    #issues.unusable > 0 and (", %d unusable by this character"):format(#issues.unusable) or ""))
 end
 
 ---@param arg string

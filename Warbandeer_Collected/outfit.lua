@@ -36,7 +36,7 @@ local SLOT_LABEL = {
 ---@class Warbandeer_Collected
 ---@field SlotLabel fun(slotID: number): string
 ---@field SanitizeOutfit fun(list: table[]): table[]
----@field OutfitIssues fun(list: table[]): { uncollected: number[], pending: boolean, filled: number }
+---@field OutfitIssues fun(list: table[]): { unusable: number[], pending: boolean, filled: number }
 ---@field OutfitIcon fun(list: table[]): number?
 ---@field OutfitSummary fun(list: table[]): string
 ---@field CustomSets fun(): { id: number, name: string, icon: number }[]
@@ -75,17 +75,24 @@ end
 
 ---What would stop this outfit being saved as a custom set.
 ---
----The game **silently drops** every slot whose appearance the player can't collect (Blizzard's
----own save path clears them before writing), which matters here more than it does in the default
----UI: Collected deliberately previews sets the player hasn't collected, so saving one can quietly
----produce a near-empty set. Callers surface `uncollected` before writing rather than after.
+---The game **silently drops** every slot whose appearance this character can't collect (Blizzard's
+---own save path clears them before writing), so callers surface `unusable` before writing rather
+---than after. That matters here because the grid previews **every class's** sets: composing a
+---plate tier set on a cloth wearer and saving it would quietly produce a near-empty set.
+---
+---`unusable`, NOT "uncollected" — `PlayerCanCollectSource`'s second return means *"this character
+---is able to collect this appearance"* (armour type / class / faction validity), which is **not**
+---the same as owning it. Verified in game: sources the player demonstrably did not own still
+---answered `canCollect = true`. An appearance you simply haven't collected yet saves fine, which
+---is why nothing here reports collection state — `ns.OutfitSummary` marks that separately, off
+---`AppearanceSourceInfo.isCollected`.
 ---
 ---`pending` means item data is still streaming and the answer isn't knowable yet — the caller
----should retry shortly rather than treat those slots as uncollectable.
+---should retry shortly rather than treat those slots as unusable.
 ---@param list table[]
----@return { uncollected: number[], pending: boolean, filled: number }
+---@return { unusable: number[], pending: boolean, filled: number }
 function ns.OutfitIssues(list)
-  local out = { uncollected = {}, pending = false, filled = 0 }
+  local out = { unusable = {}, pending = false, filled = 0 }
   for _, slotID in ipairs(ns.OutfitSlotOrder) do
     local info = list[slotID]
     local appearanceID = info and info.appearanceID or 0
@@ -95,7 +102,7 @@ function ns.OutfitIssues(list)
       if not hasAllData then
         out.pending = true
       elseif not canCollect then
-        out.uncollected[#out.uncollected + 1] = slotID
+        out.unusable[#out.unusable + 1] = slotID
       end
     end
   end
@@ -117,9 +124,13 @@ function ns.OutfitIcon(list)
   end
 end
 
----A human-readable listing of an outfit — one line per filled slot, marking the pieces the
----player hasn't collected. Feeds the copy window behind `/collected outfit export`, so what
----the string encodes can be eyeballed against what the model shows.
+---A human-readable listing of an outfit — one line per filled slot. Feeds the copy window behind
+---`/collected outfit export`, so what the string encodes can be eyeballed against what the model
+---shows.
+---
+---Two independent markers, deliberately not conflated (see `ns.OutfitIssues`): `not owned` is
+---collection state, which costs nothing to share and saves fine; `UNUSABLE` means this character
+---can't collect the appearance at all, so a save would silently drop that slot.
 ---@param list table[]
 ---@return string
 function ns.OutfitSummary(list)
@@ -137,10 +148,13 @@ function ns.OutfitSummary(list)
       if info.secondaryAppearanceID and info.secondaryAppearanceID > 0 then
         extra = extra .. (" + secondary %d"):format(info.secondaryAppearanceID)
       end
-      lines[#lines + 1] = ("%-14s %-8d %s%s%s"):format(
+      -- `src.isCollected` is the same per-source ownership flag the paper-doll slots colour their
+      -- borders from, so this column matches the green/red the user is looking at.
+      lines[#lines + 1] = ("%-14s %-8d %s%s%s%s"):format(
         ns.SlotLabel(slotID), appearanceID,
         (src and src.name) or "(name pending)", extra,
-        canCollect and "" or "   [NOT COLLECTED — won't save]")
+        (src and not src.isCollected) and "   (not owned)" or "",
+        canCollect and "" or "   [UNUSABLE BY THIS CHARACTER — dropped on save]")
     end
   end
   if #lines == 0 then return "(empty outfit)" end

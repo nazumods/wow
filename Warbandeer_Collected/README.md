@@ -153,9 +153,14 @@ note, or drop it back in later.
 The string works both ways with the game's own `/customset` command, so the person you
 send it to doesn't need this addon.
 
-**Uncollected pieces are fine to share.** A string carries appearances you haven't
-collected yet, which makes it a good way to pass around a wishlist look — the export tells
-you which pieces those are.
+**Pieces you haven't collected are fine to share.** A string carries appearances you
+don't own yet, which makes it a good way to pass a wishlist look around. The export marks
+those slots `(not owned)` so you can see at a glance which ones you're still chasing.
+
+If you're previewing **another class's** set, the export also flags any piece your current
+character could never collect — a plate set while you're on a cloth wearer, say. Those
+share and re-import perfectly well; it only matters if you later save the look as a
+transmog set in game, because the game drops slots your character can't use.
 
 ## Usage
 
