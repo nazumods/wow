@@ -148,10 +148,14 @@ function DressingRoom:RefreshOutfits()
   if not self._outfitDrop then return end
   local opts, stillThere = {}, false
   for _, o in ipairs(ns.LibraryOutfits()) do
-    -- Class-coloured by the class the look is FOR, falling back to the saver's. 150px has no room
-    -- for "— Triandra (Druid)", but the colour carries the same signal for free; the full
-    -- provenance is one hover away in `/collected outfit list`.
-    opts[#opts + 1] = { key = o.name, label = ns.ClassColored(o.name, o.forClass or o.class) }
+    -- Class-coloured by **who saved it**, so the tint means one consistent thing wherever a look
+    -- appears. Deliberately not `forClass`: two classes are in play (the saver, and the class whose
+    -- set the look was built from) and one label can only carry one, so tinting by the set's class
+    -- made a Warrior's look read as Druid. `forClass` is a weak cross-character signal anyway — a
+    -- leather set sits in one class column but rogue, druid, monk and DH can all wear it, which is
+    -- what `armor` is stored for. It shows as text in `/collected outfit list`, where there's width
+    -- to say it unambiguously. 150px has no room for "— Triandra (Warrior)"; the colour is free.
+    opts[#opts + 1] = { key = o.name, label = ns.ClassColored(o.name, o.class) }
     if o.name == self._outfitSel then stillThere = true end
   end
   if not stillThere then self._outfitSel = nil end

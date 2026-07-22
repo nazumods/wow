@@ -160,7 +160,8 @@ what this works around.
   and the shirt and tabard all change to it.
 - Each look remembers **who saved it, what class they were, which class's set it was built from,
   and its armour type** — so months later you still know that leather look came from your rogue.
-  Names in the dropdown are tinted by class colour, and `/collected outfit list` spells it all out.
+  Names in the dropdown are tinted the class colour of **whoever saved them**, and
+  `/collected outfit list` spells the rest out.
 - **Save** writes what's on screen into whichever look the dropdown has selected. To keep a new
   one instead, pick **+ New Look** at the bottom of the dropdown, type a name, and Save.
 - **Rename** changes the selected look's name to whatever's in the name field.
