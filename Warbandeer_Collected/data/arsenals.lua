@@ -21,7 +21,8 @@ local ns = select(2, ...)
 -- their appearances is in the generated data at all** — Black Temple's row carries no warglaive
 -- column, and their visuals (34777, 8461) appear nowhere. They are added rather than moved, which
 -- needs their column stated. The generator missing a Timewalking reissue is very likely not
--- specific to these two; that's tracked separately, not papered over here.
+-- specific to these two — that's nazumods/wow#670, not papered over here. Stating a column by hand
+-- is a deliberate one-off for the two appearances #653 needed, not a pattern to extend.
 
 -- Ids in a band of their own — the generated rows use 92xxxxx/93xxxxx, so 94xxxxx can't collide.
 -- `release = 7` (Legion) for all three: the arsenals are a Legion feature, even where the weapons
