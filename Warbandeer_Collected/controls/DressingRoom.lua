@@ -129,7 +129,8 @@ end
 ---@field _buildRacePanels fun(self: DressingRoom, controls: Frame, d: table)  build the race selector (DressingRoomControls.lua)
 ---@field _buildSlots fun(self: DressingRoom, winW: number)  build the paper-doll slot columns (DressingRoomSlots.lua)
 ---@field _outfit table[]?  the applied custom set's outfit list — outfit mode while set (DressingRoomOutfit.lua)
----@field _outfitID number?  the selected saved custom set's id
+---@field _outfitSel string?  the selected library outfit's name (nil = the "+ New Look" entry)
+---@field _outfitPush table  the Push row button (copies the selected look to this character's custom sets)
 ---@field _outfitRow Frame  the third control row (dropdown + name + Save/Rename/Delete)
 ---@field _outfitDrop FilterDropdown  the saved-custom-set selector
 ---@field _outfitName EditBox  the name field, shared by save and rename
@@ -143,7 +144,8 @@ end
 ---@field _wantBox Frame  the Wanted button's box (hidden in outfit mode) (DressingRoomControls.lua)
 ---@field _buildOutfits fun(self: DressingRoom, controls: Frame)  build the outfit row (DressingRoomOutfits.lua)
 ---@field RefreshOutfits fun(self: DressingRoom)  repopulate the saved-set dropdown (DressingRoomOutfits.lua)
----@field LoadOutfit fun(self: DressingRoom, customSetID: number)  load a saved set into the room (DressingRoomOutfits.lua)
+---@field LoadOutfit fun(self: DressingRoom, name: string)  load a library look into the room (DressingRoomOutfitActions.lua)
+---@field PushOutfit fun(self: DressingRoom)  copy the selected look into this character's custom sets (DressingRoomOutfitActions.lua)
 ---@field _selectOutfit fun(self: DressingRoom, key: number|string)  dropdown handler: load a set, or enter "new set" mode (DressingRoomOutfits.lua)
 ---@field SaveOutfit fun(self: DressingRoom)  write the composed look to the custom-set store (DressingRoomOutfits.lua)
 ---@field RenameOutfit fun(self: DressingRoom)  rename the selected saved set (DressingRoomOutfits.lua)

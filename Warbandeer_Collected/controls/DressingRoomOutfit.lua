@@ -59,10 +59,29 @@ end
 function DressingRoom:ComposeOutfit()
   local list = ns.EmptyOutfitList()
 
-  -- Armor comes from the previewed set. A weapon-cosmetic preview (group.kind) has a synthetic
-  -- set id with no C_TransmogSets sources behind it, so there is no armor half to walk — its
-  -- weapon lives in the look fields below like any other pick.
-  if self._set and self._set.id and not (self._group and self._group.kind) then
+  -- Armor comes from whatever the room is actually SHOWING, which is not always the previewed set:
+  -- in outfit mode (`self._outfit`) the armor on the model came from a loaded look, while `_set`
+  -- still points at the last set clicked in the grid. Reading `_set` there composed a different
+  -- outfit than the one on screen — and since Save overwrites the selected entry with this list, it
+  -- silently replaced a loaded look with the stale set's armor. Per-slot toggles are honoured in
+  -- both modes.
+  --
+  -- A weapon-cosmetic preview (group.kind) has a synthetic set id with no C_TransmogSets sources
+  -- behind it, so there is no armor half to walk — its weapon lives in the look fields below.
+  if self._outfit then
+    for _, slotID in ipairs(ns.OutfitSlotOrder) do
+      local info = self._outfit[slotID]
+      local appearanceID = info and info.appearanceID or 0
+      -- The look fields below own the weapon and cosmetic slots in both modes; taking them from the
+      -- applied list too would overwrite a pick made since it was loaded.
+      if appearanceID > 0 and not self._hiddenSlots[slotID]
+        and slotID ~= INVSLOT_MAINHAND and slotID ~= INVSLOT_OFFHAND
+        and slotID ~= INVSLOT_BODY and slotID ~= INVSLOT_TABARD then
+        list[slotID].appearanceID = appearanceID
+        list[slotID].secondaryAppearanceID = info.secondaryAppearanceID or 0
+      end
+    end
+  elseif self._set and self._set.id and not (self._group and self._group.kind) then
     for _, src in ipairs(self:_currentSources()) do
       local slot = ns.SourceSlot(src)
       if slot then list[slot].appearanceID = src end
