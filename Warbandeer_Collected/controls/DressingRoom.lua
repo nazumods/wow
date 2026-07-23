@@ -171,6 +171,7 @@ end
 ---@field _buildShare fun(self: DressingRoom, controls: Frame)  build the share row (DressingRoomOutfitShare.lua)
 ---@field _pastedOutfit fun(self: DressingRoom): string  the paste field's contents, trimmed (DressingRoomOutfitShare.lua)
 ---@field _syncShare fun(self: DressingRoom)  show/hide the paste prompt + grey Import to match (DressingRoomOutfitShare.lua)
+---@field _shareList fun(self: DressingRoom): table[]?, number  the look to put on the wire (bare slots hidden) + its real filled count (DressingRoomOutfitShare.lua)
 ---@field ExportOutfit fun(self: DressingRoom)  the composed look as a /customset string, in a copy window (DressingRoomOutfitShare.lua)
 ---@field PostOutfit fun(self: DressingRoom)  put the composed look's chat hyperlink in the chat box (DressingRoomOutfitShare.lua)
 ---@field ImportOutfit fun(self: DressingRoom, str: string?)  dress the room from a pasted string or link (DressingRoomOutfitShare.lua)

@@ -244,6 +244,20 @@ those slots `(not owned)` so you can see at a glance which ones you're still cha
 **Another class's set is fine too.** A plate set exported from a Druid shares, re-imports and
 saves complete — nothing is dropped for being the wrong armour type.
 
+**Empty slots stay empty for whoever you send it to.** A look with no cloak used to arrive
+wearing the recipient's *own* cloak — the format says "no transmog here", and the game's
+dress-up window reads that as "leave what you're already wearing". Anything the preview shows
+bare is now shared as genuinely bare, so what they see is what you saw. Two caveats worth
+knowing:
+
+- **Weapons are the exception.** The game has a "hidden" appearance for every armor and
+  cosmetic slot but none for the two weapon slots, so a look with no main-hand will still show
+  the recipient's own weapon. Nothing in the format can express otherwise.
+- If you deliberately cycled a slot to **no transmog** (the third click), that's left alone —
+  you asked for the wearer's own gear to show, and sharing respects it. That choice lives in
+  the preview though: save a look and reload it later and it comes back as simply bare, since
+  the saved format has nowhere to record the difference.
+
 If a look has only just appeared on the model, posting it to chat may say the item data is
 still loading — give it a moment and click again.
 
