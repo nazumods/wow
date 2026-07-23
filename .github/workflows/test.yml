@@ -16,14 +16,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # WoW's interpreter is Lua 5.1-based — test on the same version.
-      - uses: leafo/gh-actions-lua@v10
+      - uses: leafo/gh-actions-lua@v13
         with:
           luaVersion: "5.1.5"
 
-      - uses: leafo/gh-actions-luarocks@v4
+      - uses: leafo/gh-actions-luarocks@v6
 
       - name: Install busted
         run: luarocks install busted
@@ -36,13 +36,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: leafo/gh-actions-lua@v10
+      - uses: leafo/gh-actions-lua@v13
         with:
           luaVersion: "5.1.5"
 
-      - uses: leafo/gh-actions-luarocks@v4
+      - uses: leafo/gh-actions-luarocks@v6
 
       - name: Install luacheck
         run: luarocks install luacheck
@@ -57,9 +57,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: dorny/paths-filter@v3
+      - uses: dorny/paths-filter@v4
         id: changed
         with:
           filters: |
@@ -83,7 +83,7 @@ jobs:
         run: echo "version=$(curl -sf -A 'Warbandeer-suite-ci (github.com/nazumods/wow)' https://wago.tools/api/builds/wow/latest | jq -r .version)" >> "$GITHUB_OUTPUT"
       - name: Restore wago CSV cache for this build
         if: success() && steps.changed.outputs.data == 'true'
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: .wago-cache
           key: wago-csv-${{ steps.build.outputs.version }}

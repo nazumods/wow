@@ -29,7 +29,7 @@ jobs:
   refresh:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # pwsh is preinstalled on ubuntu runners; the generator is cross-platform
       # (it normalises its own line endings so a Linux run matches a Windows one).
@@ -47,7 +47,7 @@ jobs:
         run: cargo test --lib staticdata
 
       - name: Open PR if changed
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v8
         with:
           branch: bot/desktop-static-data-refresh
           delete-branch: true
