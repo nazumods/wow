@@ -40,7 +40,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       BUNDLE: apps/warbandeer-desktop/src-tauri/data/static-data.json
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Derive the tag from the bundle's build + content hash
         id: meta
