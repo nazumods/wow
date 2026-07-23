@@ -25,7 +25,7 @@ jobs:
   refresh:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # pwsh is preinstalled on ubuntu runners; the generator is cross-platform.
       - name: Regenerate body files from wago.tools
@@ -41,17 +41,17 @@ jobs:
 
       # Validate here: PRs opened with GITHUB_TOKEN don't trigger the normal
       # luacheck workflow, so lint the regenerated file before opening one.
-      - uses: leafo/gh-actions-lua@v10
+      - uses: leafo/gh-actions-lua@v13
         with:
           luaVersion: "5.1.5"
-      - uses: leafo/gh-actions-luarocks@v4
+      - uses: leafo/gh-actions-luarocks@v6
       - name: Install luacheck
         run: luarocks install luacheck
       - name: Lint regenerated files
         run: luacheck Warbandeer_Collected/data/sets.lua Warbandeer_Collected/data/sets_late.lua Warbandeer_Collected/data/sets_expand.lua --codes
 
       - name: Open PR if changed
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v8
         with:
           branch: bot/collected-set-refresh
           delete-branch: true

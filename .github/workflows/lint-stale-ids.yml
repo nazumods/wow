@@ -27,14 +27,14 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Resolve the live build once (a ~1KB call) and key the CSV cache on it, so heavy tables are
       # pulled only when a new build shipped. Shares the build-keyed cache the PR gate warms on main.
       - name: Resolve wago build
         id: build
         run: echo "version=$(curl -sf -A 'Warbandeer-suite-ci (github.com/nazumods/wow)' https://wago.tools/api/builds/wow/latest | jq -r .version)" >> "$GITHUB_OUTPUT"
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: .wago-cache
           key: wago-csv-${{ steps.build.outputs.version }}
