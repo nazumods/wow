@@ -60,21 +60,20 @@ function DressingRoom:_applyWeaponTarget()
   if off and self._pickerMode == "illusions" then self._pickerMode = "weapons" end
   local opts, valid = {}, false
   for _, c in ipairs(self._pickerCats) do
-    -- Off-hand dropdown = the off-hand-only set (shields/holdables) + dual-wield 1H (`canOffHand`)
-    -- + the Titan's Grip two-handers (#661). Main-hand dropdown = everything NOT off-hand-only (1H,
-    -- 2H, ranged, wands). Shields report the SAME flags as 2H weapons, so only an explicit set can
-    -- tell them apart — viewsync.lua owns it.
-    -- `canOffHand` stays the dual-wield test here and is NOT replaced by that file's static
-    -- one-handed set: this pane is scoped to a class, and a paladin must not be offered an
-    -- off-hand sword. (The class-agnostic weapon grid uses the static set — see ns.WeaponHands.)
-    -- `TitansGripWeapon` is class-free even here, unlike its 1H neighbour — the set's own note in
-    -- viewsync.lua gives the three reasons, the decisive one being that the grid stages the same
-    -- look with no class at all, so a gate applied only here would be bypassable from there.
-    -- `self._pickerCats` is already the previewed class's own list, so a class that can't wield a
-    -- 2H axe never sees the option regardless.
-    local offHandOnly = ns.OffHandOnlyWeapon(c.category)
-    if (off and (offHandOnly or c.canOffHand or ns.TitansGripWeapon(c.category)))
-      or (not off and not offHandOnly) then
+    -- One question, one answer: `ns.WeaponHands` decides both dropdowns, and it is the same call
+    -- the weapon grid's staging buttons make, so the two surfaces can't offer different hands for
+    -- the same weapon type. Off hand = the six dual-wield one-handers + shields/holdables + the
+    -- three Titan's Grip two-handers; main hand = everything except the off-hand-only pair.
+    --
+    -- This used to test `c.canOffHand` for the dual-wield half. That flag is NOT a dual-wield test
+    -- — measured, it is true only for off-hand-SLOT categories (a holdable reports `-O-`) and false
+    -- for every one-hander, on a class that dual wields — so the off-hand dropdown offered no
+    -- one-handers at all to anyone (#661). See viewsync.lua for the measurement.
+    --
+    -- No class is consulted, deliberately, and `self._pickerCats` is already scoped to the
+    -- previewed class's own categories — as much class-awareness as the flags ever gave this.
+    local canMain, canOff = ns.WeaponHands(c.category)
+    if (off and canOff) or (not off and canMain) then
       opts[#opts + 1] = { key = c.category, label = c.name }
       if c.category == self._pickerCategory then valid = true end
     end

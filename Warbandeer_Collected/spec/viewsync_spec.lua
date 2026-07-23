@@ -129,48 +129,42 @@ describe("view sync", function()
     end)
   end)
 
-  describe("TitansGripWeapon", function()
-    it("names exactly the three two-handers a Fury Warrior dual-wields", function()
-      assert.is_true(ns.TitansGripWeapon(CATEGORY.TwoHAxe))
-      assert.is_true(ns.TitansGripWeapon(CATEGORY.TwoHSword))
-      assert.is_true(ns.TitansGripWeapon(CATEGORY.TwoHMace))
-      -- Polearms and staves are two-handed but NOT Titan's Grip weapons; that split is the
-      -- distinction the whole rule turns on, and it is the one thing worth re-checking if
-      -- Blizzard ever widens the talent.
-      assert.is_false(ns.TitansGripWeapon(CATEGORY.Polearm))
-      assert.is_false(ns.TitansGripWeapon(CATEGORY.Staff))
-      assert.is_false(ns.TitansGripWeapon(CATEGORY.Bow))
-      assert.is_false(ns.TitansGripWeapon(CATEGORY.OneHSword))
-      assert.is_false(ns.TitansGripWeapon(nil))
-    end)
-
-    it("offers both hands for every one it names", function()
-      for _, category in pairs(CATEGORY) do
-        if ns.TitansGripWeapon(category) then
-          local main, off = ns.WeaponHands(category)
-          assert.is_true(main and off, "a Titan's Grip weapon goes in either hand")
-        end
+  -- `WeaponHands` is the SOLE hand-eligibility answer since #661 (the picker's `canOffHand` test
+  -- turned out not to be a dual-wield test at all), so the dropdown split the picker builds from
+  -- it is asserted here in the same shape the picker consumes it.
+  describe("the picker's dropdown split", function()
+    ---@return string[]
+    local function offered(hand)
+      local out = {}
+      for name, category in pairs(CATEGORY) do
+        local main, off = ns.WeaponHands(category)
+        if (hand == "off" and off) or (hand == "main" and main) then out[#out + 1] = name end
       end
+      table.sort(out)
+      return out
+    end
+
+    -- The off hand takes a second one-hander, a shield or frill, or a Titan's Grip two-hander —
+    -- and nothing else. The one-handers are the regression that mattered: they were absent
+    -- entirely while this was built on `canOffHand`.
+    it("offers the off hand exactly the pairable types", function()
+      assert.same({ "Dagger", "Fist", "Holdable", "OneHAxe", "OneHMace", "OneHSword",
+                    "Shield", "TwoHAxe", "TwoHMace", "TwoHSword", "Warglaives" }, offered("off"))
     end)
 
-    -- The two predicates partition the two-handers: a category either pairs or it suppresses,
-    -- never both. A category added to one set and forgotten in the other trips this.
-    it("never overlaps SuppressesOffHand", function()
+    it("offers the main hand everything but the off-hand-only pair", function()
+      assert.same({ "Bow", "Crossbow", "Dagger", "Fist", "Gun", "OneHAxe", "OneHMace", "OneHSword",
+                    "Polearm", "Staff", "TwoHAxe", "TwoHMace", "TwoHSword", "Wand", "Warglaives" },
+        offered("main"))
+    end)
+
+    -- A type the off hand offers must never also be one that greys the off-hand slot, or the
+    -- picker would offer a pick its own suppression rule then throws away.
+    it("never offers the off hand a type that suppresses it", function()
       for _, category in pairs(CATEGORY) do
-        assert.is_false(ns.TitansGripWeapon(category) and ns.SuppressesOffHand(category))
+        local _, off = ns.WeaponHands(category)
+        assert.is_false(off and ns.SuppressesOffHand(category))
       end
-    end)
-  end)
-
-  describe("OffHandOnlyWeapon", function()
-    it("names exactly the off-hand slot categories", function()
-      assert.is_true(ns.OffHandOnlyWeapon(CATEGORY.Shield))
-      assert.is_true(ns.OffHandOnlyWeapon(CATEGORY.Holdable))
-      -- The pair the capability flags cannot tell apart: a shield and a two-hander report
-      -- identical isWeapon/canMainHand/canOffHand, which is why this is an explicit set.
-      assert.is_false(ns.OffHandOnlyWeapon(CATEGORY.TwoHSword))
-      assert.is_false(ns.OffHandOnlyWeapon(CATEGORY.OneHSword))
-      assert.is_false(ns.OffHandOnlyWeapon(nil))
     end)
   end)
 end)

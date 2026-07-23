@@ -143,6 +143,8 @@ right and add a piece to the armor set you're previewing — all on the model at
 - Click the **main-hand** or **off-hand** slot to open the picker for that hand. The
   weapon-type dropdown lists only the types that go in that hand and that the set's own
   class can transmog (so a Warrior set offers plate weapons even while you're on a Mage).
+  The off hand takes a second one-hander, a shield or off-hand frill, or a two-handed axe,
+  mace or sword for a Titan's Grip look.
   Click any weapon you've collected to hold it on the model; it then shows in the slot,
   with a green border. Names are colored by item quality and show where the weapon comes
   from — hover for the full item tooltip.

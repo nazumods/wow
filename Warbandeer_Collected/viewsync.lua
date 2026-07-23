@@ -44,17 +44,24 @@ end
 
 -- ── Which hand a weapon type can occupy ────────────────────────────────────────--
 
--- Four explicit sets rather than `GetCategoryInfo`'s capability flags, for the reason
--- controls/WeaponPicker.lua discovered and this file inherits: a Shield and a TwoHSword report
--- IDENTICAL isWeapon/canMainHand/canOffHand (both canOffHand = false, since that flag means "can be
--- a dual-wield off-hand WEAPON", which neither is), so no flag test can tell the two apart. Naming
--- the categories is the only thing that works.
+-- Four explicit sets rather than `GetCategoryInfo`'s capability flags, because the flags cannot
+-- answer either question we need. Measured on a Warrior via `/collected weapons` (#661):
 --
--- `canOffHand` IS still the right signal in the picker, which is scoped to a class and must not
--- offer a paladin a dual-wielded off-hand sword. The weapon GRID is class-agnostic by design (a
--- weapon cell has no class column and no ratings row, and the model renders any appearance on
--- anyone through SlotTransmog), so staging from there uses these sets and offers both hands for a
--- one-hander whoever is logged in.
+--   15  One-Handed Maces    M--        19  Held In Off-hand    -O-
+--   16  Daggers             M--        23  Staves              M--
+--
+-- **`canOffHand` is not a dual-wield test.** It is true only for things that live in the off-hand
+-- SLOT — a holdable, a shield — and false for every dual-wield one-hander, on a class that dual
+-- wields. So it answers the same question `OFF_HAND_ONLY` does and adds nothing, while reading as
+-- though it meant "can pair in the off hand". The picker's off-hand dropdown was built on it and
+-- consequently offered NO one-handers to anyone, which is how ordinary dual-wield came to be
+-- unofferable there (#661). `canMainHand` is no better at the other end: a Shield and a TwoHSword
+-- report identical flags, so only naming the categories separates them.
+--
+-- Both surfaces therefore share these sets through `ns.WeaponHands`, and neither consults a class.
+-- The weapon GRID cannot (a weapon cell has no class column, and `_classIndex` is nil for a
+-- weapon-cell preview); the picker is already scoped by `_pickerCats` to the previewed class's own
+-- category list, which is as much class-awareness as the flags ever really gave it.
 
 -- Held in both hands — except the Titan's Grip three below, which are two-handed AND dual-wieldable.
 local TWO_HANDED = {
@@ -98,13 +105,13 @@ local OFF_HAND_ONLY = {
   Enum.TransmogCollectionType.Shield, Enum.TransmogCollectionType.Holdable,
 }
 
-local twoHanded, titansGrip, offHandOnly, hands = {}, {}, {}, {}
+local twoHanded, titansGrip, hands = {}, {}, {}
 for _, c in ipairs(TWO_HANDED) do twoHanded[c] = true; hands[c] = { main = true, off = false } end
 -- After TWO_HANDED, which seeded the entries this reopens: a Titan's Grip type stays two-handed
 -- (it still fills both hands when worn alone) and gains an off hand on top.
 for _, c in ipairs(TITANS_GRIP) do titansGrip[c] = true; hands[c].off = true end
 for _, c in ipairs(ONE_HANDED) do hands[c] = { main = true, off = true } end
-for _, c in ipairs(OFF_HAND_ONLY) do offHandOnly[c] = true; hands[c] = { main = false, off = true } end
+for _, c in ipairs(OFF_HAND_ONLY) do hands[c] = { main = false, off = true } end
 -- A wand is neither: one-handed, but main-hand only since Legion — so it is main-hand-eligible
 -- without being two-handed, which is the one case the two sets above can't express between them.
 hands[Enum.TransmogCollectionType.Wand] = { main = true, off = false }
@@ -113,11 +120,13 @@ hands[Enum.TransmogCollectionType.Wand] = { main = true, off = false }
 ---@field PreviewToRestore fun(current: string?, wanted: string, memory: table?): table?
 ---@field WeaponHands fun(category: number?): boolean, boolean
 ---@field SuppressesOffHand fun(category: number?): boolean
----@field TitansGripWeapon fun(category: number?): boolean
----@field OffHandOnlyWeapon fun(category: number?): boolean
 
----Which hands a weapon category can be staged into. Both false for anything that isn't a weapon
----type this client offers, so an unknown category simply offers nothing rather than guessing.
+---Which hands a weapon category can be staged into — **the single hand-eligibility answer**, used
+---by the look-builder picker's dropdown split and by the weapon grid's staging buttons alike, so
+---the two surfaces cannot offer different hands for the same weapon type.
+---
+---Both false for anything that isn't a weapon type this client offers, so an unknown category
+---simply offers nothing rather than guessing.
 ---@param category number?  Enum.TransmogCollectionType
 ---@return boolean mainHand, boolean offHand
 function ns.WeaponHands(category)
@@ -138,20 +147,8 @@ function ns.SuppressesOffHand(category)
   return (category and twoHanded[category] and not titansGrip[category]) or false
 end
 
----Whether a two-handed category can nonetheless sit in an off hand (Titan's Grip). The picker's
----class-scoped off-hand dropdown reads this to offer the three types; the class-agnostic weapon
----grid arrives at the same answer through `ns.WeaponHands`. See the set's own note for why no
----class is consulted on either path.
----@param category number?
----@return boolean
-function ns.TitansGripWeapon(category)
-  return (category and titansGrip[category]) or false
-end
-
----Whether a category can ONLY go in the off-hand slot (a shield or a holdable). The picker's
----dropdown split reads this; see the note above for why it can't be a flag test.
----@param category number?
----@return boolean
-function ns.OffHandOnlyWeapon(category)
-  return (category and offHandOnly[category]) or false
-end
+-- `ns.TitansGripWeapon` and `ns.OffHandOnlyWeapon` used to live here, as the two halves of the
+-- picker's off-hand dropdown filter (`offHandOnly or canOffHand or titansGrip`). `ns.WeaponHands`
+-- answers all of it in one call now that the picker no longer consults `canOffHand`, so both were
+-- removed rather than left as API with no callers. `titansGrip` survives as a local because
+-- `SuppressesOffHand` still needs it.
