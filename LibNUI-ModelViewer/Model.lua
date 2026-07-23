@@ -174,11 +174,33 @@ end
 -- AFTER _applyOutfit so a precise SlotTransmog wins over the base outfit for its slot.
 -- SetItemTransmogInfo state (appearance + illusion + secondary) is wiped by an async
 -- re-skin just like TryOn'd sources, so it must be re-applied on the load callback too.
+-- The two WEAPON slots are written last, in a fixed order, behind a ResetNextHandSlot(). Ordinary
+-- slots are independent of each other and go in whatever order `pairs` gives; the hands are not.
+--
+-- The actor keeps an internal "next hand slot" cursor deciding which hand a weapon lands in, and
+-- `SetItemTransmogInfo` makes its own dual-wield judgement on top of it ("actor:SetItemTransmogInfo
+-- will automatically handle whether the player can dual wield" — Blizzard_PerksProgramModel.lua).
+-- Left to drift across re-applications, the second weapon claims the hand the first is already in
+-- and a two-weapon look renders as one weapon. Blizzard's own two-weapon previews do exactly what
+-- this does — reset the cursor, then off hand, then main hand — with the comment "Since we are
+-- manually setting the 2 items in each hand, reset the actors sense of what hand to put stuff
+-- into". The off-hand-first order is theirs too, and Blizzard_Transmog.lua gives the reason:
+-- "offhand is processed first and mainhand might override offhand".
+--
+-- Symptom this fixes: two two-handed weapons (a Titan's Grip look) rendering as the off-hand
+-- weapon alone, with the main hand missing from the model.
 function Model:_applySlotMog()
   if not self._actor or not self._slotMog then return end
+  local mh, oh = self._slotMog[INVSLOT_MAINHAND], self._slotMog[INVSLOT_OFFHAND]
   for slot, rec in pairs(self._slotMog) do
-    self._actor:SetItemTransmogInfo(rec.info, slot, rec.ignoreChildItems)
+    if slot ~= INVSLOT_MAINHAND and slot ~= INVSLOT_OFFHAND then
+      self._actor:SetItemTransmogInfo(rec.info, slot, rec.ignoreChildItems)
+    end
   end
+  if not (mh or oh) then return end
+  self._actor:ResetNextHandSlot()
+  if oh then self._actor:SetItemTransmogInfo(oh.info, INVSLOT_OFFHAND, oh.ignoreChildItems) end
+  if mh then self._actor:SetItemTransmogInfo(mh.info, INVSLOT_MAINHAND, mh.ignoreChildItems) end
 end
 
 -- Remember the outfit to (re)apply after every model (re)load: a list of transmog
