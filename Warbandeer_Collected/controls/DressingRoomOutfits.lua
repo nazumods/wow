@@ -33,10 +33,14 @@ local GRIDW, ROWH, ROW3 = k.GRIDW, k.ROWH, k.ROW3
 -- same-named set, without a modal.
 
 local DROPW, NAMEW, BTNW, GAP = 150, 140, 62, 6
--- Dropdown key for the trailing "save a new one" entry. A STRING so it can't be mistaken for a
--- library outfit name — those are user-typed and trimmed, so they can never be empty or contain
--- the sentinel's markers.
+-- Dropdown keys for the trailing entries that aren't library looks. STRINGS so they can't be
+-- mistaken for a library outfit name — those are user-typed and trimmed, so they can never be
+-- empty or contain the sentinel's markers.
+--
+-- `MANAGE` opens the library window (#662). It lives here, in the menu, precisely because the row
+-- is full at 568 of GRIDW's 572px — a sentinel entry is the one opener that costs no width at all.
 local NEW_SET = "\0new"
+local MANAGE  = "\0manage"
 local CONFIRM_S = 4      -- seconds an armed button stays armed before reverting
 
 ---One labelled button in a control row: a framed box with a click target and a centered caption,
@@ -174,13 +178,24 @@ function DressingRoom:RefreshOutfits()
   -- The trailing "new" entry mirrors Blizzard's own custom-set dropdown: creating is a mode the
   -- user CHOOSES, not something inferred from having edited the name field.
   opts[#opts + 1] = { key = NEW_SET, label = "+ New Look" }
+  opts[#opts + 1] = { key = MANAGE, label = "⚙ Manage Library…" }
   self._outfitDrop:SetOptions(opts, self._outfitSel or NEW_SET)
   self:_syncOutfitButtons()
 end
 
----Dropdown handler: load a saved look, or switch the row into "save a new one" mode.
----@param key string  a library outfit name, or the NEW_SET sentinel
+---Dropdown handler: load a saved look, open the library window, or switch the row into "save a
+---new one" mode.
+---@param key string  a library outfit name, or the NEW_SET / MANAGE sentinel
 function DressingRoom:_selectOutfit(key)
+  -- Opening the window is a detour, not a selection: put the dropdown back where it was, or its
+  -- button would sit there reading "Manage Library…" as though that were the loaded look. Picking
+  -- it again then has to still fire, which is why this re-points through `Select` (no onSelect)
+  -- rather than leaving `selected` on the sentinel — FilterDropdown treats re-picking the current
+  -- option as a no-op.
+  if key == MANAGE then
+    self._outfitDrop:Select(self._outfitSel or NEW_SET)
+    return ns.OpenOutfitLibrary()
+  end
   if key ~= NEW_SET then return self:LoadOutfit(key) end
   self._outfitSel = nil
   self._outfitName:Text("")
