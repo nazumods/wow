@@ -19,9 +19,48 @@ local GetListFromHyperlink = C_TransmogCollection.GetItemTransmogInfoListFromCus
 -- behaves exactly like one from the default UI.
 
 ---@class Warbandeer_Collected
+---@field ShareableOutfit fun(list: table[], keepEmpty: table<number, true>?, hideFor: fun(slotID: number): number?): table[]
 ---@field OutfitHyperlink fun(list: table[]): string?, string?
 ---@field PostOutfitToChat fun(list: table[]): boolean, string?
 ---@field ParseOutfitInput fun(str: string): table[]?, string?
+
+---Turn a composed look into the one that should go on the wire: every slot the preview renders
+---**bare** gets that slot's hide visual instead of `0` (#666). Mutates and returns `list`, like
+---`ns.SanitizeOutfit` — `ComposeOutfit` hands out a fresh list per call, so there's nothing shared
+---to corrupt.
+---
+---**Why the shared artifact has to differ from the stored one.** `appearanceID = 0` means "no
+---transmog on this slot", not "this slot is bare". `DressUpItemTransmogInfoList` dresses the actor
+---as the *viewer's* character and only then applies the list slot by slot — it never undresses
+---first — so a `0` leaves whatever the recipient is wearing. Our own `ApplyOutfit` clears every
+---slot before applying, which is exactly why the same list looked right in Collected and wrong in
+---Blizzard's frame. Blizzard's own links don't hit this because theirs come from
+---`playerActor:GetItemTransmogInfoList()` and are **dense**; ours are sparse by construction, since
+---the room previews a bare body plus the set's pieces.
+---
+---**`keepEmpty` is the one exception, and it matters.** #654 made *hidden* and *empty* two states
+---the user picks between, and `empty` means precisely "no transmog — show the wearer's own gear".
+---Baring those too would silently override a deliberate choice, so the caller passes the slots that
+---asked for it. Everything else bare on screen — a slot the set doesn't fill, a cleared shirt, an
+---imported look's `0` — is bare because nothing chose otherwise, and shares as bare.
+---
+---`hideFor` returns nil for a slot with no hide visual, which leaves it at `0`: **the two weapon
+---slots have none** (nothing at `Enum.TransmogCollectionType` 12+ carries the flag), so a look with
+---no main-hand still shows the viewer's weapon and nothing in the format can say otherwise.
+---@param list table[]  as produced by ns.ComposeOutfit
+---@param keepEmpty table<number, true>?  slots the user explicitly left untransmogged
+---@param hideFor fun(slotID: number): number?  ns.HideVisual, injected so this stays testable
+---@return table[]
+function ns.ShareableOutfit(list, keepEmpty, hideFor)
+  for _, slotID in ipairs(ns.OutfitSlotOrder) do
+    local info = list[slotID]
+    if info and (info.appearanceID or 0) == 0 and not (keepEmpty and keepEmpty[slotID]) then
+      local hide = hideFor(slotID)
+      if hide then info.appearanceID = hide end
+    end
+  end
+  return list
+end
 
 ---A chat hyperlink for an outfit, or nil and why not.
 ---

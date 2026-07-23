@@ -59,6 +59,21 @@ end
 ---empty here since the real generated data isn't loaded under busted.
 ---@param ns table  as returned by M.load()
 ---@return table ns
+---Load outfitshare.lua over a stub of the two C_TransmogCollection link functions it captures at
+---load time. Only `ns.ShareableOutfit` is exercised — it takes its hide-visual resolver as an
+---argument precisely so the wire-shaping rule is testable without the client.
+---@param ns table  as returned by M.load()
+---@return table ns
+function M.loadOutfitShare(ns)
+  _G.C_TransmogCollection = _G.C_TransmogCollection or {}
+  _G.C_TransmogCollection.GetCustomSetHyperlinkFromItemTransmogInfoList =
+    _G.C_TransmogCollection.GetCustomSetHyperlinkFromItemTransmogInfoList or function() end
+  _G.C_TransmogCollection.GetItemTransmogInfoListFromCustomSetHyperlink =
+    _G.C_TransmogCollection.GetItemTransmogInfoListFromCustomSetHyperlink or function() end
+  assert(loadfile("Warbandeer_Collected/outfitshare.lua"))("Warbandeer_Collected", ns)
+  return ns
+end
+
 function M.loadWeaponData(ns)
   ns.WeaponSources = {}
   assert(loadfile("Warbandeer_Collected/data/illusions.lua"))("Warbandeer_Collected", ns)

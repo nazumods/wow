@@ -87,26 +87,53 @@ function DressingRoom:_syncShare()
   self:_enableRow(self._shareImport, pasted)
 end
 
+---The look to put on the wire, plus how many slots it actually fills.
+---
+---Both share paths go through here so they can't diverge: what Export writes into the copy window
+---and what Post turns into a link are the same list.
+---
+---**`filled` is measured BEFORE baring, and that ordering is load-bearing.** `ns.ShareableOutfit`
+---writes a hide visual into every slot the preview renders bare (#666), so an *empty* preview
+---would come back with eleven filled slots — silently disarming the "nothing to export" guard, and
+---inflating the count printed to chat to include slots carrying nothing.
+---
+---The slots the user explicitly cycled to *empty* are handed over as the exception: that state
+---means "no transmog — show the wearer's own gear" (#654), and it's the one thing baring must not
+---override. `_hiddenSlots` is the room's, so translating it into that set is the room's job.
+---@return table[]? list, number filled  nil when there is nothing worth sharing
+function DressingRoom:_shareList()
+  local list = self:ComposeOutfit()
+  local issues = ns.OutfitIssues(list)
+  if issues.filled == 0 then return nil, 0 end
+  local keepEmpty
+  for slotID, state in pairs(self._hiddenSlots) do
+    if state == k.EMPTY then keepEmpty = keepEmpty or {}; keepEmpty[slotID] = true end
+  end
+  return ns.ShareableOutfit(list, keepEmpty, ns.HideVisual), issues.filled
+end
+
 ---The composed look as a shareable `/customset v1` string, in a copy window alongside a per-slot
 ---listing so the string can be eyeballed against the model.
 ---
 ---The string is first so it's at the top of the pre-selected text. Shared with
 ---`/collected outfit export`, which calls straight into this.
 function DressingRoom:ExportOutfit()
-  local list = self:ComposeOutfit()
-  local issues = ns.OutfitIssues(list)
-  if issues.filled == 0 then
+  local list, filled = self:_shareList()
+  if not list then
     ns.Print("Nothing to export — the preview is empty.")
     return
   end
 
+  -- The listing summarises the SHARED list, not the composed one, so what it names is what the
+  -- recipient gets — the bared slots read as "Hidden Cloak" rather than being omitted, which is
+  -- how the divergence went unnoticed in the first place.
   local body = { ns.EncodeOutfit(list), "", ns.OutfitSummary(list) }
-  if issues.pending then
+  if ns.OutfitIssues(list).pending then
     body[#body + 1] = ""
     body[#body + 1] = "NOTE: some item data is still loading — re-run to re-check."
   end
   ui.ShowCopyWindow("Outfit export", table.concat(body, "\n"))
-  ns.Print(("Exported %d slots."):format(issues.filled))
+  ns.Print(("Exported %d slots."):format(filled))
 end
 
 ---Put the composed look's chat hyperlink into the chat edit box, ready to send.
@@ -115,7 +142,12 @@ end
 ---the user's call. `ns.PostOutfitToChat` carries the pre-flight that keeps the link generator from
 ---throwing into the chat frame.
 function DressingRoom:PostOutfit()
-  local ok, err = ns.PostOutfitToChat(self:ComposeOutfit())
+  local list = self:_shareList()
+  if not list then
+    ns.Print("Nothing to post — the preview is empty.")
+    return
+  end
+  local ok, err = ns.PostOutfitToChat(list)
   if not ok then
     ns.Print("Couldn't post that look: " .. err)
     return
