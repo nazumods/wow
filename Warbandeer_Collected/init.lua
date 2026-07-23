@@ -34,10 +34,6 @@ function ns:MigrateDB()
   -- v8: the account-wide outfit library (#655). The game's own custom sets are PER-CHARACTER
   -- (measured — a set saved on one alt is invisible on another), so a look can only follow you
   -- across characters if we keep it ourselves. Entries hold the `/customset v1 …` encoding.
-  if not db.outfits then db.outfits = {} end   -- { { name, look }, ... }
-  -- The library entry the row last loaded, by NAME. A separate key from `db.lastOutfit` rather
-  -- than a repurposing of it: that one holds a per-character custom set id, and the DB rule is
-  -- that old keys are never redefined — a rollback to r22 has to keep finding what it wrote.
-  if db.lastLibraryOutfit == nil then db.lastLibraryOutfit = false end   -- outfit name | false
+  if not db.outfits then db.outfits = {} end   -- { { name, look, char, class, forClass, armor }, ... }
   db.version = 8
 end

@@ -53,10 +53,6 @@ function DressingRoom:LoadOutfit(name)
   end
   self._outfitSel = name
   self._outfitName:Text(name)
-  -- Stored by NAME, not by id: the library is account-wide, so the key has to be too. (`db.
-  -- lastOutfit` from #642 holds a per-character custom set id and is left alone — old keys are
-  -- never repurposed, and a rollback still has to find what it wrote.)
-  if ns.db then ns.db.lastLibraryOutfit = name end
   self:EnterOutfitMode(name, list)
   local origin = ns.OutfitOrigin(ns.LibraryOutfit(name))
   ns.Print(origin ~= "" and ("Loaded \"%s\" — saved by %s."):format(name, origin)
@@ -152,7 +148,6 @@ function DressingRoom:RenameOutfit()
     return
   end
   self._outfitSel = newName
-  if ns.db and ns.db.lastLibraryOutfit then ns.db.lastLibraryOutfit = newName end
   self:RefreshOutfits()
   ns.Print(("Renamed to \"%s\"."):format(newName))
 end

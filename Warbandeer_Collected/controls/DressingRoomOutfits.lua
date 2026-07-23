@@ -138,14 +138,10 @@ function DressingRoom:_buildOutfits(controls)
   self._outfitDelete = rowButton(self, bx + 2 * (BTNW + GAP),  "Delete", function() self:DeleteOutfit() end)
   self._outfitPush   = rowButton(self, bx + 3 * (BTNW + GAP),  "Push",   function() self:PushOutfit() end)
 
-  -- Reopen on the look last loaded, if it's still in the library. The name field is seeded too, but
-  -- the look is NOT applied — the room opens on whatever set was clicked, and loading is an
-  -- explicit act.
-  local last = ns.db and ns.db.lastLibraryOutfit
-  if last and ns.LibraryOutfit(last) then
-    self._outfitSel = last
-    self._outfitName:Text(last)
-  end
+  -- The row starts NEUTRAL — "+ New Look", empty field. It deliberately doesn't reopen on the look
+  -- last loaded: the room opens on whatever grid cell was clicked, so a seeded selection would
+  -- describe a look that isn't on screen, and the typed name is what Save targets. The row's whole
+  -- contract is that it describes what the model is showing.
   self:RefreshOutfits()
 end
 
