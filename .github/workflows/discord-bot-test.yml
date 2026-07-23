@@ -16,7 +16,7 @@ on:
       - ".github/workflows/discord-bot-test.yml"
 
 jobs:
-  test:
+  bot-test:
     runs-on: ubuntu-latest
     defaults:
       run:
