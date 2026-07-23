@@ -5,6 +5,8 @@
   import { breakUpLargeNumbers, goldText, hoursText, copperToGold } from "../format";
   import { ilvlColor } from "../theme";
   import StatCard from "./StatCard.svelte";
+  import Sparkline from "./Sparkline.svelte";
+  import ActivityGrid from "./ActivityGrid.svelte";
   import FactionBars from "./FactionBars.svelte";
   import Achievements from "./Achievements.svelte";
   import TopCharacters from "./TopCharacters.svelte";
@@ -31,7 +33,26 @@
   let playtimeSub = $derived(
     `${hoursText(s.patchPlaytimeSecs)} this patch · ${s.charCount} chars`,
   );
+
+  // Wealth trend: closed week-end values + live wealth (see OverviewStats).
+  // With no closed weeks yet there's only the live point — nothing to draw.
+  let wealthSeries = $derived(s.wealthHistoryCopper ?? []);
+  const weekLabel = (i: number, n: number) =>
+    i === n - 1 ? "now" : `${n - 1 - i} wk ago`;
 </script>
+
+{#snippet wealthGraph()}
+  <Sparkline
+    values={wealthSeries}
+    color="var(--gold)"
+    format={goldText}
+    label={weekLabel}
+  />
+{/snippet}
+
+{#snippet playtimeGraph()}
+  <ActivityGrid byDay={s.playtimeByDay} />
+{/snippet}
 
 <div class="overview">
   <div class="grid">
@@ -44,6 +65,7 @@
         sub={madeSub}
         {trend}
         subColor={trendColor}
+        graph={wealthSeries.length >= 2 ? wealthGraph : undefined}
       />
       <div class="caps head">Reputations</div>
       <div class="module">
@@ -57,6 +79,8 @@
         caption="Total Playtime"
         amount={hoursText(s.totalPlaytimeSecs)}
         sub={playtimeSub}
+        graph={Object.keys(s.playtimeByDay ?? {}).length > 0 ? playtimeGraph : undefined}
+        graphBleed
       />
       <div class="caps head">Achievements</div>
       <div class="module">

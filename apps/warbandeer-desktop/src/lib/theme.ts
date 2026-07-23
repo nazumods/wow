@@ -18,8 +18,10 @@ export const CLASS_COLORS: Record<string, string> = {
   WARRIOR: "#C69B6D",
 };
 
+// The addon stores classKey in PascalCase ("DeathKnight"); normalize so any
+// casing finds its color.
 export function classColor(classKey: string | undefined): string {
-  return (classKey && CLASS_COLORS[classKey]) || "#e6e2e1";
+  return (classKey && CLASS_COLORS[classKey.toUpperCase()]) || "#e6e2e1";
 }
 
 // Item-level tier thresholds + colors (data.lua: gearTiers + IlvlColorObj).

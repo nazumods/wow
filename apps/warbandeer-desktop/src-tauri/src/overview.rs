@@ -12,6 +12,12 @@ use std::collections::HashMap;
 pub struct OverviewStats {
     pub wealth_copper: f64,
     pub weekly_gold_made_copper: f64,
+    /// Week-end wealth (copper) for up to the last 11 closed weeks, oldest first,
+    /// with the current live wealth appended — a ≤12-point trend series.
+    pub wealth_history_copper: Vec<f64>,
+    /// Logged-in seconds per local calendar day ("YYYY-MM-DD"), summed across all
+    /// characters. The frontend windows this into its activity grid.
+    pub playtime_by_day: HashMap<String, f64>,
     pub total_playtime_secs: f64,
     pub patch_playtime_secs: f64,
     pub char_count: usize,
@@ -104,6 +110,7 @@ fn build(db: &CharDb, account: Option<String>) -> Overview {
     }
 
     let mut patch_play = 0.0;
+    let mut playtime_by_day: HashMap<String, f64> = HashMap::new();
     for c in db.characters.values() {
         count += 1;
         if let Some(cur) = &c.currency {
@@ -115,6 +122,9 @@ fn build(db: &CharDb, account: Option<String>) -> Overview {
                 if let Some(snap) = pt.by_patch.get(p) {
                     patch_play += pt.total - snap;
                 }
+            }
+            for (day, secs) in &pt.by_day {
+                *playtime_by_day.entry(day.clone()).or_insert(0.0) += secs;
             }
         }
         let il = ilvl_of(c);
@@ -130,9 +140,18 @@ fn build(db: &CharDb, account: Option<String>) -> Overview {
         .map(|w| wealth - w.baseline)
         .unwrap_or(0.0);
 
+    let hist = &db.warband.history;
+    let mut wealth_history: Vec<f64> = hist[hist.len().saturating_sub(11)..]
+        .iter()
+        .map(|r| r.ending)
+        .collect();
+    wealth_history.push(wealth);
+
     let stats = OverviewStats {
         wealth_copper: wealth,
         weekly_gold_made_copper: weekly_made,
+        wealth_history_copper: wealth_history,
+        playtime_by_day,
         total_playtime_secs: total_play,
         patch_playtime_secs: patch_play,
         char_count: count,
