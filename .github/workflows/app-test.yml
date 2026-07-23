@@ -17,7 +17,7 @@ on:
       - ".github/workflows/app-test.yml"
 
 jobs:
-  test:
+  app-test:
     # Windows-only, matching app-release.yml: the backend's data-path discovery and
     # some path handling assume a Windows WoW install.
     runs-on: windows-latest
