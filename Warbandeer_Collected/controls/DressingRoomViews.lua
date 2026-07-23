@@ -20,7 +20,10 @@ local DressingRoom = ns.DressingRoom
 ---@class DressingRoom
 ---@field _view string?  which view's preview is on screen ("armor"|"weapons"), nil in outfit mode
 ---@field _viewMemory table<string, { group: table, set: table, piece: number? }>?  last preview per view
+---@field _modeToggle table  the room's own Armor|Weapons toggle (DressingRoomControls.lua)
 ---@field _rememberPreview fun(self: DressingRoom, group: table, set: table)
+---@field _syncViewToggle fun(self: DressingRoom)
+---@field SwitchView fun(self: DressingRoom, weapons: boolean)
 ---@field RestoreViewPreview fun(self: DressingRoom, weapons: boolean)
 
 ---Record the preview `_load` is applying, under the view it belongs to. The one place a preview
@@ -32,6 +35,29 @@ function DressingRoom:_rememberPreview(group, set)
   self._view = view
   self._viewMemory = self._viewMemory or {}
   self._viewMemory[view] = { group = group, set = set }
+  self:_syncViewToggle()
+end
+
+---Light the room's toggle for the view whose preview is on screen. Deliberately keyed to `_view`
+---— what the ROOM is showing — rather than to the grid's mode: they agree whenever the toggle was
+---used, and where they can't (a loaded look, which belongs to neither grid) lighting neither half
+---is the honest answer.
+function DressingRoom:_syncViewToggle()
+  if not self._modeToggle then return end
+  -- Spelled out rather than folded into an `and/or` chain: `_view == "armor" and false or nil`
+  -- evaluates to nil, which would light neither half for the Armor view.
+  local weapons
+  if self._view == "weapons" then weapons = true
+  elseif self._view == "armor" then weapons = false end
+  self._modeToggle:Select(weapons)
+end
+
+---The room's toggle: switch the collection window to the other view, which since #656 also brings
+---that view's last preview back onto the model. With no window open — the room is reachable from
+---Warbandeer's embedded collected view — there is no grid to switch, so just move the preview.
+---@param weapons boolean  true = the Weapons view
+function DressingRoom:SwitchView(weapons)
+  if ns.window then ns.window:SetMode(weapons) else self:RestoreViewPreview(weapons) end
 end
 
 ---Switch the room to the last preview from the view the grid just toggled to — or leave it exactly

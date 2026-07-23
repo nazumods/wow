@@ -70,8 +70,8 @@ function DressingRoom:ComposeOutfit()
   -- silently replaced a loaded look with the stale set's armor. Per-slot toggles are honoured in
   -- both modes.
   --
-  -- A weapon-cosmetic preview (group.kind) has a synthetic set id with no C_TransmogSets sources
-  -- behind it, so there is no armor half to walk — its weapon lives in the look fields below.
+  -- A weapon-cell preview (group.weaponCell) has a synthetic set id with no C_TransmogSets
+  -- sources behind it, so there is no armor half to walk — its weapon lives in the look fields below.
   if self._outfit then
     for _, slotID in ipairs(ns.OutfitSlotOrder) do
       local info = self._outfit[slotID]
@@ -85,7 +85,7 @@ function DressingRoom:ComposeOutfit()
         list[slotID].secondaryAppearanceID = info.secondaryAppearanceID or 0
       end
     end
-  elseif self._set and self._set.id and not (self._group and self._group.kind) then
+  elseif self._set and self._set.id and not (self._group and self._group.weaponCell) then
     for _, src in ipairs(self:_currentSources()) do
       local slot = ns.SourceSlot(src)
       if slot then list[slot].appearanceID = src end
@@ -206,7 +206,7 @@ end
 --
 -- A loaded custom set is a look that is NOT a `ns.Sets` entry, so the room can't drive its armor
 -- columns off `self._set` the way `UpdateSlots` does. The room already had one such alternate
--- mode — `group.kind`, the weapon-cosmetic preview — and `_load` branches on it; this is the
+-- mode — `group.weaponCell`, the weapon-cell preview — and `_load` branches on it; this is the
 -- parallel: `self._outfit` holds the applied list, the armor slots render from THAT, and
 -- everything keyed to a set id (rank buttons, Wanted, the id label, the class icon, the
 -- difficulty tier bars) is hidden because an outfit has no set to rate. Previewing any set again
@@ -223,6 +223,7 @@ function DressingRoom:EnterOutfitMode(name, list)
   -- leave it alone rather than swap it for a remembered preview (#656). The remembered previews
   -- themselves are kept: previewing a set again exits this mode and re-records one.
   self._view = nil
+  self:_syncViewToggle()   -- …and neither half of the room's toggle is lit while it's showing
   self:Title(name)
   self._idLabel:Text("")
   self._masterName = nil

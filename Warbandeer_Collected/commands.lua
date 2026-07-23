@@ -37,6 +37,42 @@ ns:registerCommand("wanted", nil, function()
   end
 end, "List sets flagged as wanted")
 
+-- Groups this version no longer renders, whose account-DB entries an upgrade leaves behind. Only
+-- #653's two so far: the Illusions and Arsenals rows that used to sit in the ARMOR grid.
+--
+-- **The set ids are spelled out rather than read back from `db.sets`.** `ns:Scan` wipes that table
+-- and rebuilds it from `ns.Sets`, which no longer has these groups — so after the first scan (which
+-- the collection-change event fires on its own) there is nothing left to enumerate, while the
+-- rating keys, which scans deliberately never touch, are still there keyed by set id with no way
+-- back to them. Deriving would have quietly cleaned nothing.
+local RETIRED = {
+  { group = 9000001, name = "Illusions", sets = { 9000104, 9000106, 9000107 } },
+  { group = 9000002, name = "Arsenals",  sets = { 9000202, 9000206, 9000212 } },
+}
+
+-- Drop those entries. Deliberately a COMMAND, never automatic: a DB upgrade has to be
+-- non-destructive and rollback-safe within a patch cycle (see CONTRIBUTING), so stale keys only go
+-- once the user has decided the upgrade is stable. Reports what it removed, and says so plainly
+-- when there was nothing to do.
+ns:registerCommand("cleanup", nil, function(self)
+  local db = self.db
+  local groups, ratings = 0, 0
+  for _, retired in ipairs(RETIRED) do
+    if db.sets and db.sets[retired.group] then db.sets[retired.group] = nil; groups = groups + 1 end
+    for _, setId in ipairs(retired.sets) do
+      for _, store in ipairs({ db.wanted, db.rank, db.raceRank }) do
+        if store and store[setId] ~= nil then store[setId] = nil; ratings = ratings + 1 end
+      end
+    end
+  end
+  if groups == 0 and ratings == 0 then
+    ns.Print("Nothing to clean up — no retired collection data in this account's saved variables.")
+  else
+    ns.Print(("Cleaned up %d retired group(s) and %d leftover rating(s)."):format(groups, ratings))
+    ns.Print("The Illusions and Arsenals rows moved: illusions to the dressing room's look builder, arsenals to the Weapons view.")
+  end
+end, "Remove saved data for collection groups this version no longer shows")
+
 -- dev: force a raw creature display id into the open preview, to vet candidate
 -- ns.RaceModels ids in-game (open a set's Preview model first).
 ns:registerCommand("model", nil, function(_, args)
@@ -154,37 +190,6 @@ ns:registerCommand("weapons", nil, function(_, args)
   ns.Print(("%s: %d appearances"):format(match.name, #apps))
 end, "dev: verify the #596 weapon-browser data layer (no arg = categories; <name> samples sources)")
 
--- Owned count for one weapon-cosmetic cell (data/weapons.lua). Illusions live on
--- C_TransmogCollection, not C_TransmogSets: an illusion is owned iff
--- GetIllusionInfo(sid).isCollected; an arsenal weapon iff PlayerHasTransmog(itemID).
--- Writes db.sets in the SAME shape as the armor path (true = fully owned, else
--- {collected,total} so the grid shades a partial bundle like a partial set) and bumps
--- the running totals. A cell with nothing resolvable yet (e.g. an arsenal whose pieces
--- list is still empty) records nothing and renders blank.
-function ns:_scanWeaponSet(grp, set)
-  local n, total = 0, 0
-  if grp.kind == "illusion" then
-    for _, piece in ipairs(set.illusions) do
-      total = total + 1
-      local info = C_TransmogCollection.GetIllusionInfo(piece.sourceID)
-      if info and info.isCollected then n = n + 1 end
-    end
-  else   -- "arsenal"
-    for _, itemID in ipairs(set.pieces) do
-      total = total + 1
-      if C_TransmogCollection.PlayerHasTransmog(itemID) then n = n + 1 end
-    end
-  end
-  if total == 0 then return end
-  self.db.total = self.db.total + 1
-  if n >= total then
-    self.db.collected = self.db.collected + 1
-    self.db.sets[grp.id][set.id] = true
-  else
-    self.db.sets[grp.id][set.id] = { collected = n, total = total }
-  end
-end
-
 -- Rebuild db.sets/collected/total from the live transmog APIs and refresh the open
 -- window. Leaves the rating keys (wanted/rank/raceRank) untouched. Silent so the
 -- collection-change event can call it without chat spam; the command prints.
@@ -198,10 +203,7 @@ function ns:Scan()
     self.db.sets[grp.id] = self.db.sets[grp.id] or {}
     for _, set in ipairs(grp.sets) do
       if set.id then
-        if grp.kind then
-          -- Weapon-cosmetic group (illusions / arsenals) — different API surface.
-          self:_scanWeaponSet(grp, set)
-        elseif isCollected(set.id) then
+        if isCollected(set.id) then
           self.db.total = self.db.total + 1
           self.db.sets[grp.id][set.id] = true
           self.db.collected = self.db.collected + 1

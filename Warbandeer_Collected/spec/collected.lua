@@ -54,4 +54,16 @@ function M.loadViewSync(ns)
   return ns
 end
 
+---Load the illusion + arsenal data files. Both are plain tables plus (for arsenals) a pure
+---table transform, so they need no stub at all — only `ns.WeaponSources` to fold into, seeded
+---empty here since the real generated data isn't loaded under busted.
+---@param ns table  as returned by M.load()
+---@return table ns
+function M.loadWeaponData(ns)
+  ns.WeaponSources = {}
+  assert(loadfile("Warbandeer_Collected/data/illusions.lua"))("Warbandeer_Collected", ns)
+  assert(loadfile("Warbandeer_Collected/data/arsenals.lua"))("Warbandeer_Collected", ns)
+  return ns
+end
+
 return M
