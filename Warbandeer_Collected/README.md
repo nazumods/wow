@@ -112,12 +112,6 @@ If you haven't previewed anything in that view yet, the window simply leaves the
 preview as it is rather than closing it — and a saved look you've loaded is never
 disturbed by the toggle, since it doesn't belong to either grid.
 
-**The toggle is in the dressing room too**, at the left of its first button row, so you
-can switch between armor and weapons without digging the collection window out from
-behind the preview. It does the same thing as the one in the window — both stay in step —
-and the lit half tells you which view the thing on the model came from. With a saved look
-loaded, neither half is lit: that look isn't from either grid.
-
 ## Legion class arsenals
 
 The three Legion class weapon-appearance bundles have rows of their own in the Weapons
