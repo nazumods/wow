@@ -7,9 +7,7 @@ local GetSourcesForSlot = C_TransmogSets.GetSourcesForSlot
 local GetAllSourceIDs = C_TransmogSets.GetAllSourceIDs
 local getParts = C_TransmogSets.GetSetPrimaryAppearances
 local GetSourceInfo = C_TransmogCollection.GetSourceInfo
-local GetItemIcon = C_Item.GetItemIconByID
 local GetItemInfoInstant = C_Item.GetItemInfoInstant
-local RequestItem = C_Item.RequestLoadItemDataByID
 local find, any = ns.lua.lists.find, ns.lua.maps.any
 local GameTooltip = GameTooltip
 
@@ -55,24 +53,11 @@ end
 
 -- Reopen the class and borrow the layout primitives DressingRoom.lua shares with
 -- us (it loads first; see the explicit exports just after its class definition).
+-- What each slot LOOKS like — and the worn/hidden/empty state it looks that way for — is the
+-- companion DressingRoomSlotStates.lua's business, reached here through `:_paintSlot`.
 local DressingRoom = ns.DressingRoom
-local selBox, IDLE = DressingRoom._selBox, DressingRoom._IDLE
-local SELECTED = DressingRoom._k.SELECTED
+local selBox = DressingRoom._selBox
 local PAD, MODELH = DressingRoom._PAD, DressingRoom._MODELH
-
--- slot-status colors + the question-mark fallback icon (used only here)
-local GREEN    = {0, 104/255, 55/255, 1}   -- piece collected
-local RED      = {165/255, 0, 38/255, 1}   -- piece missing
-local QUESTION = 134400                    -- inv_misc_questionmark fileID
-local DIM      = 0.30                       -- icon vertex value for a slot toggled off the model
-
--- Grey a slot icon when its piece is toggled off the model; full color when worn.
----@param icon Texture
----@param hidden boolean?
-local function slotDim(icon, hidden)
-  local v = hidden and DIM or 1
-  icon:SetVertexColor(v, v, v, 1)
-end
 
 -- Equipment-slot columns flanking the model (paper-doll style), in Blizzard's own paper-doll
 -- order. Slot ids are inventory slots, also the GetSourcesForSlot key. Six left / five right.
@@ -100,9 +85,9 @@ DressingRoom.MODEL_INSET = COLINSET + SLOT + PAD
 DressingRoom._k.SLOT = SLOT
 
 -- Build one paper-doll equipment slot: a framed icon that shows the set piece for
--- `slotID`, opens the in-game item tooltip on hover, and left-click toggles the
--- piece on/off the model. Registered on room._slots and refreshed per set by
--- UpdateSlots.
+-- `slotID`, opens the in-game item tooltip on hover, and left-click cycles the
+-- piece through worn / hidden / no transmog. Registered on room._slots and refreshed
+-- per set by UpdateSlots.
 ---@param room DressingRoom
 ---@param slotID number  inventory slot id
 ---@param x number
@@ -126,12 +111,14 @@ local function buildSlot(room, slotID, x, y, side)
     if not entry.itemID then return end
     GameTooltip:SetOwner(f, anchor)
     GameTooltip:SetItemByID(entry.itemID)
-    GameTooltip:AddLine(room._hiddenSlots[entry.slotID] and "Click to show on the model"
-      or "Click to hide from the model", 0.6, 0.6, 0.6)
+    -- The tooltip is where the three states are named: the icon says which one a slot is in, this
+    -- says what it means and what the next click does.
+    local hint = room:_slotHint(entry.slotID)
+    if hint then GameTooltip:AddLine(hint, 0.6, 0.6, 0.6) end
     GameTooltip:Show()
   end)
   box._widget:SetScript("OnLeave", function() GameTooltip:Hide() end)
-  -- Left-click toggles this piece on/off the model; empty/unresolved slots stay inert.
+  -- Left-click steps this piece round the state cycle; empty/unresolved slots stay inert.
   box._widget:SetScript("OnMouseUp", function(_, button)
     if button == "LeftButton" and entry.itemID then room:ToggleSlot(entry) end
   end)
@@ -162,7 +149,7 @@ end
 function DressingRoom:_buildSlots(winW)
   self._slots = {}
   self._cosmeticSlots = {}   -- the shirt/tabard subset of _slots (DressingRoomCosmeticSlots.lua)
-  self._hiddenSlots = {}   -- inventory slot ids toggled off the model (reset per set in _load)
+  self._hiddenSlots = {}   -- inventory slot ids that aren't being worn, by state (reset per set in _load)
   layoutColumn(self, LEFT_SLOTS, COLINSET, "left")
   layoutColumn(self, RIGHT_SLOTS, winW - COLINSET - SLOT, "right")
 end
@@ -176,9 +163,9 @@ function DressingRoom:_showSlots(show)
   end
 end
 
--- Fill the paper-doll slots with the current set's pieces: icon + status border
--- (green collected / red missing), the itemID each slot's tooltip shows, and the
--- greyed-out dim for any slot the user has toggled off the model.
+-- Resolve the current set's piece for each paper-doll slot into the slot entry (its itemID and
+-- collected status), then hand the painting to _paintSlot — what a slot looks like belongs to the
+-- state it's in, so this file finds the piece and DressingRoomSlotStates.lua renders it.
 function DressingRoom:UpdateSlots()
   local set = self._set
   if not set then return end
@@ -212,23 +199,8 @@ function DressingRoom:UpdateSlots()
         local fb = fallback[e.slotID]
         if fb then itemID, collected = fb.itemID, fb.isCollected end
       end
-
-      if itemID then
-        e.itemID = itemID
-        local tex = GetItemIcon(itemID)
-        if not tex then RequestItem(itemID); missing = true end
-        e.icon:Texture(tex or QUESTION)
-        e.icon:Show()
-        e.border:Color(collected and GREEN or RED)
-        slotDim(e.icon, self._hiddenSlots[e.slotID])   -- keep a toggled-off slot greyed across refreshes
-      else
-        -- No piece for this slot in the set: show the "unresolved" marker.
-        e.itemID = nil
-        e.icon:Texture(ui.media.unresolved)
-        e.icon:Show()
-        e.border:Color(IDLE)
-        slotDim(e.icon, false)
-      end
+      e.itemID, e.collected = itemID, collected
+      if self:_paintSlot(e) then missing = true end
     end
   end
 
@@ -242,44 +214,4 @@ function DressingRoom:UpdateSlots()
       self:UpdateSlots()
     end)
   end
-end
-
--- Toggle whether a slot's piece is worn on the model — applied in place (TryOn /
--- UndressSlot, no full model reload). Greys/ungreys the slot icon and re-syncs the
--- Undress button (which is just "all slots hidden").
----@param e table  a slot entry from self._slots
-function DressingRoom:ToggleSlot(e)
-  local hidden = not self._hiddenSlots[e.slotID]
-  self._hiddenSlots[e.slotID] = hidden or nil
-  -- Re-set the remembered outfit (re-adds a re-shown piece via TryOn), then strip
-  -- the one slot when hiding — TryOn alone can't remove an already-worn piece.
-  self._model:Outfit(self:_currentSources())
-  if hidden then self._model:UndressSlot(e.slotID) end
-  slotDim(e.icon, hidden)
-  self:_syncUndressBorder()
-end
-
--- Re-apply every slot's dim from _hiddenSlots (after a master show/hide) without
--- re-fetching icons. Cosmetic slots have no on/off toggle, so they're never dimmed.
-function DressingRoom:_refreshSlotDims()
-  for _, e in ipairs(self._slots) do
-    if e.itemID and not e.cosmetic then slotDim(e.icon, self._hiddenSlots[e.slotID]) end
-  end
-end
-
--- True while at least one piece-bearing slot is still worn. Cosmetic slots don't count: the
--- Undress button is the master switch for the previewed SET's pieces, and a picked shirt would
--- otherwise keep it reading "something is worn" with the whole set hidden.
----@return boolean
-function DressingRoom:_anyWorn()
-  for _, e in ipairs(self._slots) do
-    if e.itemID and not e.cosmetic and not self._hiddenSlots[e.slotID] then return true end
-  end
-  return false
-end
-
--- Light the Undress button while everything is hidden (the master toggle is just
--- "all slots off"), idle while anything is worn.
-function DressingRoom:_syncUndressBorder()
-  self._undressBorder:Color(self:_anyWorn() and IDLE or SELECTED)
 end

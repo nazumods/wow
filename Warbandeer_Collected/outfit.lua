@@ -116,13 +116,16 @@ end
 
 ---Icon for a saved custom set: the first filled slot's appearance icon, matching how Blizzard
 ---picks one. nil when the outfit is empty or nothing resolves yet.
+---
+---Hide visuals are skipped (#654): a look whose head slot is hidden is still a look *about* its
+---other pieces, and "Hidden Helm" makes a useless library thumbnail for it.
 ---@param list table[]
 ---@return number?
 function ns.OutfitIcon(list)
   for _, slotID in ipairs(ns.OutfitSlotOrder) do
     local info = list[slotID]
     local appearanceID = info and info.appearanceID or 0
-    if appearanceID > 0 then
+    if appearanceID > 0 and not ns.IsHideVisual(slotID, appearanceID) then
       local src = GetAppearanceSourceInfo(appearanceID)
       if src and src.icon then return src.icon end
     end
@@ -236,7 +239,10 @@ function ns.OutfitArmorType(list)
   for _, slotID in ipairs(ARMOR_SLOTS) do
     local info = list[slotID]
     local appearanceID = info and info.appearanceID or 0
-    if appearanceID > 0 then
+    -- A hide visual is a real appearance sitting in an armour slot, but it constrains nobody — the
+    -- Hidden pieces are wearable by every class. Left in, one hidden slot could disagree with the
+    -- rest and derive the whole look as "Any" (#654), exactly as a cloak once did.
+    if appearanceID > 0 and not ns.IsHideVisual(slotID, appearanceID) then
       local src = GetSourceInfo(appearanceID)
       local subclass = src and src.itemID and select(7, GetItemInfoInstant(src.itemID))
       local label = subclass and ARMOR_LABEL[subclass]

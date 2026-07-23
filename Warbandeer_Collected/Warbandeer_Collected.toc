@@ -27,6 +27,7 @@ data\weapons.lua
 data\weaponbrowser.lua
 data\weaponsources.lua
 data\cosmeticbrowser.lua
+data\hidevisuals.lua
 data\models.lua
 
 ratings.lua
@@ -45,6 +46,7 @@ controls\DressingRoomControls.lua
 controls\DressingRoomActions.lua
 controls\DressingRoomModel.lua
 controls\DressingRoomSlots.lua
+controls\DressingRoomSlotStates.lua
 controls\AppearancePicker.lua
 controls\WeaponPicker.lua
 controls\CosmeticPicker.lua

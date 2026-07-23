@@ -74,6 +74,19 @@ describe("outfit codec", function()
       assert.equal(payload({ [6] = 4242, [7] = 5353 }), ns.EncodeOutfit(list))
     end)
 
+    -- #654: a hidden slot travels as the hide visual's own sourceID, and an empty one as 0. The
+    -- codec has no idea which is which — that's the point. What it has to guarantee is that it
+    -- never conflates them, so a look exported with a hidden helm imports back hidden and not as
+    -- "no transmog" (which would render the wearer's equipped helm instead).
+    it("keeps a hidden slot's appearance distinct from an empty one", function()
+      local HIDE_HELM = 55023
+      local str = payload({ [1] = HIDE_HELM })
+      local list = assert(ns.DecodeOutfit(str))
+      assert.equal(HIDE_HELM, list[INVSLOT_HEAD].appearanceID)
+      assert.equal(0, list[INVSLOT_CHEST].appearanceID)
+      assert.equal(str, ns.EncodeOutfit(list))
+    end)
+
     it("round-trips both illusions and both secondaries", function()
       -- 3 = shoulder secondary, 14 = main-hand secondary, 15/17 = main/off-hand illusions
       local str = payload({ [2] = 11, [3] = 22, [13] = 33, [14] = -1, [15] = 44, [16] = 55, [17] = 66 })

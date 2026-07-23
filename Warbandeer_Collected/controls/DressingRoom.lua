@@ -109,9 +109,9 @@ end
 ---@field _rankBtns table<string, { border: Texture }>  tier buttons keyed by letter
 ---@field _raceOnly boolean  edit/show the per-race override instead of the baseline
 ---@field _raceOnlyBorder Texture  per-race-override toggle border (gold while active)
----@field _slots table[]  paper-doll slot entries ({ slotID, icon, border, itemID?, cosmetic? }) — cosmetic ones are picker-driven, not set pieces
+---@field _slots table[]  paper-doll slot entries ({ slotID, icon, border, itemID?, collected?, cosmetic? }) — cosmetic ones are picker-driven, not set pieces
 ---@field _cosmeticSlots table[]  the shirt/tabard subset of _slots ({ slotID, label, target, look, empty, ... }) (DressingRoomCosmeticSlots.lua)
----@field _hiddenSlots table<number, true>  inventory slot ids toggled off the model (reset per set)
+---@field _hiddenSlots table<number, string>  inventory slot ids that aren't being worn, by state — `"hidden"` (composes as the slot's hide visual) or `"empty"` (composes as 0, no transmog); absent = worn (reset per set) (DressingRoomSlotStates.lua)
 ---@field _undressed boolean?  the master Undress toggle's state — greys the composed-look slots, which have no _hiddenSlots entry (reset per set)
 ---@field _weaponSlots table[]  bottom-center weapon-slot entries ({ hand, label, icon, border, box, itemID? }) (DressingRoomWeaponSlots.lua)
 ---@field _weaponPiece number?  index of the previewed piece within a weapon-cosmetic cell (up/down nav cycles it)
@@ -128,6 +128,14 @@ end
 ---@field _buildControls fun(self: DressingRoom, controls: Frame)  build the toggle + ratings rows (DressingRoomControls.lua)
 ---@field _buildRacePanels fun(self: DressingRoom, controls: Frame, d: table)  build the race selector (DressingRoomControls.lua)
 ---@field _buildSlots fun(self: DressingRoom, winW: number)  build the paper-doll slot columns (DressingRoomSlots.lua)
+---@field ToggleSlot fun(self: DressingRoom, e: table)  cycle one armour slot worn → hidden → empty (DressingRoomSlotStates.lua)
+---@field _paintSlot fun(self: DressingRoom, e: table): boolean  paint one armour slot for its state; true when its icon is still streaming (DressingRoomSlotStates.lua)
+---@field _slotHint fun(self: DressingRoom, slotID: number): string?  the tooltip line naming a slot's state + next click (DressingRoomSlotStates.lua)
+---@field _refreshSlotStates fun(self: DressingRoom)  repaint every armour slot from _hiddenSlots (DressingRoomSlotStates.lua)
+---@field ToggleUndress fun(self: DressingRoom)  master show/hide — the bulk version of the slot toggle (DressingRoomSlotStates.lua)
+---@field SetUndressed fun(self: DressingRoom, undressed: boolean)  hide every piece-bearing slot, or restore all (DressingRoomSlotStates.lua)
+---@field _anyWorn fun(self: DressingRoom): boolean  whether any piece-bearing armour slot is still worn (DressingRoomSlotStates.lua)
+---@field _syncUndressBorder fun(self: DressingRoom)  light the Undress button while nothing is worn (DressingRoomSlotStates.lua)
 ---@field _outfit table[]?  the applied custom set's outfit list — outfit mode while set (DressingRoomOutfit.lua)
 ---@field _outfitSel string?  the selected library outfit's name (nil = the "+ New Look" entry)
 ---@field _outfitPush table  the Push row button (copies the selected look to this character's custom sets)

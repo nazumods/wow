@@ -43,11 +43,19 @@ room showing the set worn by any playable **race** you pick — handy for
 deciding what a transmog will actually look like. Like the character sheet, each
 piece sits in its equipment slot down the sides (green border = collected, red =
 still missing); hover a slot for the in-game item tooltip, and **click a slot to
-toggle that piece on or off the model** (its icon greys out while it's off) to see
-how the set looks without a helm, cloak, and so on. The **Undress** toggle is the
-bulk version — it strips every piece off at once to show the bare race, weapons
-and shirt and tabard included (click it again and everything you had on comes
-back). There's also a **Background** toggle for a
+cycle it** through three states — worn, **hidden**, and **no transmog** — to see
+how the set looks without a helm, cloak, and so on.
+
+The difference between the two off states only matters once you save or share the
+look, but then it matters a lot. **Hidden** puts the game's own *Hidden Helm* (or
+Hidden Cloak, Hidden Tabard, …) in the slot, so it stays empty wherever the look is
+applied — that's what you were looking at in the preview. **No transmog** leaves the
+slot alone instead, so at a transmogrifier whatever you have equipped shows through.
+On the paper doll a hidden slot shows the game's Hidden icon, a no-transmog slot
+greys the set's piece out, and the tooltip always names the state you're in and what
+the next click does. The **Undress** toggle is the bulk version — it hides every
+piece at once to show the bare race, weapons and shirt and tabard included (click it
+again and everything you had on comes back). There's also a **Background** toggle for a
 class-themed backdrop, a scale slider to resize the model, and a **Reset View**
 button to snap the camera back to its starting rotation, zoom, pan, and scale. The model always
 uses your own character's **gender** (a model that can actually wear the set is
@@ -179,6 +187,11 @@ what this works around.
 comes back complete, and pieces you simply haven't collected yet save normally too — so you
 can build and keep a look for an alt. Actually *wearing* it is a separate matter: a
 transmogrifier still only lets a character wear what its class can equip.
+
+**Slots you hid stay hidden.** A slot you clicked to *hidden* saves, loads and shares as the
+game's Hidden piece for that slot, so the look you get back is the one you were looking at —
+not one that quietly falls back to your equipped gear. A slot you clicked all the way round to
+*no transmog* saves as exactly that.
 
 While a saved look is loaded the window shows its name, and the rating buttons are hidden —
 a look isn't one of the tracked sets, so there's nothing to rate. Click any set in the
