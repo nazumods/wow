@@ -191,7 +191,18 @@ function DressingRoom:_load(group, set)
   self._undressed = nil     -- …including the master Undress state
   -- Previewing a set is the only way out of outfit mode: drop the applied list and restore the
   -- set-keyed furniture it hid (the class icon, tier bars and ratings row are re-shown below).
-  self._outfit = nil
+  --
+  -- Clearing the dropdown's selection with it matters as much as the flag. Leaving it pointing at a
+  -- look the room is no longer showing makes the control lie — and because `FilterDropdown` treats
+  -- re-picking the current option as a no-op, that look then became unloadable without selecting
+  -- something else first. Only on the actual transition, so a Step between sets doesn't rebuild the
+  -- option list every time. The name field is deliberately kept: it pre-fills a re-save, and the
+  -- typed-name arm guards against clobbering the wrong entry.
+  if self._outfit then
+    self._outfit = nil
+    self._outfitSel = nil
+    if self._outfitDrop then self:RefreshOutfits() end
+  end
   if self._outfitTimer then self._outfitTimer:Cancel(); self._outfitTimer = nil end
   -- A save waiting on streaming item data must not fire against a set the user has since left.
   if self._saveTimer then self._saveTimer:Cancel(); self._saveTimer = nil end
