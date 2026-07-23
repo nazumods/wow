@@ -4,7 +4,8 @@ local ns = select(2, ...)
 -- The Legion class "arsenals" as Weapons-grid rows (#653).
 --
 -- They used to be a `kind = "arsenal"` group on `ns.Sets` — a row in the ARMOR grid under a
--- "Weapons" category (#516) — rendered through a bespoke `_dressWeapon` path. Measured in game
+-- "Weapons" category (#516) — rendered through a bespoke bare-body path (since removed with the
+-- second paper doll it drew on, #673). Measured in game
 -- while planning #653: **21 of their 23 appearances were already in the Weapons grid**, sitting
 -- anonymously inside the generated Legion → Vendor row. So the armour-grid rows were duplicating
 -- appearances you could already browse, just without a name on them.

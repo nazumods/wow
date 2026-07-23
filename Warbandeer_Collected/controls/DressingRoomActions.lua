@@ -80,12 +80,17 @@ end
 -- Sync the ratings row to the current set, race, and edit layer: the wanted star,
 -- and the gold highlight on the active tier (the per-race override when "This race"
 -- is on, else the baseline). Called from _load (set change) and SetRace.
+--
+-- The row always rates the previewed ARMOUR set, browsing a weapon or not (#673). One ★ can't be
+-- two targets, and a weapon look's Wanted flag has its own gesture — shift-clicking its row in the
+-- cell chooser (controls/WeaponCellPicker.lua), the same shift-click the appearance picker uses.
 function DressingRoom:_refreshRatings()
-  if not self._set or self._outfit then return end   -- an outfit has no set id to rate
-  -- Weapon-cell: only the ★ Wanted button applies (no S–F rank), keyed to the shown look.
-  if self._group and self._group.weaponCell then
-    local look = self._set._looks[self._weaponPiece or 1]
-    self._wantedBorder:Color(look and ns:IsWeaponWanted(look.visualID) and SELECTED or IDLE)
+  if self._outfit then return end   -- an outfit has no set id to rate
+  -- No set previewed yet (a weapon cell browsed straight from a fresh open): nothing to rate, so
+  -- drop every border rather than leaving the last set's ratings lit under an unrelated doll.
+  if not self._set then
+    self._wantedBorder:Color(IDLE)
+    for _, b in pairs(self._rankBtns) do b.border:Color(IDLE) end
     return
   end
   local setId = self._set.id
@@ -106,15 +111,6 @@ end
 
 function DressingRoom:ToggleWanted()
   if not self._set then return end
-  -- Weapon-cell: flag the CURRENTLY-SHOWN look (its visualID), not a set id.
-  if self._group and self._group.weaponCell then
-    local look = self._set._looks[self._weaponPiece or 1]
-    if look then ns:ToggleWeaponWanted(look.visualID) end
-    self:_refreshRatings()
-    self:_ratingsChanged()
-    if self._cellList then self._cellList:Refresh() end   -- the chooser row's ★ tracks it
-    return
-  end
   ns:ToggleWanted(self._set.id)
   self:_refreshRatings()
   self:_ratingsChanged()
@@ -144,17 +140,21 @@ function DressingRoom:SetRaceOnly(on)
   self:_refreshRatings()
 end
 
--- Preview a specific set within a group: refresh the title, class icon, slots and
--- model. Shared by ShowDressingRoom (initial open), Step (navigation) and the view toggle's
--- restore (DressingRoomViews.lua) — so it's also the one place the per-view preview memory is
--- written, `piece` being how a restore comes back on the look it left on rather than the first.
+-- Preview a specific set within a group: refresh the title, class icon, slots and model. Shared by
+-- ShowDressingRoom (initial open) and Step/StepTier (navigation).
+--
+-- A weapon cell isn't a set and no longer loads through here at all (#673): it's a browse that
+-- stages onto the same doll this armour is on, so it leaves every field below untouched and goes to
+-- `_loadCell` (controls/WeaponCellPreview.lua) instead. The two surfaces are live at once — the
+-- armour set on the body, the browsed weapon in its hand — and `_focus` is what says which one the
+-- arrow keys are driving.
 ---@param group table  a group entry from ns.Sets
 ---@param set table    a set entry within that group
----@param piece number?  which look within a weapon cell to show (defaults to the first)
-function DressingRoom:_load(group, set, piece)
+function DressingRoom:_load(group, set)
+  if group.weaponCell then return self:_loadCell(group, set) end
+  self._focus = "armor"
   self._group = group
   self._set = set
-  self:_rememberPreview(group, set)
   wipe(self._hiddenSlots)   -- per-set toggles: each set opens fully dressed
   self._undressed = nil     -- …including the master Undress state
   -- Previewing a set is the only way out of outfit mode: drop the applied list and restore the
@@ -180,9 +180,9 @@ function DressingRoom:_load(group, set, piece)
   if self._wantBox then self._wantBox:Show() end
   -- An applied outfit (ApplyOutfit / `/collected outfit import`) leaves per-slot overrides that
   -- the model re-asserts after every re-skin. Drop the armor ones here — before the Dress() below
-  -- — or they'd repaint over whatever set is being loaded. Unconditional: a weapon-cosmetic
-  -- preview renders a bare body, so stale armor would show up there too. The composed look's
-  -- weapons/cosmetics are deliberately left alone; they outlive a set change.
+  -- — or they'd repaint over whatever set is being loaded. The composed look's weapons/cosmetics
+  -- are deliberately left alone; they outlive a set change, and a weapon browsed from the Weapons
+  -- grid is one of them (#673).
   self:ClearOutfitArmor()
   self:Title(set.name)
   -- Set id (right of the title) + its hover tooltip = the master-grid group name.
@@ -191,41 +191,20 @@ function DressingRoom:_load(group, set, piece)
   -- Class = the set's position in the (positional) group.sets array.
   local classId
   for i = 1, #group.sets do if group.sets[i] == set then classId = i; break end end
-  -- A weapon-source cell isn't class-specific: hide the class icon/backdrop and the armor ratings
-  -- row (weapons get per-look Wanted next, not the S–F rank row).
-  if group.weaponCell then classId = nil end
   self._classIndex = classId
-  if self._ratingsBoxes then for _, b in ipairs(self._ratingsBoxes) do b:SetShown(not group.weaponCell) end end
+  -- Re-shown unconditionally: the ratings row is hidden only by outfit mode, and previewing a set
+  -- is the way out of it.
+  if self._ratingsBoxes then for _, b in ipairs(self._ratingsBoxes) do b:Show() end end
   self:_showClass(classId)
   self:_showRelease(group.release)
-  if group.weaponCell then
-    -- Weapon-cell preview: no armor slots, no weapon slots, no difficulty tier bars (its own
-    -- held-weapon render is the focus). Close the look builder; up/down cycles the cell's looks
-    -- from the first, or from `piece` when a view toggle restored this cell (see _stepWeaponPiece).
-    self._weaponPiece = piece or 1
-    self:_showSlots(false)
-    self:_showWeaponSlots(false)
-    self._tierBarL:Hide()
-    self._tierBarR:Hide()
-    if self._slotTimer then self._slotTimer:Cancel(); self._slotTimer = nil end
-    if self._weaponSlotTimer then self._weaponSlotTimer:Cancel(); self._weaponSlotTimer = nil end
-    if self._cosmeticSlotTimer then self._cosmeticSlotTimer:Cancel(); self._cosmeticSlotTimer = nil end
-    if self._picker then self:TogglePicker(false) end
-    -- A weapon-source cell shows the chooser (its looks); illusion/arsenal don't.
-    if group.weaponCell then self:ShowCellChooser(set._looks) else self:HideCellChooser() end
-  else
-    self:_showSlots(true)
-    self:_showWeaponSlots(true)
-    self:_setTierBars(group.name)
-    self._slotRetries = 0
-    self:UpdateSlots()
-    -- Re-assert the composed look (and repaint its slots) rather than just repainting them: a
-    -- weapon-cosmetic detour CLEARS the model's weapon + cosmetic overrides (see _dressWeapon), so
-    -- coming back to an armor set has to put them on again or the slots would show a look the
-    -- model isn't wearing. Runs before Dress() below, so the re-skin re-applies them on load.
-    self:_applyLook()
-    self:HideCellChooser()
-  end
+  self:_setTierBars(group.name)
+  self._slotRetries = 0
+  self:UpdateSlots()
+  -- Re-assert the composed look (and repaint its slots) rather than just repainting them: the
+  -- armor above went on through Outfit, which doesn't know about the per-slot overrides the
+  -- weapons, illusion, shirt and tabard ride on. Runs before Dress() below, so the re-skin
+  -- re-applies them on load.
+  self:_applyLook()
   self:Dress()
   self:_syncUndressBorder()   -- wiped toggles → fully worn → Undress button idle
   self:_refreshRatings()
@@ -234,11 +213,10 @@ function DressingRoom:_load(group, set, piece)
   -- classId (the set's class column) is passed too: PvP sets share a base setId across
   -- classes, so it's needed to pick the right column.
   ns:NotifyDressedSetChanged(set.id, classId)
-  -- Parallel broadcast for the Weapons grid: a weapon cell carries no setId, so the line
-  -- above clears armour grids; this boxes the (source, type) cell — nil for an armour set
-  -- so the weapon grid clears instead. Covers open + ←/→ type-stepping (both re-enter here).
-  ns:NotifyDressedWeaponCellChanged(group.weaponCell and group._source or nil,
-                                    group.weaponCell and group._type or nil)
+  -- The Weapons grid's cursor is deliberately NOT touched here. Each surface owns its own cursor
+  -- now that both are on the doll together (#673): a browsed weapon survives an armour Step, so
+  -- clearing its cell would say the model had put it down. `_loadCell` broadcasts that one, and
+  -- only closing the room (or loading a library look) clears both.
   -- Keep an open look-builder scoped to the previewed set's class. Only on an actual class change
   -- (a Step across columns) — a same-class StepTier leaves the picker's category selection alone.
   if self._picker and self._picker._widget:IsShown() and self._pickerClass ~= self._classIndex then
@@ -254,20 +232,9 @@ function DressingRoom:Step(dir)
   -- still hold the last previewed set and stepping them would silently swap the look out from
   -- under the user. Pick a set from a grid to leave outfit mode.
   if self._outfit then return end
-  -- Weapon-source cell: ←/→ steps to the adjacent weapon TYPE the source has (rebuilds the preview).
-  if self._group and self._group.weaponCell then
-    local grp, t = self._group._source, self._group._type
-    if not grp then return end
-    local avail, cur = {}, nil
-    for _, ty in ipairs(ns.WeaponTypeOrder) do
-      if grp.types[ty] then avail[#avail + 1] = ty; if ty == t then cur = #avail end end
-    end
-    if not cur or #avail < 2 then return end
-    cur = (cur - 1 + dir) % #avail + 1
-    local newT = avail[cur]
-    ns.PreviewWeaponCell(grp, newT, grp.types[newT])
-    return
-  end
+  -- While the Weapons grid is the surface being driven, ←/→ steps the browsed source's adjacent
+  -- weapon TYPE instead of the armour group's class column.
+  if self._focus == "weapons" and self._cell then return self:_stepWeaponType(dir) end
   local sets = self._group and self._group.sets
   if not sets then return end
   local n = #sets
@@ -325,24 +292,9 @@ end
 -- map straight to StepTier: +1 = the next authored sibling = the row below.
 ---@param vdir number  -1 = move to the tier shown above, +1 = below
 function DressingRoom:StepTierVisual(vdir)
-  -- Weapon-cosmetic cells have no difficulty tiers; up/down cycles their pieces instead.
-  if self._group and self._group.weaponCell then return self:_stepWeaponPiece(vdir) end
+  -- A weapon cell has no difficulty tiers; up/down cycles its looks instead.
+  if self._focus == "weapons" and self._cell then return self:_stepWeaponPiece(vdir) end
   self:StepTier(vdir)
-end
-
--- Cycle the previewed look within the current weapon cell, wrapping. Driven by the up/down nav in
--- weapon-cell preview, where there are no difficulty tiers to step.
----@param dir number  -1 = previous look, +1 = next
-function DressingRoom:_stepWeaponPiece(dir)
-  local set = self._set
-  local list = set and set._looks
-  if not list or #list < 2 then return end
-  local cur = (self._weaponPiece or 1) - 1                -- to 0-based
-  self._weaponPiece = (cur + dir) % #list + 1             -- step, wrap, back to 1-based
-  self:Dress()
-  self:_refreshRatings()                                  -- the ★ tracks the shown look
-  self:_syncCellActions()                                 -- …and so do the hand buttons
-  if self._cellList then self._cellList:Refresh() end     -- move the chooser highlight to it
 end
 
 -- Select the logged-in character's race + gender. Called when the window opens

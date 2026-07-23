@@ -23,9 +23,9 @@ local ALLIANCE_COLOR, HORDE_COLOR, NEUTRAL_COLOR = k.ALLIANCE_COLOR, k.HORDE_COL
 function DressingRoom:_buildControls(controls)
   -- Top control row: [ Undress ] [ Background ], each half the width. The room used to carry its
   -- own Armor|Weapons toggle here (#653), but it duplicated the collection window's toggle and did
-  -- nothing in outfit mode (a loaded look belongs to neither grid), so it was removed. The
-  -- collection window's toggle remains the one that drives the per-view preview memory (#656) —
-  -- see DressingRoomViews.lua's RestoreViewPreview, which that toggle still calls.
+  -- nothing in outfit mode (a loaded look belongs to neither grid), so it was removed. Neither
+  -- toggle reaches the room any more (#673): there is one doll, so the collection window's is back
+  -- to swapping grids and nothing else.
   local half = (GRIDW - PAD) / 2
 
   local undressBox = Frame:new{
@@ -54,7 +54,7 @@ function DressingRoom:_buildControls(controls)
   -- buttons write the per-race override when "This race" is active, else the
   -- baseline. _refreshRatings (from _load / SetRace) syncs the gold highlights.
   self._raceOnly = false
-  self._ratingsBoxes = {}   -- hidden for weapon-cell previews (weapons have no S–F rank row)
+  self._ratingsBoxes = {}   -- hidden in outfit mode only (a loaded look has no set id to rate)
 
   local wantBox = Frame:new{
     parent = controls, position = { TopLeft = {0, -TOPGAP}, Width = 86, Height = ROWH },

@@ -154,21 +154,25 @@ function DressingRoom:_buildSlots(winW)
   layoutColumn(self, RIGHT_SLOTS, winW - COLINSET - SLOT, "right")
 end
 
--- Show or hide the paper-doll slot columns as a whole. Hidden in weapon-cosmetic
--- preview (illusions / arsenals have no armor slots); re-shown for armor sets.
----@param show boolean
-function DressingRoom:_showSlots(show)
-  for _, e in ipairs(self._slots) do
-    if show then e.box:Show() else e.box:Hide() end
-  end
-end
+-- `_showSlots(show)` used to live here, and its weapon-slot twin in DressingRoomWeaponSlots.lua:
+-- the columns came down for a weapon-cell preview (a bare body has no armour slots) and went back
+-- up for a set. #673 removed the second doll, so nothing hides them any more — the columns are up
+-- from construction, and browsing a weapon happens on the same paper doll with them still there.
 
 -- Resolve the current set's piece for each paper-doll slot into the slot entry (its itemID and
 -- collected status), then hand the painting to _paintSlot — what a slot looks like belongs to the
 -- state it's in, so this file finds the piece and DressingRoomSlotStates.lua renders it.
 function DressingRoom:UpdateSlots()
   local set = self._set
-  if not set then return end
+  -- No set previewed — a weapon browsed straight from a fresh open (#673). Blank the columns rather
+  -- than returning: the doll is a bare body, and leaving the last set's icons up would claim it was
+  -- wearing pieces it isn't. Cosmetic slots are the picker's, as ever.
+  if not set then
+    for _, e in ipairs(self._slots) do
+      if not e.cosmetic then e.itemID, e.collected = nil, nil; self:_paintSlot(e) end
+    end
+    return
+  end
   -- GetSetPrimaryAppearances returns nil for a set with none (e.g. a PvP set — primary
   -- appearances are a raid-tier concept), so coalesce: ipairs(nil) would error here and
   -- abort _load before Dress(), leaving the model un-skinned. Empty primary → every slot

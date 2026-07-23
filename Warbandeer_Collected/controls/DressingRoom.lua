@@ -95,8 +95,9 @@ end
 ---@field _bgBorder Texture  Background-toggle border (gold while active)
 ---@field _bgEnabled boolean  whether the backdrop is shown
 ---@field _bgClass string?  current class file for the backdrop (remembered for the toggle)
----@field _group table?  the set-group the previewed set belongs to (Step cycles its sets)
----@field _set table?  the set entry currently previewed
+---@field _group table?  the set-group the previewed ARMOUR set belongs to (Step cycles its sets)
+---@field _set table?  the ARMOUR set entry currently previewed — nil until one is, which is a bare body for a browsed weapon to hang on
+---@field _dressed boolean?  whether the actor has been skinned at least once (a browsed weapon needs a body before it needs a re-skin)
 ---@field _classIndex number?  the previewed set's class column (its slot in group.sets), broadcast for the grid cursor
 ---@field _classIcon Texture  class icon in the model's upper-left (mirrors the nav pad)
 ---@field _className string?  localized class name for the icon's hover tooltip
@@ -114,8 +115,8 @@ end
 ---@field _hiddenSlots table<number, string>  inventory slot ids that aren't being worn, by state — `"hidden"` (composes as the slot's hide visual) or `"empty"` (composes as 0, no transmog); absent = worn (reset per set) (DressingRoomSlotStates.lua)
 ---@field _undressed boolean?  the master Undress toggle's state — greys the composed-look slots, which have no _hiddenSlots entry (reset per set)
 ---@field _weaponSlots table[]  bottom-center weapon-slot entries ({ hand, label, icon, border, box, itemID? }) (DressingRoomWeaponSlots.lua)
----@field _weaponPiece number?  index of the previewed piece within a weapon-cosmetic cell (up/down nav cycles it)
----@field _weaponTitleTimer table?  cancelable retitle timer (arsenal item names load async)
+---@field _weaponPiece number?  index of the shown look within the browsed weapon cell (up/down nav cycles it)
+---@field _weaponTitleTimer table?  cancelable retitle timer (weapon item names load async)
 ---@field _weaponTitleTries number?  remaining retitle attempts
 ---@field _slotTimer table?  cancelable icon-refresh timer
 ---@field _slotRetries number?  remaining icon-refresh attempts
@@ -196,7 +197,6 @@ end
 ---@field _lookTabard number?  the composed look's tabard appearance sourceID (INVSLOT_TABARD)
 ---@field _pickerNameTimer table?  cancelable async item-name refresh timer
 ---@field _buildWeaponSlots fun(self: DressingRoom)  build the bottom-center weapon-slot pair (DressingRoomWeaponSlots.lua)
----@field _showWeaponSlots fun(self: DressingRoom, show: boolean)  show/hide the weapon-slot pair (DressingRoomWeaponSlots.lua)
 ---@field UpdateWeaponSlots fun(self: DressingRoom, retry: boolean?)  fill the weapon slots from the composed look (DressingRoomWeaponSlots.lua)
 ---@field _clearWeaponSlot fun(self: DressingRoom, hand: string)  clear a hand's picked weapon — the right-click gesture (DressingRoomWeaponSlots.lua)
 ---@field _buildCosmeticSlot fun(self: DressingRoom, spec: table, x: number, y: number, side: string)  build one shirt/tabard column slot (DressingRoomCosmeticSlots.lua)
@@ -214,11 +214,15 @@ end
 ---@field _rescopePicker fun(self: DressingRoom)  re-scope the picker (weapon types + illusions) to the previewed set's class (WeaponPicker.lua)
 ---@field _applyWeaponTarget fun(self: DressingRoom)  shape the pane for a weapon target + repopulate the list (WeaponPicker.lua)
 ---@field _applyCosmeticTarget fun(self: DressingRoom)  shape the pane for a shirt/tabard target + repopulate (CosmeticPicker.lua)
----@field _cellPane Frame?  the docked weapon-cell chooser pane, lazily built on the first weapon-cell preview (WeaponCellPicker.lua)
----@field _cellList VirtualList  the previewed cell's look list (WeaponCellPicker.lua)
----@field _cellUse table<string, table>?  the chooser's Main hand / Off hand staging buttons, keyed "main"/"off" (WeaponCellPicker.lua)
----@field _useCellLook fun(self: DressingRoom, hand: string)  stage the shown cell look into a hand of the composed look (WeaponCellPicker.lua)
----@field _syncCellActions fun(self: DressingRoom)  re-sync the hand buttons to the shown look (WeaponCellPicker.lua)
+---@field _cellPane Frame?  the docked weapon-cell chooser pane, lazily built on the first browse (WeaponCellPicker.lua)
+---@field _cellList VirtualList  the browsed cell's look list (WeaponCellPicker.lua)
+---@field _cellUse table<string, table>?  the chooser's Main hand / Off hand selector buttons, keyed "main"/"off" (WeaponCellPicker.lua)
+---@field _useCellLook fun(self: DressingRoom, hand: string)  move the browsed weapon to a hand (WeaponCellPicker.lua)
+---@field _syncCellActions fun(self: DressingRoom)  re-sync the hand buttons to the hand the browsed weapon is in (WeaponCellPicker.lua)
+---@field _toggleCellWanted fun(self: DressingRoom, idx: number)  shift-click gesture: flag a browsed weapon look wanted (WeaponCellPicker.lua)
+---@field ShowCellChooser fun(self: DressingRoom, looks: table[])  dock the chooser on a cell's looks (WeaponCellPicker.lua)
+---@field HideCellChooser fun(self: DressingRoom)  undock the chooser (WeaponCellPicker.lua)
+---@field SelectCellLook fun(self: DressingRoom, idx: number)  show a cell look on the doll (WeaponCellPicker.lua)
 local ROWH = 26         -- toggle-button height
 -- Four stacked control rows, each ROWH tall with PAD between: toggles (Undress/Background) at 0,
 -- ratings at TOPGAP, outfits at ROW3, sharing at ROW4. The faction panels start below all four.

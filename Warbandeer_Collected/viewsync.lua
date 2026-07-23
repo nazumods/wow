@@ -2,45 +2,21 @@
 local ns = select(2, ...)
 local Enum = Enum
 
--- The two pure halves of making the Armor and Weapons views compose (#656). No WoW API calls and
--- no frames, so both are unit-tested (spec/viewsync_spec.lua); the room-coupled memory that drives
--- the first is controls/DressingRoomViews.lua, and the chooser buttons that drive the second are
--- controls/WeaponCellPicker.lua.
+-- The pure half of making the Armor and Weapons views compose: **which hand a weapon goes into,
+-- and what staging it there does to the composed look**. No WoW API calls and no frames, so it's
+-- unit-tested (spec/viewsync_spec.lua); the chooser that drives it is controls/WeaponCellPicker.lua
+-- and the look-builder picker that shares its eligibility rules is controls/WeaponPicker.lua.
 --
---   1. **Which preview a view toggle should restore.** The grids and the dressing room were
---      independent surfaces: `MainWindow:SetMode` swapped which grid was shown and never touched
---      the room, so toggling back to Armor left a weapon on the model. The room now remembers one
---      preview per view and the toggle restores it — `PreviewToRestore` is the decision.
+-- Browsing a weapon in the Weapons view puts it on the SAME paper doll armour is built on (#673) —
+-- there is one model viewer, and a browsed weapon is a live pick in the composed look rather than a
+-- second bare-body render. So the hand rules below aren't just what the chooser is allowed to
+-- offer; they decide what the model is wearing the moment a cell is clicked.
 --
---   2. **Which hand a browsed weapon can be staged into.** A weapon found in the Weapons view had
---      no route into the composed look at all; the cell chooser now offers the hands its type can
---      actually occupy.
-
--- ── Which preview a view toggle restores ───────────────────────────────────────--
-
----What the room should switch to when the grid toggles to `wanted`, or nil to leave it alone.
----
----Three of the four cases are deliberately "leave it alone", and each for its own reason:
----
----| room is showing | toggling to | result |
----|---|---|---|
----| the other view's preview, and that view has one remembered | either | **restore it** |
----| the other view's preview, that view has nothing remembered | either | leave alone |
----| this view's preview already | same | leave alone (no needless re-skin) |
----| a loaded library look (`current` nil — outfit mode) | either | leave alone |
----
----**Leaving alone, never closing.** Closing the preview because a grid was toggled is destructive
----and there is nothing to switch to instead. Outfit mode is `nil` rather than a view because a
----loaded look belongs to neither grid — both cursors clear when one loads — so a grid toggle has
----no business disturbing it.
----@param current string?  the view the room is previewing ("armor"|"weapons"), nil for neither
----@param wanted string  the view being switched to
----@param memory table?  { armor = <preview>?, weapons = <preview>? }
----@return table?  the remembered preview to restore, or nil to leave the room as it is
-function ns.PreviewToRestore(current, wanted, memory)
-  if current == nil or current == wanted then return nil end
-  return memory and memory[wanted] or nil
-end
+-- This file used to carry a second half — `PreviewToRestore`, the decision table for which
+-- remembered preview the grid's Armor|Weapons toggle should swap onto the model (#656). With one
+-- doll there is nothing to swap: the armour set and the browsed weapon are on it together, and the
+-- toggle is back to swapping grids and nothing else. Removed rather than left as API with no
+-- callers, along with the per-view memory it read (controls/DressingRoomViews.lua).
 
 -- ── Which hand a weapon type can occupy ────────────────────────────────────────--
 
@@ -117,9 +93,10 @@ for _, c in ipairs(OFF_HAND_ONLY) do hands[c] = { main = false, off = true } end
 hands[Enum.TransmogCollectionType.Wand] = { main = true, off = false }
 
 ---@class Warbandeer_Collected
----@field PreviewToRestore fun(current: string?, wanted: string, memory: table?): table?
 ---@field WeaponHands fun(category: number?): boolean, boolean
 ---@field SuppressesOffHand fun(category: number?): boolean
+---@field DefaultWeaponHand fun(category: number?): string?
+---@field StageCellWeapon fun(category: number?, hand: string?, sourceID: number, current: table): table
 
 ---Which hands a weapon category can be staged into — **the single hand-eligibility answer**, used
 ---by the look-builder picker's dropdown split and by the weapon grid's staging buttons alike, so
@@ -145,6 +122,71 @@ end
 ---@return boolean
 function ns.SuppressesOffHand(category)
   return (category and twoHanded[category] and not titansGrip[category]) or false
+end
+
+---Which hand a browsed weapon lands in when nothing has said otherwise — **the main hand whenever
+---the type can hold one**, the off hand for the two types that can't (a shield, a holdable), and
+---nil for anything that isn't a stageable weapon.
+---
+---Main-hand-first rather than "nothing until a hand is clicked" (#673): the browsed weapon is a
+---LIVE pick on the one doll, so a default of nothing would mean clicking a weapon cell renders
+---exactly what it rendered before — which is the chat-message stand-in the issue is removing, in
+---another form. A hand that turns out to be wrong is one click away on the chooser's selector.
+---@param category number?  Enum.TransmogCollectionType
+---@return string?  "main" | "off" | nil
+function ns.DefaultWeaponHand(category)
+  local main, off = ns.WeaponHands(category)
+  if main then return "main" end
+  if off then return "off" end
+  return nil
+end
+
+---Put a browsed cell look into a hand of the composed look, and answer what the look's weapon
+---fields become. The whole of what clicking a weapon cell, stepping its looks, and picking a hand
+---do to the model — kept pure so the rules below are testable without a client.
+---
+---`current.hand` is **where this same cell's look currently sits**, and it is what separates the
+---two gestures that reach here:
+---
+---| gesture | `current.hand` | effect |
+---|---|---|---|
+---| a new cell clicked, or ↑/↓ to another of its looks | nil / the same hand | replace that hand only |
+---| the chooser's other hand button | the hand being left | **vacate it**, then stage |
+---
+---So browsing a sword and then a shield builds a pair (each lands in its own default hand and
+---neither disturbs the other), while moving one weapon between hands doesn't leave a copy behind.
+---A hand the type can't occupy falls back to the default, so an off-hand-only shield can never be
+---forced into the main hand by the button.
+---
+---`noOffHand` is derived from the MAIN-hand pick alone (see `SuppressesOffHand`), so it's rewritten
+---only when the main hand changes and cleared when the main hand is vacated.
+---@param category number?  Enum.TransmogCollectionType — the cell's weapon type
+---@param hand string?  the hand asked for ("main"|"off"), nil for the type's default
+---@param sourceID number  the browsed look's appearance sourceID
+---@param current table  { mainHand: number?, offHand: number?, noOffHand: boolean?, hand: string? }
+---@return table  the same shape, with `hand` = where the look actually landed (nil = not staged)
+function ns.StageCellWeapon(category, hand, sourceID, current)
+  local main, off = ns.WeaponHands(category)
+  -- An ineligible request falls back to the default rather than being refused: the chooser greys
+  -- the button, but nothing else may depend on the caller having honoured that.
+  if not ((hand == "main" and main) or (hand == "off" and off)) then
+    hand = ns.DefaultWeaponHand(category)
+  end
+  local out = { mainHand = current.mainHand, offHand = current.offHand,
+                noOffHand = current.noOffHand, hand = hand }
+  if not hand then return out end
+  -- Leaving a hand this cell's look was occupying: take it back off before staging, or the move
+  -- would read as a second weapon appearing rather than the same one changing hands.
+  if current.hand and current.hand ~= hand then
+    if current.hand == "main" then out.mainHand, out.noOffHand = nil, nil else out.offHand = nil end
+  end
+  if hand == "main" then
+    out.mainHand = sourceID
+    out.noOffHand = ns.SuppressesOffHand(category) or nil
+  else
+    out.offHand = sourceID
+  end
+  return out
 end
 
 -- `ns.TitansGripWeapon` and `ns.OffHandOnlyWeapon` used to live here, as the two halves of the

@@ -128,13 +128,15 @@ function ns.ShowWeaponCellTip(grp, t, visuals)
   GameTooltip:Show()
 end
 
--- Drill-in: open the shared dressing room previewing a weapon cell's individual looks on the player's
--- character. `set._looks` is the flat list of the cell's looks (each resolved via WeaponSource to its
+-- Drill-in: browse a weapon cell's individual looks on the shared dressing room's paper doll — the
+-- same one armour is previewed on, with the browsed weapon live in a hand of the composed look
+-- (#673). `set._looks` is the flat list of the cell's looks (each resolved via WeaponSource to its
 -- OWN appearance sourceID — what the model renders — plus a representative itemID for the name); the
--- WeaponCellPicker chooser lists them and ↑/↓ steps through them
--- (see _stepWeaponPiece), while ←/→ jumps to the source's adjacent weapon TYPE (see Step) — hence the
--- group carries `_source`/`_type`. A synthetic weapon-cosmetic group (kind="arsenal", weaponCell=true)
--- drives the existing weapon render path. Looks with no resolvable source are skipped.
+-- WeaponCellPicker chooser lists them and ↑/↓ steps through them (see _stepWeaponPiece), while ←/→
+-- jumps to the source's adjacent weapon TYPE (see _stepWeaponType) — hence the group carries
+-- `_source`/`_type`, and `_type` is also the category the hand rules read. `weaponCell` is what
+-- routes the load to `_loadCell` instead of the armour path. Looks with no resolvable source are
+-- skipped.
 ---@param grp table
 ---@param t number
 ---@param visuals number[]
@@ -152,8 +154,10 @@ function ns.PreviewWeaponCell(grp, t, visuals)
     ns.Print("No previewable looks here yet — item data is still loading; hover the cell, then click again.")
     return
   end
-  local set = { name = ("%s — %s"):format(grp.name, ns.WeaponTypeName[t] or "Weapon"),
-    _looks = looks, _offHand = (t == 18 or t == 19) }   -- Shield / Held-in-off-hand render in the off hand
+  -- No hand recorded on the set: which one a browsed weapon lands in is `ns.DefaultWeaponHand`'s
+  -- answer, derived from `_type` below, so the shield/holdable rule lives in one place with the
+  -- rest of the hand rules instead of as a second hard-coded pair of category ids here (#673).
+  local set = { name = ("%s — %s"):format(grp.name, ns.WeaponTypeName[t] or "Weapon"), _looks = looks }
   local group = { weaponCell = true, name = grp.name, release = grp.release,
     sets = { set }, _source = grp, _type = t }   -- _source/_type let ←/→ step to adjacent weapon types
   ns.ShowDressingRoom(group, set)

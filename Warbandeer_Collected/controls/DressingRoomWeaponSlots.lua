@@ -102,16 +102,6 @@ function DressingRoom:_buildWeaponSlots()
   for _, spec in ipairs(HANDS) do buildWeaponSlot(self, spec) end
 end
 
--- Show or hide the weapon-slot pair. Hidden in weapon-cosmetic preview (its own held-weapon
--- render has no look-builder slots), shown for armor sets — mirroring _showSlots for the armor
--- columns.
----@param show boolean
-function DressingRoom:_showWeaponSlots(show)
-  for _, e in ipairs(self._weaponSlots) do
-    if show then e.box:Show() else e.box:Hide() end
-  end
-end
-
 -- Fill each weapon slot from the composed look (_lookMH / _lookOH): the picked weapon's icon,
 -- with a status border — gold while the picker targets this hand, else green (collected) and
 -- IDLE when empty (the placeholder art shows). Weapon icons load async, so retry shortly

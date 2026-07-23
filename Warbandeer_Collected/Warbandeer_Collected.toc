@@ -46,7 +46,6 @@ controls\DressingRoom.lua
 controls\DressingRoomBuild.lua
 controls\DressingRoomControls.lua
 controls\DressingRoomActions.lua
-controls\DressingRoomViews.lua
 controls\DressingRoomModel.lua
 controls\DressingRoomSlots.lua
 controls\DressingRoomSlotStates.lua
@@ -56,6 +55,7 @@ controls\CosmeticPicker.lua
 controls\DressingRoomWeaponSlots.lua
 controls\DressingRoomCosmeticSlots.lua
 controls\WeaponCellPicker.lua
+controls\WeaponCellPreview.lua
 controls\DressingRoomOutfit.lua
 controls\DressingRoomOutfits.lua
 controls\DressingRoomOutfitActions.lua

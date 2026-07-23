@@ -11,27 +11,26 @@ local DressingRoom = ns.DressingRoom
 local k = DressingRoom._k
 local selBox, SELECTED, IDLE, PAD, ROWH = k.selBox, k.SELECTED, k.IDLE, k.PAD, k.ROWH
 
--- Weapon-cell chooser: a pane docked to the dressing room's right edge listing the cell's individual
--- looks (the previewed weapon-cell set's `_looks`). Clicking a look previews it; **↑/↓ steps through
--- the list** (see _stepWeaponPiece) and **←/→ jumps to the source's adjacent weapon type** (see Step).
--- Each row shows a ★ when its look is Wanted, and its name is tinted green when collected. Mutually
--- exclusive with the look-builder picker (a weapon-cell preview closes that), so both dock to the same
--- edge. Reopens the DressingRoom class.
+-- Weapon-cell chooser: a pane docked to the dressing room's right edge listing the browsed cell's
+-- individual looks (`_cell.set._looks`). Clicking a row puts that look on the doll; **↑/↓ steps the
+-- list** and **←/→ jumps to the source's adjacent weapon type**. Each row shows a ★ when its look is
+-- Wanted (shift-click toggles it), and its name is tinted green when collected. Mutually exclusive
+-- with the look-builder picker — both dock to the same edge, and whichever was clicked last is the
+-- one there. Reopens the DressingRoom class. The room-side state and staging this drives live in the
+-- companion controls/WeaponCellPreview.lua.
 --
--- **The hand buttons (#656)** under the title are how a weapon found in the Weapons view joins the
--- composed look. Before them, clicking a weapon cell was a pure *browse* — `_dressWeapon` renders
--- the cell's colour variants on a bare body and deliberately never writes `_lookMH`/`_lookOH` — so
--- the only route into a look was the look-builder picker under the model, and a weapon found here
--- couldn't come with you. Going to the Weapons view *to choose a weapon* is the obvious reading of
--- what that view is for, which is why it was reported as a bug.
+-- **The hand buttons are a selector, not a staging gesture (#673).** Browsing a weapon now puts it
+-- straight into the composed look, live on the same paper doll armour is built on, so there is
+-- nothing left to "add": the shown look is already in a hand, and these say which one. Under the two
+-- dolls (#656) they were the only route a weapon found here could take into a look at all — the model
+-- couldn't show the result, so clicking one printed *"Added X to your look's main hand — preview an
+-- armor set to see it"* and left the gold border to carry the state. The doll carries it now, and the
+-- chat line is gone with the second doll it was standing in for.
 --
 -- Only the hands the cell's weapon TYPE can occupy are offered (`ns.WeaponHands`): both for a
 -- one-hander and for the Titan's Grip two-handers (2H axe/mace/sword — #661), main only for a
--- polearm/staff/ranged/wand, off only for a shield or holdable. No class is consulted, here least
--- of all: a weapon-cell preview has none (`_classIndex` is nil for it). The gold
--- border is the feedback — the staged weapon can't show on the model here, since this mode renders a
--- bare body with the previewed piece as the focus, and appears the moment an armour set is previewed
--- again (one view toggle away, now that the toggle restores it).
+-- polearm/staff/ranged/wand, off only for a shield or holdable. No class is consulted, here least of
+-- all: a weapon cell has no class column at all.
 
 local PANEW = 340                              -- docked pane width (wide enough for a name + difficulty tag)
 local GAP   = 6                                -- gap between the window and the pane
@@ -83,48 +82,37 @@ function DressingRoom:_buildCellChooser()
   }
 end
 
----Stage the currently-shown look into a hand of the composed look — the Weapons view's own route
----into a look, with no trip through the look-builder picker (#656). Clicking the hand a look is
----already staged into clears it, through the shared `_togglePick`.
+---Move the browsed weapon to `hand` — the selector gesture. A no-op on the hand it's already in,
+---so the pair reads as a radio and there's no way to click the weapon off the doll by accident;
+---taking it off is the weapon slot's own right-click, which is where every other pick is cleared.
 ---@param hand string  "main" | "off"
 function DressingRoom:_useCellLook(hand)
-  local look = self._set and self._set._looks and self._set._looks[self._weaponPiece or 1]
-  if not look then return end
-  local sid = look.sourceID
-  if hand == "off" then
-    self._lookOH = DressingRoom._togglePick(self._lookOH, sid)
-  elseif self._lookMH == sid then
-    self._lookMH, self._lookNoOH = nil, nil          -- staging the applied weapon off
-  else
-    self._lookMH = sid
-    -- Grey the off-hand behind a main-hand that leaves no room for one, exactly as the picker's own
-    -- path does (#618, #661). The cell's weapon TYPE is the category, carried on the synthetic
-    -- group by PreviewWeaponCell.
-    self._lookNoOH = ns.SuppressesOffHand(self._group and self._group._type) or nil
-  end
-  -- The model can't show this: a weapon-cell preview renders a bare body with the previewed piece
-  -- as its focus, and the composed-look slots are hidden in that mode. So say what happened, and
-  -- let the button's gold border carry the state from here on.
-  local slot = hand == "off" and "off hand" or "main hand"
-  local staged = hand == "off" and self._lookOH or self._lookMH
-  local name = GetItemNameByID(look.itemID) or ("appearance " .. look.visualID)
-  ns.Print(staged and ("Added %s to your look's %s — preview an armor set to see it."):format(name, slot)
-    or ("Cleared your look's %s."):format(slot))
-  self:_syncCellActions()
+  if hand == self._cellHand then return end
+  self:_stageCellLook(hand)
 end
 
----Re-sync the hand buttons to the look currently shown: grey the hand this weapon type can't
----occupy, and gold the one it's already staged into. Runs wherever the shown look can change —
----opening the chooser, clicking a row, and ↑/↓ stepping.
+---Re-sync the hand buttons: grey the hand this weapon type can't occupy, and gold the one the
+---browsed weapon is actually in. Runs wherever that can change — docking the chooser, clicking a
+---row, ↑/↓ stepping, and the selector itself.
 function DressingRoom:_syncCellActions()
   if not self._cellUse then return end
-  local main, off = ns.WeaponHands(self._group and self._group._type)
+  local main, off = ns.WeaponHands(self._cell and self._cell.group._type)
   self:_enableRow(self._cellUse.main, main)
   self:_enableRow(self._cellUse.off, off)
-  local look = self._set and self._set._looks and self._set._looks[self._weaponPiece or 1]
-  local sid = look and look.sourceID
-  self._cellUse.main.border:Color(sid and self._lookMH == sid and SELECTED or IDLE)
-  self._cellUse.off.border:Color(sid and self._lookOH == sid and SELECTED or IDLE)
+  self._cellUse.main.border:Color(self._cellHand == "main" and SELECTED or IDLE)
+  self._cellUse.off.border:Color(self._cellHand == "off" and SELECTED or IDLE)
+end
+
+---Shift-click gesture on a chooser row: flag that weapon look Wanted. The ratings row's ★ rates the
+---previewed armour SET and can't be two targets at once (#673), so weapon Wanted lives here — the
+---same shift-click the appearance picker uses for a shirt or tabard, on the same kind of row.
+---@param idx number  index into the browsed cell's looks
+function DressingRoom:_toggleCellWanted(idx)
+  local look = self._cell and self._cell.set._looks[idx]
+  if not look then return end
+  ns:ToggleWeaponWanted(look.visualID)
+  self:_ratingsChanged()
+  self._cellList:Refresh()   -- the row's ★ tracks it
 end
 
 -- One pooled row: selection border, name (green when collected), and a right-aligned wanted ★.
@@ -138,7 +126,9 @@ function DressingRoom:_makeCellRow(list)
   row.star = Texture:new{ parent = row, layer = ui.layer.Artwork, atlas = ns.WantedIcon, atlasSize = false,
     position = { Right = {-5, 0}, Size = {12, 12}, Hide = true } }
   row._widget:EnableMouse(true)
-  row._widget:SetScript("OnMouseUp", function() self:SelectCellLook(row._idx) end)
+  row._widget:SetScript("OnMouseUp", function()
+    if IsShiftKeyDown() then self:_toggleCellWanted(row._idx) else self:SelectCellLook(row._idx) end
+  end)
   return row
 end
 
@@ -163,8 +153,8 @@ function DressingRoom:_fillCellRow(row, item)
   return ROW_H
 end
 
--- Populate + show the chooser for `looks` (the previewed weapon-cell set's `_looks`). Names load async,
--- so refresh once shortly after so blank names + collected/wanted marks fill in.
+-- Populate + show the chooser for `looks` (the browsed cell's `_looks`). Names load async, so
+-- refresh once shortly after so blank names + collected/wanted marks fill in.
 ---@param looks table[]
 function DressingRoom:ShowCellChooser(looks)
   if not self._cellPane then self:_buildCellChooser() end
@@ -172,6 +162,7 @@ function DressingRoom:ShowCellChooser(looks)
   for i, lk in ipairs(looks or {}) do items[#items + 1] = { idx = i, look = lk } end
   self._cellList:SetItems(items)
   self:_syncCellActions()
+  if self._picker then self:TogglePicker(false) end   -- same dock edge; last clicked wins
   self._cellPane:Show()
   if self._cellNameTimer then self._cellNameTimer:Cancel() end
   self._cellNameTimer = C_Timer.NewTimer(0.3, function()
@@ -184,12 +175,9 @@ function DressingRoom:HideCellChooser()
   if self._cellPane then self._cellPane:Hide() end
 end
 
--- Select a look in the chooser: preview it, then refresh the ★ + row highlight.
+-- Select a look in the chooser: put it on the doll in place, and move the row highlight to it.
 ---@param idx number
 function DressingRoom:SelectCellLook(idx)
   self._weaponPiece = idx
-  self:Dress()
-  self:_refreshRatings()
-  self:_syncCellActions()   -- the hand buttons track the SHOWN look, not the cell
-  if self._cellList then self._cellList:Refresh() end
+  self:_stageCellLook()
 end
