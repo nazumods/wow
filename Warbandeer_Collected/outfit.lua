@@ -192,6 +192,26 @@ function ns.ClassLabel(classFile)
   return _classNames[classFile] or classFile
 end
 
+---Whether a main-hand appearance is a **paired Legion artifact** — the one weapon kind whose
+---off-hand is derived from the main hand rather than picked.
+---
+---This is the input to the main-hand slot's `secondaryAppearanceID`, which is a DISCRIMINATOR and
+---not an appearance id: `MainHandTransmogIsIndividualWeapon` (-1) says "an ordinary weapon",
+---`MainHandTransmogIsPairedWeapon` (0) says "derive the off-hand from me". Both the render path
+---(`DressingRoom:_applyLook`) and the save path (`DressingRoom:ComposeOutfit`) have to answer this
+---the same way, which is why the question lives here rather than in either of them.
+---
+---Getting it wrong is not cosmetic: `ItemTransmogInfoMixin:Init` defaults a nil secondary to 0, so
+---a main-hand set without one is flagged PAIRED, and Blizzard's own transmog code notes that a
+---paired main-hand overrides the off-hand ("offhand is processed first and mainhand might override
+---offhand", Blizzard_Transmog.lua). That is what stopped a Titan's Grip pair rendering (#661).
+---@param sourceID number?
+---@return boolean
+function ns.PairedArtifactWeapon(sourceID)
+  return sourceID ~= nil
+    and C_TransmogCollection.GetCategoryForItem(sourceID) == Enum.TransmogCollectionType.Paired
+end
+
 ---`text` wrapped in a class colour escape, or unchanged when the class is unknown. Lets a narrow
 ---dropdown label carry the class without spending any width on it.
 ---@param text string

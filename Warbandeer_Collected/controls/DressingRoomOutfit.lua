@@ -125,8 +125,7 @@ function DressingRoom:ComposeOutfit()
   -- — and only when a weapon is actually held, since an empty hand has nothing to discriminate
   -- and should stay at the empty list's 0.
   if self._lookMH then
-    mh:ConfigureSecondaryForMainHand(
-      GetCategoryForItem(self._lookMH) == Enum.TransmogCollectionType.Paired)
+    mh:ConfigureSecondaryForMainHand(ns.PairedArtifactWeapon(self._lookMH))
   end
 
   -- A main-hand with no room for an off-hand suppresses that pick exactly as it is suppressed on

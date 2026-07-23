@@ -308,6 +308,17 @@ function DressingRoom:_equipRow(item)
   self._pickerList:Refresh()   -- re-color the selection borders
 end
 
+-- The main-hand slot's `secondaryAppearanceID` for whatever appearance is going into it. NOT an
+-- appearance id — a discriminator; see `ns.PairedArtifactWeapon` for what the two values mean and
+-- why leaving it nil is actively wrong (nil defaults to 0 = PAIRED, and a paired main-hand
+-- overrides the off-hand, so a Titan's Grip pair rendered as the off-hand alone — #661).
+---@param sourceID number  the appearance being put in the main hand
+---@return number
+local function mainHandSecondary(sourceID)
+  return ns.PairedArtifactWeapon(sourceID) and Constants.Transmog.MainHandTransmogIsPairedWeapon
+    or Constants.Transmog.MainHandTransmogIsIndividualWeapon
+end
+
 -- Re-assert the whole composed look on the model: main-hand = the picked weapon (else, when only
 -- an illusion is chosen, the character's equipped host weapon so the shimmer has somewhere to
 -- render), with the illusion layered on; off-hand = the picked off-hand; shirt and tabard from
@@ -317,9 +328,11 @@ function DressingRoom:_applyLook()
   local m = self._model
   if self._lookIllusion then
     local host = self._lookMH or ns.HostWeaponAppearance() or 0
-    m:SlotTransmog(INVSLOT_MAINHAND, host, { illusionID = self._lookIllusion })
+    m:SlotTransmog(INVSLOT_MAINHAND, host,
+      { illusionID = self._lookIllusion, secondaryAppearanceID = mainHandSecondary(host) })
   elseif self._lookMH then
-    m:SlotTransmog(INVSLOT_MAINHAND, self._lookMH)
+    m:SlotTransmog(INVSLOT_MAINHAND, self._lookMH,
+      { secondaryAppearanceID = mainHandSecondary(self._lookMH) })
   else
     self:_bareSlot(INVSLOT_MAINHAND)
   end
