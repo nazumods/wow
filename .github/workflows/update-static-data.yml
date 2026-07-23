@@ -42,6 +42,10 @@ jobs:
       # the freshly generated asset before proposing it — PRs opened with GITHUB_TOKEN
       # don't trigger app-test.yml, so this is the only gate the data gets.
       - uses: dtolnay/rust-toolchain@stable
+      - name: Cache Rust build
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: apps/warbandeer-desktop/src-tauri -> target
       - name: Validate the regenerated bundle
         working-directory: apps/warbandeer-desktop/src-tauri
         run: cargo test --lib staticdata

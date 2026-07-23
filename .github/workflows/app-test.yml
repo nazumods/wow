@@ -40,6 +40,11 @@ jobs:
         with:
           components: clippy
 
+      - name: Cache Rust build
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: apps/warbandeer-desktop/src-tauri -> target
+
       - name: Install frontend dependencies
         run: npm ci
 
