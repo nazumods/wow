@@ -80,6 +80,10 @@ function DressingRoom:TogglePicker(force, target)
     -- Opening: re-scope to the previewed class if it changed (Steps while closed don't rescope) —
     -- which re-applies the target too — else just (re)apply the current one.
     if self._pickerClass ~= self._classIndex then self:_rescopePicker() else self:_applyPickerTarget() end
+    -- Both panes dock to the same edge, so only one can be there. Purely a physical constraint,
+    -- not a mode: the browsed weapon stays on the doll and in its slot, and clicking a weapon cell
+    -- brings the chooser straight back (#673).
+    self:HideCellChooser()
   end
   self._picker:SetShown(force)
   -- Reflect the open/targeted state on both sets of slot borders.

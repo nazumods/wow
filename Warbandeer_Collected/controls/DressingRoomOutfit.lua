@@ -70,8 +70,8 @@ function DressingRoom:ComposeOutfit()
   -- silently replaced a loaded look with the stale set's armor. Per-slot toggles are honoured in
   -- both modes.
   --
-  -- A weapon-cell preview (group.weaponCell) has a synthetic set id with no C_TransmogSets
-  -- sources behind it, so there is no armor half to walk — its weapon lives in the look fields below.
+  -- A browsed weapon needs no case of its own: it's a pick in the composed look, so the look fields
+  -- below carry it exactly as a look-builder pick, whichever branch the armour comes from (#673).
   if self._outfit then
     for _, slotID in ipairs(ns.OutfitSlotOrder) do
       local info = self._outfit[slotID]
@@ -85,7 +85,7 @@ function DressingRoom:ComposeOutfit()
         list[slotID].secondaryAppearanceID = info.secondaryAppearanceID or 0
       end
     end
-  elseif self._set and self._set.id and not (self._group and self._group.weaponCell) then
+  elseif self._set and self._set.id then
     for _, src in ipairs(self:_currentSources()) do
       local slot = ns.SourceSlot(src)
       if slot then list[slot].appearanceID = src end
@@ -208,12 +208,14 @@ end
 -- ── Outfit mode ────────────────────────────────────────────────────────────────--
 --
 -- A loaded custom set is a look that is NOT a `ns.Sets` entry, so the room can't drive its armor
--- columns off `self._set` the way `UpdateSlots` does. The room already had one such alternate
--- mode — `group.weaponCell`, the weapon-cell preview — and `_load` branches on it; this is the
--- parallel: `self._outfit` holds the applied list, the armor slots render from THAT, and
--- everything keyed to a set id (rank buttons, Wanted, the id label, the class icon, the
--- difficulty tier bars) is hidden because an outfit has no set to rate. Previewing any set again
--- runs `_load`, which clears the mode.
+-- columns off `self._set` the way `UpdateSlots` does: `self._outfit` holds the applied list, the
+-- armor slots render from THAT, and everything keyed to a set id (rank buttons, Wanted, the id
+-- label, the class icon, the difficulty tier bars) is hidden because an outfit has no set to rate.
+-- Previewing any set again runs `_load`, which clears the mode.
+--
+-- This is the room's ONE alternate mode now. The weapon-cell preview used to be a second — `_load`
+-- branched on `group.weaponCell` and rendered a bare body — until #673 made a browsed weapon an
+-- ordinary pick in the composed look, on the same doll, needing no mode at all.
 
 ---Show a loaded custom set: apply it, retitle to the set's name, and swap the room into
 ---outfit mode. `_load` is the only way back out.
@@ -222,11 +224,13 @@ end
 function DressingRoom:EnterOutfitMode(name, list)
   self:ApplyOutfit(list)
   self._outfit = list
-  -- A loaded look belongs to NEITHER grid — both cursors clear below — so `_view = nil` keeps the
-  -- collection window's toggle from swapping it for a remembered preview (`PreviewToRestore` returns
-  -- nil for a nil `_view`, #656). The remembered previews themselves are kept: previewing a set
-  -- again exits this mode and re-records one.
-  self._view = nil
+  -- A loaded look replaces the weapons too (ApplyOutfit writes them into the look fields), so the
+  -- browsed cell goes with the doll it was on: leaving it would dock a chooser whose highlighted row
+  -- names a weapon the model isn't holding, and point ↑/↓ at it. Both grid cursors clear below for
+  -- the same reason — a loaded look belongs to neither.
+  self._cell = nil
+  self._cellHand = nil
+  self._focus = "armor"
   self:Title(name)
   self._idLabel:Text("")
   self._masterName = nil
@@ -235,8 +239,6 @@ function DressingRoom:EnterOutfitMode(name, list)
   self._tierBarR:Hide()
   if self._ratingsBoxes then for _, b in ipairs(self._ratingsBoxes) do b:Hide() end end
   if self._wantBox then self._wantBox:Hide() end
-  self:_showSlots(true)
-  self:_showWeaponSlots(true)
   self:HideCellChooser()
   self:UpdateSlotsFromOutfit()
   self:_syncUndressBorder()

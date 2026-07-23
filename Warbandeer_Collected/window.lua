@@ -205,12 +205,11 @@ function MainWindow:SetMode(weapons)
   self:Width(max(110, self.active:Width() + (weapons and 20 or 4)))   -- +scrollbar room in weapon mode
   self:RefreshCounter()
   self:_fitToGrid()
-  -- The preview follows the toggle (#656). Without this the grids and the room were independent
-  -- surfaces — toggling back to Armor left the weapon you last clicked still on the model. Only an
-  -- ALREADY-OPEN room is touched (`OpenDressingRoom` is nil for a closed one), and it's left alone
-  -- when there's nothing to switch to; the whole decision table is `ns.PreviewToRestore`.
-  local room = ns.OpenDressingRoom()
-  if room then room:RestoreViewPreview(weapons) end
+  -- The preview window is deliberately NOT touched here (#673). It used to be: with two dolls, one
+  -- per view, the toggle had to swap which was on screen or toggling back to Armor left a weapon on
+  -- the model (#656). There is one doll now — the armour set and the browsed weapon are on it
+  -- together — so there is nothing to swap, and this is back to what it says it is: which grid is
+  -- shown, and nothing else. Every other action is on the one model viewer.
 end
 
 ---Cap the visible grid at the shared `DataView.MAX_HEIGHT` and size the window with the

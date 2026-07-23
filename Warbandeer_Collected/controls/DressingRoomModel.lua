@@ -19,6 +19,7 @@ local SELECTED, IDLE, tierBar = k.SELECTED, k.IDLE, k.tierBar
 ---@return number[]
 function DressingRoom:_currentSources()
   local sources = {}
+  if not self._set then return sources end   -- a weapon browsed before any set: nothing to wear
   for _, src in ipairs(GetAllSourceIDs(self._set.id)) do
     local slot = ns.SourceSlot(src)
     if not (slot and self._hiddenSlots[slot]) then sources[#sources + 1] = src end
@@ -33,7 +34,10 @@ end
 -- over, so it can't show a set — hence the gender follows the logged-in character
 -- (see _syncGenderToggle). Sizing is handled by the model's bounding-box normalization.
 function DressingRoom:Dress()
-  if not self._set then return end
+  -- Marks the actor as rendered at least once, so `_loadCell` knows whether a browsed weapon has a
+  -- body to hang on or needs one skinned first. Set before the async load, which is the point: a
+  -- second browse must not queue another re-skin while the first is still in flight.
+  self._dressed = true
   -- The body always renders as the logged-in character's gender (it can't be
   -- overridden), and the race defaults to theirs until one is picked. Seed the race
   -- here so it always resolves regardless of how Dress was reached (the open path
@@ -45,13 +49,13 @@ function DressingRoom:Dress()
   -- others are the entry itself.
   local form = self:_resolvedForm()
 
-  -- A weapon cell previews a held weapon, not armor — a separate render path.
-  if self._group and self._group.weaponCell then return self:_dressWeapon(m, form) end
-
   -- Decide the outfit BEFORE (re)loading the model. The re-skin loads async and
   -- resets the actor to its default body once the load finishes, so the model
   -- re-applies this on its load callback (Model:Outfit). _currentSources drops the
-  -- pieces the user toggled off (all slots off = undressed).
+  -- pieces the user toggled off (all slots off = undressed), and is empty when no set is
+  -- previewed at all — a bare body for a browsed weapon to hang on, which is the render the old
+  -- weapon-cell branch built a whole second doll to get (#673). The composed look rides on top
+  -- either way: SlotTransmog survives the re-skin.
   m:Outfit(self:_currentSources())
 
   -- Set normalization BEFORE the re-skin: `Model:Unit` arms the re-apply machinery
@@ -89,75 +93,6 @@ end
 function ns.HostWeaponAppearance()
   local mh = GetInventoryItemID("player", INVSLOT_MAINHAND)
   return mh and select(2, C_TransmogCollection.GetItemInfo(mh)) or nil
-end
-
--- Weapon-cell preview: render the char's race holding the previewed weapon appearance. Bare body;
--- the focus is the weapon. Up/down cycles `_weaponPiece` through the cell's looks (see
--- StepTierVisual). The logged-in character's race only.
---
--- This used to carry two more branches — a Legion arsenal bundle and an enchant illusion on a host
--- weapon — for the `kind`-tagged groups `data/weapons.lua` put in the ARMOR grid (#516). #653
--- removed both: the arsenals became ordinary Weapons-grid rows and arrive here through the same
--- weapon-cell path as every other weapon, and illusions were never a grid concept — they live in
--- the look builder's Illusions tab, which composes them onto the model through `_applyLook`.
----@param m Model
----@param form table?
-function DressingRoom:_dressWeapon(m, form)
-  local set = self._set
-  local idx = self._weaponPiece or 1
-  -- Strip EVERY composed-look slot before rendering: this shows a BARE body with the previewed
-  -- weapon as the focus, and a SlotTransmog override outlives the re-skin, so anything left here
-  -- keeps re-appearing on that body — with all of the look-builder's slots hidden in this mode,
-  -- leaving no way to take it off. The picks stay on the room; _load's armor branch re-asserts
-  -- them through _applyLook when a set is previewed again. #641.
-  m:ClearSlotTransmog(INVSLOT_MAINHAND)
-  m:ClearSlotTransmog(INVSLOT_OFFHAND)
-  m:ClearSlotTransmog(INVSLOT_BODY)
-  m:ClearSlotTransmog(INVSLOT_TABARD)
-  -- FORCE the weapon onto the hand with SlotTransmog rather than Outfit — Outfit drops a weapon the
-  -- character's class can't equip (an axe wouldn't show for a caster), while SlotTransmog renders
-  -- any appearance on any character (the look-builder relies on this). Shields/off-hands → off hand.
-  -- Render the SPECIFIC appearance's source (WeaponSource picked it per visualID), NOT the item's
-  -- default modified-appearance: GetItemInfo(itemID) returns the base-difficulty look, so several
-  -- distinct visuals of one base weapon (e.g. difficulty recolours) would all collapse to one render.
-  -- SlotTransmog takes an appearance sourceID directly, exactly as the look-builder does.
-  local look = set._looks[idx]
-  m:Outfit({})   -- bare body; the weapon is the focus, forced on below
-  if look and look.sourceID then m:SlotTransmog(set._offHand and INVSLOT_OFFHAND or INVSLOT_MAINHAND, look.sourceID) end
-
-  self:_titleWeapon()   -- surface the previewed piece's real name in the title bar
-
-  m:Aggressiveness(form and form.normalize or ns.NORMALIZE_AGGRESSIVENESS)
-  m:Scale(1)
-  self._scaleSlider:Value(1)
-  local _, _, playerRace = UnitRace("player")
-  local renderRace = (form and form.race) or self._raceID
-  if renderRace == ns.CanonRace(playerRace) then renderRace = nil end
-  m:Unit("player", renderRace, form and form.useNativeForm)
-end
-
--- Title the window with the previewed weapon's real name (+ position when the cell holds several:
--- "Frostbrand (2/5)"). Item names load async, so retitle shortly (capped, no re-skin) until the
--- name is cached, guarding against a set/piece change mid-wait.
-function DressingRoom:_titleWeapon()
-  local set, idx = self._set, self._weaponPiece or 1
-  local count = #set._looks
-  local look = set._looks[idx]
-  local name = look and C_Item.GetItemNameByID(look.itemID)
-  if look and not name then C_Item.RequestLoadItemDataByID(look.itemID) end
-  if name and look.difficulty then name = name .. " — " .. look.difficulty end   -- disambiguate difficulty recolours
-  self:Title((name or set.name) .. (count > 1 and (" (%d/%d)"):format(idx, count) or ""))
-
-  if self._weaponTitleTimer then self._weaponTitleTimer:Cancel(); self._weaponTitleTimer = nil end
-  if not name and (self._weaponTitleTries or 0) < 10 then
-    self._weaponTitleTries = (self._weaponTitleTries or 0) + 1
-    self._weaponTitleTimer = C_Timer.NewTimer(0.2, function()
-      self._weaponTitleTimer = nil
-      if self._set == set and (self._weaponPiece or 1) == idx then self:_titleWeapon() end
-    end)
-  else
-    self._weaponTitleTries = 0
-  end
 end
 
 -- Point the title-bar class icon at the class in column `classId` (hidden if the
@@ -250,8 +185,9 @@ ns.ShowDressingRoom = function(group, set)
   -- live client: there's nothing for the 3D model to render, so don't open an empty
   -- viewer; point the user to the PTR instead. On a PTR client these resolve and the
   -- preview opens normally. (Live sets, incl. Trading Post variants, always return pieces
-  -- here.) Weapon-cosmetic groups (kind) have synthetic ids with no C_TransmogSets
-  -- sources, so skip this gate — they render via _dressWeapon on the char's own race.
+  -- here.) A weapon cell carries a synthetic set with no C_TransmogSets sources, so skip
+  -- this gate — it stages onto the doll rather than being worn as a set (see
+  -- controls/WeaponCellPreview.lua).
   if not (group and group.weaponCell) and set and set.id then
     local src = GetAllSourceIDs(set.id)
     if not src or #src == 0 then

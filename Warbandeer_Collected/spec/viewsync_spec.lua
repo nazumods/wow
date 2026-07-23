@@ -18,37 +18,6 @@ describe("view sync", function()
     ns = collected.loadViewSync(collected.load())
   end)
 
-  describe("PreviewToRestore", function()
-    local ARMOR = { group = "armor group", set = "armor set" }
-    local WEAPON = { group = "weapon group", set = "weapon set" }
-    local memory = { armor = ARMOR, weapons = WEAPON }
-
-    it("restores the target view's preview when switching away from the other one", function()
-      assert.equal(WEAPON, ns.PreviewToRestore("armor", "weapons", memory))
-      assert.equal(ARMOR, ns.PreviewToRestore("weapons", "armor", memory))
-    end)
-
-    -- Re-selecting the view already on screen must not re-Dress the model.
-    it("leaves the room alone when it already shows that view's preview", function()
-      assert.is_nil(ns.PreviewToRestore("armor", "armor", memory))
-      assert.is_nil(ns.PreviewToRestore("weapons", "weapons", memory))
-    end)
-
-    it("leaves the room alone when the target view has no previous preview", function()
-      assert.is_nil(ns.PreviewToRestore("armor", "weapons", { armor = ARMOR }))
-      assert.is_nil(ns.PreviewToRestore("weapons", "armor", { weapons = WEAPON }))
-      assert.is_nil(ns.PreviewToRestore("armor", "weapons", {}))
-      assert.is_nil(ns.PreviewToRestore("armor", "weapons", nil))
-    end)
-
-    -- Outfit mode: a loaded library look belongs to neither grid (both cursors clear when one
-    -- loads), so toggling a grid must not swap it out from under the user.
-    it("never disturbs a loaded look", function()
-      assert.is_nil(ns.PreviewToRestore(nil, "armor", memory))
-      assert.is_nil(ns.PreviewToRestore(nil, "weapons", memory))
-    end)
-  end)
-
   describe("WeaponHands", function()
     local function hands(category)
       local main, off = ns.WeaponHands(category)
@@ -126,6 +95,104 @@ describe("view sync", function()
       assert.is_false(ns.SuppressesOffHand(CATEGORY.Shield))
       assert.is_false(ns.SuppressesOffHand(CATEGORY.Chest))
       assert.is_false(ns.SuppressesOffHand(nil))
+    end)
+  end)
+
+  -- Browsing a weapon cell stages it onto the ONE paper doll straight away (#673), so the default
+  -- hand is what the model actually puts on the moment a cell is clicked — not just what a button
+  -- would offer.
+  describe("DefaultWeaponHand", function()
+    it("sends everything the main hand can hold to the main hand", function()
+      for _, name in ipairs({"OneHAxe", "OneHSword", "OneHMace", "Dagger", "Fist", "Warglaives",
+                             "TwoHAxe", "TwoHSword", "TwoHMace", "Polearm", "Staff",
+                             "Bow", "Gun", "Crossbow", "Wand"}) do
+        assert.equal("main", ns.DefaultWeaponHand(CATEGORY[name]), name .. " should browse into the main hand")
+      end
+    end)
+
+    -- The two types with no main hand to fall back on — the whole reason this isn't just "main".
+    it("sends the off-hand-only types to the off hand", function()
+      assert.equal("off", ns.DefaultWeaponHand(CATEGORY.Shield))
+      assert.equal("off", ns.DefaultWeaponHand(CATEGORY.Holdable))
+    end)
+
+    it("stages nothing for a category that isn't a weapon", function()
+      assert.is_nil(ns.DefaultWeaponHand(CATEGORY.Chest))
+      assert.is_nil(ns.DefaultWeaponHand(CATEGORY.Paired))
+      assert.is_nil(ns.DefaultWeaponHand(nil))
+    end)
+  end)
+
+  describe("StageCellWeapon", function()
+    local EMPTY = {}
+
+    it("browses into the type's default hand", function()
+      local out = ns.StageCellWeapon(CATEGORY.OneHSword, nil, 111, EMPTY)
+      assert.same({ mainHand = 111, offHand = nil, noOffHand = nil, hand = "main" }, out)
+
+      out = ns.StageCellWeapon(CATEGORY.Shield, nil, 222, EMPTY)
+      assert.same({ mainHand = nil, offHand = 222, noOffHand = nil, hand = "off" }, out)
+    end)
+
+    -- ↑/↓ through a cell's colour variants: the same hand, the new appearance, nothing accumulated.
+    it("replaces in place when stepping to another look in the same hand", function()
+      local out = ns.StageCellWeapon(CATEGORY.OneHSword, "main", 222,
+        { mainHand = 111, hand = "main" })
+      assert.same({ mainHand = 222, offHand = nil, noOffHand = nil, hand = "main" }, out)
+    end)
+
+    -- Browsing a sword and then a shield builds a PAIR: a new cell carries no `hand`, so neither
+    -- disturbs the other. This is the flow the second bare doll made impossible.
+    it("leaves the other hand alone when a different cell is browsed", function()
+      local out = ns.StageCellWeapon(CATEGORY.Shield, nil, 222, { mainHand = 111 })
+      assert.same({ mainHand = 111, offHand = 222, noOffHand = nil, hand = "off" }, out)
+    end)
+
+    -- The chooser's hand buttons are a selector, not a second copy: moving vacates the hand left.
+    it("vacates the hand it is moving out of", function()
+      local out = ns.StageCellWeapon(CATEGORY.OneHSword, "off", 111,
+        { mainHand = 111, hand = "main" })
+      assert.same({ mainHand = nil, offHand = 111, noOffHand = nil, hand = "off" }, out)
+
+      out = ns.StageCellWeapon(CATEGORY.OneHSword, "main", 111, { offHand = 111, hand = "off" })
+      assert.same({ mainHand = 111, offHand = nil, noOffHand = nil, hand = "main" }, out)
+    end)
+
+    -- `noOffHand` is the main-hand pick's business alone, so it follows a main-hand stage and is
+    -- dropped when the main hand is vacated — never touched by an off-hand one.
+    it("derives the off-hand suppression from the main-hand pick", function()
+      local out = ns.StageCellWeapon(CATEGORY.Staff, nil, 111, EMPTY)
+      assert.is_true(out.noOffHand)
+
+      -- A Titan's Grip two-hander is equally two-handed but pairs, so it must NOT suppress (#661).
+      out = ns.StageCellWeapon(CATEGORY.TwoHAxe, nil, 111, EMPTY)
+      assert.is_nil(out.noOffHand)
+
+      -- Vacating the main hand drops the suppression with it: no main-hand pick, nothing to
+      -- suppress. (A staff can't be the one moving — it's main-only, so asking for the off hand
+      -- keeps it in the main; that fallback is asserted below.)
+      out = ns.StageCellWeapon(CATEGORY.OneHSword, "off", 111,
+        { mainHand = 111, noOffHand = true, hand = "main" })
+      assert.is_nil(out.noOffHand)
+
+      -- An off-hand stage never rewrites what the main hand decided.
+      out = ns.StageCellWeapon(CATEGORY.Shield, nil, 222, { mainHand = 111, noOffHand = true })
+      assert.is_true(out.noOffHand)
+    end)
+
+    -- The chooser greys the ineligible button, but the rule can't depend on that having been
+    -- honoured: a shield asked into the main hand still lands where a shield can go.
+    it("falls back to the default hand when the one asked for is ineligible", function()
+      local out = ns.StageCellWeapon(CATEGORY.Shield, "main", 222, EMPTY)
+      assert.same({ mainHand = nil, offHand = 222, noOffHand = nil, hand = "off" }, out)
+
+      out = ns.StageCellWeapon(CATEGORY.Staff, "off", 111, EMPTY)
+      assert.same({ mainHand = 111, offHand = nil, noOffHand = true, hand = "main" }, out)
+    end)
+
+    it("stages nothing, and disturbs nothing, for a non-weapon category", function()
+      local out = ns.StageCellWeapon(CATEGORY.Chest, nil, 333, { mainHand = 111, offHand = 222 })
+      assert.same({ mainHand = 111, offHand = 222, noOffHand = nil, hand = nil }, out)
     end)
   end)
 
