@@ -235,6 +235,7 @@ Singleton `ui.tip`. Helpers: `ui.ShowCharacterTooltip(toon, frame, position)`, `
 ## Gotchas
 
 - **TableFrame `offsetX`/`offsetY` are baked in at construction** from whether `rowNames`/`colNames` are non-nil (`offsetX = rowNames ~= nil and headerWidth or 0`). For dynamic tables built with `addRow`/`addCol`, pass `rowNames = {}` / `colNames = {}` or row data overlaps the headers.
+- **`Region:Position` ACCUMULATES anchors — it never clears.** It just dispatches each key to the matching `Region` method (`TopLeft` → `SetPoint`), and `SetPoint` is additive. So a *second* `Position` call re-anchoring with a **different** point leaves the previous anchor in force and the widget lands where neither call asked; re-anchoring with the **same** point replaces that anchor, which is why the bug hides until someone switches `TopLeft` → `Left`. Call `ClearAllPoints()` before re-positioning (`FilterDropdown:_row` does this for its pooled rows). Only affects re-positioning — the constructor's `position` runs once on a fresh widget.
 - **`Frame:onUpdate(elapsed)` receives milliseconds**, not seconds (Frame multiplies WoW's seconds by 1000). `Frame:delay(ms, fn)` likewise takes ms.
 - **`special = true`** registers the frame in `_G` and `UISpecialFrames` (Escape closes it) — only for top-level windows. `Dialog` does this unconditionally.
 - **`SecureButton`**: never call `SetAttribute` during combat (taint).

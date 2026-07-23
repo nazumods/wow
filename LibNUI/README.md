@@ -70,6 +70,23 @@ position = {
 }
 ```
 
+> **`Position` adds anchors — it does not replace them.** Each key is forwarded straight to
+> `SetPoint`, and nothing clears what was there before. Calling `Position` a second time therefore
+> *accumulates*: re-anchoring a widget with a **different** point than it already has leaves the old
+> anchor in force too, and the widget lands somewhere neither call asked for. Re-anchoring with the
+> **same** point replaces that one anchor, which is why this often appears to work until the day you
+> switch from `TopLeft` to `Left`.
+>
+> To move a widget, clear first:
+>
+> ```lua
+> row:ClearAllPoints()
+> row:Position{ TopLeft = {list, "TOPLEFT", 0, -y} }
+> ```
+>
+> This only affects **re-**positioning; the constructor's `position` runs once on a fresh widget.
+> `FilterDropdown` re-lays its pooled rows this way.
+
 ### Themes
 
 Built-in widget styling lives in `ui.themes.dark` as named tokens (`colors`, `fonts`, `textures`). Widgets resolve styling against the **active theme**: the `theme` constructor option, inherited through the parent widget chain, falling back to `ui.themes.dark`. Pass a theme once on a top-level window and every child widget inherits it.
