@@ -147,7 +147,12 @@ the Tauri CLI). `npm run icon:source` regenerates the bundled placeholder mark f
 GitHub release whenever the app's source changes on `main` (doc-only changes are
 ignored). The release is tagged `app-warbandeer-desktop-v<version>` and the exe is
 attached as `Warbandeer-v<version>-portable.exe`, where `<version>` comes from
-`src-tauri/tauri.conf.json`. Bump that `version` (and keep `package.json` +
-`src-tauri/Cargo.toml` in sync) to cut a new release; pushes that don't change the
-version refresh the current release's asset. App tags use the `app-` prefix so the
-addon CurseForge publisher skips them.
+`src-tauri/tauri.conf.json`.
+
+**Every source change to the app needs a version bump** — edit that `version` and keep
+`package.json` + `src-tauri/Cargo.toml` in sync. GitHub releases are **immutable**, so a
+push that leaves the version alone can't refresh the existing release's asset: the job
+fails with `Cannot delete asset from an immutable release` and **no exe is published**.
+The failure is easy to miss, since it happens after the merge rather than in PR CI.
+
+App tags use the `app-` prefix so the addon CurseForge publisher skips them.
