@@ -89,6 +89,17 @@ The backend auto-detects the `_retail_` folder (it walks up from the app, which 
 under `…/_retail_/Interface/AddOns/apps/`, and falls back to the default install path).
 Override with the `WOW_DIR` environment variable if your install is elsewhere.
 
+## Bundled game data
+
+Some things WoW saves as bare ids — currency amounts, for instance, are stored without the
+currency's name, icon or cap. The app has no network access, so it ships a small lookup
+table (`src-tauri/data/static-data.json`, generated from [wago.tools](https://wago.tools))
+compiled into the exe. Nothing to install or configure; it just means currency ids can be
+shown as names and icons offline.
+
+The table is refreshed by CI and regenerated with `pwsh Tooling/update-static-data.ps1`
+from the repo root — see `Tooling/UPDATING-static-data.md`.
+
 ## Develop
 
 ```sh

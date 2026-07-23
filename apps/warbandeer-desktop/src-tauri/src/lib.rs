@@ -4,6 +4,7 @@ mod combatlog;
 mod model;
 mod overview;
 mod savedvars;
+mod staticdata;
 mod wow;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -24,6 +25,8 @@ pub fn run() {
             botops::bot_restart,
             botops::bot_env_get,
             botops::bot_env_set,
+            staticdata::get_currency_meta,
+            staticdata::static_data_build,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
