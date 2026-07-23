@@ -50,6 +50,7 @@ local ns = select(2, ...)
 ---@field LibraryOutfit fun(name: string): LibraryOutfit?, number?
 ---@field FilterOutfits fun(outfits: LibraryOutfit[], filter: OutfitFilter?): LibraryOutfit[]
 ---@field LibraryFacets fun(outfits: LibraryOutfit[]): string[]
+---@field ImportLibraryOutfit fun(name: string, list: table[], meta: OutfitMeta?): string, string
 ---@field LibraryOutfitList fun(name: string): table[]?, string?
 ---@field SaveLibraryOutfit fun(name: string, list: table[], meta: OutfitMeta?): boolean, string?
 ---@field RenameLibraryOutfit fun(oldName: string, newName: string): boolean, string?
@@ -129,6 +130,53 @@ function ns.SaveLibraryOutfit(name, list, meta)
   entry.look = ns.EncodeOutfit(list)
   for _, field in ipairs(META) do entry[field] = meta and meta[field] or nil end
   return true
+end
+
+---Add `list` to the library under `name` **without ever replacing an existing entry** — the write
+---path for importing the game's own per-character transmog sets (#663), where the incoming names
+---are not the user's to choose and will collide across characters.
+---
+---Three outcomes, and the middle one is what makes re-importing a character safe:
+---
+---| the name is | and | result |
+---|---|---|---|
+---| free | — | saved under it (`"saved"`) |
+---| taken | by the **same look** | left alone (`"skipped"`) — it is already in the library |
+---| taken | by a **different** look | saved as `name (2)`, `(3)`… (`"renamed"`) |
+---
+---Comparing the ENCODED look rather than the name is what earns this its complexity. The realistic
+---use is running an import on each of a dozen alts, and re-running it on one already done: a
+---name-only rule would either spawn `TWW 1 (2)`, `(3)`, `(4)` on every pass, or silently drop a
+---genuinely different `TWW 1` that another character happened to name the same. The suffix scan
+---applies the same test, so an import stays idempotent even after one collision has renamed it.
+---
+---Never replaces, never deletes — the library is account-wide and its entries may predate any
+---character being imported from.
+---@param name string  the set's own name; assumed non-empty (`ns.CustomSets` substitutes one)
+---@param list table[]
+---@param meta OutfitMeta?
+---@return string status  "saved" | "skipped" | "renamed"
+---@return string name  the name the look actually landed under
+function ns.ImportLibraryOutfit(name, list, meta)
+  name = clean(name)
+  local encoded = ns.EncodeOutfit(list)
+  local entry = ns.LibraryOutfit(name)
+  if not entry then
+    ns.SaveLibraryOutfit(name, list, meta)
+    return "saved", name
+  end
+  if entry.look == encoded then return "skipped", name end
+  local n = 2
+  while true do
+    local candidate = ("%s (%d)"):format(name, n)
+    local taken = ns.LibraryOutfit(candidate)
+    if not taken then
+      ns.SaveLibraryOutfit(candidate, list, meta)
+      return "renamed", candidate
+    end
+    if taken.look == encoded then return "skipped", candidate end
+    n = n + 1
+  end
 end
 
 

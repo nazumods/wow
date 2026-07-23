@@ -217,6 +217,20 @@ dropdown to open the library window — the same list, with room to search it:
 - Click any look to load it onto the model. Saving, renaming, deleting and pushing all stay on the
   outfit row, where the look you're building lives.
 
+**Bring your old transmog sets in.** Sets you saved in the game's own dressing room live on
+**one character only** — that's a WoW limitation, and it's the whole reason this library exists.
+**Import this character's sets** at the bottom of the window copies every one of them into the
+library, where every character can reach them. Do it once per alt.
+
+Nothing you already have is ever overwritten. A set whose name is already in your library is
+saved as *"name (2)"* instead, and one that's already been imported is simply left alone — so you
+can press the button again on a character you've already done, and nothing will pile up. You'll
+get a short summary of what happened either way.
+
+Imported looks record the character you imported them from and their armour type, but not which
+class's set they were built from — the game doesn't keep that once a set is saved, so it's simply
+unknown rather than guessed, and those looks show up under **every** class filter.
+
 Looks saved before the library started recording where looks came from show as *no provenance
 recorded* — and they're **never** hidden by a filter, so nothing you've saved can go missing behind
 one.
