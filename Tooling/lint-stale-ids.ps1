@@ -2,12 +2,12 @@
   lint-stale-ids.ps1 — validate hand-authored WoW id literals across the suite's static data
   files against the live client DB2 (wago.tools), so a stale or fat-fingered id is caught in CI
   instead of by a user hitting a blank/mismatched row. Supersedes the standalone
-  verify-weapons.ps1 — its two checks are now the weapons.* rules below.
+  verify-weapons.ps1 — its two checks are now the illusions.*/arsenals.* rules below.
 
   Each RULE names a data file, an id-extractor, and the DB2 column those ids must resolve against;
   the engine fetches each table once and checks membership. Adding a file to the lint = adding a
   rule. Most rules extract with a single-capture `rx` regex; a file whose ids don't fit one regex
-  supplies an `extract` scriptblock instead (see weapons.arsenalItemID).
+  supplies an `extract` scriptblock instead (see arsenals.visualID).
 
   Severity:
     fail  a miss means the id is stale/typo'd -> non-zero exit (CI gate).
@@ -22,8 +22,9 @@
       mount's Mount.SourceSpellID (e.g. 241856), so Mount.SourceSpellID catches most but not all.
       The 21 classmount itemIDs validate reliably against Item and stay fail-severity.
     * professioninfo.spellID is skipped (would need the huge Spell table for marginal value).
-    * weapons illusion sourceIDs map to TransmogIllusion.SpellItemEnchantmentID, NOT .ID (.ID runs
-      2..103, the sourceIDs ~5000+); weapons arsenal/pieces itemIDs -> Item.ID.
+    * illusion sourceIDs map to TransmogIllusion.SpellItemEnchantmentID, NOT .ID (.ID runs
+      2..103, the sourceIDs ~5000+). Arsenal ids are APPEARANCE ids since #653 (they were itemIDs
+      while the arsenals lived in the armour grid) -> ItemAppearance.ID.
     * Medium tier (glyphinfo/learnedunlocks/collectiblesources) all resolved cleanly — unlike the
       cheap tier's challengetames, SpellName (~404k rows) and QuestV2 keep the old spell/quest ids,
       so glyph->GlyphProperties.ID, spell->SpellName.ID, quest/startQuest->QuestV2.ID all hard-check.
@@ -46,14 +47,15 @@ param(
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path $PSScriptRoot -Parent
 
-# weapons.lua stores arsenal itemIDs in two literal forms — `arsenal = N` and multi-id
-# `pieces = { N, N, ... }` blocks — so this rule extracts with a scriptblock, not one regex.
+# arsenals.lua lists each arsenal's appearances in a multi-id `visuals = { N, N, ... }` block, so
+# this rule extracts with a scriptblock rather than one regex. The `types` map's keys are a SUBSET
+# of `visuals` (asserted in spec/arsenals_spec.lua), so pulling from `visuals` alone covers every
+# id without also picking up that map's VALUES, which are weapon-type enums, not appearances.
 # (The engine strips Lua comments before calling it, so stray comment digits can't leak in.)
-$extractArsenalItems = {
+$extractArsenalVisuals = {
   param($text)
   $ids = @()
-  $ids += [regex]::Matches($text, 'arsenal\s*=\s*(\d+)') | ForEach-Object { [int]$_.Groups[1].Value }
-  foreach ($blk in [regex]::Matches($text, 'pieces\s*=\s*\{([^}]*)\}')) {
+  foreach ($blk in [regex]::Matches($text, 'visuals\s*=\s*\{([^}]*)\}')) {
     $ids += [regex]::Matches($blk.Groups[1].Value, '\d+') | ForEach-Object { [int]$_.Value }
   }
   $ids
@@ -71,10 +73,12 @@ $rules = @(
   @{ file='Warbandeer_Characters/data/professioninfo.lua'; label='professioninfo.midVariantID';       rx='midVariantID\s*=\s*(\d+)';       table='SkillLine'; col='ID';            sev='fail'; big=$false }
   @{ file='Warbandeer_Characters/data/classmounts.lua';    label='classmounts.itemID';               rx='itemID\s*=\s*(\d+)';             table='Item';      col='ID';            sev='fail'; big=$true  }
   @{ file='Warbandeer_Characters/data/classmounts.lua';    label='classmounts.spellID';              rx='spellID\s*=\s*(\d+)';            table='Mount';     col='SourceSpellID'; sev='warn'; big=$false }
-  # weapons.lua (#516/#596): illusion sourceIDs resolve as TransmogIllusion.SpellItemEnchantmentID
-  # (NOT .ID); arsenal/pieces itemIDs are real Item rows. Folded in from verify-weapons.ps1.
-  @{ file='Warbandeer_Collected/data/weapons.lua';         label='weapons.illusionSourceID';         rx='sourceID\s*=\s*(\d+)';           table='TransmogIllusion'; col='SpellItemEnchantmentID'; sev='fail'; big=$false }
-  @{ file='Warbandeer_Collected/data/weapons.lua';         label='weapons.arsenalItemID';            extract=$extractArsenalItems;        table='Item';      col='ID';            sev='fail'; big=$true  }
+  # #653 split data/weapons.lua in two, so these two rules replace the old weapons.* pair. Illusion
+  # sourceIDs still resolve as TransmogIllusion.SpellItemEnchantmentID (NOT .ID); the arsenals now
+  # carry APPEARANCE ids rather than itemIDs, since they became Weapons-grid rows keyed the same way
+  # the generated data/weaponsources.lua is — so they check against ItemAppearance.ID.
+  @{ file='Warbandeer_Collected/data/illusions.lua';       label='illusions.sourceID';               rx='\[(\d+)\]\s*=\s*\d+';            table='TransmogIllusion'; col='SpellItemEnchantmentID'; sev='fail'; big=$false }
+  @{ file='Warbandeer_Collected/data/arsenals.lua';        label='arsenals.visualID';                extract=$extractArsenalVisuals;      table='ItemAppearance';   col='ID';                    sev='fail'; big=$false }
   # Medium tier — the larger catalogs. All mappings probed & confirmed (no trimmed source like
   # challengetames): glyph->GlyphProperties.ID, spell->SpellName.ID, quest/startQuest->QuestV2.ID.
   @{ file='Warbandeer_Characters/data/collectiblesources.lua'; label='collectiblesources.itemID';    rx='\[(\d+)\]\s*=';                    table='Item';            col='ID'; sev='fail'; big=$true  }
