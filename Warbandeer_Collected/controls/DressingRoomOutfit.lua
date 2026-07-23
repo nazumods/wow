@@ -147,15 +147,13 @@ local function pick(info)
   return appearanceID > 0 and appearanceID or nil
 end
 
--- Weapon categories that occupy both hands, borrowed from the look builder (WeaponPicker.lua
--- owns the list and explains why it has to be an explicit set rather than a flag test). Read at
--- call time so this file carries no load-order dependency on it.
+-- Whether a loaded look's main-hand occupies both hands, so `_lookMH2H` can be re-derived for a
+-- look this file didn't compose. viewsync.lua owns the category set and explains why it has to be
+-- an explicit list rather than a capability-flag test.
 ---@param sourceID number
 ---@return boolean
 local function isTwoHanded(sourceID)
-  local twoHanded = DressingRoom._TWO_HANDED
-  local category = sourceID and GetCategoryForItem(sourceID)
-  return (twoHanded and category and twoHanded[category]) or false
+  return ns.TwoHandedWeapon(sourceID and GetCategoryForItem(sourceID))
 end
 
 ---Dress the room from an outfit list — the inverse of ComposeOutfit.
@@ -221,6 +219,10 @@ end
 function DressingRoom:EnterOutfitMode(name, list)
   self:ApplyOutfit(list)
   self._outfit = list
+  -- A loaded look belongs to NEITHER grid — both cursors clear below — so the view toggle must
+  -- leave it alone rather than swap it for a remembered preview (#656). The remembered previews
+  -- themselves are kept: previewing a set again exits this mode and re-records one.
+  self._view = nil
   self:Title(name)
   self._idLabel:Text("")
   self._masterName = nil

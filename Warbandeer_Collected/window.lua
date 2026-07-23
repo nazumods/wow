@@ -220,6 +220,12 @@ function MainWindow:SetMode(weapons)
   self:Width(max(110, self.active:Width() + (weapons and 20 or 4)))   -- +scrollbar room in weapon mode
   self:RefreshCounter()
   self:_fitToGrid()
+  -- The preview follows the toggle (#656). Without this the grids and the room were independent
+  -- surfaces — toggling back to Armor left the weapon you last clicked still on the model. Only an
+  -- ALREADY-OPEN room is touched (`OpenDressingRoom` is nil for a closed one), and it's left alone
+  -- when there's nothing to switch to; the whole decision table is `ns.PreviewToRestore`.
+  local room = ns.OpenDressingRoom()
+  if room then room:RestoreViewPreview(weapons) end
 end
 
 ---Cap the visible grid at the shared `DataView.MAX_HEIGHT` and size the window with the

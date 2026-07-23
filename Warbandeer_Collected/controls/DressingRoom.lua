@@ -213,6 +213,11 @@ end
 ---@field _rescopePicker fun(self: DressingRoom)  re-scope the picker (weapon types + illusions) to the previewed set's class (WeaponPicker.lua)
 ---@field _applyWeaponTarget fun(self: DressingRoom)  shape the pane for a weapon target + repopulate the list (WeaponPicker.lua)
 ---@field _applyCosmeticTarget fun(self: DressingRoom)  shape the pane for a shirt/tabard target + repopulate (CosmeticPicker.lua)
+---@field _cellPane Frame?  the docked weapon-cell chooser pane, lazily built on the first weapon-cell preview (WeaponCellPicker.lua)
+---@field _cellList VirtualList  the previewed cell's look list (WeaponCellPicker.lua)
+---@field _cellUse table<string, table>?  the chooser's Main hand / Off hand staging buttons, keyed "main"/"off" (WeaponCellPicker.lua)
+---@field _useCellLook fun(self: DressingRoom, hand: string)  stage the shown cell look into a hand of the composed look (WeaponCellPicker.lua)
+---@field _syncCellActions fun(self: DressingRoom)  re-sync the hand buttons to the shown look (WeaponCellPicker.lua)
 local ROWH = 26         -- toggle-button height
 -- Four stacked control rows, each ROWH tall with PAD between: toggles (Undress/Background) at 0,
 -- ratings at TOPGAP, outfits at ROW3, sharing at ROW4. The faction panels start below all four.

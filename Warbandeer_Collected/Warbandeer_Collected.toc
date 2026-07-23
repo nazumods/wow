@@ -31,6 +31,7 @@ data\hidevisuals.lua
 data\models.lua
 
 ratings.lua
+viewsync.lua
 outfitcodec.lua
 outfit.lua
 outfitshare.lua
@@ -44,6 +45,7 @@ controls\DressingRoom.lua
 controls\DressingRoomBuild.lua
 controls\DressingRoomControls.lua
 controls\DressingRoomActions.lua
+controls\DressingRoomViews.lua
 controls\DressingRoomModel.lua
 controls\DressingRoomSlots.lua
 controls\DressingRoomSlotStates.lua

@@ -44,15 +44,6 @@ function DressingRoom:_rescopePicker()
   self:_applyPickerTarget()
 end
 
--- Off-hand-SLOT categories: shields + off-hand frills. GetCategoryInfo can't tell these from a
--- two-handed weapon by flag — a Shield and a TwoHSword report IDENTICAL isWeapon/canMainHand/
--- canOffHand (both canOffHand=false, since that flag is "can be a dual-wield off-hand WEAPON",
--- which neither is) — so the slot split needs an explicit set, not a flag test.
-local OFF_HAND_ONLY = {
-  [Enum.TransmogCollectionType.Shield]   = true,
-  [Enum.TransmogCollectionType.Holdable] = true,
-}
-
 -- Shape the pane for a weapon target (self._pickerTarget is "main" or "off"): restore the mode
 -- tabs + title the cosmetic targets hide, filter the weapon-category dropdown to that hand's
 -- categories (main-hand = anything NOT off-hand-only; off-hand = the off-hand-only set + dual-wield
@@ -70,8 +61,11 @@ function DressingRoom:_applyWeaponTarget()
   for _, c in ipairs(self._pickerCats) do
     -- Off-hand dropdown = the off-hand-only set (shields/holdables) + dual-wield 1H (`canOffHand`).
     -- Main-hand dropdown = everything NOT off-hand-only (1H, 2H, ranged, wands). Shields report the
-    -- SAME flags as 2H weapons, so only the explicit OFF_HAND_ONLY set can tell them apart.
-    local offHandOnly = OFF_HAND_ONLY[c.category]
+    -- SAME flags as 2H weapons, so only an explicit set can tell them apart — viewsync.lua owns it.
+    -- `canOffHand` stays the dual-wield test here and is NOT replaced by that file's static
+    -- one-handed set: this pane is scoped to a class, and a paladin must not be offered an
+    -- off-hand sword. (The class-agnostic weapon grid uses the static set — see ns.WeaponHands.)
+    local offHandOnly = ns.OffHandOnlyWeapon(c.category)
     if (off and (offHandOnly or c.canOffHand)) or (not off and not offHandOnly) then
       opts[#opts + 1] = { key = c.category, label = c.name }
       if c.category == self._pickerCategory then valid = true end
@@ -137,26 +131,6 @@ function DressingRoom:_populateIllusions()
   self._pickerList:SetItems(items)
 end
 
--- Weapon categories that occupy BOTH hands (no off-hand possible) — a main-hand pick in one of
--- these greys out the off-hand slot (#618). A POSITIVE list, deliberately not `not canOffHand`:
--- that flag means "can sit in the off-hand slot", which also excludes wands (a caster runs a wand
--- + off-hand) and would depend on how warglaives (dual-wield) are flagged. This names the real 2H.
-local TWO_HANDED = {
-  [Enum.TransmogCollectionType.TwoHAxe]   = true,
-  [Enum.TransmogCollectionType.TwoHSword] = true,
-  [Enum.TransmogCollectionType.TwoHMace]  = true,
-  [Enum.TransmogCollectionType.Polearm]   = true,
-  [Enum.TransmogCollectionType.Staff]     = true,
-  [Enum.TransmogCollectionType.Bow]       = true,
-  [Enum.TransmogCollectionType.Crossbow]  = true,
-  [Enum.TransmogCollectionType.Gun]       = true,
-}
-
--- Shared with the outfit path (controls/DressingRoomOutfit.lua), which has to re-derive
--- `_lookMH2H` when it loads a look it didn't compose. This file owns the list — see the comment
--- above for why it has to be an explicit set rather than a capability-flag test.
-DressingRoom._TWO_HANDED = TWO_HANDED
-
 -- Toggle a clicked piece into/out of the look: an illusion, or a weapon in the targeted hand.
 -- Clicking the applied piece again clears that slot. The apply + re-color tail is the shared
 -- _equipRow's (AppearancePicker.lua), which routes here for a weapon target.
@@ -174,7 +148,7 @@ function DressingRoom:_equipWeaponRow(item)
       self._lookMH = sid
       -- Grey the off-hand while a two-handed main-hand is composed (#618).
       local cat = self._pickerCatByID[self._pickerCategory]
-      self._lookMH2H = (cat and TWO_HANDED[cat.category]) or nil
+      self._lookMH2H = ns.TwoHandedWeapon(cat and cat.category) or nil
     end
   end
 end
