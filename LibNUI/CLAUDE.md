@@ -153,3 +153,5 @@ position = {
 ```
 
 Any key that maps to a method on `Region` is valid. Values are unpacked if a table, called directly if scalar, skipped if `false`.
+
+**`Position` adds anchors, it does not replace them** — each key goes straight to `SetPoint` and nothing clears the previous ones. Re-positioning a widget with a *different* point than it already carries leaves the old anchor in force. Always `ClearAllPoints()` first when moving an existing widget; the constructor's one-shot `position` is fine as-is.
