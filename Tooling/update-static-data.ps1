@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
-  Regenerate apps/warbandeer-desktop/src-tauri/data/static-data.json — the desktop
-  app's offline lookup layer — from live wago.tools DB2 data.
+  Regenerate apps/warbandeer-desktop/src-tauri/data/static-data.json — the suite's
+  offline currency lookup — from live wago.tools DB2 data.
 
 .DESCRIPTION
   The desktop app ships as a single portable exe and never talks to the network, so
@@ -12,8 +12,8 @@
   Blizzard REST equivalent — the Game Data API has no currency endpoint at all — so
   it is wago-only regardless of whether the app ever gains API credentials. Tables
   that REST *can* serve (achievements, titles, reputations, mounts, spells) are left
-  out on purpose; adding one later means extending $Tables, not reworking this file.
-  See UPDATING.md in this folder.
+  out on purpose; adding one later means extending the fetch below, not reworking this file.
+  See UPDATING-static-data.md in this folder.
 
   Two wago endpoints drive it:
     * /db2/<table>/csv?build=<b> — the table itself, pinned to a real product build
@@ -42,7 +42,12 @@
 #>
 [CmdletBinding()]
 param(
-  [string]$OutFile = (Join-Path $PSScriptRoot '..' 'src-tauri' 'data' 'static-data.json'),
+  # The bundle lives with its embedding consumer, not with this script: the desktop app
+  # compiles it in via include_str!, so it must sit under apps/warbandeer-desktop. The
+  # generator lives here because it serves more than that one app (wow-companion consumes
+  # the published release) and because anything under apps/warbandeer-desktop/ triggers
+  # app-release.yml — a generator edit must not cut a desktop release.
+  [string]$OutFile = (Join-Path $PSScriptRoot '..' 'apps' 'warbandeer-desktop' 'src-tauri' 'data' 'static-data.json'),
   [string]$Product = 'wow',
   [string]$Build,
   [string]$CacheDir,
@@ -176,7 +181,7 @@ if (Test-Path -LiteralPath $OutFile) {
 # scheduled refresh only opens a PR when the DATA moved.
 $bundle = [ordered]@{
   source     = 'wago.tools'
-  generator  = 'apps/warbandeer-desktop/tools/update-static-data.ps1'
+  generator  = 'Tooling/update-static-data.ps1'
   product    = $Product
   build      = $Build
   buildDate  = $buildDate

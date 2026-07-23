@@ -1,7 +1,14 @@
 # Updating the static data bundle
 
-`src-tauri/data/static-data.json` is **generated** — never hand-edit it. It is the desktop
-app's offline lookup layer: constant client data that SavedVariables only store ids for.
+`apps/warbandeer-desktop/src-tauri/data/static-data.json` is **generated** — never hand-edit
+it. It is the suite's offline lookup layer: constant client data that SavedVariables only
+store ids for.
+
+**Why the generator and its output live apart.** The bundle sits with the desktop app
+because that app compiles it in with `include_str!`. The generator sits in `Tooling/` for
+two reasons: it serves more than one consumer (`wow-companion` consumes the published
+release), and everything under `apps/warbandeer-desktop/` is in `app-release.yml`'s trigger
+path — a generator edit compiles into nothing, so it must not cut a desktop release.
 
 ## Why it exists
 
@@ -24,7 +31,7 @@ Adding a table later means extending the generator, not reworking it.
 ## Regenerating
 
 ```
-pwsh ./apps/warbandeer-desktop/tools/update-static-data.ps1
+pwsh ./Tooling/update-static-data.ps1
 ```
 
 | Flag | Effect |

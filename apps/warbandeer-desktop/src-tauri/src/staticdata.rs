@@ -2,8 +2,8 @@
 //!
 //! SavedVariables store currency *amounts* keyed by id, never the name, icon or cap —
 //! those live in DB2. The app ships as a single portable exe with no network access, so
-//! the bundle is generated at CI time by `tools/update-static-data.ps1` and embedded here
-//! rather than fetched. See that script (and `tools/UPDATING.md`) for provenance.
+//! the bundle is generated at CI time by `Tooling/update-static-data.ps1` and embedded here
+//! rather than fetched. See that script (and `Tooling/UPDATING-static-data.md`) for provenance.
 //!
 //! Scope is currency only, on purpose: it is the one lookup with no Blizzard REST
 //! equivalent (the Game Data API has no currency endpoint), so it stays wago-sourced

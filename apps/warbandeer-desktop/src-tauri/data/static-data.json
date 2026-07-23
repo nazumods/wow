@@ -1,6 +1,6 @@
 {
   "source": "wago.tools",
-  "generator": "apps/warbandeer-desktop/tools/update-static-data.ps1",
+  "generator": "Tooling/update-static-data.ps1",
   "product": "wow",
   "build": "12.0.7.68453",
   "buildDate": "2026-07-06",

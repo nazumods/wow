@@ -97,8 +97,8 @@ table (`src-tauri/data/static-data.json`, generated from [wago.tools](https://wa
 compiled into the exe. Nothing to install or configure; it just means currency ids can be
 shown as names and icons offline.
 
-The table is refreshed by CI and regenerated with
-`pwsh tools/update-static-data.ps1` — see [tools/UPDATING.md](tools/UPDATING.md).
+The table is refreshed by CI and regenerated with `pwsh Tooling/update-static-data.ps1`
+from the repo root — see `Tooling/UPDATING-static-data.md`.
 
 ## Develop
 

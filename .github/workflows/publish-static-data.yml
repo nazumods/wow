@@ -81,7 +81,7 @@ jobs:
             '' \
             "* Source: [wago.tools](https://wago.tools) \`CurrencyTypes\`, client build \`${{ steps.meta.outputs.build }}\`" \
             "* Rows: ${{ steps.meta.outputs.count }}" \
-            '* Generator: `apps/warbandeer-desktop/tools/update-static-data.ps1`' \
+            '* Generator: `Tooling/update-static-data.ps1`' \
             '' \
             'The `warbandeer-desktop` app does not consume this release — it embeds the same file at compile time. This asset exists for external consumers (e.g. `roshne/wow-companion`).' \
             '' \
