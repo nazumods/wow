@@ -2,33 +2,34 @@ name: app-release
 
 # Release step for the `apps/` desktop companion — the analogue of the addon
 # release flow (.github/scripts/release.sh), but for the Tauri app instead of a
-# WoW addon. Runs whenever the app's source changes on main (doc-only changes are
-# ignored, mirroring the addon flow), builds a PORTABLE Windows .exe (no installer),
-# and attaches it to a GitHub release tagged `app-warbandeer-desktop-v<version>`.
+# WoW addon. Runs on a daily cron (not on push — see below), auto-bumps the
+# version when there are unreleased commits, builds a PORTABLE Windows .exe (no
+# installer), and attaches it to a GitHub release tagged
+# `app-warbandeer-desktop-v<version>`.
 #
 # Portable build: `bundle.active` is false in tauri.conf.json, so `tauri build`
 # produces the standalone exe (target/release/*.exe) and skips NSIS/MSI installers.
 # The exe needs the Evergreen WebView2 runtime, preinstalled on Windows 10/11.
 #
-# Versioning is driven by `src-tauri/tauri.conf.json`'s `version` (keep package.json
-# + Cargo.toml in sync). Bump it to cut a new release; pushes that don't change the
-# version refresh the current release's asset. Auto-bumping is intentionally NOT done
-# here (it would commit back into apps/ and re-trigger this path-filtered workflow in
-# a loop — the addon flow avoids that by running on a cron, not on push).
+# Versioning is auto-bumped by `.github/scripts/app-release.sh` (keeps
+# tauri.conf.json + package.json + Cargo.toml + Cargo.lock in sync) whenever
+# commits landed since the last app-* tag; no manual version bump needed.
+# This runs on a cron instead of on push (like the addon flow) because the
+# bump commit is pushed with an admin token to bypass main's ruleset, and
+# admin-token pushes (unlike the default GITHUB_TOKEN) do re-trigger
+# push-based workflows — a push trigger here would release itself in a loop.
 #
 # App release tags are namespaced `app-*` so the addon CurseForge publisher
 # (publish.yml) can skip them with a single rule — they carry no .toc.
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "apps/warbandeer-desktop/**"
-      - "!apps/warbandeer-desktop/**/*.md"
-      - ".github/workflows/app-release.yml"
+  schedule:
+    # 14:30 UTC year-round — offset from the addon release cron (14:00) so the
+    # two flows don't contend for the same runner minute.
+    - cron: '30 14 * * *'
   workflow_dispatch:
 
-# Needed to create the release + upload the asset.
+# Needed to create tags/releases, upload the asset, and push the version bump.
 permissions:
   contents: write
 
@@ -49,31 +50,56 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+        with:
+          # Full history is required to find the previous app-* release tag.
+          fetch-depth: 0
+          # Use RELEASE_TOKEN so git pushes are authenticated as an admin,
+          # allowing the version-bump commit to bypass the PR ruleset.
+          token: ${{ secrets.RELEASE_TOKEN }}
+
+      - name: Configure git identity
+        working-directory: ${{ github.workspace }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump version if there are unreleased changes
+        id: bump
+        working-directory: ${{ github.workspace }}
+        run: |
+          chmod +x .github/scripts/app-release.sh
+          .github/scripts/app-release.sh
 
       - uses: actions/setup-node@v7
+        if: steps.bump.outputs.changed == 'true'
         with:
           node-version: 20
           cache: npm
           cache-dependency-path: apps/warbandeer-desktop/package-lock.json
 
       - name: Install Rust
+        if: steps.bump.outputs.changed == 'true'
         uses: dtolnay/rust-toolchain@stable
 
       - name: Cache Rust build
+        if: steps.bump.outputs.changed == 'true'
         uses: swatinem/rust-cache@v2
         with:
           workspaces: apps/warbandeer-desktop/src-tauri -> target
 
       - name: Install frontend dependencies
+        if: steps.bump.outputs.changed == 'true'
         run: npm ci
 
       # Runs beforeBuildCommand (npm run build) then compiles the app. With
       # bundle.active=false this emits the portable exe and no installer.
       - name: Build portable app
+        if: steps.bump.outputs.changed == 'true'
         run: npm run tauri build
 
       - name: Stage portable exe
         id: stage
+        if: steps.bump.outputs.changed == 'true'
         run: |
           version=$(node -p "require('./src-tauri/tauri.conf.json').version")
           exe=$(ls src-tauri/target/release/*.exe | head -1)
@@ -83,6 +109,7 @@ jobs:
           echo "asset=apps/warbandeer-desktop/$out" >> "$GITHUB_OUTPUT"
 
       - name: Publish release
+        if: steps.bump.outputs.changed == 'true'
         uses: softprops/action-gh-release@v3
         with:
           tag_name: app-warbandeer-desktop-v${{ steps.stage.outputs.version }}
