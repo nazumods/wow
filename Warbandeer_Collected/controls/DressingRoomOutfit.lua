@@ -129,10 +129,11 @@ function DressingRoom:ComposeOutfit()
       GetCategoryForItem(self._lookMH) == Enum.TransmogCollectionType.Paired)
   end
 
-  -- A two-handed main-hand occupies both hands, so the off-hand pick is suppressed exactly as it
-  -- is on the model (#618) — the outfit records what is actually being worn, not what is parked.
+  -- A main-hand with no room for an off-hand suppresses that pick exactly as it is suppressed on
+  -- the model (#618, #661) — the outfit records what is actually being worn, not what is parked.
+  -- A Titan's Grip pairing is worn, so it is recorded.
   local oh = list[INVSLOT_OFFHAND]
-  oh.appearanceID = (not self._lookMH2H and self._lookOH) or 0
+  oh.appearanceID = (not self._lookNoOH and self._lookOH) or 0
 
   return list
 end
@@ -147,13 +148,16 @@ local function pick(info)
   return appearanceID > 0 and appearanceID or nil
 end
 
--- Whether a loaded look's main-hand occupies both hands, so `_lookMH2H` can be re-derived for a
--- look this file didn't compose. viewsync.lua owns the category set and explains why it has to be
--- an explicit list rather than a capability-flag test.
+-- Whether a loaded look's main-hand leaves no room for an off-hand, so `_lookNoOH` can be
+-- re-derived for a look this file didn't compose. viewsync.lua owns the category sets and explains
+-- why they have to be explicit lists rather than a capability-flag test.
+--
+-- A loaded Titan's Grip look answers false here, so its off-hand comes back live rather than
+-- greyed — which is what makes a saved 2H+2H look survive a round-trip (#661).
 ---@param sourceID number
 ---@return boolean
-local function isTwoHanded(sourceID)
-  return ns.TwoHandedWeapon(sourceID and GetCategoryForItem(sourceID))
+local function suppressesOffHand(sourceID)
+  return ns.SuppressesOffHand(sourceID and GetCategoryForItem(sourceID))
 end
 
 ---Dress the room from an outfit list — the inverse of ComposeOutfit.
@@ -195,7 +199,7 @@ function DressingRoom:ApplyOutfit(list)
   self._lookOH        = pick(list[INVSLOT_OFFHAND])
   self._lookShirt     = pick(list[INVSLOT_BODY])
   self._lookTabard    = pick(list[INVSLOT_TABARD])
-  self._lookMH2H      = isTwoHanded(self._lookMH) or nil
+  self._lookNoOH      = suppressesOffHand(self._lookMH) or nil
 
   self:UpdateWeaponSlots()
   self:UpdateCosmeticSlots()

@@ -323,9 +323,10 @@ function DressingRoom:_applyLook()
   else
     self:_bareSlot(INVSLOT_MAINHAND)
   end
-  -- A two-handed main-hand occupies both hands, so suppress the off-hand appearance (the pick is
-  -- kept — it returns when the main-hand goes back to a 1H or empties). #618.
-  local offHand = not self._lookMH2H and self._lookOH
+  -- A main-hand that leaves no room for an off-hand (a staff, a polearm, a bow) suppresses the
+  -- off-hand appearance; the pick is kept and returns when the main-hand empties or becomes
+  -- something that pairs — a 1H, or a Titan's Grip two-hander. #618, #661.
+  local offHand = not self._lookNoOH and self._lookOH
   if offHand then m:SlotTransmog(INVSLOT_OFFHAND, offHand) else self:_bareSlot(INVSLOT_OFFHAND) end
   -- Shirt and tabard ride here rather than in the previewed set's outfit: transmog sets never
   -- carry either, so these two slots are picker-only and this is their sole apply path (#641).

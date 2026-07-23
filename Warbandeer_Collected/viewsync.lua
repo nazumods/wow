@@ -44,7 +44,7 @@ end
 
 -- ── Which hand a weapon type can occupy ────────────────────────────────────────--
 
--- Three explicit sets rather than `GetCategoryInfo`'s capability flags, for the reason
+-- Four explicit sets rather than `GetCategoryInfo`'s capability flags, for the reason
 -- controls/WeaponPicker.lua discovered and this file inherits: a Shield and a TwoHSword report
 -- IDENTICAL isWeapon/canMainHand/canOffHand (both canOffHand = false, since that flag means "can be
 -- a dual-wield off-hand WEAPON", which neither is), so no flag test can tell the two apart. Naming
@@ -56,12 +56,36 @@ end
 -- anyone through SlotTransmog), so staging from there uses these sets and offers both hands for a
 -- one-hander whoever is logged in.
 
--- Occupies BOTH hands, so a main-hand pick here suppresses the off-hand (#618).
+-- Held in both hands — except the Titan's Grip three below, which are two-handed AND dual-wieldable.
 local TWO_HANDED = {
   Enum.TransmogCollectionType.TwoHAxe, Enum.TransmogCollectionType.TwoHSword,
   Enum.TransmogCollectionType.TwoHMace, Enum.TransmogCollectionType.Polearm,
   Enum.TransmogCollectionType.Staff, Enum.TransmogCollectionType.Bow,
   Enum.TransmogCollectionType.Crossbow, Enum.TransmogCollectionType.Gun,
+}
+-- Titan's Grip (Fury Warrior) dual-wields two-handed axes, maces and swords, so these three are
+-- off-hand eligible in spite of being two-handed (#661). Polearms, staves and the ranged weapons
+-- are NOT: nothing pairs with those, for any class or spec, which is what #618 was really
+-- protecting and what still holds below.
+--
+-- Deliberately NOT gated on the previewed class, though a class is genuinely in play — only a
+-- Warrior gets the talent. Three reasons, in ascending order of force:
+--
+--   * The room previews a set's CLASS, never a spec, and Arms and Protection Warriors don't get
+--     Titan's Grip either — so a class gate would already be imprecise about its own rule.
+--   * The room is a preview. `SlotTransmog` renders any appearance on anyone, and #642 settled
+--     that this addon stores looks a character can't wear, validating at the transmogrifier.
+--   * Decisively: the weapon grid stages into the same composed look with NO class at all —
+--     `_classIndex` is nil for a weapon-cell preview (controls/DressingRoomActions.lua) — so a
+--     class-gated rule is not computable at one of the three call sites, and a gate the picker
+--     applied alone would be bypassable by staging the same weapon from the grid.
+--
+-- The cost is that a Paladin previewing a 2H mace is now offered an off-hand it couldn't equip.
+-- That is the same latitude every other slot already has here, and the transmogrifier is where it
+-- gets checked.
+local TITANS_GRIP = {
+  Enum.TransmogCollectionType.TwoHAxe, Enum.TransmogCollectionType.TwoHSword,
+  Enum.TransmogCollectionType.TwoHMace,
 }
 -- Sits in either hand (the dual-wield one-handers).
 local ONE_HANDED = {
@@ -74,8 +98,11 @@ local OFF_HAND_ONLY = {
   Enum.TransmogCollectionType.Shield, Enum.TransmogCollectionType.Holdable,
 }
 
-local twoHanded, offHandOnly, hands = {}, {}, {}
+local twoHanded, titansGrip, offHandOnly, hands = {}, {}, {}, {}
 for _, c in ipairs(TWO_HANDED) do twoHanded[c] = true; hands[c] = { main = true, off = false } end
+-- After TWO_HANDED, which seeded the entries this reopens: a Titan's Grip type stays two-handed
+-- (it still fills both hands when worn alone) and gains an off hand on top.
+for _, c in ipairs(TITANS_GRIP) do titansGrip[c] = true; hands[c].off = true end
 for _, c in ipairs(ONE_HANDED) do hands[c] = { main = true, off = true } end
 for _, c in ipairs(OFF_HAND_ONLY) do offHandOnly[c] = true; hands[c] = { main = false, off = true } end
 -- A wand is neither: one-handed, but main-hand only since Legion — so it is main-hand-eligible
@@ -85,7 +112,8 @@ hands[Enum.TransmogCollectionType.Wand] = { main = true, off = false }
 ---@class Warbandeer_Collected
 ---@field PreviewToRestore fun(current: string?, wanted: string, memory: table?): table?
 ---@field WeaponHands fun(category: number?): boolean, boolean
----@field TwoHandedWeapon fun(category: number?): boolean
+---@field SuppressesOffHand fun(category: number?): boolean
+---@field TitansGripWeapon fun(category: number?): boolean
 ---@field OffHandOnlyWeapon fun(category: number?): boolean
 
 ---Which hands a weapon category can be staged into. Both false for anything that isn't a weapon
@@ -98,12 +126,26 @@ function ns.WeaponHands(category)
   return h.main, h.off
 end
 
----Whether a weapon category occupies both hands — the test that decides `_lookMH2H`, and so
----whether the off-hand slot greys out behind a main-hand pick.
+---Whether a weapon category leaves no room for an off-hand at all — the test that decides
+---`_lookNoOH`, and so whether the off-hand slot greys out behind a main-hand pick.
+---
+---Two-handed AND not dual-wieldable: a polearm, a staff, or a ranged weapon. A two-handed axe,
+---mace or sword is equally two-handed but pairs under Titan's Grip, so it does NOT suppress —
+---which is the whole of #661. #618 named the same idea when the two were not yet distinguished.
 ---@param category number?
 ---@return boolean
-function ns.TwoHandedWeapon(category)
-  return (category and twoHanded[category]) or false
+function ns.SuppressesOffHand(category)
+  return (category and twoHanded[category] and not titansGrip[category]) or false
+end
+
+---Whether a two-handed category can nonetheless sit in an off hand (Titan's Grip). The picker's
+---class-scoped off-hand dropdown reads this to offer the three types; the class-agnostic weapon
+---grid arrives at the same answer through `ns.WeaponHands`. See the set's own note for why no
+---class is consulted on either path.
+---@param category number?
+---@return boolean
+function ns.TitansGripWeapon(category)
+  return (category and titansGrip[category]) or false
 end
 
 ---Whether a category can ONLY go in the off-hand slot (a shield or a holdable). The picker's

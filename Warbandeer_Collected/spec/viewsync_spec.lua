@@ -61,9 +61,18 @@ describe("view sync", function()
       end
     end)
 
-    it("offers the main hand only for two-handers and ranged weapons", function()
-      for _, name in ipairs({"TwoHAxe", "TwoHSword", "TwoHMace", "Polearm", "Staff", "Bow", "Gun", "Crossbow"}) do
-        assert.equal("M", hands(CATEGORY[name]), name .. " occupies both hands")
+    it("offers the main hand only for the two-handers nothing pairs with", function()
+      for _, name in ipairs({"Polearm", "Staff", "Bow", "Gun", "Crossbow"}) do
+        assert.equal("M", hands(CATEGORY[name]), name .. " leaves no room for an off hand")
+      end
+    end)
+
+    -- Titan's Grip (Fury Warrior) dual-wields two-handed axes, maces and swords, so those three
+    -- are off-hand eligible in spite of being two-handed (#661). No class is consulted — see the
+    -- set's note in viewsync.lua.
+    it("offers both hands for the Titan's Grip two-handers", function()
+      for _, name in ipairs({"TwoHAxe", "TwoHSword", "TwoHMace"}) do
+        assert.equal("MO", hands(CATEGORY[name]), name .. " pairs under Titan's Grip")
       end
     end)
 
@@ -86,23 +95,70 @@ describe("view sync", function()
     end)
   end)
 
-  describe("TwoHandedWeapon", function()
-    it("agrees with WeaponHands — nothing two-handed offers an off hand", function()
+  describe("SuppressesOffHand", function()
+    it("agrees with WeaponHands — a suppressing main-hand offers no off hand", function()
       for _, category in pairs(CATEGORY) do
-        if ns.TwoHandedWeapon(category) then
+        if ns.SuppressesOffHand(category) then
           local main, off = ns.WeaponHands(category)
-          assert.is_true(main, "a two-hander must be main-hand eligible")
-          assert.is_false(off, "a two-hander must not be off-hand eligible")
+          assert.is_true(main, "a suppressing weapon must be main-hand eligible")
+          assert.is_false(off, "a suppressing weapon must not be off-hand eligible")
         end
       end
     end)
 
+    it("names the two-handers nothing pairs with", function()
+      for _, name in ipairs({"Polearm", "Staff", "Bow", "Gun", "Crossbow"}) do
+        assert.is_true(ns.SuppressesOffHand(CATEGORY[name]), name .. " leaves no room for an off hand")
+      end
+    end)
+
+    -- The whole of #661: these three are two-handed AND dual-wieldable, so a main-hand pick has to
+    -- leave the off-hand slot live instead of greying it out.
+    it("is false for the Titan's Grip two-handers", function()
+      for _, name in ipairs({"TwoHAxe", "TwoHSword", "TwoHMace"}) do
+        assert.is_false(ns.SuppressesOffHand(CATEGORY[name]), name .. " pairs under Titan's Grip")
+      end
+    end)
+
     it("is false for one-handers, wands, shields and non-weapons", function()
-      assert.is_false(ns.TwoHandedWeapon(CATEGORY.OneHSword))
-      assert.is_false(ns.TwoHandedWeapon(CATEGORY.Wand))
-      assert.is_false(ns.TwoHandedWeapon(CATEGORY.Shield))
-      assert.is_false(ns.TwoHandedWeapon(CATEGORY.Chest))
-      assert.is_false(ns.TwoHandedWeapon(nil))
+      assert.is_false(ns.SuppressesOffHand(CATEGORY.OneHSword))
+      assert.is_false(ns.SuppressesOffHand(CATEGORY.Wand))
+      assert.is_false(ns.SuppressesOffHand(CATEGORY.Shield))
+      assert.is_false(ns.SuppressesOffHand(CATEGORY.Chest))
+      assert.is_false(ns.SuppressesOffHand(nil))
+    end)
+  end)
+
+  describe("TitansGripWeapon", function()
+    it("names exactly the three two-handers a Fury Warrior dual-wields", function()
+      assert.is_true(ns.TitansGripWeapon(CATEGORY.TwoHAxe))
+      assert.is_true(ns.TitansGripWeapon(CATEGORY.TwoHSword))
+      assert.is_true(ns.TitansGripWeapon(CATEGORY.TwoHMace))
+      -- Polearms and staves are two-handed but NOT Titan's Grip weapons; that split is the
+      -- distinction the whole rule turns on, and it is the one thing worth re-checking if
+      -- Blizzard ever widens the talent.
+      assert.is_false(ns.TitansGripWeapon(CATEGORY.Polearm))
+      assert.is_false(ns.TitansGripWeapon(CATEGORY.Staff))
+      assert.is_false(ns.TitansGripWeapon(CATEGORY.Bow))
+      assert.is_false(ns.TitansGripWeapon(CATEGORY.OneHSword))
+      assert.is_false(ns.TitansGripWeapon(nil))
+    end)
+
+    it("offers both hands for every one it names", function()
+      for _, category in pairs(CATEGORY) do
+        if ns.TitansGripWeapon(category) then
+          local main, off = ns.WeaponHands(category)
+          assert.is_true(main and off, "a Titan's Grip weapon goes in either hand")
+        end
+      end
+    end)
+
+    -- The two predicates partition the two-handers: a category either pairs or it suppresses,
+    -- never both. A category added to one set and forgotten in the other trips this.
+    it("never overlaps SuppressesOffHand", function()
+      for _, category in pairs(CATEGORY) do
+        assert.is_false(ns.TitansGripWeapon(category) and ns.SuppressesOffHand(category))
+      end
     end)
   end)
 

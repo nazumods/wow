@@ -18,7 +18,7 @@ local SELECTED, IDLE = k.SELECTED, k.IDLE
 --
 -- Composition (the look is independent slots, re-applied together by _applyLook):
 --   * main-hand weapon  self._lookMH   (a weapon appearance sourceID)
---   * off-hand weapon   self._lookOH   (shields / holdables / a second 1H)
+--   * off-hand weapon   self._lookOH   (shields / holdables / a second 1H / a Titan's Grip 2H)
 --   * illusion          self._lookIllusion  (rides the main-hand — the picked weapon, else the
 --                       character's equipped host weapon, since a shimmer needs a weapon to sit on)
 -- Clicking the applied piece again clears that slot.
@@ -47,7 +47,8 @@ end
 -- Shape the pane for a weapon target (self._pickerTarget is "main" or "off"): restore the mode
 -- tabs + title the cosmetic targets hide, filter the weapon-category dropdown to that hand's
 -- categories (main-hand = anything NOT off-hand-only; off-hand = the off-hand-only set + dual-wield
--- 1H via canOffHand), keeping the current category if it's still valid else the first available;
+-- 1H via canOffHand + the Titan's Grip two-handers), keeping the current category if it's still
+-- valid else the first available;
 -- hide the Illusions tab for the off-hand (illusions ride the main hand, so they're only offered
 -- there); then repopulate the active mode. Shared by the open path and the class re-scope so both
 -- honour the hand + class scoping in one place.
@@ -59,14 +60,21 @@ function DressingRoom:_applyWeaponTarget()
   if off and self._pickerMode == "illusions" then self._pickerMode = "weapons" end
   local opts, valid = {}, false
   for _, c in ipairs(self._pickerCats) do
-    -- Off-hand dropdown = the off-hand-only set (shields/holdables) + dual-wield 1H (`canOffHand`).
-    -- Main-hand dropdown = everything NOT off-hand-only (1H, 2H, ranged, wands). Shields report the
-    -- SAME flags as 2H weapons, so only an explicit set can tell them apart — viewsync.lua owns it.
+    -- Off-hand dropdown = the off-hand-only set (shields/holdables) + dual-wield 1H (`canOffHand`)
+    -- + the Titan's Grip two-handers (#661). Main-hand dropdown = everything NOT off-hand-only (1H,
+    -- 2H, ranged, wands). Shields report the SAME flags as 2H weapons, so only an explicit set can
+    -- tell them apart — viewsync.lua owns it.
     -- `canOffHand` stays the dual-wield test here and is NOT replaced by that file's static
     -- one-handed set: this pane is scoped to a class, and a paladin must not be offered an
     -- off-hand sword. (The class-agnostic weapon grid uses the static set — see ns.WeaponHands.)
+    -- `TitansGripWeapon` is class-free even here, unlike its 1H neighbour — the set's own note in
+    -- viewsync.lua gives the three reasons, the decisive one being that the grid stages the same
+    -- look with no class at all, so a gate applied only here would be bypassable from there.
+    -- `self._pickerCats` is already the previewed class's own list, so a class that can't wield a
+    -- 2H axe never sees the option regardless.
     local offHandOnly = ns.OffHandOnlyWeapon(c.category)
-    if (off and (offHandOnly or c.canOffHand)) or (not off and not offHandOnly) then
+    if (off and (offHandOnly or c.canOffHand or ns.TitansGripWeapon(c.category)))
+      or (not off and not offHandOnly) then
       opts[#opts + 1] = { key = c.category, label = c.name }
       if c.category == self._pickerCategory then valid = true end
     end
@@ -143,12 +151,14 @@ function DressingRoom:_equipWeaponRow(item)
   else
     local sid = item.src.sourceID
     if self._lookMH == sid then
-      self._lookMH, self._lookMH2H = nil, nil          -- toggling the applied weapon off
+      self._lookMH, self._lookNoOH = nil, nil          -- toggling the applied weapon off
     else
       self._lookMH = sid
-      -- Grey the off-hand while a two-handed main-hand is composed (#618).
+      -- Grey the off-hand while a main-hand that leaves no room for one is composed: a staff, a
+      -- polearm, a bow (#618). A two-handed axe/mace/sword does NOT, since Titan's Grip pairs
+      -- them (#661).
       local cat = self._pickerCatByID[self._pickerCategory]
-      self._lookMH2H = ns.TwoHandedWeapon(cat and cat.category) or nil
+      self._lookNoOH = ns.SuppressesOffHand(cat and cat.category) or nil
     end
   end
 end
