@@ -198,10 +198,10 @@ function DressingRoom:_load(group, set, piece)
   if self._ratingsBoxes then for _, b in ipairs(self._ratingsBoxes) do b:SetShown(not group.weaponCell) end end
   self:_showClass(classId)
   self:_showRelease(group.release)
-  if group.kind then
-    -- Weapon-cosmetic preview: no armor slots, no weapon slots, no difficulty tier bars (its own
-    -- held-weapon render is the focus). Close the look builder and up/down nav cycles the cell's
-    -- pieces from the first (see _stepWeaponPiece).
+  if group.weaponCell then
+    -- Weapon-cell preview: no armor slots, no weapon slots, no difficulty tier bars (its own
+    -- held-weapon render is the focus). Close the look builder; up/down cycles the cell's looks
+    -- from the first, or from `piece` when a view toggle restored this cell (see _stepWeaponPiece).
     self._weaponPiece = piece or 1
     self:_showSlots(false)
     self:_showWeaponSlots(false)
@@ -326,31 +326,23 @@ end
 ---@param vdir number  -1 = move to the tier shown above, +1 = below
 function DressingRoom:StepTierVisual(vdir)
   -- Weapon-cosmetic cells have no difficulty tiers; up/down cycles their pieces instead.
-  if self._group and self._group.kind then return self:_stepWeaponPiece(vdir) end
+  if self._group and self._group.weaponCell then return self:_stepWeaponPiece(vdir) end
   self:StepTier(vdir)
 end
 
--- Cycle the previewed weapon piece within the current cell (an arsenal's weapon
--- appearances, or a Shaman cell's illusion brands), wrapping. Driven by the up/down nav
--- in weapon-cosmetic preview, where there are no tiers to step.
----@param dir number  -1 = previous piece, +1 = next
+-- Cycle the previewed look within the current weapon cell, wrapping. Driven by the up/down nav in
+-- weapon-cell preview, where there are no difficulty tiers to step.
+---@param dir number  -1 = previous look, +1 = next
 function DressingRoom:_stepWeaponPiece(dir)
   local set = self._set
-  local list
-  if self._group.weaponCell then
-    list = set and set._looks                              -- ↑/↓ steps through the cell's looks
-  else
-    list = set and (self._group.kind == "illusion" and set.illusions or set.pieces)
-  end
+  local list = set and set._looks
   if not list or #list < 2 then return end
   local cur = (self._weaponPiece or 1) - 1                -- to 0-based
   self._weaponPiece = (cur + dir) % #list + 1             -- step, wrap, back to 1-based
   self:Dress()
-  if self._group.weaponCell then
-    self:_refreshRatings()                                -- the ★ tracks the shown look
-    self:_syncCellActions()                               -- …and so do the hand buttons
-    if self._cellList then self._cellList:Refresh() end   -- move the chooser highlight to it
-  end
+  self:_refreshRatings()                                  -- the ★ tracks the shown look
+  self:_syncCellActions()                                 -- …and so do the hand buttons
+  if self._cellList then self._cellList:Refresh() end     -- move the chooser highlight to it
 end
 
 -- Select the logged-in character's race + gender. Called when the window opens

@@ -23,10 +23,11 @@ data\sets_late.lua
 data\sets_expand.lua
 data\sets_ptr.lua
 data\sets_review.lua
-data\weapons.lua
 data\weaponbrowser.lua
 data\weaponsources.lua
+data\arsenals.lua
 data\cosmeticbrowser.lua
+data\illusions.lua
 data\hidevisuals.lua
 data\models.lua
 

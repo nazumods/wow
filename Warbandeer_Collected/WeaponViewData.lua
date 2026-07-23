@@ -116,6 +116,15 @@ function ns.ShowWeaponCellTip(grp, t, visuals)
     local mark = ("|A:%s:12:12|a "):format(cmap[v] and ns.icons.CheckGreen or ns.icons.RedX)
     GameTooltip:AddLine(mark .. name, 1, 1, 1)
   end
+  -- A curated "where from" line, carried only by the arsenal rows (data/arsenals.lua). The
+  -- generated rows are named for their source already — "Black Temple" says where it drops — but an
+  -- arsenal is named for the bundle, so without this the move out of the armour grid would lose the
+  -- one thing that row was telling you (#653).
+  if grp.obtain then
+    GameTooltip:AddLine(" ")
+    GameTooltip:AddLine("How to obtain", 1, 0.82, 0)
+    GameTooltip:AddLine(grp.obtain, 0.7, 0.7, 0.7, true)
+  end
   GameTooltip:Show()
 end
 
@@ -145,7 +154,7 @@ function ns.PreviewWeaponCell(grp, t, visuals)
   end
   local set = { name = ("%s — %s"):format(grp.name, ns.WeaponTypeName[t] or "Weapon"),
     _looks = looks, _offHand = (t == 18 or t == 19) }   -- Shield / Held-in-off-hand render in the off hand
-  local group = { kind = "arsenal", weaponCell = true, name = grp.name, release = grp.release,
+  local group = { weaponCell = true, name = grp.name, release = grp.release,
     sets = { set }, _source = grp, _type = t }   -- _source/_type let ←/→ step to adjacent weapon types
   ns.ShowDressingRoom(group, set)
 end

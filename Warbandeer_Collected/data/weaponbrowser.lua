@@ -253,26 +253,6 @@ end
 
 local _illusions = {}             -- [classID] = WeaponIllusion[] (wiped on collection change)
 
--- Restricted (class-specific) enchant illusions — the shimmer effects only one class can apply
--- (Rogue Poisoned, the DK Rune of Razorice, the Shaman weapon imbues). Derived lazily from the
--- #516 class weapon-cosmetics data (the illusion group in ns.Sets, whose positional `sets` maps
--- classId -> that class's illusions), so there's a single source of truth. Maps illusion sourceID
--- -> the one class that can use it; every OTHER illusion is generic (usable by any class). Static.
-local _restricted
-local function restrictedIllusions()
-  if _restricted then return _restricted end
-  _restricted = {}
-  for _, g in ipairs(ns.Sets) do
-    if g.kind == "illusion" then
-      for classId, set in ipairs(g.sets) do
-        if set.illusions then
-          for _, il in ipairs(set.illusions) do _restricted[il.sourceID] = classId end
-        end
-      end
-    end
-  end
-  return _restricted
-end
 
 -- Build a WeaponIllusion from a live GetIllusions entry (`info` supplied) or a bare sourceID (a
 -- cross-class restricted illusion the live list can't surface). GetIllusionInfo / GetIllusionStrings
@@ -297,7 +277,9 @@ function ns.Illusions(classID)
   classID = classID or select(3, UnitClass("player"))
   local cached = _illusions[classID]
   if cached then return cached end
-  local restricted = restrictedIllusions()
+  -- data/illusions.lua owns the sourceID → owning-class map (it used to be derived from the
+  -- illusion group in ns.Sets, which #653 removed from the armour grid).
+  local restricted = ns.RestrictedIllusions
   local list, seen = {}, {}
   for _, il in ipairs(C_TransmogCollection.GetIllusions() or {}) do
     local owner = restricted[il.sourceID]

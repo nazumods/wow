@@ -111,27 +111,26 @@ If you haven't previewed anything in that view yet, the window simply leaves the
 preview as it is rather than closing it — and a saved look you've loaded is never
 disturbed by the toggle, since it doesn't belong to either grid.
 
-## Class weapon cosmetics
+**The toggle is in the dressing room too**, at the left of its first button row, so you
+can switch between armor and weapons without digging the collection window out from
+behind the preview. It does the same thing as the one in the window — both stay in step —
+and the lit half tells you which view the thing on the model came from. With a saved look
+loaded, neither half is lit: that look isn't from either grid.
 
-The **Weapons** category (in the Category filter) tracks the class-specific weapon
-cosmetics that are easy to miss:
+## Legion class arsenals
 
-- **Illusions** — the class weapon-enchant illusions: the Death Knight's Rune of
-  Razorice, the Rogue's Poisoned, and the Shaman's five weapon imbues (Flametongue,
-  Frostbrand, Earthliving, Windfury, Rockbiter).
-- **Arsenals** — the Legion class weapon-appearance bundles: the Death Knight's
-  Armaments of the Ebon Blade, the Paladin's Armaments of the Silver Hand, and the
-  Demon Hunter's Warglaives of Azzinoth.
+The three Legion class weapon-appearance bundles have rows of their own in the Weapons
+view: the Paladin's **Armaments of the Silver Hand**, the Death Knight's **Armaments of
+the Ebon Blade**, and the Demon Hunter's **Warglaives of Azzinoth**. They work exactly
+like any other weapon source — a cell per weapon type with the count you still need,
+hover for the individual pieces and where they come from, click to preview and to take
+one into your look.
 
-Each cell counts how many pieces you still need (read **account-wide**, so it's right
-no matter which character you're on), hover it for the per-piece owned/missing
-breakdown — plus, while you're still missing pieces, a **How to obtain** line for where
-to get them (which class each illusion is locked to, and the Broken Shore / Timewalking
-source for the Legion arsenals) — and Shift-click to flag it wanted just like a set. Click a Weapons cell to
-open the dressing room holding the piece on your own character — for an **arsenal** it
-shows the weapon appearance; for an **illusion** it lays the enchant shimmer over your
-equipped weapon. Use the **Up/Down** nav to cycle through the pieces (the 15 Ebon
-weapons, the 5 Shaman brands); the title names the one you're viewing.
+They used to sit in the *armor* grid under a "Weapons" category, which is gone. Almost
+all of those appearances were already in the Weapons view anyway, just filed anonymously
+under Legion's Vendor row; now they're grouped and named. The class **weapon-enchant
+illusions** moved too — they were never really a set, and they live in the look builder's
+**Illusions** tab, which is where you'd reach for one anyway (see below).
 
 ## Look builder
 
@@ -266,6 +265,12 @@ and how many of the game's set slots are used.
 | `/collected outfit load <name>` | Dress the preview from your library |
 | `/collected outfit delete <name>` | Remove a look from your library |
 | `/collected outfit push <name>` | Copy a look into this character's transmog sets |
+| `/collected cleanup` | Remove saved data for collection rows this version no longer shows |
+
+`cleanup` is safe to ignore. Upgrades never delete anything, so when a row moves — as the
+Illusions and Arsenals rows did — its old scan results and any ratings you gave it stay in
+your saved variables, harmlessly. Run this once you're happy with the new version to clear
+them out.
 
 The addon compartment button (next to the minimap) also works: click to open,
 right-click to scan.
