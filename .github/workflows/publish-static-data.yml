@@ -1,0 +1,94 @@
+name: Publish static data
+
+# Attaches apps/warbandeer-desktop/src-tauri/data/static-data.json to a GitHub release
+# so consumers outside this repo can fetch it without vendoring the generator or
+# checking out the tree. The desktop app itself does NOT use this — it embeds the file
+# at compile time (include_str!). This exists purely for external consumers, currently
+# roshne/wow-companion, which needs the same currency lookups and can't get them from
+# the Blizzard REST API (there is no currency endpoint).
+#
+# Runs AFTER merge to main, never from the refresh PR — the data is published only once
+# a human has reviewed it.
+#
+# Tag scheme: app-static-data-v<build>-<sha8>
+#   * `app-` prefix — publish.yml (the CurseForge addon publisher) skips every tag
+#     starting with `app-`, so this reuses that existing guard rather than adding one.
+#   * <build> — the wago/client build the data came from, so the tag is legible.
+#   * <sha8> — first 8 hex of the file's sha256. Makes the tag content-addressed, so a
+#     within-build data correction still gets its own release, and re-running is a
+#     no-op instead of an error. That matters because GitHub releases are IMMUTABLE:
+#     modifying an existing release's asset fails outright (see the app-release.yml
+#     notes), so the only safe pattern is "new content -> new tag, existing tag -> skip".
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/warbandeer-desktop/src-tauri/data/static-data.json"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-static-data
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BUNDLE: apps/warbandeer-desktop/src-tauri/data/static-data.json
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Derive the tag from the bundle's build + content hash
+        id: meta
+        run: |
+          set -euo pipefail
+          build=$(jq -r '.build' "$BUNDLE")
+          count=$(jq -r '.currencies | length' "$BUNDLE")
+          sha8=$(sha256sum "$BUNDLE" | cut -c1-8)
+          if [ -z "$build" ] || [ "$build" = "null" ]; then
+            echo "::error::$BUNDLE has no .build — refusing to publish an unidentifiable bundle."
+            exit 1
+          fi
+          echo "tag=app-static-data-v${build}-${sha8}" >> "$GITHUB_OUTPUT"
+          echo "build=$build" >> "$GITHUB_OUTPUT"
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+
+      # Idempotent: an unchanged bundle resolves to a tag that already exists, and an
+      # immutable release must never be re-uploaded to. Skip rather than fail, so a
+      # manual re-run (or a push that touched the file without changing it) is harmless.
+      - name: Skip if this exact bundle is already published
+        id: exists
+        run: |
+          if gh release view "${{ steps.meta.outputs.tag }}" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "already=true" >> "$GITHUB_OUTPUT"
+            echo "Release ${{ steps.meta.outputs.tag }} already exists — nothing to do."
+          else
+            echo "already=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # --latest=false keeps the repo's "Latest release" badge pointing at the desktop
+      # app / addons rather than at a data blob.
+      - name: Create the release
+        if: steps.exists.outputs.already == 'false'
+        run: |
+          set -euo pipefail
+          notes=$(printf '%s\n' \
+            'Generated currency lookup data for consumers outside this repo.' \
+            '' \
+            "* Source: [wago.tools](https://wago.tools) \`CurrencyTypes\`, client build \`${{ steps.meta.outputs.build }}\`" \
+            "* Rows: ${{ steps.meta.outputs.count }}" \
+            '* Generator: `Tooling/update-static-data.ps1`' \
+            '' \
+            'The `warbandeer-desktop` app does not consume this release — it embeds the same file at compile time. This asset exists for external consumers (e.g. `roshne/wow-companion`).' \
+            '' \
+            'Resolve the newest bundle by listing releases and taking the first tag prefixed `app-static-data-v`; the asset is always named `static-data.json`.')
+          gh release create "${{ steps.meta.outputs.tag }}" \
+            -R "$GITHUB_REPOSITORY" \
+            --title "Static data — build ${{ steps.meta.outputs.build }}" \
+            --notes "$notes" \
+            --latest=false \
+            "$BUNDLE#static-data.json"
