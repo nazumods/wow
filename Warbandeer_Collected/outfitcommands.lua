@@ -11,33 +11,21 @@ local ui = ns.ui
 -- this doubles as the scriptable/verification surface for them.
 
 -- Outfit interchange: read the look currently on screen out as Blizzard's shareable
--- `/customset v1 …` string, put one back in, and list the game's saved custom sets. The
--- verification surface for the outfit layer (outfitcodec.lua + outfit.lua +
--- controls/DressingRoomOutfit.lua) ahead of the buttons that will drive the same paths.
+-- `/customset v1 …` string or as a clickable chat link, and put either back in. Each of these
+-- calls straight into the share row's own method (controls/DressingRoomOutfitShare.lua), so the
+-- command and the button are literally one implementation — the command adds only the "is the
+-- room open?" guard the button never needs.
 local function outfitExport()
   local room = ns.OpenDressingRoom()
   if not room then
     ns.Print("Open a set's Preview first — export reads the look currently on screen.")
     return
   end
-  local list = room:ComposeOutfit()
-  local issues = ns.OutfitIssues(list)
-  if issues.filled == 0 then
-    ns.Print("Nothing to export — the preview is empty.")
-    return
-  end
-
-  -- String first so it's the top of the selection; the per-slot listing below is what lets a
-  -- mismatch between the string and the model be spotted at a glance.
-  local body = { ns.EncodeOutfit(list), "", ns.OutfitSummary(list) }
-  if issues.pending then
-    body[#body + 1] = ""
-    body[#body + 1] = "NOTE: some item data is still loading — re-run to re-check."
-  end
-  ui.ShowCopyWindow("Outfit export", table.concat(body, "\n"))
-  ns.Print(("Exported %d slots."):format(issues.filled))
+  room:ExportOutfit()
 end
 
+-- Shift-click a transmog link into `/collected outfit import ` and it arrives here whole, which
+-- is the practical way to import someone's posted link: our own field can't receive a shift-click.
 ---@param arg string
 local function outfitImport(arg)
   local room = ns.OpenDressingRoom()
@@ -45,15 +33,16 @@ local function outfitImport(arg)
     ns.Print("Open a set's Preview first — import dresses the window on screen.")
     return
   end
-  local list, err = ns.DecodeOutfit(arg)
-  if not list then
-    ns.Print("Couldn't read that outfit string: " .. err)
-    ns.Print("Expected a /customset v1 string (17 comma-separated ids).")
+  room:ImportOutfit(arg)
+end
+
+local function outfitPost()
+  local room = ns.OpenDressingRoom()
+  if not room then
+    ns.Print("Open a set's Preview first — posting shares the look currently on screen.")
     return
   end
-  room:ApplyOutfit(list)
-  local issues = ns.OutfitIssues(list)
-  ns.Print(("Imported %d slots into the preview."):format(issues.filled))
+  room:PostOutfit()
 end
 
 -- Both stores at once, so the difference between them is visible where it matters: the library is
@@ -184,6 +173,7 @@ ns:registerCommand("outfit", nil, function(_, args)
   local sub, rest = (args or ""):match("^%s*(%S*)%s*(.-)%s*$")
   sub = (sub or ""):lower()
   if sub == "export" then outfitExport()
+  elseif sub == "post" then outfitPost()
   elseif sub == "import" then outfitImport(rest)
   elseif sub == "list" then outfitList()
   elseif sub == "save" then outfitSave(rest)
@@ -192,13 +182,14 @@ ns:registerCommand("outfit", nil, function(_, args)
   elseif sub == "push" then outfitPush(rest)
   else
     ns.Print("Usage: /collected outfit list | save <name> | load <name> | delete <name> | push <name>")
-    ns.Print("                       | export | import <string>")
+    ns.Print("                       | export | post | import <string or link>")
     ns.Print("  list   — your account-wide library, plus this character's transmog sets")
     ns.Print("  save   — save the previewed look to your library (available on every character)")
     ns.Print("  load   — dress the open preview from your library")
     ns.Print("  delete — remove a look from your library")
     ns.Print("  push   — copy a look into THIS character's transmog sets, to wear at a transmogrifier")
     ns.Print("  export — the previewed look as a shareable /customset string (copy window)")
-    ns.Print("  import — dress the open preview from a /customset string")
+    ns.Print("  post   — put the previewed look in your chat box as a clickable link")
+    ns.Print("  import — dress the open preview from a /customset string, or a shift-clicked link")
   end
 end, "Save looks to your account-wide library, push one to this character, or share it as a string")
