@@ -222,11 +222,11 @@ end
 function DressingRoom:EnterOutfitMode(name, list)
   self:ApplyOutfit(list)
   self._outfit = list
-  -- A loaded look belongs to NEITHER grid — both cursors clear below — so the view toggle must
-  -- leave it alone rather than swap it for a remembered preview (#656). The remembered previews
-  -- themselves are kept: previewing a set again exits this mode and re-records one.
+  -- A loaded look belongs to NEITHER grid — both cursors clear below — so `_view = nil` keeps the
+  -- collection window's toggle from swapping it for a remembered preview (`PreviewToRestore` returns
+  -- nil for a nil `_view`, #656). The remembered previews themselves are kept: previewing a set
+  -- again exits this mode and re-records one.
   self._view = nil
-  self:_syncViewToggle()   -- …and neither half of the room's toggle is lit while it's showing
   self:Title(name)
   self._idLabel:Text("")
   self._masterName = nil
