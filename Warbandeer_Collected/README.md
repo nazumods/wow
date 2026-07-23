@@ -207,6 +207,26 @@ what this works around.
 - Buttons that can't do anything are greyed: Save until you've named a new look, and Rename,
   Delete and Push until you've picked one.
 
+**Finding a look once you have a lot of them.** Pick **⚙ Manage Library…** at the bottom of the
+dropdown to open the library window — the same list, with room to search it:
+
+- **Filter by armour type.** The one that groups a look across characters: a leather look shows up
+  whether you're after it for your rogue, your druid or your demon hunter, none of whom share a
+  class. Looks that aren't tied to one armour type — cosmetic, mixed, or weapons only — show under
+  every type, because they genuinely go on anyone.
+- **Filter by class**, meaning the class the look was **built for**, not whoever saved it. A Warrior
+  look your Druid put together is a Warrior look. Only classes you actually have looks for are
+  offered.
+- **Search** by the look's name or by the character who saved it.
+- The filters combine, **Clear** drops all of them at once, and the title bar counts what you're
+  seeing out of what you have.
+- Click any look to load it onto the model. Saving, renaming, deleting and pushing all stay on the
+  outfit row, where the look you're building lives.
+
+Looks saved before the library started recording where looks came from show as *no provenance
+recorded* — and they're **never** hidden by a filter, so nothing you've saved can go missing behind
+one.
+
 **Any look saves whole**, whatever your character can wear. A plate set saved from a Druid
 comes back complete, and pieces you simply haven't collected yet save normally too — so you
 can build and keep a look for an alt. Actually *wearing* it is a separate matter: a
