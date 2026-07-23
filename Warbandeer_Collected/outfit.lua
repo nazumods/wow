@@ -1,6 +1,7 @@
 ---@type Warbandeer_Collected
 local ns = select(2, ...)
 local GetSourceInfo = C_TransmogCollection.GetSourceInfo
+local GetItemInfoInstant = C_Item.GetItemInfoInstant
 local GetAppearanceSourceInfo = C_TransmogCollection.GetAppearanceSourceInfo
 local PlayerCanCollectSource = C_TransmogCollection.PlayerCanCollectSource
 local GetCustomSets = C_TransmogCollection.GetCustomSets
@@ -41,6 +42,10 @@ local SLOT_LABEL = {
 ---@field OutfitSummary fun(list: table[]): string
 ---@field CustomSets fun(): { id: number, name: string, icon: number }[]
 ---@field CustomSetOutfit fun(customSetID: number): table[]?
+---@field ClassLabel fun(classFile: string?): string?
+---@field ClassColored fun(text: string, classFile: string?): string
+---@field OutfitArmorType fun(list: table[]): string
+---@field OutfitOrigin fun(entry: LibraryOutfit): string
 ---@field SaveCustomSet fun(name: string, list: table[], customSetID: number?): number?, string?
 ---@field RenameCustomSet fun(customSetID: number, name: string): boolean, string?
 ---@field DeleteCustomSet fun(customSetID: number)
@@ -157,6 +162,105 @@ function ns.OutfitSummary(list)
   end
   if #lines == 0 then return "(empty outfit)" end
   return table.concat(lines, "\n")
+end
+
+-- ── Provenance (who saved a library look, and what it's for) ───────────────────--
+--
+-- The WoW-side half of the outfit library: deriving the fields a save records, and rendering them.
+-- Kept out of outfitlibrary.lua deliberately — that file is pure Lua over `ns.db` + the codec so it
+-- can be unit-tested, and every function here needs a `C_*` call or a FrameXML global.
+
+local _classNames   -- [classFile] = localized name, built once
+
+---Localized class name for a class file ("DRUID" → "Druid"), or the file itself if it doesn't
+---resolve. Built by sweeping `GetClassInfo`, which maps id → (name, file) — there's no reverse
+---lookup, and `LOCALIZED_CLASS_NAMES_*` would mean whitelisting another global in two config files.
+---@param classFile string?
+---@return string?
+function ns.ClassLabel(classFile)
+  if not classFile then return nil end
+  if not _classNames then
+    _classNames = {}
+    for id = 1, #ns.icons.classes do
+      local name, file = GetClassInfo(id)
+      if file then _classNames[file] = name end
+    end
+  end
+  return _classNames[classFile] or classFile
+end
+
+---`text` wrapped in a class colour escape, or unchanged when the class is unknown. Lets a narrow
+---dropdown label carry the class without spending any width on it.
+---@param text string
+---@param classFile string?
+---@return string
+function ns.ClassColored(text, classFile)
+  local color = classFile and RAID_CLASS_COLORS[classFile]
+  if not color then return text end
+  return ("|cff%02x%02x%02x%s|r"):format(color.r * 255, color.g * 255, color.b * 255, text)
+end
+
+-- Armour subclass id → the label stored on a library entry. Cosmetic is deliberately absent: it
+-- goes on any armour type, so a cosmetic piece constrains nothing and shouldn't out-vote a real
+-- armour type sitting beside it.
+local ARMOR_LABEL = {
+  [Enum.ItemArmorSubclass.Cloth] = "Cloth", [Enum.ItemArmorSubclass.Leather] = "Leather",
+  [Enum.ItemArmorSubclass.Mail] = "Mail",   [Enum.ItemArmorSubclass.Plate] = "Plate",
+}
+
+-- The ONLY slots whose subclass reports the wearer's armour type. A positive list, because the
+-- exceptions aren't guessable: a **cloak is always Cloth** and a **shirt is always Cloth** whatever
+-- your class, and a **tabard is Generic** — so a plate set with a cloak reads Plate + Cloth and
+-- looks "mixed", which made effectively every complete set derive as "Any". Weapons are out for the
+-- obvious reason (their subclasses are Sword, Axe, …).
+local ARMOR_SLOTS = {
+  INVSLOT_HEAD, INVSLOT_SHOULDER, INVSLOT_CHEST, INVSLOT_WRIST,
+  INVSLOT_HAND, INVSLOT_WAIST, INVSLOT_LEGS, INVSLOT_FEET,
+}
+
+---The armour type a look is made of — the filter key for "which of my characters could wear this",
+---which is what actually groups a leather set across a rogue, a druid and a demon hunter.
+---
+---Derived from the pieces rather than from the previewed set's class: a class implies an armour
+---type only for real class sets, while this also answers correctly for cosmetic, mixed and
+---weapon-only looks. `GetItemInfoInstant` is synchronous and needs no cached item data (it's the
+---same call `ns.SourceSlot` uses), so this costs nothing at save time.
+---
+---Only `ARMOR_SLOTS` are consulted — see the note there for why cloaks, shirts and tabards have to
+---be left out. "Any" when those pieces disagree, are all cosmetic, or there are none: every case
+---where no single armour type gates who can wear the look.
+---@param list table[]
+---@return string
+function ns.OutfitArmorType(list)
+  local found
+  for _, slotID in ipairs(ARMOR_SLOTS) do
+    local info = list[slotID]
+    local appearanceID = info and info.appearanceID or 0
+    if appearanceID > 0 then
+      local src = GetSourceInfo(appearanceID)
+      local subclass = src and src.itemID and select(7, GetItemInfoInstant(src.itemID))
+      local label = subclass and ARMOR_LABEL[subclass]
+      if label then
+        if found and found ~= label then return "Any" end   -- mixed: no single type gates it
+        found = label
+      end
+    end
+  end
+  return found or "Any"
+end
+
+---A one-line "where this came from" for display: the saving character, their class, and the armour
+---type. Empty when an entry predates provenance (saved before #655) or carries none.
+---@param entry LibraryOutfit
+---@return string
+function ns.OutfitOrigin(entry)
+  if not entry then return "" end
+  local bits = {}
+  if entry.char then bits[#bits + 1] = entry.char end
+  local class = ns.ClassLabel(entry.class)
+  if class then bits[#bits + 1] = class end
+  if entry.armor and entry.armor ~= "Any" then bits[#bits + 1] = entry.armor end
+  return table.concat(bits, ", ")
 end
 
 -- ── Custom sets (the game's saved-outfit store) ────────────────────────────────--

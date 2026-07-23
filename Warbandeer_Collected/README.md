@@ -148,29 +148,40 @@ panel's header to move the whole window.
 
 ## Saving a look
 
-The preview window has an **outfit row** under the ratings — a dropdown of the transmog
-sets you've saved in game, a name field, and **Save**, **Rename** and **Delete**.
+The preview window has an **outfit row** under the ratings — a dropdown of your saved looks,
+a name field, and **Save**, **Rename**, **Delete** and **Push**.
 
-- Pick a set from the dropdown to **load** it: the model, the equipment slots, the weapons
-  and the shirt and tabard all change to that look.
-- **Save** writes what's on screen into whichever set the dropdown has selected. To make a
-  new one instead, pick **+ New Custom Set** at the bottom of the dropdown, type a name, and
-  Save. These are the game's own saved sets — they show up in the Dressing Room's set list
-  just like ones you made there, and you don't need to be at a transmogrifier to save.
-- **Rename** changes the selected set's name to whatever's in the name field.
-- **Delete** asks once (the button changes to *Confirm?*) before it removes anything. If you save
-  a new set under a name you already have, Save asks the same way — it offers to **overwrite**
-  that set rather than making you pick another name.
-- Buttons that can't do anything are greyed: Save until you've named a new set, Rename and Delete
-  until you've picked one.
+**Your library follows you.** Looks saved here are kept for the whole account, so one you put
+together on your main is waiting on every alt. The game's own saved transmog sets are
+per-character — a set saved on one character simply isn't there on another — which is exactly
+what this works around.
+
+- Pick a look from the dropdown to **load** it: the model, the equipment slots, the weapons
+  and the shirt and tabard all change to it.
+- Each look remembers **who saved it, what class they were, which class's set it was built from,
+  and its armour type** — so months later you still know that leather look came from your rogue.
+  Names in the dropdown are tinted the class colour of **whoever saved them**, and
+  `/collected outfit list` spells the rest out.
+- **Save** writes what's on screen under **whatever name is in the box**. Leave it as the selected
+  look's name to update that one; type a different name and you get a new look, with the original
+  untouched. **+ New Look** at the bottom of the dropdown just clears the box to start fresh.
+- **Rename** changes the selected look's name to whatever's in the name field. It's the only thing
+  that renames — pressing Enter in the box always saves, never renames.
+- **Delete** asks once (the button changes to *Confirm?*) before removing anything. Saving under a
+  name that belongs to a *different* look asks the same way, so you can't overwrite one by accident.
+- **Push** copies the selected look into *this* character's transmog sets, so you can wear it at
+  a transmogrifier. That's the only step that's per-character, and the only one the game's
+  25-set limit applies to.
+- Buttons that can't do anything are greyed: Save until you've named a new look, and Rename,
+  Delete and Push until you've picked one.
 
 **Any look saves whole**, whatever your character can wear. A plate set saved from a Druid
 comes back complete, and pieces you simply haven't collected yet save normally too — so you
 can build and keep a look for an alt. Actually *wearing* it is a separate matter: a
 transmogrifier still only lets a character wear what its class can equip.
 
-While a saved set is loaded the window shows its name, and the rating buttons are hidden —
-an outfit isn't one of the tracked sets, so there's nothing to rate. Click any set in the
+While a saved look is loaded the window shows its name, and the rating buttons are hidden —
+a look isn't one of the tracked sets, so there's nothing to rate. Click any set in the
 grid to go back to normal previewing.
 
 ## Sharing a look
@@ -206,9 +217,11 @@ saves complete — nothing is dropped for being the wrong armour type.
 | `/collected wanted` | List the sets you've flagged as wanted |
 | `/collected outfit export` | Copy the previewed look as a shareable `/customset` string |
 | `/collected outfit import <string>` | Dress the preview from a `/customset` string |
-| `/collected outfit list` | List the transmog sets saved in game |
-| `/collected outfit save <name>` | Save the previewed look as a transmog set (overwrites a matching name) |
-| `/collected outfit load <name>` | Dress the preview from a saved transmog set |
+| `/collected outfit list` | Your account-wide library, plus this character's transmog sets |
+| `/collected outfit save <name>` | Save the previewed look to your library |
+| `/collected outfit load <name>` | Dress the preview from your library |
+| `/collected outfit delete <name>` | Remove a look from your library |
+| `/collected outfit push <name>` | Copy a look into this character's transmog sets |
 
 The addon compartment button (next to the minimap) also works: click to open,
 right-click to scan.
@@ -224,8 +237,9 @@ right-click to scan.
 
 `WarbandeerCollectedDB` (account-wide): scanned set/appearance counts, plus your
 wanted flags and tier ranks (baseline + per-race) and your wanted weapon looks,
-shirt/tabard appearances and illusions, plus which saved outfit the row last loaded. The
-saved outfits themselves live in the game's own transmog store, not here. Ratings are kept separately from
+shirt/tabard appearances and illusions, plus **your outfit library** — the looks you've saved,
+kept for the whole account so they're available on every character. (The game's own transmog
+sets stay in its store, per character; **Push** copies a look across.) Ratings are kept separately from
 the scan data, so re-scanning never clears them. The collection window and the set
 preview window also remember where you last dragged them, so they reopen in place
 instead of re-centering.

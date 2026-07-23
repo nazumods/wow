@@ -3,9 +3,10 @@
 -- without the game client. Mirrors Warbandeer_Decor's spec/loader.lua. Paths are relative
 -- to the AddOns root (busted's cwd).
 --
--- Only outfitcodec.lua qualifies today: everything else in the addon touches C_* or frames
--- and stays in-game-tested. `ItemUtil` is deliberately left unstubbed so the codec exercises
--- its plain-table fallback (see ns.NewTransmogInfo).
+-- Two files qualify: outfitcodec.lua and outfitlibrary.lua (the library is pure Lua over `ns.db`
+-- plus the codec). Everything else in the addon touches C_* or frames and stays in-game-tested.
+-- `ItemUtil` is deliberately left unstubbed so the codec exercises its plain-table fallback (see
+-- ns.NewTransmogInfo).
 local M = {}
 
 -- The engine's equipment-slot constants. Real values, so a decoded list indexes the same way
@@ -17,12 +18,14 @@ local SLOTS = {
   INVSLOT_TABARD = 19, INVSLOT_LAST_EQUIPPED = 19,
 }
 
----Load outfitcodec.lua into a fresh ns and return it.
+---Load the WoW-API-free outfit files into a fresh ns and return it. `ns.db` is seeded empty so the
+---library has a store to write into, exactly as LibNAddOn's MigrateDB would leave it in game.
 ---@return table ns
 function M.load()
   for name, value in pairs(SLOTS) do _G[name] = value end
-  local ns = {}
+  local ns = { db = { outfits = {} } }
   assert(loadfile("Warbandeer_Collected/outfitcodec.lua"))("Warbandeer_Collected", ns)
+  assert(loadfile("Warbandeer_Collected/outfitlibrary.lua"))("Warbandeer_Collected", ns)
   return ns
 end
 

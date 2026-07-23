@@ -31,5 +31,9 @@ function ns:MigrateDB()
   -- v7: the custom set the outfit row last loaded, so the dropdown reopens where it left off.
   -- A plain id (not a table) — the set itself lives in the game's own store, not ours.
   if db.lastOutfit == nil then db.lastOutfit = false end   -- customSetID | false
-  db.version = 7
+  -- v8: the account-wide outfit library (#655). The game's own custom sets are PER-CHARACTER
+  -- (measured — a set saved on one alt is invisible on another), so a look can only follow you
+  -- across characters if we keep it ourselves. Entries hold the `/customset v1 …` encoding.
+  if not db.outfits then db.outfits = {} end   -- { { name, look, char, class, forClass, armor }, ... }
+  db.version = 8
 end

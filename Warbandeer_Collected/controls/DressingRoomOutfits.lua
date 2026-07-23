@@ -10,25 +10,30 @@ local k = DressingRoom._k
 local selBox, IDLE, SELECTED = k.selBox, k.IDLE, k.SELECTED
 local GRIDW, ROWH, ROW3 = k.GRIDW, k.ROWH, k.ROW3
 
--- The outfit row (#642): the third bottom control row, wiring the dressing room to the game's own
--- **custom sets** store — save the composed look into it, load one back out. Reopens the
--- DressingRoom class; the store wrappers and validation are outfit.lua, the compose/apply and
--- outfit mode are controls/DressingRoomOutfit.lua.
+-- The outfit row (#642, retargeted by #655): the third bottom control row. Builds the widgets and
+-- owns them; what the buttons do is the sibling controls/DressingRoomOutfitActions.lua. Reopens
+-- the DressingRoom class; the library store is outfitlibrary.lua, the game's custom-set wrappers
+-- are outfit.lua, and the compose/apply plus outfit mode are controls/DressingRoomOutfit.lua.
 --
---   [ Outfit ▾ ] [ name ] [ Save ] [ Rename ] [ Delete ]
+--   [ Outfit ▾ ] [ name ] [ Save ] [ Rename ] [ Delete ] [ Push ]
+--
+-- **The dropdown lists the account-wide LIBRARY**, not the game's custom sets — those are
+-- per-character (measured), so a look saved there can't follow you to an alt. `Push` is the bridge:
+-- it copies the selected look into *this* character's custom sets, for wearing at a transmogrifier.
 --
 -- Deliberately no `ui.Dialog` name prompt: rename needs a name field regardless, so one inline
 -- field serves both and stays visible instead of appearing modally. Nothing else in the suite
 -- uses Dialog, so this also avoids being its first caller for one string.
 --
--- Both destructive/lossy actions ARM before they fire — the button relabels and a second click
--- inside CONFIRM_S commits. That covers "delete this set" and "save a look with slots this
--- character can't collect" (the game drops those silently) without a modal.
+-- Anything destructive or lossy ARMS before it fires — the button relabels and a second click
+-- inside CONFIRM_S commits, covering Delete, an overwriting Save, and a Push that would replace a
+-- same-named set, without a modal.
 
-local DROPW, NAMEW, BTNW, GAP = 180, 170, 66, 6
--- Dropdown key for the trailing "create a new set" entry. A STRING so it can never collide with a
--- custom set id — those are small non-negative integers and `0` is a real one (measured in game).
-local NEW_SET = "__new__"
+local DROPW, NAMEW, BTNW, GAP = 150, 140, 62, 6
+-- Dropdown key for the trailing "save a new one" entry. A STRING so it can't be mistaken for a
+-- library outfit name — those are user-typed and trimmed, so they can never be empty or contain
+-- the sentinel's markers.
+local NEW_SET = "\0new"
 local CONFIRM_S = 4      -- seconds an armed button stays armed before reverting
 
 -- One labelled button in the row: a framed box with a click target and a centered caption, whose
@@ -43,7 +48,11 @@ local function rowButton(room, x, label, onClick)
     parent = room._outfitRow, position = { TopLeft = {x, 0}, Width = BTNW, Height = ROWH },
   }
   local btn = { box = box, border = selBox(box), text = label }
-  btn.label = Label:new{ parent = box, justifyH = ui.justify.Center,
+  -- `wordWrap = false` is structural, not cosmetic: the box is a fixed ROWH tall, so a caption that
+  -- wraps grows the label out of it and over the row below (an armed "Replace <name>?" did exactly
+  -- that across three lines). Armed captions are kept short too — this just makes the layout
+  -- impossible to break from a caption alone.
+  btn.label = Label:new{ parent = box, justifyH = ui.justify.Center, wordWrap = false,
     position = { Left = {2, 0}, Right = {-2, 0} }, text = label }
   -- Disabled buttons grey their caption and swallow the click, rather than firing and printing a
   -- refusal — the same "don't offer what won't work" Blizzard's own name prompt uses.
@@ -94,9 +103,8 @@ function DressingRoom:_buildOutfits(controls)
     parent = controls, position = { TopLeft = {0, -ROW3}, Width = GRIDW, Height = ROWH },
   }
 
-  -- Saved-set dropdown. Options keep `GetCustomSets()`'s own order — custom set ids are REUSED
-  -- after a delete (a new set came back as id 5 with six sets already saved), so id order says
-  -- nothing about creation order and must not be sorted on.
+  -- Library dropdown, in the store's own insertion order — the order the user added looks in, and
+  -- the order re-saving one preserves.
   self._outfitDrop = FilterDropdown:new{
     parent = self._outfitRow, bordered = true, width = DROPW, options = {},
     onSelect = function(_, key) self:_selectOutfit(key) end,
@@ -112,13 +120,15 @@ function DressingRoom:_buildOutfits(controls)
     parent = nameBox, position = { TopLeft = {6, -1}, BottomRight = {-4, 1} },
   }
   self._outfitName._widget:SetScript("OnEscapePressed", function(f) f:ClearFocus() end)
-  -- Enter commits whatever the field is FOR in the current mode: while a set is selected the name
-  -- belongs to Rename (Save overwrites and ignores it), and only "+ New Custom Set" makes it the
-  -- name of something being saved. Routing Enter to Save in both modes silently discarded a name
-  -- typed against a selected set.
+  -- Enter is **always Save**, never Rename. The field names what you're saving, so committing it
+  -- means "save under this name" — and Save is now non-destructive to other entries, while Rename
+  -- moves an existing look and can't be undone. An earlier revision routed Enter to Rename while a
+  -- look was selected; typing a new name and pressing Enter then RENAMED the loaded look instead
+  -- of saving a new one, which is exactly the surprise a keyboard shortcut must never spring.
+  -- Renaming is the Rename button's job, deliberately requiring a deliberate click.
   self._outfitName._widget:SetScript("OnEnterPressed", function(f)
     f:ClearFocus()
-    if self._outfitID then self:RenameOutfit() else self:SaveOutfit() end
+    self:SaveOutfit()
   end)
   self._outfitName._widget:SetScript("OnTextChanged", function() self:_syncOutfitButtons() end)
 
@@ -126,42 +136,43 @@ function DressingRoom:_buildOutfits(controls)
   self._outfitSave   = rowButton(self, bx,                     "Save",   function() self:SaveOutfit() end)
   self._outfitRename = rowButton(self, bx + BTNW + GAP,        "Rename", function() self:RenameOutfit() end)
   self._outfitDelete = rowButton(self, bx + 2 * (BTNW + GAP),  "Delete", function() self:DeleteOutfit() end)
+  self._outfitPush   = rowButton(self, bx + 3 * (BTNW + GAP),  "Push",   function() self:PushOutfit() end)
 
-  -- Reopen on the set last loaded (db.lastOutfit), if it still exists. The name field is seeded
-  -- too, but the look is NOT applied — the room opens on whatever set was clicked, and loading is
-  -- an explicit act.
-  local last = ns.db and ns.db.lastOutfit
-  if last then
-    for _, s in ipairs(ns.CustomSets()) do
-      if s.id == last then self._outfitID = last; self._outfitName:Text(s.name) end
-    end
-  end
+  -- The row starts NEUTRAL — "+ New Look", empty field. It deliberately doesn't reopen on the look
+  -- last loaded: the room opens on whatever grid cell was clicked, so a seeded selection would
+  -- describe a look that isn't on screen, and the typed name is what Save targets. The row's whole
+  -- contract is that it describes what the model is showing.
   self:RefreshOutfits()
-  -- Another addon (or Blizzard's own UI) can add, rename or delete a set behind our back.
-  ns:registerEvent("TRANSMOG_CUSTOM_SETS_CHANGED", function() self:RefreshOutfits() end)
 end
 
----Repopulate the dropdown from the store, keeping the current selection if it still exists.
+---Repopulate the dropdown from the library, keeping the current selection if it still exists.
 function DressingRoom:RefreshOutfits()
   if not self._outfitDrop then return end
   local opts, stillThere = {}, false
-  for _, s in ipairs(ns.CustomSets()) do
-    opts[#opts + 1] = { key = s.id, label = s.name }
-    if s.id == self._outfitID then stillThere = true end
+  for _, o in ipairs(ns.LibraryOutfits()) do
+    -- Class-coloured by **who saved it**, so the tint means one consistent thing wherever a look
+    -- appears. Deliberately not `forClass`: two classes are in play (the saver, and the class whose
+    -- set the look was built from) and one label can only carry one, so tinting by the set's class
+    -- made a Warrior's look read as Druid. `forClass` is a weak cross-character signal anyway — a
+    -- leather set sits in one class column but rogue, druid, monk and DH can all wear it, which is
+    -- what `armor` is stored for. It shows as text in `/collected outfit list`, where there's width
+    -- to say it unambiguously. 150px has no room for "— Triandra (Warrior)"; the colour is free.
+    opts[#opts + 1] = { key = o.name, label = ns.ClassColored(o.name, o.class) }
+    if o.name == self._outfitSel then stillThere = true end
   end
-  if not stillThere then self._outfitID = nil end
+  if not stillThere then self._outfitSel = nil end
   -- The trailing "new" entry mirrors Blizzard's own custom-set dropdown: creating is a mode the
   -- user CHOOSES, not something inferred from having edited the name field.
-  opts[#opts + 1] = { key = NEW_SET, label = "+ New Custom Set" }
-  self._outfitDrop:SetOptions(opts, self._outfitID or NEW_SET)
+  opts[#opts + 1] = { key = NEW_SET, label = "+ New Look" }
+  self._outfitDrop:SetOptions(opts, self._outfitSel or NEW_SET)
   self:_syncOutfitButtons()
 end
 
----Dropdown handler: load a saved set, or switch the row into "create a new one" mode.
----@param key number|string  a custom set id, or the NEW_SET sentinel
+---Dropdown handler: load a saved look, or switch the row into "save a new one" mode.
+---@param key string  a library outfit name, or the NEW_SET sentinel
 function DressingRoom:_selectOutfit(key)
   if key ~= NEW_SET then return self:LoadOutfit(key) end
-  self._outfitID = nil
+  self._outfitSel = nil
   self._outfitName:Text("")
   self._outfitName._widget:SetFocus()
   self:_syncOutfitButtons()   -- Text("") on an already-empty box fires no OnTextChanged
@@ -173,13 +184,14 @@ function DressingRoom:_typedOutfitName()
 end
 
 ---Grey the row buttons that can't act right now, so a dead click is impossible rather than
----explained after the fact: Save needs a name while creating, Rename needs a selected set *and* a
----name, Delete needs a selected set. Re-run whenever the selection or the name field changes.
+---explained after the fact: Save needs a name while creating, Rename needs a selected look *and* a
+---name, Delete and Push need a selected look. Re-run whenever the selection or the field changes.
 function DressingRoom:_syncOutfitButtons()
   if not self._outfitSave then return end
   local named = self:_typedOutfitName() ~= ""
-  local selected = self._outfitID ~= nil
-  enable(self._outfitSave, selected or named)   -- overwriting a selected set needs no name
+  local selected = self._outfitSel ~= nil
+  enable(self._outfitSave, selected or named)   -- overwriting a selected look needs no name
   enable(self._outfitRename, selected and named)
   enable(self._outfitDelete, selected)
+  enable(self._outfitPush, selected)
 end

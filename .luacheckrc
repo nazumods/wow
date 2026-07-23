@@ -502,6 +502,7 @@ std = {
     "UnitCastingInfo",
     "UnitChannelInfo",
     "UnitClass",
+    "UnitFullName",
     "UnitClassBase",
     "UnitCreatureFamily",
     "UnitExists",
