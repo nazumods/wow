@@ -4,6 +4,12 @@
 export interface OverviewStats {
   wealthCopper: number;
   weeklyGoldMadeCopper: number;
+  // Week-end wealth for up to the last 11 closed weeks (oldest first) plus the
+  // current live wealth as the final point — a ≤12-point trend series.
+  wealthHistoryCopper: number[];
+  // Logged-in seconds per local calendar day ("YYYY-MM-DD"), summed across all
+  // characters. Windowed into the activity grid on the frontend.
+  playtimeByDay: Record<string, number>;
   totalPlaytimeSecs: number;
   patchPlaytimeSecs: number;
   charCount: number;
@@ -61,7 +67,7 @@ export interface ResolvedCharacter {
   realm: string;
   realmGuid: string;
   classId: number;
-  classKey: string; // uppercase class token, e.g. "MAGE" — empty when unresolved
+  classKey: string; // class token as the addon stores it, e.g. "DeathKnight" — empty when unresolved
   className: string;
   level: number;
   spec: string; // current spec display name, e.g. "Frost"; "" when unknown

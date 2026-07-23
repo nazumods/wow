@@ -69,6 +69,28 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* hover tooltip shared by the stat-card graphs (Sparkline, ActivityGrid) */
+.chart-tip {
+  position: absolute;
+  top: -6px;
+  z-index: 20; /* above the sticky titlebar (z-index 10) */
+  transform: translate(-50%, -100%);
+  background: #232228;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 3px 7px;
+  font-size: 11px;
+  white-space: nowrap;
+  pointer-events: none;
+  display: flex;
+  gap: 5px;
+  align-items: baseline;
+}
+.chart-tip .when {
+  color: var(--faded);
+  font-size: 10px;
+}
+
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;

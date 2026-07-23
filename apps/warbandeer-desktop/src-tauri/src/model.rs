@@ -22,12 +22,20 @@ pub struct Warband {
     #[serde(rename = "bankGold")]
     pub bank_gold: f64,
     pub week: Option<Week>,
+    pub history: Vec<WeekRecord>,
 }
 
 #[derive(Deserialize, Default)]
 #[serde(default)]
 pub struct Week {
     pub baseline: f64,
+}
+
+/// One closed week of wealth history (`db.warband.history`, oldest first).
+#[derive(Deserialize, Default)]
+#[serde(default)]
+pub struct WeekRecord {
+    pub ending: f64,
 }
 
 #[derive(Deserialize, Default)]
@@ -101,6 +109,9 @@ pub struct Playtime {
     pub total: f64,
     #[serde(rename = "byPatch")]
     pub by_patch: HashMap<String, f64>,
+    /// Logged-in seconds per local calendar day ("YYYY-MM-DD"); absent on old saves.
+    #[serde(rename = "byDay")]
+    pub by_day: HashMap<String, f64>,
 }
 
 #[derive(Deserialize, Default)]
