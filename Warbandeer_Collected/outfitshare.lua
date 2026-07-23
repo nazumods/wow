@@ -72,8 +72,12 @@ end
 function ns.ParseOutfitInput(str)
   local kind = ns.OutfitInputKind(str)
   if kind == "link" then
-    -- The whole `|H…|h[…]|h` string, which is what the game's own link handler passes in.
-    local list = GetListFromHyperlink((str:gsub("^%s+", ""):gsub("%s+$", "")))
+    -- The whole `|H…|h[…]|h` string, which is what the game's own link handler passes in — with
+    -- `||` folded back to `|` first, since a link typed or pasted into an edit box arrives with
+    -- its pipes escaped, and the C decoder wants the unescaped form. A shift-click into the slash
+    -- command delivers it unescaped already, so this is a no-op on that path.
+    local link = str:gsub("^%s+", ""):gsub("%s+$", ""):gsub("||", "|")
+    local list = GetListFromHyperlink(link)
     if not list then return nil, "that transmog link couldn't be read" end
     return list
   end

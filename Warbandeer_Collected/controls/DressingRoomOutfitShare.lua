@@ -46,9 +46,11 @@ function DressingRoom:_buildShare(controls)
   self._shareField = EditBox:new{
     parent = box, position = { TopLeft = {6, -1}, BottomRight = {-4, 1} },
   }
+  -- Parented to the EditBox, not its framing box, so the prompt sits on the same left edge the
+  -- typed text will appear on rather than a hand-guessed approximation of the template's inset.
   self._shareHint = Label:new{
-    parent = box, color = "muted", wordWrap = false,
-    position = { Left = {8, 0}, Right = {-4, 0} }, text = HINT,
+    parent = self._shareField, color = "muted", wordWrap = false,
+    position = { Left = {6, 0}, Right = {-4, 0} }, text = HINT,
   }
 
   self._shareField._widget:SetScript("OnEscapePressed", function(f) f:ClearFocus() end)
@@ -59,11 +61,12 @@ function DressingRoom:_buildShare(controls)
   end)
   self._shareField._widget:SetScript("OnTextChanged", function() self:_syncShare() end)
 
-  local bx = FIELDW + GAP
-  self._shareImport = self:_rowButton(self._shareRow, bx + 2 * (BTNW + GAP), BTNW, "Import",
+  -- Only Import is kept: it's the one that greys. Export and Post never need touching again.
+  local row, bx = self._shareRow, FIELDW + GAP
+  self:_rowButton(row, bx,              BTNW, "Export",       function() self:ExportOutfit() end)
+  self:_rowButton(row, bx + BTNW + GAP, BTNW, "Post to Chat", function() self:PostOutfit() end)
+  self._shareImport = self:_rowButton(row, bx + 2 * (BTNW + GAP), BTNW, "Import",
     function() self:ImportOutfit() end)
-  self:_rowButton(self._shareRow, bx, BTNW, "Export", function() self:ExportOutfit() end)
-  self:_rowButton(self._shareRow, bx + BTNW + GAP, BTNW, "Post to Chat", function() self:PostOutfit() end)
 
   self:_syncShare()
 end
