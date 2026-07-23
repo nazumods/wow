@@ -88,29 +88,28 @@ all). Hover a cell for the list of individual weapons in it, each with a collect
 mark and its **difficulty** (LFR / Normal / Heroic / Mythic). Sort by expansion and
 filter by expansion or source category, exactly like the armor grid.
 
-**Click a cell** to open the dressing room holding those weapons on your own
-character, with a chooser listing every look in that cell — the same-named difficulty
-recolours told apart by their **difficulty** label. Use **↑/↓** to step through the
-looks and **←/→** to jump to the neighbouring weapon type from the same source; the
-grid draws a white box around the cell you're viewing so you never lose your place.
-Mark a look with the **★** button to add it to your weapon wanted list.
+**Click a cell** and the weapon goes straight into the look you're building — same
+window, same character, same paper doll you dress armor on. The armor set stays on,
+the slot columns stay up, and the weapon slot at the bottom lights up with the piece
+you're looking at. A chooser lists every look in the cell, with the same-named
+difficulty recolours told apart by their **difficulty** label. Use **↑/↓** to step
+through the looks and **←/→** to jump to the neighbouring weapon type from the same
+source — the character re-renders in place each time, wearing your outfit. The grid
+draws a white box around the cell you're viewing so you never lose your place, and
+shift-clicking a row in the chooser adds that look to your weapon wanted list.
 
-**Take a weapon with you.** The chooser has **Main hand** and **Off hand** buttons at
-the top — click one and the weapon you're looking at joins the look you're building,
-without going through the weapon picker under the model. Only the hands that weapon
-can actually go in are offered (the other is greyed out): a one-hander can take either,
-a staff or a bow only the main hand, a shield or an off-hand frill only the off hand.
-Two-handed axes, maces and swords take either hand too, so you can build a Titan's Grip
-look straight from the grid. Click the same button again to take it back off. You won't see it here — this
-preview shows a bare character holding the weapon on its own — but it's there the
-moment you switch back to an armor set.
+**Which hand.** The chooser's **Main hand** and **Off hand** buttons say where the
+weapon you're browsing is being held, and clicking the other one moves it there. Only
+the hands that weapon can actually go in are offered (the other is greyed out): a
+one-hander can take either, a staff or a bow only the main hand, a shield or an
+off-hand frill only the off hand. Two-handed axes, maces and swords take either hand
+too, so you can build a Titan's Grip look straight from the grid. A weapon starts in
+whichever hand suits its type, so browsing a sword and then a shield leaves you
+holding both. Right-click the weapon slot under the model to put one down.
 
-**The preview follows the toggle.** Flipping between Armor and Weapons brings back
-whatever you were last previewing in the view you're switching to, so you can go and
-find a weapon and come back to the set you were building without hunting for it again.
-If you haven't previewed anything in that view yet, the window simply leaves the
-preview as it is rather than closing it — and a saved look you've loaded is never
-disturbed by the toggle, since it doesn't belong to either grid.
+Nothing else changes when you flip the **Armor / Weapons** toggle — it swaps which
+grid you're looking at and leaves the preview window exactly as it is, so you can go
+and find a weapon and come straight back to the set you were building.
 
 ## Legion class arsenals
 
