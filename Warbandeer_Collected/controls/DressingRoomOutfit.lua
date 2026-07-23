@@ -6,7 +6,10 @@ local GetItemIcon = C_Item.GetItemIconByID
 local RequestItem = C_Item.RequestLoadItemDataByID
 local C_Timer = C_Timer
 local DressingRoom = ns.DressingRoom
--- Slot status colors, matching the armor columns' green/red (DressingRoomSlots.lua owns the
+-- The one slot state this file has to tell apart from the others — a hidden slot composes as its
+-- hide visual, an empty one as 0 (DressingRoomSlotStates.lua owns the cycle).
+local HIDDEN = DressingRoom._k.HIDDEN
+-- Slot status colors, matching the armor columns' green/red (DressingRoomSlotStates.lua owns the
 -- originals; outfit mode paints the same slots, so it has to agree with them).
 local OUTFIT_GREEN = {0, 104/255, 55/255, 1}
 local OUTFIT_RED   = {165/255, 0, 38/255, 1}
@@ -54,7 +57,8 @@ end
 ---Composed from the room's own state rather than read back off the model
 ---(`actor:GetItemTransmogInfoList`): that keeps it deterministic — unaffected by where an async
 ---re-skin has got to — and it honours the per-slot toggles, since `_currentSources` already
----drops the slots the user switched off.
+---drops the slots the user switched off. Which of the two off-states each of those is in decides
+---what it composes as: see the hidden pass below.
 ---@return table[]
 function DressingRoom:ComposeOutfit()
   local list = ns.EmptyOutfitList()
@@ -66,8 +70,8 @@ function DressingRoom:ComposeOutfit()
   -- silently replaced a loaded look with the stale set's armor. Per-slot toggles are honoured in
   -- both modes.
   --
-  -- A weapon-cosmetic preview (group.kind) has a synthetic set id with no C_TransmogSets sources
-  -- behind it, so there is no armor half to walk — its weapon lives in the look fields below.
+  -- A weapon-cell preview (group.weaponCell) has a synthetic set id with no C_TransmogSets
+  -- sources behind it, so there is no armor half to walk — its weapon lives in the look fields below.
   if self._outfit then
     for _, slotID in ipairs(ns.OutfitSlotOrder) do
       local info = self._outfit[slotID]
@@ -81,10 +85,29 @@ function DressingRoom:ComposeOutfit()
         list[slotID].secondaryAppearanceID = info.secondaryAppearanceID or 0
       end
     end
-  elseif self._set and self._set.id and not (self._group and self._group.kind) then
+  elseif self._set and self._set.id and not (self._group and self._group.weaponCell) then
     for _, src in ipairs(self:_currentSources()) do
       local slot = ns.SourceSlot(src)
       if slot then list[slot].appearanceID = src end
+    end
+  end
+
+  -- **Hidden is not empty** (#654). Both branches above leave a slot the user switched off at the
+  -- empty list's `0` — `Constants.Transmog.NoTransmogID`, which at a transmogrifier renders whatever
+  -- the character has EQUIPPED. That's the opposite of the bare slot the preview was showing, so a
+  -- slot in the `hidden` state is written as its own hide visual instead: a real appearance with a
+  -- real sourceID, which renders nothing wherever the look is applied. The `empty` state is the one
+  -- that genuinely means `0`, and it keeps the value both branches already left.
+  --
+  -- Only armour slots reach here: the cosmetic and weapon slots never take a `_hiddenSlots` entry,
+  -- and the look fields below own them regardless.
+  for slotID, state in pairs(self._hiddenSlots) do
+    if state == HIDDEN then
+      local hide = ns.HideVisual(slotID)
+      if hide then
+        list[slotID].appearanceID = hide
+        list[slotID].secondaryAppearanceID = 0
+      end
     end
   end
 
@@ -124,15 +147,13 @@ local function pick(info)
   return appearanceID > 0 and appearanceID or nil
 end
 
--- Weapon categories that occupy both hands, borrowed from the look builder (WeaponPicker.lua
--- owns the list and explains why it has to be an explicit set rather than a flag test). Read at
--- call time so this file carries no load-order dependency on it.
+-- Whether a loaded look's main-hand occupies both hands, so `_lookMH2H` can be re-derived for a
+-- look this file didn't compose. viewsync.lua owns the category set and explains why it has to be
+-- an explicit list rather than a capability-flag test.
 ---@param sourceID number
 ---@return boolean
 local function isTwoHanded(sourceID)
-  local twoHanded = DressingRoom._TWO_HANDED
-  local category = sourceID and GetCategoryForItem(sourceID)
-  return (twoHanded and category and twoHanded[category]) or false
+  return ns.TwoHandedWeapon(sourceID and GetCategoryForItem(sourceID))
 end
 
 ---Dress the room from an outfit list — the inverse of ComposeOutfit.
@@ -185,7 +206,7 @@ end
 --
 -- A loaded custom set is a look that is NOT a `ns.Sets` entry, so the room can't drive its armor
 -- columns off `self._set` the way `UpdateSlots` does. The room already had one such alternate
--- mode — `group.kind`, the weapon-cosmetic preview — and `_load` branches on it; this is the
+-- mode — `group.weaponCell`, the weapon-cell preview — and `_load` branches on it; this is the
 -- parallel: `self._outfit` holds the applied list, the armor slots render from THAT, and
 -- everything keyed to a set id (rank buttons, Wanted, the id label, the class icon, the
 -- difficulty tier bars) is hidden because an outfit has no set to rate. Previewing any set again
@@ -198,6 +219,11 @@ end
 function DressingRoom:EnterOutfitMode(name, list)
   self:ApplyOutfit(list)
   self._outfit = list
+  -- A loaded look belongs to NEITHER grid — both cursors clear below — so the view toggle must
+  -- leave it alone rather than swap it for a remembered preview (#656). The remembered previews
+  -- themselves are kept: previewing a set again exits this mode and re-records one.
+  self._view = nil
+  self:_syncViewToggle()   -- …and neither half of the room's toggle is lit while it's showing
   self:Title(name)
   self._idLabel:Text("")
   self._masterName = nil
@@ -237,7 +263,11 @@ function DressingRoom:UpdateSlotsFromOutfit(retry)
         if not tex then RequestItem(src.itemID); missing = true end
         e.icon:Texture(tex or ns.ui.media.unresolved)
         e.icon:Show()
-        e.border:Color(src.isCollected and OUTFIT_GREEN or OUTFIT_RED)
+        -- A hidden slot carries a real appearance, but it isn't a set PIECE — paint it idle, as
+        -- the preview's own hidden state does, rather than claiming a collected/missing status for
+        -- the Hidden item. Its icon is already the game's Hidden art, straight off the source.
+        e.border:Color(ns.IsHideVisual(e.slotID, appearanceID) and DressingRoom._k.IDLE
+          or (src.isCollected and OUTFIT_GREEN or OUTFIT_RED))
       else
         -- Empty slot in the outfit: the same "nothing here" marker an unused set slot shows.
         e.itemID = nil
@@ -245,7 +275,7 @@ function DressingRoom:UpdateSlotsFromOutfit(retry)
         e.icon:Show()
         e.border:Color(DressingRoom._IDLE)
       end
-      e.icon:SetVertexColor(1, 1, 1, 1)   -- outfit slots have no per-slot hide toggle to dim
+      e.icon:SetVertexColor(1, 1, 1, 1)   -- outfit mode has no per-slot state cycle to dim for
     end
   end
 

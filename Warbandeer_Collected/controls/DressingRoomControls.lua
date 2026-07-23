@@ -21,13 +21,26 @@ local ALLIANCE_COLOR, HORDE_COLOR, NEUTRAL_COLOR = k.ALLIANCE_COLOR, k.HORDE_COL
 -- the S/A/B/C/F tier buttons + clear, and the "This race" per-race-override toggle).
 ---@param controls Frame  the bottom controls strip built by the constructor
 function DressingRoom:_buildControls(controls)
-  local half = (GRIDW - PAD) / 2
+  -- Top control row: [ Armor | Weapons ] [ Undress ] [ Background ]. The mode toggle takes the
+  -- window's own 92px at the far left and the other two split what's left, so GRIDW is unchanged
+  -- and nothing below moves.
+  local TOGGLE_W = 92
+  local half = (GRIDW - TOGGLE_W - 2 * PAD) / 2
+  local afterToggle = TOGGLE_W + PAD
 
-  -- Top control row: Undress (left) + Background toggle (right). Borders go gold
-  -- while active.
+  -- The same Armor/Weapons toggle the collection window carries (#653), so the view can be
+  -- switched without reaching past the preview window for the one behind it. Clicking it drives
+  -- `MainWindow:SetMode`, which since #656 also brings that view's last preview back onto the
+  -- model — so this is a genuine "show me the other side" control, not just a grid switch.
+  self._modeToggle = ns.ModeToggle{
+    parent = controls, theme = self:Theme(), width = TOGGLE_W, height = ROWH,
+    position = { TopLeft = {0, 0} },
+    onClick = function(weapons) self:SwitchView(weapons) end,
+  }
+
   local undressBox = Frame:new{
     parent = controls,
-    position = { TopLeft = {0, 0}, Width = half, Height = ROWH },
+    position = { TopLeft = {afterToggle, 0}, Width = half, Height = ROWH },
   }
   self._undressBorder = selBox(undressBox)
   Button:new{ parent = undressBox, position = { All = true }, glow = false,
@@ -37,7 +50,7 @@ function DressingRoom:_buildControls(controls)
 
   local bgBox = Frame:new{
     parent = controls,
-    position = { TopLeft = {half + PAD, 0}, Width = half, Height = ROWH },
+    position = { TopLeft = {afterToggle + half + PAD, 0}, Width = half, Height = ROWH },
   }
   self._bgBorder = selBox(bgBox)
   self._bgBorder:Color(SELECTED)   -- backdrop defaults on

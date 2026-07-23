@@ -159,26 +159,14 @@ local MainWindow = Class(TitleFrame, function(self)
   -- Shift the armor strip right to clear the persistent toggle at the far left.
   self.filterStrip:Position({ TopLeft = {self.titlebar, ui.edge.BottomLeft, 2 + TOGGLE_W + TGAP, -2} })
 
-  -- The persistent Armor/Weapons segmented toggle (two halves; the active half gets the gold border).
-  local off = {0.05, 0.05, 0.06, 0.92}
-  local seg = ui.Frame:new{ parent = self,
-    position = { TopLeft = {self.titlebar, ui.edge.BottomLeft, 2, -2}, Width = TOGGLE_W, Height = STRIP_H } }
-  ui.Texture:new{ parent = seg, layer = ui.layer.Background, position = { All = true }, color = off }
-  local capsFont = theme.fonts.caps and {theme.fonts.caps[1], 10} or nil
-  local function segHalf(x, label, weapons)
-    local cell = ui.Frame:new{ parent = seg, position = { TopLeft = {x, 0}, Width = TOGGLE_W / 2, Height = STRIP_H } }
-    local border = ui.Texture:new{ parent = cell, layer = ui.layer.Background, position = { All = true },
-      color = weapons and off or gold }
-    ui.Texture:new{ parent = cell, layer = ui.layer.Border, position = { TopLeft = {1, -1}, BottomRight = {-1, 1} },
-      color = {0.09, 0.09, 0.11, 0.95} }
-    local btn = ui.Button:new{ parent = cell, position = { All = true }, glow = false,
-      OnClick = function() self:SetMode(weapons) end }
-    Label:new{ parent = btn, fontInfo = capsFont, justifyH = ui.justify.Center,
-      position = { All = true }, text = label, color = theme.colors.text }
-    return border
-  end
-  self._segArmor = segHalf(0, "Armor", false)
-  self._segWeapons = segHalf(TOGGLE_W / 2, "Weapons", true)
+  -- The persistent Armor/Weapons segmented toggle (two halves; the active half gets the gold
+  -- border). Built through the shared `ns.ModeToggle` because the dressing room carries the same
+  -- control (#653) and two hand-rolled copies of one toggle would drift.
+  self._modeToggle = ns.ModeToggle{
+    parent = self, theme = theme, width = TOGGLE_W, height = STRIP_H, weapons = false,
+    position = { TopLeft = {self.titlebar, ui.edge.BottomLeft, 2, -2} },
+    onClick = function(weapons) self:SetMode(weapons) end,
+  }
 
   self:RefreshCounter()
   self:RefreshWanted()
@@ -209,10 +197,7 @@ function MainWindow:SetMode(weapons)
   self.data:SetShown(not weapons); self.filterStrip:SetShown(not weapons); self.scroll:SetShown(not weapons)
   self.weapons:SetShown(weapons); self.weaponStrip:SetShown(weapons); self.weaponScroll:SetShown(weapons)
   self.wantedCount:SetShown(not weapons)   -- the wanted tally is armor-only
-  local theme = self:Theme()
-  local gold, off = theme.colors.gold or theme.colors.header, {0.05, 0.05, 0.06, 0.92}
-  self._segArmor:Color(weapons and off or gold)
-  self._segWeapons:Color(weapons and gold or off)
+  self._modeToggle:Select(weapons)
   -- The weapon name column is too narrow to hold the counter over the header, so in weapon mode
   -- the counter rides the strip row (right of the dropdowns); armor keeps it over the header.
   self.counter:Position(weapons and { TopLeft = {self.weaponStrip, ui.edge.TopRight, 12, -3} }
@@ -220,6 +205,12 @@ function MainWindow:SetMode(weapons)
   self:Width(max(110, self.active:Width() + (weapons and 20 or 4)))   -- +scrollbar room in weapon mode
   self:RefreshCounter()
   self:_fitToGrid()
+  -- The preview follows the toggle (#656). Without this the grids and the room were independent
+  -- surfaces — toggling back to Armor left the weapon you last clicked still on the model. Only an
+  -- ALREADY-OPEN room is touched (`OpenDressingRoom` is nil for a closed one), and it's left alone
+  -- when there's nothing to switch to; the whole decision table is `ns.PreviewToRestore`.
+  local room = ns.OpenDressingRoom()
+  if room then room:RestoreViewPreview(weapons) end
 end
 
 ---Cap the visible grid at the shared `DataView.MAX_HEIGHT` and size the window with the

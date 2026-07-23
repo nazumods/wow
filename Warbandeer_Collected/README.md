@@ -43,11 +43,19 @@ room showing the set worn by any playable **race** you pick — handy for
 deciding what a transmog will actually look like. Like the character sheet, each
 piece sits in its equipment slot down the sides (green border = collected, red =
 still missing); hover a slot for the in-game item tooltip, and **click a slot to
-toggle that piece on or off the model** (its icon greys out while it's off) to see
-how the set looks without a helm, cloak, and so on. The **Undress** toggle is the
-bulk version — it strips every piece off at once to show the bare race, weapons
-and shirt and tabard included (click it again and everything you had on comes
-back). There's also a **Background** toggle for a
+cycle it** through three states — worn, **hidden**, and **no transmog** — to see
+how the set looks without a helm, cloak, and so on.
+
+The difference between the two off states only matters once you save or share the
+look, but then it matters a lot. **Hidden** puts the game's own *Hidden Helm* (or
+Hidden Cloak, Hidden Tabard, …) in the slot, so it stays empty wherever the look is
+applied — that's what you were looking at in the preview. **No transmog** leaves the
+slot alone instead, so at a transmogrifier whatever you have equipped shows through.
+On the paper doll a hidden slot shows the game's Hidden icon, a no-transmog slot
+greys the set's piece out, and the tooltip always names the state you're in and what
+the next click does. The **Undress** toggle is the bulk version — it hides every
+piece at once to show the bare race, weapons and shirt and tabard included (click it
+again and everything you had on comes back). There's also a **Background** toggle for a
 class-themed backdrop, a scale slider to resize the model, and a **Reset View**
 button to snap the camera back to its starting rotation, zoom, pan, and scale. The model always
 uses your own character's **gender** (a model that can actually wear the set is
@@ -87,27 +95,42 @@ looks and **←/→** to jump to the neighbouring weapon type from the same sour
 grid draws a white box around the cell you're viewing so you never lose your place.
 Mark a look with the **★** button to add it to your weapon wanted list.
 
-## Class weapon cosmetics
+**Take a weapon with you.** The chooser has **Main hand** and **Off hand** buttons at
+the top — click one and the weapon you're looking at joins the look you're building,
+without going through the weapon picker under the model. Only the hands that weapon
+can actually go in are offered (the other is greyed out): a one-hander can take either,
+a two-hander or a bow only the main hand, a shield or an off-hand frill only the off
+hand. Click the same button again to take it back off. You won't see it here — this
+preview shows a bare character holding the weapon on its own — but it's there the
+moment you switch back to an armor set.
 
-The **Weapons** category (in the Category filter) tracks the class-specific weapon
-cosmetics that are easy to miss:
+**The preview follows the toggle.** Flipping between Armor and Weapons brings back
+whatever you were last previewing in the view you're switching to, so you can go and
+find a weapon and come back to the set you were building without hunting for it again.
+If you haven't previewed anything in that view yet, the window simply leaves the
+preview as it is rather than closing it — and a saved look you've loaded is never
+disturbed by the toggle, since it doesn't belong to either grid.
 
-- **Illusions** — the class weapon-enchant illusions: the Death Knight's Rune of
-  Razorice, the Rogue's Poisoned, and the Shaman's five weapon imbues (Flametongue,
-  Frostbrand, Earthliving, Windfury, Rockbiter).
-- **Arsenals** — the Legion class weapon-appearance bundles: the Death Knight's
-  Armaments of the Ebon Blade, the Paladin's Armaments of the Silver Hand, and the
-  Demon Hunter's Warglaives of Azzinoth.
+**The toggle is in the dressing room too**, at the left of its first button row, so you
+can switch between armor and weapons without digging the collection window out from
+behind the preview. It does the same thing as the one in the window — both stay in step —
+and the lit half tells you which view the thing on the model came from. With a saved look
+loaded, neither half is lit: that look isn't from either grid.
 
-Each cell counts how many pieces you still need (read **account-wide**, so it's right
-no matter which character you're on), hover it for the per-piece owned/missing
-breakdown — plus, while you're still missing pieces, a **How to obtain** line for where
-to get them (which class each illusion is locked to, and the Broken Shore / Timewalking
-source for the Legion arsenals) — and Shift-click to flag it wanted just like a set. Click a Weapons cell to
-open the dressing room holding the piece on your own character — for an **arsenal** it
-shows the weapon appearance; for an **illusion** it lays the enchant shimmer over your
-equipped weapon. Use the **Up/Down** nav to cycle through the pieces (the 15 Ebon
-weapons, the 5 Shaman brands); the title names the one you're viewing.
+## Legion class arsenals
+
+The three Legion class weapon-appearance bundles have rows of their own in the Weapons
+view: the Paladin's **Armaments of the Silver Hand**, the Death Knight's **Armaments of
+the Ebon Blade**, and the Demon Hunter's **Warglaives of Azzinoth**. They work exactly
+like any other weapon source — a cell per weapon type with the count you still need,
+hover for the individual pieces and where they come from, click to preview and to take
+one into your look.
+
+They used to sit in the *armor* grid under a "Weapons" category, which is gone. Almost
+all of those appearances were already in the Weapons view anyway, just filed anonymously
+under Legion's Vendor row; now they're grouped and named. The class **weapon-enchant
+illusions** moved too — they were never really a set, and they live in the look builder's
+**Illusions** tab, which is where you'd reach for one anyway (see below).
 
 ## Look builder
 
@@ -180,33 +203,66 @@ comes back complete, and pieces you simply haven't collected yet save normally t
 can build and keep a look for an alt. Actually *wearing* it is a separate matter: a
 transmogrifier still only lets a character wear what its class can equip.
 
+**Slots you hid stay hidden.** A slot you clicked to *hidden* saves, loads and shares as the
+game's Hidden piece for that slot, so the look you get back is the one you were looking at —
+not one that quietly falls back to your equipped gear. A slot you clicked all the way round to
+*no transmog* saves as exactly that.
+
 While a saved look is loaded the window shows its name, and the rating buttons are hidden —
 a look isn't one of the tracked sets, so there's nothing to rate. Click any set in the
 grid to go back to normal previewing.
 
 ## Sharing a look
 
-Any look you've put together in the preview window can be turned into the same
-`/customset` string the game itself uses, so you can paste it to a friend, keep it in a
-note, or drop it back in later.
+Under the outfit row is a **share row** — a paste field and **Export**, **Post to Chat**
+and **Import**. All three act on the look **currently on screen**, so you can share
+something you haven't saved yet.
 
-- `/collected outfit export` copies the look on screen into a window you can select and
-  copy from. It also lists every slot it captured, so you can check the string against
-  what you're looking at.
-- `/collected outfit import <string>` dresses the open preview from a string — either one
-  of yours or one someone sends you.
-- `/collected outfit list` shows the transmog sets you've saved in game, and how many of
-  your slots are used.
+The game has two ways of passing a transmog around, and this uses both:
 
-The string works both ways with the game's own `/customset` command, so the person you
-send it to doesn't need this addon.
+- **Export** gives you the same `/customset` string the game itself uses — a line of text
+  you can send in any chat, drop in a note, or keep for later. It opens in a window you can
+  select and copy from, and lists every slot it captured so you can check the string against
+  what you're looking at. **The person you send it to doesn't need this addon**: it pastes
+  straight into the game's own `/customset` command.
+- **Post to Chat** puts the look in your chat box as a **clickable link**. Pick a channel and
+  send it, and whoever clicks it sees the outfit in their dress-up window. Nothing is sent
+  until *you* press Enter.
+- **Import** dresses the preview from either format. Paste a `/customset` string into the
+  field and press Enter or click Import.
 
-**Pieces you haven't collected are fine to share.** A string carries appearances you
-don't own yet, which makes it a good way to pass a wishlist look around. The export marks
+To import a **link** someone posted, use `/collected outfit import` and shift-click their
+link onto the end of the command — chat links can't be dropped into the addon's own field.
+
+Both formats carry exactly the same look, including your shirt, tabard, both weapons and a
+weapon illusion.
+
+**Pieces you haven't collected are fine to share.** Both formats carry appearances you
+don't own yet, which makes either a good way to pass a wishlist look around. The export marks
 those slots `(not owned)` so you can see at a glance which ones you're still chasing.
 
 **Another class's set is fine too.** A plate set exported from a Druid shares, re-imports and
 saves complete — nothing is dropped for being the wrong armour type.
+
+**Empty slots stay empty for whoever you send it to.** A look with no cloak used to arrive
+wearing the recipient's *own* cloak — the format says "no transmog here", and the game's
+dress-up window reads that as "leave what you're already wearing". Anything the preview shows
+bare is now shared as genuinely bare, so what they see is what you saw. Two caveats worth
+knowing:
+
+- **Weapons are the exception.** The game has a "hidden" appearance for every armor and
+  cosmetic slot but none for the two weapon slots, so a look with no main-hand will still show
+  the recipient's own weapon. Nothing in the format can express otherwise.
+- If you deliberately cycled a slot to **no transmog** (the third click), that's left alone —
+  you asked for the wearer's own gear to show, and sharing respects it. That choice lives in
+  the preview though: save a look and reload it later and it comes back as simply bare, since
+  the saved format has nowhere to record the difference.
+
+If a look has only just appeared on the model, posting it to chat may say the item data is
+still loading — give it a moment and click again.
+
+`/collected outfit list` shows your library alongside the transmog sets you've saved in game,
+and how many of the game's set slots are used.
 
 ## Usage
 
@@ -216,12 +272,19 @@ saves complete — nothing is dropped for being the wrong armour type.
 | `/collected scan` | Rebuild collection data from the game's transmog APIs |
 | `/collected wanted` | List the sets you've flagged as wanted |
 | `/collected outfit export` | Copy the previewed look as a shareable `/customset` string |
-| `/collected outfit import <string>` | Dress the preview from a `/customset` string |
+| `/collected outfit post` | Put the previewed look in your chat box as a clickable link |
+| `/collected outfit import <string>` | Dress the preview from a `/customset` string or a shift-clicked link |
 | `/collected outfit list` | Your account-wide library, plus this character's transmog sets |
 | `/collected outfit save <name>` | Save the previewed look to your library |
 | `/collected outfit load <name>` | Dress the preview from your library |
 | `/collected outfit delete <name>` | Remove a look from your library |
 | `/collected outfit push <name>` | Copy a look into this character's transmog sets |
+| `/collected cleanup` | Remove saved data for collection rows this version no longer shows |
+
+`cleanup` is safe to ignore. Upgrades never delete anything, so when a row moves — as the
+Illusions and Arsenals rows did — its old scan results and any ratings you gave it stay in
+your saved variables, harmlessly. Run this once you're happy with the new version to clear
+them out.
 
 The addon compartment button (next to the minimap) also works: click to open,
 right-click to scan.

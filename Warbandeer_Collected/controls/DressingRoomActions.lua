@@ -75,42 +75,6 @@ function DressingRoom:SetForm(i)
 end
 
 
--- Master show/hide: the Undress button is just a bulk per-slot toggle — hide every
--- piece-bearing slot when anything's worn, else restore all.
-function DressingRoom:ToggleUndress()
-  self:SetUndressed(self:_anyWorn())
-end
-
----@param undressed boolean  true to strip every slot off the model, false to restore all
-function DressingRoom:SetUndressed(undressed)
-  for _, e in ipairs(self._slots) do
-    -- Cosmetic slots have no per-slot toggle and aren't set pieces, so they take no _hiddenSlots
-    -- entry; the composed look re-applies them below.
-    if e.itemID and not e.cosmetic then self._hiddenSlots[e.slotID] = undressed or nil end
-  end
-  -- Apply in place (no reload): re-set the outfit (redress re-adds every piece via
-  -- TryOn), then bare the whole body when undressing — TryOn alone can't strip.
-  --
-  -- Undress bares EVERYTHING, the composed look included: Model:Undress strips the slots set
-  -- through SetItemTransmogInfo along with the armor, which is what "show the bare race" should
-  -- mean. But the re-dress path only re-TryOns the outfit's sources and never re-asserts those
-  -- per-slot overrides, so without the _applyLook here the weapons, illusion, shirt and tabard
-  -- stay gone until the next model re-skin happens to restore them (#650).
-  --
-  -- Tracked explicitly rather than derived from `_anyWorn()`: hiding every armor slot one at a
-  -- time leaves the composed look genuinely ON the model (ToggleSlot's UndressSlot only bares its
-  -- own armor slot), so only this master toggle may grey the weapon/cosmetic icons.
-  self._undressed = undressed or nil
-  self._model:Outfit(self:_currentSources())
-  if undressed then self._model:Undress() else self:_applyLook() end
-  self:_refreshSlotDims()
-  -- The composed-look slots have no _hiddenSlots entry, so _refreshSlotDims doesn't reach them —
-  -- repaint them here so their icons grey with the armor instead of still reading as worn.
-  self:UpdateWeaponSlots()
-  self:UpdateCosmeticSlots()
-  self:_syncUndressBorder()
-end
-
 -- ── Ratings ────────────────────────────────────────────────────────────────--
 
 -- Sync the ratings row to the current set, race, and edit layer: the wanted star,
@@ -181,12 +145,16 @@ function DressingRoom:SetRaceOnly(on)
 end
 
 -- Preview a specific set within a group: refresh the title, class icon, slots and
--- model. Shared by ShowDressingRoom (initial open) and Step (navigation).
+-- model. Shared by ShowDressingRoom (initial open), Step (navigation) and the view toggle's
+-- restore (DressingRoomViews.lua) — so it's also the one place the per-view preview memory is
+-- written, `piece` being how a restore comes back on the look it left on rather than the first.
 ---@param group table  a group entry from ns.Sets
 ---@param set table    a set entry within that group
-function DressingRoom:_load(group, set)
+---@param piece number?  which look within a weapon cell to show (defaults to the first)
+function DressingRoom:_load(group, set, piece)
   self._group = group
   self._set = set
+  self:_rememberPreview(group, set)
   wipe(self._hiddenSlots)   -- per-set toggles: each set opens fully dressed
   self._undressed = nil     -- …including the master Undress state
   -- Previewing a set is the only way out of outfit mode: drop the applied list and restore the
@@ -230,11 +198,11 @@ function DressingRoom:_load(group, set)
   if self._ratingsBoxes then for _, b in ipairs(self._ratingsBoxes) do b:SetShown(not group.weaponCell) end end
   self:_showClass(classId)
   self:_showRelease(group.release)
-  if group.kind then
-    -- Weapon-cosmetic preview: no armor slots, no weapon slots, no difficulty tier bars (its own
-    -- held-weapon render is the focus). Close the look builder and up/down nav cycles the cell's
-    -- pieces from the first (see _stepWeaponPiece).
-    self._weaponPiece = 1
+  if group.weaponCell then
+    -- Weapon-cell preview: no armor slots, no weapon slots, no difficulty tier bars (its own
+    -- held-weapon render is the focus). Close the look builder; up/down cycles the cell's looks
+    -- from the first, or from `piece` when a view toggle restored this cell (see _stepWeaponPiece).
+    self._weaponPiece = piece or 1
     self:_showSlots(false)
     self:_showWeaponSlots(false)
     self._tierBarL:Hide()
@@ -358,30 +326,23 @@ end
 ---@param vdir number  -1 = move to the tier shown above, +1 = below
 function DressingRoom:StepTierVisual(vdir)
   -- Weapon-cosmetic cells have no difficulty tiers; up/down cycles their pieces instead.
-  if self._group and self._group.kind then return self:_stepWeaponPiece(vdir) end
+  if self._group and self._group.weaponCell then return self:_stepWeaponPiece(vdir) end
   self:StepTier(vdir)
 end
 
--- Cycle the previewed weapon piece within the current cell (an arsenal's weapon
--- appearances, or a Shaman cell's illusion brands), wrapping. Driven by the up/down nav
--- in weapon-cosmetic preview, where there are no tiers to step.
----@param dir number  -1 = previous piece, +1 = next
+-- Cycle the previewed look within the current weapon cell, wrapping. Driven by the up/down nav in
+-- weapon-cell preview, where there are no difficulty tiers to step.
+---@param dir number  -1 = previous look, +1 = next
 function DressingRoom:_stepWeaponPiece(dir)
   local set = self._set
-  local list
-  if self._group.weaponCell then
-    list = set and set._looks                              -- ↑/↓ steps through the cell's looks
-  else
-    list = set and (self._group.kind == "illusion" and set.illusions or set.pieces)
-  end
+  local list = set and set._looks
   if not list or #list < 2 then return end
   local cur = (self._weaponPiece or 1) - 1                -- to 0-based
   self._weaponPiece = (cur + dir) % #list + 1             -- step, wrap, back to 1-based
   self:Dress()
-  if self._group.weaponCell then
-    self:_refreshRatings()                                -- the ★ tracks the shown look
-    if self._cellList then self._cellList:Refresh() end   -- move the chooser highlight to it
-  end
+  self:_refreshRatings()                                  -- the ★ tracks the shown look
+  self:_syncCellActions()                                 -- …and so do the hand buttons
+  if self._cellList then self._cellList:Refresh() end     -- move the chooser highlight to it
 end
 
 -- Select the logged-in character's race + gender. Called when the window opens

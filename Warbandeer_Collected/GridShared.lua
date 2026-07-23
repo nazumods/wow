@@ -13,6 +13,7 @@ local GameTooltip = GameTooltip
 -- row-build / highlight time (runtime), so load order relative to the data files doesn't matter.
 
 ---@class Warbandeer_Collected
+---@field ModeToggle fun(spec: table): table
 ---@field gridShades number[][]  10-shade red→green completion gradient (shared cell coloring)
 ---@field CompletionCell fun(collected: number, total: number, cell: table?): table
 ---@field baseName fun(name: string): string
@@ -190,4 +191,56 @@ function ns.filterToggle(strip, theme, spec)
   local label = Label:new{ parent = btn, fontInfo = caps and {caps[1], 10} or nil,
     justifyH = ui.justify.Center, position = { Left = {PAD, 0}, Right = {-PAD, 0} }, text = spec.text }
   return border, label
+end
+
+-- ── The Armor | Weapons mode toggle ────────────────────────────────────────────--
+--
+-- Built the same way wherever it appears (#653): the collection window's strip row and the
+-- dressing room's control row. Two halves in one framed box, the active one bordered gold — the
+-- room's copy is a remote for `MainWindow:SetMode`, so a second hand-rolled build would be two
+-- implementations of one control, which is the thing this file exists to prevent.
+local SEG_OFF = {0.05, 0.05, 0.06, 0.92}
+
+---Build an Armor|Weapons segmented toggle.
+---
+---`onClick(weapons)` fires with the mode that half selects. The returned handle's `Select(weapons)`
+---repaints it — and `Select(nil)` lights NEITHER half, which is what the dressing room shows while
+---it's previewing something that belongs to neither grid (a loaded library look).
+---@param spec table  { parent, theme, position (anchor only), width, height, weapons?, onClick }
+---@return table  { armor: Texture, weapons: Texture, Select: fun(self, weapons: boolean?) }
+function ns.ModeToggle(spec)
+  local theme, w, h = spec.theme, spec.width, spec.height
+  local gold = theme.colors.gold or theme.colors.header
+  local caps = theme.fonts.caps
+  -- The caller supplies the anchor; the size is this control's own business.
+  local pos = {}
+  for key, value in pairs(spec.position) do pos[key] = value end
+  pos.Width, pos.Height = w, h
+
+  local seg = Frame:new{ parent = spec.parent, position = pos }
+  Texture:new{ parent = seg, layer = ui.layer.Background, position = { All = true }, color = SEG_OFF }
+
+  local function half(x, label, weapons)
+    local cell = Frame:new{ parent = seg, position = { TopLeft = {x, 0}, Width = w / 2, Height = h } }
+    local border = Texture:new{ parent = cell, layer = ui.layer.Background, position = { All = true },
+      color = SEG_OFF }
+    Texture:new{ parent = cell, layer = ui.layer.Border, color = {0.09, 0.09, 0.11, 0.95},
+      position = { TopLeft = {1, -1}, BottomRight = {-1, 1} } }
+    local btn = Button:new{ parent = cell, position = { All = true }, glow = false,
+      OnClick = function() spec.onClick(weapons) end }
+    Label:new{ parent = btn, fontInfo = caps and {caps[1], 10} or nil, justifyH = ui.justify.Center,
+      position = { All = true }, text = label, color = theme.colors.text }
+    return border
+  end
+
+  local toggle = { armor = half(0, "Armor", false), weapons = half(w / 2, "Weapons", true) }
+
+  ---@param weapons boolean?  true = Weapons, false = Armor, nil = neither
+  function toggle:Select(weapons)
+    self.armor:Color(weapons == false and gold or SEG_OFF)
+    self.weapons:Color(weapons == true and gold or SEG_OFF)
+  end
+
+  toggle:Select(spec.weapons)
+  return toggle
 end

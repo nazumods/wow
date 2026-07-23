@@ -74,6 +74,19 @@ describe("outfit codec", function()
       assert.equal(payload({ [6] = 4242, [7] = 5353 }), ns.EncodeOutfit(list))
     end)
 
+    -- #654: a hidden slot travels as the hide visual's own sourceID, and an empty one as 0. The
+    -- codec has no idea which is which — that's the point. What it has to guarantee is that it
+    -- never conflates them, so a look exported with a hidden helm imports back hidden and not as
+    -- "no transmog" (which would render the wearer's equipped helm instead).
+    it("keeps a hidden slot's appearance distinct from an empty one", function()
+      local HIDE_HELM = 55023
+      local str = payload({ [1] = HIDE_HELM })
+      local list = assert(ns.DecodeOutfit(str))
+      assert.equal(HIDE_HELM, list[INVSLOT_HEAD].appearanceID)
+      assert.equal(0, list[INVSLOT_CHEST].appearanceID)
+      assert.equal(str, ns.EncodeOutfit(list))
+    end)
+
     it("round-trips both illusions and both secondaries", function()
       -- 3 = shoulder secondary, 14 = main-hand secondary, 15/17 = main/off-hand illusions
       local str = payload({ [2] = 11, [3] = 22, [13] = 33, [14] = -1, [15] = 44, [16] = 55, [17] = 66 })
@@ -137,6 +150,45 @@ describe("outfit codec", function()
       local list, err = ns.DecodeOutfit(nil)
       assert.is_nil(list)
       assert.matches("string", err)
+    end)
+  end)
+
+  describe("OutfitInputKind", function()
+    -- A real 113-character link, as measured in game (see issue #643). The display text is
+    -- deliberately kept, since that is what a shift-clicked link carries.
+    local LINK = "|cffffd100|Htransmogcustomset:1094:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h[Outfit]|h|r"
+
+    it("recognizes a full chat hyperlink", function()
+      assert.equal("link", ns.OutfitInputKind(LINK))
+    end)
+
+    it("recognizes bare link data re-typed out of one", function()
+      assert.equal("link", ns.OutfitInputKind("transmogcustomset:1094:0:0"))
+    end)
+
+    it("recognizes both /customset shapes", function()
+      assert.equal("v1", ns.OutfitInputKind(BLIZZ_SAMPLE))
+      assert.equal("v1", ns.OutfitInputKind((BLIZZ_SAMPLE:gsub("^/customset%s+", ""))))
+    end)
+
+    it("tolerates surrounding whitespace on either shape", function()
+      assert.equal("link", ns.OutfitInputKind("  " .. LINK .. "\n"))
+      assert.equal("v1", ns.OutfitInputKind("  " .. BLIZZ_SAMPLE .. "\n"))
+    end)
+
+    -- The link test runs first, so a link whose display text opens with the version prefix must
+    -- still route to the game's decoder rather than ours.
+    it("reads a link as a link even when its display text looks like a v1 string", function()
+      assert.equal("link", ns.OutfitInputKind("|Htransmogcustomset:1|h[v1 1,2,3]|h"))
+    end)
+
+    it("rejects anything else", function()
+      assert.is_nil(ns.OutfitInputKind("/customset v2 1,2,3"))
+      assert.is_nil(ns.OutfitInputKind("v1"))
+      assert.is_nil(ns.OutfitInputKind("|Hitem:19019|h[Thunderfury]|h"))
+      assert.is_nil(ns.OutfitInputKind(""))
+      assert.is_nil(ns.OutfitInputKind(nil))
+      assert.is_nil(ns.OutfitInputKind(17))
     end)
   end)
 end)

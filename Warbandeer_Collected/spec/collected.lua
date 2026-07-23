@@ -3,10 +3,11 @@
 -- without the game client. Mirrors Warbandeer_Decor's spec/loader.lua. Paths are relative
 -- to the AddOns root (busted's cwd).
 --
--- Two files qualify: outfitcodec.lua and outfitlibrary.lua (the library is pure Lua over `ns.db`
--- plus the codec). Everything else in the addon touches C_* or frames and stays in-game-tested.
--- `ItemUtil` is deliberately left unstubbed so the codec exercises its plain-table fallback (see
--- ns.NewTransmogInfo).
+-- Two files qualify outright: outfitcodec.lua and outfitlibrary.lua (the library is pure Lua over
+-- `ns.db` plus the codec). `ItemUtil` is deliberately left unstubbed so the codec exercises its
+-- plain-table fallback (see ns.NewTransmogInfo). data/hidevisuals.lua is the one exception, loaded
+-- separately over a caller-supplied API stub — see M.loadHideVisuals. Everything else in the addon
+-- touches C_* or frames and stays in-game-tested.
 local M = {}
 
 -- The engine's equipment-slot constants. Real values, so a decoded list indexes the same way
@@ -26,6 +27,57 @@ function M.load()
   local ns = { db = { outfits = {} } }
   assert(loadfile("Warbandeer_Collected/outfitcodec.lua"))("Warbandeer_Collected", ns)
   assert(loadfile("Warbandeer_Collected/outfitlibrary.lua"))("Warbandeer_Collected", ns)
+  return ns
+end
+
+---Load data/hidevisuals.lua into an already-loaded `ns`. The one file here that DOES touch the
+---API, so the caller installs `Enum`, `C_TransmogCollection` and `ns.AppearanceSource` first and
+---this loads over them (the file captures both C_ functions as upvalues at load time, so the stubs
+---have to be in place before this call, and a re-load is what resets its per-slot cache).
+---
+---It earns the stub because what's worth testing is the eleven-entry slot → category map: a swapped
+---entry there would silently hide the wrong slot, and nothing else in the addon would notice.
+---@param ns table  as returned by M.load()
+---@return table ns
+function M.loadHideVisuals(ns)
+  assert(loadfile("Warbandeer_Collected/data/hidevisuals.lua"))("Warbandeer_Collected", ns)
+  return ns
+end
+
+---Load viewsync.lua into an already-loaded `ns`. Needs no C_ stub at all — the only WoW name it
+---touches is `Enum.TransmogCollectionType`, a table of constants — but it still loads separately
+---because the caller supplies that table and the weapon-hand sets are built from it at load time.
+---@param ns table  as returned by M.load()
+---@return table ns
+function M.loadViewSync(ns)
+  assert(loadfile("Warbandeer_Collected/viewsync.lua"))("Warbandeer_Collected", ns)
+  return ns
+end
+
+---Load the illusion + arsenal data files. Both are plain tables plus (for arsenals) a pure
+---table transform, so they need no stub at all — only `ns.WeaponSources` to fold into, seeded
+---empty here since the real generated data isn't loaded under busted.
+---@param ns table  as returned by M.load()
+---@return table ns
+---Load outfitshare.lua over a stub of the two C_TransmogCollection link functions it captures at
+---load time. Only `ns.ShareableOutfit` is exercised — it takes its hide-visual resolver as an
+---argument precisely so the wire-shaping rule is testable without the client.
+---@param ns table  as returned by M.load()
+---@return table ns
+function M.loadOutfitShare(ns)
+  _G.C_TransmogCollection = _G.C_TransmogCollection or {}
+  _G.C_TransmogCollection.GetCustomSetHyperlinkFromItemTransmogInfoList =
+    _G.C_TransmogCollection.GetCustomSetHyperlinkFromItemTransmogInfoList or function() end
+  _G.C_TransmogCollection.GetItemTransmogInfoListFromCustomSetHyperlink =
+    _G.C_TransmogCollection.GetItemTransmogInfoListFromCustomSetHyperlink or function() end
+  assert(loadfile("Warbandeer_Collected/outfitshare.lua"))("Warbandeer_Collected", ns)
+  return ns
+end
+
+function M.loadWeaponData(ns)
+  ns.WeaponSources = {}
+  assert(loadfile("Warbandeer_Collected/data/illusions.lua"))("Warbandeer_Collected", ns)
+  assert(loadfile("Warbandeer_Collected/data/arsenals.lua"))("Warbandeer_Collected", ns)
   return ns
 end
 

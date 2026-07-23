@@ -109,9 +109,9 @@ end
 ---@field _rankBtns table<string, { border: Texture }>  tier buttons keyed by letter
 ---@field _raceOnly boolean  edit/show the per-race override instead of the baseline
 ---@field _raceOnlyBorder Texture  per-race-override toggle border (gold while active)
----@field _slots table[]  paper-doll slot entries ({ slotID, icon, border, itemID?, cosmetic? }) — cosmetic ones are picker-driven, not set pieces
+---@field _slots table[]  paper-doll slot entries ({ slotID, icon, border, itemID?, collected?, cosmetic? }) — cosmetic ones are picker-driven, not set pieces
 ---@field _cosmeticSlots table[]  the shirt/tabard subset of _slots ({ slotID, label, target, look, empty, ... }) (DressingRoomCosmeticSlots.lua)
----@field _hiddenSlots table<number, true>  inventory slot ids toggled off the model (reset per set)
+---@field _hiddenSlots table<number, string>  inventory slot ids that aren't being worn, by state — `"hidden"` (composes as the slot's hide visual) or `"empty"` (composes as 0, no transmog); absent = worn (reset per set) (DressingRoomSlotStates.lua)
 ---@field _undressed boolean?  the master Undress toggle's state — greys the composed-look slots, which have no _hiddenSlots entry (reset per set)
 ---@field _weaponSlots table[]  bottom-center weapon-slot entries ({ hand, label, icon, border, box, itemID? }) (DressingRoomWeaponSlots.lua)
 ---@field _weaponPiece number?  index of the previewed piece within a weapon-cosmetic cell (up/down nav cycles it)
@@ -128,6 +128,14 @@ end
 ---@field _buildControls fun(self: DressingRoom, controls: Frame)  build the toggle + ratings rows (DressingRoomControls.lua)
 ---@field _buildRacePanels fun(self: DressingRoom, controls: Frame, d: table)  build the race selector (DressingRoomControls.lua)
 ---@field _buildSlots fun(self: DressingRoom, winW: number)  build the paper-doll slot columns (DressingRoomSlots.lua)
+---@field ToggleSlot fun(self: DressingRoom, e: table)  cycle one armour slot worn → hidden → empty (DressingRoomSlotStates.lua)
+---@field _paintSlot fun(self: DressingRoom, e: table): boolean  paint one armour slot for its state; true when its icon is still streaming (DressingRoomSlotStates.lua)
+---@field _slotHint fun(self: DressingRoom, slotID: number): string?  the tooltip line naming a slot's state + next click (DressingRoomSlotStates.lua)
+---@field _refreshSlotStates fun(self: DressingRoom)  repaint every armour slot from _hiddenSlots (DressingRoomSlotStates.lua)
+---@field ToggleUndress fun(self: DressingRoom)  master show/hide — the bulk version of the slot toggle (DressingRoomSlotStates.lua)
+---@field SetUndressed fun(self: DressingRoom, undressed: boolean)  hide every piece-bearing slot, or restore all (DressingRoomSlotStates.lua)
+---@field _anyWorn fun(self: DressingRoom): boolean  whether any piece-bearing armour slot is still worn (DressingRoomSlotStates.lua)
+---@field _syncUndressBorder fun(self: DressingRoom)  light the Undress button while nothing is worn (DressingRoomSlotStates.lua)
 ---@field _outfit table[]?  the applied custom set's outfit list — outfit mode while set (DressingRoomOutfit.lua)
 ---@field _outfitSel string?  the selected library outfit's name (nil = the "+ New Look" entry)
 ---@field _outfitPush table  the Push row button (copies the selected look to this character's custom sets)
@@ -154,6 +162,19 @@ end
 ---@field _armOutfit fun(self: DressingRoom, btn: table, caption: string)  arm a row button for a confirming second click (DressingRoomOutfits.lua)
 ---@field _typedOutfitName fun(self: DressingRoom): string  the name field's contents, trimmed (DressingRoomOutfits.lua)
 ---@field _syncOutfitButtons fun(self: DressingRoom)  grey the row buttons that can't act right now (DressingRoomOutfits.lua)
+---@field _rowButton fun(self: DressingRoom, row: Frame, x: number, w: number, label: string, onClick: fun()): table  build one labelled control-row button (DressingRoomOutfits.lua)
+---@field _enableRow fun(self: DressingRoom, btn: table, on: boolean)  enable/grey one control-row button (DressingRoomOutfits.lua)
+---@field _shareRow Frame  the fourth control row (paste field + Export/Post to Chat/Import) (DressingRoomOutfitShare.lua)
+---@field _shareField EditBox  the paste field a /customset string or transmog link is imported from
+---@field _shareHint Label  muted prompt shown over the empty paste field
+---@field _shareImport table  the Import row button (greyed while the field is empty)
+---@field _buildShare fun(self: DressingRoom, controls: Frame)  build the share row (DressingRoomOutfitShare.lua)
+---@field _pastedOutfit fun(self: DressingRoom): string  the paste field's contents, trimmed (DressingRoomOutfitShare.lua)
+---@field _syncShare fun(self: DressingRoom)  show/hide the paste prompt + grey Import to match (DressingRoomOutfitShare.lua)
+---@field _shareList fun(self: DressingRoom): table[]?, number  the look to put on the wire (bare slots hidden) + its real filled count (DressingRoomOutfitShare.lua)
+---@field ExportOutfit fun(self: DressingRoom)  the composed look as a /customset string, in a copy window (DressingRoomOutfitShare.lua)
+---@field PostOutfit fun(self: DressingRoom)  put the composed look's chat hyperlink in the chat box (DressingRoomOutfitShare.lua)
+---@field ImportOutfit fun(self: DressingRoom, str: string?)  dress the room from a pasted string or link (DressingRoomOutfitShare.lua)
 ---@field _picker Frame?  the docked appearance picker pane, lazily built on first open (AppearancePicker.lua)
 ---@field _pickerTitle Label  the pane's header caption, retitled per target
 ---@field _pickerCats WeaponCategory[]  the previewed set's class's usable weapon categories (dropdown source)
@@ -193,12 +214,20 @@ end
 ---@field _rescopePicker fun(self: DressingRoom)  re-scope the picker (weapon types + illusions) to the previewed set's class (WeaponPicker.lua)
 ---@field _applyWeaponTarget fun(self: DressingRoom)  shape the pane for a weapon target + repopulate the list (WeaponPicker.lua)
 ---@field _applyCosmeticTarget fun(self: DressingRoom)  shape the pane for a shirt/tabard target + repopulate (CosmeticPicker.lua)
+---@field _cellPane Frame?  the docked weapon-cell chooser pane, lazily built on the first weapon-cell preview (WeaponCellPicker.lua)
+---@field _cellList VirtualList  the previewed cell's look list (WeaponCellPicker.lua)
+---@field _cellUse table<string, table>?  the chooser's Main hand / Off hand staging buttons, keyed "main"/"off" (WeaponCellPicker.lua)
+---@field _useCellLook fun(self: DressingRoom, hand: string)  stage the shown cell look into a hand of the composed look (WeaponCellPicker.lua)
+---@field _syncCellActions fun(self: DressingRoom)  re-sync the hand buttons to the shown look (WeaponCellPicker.lua)
 local ROWH = 26         -- toggle-button height
--- Three stacked control rows, each ROWH tall with PAD between: toggles (Undress/Background) at 0,
--- ratings at TOPGAP, outfits at ROW3. The faction panels start below all three.
+-- Four stacked control rows, each ROWH tall with PAD between: toggles (Undress/Background) at 0,
+-- ratings at TOPGAP, outfits at ROW3, sharing at ROW4. The faction panels start below all four.
+-- The share row is its own row because the outfit row is full — it already spends 568 of GRIDW's
+-- 572 — and its columns are aligned to that row's, so the two read as one block.
 local TOPGAP = ROWH + PAD
 local ROW3 = 2 * (ROWH + PAD)
-local PANELSTOP = 3 * (ROWH + PAD)
+local ROW4 = 3 * (ROWH + PAD)
+local PANELSTOP = ROW4 + ROWH + PAD
 
 -- Forward-declared so the constructor closure can read DressingRoom.MODEL_INSET
 -- (set by the companion DressingRoomSlots.lua) as an upvalue at instantiation.
@@ -263,6 +292,7 @@ DressingRoom = Class(TitleFrame, function(self)
   self:_buildWeaponSlots()
   self:_buildControls(controls)
   self:_buildOutfits(controls)
+  self:_buildShare(controls)
   self:_buildRacePanels(controls, {
     alliance = alliance, neutral = neutral, horde = horde,
     aW = aW, aH = aH, nW = nW, nH = nH, hW = hW, hH = hH, panelsH = panelsH,
@@ -292,7 +322,8 @@ DressingRoom._MODELH = MODELH
 -- Constants + helpers shared with the build/controls/actions/model companion files.
 DressingRoom._k = {
   SELECTED = SELECTED, IDLE = IDLE, selBox = selBox, tierBar = tierBar,
-  GRIDW = GRIDW, PAD = PAD, ROWH = ROWH, TOPGAP = TOPGAP, ROW3 = ROW3, MODELH = MODELH,
+  GRIDW = GRIDW, PAD = PAD, ROWH = ROWH, TOPGAP = TOPGAP, ROW3 = ROW3, ROW4 = ROW4,
+  MODELH = MODELH,
   CELL = CELL, STEP = STEP, PANELPAD = PANELPAD, RACEICON_CROP = RACEICON_CROP,
   AHCOLS = AHCOLS, PANELGAP = PANELGAP, PANELSTOP = PANELSTOP, PBORDER = PBORDER,
   ALLIANCE_COLOR = ALLIANCE_COLOR, HORDE_COLOR = HORDE_COLOR, NEUTRAL_COLOR = NEUTRAL_COLOR,
