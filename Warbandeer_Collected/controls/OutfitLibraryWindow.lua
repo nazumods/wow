@@ -37,6 +37,7 @@ local LISTH  = 340
 local ROW_H  = 34     -- two lines: the look's name, then where it came from
 local TITLEH = 30     -- titlebar, matching the height the room budgets for its own
 local ARMORW, CLASSW, SEARCHW, CLEARW = 96, 120, 160, 50   -- = WINW - 2*PAD with the gaps
+local IMPORTW = 190   -- footer button, wide enough for its full caption
 
 -- The armour type that constrains nobody. Doubles as the "no filter" key for both dropdowns, since
 -- `ns.FilterOutfits` reads it as "no filter" at either end.
@@ -149,8 +150,18 @@ local OutfitLibraryWindow = Class(TitleFrame, function(self)
     },
   }
 
+  -- Footer, below the list: the one action that WRITES to the library from here (#663). Save,
+  -- Rename, Delete and Push stay on the outfit row — this is the import the row has no inverse for.
+  local footer = Frame:new{
+    parent = self,
+    position = { TopLeft = {self._list, ui.edge.BottomLeft, 0, -GAP},
+                 Width = WINW - 2 * PAD, Height = STRIPH },
+  }
+  stripButton(footer, 0, IMPORTW, "Import this character's sets",
+    function() self:ImportCharacterSets() end)
+
   self:Width(WINW)
-  self:Height(TITLEH + PAD + STRIPH + GAP + LISTH + PAD)
+  self:Height(TITLEH + PAD + STRIPH + GAP + LISTH + GAP + STRIPH + PAD)
 end, {
   name = "WarbandeerCollectedOutfitLibrary",
   title = "Outfit Library",
@@ -263,6 +274,61 @@ function OutfitLibraryWindow:Load(name)
   room:LoadOutfit(name)
   room:RefreshOutfits()
   self:Hide()
+end
+
+---Provenance for an imported set. **The importing character is the honest author here** — the
+---game's custom sets are per-CHARACTER (the measurement #655 rests on), so a set reachable from
+---`ns.CustomSets()` genuinely lived on whoever is running the import. That makes `char`/`class` an
+---accurate attribution rather than a stand-in, and keeps `class` meaning what it means everywhere
+---else: who saved it.
+---
+---`forClass` is left nil because it is **unrecoverable** — a stored set is appearance ids with no
+---memory of whose class set it was composed from. `ns.FilterOutfits` reads a nil facet as "unknown,
+---matches everything", so an imported look correctly survives every class filter rather than
+---hiding behind a guess.
+---@param list table[]
+---@return OutfitMeta
+local function importMeta(list)
+  local name, realm = UnitFullName("player")
+  local _, class = UnitClass("player")
+  return {
+    char = realm and realm ~= "" and (name .. "-" .. realm) or name,
+    class = class,
+    armor = ns.OutfitArmorType(list),
+  }
+end
+
+---Copy every transmog set saved on THIS character into the account-wide library (#663) — the
+---inverse of the outfit row's `Push`, and the only route in for sets composed in Blizzard's own
+---dressing room or by this addon before the library existed.
+---
+---Bulk rather than per-set: these sets are stranded per character, so the thing you actually want
+---is "take everything off this alt", once per alt. `ns.ImportLibraryOutfit` makes that safe to
+---re-run — nothing is ever replaced, an identical look is skipped, and a name collision suffixes —
+---so there is no prompt to answer and no picker to build.
+function OutfitLibraryWindow:ImportCharacterSets()
+  local sets = ns.CustomSets()
+  if #sets == 0 then
+    ns.Print("This character has no saved transmog sets to import.")
+    return
+  end
+  local saved, renamed, skipped = 0, 0, 0
+  for _, set in ipairs(sets) do
+    local list = ns.CustomSetOutfit(set.id)
+    if list then
+      local status = ns.ImportLibraryOutfit(set.name, list, importMeta(list))
+      if status == "saved" then saved = saved + 1
+      elseif status == "renamed" then renamed = renamed + 1
+      else skipped = skipped + 1 end
+    end
+  end
+  self:Refresh()
+  -- Report every category that happened and none that didn't: a bare count would hide the two
+  -- outcomes worth knowing about — a look that was renamed, and one that was already there.
+  local bits = { ("Imported %d of %d set%s"):format(saved + renamed, #sets, #sets == 1 and "" or "s") }
+  if renamed > 0 then bits[#bits + 1] = ("%d renamed — the name was already taken"):format(renamed) end
+  if skipped > 0 then bits[#bits + 1] = ("%d already in your library"):format(skipped) end
+  ns.Print(table.concat(bits, ". ") .. ".")
 end
 
 -- The one instance, created on first open and kept (its filters and dragged position persist for
