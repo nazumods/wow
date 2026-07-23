@@ -112,6 +112,32 @@ local function splitIDs(body)
   return out
 end
 
+---Which interchange format a pasted string is, so a caller can route it to the right decoder:
+---`"link"` for a chat hyperlink (only the game can read those), `"v1"` for the `/customset`
+---string (decoded here), nil for neither.
+---
+---Sniffed up front rather than discovered by trying both decoders, so a malformed *link* is
+---refused as a malformed link instead of as "not a /customset v1 string". Pure string work, so
+---the routing decision is unit-testable even though one of its two branches isn't.
+---
+---The link is tested first and deliberately: a hyperlink's display text is arbitrary and could
+---itself begin `v1 `, while a `/customset` string can only ever contain `transmogcustomset` as
+---part of a value, which isn't a whole number and gets refused downstream anyway.
+---@param str string
+---@return string?  "link" | "v1" | nil
+function ns.OutfitInputKind(str)
+  if type(str) ~= "string" then return nil end
+  local body = str:gsub("^%s+", ""):gsub("%s+$", "")
+  -- Both shapes a link arrives in: the full `|H…|h[…]|h` a shift-click inserts, and the bare
+  -- link data someone re-typed out of one.
+  if body:find("|Htransmogcustomset:", 1, true) or body:match("^transmogcustomset:") then
+    return "link"
+  end
+  body = body:gsub("^/customset%s+", "")
+  if body:match("^v1%s+(.+)$") then return "v1" end
+  return nil
+end
+
 ---Decode a `/customset v1 …` string into an outfit list.
 ---
 ---Accepts the full slash command, a bare `v1 …` payload, and surrounding whitespace — the three

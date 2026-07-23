@@ -139,4 +139,43 @@ describe("outfit codec", function()
       assert.matches("string", err)
     end)
   end)
+
+  describe("OutfitInputKind", function()
+    -- A real 113-character link, as measured in game (see issue #643). The display text is
+    -- deliberately kept, since that is what a shift-clicked link carries.
+    local LINK = "|cffffd100|Htransmogcustomset:1094:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h[Outfit]|h|r"
+
+    it("recognizes a full chat hyperlink", function()
+      assert.equal("link", ns.OutfitInputKind(LINK))
+    end)
+
+    it("recognizes bare link data re-typed out of one", function()
+      assert.equal("link", ns.OutfitInputKind("transmogcustomset:1094:0:0"))
+    end)
+
+    it("recognizes both /customset shapes", function()
+      assert.equal("v1", ns.OutfitInputKind(BLIZZ_SAMPLE))
+      assert.equal("v1", ns.OutfitInputKind((BLIZZ_SAMPLE:gsub("^/customset%s+", ""))))
+    end)
+
+    it("tolerates surrounding whitespace on either shape", function()
+      assert.equal("link", ns.OutfitInputKind("  " .. LINK .. "\n"))
+      assert.equal("v1", ns.OutfitInputKind("  " .. BLIZZ_SAMPLE .. "\n"))
+    end)
+
+    -- The link test runs first, so a link whose display text opens with the version prefix must
+    -- still route to the game's decoder rather than ours.
+    it("reads a link as a link even when its display text looks like a v1 string", function()
+      assert.equal("link", ns.OutfitInputKind("|Htransmogcustomset:1|h[v1 1,2,3]|h"))
+    end)
+
+    it("rejects anything else", function()
+      assert.is_nil(ns.OutfitInputKind("/customset v2 1,2,3"))
+      assert.is_nil(ns.OutfitInputKind("v1"))
+      assert.is_nil(ns.OutfitInputKind("|Hitem:19019|h[Thunderfury]|h"))
+      assert.is_nil(ns.OutfitInputKind(""))
+      assert.is_nil(ns.OutfitInputKind(nil))
+      assert.is_nil(ns.OutfitInputKind(17))
+    end)
+  end)
 end)

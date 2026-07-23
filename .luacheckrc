@@ -122,6 +122,7 @@ std = {
 
     "AreaPOIPinMixin",
     "DelveEntrancePinMixin",
+    "ChatFrameUtil",
     "CopyToClipboard",
     "CreateColor",
     "CreateFont",
