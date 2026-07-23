@@ -187,8 +187,9 @@ end
 -- into". The off-hand-first order is theirs too, and Blizzard_Transmog.lua gives the reason:
 -- "offhand is processed first and mainhand might override offhand".
 --
--- Symptom this fixes: two two-handed weapons (a Titan's Grip look) rendering as the off-hand
--- weapon alone, with the main hand missing from the model.
+-- Symptom this fixes: a two-weapon look rendering as one weapon. The hand cursor is only half of
+-- it — see the off-hand repair at the end, which handles the main-hand write clobbering the off
+-- hand once both are addressed deterministically.
 function Model:_applySlotMog()
   if not self._actor or not self._slotMog then return end
   local mh, oh = self._slotMog[INVSLOT_MAINHAND], self._slotMog[INVSLOT_OFFHAND]
@@ -198,9 +199,34 @@ function Model:_applySlotMog()
     end
   end
   if not (mh or oh) then return end
+  -- Clear both hands before re-placing them. Blizzard's own two-weapon previews undress the pair
+  -- first and only then reset the cursor, and this runs on EVERY re-apply, so without it each pass
+  -- stacks onto whatever the actor already had in those hands.
+  self._actor:UndressSlot(INVSLOT_MAINHAND)
+  self._actor:UndressSlot(INVSLOT_OFFHAND)
   self._actor:ResetNextHandSlot()
   if oh then self._actor:SetItemTransmogInfo(oh.info, INVSLOT_OFFHAND, oh.ignoreChildItems) end
   if mh then self._actor:SetItemTransmogInfo(mh.info, INVSLOT_MAINHAND, mh.ignoreChildItems) end
+
+  -- **Re-place the off hand if the main-hand write took it away.** Measured: the off-hand write
+  -- succeeds and the actor genuinely holds the weapon, then writing the main hand clears the
+  -- off-hand slot back to nil — Blizzard's own "offhand is processed first and mainhand might
+  -- override offhand" (Blizzard_Transmog.lua), which happens whatever the main hand's
+  -- `secondaryAppearanceID` discriminator says. The result is that a second WEAPON never survives
+  -- in the off hand; a shield or holdable does, which is why this went unnoticed until the
+  -- off-hand dropdown started offering weapons at all (#661).
+  --
+  -- Verified rather than assumed: both slots are read back, and the repair only fires when the
+  -- actor disagrees with what we asked for. Ordering alone can't fix this — writing the main hand
+  -- first only moves the clobber onto the other weapon — and `TryOn`'s `handSlotName` is the one
+  -- primitive that addresses a hand directly. Its `spellEnchantmentID` carries the illusion, so an
+  -- enchanted off-hand survives the repair too.
+  if oh then
+    local h = self._actor:GetItemTransmogInfo(INVSLOT_OFFHAND)
+    if not (h and h.appearanceID == oh.info.appearanceID) then
+      self._actor:TryOn(oh.info.appearanceID, "SECONDARYHANDSLOT", oh.info.illusionID)
+    end
+  end
 end
 
 -- Remember the outfit to (re)apply after every model (re)load: a list of transmog
