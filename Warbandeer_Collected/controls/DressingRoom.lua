@@ -189,7 +189,7 @@ end
 ---@field _pickerTabBox table<string, Frame>  mode-tab boxes (the Illusions tab is hidden for the off-hand)
 ---@field _pickerTarget string  which slot the picker targets ("main" | "off" | "shirt" | "tabard") — shapes the pane + routes picks
 ---@field _lookMH number?  the composed look's main-hand weapon appearance sourceID
----@field _lookMH2H boolean?  whether the main-hand pick is two-handed (occupies both hands) — greys the off-hand slot (#618)
+---@field _lookNoOH boolean?  whether the main-hand pick leaves no room for an off-hand at all (a staff, a polearm, a ranged weapon — but NOT a Titan's Grip 2H axe/mace/sword) — greys the off-hand slot (#618, #661)
 ---@field _lookOH number?  the composed look's off-hand weapon appearance sourceID
 ---@field _lookIllusion number?  the composed look's enchant illusion sourceID (rides the main-hand)
 ---@field _lookShirt number?  the composed look's shirt appearance sourceID (INVSLOT_BODY; picked in the cosmetic slots)

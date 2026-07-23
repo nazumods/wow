@@ -99,8 +99,9 @@ Mark a look with the **★** button to add it to your weapon wanted list.
 the top — click one and the weapon you're looking at joins the look you're building,
 without going through the weapon picker under the model. Only the hands that weapon
 can actually go in are offered (the other is greyed out): a one-hander can take either,
-a two-hander or a bow only the main hand, a shield or an off-hand frill only the off
-hand. Click the same button again to take it back off. You won't see it here — this
+a staff or a bow only the main hand, a shield or an off-hand frill only the off hand.
+Two-handed axes, maces and swords take either hand too, so you can build a Titan's Grip
+look straight from the grid. Click the same button again to take it back off. You won't see it here — this
 preview shows a bare character holding the weapon on its own — but it's there the
 moment you switch back to an armor set.
 
@@ -142,6 +143,8 @@ right and add a piece to the armor set you're previewing — all on the model at
 - Click the **main-hand** or **off-hand** slot to open the picker for that hand. The
   weapon-type dropdown lists only the types that go in that hand and that the set's own
   class can transmog (so a Warrior set offers plate weapons even while you're on a Mage).
+  The off hand takes a second one-hander, a shield or off-hand frill, or a two-handed axe,
+  mace or sword for a Titan's Grip look.
   Click any weapon you've collected to hold it on the model; it then shows in the slot,
   with a green border. Names are colored by item quality and show where the weapon comes
   from — hover for the full item tooltip.
@@ -163,8 +166,14 @@ right and add a piece to the armor set you're previewing — all on the model at
 Step to another class's set (the arrow keys, or the nav pad) and the picker re-scopes to
 that class's weapons and illusions.
 
-A two-handed main-hand (a staff, a 2H sword) fills both hands, so picking one greys out the
-off-hand slot — switch back to a one-hander and your off-hand pick comes back.
+A main-hand with no room beside it — a staff, a polearm, a bow or a gun — greys out the
+off-hand slot. Switch back to something that leaves room and your off-hand pick comes back.
+
+**Titan's Grip looks work.** Two-handed axes, maces and swords are offered for the off hand
+as well, so a Fury Warrior can hold two of them and both show on the model. They're offered
+for any class whose set is on screen, not just Warriors — this is a preview, and it renders
+looks the way the rest of the builder does, leaving what you can actually equip to the
+transmogrifier.
 
 **Right-click a slot to clear it** (or click the piece again in the picker). Drag the
 panel's header to move the whole window.
