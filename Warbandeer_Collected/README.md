@@ -95,6 +95,22 @@ looks and **←/→** to jump to the neighbouring weapon type from the same sour
 grid draws a white box around the cell you're viewing so you never lose your place.
 Mark a look with the **★** button to add it to your weapon wanted list.
 
+**Take a weapon with you.** The chooser has **Main hand** and **Off hand** buttons at
+the top — click one and the weapon you're looking at joins the look you're building,
+without going through the weapon picker under the model. Only the hands that weapon
+can actually go in are offered (the other is greyed out): a one-hander can take either,
+a two-hander or a bow only the main hand, a shield or an off-hand frill only the off
+hand. Click the same button again to take it back off. You won't see it here — this
+preview shows a bare character holding the weapon on its own — but it's there the
+moment you switch back to an armor set.
+
+**The preview follows the toggle.** Flipping between Armor and Weapons brings back
+whatever you were last previewing in the view you're switching to, so you can go and
+find a weapon and come back to the set you were building without hunting for it again.
+If you haven't previewed anything in that view yet, the window simply leaves the
+preview as it is rather than closing it — and a saved look you've loaded is never
+disturbed by the toggle, since it doesn't belong to either grid.
+
 ## Class weapon cosmetics
 
 The **Weapons** category (in the Category filter) tracks the class-specific weapon

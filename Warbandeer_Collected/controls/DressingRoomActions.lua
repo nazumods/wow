@@ -145,12 +145,16 @@ function DressingRoom:SetRaceOnly(on)
 end
 
 -- Preview a specific set within a group: refresh the title, class icon, slots and
--- model. Shared by ShowDressingRoom (initial open) and Step (navigation).
+-- model. Shared by ShowDressingRoom (initial open), Step (navigation) and the view toggle's
+-- restore (DressingRoomViews.lua) — so it's also the one place the per-view preview memory is
+-- written, `piece` being how a restore comes back on the look it left on rather than the first.
 ---@param group table  a group entry from ns.Sets
 ---@param set table    a set entry within that group
-function DressingRoom:_load(group, set)
+---@param piece number?  which look within a weapon cell to show (defaults to the first)
+function DressingRoom:_load(group, set, piece)
   self._group = group
   self._set = set
+  self:_rememberPreview(group, set)
   wipe(self._hiddenSlots)   -- per-set toggles: each set opens fully dressed
   self._undressed = nil     -- …including the master Undress state
   -- Previewing a set is the only way out of outfit mode: drop the applied list and restore the
@@ -198,7 +202,7 @@ function DressingRoom:_load(group, set)
     -- Weapon-cosmetic preview: no armor slots, no weapon slots, no difficulty tier bars (its own
     -- held-weapon render is the focus). Close the look builder and up/down nav cycles the cell's
     -- pieces from the first (see _stepWeaponPiece).
-    self._weaponPiece = 1
+    self._weaponPiece = piece or 1
     self:_showSlots(false)
     self:_showWeaponSlots(false)
     self._tierBarL:Hide()
@@ -344,6 +348,7 @@ function DressingRoom:_stepWeaponPiece(dir)
   self:Dress()
   if self._group.weaponCell then
     self:_refreshRatings()                                -- the ★ tracks the shown look
+    self:_syncCellActions()                               -- …and so do the hand buttons
     if self._cellList then self._cellList:Refresh() end   -- move the chooser highlight to it
   end
 end

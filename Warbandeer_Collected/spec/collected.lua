@@ -44,4 +44,14 @@ function M.loadHideVisuals(ns)
   return ns
 end
 
+---Load viewsync.lua into an already-loaded `ns`. Needs no C_ stub at all — the only WoW name it
+---touches is `Enum.TransmogCollectionType`, a table of constants — but it still loads separately
+---because the caller supplies that table and the weapon-hand sets are built from it at load time.
+---@param ns table  as returned by M.load()
+---@return table ns
+function M.loadViewSync(ns)
+  assert(loadfile("Warbandeer_Collected/viewsync.lua"))("Warbandeer_Collected", ns)
+  return ns
+end
+
 return M
