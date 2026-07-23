@@ -17,6 +17,9 @@ local GRIDW, ROWH, ROW3 = k.GRIDW, k.ROWH, k.ROW3
 --
 --   [ Outfit ▾ ] [ name ] [ Save ] [ Rename ] [ Delete ] [ Push ]
 --
+-- The row below it is the share row (#643, controls/DressingRoomOutfitShare.lua), whose columns
+-- are aligned to this one's; it is a separate row only because this one is full at 568 of 572.
+--
 -- **The dropdown lists the account-wide LIBRARY**, not the game's custom sets — those are
 -- per-character (measured), so a look saved there can't follow you to an alt. `Push` is the bridge:
 -- it copies the selected look into *this* character's custom sets, for wearing at a transmogrifier.
@@ -36,16 +39,21 @@ local DROPW, NAMEW, BTNW, GAP = 150, 140, 62, 6
 local NEW_SET = "\0new"
 local CONFIRM_S = 4      -- seconds an armed button stays armed before reverting
 
--- One labelled button in the row: a framed box with a click target and a centered caption, whose
--- text can be swapped when armed. Returns a small handle the actions drive.
----@param room DressingRoom
+---One labelled button in a control row: a framed box with a click target and a centered caption,
+---whose text can be swapped when armed. Returns a small handle the actions drive.
+---
+---A method rather than a local because the share row (controls/DressingRoomOutfitShare.lua) builds
+---its buttons the same way, in its own parent at its own width — the two rows sit under each other
+---and have to look identical.
+---@param row Frame  the control row to build into
 ---@param x number
+---@param w number
 ---@param label string
 ---@param onClick fun()
 ---@return table  { box, border, label, text }
-local function rowButton(room, x, label, onClick)
+function DressingRoom:_rowButton(row, x, w, label, onClick)
   local box = Frame:new{
-    parent = room._outfitRow, position = { TopLeft = {x, 0}, Width = BTNW, Height = ROWH },
+    parent = row, position = { TopLeft = {x, 0}, Width = w, Height = ROWH },
   }
   local btn = { box = box, border = selBox(box), text = label }
   -- `wordWrap = false` is structural, not cosmetic: the box is a fixed ROWH tall, so a caption that
@@ -61,10 +69,11 @@ local function rowButton(room, x, label, onClick)
   return btn
 end
 
--- Enable/disable one row button, greying its caption to match.
+---Enable/disable one row button, greying its caption to match. A method for the same reason as
+---`_rowButton` — the share row greys its Import button the same way.
 ---@param btn table
 ---@param on boolean
-local function enable(btn, on)
+function DressingRoom:_enableRow(btn, on)
   btn.disabled = not on or nil
   btn.label:Color(on and "text" or "muted")
 end
@@ -133,10 +142,11 @@ function DressingRoom:_buildOutfits(controls)
   self._outfitName._widget:SetScript("OnTextChanged", function() self:_syncOutfitButtons() end)
 
   local bx = DROPW + GAP + NAMEW + GAP
-  self._outfitSave   = rowButton(self, bx,                     "Save",   function() self:SaveOutfit() end)
-  self._outfitRename = rowButton(self, bx + BTNW + GAP,        "Rename", function() self:RenameOutfit() end)
-  self._outfitDelete = rowButton(self, bx + 2 * (BTNW + GAP),  "Delete", function() self:DeleteOutfit() end)
-  self._outfitPush   = rowButton(self, bx + 3 * (BTNW + GAP),  "Push",   function() self:PushOutfit() end)
+  local row = self._outfitRow
+  self._outfitSave   = self:_rowButton(row, bx,                    BTNW, "Save",   function() self:SaveOutfit() end)
+  self._outfitRename = self:_rowButton(row, bx + BTNW + GAP,       BTNW, "Rename", function() self:RenameOutfit() end)
+  self._outfitDelete = self:_rowButton(row, bx + 2 * (BTNW + GAP), BTNW, "Delete", function() self:DeleteOutfit() end)
+  self._outfitPush   = self:_rowButton(row, bx + 3 * (BTNW + GAP), BTNW, "Push",   function() self:PushOutfit() end)
 
   -- The row starts NEUTRAL — "+ New Look", empty field. It deliberately doesn't reopen on the look
   -- last loaded: the room opens on whatever grid cell was clicked, so a seeded selection would
@@ -190,8 +200,8 @@ function DressingRoom:_syncOutfitButtons()
   if not self._outfitSave then return end
   local named = self:_typedOutfitName() ~= ""
   local selected = self._outfitSel ~= nil
-  enable(self._outfitSave, selected or named)   -- overwriting a selected look needs no name
-  enable(self._outfitRename, selected and named)
-  enable(self._outfitDelete, selected)
-  enable(self._outfitPush, selected)
+  self:_enableRow(self._outfitSave, selected or named)   -- overwriting a selected look needs no name
+  self:_enableRow(self._outfitRename, selected and named)
+  self:_enableRow(self._outfitDelete, selected)
+  self:_enableRow(self._outfitPush, selected)
 end

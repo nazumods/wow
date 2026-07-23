@@ -186,27 +186,41 @@ grid to go back to normal previewing.
 
 ## Sharing a look
 
-Any look you've put together in the preview window can be turned into the same
-`/customset` string the game itself uses, so you can paste it to a friend, keep it in a
-note, or drop it back in later.
+Under the outfit row is a **share row** — a paste field and **Export**, **Post to Chat**
+and **Import**. All three act on the look **currently on screen**, so you can share
+something you haven't saved yet.
 
-- `/collected outfit export` copies the look on screen into a window you can select and
-  copy from. It also lists every slot it captured, so you can check the string against
-  what you're looking at.
-- `/collected outfit import <string>` dresses the open preview from a string — either one
-  of yours or one someone sends you.
-- `/collected outfit list` shows the transmog sets you've saved in game, and how many of
-  your slots are used.
+The game has two ways of passing a transmog around, and this uses both:
 
-The string works both ways with the game's own `/customset` command, so the person you
-send it to doesn't need this addon.
+- **Export** gives you the same `/customset` string the game itself uses — a line of text
+  you can send in any chat, drop in a note, or keep for later. It opens in a window you can
+  select and copy from, and lists every slot it captured so you can check the string against
+  what you're looking at. **The person you send it to doesn't need this addon**: it pastes
+  straight into the game's own `/customset` command.
+- **Post to Chat** puts the look in your chat box as a **clickable link**. Pick a channel and
+  send it, and whoever clicks it sees the outfit in their dress-up window. Nothing is sent
+  until *you* press Enter.
+- **Import** dresses the preview from either format. Paste a `/customset` string into the
+  field and press Enter or click Import.
 
-**Pieces you haven't collected are fine to share.** A string carries appearances you
-don't own yet, which makes it a good way to pass a wishlist look around. The export marks
+To import a **link** someone posted, use `/collected outfit import` and shift-click their
+link onto the end of the command — chat links can't be dropped into the addon's own field.
+
+Both formats carry exactly the same look, including your shirt, tabard, both weapons and a
+weapon illusion.
+
+**Pieces you haven't collected are fine to share.** Both formats carry appearances you
+don't own yet, which makes either a good way to pass a wishlist look around. The export marks
 those slots `(not owned)` so you can see at a glance which ones you're still chasing.
 
 **Another class's set is fine too.** A plate set exported from a Druid shares, re-imports and
 saves complete — nothing is dropped for being the wrong armour type.
+
+If a look has only just appeared on the model, posting it to chat may say the item data is
+still loading — give it a moment and click again.
+
+`/collected outfit list` shows your library alongside the transmog sets you've saved in game,
+and how many of the game's set slots are used.
 
 ## Usage
 
@@ -216,7 +230,8 @@ saves complete — nothing is dropped for being the wrong armour type.
 | `/collected scan` | Rebuild collection data from the game's transmog APIs |
 | `/collected wanted` | List the sets you've flagged as wanted |
 | `/collected outfit export` | Copy the previewed look as a shareable `/customset` string |
-| `/collected outfit import <string>` | Dress the preview from a `/customset` string |
+| `/collected outfit post` | Put the previewed look in your chat box as a clickable link |
+| `/collected outfit import <string>` | Dress the preview from a `/customset` string or a shift-clicked link |
 | `/collected outfit list` | Your account-wide library, plus this character's transmog sets |
 | `/collected outfit save <name>` | Save the previewed look to your library |
 | `/collected outfit load <name>` | Dress the preview from your library |

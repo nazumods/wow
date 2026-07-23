@@ -32,6 +32,7 @@ data\models.lua
 ratings.lua
 outfitcodec.lua
 outfit.lua
+outfitshare.lua
 outfitlibrary.lua
 outfitcommands.lua
 api.lua
@@ -53,6 +54,7 @@ controls\WeaponCellPicker.lua
 controls\DressingRoomOutfit.lua
 controls\DressingRoomOutfits.lua
 controls\DressingRoomOutfitActions.lua
+controls\DressingRoomOutfitShare.lua
 
 GridShared.lua
 

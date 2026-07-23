@@ -154,6 +154,18 @@ end
 ---@field _armOutfit fun(self: DressingRoom, btn: table, caption: string)  arm a row button for a confirming second click (DressingRoomOutfits.lua)
 ---@field _typedOutfitName fun(self: DressingRoom): string  the name field's contents, trimmed (DressingRoomOutfits.lua)
 ---@field _syncOutfitButtons fun(self: DressingRoom)  grey the row buttons that can't act right now (DressingRoomOutfits.lua)
+---@field _rowButton fun(self: DressingRoom, row: Frame, x: number, w: number, label: string, onClick: fun()): table  build one labelled control-row button (DressingRoomOutfits.lua)
+---@field _enableRow fun(self: DressingRoom, btn: table, on: boolean)  enable/grey one control-row button (DressingRoomOutfits.lua)
+---@field _shareRow Frame  the fourth control row (paste field + Export/Post to Chat/Import) (DressingRoomOutfitShare.lua)
+---@field _shareField EditBox  the paste field a /customset string or transmog link is imported from
+---@field _shareHint Label  muted prompt shown over the empty paste field
+---@field _shareImport table  the Import row button (greyed while the field is empty)
+---@field _buildShare fun(self: DressingRoom, controls: Frame)  build the share row (DressingRoomOutfitShare.lua)
+---@field _pastedOutfit fun(self: DressingRoom): string  the paste field's contents, trimmed (DressingRoomOutfitShare.lua)
+---@field _syncShare fun(self: DressingRoom)  show/hide the paste prompt + grey Import to match (DressingRoomOutfitShare.lua)
+---@field ExportOutfit fun(self: DressingRoom)  the composed look as a /customset string, in a copy window (DressingRoomOutfitShare.lua)
+---@field PostOutfit fun(self: DressingRoom)  put the composed look's chat hyperlink in the chat box (DressingRoomOutfitShare.lua)
+---@field ImportOutfit fun(self: DressingRoom, str: string?)  dress the room from a pasted string or link (DressingRoomOutfitShare.lua)
 ---@field _picker Frame?  the docked appearance picker pane, lazily built on first open (AppearancePicker.lua)
 ---@field _pickerTitle Label  the pane's header caption, retitled per target
 ---@field _pickerCats WeaponCategory[]  the previewed set's class's usable weapon categories (dropdown source)
@@ -194,11 +206,14 @@ end
 ---@field _applyWeaponTarget fun(self: DressingRoom)  shape the pane for a weapon target + repopulate the list (WeaponPicker.lua)
 ---@field _applyCosmeticTarget fun(self: DressingRoom)  shape the pane for a shirt/tabard target + repopulate (CosmeticPicker.lua)
 local ROWH = 26         -- toggle-button height
--- Three stacked control rows, each ROWH tall with PAD between: toggles (Undress/Background) at 0,
--- ratings at TOPGAP, outfits at ROW3. The faction panels start below all three.
+-- Four stacked control rows, each ROWH tall with PAD between: toggles (Undress/Background) at 0,
+-- ratings at TOPGAP, outfits at ROW3, sharing at ROW4. The faction panels start below all four.
+-- The share row is its own row because the outfit row is full — it already spends 568 of GRIDW's
+-- 572 — and its columns are aligned to that row's, so the two read as one block.
 local TOPGAP = ROWH + PAD
 local ROW3 = 2 * (ROWH + PAD)
-local PANELSTOP = 3 * (ROWH + PAD)
+local ROW4 = 3 * (ROWH + PAD)
+local PANELSTOP = ROW4 + ROWH + PAD
 
 -- Forward-declared so the constructor closure can read DressingRoom.MODEL_INSET
 -- (set by the companion DressingRoomSlots.lua) as an upvalue at instantiation.
@@ -263,6 +278,7 @@ DressingRoom = Class(TitleFrame, function(self)
   self:_buildWeaponSlots()
   self:_buildControls(controls)
   self:_buildOutfits(controls)
+  self:_buildShare(controls)
   self:_buildRacePanels(controls, {
     alliance = alliance, neutral = neutral, horde = horde,
     aW = aW, aH = aH, nW = nW, nH = nH, hW = hW, hH = hH, panelsH = panelsH,
@@ -292,7 +308,8 @@ DressingRoom._MODELH = MODELH
 -- Constants + helpers shared with the build/controls/actions/model companion files.
 DressingRoom._k = {
   SELECTED = SELECTED, IDLE = IDLE, selBox = selBox, tierBar = tierBar,
-  GRIDW = GRIDW, PAD = PAD, ROWH = ROWH, TOPGAP = TOPGAP, ROW3 = ROW3, MODELH = MODELH,
+  GRIDW = GRIDW, PAD = PAD, ROWH = ROWH, TOPGAP = TOPGAP, ROW3 = ROW3, ROW4 = ROW4,
+  MODELH = MODELH,
   CELL = CELL, STEP = STEP, PANELPAD = PANELPAD, RACEICON_CROP = RACEICON_CROP,
   AHCOLS = AHCOLS, PANELGAP = PANELGAP, PANELSTOP = PANELSTOP, PBORDER = PBORDER,
   ALLIANCE_COLOR = ALLIANCE_COLOR, HORDE_COLOR = HORDE_COLOR, NEUTRAL_COLOR = NEUTRAL_COLOR,
