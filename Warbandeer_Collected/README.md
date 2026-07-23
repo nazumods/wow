@@ -99,8 +99,9 @@ Mark a look with the **★** button to add it to your weapon wanted list.
 the top — click one and the weapon you're looking at joins the look you're building,
 without going through the weapon picker under the model. Only the hands that weapon
 can actually go in are offered (the other is greyed out): a one-hander can take either,
-a two-hander or a bow only the main hand, a shield or an off-hand frill only the off
-hand. Click the same button again to take it back off. You won't see it here — this
+a staff or a bow only the main hand, a shield or an off-hand frill only the off hand.
+Two-handed axes, maces and swords take either hand too, so you can build a Titan's Grip
+look straight from the grid. Click the same button again to take it back off. You won't see it here — this
 preview shows a bare character holding the weapon on its own — but it's there the
 moment you switch back to an armor set.
 
@@ -142,6 +143,8 @@ right and add a piece to the armor set you're previewing — all on the model at
 - Click the **main-hand** or **off-hand** slot to open the picker for that hand. The
   weapon-type dropdown lists only the types that go in that hand and that the set's own
   class can transmog (so a Warrior set offers plate weapons even while you're on a Mage).
+  The off hand takes a second one-hander, a shield or off-hand frill, or a two-handed axe,
+  mace or sword for a Titan's Grip look.
   Click any weapon you've collected to hold it on the model; it then shows in the slot,
   with a green border. Names are colored by item quality and show where the weapon comes
   from — hover for the full item tooltip.
@@ -163,8 +166,14 @@ right and add a piece to the armor set you're previewing — all on the model at
 Step to another class's set (the arrow keys, or the nav pad) and the picker re-scopes to
 that class's weapons and illusions.
 
-A two-handed main-hand (a staff, a 2H sword) fills both hands, so picking one greys out the
-off-hand slot — switch back to a one-hander and your off-hand pick comes back.
+A main-hand with no room beside it — a staff, a polearm, a bow or a gun — greys out the
+off-hand slot. Switch back to something that leaves room and your off-hand pick comes back.
+
+**Titan's Grip looks work.** Two-handed axes, maces and swords are offered for the off hand
+as well, so a Fury Warrior can hold two of them and both show on the model. They're offered
+for any class whose set is on screen, not just Warriors — this is a preview, and it renders
+looks the way the rest of the builder does, leaving what you can actually equip to the
+transmogrifier.
 
 **Right-click a slot to clear it** (or click the piece again in the picker). Drag the
 panel's header to move the whole window.
@@ -197,6 +206,26 @@ what this works around.
   25-set limit applies to.
 - Buttons that can't do anything are greyed: Save until you've named a new look, and Rename,
   Delete and Push until you've picked one.
+
+**Finding a look once you have a lot of them.** Pick **⚙ Manage Library…** at the bottom of the
+dropdown to open the library window — the same list, with room to search it:
+
+- **Filter by armour type.** The one that groups a look across characters: a leather look shows up
+  whether you're after it for your rogue, your druid or your demon hunter, none of whom share a
+  class. Looks that aren't tied to one armour type — cosmetic, mixed, or weapons only — show under
+  every type, because they genuinely go on anyone.
+- **Filter by class**, meaning the class the look was **built for**, not whoever saved it. A Warrior
+  look your Druid put together is a Warrior look. Only classes you actually have looks for are
+  offered.
+- **Search** by the look's name or by the character who saved it.
+- The filters combine, **Clear** drops all of them at once, and the title bar counts what you're
+  seeing out of what you have.
+- Click any look to load it onto the model. Saving, renaming, deleting and pushing all stay on the
+  outfit row, where the look you're building lives.
+
+Looks saved before the library started recording where looks came from show as *no provenance
+recorded* — and they're **never** hidden by a filter, so nothing you've saved can go missing behind
+one.
 
 **Any look saves whole**, whatever your character can wear. A plate set saved from a Druid
 comes back complete, and pieces you simply haven't collected yet save normally too — so you

@@ -308,6 +308,17 @@ function DressingRoom:_equipRow(item)
   self._pickerList:Refresh()   -- re-color the selection borders
 end
 
+-- The main-hand slot's `secondaryAppearanceID` for whatever appearance is going into it. NOT an
+-- appearance id — a discriminator; see `ns.PairedArtifactWeapon` for what the two values mean and
+-- why leaving it nil is actively wrong (nil defaults to 0 = PAIRED, and a paired main-hand
+-- overrides the off-hand, so a Titan's Grip pair rendered as the off-hand alone — #661).
+---@param sourceID number  the appearance being put in the main hand
+---@return number
+local function mainHandSecondary(sourceID)
+  return ns.PairedArtifactWeapon(sourceID) and Constants.Transmog.MainHandTransmogIsPairedWeapon
+    or Constants.Transmog.MainHandTransmogIsIndividualWeapon
+end
+
 -- Re-assert the whole composed look on the model: main-hand = the picked weapon (else, when only
 -- an illusion is chosen, the character's equipped host weapon so the shimmer has somewhere to
 -- render), with the illusion layered on; off-hand = the picked off-hand; shirt and tabard from
@@ -317,15 +328,18 @@ function DressingRoom:_applyLook()
   local m = self._model
   if self._lookIllusion then
     local host = self._lookMH or ns.HostWeaponAppearance() or 0
-    m:SlotTransmog(INVSLOT_MAINHAND, host, { illusionID = self._lookIllusion })
+    m:SlotTransmog(INVSLOT_MAINHAND, host,
+      { illusionID = self._lookIllusion, secondaryAppearanceID = mainHandSecondary(host) })
   elseif self._lookMH then
-    m:SlotTransmog(INVSLOT_MAINHAND, self._lookMH)
+    m:SlotTransmog(INVSLOT_MAINHAND, self._lookMH,
+      { secondaryAppearanceID = mainHandSecondary(self._lookMH) })
   else
     self:_bareSlot(INVSLOT_MAINHAND)
   end
-  -- A two-handed main-hand occupies both hands, so suppress the off-hand appearance (the pick is
-  -- kept — it returns when the main-hand goes back to a 1H or empties). #618.
-  local offHand = not self._lookMH2H and self._lookOH
+  -- A main-hand that leaves no room for an off-hand (a staff, a polearm, a bow) suppresses the
+  -- off-hand appearance; the pick is kept and returns when the main-hand empties or becomes
+  -- something that pairs — a 1H, or a Titan's Grip two-hander. #618, #661.
+  local offHand = not self._lookNoOH and self._lookOH
   if offHand then m:SlotTransmog(INVSLOT_OFFHAND, offHand) else self:_bareSlot(INVSLOT_OFFHAND) end
   -- Shirt and tabard ride here rather than in the previewed set's outfit: transmog sets never
   -- carry either, so these two slots are picker-only and this is their sole apply path (#641).

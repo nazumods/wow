@@ -42,7 +42,7 @@ local HANDS = {
 ---@param e table  the weapon-slot entry
 local function slotTooltip(room, f, e)
   GameTooltip:SetOwner(f, "ANCHOR_RIGHT")
-  if e.hand == "off" and room._lookMH2H then
+  if e.hand == "off" and room._lookNoOH then
     GameTooltip:SetText(e.label)
     GameTooltip:AddLine("Two-handed weapon equipped — no off-hand", 0.6, 0.6, 0.6)
   elseif e.itemID then
@@ -78,7 +78,7 @@ local function buildWeaponSlot(room, spec)
   box._widget:SetScript("OnEnter", function(f) slotTooltip(room, f, entry) end)
   box._widget:SetScript("OnLeave", function() GameTooltip:Hide() end)
   box._widget:SetScript("OnMouseUp", function(_, button)
-    if entry.hand == "off" and room._lookMH2H then return end   -- 2H main-hand: off-hand unavailable (#618)
+    if entry.hand == "off" and room._lookNoOH then return end   -- staff/polearm/ranged: no off-hand (#618)
     if button == "LeftButton" then
       local open = room._picker and room._picker._widget:IsShown()
       if open and room._pickerTarget == entry.hand then
@@ -138,14 +138,15 @@ function DressingRoom:UpdateWeaponSlots(retry)
       e.itemID = nil
       e.icon:Texture(e.empty)
     end
-    -- A two-handed main-hand disables the off-hand: dim its icon (0.3, matching the armor slots'
-    -- toggled-off dim) and hold the border idle, whatever pick it's keeping. Otherwise full color +
-    -- the normal status / selection border. #618.
+    -- A main-hand with no room for an off-hand disables it: dim its icon (0.3, matching the armor
+    -- slots' toggled-off dim) and hold the border idle, whatever pick it's keeping. Otherwise full
+    -- color + the normal status / selection border. A Titan's Grip two-hander leaves the off-hand
+    -- live, so this no longer fires for every two-hander. #618, #661.
     --
     -- The master Undress dims BOTH slots too — it bares the composed look off the model along with
     -- the armor, so leaving these reading as worn would contradict the doll. Only the icon greys;
     -- the status border stays, exactly as a toggled-off armor slot keeps its green/red.
-    local disabled = e.hand == "off" and self._lookMH2H
+    local disabled = e.hand == "off" and self._lookNoOH
     local v = (disabled or self._undressed) and 0.3 or 1
     e.icon:SetVertexColor(v, v, v, 1)
     if disabled then
@@ -179,7 +180,7 @@ function DressingRoom:_clearWeaponSlot(hand)
     self._lookOH = nil
   else
     if not self._lookMH then return end
-    self._lookMH, self._lookMH2H = nil, nil
+    self._lookMH, self._lookNoOH = nil, nil
   end
   self:_applyLook()
   if self._picker and self._picker._widget:IsShown() then self._pickerList:Refresh() end

@@ -35,5 +35,9 @@ function ns:MigrateDB()
   -- (measured — a set saved on one alt is invisible on another), so a look can only follow you
   -- across characters if we keep it ourselves. Entries hold the `/customset v1 …` encoding.
   if not db.outfits then db.outfits = {} end   -- { { name, look, char, class, forClass, armor }, ... }
-  db.version = 8
+  -- v9: the outfit library window's remembered position (#662), same shape as the two above. Its
+  -- FILTERS are deliberately not persisted — a filter still applied after a /reload would look
+  -- like a library that had lost looks, which is the one impression this window must never give.
+  if not db.libraryPos then db.libraryPos = {} end   -- outfit library window
+  db.version = 9
 end

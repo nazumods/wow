@@ -26,7 +26,9 @@ local selBox, SELECTED, IDLE, PAD, ROWH = k.selBox, k.SELECTED, k.IDLE, k.PAD, k
 -- what that view is for, which is why it was reported as a bug.
 --
 -- Only the hands the cell's weapon TYPE can occupy are offered (`ns.WeaponHands`): both for a
--- one-hander, main only for a two-hander/ranged/wand, off only for a shield or holdable. The gold
+-- one-hander and for the Titan's Grip two-handers (2H axe/mace/sword — #661), main only for a
+-- polearm/staff/ranged/wand, off only for a shield or holdable. No class is consulted, here least
+-- of all: a weapon-cell preview has none (`_classIndex` is nil for it). The gold
 -- border is the feedback — the staged weapon can't show on the model here, since this mode renders a
 -- bare body with the previewed piece as the focus, and appears the moment an armour set is previewed
 -- again (one view toggle away, now that the toggle restores it).
@@ -92,12 +94,13 @@ function DressingRoom:_useCellLook(hand)
   if hand == "off" then
     self._lookOH = DressingRoom._togglePick(self._lookOH, sid)
   elseif self._lookMH == sid then
-    self._lookMH, self._lookMH2H = nil, nil          -- staging the applied weapon off
+    self._lookMH, self._lookNoOH = nil, nil          -- staging the applied weapon off
   else
     self._lookMH = sid
-    -- Grey the off-hand behind a two-handed main-hand, exactly as the picker's own path does (#618).
-    -- The cell's weapon TYPE is the category, carried on the synthetic group by PreviewWeaponCell.
-    self._lookMH2H = ns.TwoHandedWeapon(self._group and self._group._type) or nil
+    -- Grey the off-hand behind a main-hand that leaves no room for one, exactly as the picker's own
+    -- path does (#618, #661). The cell's weapon TYPE is the category, carried on the synthetic
+    -- group by PreviewWeaponCell.
+    self._lookNoOH = ns.SuppressesOffHand(self._group and self._group._type) or nil
   end
   -- The model can't show this: a weapon-cell preview renders a bare body with the previewed piece
   -- as its focus, and the composed-look slots are hidden in that mode. So say what happened, and
