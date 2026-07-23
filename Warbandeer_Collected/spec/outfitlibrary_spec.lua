@@ -311,6 +311,84 @@ describe("outfit library", function()
     end)
   end)
 
+  -- Importing the game's own per-character transmog sets (#663). The names come from the game,
+  -- not the user, so they collide across characters — and the import is expected to be re-run on
+  -- a character already done.
+  describe("ImportLibraryOutfit", function()
+    it("saves under the set's own name when the library has no such entry", function()
+      local n = collected.load()
+      local status, name = n.ImportLibraryOutfit("TWW 1", lookWith(n, 7019), { armor = "Plate" })
+      assert.equal("saved", status)
+      assert.equal("TWW 1", name)
+      assert.equal("Plate", n.LibraryOutfit("TWW 1").armor)
+    end)
+
+    -- Re-running the import on a character already done must be a no-op, not a pile of suffixes.
+    it("skips a name already holding the identical look", function()
+      local n = collected.load()
+      n.ImportLibraryOutfit("TWW 1", lookWith(n, 7019))
+      local status, name = n.ImportLibraryOutfit("TWW 1", lookWith(n, 7019))
+      assert.equal("skipped", status)
+      assert.equal("TWW 1", name)
+      assert.equal(1, #n.LibraryOutfits())
+    end)
+
+    -- The case the issue names: two characters that each called a different look "TWW 1".
+    it("suffixes when the name is taken by a DIFFERENT look", function()
+      local n = collected.load()
+      n.ImportLibraryOutfit("TWW 1", lookWith(n, 7019))
+      local status, name = n.ImportLibraryOutfit("TWW 1", lookWith(n, 1234))
+      assert.equal("renamed", status)
+      assert.equal("TWW 1 (2)", name)
+      assert.equal(2, #n.LibraryOutfits())
+    end)
+
+    it("never modifies the entry it collided with", function()
+      local n = collected.load()
+      n.ImportLibraryOutfit("TWW 1", lookWith(n, 7019), { char = "First-Realm" })
+      n.ImportLibraryOutfit("TWW 1", lookWith(n, 1234), { char = "Second-Realm" })
+      local original = n.LibraryOutfit("TWW 1")
+      assert.equal(7019, n.DecodeOutfit(original.look)[INVSLOT_HEAD].appearanceID)
+      assert.equal("First-Realm", original.char)
+    end)
+
+    -- Idempotent even once a collision has already renamed it: the suffix scan applies the same
+    -- same-look test, so a third pass finds the (2) entry rather than creating a (3).
+    it("stays idempotent after a collision has been suffixed", function()
+      local n = collected.load()
+      n.ImportLibraryOutfit("TWW 1", lookWith(n, 7019))
+      n.ImportLibraryOutfit("TWW 1", lookWith(n, 1234))
+      local status, name = n.ImportLibraryOutfit("TWW 1", lookWith(n, 1234))
+      assert.equal("skipped", status)
+      assert.equal("TWW 1 (2)", name)
+      assert.equal(2, #n.LibraryOutfits())
+    end)
+
+    it("walks past occupied suffixes to the first free one", function()
+      local n = collected.load()
+      n.ImportLibraryOutfit("TWW 1", lookWith(n, 1))
+      n.ImportLibraryOutfit("TWW 1", lookWith(n, 2))   -- takes (2)
+      n.ImportLibraryOutfit("TWW 1", lookWith(n, 3))   -- takes (3)
+      local _, name = n.ImportLibraryOutfit("TWW 1", lookWith(n, 4))
+      assert.equal("TWW 1 (4)", name)
+    end)
+
+    -- forClass is unrecoverable from a stored set (appearance ids, no memory of whose set it was),
+    -- so it stays nil — and `FilterOutfits` must therefore let an import through every class filter.
+    it("records provenance without forClass, and the entry survives every filter", function()
+      local n = collected.load()
+      n.ImportLibraryOutfit("TWW 1", lookWith(n, 7019),
+        { char = "Keshan-Silvermoon", class = "ROGUE", armor = "Leather" })
+      local entry = n.LibraryOutfit("TWW 1")
+      assert.equal("Keshan-Silvermoon", entry.char)
+      assert.equal("ROGUE", entry.class)
+      assert.is_nil(entry.forClass)
+      for _, filter in ipairs({ { class = "WARRIOR" }, { class = "ROGUE" }, { armor = "Leather" } }) do
+        assert.equal(1, #n.FilterOutfits(n.LibraryOutfits(), filter))
+      end
+    end)
+  end)
+
   describe("LibraryFacets", function()
     it("names each forClass present exactly once, sorted", function()
       local n = collected.load()
