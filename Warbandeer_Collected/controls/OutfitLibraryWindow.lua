@@ -36,7 +36,10 @@ local STRIPH = 20     -- filter-strip control height (FilterDropdown's own row h
 local LISTH  = 340
 local ROW_H  = 34     -- two lines: the look's name, then where it came from
 local TITLEH = 30     -- titlebar, matching the height the room budgets for its own
-local ARMORW, CLASSW, SEARCHW, CLEARW = 96, 120, 160, 50   -- = WINW - 2*PAD with the gaps
+-- = WINW - 2*PAD with the gaps. Armour is widest of the three because "Any armour" is its longest
+-- label and it truncated to "Any arm…" at the old 96; search gives up the width, since its hint
+-- ("Search name or character") is always longer than the box and truncates regardless.
+local ARMORW, CLASSW, SEARCHW, CLEARW = 112, 120, 144, 50
 local IMPORTW = 190   -- footer button, wide enough for its full caption
 
 -- The armour type that constrains nobody. Doubles as the "no filter" key for both dropdowns, since
@@ -169,8 +172,13 @@ end, {
   -- otherwise render through to whatever is behind it. Same value as the main window's.
   background = {0.11372549019, 0.14117647058, 0.16470588235, 0.92},
   special = true,
-  -- Above the dressing room ("HIGH"), which is what opens this and what it sits in front of.
-  strata = "DIALOG",
+  -- Sits above the dressing room (also "HIGH") via an explicit high level, NOT via a higher
+  -- strata. It must stay BELOW "DIALOG" because `FilterDropdown` parents its drop menu to UIParent
+  -- at "DIALOG": at the same strata the menu can't reliably float above this window's own rows and
+  -- the list bled through it (the armour/class menus rendered behind the outfit rows). The main
+  -- collection window works for the same reason — default strata + a high level, never "DIALOG".
+  strata = "HIGH",
+  level = 600,
   position = { Center = {} },
 })
 ---@class Warbandeer_Collected
