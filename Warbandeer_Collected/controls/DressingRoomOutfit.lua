@@ -6,7 +6,10 @@ local GetItemIcon = C_Item.GetItemIconByID
 local RequestItem = C_Item.RequestLoadItemDataByID
 local C_Timer = C_Timer
 local DressingRoom = ns.DressingRoom
--- Slot status colors, matching the armor columns' green/red (DressingRoomSlots.lua owns the
+-- The one slot state this file has to tell apart from the others — a hidden slot composes as its
+-- hide visual, an empty one as 0 (DressingRoomSlotStates.lua owns the cycle).
+local HIDDEN = DressingRoom._k.HIDDEN
+-- Slot status colors, matching the armor columns' green/red (DressingRoomSlotStates.lua owns the
 -- originals; outfit mode paints the same slots, so it has to agree with them).
 local OUTFIT_GREEN = {0, 104/255, 55/255, 1}
 local OUTFIT_RED   = {165/255, 0, 38/255, 1}
@@ -54,7 +57,8 @@ end
 ---Composed from the room's own state rather than read back off the model
 ---(`actor:GetItemTransmogInfoList`): that keeps it deterministic — unaffected by where an async
 ---re-skin has got to — and it honours the per-slot toggles, since `_currentSources` already
----drops the slots the user switched off.
+---drops the slots the user switched off. Which of the two off-states each of those is in decides
+---what it composes as: see the hidden pass below.
 ---@return table[]
 function DressingRoom:ComposeOutfit()
   local list = ns.EmptyOutfitList()
@@ -85,6 +89,25 @@ function DressingRoom:ComposeOutfit()
     for _, src in ipairs(self:_currentSources()) do
       local slot = ns.SourceSlot(src)
       if slot then list[slot].appearanceID = src end
+    end
+  end
+
+  -- **Hidden is not empty** (#654). Both branches above leave a slot the user switched off at the
+  -- empty list's `0` — `Constants.Transmog.NoTransmogID`, which at a transmogrifier renders whatever
+  -- the character has EQUIPPED. That's the opposite of the bare slot the preview was showing, so a
+  -- slot in the `hidden` state is written as its own hide visual instead: a real appearance with a
+  -- real sourceID, which renders nothing wherever the look is applied. The `empty` state is the one
+  -- that genuinely means `0`, and it keeps the value both branches already left.
+  --
+  -- Only armour slots reach here: the cosmetic and weapon slots never take a `_hiddenSlots` entry,
+  -- and the look fields below own them regardless.
+  for slotID, state in pairs(self._hiddenSlots) do
+    if state == HIDDEN then
+      local hide = ns.HideVisual(slotID)
+      if hide then
+        list[slotID].appearanceID = hide
+        list[slotID].secondaryAppearanceID = 0
+      end
     end
   end
 
@@ -237,7 +260,11 @@ function DressingRoom:UpdateSlotsFromOutfit(retry)
         if not tex then RequestItem(src.itemID); missing = true end
         e.icon:Texture(tex or ns.ui.media.unresolved)
         e.icon:Show()
-        e.border:Color(src.isCollected and OUTFIT_GREEN or OUTFIT_RED)
+        -- A hidden slot carries a real appearance, but it isn't a set PIECE — paint it idle, as
+        -- the preview's own hidden state does, rather than claiming a collected/missing status for
+        -- the Hidden item. Its icon is already the game's Hidden art, straight off the source.
+        e.border:Color(ns.IsHideVisual(e.slotID, appearanceID) and DressingRoom._k.IDLE
+          or (src.isCollected and OUTFIT_GREEN or OUTFIT_RED))
       else
         -- Empty slot in the outfit: the same "nothing here" marker an unused set slot shows.
         e.itemID = nil
@@ -245,7 +272,7 @@ function DressingRoom:UpdateSlotsFromOutfit(retry)
         e.icon:Show()
         e.border:Color(DressingRoom._IDLE)
       end
-      e.icon:SetVertexColor(1, 1, 1, 1)   -- outfit slots have no per-slot hide toggle to dim
+      e.icon:SetVertexColor(1, 1, 1, 1)   -- outfit mode has no per-slot state cycle to dim for
     end
   end
 
