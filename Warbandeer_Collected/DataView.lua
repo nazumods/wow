@@ -89,30 +89,12 @@ function DataView:update()
   self:HighlightSet(self._dressedSetId, self._dressedClassIndex, false)
 end
 
--- Row-area height reserved for the empty-state message (ResizeRows(0) collapses it).
-DataView.EMPTY_H = 48
-
--- Show or hide a centered empty-state message in the row area. Shown when "wanted
--- only" is active but no set is flagged, so the grid reads as intentionally empty
--- rather than blank/broken. ResizeRows already collapsed the area to 0, so reserve
--- EMPTY_H here; the host's onResized → _fitToGrid then sizes the window to fit it.
+-- Show or hide a centered empty-state message in the row area. Shown when "wanted only" is active
+-- but no set is flagged, so the grid reads as intentionally empty rather than blank/broken. The
+-- mechanics are shared with the weapons grid (ns.GridEmptyMessage); only the wording is ours.
 ---@param on boolean
 function DataView:_setEmpty(on)
-  if not on then
-    if self._emptyMsg then self._emptyMsg:Hide() end
-    return
-  end
-  if not self._emptyMsg then
-    self._emptyMsg = ui.Label:new{
-      parent = self.rowArea, justifyH = ui.justify.Center,
-      color = self:Theme().colors.muted or {0.6, 0.6, 0.62, 1},
-      text = "You don't have any Wanted sets.",
-      position = { Center = {} },
-    }
-  end
-  self._emptyMsg:Show()
-  self.rowArea:Height(DataView.EMPTY_H)
-  self:Height(self.offsetY + DataView.EMPTY_H)
+  ns.GridEmptyMessage(self, on, "You don't have any Wanted sets.")
 end
 
 -- Max scrollable row-area height (px) before the grid scrolls — shared so the embedded

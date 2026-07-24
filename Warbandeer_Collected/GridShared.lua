@@ -16,6 +16,9 @@ local GameTooltip = GameTooltip
 ---@field ModeToggle fun(spec: table): table
 ---@field gridShades number[][]  10-shade red→green completion gradient (shared cell coloring)
 ---@field CompletionCell fun(collected: number, total: number, cell: table?): table
+---@field ApplyCellMarks fun(cell: table, wanted: boolean?, rank: string?)  wanted star + tier pip overlays
+---@field GRID_EMPTY_H number  row-area height reserved for a grid's empty-state message
+---@field GridEmptyMessage fun(grid: table, on: boolean, text: string)
 ---@field baseName fun(name: string): string
 ---@field sortByExpansion fun(order: number[], source: table[], reverse: boolean?)
 ---@field EnsureDressedCursor fun(grid: table)
@@ -52,6 +55,45 @@ function ns.CompletionCell(collected, total, cell)
     cell.color = ns.gridShades[max(1, floor(collected / total * 10))]
   end
   return cell
+end
+
+-- Per-cell rating overlays, drawn identically by both grids: a gold "wanted" star (top-left) and the
+-- tier letter in its tier colour (top-right), each lazily created on the cell and reused. Only the
+-- DRAWING is shared — the caller resolves what the marks mean, which is where the two grids genuinely
+-- differ: the armour grid reads a set's own flags, the weapon grid aggregates over the bucket of
+-- looks a cell holds (see ns:WeaponCellWanted / ns:WeaponCellRank).
+local STAR = 11
+
+---@param cell table  a TableFrame Cell
+---@param wanted boolean?  draw the wanted star
+---@param rank string?  tier letter to pip, or nil for none
+function ns.ApplyCellMarks(cell, wanted, rank)
+  if wanted then
+    if not cell._wantStar then
+      cell._wantStar = Texture:new{
+        parent = cell, layer = ui.layer.Overlay,
+        atlas = ns.WantedIcon, atlasSize = false,
+        position = { TopLeft = {1, -1}, Size = {STAR, STAR} },
+      }
+    end
+    cell._wantStar:Show()
+  elseif cell._wantStar then
+    cell._wantStar:Hide()
+  end
+
+  if rank then
+    if not cell._rankPip then
+      cell._rankPip = Label:new{
+        parent = cell, layer = ui.layer.Overlay, fontObj = "GameFontNormalSmall",
+        position = { TopRight = {-1, 0} },
+      }
+    end
+    cell._rankPip:Text(rank)
+    cell._rankPip:Color(ns.RankColors[rank])
+    cell._rankPip:Show()
+  elseif cell._rankPip then
+    cell._rankPip:Hide()
+  end
 end
 
 -- A row's name minus a trailing "(variant)" suffix — the key both grids alphabetize on within an
@@ -124,6 +166,35 @@ function ns.HighlightGridCell(grid, match, scroll)
     end
   end
   if grid._dressedBox then grid._dressedBox:Hide() end
+end
+
+-- Row-area height reserved for a grid's empty-state message. Both grids reach it the same way: the
+-- "wanted only" filter matched nothing, ResizeRows(0) collapsed the row area, and a grid that just
+-- vanished reads as broken rather than as intentionally empty.
+ns.GRID_EMPTY_H = 48
+
+-- Show or hide a centered empty-state message in a grid's row area, reserving GRID_EMPTY_H for it
+-- (the host's onResized → _fitToGrid then sizes the window to fit). The wording is the caller's, so
+-- each grid names what it has none of.
+---@param grid table  a DataView / WeaponView instance
+---@param on boolean
+---@param text string
+function ns.GridEmptyMessage(grid, on, text)
+  if not on then
+    if grid._emptyMsg then grid._emptyMsg:Hide() end
+    return
+  end
+  if not grid._emptyMsg then
+    grid._emptyMsg = Label:new{
+      parent = grid.rowArea, justifyH = ui.justify.Center,
+      color = grid:Theme().colors.muted or {0.6, 0.6, 0.62, 1},
+      position = { Center = {} },
+    }
+  end
+  grid._emptyMsg:Text(text)
+  grid._emptyMsg:Show()
+  grid.rowArea:Height(ns.GRID_EMPTY_H)
+  grid:Height(grid.offsetY + ns.GRID_EMPTY_H)
 end
 
 -- Dropdown option specs for the expansion filter: "All" (labelled with the dimension, so the button
