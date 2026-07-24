@@ -1,16 +1,14 @@
 ---@type Warbandeer
 local ns = select(2, ...)
+local api = ns.api
 local ui = ns.ui
 local Class, Frame, TableFrame = ns.lua.Class, ui.Frame, ui.TableFrame
 -- 12.1.0 renamed OpenAchievementFrameToAchievement -> ShowAchievementFrameForAchievement
 local OpenAchievement = ShowAchievementFrameForAchievement or OpenAchievementFrameToAchievement
 
-local achievementIds = {
-  61467, 42189, 42188, 42187, 61451, 40953, 41186, 41119, 40894, 40859, 40542, 40504, 40210, 20595, 20501, 19719,
-  19507, 19408, 17773, 17529, 13723, 13475, 13473, 13049, 13018, 12997, 12582, 11699, 11258, 11257, 11124, 10996,
-  10698,  9415,  8316,  7322,  6981,  5442,  5245,  5223,  4859,  4405,  1157,  1153,   940,   938,   231,   229,
-    222,   221,   213,   212,   200,   158
-}
+-- Catalog lives in Warbandeer_Characters (data/achievementcatalog.lua) since the
+-- persistence layer needs the full id set regardless of whether this view is open.
+local achievementIds = api:GetAchievementCatalog().milestones
 
 -- Achievements Table
 ---@class MilestonesAchievements: TableFrame
@@ -27,10 +25,10 @@ end, {
       ns.lua.lists.fold(achievementIds, 12),
       function(ids)
         return ns.lua.lists.map(ids, function(achievementId)
-          local _, name, _, completed = GetAchievementInfo(achievementId)
+          local _, name = GetAchievementInfo(achievementId)
           return {
             text = name,
-            color = completed and DIM_GREEN_FONT_COLOR or DIM_RED_FONT_COLOR,
+            color = api:IsAchievementComplete(achievementId) and DIM_GREEN_FONT_COLOR or DIM_RED_FONT_COLOR,
             onClick = function()
               OpenAchievement(achievementId)
             end,
