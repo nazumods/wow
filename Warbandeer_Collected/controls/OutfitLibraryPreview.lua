@@ -23,15 +23,21 @@ local RIGHTW, GAP, STRIPH, LISTH = k.RIGHTW, k.GAP, k.STRIPH, k.LISTH
 -- character). Selecting only writes the per-slot overrides, which `Model` re-applies across any
 -- re-skin of its own accord.
 
--- The whole right column sits a few px lower than the filter strip beside it. Applied to the PANE
--- rather than to the model, so the column's internal spacing and height are both untouched — it
--- simply starts, and therefore ends, that much lower than the list does.
+-- The column starts a few px below the filter strip beside it.
 local PANE_TOP = 3
--- Sized so the pane's content bottoms out exactly level with the pane's own bottom: the pane is
--- STRIPH + GAP + LISTH tall, and everything under the model (name, provenance, the rename field and
--- the verb row, with their gaps) costs a fixed 86px. Anything less left dead space below the verbs
--- that read as the column having run out early.
-local MODELH = STRIPH + GAP + LISTH - 86
+-- …and ends level with the footer's Import button, so the verb row and Import share a line. The
+-- left column runs strip + gap + list + gap + footer; the pane gives its own top offset back out of
+-- its height so its BOTTOM still lands exactly there.
+local PANEH = STRIPH + GAP + LISTH + GAP + STRIPH - PANE_TOP
+-- The model is inset from the pane's top rather than sitting flush against it.
+local MODEL_TOP = 4
+-- Everything under the model (name, provenance, the rename field and the verb row, with their gaps)
+-- costs a fixed 86px; the model takes whatever is left. Running the column down to the footer line
+-- is what buys it the extra height — at the old height the character's head clipped against the
+-- model frame's top edge, and a taller frame is the only thing that fixes that.
+local MODELH = PANEH - 86 - MODEL_TOP
+-- What everything below the model hangs from, so the inset is only applied once.
+local MODEL_BOTTOM = MODEL_TOP + MODELH
 local BTNW = 80          -- three verbs across RIGHTW with the gaps
 local CONFIRM_S = 4      -- seconds an armed button stays armed before reverting, as the room uses
 local NO_SELECTION = "Select a look to preview it."
@@ -52,11 +58,11 @@ function OutfitLibraryWindow:_buildPreview(strip)
   local pane = Frame:new{
     parent = self,
     position = { TopLeft = {strip, ui.edge.TopRight, GAP, -PANE_TOP},
-                 Width = RIGHTW, Height = STRIPH + GAP + LISTH },
+                 Width = RIGHTW, Height = PANEH },
   }
 
   self._preview = Model:new{
-    parent = pane, position = { TopLeft = {0, 0}, Width = RIGHTW, Height = MODELH },
+    parent = pane, position = { TopLeft = {0, -MODEL_TOP}, Width = RIGHTW, Height = MODELH },
   }
   -- The viewer's own character, once. Nothing here previews another race: this window is about
   -- finding a saved look, and a race selector is the dressing room's job.
@@ -64,16 +70,16 @@ function OutfitLibraryWindow:_buildPreview(strip)
 
   self._previewName = Label:new{
     parent = pane, justifyH = ui.justify.Left, wordWrap = false,
-    position = { TopLeft = {2, -(MODELH + 6)}, Width = RIGHTW - 4 },
+    position = { TopLeft = {2, -(MODEL_BOTTOM + 6)}, Width = RIGHTW - 4 },
   }
   self._previewOrigin = Label:new{
     parent = pane, justifyH = ui.justify.Left, wordWrap = false, color = "muted",
-    position = { TopLeft = {2, -(MODELH + 22)}, Width = RIGHTW - 4 },
+    position = { TopLeft = {2, -(MODEL_BOTTOM + 22)}, Width = RIGHTW - 4 },
   }
 
   local box = Frame:new{
     parent = pane,
-    position = { TopLeft = {0, -(MODELH + 40)}, Width = RIGHTW, Height = STRIPH },
+    position = { TopLeft = {0, -(MODEL_BOTTOM + 40)}, Width = RIGHTW, Height = STRIPH },
   }
   selBox(box)
   self._renameBox = EditBox:new{ parent = box, position = { TopLeft = {6, -1}, BottomRight = {-4, 1} } }
@@ -82,7 +88,7 @@ function OutfitLibraryWindow:_buildPreview(strip)
 
   local verbs = Frame:new{
     parent = pane,
-    position = { TopLeft = {0, -(MODELH + 40 + STRIPH + GAP)}, Width = RIGHTW, Height = STRIPH },
+    position = { TopLeft = {0, -(MODEL_BOTTOM + 40 + STRIPH + GAP)}, Width = RIGHTW, Height = STRIPH },
   }
   self._renameBtn = self:_paneButton(verbs, 0, BTNW, "Rename", function() self:RenameSelected() end)
   self._deleteBtn = self:_paneButton(verbs, BTNW + GAP, BTNW, "Delete", function() self:DeleteSelected() end)
