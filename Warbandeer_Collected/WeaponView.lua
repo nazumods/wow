@@ -115,7 +115,7 @@ function WeaponView:VisibleCounts() return ns.WeaponVisibleCounts(self) end
 ---@return table[]
 function WeaponView:ExpansionOptions() return ns.expansionBadgeOptions(ns.WeaponSources) end
 
-local CATEGORY_ORDER = { "Raid", "Dungeon", "World Boss", "Quest", "Vendor", "World Drop", "Crafted", "Trading Post", "Achievement" }
+local CATEGORY_ORDER = { "Raid", "Dungeon", "World Boss", "Quest", "Vendor", "World Drop", "Crafted", "Trading Post", "Achievement", "Other" }
 ---@return table[]
 function WeaponView:CategoryOptions()
   local seen = {}
