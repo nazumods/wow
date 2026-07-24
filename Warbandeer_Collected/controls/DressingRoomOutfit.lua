@@ -214,7 +214,13 @@ function DressingRoom:EnterOutfitMode(name, list)
   self:Title(name)
   self._idLabel:Text("")
   self._masterName = nil
-  self:_showClass(nil)          -- an outfit belongs to no class
+  -- A loaded look isn't one of the tracked sets, but it does have a class — the one it was saved
+  -- under — so the title-bar class icon and the class-themed backdrop stay meaningful here instead
+  -- of blanking to a plain dark room (#699). Entries predating #655 carry no provenance, and a
+  -- pasted or imported name may not be in the library at all; both fall back to nil, which is
+  -- exactly the old behaviour. The expansion badge is deliberately left alone.
+  local entry = ns.LibraryOutfit(name)
+  self:_showClass(entry and ns.ClassId(entry.class))
   self._tierBarL:Hide()
   self._tierBarR:Hide()
   if self._ratingsBoxes then for _, b in ipairs(self._ratingsBoxes) do b:Hide() end end
