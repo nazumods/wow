@@ -439,4 +439,5 @@ replacing the whole list — you review the (volatile) diff and merge. Two conse
 tracking issue (auto-closed on recovery), like the armor PTR watcher.
 
 > The grid + counter render on the **live** client (the appearances just aren't collectible yet); the
-> 3D drill-in is disabled for upcoming weapons — log into the PTR to preview them in 3D.
+> 3D drill-in works on the PTR, and on a live client prints a note pointing you to the PTR — same as
+> the armor preview.

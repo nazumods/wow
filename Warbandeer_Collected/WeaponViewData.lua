@@ -89,7 +89,7 @@ ns.WeaponMatches = matches
 function ns.WeaponRows(self)
   local ptr = self._ptr
   local source = ptr and ns.WeaponPtrSources or ns.WeaponSources   -- PTR preview swaps the whole source
-  local cmap = (not ptr) and ns:WeaponCollectedMap() or nil         -- no collected state for unreleased weapons
+  local cmap = (not ptr) and ns:WeaponCollectedMap() or nil         -- upcoming weapons aren't obtainable yet, so no collected state to track
   local usable = ns.WeaponUsableTypes()   -- greying hint: types this class can't wield are muted
   local GREYED = {0.42, 0.42, 0.45, 1}    -- one shared muted colour for every unusable-type cell
   local order = {}
@@ -106,12 +106,15 @@ function ns.WeaponRows(self)
       if not visuals then
         r[ci] = {}
       elseif ptr then
-        -- PTR PREVIEW: the count of UPCOMING appearances of this type, muted blue — no completion
-        -- shade, no collected lookup, no class greying (everything here is unreleased). Hover lists
-        -- them; no drill-in (the live client can't render a look that isn't out yet).
+        -- PTR PREVIEW: how many UPCOMING appearances of this type are coming, in PTR blue. They aren't
+        -- obtainable until the patch lands, so there's no collected/remaining state — just the count of
+        -- new looks (no red→green shade, green check or class greying). Clickable like a live cell: on
+        -- the PTR the looks resolve and open the dressing room; on a live client it notes "log into PTR".
         r[ci] = { text = #visuals, justifyH = ui.justify.Center, color = UPCOMING,
           onEnter = function() ns.ShowWeaponCellTip(grp, t, visuals) end,
-          onLeave = function() GameTooltip:Hide() end, _source = grp, _type = t }
+          onLeave = function() GameTooltip:Hide() end,
+          onClick = function() ns.PreviewWeaponCell(grp, t, visuals, ns.GridHost(self), true) end,
+          _source = grp, _type = t }
       else
         local total, coll = #visuals, 0
         for _, v in ipairs(visuals) do if cmap[v] then coll = coll + 1 end end
@@ -189,7 +192,9 @@ end
 ---@param t number
 ---@param visuals number[]
 ---@param host TitleFrame?  the collection window to dock onto (nil = keep the current dock host)
-function ns.PreviewWeaponCell(grp, t, visuals, host)
+---@param ptr boolean?  true for a PTR-preview cell — on a live client its appearances don't resolve, so
+---                     degrade to the "log into the PTR" note (matching the armor dressing-room fallback)
+function ns.PreviewWeaponCell(grp, t, visuals, host, ptr)
   local looks = {}
   for _, v in ipairs(visuals) do
     local src = ns.WeaponSource(v)
@@ -200,7 +205,10 @@ function ns.PreviewWeaponCell(grp, t, visuals, host)
     end
   end
   if #looks == 0 then
-    ns.Print("No previewable looks here yet — item data is still loading; hover the cell, then click again.")
+    -- On the PTR these resolve and preview like any weapon; on a live client the appearance isn't out
+    -- yet, so match the armor grid's dressing-room fallback instead of the generic "still loading" note.
+    ns.Print(ptr and ('"%s" is upcoming on the PTR — log into the PTR to preview it in 3D.'):format(grp.name)
+      or "No previewable looks here yet — item data is still loading; hover the cell, then click again.")
     return
   end
   -- No hand recorded on the set: which one a browsed weapon lands in is `ns.DefaultWeaponHand`'s
