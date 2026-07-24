@@ -1,6 +1,7 @@
 ---@type Warbandeer
 local ns = select(2, ...)
 local insert = table.insert
+local api = ns.api
 local ui = ns.ui
 local Class, TableFrame = ns.lua.Class, ui.TableFrame
 local theme = ns.theme
@@ -11,47 +12,19 @@ ns.overview = ns.overview or {}
 
 local TransparentBackdrop = {color = ns.Colors.TransparentBlack}
 
--- Per-expansion achievement ID lists (display order), consumed by Overview's
--- EXPANSIONS table and passed to an Achievements instance as `achievementIds`.
-ns.overview.wwiAchievementIds = {20597, 40791, 20596, 40309, 40360, 41052, 40618, 41818, 41970, 41808, 61017}
-ns.overview.midnightAchievementIds = {
-  62386, -- Light Up the Night (meta)
-  62110, -- Loremaster of Midnight
-  62104, -- Midnight Lore Hunter
-  61741, -- Delve Loremaster: Midnight
-  61506, -- Allied Race: Haranir
-  61839, -- (existing)
-  62261, -- Forever Song (Eversong Woods story)
-  61453, -- Making an Amani Out of You (Zul'Aman story)
-  62260, -- That's Aln, Folks! (Harandar story)
-  62256, -- Yelling into the Voidstorm (Voidstorm story)
-  61957, -- Sojourner of Eversong Woods
-  61452, -- Sojourner of Zul'Aman
-  61739, -- Sojourner of Harandar
-  61864, -- Sojourner of Voidstorm
-}
-ns.overview.dragonflightAchievementIds = {
-  19458, -- A World Awoken (Dragonflight meta)
-  16585, -- Loremaster of the Dragon Isles
-  16334, -- Waking Hope (The Waking Shores story)
-  15394, -- Ohn'a'Roll (Ohn'ahran Plains story)
-  16336, -- Azure Spanner (The Azure Span story)
-  16363, -- Just Don't Ask Me to Spell It (Thaldraszus story)
-  16401, -- Sojourner of the Waking Shores
-  16405, -- Sojourner of Ohn'ahran Plains
-  16428, -- Sojourner of Azure Span
-  16398, -- Sojourner of Thaldraszus
-}
+-- Per-expansion achievement ID lists (display order), consumed by Overview's EXPANSIONS
+-- table and passed to an Achievements instance as `achievementIds`. The catalog itself lives
+-- in Warbandeer_Characters (data/achievementcatalog.lua) since the persistence layer needs
+-- the full id set regardless of whether this view is open.
+local checklist = api:GetAchievementCatalog().checklist
+ns.overview.wwiAchievementIds = checklist.wwi
+ns.overview.midnightAchievementIds = checklist.midnight
+ns.overview.dragonflightAchievementIds = checklist.dragonflight
 
--- Live completion colour for one achievement (41818 = the Midnight meta, also
--- satisfied by its Heroic variant 41820). Read fresh so a mid-session earn recolours.
+-- Persisted completion colour for one achievement (metaAlts, e.g. 41818's Heroic variant
+-- 41820, is resolved by IsAchievementComplete).
 local function achColor(achievementId)
-  local _, _, _, completed = GetAchievementInfo(achievementId)
-  if achievementId == 41818 then
-    local _, _, _, completedH = GetAchievementInfo(41820)
-    completed = completed or completedH
-  end
-  return completed and DIM_GREEN_FONT_COLOR or DIM_RED_FONT_COLOR
+  return api:IsAchievementComplete(achievementId) and DIM_GREEN_FONT_COLOR or DIM_RED_FONT_COLOR
 end
 
 -- Single-column achievement checklist for one expansion.
@@ -85,9 +58,10 @@ end, {
   },
 })
 
--- Re-read completion state and recolour each row. Overview:OnBeforeShow calls this
--- so an achievement earned mid-session turns green without a /reload (the rows are
--- built once and otherwise never revisited).
+-- Re-read persisted completion state and recolour each row. ACHIEVEMENT_EARNED updates the
+-- snapshot immediately (data/achievements.lua), so Overview:OnBeforeShow calling this is
+-- enough for a mid-session earn to turn green without a /reload (the rows are built once
+-- and otherwise never revisited).
 function Achievements:Refresh()
   for i, achievementId in ipairs(self.achievementIds) do
     self.data[i][1].color = achColor(achievementId)

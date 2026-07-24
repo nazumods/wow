@@ -117,13 +117,14 @@ Every commit and merge follows a strict discipline: (1) provide the commit messa
 
 The `## Version:` field in each `.toc` uses the format **`MAJOR.MINOR.PATCH-rREVISION`**, where `MAJOR.MINOR.PATCH` mirrors the WoW client version (e.g. `12.0.5-r0`) and `REVISION` is a zero-based counter that resets each patch cycle. `r0` is the initial release adding support for that client version (at minimum a client version bump in the `.toc`). The `v` prefix is added by the release tooling to tags and titles (e.g. `AddonName-v12.0.5-r0`).
 
-**Do not bump the `-rREVISION` in `.toc` files** when making code changes — the release script bumps it automatically. (Other `.toc` fields, e.g. `X-NUI-DB-VERSION` for a DB migration, are still bumped by hand as part of the change.)
+**Do not bump the `-rREVISION` in `.toc` files** when making code changes — the release script bumps it automatically. (Other `.toc` fields, e.g. `X-NUI-DB-VERSION`, are still bumped by hand — but only when the version bump is actually warranted, see **DB Backwards Compatibility** below.)
 
 ## DB Backwards Compatibility
 
 - DB upgrades must be **non-destructive**: new keys are added, old keys are never removed or repurposed by `MigrateDB`.
 - A user must be able to rollback to any earlier revision within the same patch cycle (or a prior cycle) with no data loss or corruption.
 - If old keys become stale after an upgrade, expose a **cleanup command** (e.g. `/addon cleanup`) that removes them explicitly. Never run cleanup automatically — only after the user confirms the upgrade is stable.
+- **Don't bump `db.version` / `X-NUI-DB-VERSION` for a new field that's purely additive and filled lazily** (the field just doesn't exist yet on an old save, and gets populated the next time its owning broker/scan runs — no seeding, no structural transform, no stale-key cleanup). A `MigrateDB` version-gated block only earns its keep when it actually **does** something a plain "field is absent until next scan" can't: seeding a default, renaming/restructuring existing data, or similar. Confirmed via PR review on [#702](https://github.com/nazumods/wow/pull/702) — a no-op `if (db.version or 0) < N then db.version = N end` block is dead weight; skip the bump entirely rather than adding one. (Document the new field in the owning `CONTEXT.md` data-structure block same as any other field — just without a version tag, since there's no migration point to anchor it to.)
 
 ## File Size
 

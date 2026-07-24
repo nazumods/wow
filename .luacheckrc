@@ -455,6 +455,7 @@ std = {
     "GetCurrentTitle",
     "GetNumTitles",
     "GetTitleName",
+    "GetTotalAchievementPoints",
     "GetXPExhaustion",
     "HandleModifiedItemClick",
     "HasNewMail",

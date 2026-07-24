@@ -89,7 +89,7 @@ end, "Repair stored data (recount characters)")
 ---@field MigrateDB fun(self) Migrate database to latest version
 function ns:MigrateDB()
   local db = ns.db
-  if db.version == 40 then return end
+  if db.version == 41 then return end
   if not db.characters then db.characters = {} end
   if not db.numCharacters then
     db.numCharacters = countCharacters(db)
@@ -472,6 +472,7 @@ function ns:initialize()
   self:InitBrokers()
   self:InitWarband()
   self:InitTravelersLog()
+  self:InitAchievements()
 end
 
 -- Guild info can read back nil at PLAYER_LOGIN (before the roster loads) and also
