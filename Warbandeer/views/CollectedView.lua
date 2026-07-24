@@ -162,7 +162,7 @@ local CollectedView = Class(Frame, function(self)
     self.weaponGrid:Hide()
     local weaponW = self.weaponGrid:Width()
 
-    self.weaponStrip = self.weaponGrid:BuildFilterStrip(self)
+    self.weaponStrip = self.weaponGrid:BuildFilterStrip(self, function() _view:_render() end)
     self.weaponStrip:Position({ TopLeft = {TOGGLE_W + TGAP, 0} })
     self.weaponStrip:Hide()
 
@@ -256,6 +256,10 @@ function CollectedView:SetMode(weapons)
   self._weaponsMode = weapons
   self.active = weapons and self.weaponGrid or self.grid
   self.activeScroll = weapons and self.weaponScroll or self.scroll
+  -- Carry the PTR PREVIEW state across the Armor/Weapons swap (one window-level mode): the grid being
+  -- shown adopts the mode of the one being hidden (SetPtr repaints its own toggle).
+  local prevGrid = weapons and self.grid or self.weaponGrid
+  if self.active._ptr ~= prevGrid._ptr then self.active:SetPtr(prevGrid._ptr) end
   self.grid:SetShown(not weapons); self.filterStrip:SetShown(not weapons); self.scroll:SetShown(not weapons)
   self.weaponGrid:SetShown(weapons); self.weaponStrip:SetShown(weapons); self.weaponScroll:SetShown(weapons)
   self.wantedCount:SetShown(not weapons)   -- the wanted tally is armor-only
@@ -306,8 +310,14 @@ function CollectedView:_render()
   if self._weaponsMode then
     self.emptyMsg:Hide()
     self.wantedCount:Text("")
-    local sources, apps, coll = self.weaponGrid:VisibleCounts()
-    self.counter:Text(("%d sources · %d/%d collected"):format(sources, coll, apps))
+    if self.weaponGrid._ptr then
+      -- PTR PREVIEW: only the upcoming (not-yet-live) appearances — a "+N upcoming" tally.
+      local n, ptrBuild = self.weaponGrid:UpcomingCounts()
+      self.counter:Text(("+%d appearances upcoming%s"):format(n, ptrBuild and (" · PTR " .. ptrBuild) or ""))
+    else
+      local sources, apps, coll = self.weaponGrid:VisibleCounts()
+      self.counter:Text(("%d sources · %d/%d collected"):format(sources, coll, apps))
+    end
     self.counter:Font({theme.fonts.title[1], 12})
     self.weaponGrid.data = self.weaponGrid:GetData(); self.weaponGrid:update()
     return

@@ -81,6 +81,7 @@ end
 ---@return boolean ptr  the new mode
 function DataView:SetPtr(on)
   self._ptr = on
+  if self._repaintPtr then self._repaintPtr(on) end   -- keep the toggle border in sync on a programmatic set (mode swap)
   if not self.embedded then self:_clearSelection() end
   self.data = self:GetData()
   self:update()
@@ -182,10 +183,12 @@ function DataView:BuildFilterStrip(parent, onModeChanged)
   local x = 0
   local ptrBorder, wantedBorder, sortIcon
   ptrBorder = toggle{ x = x, text = "PTR", active = false, onClick = function()
-    local on = self:SetPtr(not self._ptr)
-    ptrBorder:Color(on and gold or divider)
+    self:SetPtr(not self._ptr)   -- repaints the border via _repaintPtr below
     if onModeChanged then onModeChanged() end
   end }
+  -- Lets SetPtr repaint the border when the state is set programmatically (the Armor/Weapons swap
+  -- carries the PTR mode across, so both grids' toggles stay in sync — see the host's SetMode).
+  self._repaintPtr = function(on) ptrBorder:Color(on and gold or divider) end
   x = x + BW + GAP
 
   wantedBorder = toggle{ x = x, atlas = ns.WantedIcon, tint = false, active = false,

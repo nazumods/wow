@@ -85,7 +85,11 @@ param(
   # APPEARANCE bucketed by source (row) x weapon type (column), derived from DB2. Blizzard never
   # grouped weapons into TransmogSet records, so the grouping is derived. Self-contained; see UPDATING.md.
   [switch]$Weapons,
-  [string]$WeaponsFile = (Join-Path $PSScriptRoot '..' 'data' 'weaponsources.lua')
+  [string]$WeaponsFile = (Join-Path $PSScriptRoot '..' 'data' 'weaponsources.lua'),
+  # Weapon PTR-preview delta: with -PtrDelta, -Weapons regenerates data/weaponsources_ptr.lua
+  # (ns.WeaponPtrSources) — weapon/off-hand APPEARANCES on the PTR (wowt) but not yet on live (wow),
+  # bucketed like weaponsources.lua. Volatile; the daily watcher runs it patch-gated. See UPDATING.md.
+  [string]$WeaponsPtrFile = (Join-Path $PSScriptRoot '..' 'data' 'weaponsources_ptr.lua')
 )
 
 $ErrorActionPreference = 'Stop'
@@ -819,6 +823,281 @@ if ($Expand) {
   exit 0
 }
 
+# ── Weapon-appearance pipeline (shared by -Weapons and -Weapons -PtrDelta) ────
+# Download the DB2 tables for ONE build and bucket every weapon/off-hand APPEARANCE by SOURCE (row)
+# x weapon TYPE (column) — the derivation the -Weapons mode below documents in full. Factored out so
+# the live emit and the PTR delta run byte-identical bucketing over their respective builds.
+function WFetchBuild([string]$table, [string]$build) {
+  # Per-build temp dir so a live+PTR run in one process doesn't clobber shared CSVs.
+  $tmp = Join-Path ([IO.Path]::GetTempPath()) "wbc-weapons-$build"
+  New-Item -ItemType Directory -Force -Path $tmp | Out-Null
+  $out = Join-Path $tmp "$table.csv"
+  Write-Host "Fetching https://wago.tools/db2/$table/csv?build=$build" -ForegroundColor Cyan
+  Invoke-WebRequest -Uri "https://wago.tools/db2/$table/csv?build=$build" -UseBasicParsing -OutFile $out -ErrorAction Stop
+  return $out
+}
+# Item.ClassID/SubclassID/InventoryType -> Enum.TransmogCollectionType id (null = not a weapon/off-hand).
+function WType($it) {
+  if (-not $it) { return $null }
+  $c = [int]$it.ClassID; $s = [int]$it.SubclassID; $iv = [int]$it.InventoryType
+  if ($c -eq 2) {
+    switch ($s) { 0 {13} 1 {20} 2 {25} 3 {26} 4 {15} 5 {22} 6 {24} 7 {14} 8 {21}
+                  9 {28} 10 {23} 13 {17} 15 {16} 18 {27} 19 {12} default {$null} }
+  } elseif ($c -eq 4) {
+    if ($s -eq 6) { 18 } elseif ($iv -eq 23) { 19 } else { $null }   # Shield / Held In Off-hand
+  } else { $null }
+}
+function WCols($rows, [string]$table, [string[]]$cols) {
+  foreach ($c in $cols) { if ($c -notin $rows[0].PSObject.Properties.Name) { throw "$table CSV missing '$c' column — aborting." } }
+}
+
+# Full pipeline for $build → the { key -> @{ name; cat; rel; minInst; types } } row map (types keyed by
+# TransmogCollectionType → HashSet[int] of visual ids). Returns @{ rows; placed; otherPlaced }.
+function Get-WeaponRows([string]$build) {
+  # --- item + appearance tables ---
+  $item = @{}
+  Import-Csv (WFetchBuild 'Item' $build) | ForEach-Object { $item[$_.ID] = $_ }
+  if ($item.Count -lt 50000) { throw "Item under 50000 rows ($($item.Count)) — incomplete download, aborting." }
+  $ima = Import-Csv (WFetchBuild 'ItemModifiedAppearance' $build)
+  WCols $ima 'ItemModifiedAppearance' @('ItemID', 'ItemAppearanceID', 'TransmogSourceTypeEnum')
+  if ($ima.Count -lt 50000) { throw "ItemModifiedAppearance under 50000 rows ($($ima.Count)) — incomplete download, aborting." }
+
+  # ItemSparse -> ExpansionID (0-based). ~50 MB; stream just ID + ExpansionID (quoted-CSV-safe).
+  Add-Type -AssemblyName Microsoft.VisualBasic
+  $itemExp = @{}
+  $tp = New-Object Microsoft.VisualBasic.FileIO.TextFieldParser((WFetchBuild 'ItemSparse' $build))
+  $tp.TextFieldType = 'Delimited'; $tp.SetDelimiters(','); $tp.HasFieldsEnclosedInQuotes = $true
+  $hdr = $tp.ReadFields(); $idIdx = [Array]::IndexOf($hdr, 'ID'); $exIdx = [Array]::IndexOf($hdr, 'ExpansionID')
+  if ($idIdx -lt 0 -or $exIdx -lt 0) { throw 'ItemSparse CSV missing ID/ExpansionID column — aborting.' }
+  while (-not $tp.EndOfData) { $f = $tp.ReadFields(); $itemExp[$f[$idIdx]] = [int]$f[$exIdx] }
+  $tp.Close()
+
+  # --- source-detail lookups (the specific encounter/quest/vendor per appearance) ---
+  $imaToCs = @{}
+  foreach ($r in (Import-Csv (WFetchBuild 'CollectableSourceInfo' $build))) {
+    if ($r.HouseDecorID -eq '0' -and $r.ItemModifiedAppearanceID -ne '0' -and -not $imaToCs.ContainsKey($r.ItemModifiedAppearanceID)) {
+      $imaToCs[$r.ItemModifiedAppearanceID] = $r.ID } }
+  $csToEnc = @{}; foreach ($r in (Import-Csv (WFetchBuild 'CollectableSourceEncounterSparse' $build))) { if (-not $csToEnc.ContainsKey($r.CollectableSourceInfoID)) { $csToEnc[$r.CollectableSourceInfoID] = $r.JournalEncounterID } }
+  $csToQMap = @{}; foreach ($r in (Import-Csv (WFetchBuild 'CollectableSourceQuestSparse' $build))) { if (-not $csToQMap.ContainsKey($r.CollectableSourceInfoID)) { $csToQMap[$r.CollectableSourceInfoID] = $r.QuestMapID } }
+  $csToVMap = @{}; foreach ($r in (Import-Csv (WFetchBuild 'CollectableSourceVendorSparse' $build))) { if (-not $csToVMap.ContainsKey($r.CollectableSourceInfoID)) { $csToVMap[$r.CollectableSourceInfoID] = $r.VendorMapID } }
+
+  # --- journal + map lookups ---
+  $encToInst = @{}; foreach ($r in (Import-Csv (WFetchBuild 'JournalEncounter' $build))) { $encToInst[$r.ID] = $r.JournalInstanceID }
+  $jInst = @{}; foreach ($r in (Import-Csv (WFetchBuild 'JournalInstance' $build))) { $jInst[$r.ID] = $r }
+  $jMap  = @{}; foreach ($r in (Import-Csv (WFetchBuild 'Map' $build))) { $jMap[$r.ID] = $r }
+  # Instance expansion via its real Journal tier (Map.ExpansionID is 0 for brand-new maps).
+  $tierExp = @{}; foreach ($r in (Import-Csv (WFetchBuild 'JournalTier' $build))) { $tierExp[$r.ID] = [int]$r.Expansion }
+  $instTiers = @{}
+  foreach ($r in (Import-Csv (WFetchBuild 'JournalTierXInstance' $build))) {
+    $e = $tierExp[$r.JournalTierID]
+    if ($e) { if (-not $instTiers.ContainsKey($r.JournalInstanceID)) { $instTiers[$r.JournalInstanceID] = New-Object System.Collections.ArrayList }
+              [void]$instTiers[$r.JournalInstanceID].Add($e) } }
+
+  function WMapRel($mapId) { if ($mapId -and $jMap.ContainsKey($mapId)) { [int]$jMap[$mapId].ExpansionID + 1 } else { 0 } }
+  function WInstRel($insId, $mapId) {
+    if ($instTiers.ContainsKey($insId)) {
+      $reals = @($instTiers[$insId] | Where-Object { $_ -gt 0 -and $_ -lt 9000 })   # drop the "Current Season" pseudo-tier (9000)
+      if ($reals.Count) { return [int]((($reals | Measure-Object -Minimum).Minimum) / 100) }
+    }
+    return (WMapRel $mapId)
+  }
+  function WItemRel($itemId) { if ($itemExp.ContainsKey($itemId)) { $e = $itemExp[$itemId]; if ($e -lt 0) { 0 } else { $e + 1 } } else { 0 } }
+
+  # --- index weapon visuals (dedup by ItemAppearanceID = the visual) ---
+  $visType = @{}; $visImas = @{}
+  foreach ($m in $ima) {
+    $wt = WType $item[$m.ItemID]
+    if (-not $wt) { continue }
+    $aid = $m.ItemAppearanceID
+    if (-not $visType.ContainsKey($aid)) { $visType[$aid] = $wt; $visImas[$aid] = New-Object System.Collections.ArrayList }
+    [void]$visImas[$aid].Add(@{ ima = $m.ID; src = [int]$m.TransmogSourceTypeEnum; item = $m.ItemID })
+  }
+
+  # --- resolve each visual to one representative row ---
+  $PRIO = 1, 2, 3, 10, 4, 8, 7   # drop > quest > vendor > trading post > world > craft > achievement
+  $wRows = @{}
+  function WAdd($key, $name, $cat, $rel, $minInst, $typeId, $aid) {
+    if (-not $wRows.ContainsKey($key)) { $wRows[$key] = @{ name = $name; cat = $cat; rel = $rel; minInst = $minInst; types = @{} } }
+    $R = $wRows[$key]
+    if ($minInst -and (-not $R.minInst -or $minInst -lt $R.minInst)) { $R.minInst = $minInst }
+    if (-not $R.types.ContainsKey($typeId)) { $R.types[$typeId] = New-Object 'System.Collections.Generic.HashSet[int]' }
+    [void]$R.types[$typeId].Add([int]$aid)
+  }
+  $placed = 0; $otherPlaced = 0
+  foreach ($aid in $visType.Keys) {
+    $wt = $visType[$aid]; $done = $false
+    foreach ($st in $PRIO) {
+      foreach ($c in ($visImas[$aid] | Where-Object { $_.src -eq $st })) {
+        if ($st -eq 1) {
+          $ci = $imaToCs[$c.ima]; if (-not $ci) { continue }
+          $enc = $csToEnc[$ci];   if (-not $enc) { continue }
+          $insId = $encToInst[$enc]; if (-not $insId) { continue }
+          $ii = $jInst[$insId]; if (-not $ii) { continue }
+          $mp = $jMap[$ii.MapID]; $it = if ($mp) { [int]$mp.InstanceType } else { -1 }
+          $cat = switch ($it) { 2 {'Raid'} 1 {'Dungeon'} 0 {'World Boss'} default {$null} }
+          if (-not $cat) { continue }
+          $nm = ($ii.Name_lang -split ' - ', 2)[0]   # merge wings (Dire Maul - X, Stratholme - X)
+          $rel = WInstRel $insId $ii.MapID
+          WAdd "INST|$nm|$rel" $nm $cat $rel ([int]$insId) $wt $aid; $done = $true; break
+        } elseif ($st -eq 2) {
+          $ci = $imaToCs[$c.ima]; $qm = if ($ci) { $csToQMap[$ci] } else { $null }
+          $rel = if ($qm) { WMapRel $qm } else { 0 }; if ($rel -eq 0) { $rel = WItemRel $c.item }
+          WAdd "QUEST|$rel" 'Quest' 'Quest' $rel $null $wt $aid; $done = $true; break
+        } elseif ($st -eq 3) {
+          $ci = $imaToCs[$c.ima]; $vm = if ($ci) { $csToVMap[$ci] } else { $null }
+          $rel = if ($vm) { WMapRel $vm } else { 0 }; if ($rel -eq 0) { $rel = WItemRel $c.item }
+          WAdd "VENDOR|$rel" 'Vendor' 'Vendor' $rel $null $wt $aid; $done = $true; break
+        } elseif ($st -eq 10) { $rel = WItemRel $c.item; WAdd "TP|$rel" 'Trading Post' 'Trading Post' $rel $null $wt $aid; $done = $true; break }
+          elseif ($st -eq 4) { $rel = WItemRel $c.item; WAdd "WORLD|$rel" 'World Drop' 'World Drop' $rel $null $wt $aid; $done = $true; break }
+          elseif ($st -eq 8) { $rel = WItemRel $c.item; WAdd "CRAFT|$rel" 'Crafted' 'Crafted' $rel $null $wt $aid; $done = $true; break }
+          elseif ($st -eq 7) { $rel = WItemRel $c.item; WAdd "ACHIEV|$rel" 'Achievement' 'Achievement' $rel $null $wt $aid; $done = $true; break }
+      }
+      if ($done) { break }
+    }
+    # Fallback — HiddenUntilCollected (Enum.TransmogSource 5): how Timewalking reissues and other
+    # masked-source items are flagged. $PRIO covers every OTHER obtainable source type but not 5, so
+    # without this a hidden-source visual (the Warglaives of Azzinoth reissue, 34777/8461) is dropped
+    # SILENTLY — never placed, never counted, no warning. Keep it in an "Other" row bucketed by the
+    # collectible item's own expansion. Visuals whose only weapon sources are CantCollect (6) /
+    # NotValidForTransmog (9) / None (0) are genuinely uncollectable and stay out. See #670.
+    if (-not $done) {
+      $hidden = @($visImas[$aid] | Where-Object { $_.src -eq 5 })
+      if ($hidden.Count) {
+        $rels = @($hidden | ForEach-Object { WItemRel $_.item } | Where-Object { $_ -gt 0 })
+        $rel = if ($rels.Count) { ($rels | Measure-Object -Minimum).Minimum } else { 0 }
+        WAdd "OTHER|$rel" 'Other' 'Other' $rel $null $wt $aid; $done = $true; $otherPlaced++
+      }
+    }
+    if ($done) { $placed++ }
+  }
+  if ($placed -lt 3000) { throw "Only $placed weapon appearances placed (<3000) — incomplete data, aborting." }
+  Write-Host "  [$build] placed $placed weapon appearances into $($wRows.Count) source rows ($otherPlaced via the HiddenUntilCollected 'Other' fallback)." -ForegroundColor Cyan
+  return @{ rows = $wRows; placed = $placed; otherPlaced = $otherPlaced }
+}
+
+# The set of weapon/off-hand ItemAppearanceIDs present on $build — just Item + ItemModifiedAppearance
+# (a fraction of the full pipeline), for diffing the PTR appearances against live in -Weapons -PtrDelta.
+function Get-WeaponVisualSet([string]$build) {
+  $item = @{}
+  Import-Csv (WFetchBuild 'Item' $build) | ForEach-Object { $item[$_.ID] = $_ }
+  if ($item.Count -lt 50000) { throw "Item under 50000 rows ($($item.Count)) for $build — incomplete download, aborting." }
+  $set = New-Object 'System.Collections.Generic.HashSet[int]'
+  foreach ($m in (Import-Csv (WFetchBuild 'ItemModifiedAppearance' $build))) {
+    if (WType $item[$m.ItemID]) { [void]$set.Add([int]$m.ItemAppearanceID) }
+  }
+  return $set
+}
+
+# Shared emit for the weapon row map (ns.WeaponSources or ns.WeaponPtrSources): stable synthetic ids
+# (instance rows 9_200_000 + min JournalInstanceID; per-expansion aggregates 9_300_000 + catIndex*20 +
+# release, both clear of armor setIds and the weapons.lua illusion/arsenal ids), ordered expansion →
+# category → name. Returns the row-literal lines; the caller wraps them with the file's own preamble.
+function Write-WeaponRowLiterals($rows, [string]$tableVar) {
+  function WEsc([string]$s) { $s.Replace('\', '\\').Replace('"', '\"') }
+  $catIdx = @{ 'Quest' = 1; 'Vendor' = 2; 'World Drop' = 3; 'Crafted' = 4; 'Trading Post' = 5; 'Achievement' = 6; 'Other' = 7 }
+  function WRowId($r) { if ($r.minInst) { 9200000 + [int]$r.minInst } else { $ci = $catIdx[$r.cat]; if (-not $ci) { $ci = 9 }; 9300000 + $ci * 20 + [int]$r.rel } }
+  $catRank = @{ 'Raid' = 1; 'Dungeon' = 2; 'World Boss' = 3; 'Quest' = 4; 'Vendor' = 5; 'World Drop' = 6; 'Crafted' = 7; 'Trading Post' = 8; 'Achievement' = 9; 'Other' = 10 }
+  $typeOrder = 13, 14, 15, 16, 17, 20, 21, 22, 24, 23, 28, 25, 27, 26, 12, 18, 19   # grid column order (matches the look-builder)
+  $ordered = $rows.Values | Sort-Object @{ e = { [int]$_.rel } }, @{ e = { $catRank[$_.cat] } }, @{ e = { $_.name } }
+  $out = [System.Collections.Generic.List[string]]::new()
+  foreach ($r in $ordered) {
+    $out.Add("tinsert($tableVar, {")
+    $out.Add("  id = $(WRowId $r),")
+    $out.Add("  name = ""$(WEsc $r.name)"",")
+    $out.Add("  release = $([int]$r.rel),")
+    $out.Add("  category = ""$($r.cat)"",")
+    $out.Add('  types = {')
+    foreach ($t in $typeOrder) {
+      if ($r.types.ContainsKey($t)) {
+        $vids = (($r.types[$t] | Sort-Object) -join ', ')
+        $out.Add("    [$t] = { $vids },")
+      }
+    }
+    $out.Add('  },')
+    $out.Add('})')
+    $out.Add('')
+  }
+  return @{ lines = $out; count = @($ordered).Count }
+}
+
+# ── Weapon PTR-delta mode ────────────────────────────────────────────────────
+# Emit data/weaponsources_ptr.lua (ns.WeaponPtrSources / ns.WeaponPtrBuild): weapon/off-hand
+# APPEARANCES on the PTR (wowt) but NOT yet on live (wow) — the weapon analogue of the armor
+# -PtrDelta below. The delta is at the APPEARANCE level (weapons have no TransmogSet grouping):
+# run the full bucketing pipeline over the PTR build, then keep only visuals absent from the live
+# weapon-visual set. Must sit before `if ($PtrDelta)` so the -Weapons -PtrDelta combo lands here.
+if ($Weapons -and $PtrDelta) {
+  $wBuilds = (Invoke-WebRequest -Uri 'https://wago.tools/api/builds' -UseBasicParsing -ErrorAction Stop).Content | ConvertFrom-Json
+  if (-not $LiveBuild) { $LiveBuild = $wBuilds.wow[0].version }
+  if (-not $PtrBuild)  { $PtrBuild  = $wBuilds.wowt[0].version }
+  if (-not $LiveBuild -or -not $PtrBuild) { throw 'Could not resolve live/PTR builds from wago.tools.' }
+  $ptrMatch = $wBuilds.wowt | Where-Object { $_.version -eq $PtrBuild } | Select-Object -First 1
+  $ptrDate  = if ($ptrMatch) { ($ptrMatch.created_at -split ' ')[0] } else { '' }
+  Write-Host "Weapon PTR delta: live $LiveBuild  vs  PTR $PtrBuild $ptrDate" -ForegroundColor Cyan
+
+  # -Check: patch-aware staleness (no CSV download), reading ns.WeaponPtrBuild.ptr. Exit 0 = same
+  # patch (up to date), 2 = new patch / file missing (regenerate), else a real error. Mirrors -PtrDelta.
+  if ($Check) {
+    $stamped = $null
+    if (Test-Path -LiteralPath $WeaponsPtrFile) {
+      $cur = [System.IO.File]::ReadAllText($WeaponsPtrFile)
+      if ($cur -match 'ns\.WeaponPtrBuild\s*=\s*\{[^}]*ptr\s*=\s*"([^"]+)"') { $stamped = $Matches[1] }
+    }
+    if (-not $stamped) { Write-Host "weaponsources_ptr.lua missing or unstamped — regenerate (latest PTR $PtrBuild)." -ForegroundColor Yellow; exit 2 }
+    $have = ($stamped -split '\.')[0..2] -join '.'
+    $want = ($PtrBuild -split '\.')[0..2] -join '.'
+    if ($have -ne $want) { Write-Host "NEW PTR PATCH: $have -> $want (stamped $stamped, latest $PtrBuild) — replace the upcoming weapons." -ForegroundColor Yellow; exit 2 }
+    Write-Host "PTR up to date: still patch $have (stamped $stamped, latest $PtrBuild)." -ForegroundColor Green; exit 0
+  }
+
+  $ptr = Get-WeaponRows $PtrBuild
+  $liveVis = Get-WeaponVisualSet $LiveBuild
+  Write-Host "Live weapon visuals: $($liveVis.Count)." -ForegroundColor Cyan
+
+  # Keep only PTR visuals absent from live; drop emptied type columns and rows.
+  $ptrOnly = @{}; $upCount = 0
+  foreach ($key in $ptr.rows.Keys) {
+    $r = $ptr.rows[$key]
+    $types = @{}
+    foreach ($t in $r.types.Keys) {
+      $fresh = @($r.types[$t] | Where-Object { -not $liveVis.Contains([int]$_) })
+      if ($fresh.Count) { $types[$t] = $fresh; $upCount += $fresh.Count }
+    }
+    if ($types.Count) { $ptrOnly[$key] = @{ name = $r.name; cat = $r.cat; rel = $r.rel; minInst = $r.minInst; types = $types } }
+  }
+  Write-Host "Upcoming weapon appearances: $upCount across $($ptrOnly.Count) source rows." -ForegroundColor Cyan
+
+  $body = Write-WeaponRowLiterals $ptrOnly 'ns.WeaponPtrSources'
+  $L = [System.Collections.Generic.List[string]]::new()
+  $L.Add('---@type Warbandeer_Collected')
+  $L.Add('local ns = select(2, ...)')
+  $L.Add('local tinsert = tinsert')
+  $L.Add('-- luacheck: no max line length')
+  $L.Add("-- Generated from wago.tools weapon PTR delta (live $LiveBuild vs PTR $PtrBuild$(if($ptrDate){", $ptrDate"})) by tools/update-sets.ps1 -Weapons -PtrDelta.")
+  $L.Add('-- Weapon/off-hand APPEARANCES on the PTR but not yet on live ("upcoming"), same source x weapon')
+  $L.Add('-- type shape as weaponsources.lua. VOLATILE — regenerate on demand; not part of the weekly refresh.')
+  $L.Add('')
+  $L.Add('---@class Warbandeer_Collected')
+  $L.Add('---@field WeaponPtrSources table[] PTR-only weapon-appearance source groups (same shape as ns.WeaponSources)')
+  $L.Add('---@field WeaponPtrBuild { live: string, ptr: string } the builds this delta was generated from')
+  $L.Add('ns.WeaponPtrSources = {}')
+  $L.Add("ns.WeaponPtrBuild = { live = ""$LiveBuild"", ptr = ""$PtrBuild"" }")
+  $L.Add('')
+  foreach ($ln in $body.lines) { $L.Add($ln) }
+  $newText = ($L -join "`n").TrimEnd() + "`n"
+
+  # Staleness ignores the build-stamp line, so a within-patch build bump with identical data is no diff.
+  function WPtrStrip([string]$s) { (($s -split "`n") | Where-Object { $_ -notmatch '^-- Generated from wago\.tools' }) -join "`n" }
+  $curPtr = if (Test-Path -LiteralPath $WeaponsPtrFile) { [System.IO.File]::ReadAllText($WeaponsPtrFile) } else { '' }
+  if ((WPtrStrip $curPtr) -ne (WPtrStrip $newText)) {
+    [System.IO.File]::WriteAllText($WeaponsPtrFile, $newText, [System.Text.UTF8Encoding]::new($false))
+    Write-Host "Wrote $WeaponsPtrFile ($($body.count) upcoming source rows, $upCount appearances)." -ForegroundColor Green
+  } else {
+    Write-Host 'No changes — weaponsources_ptr.lua already current.' -ForegroundColor Green
+  }
+  exit 0
+}
+
 # ── PTR-delta mode ──────────────────────────────────────────────────────────
 # Emit data/sets_ptr.lua (ns.PtrSets / ns.PtrBuild) from the live↔PTR TransmogSet
 # diff. Self-contained (its own two-build downloads) and exits before the normal
@@ -1012,9 +1291,6 @@ if ($PtrDelta) {
 # Dungeon/raid wings (Dire Maul - X, Stratholme - X) merge into the base instance. Self-contained;
 # exits before the normal live refresh. See UPDATING.md ("Regenerating the weapon sources").
 if ($Weapons) {
-  $tmp = Join-Path ([IO.Path]::GetTempPath()) 'wbc-weapons'
-  New-Item -ItemType Directory -Force -Path $tmp | Out-Null
-
   # Resolve the build (pin it — the bare endpoint serves PTR/beta too).
   $wBuilds = (Invoke-WebRequest -Uri 'https://wago.tools/api/builds' -UseBasicParsing -ErrorAction Stop).Content | ConvertFrom-Json
   if (-not $Build) { $Build = $wBuilds.$Product[0].version }
@@ -1022,160 +1298,11 @@ if ($Weapons) {
   $wDate  = if ($wMatch) { ($wMatch.created_at -split ' ')[0] } else { '' }
   Write-Host "Weapon sources against $Product build $Build $wDate" -ForegroundColor Cyan
 
-  function WFetch([string]$table) {
-    $out = Join-Path $tmp "$table.csv"
-    $url = "https://wago.tools/db2/$table/csv?build=$Build"
-    Write-Host "Fetching $url" -ForegroundColor Cyan
-    Invoke-WebRequest -Uri $url -UseBasicParsing -OutFile $out -ErrorAction Stop
-    return $out
-  }
-  function WEsc([string]$s) { $s.Replace('\', '\\').Replace('"', '\"') }
-  function WCols($rows, [string]$table, [string[]]$cols) {
-    foreach ($c in $cols) { if ($c -notin $rows[0].PSObject.Properties.Name) { throw "$table CSV missing '$c' column — aborting." } }
-  }
-  # Item.ClassID/SubclassID/InventoryType -> Enum.TransmogCollectionType id (null = not a weapon/off-hand).
-  function WType($it) {
-    if (-not $it) { return $null }
-    $c = [int]$it.ClassID; $s = [int]$it.SubclassID; $iv = [int]$it.InventoryType
-    if ($c -eq 2) {
-      switch ($s) { 0 {13} 1 {20} 2 {25} 3 {26} 4 {15} 5 {22} 6 {24} 7 {14} 8 {21}
-                    9 {28} 10 {23} 13 {17} 15 {16} 18 {27} 19 {12} default {$null} }
-    } elseif ($c -eq 4) {
-      if ($s -eq 6) { 18 } elseif ($iv -eq 23) { 19 } else { $null }   # Shield / Held In Off-hand
-    } else { $null }
-  }
-
-  # --- item + appearance tables ---
-  $item = @{}
-  Import-Csv (WFetch 'Item') | ForEach-Object { $item[$_.ID] = $_ }
-  if ($item.Count -lt 50000) { throw "Item under 50000 rows ($($item.Count)) — incomplete download, aborting." }
-  $ima = Import-Csv (WFetch 'ItemModifiedAppearance')
-  WCols $ima 'ItemModifiedAppearance' @('ItemID', 'ItemAppearanceID', 'TransmogSourceTypeEnum')
-  if ($ima.Count -lt 50000) { throw "ItemModifiedAppearance under 50000 rows ($($ima.Count)) — incomplete download, aborting." }
-
-  # ItemSparse -> ExpansionID (0-based). ~50 MB; stream just ID + ExpansionID (quoted-CSV-safe).
-  Add-Type -AssemblyName Microsoft.VisualBasic
-  $itemExp = @{}
-  $tp = New-Object Microsoft.VisualBasic.FileIO.TextFieldParser((WFetch 'ItemSparse'))
-  $tp.TextFieldType = 'Delimited'; $tp.SetDelimiters(','); $tp.HasFieldsEnclosedInQuotes = $true
-  $hdr = $tp.ReadFields(); $idIdx = [Array]::IndexOf($hdr, 'ID'); $exIdx = [Array]::IndexOf($hdr, 'ExpansionID')
-  if ($idIdx -lt 0 -or $exIdx -lt 0) { throw 'ItemSparse CSV missing ID/ExpansionID column — aborting.' }
-  while (-not $tp.EndOfData) { $f = $tp.ReadFields(); $itemExp[$f[$idIdx]] = [int]$f[$exIdx] }
-  $tp.Close()
-
-  # --- source-detail lookups (the specific encounter/quest/vendor per appearance) ---
-  $imaToCs = @{}
-  foreach ($r in (Import-Csv (WFetch 'CollectableSourceInfo'))) {
-    if ($r.HouseDecorID -eq '0' -and $r.ItemModifiedAppearanceID -ne '0' -and -not $imaToCs.ContainsKey($r.ItemModifiedAppearanceID)) {
-      $imaToCs[$r.ItemModifiedAppearanceID] = $r.ID } }
-  $csToEnc = @{}; foreach ($r in (Import-Csv (WFetch 'CollectableSourceEncounterSparse'))) { if (-not $csToEnc.ContainsKey($r.CollectableSourceInfoID)) { $csToEnc[$r.CollectableSourceInfoID] = $r.JournalEncounterID } }
-  $csToQMap = @{}; foreach ($r in (Import-Csv (WFetch 'CollectableSourceQuestSparse'))) { if (-not $csToQMap.ContainsKey($r.CollectableSourceInfoID)) { $csToQMap[$r.CollectableSourceInfoID] = $r.QuestMapID } }
-  $csToVMap = @{}; foreach ($r in (Import-Csv (WFetch 'CollectableSourceVendorSparse'))) { if (-not $csToVMap.ContainsKey($r.CollectableSourceInfoID)) { $csToVMap[$r.CollectableSourceInfoID] = $r.VendorMapID } }
-
-  # --- journal + map lookups ---
-  $encToInst = @{}; foreach ($r in (Import-Csv (WFetch 'JournalEncounter'))) { $encToInst[$r.ID] = $r.JournalInstanceID }
-  $jInst = @{}; foreach ($r in (Import-Csv (WFetch 'JournalInstance'))) { $jInst[$r.ID] = $r }
-  $jMap  = @{}; foreach ($r in (Import-Csv (WFetch 'Map'))) { $jMap[$r.ID] = $r }
-  # Instance expansion via its real Journal tier (Map.ExpansionID is 0 for brand-new maps).
-  $tierExp = @{}; foreach ($r in (Import-Csv (WFetch 'JournalTier'))) { $tierExp[$r.ID] = [int]$r.Expansion }
-  $instTiers = @{}
-  foreach ($r in (Import-Csv (WFetch 'JournalTierXInstance'))) {
-    $e = $tierExp[$r.JournalTierID]
-    if ($e) { if (-not $instTiers.ContainsKey($r.JournalInstanceID)) { $instTiers[$r.JournalInstanceID] = New-Object System.Collections.ArrayList }
-              [void]$instTiers[$r.JournalInstanceID].Add($e) } }
-
-  function WMapRel($mapId) { if ($mapId -and $jMap.ContainsKey($mapId)) { [int]$jMap[$mapId].ExpansionID + 1 } else { 0 } }
-  function WInstRel($insId, $mapId) {
-    if ($instTiers.ContainsKey($insId)) {
-      $reals = @($instTiers[$insId] | Where-Object { $_ -gt 0 -and $_ -lt 9000 })   # drop the "Current Season" pseudo-tier (9000)
-      if ($reals.Count) { return [int]((($reals | Measure-Object -Minimum).Minimum) / 100) }
-    }
-    return (WMapRel $mapId)
-  }
-  function WItemRel($itemId) { if ($itemExp.ContainsKey($itemId)) { $e = $itemExp[$itemId]; if ($e -lt 0) { 0 } else { $e + 1 } } else { 0 } }
-
-  # --- index weapon visuals (dedup by ItemAppearanceID = the visual) ---
-  $visType = @{}; $visImas = @{}
-  foreach ($m in $ima) {
-    $wt = WType $item[$m.ItemID]
-    if (-not $wt) { continue }
-    $aid = $m.ItemAppearanceID
-    if (-not $visType.ContainsKey($aid)) { $visType[$aid] = $wt; $visImas[$aid] = New-Object System.Collections.ArrayList }
-    [void]$visImas[$aid].Add(@{ ima = $m.ID; src = [int]$m.TransmogSourceTypeEnum; item = $m.ItemID })
-  }
-
-  # --- resolve each visual to one representative row ---
-  $PRIO = 1, 2, 3, 10, 4, 8, 7   # drop > quest > vendor > trading post > world > craft > achievement
-  $wRows = @{}
-  function WAdd($key, $name, $cat, $rel, $minInst, $typeId, $aid) {
-    if (-not $wRows.ContainsKey($key)) { $wRows[$key] = @{ name = $name; cat = $cat; rel = $rel; minInst = $minInst; types = @{} } }
-    $R = $wRows[$key]
-    if ($minInst -and (-not $R.minInst -or $minInst -lt $R.minInst)) { $R.minInst = $minInst }
-    if (-not $R.types.ContainsKey($typeId)) { $R.types[$typeId] = New-Object 'System.Collections.Generic.HashSet[int]' }
-    [void]$R.types[$typeId].Add([int]$aid)
-  }
-  $placed = 0; $otherPlaced = 0
-  foreach ($aid in $visType.Keys) {
-    $wt = $visType[$aid]; $done = $false
-    foreach ($st in $PRIO) {
-      foreach ($c in ($visImas[$aid] | Where-Object { $_.src -eq $st })) {
-        if ($st -eq 1) {
-          $ci = $imaToCs[$c.ima]; if (-not $ci) { continue }
-          $enc = $csToEnc[$ci];   if (-not $enc) { continue }
-          $insId = $encToInst[$enc]; if (-not $insId) { continue }
-          $ii = $jInst[$insId]; if (-not $ii) { continue }
-          $mp = $jMap[$ii.MapID]; $it = if ($mp) { [int]$mp.InstanceType } else { -1 }
-          $cat = switch ($it) { 2 {'Raid'} 1 {'Dungeon'} 0 {'World Boss'} default {$null} }
-          if (-not $cat) { continue }
-          $nm = ($ii.Name_lang -split ' - ', 2)[0]   # merge wings (Dire Maul - X, Stratholme - X)
-          $rel = WInstRel $insId $ii.MapID
-          WAdd "INST|$nm|$rel" $nm $cat $rel ([int]$insId) $wt $aid; $done = $true; break
-        } elseif ($st -eq 2) {
-          $ci = $imaToCs[$c.ima]; $qm = if ($ci) { $csToQMap[$ci] } else { $null }
-          $rel = if ($qm) { WMapRel $qm } else { 0 }; if ($rel -eq 0) { $rel = WItemRel $c.item }
-          WAdd "QUEST|$rel" 'Quest' 'Quest' $rel $null $wt $aid; $done = $true; break
-        } elseif ($st -eq 3) {
-          $ci = $imaToCs[$c.ima]; $vm = if ($ci) { $csToVMap[$ci] } else { $null }
-          $rel = if ($vm) { WMapRel $vm } else { 0 }; if ($rel -eq 0) { $rel = WItemRel $c.item }
-          WAdd "VENDOR|$rel" 'Vendor' 'Vendor' $rel $null $wt $aid; $done = $true; break
-        } elseif ($st -eq 10) { $rel = WItemRel $c.item; WAdd "TP|$rel" 'Trading Post' 'Trading Post' $rel $null $wt $aid; $done = $true; break }
-          elseif ($st -eq 4) { $rel = WItemRel $c.item; WAdd "WORLD|$rel" 'World Drop' 'World Drop' $rel $null $wt $aid; $done = $true; break }
-          elseif ($st -eq 8) { $rel = WItemRel $c.item; WAdd "CRAFT|$rel" 'Crafted' 'Crafted' $rel $null $wt $aid; $done = $true; break }
-          elseif ($st -eq 7) { $rel = WItemRel $c.item; WAdd "ACHIEV|$rel" 'Achievement' 'Achievement' $rel $null $wt $aid; $done = $true; break }
-      }
-      if ($done) { break }
-    }
-    # Fallback — HiddenUntilCollected (Enum.TransmogSource 5): how Timewalking reissues and other
-    # masked-source items are flagged. $PRIO covers every OTHER obtainable source type but not 5, so
-    # without this a hidden-source visual (the Warglaives of Azzinoth reissue, 34777/8461) is dropped
-    # SILENTLY — never placed, never counted, no warning. Keep it in an "Other" row bucketed by the
-    # collectible item's own expansion (both Warglaives -> Legion, so they land together). Visuals
-    # whose only weapon sources are CantCollect (6) / NotValidForTransmog (9) / None (0) are genuinely
-    # uncollectable and stay out — including them would pad the grid with looks that never reach 100%.
-    # Real sources still win: this only runs when nothing in $PRIO resolved. See #670.
-    if (-not $done) {
-      $hidden = @($visImas[$aid] | Where-Object { $_.src -eq 5 })
-      if ($hidden.Count) {
-        $rels = @($hidden | ForEach-Object { WItemRel $_.item } | Where-Object { $_ -gt 0 })
-        $rel = if ($rels.Count) { ($rels | Measure-Object -Minimum).Minimum } else { 0 }
-        WAdd "OTHER|$rel" 'Other' 'Other' $rel $null $wt $aid; $done = $true; $otherPlaced++
-      }
-    }
-    if ($done) { $placed++ }
-  }
-  if ($placed -lt 3000) { throw "Only $placed weapon appearances placed (<3000) — incomplete data, aborting." }
-  Write-Host "Placed $placed weapon appearances into $($wRows.Count) source rows ($otherPlaced via the HiddenUntilCollected 'Other' fallback)." -ForegroundColor Cyan
+  $wr = Get-WeaponRows $Build
+  $wRows = $wr.rows; $placed = $wr.placed
 
   # --- emit ns.WeaponSources ---
-  # Stable synthetic ids: instance rows 9_200_000 + min JournalInstanceID (wings share the min);
-  # per-expansion aggregates 9_300_000 + categoryIndex*20 + release. Both ranges clear the armor
-  # setIds (< ~100k) and the weapons.lua illusion/arsenal ids (9_000_0xx).
-  $catIdx = @{ 'Quest' = 1; 'Vendor' = 2; 'World Drop' = 3; 'Crafted' = 4; 'Trading Post' = 5; 'Achievement' = 6; 'Other' = 7 }
-  function WRowId($r) { if ($r.minInst) { 9200000 + [int]$r.minInst } else { $ci = $catIdx[$r.cat]; if (-not $ci) { $ci = 9 }; 9300000 + $ci * 20 + [int]$r.rel } }
-  $catRank = @{ 'Raid' = 1; 'Dungeon' = 2; 'World Boss' = 3; 'Quest' = 4; 'Vendor' = 5; 'World Drop' = 6; 'Crafted' = 7; 'Trading Post' = 8; 'Achievement' = 9; 'Other' = 10 }
-  $typeOrder = 13, 14, 15, 16, 17, 20, 21, 22, 24, 23, 28, 25, 27, 26, 12, 18, 19   # grid column order (matches the look-builder)
-  $ordered = $wRows.Values | Sort-Object @{ e = { [int]$_.rel } }, @{ e = { $catRank[$_.cat] } }, @{ e = { $_.name } }
-
+  $body = Write-WeaponRowLiterals $wRows 'ns.WeaponSources'
   $L = [System.Collections.Generic.List[string]]::new()
   $L.Add('---@type Warbandeer_Collected')
   $L.Add('local ns = select(2, ...)')
@@ -1190,23 +1317,7 @@ if ($Weapons) {
   $L.Add('---@field WeaponSources table[] weapon-appearance source groups: `{ id, name, release, category, types = { [transmogCollectionType] = { visualID... } } }`')
   $L.Add('ns.WeaponSources = {}')
   $L.Add('')
-  foreach ($r in $ordered) {
-    $L.Add('tinsert(ns.WeaponSources, {')
-    $L.Add("  id = $(WRowId $r),")
-    $L.Add("  name = ""$(WEsc $r.name)"",")
-    $L.Add("  release = $([int]$r.rel),")
-    $L.Add("  category = ""$($r.cat)"",")
-    $L.Add('  types = {')
-    foreach ($t in $typeOrder) {
-      if ($r.types.ContainsKey($t)) {
-        $vids = (($r.types[$t] | Sort-Object) -join ', ')
-        $L.Add("    [$t] = { $vids },")
-      }
-    }
-    $L.Add('  },')
-    $L.Add('})')
-    $L.Add('')
-  }
+  foreach ($ln in $body.lines) { $L.Add($ln) }
   $newText = ($L -join "`n").TrimEnd() + "`n"
 
   # Staleness: compare ignoring the build-stamp line, so a build bump with identical data is no diff.
@@ -1219,7 +1330,7 @@ if ($Weapons) {
   }
   if ($wChanged) {
     [System.IO.File]::WriteAllText($WeaponsFile, $newText, [System.Text.UTF8Encoding]::new($false))
-    Write-Host "Wrote $WeaponsFile ($($ordered.Count) source rows, $placed appearances)." -ForegroundColor Green
+    Write-Host "Wrote $WeaponsFile ($($body.count) source rows, $placed appearances)." -ForegroundColor Green
   } else {
     Write-Host 'No changes — weaponsources.lua already current.' -ForegroundColor Green
   }

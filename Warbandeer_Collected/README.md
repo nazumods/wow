@@ -23,6 +23,12 @@ client doesn't have those appearances yet, so clicking instead prints a short no
 pointing you to the PTR rather than opening an empty model. The list is a snapshot,
 refreshed by the addon author when a new PTR patch arrives.
 
+The **Weapons** grid has the same **PTR PREVIEW** toggle (on its filter strip): it shows
+the upcoming *weapon* appearances that aren't on live yet, with a "+N appearances upcoming"
+tally — refreshed the same way, per PTR patch. On the PTR itself (where those appearances are
+live) both grids show real counts; on a live realm each upcoming cell is a muted blue dot,
+since the content has no data there yet.
+
 ## Wanted & ranking
 
 Mark the sets you're chasing and rate how they look:
