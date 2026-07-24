@@ -75,6 +75,10 @@ the model's lower-right corner shows which **expansion** the set is from (hover 
 for the expansion name). The window stays open until you close it (Escape or the X); drag to spin
 the model.
 
+**One workspace.** The dressing room docks to the right of the collection window and the Outfit
+Library docks beneath it, so the three lock into a single movable cluster — grab any of them by its
+title bar and all three move together, always keeping their relative positions and staying on screen.
+
 ## Weapons view
 
 The **Armor / Weapons** toggle at the top of the window flips the whole grid between

@@ -315,6 +315,10 @@ DressingRoom = Class(TitleFrame, function(self)
 end, {
   name = "WarbandeerCollectedDressUp",
   title = "Preview",
+  -- Explicit and opaque: the themed `window` token is alpha-0, so a bare base shows the game world
+  -- through the chrome gaps — visible now that it docks out past the collection window's edge. Same
+  -- value as the main window and the outfit library.
+  background = {0.11372549019, 0.14117647058, 0.16470588235, 0.92},
   special = true,
   strata = "HIGH",
   position = { Center = {} },

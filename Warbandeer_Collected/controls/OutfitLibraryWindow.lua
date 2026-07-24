@@ -250,12 +250,13 @@ local _library
 ---Open the library window, creating it on first use. Always refreshes: the library is edited from
 ---the outfit row while this is closed, so a stale list is the normal case rather than the odd one.
 ---@class Warbandeer_Collected
----@field OpenOutfitLibrary fun()
-ns.OpenOutfitLibrary = function()
+---@field OpenOutfitLibrary fun(host: TitleFrame?)  host = the collection window to dock beneath (defaults to the room's current host)
+ns.OpenOutfitLibrary = function(host)
+  host = ns.ResolveDockHost(host)   -- default: the room's current host, else the standalone window (#708)
   if not _library then
-    _library = OutfitLibraryWindow:new{}
-    _library:RememberPosition(ns.db.libraryPos)   -- restore + persist the user's dragged position
+    _library = OutfitLibraryWindow:new{ parent = host }
   end
+  ns.DockPanel(_library, "library", host)   -- (re)dock beneath the current host (#708)
   _library:Refresh()
   _library:Show()
 end
