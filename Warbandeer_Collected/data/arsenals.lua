@@ -18,12 +18,12 @@ local ns = select(2, ...)
 -- -Weapons` owns it wholesale), which is why this is a load-time transform over the table rather
 -- than an edit to it: regenerating the data doesn't undo the regrouping.
 --
--- The Warglaives of Azzinoth are the exception, and the reason `types` exists below: **neither of
--- their appearances is in the generated data at all** — Black Temple's row carries no warglaive
--- column, and their visuals (34777, 8461) appear nowhere. They are added rather than moved, which
--- needs their column stated. The generator missing a Timewalking reissue is very likely not
--- specific to these two — that's nazumods/wow#670, not papered over here. Stating a column by hand
--- is a deliberate one-off for the two appearances #653 needed, not a pattern to extend.
+-- The Warglaives of Azzinoth once needed a hand-stated `types` column here: their reissue visuals
+-- (34777, 8461) were **absent from the generated data entirely**, because the generator silently
+-- dropped every HiddenUntilCollected source — the flag Timewalking reissues carry (nazumods/wow#670).
+-- With that fixed the generator now emits both (in an "Other" row), so the fold MOVES them like any
+-- other arsenal appearance and the override is gone. A manifest `types` map is still honoured as a
+-- general escape hatch for an appearance the data genuinely lacks, but no shipped arsenal needs one.
 
 -- Ids in a band of their own — the generated rows use 92xxxxx/93xxxxx, so 94xxxxx can't collide.
 -- `release = 7` (Legion) for all three: the arsenals are a Legion feature, even where the weapons
@@ -49,18 +49,18 @@ local ARSENALS = {
   {
     id = 9400003, name = "The Warglaives of Azzinoth", release = 7, category = "Raid",
     obtain = "Black Temple, Burning Crusade Timewalking — drops from Illidan Stormrage",
+    -- The pair is NOT both warglaives — measured in game (`GetCategoryForItem`): the off-hand is
+    -- itemized as a one-handed sword (14) carrying the original Burning Crusade appearance 8461,
+    -- while the main-hand is the warglaive (28) Legion reissue 34777. The generator now emits both
+    -- (#670), so the fold finds each in its real column and moves it — no hand-stated `types` needed.
     visuals = { 34777, 8461 },
-    -- Absent from the generated data, so their column has to be stated. Measured in game
-    -- (`GetCategoryForItem`): the pair is NOT both warglaives — the off-hand is itemized as a
-    -- one-handed sword and carries the original Burning Crusade appearance (8461), while the
-    -- main-hand is the Legion reissue (34777). Filing both under 28 would have blanked one cell.
-    types = { [34777] = 28, [8461] = 14 },
   },
 }
 
 ---@class Warbandeer_Collected
 ---@field Arsenals table[]  the manifest above, published so the fold can be re-run and tested
 ---@field FoldArsenals fun(sources: table[], arsenals: table[]): { moved: number, added: number, missing: number[] }
+---@field arsenalFoldReport { moved: number, added: number, missing: number[] }  result of the load-time fold
 ns.Arsenals = ARSENALS
 
 ---Regroup each arsenal's appearances into a row of its own, in place.
@@ -120,4 +120,6 @@ function ns.FoldArsenals(sources, arsenals)
   return report
 end
 
-ns.FoldArsenals(ns.WeaponSources, ARSENALS)
+-- Published so a spec can assert the shipped data still carries every arsenal appearance: a non-empty
+-- `missing` means the generator dropped one (the #670 regression returning) and CI fails.
+ns.arsenalFoldReport = ns.FoldArsenals(ns.WeaponSources, ARSENALS)

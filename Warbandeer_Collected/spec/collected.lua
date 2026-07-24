@@ -85,4 +85,19 @@ function M.loadWeaponData(ns)
   return ns
 end
 
+---Load the REAL generated `data/weaponsources.lua` and fold the shipped arsenals over it, so a spec
+---can assert the #670 invariant that the generator drops no arsenal appearance. Unlike M.loadWeaponData
+---(empty seed, for the transform-mechanics tests) this is the fold against production data. The
+---generated file is pure Lua — `tinsert(ns.WeaponSources, {...})` literals — where `tinsert` is a WoW
+---global it captures at load; stubbed here to `table.insert`.
+---@param ns table  as returned by M.load()
+---@return table ns
+function M.loadShippedWeapons(ns)
+  _G.tinsert = _G.tinsert or table.insert
+  ns.WeaponSources = {}
+  assert(loadfile("Warbandeer_Collected/data/weaponsources.lua"))("Warbandeer_Collected", ns)
+  assert(loadfile("Warbandeer_Collected/data/arsenals.lua"))("Warbandeer_Collected", ns)
+  return ns
+end
+
 return M

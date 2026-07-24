@@ -161,6 +161,33 @@ describe("arsenals", function()
     end)
   end)
 
+  -- The #670 regression guard: fold the shipped arsenals over the REAL generated weapon data (not the
+  -- fixtures above). The generator used to silently drop HiddenUntilCollected sources, which is why the
+  -- Warglaives once needed a hand-stated column here; if it ever regresses, the dropped appearance
+  -- reappears as `missing` and this fails — the check the by-hand override used to hide.
+  describe("the shipped weapon data", function()
+    local shipped
+    before_each(function() shipped = collected.loadShippedWeapons(collected.load()) end)
+
+    local function weaponRow(name)
+      for _, s in ipairs(shipped.WeaponSources) do if s.name == name then return s end end
+    end
+
+    it("carries every appearance the shipped arsenals claim (none go missing)", function()
+      assert.same({}, shipped.arsenalFoldReport.missing)
+    end)
+
+    it("emits the Warglaives of Azzinoth so the fold moves them into real columns", function()
+      -- 34777 (main-hand warglaive, col 28) and 8461 (off-hand one-handed sword, col 14) — the pair
+      -- #670 was filed for. Present here means the generator's HiddenUntilCollected fallback kept them;
+      -- the fold then regrouped them under their own name rather than a bare "Other" row.
+      local warglaives = weaponRow("The Warglaives of Azzinoth")
+      assert.is_not_nil(warglaives)
+      assert.same({ 34777 }, warglaives.types[28])
+      assert.same({ 8461 }, warglaives.types[14])
+    end)
+  end)
+
   describe("RestrictedIllusions", function()
     it("maps each of the known class illusions to its owning class", function()
       assert.equal(4, ns.RestrictedIllusions[5364])   -- Rogue — Poisoned

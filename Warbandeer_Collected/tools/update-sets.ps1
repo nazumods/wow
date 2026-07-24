@@ -1114,7 +1114,7 @@ if ($Weapons) {
     if (-not $R.types.ContainsKey($typeId)) { $R.types[$typeId] = New-Object 'System.Collections.Generic.HashSet[int]' }
     [void]$R.types[$typeId].Add([int]$aid)
   }
-  $placed = 0
+  $placed = 0; $otherPlaced = 0
   foreach ($aid in $visType.Keys) {
     $wt = $visType[$aid]; $done = $false
     foreach ($st in $PRIO) {
@@ -1145,18 +1145,34 @@ if ($Weapons) {
       }
       if ($done) { break }
     }
+    # Fallback — HiddenUntilCollected (Enum.TransmogSource 5): how Timewalking reissues and other
+    # masked-source items are flagged. $PRIO covers every OTHER obtainable source type but not 5, so
+    # without this a hidden-source visual (the Warglaives of Azzinoth reissue, 34777/8461) is dropped
+    # SILENTLY — never placed, never counted, no warning. Keep it in an "Other" row bucketed by the
+    # collectible item's own expansion (both Warglaives -> Legion, so they land together). Visuals
+    # whose only weapon sources are CantCollect (6) / NotValidForTransmog (9) / None (0) are genuinely
+    # uncollectable and stay out — including them would pad the grid with looks that never reach 100%.
+    # Real sources still win: this only runs when nothing in $PRIO resolved. See #670.
+    if (-not $done) {
+      $hidden = @($visImas[$aid] | Where-Object { $_.src -eq 5 })
+      if ($hidden.Count) {
+        $rels = @($hidden | ForEach-Object { WItemRel $_.item } | Where-Object { $_ -gt 0 })
+        $rel = if ($rels.Count) { ($rels | Measure-Object -Minimum).Minimum } else { 0 }
+        WAdd "OTHER|$rel" 'Other' 'Other' $rel $null $wt $aid; $done = $true; $otherPlaced++
+      }
+    }
     if ($done) { $placed++ }
   }
   if ($placed -lt 3000) { throw "Only $placed weapon appearances placed (<3000) — incomplete data, aborting." }
-  Write-Host "Placed $placed weapon appearances into $($wRows.Count) source rows." -ForegroundColor Cyan
+  Write-Host "Placed $placed weapon appearances into $($wRows.Count) source rows ($otherPlaced via the HiddenUntilCollected 'Other' fallback)." -ForegroundColor Cyan
 
   # --- emit ns.WeaponSources ---
   # Stable synthetic ids: instance rows 9_200_000 + min JournalInstanceID (wings share the min);
   # per-expansion aggregates 9_300_000 + categoryIndex*20 + release. Both ranges clear the armor
   # setIds (< ~100k) and the weapons.lua illusion/arsenal ids (9_000_0xx).
-  $catIdx = @{ 'Quest' = 1; 'Vendor' = 2; 'World Drop' = 3; 'Crafted' = 4; 'Trading Post' = 5; 'Achievement' = 6 }
+  $catIdx = @{ 'Quest' = 1; 'Vendor' = 2; 'World Drop' = 3; 'Crafted' = 4; 'Trading Post' = 5; 'Achievement' = 6; 'Other' = 7 }
   function WRowId($r) { if ($r.minInst) { 9200000 + [int]$r.minInst } else { $ci = $catIdx[$r.cat]; if (-not $ci) { $ci = 9 }; 9300000 + $ci * 20 + [int]$r.rel } }
-  $catRank = @{ 'Raid' = 1; 'Dungeon' = 2; 'World Boss' = 3; 'Quest' = 4; 'Vendor' = 5; 'World Drop' = 6; 'Crafted' = 7; 'Trading Post' = 8; 'Achievement' = 9 }
+  $catRank = @{ 'Raid' = 1; 'Dungeon' = 2; 'World Boss' = 3; 'Quest' = 4; 'Vendor' = 5; 'World Drop' = 6; 'Crafted' = 7; 'Trading Post' = 8; 'Achievement' = 9; 'Other' = 10 }
   $typeOrder = 13, 14, 15, 16, 17, 20, 21, 22, 24, 23, 28, 25, 27, 26, 12, 18, 19   # grid column order (matches the look-builder)
   $ordered = $wRows.Values | Sort-Object @{ e = { [int]$_.rel } }, @{ e = { $catRank[$_.cat] } }, @{ e = { $_.name } }
 
