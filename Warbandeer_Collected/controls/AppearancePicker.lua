@@ -127,13 +127,18 @@ function DressingRoom:_buildPicker()
     parent = pane,
     position = { TopLeft = {1, -1}, TopRight = {-1, -1}, Height = PAD + 18 },
   }
-  strip._widget:EnableMouse(true)
-  strip:setDragTarget(self._widget)
-  strip._widget:HookScript("OnMouseUp", function()
-    if not self._posStore then return end
-    local point, _, relPoint, x, y = self._widget:GetPoint(1)
-    self._posStore.point, self._posStore.relPoint, self._posStore.x, self._posStore.y = point, relPoint, x, y
-  end)
+  -- Docked (#708), the room is locked to the collection window and can't be dragged on its own — the
+  -- host's titlebar moves the whole cluster. Standalone, the strip drags the entire room (its own
+  -- titlebar is built after RememberPosition, so mirror the save here to persist the point).
+  if not self._docked then
+    strip._widget:EnableMouse(true)
+    strip:setDragTarget(self._widget)
+    strip._widget:HookScript("OnMouseUp", function()
+      if not self._posStore then return end
+      local point, _, relPoint, x, y = self._widget:GetPoint(1)
+      self._posStore.point, self._posStore.relPoint, self._posStore.x, self._posStore.y = point, relPoint, x, y
+    end)
+  end
   -- Retitled per target (the weapon builder's fixed name, else the cosmetic category's own).
   self._pickerTitle = Label:new{ parent = strip, fontObj = "GameFontNormal",
     position = { TopLeft = {PAD, -PAD} }, text = TARGETS.main.title }

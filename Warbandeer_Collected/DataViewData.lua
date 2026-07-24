@@ -120,7 +120,7 @@ function ns.CollectedRows(self)
           if self.onWantedToggle then self:onWantedToggle() end
           ns.RefreshInfoTip()
         else
-          ns.ShowDressingRoom(grp, set)
+          ns.ShowDressingRoom(grp, set, ns.GridHost(self))   -- dock onto this grid's window (#708)
         end
       end
       -- Upcoming (PTR): a muted dot, no count/completion shade.

@@ -179,8 +179,8 @@ local _room
 
 ---Open the shared dressing room previewing a class set on a selectable race/gender.
 ---@class Warbandeer_Collected
----@field ShowDressingRoom fun(group: table, set: table)  group/set are entries from ns.Sets
-ns.ShowDressingRoom = function(group, set)
+---@field ShowDressingRoom fun(group: table, set: table, host: TitleFrame?)  group/set from ns.Sets; host = the collection window to dock onto (defaults to the last one used)
+ns.ShowDressingRoom = function(group, set, host)
   -- A set the local client has no appearance data for — a PTR-only "upcoming" set on a
   -- live client: there's nothing for the 3D model to render, so don't open an empty
   -- viewer; point the user to the PTR instead. On a PTR client these resolve and the
@@ -196,9 +196,9 @@ ns.ShowDressingRoom = function(group, set)
     end
   end
 
+  host = ns.ResolveDockHost(host)   -- dock onto the collection window the set was opened from (#708)
   if not _room then
-    _room = DressingRoom:new{}
-    _room:RememberPosition(ns.db.dressPos)   -- restore + persist the user's dragged position
+    _room = DressingRoom:new{ parent = host }
     -- Clear the grid row highlight whenever the room closes — via OnHide so every path
     -- lands here (Escape/UISpecialFrames, the close button, and HideDressingRoom alike).
     _room._widget:HookScript("OnHide", function()
@@ -206,6 +206,7 @@ ns.ShowDressingRoom = function(group, set)
       ns:NotifyDressedWeaponCellChanged(nil)
     end)
   end
+  ns.DockPanel(_room, "room", host)   -- (re)dock to the current host — it can differ across opens (#708)
 
   -- Reset to the current character's race on a fresh open — the first ever (no race
   -- picked yet) or a reopen after closing; clicking another cell while it's already

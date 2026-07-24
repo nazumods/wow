@@ -101,8 +101,9 @@ end
 ---(defined in `controls/DressingRoom.lua`, after this file loads).
 ---@param group table  a group entry from `ns.Sets`
 ---@param set table    a set entry within that group
-function API:ShowDressingRoom(group, set)
-  ns.ShowDressingRoom(group, set)
+---@param host table?  the collection window to dock onto (defaults to the last one used)
+function API:ShowDressingRoom(group, set, host)
+  ns.ShowDressingRoom(group, set, host)
 end
 
 ---Hide the shared dressing room (no-op if never opened).

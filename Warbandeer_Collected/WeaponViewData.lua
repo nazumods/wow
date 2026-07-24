@@ -21,7 +21,7 @@ local GameTooltip = GameTooltip
 ---@field WeaponVisibleCounts fun(self: WeaponView): number, number, number
 ---@field WeaponMatches fun(view: WeaponView, grp: table): boolean
 ---@field ShowWeaponCellTip fun(grp: table, t: number, visuals: number[])
----@field PreviewWeaponCell fun(grp: table, t: number, visuals: number[])
+---@field PreviewWeaponCell fun(grp: table, t: number, visuals: number[], host: TitleFrame?)
 
 -- Grid column order (main-hand 1H, then 2H, ranged, wand, then off-hands), matching
 -- update-sets.ps1 -Weapons and the #596 look-builder.
@@ -101,7 +101,7 @@ function ns.WeaponRows(self)
         for _, v in ipairs(visuals) do if cmap[v] then coll = coll + 1 end end
         local onEnter = function() ns.ShowWeaponCellTip(grp, t, visuals) end
         local onLeave = function() GameTooltip:Hide() end
-        local onClick = function() ns.PreviewWeaponCell(grp, t, visuals) end
+        local onClick = function() ns.PreviewWeaponCell(grp, t, visuals, ns.GridHost(self)) end   -- dock onto this grid's window (#708)
         -- `_source`/`_type` identify the cell so the dressed-weapon cursor can find it
         -- (the weapon analogue of a cell's setId/classIndex — see WeaponView:HighlightWeaponCell).
         local cell = ns.CompletionCell(coll, total, {
@@ -172,7 +172,8 @@ end
 ---@param grp table
 ---@param t number
 ---@param visuals number[]
-function ns.PreviewWeaponCell(grp, t, visuals)
+---@param host TitleFrame?  the collection window to dock onto (nil = keep the current dock host)
+function ns.PreviewWeaponCell(grp, t, visuals, host)
   local looks = {}
   for _, v in ipairs(visuals) do
     local src = ns.WeaponSource(v)
@@ -192,7 +193,7 @@ function ns.PreviewWeaponCell(grp, t, visuals)
   local set = { name = ("%s — %s"):format(grp.name, ns.WeaponTypeName[t] or "Weapon"), _looks = looks }
   local group = { weaponCell = true, name = grp.name, release = grp.release,
     sets = { set }, _source = grp, _type = t }   -- _source/_type let ←/→ step to adjacent weapon types
-  ns.ShowDressingRoom(group, set)
+  ns.ShowDressingRoom(group, set, host)
 end
 
 -- Filter-scoped counts for the header counter: source rows shown, individual weapon appearances
