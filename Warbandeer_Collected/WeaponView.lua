@@ -84,9 +84,16 @@ end
 -- column — weapons have no lockouts.
 ---@return table
 function WeaponView.BuildColInfo()
+  local usable = ns.WeaponUsableTypes()
+  -- Types this class can wield POP in gold (the grid's active accent); ones it can't recede to a dim
+  -- 40% neutral. A hue split (gold vs grey), not just brightness, so the usable columns read at a
+  -- glance. Real texture header (TableCol renders `path` as a Texture, not |T…|t markup) so the icon
+  -- can carry the vertexColor — a fully-collected unusable column shows green checks the cell paint
+  -- can't grey, so this header tint is the reliable "not for your class" cue. #690 greying hint.
+  local USABLE_TINT, DIM_TINT = {1, 0.843, 0, 1}, {1, 1, 1, 0.4}
   local cols = lists.map(ns.WeaponTypeOrder, function(t)
-    local icon = ns.WeaponTypeIcon[t]
-    return { name = icon and ("|T%s:18:18|t"):format(icon) or ns.WeaponTypeAbbr[t],
+    return { name = ns.WeaponTypeAbbr[t], path = ns.WeaponTypeIcon[t],
+      vertexColor = usable[t] and USABLE_TINT or DIM_TINT,
       width = 34, padding = 2, justifyH = ui.justify.Center,
       tooltip = ns.WeaponTypeName[t], backdrop = { color = Colors.TransparentBlack } }
   end)
