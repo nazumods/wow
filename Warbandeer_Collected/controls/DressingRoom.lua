@@ -146,7 +146,7 @@ end
 ---@field _outfitTimer table?  cancelable outfit-slot icon-refresh timer
 ---@field _outfitRetries number?  remaining outfit-slot icon-refresh attempts
 ---@field _armed table?  the row button currently awaiting a confirming second click
----@field _armTimer table?  cancelable disarm timer
+---@field _armTimer table?  cancelable 1s ticker that counts the armed caption down and disarms it
 ---@field _saveTimer table?  cancelable retry timer for a save waiting on streaming item data
 ---@field _saveRetries number?  streaming-data re-checks used by the pending save
 ---@field _saveArmed boolean?  whether the duplicate-name overwrite question has already been answered
@@ -160,7 +160,7 @@ end
 ---@field RenameOutfit fun(self: DressingRoom)  rename the selected saved set (DressingRoomOutfits.lua)
 ---@field DeleteOutfit fun(self: DressingRoom)  delete the selected saved set, arm-then-confirm (DressingRoomOutfits.lua)
 ---@field _disarmOutfit fun(self: DressingRoom)  revert an armed row button to its resting caption (DressingRoomOutfits.lua)
----@field _armOutfit fun(self: DressingRoom, btn: table, caption: string)  arm a row button for a confirming second click (DressingRoomOutfits.lua)
+---@field _armOutfit fun(self: DressingRoom, btn: table, caption: string, lapsed: string)  arm a row button for a confirming second click, counting down in its caption (DressingRoomOutfits.lua)
 ---@field _typedOutfitName fun(self: DressingRoom): string  the name field's contents, trimmed (DressingRoomOutfits.lua)
 ---@field _syncOutfitButtons fun(self: DressingRoom)  grey the row buttons that can't act right now (DressingRoomOutfits.lua)
 ---@field _rowButton fun(self: DressingRoom, row: Frame, x: number, w: number, label: string, onClick: fun()): table  build one labelled control-row button (DressingRoomOutfits.lua)

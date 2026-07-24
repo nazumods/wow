@@ -120,7 +120,7 @@ function DressingRoom:SaveOutfit(retry)
     -- The caption stays SHORT — a row button is 62px and wraps, so naming the target there spilled
     -- over three lines and out of the box. Chat has the width to say which look is at risk.
     ns.Print(("\"%s\" already exists — click Save again to replace it."):format(target))
-    self:_armOutfit(self._outfitSave, "Replace?")
+    self:_armOutfit(self._outfitSave, "Sure?", "replaced")
     return
   end
 
@@ -161,7 +161,7 @@ function DressingRoom:DeleteOutfit()
     return
   end
   if not armed then
-    self:_armOutfit(self._outfitDelete, "Confirm?")
+    self:_armOutfit(self._outfitDelete, "Sure?", "deleted")
     return
   end
   ns.DeleteLibraryOutfit(self._outfitSel)
@@ -189,7 +189,11 @@ function DressingRoom:PushOutfit()
   local existing
   for _, s in ipairs(ns.CustomSets()) do if s.name == self._outfitSel then existing = s.id end end
   if existing and not armed then
-    self:_armOutfit(self._outfitPush, "Replace?")
+    -- Say WHAT is at risk, as Save does: the armed caption is a bare "Sure?" (the seconds count in
+    -- it, leaving no room for a name at 62px), so without this line the question names nothing.
+    ns.Print(("\"%s\" is already one of this character's sets — click Push again to replace it.")
+      :format(self._outfitSel))
+    self:_armOutfit(self._outfitPush, "Sure?", "replaced")
     return
   end
   -- `ns.SaveCustomSet` is where Blizzard's rules bite: the name filter and the 25-set cap apply to

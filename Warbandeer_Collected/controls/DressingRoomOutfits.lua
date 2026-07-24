@@ -28,9 +28,9 @@ local GRIDW, ROWH, ROW3 = k.GRIDW, k.ROWH, k.ROW3
 -- field serves both and stays visible instead of appearing modally. Nothing else in the suite
 -- uses Dialog, so this also avoids being its first caller for one string.
 --
--- Anything destructive or lossy ARMS before it fires — the button relabels and a second click
--- inside CONFIRM_S commits, covering Delete, an overwriting Save, and a Push that would replace a
--- same-named set, without a modal.
+-- Anything destructive or lossy ARMS before it fires — the button relabels with the seconds left
+-- and a second click inside CONFIRM_S commits, covering Delete, an overwriting Save, and a Push that
+-- would replace a same-named set, without a modal. Letting the countdown run out says so in chat.
 
 local DROPW, NAMEW, BTNW, GAP = 150, 140, 62, 6
 -- Floor for the outfit menu's height. The measured room is normally far more than this; the floor
@@ -46,7 +46,7 @@ local MIN_MENU_H = 120
 -- pull-down is a poor home for an opener, and the `Select()` re-point it needed — to stop the
 -- dropdown reading "Manage Library…" as though that were the loaded look — went with it.
 local NEW_SET = "\0new"
-local CONFIRM_S = 4      -- seconds an armed button stays armed before reverting
+local CONFIRM_S = 4      -- seconds an armed button stays armed before reverting, counted in its caption
 
 ---One labelled button in a control row: a framed box with a click target and a centered caption,
 ---whose text can be swapped when armed. Returns a small handle the actions drive.
@@ -67,8 +67,13 @@ function DressingRoom:_rowButton(row, x, w, label, onClick)
   local btn = { box = box, border = selBox(box), text = label }
   -- `wordWrap = false` is structural, not cosmetic: the box is a fixed ROWH tall, so a caption that
   -- wraps grows the label out of it and over the row below (an armed "Replace <name>?" did exactly
-  -- that across three lines). Armed captions are kept short too — this just makes the layout
-  -- impossible to break from a caption alone.
+  -- that across three lines). What it does INSTEAD of wrapping is ellipsize, which is why an armed
+  -- caption is `Sure?` rather than the verb: the string that has to fit these 58px is `Sure? 4`,
+  -- countdown digit included — 46.5px in the theme's Geist-13 body font, where `Confirm 4` and
+  -- `Replace 4` measure 60.0px and lose the DIGIT, the visible half of #698, to the ellipsis.
+  -- Measured, not guessed; the filter strip next door records the same font truncating "Any armour"
+  -- at only 1.8px over its budget (OutfitLibraryWindow.lua). Which look is at risk goes to chat
+  -- instead, where there is width to name it.
   btn.label = Label:new{ parent = box, justifyH = ui.justify.Center, wordWrap = false,
     position = { Left = {2, 0}, Right = {-2, 0} }, text = label }
   -- Disabled buttons grey their caption and swallow the click, rather than firing and printing a
@@ -87,23 +92,40 @@ function DressingRoom:_enableRow(btn, on)
   btn.label:Color(on and "text" or "muted")
 end
 
----Put a row button into its armed state (gold border + a warning caption), reverting after
----CONFIRM_S so an armed Delete can't sit waiting indefinitely. Only one button is ever armed at a
----time. A method rather than a local so the action half (DressingRoomOutfitActions.lua) can arm too.
+---Put a row button into its armed state (gold border + a warning caption counting the seconds down),
+---reverting after CONFIRM_S so an armed Delete can't sit waiting indefinitely. Only one button is
+---ever armed at a time. A method rather than a local so the action half
+---(DressingRoomOutfitActions.lua) can arm too.
+---
+---**Both halves of the lapse are signals, and both are load-bearing (#698).** The revert used to be
+---silent, which made a late second click pixel-identical to a first one: an armed button and a
+---freshly re-armed button looked the same, so "I clicked Delete twice and it's gone" and "…and
+---nothing happened" were indistinguishable at the button. The caption's countdown makes the lapse
+---visible as it happens; the chat line is the half that survives walking away — a commit prints
+---`Deleted.`, so a lapse has to print its opposite in the same place.
 ---@param btn table
----@param caption string
-function DressingRoom:_armOutfit(btn, caption)
+---@param caption string  the armed caption; the seconds left are appended to it
+---@param lapsed string  past participle for the lapse notice ("deleted", "replaced")
+function DressingRoom:_armOutfit(btn, caption, lapsed)
   self:_disarmOutfit()
   self._armed = btn
-  btn.label:Text(caption)
   btn.border:Color(SELECTED)
-  self._armTimer = C_Timer.NewTimer(CONFIRM_S, function()
+  local left = CONFIRM_S
+  local function paint() btn.label:Text(("%s %d"):format(caption, left)) end
+  paint()
+  -- A ticker rather than a one-shot: the caption repaints every second and the final tick IS the
+  -- revert. Only this path prints — disarming because another button was clicked is a deliberate
+  -- abandonment and needs no notice.
+  self._armTimer = C_Timer.NewTicker(1, function()
+    left = left - 1
+    if left > 0 then return paint() end
     self._armTimer = nil
     self:_disarmOutfit()
-  end)
+    ns.Print(("Confirmation expired — nothing was %s."):format(lapsed))
+  end, CONFIRM_S)
 end
 
----Revert whichever button is armed back to its resting caption.
+---Revert whichever button is armed back to its resting caption, stopping its countdown.
 function DressingRoom:_disarmOutfit()
   if self._armTimer then self._armTimer:Cancel(); self._armTimer = nil end
   local btn = self._armed
