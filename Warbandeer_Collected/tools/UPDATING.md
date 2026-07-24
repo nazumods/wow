@@ -399,8 +399,13 @@ per-expansion aggregates `9_300_000 + …` — clear of armor `setId`s and the `
 illusion/arsenal ids. Guards mirror the other modes (row floors on `Item`/`ItemModifiedAppearance`,
 a min-placed floor, a build stamp that updates only on a real change). It downloads a broader table
 set than the armor pass — notably **`ItemSparse` (~50 MB)**, streamed for just `ID`+`ExpansionID`.
-Run it **weekly** (a dedicated `update-collected-weapons.yml` workflow, mirroring the set-refresh
-one, is the intended automation — pending) and after a content patch.
+It refreshes **weekly**: [`update-collected-weapons.yml`](../../.github/workflows/update-collected-weapons.yml)
+regenerates on a schedule (Wednesdays), lints **and** runs the specs against the fresh file (the
+busted step catches a regen that drops an arsenal appearance — the #670 invariant luacheck can't
+see), and opens a PR (`bot/collected-weapons-refresh`) when the data moved; you review and merge.
+The week-long gap to the next retry makes a failed run costly, so it raises a tracking issue on the
+**first** failure (auto-closed on recovery), unlike the daily set refresh. Run `-Weapons` by hand after a
+content patch if you don't want to wait for the weekly.
 
 > **Verify in-game** after a refresh: `/reload`, toggle to Weapons, and spot-check a raid
 > (Molten Core's `Dagger` cell should read 4). A `/collected coverage` weapons variant catches
