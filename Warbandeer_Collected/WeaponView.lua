@@ -17,6 +17,7 @@ local GameTooltip = GameTooltip
 ---@field _reverse boolean? sort by expansion newest-first (release 12→1; defaults true)
 ---@field _expansion number|string? release filter — a release index, or "all"
 ---@field _category string? category filter — a category name, or "all"
+---@field _ptr boolean? PTR PREVIEW — show the upcoming (ns.WeaponPtrSources) weapons instead of live
 ---@field onResized fun(self: WeaponView)? host hook fired after a filter/sort change resizes the row area
 ---@field onEnsureVisible fun(self: WeaponView, rowTop: number, rowH: number)? host hook to scroll a row into view (see HighlightWeaponCell)
 ---@field _dressedBox Frame? the white 4-edge cursor box re-anchored over the dressed weapon cell (created lazily)
@@ -36,6 +37,7 @@ end, {
   _reverse = true,
   _expansion = "all",
   _category = "all",
+  _ptr = false,
   -- Row builder lives in WeaponViewData.lua; the base TableFrame calls it via GetData in onLoad.
   GetData = function(self) return ns.WeaponRows(self) end,
 })
@@ -110,6 +112,16 @@ end
 function WeaponView:SetExpansion(key) self._expansion = key; self:_refilter() end
 ---@param key string
 function WeaponView:SetCategory(key) self._category = key; self:_refilter() end
+---Swap the grid between live weapons and the PTR-preview (upcoming) weapons. Clears the dressed-cell
+---cursor (no drill-in for unreleased weapons), rebuilds, and lets the host refit + refresh its counter.
+---@param on boolean
+---@return boolean
+function WeaponView:SetPtr(on)
+  self._ptr = on
+  self:HighlightWeaponCell(nil, nil, false)   -- no dressing-room preview for weapons that aren't out yet
+  self:_refilter()
+  return self._ptr
+end
 ---@return boolean
 function WeaponView:ToggleOrder()
   self._reverse = not self._reverse
@@ -119,6 +131,18 @@ function WeaponView:ToggleOrder()
 end
 ---@return number, number, number
 function WeaponView:VisibleCounts() return ns.WeaponVisibleCounts(self) end
+
+-- PTR PREVIEW counter data for the host's "+N upcoming" tally: the number of upcoming (not-yet-live)
+-- weapon appearances across ns.WeaponPtrSources, plus the PTR build string. Exposed as a method so
+-- BOTH hosts — this addon's window and Warbandeer's embedded view (a different ns) — share one tally.
+---@return number count, string? ptrBuild
+function WeaponView:UpcomingCounts()
+  local n = 0
+  for _, grp in ipairs(ns.WeaponPtrSources) do
+    for _, list in pairs(grp.types) do n = n + #list end
+  end
+  return n, ns.WeaponPtrBuild and ns.WeaponPtrBuild.ptr or nil
+end
 
 -- Expansion filter options (shared with the armor grid — see ns.expansionBadgeOptions): "All" then one
 -- per release present in ns.WeaponSources (newest first, badged); release 0 shows as "Other".
@@ -147,25 +171,41 @@ function WeaponView:ShowCountTooltip(owner)
   GameTooltip:Show()
 end
 
--- Filter strip for the weapon grid: a Sort toggle + Expansion / Category dropdowns (no PTR/Wanted —
--- those are armor concepts). The Armor/Weapons mode toggle is host-owned (persistent across both
--- grids). Themed from the grid, matching DataView:BuildFilterStrip's look.
+-- Filter strip for the weapon grid: a PTR toggle + Sort toggle + Expansion / Category dropdowns (no
+-- Wanted — that's an armor concept). `onModeChanged` fires after the PTR toggle so the host refreshes
+-- its counter. The Armor/Weapons mode toggle is host-owned (persistent across both grids). Themed
+-- from the grid, matching DataView:BuildFilterStrip's look.
 ---@param parent table
+---@param onModeChanged fun()?  fired after the PTR toggle flips (the host re-tallies the counter)
 ---@return Frame
-function WeaponView:BuildFilterStrip(parent)
+function WeaponView:BuildFilterStrip(parent, onModeChanged)
   local theme = self:Theme()
   local gold = theme.colors.gold or theme.colors.header
+  local divider = theme.colors.divider
   local BH, GAP, DW, DW_EXP = WeaponView.STRIP_H, 6, 110, 190
-  local IB = BH
+  local IB, BW = BH, 48
   local TEX = [[Interface\AddOns\Warbandeer_Collected\textures\]]
   local NEWEST_ICON, OLDEST_ICON = TEX .. "sort-newest", TEX .. "sort-oldest"
   local strip = ui.Frame:new{ parent = parent, position = { Height = BH } }
 
+  -- PTR PREVIEW toggle (text pill, first) — swaps the grid to the upcoming (PTR-only) weapons; the
+  -- gold border marks it active. Mirrors the armor grid's PTR toggle (DataView:BuildFilterStrip).
+  local ptrBorder
+  ptrBorder = ns.filterToggle(strip, theme, {
+    x = 0, text = "PTR", active = false,
+    onClick = function()
+      local on = self:SetPtr(not self._ptr)
+      ptrBorder:Color(on and gold or divider)
+      if onModeChanged then onModeChanged() end
+    end,
+  })
+
   -- Sort toggle (neutral border, always-on control; the gold calendar glyph carries the direction) —
   -- the shared filter-strip button primitive, same as the armor strip's Sort toggle.
+  local sx = BW + GAP
   local sortIcon
   sortIcon = select(2, ns.filterToggle(strip, theme, {
-    x = 0, tex = NEWEST_ICON, tint = gold,
+    x = sx, tex = NEWEST_ICON, tint = gold,
     tip = function() return self._reverse and "Newest first — click for oldest first"
                                            or "Oldest first — click for newest first" end,
     onClick = function()
@@ -175,7 +215,7 @@ function WeaponView:BuildFilterStrip(parent)
     end,
   }))
 
-  local dx = IB + GAP
+  local dx = sx + IB + GAP
   ui.FilterDropdown:new{
     parent = strip, position = { TopLeft = {dx, 0} }, width = DW_EXP, menuWidth = 200,
     bordered = true, selected = "all", options = self:ExpansionOptions(),

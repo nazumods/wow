@@ -1,5 +1,6 @@
 ---@type Warbandeer_Collected
 local ns = select(2, ...)
+local ui = ns.ui
 local lists = ns.lua.lists
 local GameTooltip = GameTooltip
 
@@ -62,12 +63,18 @@ end
 -- The completion cell (green check / count + red→green shade), the expansion sort, and the shared
 -- gradient live in GridShared.lua (ns.CompletionCell / sortByExpansion) — identical to the armor grid.
 
+-- PTR PREVIEW cell colour: a muted blue reads as "upcoming, no status" (the live client has no
+-- collection data for unreleased weapons), mirroring the armor grid's upcoming dot (DataViewData).
+local UPCOMING = {0.55, 0.70, 0.95, 1}
+
 -- A weapon source group passes the active expansion/category filter. Module-level (like armor's
--- `matches`) since WeaponRows runs during base-table construction, before the methods are mixed.
+-- `matches`) since WeaponRows runs during base-table construction, before the methods are mixed. PTR
+-- preview is never filtered (small upcoming-only list), so the dropdowns apply to the live grid only.
 ---@param view WeaponView
 ---@param grp table
 ---@return boolean
 local function matches(view, grp)
+  if view._ptr then return true end
   if view._expansion ~= "all" and grp.release ~= view._expansion then return false end
   if view._category ~= "all" and grp.category ~= view._category then return false end
   return true
@@ -80,22 +87,31 @@ ns.WeaponMatches = matches
 ---@param self WeaponView
 ---@return table
 function ns.WeaponRows(self)
-  local cmap = ns:WeaponCollectedMap()
+  local ptr = self._ptr
+  local source = ptr and ns.WeaponPtrSources or ns.WeaponSources   -- PTR preview swaps the whole source
+  local cmap = (not ptr) and ns:WeaponCollectedMap() or nil         -- no collected state for unreleased weapons
   local usable = ns.WeaponUsableTypes()   -- greying hint: types this class can't wield are muted
   local GREYED = {0.42, 0.42, 0.45, 1}    -- one shared muted colour for every unusable-type cell
   local order = {}
-  for i = 1, #ns.WeaponSources do
-    if matches(self, ns.WeaponSources[i]) then order[#order + 1] = i end
+  for i = 1, #source do
+    if matches(self, source[i]) then order[#order + 1] = i end
   end
-  ns.sortByExpansion(order, ns.WeaponSources, self._reverse)
+  ns.sortByExpansion(order, source, self._reverse)
   return lists.map(order, function(srcIdx)
-    local grp = ns.WeaponSources[srcIdx]
+    local grp = source[srcIdx]
     local r = {}
     for ci, t in ipairs(ns.WeaponTypeOrder) do
       local visuals = grp.types[t]
       -- A type this source has no weapon of → blank cell.
       if not visuals then
         r[ci] = {}
+      elseif ptr then
+        -- PTR PREVIEW: the count of UPCOMING appearances of this type, muted blue — no completion
+        -- shade, no collected lookup, no class greying (everything here is unreleased). Hover lists
+        -- them; no drill-in (the live client can't render a look that isn't out yet).
+        r[ci] = { text = #visuals, justifyH = ui.justify.Center, color = UPCOMING,
+          onEnter = function() ns.ShowWeaponCellTip(grp, t, visuals) end,
+          onLeave = function() GameTooltip:Hide() end, _source = grp, _type = t }
       else
         local total, coll = #visuals, 0
         for _, v in ipairs(visuals) do if cmap[v] then coll = coll + 1 end end

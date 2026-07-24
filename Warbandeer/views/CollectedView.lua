@@ -162,7 +162,7 @@ local CollectedView = Class(Frame, function(self)
     self.weaponGrid:Hide()
     local weaponW = self.weaponGrid:Width()
 
-    self.weaponStrip = self.weaponGrid:BuildFilterStrip(self)
+    self.weaponStrip = self.weaponGrid:BuildFilterStrip(self, function() _view:_render() end)
     self.weaponStrip:Position({ TopLeft = {TOGGLE_W + TGAP, 0} })
     self.weaponStrip:Hide()
 
@@ -306,8 +306,14 @@ function CollectedView:_render()
   if self._weaponsMode then
     self.emptyMsg:Hide()
     self.wantedCount:Text("")
-    local sources, apps, coll = self.weaponGrid:VisibleCounts()
-    self.counter:Text(("%d sources · %d/%d collected"):format(sources, coll, apps))
+    if self.weaponGrid._ptr then
+      -- PTR PREVIEW: only the upcoming (not-yet-live) appearances — a "+N upcoming" tally.
+      local n, ptrBuild = self.weaponGrid:UpcomingCounts()
+      self.counter:Text(("+%d appearances upcoming%s"):format(n, ptrBuild and (" · PTR " .. ptrBuild) or ""))
+    else
+      local sources, apps, coll = self.weaponGrid:VisibleCounts()
+      self.counter:Text(("%d sources · %d/%d collected"):format(sources, coll, apps))
+    end
     self.counter:Font({theme.fonts.title[1], 12})
     self.weaponGrid.data = self.weaponGrid:GetData(); self.weaponGrid:update()
     return

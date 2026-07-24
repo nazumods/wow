@@ -142,7 +142,7 @@ local MainWindow = Class(TitleFrame, function(self)
   self.weapons:Hide()   -- SetMode resizes the window to the active grid's width, so the window
                         -- starts at the armor width and widens on the toggle to Weapons.
 
-  self.weaponStrip = self.weapons:BuildFilterStrip(self)
+  self.weaponStrip = self.weapons:BuildFilterStrip(self, function() self:RefreshCounter() end)
   self.weaponStrip:Position({ TopLeft = {self.titlebar, ui.edge.BottomLeft, 2 + TOGGLE_W + TGAP, -2} })
   self.weaponStrip:Hide()
 
@@ -234,8 +234,15 @@ end
 ---PTR PREVIEW mode the grid is only the upcoming sets, so it becomes a "+N upcoming" tally.
 function MainWindow:RefreshCounter()
   if self._weaponsMode then
-    local sources, apps, coll = self.weapons:VisibleCounts()
-    self.counter:Text(("%d sources · %d/%d collected"):format(sources, coll, apps))
+    if self.weapons._ptr then
+      -- PTR PREVIEW: the weapon grid is only the upcoming (not-yet-live) appearances, so the counter
+      -- becomes a "+N appearances upcoming" tally rather than a collected count.
+      local n, ptrBuild = self.weapons:UpcomingCounts()
+      self.counter:Text(("+%d appearances upcoming%s"):format(n, ptrBuild and (" · PTR " .. ptrBuild) or ""))
+    else
+      local sources, apps, coll = self.weapons:VisibleCounts()
+      self.counter:Text(("%d sources · %d/%d collected"):format(sources, coll, apps))
+    end
     local tf = collectedTheme().fonts.title
     if tf then self.counter:Font({tf[1], 12}) end
     return
