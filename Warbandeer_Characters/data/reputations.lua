@@ -3,6 +3,7 @@ local ns = select(2, ...)
 local C_Reputation = C_Reputation
 local GetTime = GetTime
 local IsMajorFaction, IsFactionParagon = C_Reputation.IsMajorFaction, C_Reputation.IsFactionParagon
+local GetFactionParagonInfo = C_Reputation.GetFactionParagonInfo
 local GetMajorFactionData, HasMaximumRenown = C_MajorFactions.GetMajorFactionData, C_MajorFactions.HasMaximumRenown
 local GetFriendshipReputation, GetFriendshipReputationRanks = C_GossipInfo.GetFriendshipReputation, C_GossipInfo.GetFriendshipReputationRanks
 
@@ -14,6 +15,10 @@ local GetFriendshipReputation, GetFriendshipReputationRanks = C_GossipInfo.GetFr
 ---@field paragon boolean? earning paragon rewards past the cap
 ---@field accountWide boolean? the standing is shared across the whole warband (show once, not per character)
 ---@field categoryId integer? the top-level expansion header's factionID (0 = uncategorized/Other); locale-proof grouping key for Warbandeer's Reputations view
+---@field current integer? progress within the current rank/level (bar-fill numerator: renown XP earned / friendship or reaction points past the current tier floor); nil when there's no next tier to fill toward (e.g. a maxed standard faction)
+---@field threshold integer? total needed to complete the current rank/level (bar-fill denominator); paired with `current`
+---@field paragonCurrent integer? progress within the current paragon reputation-bag cycle, when `paragon` is true
+---@field paragonThreshold integer? reputation needed per paragon bag, when `paragon` is true
 
 ---@class ReputationsBroker
 ---@field factions table<integer, FactionStanding>  per-faction standing, keyed by factionID
@@ -35,6 +40,9 @@ local function resolve(data)
     local label = RENOWN_LEVEL_LABEL
     label = (label:find("%%d") and label:format(level)) or (label .. " " .. level)
     e.label, e.rank, e.done = label, level, HasMaximumRenown(fid) or false
+    if mf and mf.renownLevelThreshold and mf.renownLevelThreshold > 0 then
+      e.current, e.threshold = mf.renownReputationEarned, mf.renownLevelThreshold
+    end
   else
     local friend = GetFriendshipReputation(fid)
     if friend and friend.friendshipFactionID and friend.friendshipFactionID > 0 then
@@ -42,13 +50,27 @@ local function resolve(data)
       e.label = friend.reaction
       e.rank = (ranks and ranks.currentLevel) or 0
       e.done = (ranks and ranks.currentLevel >= ranks.maxLevel) or false
+      local threshold = (friend.nextThreshold or 0) - (friend.reactionThreshold or 0)
+      if threshold > 0 then
+        e.current, e.threshold = friend.standing - friend.reactionThreshold, threshold
+      end
     else
       local reaction = data.reaction or 4
       e.label = _G["FACTION_STANDING_LABEL" .. reaction] or tostring(reaction)
       e.rank, e.done = reaction, reaction >= 8
+      local threshold = (data.nextReactionThreshold or 0) - (data.currentReactionThreshold or 0)
+      if threshold > 0 then
+        e.current, e.threshold = data.currentStanding - data.currentReactionThreshold, threshold
+      end
     end
   end
-  if IsFactionParagon(fid) then e.paragon = true end
+  if IsFactionParagon(fid) then
+    e.paragon = true
+    local cur, threshold = GetFactionParagonInfo(fid)
+    if cur and threshold and threshold > 0 then
+      e.paragonCurrent, e.paragonThreshold = cur % threshold, threshold
+    end
+  end
   if data.isAccountWide then e.accountWide = true end
   return e
 end
