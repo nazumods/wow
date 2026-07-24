@@ -377,7 +377,7 @@ is **derived from DB2** (no hand-curation, no `expand-groups.txt` equivalent). T
 
 | Signal | Table | Gives |
 |---|---|---|
-| source **type** | `ItemModifiedAppearance.TransmogSourceTypeEnum` | `Enum.TransmogSource` per appearance (drop/quest/vendor/world/craft/achiev/TP) |
+| source **type** | `ItemModifiedAppearance.TransmogSourceTypeEnum` | `Enum.TransmogSource` per appearance (drop/quest/vendor/world/craft/achiev/TP; **HiddenUntilCollected → Other**) |
 | specific **source** | `CollectableSourceInfo` + `CollectableSource{Encounter,Quest,Vendor}Sparse` | the encounter / quest map / vendor map |
 | weapon **type** (column) | `Item.ClassID/SubclassID/InventoryType` | `Enum.TransmogCollectionType` (ClassID 2; **Shield/Holdable are Armor class 4**) |
 | instance **expansion** | `JournalTier` via `JournalTierXInstance` | release — **not `Map.ExpansionID`**, which is 0 for brand-new maps (filter the `9000` "Current Season" tier) |
@@ -387,6 +387,7 @@ Values in `types` are `ItemAppearanceID`s (the visuals); the in-game scan resolv
 state per visual. Design decisions baked in (see the design doc — `Notes/wow-collected-weapons-view-design.md`):
 
 - **One representative source per visual**, priority **drop > quest > vendor > TP > world > craft > achiev**.
+- **HiddenUntilCollected sources fall back to an `Other` row.** `TransmogSource.HiddenUntilCollected` (5) is how Timewalking reissues and other masked-source items are flagged — the one *obtainable* source type outside the priority above, so without this the visual is **silently dropped** (never placed, never counted — the *Warglaives of Azzinoth* bug, #670). It's bucketed by the collectible item's own expansion. Genuinely uncollectable sources — `CantCollect` (6) / `NotValidForTransmog` (9) / `None` (0) — stay out, so the grid's % isn't padded with looks that can never reach 100%.
 - **Dungeon/raid wings merge** into the base instance (`Dire Maul - Gordok Commons` → `Dire Maul`).
 - **PvP weapons stay under `Vendor`** (no clean offline PvP signal yet) — a future refinement.
 - **Artifact weapons are excluded** (`ArtifactAppearance*` is a separate spec-coupled subsystem) — a fast-follow.
