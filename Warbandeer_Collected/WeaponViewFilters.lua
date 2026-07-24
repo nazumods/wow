@@ -107,11 +107,17 @@ function WeaponView:ShowWantedTooltip(owner)
 end
 
 -- Filter strip for the weapon grid: a PTR toggle + Wanted (★) + Sort toggle + Expansion / Category
--- dropdowns, in the armor strip's order so the two read alike. `onModeChanged` fires after the PTR
--- toggle so the host refreshes its counter. The Armor/Weapons mode toggle is host-owned (persistent
--- across both grids). Themed from the grid, matching DataView:BuildFilterStrip's look.
+-- dropdowns, in the armor strip's order so the two read alike. The Armor/Weapons mode toggle is
+-- host-owned (persistent across both grids). Themed from the grid, matching DataView:BuildFilterStrip.
+--
+-- `onModeChanged` re-tallies the host's counter, and every control that changes WHICH ROWS ARE SHOWN
+-- has to fire it — the PTR pill and both dropdowns — because the counter is filter-scoped
+-- (ns.WeaponVisibleCounts honours `matches`). The dropdowns didn't, so narrowing to one expansion
+-- re-filtered the grid while the counter kept reading the whole table; the armor strip has always
+-- fired it from all three (DataView:BuildFilterStrip). The ★ toggle goes through `onFilterChanged`
+-- instead, which ToggleWantedOnly fires for the same reason.
 ---@param parent table
----@param onModeChanged fun()?  fired after the PTR toggle flips (the host re-tallies the counter)
+---@param onModeChanged fun()?  fired after the PTR toggle or either dropdown changes the shown rows
 ---@return Frame
 function WeaponView:BuildFilterStrip(parent, onModeChanged)
   local theme = self:Theme()
@@ -169,12 +175,12 @@ function WeaponView:BuildFilterStrip(parent, onModeChanged)
   ui.FilterDropdown:new{
     parent = strip, position = { TopLeft = {dx, 0} }, width = DW_EXP, menuWidth = 200,
     bordered = true, selected = "all", options = self:ExpansionOptions(),
-    onSelect = function(_, key) self:SetExpansion(key) end,
+    onSelect = function(_, key) self:SetExpansion(key); if onModeChanged then onModeChanged() end end,
   }
   ui.FilterDropdown:new{
     parent = strip, position = { TopLeft = {dx + DW_EXP + GAP, 0} }, width = DW, menuWidth = 120,
     bordered = true, selected = "all", options = self:CategoryOptions(),
-    onSelect = function(_, key) self:SetCategory(key) end,
+    onSelect = function(_, key) self:SetCategory(key); if onModeChanged then onModeChanged() end end,
   }
   strip:Width(dx + DW_EXP + GAP + DW)
   return strip
