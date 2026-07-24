@@ -89,7 +89,7 @@ end, "Repair stored data (recount characters)")
 ---@field MigrateDB fun(self) Migrate database to latest version
 function ns:MigrateDB()
   local db = ns.db
-  if db.version == 40 then return end
+  if db.version == 42 then return end
   if not db.characters then db.characters = {} end
   if not db.numCharacters then
     db.numCharacters = countCharacters(db)
@@ -430,6 +430,17 @@ function ns:MigrateDB()
   -- the character next completes a key, so rollback is lossless.
   if (db.version or 0) < 41 then
     db.version = 41
+  end
+
+  -- v42: absolute reputation bar-fill progress on the existing per-faction reputation
+  -- cache (`reputations.factions[*].current`/`.threshold` — standing/renown/friendship
+  -- progress within the current rank; `.paragonCurrent`/`.paragonThreshold` when
+  -- paragon).  Additive and filled lazily by data/reputations.lua's broker at scan
+  -- time; nothing to seed — old entries just lack the new fields (only the existing
+  -- rank/done/paragon flags) until the character next logs in and re-scans, so
+  -- rollback is lossless.
+  if (db.version or 0) < 42 then
+    db.version = 42
   end
 end
 
