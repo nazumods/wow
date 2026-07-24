@@ -628,6 +628,40 @@ function API:GetHouses()
   return out
 end
 
+---The categorized tracked-achievement id catalog (checklist expansions, milestones grid,
+---legion grid, and meta/alt id pairs) — the single source of truth shared by the persistence
+---layer (data/achievements.lua) and Warbandeer's achievement views.
+---@return table
+function API:GetAchievementCatalog() return ns.AchievementCatalog end
+
+---Persisted snapshot for one tracked achievement id: account-wide `completed`, and
+---`wasEarnedByMe` captured from whichever character last triggered a snapshot (not a true
+---per-character breakdown). nil until the account-wide store has been seeded (first login
+---after this feature shipped), or if the id isn't in the tracked catalog.
+---@param achievementId integer
+---@return AchievementSnapshotEntry?
+function API:GetAchievement(achievementId)
+  return ns.db.achievements and ns.db.achievements.snapshot[achievementId]
+end
+
+---Whether achievementId (or its catalog-declared meta/alt id, e.g. a Heroic variant) is
+---complete. false (not nil) when the snapshot hasn't been seeded yet.
+---@param achievementId integer
+---@return boolean
+function API:IsAchievementComplete(achievementId)
+  local a = ns.db.achievements
+  if not a then return false end
+  local e = a.snapshot[achievementId]
+  if e and e.completed then return true end
+  local altId = ns.AchievementCatalog.metaAlts[achievementId]
+  local alt = altId and a.snapshot[altId]
+  return (alt and alt.completed) or false
+end
+
+---Total achievement points (account-wide), last captured at login/ACHIEVEMENT_EARNED.
+---@return integer
+function API:GetTotalAchievementPoints() return (ns.db.achievements and ns.db.achievements.totalPoints) or 0 end
+
 ---Synchronously re-fetch one broker field for the current character.
 ---Safe to call at any time; respects the maxLevel guard.
 ---@param brokerName string
