@@ -33,14 +33,19 @@ local GRIDW, ROWH, ROW3 = k.GRIDW, k.ROWH, k.ROW3
 -- same-named set, without a modal.
 
 local DROPW, NAMEW, BTNW, GAP = 150, 140, 62, 6
--- Dropdown keys for the trailing entries that aren't library looks. STRINGS so they can't be
+-- Floor for the outfit menu's height. The measured room is normally far more than this; the floor
+-- only guards the degenerate case where a short window would otherwise leave a menu too small to
+-- scroll usefully — better to overhang slightly than to offer a two-row list.
+local MIN_MENU_H = 120
+-- The dropdown key for the one trailing entry that isn't a library look. A STRING so it can't be
 -- mistaken for a library outfit name — those are user-typed and trimmed, so they can never be
 -- empty or contain the sentinel's markers.
 --
--- `MANAGE` opens the library window (#662). It lives here, in the menu, precisely because the row
--- is full at 568 of GRIDW's 572px — a sentinel entry is the one opener that costs no width at all.
+-- A second sentinel used to sit beside it opening the library window, put in the menu because this
+-- row is full at 568 of GRIDW's 572px. #687 replaced it with a real button on a row of its own: a
+-- pull-down is a poor home for an opener, and the `Select()` re-point it needed — to stop the
+-- dropdown reading "Manage Library…" as though that were the loaded look — went with it.
 local NEW_SET = "\0new"
-local MANAGE  = "\0manage"
 local CONFIRM_S = 4      -- seconds an armed button stays armed before reverting
 
 ---One labelled button in a control row: a framed box with a click target and a centered caption,
@@ -68,7 +73,7 @@ function DressingRoom:_rowButton(row, x, w, label, onClick)
     position = { Left = {2, 0}, Right = {-2, 0} }, text = label }
   -- Disabled buttons grey their caption and swallow the click, rather than firing and printing a
   -- refusal — the same "don't offer what won't work" Blizzard's own name prompt uses.
-  Button:new{ parent = box, position = { All = true }, glow = false,
+  Button:new{ parent = box, position = { All = true },
     OnClick = function() if not btn.disabled then onClick() end end }
   return btn
 end
@@ -118,8 +123,18 @@ function DressingRoom:_buildOutfits(controls)
 
   -- Library dropdown, in the store's own insertion order — the order the user added looks in, and
   -- the order re-saving one preserves.
+  -- Cap the menu to the room it actually has, so a large library can't spill past the window's
+  -- bottom edge (#699). `FilterDropdown` scrolls whatever exceeds `maxMenuHeight` rather than
+  -- growing, but its 400px default is far more than this window offers beneath the outfit row —
+  -- and the list is as long as the user's library, so there is no count to design around.
+  --
+  -- Measured off `controls` rather than the constants because the race panels below are sized at
+  -- runtime: `controlsH` (and so the window's height) isn't knowable from `ROW*` alone. The frame's
+  -- border sits a few px below `controls`, which is what the trailing margin leaves room for.
+  local menuRoom = controls:Height() - (ROW3 + ROWH) - 4
   self._outfitDrop = FilterDropdown:new{
     parent = self._outfitRow, bordered = true, width = DROPW, options = {},
+    maxMenuHeight = menuRoom > MIN_MENU_H and menuRoom or MIN_MENU_H,
     onSelect = function(_, key) self:_selectOutfit(key) end,
     position = { TopLeft = {0, 0} },
   }
@@ -178,24 +193,13 @@ function DressingRoom:RefreshOutfits()
   -- The trailing "new" entry mirrors Blizzard's own custom-set dropdown: creating is a mode the
   -- user CHOOSES, not something inferred from having edited the name field.
   opts[#opts + 1] = { key = NEW_SET, label = "+ New Look" }
-  opts[#opts + 1] = { key = MANAGE, label = "⚙ Manage Library…" }
   self._outfitDrop:SetOptions(opts, self._outfitSel or NEW_SET)
   self:_syncOutfitButtons()
 end
 
----Dropdown handler: load a saved look, open the library window, or switch the row into "save a
----new one" mode.
----@param key string  a library outfit name, or the NEW_SET / MANAGE sentinel
+---Dropdown handler: load a saved look, or switch the row into "save a new one" mode.
+---@param key string  a library outfit name, or the NEW_SET sentinel
 function DressingRoom:_selectOutfit(key)
-  -- Opening the window is a detour, not a selection: put the dropdown back where it was, or its
-  -- button would sit there reading "Manage Library…" as though that were the loaded look. Picking
-  -- it again then has to still fire, which is why this re-points through `Select` (no onSelect)
-  -- rather than leaving `selected` on the sentinel — FilterDropdown treats re-picking the current
-  -- option as a no-op.
-  if key == MANAGE then
-    self._outfitDrop:Select(self._outfitSel or NEW_SET)
-    return ns.OpenOutfitLibrary()
-  end
   if key ~= NEW_SET then return self:LoadOutfit(key) end
   self._outfitSel = nil
   self._outfitName:Text("")
@@ -219,4 +223,23 @@ function DressingRoom:_syncOutfitButtons()
   self:_enableRow(self._outfitRename, selected and named)
   self:_enableRow(self._outfitDelete, selected)
   self:_enableRow(self._outfitPush, selected)
+end
+
+---Build the fifth control row: the one button that opens the outfit library (#687).
+---
+---A row of its own because the outfit row above is full at 568 of GRIDW's 572px. The opener used to
+---be a `⚙ Manage Library…` entry inside that row's dropdown — the only place that cost no width —
+---which buried the library behind a pull-down and needed a `Select()` re-point so the dropdown
+---didn't sit there naming a "look" that was really a command.
+---
+---The ratings row above is deliberately NOT reused, though a loaded outfit hides it and it can look
+---like free space: it is a feature slot the weapon ratings are owed, not whitespace.
+---
+---Sized to `DROPW` so the button lines up under the outfit dropdown directly above it.
+---@param controls Frame
+function DressingRoom:_buildLibraryRow(controls)
+  local row = Frame:new{
+    parent = controls, position = { TopLeft = {0, -k.ROW5}, Width = GRIDW, Height = ROWH },
+  }
+  self:_rowButton(row, 0, DROPW, "Outfit Library…", function() ns.OpenOutfitLibrary() end)
 end

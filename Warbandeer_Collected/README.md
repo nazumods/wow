@@ -200,8 +200,21 @@ what this works around.
 - Buttons that can't do anything are greyed: Save until you've named a new look, and Rename,
   Delete and Push until you've picked one.
 
-**Finding a look once you have a lot of them.** Pick **⚙ Manage Library…** at the bottom of the
-dropdown to open the library window — the same list, with room to search it:
+**Saving from the game's transmogrifier.** You don't have to build a look in this addon to keep it.
+At any transmogrifier you'll find two extra buttons under your character:
+
+- **Save Look** takes whatever is on the model right then — including pieces you've staged but not
+  yet applied — asks you to name it, and saves it to **both** your account-wide library *and* this
+  character's own transmog sets, in one click.
+- If the game won't take the set — you're at its 25-set limit, or it doesn't like the name — the
+  look is **still saved to your library**, and you're told why the game set was skipped. The half
+  that follows you everywhere is never lost to a per-character limit.
+- A name that's already in your library asks before replacing it.
+- **Outfit Library** opens the library window right there, so you can find an old look and
+  **Push** it onto this character without leaving the transmogrifier.
+
+**Finding a look once you have a lot of them.** The **Outfit Library…** button at the bottom of the
+preview window opens the library — the same list, with room to search it and a model to see them on:
 
 - **Filter by armour type.** The one that groups a look across characters: a leather look shows up
   whether you're after it for your rogue, your druid or your demon hunter, none of whom share a
@@ -213,8 +226,12 @@ dropdown to open the library window — the same list, with room to search it:
 - **Search** by the look's name or by the character who saved it.
 - The filters combine, **Clear** drops all of them at once, and the title bar counts what you're
   seeing out of what you have.
-- Click any look to load it onto the model. Saving, renaming, deleting and pushing all stay on the
-  outfit row, where the look you're building lives.
+- **Click a look to see it.** It appears on the window's own model, dressed exactly as it was
+  saved, with who saved it written underneath. The window stays open, so you can click down the
+  list comparing them.
+- **Rename**, **Delete** and **Push** act on the look you've selected, right beside the model.
+  Delete and Push ask once before doing anything. Saving stays where the look you're *building*
+  lives — the outfit row, or the transmogrifier.
 
 **Bring your old transmog sets in.** Sets you saved in the game's own dressing room live on
 **one character only** — that's a WoW limitation, and it's the whole reason this library exists.

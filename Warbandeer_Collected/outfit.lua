@@ -174,22 +174,40 @@ end
 -- can be unit-tested, and every function here needs a `C_*` call or a FrameXML global.
 
 local _classNames   -- [classFile] = localized name, built once
+local _classIds     -- [classFile] = class id, filled by the same sweep
+
+-- `GetClassInfo` maps id → (name, file) and there is no reverse lookup, so a sweep is the only way
+-- back from a class file — and one sweep answers both directions, so both maps are filled together.
+-- (`LOCALIZED_CLASS_NAMES_*` would mean whitelisting another global in two config files.)
+local function buildClassMaps()
+  if _classNames then return end
+  _classNames, _classIds = {}, {}
+  for id = 1, #ns.icons.classes do
+    local name, file = GetClassInfo(id)
+    if file then _classNames[file], _classIds[file] = name, id end
+  end
+end
 
 ---Localized class name for a class file ("DRUID" → "Druid"), or the file itself if it doesn't
----resolve. Built by sweeping `GetClassInfo`, which maps id → (name, file) — there's no reverse
----lookup, and `LOCALIZED_CLASS_NAMES_*` would mean whitelisting another global in two config files.
+---resolve.
 ---@param classFile string?
 ---@return string?
 function ns.ClassLabel(classFile)
   if not classFile then return nil end
-  if not _classNames then
-    _classNames = {}
-    for id = 1, #ns.icons.classes do
-      local name, file = GetClassInfo(id)
-      if file then _classNames[file] = name end
-    end
-  end
+  buildClassMaps()
   return _classNames[classFile] or classFile
+end
+
+---The class id for a class file ("PRIEST" → 5), or nil if it doesn't resolve. The inverse of what
+---`GetClassInfo` offers, which is why it shares `ClassLabel`'s sweep. Needed because the library
+---stores a look's provenance as a class FILE, while the room's `_showClass` — like the grid it was
+---written for — addresses classes by id.
+---@param classFile string?
+---@return number?
+function ns.ClassId(classFile)
+  if not classFile then return nil end
+  buildClassMaps()
+  return _classIds[classFile]
 end
 
 ---Whether a main-hand appearance is a **paired Legion artifact** — the one weapon kind whose

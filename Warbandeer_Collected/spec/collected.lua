@@ -27,6 +27,10 @@ function M.load()
   local ns = { db = { outfits = {} } }
   assert(loadfile("Warbandeer_Collected/outfitcodec.lua"))("Warbandeer_Collected", ns)
   assert(loadfile("Warbandeer_Collected/outfitlibrary.lua"))("Warbandeer_Collected", ns)
+  -- Qualifies for the same reason the two above do: it calls only other `ns` functions, never a C_
+  -- API or a frame. Its two savers (`ns.SaveLibraryOutfit`, `ns.SaveCustomSet`) are resolved at call
+  -- time, so loading it needs neither of them present — a spec stubs whichever it wants to observe.
+  assert(loadfile("Warbandeer_Collected/outfitsave.lua"))("Warbandeer_Collected", ns)
   return ns
 end
 

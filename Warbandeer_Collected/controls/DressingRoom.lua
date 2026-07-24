@@ -170,6 +170,7 @@ end
 ---@field _shareHint Label  muted prompt shown over the empty paste field
 ---@field _shareImport table  the Import row button (greyed while the field is empty)
 ---@field _buildShare fun(self: DressingRoom, controls: Frame)  build the share row (DressingRoomOutfitShare.lua)
+---@field _buildLibraryRow fun(self: DressingRoom, controls: Frame)  build the library-opener row (DressingRoomOutfits.lua)
 ---@field _pastedOutfit fun(self: DressingRoom): string  the paste field's contents, trimmed (DressingRoomOutfitShare.lua)
 ---@field _syncShare fun(self: DressingRoom)  show/hide the paste prompt + grey Import to match (DressingRoomOutfitShare.lua)
 ---@field _shareList fun(self: DressingRoom): table[]?, number  the look to put on the wire (bare slots hidden) + its real filled count (DressingRoomOutfitShare.lua)
@@ -224,14 +225,20 @@ end
 ---@field HideCellChooser fun(self: DressingRoom)  undock the chooser (WeaponCellPicker.lua)
 ---@field SelectCellLook fun(self: DressingRoom, idx: number)  show a cell look on the doll (WeaponCellPicker.lua)
 local ROWH = 26         -- toggle-button height
--- Four stacked control rows, each ROWH tall with PAD between: toggles (Undress/Background) at 0,
--- ratings at TOPGAP, outfits at ROW3, sharing at ROW4. The faction panels start below all four.
+-- Five stacked control rows, each ROWH tall with PAD between: toggles (Undress/Background) at 0,
+-- ratings at TOPGAP, outfits at ROW3, sharing at ROW4, the library opener at ROW5. The faction
+-- panels start below all five.
 -- The share row is its own row because the outfit row is full — it already spends 568 of GRIDW's
--- 572 — and its columns are aligned to that row's, so the two read as one block.
+-- 572 — and its columns are aligned to that row's, so the two read as one block. ROW5 exists for
+-- the same reason (#687): with no width left on the outfit row, the library opener had nowhere to
+-- live but a sentinel entry inside its dropdown, which buried it.
+--
+-- PANELSTOP feeds controlsH, which feeds the window height, so adding a row cascades on its own.
 local TOPGAP = ROWH + PAD
 local ROW3 = 2 * (ROWH + PAD)
 local ROW4 = 3 * (ROWH + PAD)
-local PANELSTOP = ROW4 + ROWH + PAD
+local ROW5 = 4 * (ROWH + PAD)
+local PANELSTOP = ROW5 + ROWH + PAD
 
 -- Forward-declared so the constructor closure can read DressingRoom.MODEL_INSET
 -- (set by the companion DressingRoomSlots.lua) as an upvalue at instantiation.
@@ -297,6 +304,7 @@ DressingRoom = Class(TitleFrame, function(self)
   self:_buildControls(controls)
   self:_buildOutfits(controls)
   self:_buildShare(controls)
+  self:_buildLibraryRow(controls)
   self:_buildRacePanels(controls, {
     alliance = alliance, neutral = neutral, horde = horde,
     aW = aW, aH = aH, nW = nW, nH = nH, hW = hW, hH = hH, panelsH = panelsH,
@@ -326,7 +334,7 @@ DressingRoom._MODELH = MODELH
 -- Constants + helpers shared with the build/controls/actions/model companion files.
 DressingRoom._k = {
   SELECTED = SELECTED, IDLE = IDLE, selBox = selBox, tierBar = tierBar,
-  GRIDW = GRIDW, PAD = PAD, ROWH = ROWH, TOPGAP = TOPGAP, ROW3 = ROW3, ROW4 = ROW4,
+  GRIDW = GRIDW, PAD = PAD, ROWH = ROWH, TOPGAP = TOPGAP, ROW3 = ROW3, ROW4 = ROW4, ROW5 = ROW5,
   MODELH = MODELH,
   CELL = CELL, STEP = STEP, PANELPAD = PANELPAD, RACEICON_CROP = RACEICON_CROP,
   AHCOLS = AHCOLS, PANELGAP = PANELGAP, PANELSTOP = PANELSTOP, PBORDER = PBORDER,

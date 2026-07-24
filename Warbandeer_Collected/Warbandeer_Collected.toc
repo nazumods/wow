@@ -37,6 +37,8 @@ outfitcodec.lua
 outfit.lua
 outfitshare.lua
 outfitlibrary.lua
+outfitmodel.lua
+outfitsave.lua
 outfitcommands.lua
 api.lua
 
@@ -61,6 +63,9 @@ controls\DressingRoomOutfits.lua
 controls\DressingRoomOutfitActions.lua
 controls\DressingRoomOutfitShare.lua
 controls\OutfitLibraryWindow.lua
+controls\OutfitLibraryList.lua
+controls\OutfitLibraryPreview.lua
+controls\TransmogFrameButtons.lua
 
 GridShared.lua
 

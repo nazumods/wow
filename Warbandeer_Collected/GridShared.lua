@@ -170,7 +170,7 @@ function ns.filterToggle(strip, theme, spec)
     color = spec.active and gold or divider }
   Texture:new{ parent = b, layer = ui.layer.Border, color = {0.05, 0.05, 0.06, 0.92},
     position = { TopLeft = {1, -1}, BottomRight = {-1, 1} } }
-  local btn = Button:new{ parent = b, position = { All = true }, glow = false, OnClick = spec.onClick,
+  local btn = Button:new{ parent = b, position = { All = true }, OnClick = spec.onClick,
     OnEnter = spec.tip and function(s)
       GameTooltip:SetOwner(s._widget, "ANCHOR_BOTTOMRIGHT")
       GameTooltip:SetText(spec.tip()); GameTooltip:Show()
@@ -226,7 +226,7 @@ function ns.ModeToggle(spec)
       color = SEG_OFF }
     Texture:new{ parent = cell, layer = ui.layer.Border, color = {0.09, 0.09, 0.11, 0.95},
       position = { TopLeft = {1, -1}, BottomRight = {-1, 1} } }
-    local btn = Button:new{ parent = cell, position = { All = true }, glow = false,
+    local btn = Button:new{ parent = cell, position = { All = true },
       OnClick = function() spec.onClick(weapons) end }
     Label:new{ parent = btn, fontInfo = caps and {caps[1], 10} or nil, justifyH = ui.justify.Center,
       position = { All = true }, text = label, color = theme.colors.text }

@@ -161,33 +161,13 @@ end
 
 ---Dress the room from an outfit list — the inverse of ComposeOutfit.
 ---
----Every slot is driven through `SlotTransmog` over a bare body rather than through `Outfit`:
----`TryOn` drops an appearance the previewed character's class can't equip, while SlotTransmog
----renders any appearance on anyone (the same reason the look builder uses it), and it is
----re-applied per slot across the model's async re-skins so the outfit survives a race change.
+---The model dressing itself is `ns.DressModelFromList` (outfitmodel.lua), shared with the library
+---window's preview pane so the two can't drift. What stays here is the room-specific half: mirroring
+---the result onto the composed-look fields.
 ---@param list table[]
 ---@return DressingRoom
 function DressingRoom:ApplyOutfit(list)
-  ns.SanitizeOutfit(list)
-
-  -- Drop any override left over from a previous outfit or look, so slots this outfit leaves
-  -- empty actually come out empty instead of inheriting the last one.
-  for slot = 1, INVSLOT_LAST_EQUIPPED do self._model:ClearSlotTransmog(slot) end
-  self._model:Outfit({})
-
-  for _, slotID in ipairs(ns.OutfitSlotOrder) do
-    local info = list[slotID]
-    local appearanceID = info and info.appearanceID or 0
-    if appearanceID > 0 then
-      self._model:SlotTransmog(slotID, appearanceID, {
-        -- Only a real split-shoulder secondary is forwarded; the main-hand's -1/0 discriminator
-        -- is meaningless to the model and would be read as an appearance id.
-        secondaryAppearanceID = (slotID == INVSLOT_SHOULDER and info.secondaryAppearanceID > 0)
-          and info.secondaryAppearanceID or nil,
-        illusionID = (info.illusionID and info.illusionID > 0) and info.illusionID or nil,
-      })
-    end
-  end
+  ns.DressModelFromList(self._model, list)
 
   -- Mirror the outfit onto the composed-look fields so the weapon slots, the cosmetic slots and
   -- the picker's selection borders all show what is actually being worn.
@@ -234,7 +214,20 @@ function DressingRoom:EnterOutfitMode(name, list)
   self:Title(name)
   self._idLabel:Text("")
   self._masterName = nil
-  self:_showClass(nil)          -- an outfit belongs to no class
+  -- A loaded look isn't one of the tracked sets, but it does have a class, so the title-bar class
+  -- icon and the class-themed backdrop stay meaningful here instead of blanking to a plain dark
+  -- room (#699).
+  --
+  -- **`forClass` wins over `class`.** The two answer different questions — what the look is FOR
+  -- versus who saved it — and it is the former this backdrop illustrates: a Death Knight can
+  -- compose a Druid look, and it's the Druid view that belongs behind it. `class` is the fallback
+  -- rather than the primary because `forClass` is unrecoverable for a set imported from the game or
+  -- a look saved at the transmogrifier, where only the saving character is knowable.
+  --
+  -- Entries predating #655 carry no provenance at all, and a pasted name may not be in the library;
+  -- both fall back to nil, which is exactly the old behaviour. The expansion badge is left alone.
+  local entry = ns.LibraryOutfit(name)
+  self:_showClass(entry and ns.ClassId(entry.forClass or entry.class))
   self._tierBarL:Hide()
   self._tierBarR:Hide()
   if self._ratingsBoxes then for _, b in ipairs(self._ratingsBoxes) do b:Hide() end end

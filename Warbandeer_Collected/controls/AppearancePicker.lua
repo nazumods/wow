@@ -150,7 +150,7 @@ function DressingRoom:_buildPicker()
     local box = Frame:new{ parent = self._pickerTabs, position = { TopLeft = {x, 0}, Width = tw, Height = ROWH } }
     self._pickerTabBox[mode] = box
     self._modeTab[mode] = selBox(box)
-    Button:new{ parent = box, position = { All = true }, glow = false, OnClick = function() self:_setPickerMode(mode) end }
+    Button:new{ parent = box, position = { All = true }, OnClick = function() self:_setPickerMode(mode) end }
     Label:new{ parent = box, justifyH = ui.justify.Center, position = { Left = {2, 0}, Right = {-2, 0} }, text = label }
   end
   tab("weapons", "Weapons", 0)
