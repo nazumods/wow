@@ -23,11 +23,15 @@ local selBox = ns.DressingRoom._k.selBox
 
 local SAVE_POPUP    = "WARBANDEER_COLLECTED_SAVE_LOOK"
 local REPLACE_POPUP = "WARBANDEER_COLLECTED_REPLACE_LOOK"
-local BTNW, BTNH, GAP = 132, 22, 6
--- `CharacterPreview.BottomSlots` is anchored at BOTTOM y=48, so the free band is the 48px beneath
--- it. The row is deliberately biased LOW in that band rather than centred in it: centred (y=14) put
--- only 12px between the buttons and Blizzard's slot icons, and crowding their furniture reads as a
--- bug, where a smaller margin against the frame's own bottom edge just reads as a margin.
+local BTNW, BTNH = 132, 22
+-- **The two buttons FLANK Blizzard's slot icons rather than sitting under them.** The weapon slots
+-- of `CharacterPreview.BottomSlots` occupy the middle of this band, so a tightly-paired row centred
+-- beneath them read as crowding their furniture. This gap is wide enough to leave that cluster its
+-- own clear column between the two buttons, which is why it is a centre gap and not a margin.
+local CENTER_GAP = 170
+-- `BottomSlots` is anchored at BOTTOM y=48, so the free band is the 48px beneath it. Biased low in
+-- that band rather than centred: a smaller margin against the frame's own bottom edge reads as a
+-- margin, where closing on Blizzard's icons reads as a bug.
 local BOTTOM_Y = 8
 
 ---One labelled button: framed box, centred caption, click target. The same idiom as the library
@@ -160,14 +164,14 @@ local function build()
 
   _row = Frame:new{
     parent = preview,
-    position = { Bottom = {0, BOTTOM_Y}, Width = 2 * BTNW + GAP, Height = BTNH },
+    position = { Bottom = {0, BOTTOM_Y}, Width = 2 * BTNW + CENTER_GAP, Height = BTNH },
   }
   -- Above the model scene, which fills CharacterPreview — and above `CharacterPreview.SavedFrame`,
   -- a hidden full-width overlay that flashes its glow across this band during the save animation.
   _row._widget:SetFrameLevel(preview:GetFrameLevel() + 20)
 
   rowButton(_row, 0, "Save Look", function() StaticPopup_Show(SAVE_POPUP) end)
-  rowButton(_row, BTNW + GAP, "Outfit Library", function() ns.OpenOutfitLibrary() end)
+  rowButton(_row, BTNW + CENTER_GAP, "Outfit Library", function() ns.OpenOutfitLibrary() end)
 end
 
 ns:registerEvent("PLAYER_INTERACTION_MANAGER_FRAME_SHOW", function(_, kind)
