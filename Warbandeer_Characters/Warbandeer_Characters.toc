@@ -27,6 +27,8 @@ main.lua
 data/basic.lua
 data/currency.lua
 data/warband.lua
+data/achievementcatalog.lua
+data/achievements.lua
 data/bank.lua
 data/items.lua
 data/inventory.lua

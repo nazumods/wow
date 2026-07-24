@@ -164,7 +164,9 @@ end, {
   end,
 })
 
-local achievementIds = {10459, 11160, 11163}
+-- Catalog lives in Warbandeer_Characters (data/achievementcatalog.lua) since the
+-- persistence layer needs the full id set regardless of whether this view is open.
+local achievementIds = api:GetAchievementCatalog().legion
 
 -- Achievements Table
 ---@class LegionAchievements: TableFrame
@@ -180,10 +182,10 @@ end, {
       ns.lua.lists.fold(achievementIds, 3),
       function(ids)
         return ns.lua.lists.map(ids, function(achievementId)
-          local _, name, _, completed = GetAchievementInfo(achievementId)
+          local _, name = GetAchievementInfo(achievementId)
           return {
             text = name,
-            color = completed and DIM_GREEN_FONT_COLOR or DIM_RED_FONT_COLOR,
+            color = api:IsAchievementComplete(achievementId) and DIM_GREEN_FONT_COLOR or DIM_RED_FONT_COLOR,
             onClick = function()
               OpenAchievement(achievementId)
             end,

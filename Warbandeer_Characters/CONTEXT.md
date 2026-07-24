@@ -19,6 +19,8 @@ Data-collection backbone for the suite. Scans the active character each login/re
 | `data/basic.lua` | Broker `basic`: `level`, `specialization`, `professions` (name summary), `xp` |
 | `data/currency.lua` | Broker `currency`: `RestoredCofferKey`, `gold` (`GetMoney`), `CofferKeyShard`, `Catalyst`, `HeroDawncrest`, `MythDawncrest`, `NebulousVoidcore`, `UntaintedManaCrystal`, `ShardOfDundun`, `FieldAccolade`, `UnalloyedAbundance` |
 | `data/warband.lua` | Account-wide (not a broker): `db.warband` bank gold + weekly wealth. `ns:GetWarbandWealth`, `RolloverWarbandWeek`, `InitWarband`; `/wbc dump warband` |
+| `data/achievementcatalog.lua` | The static `ns.AchievementCatalog` — the tracked-achievement id catalog (`checklist.{wwi,midnight,dragonflight}` for Overview's per-expansion checklist, `milestones` for the Milestones grid, `legion` for the Legion hidden-artifact grid, `metaAlts` — a meta id → alternate id whose completion also counts, e.g. 41818's Heroic variant 41820). Single source of truth: lives here (not in Warbandeer) since `data/achievements.lua` needs the full id set regardless of whether a view is open; Warbandeer's three achievement views read it via `WarbandeerApi:GetAchievementCatalog` instead of hardcoding their own arrays |
+| `data/achievements.lua` | Account-wide (not a broker): `db.achievements` snapshot of every catalog-tracked id's `{completed, wasEarnedByMe}` + the account's `totalPoints`. `ns:CaptureAchievements`/`InitAchievements` (login) re-snapshot on `ACHIEVEMENT_EARNED` (no-ops for untracked ids). Names are NOT persisted — the addon resolves them live via `GetAchievementInfo`; a desktop-facing name catalog is deferred to #639. `wasEarnedByMe` is genuinely per-character but captured account-wide from whichever character last triggered a snapshot (deliberate simplification, matching `data/quests.lua`'s `CatalystUnbound`). `WarbandeerApi:GetAchievement`/`IsAchievementComplete`/`GetTotalAchievementPoints`; `/wbc dump achievements` |
 | `data/bank.lua` | Account-wide (not a broker): `db.bank` profession-gear cache for the warband bank, each character's bank, and guild banks. Also records each store's equippable gear (`equip` = `GearCandidate[]`) for the warband + personal banks (not guild). Scanned on bank/guild-bank open (warband+character via `C_Bank`/`C_Container`, guild via the classic API). Each store also records `items` (v19) — a full `{[itemID]=count}` map of *everything* in that bank (not just prof gear), accumulated in the same slot loop via `addCount`; drives `WarbandeerApi:GetItemCounts` (warband-stock tooltip). The warband bank's map is account-wide (stored once). **Load-then-rescan** for the `equip` ilvls: a fresh bank-open scan reads many slots cold, so `addEquip` falls back to the link's ilvl (never nil — a nil ilvl makes the upgrade finder drop the item, recommending a worse already-loaded piece first) and flags the slot; `scanPersonalBanks` requests a load and `scheduleBankRescan` re-scans (gen-guarded, `MAX_BANK_RESCANS`×`BANK_RESCAN_DELAY`, gated on the bank still open) until every slot reports its real scaled ilvl — mirrors `data/equipment.lua`. `WarbandeerApi:GetBankProfGear(skillID)`; `/wbc dump bankgear`. A character with no `db.bank.characters[name]` entry is flagged "bank contents" by its `missing` provider |
 | `data/items.lua` | Broker `items`: `bags`, `reagentBag`; `/wbc refresh items` |
 | `data/inventory.lua` | Broker `inventory`: `counts` — `{[itemID]=qty}` summed across the active character's bags + reagent bag (container IDs 0..NUM_BAG_SLOTS+1 via `C_Container`). Rescanned on `BAG_UPDATE_DELAYED` (500ms). Last-seen per character (only refreshable while logged in). Consumed by `WarbandeerApi:GetItemCounts` → ShadowsOfUI-WarbandInventory's stock tooltip. A character with no `inventory.counts` (not seen since v19) is flagged "bag contents" by its `missing` descriptor |
@@ -209,6 +211,18 @@ WarbandeerApi:GetHouses()                  → { alliance?, horde? }?
     -- account-wide per-house view (HouseView = { name, level, favor, title, progress, required, resetAt, xp });
     -- xp = GetAvailableHouseXP (House XP still earnable this cycle — a countdown).  nil until a house is captured
     -- (ns.ShapeHouses).  Drives Warbandeer's Overview Houses section
+WarbandeerApi:GetAchievementCatalog()      → table
+    -- the categorized tracked-achievement id catalog (ns.AchievementCatalog: checklist.{wwi,midnight,
+    -- dragonflight}, milestones, legion, metaAlts) — single source of truth shared by the persistence
+    -- layer and Warbandeer's three achievement views
+WarbandeerApi:GetAchievement(achievementId) → AchievementSnapshotEntry?
+    -- persisted { completed, wasEarnedByMe } for one tracked id; nil until the account-wide snapshot
+    -- has been seeded, or if the id isn't in the catalog.  wasEarnedByMe reflects whichever character
+    -- last triggered a snapshot, not a true per-character breakdown
+WarbandeerApi:IsAchievementComplete(achievementId) → boolean
+    -- resolves `completed`, OR'd with the catalog's metaAlts entry (if any); false when unseeded
+WarbandeerApi:GetTotalAchievementPoints()  → integer
+    -- account-wide total achievement score, last captured at login/ACHIEVEMENT_EARNED
 ```
 
 `GearCandidate` = `{ link, itemID, ilvl?, equipLoc, classID, subClassID, quality?, reqLevel? }` (ilvl is the
@@ -473,6 +487,12 @@ A `Broker` (from `broker.lua`) holds a `fields` table; each field is `{ get, eve
   housing = {
     neighborhoods = { [neighborhoodGUID] = { isAlliance?, name?, title?, progress?, required?, resetAt?, xp? } },  -- xp = GetAvailableHouseXP (still-earnable this cycle)
     houses = { [houseGUID] = { neighborhoodGUID?, name?, level?, favor? } },
+  },
+  -- account-wide achievement snapshot; self-seeded by data/achievements.lua at login, refreshed on
+  -- ACHIEVEMENT_EARNED. Names are not persisted (resolved live via GetAchievementInfo; see #639)
+  achievements = {
+    snapshot = { [achievementId] = { completed, wasEarnedByMe } },  -- every id in ns.AchievementCatalog
+    totalPoints,                          -- GetTotalAchievementPoints(), account-wide
   },
   -- account-wide warband wealth (v8); not per-character
   warband = {

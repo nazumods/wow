@@ -472,6 +472,7 @@ function ns:initialize()
   self:InitBrokers()
   self:InitWarband()
   self:InitTravelersLog()
+  self:InitAchievements()
 end
 
 -- Guild info can read back nil at PLAYER_LOGIN (before the roster loads) and also
