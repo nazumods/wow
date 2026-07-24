@@ -310,6 +310,7 @@ std = {
     "SettingsPanel",
     "StanceBar",
     "StatusTrackingBarManager",
+    "TransmogFrame",
     "UIParent",
     "UISpecialFrames",
     "WorldMapFrame",

@@ -161,33 +161,13 @@ end
 
 ---Dress the room from an outfit list — the inverse of ComposeOutfit.
 ---
----Every slot is driven through `SlotTransmog` over a bare body rather than through `Outfit`:
----`TryOn` drops an appearance the previewed character's class can't equip, while SlotTransmog
----renders any appearance on anyone (the same reason the look builder uses it), and it is
----re-applied per slot across the model's async re-skins so the outfit survives a race change.
+---The model dressing itself is `ns.DressModelFromList` (outfitmodel.lua), shared with the library
+---window's preview pane so the two can't drift. What stays here is the room-specific half: mirroring
+---the result onto the composed-look fields.
 ---@param list table[]
 ---@return DressingRoom
 function DressingRoom:ApplyOutfit(list)
-  ns.SanitizeOutfit(list)
-
-  -- Drop any override left over from a previous outfit or look, so slots this outfit leaves
-  -- empty actually come out empty instead of inheriting the last one.
-  for slot = 1, INVSLOT_LAST_EQUIPPED do self._model:ClearSlotTransmog(slot) end
-  self._model:Outfit({})
-
-  for _, slotID in ipairs(ns.OutfitSlotOrder) do
-    local info = list[slotID]
-    local appearanceID = info and info.appearanceID or 0
-    if appearanceID > 0 then
-      self._model:SlotTransmog(slotID, appearanceID, {
-        -- Only a real split-shoulder secondary is forwarded; the main-hand's -1/0 discriminator
-        -- is meaningless to the model and would be read as an appearance id.
-        secondaryAppearanceID = (slotID == INVSLOT_SHOULDER and info.secondaryAppearanceID > 0)
-          and info.secondaryAppearanceID or nil,
-        illusionID = (info.illusionID and info.illusionID > 0) and info.illusionID or nil,
-      })
-    end
-  end
+  ns.DressModelFromList(self._model, list)
 
   -- Mirror the outfit onto the composed-look fields so the weapon slots, the cosmetic slots and
   -- the picker's selection borders all show what is actually being worn.

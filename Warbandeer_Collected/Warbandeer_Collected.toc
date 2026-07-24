@@ -37,6 +37,8 @@ outfitcodec.lua
 outfit.lua
 outfitshare.lua
 outfitlibrary.lua
+outfitmodel.lua
+outfitsave.lua
 outfitcommands.lua
 api.lua
 
