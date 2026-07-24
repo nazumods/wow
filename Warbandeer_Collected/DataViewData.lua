@@ -13,6 +13,20 @@ local DataView = ns.DataView
 local UPCOMING = {0.55, 0.70, 0.95, 1}
 local UPCOMING_GLYPH = "•"
 
+-- The number of equipment slots a set fills (its "pieces") — the same 9-slot enumeration InfoTip
+-- lists — for the PTR count. Only meaningful where the client has the set's data (a PTR/beta client
+-- for an upcoming set); on a live client an upcoming set has no sources, so this returns 0 (and the
+-- caller shows a dot instead). Raid + PvP sets both resolve via the per-slot source lookup.
+---@param setId number
+---@return number
+function ns.SetPieceCount(setId)
+  local n = 0
+  for _, slot in ipairs({1, 3, 15, 5, 6, 7, 8, 9, 10}) do
+    if #(C_TransmogSets.GetSourcesForSlot(setId, slot) or {}) > 0 then n = n + 1 end
+  end
+  return n
+end
+
 -- A class set counts as fully collected when the scan flagged the base set (true)
 -- or every appearance is owned (remaining <= 0). The `or` short-circuits before
 -- indexing `status`, so passing the boolean `true` is safe.
@@ -123,14 +137,15 @@ function ns.CollectedRows(self)
           ns.ShowDressingRoom(grp, set, ns.GridHost(self))   -- dock onto this grid's window (#708)
         end
       end
-      -- Upcoming (PTR): a muted dot, no count/completion shade.
-      -- classIndex (the set's slot in the positional grp.sets) disambiguates the
-      -- dressed-set cursor: PvP sets share one base setId across every class of an
-      -- armour type, so setId alone can't tell those columns apart (see HighlightSet).
+      -- Upcoming (PTR): on a PTR client (where the set is live) the piece count still to come; on a
+      -- live client a muted dot — the set has no data there. PTR blue, no completion shade either way.
+      -- classIndex (the set's slot in the positional grp.sets) disambiguates the dressed-set cursor:
+      -- PvP sets share one base setId across every class of an armour type, so setId alone can't tell
+      -- those columns apart (see HighlightSet).
       if isPtr then
         return {
           setId = set.id, classIndex = classIndex,
-          text = UPCOMING_GLYPH,
+          text = ns.OnPtr(ns.PtrBuild and ns.PtrBuild.ptr) and ns.SetPieceCount(set.id) or UPCOMING_GLYPH,
           justifyH = ui.justify.Center,
           color = UPCOMING,
           onEnter = onEnter, onLeave = onLeave, onClick = onClick,

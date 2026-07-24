@@ -1,5 +1,25 @@
 ---@class Warbandeer_Collected: AddOn
+---@field OnPtr fun(ptrBuild: string?): boolean  is the running client the PTR build a preview targets?
 local ns = LibNAddOn(...)
+
+-- Is the running client at or past the PTR build a preview was generated for? IsTestBuild() is
+-- unreliable (a PTR reports false on 12.1.0), so compare the client's version + build to the data's
+-- `ptr` stamp component-wise (major.minor.patch.build) with `>=`: on that PTR — or a newer build of
+-- it — the "upcoming" content is live, so the grids show real counts; a live client is a lower version,
+-- so it shows a muted dot. `ptrBuild` is ns.WeaponPtrBuild.ptr / ns.PtrBuild.ptr ("12.1.0.68914").
+---@param ptrBuild string?
+---@return boolean
+function ns.OnPtr(ptrBuild)
+  if not ptrBuild then return false end
+  local ver, build = GetBuildInfo()   -- "12.1.0", "68914"
+  local function nums(s) local t = {} for n in tostring(s):gmatch("%d+") do t[#t + 1] = tonumber(n) end return t end
+  local client, data = nums(ver .. "." .. build), nums(ptrBuild)
+  for i = 1, math.max(#client, #data) do
+    local c, d = client[i] or 0, data[i] or 0
+    if c ~= d then return c > d end
+  end
+  return true   -- identical build → at the PTR
+end
 
 ---Migrate the saved DB to the current version (non-destructive; seeds missing keys).
 function ns:MigrateDB()

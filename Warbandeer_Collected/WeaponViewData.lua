@@ -106,11 +106,11 @@ function ns.WeaponRows(self)
       if not visuals then
         r[ci] = {}
       elseif ptr then
-        -- PTR PREVIEW: how many UPCOMING appearances of this type are coming, in PTR blue. They aren't
-        -- obtainable until the patch lands, so there's no collected/remaining state — just the count of
-        -- new looks (no red→green shade, green check or class greying). Clickable like a live cell: on
-        -- the PTR the looks resolve and open the dressing room; on a live client it notes "log into PTR".
-        r[ci] = { text = #visuals, justifyH = ui.justify.Center, color = UPCOMING,
+        -- PTR PREVIEW: on a PTR client (where these are live) show how many UPCOMING appearances of
+        -- this type are coming; on a live client show a muted dot — they aren't obtainable until the
+        -- patch lands, so there's no collected/remaining state to shade. PTR blue either way, no class
+        -- greying. Clickable: on the PTR the looks resolve and open the dressing room; on live it notes.
+        r[ci] = { text = ns.OnPtr(ns.WeaponPtrBuild and ns.WeaponPtrBuild.ptr) and #visuals or "•", justifyH = ui.justify.Center, color = UPCOMING,
           onEnter = function() ns.ShowWeaponCellTip(grp, t, visuals) end,
           onLeave = function() GameTooltip:Hide() end,
           onClick = function() ns.PreviewWeaponCell(grp, t, visuals, ns.GridHost(self), true) end,
