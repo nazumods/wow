@@ -24,9 +24,11 @@ local selBox = ns.DressingRoom._k.selBox
 local SAVE_POPUP    = "WARBANDEER_COLLECTED_SAVE_LOOK"
 local REPLACE_POPUP = "WARBANDEER_COLLECTED_REPLACE_LOOK"
 local BTNW, BTNH, GAP = 132, 22, 6
--- Clear of `CharacterPreview.BottomSlots`, which Blizzard anchors at BOTTOM y=48; below it the band
--- down to the frame's edge holds no interactive child of theirs.
-local BOTTOM_Y = 14
+-- `CharacterPreview.BottomSlots` is anchored at BOTTOM y=48, so the free band is the 48px beneath
+-- it. The row is deliberately biased LOW in that band rather than centred in it: centred (y=14) put
+-- only 12px between the buttons and Blizzard's slot icons, and crowding their furniture reads as a
+-- bug, where a smaller margin against the frame's own bottom edge just reads as a margin.
+local BOTTOM_Y = 8
 
 ---One labelled button: framed box, centred caption, click target. The same idiom as the library
 ---window's strip buttons — a peer class can't reach the room's `_rowButton`.
