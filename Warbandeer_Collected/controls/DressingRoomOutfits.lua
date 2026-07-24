@@ -69,7 +69,7 @@ function DressingRoom:_rowButton(row, x, w, label, onClick)
     position = { Left = {2, 0}, Right = {-2, 0} }, text = label }
   -- Disabled buttons grey their caption and swallow the click, rather than firing and printing a
   -- refusal — the same "don't offer what won't work" Blizzard's own name prompt uses.
-  Button:new{ parent = box, position = { All = true }, glow = false,
+  Button:new{ parent = box, position = { All = true },
     OnClick = function() if not btn.disabled then onClick() end end }
   return btn
 end

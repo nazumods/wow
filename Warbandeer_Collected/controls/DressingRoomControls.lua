@@ -33,7 +33,7 @@ function DressingRoom:_buildControls(controls)
     position = { TopLeft = {0, 0}, Width = half, Height = ROWH },
   }
   self._undressBorder = selBox(undressBox)
-  Button:new{ parent = undressBox, position = { All = true }, glow = false,
+  Button:new{ parent = undressBox, position = { All = true },
     OnClick = function() self:ToggleUndress() end }
   Label:new{ parent = undressBox, justifyH = ui.justify.Center,
     position = { Left = {6, 0}, Right = {-6, 0} }, text = "Undress" }
@@ -44,7 +44,7 @@ function DressingRoom:_buildControls(controls)
   }
   self._bgBorder = selBox(bgBox)
   self._bgBorder:Color(SELECTED)   -- backdrop defaults on
-  Button:new{ parent = bgBox, position = { All = true }, glow = false,
+  Button:new{ parent = bgBox, position = { All = true },
     OnClick = function() self:SetBackgroundOn(not self._bgEnabled) end }
   Label:new{ parent = bgBox, justifyH = ui.justify.Center,
     position = { Left = {6, 0}, Right = {-6, 0} }, text = "Background" }
@@ -66,7 +66,7 @@ function DressingRoom:_buildControls(controls)
   self._wantBox = wantBox
   Texture:new{ parent = wantBox, layer = ui.layer.Artwork, atlas = ns.WantedIcon, atlasSize = false,
     position = { Left = {6, 0}, Size = {14, 14} } }
-  Button:new{ parent = wantBox, position = { All = true }, glow = false,
+  Button:new{ parent = wantBox, position = { All = true },
     OnClick = function() self:ToggleWanted() end }
   Label:new{ parent = wantBox, justifyH = ui.justify.Center,
     position = { Left = {24, 0}, Right = {-4, 0} }, text = "Wanted" }
@@ -82,7 +82,7 @@ function DressingRoom:_buildControls(controls)
     self._ratingsBoxes[#self._ratingsBoxes + 1] = box
     Texture:new{ parent = box, layer = ui.layer.Artwork, color = ns.RankColors[letter],
       position = { TopLeft = {2, -2}, BottomRight = {-2, 2} } }
-    Button:new{ parent = box, position = { All = true }, glow = false,
+    Button:new{ parent = box, position = { All = true },
       OnClick = function() self:SetRank(letter) end }
     Label:new{ parent = box, justifyH = ui.justify.Center, position = { All = true },
       color = {0.08, 0.08, 0.08}, text = letter }
@@ -95,7 +95,7 @@ function DressingRoom:_buildControls(controls)
   }
   selBox(clearBox)
   self._ratingsBoxes[#self._ratingsBoxes + 1] = clearBox
-  Button:new{ parent = clearBox, position = { All = true }, glow = false,
+  Button:new{ parent = clearBox, position = { All = true },
     OnClick = function() self:SetRank(nil) end }
   Label:new{ parent = clearBox, justifyH = ui.justify.Center, position = { All = true }, text = "–" }
 
@@ -106,7 +106,7 @@ function DressingRoom:_buildControls(controls)
   }
   self._raceOnlyBorder = selBox(raceBox)
   self._ratingsBoxes[#self._ratingsBoxes + 1] = raceBox
-  Button:new{ parent = raceBox, position = { All = true }, glow = false,
+  Button:new{ parent = raceBox, position = { All = true },
     OnClick = function() self:SetRaceOnly(not self._raceOnly) end }
   Label:new{ parent = raceBox, justifyH = ui.justify.Center,
     position = { Left = {4, 0}, Right = {-4, 0} }, text = "This race" }
@@ -152,7 +152,7 @@ function DressingRoom:_buildRacePanels(controls, d)
       Label:new{ parent = box, justifyH = ui.justify.Center,
         position = { All = true }, text = race.name:sub(1, 3) }
     end
-    local btn = Button:new{ parent = box, position = { All = true }, glow = false,
+    local btn = Button:new{ parent = box, position = { All = true },
       OnClick = function() self:SetRace(race.id) end }
     btn._widget:SetScript("OnEnter", function(f)
       GameTooltip:SetOwner(f, "ANCHOR_RIGHT")

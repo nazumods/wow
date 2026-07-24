@@ -56,9 +56,8 @@ local function rowButton(parent, x, label, onClick)
   selBox(box)
   Label:new{ parent = box, justifyH = ui.justify.Center, wordWrap = false,
     position = { Left = {2, 0}, Right = {-2, 0} }, text = label }
-  -- `glow` left on (the row buttons elsewhere disable it) so these carry LibNUI's hover border:
-  -- on a Blizzard frame, among controls that all light up on mouseover, one that doesn't reads as
-  -- disabled.
+  -- `glow` left on so these carry LibNUI's hover border, as every button in the addon now does:
+  -- among controls that all light up on mouseover, one that doesn't reads as disabled.
   Button:new{ parent = box, position = { All = true }, OnClick = onClick }
   return box
 end

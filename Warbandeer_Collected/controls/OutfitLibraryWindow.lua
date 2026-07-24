@@ -194,7 +194,7 @@ function OutfitLibraryWindow:_paneButton(parent, x, w, label, onClick)
   selBox(box)
   box.label = Label:new{ parent = box, justifyH = ui.justify.Center, wordWrap = false,
     position = { Left = {2, 0}, Right = {-2, 0} }, text = label }
-  Button:new{ parent = box, position = { All = true }, glow = false, OnClick = onClick }
+  Button:new{ parent = box, position = { All = true }, OnClick = onClick }
   return box
 end
 
