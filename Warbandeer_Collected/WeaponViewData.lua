@@ -16,6 +16,7 @@ local GameTooltip = GameTooltip
 ---@field WeaponTypeAbbr table<number, string> compact column caption per type (icon fallback / full name via the header tooltip)
 ---@field WeaponTypeName table<number, string> localized full weapon-type name per type
 ---@field WeaponTypeIcon table<number, string> column-header icon texture path per type
+---@field WeaponUsableTypes fun(): table<number, boolean> logged-in class's usable weapon types (greying hint)
 ---@field WeaponRows fun(self: WeaponView): table
 ---@field WeaponVisibleCounts fun(self: WeaponView): number, number, number
 ---@field WeaponMatches fun(view: WeaponView, grp: table): boolean
@@ -35,14 +36,28 @@ ns.WeaponTypeName = { [12] = "Wand", [13] = "One-Handed Axe", [14] = "One-Handed
   [22] = "Two-Handed Mace", [23] = "Staff", [24] = "Polearm", [25] = "Bow", [26] = "Gun",
   [27] = "Crossbow", [28] = "Warglaive" }
 -- Column-header icons: house-style white silhouettes (tools/make_weapon_type_icons.py), one per
--- type. Rendered untinted via |T…|t in the header (inline markup can't vertex-tint), so they read
--- white on the dark header backdrop; the WeaponTypeAbbr text above is the fallback if one is missing.
+-- type. BuildColInfo renders them as a real texture header (`path` + `vertexColor`), so the icon can
+-- carry a tint — full white for a usable type, dimmed for one the class can't wield (#690 greying).
 local WTEX = [[Interface\AddOns\Warbandeer_Collected\textures\weapons\]]
 ns.WeaponTypeIcon = { [12] = WTEX .. "wand", [13] = WTEX .. "axe", [14] = WTEX .. "sword",
   [15] = WTEX .. "mace", [16] = WTEX .. "dagger", [17] = WTEX .. "fist", [18] = WTEX .. "shield",
   [19] = WTEX .. "offhand", [20] = WTEX .. "axe2h", [21] = WTEX .. "sword2h", [22] = WTEX .. "mace2h",
   [23] = WTEX .. "staff", [24] = WTEX .. "polearm", [25] = WTEX .. "bow", [26] = WTEX .. "gun",
   [27] = WTEX .. "crossbow", [28] = WTEX .. "warglaive" }
+
+-- Weapon types the LOGGED-IN character's class can transmog — the same capability the look builder
+-- reads (ns.WeaponCategories). The grid greys types this class can't wield as a display HINT (not a
+-- filter — the columns stay, their header + cells just dim): a caster's grid showing Two-Handed Axes
+-- at full strength is noise. Cached; a character's class is fixed for the session (resets on /reload).
+local _usableTypes
+function ns.WeaponUsableTypes()
+  if _usableTypes then return _usableTypes end
+  _usableTypes = {}
+  for _, cat in ipairs(ns.WeaponCategories(select(3, UnitClass("player")))) do
+    _usableTypes[cat.category] = true
+  end
+  return _usableTypes
+end
 
 -- The completion cell (green check / count + red→green shade), the expansion sort, and the shared
 -- gradient live in GridShared.lua (ns.CompletionCell / sortByExpansion) — identical to the armor grid.
@@ -66,6 +81,8 @@ ns.WeaponMatches = matches
 ---@return table
 function ns.WeaponRows(self)
   local cmap = ns:WeaponCollectedMap()
+  local usable = ns.WeaponUsableTypes()   -- greying hint: types this class can't wield are muted
+  local GREYED = {0.42, 0.42, 0.45, 1}    -- one shared muted colour for every unusable-type cell
   local order = {}
   for i = 1, #ns.WeaponSources do
     if matches(self, ns.WeaponSources[i]) then order[#order + 1] = i end
@@ -87,9 +104,14 @@ function ns.WeaponRows(self)
         local onClick = function() ns.PreviewWeaponCell(grp, t, visuals) end
         -- `_source`/`_type` identify the cell so the dressed-weapon cursor can find it
         -- (the weapon analogue of a cell's setId/classIndex — see WeaponView:HighlightWeaponCell).
-        r[ci] = ns.CompletionCell(coll, total, {
+        local cell = ns.CompletionCell(coll, total, {
           onEnter = onEnter, onLeave = onLeave, onClick = onClick, _source = grp, _type = t,
         })
+        -- Display hint: a class that can't wield this weapon type gets a muted cell so the whole
+        -- column recedes — the red→green count shade (and the green check, if the renderer tints it)
+        -- flattens to grey. Only the paint changes; the count/collected data is untouched.
+        if not usable[t] then cell.color = GREYED end
+        r[ci] = cell
       end
     end
     -- Prepend the name cell (expansion badge + source name), inert — tinsert at 1 shifts the
