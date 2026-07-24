@@ -30,7 +30,7 @@ local PANE_TOP = 3
 -- its height so its BOTTOM still lands exactly there.
 local PANEH = STRIPH + GAP + LISTH + GAP + STRIPH - PANE_TOP
 -- The model is inset from the pane's top rather than sitting flush against it.
-local MODEL_TOP = 4
+local MODEL_TOP = 10
 -- Everything under the model (name, provenance, the rename field and the verb row, with their gaps)
 -- costs a fixed 86px; the model takes whatever is left. Running the column down to the footer line
 -- is what buys it the extra height — at the old height the character's head clipped against the
@@ -64,6 +64,14 @@ function OutfitLibraryWindow:_buildPreview(strip)
   self._preview = Model:new{
     parent = pane, position = { TopLeft = {0, -MODEL_TOP}, Width = RIGHTW, Height = MODELH },
   }
+  -- **Normalisation, set BEFORE the re-skin.** Without it the model renders at raw size and a tall
+  -- silhouette — a hat, high shoulders — overruns the frame's top edge; no amount of nudging the
+  -- frame fixes that, because the content is what doesn't fit. The room sets the same strength for
+  -- the same reason, and the ordering matters for the reason it documents: `Model:Unit` arms the
+  -- re-apply machinery right then, and a synchronous load (the viewer's own race, already in
+  -- memory) re-applies immediately, so the strength has to already be correct.
+  self._preview:Aggressiveness(ns.NORMALIZE_AGGRESSIVENESS)
+  self._preview:Scale(1)
   -- The viewer's own character, once. Nothing here previews another race: this window is about
   -- finding a saved look, and a race selector is the dressing room's job.
   self._preview:Unit("player")
