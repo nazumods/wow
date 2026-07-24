@@ -23,6 +23,7 @@ local TableFrame = ui.TableFrame
 ---@field _reverse boolean? sort by expansion newest-first (release 12→1; defaults true; see ToggleOrder)
 ---@field _wantedOnly boolean? show only rows holding a wanted set (non-wanted cells within a shown row still blank; empty → _setEmpty message) — see ToggleWantedOnly
 ---@field _ptr boolean? show the PTR-only "upcoming" sets (ns.PtrSets) instead of live (see SetPtr)
+---@field _repaintPtr fun(on: boolean)? repaints the PTR toggle border on a programmatic SetPtr (mode swap)
 ---@field _expansion number|string? release filter — a release index, or "all" (see SetExpansion)
 ---@field _category string? category filter — a category name, or "all" (see SetCategory)
 ---@field _playerRace number? cached canonical race id the rank pips resolve against

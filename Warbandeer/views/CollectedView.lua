@@ -256,6 +256,10 @@ function CollectedView:SetMode(weapons)
   self._weaponsMode = weapons
   self.active = weapons and self.weaponGrid or self.grid
   self.activeScroll = weapons and self.weaponScroll or self.scroll
+  -- Carry the PTR PREVIEW state across the Armor/Weapons swap (one window-level mode): the grid being
+  -- shown adopts the mode of the one being hidden (SetPtr repaints its own toggle).
+  local prevGrid = weapons and self.grid or self.weaponGrid
+  if self.active._ptr ~= prevGrid._ptr then self.active:SetPtr(prevGrid._ptr) end
   self.grid:SetShown(not weapons); self.filterStrip:SetShown(not weapons); self.scroll:SetShown(not weapons)
   self.weaponGrid:SetShown(weapons); self.weaponStrip:SetShown(weapons); self.weaponScroll:SetShown(weapons)
   self.wantedCount:SetShown(not weapons)   -- the wanted tally is armor-only

@@ -18,6 +18,7 @@ local GameTooltip = GameTooltip
 ---@field _expansion number|string? release filter — a release index, or "all"
 ---@field _category string? category filter — a category name, or "all"
 ---@field _ptr boolean? PTR PREVIEW — show the upcoming (ns.WeaponPtrSources) weapons instead of live
+---@field _repaintPtr fun(on: boolean)? repaints the PTR toggle border on a programmatic SetPtr (mode swap)
 ---@field onResized fun(self: WeaponView)? host hook fired after a filter/sort change resizes the row area
 ---@field onEnsureVisible fun(self: WeaponView, rowTop: number, rowH: number)? host hook to scroll a row into view (see HighlightWeaponCell)
 ---@field _dressedBox Frame? the white 4-edge cursor box re-anchored over the dressed weapon cell (created lazily)
@@ -118,6 +119,7 @@ function WeaponView:SetCategory(key) self._category = key; self:_refilter() end
 ---@return boolean
 function WeaponView:SetPtr(on)
   self._ptr = on
+  if self._repaintPtr then self._repaintPtr(on) end   -- keep the toggle border in sync on a programmatic set (mode swap)
   self:HighlightWeaponCell(nil, nil, false)   -- no dressing-room preview for weapons that aren't out yet
   self:_refilter()
   return self._ptr
@@ -194,11 +196,13 @@ function WeaponView:BuildFilterStrip(parent, onModeChanged)
   ptrBorder = ns.filterToggle(strip, theme, {
     x = 0, text = "PTR", active = false,
     onClick = function()
-      local on = self:SetPtr(not self._ptr)
-      ptrBorder:Color(on and gold or divider)
+      self:SetPtr(not self._ptr)   -- repaints the border via _repaintPtr below
       if onModeChanged then onModeChanged() end
     end,
   })
+  -- Lets SetPtr repaint the border when the state is set programmatically: the host's Armor/Weapons
+  -- swap carries the PTR mode across so both grids' toggles stay in sync (see SetMode).
+  self._repaintPtr = function(on) ptrBorder:Color(on and gold or divider) end
 
   -- Sort toggle (neutral border, always-on control; the gold calendar glyph carries the direction) —
   -- the shared filter-strip button primitive, same as the armor strip's Sort toggle.
