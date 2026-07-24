@@ -214,13 +214,20 @@ function DressingRoom:EnterOutfitMode(name, list)
   self:Title(name)
   self._idLabel:Text("")
   self._masterName = nil
-  -- A loaded look isn't one of the tracked sets, but it does have a class — the one it was saved
-  -- under — so the title-bar class icon and the class-themed backdrop stay meaningful here instead
-  -- of blanking to a plain dark room (#699). Entries predating #655 carry no provenance, and a
-  -- pasted or imported name may not be in the library at all; both fall back to nil, which is
-  -- exactly the old behaviour. The expansion badge is deliberately left alone.
+  -- A loaded look isn't one of the tracked sets, but it does have a class, so the title-bar class
+  -- icon and the class-themed backdrop stay meaningful here instead of blanking to a plain dark
+  -- room (#699).
+  --
+  -- **`forClass` wins over `class`.** The two answer different questions — what the look is FOR
+  -- versus who saved it — and it is the former this backdrop illustrates: a Death Knight can
+  -- compose a Druid look, and it's the Druid view that belongs behind it. `class` is the fallback
+  -- rather than the primary because `forClass` is unrecoverable for a set imported from the game or
+  -- a look saved at the transmogrifier, where only the saving character is knowable.
+  --
+  -- Entries predating #655 carry no provenance at all, and a pasted name may not be in the library;
+  -- both fall back to nil, which is exactly the old behaviour. The expansion badge is left alone.
   local entry = ns.LibraryOutfit(name)
-  self:_showClass(entry and ns.ClassId(entry.class))
+  self:_showClass(entry and ns.ClassId(entry.forClass or entry.class))
   self._tierBarL:Hide()
   self._tierBarR:Hide()
   if self._ratingsBoxes then for _, b in ipairs(self._ratingsBoxes) do b:Hide() end end
