@@ -77,6 +77,8 @@ DataViewMarks.lua
 
 WeaponViewData.lua
 WeaponView.lua
+WeaponViewFilters.lua
+WeaponViewMarks.lua
 
 window.lua
 controls\WorkspaceDock.lua
