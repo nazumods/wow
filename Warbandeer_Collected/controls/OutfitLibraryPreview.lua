@@ -48,8 +48,8 @@ local NO_SELECTION = "Select a look to preview it."
 ---@field _previewOrigin Label  its provenance, or the muted "nothing selected" prompt
 ---@field _renameBox EditBox  the new name Rename applies
 ---@field _armed Frame?  the verb awaiting its confirming second click
----@field _armedLabel string?  that verb's caption, to restore when it disarms
----@field _armTimer table?  the pending revert
+---@field _armedLabel string?  that verb's resting caption, to restore when it disarms
+---@field _armTimer table?  the 1s ticker that counts the armed caption down and reverts it
 
 ---Build the right column. Anchored off the filter strip so the two columns share a top edge, and
 ---sized to the strip + list beneath it so the pane bottoms out level with the list.
@@ -104,17 +104,28 @@ function OutfitLibraryWindow:_buildPreview(strip)
 end
 
 ---Arm a verb: its second click inside CONFIRM_S commits. The same arm-then-confirm the outfit row
----uses, so a destructive click is never a single one.
+---uses, so a destructive click is never a single one — including its countdown caption and its
+---lapse notice (#698), because a silent revert here made a late second click indistinguishable from
+---a first one exactly as it did there.
 ---@param btn Frame
----@param caption string
-function OutfitLibraryWindow:_arm(btn, caption)
+---@param caption string  the armed caption; the seconds left are appended to it
+---@param lapsed string  past participle for the lapse notice ("deleted", "replaced")
+function OutfitLibraryWindow:_arm(btn, caption, lapsed)
   self:_disarm()
   self._armed, self._armedLabel = btn, btn.label:Text()
-  btn.label:Text(caption)
-  self._armTimer = C_Timer.NewTimer(CONFIRM_S, function() self:_disarm() end)
+  local left = CONFIRM_S
+  local function paint() btn.label:Text(("%s %d"):format(caption, left)) end
+  paint()
+  self._armTimer = C_Timer.NewTicker(1, function()
+    left = left - 1
+    if left > 0 then return paint() end
+    self._armTimer = nil
+    self:_disarm()
+    ns.Print(("Confirmation expired — nothing was %s."):format(lapsed))
+  end, CONFIRM_S)
 end
 
----Revert whatever is armed. Safe to call when nothing is.
+---Revert whatever is armed, stopping its countdown. Safe to call when nothing is.
 function OutfitLibraryWindow:_disarm()
   if self._armTimer then self._armTimer:Cancel(); self._armTimer = nil end
   if self._armed then
@@ -191,7 +202,7 @@ function OutfitLibraryWindow:DeleteSelected()
     return
   end
   if not armed then
-    self:_arm(self._deleteBtn, "Sure?")
+    self:_arm(self._deleteBtn, "Sure?", "deleted")
     return
   end
   ns.DeleteLibraryOutfit(self._selected)
@@ -218,7 +229,10 @@ function OutfitLibraryWindow:PushSelected()
   local existing
   for _, s in ipairs(ns.CustomSets()) do if s.name == self._selected then existing = s.id end end
   if existing and not armed then
-    self:_arm(self._pushBtn, "Replace?")
+    -- Named in chat rather than on the button, exactly as the room's Push does.
+    ns.Print(("\"%s\" is already one of this character's sets — click Push again to replace it.")
+      :format(self._selected))
+    self:_arm(self._pushBtn, "Sure?", "replaced")
     return
   end
   local id, saveErr = ns.SaveCustomSet(self._selected, list, existing)

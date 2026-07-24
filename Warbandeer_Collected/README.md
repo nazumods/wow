@@ -204,11 +204,14 @@ what this works around.
   untouched. **+ New Look** at the bottom of the dropdown just clears the box to start fresh.
 - **Rename** changes the selected look's name to whatever's in the name field. It's the only thing
   that renames — pressing Enter in the box always saves, never renames.
-- **Delete** asks once (the button changes to *Confirm?*) before removing anything. Saving under a
-  name that belongs to a *different* look asks the same way, so you can't overwrite one by accident.
+- **Delete** asks once before removing anything: the button changes to *Sure?* and counts down the
+  few seconds you have to click it again. If the countdown runs out it tells you nothing was deleted,
+  so a click that arrived too late can never look like one that worked. Saving under a name that
+  belongs to a *different* look asks the same way, so you can't overwrite one by accident.
 - **Push** copies the selected look into *this* character's transmog sets, so you can wear it at
   a transmogrifier. That's the only step that's per-character, and the only one the game's
-  25-set limit applies to.
+  25-set limit applies to. If this character already has a set under that name, Push asks first and
+  tells you which one it would replace.
 - Buttons that can't do anything are greyed: Save until you've named a new look, and Rename,
   Delete and Push until you've picked one.
 
@@ -242,7 +245,8 @@ preview window opens the library — the same list, with room to search it and a
   saved, with who saved it written underneath. The window stays open, so you can click down the
   list comparing them.
 - **Rename**, **Delete** and **Push** act on the look you've selected, right beside the model.
-  Delete and Push ask once before doing anything. Saving stays where the look you're *building*
+  Delete always asks first, and Push asks whenever it would replace a same-named set on this
+  character — the same way the outfit row asks. Saving stays where the look you're *building*
   lives — the outfit row, or the transmogrifier.
 
 **Bring your old transmog sets in.** Sets you saved in the game's own dressing room live on
