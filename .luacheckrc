@@ -374,6 +374,7 @@ std = {
     "AUTOCOMPLETE_LIST",
     "AutoCompleteEditBox_SetAutoCompleteSource",
     "CANCEL",
+    "SAVE",
     "DELETE",
     "DELETE_MAIL_CONFIRMATION",
     "DELETE_MONEY_CONFIRMATION",

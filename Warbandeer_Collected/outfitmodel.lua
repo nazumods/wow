@@ -1,9 +1,12 @@
 ---@type Warbandeer_Collected
 local ns = select(2, ...)
 
--- Dressing a MODEL from an `itemTransmogInfoList` — one implementation, shared by the dressing room
--- (`DressingRoom:ApplyOutfit`, which mirrors the result onto its own composed-look fields
--- afterwards) and the outfit library window's preview pane (#699).
+-- The WoW-side outfit helpers shared across the room, the transmogrifier and the library window —
+-- dressing a MODEL from an `itemTransmogInfoList`, and stamping a look with who saved it (#699).
+--
+-- The dressing is one implementation shared by the dressing room (`DressingRoom:ApplyOutfit`, which
+-- mirrors the result onto its own composed-look fields afterwards) and the library window's preview
+-- pane.
 --
 -- Split out of controls/DressingRoomOutfit.lua when the library window gained a model of its own:
 -- the two were otherwise about to hold byte-identical copies of this loop, and a drift between them
@@ -14,6 +17,7 @@ local ns = select(2, ...)
 
 ---@class Warbandeer_Collected
 ---@field DressModelFromList fun(model: Model, list: table[])
+---@field LocalOutfitMeta fun(list: table[]): OutfitMeta
 
 ---Dress `model` from an outfit list, replacing whatever it was showing.
 ---
@@ -44,4 +48,24 @@ function ns.DressModelFromList(model, list)
       })
     end
   end
+end
+
+---Who saved a look, stamped at save time because none of it survives otherwise — a stored outfit is
+---appearance ids and nothing else.
+---
+---`forClass` is deliberately absent. It answers "which class's set was this composed from", which
+---only a set PREVIEW can know; a look staged at the transmogrifier, or imported from a game set,
+---carries no such memory. `ns.FilterOutfits` reads a nil facet as "unknown, matches everything",
+---which is the honest answer where a guess would hide the look behind a class it may have nothing
+---to do with. The dressing room keeps its own `_outfitMeta` precisely because it CAN derive one.
+---@param list table[]
+---@return OutfitMeta
+function ns.LocalOutfitMeta(list)
+  local name, realm = UnitFullName("player")
+  local _, class = UnitClass("player")
+  return {
+    char = realm and realm ~= "" and (name .. "-" .. realm) or name,
+    class = class,
+    armor = ns.OutfitArmorType(list),
+  }
 end

@@ -63,6 +63,7 @@ controls\DressingRoomOutfits.lua
 controls\DressingRoomOutfitActions.lua
 controls\DressingRoomOutfitShare.lua
 controls\OutfitLibraryWindow.lua
+controls\TransmogFrameButtons.lua
 
 GridShared.lua
 
