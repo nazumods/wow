@@ -44,11 +44,22 @@ local BOTTOM_Y = 16
 ---@param label string
 ---@param onClick fun()
 local function rowButton(parent, x, label, onClick)
-  local box = Frame:new{ parent = parent, position = { TopLeft = {x, 0}, Width = BTNW, Height = BTNH } }
+  -- **An explicit opaque fill, unlike the sibling windows' strip buttons.** Those get away with
+  -- `selBox`'s frame alone because they sit on one of our own opaque windows; these sit on
+  -- Blizzard's, where there is nothing behind them, so a bare border and a caption read as text
+  -- floating on the transmogrifier rather than as buttons. Same colour as the addon's windows.
+  local box = Frame:new{
+    parent = parent,
+    background = {0.11372549019, 0.14117647058, 0.16470588235, 0.95},
+    position = { TopLeft = {x, 0}, Width = BTNW, Height = BTNH },
+  }
   selBox(box)
   Label:new{ parent = box, justifyH = ui.justify.Center, wordWrap = false,
     position = { Left = {2, 0}, Right = {-2, 0} }, text = label }
-  Button:new{ parent = box, position = { All = true }, glow = false, OnClick = onClick }
+  -- `glow` left on (the row buttons elsewhere disable it) so these carry LibNUI's hover border:
+  -- on a Blizzard frame, among controls that all light up on mouseover, one that doesn't reads as
+  -- disabled.
+  Button:new{ parent = box, position = { All = true }, OnClick = onClick }
   return box
 end
 
