@@ -33,6 +33,10 @@ local GRIDW, ROWH, ROW3 = k.GRIDW, k.ROWH, k.ROW3
 -- same-named set, without a modal.
 
 local DROPW, NAMEW, BTNW, GAP = 150, 140, 62, 6
+-- Floor for the outfit menu's height. The measured room is normally far more than this; the floor
+-- only guards the degenerate case where a short window would otherwise leave a menu too small to
+-- scroll usefully — better to overhang slightly than to offer a two-row list.
+local MIN_MENU_H = 120
 -- The dropdown key for the one trailing entry that isn't a library look. A STRING so it can't be
 -- mistaken for a library outfit name — those are user-typed and trimmed, so they can never be
 -- empty or contain the sentinel's markers.
@@ -119,8 +123,18 @@ function DressingRoom:_buildOutfits(controls)
 
   -- Library dropdown, in the store's own insertion order — the order the user added looks in, and
   -- the order re-saving one preserves.
+  -- Cap the menu to the room it actually has, so a large library can't spill past the window's
+  -- bottom edge (#699). `FilterDropdown` scrolls whatever exceeds `maxMenuHeight` rather than
+  -- growing, but its 400px default is far more than this window offers beneath the outfit row —
+  -- and the list is as long as the user's library, so there is no count to design around.
+  --
+  -- Measured off `controls` rather than the constants because the race panels below are sized at
+  -- runtime: `controlsH` (and so the window's height) isn't knowable from `ROW*` alone. The frame's
+  -- border sits a few px below `controls`, which is what the trailing margin leaves room for.
+  local menuRoom = controls:Height() - (ROW3 + ROWH) - 4
   self._outfitDrop = FilterDropdown:new{
     parent = self._outfitRow, bordered = true, width = DROPW, options = {},
+    maxMenuHeight = menuRoom > MIN_MENU_H and menuRoom or MIN_MENU_H,
     onSelect = function(_, key) self:_selectOutfit(key) end,
     position = { TopLeft = {0, 0} },
   }
