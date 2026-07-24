@@ -99,7 +99,7 @@ function DressingRoom:_buildOverlays()
                    Width = FORMW, Height = ROWH },
     }
     local border = selBox(box)
-    Button:new{ parent = box, position = { All = true }, glow = false,
+    Button:new{ parent = box, position = { All = true },
       OnClick = function() self:SetForm(i) end }
     local label = Label:new{ parent = box, justifyH = ui.justify.Center,
       position = { Left = {4, 0}, Right = {-4, 0} } }
@@ -130,7 +130,7 @@ function DressingRoom:_buildOverlays()
     position = { BottomLeft = {self._model, ui.edge.BottomLeft, 8, 48}, Width = 100, Height = ROWH },
   }
   selBox(resetBox)
-  Button:new{ parent = resetBox, position = { All = true }, glow = false,
+  Button:new{ parent = resetBox, position = { All = true },
     OnClick = function()
       self._model:ResetView()
       self._scaleSlider:Value(1)   -- fires OnChange → resets model scale + label
@@ -197,7 +197,7 @@ function DressingRoom:_buildOverlays()
       },
     }
     selBox(box)
-    Button:new{ parent = box, position = { All = true }, glow = false, OnClick = onClick }
+    Button:new{ parent = box, position = { All = true }, OnClick = onClick }
     Label:new{ parent = box, justifyH = ui.justify.Center, fontObj = "GameFontNormalLarge",
       position = { Left = {1, 0}, Right = {-1, 0} }, text = glyph }
     box:Level(navLvl)
