@@ -14,30 +14,35 @@ local selBox = ns.DressingRoom._k.selBox
 -- the dressing room's outfit row can otherwise only offer as a flat 150px dropdown. Once a library
 -- holds a few dozen looks across several characters, that dropdown stops being a way to FIND one.
 --
--- **Why a window and not another control row.** The outfit row is full at 568 of GRIDW's 572px with
--- six controls, and the room already carries four control rows under a 640px model — a fifth would
--- sit inert most of the time. A window also answers the question #663 (importing a character's
--- existing transmog sets) is blocked on: library management has a home now, so an import belongs
--- inside it rather than behind a second door.
+-- **Two panes since #699.** The list finds a look; the right pane SHOWS it, on a model of the
+-- window's own, with the verbs that act on the selected entry beside it. Before that this window
+-- could only name a look, never render one — so "load" meant handing the entry to the dressing
+-- room's model, the only preview surface that existed.
 --
--- **It costs the outfit row no width at all.** The opener is a trailing sentinel entry in the
--- dropdown itself, beside the "+ New Look" one already there — see `MANAGE` in
--- controls/DressingRoomOutfits.lua.
+-- **It no longer touches the dressing room at all.** That hand-off was a workaround for the missing
+-- preview, and it was actively wrong once the transmogrifier gained a `Library…` opener (#699):
+-- opening this from the game's transmogrifier and having it fling the look onto our *separate*
+-- dressing-room window would be baffling. To recompose a saved look in the look builder, the room's
+-- own outfit dropdown already loads it. The two surfaces stopped reaching into each other.
 --
--- This window READS the library and loads from it. Save, Rename, Delete and Push stay on the outfit
--- row, where the look being composed lives — one verb per home rather than two doors to each. The
--- filtering itself is pure and lives in outfitlibrary.lua (`ns.FilterOutfits` / `ns.LibraryFacets`)
--- where it is unit-tested; this file is only widgets.
+-- Three files, split for size the way the dressing room is, all reopening this one class:
+--   * this file — the window shell, the filter strip's widgets, and the footer
+--   * controls/OutfitLibraryList.lua — the rows and the filtering that fills them
+--   * controls/OutfitLibraryPreview.lua — the preview model and the verbs acting on a selection
 
-local WINW   = 460
+local WINW   = 720
 local PAD    = 8
 local GAP    = 6
 local STRIPH = 20     -- filter-strip control height (FilterDropdown's own row height)
 local LISTH  = 340
 local ROW_H  = 34     -- two lines: the look's name, then where it came from
 local TITLEH = 30     -- titlebar, matching the height the room budgets for its own
--- = WINW - 2*PAD with the gaps. Armour is widest of the three because "Any armour" is its longest
--- label and it truncated to "Any arm…" at the old 96; search gives up the width, since its hint
+-- The two columns. LEFTW is the filter strip's natural width — the four controls plus their gaps —
+-- so widening the window gave the strip nothing it had to re-lay-out; all the new width went to the
+-- preview. PAD + LEFTW + GAP + RIGHTW + PAD = WINW.
+local LEFTW, RIGHTW = 444, 254
+-- = LEFTW with the gaps. Armour is widest of the three because "Any armour" is its longest label
+-- and it truncated to "Any arm…" at the old 96; search gives up the width, since its hint
 -- ("Search name or character") is always longer than the box and truncates regardless.
 local ARMORW, CLASSW, SEARCHW, CLEARW = 112, 120, 144, 50
 local IMPORTW = 190   -- footer button, wide enough for its full caption
@@ -47,34 +52,12 @@ local IMPORTW = 190   -- footer button, wide enough for its full caption
 local ANY = "Any"
 local ARMOR_TYPES = { "Cloth", "Leather", "Mail", "Plate" }
 
-local HINT           = "Search name or character"
-local EMPTY_LIBRARY  = "Nothing saved yet. Compose a look and press Save."
-local EMPTY_MATCH    = "No looks match these filters."
--- Shown for an entry saved before #655 recorded provenance. Named rather than left blank so the
--- row reads as "we don't know" instead of as a rendering bug — these entries deliberately survive
--- every filter (see the note in outfitlibrary.lua).
-local NO_PROVENANCE  = "no provenance recorded"
-
----One small labelled button in the filter strip. The row buttons on the dressing room's own
----control rows are a DressingRoom method (`_rowButton`) and can't be reached from a peer class, so
----this is the same idiom — framed box, centred caption, click target — at strip height.
----@param parent Frame
----@param x number
----@param w number
----@param label string
----@param onClick fun()
----@return Frame
-local function stripButton(parent, x, w, label, onClick)
-  local box = Frame:new{ parent = parent, position = { TopLeft = {x, 0}, Width = w, Height = STRIPH } }
-  selBox(box)
-  Label:new{ parent = box, justifyH = ui.justify.Center, wordWrap = false,
-    position = { Left = {2, 0}, Right = {-2, 0} }, text = label }
-  Button:new{ parent = box, position = { All = true }, glow = false, OnClick = onClick }
-  return box
-end
+local HINT          = "Search name or character"
+local EMPTY_LIBRARY = "Nothing saved yet. Compose a look and press Save."
+local EMPTY_MATCH   = "No looks match these filters."
 
 ---Top-level window over the outfit library: a filter strip (armour type, class, free-text search,
----Clear) above a scrolling list of saved looks with their provenance. Clicking a look loads it.
+---Clear) above a scrolling list of saved looks, beside a 3D preview of the selected one.
 ---@class OutfitLibraryWindow: TitleFrame
 ---@field _filter OutfitFilter  the live filter the strip writes and `_apply` reads
 ---@field _armorDrop FilterDropdown  armour-type selector (a fixed set — every type always offered)
@@ -82,13 +65,14 @@ end
 ---@field _search EditBox  free-text search over the look's name and the saving character
 ---@field _hint Label  the muted placeholder shown while the search box is empty
 ---@field _list VirtualList  the saved-look rows
+---@field _selected string?  the selected look's name — what the preview shows and the verbs act on
 local OutfitLibraryWindow = Class(TitleFrame, function(self)
   self._filter = {}
 
   local strip = Frame:new{
     parent = self,
     position = { TopLeft = {self.titlebar, ui.edge.BottomLeft, PAD, -PAD},
-                 Width = WINW - 2 * PAD, Height = STRIPH },
+                 Width = LEFTW, Height = STRIPH },
   }
 
   -- Armour first, and widest of the two dropdowns' purposes: it is the filter that actually groups
@@ -140,7 +124,7 @@ local OutfitLibraryWindow = Class(TitleFrame, function(self)
     self:_apply()
   end)
 
-  stripButton(strip, ARMORW + GAP + CLASSW + GAP + SEARCHW + GAP, CLEARW, "Clear",
+  self:_paneButton(strip, ARMORW + GAP + CLASSW + GAP + SEARCHW + GAP, CLEARW, "Clear",
     function() self:ClearFilters() end)
 
   self._list = VirtualList:new{
@@ -149,18 +133,20 @@ local OutfitLibraryWindow = Class(TitleFrame, function(self)
     updateRow = function(_, row, item) return self:_fillRow(row, item) end,
     position = {
       TopLeft = {strip, ui.edge.BottomLeft, 0, -GAP},
-      Width = WINW - 2 * PAD, Height = LISTH,
+      Width = LEFTW, Height = LISTH,
     },
   }
 
-  -- Footer, below the list: the one action that WRITES to the library from here (#663). Save,
-  -- Rename, Delete and Push stay on the outfit row — this is the import the row has no inverse for.
+  -- The right column: the model and the verbs that act on the selection (OutfitLibraryPreview.lua).
+  self:_buildPreview(strip)
+
+  -- Footer, below the list: the one action that writes to the library without a selection (#663).
   local footer = Frame:new{
     parent = self,
     position = { TopLeft = {self._list, ui.edge.BottomLeft, 0, -GAP},
-                 Width = WINW - 2 * PAD, Height = STRIPH },
+                 Width = LEFTW, Height = STRIPH },
   }
-  stripButton(footer, 0, IMPORTW, "Import this character's sets",
+  self:_paneButton(footer, 0, IMPORTW, "Import this character's sets",
     function() self:ImportCharacterSets() end)
 
   self:Width(WINW)
@@ -185,125 +171,43 @@ end, {
 ---@field OutfitLibraryWindow OutfitLibraryWindow
 ns.OutfitLibraryWindow = OutfitLibraryWindow
 
--- One pooled row: the look's name (class-coloured), its provenance beneath in muted text, and a
--- hover fill. No persistent selection border — the window's job is finding a look, and a border
--- tracking "the loaded one" would go stale the moment the outfit row's dropdown loaded another.
----@param list VirtualList
+-- The layout and copy the sibling files share. They reopen this class from their own files, so
+-- these can't stay file-locals — the same reason the dressing room hands its chrome constants to
+-- its siblings through `DressingRoom._k`. Keeping them in one table is also what keeps the column
+-- arithmetic (PAD + LEFTW + GAP + RIGHTW + PAD = WINW) checkable in one place.
+OutfitLibraryWindow._k = {
+  LEFTW = LEFTW, RIGHTW = RIGHTW, GAP = GAP, PAD = PAD, STRIPH = STRIPH, LISTH = LISTH,
+  ROW_H = ROW_H, ANY = ANY, EMPTY_LIBRARY = EMPTY_LIBRARY, EMPTY_MATCH = EMPTY_MATCH,
+}
+
+---One small labelled button: framed box, centred caption, click target. A method rather than a
+---file-local so the sibling files (which reopen this class) build their buttons the same way
+---instead of keeping copies. The caption is kept on the box so arm-then-confirm can swap it.
+---@param parent Frame
+---@param x number
+---@param w number
+---@param label string
+---@param onClick fun()
 ---@return Frame
-function OutfitLibraryWindow:_makeRow(list)
-  local row = Frame:new{ parent = list:Content(), background = {1, 1, 1, 0},
-    position = { Height = ROW_H } }
-  local w = WINW - 2 * PAD - 16
-  row.name   = Label:new{ parent = row, justifyH = ui.justify.Left, wordWrap = false,
-    position = { TopLeft = {8, -5}, Width = w } }
-  row.origin = Label:new{ parent = row, justifyH = ui.justify.Left, wordWrap = false, color = "muted",
-    position = { TopLeft = {8, -20}, Width = w } }
-  row._widget:EnableMouse(true)
-  row._widget:SetScript("OnEnter", function() row.background:Color(1, 1, 1, 0.12) end)
-  row._widget:SetScript("OnLeave", function() row.background:Color(1, 1, 1, 0) end)
-  row._widget:SetScript("OnMouseUp", function() self:Load(row._name) end)
-  return row
+function OutfitLibraryWindow:_paneButton(parent, x, w, label, onClick)
+  local box = Frame:new{ parent = parent, position = { TopLeft = {x, 0}, Width = w, Height = STRIPH } }
+  selBox(box)
+  box.label = Label:new{ parent = box, justifyH = ui.justify.Center, wordWrap = false,
+    position = { Left = {2, 0}, Right = {-2, 0} }, text = label }
+  Button:new{ parent = box, position = { All = true }, glow = false, OnClick = onClick }
+  return box
 end
 
--- Re-point a pooled row at `{ outfit = <LibraryOutfit> }`. The name is coloured by `class` — WHO
--- saved it — keeping the one meaning that tint already has on the outfit row's dropdown, while the
--- class FILTER keys on `forClass`, what the look is for. The two answer different questions, so
--- the row spells `forClass` out in words rather than letting the colour try to carry both.
----@param row Frame
----@param item table
----@return number
-function OutfitLibraryWindow:_fillRow(row, item)
-  local o = item.outfit
-  row._name = o.name
-  row.name:Text(ns.ClassColored(o.name, o.class))
-  local origin = ns.OutfitOrigin(o)
-  local forClass = o.forClass and ns.ClassLabel(o.forClass)
-  if forClass then
-    forClass = ("a %s look"):format(forClass)
-    origin = origin ~= "" and (origin .. "   ·   " .. forClass) or forClass
-  end
-  row.origin:Text(origin ~= "" and origin or NO_PROVENANCE)
-  row.background:Color(1, 1, 1, 0)
-  return ROW_H
-end
-
----Rebuild the class dropdown from what the library actually holds, then re-filter. Called on every
----open, since the library changes from the outfit row while this window is closed.
+---Select a look: show it on the preview model and point the verbs at it. **This is the whole of
+---what clicking a row does** — the window keeps its own model, so there is nothing to hand off and
+---no reason to close.
+---@param name string?  a library outfit name, or nil to clear the selection
 ---@return OutfitLibraryWindow
-function OutfitLibraryWindow:Refresh()
-  local opts, valid = { { key = ANY, label = "Any class" } }, false
-  for _, classFile in ipairs(ns.LibraryFacets(ns.LibraryOutfits())) do
-    opts[#opts + 1] = { key = classFile, label = ns.ClassColored(ns.ClassLabel(classFile), classFile) }
-    if classFile == self._filter.class then valid = true end
-  end
-  -- Deleting the last WARRIOR look retires that option. Drop the filter with it, or the list would
-  -- stay filtered by something no longer in the dropdown and so impossible to clear from there.
-  if not valid then self._filter.class = nil end
-  self._classDrop:SetOptions(opts, self._filter.class or ANY)
-  self:_apply()
+function OutfitLibraryWindow:Select(name)
+  self._selected = name
+  self._list:Refresh()            -- repaint the fills; `_fillRow` reads `_selected`
+  self:_showPreview(name)
   return self
-end
-
--- Re-run the filter and repopulate. The title carries the count, which is the cheapest honest
--- feedback that a filter is doing something — and the only place there is room for it.
-function OutfitLibraryWindow:_apply()
-  local all = ns.LibraryOutfits()
-  local shown = ns.FilterOutfits(all, self._filter)
-  local items = {}
-  for i, o in ipairs(shown) do items[i] = { outfit = o } end
-  self._list:EmptyText(#all == 0 and EMPTY_LIBRARY or EMPTY_MATCH)
-  self._list:SetItems(items)
-  self:Title(#shown == #all and ("Outfit Library — %d"):format(#all)
-    or ("Outfit Library — %d of %d"):format(#shown, #all))
-end
-
----Drop every filter and show the whole library again.
----@return OutfitLibraryWindow
-function OutfitLibraryWindow:ClearFilters()
-  self._filter = {}
-  self._armorDrop:Select(ANY)
-  self._classDrop:Select(ANY)
-  self._search:Text("")           -- fires OnTextChanged only when it wasn't already empty…
-  self._hint:Show()
-  self:_apply()                   -- …so re-apply unconditionally rather than relying on it
-  return self
-end
-
----Load a saved look onto the model and close. The room is where a look is worn, so this is a
----hand-off rather than a second preview surface; the outfit row is re-pointed at what was loaded
----so the two never disagree about which look is on screen.
----@param name string  a library outfit name
-function OutfitLibraryWindow:Load(name)
-  local room = ns.OpenDressingRoom()
-  if not room then
-    ns.Print("Open a set's Preview first — a look loads onto the model there.")
-    return
-  end
-  room:LoadOutfit(name)
-  room:RefreshOutfits()
-  self:Hide()
-end
-
----Provenance for an imported set. **The importing character is the honest author here** — the
----game's custom sets are per-CHARACTER (the measurement #655 rests on), so a set reachable from
----`ns.CustomSets()` genuinely lived on whoever is running the import. That makes `char`/`class` an
----accurate attribution rather than a stand-in, and keeps `class` meaning what it means everywhere
----else: who saved it.
----
----`forClass` is left nil because it is **unrecoverable** — a stored set is appearance ids with no
----memory of whose class set it was composed from. `ns.FilterOutfits` reads a nil facet as "unknown,
----matches everything", so an imported look correctly survives every class filter rather than
----hiding behind a guess.
----@param list table[]
----@return OutfitMeta
-local function importMeta(list)
-  local name, realm = UnitFullName("player")
-  local _, class = UnitClass("player")
-  return {
-    char = realm and realm ~= "" and (name .. "-" .. realm) or name,
-    class = class,
-    armor = ns.OutfitArmorType(list),
-  }
 end
 
 ---Copy every transmog set saved on THIS character into the account-wide library (#663) — the
@@ -324,7 +228,7 @@ function OutfitLibraryWindow:ImportCharacterSets()
   for _, set in ipairs(sets) do
     local list = ns.CustomSetOutfit(set.id)
     if list then
-      local status = ns.ImportLibraryOutfit(set.name, list, importMeta(list))
+      local status = ns.ImportLibraryOutfit(set.name, list, ns.LocalOutfitMeta(list))
       if status == "saved" then saved = saved + 1
       elseif status == "renamed" then renamed = renamed + 1
       else skipped = skipped + 1 end
