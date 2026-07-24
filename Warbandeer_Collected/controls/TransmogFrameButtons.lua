@@ -23,16 +23,19 @@ local selBox = ns.DressingRoom._k.selBox
 
 local SAVE_POPUP    = "WARBANDEER_COLLECTED_SAVE_LOOK"
 local REPLACE_POPUP = "WARBANDEER_COLLECTED_REPLACE_LOOK"
-local BTNW, BTNH = 132, 22
+-- Sized to the captions rather than to a round number; "Outfit Library" is the longer of the two.
+local BTNW, BTNH = 104, 22
 -- **The two buttons FLANK Blizzard's slot icons rather than sitting under them.** The weapon slots
 -- of `CharacterPreview.BottomSlots` occupy the middle of this band, so a tightly-paired row centred
 -- beneath them read as crowding their furniture. This gap is wide enough to leave that cluster its
 -- own clear column between the two buttons, which is why it is a centre gap and not a margin.
 local CENTER_GAP = 170
--- `BottomSlots` is anchored at BOTTOM y=48, so the free band is the 48px beneath it. Biased low in
--- that band rather than centred: a smaller margin against the frame's own bottom edge reads as a
--- margin, where closing on Blizzard's icons reads as a bug.
-local BOTTOM_Y = 8
+-- `BottomSlots` is anchored at BOTTOM y=48, so the free band is the 48px beneath it. Within that
+-- band this sits level with the **Link** button off to the left — which is NOT Blizzard's (nothing
+-- in `Blizzard_Transmog` creates one, so it belongs to another addon) and therefore cannot be
+-- anchored to without depending on a frame that won't exist for everyone. The alignment is a
+-- measured offset instead, so this is the one number to nudge if the two ever drift apart.
+local BOTTOM_Y = 16
 
 ---One labelled button: framed box, centred caption, click target. The same idiom as the library
 ---window's strip buttons — a peer class can't reach the room's `_rowButton`.
