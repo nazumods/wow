@@ -1,5 +1,6 @@
 ---@class Warbandeer_Collected
 ---@field Ranks string[]  ordered tier letters, best → worst
+---@field RankIndex table<string, number>  tier letter → its position in ns.Ranks (1 = best)
 ---@field RankColors table<string, number[]>  tier letter → 0–1 rgb
 ---@field WantedIcon string  atlas for the "wanted" marker
 local ns = select(2, ...)
@@ -8,6 +9,12 @@ local ns = select(2, ...)
 -- any UI that steps through them.
 ---@type string[]
 ns.Ranks = { "S", "A", "B", "C", "F" }
+
+-- Reverse lookup so a comparison between two tiers is one table read rather than a scan of
+-- ns.Ranks (the weapon-cell aggregate below picks the best tier in a bucket on every cell refresh).
+---@type table<string, number>
+ns.RankIndex = {}
+for i, letter in ipairs(ns.Ranks) do ns.RankIndex[letter] = i end
 
 -- Saturated, mutually-distinct tier colors (0–1 rgb). Deliberately NOT the
 -- red→green completion gradient (see DataView's `shades`) so a rank pip can never
@@ -203,6 +210,56 @@ function ns:SetRaceRank(setId, raceId, rank)
   end
   t[raceId] = rank
   if not next(t) then self.db.raceRank[setId] = nil end
+end
+
+-- ─── Weapon Rank (per appearance) ────────────────────────────────────────────
+-- The Weapons view's tier, keyed by visualID like its Wanted flag rather than by setId — a weapon
+-- cell has no set id to hang a tier on. Deliberately WITHOUT the per-race override the armour tiers
+-- carry: a weapon renders identically on every race, so "rank this for Dwarves" has nothing to say
+-- about it (#688).
+
+---Tier for a weapon appearance, or nil if unranked.
+---@param visualID number
+---@return string?
+function ns:WeaponRank(visualID)
+  return self.db.weaponRank[visualID]
+end
+
+---Set or clear a weapon appearance's tier (rank nil clears).
+---@param visualID number
+---@param rank string?
+function ns:SetWeaponRank(visualID, rank)
+  self.db.weaponRank[visualID] = rank
+end
+
+-- ─── Weapon cell aggregates ──────────────────────────────────────────────────
+-- A Weapons-grid cell is a (source × weapon type) bucket holding several appearances — one raid can
+-- drop four daggers — so its marks aggregate over the looks inside it, the way the armour grid's
+-- row-level `groupWanted` aggregates over a group's class sets. Plain db reads, so the grid can call
+-- them per cell on every refresh.
+
+---True when ANY look in the cell is flagged wanted.
+---@param visuals number[]
+---@return boolean
+function ns:WeaponCellWanted(visuals)
+  for _, v in ipairs(visuals) do
+    if self.db.weaponWanted[v] then return true end
+  end
+  return false
+end
+
+---The BEST tier among the cell's looks (ns.Ranks is ordered best → worst), or nil if none is ranked.
+---A cell draws one pip, so it advertises the best thing in the bucket rather than an average nothing
+---in it actually has.
+---@param visuals number[]
+---@return string?
+function ns:WeaponCellRank(visuals)
+  local best
+  for _, v in ipairs(visuals) do
+    local r = self.db.weaponRank[v]
+    if r and (not best or ns.RankIndex[r] < ns.RankIndex[best]) then best = r end
+  end
+  return best
 end
 
 -- ─── Shared race resolution ──────────────────────────────────────────────────

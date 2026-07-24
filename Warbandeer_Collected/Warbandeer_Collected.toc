@@ -8,7 +8,7 @@
 ## AddonCompartmentFunc: WarbandeerCollected_OnAddonCompartmentClick
 ## Dependencies: LibNAddOn, LibNUI, LibNUI-ModelViewer, Warbandeer_Characters
 ## X-NUI-DB: WarbandeerCollectedDB
-## X-NUI-DB-VERSION: 9
+## X-NUI-DB-VERSION: 10
 ## X-NUI-COMMANDS: /collected, /collect
 ## X-NUI-COMPARTMENT: WarbandeerCollected_OnAddonCompartmentClick
 ## X-NUI-API: WarbandeerApi

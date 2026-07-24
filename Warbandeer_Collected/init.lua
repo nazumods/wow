@@ -59,5 +59,11 @@ function ns:MigrateDB()
   -- FILTERS are deliberately not persisted — a filter still applied after a /reload would look
   -- like a library that had lost looks, which is the one impression this window must never give.
   if not db.libraryPos then db.libraryPos = {} end   -- outfit library window
-  db.version = 9
+  -- v10: per-appearance weapon TIER ranks (#688), the Weapons-view parallel to db.rank. Keyed by the
+  -- same visualID db.weaponWanted is, and with no per-race table beside it — a weapon renders
+  -- identically on every race, so there's no override to key. The bump is what seeds the table: this
+  -- runs only on a version mismatch, so a v9 save would otherwise reach the first rank write with
+  -- the key still absent.
+  if not db.weaponRank then db.weaponRank = {} end   -- [visualID] = "S".."F"
+  db.version = 10
 end
