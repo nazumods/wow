@@ -31,6 +31,11 @@ local PANE_TOP = 3
 local PANEH = STRIPH + GAP + LISTH + GAP + STRIPH - PANE_TOP
 -- The model is inset from the pane's top rather than sitting flush against it.
 local MODEL_TOP = 10
+-- A user scale multiplier over the normalised size, to fill more of the pane. A character actor
+-- scales about its FEET origin, so >1 grows the model head-upward and leaves the feet where they
+-- are — bigger without the feet sliding down the frame. Kept modest because the taller it grows the
+-- closer a tall headpiece comes to the frame's top edge (the clipping this pane already fights).
+local PREVIEW_SCALE = 1.2
 -- Everything under the model (name, provenance, the rename field and the verb row, with their gaps)
 -- costs a fixed 86px; the model takes whatever is left. Running the column down to the footer line
 -- is what buys it the extra height — at the old height the character's head clipped against the
@@ -71,7 +76,7 @@ function OutfitLibraryWindow:_buildPreview(strip)
   -- re-apply machinery right then, and a synchronous load (the viewer's own race, already in
   -- memory) re-applies immediately, so the strength has to already be correct.
   self._preview:Aggressiveness(ns.NORMALIZE_AGGRESSIVENESS)
-  self._preview:Scale(1)
+  self._preview:Scale(PREVIEW_SCALE)
   -- The viewer's own character, once. Nothing here previews another race: this window is about
   -- finding a saved look, and a race selector is the dressing room's job.
   self._preview:Unit("player")
