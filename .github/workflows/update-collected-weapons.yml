@@ -1,0 +1,126 @@
+name: Update Collected weapon data
+
+# Regenerates Warbandeer_Collected/data/weaponsources.lua (the Weapons grid's
+# source bundle) from live wago.tools DB2 data and opens a PR when anything changed.
+#
+# WEEKLY (unlike the daily set refresh): the -Weapons pass downloads a much heavier
+# table set — notably ItemSparse (~50 MB) — so a daily cadence would hammer wago for
+# data that rarely moves between content patches. Since the generator only rewrites
+# on a real data change (the build stamp is ignored), quiet weeks produce no PR.
+#
+# NOT auto-merged — it opens a PR for review, matching the sibling Collected set
+# refresh (update-collected-sets.yml). A weapon-data change cuts a normal addon
+# release on merge (not an app release), so #638's version-bump reasoning doesn't
+# apply; the human merge is for reviewing the (occasionally large) data diff.
+on:
+  schedule:
+    - cron: "0 9 * * 3" # Wednesdays 09:00 UTC (staggered off the daily/Monday jobs)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  actions: read
+
+concurrency:
+  group: update-collected-weapons
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # pwsh is preinstalled on ubuntu runners; the generator is cross-platform
+      # (it normalises its own line endings so a Linux run matches a Windows one).
+      - name: Regenerate weaponsources.lua from wago.tools
+        shell: pwsh
+        run: ./Warbandeer_Collected/tools/update-sets.ps1 -Weapons
+
+      # Validate the freshly generated file before proposing it. PRs opened with
+      # GITHUB_TOKEN don't trigger test.yml, so these inline steps are the ONLY gate
+      # the regenerated data gets.
+      - uses: leafo/gh-actions-lua@v13
+        with:
+          luaVersion: "5.1.5"
+      - uses: leafo/gh-actions-luarocks@v6
+      - name: Install luacheck + busted
+        run: |
+          luarocks install luacheck
+          luarocks install busted
+      - name: Lint regenerated file
+        run: luacheck Warbandeer_Collected/data/weaponsources.lua --codes
+      # busted (not just luacheck) because the regenerated data carries an invariant
+      # luacheck can't see: every arsenal appearance must still be present, or the
+      # #670 silent-drop has returned. spec/arsenals_spec.lua folds the shipped
+      # arsenals over this exact file (loadShippedWeapons) and fails on any `missing`.
+      - name: Run unit tests against the regenerated data
+        run: busted --output=utfTerminal
+
+      - name: Open PR if changed
+        uses: peter-evans/create-pull-request@v8
+        with:
+          branch: bot/collected-weapons-refresh
+          delete-branch: true
+          # Only commit the data file — the luarocks steps leave a .luarocks/ dir in
+          # the workspace that must not end up in the PR.
+          add-paths: Warbandeer_Collected/data/weaponsources.lua
+          commit-message: "chore(collected): refresh weapon-source data from wago.tools"
+          title: "chore(collected): refresh weapon-source data from wago.tools"
+          body: |
+            Automated refresh of the `Warbandeer_Collected` weapon-source data
+            (`data/weaponsources.lua`) from live [wago.tools](https://wago.tools) DB2
+            data — every weapon/off-hand appearance bucketed by source × weapon type.
+
+            Owned wholesale by `Warbandeer_Collected/tools/update-sets.ps1 -Weapons`;
+            see `Warbandeer_Collected/tools/UPDATING.md`. Review the diff before
+            merging — a content patch can add or move many appearances at once.
+          labels: |
+            automated
+            collected
+
+  # The weekly schedule retries a failed run next week, which is a long gap — so
+  # unlike the daily set refresh, raise the tracking issue on the FIRST failure.
+  notify:
+    needs: refresh
+    if: always()
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      LABEL: collected-weapons-automation-failure
+    steps:
+      - name: Raise issue on failure
+        if: needs.refresh.result == 'failure'
+        run: |
+          gh label create "$LABEL" -R "$REPO" --color B60205 \
+            --description "Collected weapon-data automation failed" 2>/dev/null || true
+          existing=$(gh issue list -R "$REPO" --label "$LABEL" --state open \
+                       --json number --jq '.[0].number // ""' 2>/dev/null)
+          if [ -n "$existing" ]; then
+            gh issue comment -R "$REPO" "$existing" --body "Still failing — $RUN_URL"
+            exit 0
+          fi
+          gh issue create -R "$REPO" --label "$LABEL" \
+            --title "Collected weapon-data automation failed" \
+            --body "$(printf '%s\n' \
+              'The scheduled "Update Collected weapon data" workflow failed, so Warbandeer_Collected/data/weaponsources.lua is not being refreshed from wago.tools.' \
+              '' \
+              "Latest failed run: $RUN_URL" \
+              '' \
+              'Likely causes: wago.tools unreachable or changed; a DB2 column was renamed (the generator asserts its schema and aborts); an integrity guard tripped (Item/ItemModifiedAppearance row floors, or fewer than 3000 appearances placed); or luacheck/busted rejected the regenerated file.' \
+              '' \
+              'Investigate via the run logs above, or run `pwsh Warbandeer_Collected/tools/update-sets.ps1 -Weapons -Check` locally. See Warbandeer_Collected/tools/UPDATING.md.' \
+              '' \
+              'This issue auto-closes when a run succeeds.')"
+
+      - name: Close the tracking issue on recovery
+        if: needs.refresh.result == 'success'
+        run: |
+          for n in $(gh issue list -R "$REPO" --label "$LABEL" --state open \
+                       --json number --jq '.[].number' 2>/dev/null); do
+            gh issue close -R "$REPO" "$n" --comment "Automation recovered — $RUN_URL"
+          done
