@@ -23,7 +23,11 @@ local RIGHTW, GAP, STRIPH, LISTH = k.RIGHTW, k.GAP, k.STRIPH, k.LISTH
 -- character). Selecting only writes the per-slot overrides, which `Model` re-applies across any
 -- re-skin of its own accord.
 
-local MODELH = 250
+-- Sized so the pane's content bottoms out exactly level with the list beside it: the pane is
+-- STRIPH + GAP + LISTH tall, and everything under the model (name, provenance, the rename field and
+-- the verb row, with their gaps) costs a fixed 86px. Anything less left dead space below the verbs
+-- that read as the column having run out early.
+local MODELH = STRIPH + GAP + LISTH - 86
 local BTNW = 80          -- three verbs across RIGHTW with the gaps
 local CONFIRM_S = 4      -- seconds an armed button stays armed before reverting, as the room uses
 local NO_SELECTION = "Select a look to preview it."
