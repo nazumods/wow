@@ -125,3 +125,7 @@ ProfessionShoppingList
 
 # stale-id lint local CSV cache (build-keyed; CI uses actions/cache, local runs pass -CacheDir)
 .wago-cache/
+
+# Python bytecode cache (Tooling/*.py)
+__pycache__/
+*.pyc
