@@ -81,8 +81,8 @@ The **Armor / Weapons** toggle at the top of the window flips the whole grid bet
 your armor sets and your **weapons**. In Weapons mode the rows become weapon
 **sources** — each raid, dungeon, and world boss, plus per-expansion buckets for
 Quest, Vendor, World Drop, Crafted, Trading Post and Achievement weapons — and the
-columns become the **weapon types** (one-handed swords, staves, bows, off-hands, and
-so on). Each cell works just like the armor grid: the number of appearances you still
+columns become the **weapon types**, each a small icon (hover a header for its name —
+one-handed swords, staves, bows, off-hands, and so on). Each cell works just like the armor grid: the number of appearances you still
 need, shaded red→green by how close you are (a green check when you've collected them
 all). Hover a cell for the list of individual weapons in it, each with a collected
 mark and its **difficulty** (LFR / Normal / Heroic / Mythic). Sort by expansion and

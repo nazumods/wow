@@ -13,8 +13,9 @@ local GameTooltip = GameTooltip
 
 ---@class Warbandeer_Collected
 ---@field WeaponTypeOrder number[] Enum.TransmogCollectionType grid column order (matches the look-builder + generator)
----@field WeaponTypeAbbr table<number, string> compact column caption per type (full name via the header tooltip)
+---@field WeaponTypeAbbr table<number, string> compact column caption per type (icon fallback / full name via the header tooltip)
 ---@field WeaponTypeName table<number, string> localized full weapon-type name per type
+---@field WeaponTypeIcon table<number, string> column-header icon texture path per type
 ---@field WeaponRows fun(self: WeaponView): table
 ---@field WeaponVisibleCounts fun(self: WeaponView): number, number, number
 ---@field WeaponMatches fun(view: WeaponView, grp: table): boolean
@@ -33,6 +34,15 @@ ns.WeaponTypeName = { [12] = "Wand", [13] = "One-Handed Axe", [14] = "One-Handed
   [19] = "Held In Off-hand", [20] = "Two-Handed Axe", [21] = "Two-Handed Sword",
   [22] = "Two-Handed Mace", [23] = "Staff", [24] = "Polearm", [25] = "Bow", [26] = "Gun",
   [27] = "Crossbow", [28] = "Warglaive" }
+-- Column-header icons: house-style white silhouettes (tools/make_weapon_type_icons.py), one per
+-- type. Rendered untinted via |T…|t in the header (inline markup can't vertex-tint), so they read
+-- white on the dark header backdrop; the WeaponTypeAbbr text above is the fallback if one is missing.
+local WTEX = [[Interface\AddOns\Warbandeer_Collected\textures\weapons\]]
+ns.WeaponTypeIcon = { [12] = WTEX .. "wand", [13] = WTEX .. "axe", [14] = WTEX .. "sword",
+  [15] = WTEX .. "mace", [16] = WTEX .. "dagger", [17] = WTEX .. "fist", [18] = WTEX .. "shield",
+  [19] = WTEX .. "offhand", [20] = WTEX .. "axe2h", [21] = WTEX .. "sword2h", [22] = WTEX .. "mace2h",
+  [23] = WTEX .. "staff", [24] = WTEX .. "polearm", [25] = WTEX .. "bow", [26] = WTEX .. "gun",
+  [27] = WTEX .. "crossbow", [28] = WTEX .. "warglaive" }
 
 -- The completion cell (green check / count + red→green shade), the expansion sort, and the shared
 -- gradient live in GridShared.lua (ns.CompletionCell / sortByExpansion) — identical to the armor grid.

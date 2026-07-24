@@ -79,12 +79,15 @@ function WeaponView:HighlightWeaponCell(source, weaponType, scroll)
   end or nil, scroll)
 end
 
--- Column layout: an autosized name column (col 1) then one narrow column per weapon type
--- (abbreviated caption + full-name header tooltip). No lock column — weapons have no lockouts.
+-- Column layout: an autosized name column (col 1) then one narrow column per weapon type (a
+-- house-style icon header — abbreviation fallback — plus the full-name header tooltip). No lock
+-- column — weapons have no lockouts.
 ---@return table
 function WeaponView.BuildColInfo()
   local cols = lists.map(ns.WeaponTypeOrder, function(t)
-    return { name = ns.WeaponTypeAbbr[t], width = 34, padding = 2, justifyH = ui.justify.Center,
+    local icon = ns.WeaponTypeIcon[t]
+    return { name = icon and ("|T%s:18:18|t"):format(icon) or ns.WeaponTypeAbbr[t],
+      width = 34, padding = 2, justifyH = ui.justify.Center,
       tooltip = ns.WeaponTypeName[t], backdrop = { color = Colors.TransparentBlack } }
   end)
   return prepend(cols, { name = "", width = 0, backdrop = { color = Colors.TransparentBlack } })
