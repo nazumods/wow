@@ -48,6 +48,24 @@ function M.loadHideVisuals(ns)
   return ns
 end
 
+---Load ratings.lua into an already-loaded `ns`, with the rating tables MigrateDB seeds already on
+---`ns.db` (the file itself never seeds them — in game that's init.lua's job). Needs no stub: the one
+---WoW name it touches is `UnitRace`, inside `ns:PlayerRace`, which these specs don't call.
+---
+---It earns a spec because the wanted/rank accessors are the whole persistence contract for the
+---collection's user-authored data — a flag written to the wrong table, or a `false` stored where a
+---`nil` was meant, would silently mis-count a header tally or resurrect a cleared flag.
+---@param ns table  as returned by M.load()
+---@return table ns
+function M.loadRatings(ns)
+  local db = ns.db
+  db.wanted, db.rank, db.raceRank = {}, {}, {}
+  db.weaponWanted, db.weaponRank = {}, {}
+  db.cosmeticWanted, db.illusionWanted = {}, {}
+  assert(loadfile("Warbandeer_Collected/ratings.lua"))("Warbandeer_Collected", ns)
+  return ns
+end
+
 ---Load viewsync.lua into an already-loaded `ns`. Needs no C_ stub at all — the only WoW name it
 ---touches is `Enum.TransmogCollectionType`, a table of constants — but it still loads separately
 ---because the caller supplies that table and the weapon-hand sets are built from it at load time.

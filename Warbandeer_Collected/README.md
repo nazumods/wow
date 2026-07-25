@@ -31,7 +31,9 @@ since the content has no data there yet.
 
 ## Wanted & ranking
 
-Mark the sets you're chasing and rate how they look:
+Mark what you're chasing and rate how it looks. Both grids have both — armor sets and
+individual weapon looks — and both are saved account-wide, independent of whether
+you've collected the thing.
 
 - **Wanted** — **Shift-click** any of a set's appearances in the grid (or use the
   **Wanted** button in the dressing room) to flag the set. Wanted sets show a gold star in the grid, the header
@@ -41,8 +43,10 @@ Mark the sets you're chasing and rate how they look:
   Set a single baseline rank, or turn on **This race** to rank it for the specific
   race you're previewing (some sets look better on some races). The grid shows the
   tier letter, in its tier color, in the corner of the appearance — for your current
-  character's race. Both are saved account-wide and are independent of whether
-  you've collected the set.
+  character's race.
+- **Weapons** get the same two, one look at a time rather than one set at a time —
+  see **Weapons view** below. There's no **This race** for a weapon: it looks the
+  same on everybody.
 
 Click an appearance to open a 3D dressing
 room showing the set worn by any playable **race** you pick — handy for
@@ -98,7 +102,10 @@ works just like the armor grid: the number of appearances you still
 need, shaded red→green by how close you are (a green check when you've collected them
 all). Hover a cell for the list of individual weapons in it, each with a collected
 mark and its **difficulty** (LFR / Normal / Heroic / Mythic). Sort by expansion and
-filter by expansion or source category, exactly like the armor grid.
+filter by expansion or source category, exactly like the armor grid — including the
+**★ Wanted only** button, which cuts the grid down to just the sources and weapon
+types holding something you've flagged. The header's `★` count switches with the
+grid: wanted sets in Armor, wanted weapon looks in Weapons.
 
 **Click a cell** and the weapon goes straight into the look you're building — same
 window, same character, same paper doll you dress armor on. The armor set stays on,
@@ -107,8 +114,17 @@ you're looking at. A chooser lists every look in the cell, with the same-named
 difficulty recolours told apart by their **difficulty** label. Use **↑/↓** to step
 through the looks and **←/→** to jump to the neighbouring weapon type from the same
 source — the character re-renders in place each time, wearing your outfit. The grid
-draws a white box around the cell you're viewing so you never lose your place, and
-shift-clicking a row in the chooser adds that look to your weapon wanted list.
+draws a white box around the cell you're viewing so you never lose your place.
+
+**Wanted & tiers, per look.** Weapons are flagged and rated one appearance at a time,
+in the chooser rather than in the dressing room's ratings row (that row belongs to the
+armor set still on the model). **Shift-click** a chooser row to flag that look wanted —
+it gets a gold star. The **S / A / B / C / F** row above the list rates the look you're
+currently viewing; click the tier it already has, or the **–**, to clear it. Every row
+carries its own tier letter, so you can see the whole cell ranked at a glance while you
+step through it. Back in the grid, a cell is starred when **any** look in it is wanted
+and shows the **best** tier among its looks, so a bucket of four daggers advertises the
+one you actually want out of it.
 
 **Which hand.** The chooser's **Main hand** and **Off hand** buttons say where the
 weapon you're browsing is being held, and clicking the other one moves it there. Only
@@ -368,8 +384,8 @@ right-click to scan.
 ## Saved data
 
 `WarbandeerCollectedDB` (account-wide): scanned set/appearance counts, plus your
-wanted flags and tier ranks (baseline + per-race) and your wanted weapon looks,
-shirt/tabard appearances and illusions, plus **your outfit library** — the looks you've saved,
+wanted flags and tier ranks (baseline + per-race) for sets, the same two for individual
+weapon looks, your wanted shirt/tabard appearances and illusions, plus **your outfit library** — the looks you've saved,
 kept for the whole account so they're available on every character. (The game's own transmog
 sets stay in its store, per character; **Push** copies a look across.) Ratings are kept separately from
 the scan data, so re-scanning never clears them. The collection window and the set

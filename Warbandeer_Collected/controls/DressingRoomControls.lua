@@ -60,9 +60,10 @@ function DressingRoom:_buildControls(controls)
     parent = controls, position = { TopLeft = {0, -TOPGAP}, Width = 86, Height = ROWH },
   }
   self._wantedBorder = selBox(wantBox)
-  -- wantBox is deliberately NOT in _ratingsBoxes: it stays shown for weapon cells (per-look Wanted),
-  -- while the rank/clear/This-race boxes below are hidden there (weapons have no S–F rank). Kept on
-  -- self so outfit mode can hide it — an outfit has neither a set id nor a look to flag.
+  -- wantBox is kept on self so outfit mode can hide it separately from _ratingsBoxes — an outfit has
+  -- neither a set id nor a look to flag. Everything in this row rates the previewed ARMOUR set,
+  -- browsing a weapon or not (#673); a weapon look's own ★ and S–F tier live in the cell chooser
+  -- pane, on the look that's actually on the doll (controls/WeaponCellPicker.lua).
   self._wantBox = wantBox
   Texture:new{ parent = wantBox, layer = ui.layer.Artwork, atlas = ns.WantedIcon, atlasSize = false,
     position = { Left = {6, 0}, Size = {14, 14} } }

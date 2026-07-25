@@ -21,7 +21,7 @@ end
 ---@field data DataView the sets-by-class grid
 ---@field scroll ScrollFrame scroll container for the grid's row area
 ---@field counter Label "N sets · N appearances · N collected" counter (shrunk in PTR mode)
----@field wantedCount Label running "★ N" wanted-set count
+---@field wantedCount Label running "★ N" wanted tally — sets in armor mode, weapon looks in weapons mode
 ---@field filterStrip Frame the shared filter chrome row (DataView:BuildFilterStrip)
 ---@field _top number grid top offset (filter strip + gap) — _fitToGrid re-derives the height from it
 local MainWindow = Class(TitleFrame, function(self)
@@ -101,7 +101,9 @@ local MainWindow = Class(TitleFrame, function(self)
   counterHover:SetScript("OnEnter", function(f) (self.active or self.data):ShowCountTooltip(f) end)
   counterHover:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
-  -- The gold wanted tally toggles WANTED ONLY on click (same as the filter button).
+  -- The gold wanted tally toggles WANTED ONLY on click (same as the filter button). It follows the
+  -- ACTIVE grid: both grids now have a wanted filter of their own, over different units — sets on
+  -- one side, individual weapon looks on the other (#689).
   local wantedHover = ui.Frame:new{
     parent = self,
     position = {
@@ -110,8 +112,8 @@ local MainWindow = Class(TitleFrame, function(self)
     },
   }
   wantedHover:EnableMouse(true)
-  wantedHover:SetScript("OnMouseUp", function() self.data:ToggleWanted() end)
-  wantedHover:SetScript("OnEnter", function(f) self.data:ShowWantedTooltip(f) end)
+  wantedHover:SetScript("OnMouseUp", function() (self.active or self.data):ToggleWanted() end)
+  wantedHover:SetScript("OnEnter", function(f) (self.active or self.data):ShowWantedTooltip(f) end)
   wantedHover:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
   -- ── Armor / Weapons mode ──────────────────────────────────────────────────
@@ -130,6 +132,9 @@ local MainWindow = Class(TitleFrame, function(self)
     },
     colInfo = ns.WeaponView.BuildColInfo(),
     onResized = function() self:_fitToGrid() end,
+    -- Recompute the source/appearance/collected counter when the wanted-only filter flips
+    -- (VisibleCounts is filter-scoped), so it tracks the rows actually shown.
+    onFilterChanged = function() self:RefreshCounter() end,
     -- Scroll the dressed-weapon row into view (weaponScroll is assigned just below; the
     -- closure only reads it at highlight time, by which point it exists).
     onEnsureVisible = function(_, rowTop, rowH)
@@ -200,7 +205,7 @@ function MainWindow:SetMode(weapons)
   if self.active._ptr ~= prevGrid._ptr then self.active:SetPtr(prevGrid._ptr) end
   self.data:SetShown(not weapons); self.filterStrip:SetShown(not weapons); self.scroll:SetShown(not weapons)
   self.weapons:SetShown(weapons); self.weaponStrip:SetShown(weapons); self.weaponScroll:SetShown(weapons)
-  self.wantedCount:SetShown(not weapons)   -- the wanted tally is armor-only
+  self:RefreshWanted()   -- the tally switches units with the grid: wanted sets ↔ wanted weapon looks
   self._modeToggle:Select(weapons)
   -- The weapon name column is too narrow to hold the counter over the header, so in weapon mode
   -- the counter rides the strip row (right of the dropdowns); armor keeps it over the header.
@@ -227,10 +232,13 @@ function MainWindow:_fitToGrid()
   scroll:Refresh()   -- the scroll frame tracks the window's BottomRight; recompute its range
 end
 
----Refresh the running wanted-set count in the header. The star is drawn from the
----shared WantedIcon atlas (not a literal glyph, which the header font can't render).
+---Refresh the running wanted tally in the header — flagged SETS in armor mode, flagged weapon
+---APPEARANCES in weapons mode, since that's what the grid under it is made of and what its own ★
+---filter acts on. The star is drawn from the shared WantedIcon atlas (not a literal glyph, which the
+---header font can't render).
 function MainWindow:RefreshWanted()
-  self.wantedCount:Text(("|A:%s:14:14|a %d"):format(ns.WantedIcon, ns:WantedCount()))
+  local n = self._weaponsMode and ns:WeaponWantedCount() or ns:WantedCount()
+  self.wantedCount:Text(("|A:%s:14:14|a %d"):format(ns.WantedIcon, n))
 end
 
 ---Refresh the counter: "N sets · N appearances · N collected" in live mode (rows shown / grid
@@ -268,16 +276,24 @@ function MainWindow:RefreshCounter()
   if titleFont then self.counter:Font({titleFont[1], 12}) end
 end
 
--- Live-refresh this window's grid + wanted counter when a rating changes anywhere
--- (e.g. via the shared dressing room). No-op until the window has been opened.
+-- Live-refresh this window's grids + wanted counter when a rating changes anywhere (e.g. via the
+-- shared dressing room). No-op until the window has been opened.
+--
+-- BOTH grids, not just the shown one: a weapon flagged while Armor is up would otherwise leave the
+-- weapon grid holding a stale wanted-only row set for the next toggle over to it (and vice versa).
+-- The refit is done once at the end instead of per grid, since _fitToGrid always sizes to whichever
+-- grid is active.
 ns:OnRatingsChanged(function()
-  if not ns.window then return end
-  local grid = ns.window.data
-  if grid._wantedOnly then
-    grid.data = grid:GetData(); grid:update()             -- re-filter (row set may change)
-    if grid.onResized then grid:onResized() end           -- refit the window to the new count
-  else grid:_refreshMarks() end
-  ns.window:RefreshWanted()
+  local w = ns.window
+  if not w then return end
+  for _, grid in ipairs({ w.data, w.weapons }) do
+    if grid._wantedOnly then
+      grid.data = grid:GetData(); grid:update()   -- re-filter (row set may change)
+    else grid:_refreshMarks() end
+  end
+  w:_fitToGrid()
+  w:RefreshWanted()
+  w:RefreshCounter()   -- the counter is filter-scoped, so a re-filter moves it
 end)
 
 -- Draw the cell cursor on the set currently shown in the shared dressing room, and

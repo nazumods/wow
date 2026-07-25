@@ -52,6 +52,13 @@ end
 ---@return number
 function API:WantedCount() return ns:WantedCount() end
 
+---Number of weapon APPEARANCES currently flagged wanted — the Weapons grid's own tally, which a
+---host shows in place of the set count while that grid is the one on screen (#689). Its own number
+---rather than a mode argument on WantedCount: the two are different units (sets vs looks) over
+---different tables, and a host that only ever shows one grid should be able to ask for just that one.
+---@return number
+function API:WeaponWantedCount() return ns:WeaponWantedCount() end
+
 -- Scan-complete subscribers. Consumers (e.g. Warbandeer's collected view) register
 -- to be refreshed after a scan rewrites the counts, so their grid stays in sync with
 -- the /collected window. `ns:Scan()` fires these once the DB is fresh, so callbacks

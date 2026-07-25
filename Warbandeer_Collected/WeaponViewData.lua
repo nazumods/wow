@@ -81,6 +81,19 @@ local function matches(view, grp)
 end
 ns.WeaponMatches = matches
 
+-- True if the source drops any wanted appearance, of any type. Row-level test for the "wanted only"
+-- filter, which hides whole rows holding no wanted look (within a shown row, the cells holding none
+-- still blank — see the cell builder below). The weapon analogue of armor's `groupWanted`, one level
+-- up: a weapon cell is already an aggregate, so this is an aggregate over aggregates.
+---@param grp table
+---@return boolean
+local function groupWeaponWanted(grp)
+  for _, visuals in pairs(grp.types) do
+    if ns:WeaponCellWanted(visuals) then return true end
+  end
+  return false
+end
+
 ---The Weapons grid's row data: one row per ns.WeaponSources group (name + one cell per weapon
 ---type), sorted by expansion (newest-first by default) then alphabetically. `self` is the
 ---WeaponView instance (its filter/sort flags drive the output).
@@ -92,9 +105,14 @@ function ns.WeaponRows(self)
   local cmap = (not ptr) and ns:WeaponCollectedMap() or nil         -- upcoming weapons aren't obtainable yet, so no collected state to track
   local usable = ns.WeaponUsableTypes()   -- greying hint: types this class can't wield are muted
   local GREYED = {0.42, 0.42, 0.45, 1}    -- one shared muted colour for every unusable-type cell
+  local wantedOnly = self._wantedOnly
   local order = {}
   for i = 1, #source do
-    if matches(self, source[i]) then order[#order + 1] = i end
+    -- Expansion/category filter, plus (when "wanted only" is on) drop whole rows with no wanted
+    -- look, so the grid shows just the target list rather than blanked filler rows.
+    if matches(self, source[i]) and (not wantedOnly or groupWeaponWanted(source[i])) then
+      order[#order + 1] = i
+    end
   end
   ns.sortByExpansion(order, source, self._reverse)
   return lists.map(order, function(srcIdx)
@@ -102,8 +120,10 @@ function ns.WeaponRows(self)
     local r = {}
     for ci, t in ipairs(ns.WeaponTypeOrder) do
       local visuals = grp.types[t]
-      -- A type this source has no weapon of → blank cell.
-      if not visuals then
+      -- A type this source has no weapon of → blank cell. "Wanted only" blanks the same way (no
+      -- content, click or marks) for a bucket holding nothing flagged, so a shown row reads as the
+      -- weapon types you're actually after from that source.
+      if not visuals or (wantedOnly and not ns:WeaponCellWanted(visuals)) then
         r[ci] = {}
       elseif ptr then
         -- PTR PREVIEW: on a PTR client (where these are live) show how many UPCOMING appearances of
@@ -223,17 +243,22 @@ end
 -- Filter-scoped counts for the header counter: source rows shown, individual weapon appearances
 -- across them, and how many of those are collected. Mirrors DataView:VisibleCounts but counts
 -- individual appearances (visuals), not type-slots — so it reads "N sources · N appearances · N collected".
+--
+-- Under "wanted only" it counts what the grid actually SHOWS: the rows and cells that survive the
+-- filter, whole. A cell holding one wanted dagger out of four still renders (and shades) all four,
+-- so counting only the flagged one would make the tally disagree with the number in the cell.
 ---@param self WeaponView
 ---@return number sources, number appearances, number collected
 function ns.WeaponVisibleCounts(self)
   local cmap = ns:WeaponCollectedMap()
+  local wantedOnly = self._wantedOnly
   local sources, apps, coll = 0, 0, 0
   for _, grp in ipairs(ns.WeaponSources) do
-    if matches(self, grp) then
+    if matches(self, grp) and (not wantedOnly or groupWeaponWanted(grp)) then
       sources = sources + 1
       for _, t in ipairs(ns.WeaponTypeOrder) do
         local visuals = grp.types[t]
-        if visuals then
+        if visuals and (not wantedOnly or ns:WeaponCellWanted(visuals)) then
           for _, v in ipairs(visuals) do
             apps = apps + 1
             if cmap[v] then coll = coll + 1 end

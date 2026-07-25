@@ -1,7 +1,5 @@
 ---@type Warbandeer_Collected
 local ns = select(2, ...)
-local ui = ns.ui
-local Texture, Label = ui.Texture, ui.Label
 local DataView = ns.DataView
 
 -- Drop any active lockout-panel row selection (its row index moves on re-sort / a
@@ -17,42 +15,16 @@ function DataView:_clearSelection()
   ns.HideLockoutView()
 end
 
--- Per-cell rating overlays: a gold "wanted" star (top-left) and the tier letter
--- in its tier color (top-right), both lazily created on the cell and reused.
--- Driven entirely by live DB state, so re-applying after any toggle / re-sort is
--- enough — the cell data carries only the setId to look them up by.
-local STAR = 11
-
+-- Per-cell rating overlays (the star + tier pip themselves are drawn by ns.ApplyCellMarks, shared
+-- with the weapons grid). This half is the armour resolution: what a set's marks MEAN — its own
+-- wanted flag, and its tier as the selected race sees it. Driven entirely by live DB state, so
+-- re-applying after any toggle / re-sort is enough — the cell data carries only the setId.
 ---@param cell Cell
 ---@param setId number?
 function DataView:_applyCellMarks(cell, setId)
-  if setId and ns:IsWanted(setId) then
-    if not cell._wantStar then
-      cell._wantStar = Texture:new{
-        parent = cell, layer = ui.layer.Overlay,
-        atlas = ns.WantedIcon, atlasSize = false,
-        position = { TopLeft = {1, -1}, Size = {STAR, STAR} },
-      }
-    end
-    cell._wantStar:Show()
-  elseif cell._wantStar then
-    cell._wantStar:Hide()
-  end
-
-  local rank = setId and ns:EffectiveRank(setId, self._playerRace)
-  if rank then
-    if not cell._rankPip then
-      cell._rankPip = Label:new{
-        parent = cell, layer = ui.layer.Overlay, fontObj = "GameFontNormalSmall",
-        position = { TopRight = {-1, 0} },
-      }
-    end
-    cell._rankPip:Text(rank)
-    cell._rankPip:Color(ns.RankColors[rank])
-    cell._rankPip:Show()
-  elseif cell._rankPip then
-    cell._rankPip:Hide()
-  end
+  ns.ApplyCellMarks(cell,
+    setId and ns:IsWanted(setId),
+    setId and ns:EffectiveRank(setId, self._playerRace))
 end
 
 -- Box the cell of the set currently previewed in the shared dressing room, following the room as

@@ -27,7 +27,7 @@ local _view
 ---@field filterStrip Frame the shared filter chrome row (DataView:BuildFilterStrip)
 ---@field scroll ScrollFrame
 ---@field counter Label
----@field wantedCount Label running "★ N" wanted-set count (mirrors the /collected window)
+---@field wantedCount Label running "★ N" wanted tally — sets in armor mode, weapon looks in weapons mode (mirrors the /collected window)
 ---@field emptyMsg Label
 ---@field _top number grid top offset (filter strip + gap) — _fitToGrid re-derives the height from it
 ---@field weaponGrid WeaponView? the weapon-source grid (Armor/Weapons toggle); nil if the addon predates it
@@ -113,7 +113,9 @@ local CollectedView = Class(Frame, function(self)
   counterHover:SetScript("OnEnter", function(f) (self.active or self.grid):ShowCountTooltip(f) end)
   counterHover:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
-  -- The gold wanted tally toggles WANTED ONLY on click (same as the filter button).
+  -- The gold wanted tally toggles WANTED ONLY on click (same as the filter button). It follows the
+  -- ACTIVE grid: both grids now have a wanted filter of their own, over different units — sets on
+  -- one side, individual weapon looks on the other (#689).
   local wantedHover = Frame:new{
     parent = self,
     position = {
@@ -122,8 +124,8 @@ local CollectedView = Class(Frame, function(self)
     },
   }
   wantedHover:EnableMouse(true)
-  wantedHover:SetScript("OnMouseUp", function() self.grid:ToggleWanted() end)
-  wantedHover:SetScript("OnEnter", function(f) self.grid:ShowWantedTooltip(f) end)
+  wantedHover:SetScript("OnMouseUp", function() (self.active or self.grid):ToggleWanted() end)
+  wantedHover:SetScript("OnEnter", function(f) (self.active or self.grid):ShowWantedTooltip(f) end)
   wantedHover:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
   -- Shown before the first /collected scan has populated any data. Centered below the
@@ -149,6 +151,9 @@ local CollectedView = Class(Frame, function(self)
       position = { TopLeft = {0, -TOP} },
       colInfo = WarbandeerCollectedApi.WeaponView.BuildColInfo(),
       onResized = function() _view:_fitToGrid() end,
+      -- Recompute the source/appearance/collected counter when the wanted-only filter flips
+      -- (VisibleCounts is filter-scoped), so it tracks the rows actually shown.
+      onFilterChanged = function() _view:_render() end,
       -- Scroll the dressed-weapon row into view (weaponScroll is assigned just below;
       -- the closure only reads it at highlight time).
       onEnsureVisible = function(_, rowTop, rowH)
@@ -211,14 +216,22 @@ if WarbandeerCollectedApi and WarbandeerCollectedApi.DataView then
   ns.views.CollectedView = CollectedView
 end
 
--- Live-refresh this view's grid when a rating changes in the shared dressing room
--- (registered once at load; Collected loads first via the OptionalDep order).
+-- Live-refresh this view's grids when a rating changes in the shared dressing room (registered once
+-- at load; Collected loads first via the OptionalDep order). BOTH grids, not just the shown one: a
+-- weapon flagged while Armor is up would otherwise leave the weapon grid holding a stale wanted-only
+-- row set for the next toggle over to it (and vice versa).
 if WarbandeerCollectedApi and WarbandeerCollectedApi.OnRatingsChanged then
   WarbandeerCollectedApi:OnRatingsChanged(function()
-    local g = _view and _view.grid
-    if not g then return end
-    if g._wantedOnly then g.data = g:GetData(); g:update() else g:_refreshMarks() end
-    _view:RefreshWanted()
+    if not (_view and _view.grid) then return end
+    -- The SHOWN grid, its counter and the tally all refresh through _render; the hidden one needs
+    -- its own pass so it isn't holding a stale wanted-only row set when it's toggled back to.
+    local hidden = _view._weaponsMode and _view.grid or _view.weaponGrid
+    if hidden then
+      if hidden._wantedOnly then hidden.data = hidden:GetData(); hidden:update()
+      else hidden:_refreshMarks() end
+    end
+    _view:_render()
+    _view:_fitToGrid()   -- the shown grid's row count may have changed
   end)
 end
 
@@ -262,7 +275,6 @@ function CollectedView:SetMode(weapons)
   if self.active._ptr ~= prevGrid._ptr then self.active:SetPtr(prevGrid._ptr) end
   self.grid:SetShown(not weapons); self.filterStrip:SetShown(not weapons); self.scroll:SetShown(not weapons)
   self.weaponGrid:SetShown(weapons); self.weaponStrip:SetShown(weapons); self.weaponScroll:SetShown(weapons)
-  self.wantedCount:SetShown(not weapons)   -- the wanted tally is armor-only
   local gold, off = theme.colors.gold or theme.colors.header, {0.05, 0.05, 0.06, 0.92}
   self._segArmor:Color(weapons and off or gold)
   self._segWeapons:Color(weapons and gold or off)
@@ -305,11 +317,11 @@ end
 -- Render the active dataset. PTR PREVIEW shows only the upcoming sets (no scan
 -- needed for the upcoming rows); live-only mode shows collected/total and needs a scan.
 function CollectedView:_render()
-  -- Weapon mode: no scan gate (WeaponView computes collected state live via ns:WeaponCollectedMap),
-  -- no wanted tally; just the source/appearance/collected counts and a data refresh.
+  -- Weapon mode: no scan gate (WeaponView computes collected state live via ns:WeaponCollectedMap);
+  -- the source/appearance/collected counts, its own wanted tally, and a data refresh.
   if self._weaponsMode then
     self.emptyMsg:Hide()
-    self.wantedCount:Text("")
+    self:RefreshWanted()
     if self.weaponGrid._ptr then
       -- PTR PREVIEW: only the upcoming (not-yet-live) appearances — a "+N upcoming" tally.
       local n, ptrBuild = self.weaponGrid:UpcomingCounts()
@@ -351,11 +363,15 @@ function CollectedView:_render()
   self.grid:update()
 end
 
--- Refresh the running wanted-set count in the header (gold star + N), matching the
--- /collected window. The star is drawn from the shared WantedIcon atlas rather than
--- a literal glyph so it renders in the body font.
+-- Refresh the running wanted tally in the header (gold star + N), matching the /collected window:
+-- flagged SETS in armor mode, flagged weapon APPEARANCES in weapons mode, since that's what the grid
+-- under it is made of and what its own ★ filter acts on. The star is drawn from the shared WantedIcon
+-- atlas rather than a literal glyph so it renders in the body font.
 function CollectedView:RefreshWanted()
   local api = WarbandeerCollectedApi
-  self.wantedCount:Text(("|A:%s:14:14|a %d"):format(api.WantedIcon, api:WantedCount()))
+  -- Guarded like every other reach across the API boundary in this file: a Collected older than
+  -- #689 exposes no weapon tally, and the view still has to render.
+  local n = (self._weaponsMode and api.WeaponWantedCount) and api:WeaponWantedCount() or api:WantedCount()
+  self.wantedCount:Text(("|A:%s:14:14|a %d"):format(api.WantedIcon, n))
 end
 
