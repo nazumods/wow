@@ -52,4 +52,69 @@ describe("ShadowsOfUI-PostOffice doNotWant", function()
       assert.equals(2, ns.ResolveDeleteIndex("cloth", nil, n, at))
     end)
   end)
+
+  describe("confirm payloads -- each dialog acts on the letter it was opened for", function()
+    local ns, dialogs, letters, deleted, item, coin
+
+    before_each(function()
+      ns = po.load()
+      dialogs = _G.StaticPopupDialogs
+      item = { sender = "Auction House", subject = "Auction expired", hasItem = 1 }
+      coin = { subject = "Payment", money = 5000 }
+      letters = { item, coin, { sender = "Bob", subject = "Hi" } }
+      deleted = po.inbox(letters)
+    end)
+
+    -- What onClick hands StaticPopup_Show as the dialog's payload, and what Blizzard hands
+    -- straight back to OnAccept/OnShow.
+    local function confirmFor(index)
+      return { sig = ns.InboxFingerprint(index), index = index, money = letters[index].money }
+    end
+
+    it("destroys the accepted dialog's own letter when its sibling opened afterwards", function()
+      -- #732: the item confirm is opened for letter 1 and the coin confirm for letter 2 before
+      -- either is answered. Answering the coin confirm first must destroy 2, and the still-open
+      -- item confirm must then destroy 1 -- neither may act on the other's letter.
+      local itemConfirm, coinConfirm = confirmFor(1), confirmFor(2)
+      dialogs[po.POPUP_MONEY].OnAccept(nil, coinConfirm)
+      dialogs[po.POPUP_MAIL].OnAccept(nil, itemConfirm)
+      assert.same({ coin, item }, deleted)
+    end)
+
+    it("re-resolves the second letter after the first accept shifted it up", function()
+      -- Same two confirms, answered the other way round: destroying letter 1 slides the coin
+      -- letter from index 2 to index 1, so the coin confirm's captured index now holds a
+      -- different letter and its fingerprint has to find the real one.
+      local itemConfirm, coinConfirm = confirmFor(1), confirmFor(2)
+      dialogs[po.POPUP_MAIL].OnAccept(nil, itemConfirm)
+      dialogs[po.POPUP_MONEY].OnAccept(nil, coinConfirm)
+      assert.same({ item, coin }, deleted)
+    end)
+
+    it("follows its letter when mail arriving mid-confirm shifts every index up", function()
+      local coinConfirm = confirmFor(2)
+      table.insert(letters, 1, { sender = "Postmaster", subject = "Delivery" })
+      dialogs[po.POPUP_MONEY].OnAccept(nil, coinConfirm)
+      assert.same({ coin }, deleted)
+    end)
+
+    it("destroys nothing when its letter is gone by the time it is accepted", function()
+      local coinConfirm = confirmFor(2)
+      table.remove(letters, 2)
+      dialogs[po.POPUP_MONEY].OnAccept(nil, coinConfirm)
+      assert.same({}, deleted)
+    end)
+
+    it("shows the coin carried by the dialog being shown", function()
+      local shown
+      _G.MoneyFrame_Update = function(_, amount) shown = amount end
+      dialogs[po.POPUP_MONEY].OnShow({ moneyFrame = {} }, confirmFor(2))
+      assert.equals(5000, shown)
+    end)
+
+    it("closes the sibling confirm so only one of ours is ever answerable", function()
+      assert.equals(po.POPUP_MONEY, dialogs[po.POPUP_MAIL].cancels)
+      assert.equals(po.POPUP_MAIL, dialogs[po.POPUP_MONEY].cancels)
+    end)
+  end)
 end)
