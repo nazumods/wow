@@ -8,5 +8,7 @@
 ## X-Curse-Project-ID: 1615367
 
 core.lua
+rewards.lua
+infocolumn.lua
 changelog.lua
 column.xml
