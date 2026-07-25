@@ -3,10 +3,15 @@ local ns = select(2, ...)
 
 ---@class ShadowsOfUI_ProfCommissions
 ---@field PopulateRewardIcons fun(cell: table, rowData: table)
+---@field DumpRewards fun()
 
 local GetItemInfoInstant = C_Item.GetItemInfoInstant
+local GetItemQualityByID = C_Item.GetItemQualityByID
 local GetCurrencyInfo = C_CurrencyInfo.GetCurrencyInfo
 local QUALITY_COLORS = ITEM_QUALITY_COLORS
+
+local GLOW_COLOR = { r = 1, g = 0.82, b = 0 } -- WoW gold
+local GLOW_PAD = 3 -- px the glow spreads past the icon on each side
 
 -- On the crafter's "Crafting Orders" browse list, Patron (NPC) orders carry bonus item/currency
 -- rewards on top of the gold commission. Blizzard renders these as a single generic treasure-chest
@@ -14,6 +19,18 @@ local QUALITY_COLORS = ITEM_QUALITY_COLORS
 -- on hover. We replace that chest with the actual reward icons in the same spot — each still hoverable
 -- for the full item/currency tooltip, so you can see *what* the reward is at a glance without opening
 -- every order.
+
+-- Every distinct reward the list has drawn this session, keyed by link/currency id, so
+-- /sprofcomm rewards can report how each one's quality resolved.
+local seen = {}
+
+-- Rarity is decided purely by quality, for items and currency alike: GetCurrencyInfo reports a real
+-- item-quality value (it's what Blizzard's own reward tooltip colours currency names with), so one
+-- threshold covers both kinds. Epic is the floor because every Patron order pays the profession's
+-- Moxie currency at Rare — glowing on Rare would glow every row and mean nothing.
+local function isRare(quality)
+  return quality ~= nil and quality >= ns.tuning.glowQuality
+end
 
 -- Point the tooltip at whatever this icon represents (an item link or a currency).
 local function iconOnEnter(icon)
@@ -48,6 +65,17 @@ local function acquireIcon(cell, index)
   icon.tex:SetAllPoints()
   icon.tex:SetTexCoord(0.08, 0.92, 0.08, 0.92) -- trim the default icon border
 
+  -- Gold "rare reward" glow: Blizzard's own new-item glow art, drawn additively one sublevel above
+  -- the icon (so under the quality border and the count) and spreading a few px past it. Starts
+  -- hidden so an ordinary reward can never leak a first paint before its quality resolves.
+  icon.glow = icon:CreateTexture(nil, "ARTWORK", nil, 1)
+  icon.glow:SetAtlas("bags-glow-white")
+  icon.glow:SetBlendMode("ADD")
+  icon.glow:SetVertexColor(GLOW_COLOR.r, GLOW_COLOR.g, GLOW_COLOR.b)
+  icon.glow:SetPoint("TOPLEFT", -GLOW_PAD, GLOW_PAD)
+  icon.glow:SetPoint("BOTTOMRIGHT", GLOW_PAD, -GLOW_PAD)
+  icon.glow:Hide()
+
   -- Quality-tinted frame around the icon (item rewards only). WhiteIconFrame is a hollow border
   -- texture, so vertex-colouring it rims the icon without painting over it.
   icon.border = icon:CreateTexture(nil, "OVERLAY")
@@ -65,6 +93,30 @@ local function acquireIcon(cell, index)
   return icon
 end
 
+-- Paint everything an icon derives from its quality. The border stays item-rewards-only (currency
+-- rewards report a quality too, but must not get one); the glow applies to both kinds.
+local function applyQuality(icon, quality, isItem)
+  local color = isItem and quality and quality > Enum.ItemQuality.Common and QUALITY_COLORS[quality]
+  if color then
+    icon.border:SetVertexColor(color.r, color.g, color.b)
+    icon.border:Show()
+  else
+    icon.border:Hide()
+  end
+
+  icon.glow:SetShown(isRare(quality))
+end
+
+-- Item quality is cache-backed, so a reward item this client has never seen resolves to nil and
+-- would silently render with neither border nor glow. Ask the server for it and re-decorate when it
+-- lands, re-checking the link first: rows recycle their icons while the request is in flight.
+local function requestQuality(icon, itemLink)
+  Item:CreateFromItemLink(itemLink):ContinueOnItemLoad(function()
+    if icon.itemLink ~= itemLink then return end
+    applyQuality(icon, GetItemQualityByID(itemLink), true)
+  end)
+end
+
 -- Fill one reward icon from a reward entry: { itemLink, count } or { currencyType, count }.
 local function fillIcon(icon, reward)
   local size = ns.tuning.iconSize
@@ -76,7 +128,8 @@ local function fillIcon(icon, reward)
     icon.itemLink = reward.itemLink
     local _, _, _, _, tex = GetItemInfoInstant(reward.itemLink)
     texture = tex
-    quality = C_Item.GetItemQualityByID(reward.itemLink)
+    quality = GetItemQualityByID(reward.itemLink)
+    if quality == nil then requestQuality(icon, reward.itemLink) end
   elseif reward.currencyType then
     icon.currencyType = reward.currencyType
     local info = GetCurrencyInfo(reward.currencyType)
@@ -85,16 +138,10 @@ local function fillIcon(icon, reward)
   end
 
   icon.tex:SetTexture(texture or 134400) -- INV_Misc_QuestionMark fallback
+  applyQuality(icon, quality, reward.itemLink ~= nil)
 
-  -- Quality border is item-rewards-only (per README/CONTEXT); currency rewards can
-  -- also report a quality but must not get the border.
-  local color = reward.itemLink and quality and quality > Enum.ItemQuality.Common and QUALITY_COLORS[quality]
-  if color then
-    icon.border:SetVertexColor(color.r, color.g, color.b)
-    icon.border:Show()
-  else
-    icon.border:Hide()
-  end
+  local key = reward.itemLink or reward.currencyType
+  if key then seen[key] = reward end
 
   local count = reward.count or 0
   if count > 1 then
@@ -137,4 +184,35 @@ function ns.PopulateRewardIcons(cell, rowData)
     prev = icon
   end
   for i = count + 1, #pool do pool[i]:Hide() end
+end
+
+-- /sprofcomm rewards — how every reward drawn this session resolved. Quality is what the glow keys
+-- off, so this is the check for whether the criteria actually catches the rare rewards on a live
+-- order (and for spotting one whose quality never resolved).
+function ns.DumpRewards()
+  local rows = {}
+  for _, reward in pairs(seen) do
+    local kind, label, quality
+    if reward.itemLink then
+      kind = "item"
+      label = C_Item.GetItemInfo(reward.itemLink) or reward.itemLink
+      quality = GetItemQualityByID(reward.itemLink)
+    else
+      kind = "currency"
+      local info = GetCurrencyInfo(reward.currencyType)
+      label = info and info.name or ("#" .. reward.currencyType)
+      quality = info and info.quality
+    end
+    rows[#rows + 1] = ("  [%s] %s - quality %s%s"):format(
+      kind, label, quality or "unresolved", isRare(quality) and "  <-- glows" or "")
+  end
+
+  if #rows == 0 then
+    ns.Print("No rewards drawn yet - open the Crafting Orders list on a Patron tab first.")
+    return
+  end
+  table.sort(rows)
+  ns.Print(("%d reward(s) seen this session; glow threshold is quality %d+."):format(
+    #rows, ns.tuning.glowQuality))
+  for _, row in ipairs(rows) do ns.Print(row) end
 end
