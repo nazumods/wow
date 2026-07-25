@@ -1,4 +1,4 @@
-# ShadowsOfUI-WarbandInventory
+# ShadowsOfUI-Inventory
 
 **Deps:** LibNAddOn, Warbandeer_Characters · **OptionalDeps:** Warbandeer · **SavedVars:** none · **Commands:** `/swinv <itemID|link>` (dev/find dump) · **API:** reads `WarbandeerApi`
 

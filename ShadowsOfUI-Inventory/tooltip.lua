@@ -1,4 +1,4 @@
----@class ShadowsOfUI_WarbandInventory: AddOn
+---@class ShadowsOfUI_Inventory: AddOn
 local ns = LibNAddOn(...)
 
 -- "Changelog" button in settings (ns.changelog from changelog.lua).

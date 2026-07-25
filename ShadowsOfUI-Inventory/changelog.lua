@@ -1,4 +1,4 @@
----@class ShadowsOfUI_WarbandInventory
+---@class ShadowsOfUI_Inventory
 local ns = select(2, ...)
 
 -- In-game changelog (newest first), shown via the "Changelog" button in this

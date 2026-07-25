@@ -1,4 +1,4 @@
-# ShadowsOfUI-WarbandInventory
+# ShadowsOfUI-Inventory
 
 Adds a **"Warband Inventory"** block to item tooltips, telling you at a glance how many of an
 item your whole account is holding — and where.
