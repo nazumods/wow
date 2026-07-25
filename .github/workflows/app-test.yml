@@ -4,16 +4,22 @@ name: app-test
 # suite, but for the Tauri app: Svelte/TS typecheck + Rust unit tests. `app-release.yml`
 # only builds on release; nothing else runs `cargo test` or `svelte-check`, so this is
 # the only gate that actually exercises this app's test suite.
+#
+# `apps/bot-ops` is in scope because the desktop app consumes it (cargo path dep + the
+# `@bot-ops` vite alias) — and because it is vendored into roshne/wow-companion, this is
+# the gate that catches a break *before* it is copied into a second shipped app.
 
 on:
   push:
     branches: [main]
     paths:
       - "apps/warbandeer-desktop/**"
+      - "apps/bot-ops/**"
       - ".github/workflows/app-test.yml"
   pull_request:
     paths:
       - "apps/warbandeer-desktop/**"
+      - "apps/bot-ops/**"
       - ".github/workflows/app-test.yml"
 
 jobs:
@@ -33,7 +39,9 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: apps/warbandeer-desktop/package-lock.json
+          cache-dependency-path: |
+            apps/warbandeer-desktop/package-lock.json
+            apps/bot-ops/package-lock.json
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -43,10 +51,31 @@ jobs:
       - name: Cache Rust build
         uses: swatinem/rust-cache@v2
         with:
-          workspaces: apps/warbandeer-desktop/src-tauri -> target
+          workspaces: |
+            apps/warbandeer-desktop/src-tauri -> target
+            apps/bot-ops/rust -> target
+
+      # The shared module resolves @tauri-apps/api from its own node_modules — it is imported
+      # from outside this app, so node resolution never reaches the app's. Without this the
+      # typecheck and the vite build both fail to resolve it.
+      - name: Install shared bot-ops module dependencies
+        working-directory: apps/bot-ops
+        run: npm ci
 
       - name: Install frontend dependencies
         run: npm ci
+
+      - name: Shared bot-ops module — TypeScript typecheck
+        working-directory: apps/bot-ops
+        run: npm run check
+
+      # Run the module's own tests here: `cargo test` in the app does not descend into
+      # dependencies, so nothing else would exercise them.
+      - name: Shared bot-ops module — Rust tests + lint
+        working-directory: apps/bot-ops/rust
+        run: |
+          cargo test
+          cargo clippy --all-targets -- -D warnings
 
       - name: Svelte + TypeScript typecheck
         run: npm run check

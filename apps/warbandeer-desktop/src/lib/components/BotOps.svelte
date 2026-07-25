@@ -2,8 +2,18 @@
   // Operator-only panel: drives the Warbandeer debug bot on the box via the Rust ops
   // commands (which shell out to ops/bot-ops.sh over SSH). Shown only when ops mode is
   // configured — App resolves opsConfig() and passes the resulting cfg here.
+  // The field list, the dirty-diff and the commands all come from the shared @bot-ops module
+  // (apps/bot-ops) — the same code wow-companion's React panel runs. Only the view is local.
   import type { OpsTargetInfo, BotStatus, EnvSetResult } from "../types";
-  import { botStatus, botLogs, botRestart, botEnvGet, botEnvSet } from "../api";
+  import {
+    botStatus,
+    botLogs,
+    botRestart,
+    botEnvGet,
+    botEnvSet,
+    changedFields,
+    OPS_FIELDS,
+  } from "../api";
 
   interface Props {
     targets: OpsTargetInfo[];
@@ -12,23 +22,6 @@
 
   // Which bot the panel is acting on; the selector switches it (debug/prod).
   let selected = $state(0);
-
-  // The non-secret keys the panel edits, in display order. Mirrors the whitelist in
-  // ops/bot-ops.sh (the authority) — secrets are intentionally absent and can't be set here.
-  const FIELDS: { key: string; label: string; hint: string }[] = [
-    { key: "ANNOUNCE_CHANNEL_ID", label: "Announce channel", hint: "Channel ID: server up/down, reset, DMF" },
-    { key: "RELEASE_ANNOUNCE_CHANNEL_ID", label: "Release channel", hint: "Channel ID for release posts (blank = same as announce)" },
-    { key: "WATCHED_REPOS", label: "Watched repos", hint: "owner/repo,owner/repo — release announcements" },
-    { key: "WOW_REALM", label: "Realm slug", hint: "Realm watched for up/down, e.g. eitrigg" },
-    { key: "WOW_REGION", label: "Region", hint: "us or eu" },
-    { key: "GUILD_ID", label: "Guild ID", hint: "Server for guild-scoped slash commands" },
-    { key: "COMMAND_PREFIX", label: "Command prefix", hint: "Slash-command prefix, e.g. r → /rdmf" },
-    { key: "ADMIN_USER_IDS", label: "Admin user IDs", hint: "Comma-separated user IDs allowed to /update" },
-    { key: "REPORT_ROLE_ID", label: "Report role ID", hint: "Role allowed to use /report" },
-    { key: "DMF_TIMEZONE", label: "DMF timezone", hint: "e.g. America/Los_Angeles" },
-    { key: "BOT_BRANCH", label: "Bot branch", hint: "Branch self-update measures against" },
-    { key: "AUTO_UPDATE", label: "Auto-update", hint: "true or false" },
-  ];
 
   let status = $state<BotStatus | null>(null);
   let env = $state<Record<string, string>>({});
@@ -40,7 +33,7 @@
   let notice = $state<string | null>(null);
   let confirming = $state<null | "restart" | "apply">(null);
 
-  const changed = $derived(FIELDS.filter((f) => (draft[f.key] ?? "") !== (env[f.key] ?? "")));
+  const changed = $derived(changedFields(env, draft));
 
   async function loadState(t = selected) {
     error = null;
@@ -148,7 +141,7 @@
 
   <div class="caps head">Environment</div>
   <div class="fields">
-    {#each FIELDS as f (f.key)}
+    {#each OPS_FIELDS as f (f.key)}
       <label class="field" class:dirty={(draft[f.key] ?? "") !== (env[f.key] ?? "")}>
         <span class="fl">{f.label}</span>
         <input class="num" bind:value={draft[f.key]} placeholder={f.hint} spellcheck="false" />

@@ -12,8 +12,12 @@
     "moduleResolution": "bundler",
     "strict": true,
     "verbatimModuleSyntax": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    // Mirrors the vite alias — the shared Bot Ops module lives outside this app's src, and
+    // resolves its own @tauri-apps/api from apps/bot-ops/node_modules (`npm install` there).
+    "paths": { "@bot-ops": ["../bot-ops/ts/index.ts"] }
   },
-  "include": ["src/**/*.ts", "src/**/*.svelte", "src/vite-env.d.ts"],
+  "include": ["src/**/*.ts", "src/**/*.svelte", "src/vite-env.d.ts", "../bot-ops/ts/*.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

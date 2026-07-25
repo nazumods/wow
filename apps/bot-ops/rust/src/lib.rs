@@ -1,24 +1,66 @@
-//! Ops-panel backend: drives the Warbandeer bot(s) on the box over SSH by invoking the versioned
-//! `ops/bot-ops.sh` helper — the only privileged surface. This never runs docker or edits the bot's
-//! `.env` itself; it shells `ssh` and lets the box script do the whitelisted work, so bot secrets
-//! never traverse the wire.
+//! Operator-only Ops panel backend: drives the `warbandeer-discord` bot(s) on the box over SSH by
+//! invoking the versioned `ops/bot-ops.sh` helper — the only privileged surface. This never runs
+//! docker or edits the bot's `.env` itself; it shells `ssh` and lets the box script do the
+//! whitelisted work, so bot secrets never traverse the wire. The helper lives in the `nazumods/wow`
+//! repo (`apps/warbandeer-discord/ops/bot-ops.sh`) and is deployed on the box — this crate just
+//! calls it, so nothing is duplicated here.
 //!
 //! Multi-target: `ops.json` lists one or more bots (debug/prod); the panel picks one and passes its
 //! index to each command, which resolves the target's ssh/remoteDir and its compose project +
 //! container (sent to the helper as `BOT_OPS_PROJECT` / `BOT_OPS_CONTAINER`).
 //!
 //! Gated: every command resolves an operator-supplied config file (`ops.json` in the app config
-//! dir, or the path in `WARBANDEER_OPS_CONFIG`). No config → `ops_config` returns `None` and the
-//! frontend hides the Ops tab, so shipped builds stay dormant for end users.
+//! dir, or the path in an env var — see [`set_config_env_var`]). No config → [`ops_config`] returns
+//! `None` and the frontend hides the Bot Ops tab, so shipped builds stay dormant for end users.
+//!
+//! # Installing into a Tauri app
+//!
+//! ```ignore
+//! tauri::Builder::default()
+//!     .setup(|_app| {
+//!         bot_ops::set_config_env_var("MY_APP_OPS_CONFIG"); // optional, app-specific override
+//!         Ok(())
+//!     })
+//!     .invoke_handler(tauri::generate_handler![
+//!         bot_ops::commands::ops_config,
+//!         bot_ops::commands::bot_status,
+//!         bot_ops::commands::bot_logs,
+//!         bot_ops::commands::bot_restart,
+//!         bot_ops::commands::bot_env_get,
+//!         bot_ops::commands::bot_env_set,
+//!     ])
+//! ```
+//!
+//! The commands live in [`commands`] rather than at the crate root on purpose: `#[tauri::command]`
+//! emits a `#[macro_export]`ed `__cmd__<name>` *and* re-exports it from the defining module, and at
+//! the crate root those two land on the same path (E0255, "defined multiple times").
 
 use serde::{Deserialize, Serialize};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use std::sync::OnceLock;
 use tauri::{AppHandle, Manager};
 
 const DEFAULT_PROJECT: &str = "warbandeer-discord-debug";
 const DEFAULT_CONTAINER: &str = "warbandeer-discord";
+
+/// Env var honoured by every host app, so an operator with several installed apps can point them
+/// all at one `ops.json`. Checked after the host's own name (see [`set_config_env_var`]).
+const SHARED_CONFIG_ENV_VAR: &str = "BOT_OPS_CONFIG";
+
+/// The host app's own config-path env var, if it registered one. Kept in a `OnceLock` rather than
+/// taken as a command argument because the frontend must not get to choose which file is read.
+static APP_CONFIG_ENV_VAR: OnceLock<String> = OnceLock::new();
+
+/// Name an app-specific env var that overrides the config path (e.g. `WOW_COMPANION_OPS_CONFIG`).
+///
+/// Call once during `setup`, before any command runs. Optional: without it only the shared
+/// `BOT_OPS_CONFIG` and the app config dir are consulted. Later calls are ignored, so a host can't
+/// be re-pointed at another file mid-run.
+pub fn set_config_env_var(name: impl Into<String>) {
+    let _ = APP_CONFIG_ENV_VAR.set(name.into());
+}
 
 fn default_project() -> String {
     DEFAULT_PROJECT.to_string()
@@ -120,11 +162,22 @@ fn read_config_at(path: &Path) -> Result<Option<Vec<OpsTarget>>, String> {
     Ok(Some(parse_config(&text, &path.display().to_string())?))
 }
 
+/// First non-empty of: the host's registered env var, then the shared `BOT_OPS_CONFIG`.
+fn config_path_override() -> Option<PathBuf> {
+    APP_CONFIG_ENV_VAR
+        .get()
+        .map(String::as_str)
+        .into_iter()
+        .chain(std::iter::once(SHARED_CONFIG_ENV_VAR))
+        .find_map(|name| match std::env::var(name) {
+            Ok(p) if !p.is_empty() => Some(PathBuf::from(p)),
+            _ => None,
+        })
+}
+
 fn config_path(app: &AppHandle) -> Option<PathBuf> {
-    match std::env::var("WARBANDEER_OPS_CONFIG") {
-        Ok(p) if !p.is_empty() => Some(PathBuf::from(p)),
-        _ => app.path().app_config_dir().ok().map(|d| d.join("ops.json")),
-    }
+    config_path_override()
+        .or_else(|| app.path().app_config_dir().ok().map(|d| d.join("ops.json")))
 }
 
 fn read_targets(app: &AppHandle) -> Result<Option<Vec<OpsTarget>>, String> {
@@ -232,67 +285,73 @@ pub struct EnvSetResult {
     pub log: Option<String>,
 }
 
-/// The gate + the target switch's options: `Some(list)` → show the Ops tab with a selector,
-/// `None` → keep it hidden.
-#[tauri::command]
-pub fn ops_config(app: AppHandle) -> Result<Option<Vec<OpsTargetInfo>>, String> {
-    Ok(read_targets(&app)?.map(|ts| {
-        ts.into_iter()
-            .map(|t| OpsTargetInfo {
-                name: t.name,
-                ssh: t.ssh,
-            })
-            .collect()
-    }))
-}
+/// The six `#[tauri::command]`s a host app registers. See the crate docs for why they are nested
+/// here instead of sitting at the crate root.
+pub mod commands {
+    use super::*;
 
-#[tauri::command]
-pub fn bot_status(app: AppHandle, target: usize) -> Result<BotStatus, String> {
-    let out = ssh_run(&require_target(&app, target)?, &["status"], None)?;
-    serde_json::from_str(&out).map_err(|e| format!("parse status: {e}: {out}"))
-}
-
-#[tauri::command]
-pub fn bot_logs(app: AppHandle, target: usize, lines: Option<u32>) -> Result<String, String> {
-    let n = lines.unwrap_or(200).min(5000).to_string();
-    ssh_run(&require_target(&app, target)?, &["logs", &n], None)
-}
-
-#[tauri::command]
-pub fn bot_restart(app: AppHandle, target: usize) -> Result<String, String> {
-    ssh_run(&require_target(&app, target)?, &["restart"], None)
-}
-
-#[tauri::command]
-pub fn bot_env_get(
-    app: AppHandle,
-    target: usize,
-) -> Result<std::collections::HashMap<String, String>, String> {
-    let out = ssh_run(&require_target(&app, target)?, &["env-get"], None)?;
-    serde_json::from_str(&out).map_err(|e| format!("parse env-get: {e}: {out}"))
-}
-
-#[tauri::command]
-pub fn bot_env_set(
-    app: AppHandle,
-    target: usize,
-    changes: Vec<EnvChange>,
-) -> Result<EnvSetResult, String> {
-    let t = require_target(&app, target)?;
-    // KEY=VALUE lines for the helper's stdin. Reject embedded newlines: the helper is
-    // line-oriented and a real value never contains one — this also defends the line protocol.
-    let mut stdin = String::new();
-    for c in &changes {
-        if c.key.contains(['\n', '\r']) || c.value.contains(['\n', '\r']) {
-            return Err(format!("value for '{}' contains a newline", c.key));
-        }
-        stdin.push_str(&c.key);
-        stdin.push('=');
-        stdin.push_str(&c.value);
-        stdin.push('\n');
+    /// The gate + the target switch's options: `Some(list)` → show the Bot Ops tab with a selector,
+    /// `None` → keep it hidden.
+    #[tauri::command]
+    pub fn ops_config(app: AppHandle) -> Result<Option<Vec<OpsTargetInfo>>, String> {
+        Ok(read_targets(&app)?.map(|ts| {
+            ts.into_iter()
+                .map(|t| OpsTargetInfo {
+                    name: t.name,
+                    ssh: t.ssh,
+                })
+                .collect()
+        }))
     }
-    let out = ssh_run(&t, &["env-set"], Some(&stdin))?;
-    serde_json::from_str(&out).map_err(|e| format!("parse env-set: {e}: {out}"))
+
+    #[tauri::command]
+    pub fn bot_status(app: AppHandle, target: usize) -> Result<BotStatus, String> {
+        let out = ssh_run(&require_target(&app, target)?, &["status"], None)?;
+        serde_json::from_str(&out).map_err(|e| format!("parse status: {e}: {out}"))
+    }
+
+    #[tauri::command]
+    pub fn bot_logs(app: AppHandle, target: usize, lines: Option<u32>) -> Result<String, String> {
+        let n = lines.unwrap_or(200).min(5000).to_string();
+        ssh_run(&require_target(&app, target)?, &["logs", &n], None)
+    }
+
+    #[tauri::command]
+    pub fn bot_restart(app: AppHandle, target: usize) -> Result<String, String> {
+        ssh_run(&require_target(&app, target)?, &["restart"], None)
+    }
+
+    #[tauri::command]
+    pub fn bot_env_get(
+        app: AppHandle,
+        target: usize,
+    ) -> Result<std::collections::HashMap<String, String>, String> {
+        let out = ssh_run(&require_target(&app, target)?, &["env-get"], None)?;
+        serde_json::from_str(&out).map_err(|e| format!("parse env-get: {e}: {out}"))
+    }
+
+    #[tauri::command]
+    pub fn bot_env_set(
+        app: AppHandle,
+        target: usize,
+        changes: Vec<EnvChange>,
+    ) -> Result<EnvSetResult, String> {
+        let t = require_target(&app, target)?;
+        // KEY=VALUE lines for the helper's stdin. Reject embedded newlines: the helper is
+        // line-oriented and a real value never contains one — this also defends the line protocol.
+        let mut stdin = String::new();
+        for c in &changes {
+            if c.key.contains(['\n', '\r']) || c.value.contains(['\n', '\r']) {
+                return Err(format!("value for '{}' contains a newline", c.key));
+            }
+            stdin.push_str(&c.key);
+            stdin.push('=');
+            stdin.push_str(&c.value);
+            stdin.push('\n');
+        }
+        let out = ssh_run(&t, &["env-set"], Some(&stdin))?;
+        serde_json::from_str(&out).map_err(|e| format!("parse env-set: {e}: {out}"))
+    }
 }
 
 #[cfg(test)]
@@ -340,7 +399,7 @@ mod tests {
 
     #[test]
     fn absent_config_file_is_none_not_error() {
-        let missing = std::env::temp_dir().join("warbandeer-ops-does-not-exist.json");
+        let missing = std::env::temp_dir().join("bot-ops-does-not-exist.json");
         assert!(read_config_at(&missing).unwrap().is_none());
     }
 
@@ -372,5 +431,31 @@ mod tests {
         assert!(noop.ok);
         assert!(!noop.recreated);
         assert!(noop.changed.is_empty());
+    }
+
+    // `set_config_env_var` writes a process-global `OnceLock`, so the two env-var cases share one
+    // test — separate `#[test]`s would race for the single set.
+    #[test]
+    fn config_override_prefers_the_apps_var_then_the_shared_one() {
+        assert!(config_path_override().is_none(), "no vars set yet");
+
+        std::env::set_var(SHARED_CONFIG_ENV_VAR, "/shared/ops.json");
+        assert_eq!(
+            config_path_override(),
+            Some(PathBuf::from("/shared/ops.json"))
+        );
+
+        set_config_env_var("BOT_OPS_TEST_APP_CONFIG");
+        // Registered but unset — the shared var still wins over the app config dir.
+        assert_eq!(
+            config_path_override(),
+            Some(PathBuf::from("/shared/ops.json"))
+        );
+
+        std::env::set_var("BOT_OPS_TEST_APP_CONFIG", "/app/ops.json");
+        assert_eq!(config_path_override(), Some(PathBuf::from("/app/ops.json")));
+
+        std::env::remove_var("BOT_OPS_TEST_APP_CONFIG");
+        std::env::remove_var(SHARED_CONFIG_ENV_VAR);
     }
 }
