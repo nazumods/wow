@@ -39,7 +39,7 @@ all.
 
 `/sprofcomm` prints whether the hook is active plus the current icon size and glow threshold.
 `/sprofcomm size <n>`, `/sprofcomm reserve <n>` and `/sprofcomm glow <quality>` retune those live
-(each applies on the next list refresh), and `/sprofcomm rewards` lists every reward the order list
+(each applies next time you open the Crafting Orders window — re-sorting a column isn't enough), and `/sprofcomm rewards` lists every reward the order list
 has drawn this session with the quality it resolved to. All tuning/debug aids you won't normally
 need.
 

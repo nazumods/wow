@@ -11,7 +11,7 @@ local GetCurrencyInfo = C_CurrencyInfo.GetCurrencyInfo
 local QUALITY_COLORS = ITEM_QUALITY_COLORS
 
 local GLOW_COLOR = { r = 1, g = 0.82, b = 0 } -- WoW gold
-local GLOW_PAD = 3 -- px the glow spreads past the icon on each side
+local GLOW_PAD = 4 -- px the glow spreads past the icon on each side
 
 -- On the crafter's "Crafting Orders" browse list, Patron (NPC) orders carry bonus item/currency
 -- rewards on top of the gold commission. Blizzard renders these as a single generic treasure-chest
@@ -65,10 +65,12 @@ local function acquireIcon(cell, index)
   icon.tex:SetAllPoints()
   icon.tex:SetTexCoord(0.08, 0.92, 0.08, 0.92) -- trim the default icon border
 
-  -- Gold "rare reward" glow: Blizzard's own new-item glow art, drawn additively one sublevel above
-  -- the icon (so under the quality border and the count) and spreading a few px past it. Starts
-  -- hidden so an ordinary reward can never leak a first paint before its quality resolves.
-  icon.glow = icon:CreateTexture(nil, "ARTWORK", nil, 1)
+  -- Gold "rare reward" glow: Blizzard's own new-item glow art, spreading GLOW_PAD past the icon on
+  -- every side. It sits on BACKGROUND, *behind* the icon: bags-glow-white is a filled square, not a
+  -- ring, so drawn on top it washes an 18px icon into an unreadable gold block — behind, the opaque
+  -- icon masks the middle and only the soft falloff shows, which is the halo we actually want.
+  -- Starts hidden so an ordinary reward can never leak a first paint before its quality resolves.
+  icon.glow = icon:CreateTexture(nil, "BACKGROUND")
   icon.glow:SetAtlas("bags-glow-white")
   icon.glow:SetBlendMode("ADD")
   icon.glow:SetVertexColor(GLOW_COLOR.r, GLOW_COLOR.g, GLOW_COLOR.b)

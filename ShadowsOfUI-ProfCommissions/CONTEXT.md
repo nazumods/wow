@@ -61,7 +61,8 @@ mutate them across files: `iconSize` (18) / `iconGap` (3) / `moneyReserve` (80) 
 **right** edge minus `moneyReserve` (a fixed money zone), not to the money's *left* edge — the left
 edge shifts with the amount's digit count, so pinning there left the reward column ragged across
 rows; the fixed reserve keeps it aligned. `/sprofcomm size|reserve|glow <n>` mutate the matching
-field live (each applies on the next `Populate`, i.e. a re-sort or reopen).
+field live, applying on the next **full populate** — reopen the Crafting Orders window; a header
+re-sort reuses the cells already drawn and leaves the old values on screen.
 
 ## Rare-reward glow
 
@@ -73,11 +74,15 @@ pays the profession's *Artisan `<Prof>`'s Moxie* currency at **Rare** (3); glowi
 every row. The reward that prompted this (#692), *Artisan's Consortium Gold Star*, is item **246450**
 at **Epic** — an item, not a currency as the issue assumed.
 
-The glow is `bags-glow-white` (Blizzard's new-item glow art) on `ARTWORK` **sublevel 1** — above the
-icon, below the `OVERLAY` border and count — with `SetBlendMode("ADD")`, vertex-coloured WoW gold
-`(1, 0.82, 0)`, inset `GLOW_PAD` (3px) past each edge. Created **hidden**, per the suite rule that
-icon overlays must not leak a first paint. It is **static**, not pulsed: these rows recycle on every
-scroll and re-sort, so there is no animation lifecycle to leave stuck on a recycled icon.
+The glow is `bags-glow-white` (Blizzard's new-item glow art) with `SetBlendMode("ADD")`,
+vertex-coloured WoW gold `(1, 0.82, 0)`, spreading `GLOW_PAD` (4px) past each edge — and it sits on
+**`BACKGROUND`, behind the icon**. That layer is the whole trick: `bags-glow-white` is a *filled*
+square, not a ring, so drawn on top it washes an 18px icon into an unreadable gold block (verified
+in-game — it rendered as a hard gold box). Behind, the opaque icon masks the filled middle and only
+the soft falloff shows, giving a halo around a legible icon. `iconGap` is 4 to match `GLOW_PAD`, so
+two adjacent rare rewards' haloes meet without overlapping. Created **hidden**, per the suite rule
+that icon overlays must not leak a first paint. It is **static**, not pulsed: these rows recycle
+constantly, so there is no animation lifecycle to leave stuck on a recycled icon.
 
 `requestQuality` covers the cache miss: `C_Item.GetItemQualityByID` is cache-backed, so a reward item
 the client has never seen resolves to `nil` and would render with neither border nor glow.
@@ -124,6 +129,15 @@ every time (a momentary "Reagents"/text state is overwritten before paint).
 
 - **Hook before cells exist** — must hook the mixin table at addon-load, not after the list is
   populated; frames copy the function reference at `Mixin`/`CreateFrame` time.
+- **`ContinueOnAddOnLoaded` can fire synchronously** — when `Blizzard_Professions` is already loaded
+  it calls the callback *inline*, which for `core.lua` means during its own main chunk, before
+  `rewards.lua` / `infocolumn.lua` have defined `ns.PopulateRewardIcons` / `ns.ReplaceReagentsColumn`.
+  Both hooks therefore go through a **closure** that resolves the `ns` field at call time; passing
+  the field directly raises `Usage: hooksecurefunc(...)` on login. Also keeps the installer immune
+  to `.toc` reordering.
+- **A header re-sort does not repopulate** — it reuses cells already drawn, so a live `/sprofcomm`
+  retune (and any other populate-time change) only shows after the Crafting Orders window is
+  **reopened**. Worth knowing when verifying in-game: re-sorting reads back stale paint.
 - **Native chest re-shows every populate** — Blizzard's `Populate` calls `RewardIcon:SetShown(...)`
   each time; the hide must live in the post-hook (runs after), not a one-off.
 - **`GetItemQualityByID` is cache-backed** — returns nil for an uncached reward item, which would
