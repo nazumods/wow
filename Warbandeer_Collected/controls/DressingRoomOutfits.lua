@@ -205,6 +205,13 @@ function DressingRoom:_buildOutfits(controls)
   self._outfitDelete = self:_rowButton(row, bx + 2 * (BTNW + GAP), BTNW, "Delete", function() self:DeleteOutfit() end)
   self._outfitPush   = self:_rowButton(row, bx + 3 * (BTNW + GAP), BTNW, "Push",   function() self:PushOutfit() end)
 
+  -- Follow the STORE rather than waiting to be told by whoever changed it (#727). The library is
+  -- also written from the library window and from `/collected outfit …`, and with the workspace
+  -- docked (#713) that window is routinely open beside this row — so a look deleted there used to
+  -- leave this dropdown naming an entry that no longer existed, with `_outfitSel` still pointing at
+  -- it. `RefreshOutfits` already drops a selection that vanished; it just never got to run.
+  ns.OnLibraryChanged(function() self:RefreshOutfits() end)
+
   -- The row starts NEUTRAL — "+ New Look", empty field. It deliberately doesn't reopen on the look
   -- last loaded: the room opens on whatever grid cell was clicked, so a seeded selection would
   -- describe a look that isn't on screen, and the typed name is what Save targets. The row's whole

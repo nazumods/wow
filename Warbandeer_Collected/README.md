@@ -218,6 +218,9 @@ what this works around.
 - **Save** writes what's on screen under **whatever name is in the box**. Leave it as the selected
   look's name to update that one; type a different name and you get a new look, with the original
   untouched. **+ New Look** at the bottom of the dropdown just clears the box to start fresh.
+- **Names ignore capitals.** Typing `boylane 3` when you already have a *Boylane 3* means that
+  look — so it asks before replacing it, rather than quietly leaving you two entries you can't tell
+  apart. The look keeps the spelling you gave it; **Rename** is what changes that.
 - **Rename** changes the selected look's name to whatever's in the name field. It's the only thing
   that renames — pressing Enter in the box always saves, never renames.
 - **Delete** asks once before removing anything: the button goes gold, changes to *Sure?* and counts
@@ -267,6 +270,9 @@ preview window opens the library — the same list, with room to search it and a
   Delete always asks first, and Push asks whenever it would replace a same-named set on this
   character — the same way the outfit row asks. Saving stays where the look you're *building*
   lives — the outfit row, or the transmogrifier.
+- **This window and the outfit row stay in step.** They're normally on screen together, and either
+  one can change the library — so a look renamed or deleted in one updates in the other straight
+  away, instead of one of them sitting there offering something that's already gone.
 
 **Bring your old transmog sets in.** Sets you saved in the game's own dressing room live on
 **one character only** — that's a WoW limitation, and it's the whole reason this library exists.

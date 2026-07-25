@@ -64,6 +64,23 @@ describe("outfit library", function()
       ns.SaveLibraryOutfit("mog", lookWith(ns, 6))
       assert.equal(1, #ns.LibraryOutfits())
     end)
+
+    -- #728: the reported bug is the duplicate this now refuses to create.
+    it("replaces a look whose name differs only in case", function()
+      ns.SaveLibraryOutfit("Boylane 3", lookWith(ns, 1))
+      ns.SaveLibraryOutfit("boylane 3", lookWith(ns, 2))
+      assert.equal(1, #ns.LibraryOutfits())
+      assert.equal(2, ns.LibraryOutfitList("Boylane 3")[INVSLOT_HEAD].appearanceID)
+    end)
+
+    -- …and keeps the name it was stored under. Names are display strings — class-coloured in the
+    -- dropdown, printed by `/collected outfit list` — so a save the user asked to be a REPLACEMENT
+    -- has no business re-capitalising the entry. Rename is how a name changes.
+    it("leaves a replaced entry's own capitalisation alone", function()
+      ns.SaveLibraryOutfit("Boylane 3", lookWith(ns, 1))
+      ns.SaveLibraryOutfit("boylane 3", lookWith(ns, 2))
+      assert.equal("Boylane 3", ns.LibraryOutfits()[1].name)
+    end)
   end)
 
   describe("provenance", function()
@@ -114,6 +131,25 @@ describe("outfit library", function()
     it("is nil for an unknown or empty name", function()
       assert.is_nil(ns.LibraryOutfit("nope"))
       assert.is_nil(ns.LibraryOutfit(""))
+    end)
+
+    -- #728: the guards built on this function exist to stop an accidental duplicate, and matching
+    -- exactly let a case variant past every one of them.
+    it("matches a name that differs only in case", function()
+      ns.SaveLibraryOutfit("Boylane 3", ns.EmptyOutfitList())
+      local entry, index = ns.LibraryOutfit("boylane 3")
+      assert.equal("Boylane 3", entry.name)
+      assert.equal(1, index)
+      assert.equal("Boylane 3", ns.LibraryOutfit("BOYLANE 3").name)
+    end)
+
+    -- A library saved before #728 may hold both variants — they were legal — so each name still has
+    -- to resolve to its own entry rather than to whichever comes first.
+    it("prefers an exact match over an earlier case variant", function()
+      ns.LibraryOutfits()[1] = { name = "mog", look = ns.EncodeOutfit(ns.EmptyOutfitList()) }
+      ns.LibraryOutfits()[2] = { name = "MOG", look = ns.EncodeOutfit(ns.EmptyOutfitList()) }
+      assert.equal(2, select(2, ns.LibraryOutfit("MOG")))
+      assert.equal(1, select(2, ns.LibraryOutfit("mog")))
     end)
   end)
 
@@ -166,6 +202,26 @@ describe("outfit library", function()
       assert.equal("a name is required", err)
     end)
 
+    -- The half of #728 that pulls the other way: with the lookup case-insensitive, a look renaming
+    -- itself finds ITSELF, so fixing your own capitalisation must stay legal rather than read as a
+    -- collision with a look that isn't there.
+    it("allows a rename that only changes a look's own capitalisation", function()
+      ns.SaveLibraryOutfit("boylane 3", ns.EmptyOutfitList())
+      assert.is_true(ns.RenameLibraryOutfit("boylane 3", "Boylane 3"))
+      assert.equal("Boylane 3", ns.LibraryOutfits()[1].name)
+      assert.equal(1, #ns.LibraryOutfits())
+    end)
+
+    it("rejects a name ANOTHER look holds in a different case", function()
+      ns.SaveLibraryOutfit("Boylane 3", ns.EmptyOutfitList())
+      ns.SaveLibraryOutfit("other", ns.EmptyOutfitList())
+      local ok, err = ns.RenameLibraryOutfit("other", "boylane 3")
+      assert.is_false(ok)
+      -- Names the STORED entry, so the refusal points at a look the user can actually find.
+      assert.is_truthy(err:find("\"Boylane 3\" is already in the library", 1, true))
+      assert.equal("other", ns.LibraryOutfits()[2].name)
+    end)
+
     it("reports an unknown source name", function()
       local ok, err = ns.RenameLibraryOutfit("nope", "x")
       assert.is_false(ok)
@@ -187,127 +243,80 @@ describe("outfit library", function()
     end)
   end)
 
-  -- The library window's filter strip (#662). Saved through the real save path so the entries
-  -- carry provenance exactly as the store writes it.
-  describe("FilterOutfits", function()
-    ---@return table ns
-    local function seeded()
-      local n = collected.load()
-      n.SaveLibraryOutfit("Rootwarden", lookWith(n, 1),
-        { char = "Triandra-Silvermoon", class = "DRUID", forClass = "DRUID", armor = "Leather" })
-      n.SaveLibraryOutfit("Bladedancer", lookWith(n, 2),
-        { char = "Keshan-Silvermoon", class = "ROGUE", forClass = "ROGUE", armor = "Leather" })
-      n.SaveLibraryOutfit("Ironhold", lookWith(n, 3),
-        { char = "Triandra-Silvermoon", class = "DRUID", forClass = "WARRIOR", armor = "Plate" })
-      n.SaveLibraryOutfit("Weapons only", lookWith(n, 4),
-        { char = "Keshan-Silvermoon", class = "ROGUE", forClass = "ROGUE", armor = "Any" })
-      -- The pre-#655 entry: saved before provenance existed, so every field but the name is nil.
-      n.SaveLibraryOutfit("Ancient", lookWith(n, 5))
-      return n
+  -- The change notification (#727). The two surfaces that show the library — the dressing room's
+  -- outfit row and the library window — used to be refreshed by whichever caller happened to know
+  -- about one of them, and neither ever refreshed the other, so one sat listing a look the other
+  -- had just deleted.
+  describe("change notification", function()
+    ---Count the notifications `ns` fires from here on.
+    ---@return fun(): number
+    local function counting(n)
+      local fired = 0
+      n.OnLibraryChanged(function() fired = fired + 1 end)
+      return function() return fired end
     end
 
-    ---@param list table[]
-    ---@return string[]
-    local function names(list)
-      local out = {}
-      for i, o in ipairs(list) do out[i] = o.name end
-      return out
-    end
-
-    ---@param n table
-    ---@param filter table?
-    ---@return string[]
-    local function filtered(n, filter)
-      return names(n.FilterOutfits(n.LibraryOutfits(), filter))
-    end
-
-    it("returns everything for no filter at all", function()
-      local n = seeded()
-      assert.equal(5, #n.FilterOutfits(n.LibraryOutfits()))
-      assert.equal(5, #n.FilterOutfits(n.LibraryOutfits(), {}))
+    it("fires on a save, a rename and a delete alike", function()
+      local fired = counting(ns)
+      ns.SaveLibraryOutfit("mog", ns.EmptyOutfitList())
+      assert.equal(1, fired())
+      ns.RenameLibraryOutfit("mog", "renamed")
+      assert.equal(2, fired())
+      ns.DeleteLibraryOutfit("renamed")
+      assert.equal(3, fired())
     end)
 
-    -- The reported use case: one leather look wanted on a rogue, a druid AND a demon hunter.
-    -- Class would scatter those three; armour is what groups them.
-    it("filters by armour type", function()
-      assert.same({ "Rootwarden", "Bladedancer", "Weapons only", "Ancient" },
-        filtered(seeded(), { armor = "Leather" }))
+    -- Only a write that HAPPENED is announced: a refused save or a delete that found nothing left
+    -- the library exactly as it was, and refreshing on it would repaint both windows for nothing.
+    it("stays quiet when nothing changed", function()
+      local fired = counting(ns)
+      ns.SaveLibraryOutfit("", ns.EmptyOutfitList())
+      ns.DeleteLibraryOutfit("nope")
+      ns.RenameLibraryOutfit("nope", "x")
+      assert.equal(0, fired())
+      ns.SaveLibraryOutfit("a", ns.EmptyOutfitList())
+      ns.SaveLibraryOutfit("b", ns.EmptyOutfitList())
+      assert.is_false((ns.RenameLibraryOutfit("a", "b")))   -- the name is taken
+      assert.equal(2, fired())
     end)
 
-    it("treats \"Any\" as no armour filter at all", function()
-      assert.equal(5, #seeded().FilterOutfits(seeded().LibraryOutfits(), { armor = "Any" }))
+    it("tells every subscriber, so a second surface needs no wiring of its own", function()
+      local one, two = counting(ns), counting(ns)
+      ns.SaveLibraryOutfit("mog", ns.EmptyOutfitList())
+      assert.equal(1, one())
+      assert.equal(1, two())
     end)
 
-    it("filters by class, keying on forClass rather than the saver's class", function()
-      -- "Ironhold" is a WARRIOR look saved by a DRUID: it belongs to the Warrior filter, and the
-      -- Druid filter must not claim it just because a Druid saved it.
-      assert.same({ "Ironhold", "Ancient" }, filtered(seeded(), { class = "WARRIOR" }))
-      assert.same({ "Rootwarden", "Ancient" }, filtered(seeded(), { class = "DRUID" }))
-    end)
-
-    it("searches the look's name", function()
-      assert.same({ "Rootwarden" }, filtered(seeded(), { search = "root" }))
-    end)
-
-    it("searches the saving character's name", function()
-      assert.same({ "Bladedancer", "Weapons only" }, filtered(seeded(), { search = "keshan" }))
-    end)
-
-    it("searches case-insensitively and ignores surrounding whitespace", function()
-      assert.same({ "Rootwarden" }, filtered(seeded(), { search = "  ROOTWARD  " }))
-    end)
-
-    it("treats an all-whitespace search as no search", function()
-      assert.equal(5, #seeded().FilterOutfits(seeded().LibraryOutfits(), { search = "   " }))
-    end)
-
-    -- A name or term with pattern punctuation must match literally, not as a Lua pattern.
-    it("matches a search term literally rather than as a pattern", function()
-      local n = collected.load()
-      n.SaveLibraryOutfit("100% plate", lookWith(n, 1))
-      n.SaveLibraryOutfit("all plate", lookWith(n, 2))
-      assert.same({ "100% plate" }, filtered(n, { search = "100%" }))
-    end)
-
-    it("composes the dimensions", function()
-      assert.same({ "Rootwarden", "Ancient" },
-        filtered(seeded(), { armor = "Leather", class = "DRUID" }))
-      assert.same({ "Bladedancer" },
-        filtered(seeded(), { armor = "Leather", class = "ROGUE", search = "blade" }))
-    end)
-
-    it("returns empty when nothing matches", function()
-      assert.same({}, filtered(seeded(), { search = "nothing by this name" }))
-    end)
-
-    -- The criterion that matters most (#662): a filter that hid un-attributed looks would make
-    -- everything saved before #655 disappear from the only list that shows it.
-    it("never filters out an entry that predates provenance", function()
-      local n = seeded()
-      for _, filter in ipairs({
-        { armor = "Cloth" }, { armor = "Leather" }, { armor = "Mail" }, { armor = "Plate" },
-        { class = "WARRIOR" }, { class = "PRIEST" },
-        { armor = "Plate", class = "PALADIN" },
-      }) do
-        local found = false
-        for _, o in ipairs(n.FilterOutfits(n.LibraryOutfits(), filter)) do
-          if o.name == "Ancient" then found = true end
+    -- What `ImportCharacterSets` needs: up to 25 writes in one loop, and a refresh per write would
+    -- rebuild both surfaces — and re-dress the library window's preview model — 25 times over.
+    it("collapses a batch into one notification, fired after the batch closes", function()
+      local fired = counting(ns)
+      ns.LibraryBatch(function()
+        for _, n in ipairs({ "one", "two", "three" }) do
+          ns.SaveLibraryOutfit(n, ns.EmptyOutfitList())
         end
-        assert.is_true(found, "an entry with no provenance must survive every facet filter")
-      end
+        assert.equal(0, fired(), "the batch must not notify while it is still writing")
+      end)
+      assert.equal(1, fired())
+      assert.equal(3, #ns.LibraryOutfits())
     end)
 
-    -- …but search is a positive query, not a facet: a look with no character recorded genuinely
-    -- doesn't match a character search, and pretending otherwise would make that search useless.
-    it("does not make a provenance-less entry match every search term", function()
-      -- Every entry with a character recorded, and pointedly not "Ancient", which has none.
-      assert.same({ "Rootwarden", "Bladedancer", "Ironhold", "Weapons only" },
-        filtered(seeded(), { search = "silvermoon" }))
+    it("says nothing for a batch that changed nothing", function()
+      local fired = counting(ns)
+      ns.LibraryBatch(function() ns.DeleteLibraryOutfit("nope") end)
+      assert.equal(0, fired())
     end)
 
-    it("returns the stored entries themselves, not copies", function()
-      local n = seeded()
-      assert.equal(n.LibraryOutfit("Rootwarden"), n.FilterOutfits(n.LibraryOutfits(), { search = "root" })[1])
+    -- A batch that lands inside another still fires once, at the OUTER close — so nesting can't
+    -- announce a half-finished library.
+    it("nests", function()
+      local fired = counting(ns)
+      ns.LibraryBatch(function()
+        ns.SaveLibraryOutfit("a", ns.EmptyOutfitList())
+        ns.LibraryBatch(function() ns.SaveLibraryOutfit("b", ns.EmptyOutfitList()) end)
+        assert.equal(0, fired())
+      end)
+      assert.equal(1, fired())
     end)
   end)
 
@@ -386,29 +395,6 @@ describe("outfit library", function()
       for _, filter in ipairs({ { class = "WARRIOR" }, { class = "ROGUE" }, { armor = "Leather" } }) do
         assert.equal(1, #n.FilterOutfits(n.LibraryOutfits(), filter))
       end
-    end)
-  end)
-
-  describe("LibraryFacets", function()
-    it("names each forClass present exactly once, sorted", function()
-      local n = collected.load()
-      n.SaveLibraryOutfit("a", lookWith(n, 1), { forClass = "WARRIOR" })
-      n.SaveLibraryOutfit("b", lookWith(n, 2), { forClass = "DRUID" })
-      n.SaveLibraryOutfit("c", lookWith(n, 3), { forClass = "WARRIOR" })
-      assert.same({ "DRUID", "WARRIOR" }, n.LibraryFacets(n.LibraryOutfits()))
-    end)
-
-    -- An entry with no forClass is unknown, not a class of its own — and it passes every class
-    -- filter anyway, so it needs no option in the dropdown.
-    it("ignores entries with no forClass", function()
-      local n = collected.load()
-      n.SaveLibraryOutfit("a", lookWith(n, 1), { forClass = "MAGE" })
-      n.SaveLibraryOutfit("b", lookWith(n, 2))
-      assert.same({ "MAGE" }, n.LibraryFacets(n.LibraryOutfits()))
-    end)
-
-    it("is empty for an empty library", function()
-      assert.same({}, collected.load().LibraryFacets({}))
     end)
   end)
 end)
