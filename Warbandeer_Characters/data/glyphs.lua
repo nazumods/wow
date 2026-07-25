@@ -180,10 +180,20 @@ ns:registerDump("glyphs", "Appearance Glyphs",
 
     local unlocks = ns.AppearanceUnlocks[classId]
     if unlocks then
-      out:line(("Account appearance unlocks (%d):"):format(#unlocks))
+      -- The account-wide snapshot (data/classcollectibles.lua) answers these same quest flags for a
+      -- reader with no client, so the probe prints it beside live and flags any row where the two
+      -- DISAGREE — the only interesting case, and the one thing a unit test can't check.
+      local snap = ns.db.classCollectibles
+      out:line(snap
+        and ("Account appearance unlocks (%d)  [snapshot: %d quest(s), build %s, by %s]:"):format(
+          #unlocks, snap.questCount or 0, snap.build or "?", snap.scannedBy or "?")
+        or ("Account appearance unlocks (%d)  [snapshot: not scanned yet]:"):format(#unlocks))
       for _, e in ipairs(unlocks) do
-        out:line(("  %s  ->  %s%s"):format(e.label, GetItemName(e.itemID) or ("item:" .. e.itemID),
-          IsAccountQuestDone(e.quest) and "  <UNLOCKED>" or ""))
+        local live = IsAccountQuestDone(e.quest) == true
+        local stored = snap and snap.quests[e.quest] == true
+        out:line(("  %s  ->  %s%s%s"):format(e.label, GetItemName(e.itemID) or ("item:" .. e.itemID),
+          live and "  <UNLOCKED>" or "",
+          (snap and stored ~= live) and ("  <SNAPSHOT SAYS " .. tostring(stored) .. ">") or ""))
       end
     end
   end)
