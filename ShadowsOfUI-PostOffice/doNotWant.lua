@@ -6,9 +6,15 @@ local ns = select(2, ...)
 -- Click the icon to do that now. Deletions that would destroy items or coin confirm
 -- first. The first consumer of core's shared inbox-row decorator (ns.OnInboxRow).
 
-local pendingSig ---@type string?  fingerprint of the letter awaiting a delete-confirm accept
-local pendingIndex ---@type number? inbox index of that letter, captured at click time
-local pendingMoney ---@type number? coin on that letter, for the money-confirm frame
+local MAIL_POPUP = "SHADOWSOFUI_POSTOFFICE_DELETE_MAIL"
+local MONEY_POPUP = "SHADOWSOFUI_POSTOFFICE_DELETE_MONEY"
+
+-- The letter a confirm dialog was opened for, carried as that dialog's own StaticPopup
+-- payload rather than in module state — see the comment on the dialog tables below.
+---@class PostOfficeDeletePending
+---@field sig string fingerprint of the letter, captured when the confirm opened
+---@field index number inbox index of that letter, captured at click time
+---@field money number? coin on that letter, for the money-confirm frame
 
 -- A letter's stable identity for the window a confirm dialog sits open — nothing is taken
 -- from it in that span, so sender/subject/money/CoD/attachment-count all hold. It deliberately
@@ -16,7 +22,9 @@ local pendingMoney ---@type number? coin on that letter, for the money-confirm f
 -- two distinct letters (e.g. two "Auction expired" mails for the same item at different counts)
 -- can share a fingerprint, so the fingerprint alone can't single out the clicked letter — the
 -- captured index disambiguates that in ResolveDeleteIndex.
-local function inboxFingerprint(index)
+---@param index number inbox index
+---@return string fingerprint
+function ns.InboxFingerprint(index)
   local _, _, sender, subject, money, cod, _, hasItem = GetInboxHeaderInfo(index)
   return table.concat({ sender or "", subject or "", money or 0, cod or 0, hasItem or 0 }, "\1")
 end
@@ -39,25 +47,30 @@ function ns.ResolveDeleteIndex(sig, index, numItems, fingerprintAt)
   end
 end
 
-local function deletePending()
-  local sig, index = pendingSig, pendingIndex
-  pendingSig, pendingIndex = nil, nil
-  if not sig then return end
-  local target = ns.ResolveDeleteIndex(sig, index, GetInboxNumItems(), inboxFingerprint)
+---@param pending PostOfficeDeletePending the letter this dialog was opened for
+local function deletePending(_, pending)
+  local target = ns.ResolveDeleteIndex(pending.sig, pending.index, GetInboxNumItems(), ns.InboxFingerprint)
   if target then DeleteInboxItem(target) end
 end
 
-StaticPopupDialogs["SHADOWSOFUI_POSTOFFICE_DELETE_MAIL"] = {
+-- The two confirms are distinct dialogs, so they occupy separate StaticPopup frames and can sit
+-- open at once. Each therefore carries its own letter as its StaticPopup payload (Blizzard hands
+-- it back to OnAccept/OnShow) — module-level pending state would make whichever dialog is answered
+-- act on whatever was clicked most recently, destroying the wrong letter. `cancels` closes the
+-- sibling on top of that, so at most one of ours is ever on screen.
+StaticPopupDialogs[MAIL_POPUP] = {
   text = DELETE_MAIL_CONFIRMATION,
   button1 = ACCEPT, button2 = CANCEL,
   OnAccept = deletePending,
+  cancels = MONEY_POPUP,
   showAlert = 1, timeout = 0, hideOnEscape = 1,
 }
-StaticPopupDialogs["SHADOWSOFUI_POSTOFFICE_DELETE_MONEY"] = {
+StaticPopupDialogs[MONEY_POPUP] = {
   text = DELETE_MONEY_CONFIRMATION,
   button1 = ACCEPT, button2 = CANCEL,
   OnAccept = deletePending,
-  OnShow = function(self) MoneyFrame_Update(self.moneyFrame, pendingMoney or 0) end,
+  OnShow = function(self, pending) MoneyFrame_Update(self.moneyFrame, pending.money) end,
+  cancels = MAIL_POPUP,
   hasMoneyFrame = 1, showAlert = 1, timeout = 0, hideOnEscape = 1,
 }
 
@@ -75,11 +88,9 @@ local function onClick(self)
     if name then firstItem = name; break end
   end
   if firstItem then
-    pendingSig, pendingIndex = inboxFingerprint(index), index
-    StaticPopup_Show("SHADOWSOFUI_POSTOFFICE_DELETE_MAIL", firstItem)
+    StaticPopup_Show(MAIL_POPUP, firstItem, nil, { sig = ns.InboxFingerprint(index), index = index })
   elseif money and money > 0 then
-    pendingSig, pendingIndex, pendingMoney = inboxFingerprint(index), index, money
-    StaticPopup_Show("SHADOWSOFUI_POSTOFFICE_DELETE_MONEY")
+    StaticPopup_Show(MONEY_POPUP, nil, nil, { sig = ns.InboxFingerprint(index), index = index, money = money })
   else
     DeleteInboxItem(index) -- empty letter, nothing to lose
   end
