@@ -182,16 +182,19 @@ OutfitLibraryWindow._k = {
 
 ---One small labelled button: framed box, centred caption, click target. A method rather than a
 ---file-local so the sibling files (which reopen this class) build their buttons the same way
----instead of keeping copies. The caption is kept on the box so arm-then-confirm can swap it.
+---instead of keeping copies. The caption AND the selection border are kept on the box so
+---arm-then-confirm can swap the one and recolour the other, exactly as the room's `_rowButton`
+---does — the border was being discarded here, which is why the pane's armed state carried one
+---signal where the room's carried two (#716).
 ---@param parent Frame
 ---@param x number
 ---@param w number
 ---@param label string
 ---@param onClick fun()
----@return Frame
+---@return Frame  the box, carrying `label` (the caption) and `border` (the selection frame)
 function OutfitLibraryWindow:_paneButton(parent, x, w, label, onClick)
   local box = Frame:new{ parent = parent, position = { TopLeft = {x, 0}, Width = w, Height = STRIPH } }
-  selBox(box)
+  box.border = selBox(box)
   box.label = Label:new{ parent = box, justifyH = ui.justify.Center, wordWrap = false,
     position = { Left = {2, 0}, Right = {-2, 0} }, text = label }
   Button:new{ parent = box, position = { All = true }, OnClick = onClick }

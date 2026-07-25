@@ -87,8 +87,17 @@ end
 ---`_rowButton` — the share row greys its Import button the same way.
 ---@param btn table
 ---@param on boolean
+---
+---**Disabling disarms (#716).** `Button.OnClick` swallows every click once `disabled` is set, so an
+---armed button left greyed goes on asking once a second for a confirmation it can no longer accept,
+---and then prints a lapse notice for a question that stopped being answerable. Reachable wherever
+---something greys a button out from under an arm: `/collected outfit delete` on the loaded look
+---(`RefreshOutfits` clears the selection), the share row's Import doing the same, and clearing the
+---name field while an overwrite-armed Save has no selection to fall back on.
 function DressingRoom:_enableRow(btn, on)
   btn.disabled = not on or nil
+  -- Before the recolour: `_disarmOutfit` restores the resting caption, which then greys with it.
+  if btn.disabled and self._armed == btn then self:_disarmOutfit() end
   btn.label:Color(on and "text" or "muted")
 end
 
@@ -103,10 +112,17 @@ end
 ---nothing happened" were indistinguishable at the button. The caption's countdown makes the lapse
 ---visible as it happens; the chat line is the half that survives walking away — a commit prints
 ---`Deleted.`, so a lapse has to print its opposite in the same place.
+---**The lapse notice names the look (#716).** The armed caption can't — `Sure? 4` already fills the
+---62px button — so without a name in chat the line describes nothing in particular. That matters
+---once the workspace is docked (#713): this row and the library window's preview pane hold their
+---armed state independently, so both Deletes can be armed at once, and two bare
+---`nothing was deleted` lines are byte-identical for a message whose whole job is telling you which
+---click didn't land.
 ---@param btn table
 ---@param caption string  the armed caption; the seconds left are appended to it
 ---@param lapsed string  past participle for the lapse notice ("deleted", "replaced")
-function DressingRoom:_armOutfit(btn, caption, lapsed)
+---@param subject string  the look the lapse notice names
+function DressingRoom:_armOutfit(btn, caption, lapsed, subject)
   self:_disarmOutfit()
   self._armed = btn
   btn.border:Color(SELECTED)
@@ -121,7 +137,7 @@ function DressingRoom:_armOutfit(btn, caption, lapsed)
     if left > 0 then return paint() end
     self._armTimer = nil
     self:_disarmOutfit()
-    ns.Print(("Confirmation expired — nothing was %s."):format(lapsed))
+    ns.Print(("Confirmation expired — \"%s\" was not %s."):format(subject, lapsed))
   end, CONFIRM_S)
 end
 
@@ -220,9 +236,17 @@ function DressingRoom:RefreshOutfits()
 end
 
 ---Dropdown handler: load a saved look, or switch the row into "save a new one" mode.
+---
+---**An armed verb never survives the selection moving out from under it (#715).** The verbs read
+---`_outfitSel` at commit time, so an armed Delete that outlived a dropdown change would still read
+---as armed while pointing at a different look — and its confirming click would delete that one,
+---with no second confirmation for the look it actually removed. The load half of this is disarmed
+---inside `LoadOutfit`, which is also where `/collected outfit load` moves the selection; the "+ New
+---Look" branch below clears it and so disarms here.
 ---@param key string  a library outfit name, or the NEW_SET sentinel
 function DressingRoom:_selectOutfit(key)
   if key ~= NEW_SET then return self:LoadOutfit(key) end
+  self:_disarmOutfit()
   self._outfitSel = nil
   self._outfitName:Text("")
   self._outfitName._widget:SetFocus()
