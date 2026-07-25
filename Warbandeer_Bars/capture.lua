@@ -75,6 +75,16 @@ local function CaptureSlots(overrides)
         entry.index = index
       elseif slotType == "summonpet" then
         entry.strindex = index  -- GUID string
+        -- The GUID is an account-scoped instance handle nothing outside the client can
+        -- resolve, so a pet slot reads as opaque offline (#637). speciesID is the stable
+        -- external identity; the names are the display copy (customName is user data that
+        -- exists nowhere else). Every other slot type is either static game data or already
+        -- carries its own name, so this is the only slot that needs the extra fields.
+        local speciesID, customName, _, _, _, _, _, speciesName =
+          C_PetJournal.GetPetInfoByPetID(index)
+        entry.speciesID   = speciesID
+        entry.speciesName = speciesName
+        entry.customName  = customName ~= "" and customName or nil
       elseif slotType == "equipmentset" then
         entry.strindex = index  -- set name
       elseif slotType == "outfit" then
@@ -246,7 +256,7 @@ end
 function ns.Capture(include, accountMacros, charMacros)
   local overrides = BuildSpellOverrides()
   local profile = ProfileMeta()
-  profile.version  = 2   -- v2 adds barLayout (real on-screen bar geometry)
+  profile.version  = 3   -- v2 adds barLayout; v3 adds summonpet species/custom names
   profile.captured = time()
   profile.slots    = include.bars     and CaptureSlots(overrides)                  or {}
   profile.binds    = include.bindings and CaptureBindings()                        or {}
