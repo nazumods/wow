@@ -65,6 +65,12 @@ data through the `WarbandeerApi` global.
   count on hover. Alongside those, a single account-wide **title catalog** is kept — the name of
   every title in the game, earned or not, in your client's language — so tools reading your saved
   data can name a title without the game running.
+- **Class appearance unlocks and class mounts** are recorded once for the whole warband — which of
+  your class's barbershop Marks, travel-form glyphs and demon Grimoires the account has unlocked, and
+  which class mounts (including their spec colour tints) you've collected. These are shared across
+  every character, so they're stored once rather than per character, and they refresh whenever you
+  collect a mount or finish an unlock. In game Warbandeer reads them live; keeping them means tools
+  reading your saved data can show the same thing without the game running.
 - **Weekly profession knowledge** is tracked per character (and cleared each weekly reset) — for each
   profession, which of this week's knowledge-point sources you've collected: the treatise, the weekly
   trainer / Artisan's Consortium quest, treasure knowledge, and gathering knowledge. Warbandeer's

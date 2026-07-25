@@ -502,6 +502,18 @@ function API:GetClassMounts(charName)
   return out
 end
 
+---The account-wide snapshot behind the two getters above: `quests[questID] = true` for every
+---AppearanceUnlocks quest the account has completed (both a row's `quest` and a progressive row's
+---`startQuest`, so GetAppearanceUnlocks' next-step choice reproduces exactly), and
+---`mounts.spells[spellID]` / `mounts.items[itemID]` for the ClassMounts entries — `true` collected,
+---`false` resolved-but-not-collected, ABSENT when the id didn't resolve to a mountID that scan
+---(a cold item reads unknown, never a false negative). Account-wide, so it takes no character
+---argument. In game prefer GetAppearanceUnlocks / GetClassMounts, which read the client live; this
+---exists for a reader with no client. nil until any character has logged in since this shipped.
+---Data from data/classcollectibles.lua.
+---@return ClassCollectibles?
+function API:GetClassCollectibles() return ns.db.classCollectibles end
+
 ---Learned class unlocks for a character (Druid "Tome of the Wilds", Hunter "Tomes & Tames") —
 ---items/skills that permanently grant an ability: the class catalog (ns.LearnedUnlocks) merged
 ---with the character's last-seen known set (which already folds in innate racial grants, e.g.

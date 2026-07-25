@@ -3,7 +3,9 @@
 -- isolated ns per test. Only files that LOAD without the WoW API belong here; the appearance-glyph
 -- catalog (data/glyphinfo.lua) is data tables + the pure ns.MergeGlyphStatus helper, so it
 -- loads standalone, and data/titlecatalog.lua's client scan is upvalued at load but only called
--- in game. Paths are relative to the AddOns root, where busted runs.
+-- in game. data/classcollectibles.lua is the same shape — its scan reaches C_QuestLog /
+-- C_MountJournal only from inside the function bodies, so the file loads with no WoW API present.
+-- Paths are relative to the AddOns root, where busted runs.
 
 local M = {}
 
@@ -17,6 +19,7 @@ local FILES = {
   "data/vaultslots.lua",
   "data/housinginfo.lua",
   "data/titlecatalog.lua",
+  "data/classcollectibles.lua",
 }
 
 ---@return table ns  a fresh namespace with the pure modules loaded
