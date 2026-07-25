@@ -21,6 +21,7 @@ local GameTooltip = GameTooltip
 ---@field GridEmptyMessage fun(grid: table, on: boolean, text: string)
 ---@field baseName fun(name: string): string
 ---@field sortByExpansion fun(order: number[], source: table[], reverse: boolean?)
+---@field FitNameCol fun(grid: table, nameCol: number): boolean
 ---@field EnsureDressedCursor fun(grid: table)
 ---@field HighlightGridCell fun(grid: table, match: (fun(data: table): boolean)?, scroll: boolean?)
 ---@field expansionBadgeOptions fun(source: table[]): table[]
@@ -119,6 +120,41 @@ function ns.sortByExpansion(order, source, reverse)
     if na ~= nb then return na < nb end
     return a < b
   end)
+end
+
+-- Size a grid's name column (`nameCol`) to its widest row label, growing the row area and the frame
+-- by the same amount. Both grids autosize a zero-width name column this way, and the two copies had
+-- already drifted (one guarded a missing label, the other didn't), so it lives here.
+--
+-- Measured with `UnboundedWidth` (GetUnboundedStringWidth), NOT `Width` (GetWidth): a cell label is
+-- anchored to all four sides of its cell, so once WoW has flushed layout GetWidth reports the
+-- anchor-derived width — 0, for a column declared `width = 0` — rather than the text's. Which of the
+-- two a constructor-time measurement lands on depends on whether a layout pass happened to run in
+-- between, which is why the name column sometimes came up blank on login (#718).
+--
+-- Fits ONCE, successfully: a pass that lands a non-zero width records it on the grid and every later
+-- call returns immediately. The repair callers exist for is a *zero* measurement (GetWidth on an
+-- unlaid-out grid), so once there's a real width there's nothing left to repair — and the scan walks
+-- every row, which on the several-hundred-row grids is a visible hitch if it runs on every show
+-- (it did, on the Armor/Weapons swap). While the width is still 0 the scan is monotonic and applies
+-- only the delta, so re-running can never compound it.
+---@param grid table  a DataView / WeaponView instance
+---@param nameCol number  index of the name column
+---@return boolean grew  true when the column actually widened (the host should refit)
+function ns.FitNameCol(grid, nameCol)
+  local applied = grid._nameColW or 0
+  if applied > 0 then return false end   -- already fitted; don't re-walk the rows
+  local w = applied
+  for _, r in ipairs(grid.cells) do
+    local cell = r[nameCol]
+    if cell and cell.label then w = max(w, cell.label:UnboundedWidth()) end
+  end
+  if w <= applied then return false end
+  grid._nameColW = w
+  grid.cols[nameCol]:Width(w)
+  grid.rowArea:Width(grid.rowArea:Width() + (w - applied))
+  grid:Width(grid:Width() + (w - applied))
+  return true
 end
 
 -- Lazily build a grid's dressed-cell cursor: one reusable white 4-edge box parented to the row area
