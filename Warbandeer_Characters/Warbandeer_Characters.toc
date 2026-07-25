@@ -67,6 +67,7 @@ data/pets.lua
 data/demons.lua
 data/titles.lua
 data/titlecatalog.lua
+data/classcollectibles.lua
 data/housinginfo.lua
 data/housing.lua
 data/travelerslog.lua

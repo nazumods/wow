@@ -60,9 +60,21 @@ local function store()
   return b
 end
 
+-- An item's display name out of its link.  Crafted profession gear carries its
+-- quality-tier atlas *inside* the link's brackets ("[Toolbox |A:…Tier3…|a]"), which
+-- would become the name's trailing word and break consumers that key a gear line on
+-- it — so inline escapes are stripped and the result trimmed.
+local function linkName(link)
+  local n = link and link:match("%[(.-)%]")
+  if not n then return nil end
+  n = n:gsub("|A.-|a", ""):gsub("|T.-|t", "")
+  n = n:match("^%s*(.-)%s*$")
+  return n ~= "" and n or nil
+end
+
 -- Accumulate one item into a [itemID] = BankGearEntry map, ignoring anything
 -- that isn't profession gear.  count/quality come from the caller's bank API.
-local function addItem(gear, itemID, count, quality)
+local function addItem(gear, itemID, count, quality, link)
   if not itemID then return end
   local skillID, equipLoc = API:ClassifyProfGearItem(itemID)
   if not skillID then return end
@@ -74,6 +86,11 @@ local function addItem(gear, itemID, count, quality)
       equipLoc = equipLoc,
       rarity   = quality or C_Item.GetItemQualityByID(itemID) or 1,
       count    = 0,
+      -- Consumers key a gear line by the name's last word, which can't be recovered
+      -- from the id alone offline.  GetItemInfo gives the clean name but needs the
+      -- item cache warm; the slot's own link is always present, so it backstops a
+      -- cold first scan (via linkName, which strips the crafted-quality atlas).
+      name     = C_Item.GetItemInfo(itemID) or linkName(link) or nil,
     }
     gear[itemID] = entry
   end
@@ -141,7 +158,7 @@ local function scanBankType(bankType)
     for slot = 1, (C_Container.GetContainerNumSlots(bagID) or 0) do
       local info = C_Container.GetContainerItemInfo(bagID, slot)
       if info then
-        addItem(gear, info.itemID, info.stackCount, info.quality)
+        addItem(gear, info.itemID, info.stackCount, info.quality, info.hyperlink)
         addEquip(equip, info, bagID, slot)
         addCount(counts, info.itemID, info.stackCount)
       end
@@ -232,7 +249,7 @@ local function scanGuildBank()
         local itemID = link and tonumber(link:match("item:(%d+)"))
         if itemID then
           local _, count, _, _, quality = GetGuildBankItemInfo(tab, slot)
-          addItem(gear, itemID, count, quality)
+          addItem(gear, itemID, count, quality, link)
           addCount(counts, itemID, count)
         end
       end
@@ -270,6 +287,7 @@ end)
 ---@field equipLoc string
 ---@field rarity integer
 ---@field count integer
+---@field name string? item name captured at bank-scan time; the slot's link backstops a cold item cache (atlas markup stripped — see `linkName`)
 ---@field source string
 ---@field sourceType string
 
@@ -293,6 +311,7 @@ function API:GetBankProfGear(skillID)
           equipLoc = entry.equipLoc,
           rarity   = entry.rarity,
           count    = entry.count,
+          name     = entry.name,
           source   = source,
           sourceType = sourceType,
         })

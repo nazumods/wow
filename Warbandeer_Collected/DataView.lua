@@ -1,6 +1,5 @@
 ---@type Warbandeer_Collected
 local ns = select(2, ...)
-local max = math.max
 local Class = ns.lua.Class
 local ui = ns.ui
 local TableFrame = ui.TableFrame
@@ -27,6 +26,7 @@ local TableFrame = ui.TableFrame
 ---@field _expansion number|string? release filter — a release index, or "all" (see SetExpansion)
 ---@field _category string? category filter — a category name, or "all" (see SetCategory)
 ---@field _playerRace number? cached canonical race id the rank pips resolve against
+---@field _nameColW number? name-column width already applied, so a re-fit adds only the delta (see ns.FitNameCol)
 ---@field _selectedRow number? lockout-panel selected row index (window grid only)
 ---@field _arrow Texture? lockout-selection arrow texture (window grid only, created lazily)
 ---@field _dressedSetId number? setId currently previewed in the shared dressing room (drives the cell cursor; nil = none)
@@ -40,17 +40,12 @@ local TableFrame = ui.TableFrame
 ---@field onResized fun(self: DataView)?  host callback fired after a filter/PTR change shrinks or grows the row area, so the host can refit its scroll container (see _refilter / SetPtr)
 ---@field onFilterChanged fun(self: DataView)?  host callback fired after the wanted-only filter flips, so the host can recompute its filter-scoped counter (see ToggleWantedOnly)
 local DataView = Class(TableFrame, function(self)
-  -- autoadjust name width (col 1 embedded, col 2 in the window — lock takes col 1)
-  local nameCol = self.embedded and 1 or 2
-  local w = 0
-  for _,r in ipairs(self.cells) do
-    if #r > nameCol then
-      w = max(w, r[nameCol].label:Width())
-    end
-  end
-  self.cols[nameCol]:Width(w)
-  self.rowArea:Width(self.rowArea:Width() + w)
-  self:Width(self:Width() + w)
+  -- Autosize the name column. Called raw (not through _fitNameCol) because the host hasn't
+  -- assigned its own grid field yet — firing onResized here would refit against a nil grid.
+  ns.FitNameCol(self, self.embedded and 1 or 2)
+  -- A label only measures true once WoW has laid the grid out, so measure again on the next
+  -- frame, when it definitely has — this is the repair for a short first pass (#718).
+  C_Timer.After(0, function() self:_fitNameCol() end)
   self:_refreshMarks()   -- the constructor-time update() ran before our override was mixed in
 end, {
   headerHeight = 28,
@@ -64,6 +59,18 @@ end, {
   -- TableFrame construction calls this through onLoad, by which point it's defined.
   GetData = function(self) return ns.CollectedRows(self) end,
 })
+
+-- Fit the name column to its widest set name (col 1 embedded, col 2 in the window — the lock takes
+-- col 1) and let the host refit when it grew. Re-runnable (see ns.FitNameCol), so it doubles as the
+-- repair for a first measurement taken before WoW had laid the grid out.
+function DataView:_fitNameCol()
+  if ns.FitNameCol(self, self.embedded and 1 or 2) and self.onResized then self:onResized() end
+end
+
+-- Re-fit on show. The window's Armor/Weapons swap shows this grid via SetShown, which routes
+-- through Region:Show — so a grid whose name column measured short while its window was still
+-- being built gets a second chance every time it comes back on screen (#718).
+function DataView:OnBeforeShow() self:_fitNameCol() end
 
 -- Refresh overlays after the base table (re)builds its cells. The row count varies
 -- (PTR PREVIEW swaps the ~live-raid list for the small upcoming list), so follow the

@@ -34,6 +34,7 @@ local SUBCLASS_SKILL = {
 ---@field rarity integer Enum.ItemQuality of the output item
 ---@field equipLoc string INVTYPE_PROFESSION_TOOL | INVTYPE_PROFESSION_GEAR
 ---@field skillID integer parent skillLineID of the profession the gear is for
+---@field name string? output item's name, captured at resolve time (nil for entries cached before the field existed, backfilled on the next resolve)
 
 ---@class RecipeGearCache
 ---@field build string client version-build the cache was resolved against
@@ -100,7 +101,12 @@ end
 function API:ResolveRecipeOutput(recipeID)
   local recipes = cachedRecipes()
   local cached = recipes[recipeID]
-  if cached ~= nil then return cached end
+  if cached ~= nil then
+    -- Entries resolved before `name` existed keep their build (so they aren't
+    -- rebuilt wholesale); fill the field in place once the item is warm.
+    if cached and not cached.name then cached.name = C_Item.GetItemInfo(cached.itemID) end
+    return cached
+  end
 
   local schematic = C_TradeSkillUI.GetRecipeSchematic(recipeID, false)
   local itemID = schematic and schematic.outputItemID
@@ -118,7 +124,13 @@ function API:ResolveRecipeOutput(recipeID)
     C_Item.RequestLoadItemDataByID(itemID)
     return nil
   end
-  local info = { itemID = itemID, rarity = rarity, equipLoc = equipLoc, skillID = skillID }
+  -- The item is warm by here (GetItemQualityByID answered), so its name resolves
+  -- synchronously. Stored because consumers key a gear line by the name's last word,
+  -- which an offline reader can't recover from the item id alone.
+  local info = {
+    itemID = itemID, rarity = rarity, equipLoc = equipLoc, skillID = skillID,
+    name = C_Item.GetItemInfo(itemID),
+  }
   recipes[recipeID] = info
   return info
 end

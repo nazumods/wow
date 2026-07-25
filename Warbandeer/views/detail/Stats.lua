@@ -89,12 +89,17 @@ end
 -- (`stats.secondary.mastery.spell`): "Mastery: <name>" as the title and the spell's own
 -- description as the body. Returns nil,nil to fall back to the generic note when the
 -- character has no stored spell (not yet re-scanned) or it doesn't resolve yet.
+--
+-- The description prefers the character's own scan-time capture: GetSpellDescription
+-- substitutes the *logged-in* character's mastery coefficient, so resolving it live for
+-- an alt would show this character's figures under that alt's mastery. The live call is
+-- only a fallback for characters cached before the field existed.
 local function masteryOverride(sec)
   local m = sec and sec.mastery
   local spellID = m and m.spell
   if not spellID then return nil, nil end
   local name = C_Spell.GetSpellName(spellID)
-  local desc = C_Spell.GetSpellDescription(spellID)
+  local desc = m.description or C_Spell.GetSpellDescription(spellID)
   if not name then return nil, nil end
   return name, (desc ~= nil and desc ~= "") and desc or nil
 end

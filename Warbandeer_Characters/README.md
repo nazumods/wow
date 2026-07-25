@@ -38,7 +38,7 @@ data through the `WarbandeerApi` global.
 - Active **world-quest gear rewards** that would upgrade one of your equipped slots are noted
   for each character while it's logged in, so Warbandeer can suggest them later.
 - A per-character **item-count index** (everything in your bags, plus full counts for the
-  personal/warband/guild banks when opened) is kept so **ShadowsOfUI-WarbandInventory** can
+  personal/warband/guild banks when opened) is kept so **ShadowsOfUI-Inventory** can
   show account-wide "how many do I have?" totals on item tooltips.
 - **Mail** is recorded whenever you open a mailbox (count, attached items + gold, and when
   each piece expires). New, unread mail is also flagged as soon as it arrives — even before
@@ -65,6 +65,12 @@ data through the `WarbandeerApi` global.
   count on hover. Alongside those, a single account-wide **title catalog** is kept — the name of
   every title in the game, earned or not, in your client's language — so tools reading your saved
   data can name a title without the game running.
+- **Class appearance unlocks and class mounts** are recorded once for the whole warband — which of
+  your class's barbershop Marks, travel-form glyphs and demon Grimoires the account has unlocked, and
+  which class mounts (including their spec colour tints) you've collected. These are shared across
+  every character, so they're stored once rather than per character, and they refresh whenever you
+  collect a mount or finish an unlock. In game Warbandeer reads them live; keeping them means tools
+  reading your saved data can show the same thing without the game running.
 - **Weekly profession knowledge** is tracked per character (and cleared each weekly reset) — for each
   profession, which of this week's knowledge-point sources you've collected: the treatise, the weekly
   trainer / Artisan's Consortium quest, treasure knowledge, and gathering knowledge. Warbandeer's

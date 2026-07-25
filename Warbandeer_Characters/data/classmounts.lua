@@ -130,14 +130,29 @@ ns:registerDump("mounts", "Class Mounts",
     local mounts = ns.api:GetClassMounts()
     local owned = 0
     for _, m in ipairs(mounts) do if m.owned then owned = owned + 1 end end
-    out:line(("Class Mounts — %d / %d owned:"):format(owned, #mounts))
+    -- The account-wide snapshot (data/classcollectibles.lua) answers the same ownership for a reader
+    -- with no client, so the probe prints it beside live and flags any row where the two DISAGREE —
+    -- including a stored `nil`, which means that scan couldn't resolve the id to a mountID at all.
+    local snap = ns.db.classCollectibles
+    out:line(snap
+      and ("Class Mounts — %d / %d owned  [snapshot: %d owned, %d unresolved, build %s, by %s]:")
+        :format(owned, #mounts, snap.mountCount or 0, snap.mountUnresolved or 0,
+          snap.build or "?", snap.scannedBy or "?")
+      or ("Class Mounts — %d / %d owned  [snapshot: not scanned yet]:"):format(owned, #mounts))
     for i, e in ipairs(list) do
       local key = e.spellID and ("spell %d"):format(e.spellID) or ("item %d"):format(e.itemID)
       local mountID = (e.spellID and C_MountJournal.GetMountFromSpell(e.spellID))
         or (e.itemID and C_MountJournal.GetMountFromItem(e.itemID))
       local liveName = (mountID and C_MountJournal.GetMountInfoByID(mountID)) or "<unresolved>"
       local m = mounts[i]
-      out:line(("  %s  [%s -> mount %s]  live=%q%s"):format(
-        e.label, key, tostring(mountID), liveName, (m and m.owned) and "  <COLLECTED>" or ""))
+      local liveOwned = (m and m.owned) == true
+      local stored
+      if snap then
+        local map = e.spellID and snap.mounts.spells or snap.mounts.items
+        stored = map[e.spellID or e.itemID]
+      end
+      out:line(("  %s  [%s -> mount %s]  live=%q%s%s"):format(
+        e.label, key, tostring(mountID), liveName, liveOwned and "  <COLLECTED>" or "",
+        (snap and stored ~= liveOwned) and ("  <SNAPSHOT SAYS " .. tostring(stored) .. ">") or ""))
     end
   end, true)

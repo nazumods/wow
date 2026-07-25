@@ -17,7 +17,7 @@ character/spec's setup and import it onto the current character. Profiles are st
 | `tracker.lua` | `ns.Snapshot(guardSparse?)` + `ns.shouldStore` + auto-capture triggers (login / spec change / logout); combat- & cursor-guarded |
 | `api.lua` | `WarbandeerBarsApi` methods |
 | `commands.lua` | `/wbb` inspection sub-commands (no window — data layer only) |
-| `spec/` | busted unit tests (`ns.shouldStore` sparse-capture guard); excluded from zip + release detection |
+| `spec/` | busted unit tests (`ns.shouldStore` sparse-capture guard, the WoW-API-free `api.lua` DB methods, the `ns.Capture` slot schema via `bars.loadCapture`'s `setfenv` global stubs); excluded from zip + release detection |
 
 ## WarbandeerBarsApi
 
@@ -57,10 +57,11 @@ that bar untouched (restore *and* clear pass). `nil` = all bars.
 
 ```lua
 {
-  version=2, captured=<time()>,                            -- v2 adds barLayout
+  version=3, captured=<time()>,                            -- v2 adds barLayout; v3 adds summonpet species/custom names
   char, realm, class (file token e.g. "MAGE"), classID,
   specID, spec (name), specIcon, level,
-  slots    = { { id, type, index? | strindex? }, ... },   -- action bar slots 1..180
+  slots    = { { id, type, index? | strindex?, speciesID?, speciesName?, customName? }, ... },  -- action bar slots 1..180
+                                                           -- speciesID/speciesName/customName: v3, summonpet only (see below)
   binds    = { { command, key1?, key2? }, ... },
   macros   = { { id, name, icon, body }, ... },
   petslots = { { id, type="token", strindex, tex } | { id, type="spell", index }, ... }, -- tex: token icon (v2, for cross-char preview)
@@ -77,6 +78,17 @@ that bar untouched (restore *and* clear pass). `nil` = all bars.
 Slot `type` ∈ `spell | item | toy | flyout | companion | summonmount | summonpet | equipmentset | outfit | macro`.
 `summonpet` (GUID) and `equipmentset` (set name) use `strindex`; `outfit` (transmog set) carries **both**
 its name in `strindex` (identity) and its list position in `index` (fallback); the rest use `index`.
+
+`summonpet` additionally carries `speciesID` + `speciesName` + `customName` (v3, #637). Its `strindex` is an
+account-scoped pet **GUID** that nothing outside the client can resolve, so a pet slot read as opaque to an
+offline reader (the desktop app's Bars mirror); `speciesID` is the stable external identity and the names are
+the display copy (`customName` is user data that exists nowhere else, and is omitted rather than stored as the
+`""` the journal reports for an unnamed pet). Every other slot type is either **static game data** resolvable
+from generated tables (`spell`/`item`/`toy` → `SpellName`/`ItemSparse`, `summonmount` → `Mount.db2`, `flyout` →
+`SpellFlyout`) or **already self-describing** (`macro` carries `name`+`icon` in `profile.macros`; `equipmentset`
+and `outfit` carry their name in `strindex`) — so the pet slot was the only gap. Purely additive and filled by
+the next snapshot, so there's no `db.version` bump or `MigrateDB` block: older profiles simply lack the fields.
+`restore.lua` still keys off `strindex` alone; the new fields are read-only display data.
 
 ## SavedVariables
 

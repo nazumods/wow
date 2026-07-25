@@ -216,8 +216,11 @@ local Overview = Class(Frame, function(self)
       if (r.pendingTender or 0) > 0 then
         s = s .. "   ·   " .. BreakUpLargeNumbers(r.pendingTender) .. " Trader's Tender"
       end
+      -- Prefer the scan-time capture; the live lookup is the fallback for snapshots
+      -- taken before the field existed.
       for _, id in ipairs(r.items or {}) do
-        local icon = C_Item.GetItemIconByID(id)
+        local stored = r.itemInfo and r.itemInfo[id]
+        local icon = (stored and stored.icon) or C_Item.GetItemIconByID(id)
         if icon then s = s .. "  |T" .. icon .. ":16|t" end
       end
       rewardText, rewardColor = s, c.gold
