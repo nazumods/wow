@@ -90,7 +90,9 @@ local function slotName(slot, macroMap)
       customName = select(2, C_PetJournal.GetPetInfoByPetID(slot.strindex))
       petName    = select(8, C_PetJournal.GetPetInfoByPetID(slot.strindex))
     end
-    return customName or petName or "Battle Pet"
+    -- A caged/released pet's GUID stops resolving, degrading the tooltip to the literal
+    -- "Battle Pet". v3 profiles snapshot the names, so prefer the stored copy over that.
+    return customName or petName or slot.customName or slot.speciesName or "Battle Pet"
   elseif t == "equipmentset" then
     return slot.strindex
   end
