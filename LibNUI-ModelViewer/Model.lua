@@ -232,12 +232,14 @@ function Model:_applySlotMog()
   -- primitive that addresses a hand directly. Its `spellEnchantmentID` carries the illusion, so an
   -- enchanted off-hand survives the repair too.
   --
-  -- Skipped for appearanceID 0, the documented "render the slot bare" request: the actor reports an
-  -- empty hand slot as nil, which is agreement with that request rather than the failed write the
-  -- read-back is hunting for — so without the guard the repair re-places source 0 on every re-apply
-  -- against a slot already in exactly the requested state. The comparison is appearance-only: an
-  -- off hand whose illusion was clobbered alongside its appearance is repaired (TryOn's
-  -- spellEnchantmentID carries it), but a clobbered secondaryAppearanceID is beyond TryOn's reach.
+  -- Skipped when the request is appearanceID 0. That is NoTransmogID — it records "no override for
+  -- this slot" rather than an appearance to verify, so there is nothing for the read-back to
+  -- disagree with and nothing TryOn could re-place (source 0 is not "wear nothing"). Left unguarded
+  -- the repair reads an empty hand slot back as nil, calls that a failed write, and fires
+  -- TryOn(0, "SECONDARYHANDSLOT", 0) on every re-apply — three times per re-skin — to no effect.
+  -- The comparison is appearance-only: an off hand whose illusion was clobbered alongside its
+  -- appearance is repaired (TryOn's spellEnchantmentID carries it), but a clobbered
+  -- secondaryAppearanceID is beyond TryOn's reach.
   if oh and oh.info.appearanceID ~= 0 then
     local h = self._actor:GetItemTransmogInfo(INVSLOT_OFFHAND)
     if not (h and h.appearanceID == oh.info.appearanceID) then
@@ -272,9 +274,15 @@ end
 -- child items.
 -- Routes through the actor's SetItemTransmogInfo — the same primitive Blizzard's own
 -- dressing room uses — so it composes with Outfit/TryOn (which set the base look): the
--- override is re-applied last for its slot after each async re-skin. Pass appearanceID 0
--- to render the slot bare. `slot` is an inventory slot id (INVSLOT_MAINHAND,
--- INVSLOT_SHOULDER, …). Typical illusion preview:
+-- override is re-applied last for its slot after each async re-skin. `slot` is an inventory slot id
+-- (INVSLOT_MAINHAND, INVSLOT_SHOULDER, …).
+--
+-- `appearanceID` 0 is NoTransmogID, which records "no override for this slot" — it does NOT mean
+-- "wear nothing there". The actor keeps whatever it was last given, so a slot cleared that way goes
+-- on rendering; to genuinely bare a slot use ClearSlotTransmog + UndressSlot instead (measured in
+-- Warbandeer_Collected's DressingRoom:_bareSlot, where a cleared shirt kept rendering).
+--
+-- Typical illusion preview:
 --   model:SlotTransmog(INVSLOT_MAINHAND, hostWeaponAppearanceID, { illusionID = sid })
 --
 -- `opts.secondaryAppearanceID` is SLOT-DEPENDENT, and on a weapon it is not an appearance at all:
@@ -286,7 +294,7 @@ end
 -- of a pair it has nothing to do with. That is a mislabelling trap, NOT the reason the off hand
 -- gets clobbered — that happens whatever the discriminator says (see the read-back repair above).
 ---@param slot number  inventory slot id the transmog targets
----@param appearanceID number  itemModifiedAppearanceID for the slot (0 = none)
+---@param appearanceID number  itemModifiedAppearanceID for the slot (0 = NoTransmogID, i.e. "no override recorded" — it does NOT bare the slot; use ClearSlotTransmog + UndressSlot for that)
 ---@param opts {secondaryAppearanceID: number?, illusionID: number?, ignoreChildItems: boolean?}?  ignoreChildItems defaults true; secondaryAppearanceID is a real appearance on the shoulders but a DISCRIMINATOR on the main hand (-1 = ordinary weapon, 0 = paired Legion artifact — and 0 is also what omitting it means)
 ---@return Model
 function Model:SlotTransmog(slot, appearanceID, opts)
