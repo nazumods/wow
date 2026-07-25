@@ -13,6 +13,11 @@ thing you want. Each icon still **shows the full item or currency tooltip on hov
 rewards get a **quality-coloured border** so rare/epic rewards stand out. Stacked rewards show their
 count.
 
+**Rare rewards glow gold.** A reward of **Epic quality or better** — item *or* currency, such as the
+**Artisan's Consortium Gold Star** — is lit with a warm gold glow you can catch while scrolling, so
+the one order worth stopping for doesn't slide past. The routine payouts every Patron order hands
+out (your profession's Moxie currency, ordinary reagents) are left exactly as they were.
+
 Nothing else changes — the commission gold, sorting, and every other column stay exactly as
 Blizzard draws them.
 
@@ -32,9 +37,11 @@ column and still **sorts by reagent state** when you click the header — you ju
 info as a glanceable icon, plus the first-craft flag the default UI doesn't surface in the list at
 all.
 
-`/sprofcomm` prints whether the hook is active and the current icon size; `/sprofcomm size <n>`
-retunes the icon size live (applies on the next list refresh). Both are tuning/debug aids you won't
-normally need.
+`/sprofcomm` prints whether the hook is active plus the current icon size and glow threshold.
+`/sprofcomm size <n>`, `/sprofcomm reserve <n>` and `/sprofcomm glow <quality>` retune those live
+(each applies next time you open the Crafting Orders window — re-sorting a column isn't enough), and `/sprofcomm rewards` lists every reward the order list
+has drawn this session with the quality it resolved to. All tuning/debug aids you won't normally
+need.
 
 ## Dependencies
 
