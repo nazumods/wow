@@ -18,6 +18,7 @@ local PerksProgram = C_PerksProgram
 ---@field count integer          uncollected chest rewards waiting (any month)
 ---@field pendingTender integer  Trader's Tender granted by this month's pending thresholds
 ---@field items integer[]        reward itemIDs at this month's pending thresholds (for icons)
+---@field itemInfo table<integer, {name: string?, icon: integer?}>  display metadata per reward itemID, captured at refresh time (absent on snapshots taken before the field existed)
 
 ---@class TravelersLogData
 ---@field month integer          activePerksMonth (the server month id)
@@ -35,8 +36,9 @@ local PerksProgram = C_PerksProgram
 ---@param info table   C_PerksActivities.GetPerksActivitiesInfo()
 ---@param pending table C_PerksProgram.GetPendingChestRewards()
 ---@param currency integer C_PerksProgram.GetCurrencyAmount()
+---@param prev table<integer, {name: string?, icon: integer?}>? the last snapshot's `rewards.itemInfo`, so a cold item keeps its captured name
 ---@return TravelersLogData
-local function derive(info, pending, currency)
+local function derive(info, pending, currency, prev)
   local thresholdMax = 0
   for _, t in pairs(info.thresholds) do
     if t.requiredContributionAmount > thresholdMax then thresholdMax = t.requiredContributionAmount end
@@ -59,11 +61,26 @@ local function derive(info, pending, currency)
     count = count + 1
     if r.activityMonthID == info.activePerksMonth then pendingByIndex[r.thresholdOrderIndex] = true end
   end
-  local pendingTender, items = 0, {}
+  -- `items` stays the plain id list it has always been; the display metadata rides
+  -- alongside in `itemInfo` so an offline reader can label/ico the reward strip
+  -- without a client. Nil-tolerant — a reward item still cold this pass just fills
+  -- in on the next refresh (the whole snapshot is re-derived on every Perks event).
+  local pendingTender, items, itemInfo = 0, {}, {}
   for _, t in pairs(info.thresholds) do
     if pendingByIndex[t.thresholdOrderIndex] then
       pendingTender = pendingTender + (t.currencyAwardAmount or 0)
-      if t.itemReward then items[#items + 1] = t.itemReward end
+      if t.itemReward then
+        items[#items + 1] = t.itemReward
+        local name = C_Item.GetItemInfo(t.itemReward)
+        -- Only an id is available here (no link), so the name needs the item cache
+        -- warm. Request the load on a miss and keep whatever the last refresh
+        -- captured — a Perks event re-derives the whole snapshot shortly after.
+        if not name then
+          C_Item.RequestLoadItemDataByID(t.itemReward)
+          name = prev and prev[t.itemReward] and prev[t.itemReward].name or nil
+        end
+        itemInfo[t.itemReward] = { name = name, icon = C_Item.GetItemIconByID(t.itemReward) or nil }
+      end
     end
   end
 
@@ -77,7 +94,7 @@ local function derive(info, pending, currency)
     completedCount = completed,
     totalCount = total,
     tender = currency or 0,
-    rewards = { count = count, pendingTender = pendingTender, items = items },
+    rewards = { count = count, pendingTender = pendingTender, items = items, itemInfo = itemInfo },
   }
 end
 
@@ -90,7 +107,8 @@ local function refresh()
   if not (info and info.thresholds and next(info.thresholds)) then return end
   local pending = (PerksProgram and PerksProgram.GetPendingChestRewards()) or {}
   local currency = (PerksProgram and PerksProgram.GetCurrencyAmount()) or 0
-  ns.db.travelersLog = derive(info, pending, currency)
+  local cur = ns.db.travelersLog
+  ns.db.travelersLog = derive(info, pending, currency, cur and cur.rewards and cur.rewards.itemInfo)
 end
 
 ---Login-time setup: ensure the store exists, request pending chest rewards (async),
@@ -99,7 +117,7 @@ end
 ---@field InitTravelersLog fun()
 function ns:InitTravelersLog()
   if not self.db.travelersLog then
-    self.db.travelersLog = { pct = 0, rewards = { count = 0, pendingTender = 0, items = {} } }
+    self.db.travelersLog = { pct = 0, rewards = { count = 0, pendingTender = 0, items = {}, itemInfo = {} } }
   end
   if PerksProgram then PerksProgram.RequestPendingChestRewards() end
   refresh()
