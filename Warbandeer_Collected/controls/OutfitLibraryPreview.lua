@@ -6,7 +6,8 @@ local Frame, Label, EditBox, Model = ui.Frame, ui.Label, ui.EditBox, ui.Model
 local C_Timer = C_Timer
 local OutfitLibraryWindow = ns.OutfitLibraryWindow
 local k = OutfitLibraryWindow._k
-local selBox = ns.DressingRoom._k.selBox
+local roomK = ns.DressingRoom._k
+local selBox, IDLE, SELECTED = roomK.selBox, roomK.IDLE, roomK.SELECTED
 local RIGHTW, GAP, STRIPH, LISTH = k.RIGHTW, k.GAP, k.STRIPH, k.LISTH
 
 -- The library window's **right column** (#699): a model showing the selected look, what is known
@@ -107,12 +108,22 @@ end
 ---uses, so a destructive click is never a single one — including its countdown caption and its
 ---lapse notice (#698), because a silent revert here made a late second click indistinguishable from
 ---a first one exactly as it did there.
+---
+---**Gold border and relabelled caption, both (#716).** This used to swap only the caption, so the
+---pane carried one of the two signals the room carries for the same mechanic — and one of them
+---the `CONTEXT.md` row describes as part of it. `_paneButton` keeps the border for this.
+---
+---**The lapse notice names the look.** `Sure? 4` fills the button, so the name has to go to chat;
+---and with the workspace docked (#713) this pane and the outfit row hold their armed state
+---independently, so both can be armed at once and two anonymous lapse lines would be identical.
 ---@param btn Frame
 ---@param caption string  the armed caption; the seconds left are appended to it
 ---@param lapsed string  past participle for the lapse notice ("deleted", "replaced")
-function OutfitLibraryWindow:_arm(btn, caption, lapsed)
+---@param subject string  the look the lapse notice names
+function OutfitLibraryWindow:_arm(btn, caption, lapsed, subject)
   self:_disarm()
   self._armed, self._armedLabel = btn, btn.label:Text()
+  btn.border:Color(SELECTED)
   local left = CONFIRM_S
   local function paint() btn.label:Text(("%s %d"):format(caption, left)) end
   paint()
@@ -121,7 +132,7 @@ function OutfitLibraryWindow:_arm(btn, caption, lapsed)
     if left > 0 then return paint() end
     self._armTimer = nil
     self:_disarm()
-    ns.Print(("Confirmation expired — nothing was %s."):format(lapsed))
+    ns.Print(("Confirmation expired — \"%s\" was not %s."):format(subject, lapsed))
   end, CONFIRM_S)
 end
 
@@ -130,6 +141,7 @@ function OutfitLibraryWindow:_disarm()
   if self._armTimer then self._armTimer:Cancel(); self._armTimer = nil end
   if self._armed then
     self._armed.label:Text(self._armedLabel)
+    self._armed.border:Color(IDLE)
     self._armed, self._armedLabel = nil, nil
   end
 end
@@ -202,7 +214,7 @@ function OutfitLibraryWindow:DeleteSelected()
     return
   end
   if not armed then
-    self:_arm(self._deleteBtn, "Sure?", "deleted")
+    self:_arm(self._deleteBtn, "Sure?", "deleted", self._selected)
     return
   end
   ns.DeleteLibraryOutfit(self._selected)
@@ -232,7 +244,7 @@ function OutfitLibraryWindow:PushSelected()
     -- Named in chat rather than on the button, exactly as the room's Push does.
     ns.Print(("\"%s\" is already one of this character's sets — click Push again to replace it.")
       :format(self._selected))
-    self:_arm(self._pushBtn, "Sure?", "replaced")
+    self:_arm(self._pushBtn, "Sure?", "replaced", self._selected)
     return
   end
   local id, saveErr = ns.SaveCustomSet(self._selected, list, existing)

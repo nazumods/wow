@@ -51,6 +51,10 @@ function DressingRoom:LoadOutfit(name)
     ns.Print("Couldn't read that look: " .. err)
     return
   end
+  -- Disarm on the way past, because the line below moves what every armed verb acts on (#715). Here
+  -- rather than in the dropdown handler so `/collected outfit load` is covered too — a failed
+  -- decode returns above without touching `_outfitSel`, so it correctly leaves an armed verb alone.
+  self:_disarmOutfit()
   self._outfitSel = name
   self._outfitName:Text(name)
   self:EnterOutfitMode(name, list)
@@ -120,7 +124,7 @@ function DressingRoom:SaveOutfit(retry)
     -- The caption stays SHORT — a row button is 62px and wraps, so naming the target there spilled
     -- over three lines and out of the box. Chat has the width to say which look is at risk.
     ns.Print(("\"%s\" already exists — click Save again to replace it."):format(target))
-    self:_armOutfit(self._outfitSave, "Sure?", "replaced")
+    self:_armOutfit(self._outfitSave, "Sure?", "replaced", target)
     return
   end
 
@@ -161,7 +165,7 @@ function DressingRoom:DeleteOutfit()
     return
   end
   if not armed then
-    self:_armOutfit(self._outfitDelete, "Sure?", "deleted")
+    self:_armOutfit(self._outfitDelete, "Sure?", "deleted", self._outfitSel)
     return
   end
   ns.DeleteLibraryOutfit(self._outfitSel)
@@ -193,7 +197,7 @@ function DressingRoom:PushOutfit()
     -- it, leaving no room for a name at 62px), so without this line the question names nothing.
     ns.Print(("\"%s\" is already one of this character's sets — click Push again to replace it.")
       :format(self._outfitSel))
-    self:_armOutfit(self._outfitPush, "Sure?", "replaced")
+    self:_armOutfit(self._outfitPush, "Sure?", "replaced", self._outfitSel)
     return
   end
   -- `ns.SaveCustomSet` is where Blizzard's rules bite: the name filter and the 25-set cap apply to

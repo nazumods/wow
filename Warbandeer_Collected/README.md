@@ -220,10 +220,13 @@ what this works around.
   untouched. **+ New Look** at the bottom of the dropdown just clears the box to start fresh.
 - **Rename** changes the selected look's name to whatever's in the name field. It's the only thing
   that renames — pressing Enter in the box always saves, never renames.
-- **Delete** asks once before removing anything: the button changes to *Sure?* and counts down the
-  few seconds you have to click it again. If the countdown runs out it tells you nothing was deleted,
-  so a click that arrived too late can never look like one that worked. Saving under a name that
-  belongs to a *different* look asks the same way, so you can't overwrite one by accident.
+- **Delete** asks once before removing anything: the button goes gold, changes to *Sure?* and counts
+  down the few seconds you have to click it again. If the countdown runs out it names the look and
+  tells you it wasn't deleted, so a click that arrived too late can never look like one that worked.
+  Saving under a name that belongs to a *different* look asks the same way, so you can't overwrite
+  one by accident. A pending question only ever applies to the look it was asked about — pick a
+  different look, or lose the one you'd picked, and the button drops back to normal rather than
+  quietly retargeting.
 - **Push** copies the selected look into *this* character's transmog sets, so you can wear it at
   a transmogrifier. That's the only step that's per-character, and the only one the game's
   25-set limit applies to. If this character already has a set under that name, Push asks first and
