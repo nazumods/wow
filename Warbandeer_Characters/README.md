@@ -62,7 +62,9 @@ data through the `WarbandeerApi` global.
 - **Titles** are recorded each login (and whenever you earn or change one) — the player titles each
   character has collected, plus its current (featured) title — so Warbandeer's Summary view gains a
   **Titles** column showing each character's current title, with the full title and its earned-title
-  count on hover.
+  count on hover. Alongside those, a single account-wide **title catalog** is kept — the name of
+  every title in the game, earned or not, in your client's language — so tools reading your saved
+  data can name a title without the game running.
 - **Weekly profession knowledge** is tracked per character (and cleared each weekly reset) — for each
   profession, which of this week's knowledge-point sources you've collected: the treatise, the weekly
   trainer / Artisan's Consortium quest, treasure knowledge, and gathering knowledge. Warbandeer's

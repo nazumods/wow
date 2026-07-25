@@ -600,6 +600,15 @@ function API:GetTitles(charName)
   return c and c.titles or nil
 end
 
+---The account-wide title catalog: the whole player-title universe as `names[titleMaskID]` (earned
+---AND unearned, in the client locale) plus `accountWide[titleMaskID]`. Account-wide, so it takes no
+---character argument. `accountWide` is `IsTitleKnown` as seen by `scannedBy` — the character that
+---last scanned — so it's one character's observation, not a proven property; cross-reference the
+---other characters' `API:GetTitles(char).known` sets to tighten it. nil until any character has
+---logged in since this shipped. Data from data/titlecatalog.lua.
+---@return TitleCatalog?
+function API:GetTitleCatalog() return ns.db.titleCatalog end
+
 ---Which neighborhood endeavor a character is actively feeding right now, for the Summary
 ---"Endeavors" column: `active` is the faction house its endeavor XP currently flows to, with that
 ---endeavor's `title`. nil when the character has no resolvable active endeavor (never seen since
