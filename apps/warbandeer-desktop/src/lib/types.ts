@@ -94,35 +94,17 @@ export interface OrderLine {
   position: number;
 }
 
-// ── Bot ops panel (src-tauri/src/botops.rs) ──────────────────────────────────
-// Operator-only, gated: opsConfig() returns null unless an ops.json is present.
-
-// One managed bot, as surfaced to the target switch (compose internals stay in Rust).
-export interface OpsTargetInfo {
-  name: string; // switch label, e.g. "debug" / "prod"
-  ssh: string; // SSH destination, for display
-}
-
-export interface BotStatus {
-  running: boolean;
-  status: string; // docker status line, e.g. "Up 3 days"
-  image: string;
-  realmStatus: string; // last-observed realm status ("UP"/"DOWN"/"")
-}
-
-export interface EnvChange {
-  key: string;
-  value: string;
-}
-
-export interface EnvSetResult {
-  ok: boolean;
-  changed: string[]; // keys that actually changed
-  recreated: boolean; // whether the container was force-recreated to apply
-  backup?: string | null; // path of the .env backup taken before applying
-  note?: string | null; // e.g. "no changes"
-  log?: string | null; // docker compose output
-}
+// ── Bot ops panel ────────────────────────────────────────────────────────────
+// Operator-only, gated: opsConfig() returns null unless an ops.json is present. The types and the
+// commands both come from the shared `@bot-ops` module (apps/bot-ops) — re-exported here so the
+// rest of the app keeps importing types from one place.
+export type {
+  OpsTargetInfo,
+  BotStatus,
+  EnvChange,
+  EnvSetResult,
+  OpsField,
+} from "@bot-ops";
 
 /** Mirrors `staticdata::CurrencyMeta` — constant client data, not character state. */
 export interface CurrencyMeta {

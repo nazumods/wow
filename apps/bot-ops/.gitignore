@@ -1,0 +1,7 @@
+# dependencies / build output
+node_modules
+
+# rust — a library crate, so the lock is not tracked; the consuming apps' locks are the
+# ones that pin the build.
+rust/target
+rust/Cargo.lock

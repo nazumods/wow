@@ -1,0 +1,15 @@
+[package]
+name = "bot-ops"
+version = "0.1.0"
+description = "Tauri backend for the operator-only Bot Ops panel (drives warbandeer-discord over SSH)"
+authors = ["Nazuraki"]
+edition = "2021"
+publish = false
+
+[lib]
+name = "bot_ops"
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
