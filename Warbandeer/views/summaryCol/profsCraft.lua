@@ -20,11 +20,14 @@ local RECIPE_EXP_KEY = "midnight" -- recipe bucket to scan (matches CraftingView
 -- a line by the item name's last word (Apron / Toolbox / Hammer), which stays
 -- consistent within a line across locales (translations keep the family noun).
 -- FAMILY_OVERRIDE pins any item whose suffix the heuristic would get wrong.
+-- `name` is the caller's stored copy (worn slot / recipe-output cache) when it has
+-- one; the live lookup behind it is the fallback for records cached before those
+-- fields existed, and is what an offline reader has no equivalent of.
 local FAMILY_OVERRIDE = {} ---@type table<integer, string>
-local function familyKey(itemID)
+local function familyKey(itemID, name)
   if not itemID then return nil end
   if FAMILY_OVERRIDE[itemID] then return FAMILY_OVERRIDE[itemID] end
-  local name = C_Item.GetItemInfo(itemID)
+  name = name or C_Item.GetItemInfo(itemID)
   return name and name:match("(%S+)%s*$")
 end
 
@@ -66,7 +69,8 @@ local function buildCraftable()
         if out then
           local entry = craftable[out.itemID]
           if not entry then
-            entry = { itemID = out.itemID, rarity = out.rarity, equipLoc = out.equipLoc, crafters = {} }
+            entry = { itemID = out.itemID, rarity = out.rarity, equipLoc = out.equipLoc,
+                      name = out.name, crafters = {} }
             craftable[out.itemID] = entry
             craftableByProf[out.skillID] = craftableByProf[out.skillID] or {}
             insert(craftableByProf[out.skillID], entry)
@@ -154,8 +158,8 @@ local function craftHint(skillID, item, isCurrentExpac)
   if not craftable or craftableDirty then buildCraftable() end
   local itemID = item.link and tonumber(item.link:match("item:(%d+)"))
   if not itemID then return {} end
-  local equipLoc = select(4, C_Item.GetItemInfoInstant(itemID))
-  local wornFamily = familyKey(itemID)
+  local equipLoc = item.equipLoc or select(4, C_Item.GetItemInfoInstant(itemID))
+  local wornFamily = familyKey(itemID, item.name)
   local wornRarity = isCurrentExpac and (item.rarity or 0) or 0
   local wornTier = item.tier or 0
   local lines = {}
@@ -165,7 +169,7 @@ local function craftHint(skillID, item, isCurrentExpac)
   -- and the best higher-rarity recipe for a bigger jump.
   local own, better
   for _, entry in ipairs(craftableByProf[skillID] or {}) do
-    if entry.equipLoc == equipLoc and familyKey(entry.itemID) == wornFamily then
+    if entry.equipLoc == equipLoc and familyKey(entry.itemID, entry.name) == wornFamily then
       if entry.rarity == wornRarity then
         own = entry
       elseif entry.rarity > wornRarity and entry.rarity <= BASE_RARITY
@@ -207,8 +211,8 @@ end
 -- Returns a (possibly empty) list of tooltip lines.
 local function emptyHints(skillID, equipLoc, wornFamilies)
   if not craftable or craftableDirty then buildCraftable() end
-  local function wanted(itemID)
-    return not (wornFamilies and wornFamilies[familyKey(itemID)])
+  local function wanted(itemID, name)
+    return not (wornFamilies and wornFamilies[familyKey(itemID, name)])
   end
   local lines = {}
   -- Best crafter (and the tier they'd reach) across this profession's recipes
@@ -216,7 +220,7 @@ local function emptyHints(skillID, equipLoc, wornFamilies)
   -- back to a plain suggestion only when no recipe has quality data yet.
   local best, bestTier, bestConc, bestRarity, anyData, fallback
   for _, entry in ipairs(craftableByProf[skillID] or {}) do
-    if entry.equipLoc == equipLoc and wanted(entry.itemID) then
+    if entry.equipLoc == equipLoc and wanted(entry.itemID, entry.name) then
       local c, tier, conc, hasData = bestQualityCrafter(entry, 0)
       if hasData then anyData = true end
       if c and (not best
@@ -236,7 +240,7 @@ local function emptyHints(skillID, equipLoc, wornFamilies)
   -- source (warband first, then alts, then guild) as GetBankProfGear returns them.
   local order, total = {}, {}
   for _, e in ipairs(ns.api:GetBankProfGear(skillID)) do
-    if e.equipLoc == equipLoc and wanted(e.itemID) then
+    if e.equipLoc == equipLoc and wanted(e.itemID, e.name) then
       if not total[e.source] then insert(order, e.source); total[e.source] = 0 end
       total[e.source] = total[e.source] + (e.count or 1)
     end

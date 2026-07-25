@@ -6,6 +6,7 @@ local RequestLoadItemData = C_Item.RequestLoadItemData
 local GetItemID         = C_Item.GetItemID
 local GetItemLink       = C_Item.GetItemLink
 local GetItemInfo       = C_Item.GetItemInfo
+local GetItemInfoInstant = C_Item.GetItemInfoInstant
 local GetCurrentItemLevel = C_Item.GetCurrentItemLevel
 local GetItemQuality    = C_Item.GetItemQuality
 
@@ -97,14 +98,19 @@ ns.Professions.fields.gear = {
                 local tier = link and C_TradeSkillUI.GetItemCraftedQualityByItemInfo
                   and C_TradeSkillUI.GetItemCraftedQualityByItemInfo(link)
                 local rarity = GetItemQuality and GetItemQuality(loc)
+                -- Which slot type the piece fills (tool vs accessory). Instant and
+                -- id-only, but consumers reading an offline alt have no client to ask,
+                -- so it's captured here alongside the rest of the display data.
+                local equipLoc = select(4, GetItemInfoInstant(id))
                 -- Keep the previously-cached value whenever the API hands us nil.
                 slotData[invSlot] = {
-                  name    = name    ~= nil and name    or prev.name,
-                  link    = link    ~= nil and link    or prev.link,
-                  ilvl    = ilvl    ~= nil and ilvl    or prev.ilvl,
-                  rarity  = rarity  ~= nil and rarity  or prev.rarity,
-                  tier    = tier    ~= nil and tier    or prev.tier,
-                  expacID = expacID ~= nil and expacID or prev.expacID,
+                  name     = name     ~= nil and name     or prev.name,
+                  link     = link     ~= nil and link     or prev.link,
+                  ilvl     = ilvl     ~= nil and ilvl     or prev.ilvl,
+                  rarity   = rarity   ~= nil and rarity   or prev.rarity,
+                  tier     = tier     ~= nil and tier     or prev.tier,
+                  expacID  = expacID  ~= nil and expacID  or prev.expacID,
+                  equipLoc = equipLoc ~= nil and equipLoc or prev.equipLoc,
                 }
               else
                 -- Item exists but its id isn't available yet; don't drop the slot.

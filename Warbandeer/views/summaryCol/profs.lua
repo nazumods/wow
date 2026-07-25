@@ -54,7 +54,10 @@ end
 
 -- The equipLoc of a stored gear item (tool vs accessory), or nil if its link
 -- isn't resolvable yet.  Used to tell which slot types are already filled.
+-- Prefers the scan-time capture; the live lookup is the fallback for entries
+-- cached before that field existed.
 local function equipLocOf(item)
+  if item.equipLoc then return item.equipLoc end
   local itemID = item.link and tonumber(item.link:match("item:(%d+)"))
   if not itemID then return nil end
   return select(4, C_Item.GetItemInfoInstant(itemID))
@@ -100,7 +103,7 @@ local function getProfGearScore(toon)
           filledTool = filledTool + 1
         else
           filledAcc = filledAcc + 1
-          local fam = familyKey(item.link and tonumber(item.link:match("item:(%d+)")))
+          local fam = familyKey(item.link and tonumber(item.link:match("item:(%d+)")), item.name)
           if fam then wornAcc[fam] = true end
         end
       end
