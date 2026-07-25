@@ -123,9 +123,13 @@ local function commitName(name)
   -- Never replace silently. A name already in the library is the NORMAL case here rather than the
   -- odd one — the library is account-wide and spans every character, so "TWW 1" saved on an alt is
   -- exactly what a second alt is about to type (the same collision #663 met importing).
-  if ns.LibraryOutfit(name) then
-    pendingName = name
-    StaticPopup_Show(REPLACE_POPUP, name)
+  -- The library's own spelling, not what was typed (#728): the match is case-insensitive, so the
+  -- popup has to name the entry actually at risk — asking "replace boylane 3?" about a look listed
+  -- as "Boylane 3" describes something the user can't find.
+  local existing = ns.LibraryOutfit(name)
+  if existing then
+    pendingName = existing.name
+    StaticPopup_Show(REPLACE_POPUP, existing.name)
     return
   end
   saveStaged(name)

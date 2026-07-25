@@ -117,7 +117,14 @@ function DressingRoom:SaveOutfit(retry)
   -- name hasn't been touched.
   local target = self:_typedOutfitName()
   if target == "" then target = self._outfitSel end
-  local overwrote = ns.LibraryOutfit(target) ~= nil
+  -- **The library's own casing wins over what was typed (#728).** A name differing only in case is
+  -- the same look, so taking the stored spelling back makes the rest of this read correctly: the
+  -- comparison below recognises the selected entry, the confirm names the look actually at risk,
+  -- and `_outfitSel` lands on the string the dropdown lists. Typing `boylane 3` over a saved
+  -- `Boylane 3` used to sail past all of it and save a second, near-identical entry.
+  local existing = ns.LibraryOutfit(target)
+  if existing then target = existing.name end
+  local overwrote = existing ~= nil
   -- Replacing the entry you have selected needs no confirmation — that's plainly "update this".
   -- Landing on a DIFFERENT existing entry is the surprising case, so ask first.
   if overwrote and target ~= self._outfitSel and not self._saveArmed then
@@ -133,6 +140,9 @@ function DressingRoom:SaveOutfit(retry)
     ns.Print("Couldn't save: " .. err)
     return
   end
+  -- The write itself already refreshed both surfaces (#727). This second refresh is for the
+  -- SELECTION move, which no store change can tell the dropdown about — the same reason Rename's
+  -- is there, and why Delete's is gone (the store's own notification drops a vanished selection).
   self._outfitSel = target
   self:RefreshOutfits()
   ns.Print((overwrote and "Replaced \"%s\"." or "Saved \"%s\" to your library."):format(target))
@@ -168,10 +178,10 @@ function DressingRoom:DeleteOutfit()
     self:_armOutfit(self._outfitDelete, "Sure?", "deleted", self._outfitSel)
     return
   end
+  -- No refresh of our own: the store's change notification runs `RefreshOutfits`, which drops the
+  -- selection it can no longer find and greys the verbs that needed one (#727).
   ns.DeleteLibraryOutfit(self._outfitSel)
-  self._outfitSel = nil
   self._outfitName:Text("")
-  self:RefreshOutfits()
   ns.Print("Deleted.")
 end
 

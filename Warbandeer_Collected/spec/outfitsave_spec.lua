@@ -81,4 +81,18 @@ describe("SaveLookToBoth", function()
     assert.is_false(res.replaced)
     assert.matches("Saved", res.message)
   end)
+
+  -- #728: the match is case-insensitive and a replaced entry keeps its stored spelling, so both the
+  -- report and the game custom set have to use THAT name — reporting what was typed would name a
+  -- look the library doesn't list, and would hand the game a second spelling of the same name.
+  it("replaces a case variant under the library's own spelling", function()
+    local calls = stubCustomSets(ns, { id = 12 })
+    ns.SaveLookToBoth("Boylane 3", lookWith(ns, 1))
+    local res = ns.SaveLookToBoth("boylane 3", lookWith(ns, 2))
+    assert.is_true(res.replaced)
+    assert.matches("Replaced \"Boylane 3\"", res.message)
+    assert.equal("Boylane 3", calls[2].name)
+    assert.equal(1, #ns.LibraryOutfits())
+    assert.equal("Boylane 3", ns.LibraryOutfits()[1].name)
+  end)
 end)

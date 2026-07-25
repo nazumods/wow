@@ -149,6 +149,13 @@ local OutfitLibraryWindow = Class(TitleFrame, function(self)
   self:_paneButton(footer, 0, IMPORTW, "Import this character's sets",
     function() self:ImportCharacterSets() end)
 
+  -- Follow the STORE, not the caller that changed it (#727). The outfit row and `/collected outfit
+  -- …` write the same library, and since #713 docks the two windows together they are routinely on
+  -- screen at once — so a look deleted from the row used to sit here until this window was closed
+  -- and reopened. `Refresh` already drops a selection whose entry vanished, and `_showPreview`
+  -- disarms on the way past, so an armed Delete can't outlive the library it was armed against.
+  ns.OnLibraryChanged(function() self:Refresh() end)
+
   self:Width(WINW)
   self:Height(TITLEH + PAD + STRIPH + GAP + LISTH + GAP + STRIPH + PAD)
 end, {
@@ -228,16 +235,19 @@ function OutfitLibraryWindow:ImportCharacterSets()
     return
   end
   local saved, renamed, skipped = 0, 0, 0
-  for _, set in ipairs(sets) do
-    local list = ns.CustomSetOutfit(set.id)
-    if list then
-      local status = ns.ImportLibraryOutfit(set.name, list, ns.LocalOutfitMeta(list))
-      if status == "saved" then saved = saved + 1
-      elseif status == "renamed" then renamed = renamed + 1
-      else skipped = skipped + 1 end
+  -- Batched, so the up-to-25 writes below announce themselves once rather than rebuilding this
+  -- window and the outfit row — and re-dressing the preview model — after every single set (#727).
+  ns.LibraryBatch(function()
+    for _, set in ipairs(sets) do
+      local list = ns.CustomSetOutfit(set.id)
+      if list then
+        local status = ns.ImportLibraryOutfit(set.name, list, ns.LocalOutfitMeta(list))
+        if status == "saved" then saved = saved + 1
+        elseif status == "renamed" then renamed = renamed + 1
+        else skipped = skipped + 1 end
+      end
     end
-  end
-  self:Refresh()
+  end)
   -- Report every category that happened and none that didn't: a bare count would hide the two
   -- outcomes worth knowing about — a look that was renamed, and one that was already there.
   local bits = { ("Imported %d of %d set%s"):format(saved + renamed, #sets, #sets == 1 and "" or "s") }

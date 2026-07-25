@@ -200,7 +200,9 @@ function OutfitLibraryWindow:RenameSelected()
   end
   ns.Print(("Renamed to \"%s\"."):format(newName))
   -- Follow the look through the rename rather than dropping the selection: the pane is still
-  -- showing it, so a cleared selection would contradict what is on screen.
+  -- showing it, so a cleared selection would contradict what is on screen. The rename's own
+  -- notification refreshed both surfaces already; this second one is for the selection move, which
+  -- no store change can describe (#727).
   self._selected = newName
   self:Refresh()
 end
@@ -217,10 +219,12 @@ function OutfitLibraryWindow:DeleteSelected()
     self:_arm(self._deleteBtn, "Sure?", "deleted", self._selected)
     return
   end
-  ns.DeleteLibraryOutfit(self._selected)
-  ns.Print(("Deleted \"%s\"."):format(self._selected))
-  self._selected = nil
-  self:Refresh()
+  -- Named before the delete, not after: the store's change notification refreshes this window from
+  -- inside the call below, and that refresh is what clears the selection it can no longer find
+  -- (#727) — so there is no refresh of our own to make here either.
+  local name = self._selected
+  ns.DeleteLibraryOutfit(name)
+  ns.Print(("Deleted \"%s\"."):format(name))
 end
 
 ---Copy the selected look into THIS character's transmog sets, so it can be worn at a
