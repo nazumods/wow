@@ -68,20 +68,10 @@ local function outfitList()
   ns.Print(("%d in your library, %s/%s on this character."):format(#lib, #sets, tostring(max)))
 end
 
--- Resolve a library name the user typed (exact, then case-insensitive), so a command can be driven
--- by the name shown in the dropdown without matching its case.
----@param name string
----@return string?  the stored name
-local function findLook(name)
-  if name == "" then return nil end
-  local lowered = name:lower()
-  local fuzzy
-  for _, o in ipairs(ns.LibraryOutfits()) do
-    if o.name == name then return o.name end
-    if o.name:lower() == lowered then fuzzy = fuzzy or o.name end
-  end
-  return fuzzy
-end
+-- Resolving a typed name to the stored one — exact, then case-insensitive — used to be a local
+-- here, so only these commands could drive a look by the name in the dropdown without matching its
+-- case. `ns.LibraryOutfit` does it for everyone since #728, which is what closed the same gap on
+-- the outfit row's Save; each command below just takes `entry.name` back from it.
 
 ---@param name string
 local function outfitSave(name)
@@ -106,14 +96,15 @@ local function outfitSave(name)
   end
   -- Unlike the button this replaces a same-named look outright: a scripted call has no
   -- arm-then-confirm step to answer.
-  local existing = findLook(name)
-  local ok, err = ns.SaveLibraryOutfit(existing or name, list)
+  local existing = ns.LibraryOutfit(name)
+  local target = existing and existing.name or name
+  local ok, err = ns.SaveLibraryOutfit(target, list)
   if not ok then
     ns.Print("Couldn't save: " .. err)
     return
   end
-  room:RefreshOutfits()
-  ns.Print((existing and "Replaced \"%s\" in your library." or "Saved \"%s\" to your library."):format(existing or name))
+  -- No `room:RefreshOutfits()`: the save announces itself and every open surface refreshes (#727).
+  ns.Print((existing and "Replaced \"%s\" in your library." or "Saved \"%s\" to your library."):format(target))
 end
 
 ---@param name string
@@ -123,37 +114,39 @@ local function outfitLoad(name)
     ns.Print("Open a set's Preview first — load dresses the window on screen.")
     return
   end
-  local look = findLook(name)
+  local look = ns.LibraryOutfit(name)
   if not look then
     ns.Print(("No saved look named \"%s\". Try /collected outfit list."):format(name))
     return
   end
-  room:LoadOutfit(look)   -- prints its own confirmation, with the look's provenance
+  room:LoadOutfit(look.name)   -- prints its own confirmation, with the look's provenance
 end
 
 ---@param name string
 local function outfitDelete(name)
-  local look = findLook(name)
+  local look = ns.LibraryOutfit(name)
   if not look then
     ns.Print(("No saved look named \"%s\". Try /collected outfit list."):format(name))
     return
   end
-  ns.DeleteLibraryOutfit(look)
-  -- Only if the room is on screen; deleting doesn't need it open, unlike save/load.
-  local room = ns.OpenDressingRoom()
-  if room then room:RefreshOutfits() end
-  ns.Print(("Deleted \"%s\" from your library."):format(look))
+  -- This used to reach for the room and refresh it, and knew nothing of the library window — which
+  -- is exactly the gap #727 closed: the delete announces itself, and whichever surfaces are open
+  -- refresh themselves.
+  local deleted = look.name
+  ns.DeleteLibraryOutfit(deleted)
+  ns.Print(("Deleted \"%s\" from your library."):format(deleted))
 end
 
 -- Copy a library look into THIS character's transmog sets — the bridge across the two stores, and
 -- the only path where Blizzard's name filter and 25-set cap apply.
 ---@param name string
 local function outfitPush(name)
-  local look = findLook(name)
-  if not look then
+  local entry = ns.LibraryOutfit(name)
+  if not entry then
     ns.Print(("No saved look named \"%s\". Try /collected outfit list."):format(name))
     return
   end
+  local look = entry.name
   local list, err = ns.LibraryOutfitList(look)
   if not list then
     ns.Print("Couldn't read that look: " .. err)

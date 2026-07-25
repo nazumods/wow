@@ -22,9 +22,13 @@ local ns = select(2, ...)
 -- a name-keyed map so insertion order is stable (the order the dropdown shows) and rename is a
 -- field write rather than a re-key.
 --
--- Names are validated only for non-empty + unique. Deliberately NOT `IsValidCustomSetName`: that's
--- a C call, it would cost this file its testability, and Blizzard's name rules govern *their*
--- store — they apply when pushing a look across, not to ours.
+-- Names are validated only for non-empty + unique — **uniqueness ignoring case** (#728), matched
+-- loosely and stored exactly; see `ns.LibraryOutfit`. Deliberately NOT `IsValidCustomSetName`:
+-- that's a C call, it would cost this file its testability, and Blizzard's name rules govern
+-- *their* store — they apply when pushing a look across, not to ours.
+--
+-- The filter the library window runs over these entries is outfitfilter.lua, split off for file
+-- size; it stays pure for the same reason this does.
 
 ---@class LibraryOutfit
 ---@field name string  the user's name for it, unique within the library
@@ -40,16 +44,12 @@ local ns = select(2, ...)
 ---@field forClass string?
 ---@field armor string?
 
----@class OutfitFilter
----@field armor string?  "Cloth"|"Leather"|"Mail"|"Plate"; nil or "Any" for no armour filter
----@field class string?  a class file ("WARRIOR") matched against `forClass`; nil for any
----@field search string?  matched case-insensitively against the look's name and the saving character
-
 ---@class Warbandeer_Collected
 ---@field LibraryOutfits fun(): LibraryOutfit[]
 ---@field LibraryOutfit fun(name: string): LibraryOutfit?, number?
----@field FilterOutfits fun(outfits: LibraryOutfit[], filter: OutfitFilter?): LibraryOutfit[]
----@field LibraryFacets fun(outfits: LibraryOutfit[]): string[]
+---@field OnLibraryChanged fun(fn: fun())
+---@field LibraryChanged fun()
+---@field LibraryBatch fun(fn: fun())
 ---@field ImportLibraryOutfit fun(name: string, list: table[], meta: OutfitMeta?): string, string
 ---@field LibraryOutfitList fun(name: string): table[]?, string?
 ---@field SaveLibraryOutfit fun(name: string, list: table[], meta: OutfitMeta?): boolean, string?
@@ -67,16 +67,24 @@ local function clean(name)
   return (name or ""):match("^%s*(.-)%s*$")
 end
 
--- Non-empty and not already taken by a DIFFERENT entry (`exceptName` lets a rename keep its own
--- name). Returns nil when the name is fine, else the message to show. Mirrors `nameError` in
--- outfit.lua, but over our store and without the C-side filter.
+-- Non-empty and not already taken by a DIFFERENT entry (`except` lets a rename keep its own name).
+-- Returns nil when the name is fine, else the message to show. Mirrors `nameError` in outfit.lua,
+-- but over our store and without the C-side filter.
+--
+-- The exemption is by ENTRY IDENTITY, not by name, because the lookup below is case-insensitive
+-- (#728): renaming "Boylane 3" to "boylane 3" finds itself, and correcting your own capitalisation
+-- has to stay a legal rename rather than read as a collision with a look that isn't there. The
+-- message names the STORED entry, so a rejected rename says which look is in the way even when
+-- what was typed doesn't look like it.
 ---@param name string
----@param exceptName string?
+---@param except LibraryOutfit?  the entry being renamed
 ---@return string?
-local function nameError(name, exceptName)
+local function nameError(name, except)
   if name == "" then return "a name is required" end
-  if exceptName and name == exceptName then return nil end
-  if ns.LibraryOutfit(name) then return ("\"%s\" is already in the library"):format(name) end
+  local taken = ns.LibraryOutfit(name)
+  if taken and taken ~= except then
+    return ("\"%s\" is already in the library"):format(taken.name)
+  end
 end
 
 ---Every saved look, in the order they were added.
@@ -86,14 +94,33 @@ function ns.LibraryOutfits()
 end
 
 ---Find a saved look by name, with its index. nil when there's no such entry.
+---
+---**Case-insensitive, with exact matches winning (#728).** A name is a display string the user
+---types into a field beside a dropdown that shows it, so `boylane 3` means the `Boylane 3` on
+---screen. Matching exactly let a case variant slip past every guard built on this function — the
+---row's overwrite confirm, rename's collision check, the transmogrifier's replace popup — each of
+---which exists specifically to stop an accidental duplicate, and the result was a second entry
+---indistinguishable from the first at a glance.
+---
+---Matching loosely while STORING what was typed is the split that matters: names are class-coloured
+---in the dropdown and printed by `/collected outfit list`, so folding their case would be lossy.
+---Callers that mean "the look the user named" therefore take `entry.name` back from here rather
+---than reusing the string they passed in.
+---
+---The exact pass runs first, and wins over an earlier case variant, so a library that already holds
+---both — legal until now — still resolves each name to its own entry.
 ---@param name string
 ---@return LibraryOutfit? entry, number? index
 function ns.LibraryOutfit(name)
   name = clean(name)
   if name == "" then return nil end
+  local lowered = name:lower()
+  local loose, looseIndex
   for i, o in ipairs(ns.LibraryOutfits()) do
     if o.name == name then return o, i end
+    if not loose and o.name:lower() == lowered then loose, looseIndex = o, i end
   end
+  return loose, looseIndex
 end
 
 ---A saved look decoded back into an outfit list, ready for `DressingRoom:ApplyOutfit`.
@@ -114,6 +141,11 @@ end
 ---the third look leaves it third instead of jumping to the end. `meta` (who saved it, which class,
 ---which set's class, the armour type) overwrites the stored provenance on a replace — the entry now
 ---holds a different look, so the old attribution would be a lie.
+---
+---**A replaced entry keeps its own name**, which is what makes the case-insensitive match (#728)
+---non-lossy: saving `boylane 3` over `Boylane 3` replaces that look and leaves it called
+---`Boylane 3`. The name is a display string the store has no business re-capitalising on a save
+---the user asked to be a replacement; `ns.RenameLibraryOutfit` is how a name changes.
 ---@param name string
 ---@param list table[]
 ---@param meta OutfitMeta?  provenance; the caller collects it, this file just stores it
@@ -129,6 +161,7 @@ function ns.SaveLibraryOutfit(name, list, meta)
   end
   entry.look = ns.EncodeOutfit(list)
   for _, field in ipairs(META) do entry[field] = meta and meta[field] or nil end
+  ns.LibraryChanged()
   return true
 end
 
@@ -189,9 +222,10 @@ function ns.RenameLibraryOutfit(oldName, newName)
   local entry = ns.LibraryOutfit(oldName)
   if not entry then return false, ("no saved look named \"%s\""):format(clean(oldName)) end
   newName = clean(newName)
-  local err = nameError(newName, entry.name)
+  local err = nameError(newName, entry)
   if err then return false, err end
   entry.name = newName
+  ns.LibraryChanged()
   return true
 end
 
@@ -202,97 +236,66 @@ function ns.DeleteLibraryOutfit(name)
   local _, index = ns.LibraryOutfit(name)
   if not index then return false end
   table.remove(ns.LibraryOutfits(), index)
+  ns.LibraryChanged()
   return true
 end
 
--- ── Filtering ──────────────────────────────────────────────────────────────────--
+-- ── Change notification ────────────────────────────────────────────────────────--
 --
--- What the library window's filter strip runs on (#662). Pure over the entries, like the rest of
--- this file, so the whole rule is unit-tested and controls/OutfitLibraryWindow.lua is left holding
--- nothing but widgets.
+-- One place that says "the library changed" (#727). The mutators above used to just mutate and
+-- return, so every caller was responsible for refreshing whichever surface it happened to know
+-- about — outfitcommands.lua refreshed the outfit row, controls/OutfitLibraryPreview.lua refreshed
+-- the library window, and **neither ever refreshed the other**. Since #713 docks both onto the same
+-- workspace they are routinely on screen together, so one sat there listing a look the other had
+-- just deleted.
 --
--- **A missing field is UNKNOWN, never a non-match.** Entries saved before #655 carry no provenance
--- at all, and a filter that hid them would make looks the user still owns silently vanish from the
--- only list that shows them — the one outcome this must not have. So a nil `armor` or `forClass`
--- passes every filter, as does a stored `armor` of "Any": `ns.OutfitArmorType` returns that for a
--- cosmetic, mixed or weapon-only look, which genuinely goes on anyone and so belongs under every
--- armour type rather than under none.
+-- Surfaces subscribe and refresh themselves instead, so a future fourth one is covered by
+-- construction and no caller has to know which windows happen to be open. It is the shape the
+-- room's own custom-set refresh already has, for the same reason: the store can be edited from
+-- somewhere this code isn't watching.
 --
--- Search is deliberately NOT held to the same rule. It is a positive query for text rather than a
--- facet, `name` is always present to match against, and letting provenance-less entries match every
--- term would make searching by character name useless — the opposite of the reported need.
+-- Both surfaces already handle a selection that vanished — `RefreshOutfits` clears `_outfitSel` and
+-- `OutfitLibraryWindow:Refresh` clears `_selected` — they simply never got the chance to run.
 
--- The armour type that constrains nobody, at both ends of the comparison: the "no filter" option
--- and a real stored value. `ns.OutfitArmorType` (outfit.lua) is what produces the stored one.
-local ANY = "Any"
+local listeners = {}
+local depth, pending = 0, false
 
----@param entry LibraryOutfit
----@param wanted string?
----@return boolean
-local function matchesArmor(entry, wanted)
-  if not wanted or wanted == ANY then return true end
-  return entry.armor == nil or entry.armor == ANY or entry.armor == wanted
+---Run `fn` after any change to the library. Never unregistered: the subscribers are the dressing
+---room and the library window, each created once and kept for the session.
+---@param fn fun()
+function ns.OnLibraryChanged(fn)
+  listeners[#listeners + 1] = fn
 end
 
----Keys on `forClass` — the class the look was BUILT FOR — not `class`, which records who saved it.
----A look's own class is what a user filtering by class is after; `class` is provenance, and is
----already what the dropdown's colour tint means (see `DressingRoom:RefreshOutfits`). The two
----deliberately answer different questions, so the same entry can be a Druid's saved Warrior look.
----@param entry LibraryOutfit
----@param wanted string?
----@return boolean
-local function matchesClass(entry, wanted)
-  if not wanted or wanted == ANY then return true end
-  return entry.forClass == nil or entry.forClass == wanted
-end
-
--- Plain (non-pattern) find, so a name or search term containing `%`, `-` or `(` matches literally
--- instead of erroring or silently behaving as a pattern.
----@param entry LibraryOutfit
----@param needle string?  already trimmed and lowercased
----@return boolean
-local function matchesSearch(entry, needle)
-  if not needle then return true end
-  if entry.name and entry.name:lower():find(needle, 1, true) then return true end
-  return (entry.char and entry.char:lower():find(needle, 1, true)) ~= nil
-end
-
----The entries matching every dimension of `filter` (an absent dimension constrains nothing), in
----the library's own order. Returns the entries themselves, not copies — callers act on them by
----name, so sharing identity is both cheaper and what lets a caller compare against a selection.
----@param outfits LibraryOutfit[]
----@param filter OutfitFilter?
----@return LibraryOutfit[]
-function ns.FilterOutfits(outfits, filter)
-  filter = filter or {}
-  local needle = filter.search and clean(filter.search):lower()
-  if needle == "" then needle = nil end
-  local out = {}
-  for _, o in ipairs(outfits or {}) do
-    if matchesArmor(o, filter.armor) and matchesClass(o, filter.class) and matchesSearch(o, needle) then
-      out[#out + 1] = o
-    end
+---Announce that the library changed. The three mutators above call it themselves — **only on a
+---write that actually happened**, so a refused save or a delete that found nothing tells nobody.
+---Public rather than a file-local because they are defined above it, and because anything that
+---ever writes `db.outfits` from outside this file has to be able to say so.
+function ns.LibraryChanged()
+  if depth > 0 then
+    pending = true
+    return
   end
-  return out
+  for _, fn in ipairs(listeners) do fn() end
 end
 
----The `forClass` values actually present, deduped and sorted, so the class dropdown offers nothing
----that cannot match anything. Sorted by class FILE rather than by localised label to keep this
----pure (labelling is a `GetClassInfo` call) and the order stable as the library grows; the window
----labels them on the way out.
+---Coalesce every change `fn` makes into a single notification, fired once the outermost batch
+---closes. `ImportCharacterSets` writes up to 25 entries in one loop, and a refresh per entry would
+---rebuild both surfaces — and re-dress the library window's preview model — 25 times over for one
+---click.
 ---
----Entries with no `forClass` contribute nothing — they are unknown rather than a class, and they
----pass every class filter regardless, so they need no option of their own.
----@param outfits LibraryOutfit[]
----@return string[]
-function ns.LibraryFacets(outfits)
-  local seen, out = {}, {}
-  for _, o in ipairs(outfits or {}) do
-    if o.forClass and not seen[o.forClass] then
-      seen[o.forClass] = true
-      out[#out + 1] = o.forClass
-    end
+---Counted rather than a flag so a batch inside a batch still fires once, at the outer close, and
+---can't announce a half-finished library. **`fn` is expected not to throw**: an error inside it
+---unwinds past the decrement and leaves the batch open, silently swallowing later notifications —
+---no `pcall` here, in keeping with the rest of the addon, so a caller doing something that can
+---error wants its own guard.
+---@param fn fun()
+function ns.LibraryBatch(fn)
+  depth = depth + 1
+  fn()
+  depth = depth - 1
+  if depth == 0 and pending then
+    pending = false
+    ns.LibraryChanged()
   end
-  table.sort(out)
-  return out
 end
