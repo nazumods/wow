@@ -13,7 +13,7 @@ include_files = {
   "Recycle/**/*.lua",
   "ShadowsOfUI-DMF/**/*.lua", "ShadowsOfUI-GCD/**/*.lua", "ShadowsOfUI-Ilvl/**/*.lua",
   "ShadowsOfUI-Known/**/*.lua", "ShadowsOfUI-Upgrade/**/*.lua", "ShadowsOfUI-XP/**/*.lua",
-  "ShadowsOfUI-Artisan/**/*.lua", "ShadowsOfUI-WarbandInventory/**/*.lua",
+  "ShadowsOfUI-Artisan/**/*.lua", "ShadowsOfUI-Inventory/**/*.lua",
   "ShadowsOfUI-Reputations/**/*.lua", "ShadowsOfUI-Quests/**/*.lua",
   "ShadowsOfUI-Compartment/**/*.lua", "ShadowsOfUI-Delves/**/*.lua",
   "ShadowsOfUI-Castbar/**/*.lua", "ShadowsOfUI-Collectibles/**/*.lua",
@@ -41,7 +41,7 @@ files["ShadowsOfUI-DMF/**/*.lua"] = {globals = {"SLASH_SUI_DMF1"}}
 files["ShadowsOfUI-Ilvl/**/*.lua"] = {globals = {"SLASH_SUI_ILVL1"}}
 files["ShadowsOfUI-Known/**/*.lua"] = {globals = {"SLASH_SUI_KNOWN1"}}
 files["ShadowsOfUI-Upgrade/**/*.lua"] = {globals = {"SLASH_SUI_UPGRADE1", "ShadowsOfUI_UpgradeApi"}}
-files["ShadowsOfUI-WarbandInventory/**/*.lua"] = {globals = {"SLASH_SUI_WINV1"}}
+files["ShadowsOfUI-Inventory/**/*.lua"] = {globals = {"SLASH_SUI_WINV1"}}
 files["ShadowsOfUI-Reputations/**/*.lua"] = {globals = {"SLASH_SUI_REPS1"}}
 files["ShadowsOfUI-Quests/**/*.lua"] = {globals = {"SLASH_SUI_QUESTS1"}}
 files["ShadowsOfUI-Compartment/**/*.lua"] = {globals = {"SLASH_SUI_COMPARTMENT1"}}
