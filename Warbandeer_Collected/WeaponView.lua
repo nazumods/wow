@@ -1,6 +1,5 @@
 ---@type Warbandeer_Collected
 local ns = select(2, ...)
-local max = math.max
 local Class = ns.lua.Class
 local TableFrame = ns.ui.TableFrame
 local GameTooltip = GameTooltip
@@ -24,6 +23,7 @@ local GameTooltip = GameTooltip
 ---@field _ptr boolean? PTR PREVIEW — show the upcoming (ns.WeaponPtrSources) weapons instead of live
 ---@field _repaintPtr fun(on: boolean)? repaints the PTR toggle border on a programmatic SetPtr (mode swap)
 ---@field _emptyMsg Label? centered empty-state message (created lazily; shown when "wanted only" matches nothing)
+---@field _nameColW number? name-column width already applied, so a re-fit adds only the delta (see ns.FitNameCol)
 ---@field onResized fun(self: WeaponView)? host hook fired after a filter/sort change resizes the row area
 ---@field onFilterChanged fun(self: WeaponView)? host hook fired after the wanted-only filter flips, so the host can recompute its filter-scoped counter
 ---@field onEnsureVisible fun(self: WeaponView, rowTop: number, rowH: number)? host hook to scroll a row into view (see HighlightWeaponCell)
@@ -31,14 +31,13 @@ local GameTooltip = GameTooltip
 ---@field _dressedSource table? source group currently previewed in the shared dressing room (drives the cell cursor; nil = none)
 ---@field _dressedType number? weapon type currently previewed (with _dressedSource, pins the exact cell)
 local WeaponView = Class(TableFrame, function(self)
-  -- Autosize the name column (col 1) to the widest source name (+ its expansion badge).
-  local w = 0
-  for _, r in ipairs(self.cells) do
-    if #r > 1 and r[1].label then w = max(w, r[1].label:Width()) end
-  end
-  self.cols[1]:Width(w)
-  self.rowArea:Width(self.rowArea:Width() + w)
-  self:Width(self:Width() + w)
+  -- Autosize the name column (col 1) to the widest source name (+ its expansion badge). Called raw
+  -- (not through _fitNameCol) because the host hasn't assigned its own grid field yet — firing
+  -- onResized here would refit against a nil grid.
+  ns.FitNameCol(self, 1)
+  -- A label only measures true once WoW has laid the grid out, so measure again on the next frame,
+  -- when it definitely has — this is the repair for a short first pass (#718).
+  C_Timer.After(0, function() self:_fitNameCol() end)
   self:_refreshMarks()   -- the constructor-time update() ran before our override was mixed in
 end, {
   headerHeight = 28,
@@ -50,6 +49,18 @@ end, {
   -- Row builder lives in WeaponViewData.lua; the base TableFrame calls it via GetData in onLoad.
   GetData = function(self) return ns.WeaponRows(self) end,
 })
+
+-- Fit the name column (col 1) to its widest source name and let the host refit when it grew.
+-- Re-runnable (see ns.FitNameCol), so it doubles as the repair for a first measurement taken
+-- before WoW had laid the grid out.
+function WeaponView:_fitNameCol()
+  if ns.FitNameCol(self, 1) and self.onResized then self:onResized() end
+end
+
+-- Re-fit on show. This grid is built hidden and revealed by the Armor/Weapons swap's SetShown,
+-- which routes through Region:Show — so it gets a fresh measurement every time it comes back on
+-- screen, rather than living with whatever it measured while the window was still being built (#718).
+function WeaponView:OnBeforeShow() self:_fitNameCol() end
 
 -- Variable-height rebuild (the visible row count changes with the filter): grow the pool for new
 -- rows, pad shrinking data with blank-string cells so stale rows blank, base update, then hide the
