@@ -110,7 +110,9 @@ Bindings and outfits default **off** so importing buttons doesn't silently rewri
 ```
 
 A previewing UI reads `profile.slots` (each `{ id, type, index?/strindex? }`) and resolves
-icons/names itself (`C_Spell.GetSpellTexture`, etc.). `:RestoreProfile` is the one call needed
+icons/names itself (`C_Spell.GetSpellTexture`, etc.). Battle-pet slots also carry the pet's
+`speciesID` plus its species and custom names, since the stored pet ID is an account-scoped
+handle that nothing outside the game can turn back into a pet. `:RestoreProfile` is the one call needed
 to import another character's layout onto the current one.
 
 ### Restore behaviour
