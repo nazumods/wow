@@ -1,13 +1,18 @@
 //! Offline lookup layer for constant game data the client would normally resolve.
 //!
-//! SavedVariables store currency *amounts* keyed by id, never the name, icon or cap —
-//! those live in DB2. The app ships as a single portable exe with no network access, so
-//! the bundle is generated at CI time by `Tooling/update-static-data.ps1` and embedded here
+//! SavedVariables store ids, not the constants behind them — a currency *amount* keyed by
+//! id, an achievement's completed bit keyed by id — while the name, icon, cap and points
+//! live in DB2. The app ships as a single portable exe with no network access, so the
+//! bundle is generated at CI time by `Tooling/update-static-data.ps1` and embedded here
 //! rather than fetched. See that script (and `Tooling/UPDATING-static-data.md`) for provenance.
 //!
-//! Scope is currency only, on purpose: it is the one lookup with no Blizzard REST
-//! equivalent (the Game Data API has no currency endpoint), so it stays wago-sourced
-//! whatever the app does about API credentials later.
+//! Scope is what the addon does *not* persist, on purpose. Currencies, because there is no
+//! Blizzard REST equivalent at all (the Game Data API has no currency endpoint), so they stay
+//! wago-sourced whatever the app does about API credentials later. Achievements, because
+//! `Warbandeer_Characters/data/achievements.lua` deliberately snapshots only the completed /
+//! earned-by-me bits and leaves display metadata to be looked up here. Everything else the
+//! app renders — title catalog, keystone and mastery names, pet species — the addon persists
+//! itself, and is deliberately absent.
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -29,6 +34,15 @@ pub struct CurrencyMeta {
     pub quality: i64,
 }
 
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct AchievementMeta {
+    pub name: String,
+    /// Bare icon name, as [`CurrencyMeta::icon`].
+    pub icon: Option<String>,
+    pub points: i64,
+}
+
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct StaticData {
@@ -38,11 +52,20 @@ pub struct StaticData {
     /// Keyed by currency id as a string — JSON object keys are always strings.
     #[serde(default)]
     pub currencies: HashMap<String, CurrencyMeta>,
+    /// Keyed by achievement id as a string. Covers only the ids Warbandeer's views track
+    /// (`Warbandeer_Characters/data/achievementcatalog.lua`), not all of `Achievement.db2` —
+    /// so a miss means "not tracked", not "unknown to the client".
+    #[serde(default)]
+    pub achievements: HashMap<String, AchievementMeta>,
 }
 
 impl StaticData {
     pub fn currency(&self, id: u32) -> Option<&CurrencyMeta> {
         self.currencies.get(&id.to_string())
+    }
+
+    pub fn achievement(&self, id: u32) -> Option<&AchievementMeta> {
+        self.achievements.get(&id.to_string())
     }
 }
 
@@ -61,6 +84,11 @@ pub fn get() -> &'static StaticData {
 #[tauri::command]
 pub fn get_currency_meta(id: u32) -> Option<CurrencyMeta> {
     get().currency(id).cloned()
+}
+
+#[tauri::command]
+pub fn get_achievement_meta(id: u32) -> Option<AchievementMeta> {
+    get().achievement(id).cloned()
 }
 
 /// Which client build the embedded lookups describe — shown in diagnostics so a stale
@@ -82,6 +110,10 @@ mod tests {
       "currencies": {
         "1792": { "name": "Honor", "icon": "achievement_legionpvptier4", "maxQty": 15000, "quality": 3 },
         "2230": { "name": "Darkmoon Prize Ticket (Void)", "icon": null, "maxQty": 0, "quality": 1 }
+      },
+      "achievements": {
+        "158": { "name": "Me and the Cappin' Makin' It Happen", "icon": "achievement_bg_takexflags_ab", "points": 10 },
+        "62386": { "name": "Light Up the Night", "icon": null, "points": 0 }
       }
     }"#;
 
@@ -116,6 +148,31 @@ mod tests {
     }
 
     #[test]
+    fn looks_up_a_known_achievement() {
+        let d = parse(SAMPLE).unwrap();
+        let a = d.achievement(158).expect("158 is in the sample");
+        assert_eq!(a.name, "Me and the Cappin' Makin' It Happen");
+        assert_eq!(a.icon.as_deref(), Some("achievement_bg_takexflags_ab"));
+        assert_eq!(a.points, 10);
+    }
+
+    #[test]
+    fn untracked_achievement_is_none() {
+        // The extract is filtered to the tracked catalog, so a real-but-untracked id
+        // must miss rather than resolve — the app has to render that case.
+        let d = parse(SAMPLE).unwrap();
+        assert!(d.achievement(9999).is_none());
+    }
+
+    #[test]
+    fn currency_and_achievement_id_spaces_do_not_collide() {
+        // Both maps are keyed by bare id, so a lookup must not fall through to the other.
+        let d = parse(SAMPLE).unwrap();
+        assert!(d.currency(158).is_none());
+        assert!(d.achievement(1792).is_none());
+    }
+
+    #[test]
     fn ignores_unknown_fields() {
         // The generator may add fields ahead of the Rust side; that must not break loading.
         let json = r#"{ "build": "1", "buildDate": "d", "someFutureField": 42, "currencies": {} }"#;
@@ -146,5 +203,29 @@ mod tests {
         let honor = get().currency(1792).expect("Honor (1792) should be present");
         assert_eq!(honor.name, "Honor");
         assert!(honor.icon.is_some(), "Honor should have resolved an icon");
+    }
+
+    #[test]
+    fn embedded_bundle_covers_the_tracked_achievements() {
+        // The generator aborts if any tracked id is missing, so the count only moves when
+        // achievementcatalog.lua does. A floor guards against shipping a gutted extract.
+        let d = get();
+        assert!(
+            d.achievements.len() >= 90,
+            "expected the tracked achievement catalog, got {}",
+            d.achievements.len()
+        );
+    }
+
+    #[test]
+    fn embedded_bundle_resolves_a_real_achievement() {
+        // 16585 "Loremaster of the Dragon Isles" — a shipped, long-settled id from the
+        // checklist. Asserts the Title_lang/Points/IconFileID join actually landed.
+        let a = get()
+            .achievement(16585)
+            .expect("Loremaster of the Dragon Isles (16585) is in the tracked catalog");
+        assert!(!a.name.is_empty(), "achievement name must not be blank");
+        assert!(a.icon.is_some(), "16585 should have resolved an icon");
+        assert!(a.points > 0, "16585 should carry points");
     }
 }

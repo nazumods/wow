@@ -2,8 +2,8 @@
   "source": "wago.tools",
   "generator": "Tooling/update-static-data.ps1",
   "product": "wow",
-  "build": "12.0.7.68453",
-  "buildDate": "2026-07-06",
+  "build": "12.0.7.68887",
+  "buildDate": "2026-07-23",
   "currencies": {
     "42": {
       "name": "Badge of Justice",
@@ -8944,6 +8944,473 @@
       "icon": "inv_1205_voidforge_fluctuatingvoidcores_cosmicvoid",
       "maxQty": 0,
       "quality": 4
+    }
+  },
+  "achievements": {
+    "158": {
+      "name": "Me and the Cappin' Makin' It Happen",
+      "icon": "achievement_bg_takexflags_ab",
+      "points": 10
+    },
+    "200": {
+      "name": "Persistent Defender",
+      "icon": "achievement_bg_interruptx_flagcapture_attempts",
+      "points": 10
+    },
+    "212": {
+      "name": "Storm Capper",
+      "icon": "achievement_bg_captureflag_eos",
+      "points": 10
+    },
+    "213": {
+      "name": "Stormtrooper",
+      "icon": "achievement_bg_kill_flag_carriereos",
+      "points": 10
+    },
+    "221": {
+      "name": "Alterac Grave Robber",
+      "icon": "achievement_bg_xkills_avgraveyard",
+      "points": 10
+    },
+    "222": {
+      "name": "Tower Defense",
+      "icon": "achievement_bg_defendxtowers_av",
+      "points": 10
+    },
+    "229": {
+      "name": "The Grim Reaper",
+      "icon": "spell_shadow_nethercloak",
+      "points": 10
+    },
+    "231": {
+      "name": "Wrecking Ball",
+      "icon": "ability_warrior_trauma",
+      "points": 10
+    },
+    "938": {
+      "name": "The Snows of Northrend",
+      "icon": "ability_hunter_pet_crocolisk",
+      "points": 10
+    },
+    "940": {
+      "name": "The Green Hills of Stranglethorn",
+      "icon": "ability_mount_whitetiger",
+      "points": 10
+    },
+    "1153": {
+      "name": "Overly Defensive",
+      "icon": "achievement_bg_ab_defendflags",
+      "points": 10
+    },
+    "1157": {
+      "name": "Duel-icious",
+      "icon": "ability_dualwieldspecialization",
+      "points": 10
+    },
+    "4405": {
+      "name": "More Dots! (25 player)",
+      "icon": "achievement_boss_generaldrakkisath",
+      "points": 10
+    },
+    "4859": {
+      "name": "Kings Under the Mountain",
+      "icon": "achievement_zone_ironforge",
+      "points": 10
+    },
+    "5223": {
+      "name": "Master of Twin Peaks",
+      "icon": "spell_nature_earthshock",
+      "points": 25
+    },
+    "5245": {
+      "name": "Battle for Gilneas Victory",
+      "icon": "achievement_win_gilneas",
+      "points": 10
+    },
+    "5442": {
+      "name": "Full Caravan",
+      "icon": "inv_misc_crop_02",
+      "points": 10
+    },
+    "6981": {
+      "name": "Master of Temple of Kotmogu",
+      "icon": "achievement_battleground_templeofkotmogu",
+      "points": 10
+    },
+    "7322": {
+      "name": "Roll Club",
+      "icon": "ability_monk_roll",
+      "points": 10
+    },
+    "8316": {
+      "name": "Blood in the Snow",
+      "icon": "achievement_zone_dunmorogh",
+      "points": 10
+    },
+    "9415": {
+      "name": "Secrets of Skettis",
+      "icon": "achievement_zone_ironforge",
+      "points": 10
+    },
+    "10459": {
+      "name": "Improving on History",
+      "icon": "achievement_dungeon_utgardepinnacle_25man",
+      "points": 10
+    },
+    "10698": {
+      "name": "That's Val'sharah Folks!",
+      "icon": "achievements_zone_valsharah",
+      "points": 10
+    },
+    "10996": {
+      "name": "Got to Ketchum All",
+      "icon": "inv_misc_shell_04",
+      "points": 10
+    },
+    "11124": {
+      "name": "Good Suramaritan",
+      "icon": "achievements_zone_suramar",
+      "points": 10
+    },
+    "11160": {
+      "name": "Unleashed Monstrosities",
+      "icon": "inv_misc_stormdragonpurple",
+      "points": 10
+    },
+    "11163": {
+      "name": "Glory of the Legion Hero",
+      "icon": "inv_helm_plate_legionquest100_b_01",
+      "points": 25
+    },
+    "11257": {
+      "name": "Treasures of Highmountain",
+      "icon": "garrison_bronzechest",
+      "points": 10
+    },
+    "11258": {
+      "name": "Treasures of Val'sharah",
+      "icon": "garrison_bronzechest",
+      "points": 10
+    },
+    "11699": {
+      "name": "Grand Fin-ale",
+      "icon": "inv_misc_head_murloc_01",
+      "points": 10
+    },
+    "12582": {
+      "name": "Come Sail Away",
+      "icon": "inv_misc_seagullpet_01",
+      "points": 10
+    },
+    "12997": {
+      "name": "The Pride of Kul Tiras",
+      "icon": "inv_staff_2h_jaina_d_01",
+      "points": 10
+    },
+    "13018": {
+      "name": "Dune Rider",
+      "icon": "inv_shield_16",
+      "points": 10
+    },
+    "13049": {
+      "name": "The Long Con",
+      "icon": "inv_tortollanhead",
+      "points": 5
+    },
+    "13473": {
+      "name": "Diversified Investments",
+      "icon": "garrison_building_workshop",
+      "points": 10
+    },
+    "13475": {
+      "name": "Junkyard Scavenger",
+      "icon": "spell_mekkatorque_bot_redwrench",
+      "points": 10
+    },
+    "13723": {
+      "name": "M.C., Hammered",
+      "icon": "inv_engineering_autohammer",
+      "points": 10
+    },
+    "15394": {
+      "name": "Ohn'a'Roll",
+      "icon": "achievement_zone_ohnahranplains",
+      "points": 10
+    },
+    "16334": {
+      "name": "Waking Hope",
+      "icon": "achievement_zone_wakingshores",
+      "points": 10
+    },
+    "16336": {
+      "name": "Azure Spanner",
+      "icon": "achievement_zone_azurespan",
+      "points": 10
+    },
+    "16363": {
+      "name": "Just Don't Ask Me to Spell It",
+      "icon": "achievement_zone_thaldraszus",
+      "points": 10
+    },
+    "16398": {
+      "name": "Sojourner of Thaldraszus",
+      "icon": "achievement_zone_thaldraszus",
+      "points": 10
+    },
+    "16401": {
+      "name": "Sojourner of the Waking Shores",
+      "icon": "inv_duck_yellow",
+      "points": 10
+    },
+    "16405": {
+      "name": "Sojourner of Ohn'ahran Plains",
+      "icon": "ui_majorfaction_centaur",
+      "points": 10
+    },
+    "16428": {
+      "name": "Sojourner of Azure Span",
+      "icon": "achievement_zone_azurespan",
+      "points": 10
+    },
+    "16585": {
+      "name": "Loremaster of the Dragon Isles",
+      "icon": "achievement_zone_wakingshores",
+      "points": 10
+    },
+    "17529": {
+      "name": "Forbidden Spoils",
+      "icon": "inv_10_dungeonjewelry_dragon_trinket_4_bronze",
+      "points": 10
+    },
+    "17773": {
+      "name": "A Blue Dawn",
+      "icon": "inv_misc_head_dragon_blue",
+      "points": 10
+    },
+    "19408": {
+      "name": "Professional Algari Master",
+      "icon": "inv_misc_note_01",
+      "points": 10
+    },
+    "19458": {
+      "name": "A World Awoken",
+      "icon": "ability_evoker_furyoftheaspects",
+      "points": 100
+    },
+    "19507": {
+      "name": "Fringe Benefits",
+      "icon": "ability_evoker_rewind2",
+      "points": 5
+    },
+    "19719": {
+      "name": "Reclamation of Gilneas",
+      "icon": "achievement_win_gilneas",
+      "points": 10
+    },
+    "20501": {
+      "name": "Back from the Beyond",
+      "icon": "inv_torghast",
+      "points": 100
+    },
+    "20595": {
+      "name": "Sojourner of Isle of Dorn",
+      "icon": "ui_majorfactions_storm",
+      "points": 10
+    },
+    "20596": {
+      "name": "Loremaster of Khaz Algar",
+      "icon": "achievement_zone_isleofdorn",
+      "points": 10
+    },
+    "20597": {
+      "name": "The War Within",
+      "icon": "ability_paladin_blindinglight2",
+      "points": 10
+    },
+    "40210": {
+      "name": "Deephaul Ravine Victory",
+      "icon": "inv_achievement_battleground_earthen",
+      "points": 5
+    },
+    "40309": {
+      "name": "Heritage of the Earthen",
+      "icon": "inv_armor_earthendwarf_d_01_helm",
+      "points": 10
+    },
+    "40360": {
+      "name": "Life on the Farm",
+      "icon": "inv_misc_shovel_01",
+      "points": 10
+    },
+    "40504": {
+      "name": "Rocked to Sleep",
+      "icon": "ability_earthen_wideeyedwonder",
+      "points": 5
+    },
+    "40542": {
+      "name": "Smelling History",
+      "icon": "inv_10_inscription2_book1_color5",
+      "points": 5
+    },
+    "40618": {
+      "name": "Lost and Found",
+      "icon": "inv_10_dungeonjewelry_explorer_trinket_1compass_color5",
+      "points": 5
+    },
+    "40791": {
+      "name": "Fate of the Kirin Tor",
+      "icon": "achievement_reputation_kirintor",
+      "points": 10
+    },
+    "40859": {
+      "name": "We're Here All Night",
+      "icon": "inv_helm_misc_candle_a_01",
+      "points": 5
+    },
+    "40894": {
+      "name": "Sojourner of Undermine",
+      "icon": "achievement_goblinhead",
+      "points": 10
+    },
+    "40953": {
+      "name": "A Farewell to Arms",
+      "icon": "inv_radientazeriteheart",
+      "points": 100
+    },
+    "41052": {
+      "name": "Lingering Shadows",
+      "icon": "inv_seed_crystallineworldsoul",
+      "points": 10
+    },
+    "41119": {
+      "name": "One Rank Higher",
+      "icon": "inv_misc_coinbag_special",
+      "points": 10
+    },
+    "41186": {
+      "name": "Slate of the Union",
+      "icon": "achievement_zone_isleofdorn",
+      "points": 20
+    },
+    "41808": {
+      "name": "Otherworldly Ecologist",
+      "icon": "ability_monk_domeofmist",
+      "points": 10
+    },
+    "41818": {
+      "name": "Rise of the Red Dawn",
+      "icon": "inv_tabard_stromgarde_c_01",
+      "points": 10
+    },
+    "41820": {
+      "name": "Rise of the Red Dawn",
+      "icon": "inv_tabard_maghar_c_01",
+      "points": 10
+    },
+    "41970": {
+      "name": "The Knife's Edge",
+      "icon": "ui_majorfactions_ karesh",
+      "points": 10
+    },
+    "42187": {
+      "name": "Lorewalking: Ethereal Wisdom",
+      "icon": "achievement_boss_triumvirate_shadowguardetherealcaster",
+      "points": 5
+    },
+    "42188": {
+      "name": "Lorewalking: Blade's Bane",
+      "icon": "inv_knife_1h_artifactcthun_d_02",
+      "points": 5
+    },
+    "42189": {
+      "name": "Lorewalking: The Lich King",
+      "icon": "achievement_dungeon_icecrown_frostmourne",
+      "points": 5
+    },
+    "61017": {
+      "name": "Phase-Lost-and-Found",
+      "icon": "inv_sword_122",
+      "points": 10
+    },
+    "61451": {
+      "name": "Worldsoul-Searching",
+      "icon": "achievement_zone_isleofdorn",
+      "points": 100
+    },
+    "61452": {
+      "name": "Sojourner of Zul'Aman",
+      "icon": "inv_babyamanieagle_orange",
+      "points": 10
+    },
+    "61453": {
+      "name": "Making an Amani Out of You",
+      "icon": "inv_tabard_armor_zulaman_c_01",
+      "points": 25
+    },
+    "61467": {
+      "name": "Lorewalking: The Elves of Quel'Thalas",
+      "icon": "achievement_character_bloodelf_female",
+      "points": 5
+    },
+    "61506": {
+      "name": "Allied Race: Haranir",
+      "icon": "inv12_achievements_alliedrace_haranir_sigil",
+      "points": 10
+    },
+    "61739": {
+      "name": "Sojourner of Harandar",
+      "icon": "ui_majorfaction_ vines",
+      "points": 10
+    },
+    "61741": {
+      "name": "Delve Loremaster: Midnight",
+      "icon": "achievement_faction_lorewalkers",
+      "points": 25
+    },
+    "61839": {
+      "name": "Midnight Pathfinder",
+      "icon": "inv_misc_map07",
+      "points": 10
+    },
+    "61864": {
+      "name": "Sojourner of Voidstorm",
+      "icon": "inv_120_raid_voidspire_kaiju",
+      "points": 10
+    },
+    "61957": {
+      "name": "Sojourner of Eversong Woods",
+      "icon": "ui_endeavor_eversongwoods",
+      "points": 10
+    },
+    "62104": {
+      "name": "Midnight Lore Hunter",
+      "icon": "inv_10_inscription2_book2_color5",
+      "points": 5
+    },
+    "62110": {
+      "name": "Loremaster of Midnight",
+      "icon": "inv_achievement_zone_meta",
+      "points": 10
+    },
+    "62256": {
+      "name": "Yelling into the Voidstorm",
+      "icon": "inv_tabard_armor_zulaman_c_01",
+      "points": 25
+    },
+    "62260": {
+      "name": "That's Aln, Folks!",
+      "icon": "inv_achievement_zone_harandar",
+      "points": 20
+    },
+    "62261": {
+      "name": "Forever Song",
+      "icon": "achievement_zone_eversongwoods",
+      "points": 25
+    },
+    "62386": {
+      "name": "Light Up the Night",
+      "icon": "inv_12_dualityphoenix_lightvoid_explosion",
+      "points": 40
     }
   }
 }
