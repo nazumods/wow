@@ -21,15 +21,25 @@ ns.tuning = {
 -- mixin) is already loaded by the time this fires. Hooking the shared mixin table before any cell
 -- is created means every cell picks up the wrapped Populate. The orders page instance already
 -- exists at this point, so hook it directly (hooking the mixin table would miss the live instance).
+--
+-- Both hooks go through a closure rather than passing ns.PopulateRewardIcons / ns.ReplaceReagentsColumn
+-- directly: ContinueOnAddOnLoaded runs its callback *synchronously* when the addon is already loaded,
+-- which happens right here in this file's main chunk — before rewards.lua and infocolumn.lua have
+-- loaded and defined those fields. Resolving them at call time (a Populate/SetupTable only fires once
+-- the user is browsing orders) sidesteps that, and keeps the installer immune to .toc reordering.
 local hooked = false
 EventUtil.ContinueOnAddOnLoaded("Blizzard_Professions", function()
   if hooked then return end
   hooked = true
   if ProfessionsCrafterTableCellCommissionMixin then
-    hooksecurefunc(ProfessionsCrafterTableCellCommissionMixin, "Populate", ns.PopulateRewardIcons)
+    hooksecurefunc(ProfessionsCrafterTableCellCommissionMixin, "Populate", function(cell, rowData)
+      ns.PopulateRewardIcons(cell, rowData)
+    end)
   end
   if ProfessionsFrame and ProfessionsFrame.OrdersPage then
-    hooksecurefunc(ProfessionsFrame.OrdersPage, "SetupTable", ns.ReplaceReagentsColumn)
+    hooksecurefunc(ProfessionsFrame.OrdersPage, "SetupTable", function(page)
+      ns.ReplaceReagentsColumn(page)
+    end)
   end
 end)
 
