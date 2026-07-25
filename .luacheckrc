@@ -356,6 +356,7 @@ std = {
     "GetItemCooldown",
     "GetItemIcon",
     "GetItemInfo",
+    "GetLocale",
     "GetLootSlotLink",
     "GetLootSpecialization",
     "GetMacroInfo",

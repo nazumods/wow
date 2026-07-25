@@ -1,8 +1,9 @@
 -- Loads Warbandeer_Characters' WoW-API-free modules into a fresh namespace, passing the
 -- same (addonName, ns) vararg WoW passes each addon file. Specs call wbchar.load() to get an
--- isolated ns per test. Only pure files (no C_*/frames) belong here; the appearance-glyph
+-- isolated ns per test. Only files that LOAD without the WoW API belong here; the appearance-glyph
 -- catalog (data/glyphinfo.lua) is data tables + the pure ns.MergeGlyphStatus helper, so it
--- loads standalone. Paths are relative to the AddOns root, where busted runs.
+-- loads standalone, and data/titlecatalog.lua's client scan is upvalued at load but only called
+-- in game. Paths are relative to the AddOns root, where busted runs.
 
 local M = {}
 
@@ -15,6 +16,7 @@ local FILES = {
   "data/professionknowledge.lua",
   "data/vaultslots.lua",
   "data/housinginfo.lua",
+  "data/titlecatalog.lua",
 }
 
 ---@return table ns  a fresh namespace with the pure modules loaded
