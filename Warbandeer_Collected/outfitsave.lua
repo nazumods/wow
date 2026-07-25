@@ -40,8 +40,13 @@ local ns = select(2, ...)
 ---@return SaveLookResult
 function ns.SaveLookToBoth(name, list, meta)
   -- Read before writing — afterwards there is always an entry, so "was one already there" is only
-  -- answerable now. It decides Saved vs Replaced in the report, nothing more.
-  local replaced = ns.LibraryOutfit(name) ~= nil
+  -- answerable now. It decides Saved vs Replaced in the report, and supplies the name everything
+  -- below uses: the match is case-insensitive (#728) and a replaced entry keeps its stored
+  -- spelling, so reporting what was TYPED would name a look the library doesn't list — and would
+  -- hand the game's custom set a second spelling of the same name.
+  local existing = ns.LibraryOutfit(name)
+  local replaced = existing ~= nil
+  if existing then name = existing.name end
 
   local ok, err = ns.SaveLibraryOutfit(name, list, meta)
   if not ok then

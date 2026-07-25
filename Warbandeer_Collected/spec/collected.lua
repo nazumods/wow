@@ -3,8 +3,9 @@
 -- without the game client. Mirrors Warbandeer_Decor's spec/loader.lua. Paths are relative
 -- to the AddOns root (busted's cwd).
 --
--- Two files qualify outright: outfitcodec.lua and outfitlibrary.lua (the library is pure Lua over
--- `ns.db` plus the codec). `ItemUtil` is deliberately left unstubbed so the codec exercises its
+-- Three files qualify outright: outfitcodec.lua, outfitlibrary.lua (the library is pure Lua over
+-- `ns.db` plus the codec) and outfitfilter.lua (the filter rule over the library's entries).
+-- `ItemUtil` is deliberately left unstubbed so the codec exercises its
 -- plain-table fallback (see ns.NewTransmogInfo). data/hidevisuals.lua is the one exception, loaded
 -- separately over a caller-supplied API stub — see M.loadHideVisuals. Everything else in the addon
 -- touches C_* or frames and stays in-game-tested.
@@ -27,6 +28,7 @@ function M.load()
   local ns = { db = { outfits = {} } }
   assert(loadfile("Warbandeer_Collected/outfitcodec.lua"))("Warbandeer_Collected", ns)
   assert(loadfile("Warbandeer_Collected/outfitlibrary.lua"))("Warbandeer_Collected", ns)
+  assert(loadfile("Warbandeer_Collected/outfitfilter.lua"))("Warbandeer_Collected", ns)
   -- Qualifies for the same reason the two above do: it calls only other `ns` functions, never a C_
   -- API or a frame. Its two savers (`ns.SaveLibraryOutfit`, `ns.SaveCustomSet`) are resolved at call
   -- time, so loading it needs neither of them present — a spec stubs whichever it wants to observe.
