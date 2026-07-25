@@ -14,6 +14,9 @@ local sort = table.sort
 -- reports as a real player title (its second return) — mirroring Blizzard's own GetKnownTitles
 -- guard, which skips mask ids that aren't displayable titles. `current` is the featured title's
 -- mask id (the one shown after the character's name), or nil when no title is active.
+--
+-- The *unearned* half of the title universe (and the account-wide classification) is not here —
+-- it's account-wide, so it lives once at `db.titleCatalog` (data/titlecatalog.lua).
 
 -- Every earned player title as { id = titleMaskID, name = <trimmed display name> }, sorted by
 -- name for a stable list. GetTitleName returns the raw fragment (leading/trailing spaces mark a
@@ -94,7 +97,7 @@ Titles.fields = {
 -- count, the featured title, and every scanned title (marking the featured one), plus what's
 -- stored for the current character so a stale/empty cache is distinguishable from an empty scan.
 ns:registerDump("titles", "Player Titles",
-  "Earned player titles + featured title for the current character",
+  "Earned player titles + featured title for the current character, and the account-wide catalog",
   function(_, out)
     local toon = ns.currentData
     if not toon then out:line("No current character."); return end
@@ -109,6 +112,14 @@ ns:registerDump("titles", "Player Titles",
     out:line(("Stored: %d title(s)%s"):format(stored and #stored or 0,
       storedFeatured and (", featured %s (%d)"):format(
         (toon.titles.currentName or "?"), storedFeatured) or ""))
+    -- The account-wide catalog (data/titlecatalog.lua) covers the WHOLE universe, so its count
+    -- should exceed the earned scan above; `scannedBy` is whose IsTitleKnown `accountWide` reflects.
+    local cat = ns.db.titleCatalog
+    out:line(cat and
+      ("Catalog: %d title(s), %d account-wide (%s, build %s, scanned by %s)"):format(
+        cat.count or 0, cat.accountWideCount or 0, cat.locale or "?", cat.build or "?",
+        cat.scannedBy or "?")
+      or "Catalog: not scanned yet.")
     for _, e in ipairs(known) do
       out:line(("  [%d] %s%s"):format(e.id, e.name, e.id == current and "  <FEATURED>" or ""))
     end
