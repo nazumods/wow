@@ -90,6 +90,16 @@ local Model = Class(Frame, function(self)
     w:OnMouseUp(button)
     if button == "LeftButton" then dragging = false end
   end)
+  -- A hidden frame gets neither mouse events nor OnUpdate, so a release that lands while the viewer
+  -- is away (ESC closing the window, a tab switch) never reaches OnMouseUp: the drag would stay
+  -- armed holding a cursor position from the previous session, and the next show would snap the yaw
+  -- by however far the cursor travelled in between, then keep tracking it with no button held. The
+  -- inertia is parked too, so the viewer comes back at rest instead of resuming a frozen flick.
+  -- Nothing to forward here, unlike the handlers above: the template declares no OnHide.
+  w:SetScript("OnHide", function()
+    dragging = false
+    self._yawVel = 0
+  end)
   w:SetScript("OnMouseWheel", function(_, delta) w:OnMouseWheel(delta) end)
   w:SetScript("OnUpdate", function(_, elapsed)
     if not self._actor then return end
@@ -221,7 +231,14 @@ function Model:_applySlotMog()
   -- first only moves the clobber onto the other weapon — and `TryOn`'s `handSlotName` is the one
   -- primitive that addresses a hand directly. Its `spellEnchantmentID` carries the illusion, so an
   -- enchanted off-hand survives the repair too.
-  if oh then
+  --
+  -- Skipped for appearanceID 0, the documented "render the slot bare" request: the actor reports an
+  -- empty hand slot as nil, which is agreement with that request rather than the failed write the
+  -- read-back is hunting for — so without the guard the repair re-places source 0 on every re-apply
+  -- against a slot already in exactly the requested state. The comparison is appearance-only: an
+  -- off hand whose illusion was clobbered alongside its appearance is repaired (TryOn's
+  -- spellEnchantmentID carries it), but a clobbered secondaryAppearanceID is beyond TryOn's reach.
+  if oh and oh.info.appearanceID ~= 0 then
     local h = self._actor:GetItemTransmogInfo(INVSLOT_OFFHAND)
     if not (h and h.appearanceID == oh.info.appearanceID) then
       self._actor:TryOn(oh.info.appearanceID, "SECONDARYHANDSLOT", oh.info.illusionID)
@@ -230,29 +247,47 @@ function Model:_applySlotMog()
 end
 
 -- Remember the outfit to (re)apply after every model (re)load: a list of transmog
--- appearance sources (sourceIDs); an empty list = fully undressed. Applied now and
--- on each subsequent re-skin, so it survives the async model load. Call before
--- loading a new model (DisplayInfo/Unit) so the load callback honors it.
----@param sources number[]  itemModifiedAppearanceIDs; empty table = undressed
+-- appearance sources (sourceIDs). Applied now and on each subsequent re-skin, so it
+-- survives the async model load. Call before loading a new model (DisplayInfo/Unit) so
+-- the load callback honors it.
+--
+-- Applying is purely ADDITIVE — _applyOutfit only TryOns, deliberately (see there) — so an empty
+-- list reads as "undressed" only across a re-skin, which loads a bare body to begin with. Setting a
+-- shorter or different outfit on an ALREADY-loaded model leaves the previous look's pieces on it;
+-- follow with Undress()/UndressSlot() or a re-skin to take pieces off in place.
+--
+-- The list is copied so a caller that goes on mutating its own (a look builder appending and
+-- removing sources in place) can't silently change what the next model load re-applies.
+---@param sources number[]  itemModifiedAppearanceIDs; empty table = undressed across a re-skin
 ---@return Model
 function Model:Outfit(sources)
-  self._outfit = sources
+  self._outfit = ns.lua.lists.map(sources)
   self:_applyOutfit()
   return self
 end
 
 -- Precisely set ONE equipment slot's transmog, including the extras a bare TryOn can't
--- express: an enchant **illusion** (weapon slots), a **secondary appearance** (split
--- shoulders, or a Legion artifact's paired off-hand), and control over child items.
+-- express: an enchant **illusion** (weapon slots), a **secondary appearance** (split shoulders) —
+-- which doubles as a paired-artifact discriminator on the main hand, see below — and control over
+-- child items.
 -- Routes through the actor's SetItemTransmogInfo — the same primitive Blizzard's own
 -- dressing room uses — so it composes with Outfit/TryOn (which set the base look): the
 -- override is re-applied last for its slot after each async re-skin. Pass appearanceID 0
 -- to render the slot bare. `slot` is an inventory slot id (INVSLOT_MAINHAND,
 -- INVSLOT_SHOULDER, …). Typical illusion preview:
 --   model:SlotTransmog(INVSLOT_MAINHAND, hostWeaponAppearanceID, { illusionID = sid })
+--
+-- `opts.secondaryAppearanceID` is SLOT-DEPENDENT, and on a weapon it is not an appearance at all:
+-- on the SHOULDERS it is a genuine second appearance id (split shoulders), but on the MAIN HAND it
+-- is a **discriminator** — Constants.Transmog.MainHandTransmogIsIndividualWeapon (-1) for an
+-- ordinary weapon, MainHandTransmogIsPairedWeapon (0) for a Legion artifact whose off hand is
+-- derived from it. Omitting it is not neutral: ItemTransmogInfoMixin:Init falls back to
+-- NoTransmogID, which is also 0 = PAIRED, so an ordinary main-hand weapon comes out flagged as half
+-- of a pair it has nothing to do with. That is a mislabelling trap, NOT the reason the off hand
+-- gets clobbered — that happens whatever the discriminator says (see the read-back repair above).
 ---@param slot number  inventory slot id the transmog targets
 ---@param appearanceID number  itemModifiedAppearanceID for the slot (0 = none)
----@param opts {secondaryAppearanceID: number?, illusionID: number?, ignoreChildItems: boolean?}?  ignoreChildItems defaults true
+---@param opts {secondaryAppearanceID: number?, illusionID: number?, ignoreChildItems: boolean?}?  ignoreChildItems defaults true; secondaryAppearanceID is a real appearance on the shoulders but a DISCRIMINATOR on the main hand (-1 = ordinary weapon, 0 = paired Legion artifact — and 0 is also what omitting it means)
 ---@return Model
 function Model:SlotTransmog(slot, appearanceID, opts)
   opts = opts or {}
