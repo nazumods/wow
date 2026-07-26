@@ -234,7 +234,7 @@ function OutfitLibraryWindow:ImportCharacterSets()
     ns.Print("This character has no saved transmog sets to import.")
     return
   end
-  local saved, renamed, skipped = 0, 0, 0
+  local saved, renamed, skipped, failed = 0, 0, 0, 0
   -- Batched, so the up-to-25 writes below announce themselves once rather than rebuilding this
   -- window and the outfit row — and re-dressing the preview model — after every single set (#727).
   ns.LibraryBatch(function()
@@ -242,8 +242,11 @@ function OutfitLibraryWindow:ImportCharacterSets()
       local list = ns.CustomSetOutfit(set.id)
       if list then
         local status = ns.ImportLibraryOutfit(set.name, list, ns.LocalOutfitMeta(list))
+        -- "failed" needs its own arm: the old catch-all `else` counted a refused write as
+        -- skipped, so a set that never landed still reported as already in the library (#767 L-6).
         if status == "saved" then saved = saved + 1
         elseif status == "renamed" then renamed = renamed + 1
+        elseif status == "failed" then failed = failed + 1
         else skipped = skipped + 1 end
       end
     end
@@ -253,6 +256,9 @@ function OutfitLibraryWindow:ImportCharacterSets()
   local bits = { ("Imported %d of %d set%s"):format(saved + renamed, #sets, #sets == 1 and "" or "s") }
   if renamed > 0 then bits[#bits + 1] = ("%d renamed — the name was already taken"):format(renamed) end
   if skipped > 0 then bits[#bits + 1] = ("%d already in your library"):format(skipped) end
+  -- Say so out loud. A refused write used to be invisible: it was counted as skipped and the
+  -- headline still claimed every set had been imported (#767 L-6).
+  if failed > 0 then bits[#bits + 1] = ("%d couldn't be saved — check the set's name"):format(failed) end
   ns.Print(table.concat(bits, ". ") .. ".")
 end
 

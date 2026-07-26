@@ -67,6 +67,7 @@ std = {
     "canaccessvalue",
     "issecretvalue",
     "date",
+    "error",
     "floor",
     "format",
     "getmetatable",
