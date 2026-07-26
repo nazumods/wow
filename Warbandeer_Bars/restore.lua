@@ -114,6 +114,25 @@ end
 local function RestoreSlots(slots, overrides)
   for _, s in ipairs(slots) do
     local ok, err = pcall(function()
+      -- Neither type carries anything re-placeable (capture stores the type only), so the
+      -- profile's wanted state for the slot is EMPTY: blank it with the same pickup +
+      -- ClearCursor idiom ClearUnusedSlots uses, and return before the shared place/blank
+      -- tail — falling through would PlaceAction the just-picked-up action straight back
+      -- into the slot it came from. Runs ahead of the "already matches" early-out below,
+      -- which would otherwise leave a pre-existing pet action sitting in the slot.
+      if s.type == "petaction" or s.type == "futurespell" then
+        local had = GetActionInfo(s.id)
+        PickupAction(s.id)
+        ClearCursor()
+        -- only report a slot that actually lost a button — an already-empty one has
+        -- nothing to explain
+        if had then
+          Warn("Slot " .. s.id .. ": " .. (s.type == "petaction" and "pet action" or "unlearned spell")
+            .. " can't be restored — slot cleared")
+        end
+        return
+      end
+
       local curType, curIndex = GetActionInfo(s.id)
       if curType == s.type and curIndex == (s.index or s.strindex) then return end
 
@@ -217,8 +236,6 @@ local function RestoreSlots(slots, overrides)
           if outfitID then C_TransmogOutfitInfo.PickupOutfit(outfitID) end
           if not GetCursorInfo() then Warn("Missing outfit [" .. tostring(s.strindex or s.index) .. "]") end
         end
-      elseif s.type == "petaction" or s.type == "futurespell" then
-        PickupAction(s.id) -- clear
       end
 
       if GetCursorInfo() then
