@@ -143,7 +143,7 @@ Constructor resolves `theme` (own option → parent widget's theme), calls subcl
 | `Parent(p)` | Set parent (auto-unwraps `_widget`) |
 | `Position(tbl)` | Apply declarative position table |
 | `SetPoint(point, target?, edge?, x?, y?)` | Anchor (auto-unwraps target) |
-| `All()` / `ClearAllPoints()` | `SetAllPoints` / clear |
+| `All()` / `ClearAllPoints()` | `SetAllPoints(GetParent())` / clear — the target is passed **explicitly**, not left to `SetAllPoints()`'s implicit-parent form, and read from `GetParent()` rather than `self.parent` (which `Region:Parent` doesn't keep in sync). Same anchor, stated outright; see nazumods/wow#718, where `All = true` regions — and only those — drew nothing at first paint after a login |
 | `Center/Top/TopLeft/TopRight/Bottom/BottomLeft/BottomRight/Left/Right(...)` | Shorthand anchors |
 | `Size(x?, y?)` · `Width(w?)` · `Height(h?)` | Getter/setter |
 | `Show()` · `Hide()` · `SetShown(b)` · `Toggle()` | Visibility |
