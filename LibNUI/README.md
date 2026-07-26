@@ -417,6 +417,7 @@ Inherits `CleanFrame`. Adds a title bar with icon, title text, and a close butto
 |--------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `Title(text)`            | Update title text                                                                                                                                                                         |
 | `RememberPosition(store)`| Persist the window's dragged position into `store` (typically a saved-variables table). Restores the saved point on the spot and writes it back on every drag-stop, so the window doesn't re-center after a `/reload`. `store` is mutated in place: `{ point, relPoint, x, y }`. |
+| `SavePosition()`         | Write the window's current point into the store `RememberPosition` was given (a no-op before then). Only needed when something moves the window by a path this class can't see — e.g. another frame's titlebar retargeted at it via `setDragTarget`, which triggers neither hook `RememberPosition` installs. Call it when that drag ends. |
 
 ### Sub-frames
 
