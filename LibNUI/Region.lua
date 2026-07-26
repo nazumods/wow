@@ -96,7 +96,14 @@ function Region:SetPoint(point, target, edge, x, y)
   end
 end
 
-function Region:All() self._widget:SetAllPoints() end
+-- Anchor to the parent's four corners. The target is passed EXPLICITLY rather than relying on
+-- `SetAllPoints()`'s implicit-parent form: regions anchored this way — and only those — have been
+-- seen to draw nothing at first paint after a login, across both Textures and FontStrings, while
+-- siblings carrying an explicit `Size` or a single-corner anchor render fine (nazumods/wow#718).
+-- Read from the widget, not `self.parent`, which `Region:Parent` doesn't keep in sync when a widget
+-- is re-parented (e.g. `ScrollFrame:Child`) — `GetParent()` is the same target the no-arg form
+-- documents itself as using, so this is the identical anchor, just stated outright.
+function Region:All() self._widget:SetAllPoints(self._widget:GetParent()) end
 function Region:ClearAllPoints() self._widget:ClearAllPoints() end
 -- Edge anchor shorthands: forward to SetPoint with the matching ui.edge point.
 ---@param ... any  SetPoint args after the point: target?, edge?, x?, y?
