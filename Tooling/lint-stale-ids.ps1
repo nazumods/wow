@@ -61,6 +61,19 @@ $extractArsenalVisuals = {
   $ids
 }
 
+# achievementcatalog.lua is nothing but nested lists of bare ids (checklist per expansion,
+# milestones, legion) plus a metaAlts map whose keys AND values are both achievement ids —
+# so no single-capture regex fits, and every digit in the table body is a real id. The catch
+# is the `select(2, ...)` namespace import above it, whose `2` would otherwise lint as an
+# achievement id; parsing from the assignment onward skips it. Same extract the bundle
+# generator uses (Tooling/update-static-data.ps1), so the lint gates exactly what ships.
+$extractAchievementIds = {
+  param($text)
+  $i = $text.IndexOf('ns.AchievementCatalog')
+  if ($i -lt 0) { throw 'achievementcatalog.lua no longer assigns ns.AchievementCatalog — extractor is stale.' }
+  [regex]::Matches($text.Substring($i), '\d+') | ForEach-Object { [int]$_.Value }
+}
+
 # Each rule: file = repo-relative data file; rx = single-capture id regex (group 1) OR extract =
 # a scriptblock taking the comment-stripped file text and returning the ids; table/col = DB2
 # target; sev = fail|warn; big = six-figure table (ID is col 1, hashed from the raw CSV).
@@ -88,6 +101,12 @@ $rules = @(
   @{ file='Warbandeer_Characters/data/glyphinfo.lua';          label='glyphinfo.glyph';               rx='glyph\s*=\s*(\d+)';                table='GlyphProperties'; col='ID'; sev='fail'; big=$false }
   @{ file='Warbandeer_Characters/data/glyphinfo.lua';          label='glyphinfo.spell';               rx='spell\s*=\s*(\d+)';                table='SpellName';       col='ID'; sev='fail'; big=$true  }
   @{ file='Warbandeer_Characters/data/glyphinfo.lua';          label='glyphinfo.quest';               rx='(?:quest|startQuest)\s*=\s*(\d+)'; table='QuestV2';         col='ID'; sev='fail'; big=$true  }
+  # The desktop app's static-data bundle is FILTERED to these ids (#639), and its generator
+  # aborts on one that DB2 doesn't know — so this rule is what turns that hard failure into a
+  # PR-time diagnostic naming the stale entry. big=$false is required, not just cheaper:
+  # Achievement puts ID after three *_lang columns, so the first-field fast path would read
+  # Description_lang instead.
+  @{ file='Warbandeer_Characters/data/achievementcatalog.lua'; label='achievementcatalog.id';         extract=$extractAchievementIds;        table='Achievement';     col='ID'; sev='fail'; big=$false }
 )
 
 # Identify ourselves so heavy automated traffic to wago.tools is attributable, not anonymous.

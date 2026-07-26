@@ -6,6 +6,7 @@ import type {
   CharacterOrderPayload,
   OrderLine,
   CurrencyMeta,
+  AchievementMeta,
 } from "./types";
 
 // Thin wrappers over the Rust commands. `wowDir` is optional — the backend
@@ -61,11 +62,20 @@ export function rememberCharacterOrder(
 
 // ── Static game data (offline lookup layer) ────────────────────────────────
 // Constant client data baked into the exe at build time from wago.tools, so the
-// app can render currency names/icons that SavedVariables only store ids for.
+// app can render the names/icons that SavedVariables only store ids for.
 
 /** Metadata for a currency id, or null if the bundle doesn't know it. */
 export function getCurrencyMeta(id: number): Promise<CurrencyMeta | null> {
   return invoke("get_currency_meta", { id });
+}
+
+/**
+ * Metadata for an achievement id, or null if it isn't one of the tracked ids the
+ * bundle covers. The addon's snapshot stores completion bits only, so this is the
+ * only way to put a name, icon or point value on an achievement offline.
+ */
+export function getAchievementMeta(id: number): Promise<AchievementMeta | null> {
+  return invoke("get_achievement_meta", { id });
 }
 
 /** The client build the embedded bundle was generated from (diagnostics). */

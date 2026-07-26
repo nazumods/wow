@@ -113,3 +113,13 @@ export interface CurrencyMeta {
   maxQty: number; // 0 = uncapped
   quality: number;
 }
+
+/**
+ * Mirrors `staticdata::AchievementMeta`. The bundle carries only the ids Warbandeer's
+ * views track, so a null lookup means "not tracked" rather than "no such achievement".
+ */
+export interface AchievementMeta {
+  name: string;
+  icon: string | null; // bare icon name, null when DB2 has none
+  points: number;
+}
