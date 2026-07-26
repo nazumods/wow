@@ -243,8 +243,21 @@ function ns:Scan()
   end
   if ns.window then
     ns.window:RefreshCounter()   -- respects live/PTR mode (leaves the upcoming count alone in PTR)
-    ns.window.data.data = ns.window.data:GetData()
-    ns.window.data:update()
+    -- **BOTH grids, and unconditionally (#761).** This rebuilt only the armor grid, so collecting a
+    -- weapon appearance with the Weapons grid open left three surfaces disagreeing at once: the
+    -- header counter ticked up (`VisibleCounts` recomputes live from `ns.WeaponSources` and the
+    -- collected map, so it never reads this row set), the cell still showed the old count with no
+    -- check, and the cell's own tooltip called it collected. Nothing healed it short of a
+    -- filter/sort/PTR change or a `/reload` — a ratings edit only re-marks, and `ns:Open` reuses the
+    -- frame with a plain `Show()`.
+    --
+    -- Unconditional is the point: `OnRatingsChanged` (window.lua) rebuilds only when `_wantedOnly`
+    -- and otherwise just re-marks, which is right for a rating change and a no-op for this one —
+    -- a scan changes the collected counts every cell is drawn from, not which rows pass a filter.
+    for _, grid in ipairs({ ns.window.data, ns.window.weapons }) do
+      grid.data = grid:GetData()
+      grid:update()
+    end
   end
   -- Notify consumers (Warbandeer's collected view) now the DB is fresh, so both
   -- grids stay in sync (see api.lua OnScanned).
