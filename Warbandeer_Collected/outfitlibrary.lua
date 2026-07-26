@@ -140,7 +140,8 @@ end
 ---Replacing in place rather than removing and appending keeps the library's order stable: re-saving
 ---the third look leaves it third instead of jumping to the end. `meta` (who saved it, which class,
 ---which set's class, the armour type) overwrites the stored provenance on a replace — the entry now
----holds a different look, so the old attribution would be a lie.
+---holds a different look, so the old attribution would be a lie. Passing **no** meta is the one
+---exception: it says the caller has nothing to record, and leaves what's stored (#758).
 ---
 ---**A replaced entry keeps its own name**, which is what makes the case-insensitive match (#728)
 ---non-lossy: saving `boylane 3` over `Boylane 3` replaces that look and leaves it called
@@ -160,7 +161,15 @@ function ns.SaveLibraryOutfit(name, list, meta)
     outfits[#outfits + 1] = entry
   end
   entry.look = ns.EncodeOutfit(list)
-  for _, field in ipairs(META) do entry[field] = meta and meta[field] or nil end
+  -- A supplied `meta` is the whole truth and replaces all four, INCLUDING nil-ing the ones it
+  -- leaves out — an absent `forClass` means "this look isn't for a class", not "keep the old one".
+  -- No meta at all means the caller has nothing to record, which leaves the stored provenance
+  -- alone rather than erasing it (#758): nil-ing it was silent and unrecoverable, and a look with
+  -- no `armor`/`forClass` reads to `ns.FilterOutfits` as "unknown, matches everything", so a wiped
+  -- entry turned up under every armour and class filter.
+  if meta then
+    for _, field in ipairs(META) do entry[field] = meta[field] end
+  end
   ns.LibraryChanged()
   return true
 end

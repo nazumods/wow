@@ -228,7 +228,12 @@ end
 ---Repopulate the dropdown from the library, keeping the current selection if it still exists.
 function DressingRoom:RefreshOutfits()
   if not self._outfitDrop then return end
-  local opts, stillThere = {}, false
+  -- **"+ New Look" LEADS the list**, unlike Blizzard's own custom-set dropdown, which trails it.
+  -- Trailing puts the one entry that isn't a look at an address that moves every time the library
+  -- grows, and eventually below the fold; leading gives it a fixed one. It stays a separate entry
+  -- either way because creating is a mode the user CHOOSES, not something inferred from having
+  -- edited the name field.
+  local opts, stillThere = { { key = NEW_SET, label = "+ New Look" } }, false
   for _, o in ipairs(ns.LibraryOutfits()) do
     -- Class-coloured by **who saved it**, so the tint means one consistent thing wherever a look
     -- appears. Deliberately not `forClass`: two classes are in play (the saver, and the class whose
@@ -241,9 +246,6 @@ function DressingRoom:RefreshOutfits()
     if o.name == self._outfitSel then stillThere = true end
   end
   if not stillThere then self._outfitSel = nil end
-  -- The trailing "new" entry mirrors Blizzard's own custom-set dropdown: creating is a mode the
-  -- user CHOOSES, not something inferred from having edited the name field.
-  opts[#opts + 1] = { key = NEW_SET, label = "+ New Look" }
   self._outfitDrop:SetOptions(opts, self._outfitSel or NEW_SET)
   self:_syncOutfitButtons()
 end

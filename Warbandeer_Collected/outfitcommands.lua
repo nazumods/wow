@@ -98,7 +98,10 @@ local function outfitSave(name)
   -- arm-then-confirm step to answer.
   local existing = ns.LibraryOutfit(name)
   local target = existing and existing.name or name
-  local ok, err = ns.SaveLibraryOutfit(target, list)
+  -- Stamped exactly as the row's Save button stamps it (#758). This used to pass no meta at all,
+  -- which wiped the provenance off an entry it replaced — the one save path that recorded nothing.
+  -- The room's stamper rather than `ns.LocalOutfitMeta` because only it can derive `forClass`.
+  local ok, err = ns.SaveLibraryOutfit(target, list, room:_outfitMeta(list))
   if not ok then
     ns.Print("Couldn't save: " .. err)
     return
