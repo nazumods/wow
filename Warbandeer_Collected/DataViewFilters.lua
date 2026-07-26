@@ -52,14 +52,21 @@ end
 ---Toggle the "wanted only" filter, rebuilding the grid to just the rows holding a
 ---wanted set (non-wanted class cells within a shown row still blank; an empty result
 ---shows a centered "no wanted sets" message).
+---
+---**Through `_refilter`, for the `_clearSelection` this used to skip (#762).** It was the one
+---rebuild path that didn't clear — `ToggleOrder`, `SetPtr` and `_refilter` all do — and
+---`_selectedRow` is a *display* index, so an open lockout panel survived onto whatever set landed
+---on that screen row: the gold name stayed put (`Cell:Label` only re-applies colour for data
+---carrying a `color` field, which the name cell doesn't), the arrow stayed anchored to the pooled
+---row frame, and the side panel went on listing the previous set's lockouts with nothing naming
+---it — raid-lock data attributed to the wrong raid. Clicking that row then took the
+---`_selectedRow == dispIdx` branch and closed the panel instead of opening its own.
+---
+---`onFilterChanged` stays out here: `_refilter` doesn't fire it, and the counter is filter-scoped.
 ---@return boolean wantedOnly  the new filter state
 function DataView:ToggleWantedOnly()
   self._wantedOnly = not self._wantedOnly
-  self.data = self:GetData()
-  self:update()
-  -- The row count changes (rows are now added/removed, not just blanked), so let the
-  -- host refit its scroll container / window height to the new count.
-  if self.onResized then self:onResized() end
+  self:_refilter()
   -- The set/appearance/collected counter is filter-scoped (VisibleCounts honors
   -- _wantedOnly), so recompute it too — reachable from both the strip's star and the
   -- header's ★ N counter click.
