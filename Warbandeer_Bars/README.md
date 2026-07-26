@@ -124,6 +124,8 @@ Restoring is out-of-combat only. By type:
 - **macros** — matched by name + body, or **recreated** on the target character if missing
   (account or per-character slot as appropriate), then placed. This is what makes a cross-character
   import actually work.
+- **pet actions / unlearned talent spells** — these can't be re-placed, so the snapshot records them
+  as empty and the slot is cleared. If a button disappears this way you'll get a warning naming the slot.
 - Slots not present in the profile are cleared.
 
 ## Slash commands
