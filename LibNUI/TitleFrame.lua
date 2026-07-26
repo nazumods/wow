@@ -118,14 +118,26 @@ function TitleFrame:RememberPosition(store)
     self:ClearAllPoints()
     self._widget:SetPoint(store.point, UIParent, store.relPoint, store.x, store.y)
   end
-  local function save()
-    local point, _, relPoint, x, y = self._widget:GetPoint(1)
-    store.point, store.relPoint, store.x, store.y = point, relPoint, x, y
-  end
   -- Two drag paths move the window (see Frame:makeContainerDraggable +
   -- setDragTarget): the body's OnDragStop and the title bar's OnMouseUp. Hook
   -- both so the point is saved no matter which the user grabbed.
-  self._widget:HookScript("OnDragStop", save)
-  self.titlebar._widget:HookScript("OnMouseUp", save)
+  self._widget:HookScript("OnDragStop", function() self:SavePosition() end)
+  self.titlebar._widget:HookScript("OnMouseUp", function() self:SavePosition() end)
+  return self
+end
+
+-- Write the window's current point into the store `RememberPosition` was given.
+-- A no-op before that has run — there is nowhere to write yet.
+--
+-- Public because a window can be moved by a drag this class never sees:
+-- `Frame:setDragTarget` lets some *other* frame's titlebar call StartMoving on
+-- this one, which touches neither script hooked above, so the move was lost on
+-- reload. A caller that owns such a drag calls this when it ends.
+---@return TitleFrame
+function TitleFrame:SavePosition()
+  local store = self._posStore
+  if not store then return self end
+  local point, _, relPoint, x, y = self._widget:GetPoint(1)
+  store.point, store.relPoint, store.x, store.y = point, relPoint, x, y
   return self
 end
