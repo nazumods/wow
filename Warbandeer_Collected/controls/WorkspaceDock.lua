@@ -9,13 +9,13 @@ local ns = select(2, ...)
 -- own body drag is off and its titlebar is retargeted to drag the HOST, so grabbing any window moves
 -- all three together and none can be pulled out of position.
 --
--- **A drag by a PANEL titlebar is not persisted yet (#764).** This file used to claim each host saves
--- its own position via RememberPosition and that nothing here need save a point — untrue on this
--- path: `setDragTarget` moves the host by StartMoving, which fires neither script RememberPosition
--- hooks (the host's own OnDragStop, the host's own titlebar OnMouseUp), so the move is lost on
--- reload. Since #713 a panel titlebar is the EXPECTED way to move the cluster, so this is the common
--- case, not an edge one. The fix needs a public save on the host; `TitleFrame:SavePosition` is that
--- primitive and lands separately, after which this file calls it when a panel-titlebar drag ends.
+-- A drag by a PANEL titlebar saves the host's position from here (#764) — it cannot ride on
+-- RememberPosition, because `setDragTarget` moves the host by StartMoving, which fires neither
+-- script that hooks (the host's own OnDragStop, the host's own titlebar OnMouseUp). Since #713 a
+-- panel titlebar is the EXPECTED way to move the cluster, so the lost-on-reload move was the common
+-- case, not an edge one. Both host types answer `SavePosition()`, so no branching is needed here:
+-- Warbandeer's MainWindow overrides it, and LibNUI's TitleFrame exposes it (#779) for precisely this
+-- — a drag the window class never sees.
 
 ---@class Warbandeer_Collected
 ---@field DockHost TitleFrame?  the collection window the workspace currently docks onto
@@ -138,6 +138,10 @@ function ns.DockPanel(panel, kind, host)
   panel._widget:SetClampedToScreen(false)     -- stay welded to the host even off-screen (else it detaches at the edge)
   panel._widget:RegisterForDrag()             -- no independent body drag
   panel.titlebar:setDragTarget(host._widget)  -- the titlebar drags the host → the cluster moves together
+  -- ...and persist where that drag left the host (#764). Re-hooked on every dock rather than guarded
+  -- like the hooks below: `setDragTarget` is a SetScript, so it discards the previous hook chain on
+  -- this script — re-hooking leaves exactly one hook, closed over the host a re-dock just switched to.
+  panel.titlebar._widget:HookScript("OnMouseUp", function() host:SavePosition() end)
   panel._docked = true                        -- the look-builder pane strip reads this to stay locked
   panel._widget:ClearAllPoints()
   if kind == "library" then
