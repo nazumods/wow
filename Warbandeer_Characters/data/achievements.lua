@@ -11,7 +11,9 @@ local GetTotalAchievementPoints = GetTotalAchievementPoints
 -- simplification matching this store's account-wide shape.
 --
 -- Names are intentionally NOT persisted here — the addon can always resolve them live via
--- GetAchievementInfo; a name catalog for the desktop app is deferred to #639.
+-- GetAchievementInfo, and the desktop app resolves them offline from its generated static-data
+-- bundle, which filters Achievement.db2 down to the ids data/achievementcatalog.lua declares.
+-- Adding an id there needs a bundle regeneration (Tooling/update-static-data.ps1) to render.
 
 ---@class AchievementSnapshotEntry
 ---@field completed boolean  account-wide completion state

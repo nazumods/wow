@@ -29,6 +29,7 @@ pub fn run() {
             bot_ops::commands::bot_env_get,
             bot_ops::commands::bot_env_set,
             staticdata::get_currency_meta,
+            staticdata::get_achievement_meta,
             staticdata::static_data_build,
         ])
         .run(tauri::generate_context!())
