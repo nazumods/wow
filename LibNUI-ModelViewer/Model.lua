@@ -17,6 +17,34 @@ local DRESSUP_SCENE = 596
 local SPIN_CUTOFF = 0.04
 local SPIN_MAX = 12
 
+-- Which equipment slot an appearance source occupies, for Outfit's drop diff. Blizzard's own
+-- two-step (Blizzard_Wardrobe_Sets.lua): source → invType → slot.
+--
+-- `GetSlotForInventoryType` returns an INVENTORY slot id — the same numbering UndressSlot and
+-- SlotTransmog take — so its result is usable directly (measured in game: head 2→1, shoulder 4→3,
+-- cloak 17→15, tabard 20→19, main hand 22→16, off hand 24→17). It returns **0** for anything with
+-- no transmog slot at all: neck, finger, trinket, bag, ammo. Those are skipped, not stored.
+--
+-- The mapping is MANY-TO-ONE, which is why the diff below works in slots rather than sources: every
+-- weapon invType (one-hand, shield, ranged, two-hand, main hand, off hand, ranged-right) collapses
+-- onto a hand slot, and a robe lands on CHEST. Swapping a two-hander for a one-hander is therefore
+-- correctly "the same slot, still occupied" rather than a drop.
+--
+-- Memoized because Outfit runs on every armour-slot toggle and GetSourceInfo isn't free; the mapping
+-- is static per source. **Only successes are cached** — a source whose item data hasn't streamed yet
+-- returns nothing, and caching that would make the miss permanent instead of self-healing.
+local _slotForSource = {}
+local function slotForSource(sourceID)
+  local cached = _slotForSource[sourceID]
+  if cached then return cached end
+  local info = C_TransmogCollection.GetSourceInfo(sourceID)
+  local slot = info and C_Transmog.GetSlotForInventoryType(info.invType)
+  if slot and slot > 0 then
+    _slotForSource[sourceID] = slot
+    return slot
+  end
+end
+
 -- A ModelScene-backed 3D viewer: skin the actor (a unit, an arbitrary race via a
 -- creature display ID, or a unit rendered as another race), then TryOn transmog
 -- appearance sources. Left-drag rotates (actor yaw) with release inertia, right-drag
@@ -253,18 +281,63 @@ end
 -- survives the async model load. Call before loading a new model (DisplayInfo/Unit) so
 -- the load callback honors it.
 --
--- Applying is purely ADDITIVE — _applyOutfit only TryOns, deliberately (see there) — so an empty
--- list reads as "undressed" only across a re-skin, which loads a bare body to begin with. Setting a
--- shorter or different outfit on an ALREADY-loaded model leaves the previous look's pieces on it;
--- follow with Undress()/UndressSlot() or a re-skin to take pieces off in place.
+-- **Setting an outfit removes the slots the previous one occupied that the new one doesn't** (#754),
+-- so swapping to a shorter or different look in place no longer leaves the old pieces rendering.
+-- Per-slot `SlotTransmog` overrides are unaffected — `ClearSlotTransmog` owns that lifecycle, and a
+-- slot holding one is left alone here rather than having an override a caller set deliberately
+-- pulled out from under it.
+--
+-- The diff lives HERE and not in _applyOutfit, which stays purely additive: that runs on every
+-- re-skin backstop, three times per load, against an already-bare body, and stripping there flashed
+-- the settled model. This runs once, on user intent, against a model that is already dressed.
+--
+-- Diffed in SLOTS rather than sources, because several appearances share one slot (every weapon
+-- invType collapses onto a hand, a robe onto CHEST) — so replacing a two-hander with a one-hander
+-- reads as "still occupied" and nothing flashes. Unchanged pieces are never touched at all, which
+-- is what keeps this cheap on the busiest caller: a dressing-room armour-slot toggle changes one
+-- entry, so the diff is at most that one slot.
 --
 -- The list is copied so a caller that goes on mutating its own (a look builder appending and
 -- removing sources in place) can't silently change what the next model load re-applies.
----@param sources number[]  itemModifiedAppearanceIDs; empty table = undressed across a re-skin
+---@param sources number[]  itemModifiedAppearanceIDs; empty table = undress every slot the previous outfit held
 ---@return Model
 function Model:Outfit(sources)
+  local prev = self._outfit
   self._outfit = ns.lua.lists.map(sources)
+  self:_undressDroppedSlots(prev)
   self:_applyOutfit()
+  return self
+end
+
+-- Take off the slots `prev` occupied that the new `_outfit` doesn't. No-op on the first Outfit
+-- (nothing to drop) so a plain dress-up costs nothing.
+---@param prev number[]?  the outfit being replaced
+function Model:_undressDroppedSlots(prev)
+  if not self._actor or not prev or #prev == 0 then return end
+  local keep = {}
+  for _, src in ipairs(self._outfit) do
+    local slot = slotForSource(src)
+    if slot then keep[slot] = true end
+  end
+  for _, src in ipairs(prev) do
+    local slot = slotForSource(src)
+    -- A source that won't resolve is skipped rather than guessed at: a missed strip is a cosmetic
+    -- leftover, a wrong one removes a piece the caller asked for.
+    if slot and not keep[slot] and not (self._slotMog and self._slotMog[slot]) then
+      self._actor:UndressSlot(slot)
+    end
+  end
+end
+
+-- Forget the remembered outfit WITHOUT touching the actor: the model keeps rendering whatever it
+-- shows, but no re-skin will re-apply the old list.
+--
+-- This is what `Outfit({})` used to be used for. Since Outfit gained its drop diff (#754) an empty
+-- list means what it says — undress every slot the previous outfit held — so a caller that only
+-- wanted to reset the bookkeeping before driving each slot itself needs to say so explicitly.
+---@return Model
+function Model:ForgetOutfit()
+  self._outfit = nil
   return self
 end
 
