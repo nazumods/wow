@@ -119,23 +119,14 @@ function DressingRoom:_buildPicker()
     position = { TopLeft = {-1, 1}, BottomRight = {1, -1} } }
   self._picker = pane
 
-  -- The pane's header is a drag strip for the WHOLE window (Warbandeer house style: a docked/
-  -- anchored pane moves the entire frame, not itself). setDragTarget moves the room's widget and
-  -- the pane, a child, follows. RememberPosition hooks the room's own body and titlebar, neither of
-  -- which this strip is, so the room saves its own point here once the strip's drag ends.
+  -- The pane's header strip — it carries the title, nothing more. It used to double as a drag handle
+  -- moving the whole room while undocked, but since #708 the room is ALWAYS docked before this pane
+  -- is built (it builds lazily on the first look-builder open, by which point ShowDressingRoom has
+  -- run DockPanel), so that branch was unreachable and is gone. The host's titlebar moves the cluster.
   local strip = Frame:new{
     parent = pane,
     position = { TopLeft = {1, -1}, TopRight = {-1, -1}, Height = PAD + 18 },
   }
-  -- Docked (#708), the room is locked to the collection window and can't be dragged on its own — the
-  -- host's titlebar moves the whole cluster. Standalone, the strip drags the entire room, and
-  -- `SavePosition` (#779) persists where it landed — the same primitive WorkspaceDock uses for the
-  -- panel-titlebar drag, replacing the copy of its body that used to sit here.
-  if not self._docked then
-    strip._widget:EnableMouse(true)
-    strip:setDragTarget(self._widget)
-    strip._widget:HookScript("OnMouseUp", function() self:SavePosition() end)
-  end
   -- Retitled per target (the weapon builder's fixed name, else the cosmetic category's own).
   self._pickerTitle = Label:new{ parent = strip, fontObj = "GameFontNormal",
     position = { TopLeft = {PAD, -PAD} }, text = TARGETS.main.title }
