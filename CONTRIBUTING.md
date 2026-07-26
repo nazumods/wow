@@ -75,6 +75,60 @@ that addon's README section, and the root README columns in the same change.
 - CI runs busted + luacheck on every PR and push to `main`
   (`.github/workflows/test.yml`).
 
+### Setting up the Lua toolchain
+
+Neither tool ships with the repo, and a machine without them can't run the gate CI
+enforces — write the code, then find out on the PR. Set one of these up before your
+first change.
+
+**Linux / WSL2 — do this if you can.** Everything is packaged, and neither Windows
+gotcha below applies:
+
+```sh
+sudo apt install build-essential lua5.1 liblua5.1-0-dev luarocks
+sudo luarocks --lua-version=5.1 install busted
+sudo luarocks --lua-version=5.1 install luacheck
+```
+
+Under WSL2 the repo is reachable at `/mnt/r/repos/wow` (adjust for your drive), and
+`git config --global --add safe.directory "*"` avoids a dubious-ownership error on
+Windows-hosted checkouts. Run `busted` and `luacheck .` from the repo root. In-game
+`/reload` testing stays on Windows regardless — WSL only covers the test/lint half.
+
+**Windows native.** Install a private Lua 5.1 + LuaRocks under `~\.lua51` with
+[hererocks](https://github.com/luarocks/hererocks) (needs Python and a MinGW-w64 **UCRT**
+GCC — both available via `winget`):
+
+```
+py -m pip install hererocks
+py -m hererocks %USERPROFILE%\.lua51 -l 5.1 -r latest
+%USERPROFILE%\.lua51\bin\luarocks install busted
+%USERPROFILE%\.lua51\bin\luarocks install luacheck
+```
+
+Two failures are likely, and both have cost a session before:
+
+1. **`couldn't run install.bat /?`** — hererocks passes a relative path that breaks on
+   modern Python for Windows. Patch its `site-packages\hererocks.py` to call
+   `os.path.abspath("install.bat")`.
+2. **`The specified module could not be found`** when a rock's DLL loads (e.g.
+   `require 'lfs'`, or busted failing to start). LuaRocks' MinGW config defaults to
+   `MSVCRT = 'MSVCR80'`, which links against a CRT that isn't there. Set
+   `MSVCRT = 'ucrt'` in `~\.lua51\luarocks\config-5.1.lua`, then rebuild the affected
+   rocks from source: `luarocks build luafilesystem luasystem lua-term`. To confirm a
+   DLL's linkage: `objdump -p <dll> | findstr "DLL Name"`.
+
+The binaries are **not** added to `PATH`, and the `.bat` wrappers aren't runnable from
+Git Bash — invoke them by full path from PowerShell:
+
+```
+& "$env:USERPROFILE\.lua51\bin\busted.bat"
+& "$env:USERPROFILE\.lua51\bin\luacheck.bat" <addon-dir> [<addon-dir> ...]
+```
+
+Reference versions from a known-good install: Lua 5.1.5, LuaRocks 3.8.0, busted 2.3.0,
+luacheck 1.2.0.
+
 ## Versioning & releases
 
 - `## Version:` in each `.toc` is `MAJOR.MINOR.PATCH-rREVISION`, where
