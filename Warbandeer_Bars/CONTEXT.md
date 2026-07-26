@@ -17,7 +17,7 @@ character/spec's setup and import it onto the current character. Profiles are st
 | `tracker.lua` | `ns.Snapshot(guardSparse?)` + `ns.shouldStore` + auto-capture triggers (login / spec change / logout); combat- & cursor-guarded |
 | `api.lua` | `WarbandeerBarsApi` methods |
 | `commands.lua` | `/wbb` inspection sub-commands (no window — data layer only) |
-| `spec/` | busted unit tests (`ns.shouldStore` sparse-capture guard, the WoW-API-free `api.lua` DB methods, the `ns.Capture` slot schema via `bars.loadCapture`'s `setfenv` global stubs); excluded from zip + release detection |
+| `spec/` | busted unit tests (`ns.shouldStore` sparse-capture guard, the WoW-API-free `api.lua` DB methods, the `ns.Capture` slot schema via `bars.loadCapture`'s `setfenv` global stubs, and `ns.Restore`'s petaction/futurespell clear via `bars.loadRestore` + the `bars.actionbars` fake bar, whose `PickupAction`/`PlaceAction` **swap** slot and cursor as they do in game — that swap is what made the clear a round-trip, so a harness modelling pickup as a plain removal wouldn't reproduce it); excluded from zip + release detection |
 
 ## WarbandeerBarsApi
 
@@ -172,6 +172,13 @@ missing `WarbandeerBarsSettings` keys from `ns.DefaultSettings`.
   captured/restored like any other slot: store the outfit name (`strindex`) + list position
   (`index`) at capture, resolve name→`outfitID` (position fallback) and `PickupOutfit` at restore.
   Missing this branch previously left transmog outfit buttons uncaptured and **blanked on restore**.
+- **`petaction` / `futurespell` slots carry nothing re-placeable** (capture stores `{ id, type }`
+  and neither type hits an `index`/`strindex` branch), so their wanted state is *empty*: the slot is
+  blanked, and a slot that actually lost a button is reported with a `Warn`. That check runs **before**
+  the "current state already matches" early-out (which would otherwise leave a pre-existing pet action
+  in place) and `return`s before the shared place/blank tail — falling through would `PlaceAction` the
+  just-picked-up action straight back into the same slot, the round-trip fixed in #751. User-visible
+  consequence: a same-character save→restore now blanks these buttons, where they used to survive.
 - **Keybindings restore replaces the binding set the profile was captured under**
   (`SaveBindings(profile.bindingSet or GetCurrentBindingSet())` — 1=account, 2=per-character;
   `SaveBindings` also makes that set active, so an account-set profile lands in the account set even
