@@ -226,6 +226,20 @@ ns.HideDressingRoom = function()
   if _room then _room:Hide() end
 end
 
+-- Keep the room's ★ and tier borders in step with a rating changed anywhere else — the grid's
+-- Shift-click, the other host's grid, Warbandeer's Top-Characters overlay (#765). Without this the
+-- room subscribed to NOTHING: `_refreshRatings` ran only from `_load`, `SetRace` and the room's own
+-- writes, so a grid Shift-click left the ★ dark and the next click on it silently un-flagged the set
+-- the user had just flagged, with the button reading as inert.
+--
+-- Unconditional rather than gated on the room being on screen: it only recolours a handful of
+-- borders, and a shown-state gate here would need the IsShown/IsVisible distinction that #767's L-2
+-- untangles. Re-entrant with the room's own writes (`ToggleWanted` refreshes then notifies, landing
+-- back here) — idempotent, so the second pass is a no-op repaint.
+ns:OnRatingsChanged(function()
+  if _room then _room:_refreshRatings() end
+end)
+
 ---The shared dressing room while it's on screen, else nil — the entry point for anything that
 ---acts on "the look currently being previewed" (the outfit compose/export path, the
 ---`/collected outfit` commands). Deliberately nil for a closed room rather than a hidden

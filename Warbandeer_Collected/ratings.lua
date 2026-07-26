@@ -276,18 +276,28 @@ end
 -- Warbandeer's `collected` view, each its own frame), so a rating edit there can't
 -- know which grid to poke. Grids register a refresher here instead; the dressing
 -- room just fires NotifyRatingsChanged after any change.
----@type fun()[]
+---@type fun(setId: number?)[]
 ns._ratingListeners = {}
 
----Register a callback run after any wanted/rank change.
----@param fn fun()
+---Register a callback run after any wanted/rank change. It receives the armour set that
+---changed, or nil when several did — see NotifyRatingsChanged for what nil obliges.
+---@param fn fun(setId: number?)
 function ns:OnRatingsChanged(fn)
   self._ratingListeners[#self._ratingListeners + 1] = fn
 end
 
 ---Fire every registered ratings-changed callback.
-function ns:NotifyRatingsChanged()
-  for _, fn in ipairs(self._ratingListeners) do fn() end
+---
+---`setId` narrows the refresh to one armour set so a single Shift-click doesn't repaint every
+---cell in both grids. Pass nil whenever more than one rating changed, or the caller doesn't
+---know which: nil means "everything", the full-refresh listeners did before scoping existed.
+---
+---The WEAPONS grid ignores it by design — its marks are keyed by weapon-type identity, not by
+---setId, so a setId has nothing to narrow there (WeaponViewMarks.lua). Passing one is harmless
+---rather than wrong, and scoping it would need a different key entirely.
+---@param setId number?  the single armour set that changed, or nil for "several / unknown"
+function ns:NotifyRatingsChanged(setId)
+  for _, fn in ipairs(self._ratingListeners) do fn(setId) end
 end
 
 -- ─── Dressed-set highlight ───────────────────────────────────────────────────

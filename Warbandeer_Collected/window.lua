@@ -289,13 +289,15 @@ end
 -- armor-only). The refit rides along with it via `onResized`, so it now happens per grid that
 -- actually re-filtered rather than once unconditionally — a `_refreshMarks` pass only recolours
 -- cells and moves no rows, so it needs none.
-ns:OnRatingsChanged(function()
+ns:OnRatingsChanged(function(setId)
   local w = ns.window
   if not w then return end
   for _, grid in ipairs({ w.data, w.weapons }) do
     if grid._wantedOnly then
       grid:_refilter()   -- re-filter (row set may change) + clear selection + refit
-    else grid:_refreshMarks() end
+      -- Scoped when one set changed, full when nil. The armour grid honours it; the weapons grid
+      -- keys its marks by weapon-type identity and ignores the argument (see NotifyRatingsChanged).
+    else grid:_refreshMarks(setId) end
   end
   w:RefreshWanted()
   w:RefreshCounter()   -- the counter is filter-scoped, so a re-filter moves it

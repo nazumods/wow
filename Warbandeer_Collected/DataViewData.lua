@@ -123,17 +123,16 @@ function ns.CollectedRows(self)
       -- of opening an empty viewer (see DressingRoom.lua).
       local onClick = function(cell)
         if IsShiftKeyDown() then
-          local nowWanted = ns:ToggleWanted(set.id)
-          if self._wantedOnly and not nowWanted then
-            -- It left the filtered view. Through `_refilter` so the lockout selection goes with
-            -- the rows it indexed (#762) and the host refits to the shorter grid — a raw
-            -- rebuild here stranded both, exactly as the ★ toggle used to.
-            self:_refilter()
-          else
-            -- refresh every cell sharing this setId, not just the clicked one, so
-            -- sibling class columns of a shared set update their star/pip too
-            self:_refreshMarks(set.id)
-          end
+          ns:ToggleWanted(set.id)
+          -- Broadcast rather than refresh this grid by hand (#765). The ratings listener
+          -- (window.lua) does everything the old local branch did — `_refilter` when wanted-only
+          -- so the lockout selection goes with the rows it indexed (#762) and the host refits
+          -- (#768 L-7), else scoped marks — and additionally recomputes the filter-scoped counter
+          -- (#776) and covers the OTHER grid, the other host, and the dressing room, none of which
+          -- a local refresh can reach. Scoped to this set so the click stays cheap.
+          ns:NotifyRatingsChanged(set.id)
+          -- Still fired: `onWantedToggle` is part of DataView's public hook contract. Both in-repo
+          -- hosts are already covered by the broadcast above, so this is for consumers, not them.
           if self.onWantedToggle then self:onWantedToggle() end
           ns.RefreshInfoTip()
         else
