@@ -63,6 +63,24 @@ function DressingRoom:LoadOutfit(name)
     or ("Loaded \"%s\"."):format(name))
 end
 
+---Drop a save that is waiting on streaming item data, and reset its retry budget.
+---
+---**Called wherever the thing being saved moves out from under it (#759).** The chain re-reads the
+---name field and the selection on every one of its ~10 re-runs rather than holding what it was
+---asked to save, so one that outlives its subject rewrites whatever is selected ~3s later — and
+---restamps that entry's provenance to the current character. Reached through `ImportOutfit` it
+---fires with no selection at all, printing a bare "a name is required" long after the click.
+---
+---Cancelling belongs at every point the subject moves: `EnterOutfitMode` (both `LoadOutfit` and
+---`ImportOutfit` arrive there), the dropdown's "+ New Look" branch, `DeleteOutfit`, the room
+---leaving outfit mode, and a fresh `SaveOutfit` superseding the last one. A *failed* load
+---deliberately isn't one — it returns without moving the selection, exactly as it leaves an armed
+---verb alone (#715).
+function DressingRoom:_cancelSaveRetry()
+  if self._saveTimer then self._saveTimer:Cancel(); self._saveTimer = nil end
+  self._saveRetries = 0
+end
+
 ---Save the composed look into the library.
 ---
 ---The dropdown decides, as it did for custom sets: a selected look is overwritten in place, and
@@ -71,13 +89,14 @@ end
 ---@param retry boolean?  internal: true on the self-scheduled re-run while item data streams
 function DressingRoom:SaveOutfit(retry)
   if not retry then
-    -- Whether the overwrite question has already been answered: clicking the ARMED button keeps
-    -- the answer, clicking an unarmed one starts fresh. Held in a field so the retry chain below
-    -- carries it. Also resets the retry budget and drops a pending retry.
-    self._saveArmed = self._armed == self._outfitSave
-    self._saveRetries = 0
+    -- **WHICH look the overwrite question was answered about (#759)**, or nil for an unarmed click.
+    -- A bare "was it armed" boolean answered the wrong question: `target` below is re-read from the
+    -- live name field on every entry and on every retry, so retyping the field between the two
+    -- clicks turned an arm taken for `Alpha` into silent permission to replace `Beta`. Captured
+    -- before the disarm below drops it, and held in a field so the retry chain carries it.
+    self._saveArmedFor = self._armed == self._outfitSave and self._armedFor or nil
     self:_disarmOutfit()
-    if self._saveTimer then self._saveTimer:Cancel(); self._saveTimer = nil end
+    self:_cancelSaveRetry()
   end
 
   local list = self:ComposeOutfit()
@@ -127,7 +146,8 @@ function DressingRoom:SaveOutfit(retry)
   local overwrote = existing ~= nil
   -- Replacing the entry you have selected needs no confirmation — that's plainly "update this".
   -- Landing on a DIFFERENT existing entry is the surprising case, so ask first.
-  if overwrote and target ~= self._outfitSel and not self._saveArmed then
+  -- The arm has to have been taken for THIS name, not merely taken (#759).
+  if overwrote and target ~= self._outfitSel and self._saveArmedFor ~= target then
     -- The caption stays SHORT — a row button is 62px and wraps, so naming the target there spilled
     -- over three lines and out of the box. Chat has the width to say which look is at risk.
     ns.Print(("\"%s\" already exists — click Save again to replace it."):format(target))
@@ -170,6 +190,9 @@ end
 function DressingRoom:DeleteOutfit()
   local armed = self._armed == self._outfitDelete
   self:_disarmOutfit()
+  -- Deleting the entry a pending save is about to write is the one ordering that loses the delete:
+  -- the retry would recreate it seconds later (#759).
+  self:_cancelSaveRetry()
   if not self._outfitSel then
     ns.Print("Pick a saved look to delete.")
     return

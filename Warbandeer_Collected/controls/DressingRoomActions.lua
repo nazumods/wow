@@ -175,7 +175,7 @@ function DressingRoom:_load(group, set)
   end
   if self._outfitTimer then self._outfitTimer:Cancel(); self._outfitTimer = nil end
   -- A save waiting on streaming item data must not fire against a set the user has since left.
-  if self._saveTimer then self._saveTimer:Cancel(); self._saveTimer = nil end
+  self:_cancelSaveRetry()
   self:_disarmOutfit()
   if self._wantBox then self._wantBox:Show() end
   -- An applied outfit (ApplyOutfit / `/collected outfit import`) leaves per-slot overrides that
