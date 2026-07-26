@@ -194,7 +194,7 @@ Any key matching a method on the instance is valid; tables are unpacked, scalars
 | `EditBox` | `fontObj`, `autoFocus`, `text`, `cursorPosition` |
 | `CleanFrame` | `parent` (`UIParent`), `clamped` (true), `strata` (`MEDIUM`), `background` (`{0.114,0.141,0.165,1}`) |
 | `TitleFrame` | inherits CleanFrame; `title`, `drag` (true) |
-| `CopyWindow` | inherits TitleFrame; no options needed (defaults: centered, height 380, `special`). `Display(title, text)` shows + sizes + highlights; prefer the `ui.ShowCopyWindow` singleton |
+| `CopyWindow` | inherits TitleFrame; no options needed (defaults: centered, height 380, `special`). `Display(title, text)` shows + sizes + highlights; prefer the `ui.ShowCopyWindow` singleton. `_relayout` widths to the wider of the body (`_maxLineWidth`) and the title (`titlebar.title:UnboundedWidth()` + `TITLE_CHROME_W`, the 33px title inset + picker + close button + gaps), clamped to `MIN_W`/`MAX_W`; `_createPicker` also right-anchors the inherited title label to the picker so a title past `MAX_W` ellipsizes instead of drawing over the controls (#657) |
 | `Notification` | inherits TitleFrame; **`name` (required — `special`)**, `title`, `body`, `icon`, `dismiss` (`"Dismiss"`, false to omit), `dontShowAgain` (false), `dontShowText`, `duration` (auto-hide secs), `onDismiss(self)`, `onDontShowAgain(self, checked)`; defaults `strata="DIALOG"`, `Center` 360×170. Methods: `Notify()`, `Body(text)` |
 | `TabFrame` | `tabs` (string[]), `tabHeight` (24), `tabWidth` (80), `autosize` (false; text-measured widths + `tabPadding` 24), `activeColor`, `inactiveColor`, `onSelect` |
 | `Tooltip` | inherits CleanFrame; `lines`, `maxHeight` (clips into scrollable viewport); `strata` (`DIALOG`), `background` (`{0,0,0,0.7}`), `inset` (3) |
@@ -223,7 +223,7 @@ Methods: `onLoad()`, `row(n)`, `col(n)`, `set(row, col, element)`, `addCol(info)
 
 ## TitleFrame / TabFrame sub-fields
 
-- **TitleFrame**: `self.titlebar` (Frame) → `.title` (Label), `.icon` (Frame with `.icon` Texture); `self.closeButton` (Frame with `.icon` Texture). `Title(text)` setter; `RememberPosition(store)` persists the dragged point into `store` (`{ point, relPoint, x, y }`, anchored to UIParent), restoring it immediately and re-saving on drag-stop; `SavePosition()` performs that write on demand for drags routed through `setDragTarget`, which bypass both hooks.
+- **TitleFrame**: `self.titlebar` (Frame) → `.title` (Label, inset 33px from the left, `wordWrap = false` so a width-bounded title ellipsizes rather than wrapping out of the 30px bar), `.icon` (Frame with `.icon` Texture); `self.closeButton` (Frame with `.icon` Texture). `Title(text)` setter; `RememberPosition(store)` persists the dragged point into `store` (`{ point, relPoint, x, y }`, anchored to UIParent), restoring it immediately and re-saving on drag-stop; `SavePosition()` performs that write on demand for drags routed through `setDragTarget`, which bypass both hooks.
 - **TabFrame**: `self.tabBar`, `self.content`, `self._tabs` (button Frame[]), `self._panels` (Frame[]), `self._selected`.
 
 ## Tooltip
