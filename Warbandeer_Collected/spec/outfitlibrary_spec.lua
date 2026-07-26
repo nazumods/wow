@@ -107,9 +107,45 @@ describe("outfit library", function()
     end)
 
     it("saves without provenance when none is given", function()
-      -- The command path and any caller that can't determine it must still work.
+      -- A caller that can't determine it must still work; there is nothing to preserve on a new
+      -- entry, so it simply has none.
       assert.is_true(ns.SaveLibraryOutfit("mog", ns.EmptyOutfitList()))
       assert.is_nil(ns.LibraryOutfit("mog").char)
+    end)
+
+    -- #758. `/collected outfit save <existing name>` was the one save path that passed no meta, and
+    -- a no-meta replace nil-ed all four fields. Silent, and unrecoverable — the encoded look carries
+    -- appearance ids and nothing about where it came from.
+    it("keeps the stored provenance when a replace passes no meta", function()
+      ns.SaveLibraryOutfit("mog", ns.EmptyOutfitList(), META)
+      ns.SaveLibraryOutfit("mog", lookWith(ns, 7019))
+      local entry = ns.LibraryOutfit("mog")
+      assert.equal("Triandra-Silvermoon", entry.char)
+      assert.equal("DRUID", entry.class)
+      assert.equal("WARRIOR", entry.forClass)
+      assert.equal("Plate", entry.armor)
+      -- The look itself still replaced — preserving provenance must not preserve the old look.
+      assert.equal(7019, ns.LibraryOutfitList("mog")[INVSLOT_HEAD].appearanceID)
+    end)
+
+    it("keeps it through a case-insensitive replace too", function()
+      ns.SaveLibraryOutfit("Boylane 3", ns.EmptyOutfitList(), META)
+      ns.SaveLibraryOutfit("boylane 3", lookWith(ns, 7019))
+      assert.equal(1, #ns.LibraryOutfits())
+      assert.equal("Triandra-Silvermoon", ns.LibraryOutfit("Boylane 3").char)
+    end)
+
+    -- The downstream harm, and the reason wiping was worse than merely losing a caption: a nil
+    -- `armor`/`forClass` reads as "unknown, matches everything", so a wiped entry surfaced under
+    -- every armour and class filter at once.
+    it("leaves a replaced entry filterable by its own facets", function()
+      ns.SaveLibraryOutfit("mog", ns.EmptyOutfitList(), META)
+      ns.SaveLibraryOutfit("mog", lookWith(ns, 7019))
+      local all = ns.LibraryOutfits()
+      assert.equal(1, #ns.FilterOutfits(all, { armor = "Plate" }))
+      assert.equal(0, #ns.FilterOutfits(all, { armor = "Cloth" }))
+      assert.equal(1, #ns.FilterOutfits(all, { class = "WARRIOR" }))
+      assert.equal(0, #ns.FilterOutfits(all, { class = "MAGE" }))
     end)
 
     it("survives a rename", function()
