@@ -142,7 +142,6 @@ function ns.DockPanel(panel, kind, host)
   -- like the hooks below: `setDragTarget` is a SetScript, so it discards the previous hook chain on
   -- this script — re-hooking leaves exactly one hook, closed over the host a re-dock just switched to.
   panel.titlebar._widget:HookScript("OnMouseUp", function() host:SavePosition() end)
-  panel._docked = true                        -- the look-builder pane strip reads this to stay locked
   panel._widget:ClearAllPoints()
   if kind == "library" then
     -- Beneath the host, matching its width — share both the left and right edges.
