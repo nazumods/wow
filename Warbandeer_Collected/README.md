@@ -246,7 +246,9 @@ At any transmogrifier you'll find two extra buttons under your character:
 - If the game won't take the set — you're at its 25-set limit, or it doesn't like the name — the
   look is **still saved to your library**, and you're told why the game set was skipped. The half
   that follows you everywhere is never lost to a per-character limit.
-- A name that's already in your library asks before replacing it.
+- A name that's already in your library asks before replacing it. The look it saves is the one you
+  named — if you go back to staging pieces while that question is still on screen, answering **Yes**
+  still stores what was on the model when you typed the name, not what's on it now.
 - **Outfit Library** opens the library window right there, so you can find an old look and
   **Push** it onto this character without leaving the transmogrifier.
 
