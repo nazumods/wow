@@ -202,6 +202,9 @@ end
 ---@param name string
 ---@param list table[]
 function DressingRoom:EnterOutfitMode(name, list)
+  -- The look being saved has just been replaced by this one — both `LoadOutfit` and `ImportOutfit`
+  -- land here, which is why the cancel lives at this junction rather than in either caller (#759).
+  self:_cancelSaveRetry()
   self:ApplyOutfit(list)
   self._outfit = list
   -- A loaded look replaces the weapons too (ApplyOutfit writes them into the look fields), so the

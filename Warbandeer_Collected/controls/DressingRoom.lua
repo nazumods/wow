@@ -146,10 +146,11 @@ end
 ---@field _outfitTimer table?  cancelable outfit-slot icon-refresh timer
 ---@field _outfitRetries number?  remaining outfit-slot icon-refresh attempts
 ---@field _armed table?  the row button currently awaiting a confirming second click
+---@field _armedFor string?  the look that button was armed about — an arm authorises replacing/deleting THAT one only
 ---@field _armTimer table?  cancelable 1s ticker that counts the armed caption down and disarms it
 ---@field _saveTimer table?  cancelable retry timer for a save waiting on streaming item data
 ---@field _saveRetries number?  streaming-data re-checks used by the pending save
----@field _saveArmed boolean?  whether the duplicate-name overwrite question has already been answered
+---@field _saveArmedFor string?  the name the duplicate-name overwrite question was answered about, carried across the retry chain
 ---@field _wantBox Frame  the Wanted button's box (hidden in outfit mode) (DressingRoomControls.lua)
 ---@field _buildOutfits fun(self: DressingRoom, controls: Frame)  build the outfit row (DressingRoomOutfits.lua)
 ---@field RefreshOutfits fun(self: DressingRoom)  repopulate the saved-set dropdown (DressingRoomOutfits.lua)
@@ -160,6 +161,7 @@ end
 ---@field RenameOutfit fun(self: DressingRoom)  rename the selected saved set (DressingRoomOutfits.lua)
 ---@field DeleteOutfit fun(self: DressingRoom)  delete the selected saved set, arm-then-confirm (DressingRoomOutfits.lua)
 ---@field _disarmOutfit fun(self: DressingRoom)  revert an armed row button to its resting caption (DressingRoomOutfits.lua)
+---@field _cancelSaveRetry fun(self: DressingRoom)  drop a save waiting on streaming item data, wherever its subject moved (DressingRoomOutfitActions.lua)
 ---@field _armOutfit fun(self: DressingRoom, btn: table, caption: string, lapsed: string, subject: string)  arm a row button for a confirming second click, counting down in its caption; `subject` is the look its lapse notice names (DressingRoomOutfits.lua)
 ---@field _typedOutfitName fun(self: DressingRoom): string  the name field's contents, trimmed (DressingRoomOutfits.lua)
 ---@field _syncOutfitButtons fun(self: DressingRoom)  grey the row buttons that can't act right now (DressingRoomOutfits.lua)

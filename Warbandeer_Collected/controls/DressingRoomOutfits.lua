@@ -122,9 +122,14 @@ end
 ---@param caption string  the armed caption; the seconds left are appended to it
 ---@param lapsed string  past participle for the lapse notice ("deleted", "replaced")
 ---@param subject string  the look the lapse notice names
+---**The subject is remembered, not just named (#759).** `_armedFor` is what makes an arm answer
+---"replace *Alpha*?" rather than the weaker "replace *something*?" — Save re-reads its target from
+---the live name field on the confirming click, so without this the answer given about one look
+---authorised replacing another.
 function DressingRoom:_armOutfit(btn, caption, lapsed, subject)
   self:_disarmOutfit()
   self._armed = btn
+  self._armedFor = subject
   btn.border:Color(SELECTED)
   local left = CONFIRM_S
   local function paint() btn.label:Text(("%s %d"):format(caption, left)) end
@@ -145,6 +150,7 @@ end
 function DressingRoom:_disarmOutfit()
   if self._armTimer then self._armTimer:Cancel(); self._armTimer = nil end
   local btn = self._armed
+  self._armedFor = nil
   if not btn then return end
   self._armed = nil
   btn.label:Text(btn.text)
@@ -254,6 +260,9 @@ end
 function DressingRoom:_selectOutfit(key)
   if key ~= NEW_SET then return self:LoadOutfit(key) end
   self:_disarmOutfit()
+  -- A pending save goes with the selection for the same reason an arm does (#759); the load branch
+  -- above is covered inside `EnterOutfitMode`.
+  self:_cancelSaveRetry()
   self._outfitSel = nil
   self._outfitName:Text("")
   self._outfitName._widget:SetFocus()
