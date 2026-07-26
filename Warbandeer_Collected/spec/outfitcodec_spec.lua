@@ -139,6 +139,50 @@ describe("outfit codec", function()
       assert.matches("whole number", err)
     end)
 
+    -- #760. `tonumber` accepts far more than the format does, and the old `floor(n) ~= n` test
+    -- narrowed none of it: `floor(inf) == inf` is true on Lua 5.1, so `1e400` decoded to an `inf`
+    -- appearance id that threw a raw Lua error once it reached the model — from a string another
+    -- player can paste at you.
+    it("rejects infinities however they're spelled", function()
+      for _, bad in ipairs({ "1e400", "-1e400", "inf", "-inf", "1e20" }) do
+        local list, err = ns.DecodeOutfit(payload({ [1] = bad }))
+        assert.is_nil(list, bad .. " should not decode")
+        assert.matches("whole number", err)
+      end
+    end)
+
+    it("rejects hex and signed-positive forms tonumber would take", function()
+      for _, bad in ipairs({ "0x10", "0X1F", "+5" }) do
+        local list, err = ns.DecodeOutfit(payload({ [1] = bad }))
+        assert.is_nil(list, bad .. " should not decode")
+        assert.matches("whole number", err)
+      end
+    end)
+
+    -- Already refused before #760, but only incidentally — `nan ~= nan` made the old integrality
+    -- test fail. Pinned so the new grammar keeps it.
+    it("rejects nan", function()
+      local list, err = ns.DecodeOutfit(payload({ [1] = "nan" }))
+      assert.is_nil(list)
+      assert.matches("whole number", err)
+    end)
+
+    -- The case the digit pattern alone can't catch: all digits, and still `1e20` once parsed. It
+    -- IS a whole number, so it earns its own message rather than a misleading one.
+    it("rejects an all-digit value too large to be an id", function()
+      local list, err = ns.DecodeOutfit(payload({ [1] = "99999999999999999999" }))
+      assert.is_nil(list)
+      assert.matches("too large", err)
+    end)
+
+    it("accepts the largest int32 id and refuses the next one up", function()
+      local list = assert(ns.DecodeOutfit(payload({ [1] = 2147483647 })))
+      assert.equal(2147483647, list[INVSLOT_HEAD].appearanceID)
+      local bad, err = ns.DecodeOutfit(payload({ [1] = 2147483648 }))
+      assert.is_nil(bad)
+      assert.matches("too large", err)
+    end)
+
     it("rejects a missing or unknown version prefix", function()
       assert.is_nil((ns.DecodeOutfit("/customset 1,2,3")))
       local list, err = ns.DecodeOutfit("/customset v2 1,2,3")

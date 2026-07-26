@@ -1,6 +1,6 @@
 ---@type Warbandeer_Collected
 local ns = select(2, ...)
-local concat, floor = table.concat, math.floor
+local concat = table.concat
 
 -- The `/customset v1 …` interchange codec — Blizzard's own shareable outfit string,
 -- encoded and decoded here rather than borrowed.
@@ -97,16 +97,45 @@ function ns.EncodeOutfit(list)
 end
 
 -- Split a comma-separated id list into integers. Hand-rolled rather than calling
--- C_Transmog.ExtractTransmogIDList so this file stays WoW-free (and testable); the ids are
--- plain signed integers, so `tonumber` + an integrality check is the whole grammar. Returns nil
--- on the first value that isn't one.
+-- C_Transmog.ExtractTransmogIDList so this file stays WoW-free (and testable). Returns nil plus
+-- the reason on the first value that isn't a plain signed integer.
+--
+-- **`tonumber` is far too generous to be the grammar on its own (#760)**, and `floor(n) ~= n`
+-- doesn't narrow it: verified on Lua 5.1, `tonumber` reads `0x10` as 16, `1e400` as `inf`, and
+-- `floor(inf) == inf` is *true*, so every one of those used to pass. An `inf` appearance id then
+-- reached `SlotTransmog`/`PlayerCanCollectSource` and threw a raw Lua error in chat — precisely
+-- what this parser exists to prevent, and reachable from a link someone else pastes (#667).
+--
+-- Hence two guards, neither of which covers the other's cases:
+--
+--   * the **pattern** refuses anything that isn't decimal digits with an optional minus — `inf`,
+--     `-inf`, hex, exponents, `1.5`, `+5`, `abc`. (`nan` was already refused, since `nan ~= nan`
+--     makes the old integrality test fail; the spec now pins that rather than leaving it
+--     incidental.)
+--   * the **range** catches what the pattern can't: `99999999999999999999` is all digits and
+--     still becomes `1e20`.
+--
+-- The bound is int32, not "a plausible sourceID" (~230k today): refusing an id Blizzard legitimately
+-- issues later would be a worse failure than accepting a finite absurd one.
+--
+-- **Negatives are deliberately NOT bounded at -1.** A main-hand secondary of `-1` is an ordinary
+-- weapon rather than a paired artifact, and `ns.DecodeOutfit` clamps other negatives to 0 further
+-- down — both pinned by spec. Refusing them here would move a normalisation the format relies on
+-- into a parse failure.
+local MAX_ID = 2147483647
 ---@param body string
----@return number[]?
+---@return number[]? ids, string? err  exactly one is non-nil
 local function splitIDs(body)
   local out = {}
   for field in (body .. ","):gmatch("([^,]*),") do
-    local n = tonumber((field:gsub("%s", "")))
-    if not n or floor(n) ~= n then return nil end
+    local digits = (field:gsub("%s", ""))
+    if not digits:match("^%-?%d+$") then
+      return nil, "contains a value that isn't a whole number"
+    end
+    local n = tonumber(digits)
+    if n < -MAX_ID - 1 or n > MAX_ID then
+      return nil, "contains a value too large to be an appearance id"
+    end
     out[#out + 1] = n
   end
   return out
@@ -152,8 +181,8 @@ function ns.DecodeOutfit(str)
   local payload = body:match("^v1%s+(.+)$")
   if not payload then return nil, "not a /customset v1 string" end
 
-  local ids = splitIDs(payload)
-  if not ids then return nil, "contains a value that isn't a whole number" end
+  local ids, err = splitIDs(payload)
+  if not ids then return nil, err end
   if #ids ~= VALUE_COUNT then
     return nil, ("expected %d values, got %d"):format(VALUE_COUNT, #ids)
   end
