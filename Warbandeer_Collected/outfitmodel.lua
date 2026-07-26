@@ -18,6 +18,25 @@ local ns = select(2, ...)
 ---@class Warbandeer_Collected
 ---@field DressModelFromList fun(model: Model, list: table[])
 ---@field LocalOutfitMeta fun(list: table[]): OutfitMeta
+---@field MainHandSecondary fun(sourceID: number): number
+
+---The value a main hand's `secondaryAppearanceID` must carry: it is not an appearance there but a
+---**discriminator**, `-1` for an ordinary weapon and `0` for half of a paired Legion artifact.
+---
+---Never leave it nil on a main hand. `ItemTransmogInfoMixin:Init` defaults nil to 0 — which IS
+---"paired" — and a paired main hand overrides the off-hand, so a Titan's Grip pair renders as the
+---off-hand alone. `ns.PairedArtifactWeapon` in outfit.lua carries the full rationale and Blizzard's
+---own note on the override; it lives there rather than here because outfit.lua is closed to growth.
+---
+---Shared by both paths that dress a main hand — this file's `DressModelFromList` and the look
+---builder's `_applyLook` — because having it in only one of them was #755: a look loaded from the
+---library was flagged differently from the same look composed in the builder.
+---@param sourceID number  the appearance being put in the main hand
+---@return number  -1 individual, 0 paired
+function ns.MainHandSecondary(sourceID)
+  return ns.PairedArtifactWeapon(sourceID) and Constants.Transmog.MainHandTransmogIsPairedWeapon
+    or Constants.Transmog.MainHandTransmogIsIndividualWeapon
+end
 
 ---Dress `model` from an outfit list, replacing whatever it was showing.
 ---
@@ -40,10 +59,23 @@ function ns.DressModelFromList(model, list)
     local appearanceID = info and info.appearanceID or 0
     if appearanceID > 0 then
       model:SlotTransmog(slotID, appearanceID, {
-        -- Only a real split-shoulder secondary is forwarded; the main-hand's -1/0 discriminator
-        -- is meaningless to the model and would be read as an appearance id.
-        secondaryAppearanceID = (slotID == INVSLOT_SHOULDER and info.secondaryAppearanceID > 0)
-          and info.secondaryAppearanceID or nil,
+        -- One field name, two different meanings, so it is forwarded per slot: the SHOULDERS take a
+        -- real split-shoulder secondary appearance, the MAIN HAND takes the paired-artifact
+        -- discriminator, and every other slot forwards nothing. The main hand used to be left nil
+        -- here on the stated grounds that the model would read it as an appearance id — untrue, and
+        -- the reason a library-loaded look flagged every main hand as a paired artifact (#755).
+        --
+        -- `MainHandSecondary` returns -1 for an ordinary weapon and 0 for a paired one. Both are
+        -- truthy in Lua, so the `or` chain carries them intact — note it must NOT be written as the
+        -- `x > 0 and x or nil` idiom used above, which would drop both of the values that matter.
+        --
+        -- The shoulder side guards for nil: `SanitizeOutfit` only zeroes a secondary that fails
+        -- validation, so a stored look predating the field still arrives without one.
+        secondaryAppearanceID =
+          (slotID == INVSLOT_SHOULDER and (info.secondaryAppearanceID or 0) > 0
+            and info.secondaryAppearanceID)
+          or (slotID == INVSLOT_MAINHAND and ns.MainHandSecondary(appearanceID))
+          or nil,
         illusionID = (info.illusionID and info.illusionID > 0) and info.illusionID or nil,
       })
     end

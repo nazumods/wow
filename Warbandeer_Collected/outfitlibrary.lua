@@ -88,9 +88,23 @@ local function nameError(name, except)
 end
 
 ---Every saved look, in the order they were added.
+---
+---**Creates and attaches the store when it's missing (#766)** rather than handing back a throwaway
+---table. `MigrateDB` seeds `db.outfits` only on a version mismatch, so a SavedVariables truncation
+---landing after `version` but before `outfits` — a known retail crash mode — left a version that
+---matched and no store. Every save then appended to a temporary that was dropped on return, printed
+---success, and showed an empty library: to the user that reads as "the addon lost everything", not
+---"the addon can't write", so they keep saving into the void.
+---
+---The `ns.db` guard remains for the pre-init call, which has nothing to attach to. That is the one
+---case still returning a throwaway, and `SaveLibraryOutfit` refuses outright rather than write into
+---it.
 ---@return LibraryOutfit[]
 function ns.LibraryOutfits()
-  return (ns.db and ns.db.outfits) or {}
+  local db = ns.db
+  if not db then return {} end
+  db.outfits = db.outfits or {}
+  return db.outfits
 end
 
 ---Find a saved look by name, with its index. nil when there's no such entry.
@@ -154,6 +168,10 @@ end
 function ns.SaveLibraryOutfit(name, list, meta)
   name = clean(name)
   if name == "" then return false, "a name is required" end
+  -- Refuse rather than write into a throwaway (#766). `LibraryOutfits` attaches the store whenever
+  -- there is a db to attach it to, so this is only the pre-init call — but reporting a save that
+  -- went nowhere is the whole defect, and `false` is the one answer a caller can act on.
+  if not ns.db then return false, "the outfit library isn't loaded yet" end
   local entry = ns.LibraryOutfit(name)
   if not entry then
     entry = { name = name }
@@ -197,15 +215,19 @@ end
 ---@param name string  the set's own name; assumed non-empty (`ns.CustomSets` substitutes one)
 ---@param list table[]
 ---@param meta OutfitMeta?
----@return string status  "saved" | "skipped" | "renamed"
+---`"failed"` is the fourth outcome, and exists because the write can be refused: the name is
+---**assumed** non-empty, but `ns.CustomSets` only substitutes for a nil name, so a set the game
+---reports as whitespace-only survives to `clean()` and comes back empty. Discarding
+---`SaveLibraryOutfit`'s return counted that as `"saved"`, which is how the importer reported
+---"Imported 5 of 5 sets" with four in the library (#767 L-6).
+---@return string status  "saved" | "skipped" | "renamed" | "failed"
 ---@return string name  the name the look actually landed under
 function ns.ImportLibraryOutfit(name, list, meta)
   name = clean(name)
   local encoded = ns.EncodeOutfit(list)
   local entry = ns.LibraryOutfit(name)
   if not entry then
-    ns.SaveLibraryOutfit(name, list, meta)
-    return "saved", name
+    return (ns.SaveLibraryOutfit(name, list, meta) and "saved" or "failed"), name
   end
   if entry.look == encoded then return "skipped", name end
   local n = 2
@@ -213,8 +235,7 @@ function ns.ImportLibraryOutfit(name, list, meta)
     local candidate = ("%s (%d)"):format(name, n)
     local taken = ns.LibraryOutfit(candidate)
     if not taken then
-      ns.SaveLibraryOutfit(candidate, list, meta)
-      return "renamed", candidate
+      return (ns.SaveLibraryOutfit(candidate, list, meta) and "renamed" or "failed"), candidate
     end
     if taken.look == encoded then return "skipped", candidate end
     n = n + 1
@@ -294,17 +315,26 @@ end
 ---click.
 ---
 ---Counted rather than a flag so a batch inside a batch still fires once, at the outer close, and
----can't announce a half-finished library. **`fn` is expected not to throw**: an error inside it
----unwinds past the decrement and leaves the batch open, silently swallowing later notifications —
----no `pcall` here, in keeping with the rest of the addon, so a caller doing something that can
----error wants its own guard.
+---can't announce a half-finished library.
+---
+---**The counter is restored even if `fn` throws (#767 L-1).** It previously wasn't: an error
+---unwound straight past the decrement and left `depth` at 1 for the rest of the session, after
+---which every `LibraryChanged()` only set `pending` and notified nobody — silently reinstating the
+---exact bug #727 closed, with no visible cause and nothing to point at. `ImportCharacterSets` runs
+---a long chain of `C_*` calls over up to 25 sets inside here, so "`fn` won't throw" was never a
+---safe assumption.
+---
+---The `pcall` restores the counter; it does **not** swallow anything — the error is re-raised at
+---level 0 once `depth` is sound, so it still surfaces in-game exactly as before, per the addon's
+---no-error-handling rule.
 ---@param fn fun()
 function ns.LibraryBatch(fn)
   depth = depth + 1
-  fn()
+  local ok, err = pcall(fn)
   depth = depth - 1
   if depth == 0 and pending then
     pending = false
     ns.LibraryChanged()
   end
+  if not ok then error(err, 0) end
 end

@@ -354,6 +354,64 @@ describe("outfit library", function()
       end)
       assert.equal(1, fired())
     end)
+
+    -- The wedge (#767 L-1). An error used to unwind past the decrement and strand `depth` at 1 for
+    -- the rest of the session, after which every LibraryChanged() only set `pending` — silently
+    -- reinstating the bug #727 closed, with nothing on screen to point at. `ImportCharacterSets`
+    -- runs a long C_* chain over up to 25 sets inside a batch, so this is a live path.
+    it("re-raises an error from inside the batch", function()
+      assert.has_error(function()
+        ns.LibraryBatch(function() error("boom", 0) end)
+      end, "boom")
+    end)
+
+    it("still notifies after a batch threw, rather than wedging for the session", function()
+      pcall(ns.LibraryBatch, function() error("boom", 0) end)
+      local fired = counting(ns)
+      ns.SaveLibraryOutfit("after", ns.EmptyOutfitList())
+      assert.equal(1, fired(), "a save after a failed batch must still announce itself")
+    end)
+
+    it("recovers the batch mechanism itself, not just single writes", function()
+      pcall(ns.LibraryBatch, function() error("boom", 0) end)
+      local fired = counting(ns)
+      ns.LibraryBatch(function()
+        ns.SaveLibraryOutfit("x", ns.EmptyOutfitList())
+        assert.equal(0, fired(), "still coalescing")
+      end)
+      assert.equal(1, fired())
+    end)
+  end)
+
+  -- #766: the store going missing while the db version still matches. MigrateDB seeds `db.outfits`
+  -- only on a version mismatch, so a SavedVariables truncation landing after `version` but before
+  -- `outfits` left a matching version and no store — and every save then appended to a throwaway,
+  -- returned true, and showed an empty library.
+  describe("a missing store", function()
+    it("is created and attached rather than handed back as a throwaway", function()
+      ns.db.outfits = nil
+      local outfits = ns.LibraryOutfits()
+      outfits[#outfits + 1] = { name = "attached" }
+      assert.equal(1, #ns.db.outfits, "the table handed out must BE the stored one")
+    end)
+
+    it("persists a save instead of reporting success and discarding it", function()
+      ns.db.outfits = nil
+      assert.is_true(ns.SaveLibraryOutfit("survivor", ns.EmptyOutfitList()))
+      assert.is_not_nil(ns.LibraryOutfit("survivor"))
+      assert.equal(1, #ns.LibraryOutfits())
+    end)
+
+    -- The residual case: no db at all, so there is nothing to attach to. Refusing is the point —
+    -- returning true here is what taught the user the addon had lost their library.
+    it("refuses the write when there is no db, rather than claiming success", function()
+      local db = ns.db
+      ns.db = nil
+      local ok, err = ns.SaveLibraryOutfit("nowhere", ns.EmptyOutfitList())
+      ns.db = db
+      assert.is_false(ok)
+      assert.is_string(err)
+    end)
   end)
 
   -- Importing the game's own per-character transmog sets (#663). The names come from the game,
@@ -366,6 +424,17 @@ describe("outfit library", function()
       assert.equal("saved", status)
       assert.equal("TWW 1", name)
       assert.equal("Plate", n.LibraryOutfit("TWW 1").armor)
+    end)
+
+    -- #767 L-6: `SaveLibraryOutfit`'s return was discarded, so a refused write still came back
+    -- "saved" and the importer's headline counted it — "Imported 5 of 5 sets" with four in the
+    -- library. Reachable because `ns.CustomSets` only substitutes for a NIL name, so a set the
+    -- game reports as whitespace-only survives to `clean()` and comes back empty.
+    it("reports a refused write as failed rather than saved", function()
+      local n = collected.load()
+      local status = n.ImportLibraryOutfit("   ", lookWith(n, 7019))
+      assert.equal("failed", status)
+      assert.equal(0, #n.LibraryOutfits(), "nothing should have landed")
     end)
 
     -- Re-running the import on a character already done must be a no-op, not a pile of suffixes.
