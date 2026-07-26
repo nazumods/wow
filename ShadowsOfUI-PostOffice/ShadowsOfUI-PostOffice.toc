@@ -2,7 +2,7 @@
 ## Category: Shadows of UI
 ## Title: Post Office
 ## Author: Nazuraki
-## Version: 12.0.7-r6
+## Version: 12.0.7-r7
 ## IconTexture: Interface\Icons\INV_Letter_15
 ## SavedVariables: ShadowsOfUI_PostOfficeDB
 ## Dependencies: LibNAddOn, LibNUI

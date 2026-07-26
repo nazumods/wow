@@ -6,6 +6,14 @@ local ns = select(2, ...)
 -- same conventional-commit grouping used for the GitHub/CurseForge release notes.
 ---@type { version: string, notes: string }[]
 ns.changelog = {
+  { version = "12.0.7-r32", notes = [==[
+### Features
+- snapshot battle-pet species and names for offline readers (#726)
+- persist display metadata for offline readers (#722)
+- weapon tier ranks and Wanted in the Weapons grid (#719)
+- PTR preview for the Weapons grid (#714)
+
+]==] },
   { version = "12.0.7-r31", notes = [==[
 ### Features
 - persist achievement snapshot (checklist completion + total points) (#704)

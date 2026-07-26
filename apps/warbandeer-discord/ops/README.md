@@ -1,9 +1,15 @@
 # Bot ops helper
 
-`bot-ops.sh` is the **only** privileged surface behind the Warbandeer Desktop app's **Ops**
-tab. The desktop app never runs docker or edits the bot's `.env` itself — it SSHes to the box
-and invokes this script, one subcommand at a time. Keeping the whitelist and the apply logic
-here (versioned, reviewable) means **bot secrets never leave the box**.
+`bot-ops.sh` is the **only** privileged surface behind the **Ops** tab — shipped by two apps
+(`apps/warbandeer-desktop` here and `roshne/wow-companion`), which share one backend in
+[`apps/bot-ops`](../../bot-ops/README.md). Neither app runs docker or edits the bot's `.env`
+itself — they SSH to the box and invoke this script, one subcommand at a time. Keeping the
+whitelist and the apply logic here (versioned, reviewable) means **bot secrets never leave the
+box**.
+
+This script is the **authority** on which keys may be written; `apps/bot-ops`'s `OPS_FIELDS` only
+mirrors it for display. Add a key here first — a key added only to the module is rejected at apply
+time, not silently written.
 
 ## Subcommands
 

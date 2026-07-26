@@ -2,7 +2,7 @@
 ## Category: Shadows of UI
 ## Title: Warband Inventory
 ## Author: Nazuraki
-## Version: 12.0.7-r5
+## Version: 12.0.7-r6
 ## Dependencies: LibNAddOn, Warbandeer_Characters
 ## X-NUI-API: WarbandeerApi
 ## X-Curse-Project-ID: 1615346

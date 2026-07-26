@@ -143,6 +143,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "bot-ops"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "tauri",
+]
+
+[[package]]
 name = "brotli"
 version = "8.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3771,8 +3780,9 @@ dependencies = [
 
 [[package]]
 name = "warbandeer-desktop"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
+ "bot-ops",
  "chrono",
  "mlua",
  "serde",

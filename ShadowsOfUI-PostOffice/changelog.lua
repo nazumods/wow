@@ -6,6 +6,11 @@ local ns = select(2, ...)
 -- conventional-commit grouping used for the GitHub/CurseForge release notes.
 ---@type { version: string, notes: string }[]
 ns.changelog = {
+  { version = "12.0.7-r7", notes = [==[
+### Bug Fixes
+- give each delete confirm its own letter payload (#756)
+
+]==] },
   { version = "12.0.7-r6", notes = [==[
 ### Bug Fixes
 - delete the clicked mail on confirm, not a fingerprint twin (#590)
