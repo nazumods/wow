@@ -193,7 +193,12 @@ local function autoBuyItems()
     end
 end
 
--- Waypoint guidance (Elwynn only — C_Map.SetUserWaypoint unsupported on DMF island) -----
+-- Waypoint guidance ---------------------------------------------------------------
+-- Which maps accept a user waypoint is asked of the client (C_Map.CanSetUserWaypointOnMap)
+-- rather than hardcoded: historically only Elwynn did and the DMF island did not, but
+-- that is Blizzard's to change. `lastWaypoint` records the most recent attempt for /sdmf.
+
+local lastWaypoint = nil
 
 local function npcNeeded(npcId)
     local questIds = QuestGiverNpcs[npcId]
@@ -205,13 +210,14 @@ local function npcNeeded(npcId)
 end
 
 local function updateWaypoint()
+    lastWaypoint = nil
     if not inDMF then
         C_Map.ClearUserWaypoint()
         return
     end
     local mapId = C_Map.GetBestMapForUnit("player")
     local order = WaypointOrder[mapId]
-    if not order then
+    if not order or not C_Map.CanSetUserWaypointOnMap(mapId) then
         C_Map.ClearUserWaypoint()
         return
     end
@@ -219,8 +225,12 @@ local function updateWaypoint()
         if npcNeeded(npcId) then
             local pos = NpcPositions[npcId]
             if pos and (pos[2] ~= 0 or pos[3] ~= 0) then
-                C_Map.SetUserWaypoint(UiMapPoint.CreateFromCoordinates(pos[1], pos[2], pos[3]))
-                return
+                local wasSet = C_Map.SetUserWaypoint(UiMapPoint.CreateFromCoordinates(pos[1], pos[2], pos[3]))
+                lastWaypoint = { label = pos[4], wasSet = wasSet }
+                -- `wasSet` is new in 12.1 (build 68824); older clients return nothing, so
+                -- only an explicit false is a rejection. The map already said it accepts
+                -- waypoints, so a rejection is about this coordinate — try the next NPC.
+                if wasSet ~= false then return end
             end
         end
     end
@@ -367,7 +377,8 @@ function ns:onLogin()
     C_Calendar.OpenCalendar()
 end
 
--- /sdmf: print NPC ID and player map position to populate QuestGiverNpcs/NpcPositions
+-- /sdmf: print NPC ID and player map position to populate QuestGiverNpcs/NpcPositions,
+-- plus whether the current map takes a user waypoint and how the last attempt went.
 SLASH_SUI_DMF1 = "/sdmf"
 SlashCmdList["SUI_DMF"] = function()
     local mapId = C_Map.GetBestMapForUnit("player")
@@ -375,15 +386,24 @@ SlashCmdList["SUI_DMF"] = function()
     local posStr = pos and string.format("mapId=%d  x=%.4f  y=%.4f", mapId, pos.x, pos.y) or "position unknown"
 
     local unit = UnitExists("mouseover") and "mouseover" or UnitExists("target") and "target" or nil
-    if not unit then
+    if unit then
+        local guid  = UnitGUID(unit)
+        local npcId = tonumber((select(6, strsplit("-", guid))))
+        DEFAULT_CHAT_FRAME:AddMessage(
+            "|cffffcc00ShadowsOfUI-DMF:|r " .. (UnitName(unit) or "?") ..
+            "  npcId=" .. tostring(npcId) ..
+            "  " .. posStr
+        )
+    else
         DEFAULT_CHAT_FRAME:AddMessage("|cffffcc00ShadowsOfUI-DMF:|r " .. posStr)
-        return
     end
-    local guid  = UnitGUID(unit)
-    local npcId = tonumber((select(6, strsplit("-", guid))))
-    DEFAULT_CHAT_FRAME:AddMessage(
-        "|cffffcc00ShadowsOfUI-DMF:|r " .. (UnitName(unit) or "?") ..
-        "  npcId=" .. tostring(npcId) ..
-        "  " .. posStr
-    )
+
+    local waypointStr = "waypoint: inDMF=" .. tostring(inDMF) ..
+        "  canSet=" .. tostring(mapId and C_Map.CanSetUserWaypointOnMap(mapId))
+    if lastWaypoint then
+        -- wasSet is nil on pre-12.1 clients, which return nothing from SetUserWaypoint.
+        waypointStr = waypointStr .. "  last=" .. (lastWaypoint.label or "?") ..
+            "  wasSet=" .. tostring(lastWaypoint.wasSet)
+    end
+    DEFAULT_CHAT_FRAME:AddMessage("|cffffcc00ShadowsOfUI-DMF:|r " .. waypointStr)
 end
