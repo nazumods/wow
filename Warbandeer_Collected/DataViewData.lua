@@ -125,7 +125,10 @@ function ns.CollectedRows(self)
         if IsShiftKeyDown() then
           local nowWanted = ns:ToggleWanted(set.id)
           if self._wantedOnly and not nowWanted then
-            self.data = self:GetData(); self:update()   -- it left the filtered view
+            -- It left the filtered view. Through `_refilter` so the lockout selection goes with
+            -- the rows it indexed (#762) and the host refits to the shorter grid — a raw
+            -- rebuild here stranded both, exactly as the ★ toggle used to.
+            self:_refilter()
           else
             -- refresh every cell sharing this setId, not just the clicked one, so
             -- sibling class columns of a shared set update their star/pip too

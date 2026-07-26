@@ -281,17 +281,22 @@ end
 --
 -- BOTH grids, not just the shown one: a weapon flagged while Armor is up would otherwise leave the
 -- weapon grid holding a stale wanted-only row set for the next toggle over to it (and vice versa).
--- The refit is done once at the end instead of per grid, since _fitToGrid always sizes to whichever
--- grid is active.
+--
+-- Re-filtering goes through each grid's own `_refilter` (#762), which is what clears a stranded
+-- lockout selection — `_selectedRow` indexes DISPLAY rows, so a raw rebuild left an open panel
+-- pointing at whatever set inherited that screen row. Polymorphic on purpose: the armor grid clears
+-- behind its `embedded` guard, and the weapon grid has no selection to clear (lockouts are
+-- armor-only). The refit rides along with it via `onResized`, so it now happens per grid that
+-- actually re-filtered rather than once unconditionally — a `_refreshMarks` pass only recolours
+-- cells and moves no rows, so it needs none.
 ns:OnRatingsChanged(function()
   local w = ns.window
   if not w then return end
   for _, grid in ipairs({ w.data, w.weapons }) do
     if grid._wantedOnly then
-      grid.data = grid:GetData(); grid:update()   -- re-filter (row set may change)
+      grid:_refilter()   -- re-filter (row set may change) + clear selection + refit
     else grid:_refreshMarks() end
   end
-  w:_fitToGrid()
   w:RefreshWanted()
   w:RefreshCounter()   -- the counter is filter-scoped, so a re-filter moves it
 end)
