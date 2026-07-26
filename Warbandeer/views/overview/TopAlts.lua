@@ -105,6 +105,12 @@ local function gearCell(tbl, api, grp, classId)
     if IsShiftKeyDown() then
       api:ToggleWanted(set.id)
       tbl:_applyCellMarks(c, set.id)
+      -- Tell Collected as well (#765): the mutator is a plain setter, so without this the flag
+      -- lands in the DB and every other surface — both grids, the shared dressing room — stays
+      -- stale until something else rebuilds them. Capability-guarded like the OnRatingsChanged
+      -- subscription in CollectedView: this is a cross-addon call with real released version skew,
+      -- and an older Collected has no publish method.
+      if api.NotifyRatingsChanged then api:NotifyRatingsChanged(set.id) end
     else
       api:ShowDressingRoom(grp, set)
     end

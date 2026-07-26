@@ -164,9 +164,17 @@ function API:SetRaceRank(setId, raceId, rank) ns:SetRaceRank(setId, raceId, rank
 function API:PlayerRace() return ns:PlayerRace() end
 
 ---Register a callback fired after any wanted/rank change, so a consumer grid can
----live-refresh when the shared dressing room edits a rating.
----@param fn fun()
+---live-refresh when the shared dressing room edits a rating. The callback receives the armour
+---set that changed, or nil when several did (nil obliges a full refresh).
+---@param fn fun(setId: number?)
 function API:OnRatingsChanged(fn) ns:OnRatingsChanged(fn) end
+
+---Announce a wanted/rank change this consumer just made, so every other surface — both grids,
+---both hosts, the shared dressing room — refreshes. Needed because a consumer that writes a
+---rating through `ToggleWanted`/`SetBaselineRank` is otherwise invisible to them: the mutators
+---are plain setters and only the caller knows a change happened (#765).
+---@param setId number?  the single armour set that changed, or nil for "several / unknown"
+function API:NotifyRatingsChanged(setId) ns:NotifyRatingsChanged(setId) end
 
 ---Register a callback fired when the shared dressing room's previewed set changes, so a
 ---consumer grid can highlight its row. The callback receives the setId (nil on close) and

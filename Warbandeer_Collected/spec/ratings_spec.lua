@@ -121,4 +121,37 @@ describe("ratings", function()
       assert.is_nil(ns:WeaponCellRank({10, 20, 30}))
     end)
   end)
+
+  -- The fan-out every surface refreshes from (#765). The setId it carries is what keeps a single
+  -- Shift-click from repainting every cell in both grids, so the forwarding is worth pinning down:
+  -- a listener that silently received nil would fall back to a full refresh and hide the problem.
+  describe("change notification", function()
+    it("forwards the changed setId to a listener", function()
+      local got, calls = nil, 0
+      ns:OnRatingsChanged(function(setId) got, calls = setId, calls + 1 end)
+      ns:NotifyRatingsChanged(4242)
+      assert.equal(1, calls)
+      assert.equal(4242, got)
+    end)
+
+    -- nil is the "several changed / caller doesn't know" signal bulk paths rely on, and listeners
+    -- read it as "refresh everything". It has to arrive as nil, not as a stale previous setId.
+    it("forwards nil when no set is named", function()
+      local got = 1   -- seed non-nil so a listener that never fired can't pass this
+      ns:OnRatingsChanged(function(setId) got = setId end)
+      ns:NotifyRatingsChanged()
+      assert.is_nil(got)
+    end)
+
+    it("gives every registered listener the same setId", function()
+      local seen = {}
+      for i = 1, 3 do ns:OnRatingsChanged(function(setId) seen[i] = setId end) end
+      ns:NotifyRatingsChanged(7)
+      assert.same({7, 7, 7}, seen)
+    end)
+
+    it("is a no-op with nothing registered", function()
+      assert.has_no.errors(function() ns:NotifyRatingsChanged(1) end)
+    end)
+  end)
 end)
