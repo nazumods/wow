@@ -173,5 +173,18 @@ function DressingRoom:_clearWeaponSlot(hand)
     self._lookMH, self._lookNoOH = nil, nil
   end
   self:_applyLook()
+  -- The browsed weapon just came off the doll, so the cell chooser has to stop claiming it's still
+  -- in this hand (#763). `_cellHand` drives BOTH the gold "this is where it is" border and
+  -- `_useCellLook`'s no-op guard, so leaving it set left the selector lit *and* dead: clicking the
+  -- lit hand short-circuited on `hand == self._cellHand`, and the only way back was clicking the
+  -- other hand or re-clicking the list row.
+  --
+  -- Guarded on the hand actually cleared, so clearing the main hand while the browsed weapon sits
+  -- in the off hand leaves that selection where it belongs.
+  if self._cellHand == hand then
+    self._cellHand = nil
+    self:_syncCellActions()
+    if self._cellList then self._cellList:Refresh() end
+  end
   if self._picker and self._picker._widget:IsShown() then self._pickerList:Refresh() end
 end
