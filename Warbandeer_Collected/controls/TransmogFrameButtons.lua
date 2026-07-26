@@ -81,13 +81,20 @@ local function stagedLook()
   return preview and preview:GetItemTransmogInfoList() or nil
 end
 
----Write the staged look into both stores under `name`.
+---The look on the model right now, checked over and ready to store — or nil, having already said
+---why not.
 ---
----The two-store rule itself — library primary, game custom set best-effort — is
----`ns.SaveLookToBoth` (outfitsave.lua), where it is unit-tested. This only supplies the look and
----the provenance, and reports whatever came back.
----@param name string
-local function saveStaged(name)
+---**Read once, when the user commits a name, and carried from there (#757).** The replace confirm
+---below is a StaticPopup: those are not modal, and this one has `timeout = 0`, so it can sit
+---unanswered while the user wanders back to the wardrobe and stages something else. Re-reading the
+---model at accept time meant Yes stored whatever was on it *then*, under the name it had asked
+---about — and the library is the only copy of a saved look, so there was nothing to recover from.
+---Same rule #729 gave the dressing room's armed verbs: a confirm acts on the look it asked about.
+---
+---The checks live here rather than at the write so an unsaveable look never reaches the prompt:
+---being asked to replace something and only then told there was nothing to save reads as a bug.
+---@return table[]?
+local function captureLook()
   local list = stagedLook()
   if not list then
     ns.Print("The transmogrifier isn't ready yet — try again in a moment.")
@@ -105,12 +112,24 @@ local function saveStaged(name)
     ns.Print("Item data is still loading — try again in a moment.")
     return
   end
+  return list
+end
+
+---Write a captured look into both stores under `name`.
+---
+---The two-store rule itself — library primary, game custom set best-effort — is
+---`ns.SaveLookToBoth` (outfitsave.lua), where it is unit-tested. This only supplies the look and
+---the provenance, and reports whatever came back. It never reads the model: the list is whatever
+---`captureLook` handed its caller, which is the whole point of #757.
+---@param name string
+---@param list table[]
+local function saveLook(name, list)
   ns.Print(ns.SaveLookToBoth(name, list, ns.LocalOutfitMeta(list)).message)
 end
 
--- The name awaiting a replace answer. A file-local because a StaticPopup's OnAccept is a bare
--- callback with no closure over the click that armed it.
-local pendingName
+-- The name AND the look awaiting a replace answer. A file-local because a StaticPopup's OnAccept
+-- is a bare callback with no closure over the click that armed it.
+local pendingLook
 
 ---Validate a typed name and either save under it or ask before replacing.
 ---@param name string
@@ -120,6 +139,8 @@ local function commitName(name)
     ns.Print("Give the look a name to save it.")
     return
   end
+  local list = captureLook()
+  if not list then return end
   -- Never replace silently. A name already in the library is the NORMAL case here rather than the
   -- odd one — the library is account-wide and spans every character, so "TWW 1" saved on an alt is
   -- exactly what a second alt is about to type (the same collision #663 met importing).
@@ -128,11 +149,11 @@ local function commitName(name)
   -- as "Boylane 3" describes something the user can't find.
   local existing = ns.LibraryOutfit(name)
   if existing then
-    pendingName = existing.name
+    pendingLook = { name = existing.name, list = list }
     StaticPopup_Show(REPLACE_POPUP, existing.name)
     return
   end
-  saveStaged(name)
+  saveLook(name, list)
 end
 
 -- A popup rather than a name field parked on Blizzard's frame: there is no band there that wouldn't
@@ -166,8 +187,12 @@ StaticPopupDialogs[REPLACE_POPUP] = {
   text = "\"%s\" is already in your library. Replace it?",
   button1 = YES, button2 = NO,
   timeout = 0, whileDead = 1, hideOnEscape = 1, showAlert = 1,
-  OnAccept = function() if pendingName then saveStaged(pendingName) end; pendingName = nil end,
-  OnCancel = function() pendingName = nil end,
+  -- The captured look, not the model — see `captureLook` (#757).
+  OnAccept = function()
+    if pendingLook then saveLook(pendingLook.name, pendingLook.list) end
+    pendingLook = nil
+  end,
+  OnCancel = function() pendingLook = nil end,
 }
 
 -- Built once, on the first transmogrifier visit of the session, and kept — it is parented to the

@@ -98,6 +98,65 @@ function M.loadOutfitShare(ns)
   return ns
 end
 
+---Load `controls/TransmogFrameButtons.lua` over a stub of the frame furniture it names at load
+---time, and return a handle for driving its two StaticPopups.
+---
+---The one **controls** file with a spec, and it earns one the way the two data files above do: the
+---save flow it owns writes to the account-wide library, which is the only copy of a saved look, and
+---#757 was a silent replacement of the wrong one. What the file does with widgets is untestable
+---here and untested — `rowButton` and `build` are only reached from a real transmogrifier, so the
+---stubs below need only satisfy the upvalues captured at load.
+---
+---`ns.LibraryOutfit` and `ns.SaveLookToBoth` are deliberately the REAL ones from M.load, so a test
+---asserts on what actually landed in the store rather than on what a stub was handed. Only the
+---three that reach the client are stubbed: the model list, the streaming check, and the provenance
+---stamp.
+---@param ns table  as returned by M.load()
+---@return table env  `.model` the staged list (write it to move the model), `.shown` popups shown,
+---`.printed` chat lines, `.meta` the lists `LocalOutfitMeta` was called with, `.dialogs` the
+---registered `StaticPopupDialogs` entries
+function M.loadTransmogButtons(ns)
+  local env = { shown = {}, printed = {}, meta = {} }
+
+  _G.StaticPopupDialogs = {}
+  _G.StaticPopup_Show = function(which, data)
+    env.shown[#env.shown + 1] = { which = which, data = data }
+  end
+  _G.SAVE, _G.CANCEL, _G.YES, _G.NO = "Save", "Cancel", "Yes", "No"
+  -- The live model. `GetItemTransmogInfoList` returns nil until the model scene's actor exists,
+  -- which `env.model = nil` reproduces.
+  _G.TransmogFrame = {
+    CharacterPreview = { GetItemTransmogInfoList = function() return env.model end },
+  }
+
+  ns.ui = { justify = { Center = "CENTER" } }
+  ns.DressingRoom = { _k = { selBox = function(box) return box end } }
+  ns.registerEvent = function() end
+  ns.Print = function(msg) env.printed[#env.printed + 1] = msg end
+  -- outfit.lua's real one, minus the `PlayerCanCollectSource` call that decides `pending` — the
+  -- filled count is the same walk over the codec's real slot order. `env.pending` forces the
+  -- still-streaming branch.
+  ns.OutfitIssues = function(list)
+    local filled = 0
+    for _, slotID in ipairs(ns.OutfitSlotOrder) do
+      local info = list[slotID]
+      if info and (info.appearanceID or 0) > 0 then filled = filled + 1 end
+    end
+    return { filled = filled, pending = env.pending or false }
+  end
+  -- outfitmodel.lua's stamps the player's name/class/armour off the client. Recording the list it
+  -- was handed is the part a test cares about: the provenance must describe the SAVED look.
+  ns.LocalOutfitMeta = function(list)
+    env.meta[#env.meta + 1] = list
+    return { char = "Tester-Realm" }
+  end
+  ns.SaveCustomSet = function() return 1 end
+
+  assert(loadfile("Warbandeer_Collected/controls/TransmogFrameButtons.lua"))("Warbandeer_Collected", ns)
+  env.dialogs = _G.StaticPopupDialogs
+  return env
+end
+
 function M.loadWeaponData(ns)
   ns.WeaponSources = {}
   assert(loadfile("Warbandeer_Collected/data/illusions.lua"))("Warbandeer_Collected", ns)
