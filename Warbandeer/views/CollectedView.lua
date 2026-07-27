@@ -158,7 +158,9 @@ local CollectedView = Class(Frame, function(self)
   -- as the grid). The armor grid is the default and stays intact when Weapons is off.
   self.active, self.activeScroll, self._weaponsMode = self.grid, self.scroll, false
   if WarbandeerCollectedApi.WeaponView then
-    local TOGGLE_W, TGAP = 92, 6
+    -- Matches the standalone window's width (nazumods/wow#770 step 12): halved, 92 left each
+    -- segment 46px and ellipsized "Weapons".
+    local TOGGLE_W, TGAP = 108, 6
 
     self.weaponGrid = WarbandeerCollectedApi.WeaponView:new{
       parent = self,
