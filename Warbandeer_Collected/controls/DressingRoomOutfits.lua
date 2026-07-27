@@ -4,10 +4,10 @@ local ns = select(2, ...)
 local ui = ns.ui
 local Frame = ui.Frame
 local FilterDropdown, EditBox = ui.FilterDropdown, ui.EditBox
-local C_Timer = C_Timer
 local DressingRoom = ns.DressingRoom
 local k = DressingRoom._k
-local selBox, IDLE, SELECTED = k.selBox, k.IDLE, k.SELECTED
+-- The armed border colours and the countdown budget went with the gesture, into chrome.lua.
+local selBox = k.selBox
 local GRIDW, ROWH, ROW3 = k.GRIDW, k.ROWH, k.ROW3
 
 -- The outfit row (#642, retargeted by #655): the third bottom control row. Builds the widgets and
@@ -46,7 +46,6 @@ local MIN_MENU_H = 120
 -- pull-down is a poor home for an opener, and the `Select()` re-point it needed — to stop the
 -- dropdown reading "Manage Library…" as though that were the loaded look — went with it.
 local NEW_SET = "\0new"
-local CONFIRM_S = 4      -- seconds an armed button stays armed before reverting, counted in its caption
 
 ---One labelled button in a control row: a framed box with a click target and a centered caption,
 ---whose text can be swapped when armed. Returns a small handle the actions drive.
@@ -111,34 +110,14 @@ end
 ---the live name field on the confirming click, so without this the answer given about one look
 ---authorised replacing another.
 function DressingRoom:_armOutfit(btn, caption, lapsed, subject)
-  self:_disarmOutfit()
-  self._armed = btn
-  self._armedFor = subject
-  btn.border:Color(SELECTED)
-  local left = CONFIRM_S
-  local function paint() btn.label:Text(("%s %d"):format(caption, left)) end
-  paint()
-  -- A ticker rather than a one-shot: the caption repaints every second and the final tick IS the
-  -- revert. Only this path prints — disarming because another button was clicked is a deliberate
-  -- abandonment and needs no notice.
-  self._armTimer = C_Timer.NewTicker(1, function()
-    left = left - 1
-    if left > 0 then return paint() end
-    self._armTimer = nil
-    self:_disarmOutfit()
-    ns.Print(("Confirmation expired — \"%s\" was not %s."):format(subject, lapsed))
-  end, CONFIRM_S)
+  -- The shared controller (#770 step 7); state stays on `self`, so the library window can hold its
+  -- own arm at the same time with the workspace docked (#713).
+  ns.ArmConfirm(self, btn, caption, lapsed, subject)
 end
 
 ---Revert whichever button is armed back to its resting caption, stopping its countdown.
 function DressingRoom:_disarmOutfit()
-  if self._armTimer then self._armTimer:Cancel(); self._armTimer = nil end
-  local btn = self._armed
-  self._armedFor = nil
-  if not btn then return end
-  self._armed = nil
-  btn.label:Text(btn.text)
-  btn.border:Color(IDLE)
+  ns.Disarm(self)
 end
 
 -- Build the outfit row. Called by the constructor after _buildControls, so it sits below the
