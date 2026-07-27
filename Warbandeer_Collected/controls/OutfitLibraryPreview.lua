@@ -174,12 +174,7 @@ function OutfitLibraryWindow:_showPreview(name)
 
   ns.DressModelFromList(self._preview, list)
   self._previewName:Text(ns.ClassColored(name, entry.class))
-  local origin = ns.OutfitOrigin(entry)
-  local forClass = entry.forClass and ns.ClassLabel(entry.forClass)
-  if forClass then
-    forClass = ("a %s look"):format(forClass)
-    origin = origin ~= "" and (origin .. "   ·   " .. forClass) or forClass
-  end
+  local origin = ns.OutfitOriginFull(entry)   -- shared with the list row (#770 step 4)
   self._previewOrigin:Text(origin ~= "" and origin or "")
   -- Seeded with the current name so Rename edits it rather than starting from blank.
   self._renameBox:Text(name)
