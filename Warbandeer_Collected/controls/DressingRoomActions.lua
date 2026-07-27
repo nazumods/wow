@@ -105,15 +105,22 @@ end
 
 -- Reflect a rating change in every registered grid right away (Collected's window
 -- + Warbandeer's collected view), wherever the dressing room was opened from.
-function DressingRoom:_ratingsChanged()
-  ns:NotifyRatingsChanged()
+--
+-- Every caller knows exactly what it changed, so it says so (#768 L-8): an armour set by `setId`, a
+-- weapon appearance by `visualID`. This used to broadcast nothing at all, which meant "everything"
+-- and walked both grids in full — around 12,000 cells for one rank-button click, most of them in the
+-- grid that couldn't have changed. Pass neither only when several ratings changed at once.
+---@param setId number?  the armour set that changed
+---@param visualID number?  the weapon appearance that changed
+function DressingRoom:_ratingsChanged(setId, visualID)
+  ns:NotifyRatingsChanged(setId, visualID)
 end
 
 function DressingRoom:ToggleWanted()
   if not self._set then return end
   ns:ToggleWanted(self._set.id)
   self:_refreshRatings()
-  self:_ratingsChanged()
+  self:_ratingsChanged(self._set.id)
 end
 
 -- Set the tier (or clear it when nil, or when re-clicking the active one). Writes
@@ -130,7 +137,7 @@ function DressingRoom:SetRank(letter)
     ns:SetBaselineRank(setId, letter)
   end
   self:_refreshRatings()
-  self:_ratingsChanged()
+  self:_ratingsChanged(setId)
 end
 
 ---@param on boolean  edit/display the per-race override instead of the baseline

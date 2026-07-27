@@ -122,7 +122,9 @@ function DressingRoom:SetCellRank(letter)
   if ns:WeaponRank(look.visualID) == letter then letter = nil end
   ns:SetWeaponRank(look.visualID, letter)
   self:_syncCellRanks()
-  self:_ratingsChanged()   -- the Weapons grid's cell pip aggregates this look's tier
+  -- Keyed by visualID, not setId: a weapon cell has no set id, and the armour grid holds nothing
+  -- this can have changed, so it is skipped entirely (#768 L-8).
+  self:_ratingsChanged(nil, look.visualID)   -- the Weapons grid's cell pip aggregates this look's tier
   self._cellList:Refresh() -- …and so does the row's own pip
 end
 
@@ -168,7 +170,7 @@ function DressingRoom:_toggleCellWanted(idx)
   local look = self._cell and self._cell.set._looks[idx]
   if not look then return end
   ns:ToggleWeaponWanted(look.visualID)
-  self:_ratingsChanged()
+  self:_ratingsChanged(nil, look.visualID)
   self._cellList:Refresh()   -- the row's ★ tracks it
 end
 

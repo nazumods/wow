@@ -41,6 +41,31 @@ function WeaponView:_refreshMarks(only)
   end, only)
 end
 
+---What a ratings broadcast means for THIS grid (#768 L-8) — the weapons half; see the armour one in
+---DataViewMarks.lua.
+---
+---This is what L-8 was waiting on. A weapon cell has no set id — it is one `(source, type)` pair
+---holding a list of visualIDs — so a `setId` had nothing to narrow here and the grid took a full
+---pass on every armour rating change, including while hidden. Given a `visualID` it can now scope to
+---the cells whose source actually drops that appearance, and an armour-only change skips it outright.
+---@param setId number?  the armour set that changed
+---@param visualID number?  the weapon appearance that changed
+---@return boolean affected  false when nothing here can have changed
+---@return fun(data: table): boolean|nil only  the cell predicate, nil meaning "every cell"
+function WeaponView:_ratingScope(setId, visualID)
+  if setId and not visualID then return false end
+  if not visualID then return true, nil end
+  return true, function(data)
+    local grp = data._source
+    local visuals = grp and grp.types[data._type]
+    if not visuals then return false end
+    for _, v in ipairs(visuals) do
+      if v == visualID then return true end
+    end
+    return false
+  end
+end
+
 -- Show or hide the centered empty-state message, so an empty grid reads as intentionally empty
 -- rather than blank/broken. ResizeRows already collapsed the row area; the shared helper reserves
 -- the height back and the host's onResized refits the window.

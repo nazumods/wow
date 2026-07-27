@@ -173,8 +173,12 @@ function API:OnRatingsChanged(fn) ns:OnRatingsChanged(fn) end
 ---both hosts, the shared dressing room — refreshes. Needed because a consumer that writes a
 ---rating through `ToggleWanted`/`SetBaselineRank` is otherwise invisible to them: the mutators
 ---are plain setters and only the caller knows a change happened (#765).
----@param setId number?  the single armour set that changed, or nil for "several / unknown"
-function API:NotifyRatingsChanged(setId) ns:NotifyRatingsChanged(setId) end
+---@param setId number?  the single armour set that changed
+---@param visualID number?  the single weapon appearance that changed (#768 L-8) — a separate key
+---because the two id spaces are unrelated and each scopes a different grid; both nil still means
+---"several / unknown", the full refresh. Appended rather than replacing `setId`, so a consumer
+---built against the one-argument form keeps working unchanged.
+function API:NotifyRatingsChanged(setId, visualID) ns:NotifyRatingsChanged(setId, visualID) end
 
 ---Register a callback fired when the shared dressing room's previewed set changes, so a
 ---consumer grid can highlight its row. The callback receives the setId (nil on close) and
