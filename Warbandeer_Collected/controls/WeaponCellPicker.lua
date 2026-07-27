@@ -4,7 +4,6 @@ local ns = select(2, ...)
 local ui = ns.ui
 local Frame, Label, Texture = ui.Frame, ui.Label, ui.Texture
 local VirtualList = ui.VirtualList
-local C_Timer = C_Timer
 local GetItemNameByID = C_Item.GetItemNameByID
 local RequestLoadItemDataByID = C_Item.RequestLoadItemDataByID
 local DressingRoom = ns.DressingRoom
@@ -42,28 +41,17 @@ local selBox, SELECTED, IDLE, PAD, ROWH = k.selBox, k.SELECTED, k.IDLE, k.PAD, k
 -- say about one.
 
 local PANEW = 340                              -- docked pane width (wide enough for a name + difficulty tag)
-local GAP   = 6                                -- gap between the window and the pane
+local GAP   = 6                                -- internal spacing between the pane's own control rows
 local ROW_H = 28                               -- list row height
 local BTNW  = 104                              -- hand-button width
-local PANEL = { 0.05, 0.05, 0.06, 0.96 }       -- opaque pane fill (a standalone frame's theme bg is alpha-0)
-local OWNED = { 0.30, 0.85, 0.40 }             -- collected tint
+local OWNED = ns.collectedTint                 -- shared with the look-builder picker (DockedPane.lua)
 local TITLEH = 20                              -- title line height the rows below clear
 local TW, TGAP, CLRW = 30, 3, 24               -- tier-button width / gap / clear-button width (match the room's row)
 
 -- Build the docked pane (an opaque, 1px-outlined panel) + its scrollable look list. Lazy.
 function DressingRoom:_buildCellChooser()
-  local pane = Frame:new{
-    parent = self, background = PANEL,
-    position = {
-      TopLeft    = {self, ui.edge.TopRight, GAP, 0},
-      BottomLeft = {self, ui.edge.BottomRight, GAP, 0},
-      Width = PANEW, Hide = true,
-    },
-  }
-  Texture:new{ parent = pane, layer = ui.layer.Border, color = IDLE,
-    position = { TopLeft = {-1, 1}, BottomRight = {1, -1} } }
-  Label:new{ parent = pane, fontObj = "GameFontNormal",
-    position = { TopLeft = {PAD, -PAD} }, text = "Weapons from this source" }
+  -- Shell from the shared builder (DockedPane.lua); everything below is this pane's own furniture.
+  local pane = self:_buildDockedPane(PANEW, "Weapons from this source")
   self._cellPane = pane
 
   -- The hand buttons get a row of their own so `_rowButton` (DressingRoomOutfits.lua) can lay them
@@ -240,11 +228,7 @@ function DressingRoom:ShowCellChooser(looks)
   self:_syncCellActions()
   if self._picker then self:TogglePicker(false) end   -- same dock edge; last clicked wins
   self._cellPane:Show()
-  if self._cellNameTimer then self._cellNameTimer:Cancel() end
-  self._cellNameTimer = C_Timer.NewTimer(0.3, function()
-    self._cellNameTimer = nil
-    if self._cellPane and self._cellPane._widget:IsShown() then self._cellList:Refresh() end
-  end)
+  self:_fillNamesShortly("cellNames", self._cellPane, self._cellList)
 end
 
 function DressingRoom:HideCellChooser()

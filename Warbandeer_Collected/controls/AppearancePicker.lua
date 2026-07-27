@@ -4,7 +4,7 @@ local ns = select(2, ...)
 local ui = ns.ui
 local Frame, Label, Texture, Button = ui.Frame, ui.Label, ui.Texture, ui.Button
 local FilterDropdown, VirtualList = ui.FilterDropdown, ui.VirtualList
-local GameTooltip, C_Timer = GameTooltip, C_Timer
+local GameTooltip = GameTooltip
 local GetItemNameByID = C_Item.GetItemNameByID
 local RequestLoadItemDataByID = C_Item.RequestLoadItemDataByID
 local QUALITY = _G.ITEM_QUALITY_COLORS   -- [Enum.ItemQuality] = { r, g, b, hex, color }
@@ -24,10 +24,8 @@ local selBox, SELECTED, IDLE, PAD, ROWH = k.selBox, k.SELECTED, k.IDLE, k.PAD, k
 -- to that slot, right-click clears it (DressingRoomWeaponSlots.lua, DressingRoomCosmeticSlots.lua).
 
 local PICKERW = 264               -- docked pane width
-local GAP     = 6                 -- gap between the window and the pane
 local ROW_H   = 34                -- list row height
-local PANEL   = { 0.05, 0.05, 0.06, 0.96 }   -- opaque pane fill (a standalone frame's theme bg is alpha-0)
-local OWNED   = { 0.30, 0.85, 0.40 }         -- collected tint (illusions have no item quality)
+local OWNED   = ns.collectedTint  -- shared with the cell chooser (DockedPane.lua)
 local MARK    = 12                -- collected/wanted marker size
 local NAMEX   = 5 + MARK + 5      -- name inset, clearing the leading collected/missing mark
 
@@ -100,35 +98,16 @@ function DressingRoom:_applyPickerTarget()
   end
 end
 
--- Build the docked pane: an opaque, 1px-outlined panel down the window's right edge, with a drag
--- header, the Weapons|Illusions tab row, the weapon-category dropdown, and the scrollable list.
--- The tabs and dropdown are the weapon target's furniture — a cosmetic target hides both.
+-- Build the docked pane: the shared shell (DockedPane.lua) plus the Weapons|Illusions tab row, the
+-- weapon-category dropdown, and the scrollable list. The tabs and dropdown are the weapon target's
+-- furniture — a cosmetic target hides both.
 function DressingRoom:_buildPicker()
   self:_rescopeWeapons()   -- the dropdown's options need the previewed class's categories
 
-  local pane = Frame:new{
-    parent = self, background = PANEL,
-    position = {
-      TopLeft    = {self, ui.edge.TopRight, GAP, 0},
-      BottomLeft = {self, ui.edge.BottomRight, GAP, 0},
-      Width = PICKERW, Hide = true,
-    },
-  }
-  Texture:new{ parent = pane, layer = ui.layer.Border, color = IDLE,
-    position = { TopLeft = {-1, 1}, BottomRight = {1, -1} } }
-  self._picker = pane
-
-  -- The pane's header strip — it carries the title, nothing more. It used to double as a drag handle
-  -- moving the whole room while undocked, but since #708 the room is ALWAYS docked before this pane
-  -- is built (it builds lazily on the first look-builder open, by which point ShowDressingRoom has
-  -- run DockPanel), so that branch was unreachable and is gone. The host's titlebar moves the cluster.
-  local strip = Frame:new{
-    parent = pane,
-    position = { TopLeft = {1, -1}, TopRight = {-1, -1}, Height = PAD + 18 },
-  }
-  -- Retitled per target (the weapon builder's fixed name, else the cosmetic category's own).
-  self._pickerTitle = Label:new{ parent = strip, fontObj = "GameFontNormal",
-    position = { TopLeft = {PAD, -PAD} }, text = TARGETS.main.title }
+  -- Shell from the shared builder (DockedPane.lua); everything below is this pane's own furniture.
+  -- The title is retitled per target — the weapon builder's fixed name, else the cosmetic category's.
+  local pane, title = self:_buildDockedPane(PICKERW, TARGETS.main.title)
+  self._picker, self._pickerTitle = pane, title
 
   -- Weapons | Illusions mode tabs.
   self._pickerTabs = Frame:new{
@@ -282,13 +261,9 @@ function DressingRoom:_toggleRowWanted(item)
   self._pickerList:Refresh()
 end
 
--- Item names load async; refresh once shortly so blank names fill in (guarded, cancelable).
+-- Item names load async; refresh once shortly so blank names fill in (DockedPane.lua).
 function DressingRoom:_scheduleNameFill()
-  if self._pickerNameTimer then self._pickerNameTimer:Cancel() end
-  self._pickerNameTimer = C_Timer.NewTimer(0.3, function()
-    self._pickerNameTimer = nil
-    if self._picker._widget:IsShown() then self._pickerList:Refresh() end
-  end)
+  self:_fillNamesShortly("pickerNames", self._picker, self._pickerList)
 end
 
 -- Toggle a clicked row into/out of the look, then re-compose. Which look field it lands in is the
