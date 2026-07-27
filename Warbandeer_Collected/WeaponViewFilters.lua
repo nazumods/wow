@@ -24,7 +24,7 @@ function WeaponView.BuildColInfo()
   local cols = lists.map(ns.WeaponTypeOrder, function(t)
     return { name = ns.WeaponTypeAbbr[t], path = ns.WeaponTypeIcon[t],
       vertexColor = usable[t] and USABLE_TINT or DIM_TINT,
-      width = 34, padding = 2, justifyH = ui.justify.Center,
+      width = ns.gridCellWidth, padding = 2, justifyH = ui.justify.Center,
       tooltip = ns.WeaponTypeName[t], backdrop = { color = Colors.TransparentBlack } }
   end)
   return prepend(cols, { name = "", width = 0, backdrop = { color = Colors.TransparentBlack } })
