@@ -113,6 +113,18 @@ describe("GridRowOrder", function()
       local source = { group("A", 2), group("B", nil) }
       assert.same({ 2, 1 }, ns.GridRowOrder(view(), source, none))
     end)
+
+    -- **`reverse` orders EXPANSIONS, not rows.** Only the release comparison honours it; rows within
+    -- one expansion are always alphabetical. So with a single expansion filtered the sort toggle
+    -- legitimately changes nothing — it looks inert but is behaving as designed, and "fixing" it into
+    -- a full reverse would scramble the within-expansion ordering everywhere else.
+    it("leaves the order alone when every row shares one expansion", function()
+      local source = { group("Karazhan", 1), group("Deadmines", 1), group("Zulaman", 1) }
+      local forward = ns.GridRowOrder(view(), source, none)
+      local reversed = ns.GridRowOrder(view{ reverse = true }, source, none)
+      assert.same({ 2, 1, 3 }, forward)   -- alphabetical
+      assert.same(forward, reversed)
+    end)
   end)
 
   -- The contract the lockout panel depends on: a returned value indexes `source`, so for the armour
