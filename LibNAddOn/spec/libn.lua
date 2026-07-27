@@ -13,6 +13,7 @@ local libn = {}
 local FILES = {
   "lua/lua.lua",
   "lua/strings.lua",
+  "lua/signal.lua",
   "lua/lists.lua",
   "lua/maps.lua",
   "lua/sets.lua",

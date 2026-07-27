@@ -40,7 +40,9 @@ end
 -- https://wowpedia.fandom.com/wiki/UIOBJECT_Button
 ---@class Button: Frame
 ---@field _widget table
----@field border table
+---@field border table  the hover-glow texture, absent when `glow = false`
+---@field glow boolean?  false removes the hover glow entirely
+---@field glowAlpha number?  hover-glow opacity 0–1 (default 1) — soften it without removing it
 ---@field cooldown table
 ---@field itemID number
 ---@field spellID number
@@ -87,6 +89,11 @@ local Button = Class(Frame, function(self)
   end
 
   -- hover texture
+  --
+  -- `glowAlpha` softens it without turning it off. It was all-or-nothing before: the texture was
+  -- created with no colour set, so it rendered at full strength, and a caller who found that too
+  -- strong against a dark row had only `glow = false` — which reads as disabled. Default 1 keeps
+  -- every existing button pixel-identical.
   if self.glow ~= false then
     self.border = Texture:new{
       parent = self,
@@ -99,6 +106,7 @@ local Button = Class(Frame, function(self)
       },
       coords = {0.21, 0.77, 0.24, 0.79},
     }
+    if self.glowAlpha then self.border:Alpha(self.glowAlpha) end
   end
 
   -- The cooldown Label is created lazily (see Button:ensureCooldown): a

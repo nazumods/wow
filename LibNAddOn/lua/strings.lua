@@ -33,6 +33,21 @@ function strings.split(token, str)
   return result
 end
 
+---strip leading and trailing whitespace.
+---
+---**`nil` and whitespace-only both give `""`**, deliberately. Every caller in the suite is trimming
+---something a user typed — a text box, a slash-command argument — where absent and blank mean the
+---same thing, and all of them were already written as `(s or ""):match(…)` or `s and s:match(…) or ""`
+---to say so. Returning nil would just move that coercion to twelve call sites. (`stripEscapes` above
+---does pass nil through, because its input is API text where absent and empty differ.)
+---@param str string?  the text to trim; nil is treated as empty
+---@return string  never nil
+function strings.trim(str)
+  if not str then return "" end
+  -- parens collapse match's capture list to the single capture
+  return (str:match("^%s*(.-)%s*$"))
+end
+
 ---format a duration in seconds as a clock string. The shared formatter for run timers,
 ---completion times, cooldowns, etc. (consumed by LibNUI's Timer widget).
 ---@param seconds number?  elapsed/remaining seconds; nil/negative → 0, fractions floored

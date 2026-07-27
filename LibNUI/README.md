@@ -624,6 +624,7 @@ Includes all `Frame` options, plus:
 | `onClick`       | func    | Click handler                                                |
 | `normal`        | table   | `{texture, coords}` for normal state texture                 |
 | `glow`          | bool    | Show border glow on hover (default `true`)                   |
+| `glowAlpha`     | number  | Glow opacity 0–1 (default `1`). Softens the hover glow without removing it — `glow = false` is the only other lever, and a button with no glow at all reads as disabled |
 | `bindLeftClick` | string  | Keybind string — wires `SetOverrideBindingClick`             |
 | `kbLabel`       | bool    | Show keybind label (default `true` when `bindLeftClick` set) |
 | `tooltip`       | table   | Tooltip content: `{itemId, spellId, toyId, mountSpellId, owner, point}` |
@@ -1082,8 +1083,11 @@ Inherits `Frame`. Uses `InputBoxTemplate`. Auto-focus is off by default.
 | `autoFocus`      | bool   | Focus on creation (default `false`) |
 | `cursorPosition` | number | Initial cursor position             |
 | `scripts`        | table  | Additional scripts                  |
+| `placeholder`    | string | Muted prompt shown while the box is empty |
+| `placeholderColor` | string / rgba | Its colour (default `"muted"`) |
+| `placeholderInset` | table | `{left, right}` px insets (default `{6, -4}`) |
 
-Pre-registered scripts: `OnEditFocusLost`, `OnEnterPressed`, `OnEscapePressed`
+Pre-registered scripts: `OnEditFocusLost`, `OnEnterPressed`, `OnEscapePressed`, `OnTextChanged`
 
 ### Methods
 
@@ -1093,6 +1097,13 @@ Pre-registered scripts: `OnEditFocusLost`, `OnEnterPressed`, `OnEscapePressed`
 | `CursorPosition(pos)`| Get/set cursor position                           |
 | `HighlightText(s, e)`| Highlight a range (whole text if no args)         |
 | `Font(fontInfo)`     | Get/set the font as a `{path, size[, flags]}` tuple |
+| `Placeholder(text)`  | Get/set the prompt; builds it on first use        |
+
+The placeholder is parented to the EditBox itself rather than any framing box, so it sits on
+exactly the edge the typed text will land on, and it shows whenever the box is empty — focused or
+not. It stays in step **without taking `OnTextChanged` from you**: an `OnTextChanged` you supply is
+wrapped, not replaced. `Text()` syncs it too, so setting text in code hides the prompt just as
+typing does.
 
 ---
 
@@ -1124,6 +1135,7 @@ are unaffected.
 | `VerticalScroll(offset)`| Get/set vertical offset (pixels); clamped to range when setting. Syncs the themed scrollbar thumb when one is built |
 | `Refresh()`             | Recompute the scroll range (via `UpdateScrollChildRect`) after the child's content extent changed, then re-clamp the offset so it can't stay scrolled into empty space, and re-fit the themed scrollbar. The range tracks the child's **content extent** (its shown sub-frames), not its set height — a caller that shrinks the child must also hide the frames below (see `TableFrame:ResizeRows`) or the range stays full |
 | `Scrolls()`             | Whether the content currently overflows the viewport (the view can scroll / the themed scrollbar is showing). The single truth behind both scroll affordances — the same range `_syncScrollbar` reads — so a consumer reserving a scrollbar gutter can gate it on this and stay in lockstep with the bar's own show/hide |
+| `EnsureVisible(top, height)` | Scroll the **minimum** distance that brings a band of content into view — a band already visible doesn't move the view at all. `top` is measured from the top of the scroll **child**, which is the space a list already has for its rows (element *i* starts at `(i - 1) * rowHeight`). Minimum-distance rather than centring, so arrowing through a list nudges the view one row instead of jumping the target to mid-viewport each press. Clamping is `VerticalScroll`'s, so a band past the end of the content settles at the bottom |
 
 ---
 

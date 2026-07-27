@@ -101,4 +101,36 @@ describe("ns.lua.strings", function()
       assert.equals(1, select("#", strings.stripEscapes("|cffffffffx|r")))
     end)
   end)
+
+  describe("trim", function()
+    it("strips both ends", function()
+      assert.equals("Alpha", strings.trim("  Alpha  "))
+    end)
+
+    it("strips tabs and newlines, not just spaces", function()
+      assert.equals("Alpha", strings.trim("\t\nAlpha \n"))
+    end)
+
+    it("keeps interior whitespace", function()
+      assert.equals("Alpha  Beta", strings.trim("  Alpha  Beta  "))
+    end)
+
+    it("leaves an already-trimmed string alone", function()
+      assert.equals("Alpha", strings.trim("Alpha"))
+    end)
+
+    -- Both give "" rather than nil: every caller is trimming user input, where absent and blank
+    -- mean the same thing. Unlike stripEscapes above, which preserves nil on purpose.
+    it("returns an empty string for nil", function()
+      assert.equals("", strings.trim(nil))
+    end)
+
+    it("returns an empty string for whitespace only", function()
+      assert.equals("", strings.trim("   \t "))
+    end)
+
+    it("returns a single value (match capture list not leaked)", function()
+      assert.equals(1, select("#", strings.trim(" x ")))
+    end)
+  end)
 end)

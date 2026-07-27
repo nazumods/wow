@@ -15,6 +15,7 @@ lua/sets.lua
 lua/lists.lua
 lua/class.lua
 lua/strings.lua
+lua/signal.lua
 
 slashCommands.lua
 
