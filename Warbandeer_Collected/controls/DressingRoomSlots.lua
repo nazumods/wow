@@ -187,7 +187,7 @@ function DressingRoom:UpdateSlots()
   local missing = false
   for _, e in ipairs(self._slots) do
     -- Cosmetic slots (shirt/tabard) are picker-driven, not set pieces — a set never carries one,
-    -- so there is nothing to look up here. UpdateCosmeticSlots owns them. #641.
+    -- so there is nothing to look up here. UpdateLookSlots owns them. #641.
     if not e.cosmetic then
       local sources = GetSourcesForSlot(set.id, e.slotID)
       local _, p = find(sources, function(s) return primary[s.sourceID] end)

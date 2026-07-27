@@ -8,10 +8,6 @@ local DressingRoom = ns.DressingRoom
 -- The one slot state this file has to tell apart from the others — a hidden slot composes as its
 -- hide visual, an empty one as 0 (DressingRoomSlotStates.lua owns the cycle).
 local HIDDEN = DressingRoom._k.HIDDEN
--- Slot status colors, matching the armor columns' green/red (DressingRoomSlotStates.lua owns the
--- originals; outfit mode paints the same slots, so it has to agree with them).
-local OUTFIT_GREEN = {0, 104/255, 55/255, 1}
-local OUTFIT_RED   = {165/255, 0, 38/255, 1}
 
 -- The room-coupled half of the outfit layer: turning what the dressing room is currently
 -- showing into an `itemTransmogInfoList`, and dressing the room from one. Reopens the
@@ -179,8 +175,7 @@ function DressingRoom:ApplyOutfit(list)
   self._lookTabard    = pick(list[INVSLOT_TABARD])
   self._lookNoOH      = suppressesOffHand(self._lookMH) or nil
 
-  self:UpdateWeaponSlots()
-  self:UpdateCosmeticSlots()
+  self:UpdateLookSlots()
   return self
 end
 
@@ -244,8 +239,8 @@ end
 
 ---Fill the armor slots from the applied outfit instead of from a previewed set — the outfit-mode
 ---counterpart of `UpdateSlots`. Same icon/status/retry behaviour, but each slot reads its
----appearance straight out of the list. Cosmetic slots are skipped as ever (UpdateCosmeticSlots
----owns them, and ApplyOutfit already fed them from the same list).
+---appearance straight out of the list. Cosmetic slots are skipped as ever (UpdateLookSlots owns
+---them, and ApplyOutfit already fed them from the same list).
 ---@param retry boolean?  internal: true on the self-scheduled re-run
 function DressingRoom:UpdateSlotsFromOutfit(retry)
   local list = self._outfit
@@ -267,7 +262,7 @@ function DressingRoom:UpdateSlotsFromOutfit(retry)
         -- the preview's own hidden state does, rather than claiming a collected/missing status for
         -- the Hidden item. Its icon is already the game's Hidden art, straight off the source.
         e.border:Color(ns.IsHideVisual(e.slotID, appearanceID) and DressingRoom._k.IDLE
-          or (src.isCollected and OUTFIT_GREEN or OUTFIT_RED))
+          or (src.isCollected and ns.slotOK or ns.slotMissing))
       else
         -- Empty slot in the outfit: the same "nothing here" marker an unused set slot shows.
         e.itemID = nil

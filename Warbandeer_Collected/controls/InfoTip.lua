@@ -163,7 +163,7 @@ local function render(group, set, parent, position)
       end
       _tooltip.items.data[i][1] = name and {
         text = name,
-        color = isCollected and { 0, 104/255, 55/255} or {165/255, 0, 38/255},
+        color = isCollected and ns.slotOK or ns.slotMissing,
        } or ""
     end
   end

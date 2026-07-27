@@ -58,6 +58,7 @@ controls\DressingRoomModel.lua
 controls\DressingRoomSlots.lua
 controls\DressingRoomSlotStates.lua
 controls\AppearancePicker.lua
+controls\DressingRoomLookSlots.lua
 controls\WeaponPicker.lua
 controls\CosmeticPicker.lua
 controls\DressingRoomWeaponSlots.lua

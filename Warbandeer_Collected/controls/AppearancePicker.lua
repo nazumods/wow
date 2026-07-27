@@ -86,9 +86,8 @@ function DressingRoom:TogglePicker(force, target)
     self:HideCellChooser()
   end
   self._picker:SetShown(force)
-  -- Reflect the open/targeted state on both sets of slot borders.
-  self:UpdateWeaponSlots()
-  self:UpdateCosmeticSlots()
+  -- Reflect the open/targeted state on the slot borders.
+  self:UpdateLookSlots()
 end
 
 -- Re-shape the pane for the current target and repopulate its list. The two branches live in the
@@ -331,8 +330,7 @@ function DressingRoom:_applyLook()
   -- carry either, so these two slots are picker-only and this is their sole apply path (#641).
   if self._lookShirt then m:SlotTransmog(INVSLOT_BODY, self._lookShirt) else self:_bareSlot(INVSLOT_BODY) end
   if self._lookTabard then m:SlotTransmog(INVSLOT_TABARD, self._lookTabard) else self:_bareSlot(INVSLOT_TABARD) end
-  self:UpdateWeaponSlots()     -- keep the bottom weapon slots showing the current look
-  self:UpdateCosmeticSlots()   -- …and the shirt/tabard slots in the left column
+  self:UpdateLookSlots()   -- the bottom weapon slots and the left column's shirt/tabard
 end
 
 -- Take one composed-look slot off the model outright.
