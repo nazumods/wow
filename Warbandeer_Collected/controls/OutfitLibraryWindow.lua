@@ -4,11 +4,10 @@ local ns = select(2, ...)
 local ui = ns.ui
 local Class = ns.lua.Class
 local TitleFrame, Frame, Label, EditBox = ui.TitleFrame, ui.Frame, ui.Label, ui.EditBox
-local Button, FilterDropdown, VirtualList = ui.Button, ui.FilterDropdown, ui.VirtualList
--- The room's own framed-box helper, rather than a copy that would drift from the row this window
--- opens from. `_k` is the addon's shared control-chrome table; the other controls/ files read it
--- the same way (they reopen DressingRoom, this is a peer window).
-local selBox = ns.DressingRoom._k.selBox
+local FilterDropdown, VirtualList = ui.FilterDropdown, ui.VirtualList
+-- The shared framed box (#770 step 6). This used to reach `ns.DressingRoom._k.selBox` — a peer
+-- window depending on the room for chrome — which `chrome.lua` now owns for all three surfaces.
+local selBox = ns.SelBox
 
 -- The **outfit library window** (#662): filter and search the account-wide library (#655), which
 -- the dressing room's outfit row can otherwise only offer as a flat 150px dropdown. Once a library
@@ -199,13 +198,10 @@ OutfitLibraryWindow._k = {
 ---@param label string
 ---@param onClick fun()
 ---@return Frame  the box, carrying `label` (the caption) and `border` (the selection frame)
+---@return table  the shared `{ box, border, label, text, disabled }` handle (#770 step 6)
 function OutfitLibraryWindow:_paneButton(parent, x, w, label, onClick)
-  local box = Frame:new{ parent = parent, position = { TopLeft = {x, 0}, Width = w, Height = STRIPH } }
-  box.border = selBox(box)
-  box.label = Label:new{ parent = box, justifyH = ui.justify.Center, wordWrap = false,
-    position = { Left = {2, 0}, Right = {-2, 0} }, text = label }
-  Button:new{ parent = box, position = { All = true }, OnClick = onClick }
-  return box
+  return ns.RowButton{ parent = parent, x = x, w = w, label = label,
+    onClick = onClick, height = STRIPH }
 end
 
 ---Select a look: show it on the preview model and point the verbs at it. **This is the whole of
