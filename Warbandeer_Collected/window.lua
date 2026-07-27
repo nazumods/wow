@@ -211,9 +211,8 @@ function MainWindow:SetMode(weapons)
   -- the counter rides the strip row (right of the dropdowns); armor keeps it over the header.
   self.counter:Position(weapons and { TopLeft = {self.weaponStrip, ui.edge.TopRight, 12, -3} }
     or { TopLeft = {self.filterStrip, ui.edge.TopRight, 12, -3} })
-  self:Width(max(110, self.active:Width() + (weapons and 20 or 4)))   -- +scrollbar room in weapon mode
   self:RefreshCounter()
-  self:_fitToGrid()
+  self:_fitToGrid()   -- sizes BOTH axes now (#768 L-4), so the mode swap needs no width of its own
   -- The preview window is deliberately NOT touched here (#673). It used to be: with two dolls, one
   -- per view, the toggle had to swap which was on screen or toggling back to Armor left a weapon on
   -- the model (#656). There is one doll now — the armour set and the browsed weapon are on it
@@ -227,6 +226,12 @@ end
 ---the window shrinks to the filtered row count and the scroll range refits — no overscroll.
 function MainWindow:_fitToGrid()
   local grid, scroll = self.active or self.data, self.activeScroll or self.scroll
+  -- Width as well as height (#768 L-4). `ns.FitNameCol` widens the name column and returns true so
+  -- "the host should refit", but this only ever adjusted height — so on the login path, where the
+  -- deferred second measurement (#718's repair) supplies the real width, the grid grew and the
+  -- window didn't, pushing the rightmost column past the edge. Only `SetMode` re-widened, so Armor
+  -- mode stayed clipped for the rest of the session unless you toggled to Weapons and back.
+  self:Width(max(110, grid:Width() + (self._weaponsMode and 20 or 4)))
   local capH = min(grid.MAX_HEIGHT, grid.rowArea:Height())
   self:Height(self.titlebar:Height() + self._top + grid.headerHeight + capH + 4)
   scroll:Refresh()   -- the scroll frame tracks the window's BottomRight; recompute its range
