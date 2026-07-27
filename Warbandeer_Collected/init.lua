@@ -36,7 +36,14 @@ function ns:MigrateDB()
   -- v4: remembered window positions, written on drag-stop and restored on open
   -- (shape { point, relPoint, x, y }), so a window doesn't re-center after a
   -- /reload. Seeded empty; populated by TitleFrame:RememberPosition.
-  if not db.dressPos then db.dressPos = {} end   -- set-preview (dressing room) window
+  --
+  -- **dressPos is DEAD but retained** (#769 L-12). Since the workspace docking of #708/#713 the
+  -- dressing room is a child of its host and carries no position of its own — only the host
+  -- persists one, in windowPos. The key stays because the DB rule is non-destructive: a user must
+  -- be able to roll back to an earlier revision without data loss, and a cleanup belongs in an
+  -- explicit command, never an automatic wipe. (libraryPos below is NOT dead — #767 L-3 brought it
+  -- back for a library floating free of any host.)
+  if not db.dressPos then db.dressPos = {} end   -- DEAD since #713; retained per the DB rule
   if not db.windowPos then db.windowPos = {} end -- main collection window
   -- v5: per-appearance weapon Wanted flags for the Weapons view, keyed by the globally-unique
   -- ItemAppearanceID (visualID). Independent of the set `wanted` table (which is keyed by setId).

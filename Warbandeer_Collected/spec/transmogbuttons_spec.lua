@@ -16,12 +16,6 @@ local REPLACE_POPUP = "WARBANDEER_COLLECTED_REPLACE_LOOK"
 -- merely "something did".
 ---@param head number
 ---@return table[]
-local function lookWith(ns, head)
-  local list = ns.EmptyOutfitList()
-  list[INVSLOT_HEAD].appearanceID = head
-  return list
-end
-
 -- Type a name into the Save popup and accept it — the click that commits, and so the moment the
 -- look is captured. `editBox` is the plain-field half of the two shapes `editBoxOf` accepts.
 local function nameIt(env, name)
@@ -42,19 +36,19 @@ describe("transmogrifier save flow", function()
 
   describe("the replace confirm", function()
     it("stores the look it asked about, not whatever is on the model when Yes is clicked", function()
-      env.model = lookWith(ns, 111)
+      env.model = collected.lookWith(ns, 111)
       nameIt(env, "Boylane 3")
       assert.equal(111, storedHead(ns, "Boylane 3"))
 
       -- Save again under the same name: this is the click that arms the confirm, and so the look
       -- the confirm is about.
-      env.model = lookWith(ns, 222)
+      env.model = collected.lookWith(ns, 222)
       nameIt(env, "Boylane 3")
       assert.equal(REPLACE_POPUP, env.shown[#env.shown].which)
       assert.equal(111, storedHead(ns, "Boylane 3"))
 
       -- Leave the question hanging and stage something else entirely.
-      env.model = lookWith(ns, 333)
+      env.model = collected.lookWith(ns, 333)
 
       env.dialogs[REPLACE_POPUP].OnAccept()
       assert.equal(222, storedHead(ns, "Boylane 3"))
@@ -62,10 +56,10 @@ describe("transmogrifier save flow", function()
     end)
 
     it("replaces under the library's own spelling of the name (#728)", function()
-      env.model = lookWith(ns, 111)
+      env.model = collected.lookWith(ns, 111)
       nameIt(env, "Boylane 3")
 
-      env.model = lookWith(ns, 222)
+      env.model = collected.lookWith(ns, 222)
       nameIt(env, "boylane 3")
       -- The popup has to name the entry actually at risk, not what was typed.
       assert.equal("Boylane 3", env.shown[#env.shown].data)
@@ -77,10 +71,10 @@ describe("transmogrifier save flow", function()
     end)
 
     it("saves nothing once the question has been answered No", function()
-      env.model = lookWith(ns, 111)
+      env.model = collected.lookWith(ns, 111)
       nameIt(env, "Boylane 3")
 
-      env.model = lookWith(ns, 222)
+      env.model = collected.lookWith(ns, 222)
       nameIt(env, "Boylane 3")
       env.dialogs[REPLACE_POPUP].OnCancel()
 
@@ -97,14 +91,14 @@ describe("transmogrifier save flow", function()
 
   describe("a name not yet in the library", function()
     it("saves the captured look straight away, with no confirm", function()
-      env.model = lookWith(ns, 111)
+      env.model = collected.lookWith(ns, 111)
       nameIt(env, "TWW 1")
       assert.equal(0, #env.shown)
       assert.equal(111, storedHead(ns, "TWW 1"))
     end)
 
     it("stamps provenance from the look being saved", function()
-      local staged = lookWith(ns, 111)
+      local staged = collected.lookWith(ns, 111)
       env.model = staged
       nameIt(env, "TWW 1")
       assert.equal(1, #env.meta)
@@ -117,7 +111,7 @@ describe("transmogrifier save flow", function()
   -- never could have happened.
   describe("a look that can't be read", function()
     local function seedAndRetry(name)
-      env.model = lookWith(ns, 111)
+      env.model = collected.lookWith(ns, 111)
       nameIt(env, name)
       env.shown = {}
     end
@@ -142,7 +136,7 @@ describe("transmogrifier save flow", function()
 
     it("won't prompt or save while item data is still streaming", function()
       seedAndRetry("Boylane 3")
-      env.model, env.pending = lookWith(ns, 222), true
+      env.model, env.pending = collected.lookWith(ns, 222), true
       nameIt(env, "Boylane 3")
       assert.equal(0, #env.shown)
       assert.equal(111, storedHead(ns, "Boylane 3"))
@@ -150,7 +144,7 @@ describe("transmogrifier save flow", function()
     end)
 
     it("won't read the model at all for a blank name", function()
-      env.model = lookWith(ns, 111)
+      env.model = collected.lookWith(ns, 111)
       nameIt(env, "   ")
       assert.equal(0, #env.shown)
       assert.equal(0, #ns.LibraryOutfits())
