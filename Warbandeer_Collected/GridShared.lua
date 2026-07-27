@@ -24,10 +24,94 @@ local GameTooltip = GameTooltip
 ---@field FitNameCol fun(grid: table, nameCol: number): boolean
 ---@field GridMatches fun(view: table, grp: table): boolean
 ---@field CategoryOptions fun(source: table[], order: string[]): table[]
+---@field BuildGridStrip fun(grid: table, parent: table, onModeChanged: fun()?, words: string): table
 ---@field EnsureDressedCursor fun(grid: table)
 ---@field HighlightGridCell fun(grid: table, match: (fun(data: table): boolean)?, scroll: boolean?)
 ---@field expansionBadgeOptions fun(source: table[]): table[]
 ---@field filterToggle fun(strip: table, theme: table, spec: table): table, table
+
+-- ─── The filter strip ────────────────────────────────────────────────────────
+
+---Build the filter chrome both grids sit under: PTR pill → Wanted ★ → sort → Expansion dropdown →
+---Category dropdown, in that order, themed from the grid's own theme.
+---
+---This was ~50 executable lines written out twice (#770 step 9) — same locals, same control order,
+---same `_repaintPtr`/`_syncWantedBtn` closures, same closing width. Each class keeps a three-line
+---`BuildFilterStrip` supplying only `words`, the noun its tooltips read in.
+---
+---**The sort handler fires `onResized` for both grids now**, where only the weapon strip did. The
+---two were split on it and the plan decided in favour of calling it: `onResized` is `_fitToGrid` in
+---both hosts — idempotent, no data effect — so the armour grid gains a harmless refit and the two
+---call sites become identical, which is what makes the extraction clean rather than conditional.
+---@param grid table  a DataView / WeaponView instance
+---@param parent table  frame to parent the strip to
+---@param onModeChanged fun()?  fired after the PTR toggle or either dropdown changes the shown rows
+---@param words string  plural noun for the ★ tooltips ("sets" / "weapons")
+---@return table strip
+function ns.BuildGridStrip(grid, parent, onModeChanged, words)
+  local theme = grid:Theme()
+  -- Dark's `header` token is the same gold, so the toggles read on/off without void-dark.
+  local gold, divider = theme.colors.gold or theme.colors.header, theme.colors.divider
+  -- Expansion names get long ("Wrath of the Lich King"), so that dropdown is wider.
+  local BW, BH, GAP, DW, DW_EXP = 48, grid.STRIP_H, 6, 110, 190
+  local IB = BH
+  local TEX = [[Interface\AddOns\Warbandeer_Collected\textures\]]
+  local NEWEST_ICON, OLDEST_ICON = TEX .. "sort-newest", TEX .. "sort-oldest"
+  local strip = ui.Frame:new{ parent = parent, position = { Height = BH } }
+
+  -- Each toggle is the shared filter-strip button primitive (border + icon pill / caption + Button);
+  -- it reads the strip's height + the grid theme, so the call just supplies x / face / handlers.
+  local function toggle(spec) return ns.filterToggle(strip, theme, spec) end
+
+  -- Running x cursor, since the icon toggles are narrower than the text pill.
+  local x = 0
+  local ptrBorder, wantedBorder, sortIcon
+  ptrBorder = toggle{ x = x, text = "PTR", active = false, onClick = function()
+    grid:SetPtr(not grid._ptr)   -- repaints the border via _repaintPtr below
+    if onModeChanged then onModeChanged() end
+  end }
+  -- Lets SetPtr repaint the border when the state is set programmatically (the Armor/Weapons swap
+  -- carries the PTR mode across, so both grids' toggles stay in sync — see the host's SetMode).
+  grid._repaintPtr = function(on) ptrBorder:Color(on and gold or divider) end
+  x = x + BW + GAP
+
+  wantedBorder = toggle{ x = x, atlas = ns.WantedIcon, tint = false, active = false,
+    tip = function()
+      return grid._wantedOnly and ("Wanted only — click to show all %s"):format(words)
+                              or  ("Show only %s you've flagged wanted"):format(words)
+    end,
+    onClick = function() grid:ToggleWanted() end }
+  -- Let other chrome (the wanted-count counter) drive the same toggle and keep the button's border
+  -- in sync (the star keeps its natural gold).
+  grid._syncWantedBtn = function() wantedBorder:Color(grid._wantedOnly and gold or divider) end
+  x = x + IB + GAP
+
+  -- Neutral border (always-on control, no active-highlight glow); the gold calendar glyph carries
+  -- the direction. Only the icon face is captured (swapped on toggle).
+  sortIcon = select(2, toggle{ x = x, tex = NEWEST_ICON, tint = gold,
+    tip = function() return grid._reverse and "Newest first — click for oldest first"
+                                           or "Oldest first — click for newest first" end,
+    onClick = function()
+      local rev = grid:ToggleOrder()
+      sortIcon:Texture(rev and NEWEST_ICON or OLDEST_ICON)
+      if grid.onResized then grid:onResized() end
+    end })
+  x = x + IB + GAP
+
+  local dx = x
+  ui.FilterDropdown:new{
+    parent = strip, position = { TopLeft = {dx, 0} }, width = DW_EXP, menuWidth = 200,
+    bordered = true, selected = "all", options = grid:ExpansionOptions(),
+    onSelect = function(_, key) grid:SetExpansion(key); if onModeChanged then onModeChanged() end end,
+  }
+  ui.FilterDropdown:new{
+    parent = strip, position = { TopLeft = {dx + DW_EXP + GAP, 0} }, width = DW, menuWidth = 120,
+    bordered = true, selected = "all", options = grid:CategoryOptions(),
+    onSelect = function(_, key) grid:SetCategory(key); if onModeChanged then onModeChanged() end end,
+  }
+  strip:Width(dx + DW_EXP + GAP + DW)
+  return strip
+end
 
 -- ─── Shared filtering ────────────────────────────────────────────────────────
 -- Both grids filter rows the same way and build their category dropdown the same way; these were

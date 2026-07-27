@@ -6,5 +6,6 @@
 ## IconTexture: Interface\Icons\Ability_Rogue_Disguise
 ## Dependencies: LibNAddOn, LibNUI
 ## X-NUI-UI: LibNUI
+## X-Curse-Project-ID: 1627667
 
 Model.lua

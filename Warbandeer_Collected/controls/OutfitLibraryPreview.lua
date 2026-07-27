@@ -3,11 +3,10 @@ local ns = select(2, ...)
 ---@type LibNUI
 local ui = ns.ui
 local Frame, Label, EditBox, Model = ui.Frame, ui.Label, ui.EditBox, ui.Model
-local C_Timer = C_Timer
 local OutfitLibraryWindow = ns.OutfitLibraryWindow
 local k = OutfitLibraryWindow._k
-local roomK = ns.DressingRoom._k
-local selBox, IDLE, SELECTED = roomK.selBox, roomK.IDLE, roomK.SELECTED
+-- The armed border colours and the countdown budget went with the gesture, into chrome.lua.
+local selBox = ns.SelBox
 local RIGHTW, GAP, STRIPH, LISTH = k.RIGHTW, k.GAP, k.STRIPH, k.LISTH
 
 -- The library window's **right column** (#699): a model showing the selected look, what is known
@@ -40,7 +39,6 @@ local MODELH = PANEH - 86 - MODEL_TOP
 -- What everything below the model hangs from, so the inset is only applied once.
 local MODEL_BOTTOM = MODEL_TOP + MODELH
 local BTNW = 80          -- three verbs across RIGHTW with the gaps
-local CONFIRM_S = 4      -- seconds an armed button stays armed before reverting, as the room uses
 local NO_SELECTION = "Select a look to preview it."
 
 ---@class OutfitLibraryWindow
@@ -49,7 +47,7 @@ local NO_SELECTION = "Select a look to preview it."
 ---@field _previewOrigin Label  its provenance, or the muted "nothing selected" prompt
 ---@field _renameBox EditBox  the new name Rename applies
 ---@field _armed Frame?  the verb awaiting its confirming second click
----@field _armedLabel string?  that verb's resting caption, to restore when it disarms
+---@field _armedFor string?  the look that verb was armed about — an arm authorises acting on THAT one only
 ---@field _armTimer table?  the 1s ticker that counts the armed caption down and reverts it
 
 ---Build the right column. Anchored off the filter strip so the two columns share a top edge, and
@@ -121,29 +119,15 @@ end
 ---@param lapsed string  past participle for the lapse notice ("deleted", "replaced")
 ---@param subject string  the look the lapse notice names
 function OutfitLibraryWindow:_arm(btn, caption, lapsed, subject)
-  self:_disarm()
-  self._armed, self._armedLabel = btn, btn.label:Text()
-  btn.border:Color(SELECTED)
-  local left = CONFIRM_S
-  local function paint() btn.label:Text(("%s %d"):format(caption, left)) end
-  paint()
-  self._armTimer = C_Timer.NewTicker(1, function()
-    left = left - 1
-    if left > 0 then return paint() end
-    self._armTimer = nil
-    self:_disarm()
-    ns.Print(("Confirmation expired — \"%s\" was not %s."):format(subject, lapsed))
-  end, CONFIRM_S)
+  -- The shared controller (#770 step 7). State stays on `self`, which is what lets this pane and the
+  -- dressing room each hold an arm at once with the workspace docked (#713). The resting caption is
+  -- read back from the button handle now, so `_armedLabel` is gone.
+  ns.ArmConfirm(self, btn, caption, lapsed, subject)
 end
 
 ---Revert whatever is armed, stopping its countdown. Safe to call when nothing is.
 function OutfitLibraryWindow:_disarm()
-  if self._armTimer then self._armTimer:Cancel(); self._armTimer = nil end
-  if self._armed then
-    self._armed.label:Text(self._armedLabel)
-    self._armed.border:Color(IDLE)
-    self._armed, self._armedLabel = nil, nil
-  end
+  ns.Disarm(self)
 end
 
 ---Enable or grey the three verbs that act on a selection. Built lazily like everything else in this
@@ -222,7 +206,9 @@ end
 
 ---Delete the selected look. Arms first — the second click inside CONFIRM_S commits.
 function OutfitLibraryWindow:DeleteSelected()
-  local armed = self._armed == self._deleteBtn
+  -- Bound to the look it was armed ABOUT (#770 step 7). Selection changes already disarm through
+  -- `_showPreview`, so this is belt-and-braces here — but it is the same rule every surface follows.
+  local armed = ns.ArmedFor(self, self._deleteBtn, self._selected)
   self:_disarm()
   if not self._selected then
     ns.Print("Pick a look to delete.")
@@ -244,30 +230,17 @@ end
 ---transmogrifier — the bridge from our account-wide store to the game's per-character one, and the
 ---only place Blizzard's name filter and 25-set cap apply.
 function OutfitLibraryWindow:PushSelected()
-  local armed = self._armed == self._pushBtn
+  local armed = ns.ArmedFor(self, self._pushBtn, self._selected)   -- bound to its subject (#770 step 7)
   self:_disarm()
   if not self._selected then
     ns.Print("Pick a look to push.")
     return
   end
-  local list, err = ns.LibraryOutfitList(self._selected)
-  if not list then
-    ns.Print("Couldn't read that look: " .. err)
-    return
-  end
-  local existing
-  for _, s in ipairs(ns.CustomSets()) do if s.name == self._selected then existing = s.id end end
-  if existing and not armed then
-    -- Named in chat rather than on the button, exactly as the room's Push does.
-    ns.Print(("\"%s\" is already one of this character's sets — click Push again to replace it.")
-      :format(self._selected))
+  -- Shared rule (#770 step 8) — this pane and the room's outfit row had byte-identical copies of the
+  -- whole of Push, chat strings included. Only the arming and the printing are this surface's.
+  local res = ns.PushLookToCharacter(self._selected, armed)
+  ns.Print(res.message)
+  if res.needsConfirm then
     self:_arm(self._pushBtn, "Sure?", "replaced", self._selected)
-    return
   end
-  local id, saveErr = ns.SaveCustomSet(self._selected, list, existing)
-  if not id then
-    ns.Print("Couldn't push: " .. saveErr)
-    return
-  end
-  ns.Print(("Pushed \"%s\" to this character's transmog sets."):format(self._selected))
 end

@@ -90,7 +90,7 @@ function DressingRoom:SaveOutfit(retry)
     -- live name field on every entry and on every retry, so retyping the field between the two
     -- clicks turned an arm taken for `Alpha` into silent permission to replace `Beta`. Captured
     -- before the disarm below drops it, and held in a field so the retry chain carries it.
-    self._saveArmedFor = self._armed == self._outfitSave and self._armedFor or nil
+    self._saveArmedFor = ns.ArmedSubject(self, self._outfitSave)
     self:_disarmOutfit()
     self:_cancelSaveRetry()
   end
@@ -184,7 +184,10 @@ end
 
 ---Delete the selected look. Arms first — the second click inside CONFIRM_S commits.
 function DressingRoom:DeleteOutfit()
-  local armed = self._armed == self._outfitDelete
+  -- Bound to the look it was armed ABOUT, not merely "was something armed" (#770 step 7 generalises
+  -- #759's rule). Moving the dropdown between the two clicks now re-arms for the new look instead of
+  -- deleting it on an answer given about a different one.
+  local armed = ns.ArmedFor(self, self._outfitDelete, self._outfitSel)
   self:_disarmOutfit()
   -- Deleting the entry a pending save is about to write is the one ordering that loses the delete:
   -- the retry would recreate it seconds later (#759).
@@ -208,33 +211,18 @@ end
 ---transmogrifier. The bridge between our account-wide library and the game's per-character store;
 ---an existing set of the same name is replaced after asking.
 function DressingRoom:PushOutfit()
-  local armed = self._armed == self._outfitPush
+  local armed = ns.ArmedFor(self, self._outfitPush, self._outfitSel)   -- bound to its subject (#770 step 7)
   self:_disarmOutfit()
   if not self._outfitSel then
     ns.Print("Pick a saved look to push.")
     return
   end
-  local list, err = ns.LibraryOutfitList(self._outfitSel)
-  if not list then
-    ns.Print("Couldn't read that look: " .. err)
-    return
-  end
-  local existing
-  for _, s in ipairs(ns.CustomSets()) do if s.name == self._outfitSel then existing = s.id end end
-  if existing and not armed then
-    -- Say WHAT is at risk, as Save does: the armed caption is a bare "Sure?" (the seconds count in
-    -- it, leaving no room for a name at 62px), so without this line the question names nothing.
-    ns.Print(("\"%s\" is already one of this character's sets — click Push again to replace it.")
-      :format(self._outfitSel))
+  -- The decision is `ns.PushLookToCharacter` (outfitverbs.lua, #770 step 8), shared with the library
+  -- window's pane, which held a byte-identical copy of it. What stays here is this surface's own
+  -- chrome: arming its button, and printing.
+  local res = ns.PushLookToCharacter(self._outfitSel, armed)
+  ns.Print(res.message)
+  if res.needsConfirm then
     self:_armOutfit(self._outfitPush, "Sure?", "replaced", self._outfitSel)
-    return
   end
-  -- `ns.SaveCustomSet` is where Blizzard's rules bite: the name filter and the 25-set cap apply to
-  -- their store, never to ours.
-  local id, saveErr = ns.SaveCustomSet(self._outfitSel, list, existing)
-  if not id then
-    ns.Print("Couldn't push: " .. saveErr)
-    return
-  end
-  ns.Print(("Pushed \"%s\" to this character's transmog sets."):format(self._outfitSel))
 end
