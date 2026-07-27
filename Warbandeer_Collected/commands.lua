@@ -254,7 +254,10 @@ function ns:Scan()
     -- Unconditional is the point: `OnRatingsChanged` (window.lua) rebuilds only when `_wantedOnly`
     -- and otherwise just re-marks, which is right for a rating change and a no-op for this one —
     -- a scan changes the collected counts every cell is drawn from, not which rows pass a filter.
-    for _, grid in ipairs({ ns.window.data, ns.window.weapons }) do
+    -- `Grids()` and not a literal pair: the weapons grid is built lazily on the first switch to it
+    -- (#770 step 19), and a grid that doesn't exist yet has no stale counts to refresh — it reads
+    -- them when it's built.
+    for _, grid in ipairs(ns.window:Grids()) do
       grid.data = grid:GetData()
       grid:update()
     end
@@ -287,7 +290,7 @@ ns:registerCommand("refresh", nil, function()
     ns.Print("The Collected window isn't open — /collected opens it.")
     return
   end
-  for _, grid in ipairs({ ns.window.data, ns.window.weapons }) do
+  for _, grid in ipairs(ns.window:Grids()) do
     grid.data = grid:GetData()
     grid:update()
     if grid.onResized then grid:onResized() end
