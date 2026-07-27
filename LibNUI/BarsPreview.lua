@@ -328,11 +328,14 @@ function BarsPreview:_stanceOutline(left, top, right, bottom, on)
   end
   local l, t, r, b = left - STANCE_PAD, top + STANCE_PAD, right + STANCE_PAD, bottom - STANCE_PAD
   local w, h = r - l, t - b
-  -- top, bottom, left, right (1px), positioned from the preview's top-left
-  box[1]:ClearAllPoints(); box[1]:SetPoint("TOPLEFT", self, "TOPLEFT", l, t);     box[1]:Size(w, 1)
-  box[2]:ClearAllPoints(); box[2]:SetPoint("TOPLEFT", self, "TOPLEFT", l, b + 1); box[2]:Size(w, 1)
-  box[3]:ClearAllPoints(); box[3]:SetPoint("TOPLEFT", self, "TOPLEFT", l, t);     box[3]:Size(1, h)
-  box[4]:ClearAllPoints(); box[4]:SetPoint("TOPLEFT", self, "TOPLEFT", r, t);     box[4]:Size(1, h)
+  -- top, bottom, left, right (one physical pixel), positioned from the preview's top-left.
+  -- The bottom edge's own thickness is its offset from `b`, so it takes the snapped length
+  -- too — an unsnapped 1 there would leave it a hair off the box it closes.
+  local px = box[1]:Pixels(1)
+  box[1]:ClearAllPoints(); box[1]:SetPoint("TOPLEFT", self, "TOPLEFT", l, t);      box[1]:Width(w); box[1]:PixelHeight(1)
+  box[2]:ClearAllPoints(); box[2]:SetPoint("TOPLEFT", self, "TOPLEFT", l, b + px); box[2]:Width(w); box[2]:PixelHeight(1)
+  box[3]:ClearAllPoints(); box[3]:SetPoint("TOPLEFT", self, "TOPLEFT", l, t);      box[3]:Height(h); box[3]:PixelWidth(1)
+  box[4]:ClearAllPoints(); box[4]:SetPoint("TOPLEFT", self, "TOPLEFT", r, t);      box[4]:Height(h); box[4]:PixelWidth(1)
   for _, e in ipairs(box) do e:Show() end
 end
 

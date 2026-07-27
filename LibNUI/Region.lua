@@ -138,6 +138,84 @@ function Region:Width(w) return w == nil and self._widget:GetWidth() or self._wi
 ---@return number?  the height when getting
 function Region:Height(h) return h == nil and self._widget:GetHeight() or self._widget:SetHeight(h) end
 
+-- Layout is in UI units, which equal physical pixels at exactly one `uiScale` and are a
+-- fraction of one everywhere else. A 1-unit hairline is then a fraction of a pixel — 0.97
+-- of one at the scale nazumods/wow#782 was reported at — and the renderer resolves that to
+-- either a whole pixel or nothing at all, depending on where the line happens to land.
+--
+-- Because the fraction is so close to 1, the sub-pixel phase drifts only ~0.03px per unit
+-- of travel, so the misses are not scattered: they fall on a fixed stripe every ~34 units
+-- across the screen. Every widget sitting on one loses the same edge, every time, which is
+-- why this reads as "that widget's left edge never draws" rather than as rounding noise.
+--
+-- Rounding a length out to whole pixels removes the fraction and with it the stripe. Sizes
+-- are enough — a run of exactly N whole pixels covers N pixels wherever it starts — so the
+-- anchor offsets need no snapping of their own.
+
+-- Regions carrying a snapped length, keyed to the length they asked for so it can be
+-- recomputed when the conversion changes under them. Weak-keyed: this must never be the
+-- thing keeping a region alive.
+local snapped = setmetatable({}, {__mode = "k"})
+
+---@param self Region
+---@param key string  "w" | "h" | "inset"
+---@param units number
+local function Remember(self, key, units)
+  local rec = snapped[self]
+  if not rec then rec = {}; snapped[self] = rec end
+  rec[key] = units
+end
+
+-- Convert a length in UI units to the nearest whole number of physical pixels — never
+-- fewer than one — and return it in UI units again. Pass the same number you would pass to
+-- `Width`/`Height`: the result is that length rounded out, not a pixel count, so a border
+-- keeps its apparent weight on a high-DPI display instead of thinning to a hair.
+---@param units number  length in UI units
+---@return number  the same length, rounded out to whole physical pixels
+function Region:Pixels(units)
+  return PixelUtil.GetNearestPixelSize(units, self._widget:GetEffectiveScale(), 1)
+end
+
+-- `Width`/`Height` rounded out to whole physical pixels. Use these for anything thin
+-- enough to vanish — border edges, dividers, rules — and plain `Width`/`Height` for
+-- everything else, which is far too large for the rounding to reach.
+---@param units number
+function Region:PixelWidth(units) Remember(self, "w", units); self._widget:SetWidth(self:Pixels(units)) end
+---@param units number
+function Region:PixelHeight(units) Remember(self, "h", units); self._widget:SetHeight(self:Pixels(units)) end
+
+---@param self Region
+---@param units number
+local function ApplyInset(self, units)
+  local u = self:Pixels(units)
+  self:SetPoint(ui.edge.TopLeft, u, -u)
+  self:SetPoint(ui.edge.BottomRight, -u, u)
+end
+
+-- Anchor to the parent's rect, inset on all four sides by a snapped length. This is the
+-- framed-box idiom — a filled region over a slightly larger one, the difference showing as
+-- a rim — whose rim is exposed to exactly the same rounding as a hairline texture, with
+-- the inset offset standing in for the width.
+---@param units number  inset in UI units
+function Region:Inset(units)
+  Remember(self, "inset", units)
+  ApplyInset(self, units)
+end
+
+-- Both events move the UI-unit-to-pixel conversion, so every snapped length has to be
+-- recomputed against the new one — a size snapped at the old scale is back to being a
+-- fraction of a pixel at the new one. Re-applied through the raw setters rather than the
+-- Pixel* methods, so nothing writes to `snapped` while this is walking it.
+local function ReSnap()
+  for region, rec in pairs(snapped) do
+    if rec.w then region._widget:SetWidth(region:Pixels(rec.w)) end
+    if rec.h then region._widget:SetHeight(region:Pixels(rec.h)) end
+    if rec.inset then ApplyInset(region, rec.inset) end
+  end
+end
+ns:registerEvent("UI_SCALE_CHANGED", ReSnap)
+ns:registerEvent("DISPLAY_SIZE_CHANGED", ReSnap)
+
 function Region:Show()
   if self.OnBeforeShow then self:OnBeforeShow() end
   self._widget:Show()

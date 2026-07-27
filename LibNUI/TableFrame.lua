@@ -433,7 +433,7 @@ function TableFrame:setFooter(data)
       position = {
         TopLeft = {self.footerRow, ui.edge.TopLeft, 0, 0},
         TopRight = {self.footerRow, ui.edge.TopRight, 0, 0},
-        Height = 1,
+        PixelHeight = 1,
       },
       color = "divider",
     }
