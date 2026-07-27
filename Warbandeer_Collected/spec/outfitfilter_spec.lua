@@ -8,12 +8,6 @@ local collected = require("Warbandeer_Collected.spec.collected")
 -- are distinguishable from each other.
 ---@param head number
 ---@return table[]
-local function lookWith(ns, head)
-  local list = ns.EmptyOutfitList()
-  list[INVSLOT_HEAD].appearanceID = head
-  return list
-end
-
 describe("outfit filtering", function()
   -- Seeded through the real save path so the entries carry provenance exactly as the store writes
   -- it.
@@ -21,16 +15,16 @@ describe("outfit filtering", function()
     ---@return table ns
     local function seeded()
       local n = collected.load()
-      n.SaveLibraryOutfit("Rootwarden", lookWith(n, 1),
+      n.SaveLibraryOutfit("Rootwarden", collected.lookWith(n, 1),
         { char = "Triandra-Silvermoon", class = "DRUID", forClass = "DRUID", armor = "Leather" })
-      n.SaveLibraryOutfit("Bladedancer", lookWith(n, 2),
+      n.SaveLibraryOutfit("Bladedancer", collected.lookWith(n, 2),
         { char = "Keshan-Silvermoon", class = "ROGUE", forClass = "ROGUE", armor = "Leather" })
-      n.SaveLibraryOutfit("Ironhold", lookWith(n, 3),
+      n.SaveLibraryOutfit("Ironhold", collected.lookWith(n, 3),
         { char = "Triandra-Silvermoon", class = "DRUID", forClass = "WARRIOR", armor = "Plate" })
-      n.SaveLibraryOutfit("Weapons only", lookWith(n, 4),
+      n.SaveLibraryOutfit("Weapons only", collected.lookWith(n, 4),
         { char = "Keshan-Silvermoon", class = "ROGUE", forClass = "ROGUE", armor = "Any" })
       -- The pre-#655 entry: saved before provenance existed, so every field but the name is nil.
-      n.SaveLibraryOutfit("Ancient", lookWith(n, 5))
+      n.SaveLibraryOutfit("Ancient", collected.lookWith(n, 5))
       return n
     end
 
@@ -92,8 +86,8 @@ describe("outfit filtering", function()
     -- A name or term with pattern punctuation must match literally, not as a Lua pattern.
     it("matches a search term literally rather than as a pattern", function()
       local n = collected.load()
-      n.SaveLibraryOutfit("100% plate", lookWith(n, 1))
-      n.SaveLibraryOutfit("all plate", lookWith(n, 2))
+      n.SaveLibraryOutfit("100% plate", collected.lookWith(n, 1))
+      n.SaveLibraryOutfit("all plate", collected.lookWith(n, 2))
       assert.same({ "100% plate" }, filtered(n, { search = "100%" }))
     end)
 
@@ -142,9 +136,9 @@ describe("outfit filtering", function()
   describe("LibraryFacets", function()
     it("names each forClass present exactly once, sorted", function()
       local n = collected.load()
-      n.SaveLibraryOutfit("a", lookWith(n, 1), { forClass = "WARRIOR" })
-      n.SaveLibraryOutfit("b", lookWith(n, 2), { forClass = "DRUID" })
-      n.SaveLibraryOutfit("c", lookWith(n, 3), { forClass = "WARRIOR" })
+      n.SaveLibraryOutfit("a", collected.lookWith(n, 1), { forClass = "WARRIOR" })
+      n.SaveLibraryOutfit("b", collected.lookWith(n, 2), { forClass = "DRUID" })
+      n.SaveLibraryOutfit("c", collected.lookWith(n, 3), { forClass = "WARRIOR" })
       assert.same({ "DRUID", "WARRIOR" }, n.LibraryFacets(n.LibraryOutfits()))
     end)
 
@@ -152,8 +146,8 @@ describe("outfit filtering", function()
     -- filter anyway, so it needs no option in the dropdown.
     it("ignores entries with no forClass", function()
       local n = collected.load()
-      n.SaveLibraryOutfit("a", lookWith(n, 1), { forClass = "MAGE" })
-      n.SaveLibraryOutfit("b", lookWith(n, 2))
+      n.SaveLibraryOutfit("a", collected.lookWith(n, 1), { forClass = "MAGE" })
+      n.SaveLibraryOutfit("b", collected.lookWith(n, 2))
       assert.same({ "MAGE" }, n.LibraryFacets(n.LibraryOutfits()))
     end)
 
