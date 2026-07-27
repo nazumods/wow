@@ -268,14 +268,25 @@ local _library
 
 ---Open the library window, creating it on first use. Always refreshes: the library is edited from
 ---the outfit row while this is closed, so a stale list is the normal case rather than the odd one.
+---Docks beneath the collection window when one is already on screen, and **floats free when none
+---is** (#767 L-3). It used to resolve a host unconditionally, so opening the library from the
+---game's transmogrifier — where nothing of ours is up — dragged a several-hundred-row collection
+---window onto the screen and docked the library under it, both behind Blizzard's UI, when all the
+---user asked for was the library.
 ---@class Warbandeer_Collected
----@field OpenOutfitLibrary fun(host: TitleFrame?)  host = the collection window to dock beneath (defaults to the room's current host)
+---@field OpenOutfitLibrary fun(host: TitleFrame?)  host = the collection window to dock beneath; omitted uses one already on screen, else floats
 ns.OpenOutfitLibrary = function(host)
-  host = ns.ResolveDockHost(host)   -- default: the room's current host, else the standalone window (#708)
+  -- ShownDockHost, not ResolveDockHost: "no host" is a legitimate answer here, not a reason to open
+  -- a window the user didn't ask for.
+  host = host or ns.ShownDockHost()
   if not _library then
-    _library = OutfitLibraryWindow:new{ parent = host }
+    _library = OutfitLibraryWindow:new{ parent = host or UIParent }
   end
-  ns.DockPanel(_library, "library", host)   -- (re)dock beneath the current host (#708)
+  if host then
+    ns.DockPanel(_library, "library", host)          -- (re)dock beneath the current host (#708)
+  else
+    ns.UndockPanel(_library, "library", ns.db.libraryPos)   -- free-floating, remembering its point
+  end
   _library:Refresh()
   _library:Show()
 end

@@ -235,8 +235,12 @@ function ns.PreviewWeaponCell(grp, t, visuals, host, ptr)
   -- answer, derived from `_type` below, so the shield/holdable rule lives in one place with the
   -- rest of the hand rules instead of as a second hard-coded pair of category ids here (#673).
   local set = { name = ("%s — %s"):format(grp.name, ns.WeaponTypeName[t] or "Weapon"), _looks = looks }
+  -- _source/_type let ←/→ step to adjacent weapon types; _ptr rides along so that step keeps the
+  -- PTR flag (#767 L-13). Without it, stepping off a PTR cell on a live client re-entered here with
+  -- ptr nil and printed the generic "item data is still loading" instead of the "log into the PTR"
+  -- note the cell's own click gives — the same cell, two different explanations.
   local group = { weaponCell = true, name = grp.name, release = grp.release,
-    sets = { set }, _source = grp, _type = t }   -- _source/_type let ←/→ step to adjacent weapon types
+    sets = { set }, _source = grp, _type = t, _ptr = ptr }
   ns.ShowDressingRoom(group, set, host)
 end
 
