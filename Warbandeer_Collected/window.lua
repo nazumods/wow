@@ -50,12 +50,7 @@ local MainWindow = Class(TitleFrame, function(self)
     -- Refit the window to the (filtered) row count so the scroll range can't overscroll.
     onResized = function() self:_fitToGrid() end,
     -- Scroll the dressed-set row into view (VerticalScroll clamps out-of-range targets).
-    onEnsureVisible = function(_, rowTop, rowH)
-      local s = self.scroll
-      local cur, view = s:VerticalScroll(), s:Height()
-      if rowTop < cur then s:VerticalScroll(rowTop)
-      elseif rowTop + rowH > cur + view then s:VerticalScroll(rowTop + rowH - view) end
-    end,
+    onEnsureVisible = function(_, rowTop, rowH) ns.EnsureRowVisible(self.scroll, rowTop, rowH) end,
   }
   w = max(w, self.data:Width() + 4)
 
@@ -137,12 +132,7 @@ local MainWindow = Class(TitleFrame, function(self)
     onFilterChanged = function() self:RefreshCounter() end,
     -- Scroll the dressed-weapon row into view (weaponScroll is assigned just below; the
     -- closure only reads it at highlight time, by which point it exists).
-    onEnsureVisible = function(_, rowTop, rowH)
-      local s = self.weaponScroll
-      local cur, view = s:VerticalScroll(), s:Height()
-      if rowTop < cur then s:VerticalScroll(rowTop)
-      elseif rowTop + rowH > cur + view then s:VerticalScroll(rowTop + rowH - view) end
-    end,
+    onEnsureVisible = function(_, rowTop, rowH) ns.EnsureRowVisible(self.weaponScroll, rowTop, rowH) end,
   }
   self.weapons:Hide()   -- SetMode resizes the window to the active grid's width, so the window
                         -- starts at the armor width and widens on the toggle to Weapons.
@@ -265,13 +255,9 @@ function MainWindow:RefreshCounter()
     return
   end
   if self.data._ptr then
-    local seen, n = {}, 0
-    for _, grp in ipairs(ns.PtrSets) do
-      for _, set in ipairs(grp.sets) do
-        if set.id and not seen[set.id] then seen[set.id] = true; n = n + 1 end
-      end
-    end
-    self.counter:Text(("+%d sets upcoming%s"):format(n, ns.PtrBuild and (" · PTR " .. ns.PtrBuild.ptr) or ""))
+    -- The unique-setId tally is the grid's own now (#770 step 11), as the weapon one already was.
+    local n, ptrBuild = self.data:UpcomingCounts()
+    self.counter:Text(("+%d sets upcoming%s"):format(n, ptrBuild and (" · PTR " .. ptrBuild) or ""))
   else
     local sets, cells, green = self.data:VisibleCounts()
     self.counter:Text(("%d sets · %d/%d collected"):format(sets, green, cells))
