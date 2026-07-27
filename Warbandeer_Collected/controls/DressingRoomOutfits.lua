@@ -2,7 +2,7 @@
 local ns = select(2, ...)
 ---@type LibNUI
 local ui = ns.ui
-local Frame, Button, Label = ui.Frame, ui.Button, ui.Label
+local Frame = ui.Frame
 local FilterDropdown, EditBox = ui.FilterDropdown, ui.EditBox
 local C_Timer = C_Timer
 local DressingRoom = ns.DressingRoom
@@ -61,26 +61,9 @@ local CONFIRM_S = 4      -- seconds an armed button stays armed before reverting
 ---@param onClick fun()
 ---@return table  { box, border, label, text }
 function DressingRoom:_rowButton(row, x, w, label, onClick)
-  local box = Frame:new{
-    parent = row, position = { TopLeft = {x, 0}, Width = w, Height = ROWH },
-  }
-  local btn = { box = box, border = selBox(box), text = label }
-  -- `wordWrap = false` is structural, not cosmetic: the box is a fixed ROWH tall, so a caption that
-  -- wraps grows the label out of it and over the row below (an armed "Replace <name>?" did exactly
-  -- that across three lines). What it does INSTEAD of wrapping is ellipsize, which is why an armed
-  -- caption is `Sure?` rather than the verb: the string that has to fit these 58px is `Sure? 4`,
-  -- countdown digit included — 46.5px in the theme's Geist-13 body font, where `Confirm 4` and
-  -- `Replace 4` measure 60.0px and lose the DIGIT, the visible half of #698, to the ellipsis.
-  -- Measured, not guessed; the filter strip next door records the same font truncating "Any armour"
-  -- at only 1.8px over its budget (OutfitLibraryWindow.lua). Which look is at risk goes to chat
-  -- instead, where there is width to name it.
-  btn.label = Label:new{ parent = box, justifyH = ui.justify.Center, wordWrap = false,
-    position = { Left = {2, 0}, Right = {-2, 0} }, text = label }
-  -- Disabled buttons grey their caption and swallow the click, rather than firing and printing a
-  -- refusal — the same "don't offer what won't work" Blizzard's own name prompt uses.
-  Button:new{ parent = box, position = { All = true },
-    OnClick = function() if not btn.disabled then onClick() end end }
-  return btn
+  -- The shared builder (#770 step 6) — the library's verb row and the transmogrifier's buttons are
+  -- the same control, and both carried copies of this because they can't reach a room method.
+  return ns.RowButton{ parent = row, x = x, w = w, label = label, onClick = onClick, height = ROWH }
 end
 
 ---Enable/disable one row button, greying its caption to match. A method for the same reason as
@@ -95,10 +78,11 @@ end
 ---(`RefreshOutfits` clears the selection), the share row's Import doing the same, and clearing the
 ---name field while an overwrite-armed Save has no selection to fall back on.
 function DressingRoom:_enableRow(btn, on)
-  btn.disabled = not on or nil
-  -- Before the recolour: `_disarmOutfit` restores the resting caption, which then greys with it.
-  if btn.disabled and self._armed == btn then self:_disarmOutfit() end
-  btn.label:Color(on and "text" or "muted")
+  -- Disarm BEFORE the shared call: `_disarmOutfit` restores the resting caption, which then greys
+  -- with it. The disarm is the room's own business (it owns `_armed`); the flag and the recolour
+  -- are `ns.EnableRowButton`'s (#770 step 6).
+  if not on and self._armed == btn then self:_disarmOutfit() end
+  ns.EnableRowButton(btn, on)
 end
 
 ---Put a row button into its armed state (gold border + a warning caption counting the seconds down),
