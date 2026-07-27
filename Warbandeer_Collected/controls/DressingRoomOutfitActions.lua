@@ -217,27 +217,12 @@ function DressingRoom:PushOutfit()
     ns.Print("Pick a saved look to push.")
     return
   end
-  local list, err = ns.LibraryOutfitList(self._outfitSel)
-  if not list then
-    ns.Print("Couldn't read that look: " .. err)
-    return
-  end
-  local existing
-  for _, s in ipairs(ns.CustomSets()) do if s.name == self._outfitSel then existing = s.id end end
-  if existing and not armed then
-    -- Say WHAT is at risk, as Save does: the armed caption is a bare "Sure?" (the seconds count in
-    -- it, leaving no room for a name at 62px), so without this line the question names nothing.
-    ns.Print(("\"%s\" is already one of this character's sets — click Push again to replace it.")
-      :format(self._outfitSel))
+  -- The decision is `ns.PushLookToCharacter` (outfitverbs.lua, #770 step 8), shared with the library
+  -- window's pane, which held a byte-identical copy of it. What stays here is this surface's own
+  -- chrome: arming its button, and printing.
+  local res = ns.PushLookToCharacter(self._outfitSel, armed)
+  ns.Print(res.message)
+  if res.needsConfirm then
     self:_armOutfit(self._outfitPush, "Sure?", "replaced", self._outfitSel)
-    return
   end
-  -- `ns.SaveCustomSet` is where Blizzard's rules bite: the name filter and the 25-set cap apply to
-  -- their store, never to ours.
-  local id, saveErr = ns.SaveCustomSet(self._outfitSel, list, existing)
-  if not id then
-    ns.Print("Couldn't push: " .. saveErr)
-    return
-  end
-  ns.Print(("Pushed \"%s\" to this character's transmog sets."):format(self._outfitSel))
 end
