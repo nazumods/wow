@@ -367,6 +367,7 @@ and how many of the game's set slots are used.
 |---|---|
 | `/collected` or `/collect` | Open/close the window |
 | `/collected scan` | Rebuild collection data from the game's transmog APIs |
+| `/collected refresh` | Redraw the open window's grids without rescanning — use it if the grid ever appears with its text missing |
 | `/collected wanted` | List the sets you've flagged as wanted |
 | `/collected outfit export` | Copy the previewed look as a shareable `/customset` string |
 | `/collected outfit post` | Put the previewed look in your chat box as a clickable link |
