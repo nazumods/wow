@@ -25,18 +25,20 @@ end
 
 -- Re-apply every cell's overlays from current DB state. Cheap enough to run on every update()/
 -- re-sort; cells persist across rebuilds, so their overlays do too.
-function WeaponView:_refreshMarks()
-  for r = 1, #self.cells do
-    local row = self.cells[r]
-    for c = 1, #self.cols do
-      local cell = row[c]
-      if cell then
-        local data = cell.data
-        local grp = type(data) == "table" and data._source or nil
-        self:_applyCellMarks(cell, grp and grp.types[data._type] or nil)
-      end
-    end
-  end
+--
+-- **Takes the same `only` predicate the armour grid does as of #770 step 10** — the enabling half of
+-- #768's L-8, where a rating edit walks every cell of BOTH grids because this one had no way to be
+-- narrowed. Nothing passes one yet: the ratings broadcast carries a setId, which is meaningless
+-- here (a cell is keyed by its source + weapon type, not a set), so scoping this grid needs a
+-- weapon-keyed signal rather than just the parameter.
+--
+-- The walk itself is `ns.RefreshGridMarks`, shared with the armour grid.
+---@param only fun(data: table): boolean|nil
+function WeaponView:_refreshMarks(only)
+  ns.RefreshGridMarks(self, function(data)
+    local grp = data._source
+    return grp and grp.types[data._type] or nil
+  end, only)
 end
 
 -- Show or hide the centered empty-state message, so an empty grid reads as intentionally empty
