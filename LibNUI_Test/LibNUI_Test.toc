@@ -19,6 +19,7 @@ slider.lua
 timer.lua
 scrollframe.lua
 radiogroup.lua
+editbox.lua
 sectionheader.lua
 notification.lua
 virtuallist.lua

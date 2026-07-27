@@ -274,6 +274,22 @@ Includes various convenience methods for working with Lists, Maps, Sets, Strings
 - `strings.split(token, str)` - returns a List of the substrings in str that are separated by token
 - `strings.duration(seconds, style)` - format seconds as a clock string (`"m:ss"` default, `"h:mm:ss"`, or `"auto"`); the shared formatter behind LibNUI's Timer widget
 - `strings.stripEscapes(str)` - strip WoW UI escape sequences (`|c…|r` colour, `|T…|t` textures, `|A…|a` atlases), leaving plain text (nil passes through)
+- `strings.trim(str)` - strip leading/trailing whitespace; nil and whitespace-only both give `""`, since every caller is trimming user input where absent and blank mean the same thing
+
+### Signals
+
+`ns.lua.signal()` creates a publish/subscribe channel — for when one producer can't know its consumers, e.g. a shared window whose edits must reach several views living in different addons.
+
+```lua
+local changed = ns.lua.signal()
+
+local fn = changed:Subscribe(function(id) print("changed:", id) end)
+changed:Fire(42)          -- runs every listener
+changed:Unsubscribe(fn)   -- removes one registration; returns whether it removed anything
+changed:Count()           -- how many are listening
+```
+
+A signal *is* the channel — there are no named events, priorities or return values, so the owning addon names one by naming the variable. `Fire` iterates a snapshot, so a listener may subscribe or unsubscribe while the signal is firing without disturbing the current pass.
 
 Also includes the `Class` function for defining inheritable, instantiatable objects.
 

@@ -116,6 +116,31 @@ function ScrollFrame:_syncScrollbar()
   self._syncing = false
 end
 
+-- Scroll the minimum distance that brings a band of the content into view, and no further: a band
+-- already visible doesn't move the view at all. `top` is measured from the top of the scroll CHILD
+-- (not the viewport), which is the coordinate space a list already has for its rows — element i
+-- starts at `(i - 1) * rowHeight`.
+--
+-- Deliberately minimum-distance rather than centring: arrowing down a list one step at a time
+-- should nudge the view by one row, not jump the target to the middle of the viewport each press.
+--
+-- Both grids in the Collected suite had a copy of this, and a third copy lived in a consuming addon
+-- as a version-skew fallback. Callers still clamp nothing themselves — `VerticalScroll` clamps to
+-- the live range, so a band past the end of the content settles at the bottom rather than
+-- overscrolling.
+---@param top number  the band's offset from the top of the scroll child, in px
+---@param height number  the band's height in px
+---@return ScrollFrame
+function ScrollFrame:EnsureVisible(top, height)
+  local cur, view = self:VerticalScroll(), self:Height()
+  if top < cur then
+    self:VerticalScroll(top)                    -- above the viewport: bring its top to the top
+  elseif top + height > cur + view then
+    self:VerticalScroll(top + height - view)    -- below it: bring its bottom to the bottom
+  end
+  return self
+end
+
 -- Whether the content currently overflows the viewport (the view can scroll / the themed
 -- scrollbar is showing). This is the single truth behind both scroll affordances — the
 -- scrollbar's own show/hide (`_syncScrollbar`) reads the same range — so a consumer that
