@@ -235,14 +235,22 @@ end
 -- weapon flagged while Armor is up would otherwise leave the weapon grid holding a stale wanted-only
 -- row set for the next toggle over to it (and vice versa).
 if WarbandeerCollectedApi and WarbandeerCollectedApi.OnRatingsChanged then
-  WarbandeerCollectedApi:OnRatingsChanged(function()
+  WarbandeerCollectedApi:OnRatingsChanged(function(setId, visualID)
     if not (_view and _view.grid) then return end
     -- The SHOWN grid, its counter and the tally all refresh through _render; the hidden one needs
     -- its own pass so it isn't holding a stale wanted-only row set when it's toggled back to.
     local hidden = _view._weaponsMode and _view.grid or _view.weaponGrid
     if hidden then
-      if hidden._wantedOnly then hidden.data = hidden:GetData(); hidden:update()
-      else hidden:_refreshMarks() end
+      -- Ask the grid what the broadcast means for it (nazumods/wow#768 L-8): an armour rating can't
+      -- have altered a weapon cell or the reverse, so the hidden grid is usually skipped outright.
+      -- Guarded because Collected is an OptionalDep on its own release cadence — a released version
+      -- exists without `_ratingScope`, and there the old unscoped full pass is still correct.
+      local affected, only = true, nil
+      if hidden._ratingScope then affected, only = hidden:_ratingScope(setId, visualID) end
+      if affected then
+        if hidden._wantedOnly then hidden.data = hidden:GetData(); hidden:update()
+        else hidden:_refreshMarks(only) end
+      end
     end
     _view:_render()
     _view:_fitToGrid()   -- the shown grid's row count may have changed
