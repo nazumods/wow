@@ -24,6 +24,8 @@ local ns = select(2, ...)
 ---@field UndockPanel fun(panel: TitleFrame, kind: string, store: table)  release a panel back to a free-floating window
 
 local GAP = 6
+-- How far left of screen centre a never-yet-floated panel's right edge sits (see UndockPanel).
+local FLOAT_GAP = 40
 local max = math.max
 
 ns.DockHost = nil
@@ -185,6 +187,18 @@ function ns.DockPanel(panel, kind, host)
   if not _hooked[host] then
     _hooked[host] = true
     host._widget:HookScript("OnSizeChanged", ns.RefreshDockClamp)
+    -- Close the workspace WITH its host (#767 L-2). Panels are children, so hiding the host already
+    -- takes them off screen — but their own shown flags stay set, so they silently come back when it
+    -- reopens and every "is this open?" test lies about them. That is the actual defect behind the
+    -- room returning on the last-picked race: `ShowDressingRoom` asks whether the room is on screen
+    -- to decide on a race reset, and by then the reopened host had already made it so. Testing
+    -- visibility instead of shown-state does NOT fix that on its own — the state itself has to be
+    -- honest, which means really hiding them.
+    host._widget:HookScript("OnHide", function()
+      for _, p in pairs(_panels) do
+        if p._widget:GetParent() == host._widget then p:Hide() end
+      end
+    end)
   end
   ns.RefreshDockClamp()
 end
@@ -219,7 +233,14 @@ function ns.UndockPanel(panel, kind, store)
   if store.point then
     pw:SetPoint(store.point, UIParent, store.relPoint, store.x, store.y)
   else
-    panel:Center()   -- never floated before
+    -- Never floated before: sit LEFT of screen centre rather than dead centre, because the place a
+    -- floating library lands is usually on top of Blizzard's transmogrifier — and its 3D character
+    -- preview draws straight through ours. That is not fixable by layering: measured in game, our
+    -- preview at DIALOG/602 still lost to theirs at MEDIUM/2, because two 3D model scenes do not
+    -- order against each other by strata or frame level at all. So the answer is to not overlap.
+    -- Only a default; the dragged point is remembered from here on, and SetClampedToScreen keeps
+    -- the window on screen if it doesn't fit to the left.
+    pw:SetPoint("RIGHT", UIParent, "CENTER", -FLOAT_GAP, 0)
   end
   -- Hooks only once. RememberPosition HookScripts the body's OnDragStop, and hooks accumulate —
   -- calling it on every undock would stack a duplicate save per round trip.
