@@ -154,4 +154,66 @@ describe("ratings", function()
       assert.has_no.errors(function() ns:NotifyRatingsChanged(1) end)
     end)
   end)
+
+  -- The four wishlists come off one `wantedStore` factory since #770 step 2. Before that each was
+  -- hand-written over its own db table, and they had already drifted in how they avoided storing
+  -- `false`. These assert the shared contract holds for ALL of them, not just the one that happened
+  -- to be covered — the counts are `pairs` walks, so a cleared flag left as `false` rather than
+  -- removed would be counted as wanted forever.
+  describe("wanted stores", function()
+    local STORES = {
+      { name = "sets",      field = "wanted",         is = "IsWanted",         toggle = "ToggleWanted",         count = "WantedCount" },
+      { name = "weapons",   field = "weaponWanted",   is = "IsWeaponWanted",   toggle = "ToggleWeaponWanted",   count = "WeaponWantedCount" },
+      { name = "cosmetics", field = "cosmeticWanted", is = "IsCosmeticWanted", toggle = "ToggleCosmeticWanted", count = "CosmeticWantedCount" },
+      { name = "illusions", field = "illusionWanted", is = "IsIllusionWanted", toggle = "ToggleIllusionWanted", count = "IllusionWantedCount" },
+    }
+
+    for _, s in ipairs(STORES) do
+      it(("%s: flips on and back off, reporting each state"):format(s.name), function()
+        assert.is_false(ns[s.is](ns, 42))
+        assert.is_true(ns[s.toggle](ns, 42))
+        assert.is_true(ns[s.is](ns, 42))
+        assert.is_false(ns[s.toggle](ns, 42))
+        assert.is_false(ns[s.is](ns, 42))
+      end)
+
+      it(("%s: clears the key rather than storing false"):format(s.name), function()
+        ns[s.toggle](ns, 42)
+        ns[s.toggle](ns, 42)
+        assert.is_nil(ns.db[s.field][42], "a cleared flag must leave no key behind")
+        assert.equal(0, ns[s.count](ns))
+      end)
+
+      it(("%s: counts each flagged id once"):format(s.name), function()
+        ns[s.toggle](ns, 1)
+        ns[s.toggle](ns, 2)
+        ns[s.toggle](ns, 3)
+        ns[s.toggle](ns, 2)   -- back off
+        assert.equal(2, ns[s.count](ns))
+      end)
+    end
+
+    -- The id spaces overlap numerically (a setId, a visualID and an illusion sourceID can all be
+    -- 500), so the tables must not see each other's writes.
+    it("keeps the four lists independent for the same id", function()
+      ns:ToggleWanted(500)
+      assert.is_true(ns:IsWanted(500))
+      assert.is_false(ns:IsWeaponWanted(500))
+      assert.is_false(ns:IsCosmeticWanted(500))
+      assert.is_false(ns:IsIllusionWanted(500))
+      assert.equal(1, ns:WantedCount())
+      assert.equal(0, ns:WeaponWantedCount())
+      assert.equal(0, ns:CosmeticWantedCount())
+      assert.equal(0, ns:IllusionWantedCount())
+    end)
+
+    -- Sets are the only list with a public setter, and it has to normalise the same way Toggle does.
+    it("SetWanted clears the key when given false", function()
+      ns:SetWanted(7, true)
+      assert.is_true(ns:IsWanted(7))
+      ns:SetWanted(7, false)
+      assert.is_nil(ns.db.wanted[7])
+      assert.equal(0, ns:WantedCount())
+    end)
+  end)
 end)

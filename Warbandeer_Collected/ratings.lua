@@ -3,6 +3,22 @@
 ---@field RankIndex table<string, number>  tier letter → its position in ns.Ranks (1 = best)
 ---@field RankColors table<string, number[]>  tier letter → 0–1 rgb
 ---@field WantedIcon string  atlas for the "wanted" marker
+--
+-- The four wishlists, built by `wantedStore` below. Declared here because they are assigned as
+-- values rather than defined with `function ns:Name()`, so there is no docblock for LuaLS to read.
+---@field IsWanted fun(self, setId: number): boolean
+---@field SetWanted fun(self, setId: number, wanted: boolean?)  the only public setter of the four
+---@field ToggleWanted fun(self, setId: number): boolean  flips; returns the new state
+---@field WantedCount fun(self): number
+---@field IsWeaponWanted fun(self, visualID: number): boolean
+---@field ToggleWeaponWanted fun(self, visualID: number): boolean
+---@field WeaponWantedCount fun(self): number
+---@field IsCosmeticWanted fun(self, visualID: number): boolean
+---@field ToggleCosmeticWanted fun(self, visualID: number): boolean
+---@field CosmeticWantedCount fun(self): number
+---@field IsIllusionWanted fun(self, sourceID: number): boolean  keyed by illusion sourceID, not visualID
+---@field ToggleIllusionWanted fun(self, sourceID: number): boolean
+---@field IllusionWantedCount fun(self): number
 local ns = select(2, ...)
 
 -- Ordered aesthetic tiers, best → worst. The index doubles as the cycle order for
@@ -42,63 +58,50 @@ function ns.RankHex(rank)
 end
 
 -- ─── Wanted ──────────────────────────────────────────────────────────────────
+-- Four wishlists, one shape: sets, weapon looks, cosmetics, illusions. Each was its own hand-written
+-- read/flip/count triple over a different `ns.db` table (#770 step 2), which is four places to fix a
+-- flag bug in and four chances for them to drift — they already had, in how they avoided storing
+-- `false`.
+--
+-- **Storing `false` is the trap the factory closes.** Every count is a `pairs` walk, which sees a
+-- `false` value exactly as it sees a `true` one, so a cleared flag written as `false` instead of
+-- removed would be counted as wanted forever. `set` normalises through `on or nil` so there is one
+-- place that can get it wrong.
 
----@param setId number
----@return boolean
-function ns:IsWanted(setId)
-  return self.db.wanted[setId] == true
+---Build the read / write / flip / count set of accessors over one `ns.db` flag table.
+---@param field string  the `ns.db` key holding the flags
+---@return table  `{ Is, Set, Toggle, Count }`, each taking `self` first (they are bound as methods)
+local function wantedStore(field)
+  local store = {}
+  function store.Is(self, id) return self.db[field][id] == true end
+  function store.Set(self, id, on) self.db[field][id] = on or nil end
+  function store.Toggle(self, id)
+    local now = not store.Is(self, id)
+    store.Set(self, id, now)
+    return now
+  end
+  function store.Count(self)
+    local n = 0
+    for _ in pairs(self.db[field]) do n = n + 1 end
+    return n
+  end
+  return store
 end
 
----@param setId number
----@param wanted boolean
-function ns:SetWanted(setId, wanted)
-  self.db.wanted[setId] = wanted or nil
-end
-
----Flip the wanted flag; returns the new state.
----@param setId number
----@return boolean
-function ns:ToggleWanted(setId)
-  local now = not self:IsWanted(setId)
-  self:SetWanted(setId, now)
-  return now
-end
-
----Number of sets currently flagged wanted.
----@return number
-function ns:WantedCount()
-  local n = 0
-  for _ in pairs(self.db.wanted) do n = n + 1 end
-  return n
-end
+-- Bound one wishlist at a time rather than in a loop, so each public name is greppable and the
+-- surface is unchanged: only sets ever exposed a public setter, and that stays true here.
+local wanted = wantedStore("wanted")
+ns.IsWanted, ns.SetWanted, ns.ToggleWanted, ns.WantedCount =
+  wanted.Is, wanted.Set, wanted.Toggle, wanted.Count
 
 -- ─── Weapon Wanted (per appearance) ──────────────────────────────────────────
 -- The Weapons view flags individual weapon LOOKS (a cell holds several), so its wanted
 -- state is keyed by the appearance's visualID (ItemAppearanceID), separate from the
 -- set `wanted` table. Notifies the same OnRatingsChanged listeners so grids live-refresh.
 
----@param visualID number
----@return boolean
-function ns:IsWeaponWanted(visualID)
-  return self.db.weaponWanted[visualID] == true
-end
-
----Flip a weapon look's wanted flag; returns the new state.
----@param visualID number
----@return boolean
-function ns:ToggleWeaponWanted(visualID)
-  local now = not self:IsWeaponWanted(visualID) or nil
-  self.db.weaponWanted[visualID] = now
-  return now == true
-end
-
----Number of weapon looks currently flagged wanted.
----@return number
-function ns:WeaponWantedCount()
-  local n = 0
-  for _ in pairs(self.db.weaponWanted) do n = n + 1 end
-  return n
-end
+local weaponWanted = wantedStore("weaponWanted")
+ns.IsWeaponWanted, ns.ToggleWeaponWanted, ns.WeaponWantedCount =
+  weaponWanted.Is, weaponWanted.Toggle, weaponWanted.Count
 
 -- ─── Cosmetic Wanted (per appearance) ────────────────────────────────────────
 -- Shirts and tabards are the one browse surface that lists appearances you DON'T own (a set
@@ -106,28 +109,9 @@ end
 -- makes a wishlist flag meaningful there. Keyed by visualID like the weapon flags, but its own
 -- table: a wanted shirt must not inflate WeaponWantedCount or show up in a Weapons-view filter.
 
----@param visualID number
----@return boolean
-function ns:IsCosmeticWanted(visualID)
-  return self.db.cosmeticWanted[visualID] == true
-end
-
----Flip a shirt/tabard appearance's wanted flag; returns the new state.
----@param visualID number
----@return boolean
-function ns:ToggleCosmeticWanted(visualID)
-  local now = not self:IsCosmeticWanted(visualID) or nil
-  self.db.cosmeticWanted[visualID] = now
-  return now == true
-end
-
----Number of shirt/tabard appearances currently flagged wanted.
----@return number
-function ns:CosmeticWantedCount()
-  local n = 0
-  for _ in pairs(self.db.cosmeticWanted) do n = n + 1 end
-  return n
-end
+local cosmeticWanted = wantedStore("cosmeticWanted")
+ns.IsCosmeticWanted, ns.ToggleCosmeticWanted, ns.CosmeticWantedCount =
+  cosmeticWanted.Is, cosmeticWanted.Toggle, cosmeticWanted.Count
 
 -- ─── Illusion Wanted (per illusion) ──────────────────────────────────────────
 -- The illusion list, like the cosmetic ones, shows illusions you don't own, so it earns the same
@@ -135,28 +119,9 @@ end
 -- id, and the two id spaces overlap numerically, so sharing `cosmeticWanted` would eventually
 -- star the wrong row.
 
----@param sourceID number  an illusion sourceID
----@return boolean
-function ns:IsIllusionWanted(sourceID)
-  return self.db.illusionWanted[sourceID] == true
-end
-
----Flip an illusion's wanted flag; returns the new state.
----@param sourceID number
----@return boolean
-function ns:ToggleIllusionWanted(sourceID)
-  local now = not self:IsIllusionWanted(sourceID) or nil
-  self.db.illusionWanted[sourceID] = now
-  return now == true
-end
-
----Number of illusions currently flagged wanted.
----@return number
-function ns:IllusionWantedCount()
-  local n = 0
-  for _ in pairs(self.db.illusionWanted) do n = n + 1 end
-  return n
-end
+local illusionWanted = wantedStore("illusionWanted")
+ns.IsIllusionWanted, ns.ToggleIllusionWanted, ns.IllusionWantedCount =
+  illusionWanted.Is, illusionWanted.Toggle, illusionWanted.Count
 
 -- ─── Rank ──────────────────────────────────────────────────────────────────--
 
