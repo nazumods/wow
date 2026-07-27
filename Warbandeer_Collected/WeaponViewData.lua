@@ -20,9 +20,8 @@ local GameTooltip = GameTooltip
 ---@field WeaponUsableTypes fun(): table<number, boolean> logged-in class's usable weapon types (greying hint)
 ---@field WeaponRows fun(self: WeaponView): table
 ---@field WeaponVisibleCounts fun(self: WeaponView): number, number, number
----@field WeaponMatches fun(view: WeaponView, grp: table): boolean
 ---@field ShowWeaponCellTip fun(grp: table, t: number, visuals: number[])
----@field PreviewWeaponCell fun(grp: table, t: number, visuals: number[], host: TitleFrame?)
+---@field PreviewWeaponCell fun(grp: table, t: number, visuals: number[], host: TitleFrame?, ptr: boolean?)
 
 -- Grid column order (main-hand 1H, then 2H, ranged, wand, then off-hands), matching
 -- update-sets.ps1 -Weapons and the #596 look-builder.
@@ -67,19 +66,9 @@ end
 -- collection data for unreleased weapons), mirroring the armor grid's upcoming dot (DataViewData).
 local UPCOMING = {0.55, 0.70, 0.95, 1}
 
--- A weapon source group passes the active expansion/category filter. Module-level (like armor's
--- `matches`) since WeaponRows runs during base-table construction, before the methods are mixed. PTR
--- preview is never filtered (small upcoming-only list), so the dropdowns apply to the live grid only.
----@param view WeaponView
----@param grp table
----@return boolean
-local function matches(view, grp)
-  if view._ptr then return true end
-  if view._expansion ~= "all" and grp.release ~= view._expansion then return false end
-  if view._category ~= "all" and grp.category ~= view._category then return false end
-  return true
-end
-ns.WeaponMatches = matches
+-- Row filtering is `ns.GridMatches` in GridShared.lua — this was a byte-identical copy of the armor
+-- grid's (#770 step 1). Aliased to a local because WeaponRows calls it per group.
+local matches = ns.GridMatches
 
 -- True if the source drops any wanted appearance, of any type. Row-level test for the "wanted only"
 -- filter, which hides whole rows holding no wanted look (within a shown row, the cells holding none
