@@ -22,6 +22,24 @@ local SCROLLBAR_W  = 20
 -- ratings-changed listener can refresh this view's header.
 local _view
 
+-- Scroll a grid row into view. Collected owns the clamp (`ns.EnsureRowVisible`, nazumods/wow#770
+-- step 11) and exposes it as a grid method, which is the only way it can reach us: that addon's `ns`
+-- is invisible from here, but the grid instance isn't.
+--
+-- **Guarded, with the clamp kept as a fallback.** This is a cross-addon call and users do run
+-- mismatched versions, so a Collected predating the method must not silently lose scroll-into-view.
+---@param grid table  the DataView / WeaponView the hook fired for
+---@param scroll table?
+---@param rowTop number
+---@param rowH number
+local function ensureRowVisible(grid, scroll, rowTop, rowH)
+  if not scroll then return end
+  if grid.EnsureRowVisible then return grid:EnsureRowVisible(scroll, rowTop, rowH) end
+  local cur, view = scroll:VerticalScroll(), scroll:Height()
+  if rowTop < cur then scroll:VerticalScroll(rowTop)
+  elseif rowTop + rowH > cur + view then scroll:VerticalScroll(rowTop + rowH - view) end
+end
+
 ---@class CollectedView: Frame
 ---@field grid DataView the shared set-by-class grid (Collected's own DataView, embedded)
 ---@field filterStrip Frame the shared filter chrome row (DataView:BuildFilterStrip)
@@ -57,12 +75,8 @@ local CollectedView = Class(Frame, function(self)
     -- Refit the scroll container to the (filtered) row count so it can't overscroll.
     onResized = function() _view:_fitToGrid() end,
     -- Scroll the dressed-set row into view (VerticalScroll clamps out-of-range targets).
-    onEnsureVisible = function(_, rowTop, rowH)
-      local s = _view and _view.scroll
-      if not s then return end
-      local cur, view = s:VerticalScroll(), s:Height()
-      if rowTop < cur then s:VerticalScroll(rowTop)
-      elseif rowTop + rowH > cur + view then s:VerticalScroll(rowTop + rowH - view) end
+    onEnsureVisible = function(grid, rowTop, rowH)
+      ensureRowVisible(grid, _view and _view.scroll, rowTop, rowH)
     end,
   }
 
@@ -156,12 +170,8 @@ local CollectedView = Class(Frame, function(self)
       onFilterChanged = function() _view:_render() end,
       -- Scroll the dressed-weapon row into view (weaponScroll is assigned just below;
       -- the closure only reads it at highlight time).
-      onEnsureVisible = function(_, rowTop, rowH)
-        local s = _view and _view.weaponScroll
-        if not s then return end
-        local cur, view = s:VerticalScroll(), s:Height()
-        if rowTop < cur then s:VerticalScroll(rowTop)
-        elseif rowTop + rowH > cur + view then s:VerticalScroll(rowTop + rowH - view) end
+      onEnsureVisible = function(grid, rowTop, rowH)
+        ensureRowVisible(grid, _view and _view.weaponScroll, rowTop, rowH)
       end,
     }
     self.weaponGrid:Hide()
@@ -351,13 +361,23 @@ function CollectedView:_render()
   self.emptyMsg:Hide()
   self:_showGrid(true)
   if ptr then
-    local seen, n = {}, 0
-    for _, grp in ipairs(api.PtrSets or {}) do
-      for _, set in ipairs(grp.sets) do
-        if set.id and not seen[set.id] then seen[set.id] = true; n = n + 1 end
+    -- Collected's own tally (nazumods/wow#770 step 11) — both hosts hand-rolled the same unique-setId
+    -- loop while the weapon grid had a method for it. Guarded like every other cross-addon reach:
+    -- an older Collected keeps the loop.
+    local n, ptrBuild
+    if self.grid.UpcomingCounts then
+      n, ptrBuild = self.grid:UpcomingCounts()
+    else
+      local seen = {}
+      n = 0
+      for _, grp in ipairs(api.PtrSets or {}) do
+        for _, set in ipairs(grp.sets) do
+          if set.id and not seen[set.id] then seen[set.id] = true; n = n + 1 end
+        end
       end
+      ptrBuild = api.PtrBuild and api.PtrBuild.ptr or nil
     end
-    self.counter:Text(("+%d sets upcoming%s"):format(n, api.PtrBuild and (" · PTR " .. api.PtrBuild.ptr) or ""))
+    self.counter:Text(("+%d sets upcoming%s"):format(n, ptrBuild and (" · PTR " .. ptrBuild) or ""))
   else
     local sets, cells, green = self.grid:VisibleCounts()   -- tracks the active expansion/category filter
     self.counter:Text(("%d sets · %d/%d collected"):format(sets, green, cells))
