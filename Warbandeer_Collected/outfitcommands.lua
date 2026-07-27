@@ -10,39 +10,58 @@ local ui = ns.ui
 -- controls/DressingRoomOutfits.lua. Every path here drives the SAME functions the buttons do, so
 -- this doubles as the scriptable/verification surface for them.
 
+-- ─── The two guards every command here is built from ─────────────────────────
+-- Five commands need the preview open and three need a look to exist, and each spelled its guard
+-- out again. Collapsing them isn't only line count: the boilerplate is what let the one save path
+-- that forgot its provenance `meta` sit unnoticed beside four that needed none (#758). What's left
+-- in each command body below is what that command actually does.
+
+---Run `fn(room)` against the shared dressing room, or explain why it can't run.
+---@param clause string  completes "Open a set's Preview first — …"; the only part that ever varied
+---@param fn fun(room: table)
+local function withRoom(clause, fn)
+  local room = ns.OpenDressingRoom()
+  if not room then
+    ns.Print("Open a set's Preview first — " .. clause)
+    return
+  end
+  fn(room)
+end
+
+---Run `fn(entry)` with the library look `name` resolves to, or say there isn't one.
+---
+---Resolution is `ns.LibraryOutfit`, so a typed name matches case-insensitively with an exact match
+---winning (#728) — and every caller takes `entry.name` back from it rather than reusing what was
+---typed, which is what keeps the stored capitalisation.
+---@param name string
+---@param fn fun(entry: LibraryOutfit)
+local function withLook(name, fn)
+  local entry = ns.LibraryOutfit(name)
+  if not entry then
+    ns.Print(("No saved look named \"%s\". Try /collected outfit list."):format(name))
+    return
+  end
+  fn(entry)
+end
+
 -- Outfit interchange: read the look currently on screen out as Blizzard's shareable
 -- `/customset v1 …` string or as a clickable chat link, and put either back in. Each of these
 -- calls straight into the share row's own method (controls/DressingRoomOutfitShare.lua), so the
 -- command and the button are literally one implementation — the command adds only the "is the
 -- room open?" guard the button never needs.
 local function outfitExport()
-  local room = ns.OpenDressingRoom()
-  if not room then
-    ns.Print("Open a set's Preview first — export reads the look currently on screen.")
-    return
-  end
-  room:ExportOutfit()
+  withRoom("export reads the look currently on screen.", function(room) room:ExportOutfit() end)
 end
 
 -- Shift-click a transmog link into `/collected outfit import ` and it arrives here whole, which
 -- is the practical way to import someone's posted link: our own field can't receive a shift-click.
 ---@param arg string
 local function outfitImport(arg)
-  local room = ns.OpenDressingRoom()
-  if not room then
-    ns.Print("Open a set's Preview first — import dresses the window on screen.")
-    return
-  end
-  room:ImportOutfit(arg)
+  withRoom("import dresses the window on screen.", function(room) room:ImportOutfit(arg) end)
 end
 
 local function outfitPost()
-  local room = ns.OpenDressingRoom()
-  if not room then
-    ns.Print("Open a set's Preview first — posting shares the look currently on screen.")
-    return
-  end
-  room:PostOutfit()
+  withRoom("posting shares the look currently on screen.", function(room) room:PostOutfit() end)
 end
 
 -- Both stores at once, so the difference between them is visible where it matters: the library is
@@ -75,94 +94,80 @@ end
 
 ---@param name string
 local function outfitSave(name)
-  local room = ns.OpenDressingRoom()
-  if not room then
-    ns.Print("Open a set's Preview first — save writes the look currently on screen.")
-    return
-  end
-  if name == "" then
-    ns.Print("Usage: /collected outfit save <name>")
-    return
-  end
-  local list = room:ComposeOutfit()
-  local issues = ns.OutfitIssues(list)
-  if issues.filled == 0 then
-    ns.Print("Nothing to save — the preview is empty.")
-    return
-  end
-  if issues.pending then
-    ns.Print("Item data is still loading — try again in a moment.")
-    return
-  end
-  -- Unlike the button this replaces a same-named look outright: a scripted call has no
-  -- arm-then-confirm step to answer.
-  local existing = ns.LibraryOutfit(name)
-  local target = existing and existing.name or name
-  -- Stamped exactly as the row's Save button stamps it (#758). This used to pass no meta at all,
-  -- which wiped the provenance off an entry it replaced — the one save path that recorded nothing.
-  -- The room's stamper rather than `ns.LocalOutfitMeta` because only it can derive `forClass`.
-  local ok, err = ns.SaveLibraryOutfit(target, list, room:_outfitMeta(list))
-  if not ok then
-    ns.Print("Couldn't save: " .. err)
-    return
-  end
-  -- No `room:RefreshOutfits()`: the save announces itself and every open surface refreshes (#727).
-  ns.Print((existing and "Replaced \"%s\" in your library." or "Saved \"%s\" to your library."):format(target))
+  withRoom("save writes the look currently on screen.", function(room)
+    if name == "" then
+      ns.Print("Usage: /collected outfit save <name>")
+      return
+    end
+    local list = room:ComposeOutfit()
+    local issues = ns.OutfitIssues(list)
+    if issues.filled == 0 then
+      ns.Print("Nothing to save — the preview is empty.")
+      return
+    end
+    if issues.pending then
+      ns.Print("Item data is still loading — try again in a moment.")
+      return
+    end
+    -- Unlike the button this replaces a same-named look outright: a scripted call has no
+    -- arm-then-confirm step to answer. Not `withLook`, which would refuse a name that doesn't
+    -- exist yet — saving under a NEW name is the normal case here.
+    local existing = ns.LibraryOutfit(name)
+    local target = existing and existing.name or name
+    -- Stamped exactly as the row's Save button stamps it (#758). This used to pass no meta at all,
+    -- which wiped the provenance off an entry it replaced — the one save path that recorded nothing.
+    -- The room's stamper rather than `ns.LocalOutfitMeta` because only it can derive `forClass`.
+    local ok, err = ns.SaveLibraryOutfit(target, list, room:_outfitMeta(list))
+    if not ok then
+      ns.Print("Couldn't save: " .. err)
+      return
+    end
+    -- No `room:RefreshOutfits()`: the save announces itself and every open surface refreshes (#727).
+    ns.Print((existing and "Replaced \"%s\" in your library." or "Saved \"%s\" to your library."):format(target))
+  end)
 end
 
 ---@param name string
 local function outfitLoad(name)
-  local room = ns.OpenDressingRoom()
-  if not room then
-    ns.Print("Open a set's Preview first — load dresses the window on screen.")
-    return
-  end
-  local look = ns.LibraryOutfit(name)
-  if not look then
-    ns.Print(("No saved look named \"%s\". Try /collected outfit list."):format(name))
-    return
-  end
-  room:LoadOutfit(look.name)   -- prints its own confirmation, with the look's provenance
+  withRoom("load dresses the window on screen.", function(room)
+    withLook(name, function(look)
+      room:LoadOutfit(look.name)   -- prints its own confirmation, with the look's provenance
+    end)
+  end)
 end
 
 ---@param name string
 local function outfitDelete(name)
-  local look = ns.LibraryOutfit(name)
-  if not look then
-    ns.Print(("No saved look named \"%s\". Try /collected outfit list."):format(name))
-    return
-  end
-  -- This used to reach for the room and refresh it, and knew nothing of the library window — which
-  -- is exactly the gap #727 closed: the delete announces itself, and whichever surfaces are open
-  -- refresh themselves.
-  local deleted = look.name
-  ns.DeleteLibraryOutfit(deleted)
-  ns.Print(("Deleted \"%s\" from your library."):format(deleted))
+  withLook(name, function(look)
+    -- This used to reach for the room and refresh it, and knew nothing of the library window —
+    -- which is exactly the gap #727 closed: the delete announces itself, and whichever surfaces
+    -- are open refresh themselves.
+    local deleted = look.name
+    ns.DeleteLibraryOutfit(deleted)
+    ns.Print(("Deleted \"%s\" from your library."):format(deleted))
+  end)
 end
 
 -- Copy a library look into THIS character's transmog sets — the bridge across the two stores, and
 -- the only path where Blizzard's name filter and 25-set cap apply.
 ---@param name string
 local function outfitPush(name)
-  local entry = ns.LibraryOutfit(name)
-  if not entry then
-    ns.Print(("No saved look named \"%s\". Try /collected outfit list."):format(name))
-    return
-  end
-  local look = entry.name
-  local list, err = ns.LibraryOutfitList(look)
-  if not list then
-    ns.Print("Couldn't read that look: " .. err)
-    return
-  end
-  local existing
-  for _, s in ipairs(ns.CustomSets()) do if s.name == look then existing = s.id end end
-  local id, saveErr = ns.SaveCustomSet(look, list, existing)
-  if not id then
-    ns.Print("Couldn't push: " .. saveErr)
-    return
-  end
-  ns.Print(("Pushed \"%s\" to this character's transmog sets."):format(look))
+  withLook(name, function(entry)
+    local look = entry.name
+    local list, err = ns.LibraryOutfitList(look)
+    if not list then
+      ns.Print("Couldn't read that look: " .. err)
+      return
+    end
+    local existing
+    for _, s in ipairs(ns.CustomSets()) do if s.name == look then existing = s.id end end
+    local id, saveErr = ns.SaveCustomSet(look, list, existing)
+    if not id then
+      ns.Print("Couldn't push: " .. saveErr)
+      return
+    end
+    ns.Print(("Pushed \"%s\" to this character's transmog sets."):format(look))
+  end)
 end
 
 ns:registerCommand("outfit", nil, function(_, args)
