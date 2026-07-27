@@ -146,12 +146,30 @@ function OutfitLibraryWindow:_disarm()
   end
 end
 
+---Enable or grey the three verbs that act on a selection. Built lazily like everything else in this
+---pane, so this tolerates being called before `_buildPreview` has run.
+---@param on boolean
+function OutfitLibraryWindow:_enableVerbs(on)
+  for _, btn in ipairs({ self._renameBtn, self._deleteBtn, self._pushBtn }) do
+    ns.EnableRowButton(btn, on)
+  end
+end
+
 ---Show `name` on the model and describe it beside. nil clears back to the empty state — which is
 ---also what a deleted or vanished selection lands on.
 ---@param name string?
 function OutfitLibraryWindow:_showPreview(name)
   self:_disarm()
   local entry = name and ns.LibraryOutfit(name)
+  -- Grey the three verbs when there is nothing selected (#716, closed by #770 step 6). They used to
+  -- stay lit and print a refusal *after* the click — "Pick a look to delete." — which the room has
+  -- never done and which #716 half-fixed here, retro-fitting the armed border but never the disable.
+  --
+  -- The single choke point for it: every selection change reaches here, from `Select` and from the
+  -- list's `Refresh` (which is also what clears a selection whose look has just been deleted). It
+  -- sits after `_disarm` deliberately — a disabled button swallows clicks, so an armed one greyed
+  -- out would keep counting down toward a confirmation it could no longer accept.
+  self:_enableVerbs(entry ~= nil)
   if not entry then
     -- An empty list bares the model rather than leaving the last look on a cleared selection.
     ns.DressModelFromList(self._preview, ns.EmptyOutfitList())
