@@ -1,6 +1,6 @@
 # ShadowsOfUI-Reputations
 
-**Deps:** LibNAddOn, Warbandeer_Characters · **OptionalDeps:** Warbandeer · **SavedVars:** none · **Commands:** `/sreps <factionID|name>` (dev/lookup) · **API:** reads `WarbandeerApi`
+**Deps:** LibNAddOn, Warbandeer_Characters · **OptionalDeps:** none · **SavedVars:** none · **Commands:** `/sreps <factionID|name>` (dev/lookup) · **API:** reads `WarbandeerApi`
 
 Headless addon. Surfaces each character's faction standings warband-wide, in two places: the
 in-game Reputation tab (hover a faction) and faction-tied item tooltips. Assignment-form init
@@ -35,4 +35,4 @@ in-game Reputation tab (hover a faction) and faction-tied item tooltips. Assignm
   system shows them after post-calls).
 - **`GetFactionStandings` is account-wide and sorted** (highest `rank` first) in the data layer,
   so the renderer just walks the list.
-- **No `X-Curse-Project-ID` yet** — added when the CurseForge project is created.
+- **`X-Curse-Project-ID`** — `1614342`.

@@ -52,4 +52,4 @@ threaded through.
   owning any state, the tag only (re)appears when Blizzard itself redraws the rewards section
   (selecting/reselecting a quest) — matching Blizzard's own staleness if you level up while the
   pane happens to be open.
-- **No `X-Curse-Project-ID` yet** — added when the CurseForge project is created.
+- **`X-Curse-Project-ID`** — `1615396`.

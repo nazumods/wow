@@ -16,6 +16,13 @@ ns.changelog = {
 - roll out in-game changelog viewer to all ShadowsOfUI addons (#340) (#376)
 
 ]==] },
+  { version = "12.0.7-r10", notes = [==[
+### Bug Fixes
+- enchant-flagging edge cases — ilvl-floor gate + thousands separators (#305) (#330)
+
+### Maintenance
+- five Low hygiene items (#306) (#331)
+]==] },
   { version = "12.0.7-r9", notes = [==[
 ### Bug Fixes
 - weapon proficiency for wands, Titan's Grip, Hunter and Evoker (#301-304) (#321)
@@ -61,13 +68,6 @@ ns.changelog = {
 - never recommend a legacy artifact to an offline alt (#157)
 - count empty sockets via GetItemGemID, not GetItemStats (#155)
 - never suggest a two-hander to an off-hand wielder (#153)
-]==] },
-  { version = "12.0.7-r10", notes = [==[
-### Bug Fixes
-- enchant-flagging edge cases — ilvl-floor gate + thousands separators (#305) (#330)
-
-### Maintenance
-- five Low hygiene items (#306) (#331)
 ]==] },
   { version = "12.0.7-r1", notes = [==[
 ### Features

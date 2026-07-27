@@ -1,6 +1,6 @@
 # ShadowsOfUI-Inventory
 
-**Deps:** LibNAddOn, Warbandeer_Characters · **OptionalDeps:** Warbandeer · **SavedVars:** none · **Commands:** `/swinv <itemID|link>` (dev/find dump) · **API:** reads `WarbandeerApi`
+**Deps:** LibNAddOn, Warbandeer_Characters · **OptionalDeps:** none · **SavedVars:** none · **Commands:** `/swinv <itemID|link>` (dev/find dump) · **API:** reads `WarbandeerApi`
 
 Headless tooltip addon. Adds a "Warband Inventory" block to item tooltips listing how many of
 the item each character holds (bags + personal bank), the shared warband bank, and each
@@ -47,4 +47,4 @@ A testing aid (tooltip text can't be copied) and a "where is my…?" lookup. `SL
   while it's logged in; bank/guild counts update on bank open. Empty until alts are seen.
 - **The hovered copy is included** in its character's count (the count is "total held",
   Altoholic-style), so an item in your bag reads as ≥1 for the current character.
-- **No `X-Curse-Project-ID` yet** — added when the CurseForge project is created.
+- **`X-Curse-Project-ID`** — `1615346`.
