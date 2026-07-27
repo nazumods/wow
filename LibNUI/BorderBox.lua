@@ -16,7 +16,7 @@ local e = ui.edge
 -- physical pixel rather than a fraction of one. Four hairlines with nothing else to hide
 -- behind, this is where the suite's sub-pixel rounding showed up worst (#782).
 ---@class BorderBox: Frame
----@field thickness number       edge width in UI units, rounded out to whole pixels (default 1)
+---@field thickness number       edge width in UI units, snapped to whole pixels (default 1)
 ---@field color string|number[]  edge colour: theme token or rgba (default "border")
 ---@field _edges Texture[]       edge textures {top, bottom, left, right}
 local BorderBox = Class(Frame, function(self)

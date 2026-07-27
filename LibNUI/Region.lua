@@ -153,9 +153,15 @@ function Region:Height(h) return h == nil and self._widget:GetHeight() or self._
 -- anchor offsets need no snapping of their own.
 
 -- Regions carrying a snapped length, keyed to the length they asked for so it can be
--- recomputed when the conversion changes under them. Weak-keyed: this must never be the
--- thing keeping a region alive.
-local snapped = setmetatable({}, {__mode = "k"})
+-- recomputed when the conversion changes under them.
+--
+-- **Deliberately NOT weak-keyed.** A WoW widget is never destroyed, so a region's backing
+-- widget goes on rendering whether or not anything still references the Lua wrapper — and
+-- plenty of widgets are built and never stored (`ui.BorderBox:new{...}` as a statement is
+-- the common shape). Under weak keys the collector quietly evicts exactly those, so they
+-- stop being re-snapped while still on screen, and a scale change leaves a scattered mix of
+-- correct and stale edges that moves around with GC timing rather than with geometry.
+local snapped = {}
 
 ---@param self Region
 ---@param key string  "w" | "h" | "inset"
@@ -168,15 +174,17 @@ end
 
 -- Convert a length in UI units to the nearest whole number of physical pixels — never
 -- fewer than one — and return it in UI units again. Pass the same number you would pass to
--- `Width`/`Height`: the result is that length rounded out, not a pixel count, so a border
--- keeps its apparent weight on a high-DPI display instead of thinning to a hair.
+-- `Width`/`Height`: the result is that length rounded to the nearest whole pixel, not a
+-- pixel count, so a border keeps its apparent weight at every resolution instead of
+-- thinning to a hair on a high-DPI display. Only the floor rounds *out*, and only ever to
+-- one — which is the guarantee a hairline needs and the one it never had.
 ---@param units number  length in UI units
----@return number  the same length, rounded out to whole physical pixels
+---@return number  the same length, at the nearest whole number of physical pixels
 function Region:Pixels(units)
   return PixelUtil.GetNearestPixelSize(units, self._widget:GetEffectiveScale(), 1)
 end
 
--- `Width`/`Height` rounded out to whole physical pixels. Use these for anything thin
+-- `Width`/`Height` snapped to whole physical pixels. Use these for anything thin
 -- enough to vanish — border edges, dividers, rules — and plain `Width`/`Height` for
 -- everything else, which is far too large for the rounding to reach.
 ---@param units number
@@ -213,8 +221,15 @@ local function ReSnap()
     if rec.inset then ApplyInset(region, rec.inset) end
   end
 end
-ns:registerEvent("UI_SCALE_CHANGED", ReSnap)
-ns:registerEvent("DISPLAY_SIZE_CHANGED", ReSnap)
+
+-- Deferred a frame, NOT run inline. Both events announce a change rather than follow it:
+-- `GetEffectiveScale()` and `GetPhysicalScreenSize()` are not guaranteed to be reporting the
+-- new values by the time the handler runs, and re-deriving against the old ones is worse
+-- than not re-deriving at all — it converts correctly snapped lengths into fractional ones.
+-- A frame later both are settled.
+local function ReSnapSoon() RunNextFrame(ReSnap) end
+ns:registerEvent("UI_SCALE_CHANGED", ReSnapSoon)
+ns:registerEvent("DISPLAY_SIZE_CHANGED", ReSnapSoon)
 
 function Region:Show()
   if self.OnBeforeShow then self:OnBeforeShow() end
