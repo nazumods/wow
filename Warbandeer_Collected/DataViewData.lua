@@ -220,7 +220,12 @@ function ns.CollectedRows(self)
         self.cells[dispIdx][2].label:Color(NORMAL_FONT_COLOR:GetRGBA())
         if not self._arrow then
           self._arrow = Texture:new{
-            parent = self,
+            -- rowArea, not the grid (#768 L-9): parented to the grid it wasn't clipped by the
+            -- scroll frame, so scrolling the selected row out of view left the arrow drawn over
+            -- the column header. `ns.EnsureDressedCursor` parents to rowArea for the same reason —
+            -- "so it scrolls with the cells". The anchor still targets the row itself, which is a
+            -- child of rowArea, so the positioning is unchanged.
+            parent = self.rowArea,
             path = "interface/common/commonicons",
             coords = {
               0.02654,

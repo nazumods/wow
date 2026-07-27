@@ -282,10 +282,8 @@ function CollectedView:SetMode(weapons)
   -- row (right of the dropdowns); armor restores it over the header.
   self.counter:Position(weapons and { TopLeft = {self.weaponStrip, ui.edge.TopRight, 12, -3} }
     or { TopLeft = {self.filterStrip, ui.edge.TopRight, 12, -3} })
-  self:Width((weapons and self.weaponGrid:Width() or self.grid:Width()) + SCROLLBAR_W)
   self:_render()
-  self:_fitToGrid()
-  if ns.MainWindow then ns.MainWindow:Fit() end
+  self:_fitToGrid()   -- sizes both axes and refits the main window (#768 L-4)
 end
 
 -- Cap the visible grid at the shared `DataView.MAX_HEIGHT` and size the scroll container
@@ -294,10 +292,18 @@ end
 -- can't overscroll into empty space below the rows.
 function CollectedView:_fitToGrid()
   local grid, scroll = self.active or self.grid, self.activeScroll or self.scroll
+  -- Width as well as height (#768 L-4). `ns.FitNameCol` widens the name column and returns true so
+  -- "the host should refit", but this only ever adjusted height — so the deferred login-path
+  -- measurement (#718's repair) grew the grid while the view stayed narrow and clipped its
+  -- rightmost column. Only `SetMode` re-widened.
+  self:Width(grid:Width() + SCROLLBAR_W)
   local capH = min(grid.MAX_HEIGHT, grid.rowArea:Height())
   scroll:Height(capH)
   self:Height(self._top + grid.headerHeight + capH + 4)
   scroll:Refresh()   -- recompute the scroll range for the new child height
+  -- The main window sizes itself to this view, so a resize here has to carry through — otherwise a
+  -- widened view is just clipped one frame further out.
+  if ns.MainWindow then ns.MainWindow:Fit() end
 end
 
 -- Show/hide the grid (header icons + scrolling rows) as a unit, so the empty-state

@@ -75,7 +75,7 @@ function WeaponView:update()
   end
   TableFrame.update(self)
   self:ResizeRows(real)
-  self:_setEmpty(self._wantedOnly and real == 0)
+  self:_setEmpty(real == 0)   -- any empty result, not just the ★ filter (#768 L-5)
   self:_refreshMarks()
   -- Cells are reassigned by the rebuild, so re-resolve the dressed-weapon cursor onto the
   -- cell that still matches (source, type) — the weapon analogue of DataView re-resolving
