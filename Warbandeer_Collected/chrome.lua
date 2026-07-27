@@ -69,8 +69,17 @@ function ns.RowButton(spec)
     position = { Left = {2, 0}, Right = {-2, 0} }, text = spec.label }
   -- `glow` left on so these carry LibNUI's hover border, as every button in the addon does: among
   -- controls that all light up on mouseover, one that doesn't reads as disabled.
-  Button:new{ parent = box, position = { All = true },
+  local press = Button:new{ parent = box, position = { All = true },
     OnClick = function() if not btn.disabled then spec.onClick() end end }
+  -- **A disabled button must not LOOK live either.** LibNUI's Button shows its hover glow on
+  -- OnEnter and flashes the border green on OnMouseDown; neither knows about our `disabled` flag,
+  -- so a greyed button still lit on hover and flashed on click while swallowing it — which reads as
+  -- active-but-broken, worse than the refusal message this replaces. `Frame:RegisterScript` bridges
+  -- these to same-named methods resolved on the instance **at call time**, so shadowing them here
+  -- is enough; the class methods stay untouched for every other Button in the suite.
+  local enter, down = press.OnEnter, press.OnMouseDown
+  press.OnEnter     = function(s) if not btn.disabled then enter(s) end end
+  press.OnMouseDown = function(s) if not btn.disabled then down(s) end end
   return btn
 end
 
@@ -84,5 +93,10 @@ end
 ---@param on boolean
 function ns.EnableRowButton(btn, on)
   btn.disabled = not on or nil
-  btn.label:Color(on and "text" or "muted")   -- theme tokens, as the room's own greying used
+  -- **Not the `muted` token**, which the room's own greying used: that is `{0.8, 0.8, 0.8}` — a
+  -- secondary-text grey meant for keybind labels, and against the `text` white it is far too close
+  -- to read as disabled at all (measured in game: indistinguishable). Blizzard's own disabled-text
+  -- colour is what the eye already knows, and it makes a greyed verb obviously inert rather than
+  -- merely slightly dimmer.
+  btn.label:Color(on and "text" or DISABLED_FONT_COLOR)
 end
