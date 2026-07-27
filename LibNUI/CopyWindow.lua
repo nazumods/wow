@@ -91,10 +91,21 @@ function CopyWindow:_maxLineWidth(text)
   return maxW
 end
 
+-- Titlebar width the title text can't have: its 33px left inset (set by TitleFrame),
+-- the 6px gap its right anchor leaves, the 44px size picker, the picker's 4px gap,
+-- and the 30px close button. Lives here rather than with the constants above because
+-- it only means anything alongside the width maths below.
+local TITLE_CHROME_W = 33 + 6 + 44 + 4 + 30
+
 -- Re-measure and re-apply the cached text at the current font size.
 function CopyWindow:_relayout()
   local text, count = self._text, self._count
-  local ebW = math.min(math.max(self:_maxLineWidth(text) + PADDING, MIN_W), MAX_W)
+  -- Size to the wider of the body and the titlebar: a title longer than the content
+  -- has nowhere to draw but over the picker and close button. Measured unbounded
+  -- because _createPicker constrains the label's width. Past MAX_W the window stops
+  -- growing and that same constraint truncates the title instead.
+  local titleW = self.titlebar.title:UnboundedWidth() + TITLE_CHROME_W - SCROLLBAR_W
+  local ebW = math.min(math.max(self:_maxLineWidth(text) + PADDING, titleW, MIN_W), MAX_W)
 
   self:Width(ebW + SCROLLBAR_W)
   self._eb:Font({ FONT_PATH, self._fontSize, FONT_FLAGS })
@@ -120,6 +131,11 @@ function CopyWindow:_createPicker()
     position = { Center = {} },
     text     = "A " .. self._fontSize .. CHEVRON,
   }
+
+  -- Bound the inherited title against the picker. _relayout widens the window to fit
+  -- the title, but MAX_W is a hard clamp, so a long enough title still has to give —
+  -- a right anchor turns that into an ellipsis rather than a draw-over.
+  self.titlebar.title:SetPoint(ui.edge.Right, btn, ui.edge.Left, -6, 0)
 
   local menu
   local lines = {}

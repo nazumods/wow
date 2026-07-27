@@ -42,6 +42,10 @@ local TitleFrame = Class(CleanFrame, function(o)
     text = o.title,
     justifyH = Left,
     justifyV = "MIDDLE",
+    -- The bar is a fixed 30px strip, so a wrapped title is never right. Inert unless
+    -- something bounds the label's width (only CopyWindow does, against its picker),
+    -- where it turns an over-long title into an ellipsis instead of a second line.
+    wordWrap = false,
   }
 
   -- icon

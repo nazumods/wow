@@ -432,7 +432,7 @@ Inherits `CleanFrame`. Adds a title bar with icon, title text, and a close butto
 
 ## CopyWindow
 
-Inherits `TitleFrame`. A ready-made window for console-style text the user can copy: a scrolling, pre-highlighted multi-line `EditBox` with a titlebar font-size picker. The window auto-sizes to the widest line and shows a fresh title each time you call `Display`. The picked font size persists account-wide (in LibNUI's own saved variables).
+Inherits `TitleFrame`. A ready-made window for console-style text the user can copy: a scrolling, pre-highlighted multi-line `EditBox` with a titlebar font-size picker. The window auto-sizes to the wider of its widest body line and its title — so a long title always clears the size picker and close button — and shows a fresh title each time you call `Display`. Growth stops at a fixed maximum width, past which the title truncates with an ellipsis rather than overlapping the titlebar controls. The picked font size persists account-wide (in LibNUI's own saved variables).
 
 Most callers don't construct one — use the shared singleton:
 
