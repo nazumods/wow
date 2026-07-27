@@ -88,7 +88,7 @@ if WarbandeerHousingDecorApi and WarbandeerHousingDecorApi.List then
 end
 
 -- Live-refresh the view when a scan rebuilds the snapshot, or a wanted flag changes
--- anywhere (this grid or the standalone /decor window). Registered once at load.
+-- anywhere (this grid or the standalone /wbdecor window). Registered once at load.
 if WarbandeerHousingDecorApi and WarbandeerHousingDecorApi.OnScanned then
   WarbandeerHousingDecorApi:OnScanned(function()
     if _view then _view.grid:Render(); _view:RefreshWanted() end
@@ -110,11 +110,14 @@ end
 -- Refresh the "N / N collected" counter (owned / shown for the current filter), or hide
 -- the grid behind the empty-state message until the first scan populates the snapshot.
 -- Guarded so the grid's construction-time Render is a no-op until this Label exists.
+-- Pre-scan the grid has nothing to count, so the counter shows the tally the last scan
+-- persisted (API:Counts) -- a real number the instant the view opens, rather than a blank.
 function HousingDecorView:RefreshCounter()
   if not self.counter then return end
   local api = WarbandeerHousingDecorApi
   if not api:IsScanned() then
-    self.counter:Text("")
+    local collected, total = api:Counts()
+    self.counter:Text(total > 0 and ("%d / %d collected (last session)"):format(collected, total) or "")
     self.grid:SetShown(false)
     self.emptyMsg:Show()
     return
@@ -125,7 +128,7 @@ function HousingDecorView:RefreshCounter()
   self.counter:Text(("%d / %d collected"):format(collected, shown))
 end
 
--- Refresh the running wanted tally (gold star + N), matching the /decor window.
+-- Refresh the running wanted tally (gold star + N), matching the /wbdecor window.
 function HousingDecorView:RefreshWanted()
   local api = WarbandeerHousingDecorApi
   self.wantedCount:Text(("|A:%s:14:14|a %d"):format(api.WantedIcon, api:WantedCount()))

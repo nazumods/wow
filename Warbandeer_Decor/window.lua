@@ -1,4 +1,4 @@
----@type Warbandeer_HousingDecor
+---@type Warbandeer_Decor
 local ns = select(2, ...)
 ---@type LibNUI
 local ui = ns.ui
@@ -82,9 +82,15 @@ end, {
 
 ---Refresh the "N / N collected" counter (owned / shown for the current filter). Guarded
 ---so the grid's construction-time Render (which fires onFilterChanged before this Label
----exists) is a no-op until the window finishes building.
+---exists) is a no-op until the window finishes building. Before this session's first scan
+---lands the grid is empty, so fall back to the tally the last scan persisted rather than
+---reporting a bare 0 / 0 (skipped when there's no stored tally to show yet).
 function MainWindow:RefreshCounter()
   if not self.counter then return end
+  if #ns._entries == 0 and ns.db.total > 0 then
+    self.counter:Text(("%d / %d collected (last session)"):format(ns.db.collected, ns.db.total))
+    return
+  end
   local shown, collected = self.list:VisibleCounts()
   self.counter:Text(("%d / %d collected"):format(collected, shown))
 end
@@ -110,7 +116,7 @@ ns:OnRatingsChanged(function()
   ns.window:RefreshWanted()
 end)
 
----@class Warbandeer_HousingDecor
+---@class Warbandeer_Decor
 ---@field window DecorWindow?  main window (nil until first opened)
 ns.window = nil
 
