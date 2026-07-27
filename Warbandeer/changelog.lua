@@ -6,6 +6,19 @@ local ns = select(2, ...)
 -- same conventional-commit grouping used for the GitHub/CurseForge release notes.
 ---@type { version: string, notes: string }[]
 ns.changelog = {
+  { version = "12.0.7-r33", notes = [==[
+### Bug Fixes
+- duplicate spec, dropdown refresh/leak, write-only counts, rename leftovers (#801)
+- refit the host's width, show an empty state for any filter miss, clip the lockout arrow (#799)
+- broadcast grid Shift-click wanted changes and let the room subscribe (#788)
+
+### Refactoring
+- share the upcoming tally and the scroll-into-view clamp (#813)
+
+### Documentation
+- reconcile DB version, optional deps, view count, and curse-id drift (#797)
+
+]==] },
   { version = "12.0.7-r32", notes = [==[
 ### Features
 - snapshot battle-pet species and names for offline readers (#726)

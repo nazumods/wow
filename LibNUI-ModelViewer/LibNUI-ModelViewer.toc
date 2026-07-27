@@ -2,7 +2,7 @@
 ## Category: Lib
 ## Title: LibNUI ModelViewer
 ## Author: Nazuraki
-## Version: 12.0.7-r3
+## Version: 12.0.7-r4
 ## IconTexture: Interface\Icons\Ability_Rogue_Disguise
 ## Dependencies: LibNAddOn, LibNUI
 ## X-NUI-UI: LibNUI
