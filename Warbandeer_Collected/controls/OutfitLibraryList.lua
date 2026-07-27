@@ -63,12 +63,7 @@ function OutfitLibraryWindow:_fillRow(row, item)
   local o = item.outfit
   row._name = o.name
   row.name:Text(ns.ClassColored(o.name, o.class))
-  local origin = ns.OutfitOrigin(o)
-  local forClass = o.forClass and ns.ClassLabel(o.forClass)
-  if forClass then
-    forClass = ("a %s look"):format(forClass)
-    origin = origin ~= "" and (origin .. "   ·   " .. forClass) or forClass
-  end
+  local origin = ns.OutfitOriginFull(o)   -- shared with the preview pane (#770 step 4)
   row.origin:Text(origin ~= "" and origin or NO_PROVENANCE)
   paint(row, o.name == self._selected and SEL_A or 0)
   return ROW_H

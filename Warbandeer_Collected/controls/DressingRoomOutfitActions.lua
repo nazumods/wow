@@ -23,24 +23,20 @@ local SAVE_RETRIES = 10  -- capped re-checks while item data streams (0.3s apart
 ---@param list table[]
 ---@return OutfitMeta
 function DressingRoom:_outfitMeta(list)
-  local name, realm = UnitFullName("player")
-  local _, class = UnitClass("player")
+  -- `char`/`class`/`armor` come from the shared stamper (#770 step 4). They were derived here too,
+  -- identically, which is how a save surface ends up with provenance that quietly disagrees with
+  -- every other one — the failure mode behind #758. This adds only the field it uniquely can.
+  local meta = ns.LocalOutfitMeta(list)
   -- `_classIndex` is the class column of the last set clicked in the GRID, which in outfit mode is
   -- not what's on the model — so re-saving a loaded look there would relabel it with an unrelated
   -- class. Carry the entry's own `forClass` instead; only a real set preview derives a fresh one.
-  local forClass
   if self._outfit then
     local entry = self._outfitSel and ns.LibraryOutfit(self._outfitSel)
-    forClass = entry and entry.forClass
+    meta.forClass = entry and entry.forClass
   elseif self._classIndex then
-    forClass = select(2, GetClassInfo(self._classIndex))
+    meta.forClass = select(2, GetClassInfo(self._classIndex))
   end
-  return {
-    char = realm and realm ~= "" and (name .. "-" .. realm) or name,
-    class = class,
-    forClass = forClass,
-    armor = ns.OutfitArmorType(list),
-  }
+  return meta
 end
 
 ---Load a saved look from the library, switching the room into outfit mode.
