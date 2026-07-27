@@ -271,6 +271,32 @@ ns:registerCommand("scan", "", function(self)
   ns.Print("Scanned sets, collected sets updated.")
 end, "Scan all sets for collected status")
 
+-- Rebuild the open window's grids from the CURRENT db — the display half of `scan`, without the
+-- transmog-API walk that wipes and refills `db.sets`. Touches no collection or rating data.
+--
+-- Exists as a workaround for #718: the grid intermittently comes up after a login with its text
+-- missing while the cells underneath are intact. `Cell:update` re-applies each cell's text and
+-- re-shows its label, so a rebuild restores the display. `scan` already did this as a side effect,
+-- but rescanning every set to fix a drawing fault is a sledgehammer.
+--
+-- It doubles as a probe: if this fixes a blank grid, the cells were built correctly and something
+-- hid them or stopped them drawing — which is a different bug from the row builder never producing
+-- the text, and narrows #718 accordingly.
+ns:registerCommand("refresh", nil, function()
+  if not ns.window then
+    ns.Print("The Collected window isn't open — /collected opens it.")
+    return
+  end
+  for _, grid in ipairs({ ns.window.data, ns.window.weapons }) do
+    grid.data = grid:GetData()
+    grid:update()
+    if grid.onResized then grid:onResized() end
+  end
+  ns.window:RefreshCounter()
+  ns.window:RefreshWanted()
+  ns.Print("Rebuilt the Collected grids from the current data.")
+end, "Rebuild the open window's grids without rescanning (fixes a blank grid — see #718)")
+
 -- Learning a new appearance changes the per-set collected counts, so re-scan when
 -- the collection updates. This event fires in bursts (e.g. login), so debounce
 -- through ns.delay; only rescan once the user has scanned at least once.
