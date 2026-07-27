@@ -38,9 +38,8 @@ local SELECTED, IDLE = k.SELECTED, k.IDLE
 -- arbitrary race with no equipped gear to fall back to, so bare skin is the honest render for
 -- "no transmog" as much as for "hidden". They differ on the paper doll, and in what they save.
 
--- Slot-status colors + the question-mark fallback icon.
-local GREEN    = {0, 104/255, 55/255, 1}   -- piece collected
-local RED      = {165/255, 0, 38/255, 1}   -- piece missing
+-- The question-mark fallback icon. The slot-status green/red live on `ns` (DressingRoomLookSlots.lua)
+-- — five files painted the same two colours from their own copies.
 local QUESTION = 134400                    -- inv_misc_questionmark fileID
 local DIM      = 0.30                      -- icon vertex value for a slot that isn't being worn
 
@@ -104,7 +103,7 @@ function DressingRoom:_paintSlot(e)
     -- Green/red is the piece's collected status, and only worn slots are making a claim about the
     -- piece; an emptied one has stepped out of the way, so it drops to idle like a slot with
     -- nothing in it.
-    e.border:Color(state and IDLE or (e.collected and GREEN or RED))
+    e.border:Color(state and IDLE or (e.collected and ns.slotOK or ns.slotMissing))
   else
     -- No piece for this slot in the set: the "nothing here" marker — and the same outfit value
     -- (`0`) an explicitly emptied slot composes to, which is why the two look alike.
@@ -177,8 +176,7 @@ function DressingRoom:SetUndressed(undressed)
   self:_refreshSlotStates()
   -- The composed-look slots have no _hiddenSlots entry, so _refreshSlotStates doesn't reach them —
   -- repaint them here so their icons grey with the armor instead of still reading as worn.
-  self:UpdateWeaponSlots()
-  self:UpdateCosmeticSlots()
+  self:UpdateLookSlots()
   self:_syncUndressBorder()
 end
 
