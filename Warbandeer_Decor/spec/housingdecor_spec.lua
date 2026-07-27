@@ -91,4 +91,53 @@ describe("Warbandeer_Decor", function()
       assert.equals(1, fired)
     end)
   end)
+
+  describe("Scan -- the persisted collected/total tally", function()
+    -- Three decor: two owned (stored / placed) and one not.
+    local VARIANTS = {
+      { entryType = 1, recordID = 10 },
+      { entryType = 1, recordID = 20 },
+      { entryType = 1, recordID = 30 },
+    }
+    local function stock(records)
+      records[10] = { name = "Stored",   totalNumStored = 1 }
+      records[20] = { name = "Unowned" }
+      records[30] = { name = "Placed",   totalNumPlaced = 2 }
+    end
+
+    it("writes the fresh tally once the catalog is primed", function()
+      local ns, records = hd.loadScan()
+      stock(records)
+      hd.prime(ns, VARIANTS)
+
+      ns:Scan()
+      assert.equals(3, #ns._entries)
+      assert.equals(2, ns.db.collected)
+      assert.equals(3, ns.db.total)
+    end)
+
+    it("keeps the last good tally when the catalog hasn't primed yet", function()
+      -- A cold session: the searcher is nil until onLogin creates it, so the first
+      -- scans read nothing. That must not be reported as "you own nothing".
+      local ns = hd.loadScan({ wanted = {}, collected = 120, total = 400 })
+
+      ns:Scan()
+      assert.same({}, ns._entries)
+      assert.equals(120, ns.db.collected)
+      assert.equals(400, ns.db.total)
+    end)
+
+    it("keeps the tally when a later scan reads an empty catalog", function()
+      local ns, records = hd.loadScan()
+      stock(records)
+      hd.prime(ns, VARIANTS)
+      ns:Scan()
+
+      ns._searcher = nil   -- the catalog drops out from under a later scan
+      ns:Scan()
+      assert.same({}, ns._entries)   -- the live snapshot still clears (IsScanned depends on it)
+      assert.equals(2, ns.db.collected)
+      assert.equals(3, ns.db.total)
+    end)
+  end)
 end)

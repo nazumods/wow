@@ -10,7 +10,7 @@ Warbandeer embeds the same list as an optional **`decor`** view (`Warbandeer/vie
 
 | File | Purpose |
 |---|---|
-| `init.lua` | `local ns = LibNAddOn(...)` + non-destructive `MigrateDB` (v1): `wanted` (`[recordID]=true`), cached `collected`/`total` counts, `windowPos`. |
+| `init.lua` | `local ns = LibNAddOn(...)` + non-destructive `MigrateDB` (v1): `wanted` (`[recordID]=true`), cached `collected`/`total` counts, `windowPos`. Also a `PLAYER_LOGIN` check that warns once when the pre-rename `Warbandeer_HousingDecor` folder is still installed (both copies would claim the same SavedVariables, commands, and API global). |
 | `commands.lua` | `/housingdecor` / `/wbdecor` (`""` open, `scan`, `wanted` list). |
 | `catalog.lua` | **Pure, busted-specced:** `ns.NormalizeEntry(entry)` (owned/bonus count derivation) + `ns.DedupeVariants(variants)` (searcher variant descriptors → unique decor `recordID`s, filtered to `Enum.HousingCatalogEntryType.Decor`, first-seen order). WoW-API-free. |
 | `ratings.lua` | The **wanted** model keyed by `recordID`: `IsWanted`/`SetWanted`/`ToggleWanted`/`WantedCount`, `WantedIcon` (`PetJournal-FavoritesIcon`), and the `OnRatingsChanged`/`NotifyRatingsChanged` listener registry. No S–F rank / per-race (decor has no race axis). |
@@ -18,15 +18,15 @@ Warbandeer embeds the same list as an optional **`decor`** view (`Warbandeer/vie
 | `scan.lua` | Stateful catalog layer: holds the searcher (`ns._searcher`), `ns:Scan()` (enumerate → dedupe → `GetCatalogEntryInfoByRecordID` → normalize → build `ns._entries` + the `ns._categoryName`/`ns._subcategoryName` maps + counts → refresh window → fire `_scanned`), `ns:onLogin` prime, and the debounced re-scan on `HOUSING_STORAGE_UPDATED`/`HOUSING_STORAGE_ENTRY_UPDATED`/`NEW_HOUSING_ITEM_ACQUIRED`. Guards `C_HousingCatalog` presence (no-ops pre-housing). |
 | `controls/InfoTip.lua` | Shared decor hover tooltip on the game's `GameTooltip` (`ns.ShowInfoTip`/`HideInfoTip`/`RefreshInfoTip`): name (quality-colored), owned breakdown (stored/placed) or "Not collected", first-acquisition bonus, wrapped source text, shift-click hint. Owner-anchored (`SetOwner(row, "ANCHOR_RIGHT")`) so it stays on-screen off a full-width row and costs nothing to lay out during scroll. |
 | `list.lua` | `HousingDecorList = Class(Frame)` — a **windowed** one-row-per-decor list (LibNUI's `VirtualList` builds a frame per item, too many for the ~1800-entry catalog). Owns a `ScrollFrame` whose child is sized to `#_shown * ROW_H` (a zero-size bottom spacer pins that content extent so the scrollbar spans everything), plus a recycled pool of ~viewport-worth of rows repositioned/repopulated by `_window()` on every scroll/resize. Each row is a **Button** (mouse-motion enabled, so hover fires) — `createRow`/`updateRow` (quality-ringed icon, name, owned count, bonus star, wanted star). `GetItems` (filter+sort over `ns._entries`), `Render`/`Refresh`, `VisibleCounts`, row interaction (hover→InfoTip, shift-click→`ToggleWanted`). Attaches itself to `WarbandeerHousingDecorApi.List` + `ns.List`. `STRIP_H`. |
-| `filters.lua` | Re-opens `HousingDecorList` with the filter setters (`ToggleUncollected`/`ToggleWantedOnly`/`SetSearch`/`_applyCategoryKey`), `CategoryOptions` (hierarchical category→subcategory menu), `BuildFilterStrip` (Unowned + Wanted toggles + Category `FilterDropdown` + search `EditBox`), and `RefreshCategoryFilter` (swaps in a freshly-optioned Category dropdown after a scan first populates the catalog — the login-race fix). |
+| `filters.lua` | Re-opens `HousingDecorList` with the filter setters (`ToggleUncollected`/`ToggleWantedOnly`/`SetSearch`/`_applyCategoryKey`), `CategoryOptions` (hierarchical category→subcategory menu), `BuildFilterStrip` (Unowned + Wanted toggles + Category `FilterDropdown` + search `EditBox`), and `RefreshCategoryFilter` (re-options the Category dropdown in place via `FilterDropdown:SetOptions` after a scan repopulates the catalog — the login-race fix; unconditional, since `SetOptions` reuses the pooled rows and preserves the selection by key). |
 | `window.lua` | Standalone `DecorWindow = Class(TitleFrame)`: filter strip + counter band + the `HousingDecorList` (fixed-size window; the list scrolls internally). `void-dark`→`dark` theme fallback, `RefreshCounter`/`RefreshWanted`/`Refresh`, `ns:Open`, `ns:CompartmentClick`, and the `OnRatingsChanged` live-refresh. |
-| `spec/` | busted specs (`loader.lua` harness + `housingdecor_spec.lua`) for `NormalizeEntry`, `DedupeVariants`, and the wanted model; excluded from zip + release detection. |
+| `spec/` | busted specs (`loader.lua` harness + `housingdecor_spec.lua`) for `NormalizeEntry`, `DedupeVariants`, the wanted model, and the persisted scan tally (`loader.loadScan`/`prime` drive `ns:Scan()` against a fake catalog); excluded from zip + release detection. |
 
 ## API (`WarbandeerHousingDecorApi`, `api.lua`)
 
 Mirrors `WarbandeerCollectedApi`. A plain global table published as the last line of `api.lua`; `list.lua` then hangs the embeddable grid class on `.List`.
 
-- `API:Counts()` → `collected, total` (from the last scan) · `API:IsScanned()` → `#ns._entries > 0` (this session) · `API:Entries()` → the live `HousingDecorEntry[]` · `API:WantedCount()`.
+- `API:Counts()` → `collected, total` (from the last scan that saw a primed catalog — an empty read never zeroes them). Both grids show it as `N / N collected (last session)` while `IsScanned()` is still false, so the header carries a real number before this session's first scan lands. · `API:IsScanned()` → `#ns._entries > 0` (this session) · `API:Entries()` → the live `HousingDecorEntry[]` · `API:WantedCount()`.
 - `API:OnScanned(fn)` — fired after each `ns:Scan()` rebuilds the snapshot.
 - `API:IsWanted`/`SetWanted`/`ToggleWanted` + `API:OnRatingsChanged(fn)` — the account-wide wanted DB, mutated through one place so both grids stay in sync.
 - `API:ShowInfoTip(entry, parent)` / `API:HideInfoTip()` — lazy forwarders to `ns.ShowInfoTip`/`HideInfoTip`.
@@ -34,7 +34,7 @@ Mirrors `WarbandeerCollectedApi`. A plain global table published as the last lin
 
 ## Data (`scan.lua`, `catalog.lua`)
 
-The searcher is the only enumeration source: `ns._searcher:GetAllSearchItems()` returns per-**variant** descriptors (`{ entryType, recordID }`; dye variants share a `recordID`), which `ns.DedupeVariants` collapses to unique decor `recordID`s. Each resolves via `C_HousingCatalog.GetCatalogEntryInfoByRecordID(Enum.HousingCatalogEntryType.Decor, recordID, true)` → a `HousingCatalogEntryInfo`, normalized by `ns.NormalizeEntry` (identical to HousingVendor's):
+The searcher is the only enumeration source: `ns._searcher:GetCatalogSearchResults()` returns per-**variant** descriptors (`{ entryType, recordID }`; dye variants share a `recordID`), which `ns.DedupeVariants` collapses to unique decor `recordID`s. Each resolves via `C_HousingCatalog.GetCatalogEntryInfoByRecordID(Enum.HousingCatalogEntryType.Decor, recordID, true)` → a `HousingCatalogEntryInfo`, normalized by `ns.NormalizeEntry` (identical to HousingVendor's):
 
 - `stored` = `totalNumStored + remainingRedeemable` (on hand) · `total` = `stored + totalNumPlaced` (owned anywhere) · `owned` = `total > 0`.
 - `bonus` = `firstAcquisitionBonus` (House XP) · `bonusAvailable` = `bonus > 0 and total == 0` (unowned only).

@@ -1,4 +1,4 @@
----@class Warbandeer_HousingDecor
+---@class Warbandeer_Decor
 ---@field WantedIcon string  atlas for the "wanted" marker
 local ns = select(2, ...)
 
@@ -43,7 +43,7 @@ function ns:WantedCount()
 end
 
 -- ─── Change notification ─────────────────────────────────────────────────────
--- The wanted flags are shared by two grids (the standalone /decor window and
+-- The wanted flags are shared by two grids (the standalone /wbdecor window and
 -- Warbandeer's embedded decor view, each its own frame), so a toggle in one can't
 -- know which others to refresh. Grids register a refresher here; ToggleWanted fires
 -- them all after any change.
