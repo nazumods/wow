@@ -384,18 +384,16 @@ end
 
 -- Lazily build a grid's dressed-cell cursor: one reusable white 4-edge box parented to the row area
 -- (so it scrolls with the cells) and lifted above them. Shared by both grids' highlight paths.
+--
+-- `ui.BorderBox` is exactly this — four edge textures two-point-anchored to their frame's corners at
+-- `layer.Overlay`, stretching with it — and LibNUI builds one in this very code path (`Cell.lua`), so
+-- the hand-rolled four went (#770 step 17). The `Level` bump stays: the box is still a raised child of
+-- the row area, which is what puts it over the cell backdrops.
 ---@param grid table  a DataView / WeaponView instance
 function ns.EnsureDressedCursor(grid)
   if grid._dressedBox then return end
-  local box = Frame:new{ parent = grid.rowArea }
+  local box = ui.BorderBox:new{ parent = grid.rowArea, thickness = 2, color = {1, 1, 1, 1} }
   box:Level(grid.rowArea:Level() + 5)
-  local function edge(pos)
-    Texture:new{ parent = box, layer = ui.layer.Overlay, color = {1, 1, 1, 1}, position = pos }
-  end
-  edge{ TopLeft = {0, 0}, TopRight = {0, 0}, Height = 2 }
-  edge{ BottomLeft = {0, 0}, BottomRight = {0, 0}, Height = 2 }
-  edge{ TopLeft = {0, 0}, BottomLeft = {0, 0}, Width = 2 }
-  edge{ TopRight = {0, 0}, BottomRight = {0, 0}, Width = 2 }
   grid._dressedBox = box
 end
 
