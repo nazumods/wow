@@ -59,3 +59,17 @@ function DataView:_refreshMarks(only)
   self._playerRace = ns:PlayerRace()
   ns.RefreshGridMarks(self, function(data) return data.setId end, only)
 end
+
+---What a ratings broadcast means for THIS grid (#768 L-8) — the armour half of a decision each grid
+---answers for itself, so neither host has to know which key belongs to which grid.
+---
+---Armour cells are keyed by `setId`, so a weapon-only change cannot have altered a single one of
+---them and the whole grid is skipped rather than walked.
+---@param setId number?  the armour set that changed
+---@param visualID number?  the weapon appearance that changed
+---@return boolean affected  false when nothing here can have changed
+---@return fun(data: table): boolean|nil only  the cell predicate, nil meaning "every cell"
+function DataView:_ratingScope(setId, visualID)
+  if visualID and not setId then return false end
+  return true, setId and function(data) return data.setId == setId end or nil
+end

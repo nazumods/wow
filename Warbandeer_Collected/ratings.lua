@@ -244,25 +244,31 @@ end
 ---@type fun(setId: number?)[]
 ns._ratingListeners = {}
 
----Register a callback run after any wanted/rank change. It receives the armour set that
----changed, or nil when several did — see NotifyRatingsChanged for what nil obliges.
----@param fn fun(setId: number?)
+---Register a callback run after any wanted/rank change. It receives the armour set and/or the
+---weapon appearance that changed — see NotifyRatingsChanged for what each means.
+---@param fn fun(setId: number?, visualID: number?)
 function ns:OnRatingsChanged(fn)
   self._ratingListeners[#self._ratingListeners + 1] = fn
 end
 
 ---Fire every registered ratings-changed callback.
 ---
----`setId` narrows the refresh to one armour set so a single Shift-click doesn't repaint every
----cell in both grids. Pass nil whenever more than one rating changed, or the caller doesn't
----know which: nil means "everything", the full-refresh listeners did before scoping existed.
+---**Both keys are optional and they scope different grids** (#768 L-8). The two id spaces are
+---unrelated: armour cells are keyed by `setId`, weapon cells by the `visualID`s their source drops.
+---A caller passes whichever it changed, and a listener uses that to narrow — or to skip a grid
+---entirely, since an armour rating cannot alter a weapon cell or the reverse. Before this, every
+---dressing-room rating change broadcast nil and walked **both** grids in full: roughly 12,000 cells
+---on a single rank-button click, most of them in a grid that could not have changed.
 ---
----The WEAPONS grid ignores it by design — its marks are keyed by weapon-type identity, not by
----setId, so a setId has nothing to narrow there (WeaponViewMarks.lua). Passing one is harmless
----rather than wrong, and scoping it would need a different key entirely.
----@param setId number?  the single armour set that changed, or nil for "several / unknown"
-function ns:NotifyRatingsChanged(setId)
-  for _, fn in ipairs(self._ratingListeners) do fn(setId) end
+---`nil, nil` still means "everything" — the full refresh listeners did before scoping existed, and
+---what a caller passes when several ratings changed or it doesn't know which.
+---
+---The scoping decision itself is the grids' own (`_ratingScope`), so both hosts get it by asking
+---rather than by each reimplementing which key belongs to which grid.
+---@param setId number?  the single armour set that changed
+---@param visualID number?  the single weapon appearance that changed
+function ns:NotifyRatingsChanged(setId, visualID)
+  for _, fn in ipairs(self._ratingListeners) do fn(setId, visualID) end
 end
 
 -- ─── Dressed-set highlight ───────────────────────────────────────────────────

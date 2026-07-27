@@ -153,6 +153,33 @@ describe("ratings", function()
     it("is a no-op with nothing registered", function()
       assert.has_no.errors(function() ns:NotifyRatingsChanged(1) end)
     end)
+
+    -- The weapon key (#768 L-8). It is a SECOND argument rather than a replacement because the two
+    -- id spaces are unrelated and each scopes a different grid — and because appending keeps a
+    -- consumer built against the one-argument form working untouched.
+    it("forwards the changed visualID to a listener", function()
+      local set, vis = 1, nil
+      ns:OnRatingsChanged(function(s, v) set, vis = s, v end)
+      ns:NotifyRatingsChanged(nil, 8080)
+      assert.is_nil(set)
+      assert.equal(8080, vis)
+    end)
+
+    it("carries both keys independently", function()
+      local seen = {}
+      ns:OnRatingsChanged(function(s, v) seen[#seen + 1] = {s, v} end)
+      ns:NotifyRatingsChanged(11)            -- armour only
+      ns:NotifyRatingsChanged(nil, 22)       -- weapon only
+      ns:NotifyRatingsChanged()              -- everything
+      assert.same({{11}, {nil, 22}, {}}, seen)
+    end)
+
+    it("gives every registered listener the same visualID", function()
+      local seen = {}
+      for i = 1, 3 do ns:OnRatingsChanged(function(_, v) seen[i] = v end) end
+      ns:NotifyRatingsChanged(nil, 5)
+      assert.same({5, 5, 5}, seen)
+    end)
   end)
 
   -- The four wishlists come off one `wantedStore` factory since #770 step 2. Before that each was

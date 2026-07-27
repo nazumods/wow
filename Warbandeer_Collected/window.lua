@@ -315,18 +315,21 @@ end
 -- armor-only). The refit rides along with it via `onResized`, so it now happens per grid that
 -- actually re-filtered rather than once unconditionally — a `_refreshMarks` pass only recolours
 -- cells and moves no rows, so it needs none.
-ns:OnRatingsChanged(function(setId)
+ns:OnRatingsChanged(function(setId, visualID)
   local w = ns.window
   if not w then return end
-  -- `setId` scopes the ARMOUR grid only. The weapons grid keys its marks by weapon-type identity,
-  -- so a setId has nothing to narrow there — it gets the full pass, which is the half of #768's L-8
-  -- still outstanding (#770 step 10 gave it the parameter; it needs a weapon-keyed signal to use).
-  local onlySet = setId and function(data) return data.setId == setId end or nil
+  -- Each grid says what the broadcast means for it (#768 L-8, closed). The two keys are different id
+  -- spaces — armour cells by `setId`, weapon cells by the `visualID`s their source drops — so a
+  -- change of one kind can't touch the other grid at all, and `affected` is false for it. That is the
+  -- bulk of the win: a weapon rank click used to walk the armour grid's ~6,600 cells for nothing.
   for _, grid in ipairs(w:Grids()) do
-    if grid._wantedOnly then
-      grid:_refilter()   -- re-filter (row set may change) + clear selection + refit
-    else
-      grid:_refreshMarks(grid == w.data and onlySet or nil)
+    local affected, only = grid:_ratingScope(setId, visualID)
+    if affected then
+      if grid._wantedOnly then
+        grid:_refilter()   -- re-filter (row set may change) + clear selection + refit
+      else
+        grid:_refreshMarks(only)
+      end
     end
   end
   w:RefreshWanted()
