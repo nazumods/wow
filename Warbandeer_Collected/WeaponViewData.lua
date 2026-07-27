@@ -95,15 +95,8 @@ function ns.WeaponRows(self)
   local usable = ns.WeaponUsableTypes()   -- greying hint: types this class can't wield are muted
   local GREYED = {0.42, 0.42, 0.45, 1}    -- one shared muted colour for every unusable-type cell
   local wantedOnly = self._wantedOnly
-  local order = {}
-  for i = 1, #source do
-    -- Expansion/category filter, plus (when "wanted only" is on) drop whole rows with no wanted
-    -- look, so the grid shows just the target list rather than blanked filler rows.
-    if matches(self, source[i]) and (not wantedOnly or groupWeaponWanted(source[i])) then
-      order[#order + 1] = i
-    end
-  end
-  ns.sortByExpansion(order, source, self._reverse)
+  -- Filter + sort is `ns.GridRowOrder` (GridShared.lua, #770 step 13), shared with the armour grid.
+  local order = ns.GridRowOrder(self, source, groupWeaponWanted)
   return lists.map(order, function(srcIdx)
     local grp = source[srcIdx]
     local r = {}
