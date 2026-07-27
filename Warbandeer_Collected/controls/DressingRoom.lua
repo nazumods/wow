@@ -109,14 +109,8 @@ local selBox = ns.SelBox
 ---@field _undressed boolean?  the master Undress toggle's state — greys the composed-look slots, which have no _hiddenSlots entry (reset per set)
 ---@field _weaponSlots table[]  bottom-center weapon-slot entries ({ hand, label, icon, border, box, itemID? }) (DressingRoomWeaponSlots.lua)
 ---@field _weaponPiece number?  index of the shown look within the browsed weapon cell (up/down nav cycles it)
----@field _weaponTitleTimer table?  cancelable retitle timer (weapon item names load async)
----@field _weaponTitleTries number?  remaining retitle attempts
----@field _slotTimer table?  cancelable icon-refresh timer
----@field _slotRetries number?  remaining icon-refresh attempts
----@field _weaponSlotTimer table?  cancelable weapon-slot icon-refresh timer
----@field _weaponSlotRetries number?  remaining weapon-slot icon-refresh attempts
----@field _cosmeticSlotTimer table?  cancelable cosmetic-slot icon-refresh timer
----@field _cosmeticSlotRetries number?  remaining cosmetic-slot icon-refresh attempts
+-- The retitle / icon-refresh retries live under `_rt_<key>` now, owned by retry.lua (#770 step 14):
+-- keys "weaponTitle", "slots", "weaponSlots", "outfitSlots". Ten timer/counter fields went with them.
 ---@field _buildModel fun(self: DressingRoom)  build the model + backdrop + tier bars (DressingRoomBuild.lua)
 ---@field _buildOverlays fun(self: DressingRoom)  build the on-model overlays (DressingRoomBuild.lua)
 ---@field _buildControls fun(self: DressingRoom, controls: Frame)  build the toggle + ratings rows (DressingRoomControls.lua)
@@ -136,8 +130,6 @@ local selBox = ns.SelBox
 ---@field _outfitRow Frame  the third control row (dropdown + name + Save/Rename/Delete)
 ---@field _outfitDrop FilterDropdown  the saved-custom-set selector
 ---@field _outfitName EditBox  the name field, shared by save and rename
----@field _outfitTimer table?  cancelable outfit-slot icon-refresh timer
----@field _outfitRetries number?  remaining outfit-slot icon-refresh attempts
 ---@field _armed table?  the row button currently awaiting a confirming second click
 ---@field _armedFor string?  the look that button was armed about — an arm authorises replacing/deleting THAT one only
 ---@field _armTimer table?  cancelable 1s ticker that counts the armed caption down and disarms it

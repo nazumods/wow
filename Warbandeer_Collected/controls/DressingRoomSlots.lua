@@ -210,12 +210,11 @@ function DressingRoom:UpdateSlots()
 
   -- Icons aren't always cached on the first pass; re-run shortly (capped) until
   -- they resolve.
-  if self._slotTimer then self._slotTimer:Cancel(); self._slotTimer = nil end
-  if missing and (self._slotRetries or 0) < 10 then
-    self._slotRetries = (self._slotRetries or 0) + 1
-    self._slotTimer = C_Timer.NewTimer(0.2, function()
-      self._slotTimer = nil
-      self:UpdateSlots()
-    end)
+  -- The shared capped retry (#770 step 14). Its budget is reset in `DressingRoom:_load`, not here —
+  -- it belongs to the room's whole open rather than to one `UpdateSlots` call.
+  if missing then
+    ns.Retry(self, "slots", { again = function() self:UpdateSlots() end })
+  else
+    ns.CancelRetry(self, "slots")
   end
 end

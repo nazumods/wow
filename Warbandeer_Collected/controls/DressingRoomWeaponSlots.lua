@@ -6,7 +6,7 @@ local Frame, Texture = ui.Frame, ui.Texture
 local GetSourceInfo = C_TransmogCollection.GetSourceInfo
 local GetItemIcon = C_Item.GetItemIconByID
 local RequestItem = C_Item.RequestLoadItemDataByID
-local GameTooltip, C_Timer = GameTooltip, C_Timer
+local GameTooltip = GameTooltip
 
 -- Character-sheet weapon slots (#615): a main-hand + off-hand pair across the model's
 -- bottom center, mirroring Blizzard's paper doll (armor down the sides, weapons across
@@ -109,7 +109,7 @@ end
 ---@param retry boolean?  internal: true on the self-scheduled re-run (skips the retry-count reset)
 function DressingRoom:UpdateWeaponSlots(retry)
   if not self._weaponSlots then return end
-  if not retry then self._weaponSlotRetries = 0 end
+  if not retry then ns.ResetRetry(self, "weaponSlots") end   -- a fresh pass gets a full budget
   local open = self._picker and self._picker._widget:IsShown()
   local missing = false
   for _, e in ipairs(self._weaponSlots) do
@@ -150,13 +150,10 @@ function DressingRoom:UpdateWeaponSlots(retry)
     end
   end
 
-  if self._weaponSlotTimer then self._weaponSlotTimer:Cancel(); self._weaponSlotTimer = nil end
-  if missing and (self._weaponSlotRetries or 0) < 10 then
-    self._weaponSlotRetries = (self._weaponSlotRetries or 0) + 1
-    self._weaponSlotTimer = C_Timer.NewTimer(0.2, function()
-      self._weaponSlotTimer = nil
-      self:UpdateWeaponSlots(true)
-    end)
+  if missing then
+    ns.Retry(self, "weaponSlots", { again = function() self:UpdateWeaponSlots(true) end })
+  else
+    ns.CancelRetry(self, "weaponSlots")
   end
 end
 

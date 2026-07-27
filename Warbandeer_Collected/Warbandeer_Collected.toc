@@ -46,6 +46,7 @@ outfitcommands.lua
 api.lua
 
 chrome.lua
+retry.lua
 
 controls\InfoTip.lua
 controls\LockoutView.lua

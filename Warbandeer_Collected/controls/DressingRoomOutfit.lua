@@ -4,7 +4,6 @@ local GetCategoryForItem = C_TransmogCollection.GetCategoryForItem
 local GetSourceInfo = C_TransmogCollection.GetSourceInfo
 local GetItemIcon = C_Item.GetItemIconByID
 local RequestItem = C_Item.RequestLoadItemDataByID
-local C_Timer = C_Timer
 local DressingRoom = ns.DressingRoom
 -- The one slot state this file has to tell apart from the others — a hidden slot composes as its
 -- hide visual, an empty one as 0 (DressingRoomSlotStates.lua owns the cycle).
@@ -251,7 +250,7 @@ end
 function DressingRoom:UpdateSlotsFromOutfit(retry)
   local list = self._outfit
   if not list then return end
-  if not retry then self._outfitRetries = 0 end
+  if not retry then ns.ResetRetry(self, "outfitSlots") end   -- a fresh pass gets a full budget
   local missing = false
   for _, e in ipairs(self._slots or {}) do
     if not e.cosmetic then
@@ -280,12 +279,9 @@ function DressingRoom:UpdateSlotsFromOutfit(retry)
     end
   end
 
-  if self._outfitTimer then self._outfitTimer:Cancel(); self._outfitTimer = nil end
-  if missing and (self._outfitRetries or 0) < 10 then
-    self._outfitRetries = (self._outfitRetries or 0) + 1
-    self._outfitTimer = C_Timer.NewTimer(0.2, function()
-      self._outfitTimer = nil
-      self:UpdateSlotsFromOutfit(true)
-    end)
+  if missing then
+    ns.Retry(self, "outfitSlots", { again = function() self:UpdateSlotsFromOutfit(true) end })
+  else
+    ns.CancelRetry(self, "outfitSlots")
   end
 end

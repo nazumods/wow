@@ -173,7 +173,9 @@ function DressingRoom:_load(group, set)
     if self._outfitName then self._outfitName:Text("") end
     if self._outfitDrop then self:RefreshOutfits() end
   end
-  if self._outfitTimer then self._outfitTimer:Cancel(); self._outfitTimer = nil end
+  -- Leaving outfit mode drops a pending outfit-slot icon refresh: it would re-run against a look
+  -- that is no longer on the model (#770 step 14 moved this behind ns.CancelRetry).
+  ns.CancelRetry(self, "outfitSlots")
   -- A save waiting on streaming item data must not fire against a set the user has since left.
   self:_cancelSaveRetry()
   self:_disarmOutfit()
@@ -198,7 +200,7 @@ function DressingRoom:_load(group, set)
   self:_showClass(classId)
   self:_showRelease(group.release)
   self:_setTierBars(group.name)
-  self._slotRetries = 0
+  ns.ResetRetry(self, "slots")   -- the icon-refresh budget is per room-open (#770 step 14)
   self:UpdateSlots()
   -- Re-assert the composed look (and repaint its slots) rather than just repainting them: the
   -- armor above went on through Outfit, which doesn't know about the per-slot overrides the
