@@ -87,15 +87,10 @@ end
 function WeaponView:ExpansionOptions() return ns.expansionBadgeOptions(ns.WeaponSources) end
 
 local CATEGORY_ORDER = { "Raid", "Dungeon", "World Boss", "Quest", "Vendor", "World Drop", "Crafted", "Trading Post", "Achievement", "Other" }
+-- Body shared with the armor grid as `ns.CategoryOptions` (GridShared.lua, #770 step 1); only the
+-- source table and the ordering list above differ.
 ---@return table[]
-function WeaponView:CategoryOptions()
-  local seen = {}
-  for _, g in ipairs(ns.WeaponSources) do if g.category then seen[g.category] = true end end
-  local opts, used = { { key = "all", label = "Category" } }, {}
-  for _, c in ipairs(CATEGORY_ORDER) do if seen[c] then opts[#opts + 1] = { key = c, label = c }; used[c] = true end end
-  for c in pairs(seen) do if not used[c] then opts[#opts + 1] = { key = c, label = c } end end
-  return opts
-end
+function WeaponView:CategoryOptions() return ns.CategoryOptions(ns.WeaponSources, CATEGORY_ORDER) end
 
 ---Tooltip for the gold wanted tally, which (clickable) drives the WANTED ONLY filter.
 ---@param owner table  the WoW frame the tooltip anchors to

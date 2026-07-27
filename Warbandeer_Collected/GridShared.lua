@@ -22,10 +22,57 @@ local GameTooltip = GameTooltip
 ---@field baseName fun(name: string): string
 ---@field sortByExpansion fun(order: number[], source: table[], reverse: boolean?)
 ---@field FitNameCol fun(grid: table, nameCol: number): boolean
+---@field GridMatches fun(view: table, grp: table): boolean
+---@field CategoryOptions fun(source: table[], order: string[]): table[]
 ---@field EnsureDressedCursor fun(grid: table)
 ---@field HighlightGridCell fun(grid: table, match: (fun(data: table): boolean)?, scroll: boolean?)
 ---@field expansionBadgeOptions fun(source: table[]): table[]
 ---@field filterToggle fun(strip: table, theme: table, spec: table): table, table
+
+-- ─── Shared filtering ────────────────────────────────────────────────────────
+-- Both grids filter rows the same way and build their category dropdown the same way; these were
+-- byte-identical copies in the two data/filter files (#770 step 1).
+
+---Does `grp` pass the view's active expansion/category filters?
+---
+---A plain function rather than a method because both grids' row builders run during the base
+---TableFrame construction — before the subclass's methods are mixed onto the instance.
+---
+---PTR preview is never filtered (a small upcoming-only list with no category), so the dropdowns
+---apply to the live grid only.
+---@param view table  a DataView / WeaponView instance
+---@param grp table  a row source group
+---@return boolean
+function ns.GridMatches(view, grp)
+  if view._ptr then return true end
+  if view._expansion ~= "all" and grp.release ~= view._expansion then return false end
+  if view._category ~= "all" and grp.category ~= view._category then return false end
+  return true
+end
+
+---Dropdown option specs for a category filter: "All", then every category actually present in
+---`source`. `order` gives the preferred display order; a category present but unlisted is appended
+---so the menu can never silently drop one — deliberately, since the data files gain categories
+---without the filter code being touched.
+---
+---Note the appended tail comes off a `pairs` walk, so its order among itself isn't defined. That is
+---pre-existing and only affects categories missing from `order`, which is the case the ordering
+---list is meant to prevent.
+---@param source table[]  the row source (ns.Sets / ns.WeaponSources)
+---@param order string[]  preferred display order
+---@return table[]  `{ key, label }` specs for `ui.FilterDropdown`
+function ns.CategoryOptions(source, order)
+  local seen = {}
+  for _, g in ipairs(source) do if g.category then seen[g.category] = true end end
+  local opts, used = { { key = "all", label = "Category" } }, {}
+  for _, c in ipairs(order) do
+    if seen[c] then opts[#opts + 1] = { key = c, label = c }; used[c] = true end
+  end
+  for c in pairs(seen) do
+    if not used[c] then opts[#opts + 1] = { key = c, label = c } end
+  end
+  return opts
+end
 
 -- 10-shade red→green completion gradient: a cell's uncollected count is tinted by the collected
 -- fraction (index 1 = none collected → red, 10 = all → green). Shared so both grids read alike.

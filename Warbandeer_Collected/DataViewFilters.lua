@@ -147,20 +147,11 @@ function DataView:ExpansionOptions() return ns.expansionBadgeOptions(ns.Sets) en
 -- here are appended so the menu never silently drops one.
 local CATEGORY_ORDER = { "Raid", "PvP", "Dungeon", "Delve", "Covenant", "Renown", "World", "Trading Post", "Event" }
 
----Dropdown option specs for the category filter: "All" then each category present.
+---Dropdown option specs for the category filter: "All" then each category present. The body is
+---`ns.CategoryOptions` in GridShared.lua, shared with the weapon grid (#770 step 1) — only the
+---source table and the ordering list differ between them.
 ---@return table[]  `{ key, label }` specs for `ui.FilterDropdown`
-function DataView:CategoryOptions()
-  local seen = {}
-  for _, g in ipairs(ns.Sets) do if g.category then seen[g.category] = true end end
-  local opts, used = { { key = "all", label = "Category" } }, {}
-  for _, c in ipairs(CATEGORY_ORDER) do
-    if seen[c] then opts[#opts + 1] = { key = c, label = c }; used[c] = true end
-  end
-  for c in pairs(seen) do
-    if not used[c] then opts[#opts + 1] = { key = c, label = c } end
-  end
-  return opts
-end
+function DataView:CategoryOptions() return ns.CategoryOptions(ns.Sets, CATEGORY_ORDER) end
 
 ---Build the shared filter chrome as a strip (toggle buttons + filter dropdowns), wired
 ---to this grid, so both hosts render the identical row above the grid. Themed via the
