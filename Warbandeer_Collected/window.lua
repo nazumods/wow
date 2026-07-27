@@ -117,7 +117,10 @@ local MainWindow = Class(TitleFrame, function(self)
   -- shown via SetMode. Armor is the default and stays fully intact when Weapons is off; the two
   -- grids overlap (same anchors), so only their SetShown state differs.
   self.active, self.activeScroll, self._weaponsMode = self.data, self.scroll, false
-  local TOGGLE_W, TGAP = 92, 6
+  -- 108, not 92: halved, the old width left each segment 46px, which ellipsized "Weapons" to
+  -- "Wea…" (#770 step 12). Long-standing in this window; it only became obvious once the embedded
+  -- view adopted the same builder and started truncating too.
+  local TOGGLE_W, TGAP = 108, 6
 
   self.weapons = ns.WeaponView:new{
     parent = self,
