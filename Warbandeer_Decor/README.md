@@ -57,6 +57,17 @@ right-click to re-scan.
 There is **no** `Warbandeer_Characters` dependency — decor is account-wide, so there's no
 per-character data to collect.
 
+## Upgrading from "Warbandeer: Housing Decor"
+
+This addon used to be called **Warbandeer_HousingDecor**. If you installed that version by
+unzipping it yourself, the old folder is still there — a new install lands beside it rather
+than replacing it, and running both at once means two copies fighting over the same saved
+data and the same slash commands.
+
+**Delete the old `Warbandeer_HousingDecor` folder** from your `Interface/AddOns` directory.
+Your wanted flags are kept: both versions save to the same place, so nothing is lost. The
+addon prints a reminder in chat at login for as long as the old folder is present.
+
 ## Saved data
 
 `WarbandeerHousingDecorDB` (account-wide): your **wanted** flags (keyed by the catalog's

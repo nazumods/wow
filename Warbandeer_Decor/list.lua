@@ -1,4 +1,4 @@
----@type Warbandeer_HousingDecor
+---@type Warbandeer_Decor
 local ns = select(2, ...)
 ---@type LibNUI
 local ui = ns.ui
@@ -297,7 +297,7 @@ function HousingDecorList:_onRowClick(row)
   ns.RefreshInfoTip()
 end
 
----@class Warbandeer_HousingDecor
+---@class Warbandeer_Decor
 ---@field List HousingDecorList
 ns.List = HousingDecorList
 

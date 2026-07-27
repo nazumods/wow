@@ -1,4 +1,4 @@
----@type Warbandeer_HousingDecor
+---@type Warbandeer_Decor
 local ns = select(2, ...)
 
 -- Read-only data bridge so sibling addons (e.g. Warbandeer) can render the housing
@@ -40,7 +40,7 @@ function API:WantedCount() return ns:WantedCount() end
 
 -- Scan-complete subscribers. Consumers (e.g. Warbandeer's decor view) register to be
 -- refreshed after a scan rebuilds the snapshot, so their grid stays in sync with the
--- /decor window. `ns:Scan()` fires these once the snapshot is fresh.
+-- /wbdecor window. `ns:Scan()` fires these once the snapshot is fresh.
 ns._scanned = {}
 
 ---Register a callback fired after each scan rebuilds the decor snapshot.
