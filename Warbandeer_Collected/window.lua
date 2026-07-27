@@ -23,7 +23,11 @@ end
 ---@field counter Label "N sets · N appearances · N collected" counter (shrunk in PTR mode)
 ---@field wantedCount Label running "★ N" wanted tally — sets in armor mode, weapon looks in weapons mode
 ---@field filterStrip Frame the shared filter chrome row (DataView:BuildFilterStrip)
+---@field weapons WeaponView? the weapon-source grid — nil until the first switch to Weapons builds it
+---@field weaponStrip Frame? the weapon grid's filter strip (built with the grid)
+---@field weaponScroll ScrollFrame? scroll container for the weapon grid's row area (built with the grid)
 ---@field _top number grid top offset (filter strip + gap) — _fitToGrid re-derives the height from it
+---@field _stripX number filter-strip x offset, clearing the mode toggle; both strips share it
 local MainWindow = Class(TitleFrame, function(self)
   -- The window is themed in `ns:Open` (so the titlebar inherits it too); read it back
   -- here for the counter chrome.
@@ -122,44 +126,16 @@ local MainWindow = Class(TitleFrame, function(self)
   -- view adopted the same builder and started truncating too.
   local TOGGLE_W, TGAP = 108, 6
 
-  self.weapons = ns.WeaponView:new{
-    parent = self,
-    position = {
-      TopLeft = {self.titlebar, ui.edge.BottomLeft, 2, -2 - TOP},
-      TopRight = {self.titlebar, ui.edge.BottomRight, -2, -2 - TOP},
-    },
-    colInfo = ns.WeaponView.BuildColInfo(),
-    onResized = function() self:_fitToGrid() end,
-    -- Recompute the source/appearance/collected counter when the wanted-only filter flips
-    -- (VisibleCounts is filter-scoped), so it tracks the rows actually shown.
-    onFilterChanged = function() self:RefreshCounter() end,
-    -- Scroll the dressed-weapon row into view (weaponScroll is assigned just below; the
-    -- closure only reads it at highlight time, by which point it exists).
-    onEnsureVisible = function(_, rowTop, rowH) ns.EnsureRowVisible(self.weaponScroll, rowTop, rowH) end,
-  }
-  self.weapons:Hide()   -- SetMode resizes the window to the active grid's width, so the window
-                        -- starts at the armor width and widens on the toggle to Weapons.
-
-  self.weaponStrip = self.weapons:BuildFilterStrip(self, function() self:RefreshCounter() end)
-  self.weaponStrip:Position({ TopLeft = {self.titlebar, ui.edge.BottomLeft, 2 + TOGGLE_W + TGAP, -2} })
-  self.weaponStrip:Hide()
-
-  self.weaponScroll = ScrollFrame:new{
-    parent = self,
-    position = {
-      TopLeft = {self.titlebar, ui.edge.BottomLeft, 2, -2 - TOP - self.weapons.headerHeight},
-      BottomRight = {self, ui.edge.BottomRight, -2, 2},
-    },
-  }
-  self.weaponScroll:Child(self.weapons.rowArea)
-  self.weaponScroll:Hide()
-
-  -- Shift the armor strip right to clear the persistent toggle at the far left.
-  self.filterStrip:Position({ TopLeft = {self.titlebar, ui.edge.BottomLeft, 2 + TOGGLE_W + TGAP, -2} })
+  -- Shift the armor strip right to clear the persistent toggle at the far left. Kept on `self`
+  -- because the weapon strip lines up with it, and that one is built later (`_ensureWeapons`).
+  self._stripX = 2 + TOGGLE_W + TGAP
+  self.filterStrip:Position({ TopLeft = {self.titlebar, ui.edge.BottomLeft, self._stripX, -2} })
 
   -- The persistent Armor/Weapons segmented toggle (two halves; the active half gets the gold
   -- border). Built through the shared `ns.ModeToggle` because the dressing room carries the same
   -- control (#653) and two hand-rolled copies of one toggle would drift.
+  --
+  -- Eager, unlike the grid it reveals: it IS the thing that asks for that grid.
   self._modeToggle = ns.ModeToggle{
     parent = self, theme = theme, width = TOGGLE_W, height = STRIP_H, weapons = false,
     position = { TopLeft = {self.titlebar, ui.edge.BottomLeft, 2, -2} },
@@ -182,6 +158,59 @@ end, {
   level = 580,
 })
 
+---Build the weapon grid + its filter strip and scroll container, once, on the first switch to
+---Weapons mode. No-op afterwards.
+---
+---**Deferred deliberately (#770 step 19).** `ns.WeaponSources` is ~241 rows × 18 columns, so building
+---it with the window cost every user roughly 4,300 `Cell` frames on the first `/collected` — on top
+---of the armour grid's own ~6,600 — for a grid plenty of people never open. It is the one lazily
+---built thing in this window, which is why the handful of "refresh both grids" callers go through
+---`Grids()` and the dressed-cell hook nil-guards rather than assuming the trio exists.
+function MainWindow:_ensureWeapons()
+  if self.weapons then return end
+  local TOP = self._top
+
+  self.weapons = ns.WeaponView:new{
+    parent = self,
+    position = {
+      TopLeft = {self.titlebar, ui.edge.BottomLeft, 2, -2 - TOP},
+      TopRight = {self.titlebar, ui.edge.BottomRight, -2, -2 - TOP},
+    },
+    colInfo = ns.WeaponView.BuildColInfo(),
+    onResized = function() self:_fitToGrid() end,
+    -- Recompute the source/appearance/collected counter when the wanted-only filter flips
+    -- (VisibleCounts is filter-scoped), so it tracks the rows actually shown.
+    onFilterChanged = function() self:RefreshCounter() end,
+    -- Scroll the dressed-weapon row into view (weaponScroll is assigned just below; the
+    -- closure only reads it at highlight time, by which point it exists).
+    onEnsureVisible = function(_, rowTop, rowH) ns.EnsureRowVisible(self.weaponScroll, rowTop, rowH) end,
+  }
+  self.weapons:Hide()   -- SetMode shows it; building it hidden keeps the window at the armor width
+                        -- until the swap, exactly as the eager build did.
+
+  self.weaponStrip = self.weapons:BuildFilterStrip(self, function() self:RefreshCounter() end)
+  self.weaponStrip:Position({ TopLeft = {self.titlebar, ui.edge.BottomLeft, self._stripX, -2} })
+  self.weaponStrip:Hide()
+
+  self.weaponScroll = ScrollFrame:new{
+    parent = self,
+    position = {
+      TopLeft = {self.titlebar, ui.edge.BottomLeft, 2, -2 - TOP - self.weapons.headerHeight},
+      BottomRight = {self, ui.edge.BottomRight, -2, 2},
+    },
+  }
+  self.weaponScroll:Child(self.weapons.rowArea)
+  self.weaponScroll:Hide()
+end
+
+---Every grid that currently exists, for the callers that refresh "both". The weapon grid is built
+---lazily (`_ensureWeapons`), so before the first switch to Weapons there is only one.
+---@return table[]
+function MainWindow:Grids()
+  if self.weapons then return { self.data, self.weapons } end
+  return { self.data }
+end
+
 ---Switch the window between the armor grid and the weapon grid (the Armor/Weapons toggle).
 ---Swaps which (grid + strip + scroll) trio is shown, re-points the counter + scroll refit at the
 ---active grid, hides the armor-only wanted tally, recolors the toggle, and resizes to the active
@@ -189,6 +218,9 @@ end, {
 ---@param weapons boolean
 function MainWindow:SetMode(weapons)
   if self._weaponsMode == weapons then return end
+  -- First switch to Weapons builds the trio. Switching back can't reach a nil one: the guard above
+  -- means `SetMode(false)` only proceeds when we were already in Weapons mode.
+  if weapons then self:_ensureWeapons() end
   self._weaponsMode = weapons
   self.active = weapons and self.weapons or self.data
   self.activeScroll = weapons and self.weaponScroll or self.scroll
@@ -290,7 +322,7 @@ ns:OnRatingsChanged(function(setId)
   -- so a setId has nothing to narrow there — it gets the full pass, which is the half of #768's L-8
   -- still outstanding (#770 step 10 gave it the parameter; it needs a weapon-keyed signal to use).
   local onlySet = setId and function(data) return data.setId == setId end or nil
-  for _, grid in ipairs({ w.data, w.weapons }) do
+  for _, grid in ipairs(w:Grids()) do
     if grid._wantedOnly then
       grid:_refilter()   -- re-filter (row set may change) + clear selection + refit
     else
@@ -311,7 +343,9 @@ end)
 -- Same for the Weapons grid: box the (source, type) cell of the weapon currently in the
 -- dressing room, following ←/→ type-stepping (nil clears on close / when an armor set is shown).
 ns:OnDressedWeaponCellChanged(function(source, weaponType)
-  if not ns.window then return end
+  -- Nothing to draw on a grid that was never built (#770 step 19). Reaching this at all takes
+  -- browsing a weapon cell, which only the Weapons grid offers — so in practice it exists by then.
+  if not (ns.window and ns.window.weapons) then return end
   ns.window.weapons:HighlightWeaponCell(source, weaponType, true)
 end)
 

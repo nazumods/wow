@@ -48,9 +48,11 @@ end
 ---@field wantedCount Label running "★ N" wanted tally — sets in armor mode, weapon looks in weapons mode (mirrors the /collected window)
 ---@field emptyMsg Label
 ---@field _top number grid top offset (filter strip + gap) — _fitToGrid re-derives the height from it
----@field weaponGrid WeaponView? the weapon-source grid (Armor/Weapons toggle); nil if the addon predates it
----@field weaponStrip Frame? the weapon grid's filter strip
----@field weaponScroll ScrollFrame? scroll container for the weapon grid's row area
+---@field weaponGrid WeaponView? the weapon-source grid (Armor/Weapons toggle); nil until the first switch to Weapons builds it, and always nil if the sibling addon predates it
+---@field weaponStrip Frame? the weapon grid's filter strip (built with the grid)
+---@field weaponScroll ScrollFrame? scroll container for the weapon grid's row area (built with the grid)
+---@field _weaponsAvailable boolean? the sibling addon exposes WeaponView — what SetMode gates on, since the grid itself may not be built yet
+---@field _weaponGeom table? layout measured at construction, replayed when the weapon trio is built
 ---@field active DataView|WeaponView the currently-shown grid (armor default, or weapon)
 ---@field activeScroll ScrollFrame the currently-shown scroll container
 ---@field _weaponsMode boolean? true when the weapon grid is shown (the Armor/Weapons toggle)
@@ -162,33 +164,12 @@ local CollectedView = Class(Frame, function(self)
     -- segment 46px and ellipsized "Weapons".
     local TOGGLE_W, TGAP = 108, 6
 
-    self.weaponGrid = WarbandeerCollectedApi.WeaponView:new{
-      parent = self,
-      position = { TopLeft = {0, -TOP} },
-      colInfo = WarbandeerCollectedApi.WeaponView.BuildColInfo(),
-      onResized = function() _view:_fitToGrid() end,
-      -- Recompute the source/appearance/collected counter when the wanted-only filter flips
-      -- (VisibleCounts is filter-scoped), so it tracks the rows actually shown.
-      onFilterChanged = function() _view:_render() end,
-      -- Scroll the dressed-weapon row into view (weaponScroll is assigned just below;
-      -- the closure only reads it at highlight time).
-      onEnsureVisible = function(grid, rowTop, rowH)
-        ensureRowVisible(grid, _view and _view.weaponScroll, rowTop, rowH)
-      end,
-    }
-    self.weaponGrid:Hide()
-    local weaponW = self.weaponGrid:Width()
-
-    self.weaponStrip = self.weaponGrid:BuildFilterStrip(self, function() _view:_render() end)
-    self.weaponStrip:Position({ TopLeft = {TOGGLE_W + TGAP, 0} })
-    self.weaponStrip:Hide()
-
-    self.weaponScroll = ui.ScrollFrame:new{
-      parent = self,
-      position = { TopLeft = {0, -(TOP + headerH)}, Width = weaponW, Height = capH },
-    }
-    self.weaponScroll:Child(self.weaponGrid.rowArea)
-    self.weaponScroll:Hide()
+    -- The weapon trio is built on the first switch to Weapons, not here (nazumods/wow#770 step 19):
+    -- it is ~241 rows × 18 columns of Cells that plenty of people never look at. `_weaponsAvailable`
+    -- records that the sibling addon CAN supply it, which is what `SetMode` gates on now — gating on
+    -- `self.weaponGrid` would mean the toggle could never build the thing it toggles to.
+    self._weaponsAvailable = true
+    self._weaponGeom = { top = TOP, headerH = headerH, capH = capH, stripX = TOGGLE_W + TGAP }
 
     -- Shift the armor strip right to clear the persistent toggle at the far left.
     self.filterStrip:Position({ TopLeft = {TOGGLE_W + TGAP, 0} })
@@ -292,13 +273,54 @@ function CollectedView:OnBeforeShow()
   self:_render()
 end
 
+---Build the weapon grid + its filter strip and scroll container, once, on the first switch to
+---Weapons mode. No-op afterwards, and never called when the sibling addon has no `WeaponView`.
+---
+---Deferred for the reason given where `_weaponGeom` is stamped: it is a large grid many users never
+---open. The geometry it needs was measured at construction, so this reproduces the same layout
+---rather than re-deriving it from a view that has since been resized.
+function CollectedView:_ensureWeapons()
+  if self.weaponGrid then return end
+  local g = self._weaponGeom
+
+  self.weaponGrid = WarbandeerCollectedApi.WeaponView:new{
+    parent = self,
+    position = { TopLeft = {0, -g.top} },
+    colInfo = WarbandeerCollectedApi.WeaponView.BuildColInfo(),
+    onResized = function() _view:_fitToGrid() end,
+    -- Recompute the source/appearance/collected counter when the wanted-only filter flips
+    -- (VisibleCounts is filter-scoped), so it tracks the rows actually shown.
+    onFilterChanged = function() _view:_render() end,
+    -- Scroll the dressed-weapon row into view (weaponScroll is assigned just below;
+    -- the closure only reads it at highlight time).
+    onEnsureVisible = function(grid, rowTop, rowH)
+      ensureRowVisible(grid, _view and _view.weaponScroll, rowTop, rowH)
+    end,
+  }
+  self.weaponGrid:Hide()
+
+  self.weaponStrip = self.weaponGrid:BuildFilterStrip(self, function() _view:_render() end)
+  self.weaponStrip:Position({ TopLeft = {g.stripX, 0} })
+  self.weaponStrip:Hide()
+
+  self.weaponScroll = ui.ScrollFrame:new{
+    parent = self,
+    position = { TopLeft = {0, -(g.top + g.headerH)}, Width = self.weaponGrid:Width(), Height = g.capH },
+  }
+  self.weaponScroll:Child(self.weaponGrid.rowArea)
+  self.weaponScroll:Hide()
+end
+
 ---Switch the embedded view between the armor grid and the weapon grid (the Armor/Weapons toggle).
 ---Swaps which (grid + strip + scroll) trio is shown, re-points the counter + refit at the active
 ---grid, hides the armor-only wanted tally, recolors the toggle, resizes to the active grid, and asks
 ---the Warbandeer window to re-fit. No-op if the weapon grid is unavailable or already in that mode.
 ---@param weapons boolean
 function CollectedView:SetMode(weapons)
-  if not self.weaponGrid or self._weaponsMode == weapons then return end
+  if not self._weaponsAvailable or self._weaponsMode == weapons then return end
+  -- First switch to Weapons builds the trio. Switching back can't reach a nil one: the guard above
+  -- means `SetMode(false)` only proceeds when we were already in Weapons mode.
+  if weapons then self:_ensureWeapons() end
   self._weaponsMode = weapons
   self.active = weapons and self.weaponGrid or self.grid
   self.activeScroll = weapons and self.weaponScroll or self.scroll
