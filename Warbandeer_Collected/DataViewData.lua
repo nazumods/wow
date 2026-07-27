@@ -74,7 +74,7 @@ function ns.CollectedRows(self)
   return lists.map(order, function(srcIdx, dispIdx)
     local grp = source[srcIdx]
     local isPtr = self._ptr
-    local lock = toon and toon.instances.locks and toon.instances.locks[grp.instance] and toon.instances.locks[grp.instance][grp.difficulty]
+    local lock = toon and ns.LockedFor(toon, grp)
     local gsets = ns.db.sets[grp.id]
     -- Always emit a positional cell per class (blank {} where there's no set, e.g.
     -- Evoker in pre-Dragonflight raids). Returning nil would make table.insert drop
