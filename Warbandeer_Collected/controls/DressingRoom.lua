@@ -183,7 +183,8 @@ local selBox = ns.SelBox
 ---@field _lookIllusion number?  the composed look's enchant illusion sourceID (rides the main-hand)
 ---@field _lookShirt number?  the composed look's shirt appearance sourceID (INVSLOT_BODY; picked in the cosmetic slots)
 ---@field _lookTabard number?  the composed look's tabard appearance sourceID (INVSLOT_TABARD)
----@field _pickerNameTimer table?  cancelable async item-name refresh timer
+---@field _buildDockedPane fun(self: DressingRoom, width: number, title: string): table, table  the shared docked-pane shell, returning the pane and its title Label (DockedPane.lua)
+---@field _fillNamesShortly fun(self: DressingRoom, key: string, pane: table, list: table)  debounced one-shot list refresh for async item names (DockedPane.lua)
 ---@field _buildWeaponSlots fun(self: DressingRoom)  build the bottom-center weapon-slot pair (DressingRoomWeaponSlots.lua)
 ---@field _buildCosmeticSlot fun(self: DressingRoom, spec: table, x: number, y: number, side: string)  build one shirt/tabard column slot (DressingRoomCosmeticSlots.lua)
 ---@field _buildLookSlot fun(room: DressingRoom, spec: table): table  build one look-driven slot, returning its entry (DressingRoomLookSlots.lua)
