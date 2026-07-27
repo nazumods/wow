@@ -52,7 +52,11 @@ function ns.DressModelFromList(model, list)
   -- Drop any override left over from a previous outfit or look, so slots this outfit leaves
   -- empty actually come out empty instead of inheriting the last one.
   for slot = 1, INVSLOT_LAST_EQUIPPED do model:ClearSlotTransmog(slot) end
-  model:Outfit({})
+  -- Reset the remembered list only — every slot is driven through SlotTransmog just below, so the
+  -- actor needs no undressing here. This was `Outfit({})` until #754 gave Outfit a drop diff, under
+  -- which an empty list means "undress everything the last outfit held" — a real strip this path
+  -- never wanted, and a bare frame before the SlotTransmog writes land.
+  model:ForgetOutfit()
 
   for _, slotID in ipairs(ns.OutfitSlotOrder) do
     local info = list[slotID]
