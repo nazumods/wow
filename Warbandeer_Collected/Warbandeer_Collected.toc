@@ -44,6 +44,8 @@ outfitsave.lua
 outfitcommands.lua
 api.lua
 
+chrome.lua
+
 controls\InfoTip.lua
 controls\LockoutView.lua
 controls\DressingRoom.lua

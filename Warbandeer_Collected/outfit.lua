@@ -307,6 +307,25 @@ function ns.OutfitOrigin(entry)
   return table.concat(bits, ", ")
 end
 
+---`ns.OutfitOrigin` plus the one facet it stops short of: which class's set the look was built from.
+---
+---`class` and `forClass` answer different questions and the line has to keep them apart — `class` is
+---who saved it (which is also what tints the name), `forClass` is who it's FOR, which is what you'd
+---hunt by when dressing an alt. Hence the words rather than a second colour.
+---
+---Collapses cleanly at both ends: no provenance at all returns "", and a look with only a `forClass`
+---returns just that clause rather than a stray separator.
+---@param entry LibraryOutfit?
+---@return string
+function ns.OutfitOriginFull(entry)
+  local origin = ns.OutfitOrigin(entry)
+  local forClass = entry and entry.forClass and ns.ClassLabel(entry.forClass)
+  if not forClass then return origin end
+  forClass = ("a %s look"):format(forClass)
+  if origin == "" then return forClass end
+  return origin .. "   ·   " .. forClass
+end
+
 -- ── Custom sets (the game's saved-outfit store) ────────────────────────────────--
 
 ---Every saved custom set, in the game's own order.

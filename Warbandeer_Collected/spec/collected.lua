@@ -20,19 +20,59 @@ local SLOTS = {
   INVSLOT_TABARD = 19, INVSLOT_LAST_EQUIPPED = 19,
 }
 
+local ADDON = "Warbandeer_Collected"
+
+---Load one of the addon's files into `ns`, handed the same two varargs WoW gives it: the addon name
+---and the namespace table. Paths are relative to the addon folder (busted runs from the AddOns
+---root) — the path is the only thing that ever varied across the loaders below.
+---@param ns table
+---@param file string  path under the addon folder, e.g. "data/arsenals.lua"
+local function loadInto(ns, file)
+  assert(loadfile(ADDON .. "/" .. file))(ADDON, ns)
+end
+
+---A look with one head appearance, the fixture most of these specs build on: the codec, the library
+---and the filters all need a list that is non-empty and identifiable, and nothing more.
+---
+---Shared here because three spec files carried byte-identical copies of it.
+---@param ns table  as returned by M.load()
+---@param head number  the head slot's appearanceID
+---@return table list
+function M.lookWith(ns, head)
+  local list = ns.EmptyOutfitList()
+  list[INVSLOT_HEAD].appearanceID = head
+  return list
+end
+
 ---Load the WoW-API-free outfit files into a fresh ns and return it. `ns.db` is seeded empty so the
 ---library has a store to write into, exactly as LibNAddOn's MigrateDB would leave it in game.
 ---@return table ns
 function M.load()
   for name, value in pairs(SLOTS) do _G[name] = value end
   local ns = { db = { outfits = {} } }
-  assert(loadfile("Warbandeer_Collected/outfitcodec.lua"))("Warbandeer_Collected", ns)
-  assert(loadfile("Warbandeer_Collected/outfitlibrary.lua"))("Warbandeer_Collected", ns)
-  assert(loadfile("Warbandeer_Collected/outfitfilter.lua"))("Warbandeer_Collected", ns)
+  loadInto(ns, "outfitcodec.lua")
+  loadInto(ns, "outfitlibrary.lua")
+  loadInto(ns, "outfitfilter.lua")
   -- Qualifies for the same reason the two above do: it calls only other `ns` functions, never a C_
   -- API or a frame. Its two savers (`ns.SaveLibraryOutfit`, `ns.SaveCustomSet`) are resolved at call
   -- time, so loading it needs neither of them present — a spec stubs whichever it wants to observe.
-  assert(loadfile("Warbandeer_Collected/outfitsave.lua"))("Warbandeer_Collected", ns)
+  loadInto(ns, "outfitsave.lua")
+  return ns
+end
+
+---Load GridShared.lua into an already-loaded `ns`, over a stub of the `ns.ui` widgets it
+---destructures at load time.
+---
+---Only the widget NAMES have to exist: the file takes `ui.Frame`/`Texture`/`Label`/`Button` as
+---upvalues when it loads, but the functions this covers — `ns.GridMatches` and
+---`ns.CategoryOptions` — are pure table walks that never touch them. Everything frame-bound in
+---that file (the completion cell, the dressed-cell cursor, the filter chrome) stays out of reach
+---of the specs, which is why the stub can be this thin rather than a fake widget toolkit.
+---@param ns table  as returned by M.load()
+---@return table ns
+function M.loadGridShared(ns)
+  ns.ui = ns.ui or { Frame = {}, Texture = {}, Label = {}, Button = {} }
+  loadInto(ns, "GridShared.lua")
   return ns
 end
 
@@ -46,7 +86,7 @@ end
 ---@param ns table  as returned by M.load()
 ---@return table ns
 function M.loadHideVisuals(ns)
-  assert(loadfile("Warbandeer_Collected/data/hidevisuals.lua"))("Warbandeer_Collected", ns)
+  loadInto(ns, "data/hidevisuals.lua")
   return ns
 end
 
@@ -64,7 +104,7 @@ function M.loadRatings(ns)
   db.wanted, db.rank, db.raceRank = {}, {}, {}
   db.weaponWanted, db.weaponRank = {}, {}
   db.cosmeticWanted, db.illusionWanted = {}, {}
-  assert(loadfile("Warbandeer_Collected/ratings.lua"))("Warbandeer_Collected", ns)
+  loadInto(ns, "ratings.lua")
   return ns
 end
 
@@ -74,15 +114,10 @@ end
 ---@param ns table  as returned by M.load()
 ---@return table ns
 function M.loadViewSync(ns)
-  assert(loadfile("Warbandeer_Collected/viewsync.lua"))("Warbandeer_Collected", ns)
+  loadInto(ns, "viewsync.lua")
   return ns
 end
 
----Load the illusion + arsenal data files. Both are plain tables plus (for arsenals) a pure
----table transform, so they need no stub at all — only `ns.WeaponSources` to fold into, seeded
----empty here since the real generated data isn't loaded under busted.
----@param ns table  as returned by M.load()
----@return table ns
 ---Load outfitshare.lua over a stub of the two C_TransmogCollection link functions it captures at
 ---load time. Only `ns.ShareableOutfit` is exercised — it takes its hide-visual resolver as an
 ---argument precisely so the wire-shaping rule is testable without the client.
@@ -94,7 +129,7 @@ function M.loadOutfitShare(ns)
     _G.C_TransmogCollection.GetCustomSetHyperlinkFromItemTransmogInfoList or function() end
   _G.C_TransmogCollection.GetItemTransmogInfoListFromCustomSetHyperlink =
     _G.C_TransmogCollection.GetItemTransmogInfoListFromCustomSetHyperlink or function() end
-  assert(loadfile("Warbandeer_Collected/outfitshare.lua"))("Warbandeer_Collected", ns)
+  loadInto(ns, "outfitshare.lua")
   return ns
 end
 
@@ -152,15 +187,20 @@ function M.loadTransmogButtons(ns)
   end
   ns.SaveCustomSet = function() return 1 end
 
-  assert(loadfile("Warbandeer_Collected/controls/TransmogFrameButtons.lua"))("Warbandeer_Collected", ns)
+  loadInto(ns, "controls/TransmogFrameButtons.lua")
   env.dialogs = _G.StaticPopupDialogs
   return env
 end
 
+---Load the illusion + arsenal data files. Both are plain tables plus (for arsenals) a pure
+---table transform, so they need no stub at all — only `ns.WeaponSources` to fold into, seeded
+---empty here since the real generated data isn't loaded under busted.
+---@param ns table  as returned by M.load()
+---@return table ns
 function M.loadWeaponData(ns)
   ns.WeaponSources = {}
-  assert(loadfile("Warbandeer_Collected/data/illusions.lua"))("Warbandeer_Collected", ns)
-  assert(loadfile("Warbandeer_Collected/data/arsenals.lua"))("Warbandeer_Collected", ns)
+  loadInto(ns, "data/illusions.lua")
+  loadInto(ns, "data/arsenals.lua")
   return ns
 end
 
@@ -174,8 +214,8 @@ end
 function M.loadShippedWeapons(ns)
   _G.tinsert = _G.tinsert or table.insert
   ns.WeaponSources = {}
-  assert(loadfile("Warbandeer_Collected/data/weaponsources.lua"))("Warbandeer_Collected", ns)
-  assert(loadfile("Warbandeer_Collected/data/arsenals.lua"))("Warbandeer_Collected", ns)
+  loadInto(ns, "data/weaponsources.lua")
+  loadInto(ns, "data/arsenals.lua")
   return ns
 end
 

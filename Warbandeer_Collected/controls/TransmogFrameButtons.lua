@@ -2,10 +2,9 @@
 local ns = select(2, ...)
 ---@type LibNUI
 local ui = ns.ui
-local Frame, Label, Button = ui.Frame, ui.Label, ui.Button
--- The room's framed-box helper rather than a third copy of it; controls/OutfitLibraryWindow.lua
--- reaches for the same one for the same reason.
-local selBox = ns.DressingRoom._k.selBox
+local Frame = ui.Frame
+-- No `ns.DressingRoom._k.selBox` reach any more: `ns.RowButton` owns the framed box, so this file
+-- no longer depends on the dressing room at all (#770 step 6).
 
 -- **Two buttons on the game's own transmogrifier** (#699) — this addon's only presence on a
 -- Blizzard frame. The transmogrifier is where looks actually get built, yet until now one staged
@@ -44,22 +43,11 @@ local BOTTOM_Y = 16
 ---@param label string
 ---@param onClick fun()
 local function rowButton(parent, x, label, onClick)
-  -- **An explicit opaque fill, unlike the sibling windows' strip buttons.** Those get away with
-  -- `selBox`'s frame alone because they sit on one of our own opaque windows; these sit on
-  -- Blizzard's, where there is nothing behind them, so a bare border and a caption read as text
-  -- floating on the transmogrifier rather than as buttons. Same colour as the addon's windows.
-  local box = Frame:new{
-    parent = parent,
-    background = {0.11372549019, 0.14117647058, 0.16470588235, 0.95},
-    position = { TopLeft = {x, 0}, Width = BTNW, Height = BTNH },
-  }
-  selBox(box)
-  Label:new{ parent = box, justifyH = ui.justify.Center, wordWrap = false,
-    position = { Left = {2, 0}, Right = {-2, 0} }, text = label }
-  -- `glow` left on so these carry LibNUI's hover border, as every button in the addon now does:
-  -- among controls that all light up on mouseover, one that doesn't reads as disabled.
-  Button:new{ parent = box, position = { All = true }, OnClick = onClick }
-  return box
+  -- `opaque` because these alone sit on BLIZZARD's frame, where there is nothing behind them: a bare
+  -- border and a caption would read as text floating over the transmogrifier rather than as buttons.
+  -- The two sibling surfaces sit on our own opaque windows and need no fill (#770 step 6).
+  return ns.RowButton{ parent = parent, x = x, w = BTNW, label = label,
+    onClick = onClick, height = BTNH, opaque = true }.box
 end
 
 ---The dialog's edit box. Retail has moved this between a plain field and an accessor across

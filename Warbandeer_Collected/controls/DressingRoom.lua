@@ -4,7 +4,7 @@ local ns = select(2, ...)
 local ui = ns.ui
 local Class = ns.lua.Class
 local GameTooltip = GameTooltip
-local TitleFrame, Frame, Label, Texture = ui.TitleFrame, ui.Frame, ui.Label, ui.Texture
+local TitleFrame, Frame, Label = ui.TitleFrame, ui.Frame, ui.Label
 local ceil, max = math.ceil, math.max
 
 -- The class is assembled across five files (all reopening this one): DressingRoom.lua
@@ -18,7 +18,7 @@ local ceil, max = math.ceil, math.max
 -- companion DressingRoomSlots.lua)
 local SELECTED = {0.85, 0.65, 0.13, 1}
 local IDLE     = {0.20, 0.20, 0.24, 1}
-local PANEL    = {0.05, 0.05, 0.06, 1}
+-- The panel backing that went with these now lives with the box that used it, in chrome.lua.
 
 -- Raid difficulty → ilvl/quality color + alpha range for the slot-column backdrop
 -- bars, so the bar reads like gear quality: LFR green, Normal blue, Heroic purple,
@@ -67,17 +67,10 @@ local WINW   = 640
 -- selection) over a dark inner panel. Returns the outer border to recolor later.
 ---@param parent Frame
 ---@return Texture
-local function selBox(parent)
-  local border = Texture:new{
-    parent = parent, layer = ui.layer.Background,
-    position = { All = true }, color = IDLE,
-  }
-  Texture:new{
-    parent = parent, layer = ui.layer.Border, color = PANEL,
-    position = { TopLeft = {1, -1}, BottomRight = {-1, 1} },
-  }
-  return border
-end
+-- The framed box moved to chrome.lua as `ns.SelBox` (#770 step 6) so the library window and the
+-- transmogrifier row stop reaching into this class for it. Aliased here because `_k.selBox` below
+-- is how this room's own companion files reach it, and they are many.
+local selBox = ns.SelBox
 
 ---Persistent dress-up window: a Model viewer plus race + gender selectors. One
 ---instance is shared by both /collected surfaces (see ns.ShowDressingRoom).

@@ -1,4 +1,4 @@
----@type Warbandeer_HousingDecor
+---@type Warbandeer_Decor
 local ns = select(2, ...)
 local ITEM_QUALITY_COLORS, HIGHLIGHT_FONT_COLOR, GameTooltip =
   ITEM_QUALITY_COLORS, HIGHLIGHT_FONT_COLOR, GameTooltip
@@ -47,14 +47,14 @@ local function render(entry, parent)
 end
 
 ---Show the shared decor tooltip anchored to a hovered row.
----@class Warbandeer_HousingDecor
+---@class Warbandeer_Decor
 ---@field ShowInfoTip fun(entry: HousingDecorEntry, parent: Frame)
 ns.ShowInfoTip = function(entry, parent)
   render(entry, parent)
 end
 
 ---Hide the shared tooltip (no-op if not shown).
----@class Warbandeer_HousingDecor
+---@class Warbandeer_Decor
 ---@field HideInfoTip fun()
 ns.HideInfoTip = function()
   GameTooltip:Hide()
@@ -62,7 +62,7 @@ end
 
 ---Re-render the tooltip in place if it's still showing the same row, so a wanted change
 ---made while hovering (shift-click) updates the wanted line immediately.
----@class Warbandeer_HousingDecor
+---@class Warbandeer_Decor
 ---@field RefreshInfoTip fun()
 ns.RefreshInfoTip = function()
   if _entry and _parent and GameTooltip:IsOwned(_parent._widget) then

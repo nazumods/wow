@@ -88,7 +88,7 @@ function DataView:update()
   end
   TableFrame.update(self)
   self:ResizeRows(real)
-  self:_setEmpty(self._wantedOnly and real == 0)
+  self:_setEmpty(real == 0)   -- any empty result, not just the ★ filter (#768 L-5)
   self:_refreshMarks()
   -- Rows were rebuilt/re-sorted, so the dressed-set cell moved — re-resolve it (no
   -- scroll: a passive re-sort/filter shouldn't yank the view). Clears if it's now
@@ -96,12 +96,19 @@ function DataView:update()
   self:HighlightSet(self._dressedSetId, self._dressedClassIndex, false)
 end
 
--- Show or hide a centered empty-state message in the row area. Shown when "wanted only" is active
--- but no set is flagged, so the grid reads as intentionally empty rather than blank/broken. The
--- mechanics are shared with the weapons grid (ns.GridEmptyMessage); only the wording is ours.
+-- Show or hide a centered empty-state message in the row area, so an empty grid reads as
+-- intentionally empty rather than blank/broken. The mechanics are shared with the weapons grid
+-- (ns.GridEmptyMessage); only the wording is ours.
+--
+-- Shown for ANY empty result since #768 L-5, not just the ★ filter: an expansion × category
+-- combination that matches nothing used to collapse the grid to its bare header with no message
+-- and no reserved height, which reads as the addon having broken rather than the filter being
+-- narrow. The wording still has to say WHY it's empty, hence the branch.
 ---@param on boolean
 function DataView:_setEmpty(on)
-  ns.GridEmptyMessage(self, on, "You don't have any Wanted sets.")
+  ns.GridEmptyMessage(self, on, self._wantedOnly
+    and "You don't have any Wanted sets."
+    or "No sets match these filters.")
 end
 
 -- Max scrollable row-area height (px) before the grid scrolls — shared so the embedded

@@ -210,9 +210,14 @@ ns.ShowDressingRoom = function(group, set, host)
 
   -- Reset to the current character's race on a fresh open — the first ever (no race
   -- picked yet) or a reopen after closing; clicking another cell while it's already
-  -- open keeps the chosen race. The IsShown check alone misses the first open (the
+  -- open keeps the chosen race. The visibility check alone misses the first open (the
   -- frame is shown on creation), so also seed when `_raceID` is still unset.
-  if not _room._raceID or not _room._widget:IsShown() then _room:_defaultToPlayer() end
+  --
+  -- **IsVisible, not IsShown** (#767 L-2): since #713 the room is a CHILD of the host, so hiding
+  -- the host leaves the room's own shown flag set. Under IsShown, closing the collection window
+  -- and reopening it read as "still open", and clicking a different set brought the room back on
+  -- the last-picked race instead of resetting to the player's.
+  if not _room._raceID or not _room._widget:IsVisible() then _room:_defaultToPlayer() end
 
   _room:_load(group, set)
   _room:Show()
@@ -233,9 +238,9 @@ end
 -- the user had just flagged, with the button reading as inert.
 --
 -- Unconditional rather than gated on the room being on screen: it only recolours a handful of
--- borders, and a shown-state gate here would need the IsShown/IsVisible distinction that #767's L-2
--- untangles. Re-entrant with the room's own writes (`ToggleWanted` refreshes then notifies, landing
--- back here) — idempotent, so the second pass is a no-op repaint.
+-- borders, so a gate would buy nothing and could only get the IsShown/IsVisible distinction (#767
+-- L-2) wrong. Re-entrant with the room's own writes (`ToggleWanted` refreshes then notifies,
+-- landing back here) — idempotent, so the second pass is a no-op repaint.
 ns:OnRatingsChanged(function()
   if _room then _room:_refreshRatings() end
 end)
@@ -247,7 +252,7 @@ end)
 ---@class Warbandeer_Collected
 ---@field OpenDressingRoom fun(): DressingRoom?
 ns.OpenDressingRoom = function()
-  if _room and _room._widget:IsShown() then return _room end
+  if _room and _room._widget:IsVisible() then return _room end
 end
 
 
@@ -258,7 +263,7 @@ end
 ---@class Warbandeer_Collected
 ---@field PreviewModelID fun(id: number, useCustomizations: boolean?)
 ns.PreviewModelID = function(id, useCustomizations)
-  if _room and _room._widget:IsShown() then _room._model:DisplayInfo(id, useCustomizations) end
+  if _room and _room._widget:IsVisible() then _room._model:DisplayInfo(id, useCustomizations) end
 end
 
 ---Dev/verify helper: force an expansion badge into the open dressing room by
@@ -268,7 +273,7 @@ end
 ---@class Warbandeer_Collected
 ---@field PreviewRelease fun(release: number)
 ns.PreviewRelease = function(release)
-  if _room and _room._widget:IsShown() then _room:_showRelease(release) end
+  if _room and _room._widget:IsVisible() then _room:_showRelease(release) end
 end
 
 ---Dev/verify helper: live-set the open preview model's scale, to tune a race's
@@ -276,7 +281,7 @@ end
 ---@class Warbandeer_Collected
 ---@field PreviewModelScale fun(scale: number)
 ns.PreviewModelScale = function(scale)
-  if _room and _room._widget:IsShown() then _room._scaleSlider:Value(scale) end
+  if _room and _room._widget:IsVisible() then _room._scaleSlider:Value(scale) end
 end
 
 ---Dev: live-set the open preview model's normalization strength (0..1), to tune a
@@ -285,7 +290,7 @@ end
 ---@class Warbandeer_Collected
 ---@field PreviewNormalize fun(v: number)
 ns.PreviewNormalize = function(v)
-  if _room and _room._widget:IsShown() then _room._model:Aggressiveness(v) end
+  if _room and _room._widget:IsVisible() then _room._model:Aggressiveness(v) end
 end
 
 ---Dev: dump the open preview's scale state, to tell a wrong value from a wrong
@@ -295,8 +300,12 @@ end
 ns.DebugDressScale = function()
   if not _room then ns.Print("dressing room not opened yet"); return end
   local form = _room:_resolvedForm()
-  ns.Print(("raceID=%s sex=%s form.normalize=%s | aggressiveness=%s | scale=%s | slider=%s | shown=%s"):format(
+  -- Both flags, because they diverge: the room is a child of the host (#713), so a hidden host
+  -- leaves `shown` true while `visible` goes false. Reporting one would hide exactly the state
+  -- that #767's L-2 was about.
+  ns.Print(("raceID=%s sex=%s form.normalize=%s | aggressiveness=%s | scale=%s | slider=%s | shown=%s visible=%s"):format(
     tostring(_room._raceID), tostring(_room._sex), tostring(form and form.normalize),
     tostring(_room._model:Aggressiveness()), tostring(_room._model:Scale()),
-    tostring(_room._scaleSlider:Value()), tostring(_room._widget:IsShown())))
+    tostring(_room._scaleSlider:Value()), tostring(_room._widget:IsShown()),
+    tostring(_room._widget:IsVisible())))
 end

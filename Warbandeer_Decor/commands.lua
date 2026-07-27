@@ -1,4 +1,4 @@
----@type Warbandeer_HousingDecor
+---@type Warbandeer_Decor
 local ns = select(2, ...)
 
 ns:registerCommand("", nil, function(self)
@@ -16,7 +16,7 @@ end, "Re-scan the housing catalog")
 ns:registerCommand("wanted", nil, function()
   local total = ns:WantedCount()
   if total == 0 then
-    ns.Print("No decor flagged wanted -- Shift-click a row in the /decor window to flag one.")
+    ns.Print("No decor flagged wanted -- Shift-click a row in the /wbdecor window to flag one.")
     return
   end
   local named = 0
@@ -27,7 +27,7 @@ ns:registerCommand("wanted", nil, function()
     end
   end
   if named < total then
-    ns.Print(("%d wanted decor (%d not in the current scan -- open /decor to refresh)."):format(total, total - named))
+    ns.Print(("%d wanted decor (%d not in the current scan -- open /wbdecor to refresh)."):format(total, total - named))
   else
     ns.Print(total .. " wanted decor.")
   end

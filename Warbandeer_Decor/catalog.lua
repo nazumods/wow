@@ -1,4 +1,4 @@
----@type Warbandeer_HousingDecor
+---@type Warbandeer_Decor
 local ns = select(2, ...)
 
 -- Pure, WoW-API-free catalog helpers (busted-specced in spec/). Everything that
@@ -13,7 +13,7 @@ local ns = select(2, ...)
 ---@field bonusAvailable boolean bonus is still claimable (a bonus exists AND you own none)
 
 -- Re-open the class to declare the pure helpers this file hangs on the namespace.
----@class Warbandeer_HousingDecor
+---@class Warbandeer_Decor
 ---@field NormalizeEntry fun(entry: table?): HousingDecorInfo?
 ---@field DedupeVariants fun(variants: table[]?): number[]
 
@@ -40,7 +40,7 @@ function ns.NormalizeEntry(entry)
 end
 
 ---Collapse the searcher's variant descriptors into a de-duplicated list of decor
----recordIDs. `GetAllSearchItems()` returns one HousingCatalogEntryVariantID per
+---recordIDs. `GetCatalogSearchResults()` returns one HousingCatalogEntryVariantID per
 ---variant (dye recolors share a recordID) and interleaves decor with room entries,
 ---so filter to `entryType == Decor` and keep one recordID each, in first-seen order
 ---(the searcher's own order, which the game presents sensibly).

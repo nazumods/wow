@@ -120,7 +120,8 @@ function DressingRoom:_stepWeaponType(dir)
   if not cur or #avail < 2 then return end
   cur = (cur - 1 + dir) % #avail + 1
   local newT = avail[cur]
-  ns.PreviewWeaponCell(grp, newT, grp.types[newT])
+  -- Carry the PTR flag (#767 L-13). host stays nil, which keeps the current dock host.
+  ns.PreviewWeaponCell(grp, newT, grp.types[newT], nil, self._cell.group._ptr)
 end
 
 -- Title the window with the browsed weapon's real name (+ position when the cell holds several:

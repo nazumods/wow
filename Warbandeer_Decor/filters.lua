@@ -1,4 +1,4 @@
----@type Warbandeer_HousingDecor
+---@type Warbandeer_Decor
 local ns = select(2, ...)
 ---@type LibNUI
 local ui = ns.ui
@@ -159,14 +159,11 @@ function HousingDecorList:BuildFilterStrip(parent)
   x = x + IB + GAP
 
   -- The category options come from the live scan snapshot; a window opened during the login
-  -- race (before the first async catalog scan lands) sees only "All decor". FilterDropdown bakes
-  -- its menu once, so keep the refs RefreshCategoryFilter() needs to swap in a fresh one later.
-  self._filterStrip, self._catX, self._catW = strip, x, DW
-  local catOpts = self:CategoryOptions()
-  self._catOptCount = #catOpts
+  -- race (before the first async catalog scan lands) sees only "All decor", and
+  -- RefreshCategoryFilter() re-options this dropdown in place once the scan lands.
   self._catDropdown = FilterDropdown:new{
     parent = strip, position = { TopLeft = { x, 0 } }, width = DW, menuWidth = 190,
-    bordered = true, selected = "all", options = catOpts,
+    bordered = true, selected = "all", options = self:CategoryOptions(),
     onSelect = function(_, key) self:_applyCategoryKey(key) end,
   }
   x = x + DW + GAP
@@ -185,22 +182,16 @@ function HousingDecorList:BuildFilterStrip(parent)
   return strip
 end
 
----Swap in a freshly-optioned Category dropdown after a scan first populates the catalog. The
----dropdown snapshots CategoryOptions() at build time; a window opened during the login race (before
----the first async scan returned) holds only "All decor" and never rebuilds on its own. The host
----calls this from its scan refresh. A no-op once the option set already matches the snapshot, so
----repeated scans don't churn; the current selection is preserved across the swap.
+---Re-option the Category dropdown after a scan repopulates the catalog. The dropdown snapshots
+---CategoryOptions() at build time; a window opened during the login race (before the first async
+---scan returned) holds only "All decor" and never rebuilds on its own. The host calls this from
+---its scan refresh. SetOptions swaps the list in place (reusing the pooled rows, and without
+---firing onSelect), so repeated scans neither churn the selection nor grow the widget tree; the
+---current filter is re-selected by key, falling back to the dropdown's own resolution if the
+---category it named is gone from the new snapshot.
 function HousingDecorList:RefreshCategoryFilter()
   if not self._catDropdown then return end
-  local opts = self:CategoryOptions()
-  if #opts == self._catOptCount then return end   -- option set unchanged → nothing to rebuild
-  self._catOptCount = #opts
   local key = (self._subcategory ~= "all" and ("s:" .. self._subcategory))
     or (self._category ~= "all" and ("c:" .. self._category)) or "all"
-  self._catDropdown:Hide()   -- FilterDropdown can't re-option in place; retire the stale one
-  self._catDropdown = FilterDropdown:new{
-    parent = self._filterStrip, position = { TopLeft = { self._catX, 0 } },
-    width = self._catW, menuWidth = 190, bordered = true, selected = key, options = opts,
-    onSelect = function(_, k) self:_applyCategoryKey(k) end,
-  }
+  self._catDropdown:SetOptions(self:CategoryOptions(), key)
 end

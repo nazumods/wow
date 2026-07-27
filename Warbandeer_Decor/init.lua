@@ -1,4 +1,4 @@
----@class Warbandeer_HousingDecor: AddOn
+---@class Warbandeer_Decor: AddOn
 local ns = LibNAddOn(...)
 
 ---Migrate the saved DB to the current version (non-destructive; seeds missing keys).
@@ -18,3 +18,16 @@ function ns:MigrateDB()
   if not db.windowPos then db.windowPos = {} end
   db.version = 1
 end
+
+-- This addon was renamed from Warbandeer_HousingDecor, and a GitHub-release install keeps
+-- the old folder rather than replacing it. Both copies then declare the same SavedVariables,
+-- register the same commands, and assign _G.WarbandeerHousingDecorApi -- last loaded wins.
+-- A release note doesn't reach someone who upgrades without reading it, so say it in chat.
+-- Self-limiting: it stops firing once the old folder is gone (and never fires if it's merely
+-- present but disabled, which is harmless). PLAYER_LOGIN fires exactly once per session.
+ns:registerEvent("PLAYER_LOGIN", function()
+  if C_AddOns.IsAddOnLoaded("Warbandeer_HousingDecor") then
+    ns.Print("An old |cffffd100Warbandeer_HousingDecor|r folder is still installed. " ..
+             "Delete it from your AddOns folder -- this addon replaced it.")
+  end
+end)
