@@ -26,10 +26,34 @@ local GameTooltip = GameTooltip
 ---@field CategoryOptions fun(source: table[], order: string[]): table[]
 ---@field BuildGridStrip fun(grid: table, parent: table, onModeChanged: fun()?, words: string): table
 ---@field RefreshGridMarks fun(grid: table, resolve: fun(data: table): any, only: (fun(data: table): boolean?)?)
+---@field EnsureRowVisible fun(scroll: table, rowTop: number, rowH: number)
 ---@field EnsureDressedCursor fun(grid: table)
 ---@field HighlightGridCell fun(grid: table, match: (fun(data: table): boolean)?, scroll: boolean?)
 ---@field expansionBadgeOptions fun(source: table[]): table[]
 ---@field filterToggle fun(strip: table, theme: table, spec: table): table, table
+
+-- ─── Scrolling a row into view ───────────────────────────────────────────────
+
+---Scroll `scroll` the minimum distance that brings a row fully into view: nothing if it already is,
+---up to its top edge if it sits above, down to its bottom edge if below.
+---
+---This seven-line clamp was byte-identical **four times across two addons** (#770 step 11) — both
+---hosts of both grids. `VerticalScroll` clamps an out-of-range target itself, so no bounds maths.
+---
+---It lives here rather than on LibNUI's `ScrollFrame` deliberately: a LibNUI change is a dependency
+---bump plus README/CONTEXT rows in the same commit, and nothing outside these grids wants it yet.
+---Promote it if a second suite addon ever does.
+---@param scroll table  a LibNUI ScrollFrame
+---@param rowTop number  the row's offset from the top of the scrolled content
+---@param rowH number  the row's height
+function ns.EnsureRowVisible(scroll, rowTop, rowH)
+  local cur, view = scroll:VerticalScroll(), scroll:Height()
+  if rowTop < cur then
+    scroll:VerticalScroll(rowTop)
+  elseif rowTop + rowH > cur + view then
+    scroll:VerticalScroll(rowTop + rowH - view)
+  end
+end
 
 -- ─── Cell marks ──────────────────────────────────────────────────────────────
 

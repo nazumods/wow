@@ -106,6 +106,14 @@ end
 ---@return number, number, number
 function WeaponView:VisibleCounts() return ns.WeaponVisibleCounts(self) end
 
+-- The shared scroll-into-view clamp as a method, for the same reason the armour grid exposes one:
+-- the embedded host is a different addon and can't see `ns.EnsureRowVisible`, but it holds this
+-- instance (#770 step 11).
+---@param scroll table  a LibNUI ScrollFrame
+---@param rowTop number
+---@param rowH number
+function WeaponView:EnsureRowVisible(scroll, rowTop, rowH) ns.EnsureRowVisible(scroll, rowTop, rowH) end
+
 -- PTR PREVIEW counter data for the host's "+N upcoming" tally: the number of upcoming (not-yet-live)
 -- weapon appearances across ns.WeaponPtrSources, plus the PTR build string. Exposed as a method so
 -- BOTH hosts — this addon's window and Warbandeer's embedded view (a different ns) — share one tally.

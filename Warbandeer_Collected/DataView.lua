@@ -111,6 +111,37 @@ function DataView:_setEmpty(on)
     or "No sets match these filters.")
 end
 
+-- Scroll `scroll` so a row is fully in view — the shared clamp, exposed as a METHOD purely so the
+-- embedded host can reach it: Warbandeer's collected view is a different addon with its own `ns`, so
+-- `ns.EnsureRowVisible` is invisible to it, but the grid instance it already holds is not (#770
+-- step 11). This addon's own window calls the shared function directly.
+---@param scroll table  a LibNUI ScrollFrame
+---@param rowTop number
+---@param rowH number
+function DataView:EnsureRowVisible(scroll, rowTop, rowH) ns.EnsureRowVisible(scroll, rowTop, rowH) end
+
+-- PTR PREVIEW counter data for the host's "+N upcoming" tally: how many distinct upcoming sets
+-- there are across ns.PtrSets, plus the PTR build string.
+--
+-- **Counted by unique setId**, because a set that exists for several classes appears once per class
+-- column in `grp.sets` and the tally means "sets you don't have yet", not cells.
+--
+-- Exposed as a method so BOTH hosts — this addon's window and Warbandeer's embedded view, a
+-- different `ns` — share one tally (#770 step 11). Both hand-rolled this loop; the weapon grid has
+-- had `WeaponView:UpcomingCounts` since it gained PTR preview, so this is the armour half catching
+-- up. The embedded view reaches it on the grid instance it already holds, so no cross-addon
+-- publishing is involved.
+---@return number count, string? ptrBuild
+function DataView:UpcomingCounts()
+  local seen, n = {}, 0
+  for _, grp in ipairs(ns.PtrSets) do
+    for _, set in ipairs(grp.sets) do
+      if set.id and not seen[set.id] then seen[set.id] = true; n = n + 1 end
+    end
+  end
+  return n, ns.PtrBuild and ns.PtrBuild.ptr or nil
+end
+
 -- Max scrollable row-area height (px) before the grid scrolls — shared so the embedded
 -- view and the standalone window cap the grid to the same height (same window size).
 DataView.MAX_HEIGHT = 460
