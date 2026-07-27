@@ -1,6 +1,6 @@
 # Warbandeer (Main UI)
 
-**Deps:** LibNAddOn, LibNUI, Warbandeer_Characters · **OptionalDeps:** Warbandeer_Bars (`bars` view), Warbandeer_Collected (`collected` view), Warbandeer_Decor (`decor` view), ShadowsOfUI-Upgrade (gear-upgrade markers) · **SavedVars:** `WarbandeerDB` (v7) · **Commands:** `/warband`, `/wb` (+ one per view) · **Reads:** `WarbandeerApi`, `WarbandeerBarsApi`, `WarbandeerCollectedApi`, `WarbandeerHousingDecorApi`, `ShadowsOfUI_UpgradeApi` · **UI:** LibNUI
+**Deps:** LibNAddOn, LibNUI, Warbandeer_Characters · **OptionalDeps:** Warbandeer_Bars (`bars` view), Warbandeer_Collected (`collected` view), Warbandeer_Decor (`decor` view), ShadowsOfUI-Upgrade (gear-upgrade markers) · **SavedVars:** `WarbandeerDB` (v8) · **Commands:** `/warband`, `/wb` (+ one per view) · **Reads:** `WarbandeerApi`, `WarbandeerBarsApi`, `WarbandeerCollectedApi`, `WarbandeerHousingDecorApi`, `ShadowsOfUI_UpgradeApi` · **UI:** LibNUI
 
 Main viewer UI. Reads the data layer (`ns.api` ← `WarbandeerApi`) and renders it across a set of views switched from a left icon rail.
 
@@ -91,10 +91,14 @@ Main viewer UI. Reads the data layer (`ns.api` ← `WarbandeerApi`) and renders 
 | `playtime` | Playtime | Frame | Per-character playtime — total + Today / 7-day columns (`playtime.byDay`) | — |
 | `midnightprofs` | Midnight Profs | Frame | Profs × characters: skill + concentration + recipes% + weekly "Know" column | — |
 | `bars` | Bars | Frame | Bar-profile browser + docked preview & apply panels | — (view-local dropdowns) |
-| `collected` | Collected | Frame | The shared `/collected` transmog-set grid (`Warbandeer_Collected`'s `DataView`) embedded in Warbandeer — see that addon's CONTEXT for the grid; this view is the host chrome (counter, wanted tally, toggles) and is only registered when the Collected addon is loaded | PTR + wanted-only + raid-order toggles (`BuildFilter`) |
+| `collected` | Collected | Frame | The shared `/collected` transmog-set grid (`Warbandeer_Collected`'s `DataView`) embedded in Warbandeer — see that addon's CONTEXT for the grid; this view is the host chrome (counter, wanted tally, toggles) and is only registered when the Collected addon is loaded. Hosts the **Armor/Weapons** mode toggle (a persistent segmented control at the far left of the strip row, `SetWeaponsMode`): Armor shows the set grid, Weapons swaps in the addon's `WeaponView` source × weapon-type grid — one window-level PTR state carries across the swap, and the wanted-only filter re-reads whichever grid is hidden so a flag set in one mode isn't stale in the other. The counter takes a different shape per mode — `N sets · N/N collected` (armor) vs `N sources · N/N collected` (weapons), plus `+N sets/appearances upcoming · PTR <build>` in PTR preview | PTR + wanted-only + raid-order toggles (`BuildFilter`) |
 | `decor` | Housing Decor | Frame | The shared `/housingdecor` housing-decor list (`Warbandeer_Decor`'s windowed `HousingDecorList`) embedded in Warbandeer — see that addon's CONTEXT for the list; this view is the host chrome (counter, wanted tally) and is only registered when the Housing Decor addon is loaded | Unowned + Wanted + Category + search (in-view strip) |
 | `reputations` | Reputations | Frame | Paged cross-alt faction browser (one page per expansion + Other); rows = faction + highest warband standing + side marker, hover shows per-character standings; Up/Down select faction, Left/Right flip pages | expansion picker (badge-labelled) |
 | `titles` | Titles | Frame | Warband title browser — one `ui.VirtualList` of every player title (earned account-union + unearned) from the live client scan; green check = earned, muted = unearned, hover shows the owning characters; status pulldown All/Earned/Unearned (+ Earnable/Unearnable with Epithet), Up/Down select, Left/Right flip status. Optional **Epithet** read (live) adds rarity colour + source + the Earnable list | status picker |
+
+**This table is the view count of record** — 18 rows, of which `collected` and `decor` register only
+when their sibling addon is loaded, so it's 16 views on a bare install. Reconcile the root `README.md`
+and root `CONTEXT.md` against it, not against each other.
 
 `BuildFilter(parent)` widgets show in the title bar only while that view is active. The two
 expansion dropdowns + the Overview raid picker share `ui.FilterDropdown` (LibNUI) (Overview returns a

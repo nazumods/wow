@@ -1,6 +1,6 @@
 # ShadowsOfUI-Quests
 
-**Deps:** LibNAddOn, Warbandeer_Characters · **OptionalDeps:** Warbandeer · **SavedVars:** none · **Commands:** `/squests <questID>` (dev/lookup) · **API:** reads `WarbandeerApi`
+**Deps:** LibNAddOn, Warbandeer_Characters · **OptionalDeps:** none · **SavedVars:** none · **Commands:** `/squests <questID>` (dev/lookup) · **API:** reads `WarbandeerApi`
 
 Headless addon. Adds a cross-alt "Also on this quest / Completed by" block to the world-map
 quest-log tooltip. Assignment-form init (`local ns = LibNAddOn(...)`); no LibNUI, no DB. All
@@ -31,4 +31,4 @@ and re-`Show` (the row already showed its tooltip, so the added lines need a res
   `GetQuestStatus`.
 - **Own character excluded.** You're looking at your own quest log, so `AppendQuestStatus` lists
   only *other* characters; the block is suppressed entirely when none apply.
-- **No `X-Curse-Project-ID` yet** — added when the CurseForge project is created.
+- **`X-Curse-Project-ID`** — `1615353`.

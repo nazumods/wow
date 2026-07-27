@@ -9,7 +9,10 @@ local theme = ns.theme
 -- keeps only Warbandeer's profile-schema slot resolvers and the companion box that
 -- docks the preview beside the main window.
 
-local P     = 12   -- outer padding (shared with the preview widget's own P)
+-- Outer padding of this box. The preview widget uses the same nominal 12, but renders at
+-- SCALE (below), so its padding lands at 12 * SCALE on screen — the two are deliberately
+-- not equal, and the heading is indented by the full P.
+local P     = 12
 local LBL_H = 12   -- heading row height
 -- The condensed-topographic layout (LibNUI #469) renders wider than the old stacked
 -- one, so the docked box can overflow the screen edge (#468). Render the preview at a
