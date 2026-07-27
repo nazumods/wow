@@ -17,7 +17,7 @@ local function buildColInfo(embedded)
     return {
       atlas = icon,
       atlasSize = false,
-      width = 28,
+      width = ns.gridCellWidth,
       padding = 2,
       justifyH = ui.justify.Center,
       backdrop = {color = Colors.TransparentBlack},

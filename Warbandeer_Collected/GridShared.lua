@@ -14,6 +14,7 @@ local GameTooltip = GameTooltip
 
 ---@class Warbandeer_Collected
 ---@field ModeToggle fun(spec: table): table
+---@field gridCellWidth number  width of one data column, shared by both grids
 ---@field gridShades number[][]  10-shade red→green completion gradient (shared cell coloring)
 ---@field CompletionCell fun(collected: number, total: number, cell: table?): table
 ---@field ApplyCellMarks fun(cell: table, wanted: boolean?, rank: string?)  wanted star + tier pip overlays
@@ -218,6 +219,16 @@ function ns.CategoryOptions(source, order)
   end
   return opts
 end
+
+-- The width of one data column, shared by both grids so they read as the same table (#824).
+--
+-- They had drifted: armour at 28, weapons at 34. The 34 was sized for a **three-character text
+-- caption** ("Wnd", "2Sw", "Xbw") in the original Weapons view (#626); #712/#719 replaced that header
+-- with a texture icon, which `TableCol` sizes from `headerHeight` rather than from column width, so
+-- the extra 6px stopped buying anything and just made the weapons grid airier and its window ~108px
+-- wider. One constant rather than two literals that agree today — that is how they drifted the first
+-- time. Cell contents are already identical: both grids build cells with `ns.CompletionCell`.
+ns.gridCellWidth = 28
 
 -- 10-shade red→green completion gradient: a cell's uncollected count is tinted by the collected
 -- fraction (index 1 = none collected → red, 10 = all → green). Shared so both grids read alike.
