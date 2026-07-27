@@ -1,4 +1,4 @@
----@class Warbandeer_HousingDecor
+---@class Warbandeer_Decor
 ---@field _entries HousingDecorEntry[]  live decor snapshot (rebuilt each Scan; never persisted)
 ---@field _categoryName table<number, string>  categoryID -> localized name (filter dropdown)
 ---@field _subcategoryName table<number, string>  subcategoryID -> localized name (filter dropdown)
@@ -82,10 +82,16 @@ function ns:Scan()
   end
   ns._entries = entries
 
-  local collected = 0
-  for _, e in ipairs(entries) do if e.owned then collected = collected + 1 end end
-  self.db.collected = collected
-  self.db.total = #entries
+  -- The persisted tally feeds the header before this session's first scan lands, so an
+  -- empty read -- "the catalog isn't primed yet" (or a pre-housing client), not "you own
+  -- nothing" -- must keep the last good numbers rather than zeroing them. The live
+  -- snapshot above is the opposite: it clears, because IsScanned() depends on it.
+  if #entries > 0 then
+    local collected = 0
+    for _, e in ipairs(entries) do if e.owned then collected = collected + 1 end end
+    self.db.collected = collected
+    self.db.total = #entries
+  end
 
   if ns.window then ns.window:Refresh() end
   -- Notify consumers (Warbandeer's embedded decor view) now the snapshot is fresh, so
