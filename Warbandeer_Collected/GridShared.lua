@@ -25,10 +25,46 @@ local GameTooltip = GameTooltip
 ---@field GridMatches fun(view: table, grp: table): boolean
 ---@field CategoryOptions fun(source: table[], order: string[]): table[]
 ---@field BuildGridStrip fun(grid: table, parent: table, onModeChanged: fun()?, words: string): table
+---@field RefreshGridMarks fun(grid: table, resolve: fun(data: table): any, only: (fun(data: table): boolean?)?)
 ---@field EnsureDressedCursor fun(grid: table)
 ---@field HighlightGridCell fun(grid: table, match: (fun(data: table): boolean)?, scroll: boolean?)
 ---@field expansionBadgeOptions fun(source: table[]): table[]
 ---@field filterToggle fun(strip: table, theme: table, spec: table): table, table
+
+-- ─── Cell marks ──────────────────────────────────────────────────────────────
+
+---Walk every cell and re-apply its rating overlays from live DB state.
+---
+---The walk, the `type(data) == "table"` guard and the single `_applyCellMarks` call were identical
+---in both grids (#770 step 10); only the line deriving a cell's mark key differed, which is now the
+---`resolve` argument.
+---
+---**A cell whose data isn't a table still gets refreshed with nil** on an unscoped pass — that is
+---what CLEARS the overlays on blank and name cells, so it must not be optimised into a skip.
+---
+---`only` narrows the pass to the cells it matches, which is what keeps a single Shift-click from
+---repainting the whole grid. It takes the cell's data rather than a bare id because the two grids
+---key on different things — a setId for armour, weapon-type identity for weapons — which is the
+---enabling half of #768's L-8.
+---@param grid table  a DataView / WeaponView instance
+---@param resolve fun(data: table): any  the cell's mark key, from its data
+---@param only fun(data: table): boolean|nil  optional filter; non-table cells never match it
+function ns.RefreshGridMarks(grid, resolve, only)
+  for r = 1, #grid.cells do
+    local row = grid.cells[r]
+    for c = 1, #grid.cols do
+      local cell = row[c]
+      if cell then
+        local data = type(cell.data) == "table" and cell.data or nil
+        if not only then
+          grid:_applyCellMarks(cell, data and resolve(data) or nil)
+        elseif data and only(data) then
+          grid:_applyCellMarks(cell, resolve(data))
+        end
+      end
+    end
+  end
+end
 
 -- ─── The filter strip ────────────────────────────────────────────────────────
 

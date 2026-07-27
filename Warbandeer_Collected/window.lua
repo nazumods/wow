@@ -297,12 +297,16 @@ end
 ns:OnRatingsChanged(function(setId)
   local w = ns.window
   if not w then return end
+  -- `setId` scopes the ARMOUR grid only. The weapons grid keys its marks by weapon-type identity,
+  -- so a setId has nothing to narrow there — it gets the full pass, which is the half of #768's L-8
+  -- still outstanding (#770 step 10 gave it the parameter; it needs a weapon-keyed signal to use).
+  local onlySet = setId and function(data) return data.setId == setId end or nil
   for _, grid in ipairs({ w.data, w.weapons }) do
     if grid._wantedOnly then
       grid:_refilter()   -- re-filter (row set may change) + clear selection + refit
-      -- Scoped when one set changed, full when nil. The armour grid honours it; the weapons grid
-      -- keys its marks by weapon-type identity and ignores the argument (see NotifyRatingsChanged).
-    else grid:_refreshMarks(setId) end
+    else
+      grid:_refreshMarks(grid == w.data and onlySet or nil)
+    end
   end
   w:RefreshWanted()
   w:RefreshCounter()   -- the counter is filter-scoped, so a re-filter moves it
