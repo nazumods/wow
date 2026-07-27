@@ -27,6 +27,7 @@ local GameTooltip = GameTooltip
 ---@field BuildGridStrip fun(grid: table, parent: table, onModeChanged: fun()?, words: string): table
 ---@field RefreshGridMarks fun(grid: table, resolve: fun(data: table): any, only: (fun(data: table): boolean?)?)
 ---@field EnsureRowVisible fun(scroll: table, rowTop: number, rowH: number)
+---@field GridRowOrder fun(view: table, source: table[], wantedFn: fun(grp: table): boolean): number[]
 ---@field EnsureDressedCursor fun(grid: table)
 ---@field HighlightGridCell fun(grid: table, match: (fun(data: table): boolean)?, scroll: boolean?)
 ---@field expansionBadgeOptions fun(source: table[]): table[]
@@ -313,6 +314,39 @@ function ns.sortByExpansion(order, source, reverse)
   end)
 end
 
+---Which source rows a grid shows, in the order it shows them: filter, then sort.
+---
+---Both grids ran the same three steps in the same order — expansion/category filter, "wanted only"
+---row gate, `sortByExpansion` — and this is the only part of either grid that can silently change
+---**which rows the user sees**, which is why it is pure and why it has specs (#770 step 13).
+---
+---**The returned values are indices into `source`, not display positions.** That is a contract, not
+---an implementation detail: for the armour grid in live mode a group's `source` index is also its
+---`ns.Sets` index, and the lockout panel keys off it (`ns.ShowLockoutView(srcIdx, …)`). Renumbering
+---these would break lockouts silently — nothing would error, the wrong instance would just open.
+---
+---The caller picks `source` (the two grids swap different tables under PTR preview) and supplies
+---`wantedFn`, since "does this row hold anything wanted" is the one test that differs: a set's
+---wanted flag for armour, an appearance's for weapons.
+---@param view table  a DataView / WeaponView instance (its filter/sort/PTR flags drive the result)
+---@param source table[]  the row source to select from
+---@param wantedFn fun(grp: table): boolean  does this group hold anything flagged wanted
+---@return number[] order  source indices, in display order
+function ns.GridRowOrder(view, source, wantedFn)
+  local order = {}
+  for i = 1, #source do
+    -- Expansion/category filter, plus (when "wanted only" is on) drop whole rows holding nothing
+    -- wanted, so the grid shows just the target list rather than blanked filler rows.
+    if ns.GridMatches(view, source[i]) and (not view._wantedOnly or wantedFn(source[i])) then
+      order[#order + 1] = i
+    end
+  end
+  -- Expansion first (newest-first by default), then alphabetically within it; the index tie-break
+  -- keeps a set's variant/difficulty rows in authored order.
+  ns.sortByExpansion(order, source, view._reverse)
+  return order
+end
+
 -- Size a grid's name column (`nameCol`) to its widest row label, growing the row area and the frame
 -- by the same amount. Both grids autosize a zero-width name column this way, and the two copies had
 -- already drifted (one guarded a missing label, the other didn't), so it lives here.
@@ -493,10 +527,13 @@ end
 
 -- ── The Armor | Weapons mode toggle ────────────────────────────────────────────--
 --
--- Built the same way wherever it appears (#653): the collection window's strip row and the
--- dressing room's control row. Two halves in one framed box, the active one bordered gold — the
--- room's copy is a remote for `MainWindow:SetMode`, so a second hand-rolled build would be two
--- implementations of one control, which is the thing this file exists to prevent.
+-- Two halves in one framed box, the active one bordered gold.
+--
+-- **The real second copy is in another addon.** This used to say the dressing room carried the same
+-- control (#653) — but #686 removed the room's toggle, leaving exactly one in-addon caller, and that
+-- stale justification is what hid the actual duplicate: Warbandeer's embedded collected view
+-- hand-rolled its own `segHalf` because it could not reach this one. It can now, via the
+-- self-publish below (#770 step 12).
 local SEG_OFF = {0.05, 0.05, 0.06, 0.92}
 
 ---Build an Armor|Weapons segmented toggle.
@@ -542,3 +579,14 @@ function ns.ModeToggle(spec)
   toggle:Select(spec.weapons)
   return toggle
 end
+
+-- Share the toggle with sibling addons (Warbandeer's embedded collected view), which built its own
+-- copy because it had no way to reach this one (#770 step 12).
+--
+-- **Published from HERE, not from api.lua.** That file loads at .toc line 45 and this one at 72, so
+-- `API.ModeToggle = ns.ModeToggle` there would store **nil** — the consumer's version guard would be
+-- permanently false and the Armor|Weapons toggle would silently vanish from the embedded view. Same
+-- self-publish the two grid classes use (DataView.lua, WeaponView.lua). Deliberately not api.lua's
+-- lazy-forwarder idiom either: that makes the guard always-true, turning a missing helper into
+-- "attempt to call a nil value" at view-build time instead of a clean fallback.
+_G.WarbandeerCollectedApi.ModeToggle = ns.ModeToggle

@@ -68,17 +68,9 @@ function ns.CollectedRows(self)
   -- index so order within an expansion stays stable. `srcIdx` indexes `source` (a live
   -- group's index is also its ns.Sets index, which the lockout panel keys off); `dispIdx`
   -- is the on-screen row position. Groups filtered out by expansion/category are dropped.
-  local order = {}
-  for i = 1, #source do
-    -- Expansion/category filter, plus (when "wanted only" is on) drop whole rows with
-    -- no wanted set so the grid shows just the target list, not blanked filler rows.
-    if matches(self, source[i]) and (not self._wantedOnly or groupWanted(source[i])) then
-      order[#order + 1] = i
-    end
-  end
-  -- Sort by expansion (newest-first by default) then alphabetically within it — shared with the
-  -- weapons grid; a set's variant/difficulty rows fall back to authored order via the index tie-break.
-  ns.sortByExpansion(order, source, self._reverse)
+  -- Filter + sort is `ns.GridRowOrder` (GridShared.lua, #770 step 13), shared with the weapons grid
+  -- and spec-covered — it is the only part of this file that can silently change which rows appear.
+  local order = ns.GridRowOrder(self, source, groupWanted)
   return lists.map(order, function(srcIdx, dispIdx)
     local grp = source[srcIdx]
     local isPtr = self._ptr
