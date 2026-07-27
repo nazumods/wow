@@ -34,19 +34,9 @@ local function isComplete(status)
   return status == true or status.collected >= status.total
 end
 
--- A group passes the active filters. A module-level function (not a method) because
--- CollectedRows runs during the base TableFrame construction — before the subclass's
--- methods are mixed onto the instance. PTR preview is never filtered (small
--- upcoming-only list, no category), so the dropdowns apply to the live grid only.
----@param view DataView
----@param grp table
----@return boolean
-local function matches(view, grp)
-  if view._ptr then return true end
-  if view._expansion ~= "all" and grp.release ~= view._expansion then return false end
-  if view._category ~= "all" and grp.category ~= view._category then return false end
-  return true
-end
+-- Row filtering is `ns.GridMatches` in GridShared.lua — this was a byte-identical copy of the
+-- weapon grid's (#770 step 1). Aliased to a local because CollectedRows calls it per group.
+local matches = ns.GridMatches
 
 -- True if any of the group's class sets is flagged wanted. Row-level test for the
 -- "wanted only" filter, which hides whole rows that hold no wanted set (within a

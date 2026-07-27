@@ -36,6 +36,22 @@ function M.load()
   return ns
 end
 
+---Load GridShared.lua into an already-loaded `ns`, over a stub of the `ns.ui` widgets it
+---destructures at load time.
+---
+---Only the widget NAMES have to exist: the file takes `ui.Frame`/`Texture`/`Label`/`Button` as
+---upvalues when it loads, but the functions this covers — `ns.GridMatches` and
+---`ns.CategoryOptions` — are pure table walks that never touch them. Everything frame-bound in
+---that file (the completion cell, the dressed-cell cursor, the filter chrome) stays out of reach
+---of the specs, which is why the stub can be this thin rather than a fake widget toolkit.
+---@param ns table  as returned by M.load()
+---@return table ns
+function M.loadGridShared(ns)
+  ns.ui = ns.ui or { Frame = {}, Texture = {}, Label = {}, Button = {} }
+  assert(loadfile("Warbandeer_Collected/GridShared.lua"))("Warbandeer_Collected", ns)
+  return ns
+end
+
 ---Load data/hidevisuals.lua into an already-loaded `ns`. The one file here that DOES touch the
 ---API, so the caller installs `Enum`, `C_TransmogCollection` and `ns.AppearanceSource` first and
 ---this loads over them (the file captures both C_ functions as upvalues at load time, so the stubs
