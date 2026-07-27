@@ -20,6 +20,8 @@ local ns = select(2, ...)
 ---@class Warbandeer_Collected
 ---@field DockHost TitleFrame?  the collection window the workspace currently docks onto
 ---@field RefreshDockClamp fun()  recompute the host's clamp rect from the panels currently docked+shown
+---@field ShownDockHost fun(): TitleFrame?  the current host if one is already on screen; opens nothing
+---@field UndockPanel fun(panel: TitleFrame, kind: string, store: table)  release a panel back to a free-floating window
 
 local GAP = 6
 local max = math.max
@@ -47,6 +49,11 @@ local function reservedFor(hostWidget)
   local right, below, any = 0, 0, false
   for kind, panel in pairs(_panels) do
     local pw = panel._widget
+    -- IsShown, deliberately NOT IsVisible (#767 L-2 changed the room's own checks, not this one).
+    -- A panel is a child of the host, so hiding the host makes every panel invisible while their
+    -- own flags stay set. Under IsVisible that reads as "no shown panel", which hands the host its
+    -- clamp back and drops `_hostClamp` — and nothing re-applies it when the host returns, because
+    -- the panel's OnShow never fires (its own flag never changed).
     if pw:IsShown() and pw:GetParent() == hostWidget then
       any = true
       local ph = pw:GetHeight()
@@ -116,10 +123,22 @@ end
 ---a shown TitleFrame.
 ---@param preferred TitleFrame?
 ---@return TitleFrame
+---The current dock host **only if one is already on screen** — never opens anything. The half of
+---`ResolveDockHost` a caller wants when "no host" is a legitimate answer rather than a reason to
+---put a several-hundred-row collection window on screen (#767 L-3).
+---@return TitleFrame?
+function ns.ShownDockHost()
+  local h = ns.DockHost
+  -- IsShown, deliberately NOT IsVisible (#767 L-2). A host is top-level, so the two agree except
+  -- when the whole UI is hidden — Alt-Z, a cinematic — and under IsVisible that would read as "no
+  -- host" and open a SECOND collection window behind the hidden UI.
+  if h and h._widget:IsShown() then return h end
+end
+
 function ns.ResolveDockHost(preferred)
   if preferred then ns.DockHost = preferred end
-  local h = ns.DockHost
-  if h and h._widget:IsShown() then return h end
+  local h = ns.ShownDockHost()
+  if h then return h end
   ns:Open()
   ns.DockHost = ns.window
   return ns.window
@@ -168,4 +187,45 @@ function ns.DockPanel(panel, kind, host)
     host._widget:HookScript("OnSizeChanged", ns.RefreshDockClamp)
   end
   ns.RefreshDockClamp()
+end
+
+-- Panels already given their position store back, so a repeated undock doesn't stack another
+-- `RememberPosition` OnDragStop hook on the same frame each time.
+local _remembered = {}
+
+---Release `panel` from the cluster back into a free-floating window — the exact inverse of
+---`DockPanel`. Used when the library is opened with no collection window on screen (#767 L-3): it
+---used to force one open through `ResolveDockHost`, putting a several-hundred-row grid behind
+---Blizzard's transmog UI when all the user asked for was the library.
+---
+---`store` revives per-window position persistence, which docking made pointless and #708/#713
+---dropped. A panel that has been docked can't simply be re-shown: `DockPanel` reparented it, killed
+---its body drag, and pointed its titlebar at the HOST, so all three have to be handed back.
+---@param panel TitleFrame
+---@param kind string  "library" | "room"
+---@param store table  DB-backed point store (e.g. `ns.db.libraryPos`)
+function ns.UndockPanel(panel, kind, store)
+  _panels[kind] = nil            -- stop counting toward the host's clamp
+  local pw = panel._widget
+  pw:SetParent(UIParent)
+  pw:SetClampedToScreen(true)    -- on its own again, so it should stay on screen on its own
+  pw:RegisterForDrag("LeftButton")
+  -- Point the titlebar back at THIS window. It also discards the host-saving hook DockPanel put on
+  -- this script (#764), which is what we want — there is no host to save any more.
+  panel.titlebar:setDragTarget(pw)
+  -- Re-apply the remembered point on EVERY undock; docking cleared the anchors, so a panel that
+  -- has floated before must be put back where the user left it rather than re-centred.
+  pw:ClearAllPoints()
+  if store.point then
+    pw:SetPoint(store.point, UIParent, store.relPoint, store.x, store.y)
+  else
+    panel:Center()   -- never floated before
+  end
+  -- Hooks only once. RememberPosition HookScripts the body's OnDragStop, and hooks accumulate —
+  -- calling it on every undock would stack a duplicate save per round trip.
+  if not _remembered[panel] then
+    _remembered[panel] = true
+    panel:RememberPosition(store)
+  end
+  ns.RefreshDockClamp()          -- hand the host we just left its own clamp back
 end
