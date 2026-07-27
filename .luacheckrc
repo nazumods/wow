@@ -208,6 +208,7 @@ std = {
     "C_ToyBox",
     "C_TradeSkillUI",
     "C_Traits",
+    "C_Transmog",
     "C_TransmogCollection",
     "C_TransmogOutfitInfo",
     "C_TransmogSets",
