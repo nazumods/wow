@@ -85,6 +85,10 @@ end
 ---@return table ns
 function M.loadGridShared(ns)
   ns.ui = ns.ui or { Frame = {}, Texture = {}, Label = {}, Button = {} }
+  -- The file self-publishes `ns.ModeToggle` onto the API global at load time (nazumods/wow#770
+  -- step 12), which in game api.lua has already created. An empty table is enough here — nothing
+  -- under test reads it back, but indexing a nil global would fail the load outright.
+  _G.WarbandeerCollectedApi = _G.WarbandeerCollectedApi or {}
   loadInto(ns, "GridShared.lua")
   return ns
 end

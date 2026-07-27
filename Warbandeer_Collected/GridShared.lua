@@ -493,10 +493,13 @@ end
 
 -- ── The Armor | Weapons mode toggle ────────────────────────────────────────────--
 --
--- Built the same way wherever it appears (#653): the collection window's strip row and the
--- dressing room's control row. Two halves in one framed box, the active one bordered gold — the
--- room's copy is a remote for `MainWindow:SetMode`, so a second hand-rolled build would be two
--- implementations of one control, which is the thing this file exists to prevent.
+-- Two halves in one framed box, the active one bordered gold.
+--
+-- **The real second copy is in another addon.** This used to say the dressing room carried the same
+-- control (#653) — but #686 removed the room's toggle, leaving exactly one in-addon caller, and that
+-- stale justification is what hid the actual duplicate: Warbandeer's embedded collected view
+-- hand-rolled its own `segHalf` because it could not reach this one. It can now, via the
+-- self-publish below (#770 step 12).
 local SEG_OFF = {0.05, 0.05, 0.06, 0.92}
 
 ---Build an Armor|Weapons segmented toggle.
@@ -542,3 +545,14 @@ function ns.ModeToggle(spec)
   toggle:Select(spec.weapons)
   return toggle
 end
+
+-- Share the toggle with sibling addons (Warbandeer's embedded collected view), which built its own
+-- copy because it had no way to reach this one (#770 step 12).
+--
+-- **Published from HERE, not from api.lua.** That file loads at .toc line 45 and this one at 72, so
+-- `API.ModeToggle = ns.ModeToggle` there would store **nil** — the consumer's version guard would be
+-- permanently false and the Armor|Weapons toggle would silently vanish from the embedded view. Same
+-- self-publish the two grid classes use (DataView.lua, WeaponView.lua). Deliberately not api.lua's
+-- lazy-forwarder idiom either: that makes the guard always-true, turning a missing helper into
+-- "attempt to call a nil value" at view-build time instead of a clean fallback.
+_G.WarbandeerCollectedApi.ModeToggle = ns.ModeToggle

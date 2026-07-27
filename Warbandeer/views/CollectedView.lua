@@ -192,25 +192,46 @@ local CollectedView = Class(Frame, function(self)
     self.filterStrip:Position({ TopLeft = {TOGGLE_W + TGAP, 0} })
 
     -- The persistent Armor/Weapons segmented toggle (active half gets the gold border).
-    local off = {0.05, 0.05, 0.06, 0.92}
-    local gold = theme.colors.gold or theme.colors.header
-    local seg = Frame:new{ parent = self, position = { TopLeft = {0, 0}, Width = TOGGLE_W, Height = STRIP_H } }
-    ui.Texture:new{ parent = seg, layer = ui.layer.Background, position = { All = true }, color = off }
-    local capsFont = theme.fonts.caps and {theme.fonts.caps[1], 10} or nil
-    local function segHalf(x, label, weapons)
-      local cell = Frame:new{ parent = seg, position = { TopLeft = {x, 0}, Width = TOGGLE_W / 2, Height = STRIP_H } }
-      local border = ui.Texture:new{ parent = cell, layer = ui.layer.Background, position = { All = true },
-        color = weapons and off or gold }
-      ui.Texture:new{ parent = cell, layer = ui.layer.Border, position = { TopLeft = {1, -1}, BottomRight = {-1, 1} },
-        color = {0.09, 0.09, 0.11, 0.95} }
-      local btn = ui.Button:new{ parent = cell, position = { All = true }, glow = false,
-        OnClick = function() _view:SetMode(weapons) end }
-      Label:new{ parent = btn, fontInfo = capsFont, justifyH = ui.justify.Center,
-        position = { All = true }, text = label, color = theme.colors.text }
-      return border
+    --
+    -- Collected's own builder when it exposes one (nazumods/wow#770 step 12) — this view had
+    -- hand-rolled the same control because it had no way to reach that one.
+    local mode = WarbandeerCollectedApi.ModeToggle
+    if mode then
+      self._modeToggle = mode{
+        parent = self, theme = theme, width = TOGGLE_W, height = STRIP_H, weapons = false,
+        position = { TopLeft = {0, 0} },
+        onClick = function(weapons) _view:SetMode(weapons) end,
+      }
+    else
+      -- **Version-skew fallback, kept deliberately.** Collected is an OptionalDep and its own
+      -- CurseForge project, so the two update independently — and a released window exists where it
+      -- exposes `WeaponView` (which gates this whole block) but not `ModeToggle`. Widening the outer
+      -- guard instead would silently remove the entire Weapons grid for those users, which is far
+      -- worse than keeping this copy behind a version check. Delete it once the toggle moves to
+      -- LibNUI, where no skew guard is needed at all.
+      local off = {0.05, 0.05, 0.06, 0.92}
+      local gold = theme.colors.gold or theme.colors.header
+      local seg = Frame:new{ parent = self, position = { TopLeft = {0, 0}, Width = TOGGLE_W, Height = STRIP_H } }
+      ui.Texture:new{ parent = seg, layer = ui.layer.Background, position = { All = true }, color = off }
+      local capsFont = theme.fonts.caps and {theme.fonts.caps[1], 10} or nil
+      local function segHalf(x, label, weapons)
+        local cell = Frame:new{ parent = seg, position = { TopLeft = {x, 0}, Width = TOGGLE_W / 2, Height = STRIP_H } }
+        local border = ui.Texture:new{ parent = cell, layer = ui.layer.Background, position = { All = true },
+          color = weapons and off or gold }
+        ui.Texture:new{ parent = cell, layer = ui.layer.Border, position = { TopLeft = {1, -1}, BottomRight = {-1, 1} },
+          color = {0.09, 0.09, 0.11, 0.95} }
+        -- No `glow = false` here either: #705 adopted LibNUI's hover glow across the shared builders,
+        -- and this copy was simply missed, leaving the one control in this row that didn't light up.
+        -- Matching it keeps both paths looking identical.
+        local btn = ui.Button:new{ parent = cell, position = { All = true },
+          OnClick = function() _view:SetMode(weapons) end }
+        Label:new{ parent = btn, fontInfo = capsFont, justifyH = ui.justify.Center,
+          position = { All = true }, text = label, color = theme.colors.text }
+        return border
+      end
+      self._segArmor = segHalf(0, "Armor", false)
+      self._segWeapons = segHalf(TOGGLE_W / 2, "Weapons", true)
     end
-    self._segArmor = segHalf(0, "Armor", false)
-    self._segWeapons = segHalf(TOGGLE_W / 2, "Weapons", true)
   end
 
   self:Width(gridW + SCROLLBAR_W)
@@ -285,9 +306,14 @@ function CollectedView:SetMode(weapons)
   if self.active._ptr ~= prevGrid._ptr then self.active:SetPtr(prevGrid._ptr) end
   self.grid:SetShown(not weapons); self.filterStrip:SetShown(not weapons); self.scroll:SetShown(not weapons)
   self.weaponGrid:SetShown(weapons); self.weaponStrip:SetShown(weapons); self.weaponScroll:SetShown(weapons)
-  local gold, off = theme.colors.gold or theme.colors.header, {0.05, 0.05, 0.06, 0.92}
-  self._segArmor:Color(weapons and off or gold)
-  self._segWeapons:Color(weapons and gold or off)
+  -- Whichever toggle got built (nazumods/wow#770 step 12): the shared one repaints itself.
+  if self._modeToggle then
+    self._modeToggle:Select(weapons)
+  else
+    local gold, off = theme.colors.gold or theme.colors.header, {0.05, 0.05, 0.06, 0.92}
+    self._segArmor:Color(weapons and off or gold)
+    self._segWeapons:Color(weapons and gold or off)
+  end
   -- Weapon mode: the narrow name column can't hold the counter over the header, so ride the strip
   -- row (right of the dropdowns); armor restores it over the header.
   self.counter:Position(weapons and { TopLeft = {self.weaponStrip, ui.edge.TopRight, 12, -3} }
