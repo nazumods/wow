@@ -140,14 +140,19 @@ function DressingRoom:_titleWeapon()
   if name and look.difficulty then name = name .. " — " .. look.difficulty end   -- disambiguate difficulty recolours
   self:Title((name or set.name) .. (count > 1 and (" (%d/%d)"):format(idx, count) or ""))
 
-  if self._weaponTitleTimer then self._weaponTitleTimer:Cancel(); self._weaponTitleTimer = nil end
-  if not name and (self._weaponTitleTries or 0) < 10 then
-    self._weaponTitleTries = (self._weaponTitleTries or 0) + 1
-    self._weaponTitleTimer = C_Timer.NewTimer(0.2, function()
-      self._weaponTitleTimer = nil
-      if self._cell and self._cell.set == set and (self._weaponPiece or 1) == idx then self:_titleWeapon() end
-    end)
-  else
-    self._weaponTitleTries = 0
+  -- The shared capped retry (#770 step 14). Unlike the slot updaters this one resets on SUCCESS —
+  -- a resolved name means the next cell browsed starts with a full budget — and its re-run is
+  -- guarded against the cell or piece having moved on while the name was still loading.
+  if name then
+    ns.ResetRetry(self, "weaponTitle")
+  elseif not ns.Retry(self, "weaponTitle", { again = function()
+    -- Guarded: the cell or the piece can move on while a name is still loading.
+    if self._cell and self._cell.set == set and (self._weaponPiece or 1) == idx then self:_titleWeapon() end
+  end }) then
+    -- **Budget spent — clear it**, so the next cell browsed starts with a full one. This path resets
+    -- on exhaustion as well as on success; the slot updaters deliberately do NOT, staying spent until
+    -- their own reset site fires. Both behaviours are as they were, which is why the reset stays a
+    -- caller decision rather than something `ns.Retry` does.
+    ns.ResetRetry(self, "weaponTitle")
   end
 end

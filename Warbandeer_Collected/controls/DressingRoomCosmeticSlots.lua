@@ -6,7 +6,7 @@ local Frame, Texture = ui.Frame, ui.Texture
 local GetSourceInfo = C_TransmogCollection.GetSourceInfo
 local GetItemIcon = C_Item.GetItemIconByID
 local RequestItem = C_Item.RequestLoadItemDataByID
-local GameTooltip, C_Timer = GameTooltip, C_Timer
+local GameTooltip = GameTooltip
 local DressingRoom = ns.DressingRoom
 local k = DressingRoom._k
 local selBox, SELECTED, IDLE = k.selBox, k.SELECTED, k.IDLE
@@ -97,7 +97,7 @@ end
 ---@param retry boolean?  internal: true on the self-scheduled re-run (skips the retry-count reset)
 function DressingRoom:UpdateCosmeticSlots(retry)
   if not self._cosmeticSlots then return end
-  if not retry then self._cosmeticSlotRetries = 0 end
+  if not retry then ns.ResetRetry(self, "cosmeticSlots") end   -- a fresh pass gets a full budget
   local open = self._picker and self._picker._widget:IsShown()
   local missing = false
   for _, e in ipairs(self._cosmeticSlots) do
@@ -126,13 +126,10 @@ function DressingRoom:UpdateCosmeticSlots(retry)
     end
   end
 
-  if self._cosmeticSlotTimer then self._cosmeticSlotTimer:Cancel(); self._cosmeticSlotTimer = nil end
-  if missing and (self._cosmeticSlotRetries or 0) < 10 then
-    self._cosmeticSlotRetries = (self._cosmeticSlotRetries or 0) + 1
-    self._cosmeticSlotTimer = C_Timer.NewTimer(0.2, function()
-      self._cosmeticSlotTimer = nil
-      self:UpdateCosmeticSlots(true)
-    end)
+  if missing then
+    ns.Retry(self, "cosmeticSlots", { again = function() self:UpdateCosmeticSlots(true) end })
+  else
+    ns.CancelRetry(self, "cosmeticSlots")
   end
 end
 
