@@ -236,24 +236,11 @@ function OutfitLibraryWindow:PushSelected()
     ns.Print("Pick a look to push.")
     return
   end
-  local list, err = ns.LibraryOutfitList(self._selected)
-  if not list then
-    ns.Print("Couldn't read that look: " .. err)
-    return
-  end
-  local existing
-  for _, s in ipairs(ns.CustomSets()) do if s.name == self._selected then existing = s.id end end
-  if existing and not armed then
-    -- Named in chat rather than on the button, exactly as the room's Push does.
-    ns.Print(("\"%s\" is already one of this character's sets — click Push again to replace it.")
-      :format(self._selected))
+  -- Shared rule (#770 step 8) — this pane and the room's outfit row had byte-identical copies of the
+  -- whole of Push, chat strings included. Only the arming and the printing are this surface's.
+  local res = ns.PushLookToCharacter(self._selected, armed)
+  ns.Print(res.message)
+  if res.needsConfirm then
     self:_arm(self._pushBtn, "Sure?", "replaced", self._selected)
-    return
   end
-  local id, saveErr = ns.SaveCustomSet(self._selected, list, existing)
-  if not id then
-    ns.Print("Couldn't push: " .. saveErr)
-    return
-  end
-  ns.Print(("Pushed \"%s\" to this character's transmog sets."):format(self._selected))
 end

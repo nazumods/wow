@@ -60,6 +60,19 @@ function M.load()
   return ns
 end
 
+---Load outfitverbs.lua into an already-loaded `ns`. Needs no stub at all: it resolves
+---`ns.CustomSets` / `ns.SaveCustomSet` at CALL time rather than capturing them, so a spec installs
+---whichever it wants to observe — the same arrangement that makes `outfitsave.lua` testable.
+---
+---It earns a spec more than most: these are the write paths for an account-wide, user-authored
+---store with no undo, and the rule decides whether a push REPLACES an existing character set.
+---@param ns table  as returned by M.load()
+---@return table ns
+function M.loadOutfitVerbs(ns)
+  loadInto(ns, "outfitverbs.lua")
+  return ns
+end
+
 ---Load GridShared.lua into an already-loaded `ns`, over a stub of the `ns.ui` widgets it
 ---destructures at load time.
 ---
