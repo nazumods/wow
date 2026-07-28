@@ -59,6 +59,7 @@ TableRow.lua
 TableFrame.lua
 TitleFrame.lua
 TabFrame.lua
+SegmentedToggle.lua
 Tooltip.lua
 FilterDropdown.lua
 CopyWindow.lua

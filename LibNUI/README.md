@@ -208,6 +208,7 @@ Region
     ├── EditBox
     ├── FilterDropdown
     ├── ScrollFrame
+    ├── SegmentedToggle
     ├── StatusBar
     ├── TabFrame
     ├── TableFrame
@@ -592,6 +593,54 @@ Inherits `Frame`. A tabbed container: a tab button bar across the top and one co
 |-----------|-----------------------------------|
 | `tabBar`  | The tab button bar `Frame`        |
 | `content` | The content area below the bar    |
+
+---
+
+## SegmentedToggle
+
+Inherits `Frame`. A horizontal row of captioned segments sharing one framed box, at most one of them lit — a mode switch. Unlike `TabFrame` it owns no content: it reports which segment was picked and the caller decides what that means. Unlike `RadioGroup` it has a "nothing selected" state.
+
+```lua
+local modes = ui.SegmentedToggle:new{
+  parent   = window,
+  height   = 20,
+  selected = "armor",
+  options  = { { key = "armor", label = "Armor" }, { key = "weapons", label = "Weapons" } },
+  position = { TopLeft = {window.titlebar, "BOTTOMLEFT", 2, -2} },
+  onSelect = function(_, key) window:SetMode(key == "weapons") end,
+}
+strip:Position({ TopLeft = {modes:Width() + 6, 0} })   -- the width is computed, so read it back
+```
+
+Every segment takes the width of the widest caption, so a long label can't ellipsize and the frame's own width is an outcome rather than a number you pick — read it back with `Width()` to lay out beside it. The lit rim is a [`BorderBox`](#borderbox), so it lands on whole physical pixels.
+
+`Select(nil)` lights none. That is a real state for a mode switch — what it shows while the thing on screen belongs to neither mode — and lighting a segment that isn't in force would be a lie.
+
+### Constructor options
+
+| Option          | Type     | Description                                          |
+|-----------------|----------|------------------------------------------------------|
+| `options`       | table    | `{ key, label }` segments, laid out left to right     |
+| `selected`      | any      | Initially lit key (omit to light none)               |
+| `height`        | number   | Segment height (default `20`)                        |
+| `padding`       | number   | Horizontal padding around the widest caption (default `24`) |
+| `activeColor`   | table/str| Lit rim (default `"gold"`, falling back to `"header"`) |
+| `inactiveColor` | table/str| Unlit rim (default a near-black)                     |
+| `fillColor`     | table/str| Segment interior (default a near-black)              |
+| `textColor`     | table/str| Caption colour (default `"text"`)                    |
+| `font`          | table    | `{path, size}`; defaults to the theme's `caps` slot at 10 |
+| `onSelect`      | func     | `fun(self, key)` called when a segment is clicked    |
+
+### Methods
+
+| Method        | Description                                          |
+|---------------|------------------------------------------------------|
+| `Select(key)` | Light the segment for `key`, or none for `nil`. Does not fire `onSelect` |
+| `Selected()`  | The lit key, or `nil`                                |
+
+### Callbacks
+
+`onSelect` fires on **every** click, including one on the already-lit segment — what a mode switch drives is normally idempotent, and swallowing the repeat would change what the caller sees rather than what the widget draws. Use `Select` to reflect a mode changed by some other route without firing it.
 
 ---
 

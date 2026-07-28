@@ -34,4 +34,5 @@ filterdropdown.lua
 ring.lua
 copywindow.lua
 hairlines.lua
+segmentedtoggle.lua
 entry.lua

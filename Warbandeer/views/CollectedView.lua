@@ -160,61 +160,39 @@ local CollectedView = Class(Frame, function(self)
   -- as the grid). The armor grid is the default and stays intact when Weapons is off.
   self.active, self.activeScroll, self._weaponsMode = self.grid, self.scroll, false
   if WarbandeerCollectedApi.WeaponView then
-    -- Matches the standalone window's width (nazumods/wow#770 step 12): halved, 92 left each
-    -- segment 46px and ellipsized "Weapons".
-    local TOGGLE_W, TGAP = 108, 6
-
     -- The weapon trio is built on the first switch to Weapons, not here (nazumods/wow#770 step 19):
     -- it is ~241 rows × 18 columns of Cells that plenty of people never look at. `_weaponsAvailable`
     -- records that the sibling addon CAN supply it, which is what `SetMode` gates on now — gating on
     -- `self.weaponGrid` would mean the toggle could never build the thing it toggles to.
     self._weaponsAvailable = true
-    self._weaponGeom = { top = TOP, headerH = headerH, capH = capH, stripX = TOGGLE_W + TGAP }
 
-    -- Shift the armor strip right to clear the persistent toggle at the far left.
-    self.filterStrip:Position({ TopLeft = {TOGGLE_W + TGAP, 0} })
-
-    -- The persistent Armor/Weapons segmented toggle (active half gets the gold border).
+    -- The persistent Armor/Weapons segmented toggle (the active segment takes the gold rim).
     --
-    -- Collected's own builder when it exposes one (nazumods/wow#770 step 12) — this view had
-    -- hand-rolled the same control because it had no way to reach that one.
-    local mode = WarbandeerCollectedApi.ModeToggle
-    if mode then
-      self._modeToggle = mode{
-        parent = self, theme = theme, width = TOGGLE_W, height = STRIP_H, weapons = false,
-        position = { TopLeft = {0, 0} },
-        onClick = function(weapons) _view:SetMode(weapons) end,
-      }
-    else
-      -- **Version-skew fallback, kept deliberately.** Collected is an OptionalDep and its own
-      -- CurseForge project, so the two update independently — and a released window exists where it
-      -- exposes `WeaponView` (which gates this whole block) but not `ModeToggle`. Widening the outer
-      -- guard instead would silently remove the entire Weapons grid for those users, which is far
-      -- worse than keeping this copy behind a version check. Delete it once the toggle moves to
-      -- LibNUI, where no skew guard is needed at all.
-      local off = {0.05, 0.05, 0.06, 0.92}
-      local gold = theme.colors.gold or theme.colors.header
-      local seg = Frame:new{ parent = self, position = { TopLeft = {0, 0}, Width = TOGGLE_W, Height = STRIP_H } }
-      ui.Texture:new{ parent = seg, layer = ui.layer.Background, position = { All = true }, color = off }
-      local capsFont = theme.fonts.caps and {theme.fonts.caps[1], 10} or nil
-      local function segHalf(x, label, weapons)
-        local cell = Frame:new{ parent = seg, position = { TopLeft = {x, 0}, Width = TOGGLE_W / 2, Height = STRIP_H } }
-        local border = ui.Texture:new{ parent = cell, layer = ui.layer.Background, position = { All = true },
-          color = weapons and off or gold }
-        ui.Texture:new{ parent = cell, layer = ui.layer.Border, position = { TopLeft = {1, -1}, BottomRight = {-1, 1} },
-          color = {0.09, 0.09, 0.11, 0.95} }
-        -- No `glow = false` here either: #705 adopted LibNUI's hover glow across the shared builders,
-        -- and this copy was simply missed, leaving the one control in this row that didn't light up.
-        -- Matching it keeps both paths looking identical.
-        local btn = ui.Button:new{ parent = cell, position = { All = true },
-          OnClick = function() _view:SetMode(weapons) end }
-        Label:new{ parent = btn, fontInfo = capsFont, justifyH = ui.justify.Center,
-          position = { All = true }, text = label, color = theme.colors.text }
-        return border
-      end
-      self._segArmor = segHalf(0, "Armor", false)
-      self._segWeapons = segHalf(TOGGLE_W / 2, "Weapons", true)
-    end
+    -- `ui.SegmentedToggle` since nazumods/wow#816. This used to be Collected's builder, reached
+    -- through the API global behind a version guard, with a hand-rolled copy of the same control for
+    -- the releases that didn't publish it — three pieces of machinery that existed only because the
+    -- widget lived in an addon. LibNUI is a hard dependency of this one, so a version where it isn't
+    -- there can't load us at all, and all three are gone.
+    self._modeToggle = ui.SegmentedToggle:new{
+      parent = self, height = STRIP_H, selected = "armor",
+      options = { { key = "armor", label = "Armor" }, { key = "weapons", label = "Weapons" } },
+      position = { TopLeft = {0, 0} },
+      onSelect = function(_, key)
+        local weapons = key == "weapons"
+        _view:SetMode(weapons)
+        -- Tell the shared dressing room which grid is being browsed, so its ratings row is rated
+        -- against the right one (nazumods/wow#827). Guarded on its own, not folded into the
+        -- `WeaponView` gate above: Collected is an OptionalDep on its own release cadence, and a
+        -- published window exists that has the grid but not this call.
+        if WarbandeerCollectedApi.SetGridMode then WarbandeerCollectedApi:SetGridMode(weapons) end
+      end,
+    }
+
+    -- Shift the armor strip right to clear the toggle. Read back rather than declared: the toggle
+    -- sizes itself to its captions, which is what stopped "Weapons" rendering as "Wea…".
+    local stripX = self._modeToggle:Width() + 6
+    self._weaponGeom = { top = TOP, headerH = headerH, capH = capH, stripX = stripX }
+    self.filterStrip:Position({ TopLeft = {stripX, 0} })
   end
 
   self:Width(gridW + SCROLLBAR_W)
@@ -338,14 +316,9 @@ function CollectedView:SetMode(weapons)
   if self.active._ptr ~= prevGrid._ptr then self.active:SetPtr(prevGrid._ptr) end
   self.grid:SetShown(not weapons); self.filterStrip:SetShown(not weapons); self.scroll:SetShown(not weapons)
   self.weaponGrid:SetShown(weapons); self.weaponStrip:SetShown(weapons); self.weaponScroll:SetShown(weapons)
-  -- Whichever toggle got built (nazumods/wow#770 step 12): the shared one repaints itself.
-  if self._modeToggle then
-    self._modeToggle:Select(weapons)
-  else
-    local gold, off = theme.colors.gold or theme.colors.header, {0.05, 0.05, 0.06, 0.92}
-    self._segArmor:Color(weapons and off or gold)
-    self._segWeapons:Color(weapons and gold or off)
-  end
+  -- Unguarded: the toggle is built in the same block that sets `_weaponsAvailable`, which the
+  -- early return above already required.
+  self._modeToggle:Select(weapons and "weapons" or "armor")
   -- Weapon mode: the narrow name column can't hold the counter over the header, so ride the strip
   -- row (right of the dropdowns); armor restores it over the header.
   self.counter:Position(weapons and { TopLeft = {self.weaponStrip, ui.edge.TopRight, 12, -3} }

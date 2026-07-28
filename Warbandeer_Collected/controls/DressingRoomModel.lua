@@ -231,8 +231,9 @@ ns.HideDressingRoom = function()
   if _room then _room:Hide() end
 end
 
----Record which grid the user is browsing — pushed by the shared Armor|Weapons toggle
----(`ns.ModeToggle`) — and repaint the room's ratings row against it.
+---Record which grid the user is browsing — pushed by each host's Armor|Weapons toggle handler
+---(`ui.SegmentedToggle` carries no addon knowledge since #816) — and repaint the room's ratings
+---row against it.
 ---
 ---The flag lives on `ns` rather than on the room so a room built later still reads the current mode,
 ---and so a click while the room is closed isn't lost. Last write wins across the two hosts, which is
