@@ -6,6 +6,15 @@ local ns = select(2, ...)
 -- same conventional-commit grouping used for the GitHub/CurseForge release notes.
 ---@type { version: string, notes: string }[]
 ns.changelog = {
+  { version = "12.0.7-r34", notes = [==[
+### Performance
+- scope a ratings refresh to the grid that can have changed (#828)
+- build the Weapons grid on first use, not with the window (#825)
+
+### Refactoring
+- share the Armor|Weapons toggle with the embedded view (#815)
+
+]==] },
   { version = "12.0.7-r33", notes = [==[
 ### Bug Fixes
 - duplicate spec, dropdown refresh/leak, write-only counts, rename leftovers (#801)
