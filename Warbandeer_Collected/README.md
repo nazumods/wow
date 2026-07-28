@@ -344,7 +344,9 @@ name field already filled in with their name** — so keeping it is a single cli
 
 This is the game's ordinary inspect, so the usual rules apply: it has to be a player, they
 have to be close enough to inspect, and their gear takes a moment to arrive. If it doesn't,
-you'll be told to get closer and try again.
+you'll be told to get closer and try again. **Faction and realm are no obstacle** — someone
+from the opposite faction, or from another realm standing beside you in a city, reads just
+the same as a guildmate.
 
 Everything you can see on them comes across, down to the **enchant glow** on their weapons.
 The one thing that can't travel is a **weapon they aren't holding** — the format has no way
