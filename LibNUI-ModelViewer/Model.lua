@@ -228,6 +228,9 @@ end
 -- Symptom this fixes: a two-weapon look rendering as one weapon. The hand cursor is only half of
 -- it — see the off-hand repair at the end, which handles the main-hand write clobbering the off
 -- hand once both are addressed deterministically.
+--
+-- **A hand this call is not overriding is preserved, not stripped.** Overriding one hand does not
+-- make the other one this function's business, even though clearing the pair is unavoidable.
 function Model:_applySlotMog()
   if not self._actor or not self._slotMog then return end
   local mh, oh = self._slotMog[INVSLOT_MAINHAND], self._slotMog[INVSLOT_OFFHAND]
@@ -240,11 +243,31 @@ function Model:_applySlotMog()
   -- Clear both hands before re-placing them. Blizzard's own two-weapon previews undress the pair
   -- first and only then reset the cursor, and this runs on EVERY re-apply, so without it each pass
   -- stacks onto whatever the actor already had in those hands.
+  --
+  -- **Both hands are cleared even when only ONE is overridden** — so the base outfit's weapon or
+  -- shield in the hand we are NOT overriding was undressed with nothing to re-place it, and a
+  -- one-hander + shield look lost its shield to a main-hand-only override (#734). Scoping the
+  -- undress to the overridden hand is NOT the fix: that reintroduces the stacking and the cursor
+  -- drift the paragraph above exists to prevent. Capture the other hand first instead, and re-place
+  -- it inside the same ordered write, so the pair still goes off-hand-first behind one cursor reset.
+  --
+  -- appearanceID 0 is NoTransmogID — "no override for this slot" rather than an appearance — so an
+  -- empty hand reads back as 0 or nil and there is nothing to keep. Same guard, same reason, as the
+  -- off-hand repair below documents at length.
+  local function keptHand(slot)
+    local h = self._actor:GetItemTransmogInfo(slot)
+    if h and h.appearanceID and h.appearanceID ~= 0 then return h end
+    return nil
+  end
+  local keepOH = (not oh) and keptHand(INVSLOT_OFFHAND) or nil
+  local keepMH = (not mh) and keptHand(INVSLOT_MAINHAND) or nil
   self._actor:UndressSlot(INVSLOT_MAINHAND)
   self._actor:UndressSlot(INVSLOT_OFFHAND)
   self._actor:ResetNextHandSlot()
-  if oh then self._actor:SetItemTransmogInfo(oh.info, INVSLOT_OFFHAND, oh.ignoreChildItems) end
-  if mh then self._actor:SetItemTransmogInfo(mh.info, INVSLOT_MAINHAND, mh.ignoreChildItems) end
+  if oh then self._actor:SetItemTransmogInfo(oh.info, INVSLOT_OFFHAND, oh.ignoreChildItems)
+  elseif keepOH then self._actor:SetItemTransmogInfo(keepOH, INVSLOT_OFFHAND) end
+  if mh then self._actor:SetItemTransmogInfo(mh.info, INVSLOT_MAINHAND, mh.ignoreChildItems)
+  elseif keepMH then self._actor:SetItemTransmogInfo(keepMH, INVSLOT_MAINHAND) end
 
   -- **Re-place the off hand if the main-hand write took it away.** Measured: the off-hand write
   -- succeeds and the actor genuinely holds the weapon, then writing the main hand clears the
@@ -268,10 +291,15 @@ function Model:_applySlotMog()
   -- The comparison is appearance-only: an off hand whose illusion was clobbered alongside its
   -- appearance is repaired (TryOn's spellEnchantmentID carries it), but a clobbered
   -- secondaryAppearanceID is beyond TryOn's reach.
-  if oh and oh.info.appearanceID ~= 0 then
+  -- Repairs a RESTORED off hand as well as an overridden one (#734). The main-hand write clobbers
+  -- whatever the off hand holds, override or not — a shield just put back by `keepOH` is exactly as
+  -- vulnerable as one the caller asked for, and gating this on `oh` alone would leave the case the
+  -- restore was added to fix broken by the very next line. Exactly one of the two is ever set.
+  local ohInfo = (oh and oh.info) or keepOH
+  if ohInfo and ohInfo.appearanceID ~= 0 then
     local h = self._actor:GetItemTransmogInfo(INVSLOT_OFFHAND)
-    if not (h and h.appearanceID == oh.info.appearanceID) then
-      self._actor:TryOn(oh.info.appearanceID, "SECONDARYHANDSLOT", oh.info.illusionID)
+    if not (h and h.appearanceID == ohInfo.appearanceID) then
+      self._actor:TryOn(ohInfo.appearanceID, "SECONDARYHANDSLOT", ohInfo.illusionID)
     end
   end
 end

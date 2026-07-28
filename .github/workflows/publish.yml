@@ -72,7 +72,17 @@ jobs:
         id: toc
         run: |
           ADDON="${{ steps.info.outputs.addon }}"
-          TOC=$(ls "${ADDON}"/*.toc | head -1)
+          # The folder-named .toc, with NO fallback to "any .toc in the folder" (#742). That
+          # fallback is how a folder rename that missed its .toc got metadata read, zipped and
+          # uploaded as an addon WoW cannot load. Fail loudly instead — this is the last gate
+          # before the package reaches CurseForge.
+          TOC="${ADDON}/${ADDON}.toc"
+          [[ -f "$TOC" ]] || TOC="${ADDON}/${ADDON}_Mainline.toc"
+          if [[ ! -f "$TOC" ]]; then
+            echo "::error::${ADDON}/ has no ${ADDON}.toc — WoW will not load this package"
+            ls "${ADDON}"/*.toc || true
+            exit 1
+          fi
 
           PROJECT_ID=$(grep -E "^## X-Curse-Project-ID:" "$TOC" \
             | sed 's/## X-Curse-Project-ID:[[:space:]]*//' | tr -d '\r')
