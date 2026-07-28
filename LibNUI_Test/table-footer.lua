@@ -18,9 +18,19 @@ local Left       = LibNUI.justify.Left
 local NARROW = { {"Alice", "92,000"}, {"Bob", "7,400"}, {"Cara", "231,000"} }
 local WIDE   = { {"Alice", "9,120,000"}, {"Bob", "740,000"}, {"Cara", "2,231,000"} }
 
-local FOOTER = {
+local TOTAL = {text = "2,349,153g 88s 1c", justifyH = Right, color = {1, 0.82, 0, 1}}
+
+-- The detached table's footer leaves col 1 EMPTY on purpose. The whole claim of the demo is a wide
+-- total rendering in full by overflowing left into empty footer space — and with "3 chars" sitting
+-- in col 1 the total landed on top of it, so the demo contradicted its own premise and a reader
+-- couldn't tell the overflow from a layout fault (#783). Not a library bug: `detachedFooter` sizes
+-- the cell to its own content and anchors it to the column's right edge, which is exactly what it
+-- did. The spanning table keeps col 1, where it costs nothing — that total clips to the narrow Gold
+-- column rather than overflowing, which is the contrast the demo exists to show.
+local FOOTER_DETACHED = { [2] = TOTAL }
+local FOOTER_SPANNING = {
   [1] = {text = "3 chars", justifyH = Left, color = {1, 1, 1, 0.6}},
-  [2] = {text = "2,349,153g 88s 1c", justifyH = Right, color = {1, 0.82, 0, 1}},
+  [2] = TOTAL,
 }
 
 local CH, HH = 20, 22
@@ -42,7 +52,8 @@ local function buildTable(parent, detached, y)
   }
   t:SetPoint("TOPLEFT", parent._widget, "TOPLEFT", 10, y)
   t:onLoad()               -- builds rows + autosizes the Gold column to its data
-  t:setFooter(FOOTER)      -- wide total: detached overflows, spanning clips
+  -- Wide total either way: detached overflows into the empty col 1, spanning clips to the Gold column.
+  t:setFooter(detached and FOOTER_DETACHED or FOOTER_SPANNING)
   return t
 end
 
@@ -74,7 +85,9 @@ local function makeFooterDemo()
         t.data = wide and WIDE or NARROW
         t:update()
         t:Autosize()
-        t:setFooter(FOOTER)   -- refresh: detached re-measures the total's width
+        -- Refresh: detached re-measures the total's width. Each table keeps its own footer shape —
+        -- read back off the table rather than tracked here, so the two can't drift apart.
+        t:setFooter(t.detachedFooter and FOOTER_DETACHED or FOOTER_SPANNING)
       end
     end,
   }
