@@ -77,14 +77,21 @@ end
 
 -- ── Ratings ────────────────────────────────────────────────────────────────--
 
--- Sync the ratings row to the current set, race, and edit layer: the wanted star,
+-- Sync the ratings row to the current subject, race, and edit layer: the wanted star,
 -- and the gold highlight on the active tier (the per-race override when "This race"
 -- is on, else the baseline). Called from _load (set change) and SetRace.
 --
--- The row always rates the previewed ARMOUR set, browsing a weapon or not (#673). One ★ can't be
--- two targets, and a weapon look's Wanted flag has its own gesture — shift-clicking its row in the
--- cell chooser (controls/WeaponCellPicker.lua), the same shift-click the appearance picker uses.
+-- **The row follows `_focus` (#827).** It used to rate the previewed ARMOUR set whether or not a
+-- weapon was browsed, which meant clicking it in weapon mode silently ranked a set nowhere near
+-- where the user was looking. `_focus` already says which surface the arrows drive and which object
+-- the window title names, so the row reads the same answer: `_ratedWeapon` returns the shown weapon
+-- look when one is focused, and the weapon half of the row lives with it in
+-- controls/WeaponCellPicker.lua. Rating an armour set while a weapon is browsed therefore costs one
+-- click on any armour cell, which is what returns focus to it.
 function DressingRoom:_refreshRatings()
+  local look = self:_ratedWeapon()
+  if look then return self:_paintWeaponRatings(look) end
+  self:_enableRaceOnly(true)
   if self._outfit then return end   -- an outfit has no set id to rate
   -- No set previewed yet (a weapon cell browsed straight from a fresh open): nothing to rate, so
   -- drop every border rather than leaving the last set's ratings lit under an unrelated doll.
@@ -117,6 +124,8 @@ function DressingRoom:_ratingsChanged(setId, visualID)
 end
 
 function DressingRoom:ToggleWanted()
+  local look = self:_ratedWeapon()
+  if look then return self:_wantWeapon(look) end
   if not self._set then return end
   ns:ToggleWanted(self._set.id)
   self:_refreshRatings()
@@ -124,9 +133,12 @@ function DressingRoom:ToggleWanted()
 end
 
 -- Set the tier (or clear it when nil, or when re-clicking the active one). Writes
--- the per-race override while "This race" is on, else the baseline.
+-- the per-race override while "This race" is on, else the baseline — a weapon has neither, so it
+-- takes the flat write and "This race" greys out while one is focused.
 ---@param letter string?  a tier from ns.Ranks, or nil to clear
 function DressingRoom:SetRank(letter)
+  local look = self:_ratedWeapon()
+  if look then return self:_rateWeapon(look, letter) end
   if not self._set then return end
   local setId = self._set.id
   if self._raceOnly then

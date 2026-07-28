@@ -25,9 +25,14 @@ local DressingRoom = ns.DressingRoom
 -- plausible targets, so they follow the last cell clicked ("armor"|"weapons"). The collection
 -- window's Armor|Weapons toggle deliberately doesn't touch it — that toggle swaps grids and
 -- nothing else.
+--
+-- It answers three questions now, not one: what the arrows drive, what the window title names, and
+-- — since #827 — which object the room's ratings row and ★ write to. That last one is the reason
+-- every path that sets `_focus` was re-audited; the audit is in controls/WeaponCellPicker.lua,
+-- beside the weapon half of the row.
 
 ---@class DressingRoom
----@field _focus string?  which surface the arrow keys drive ("armor"|"weapons") — the last cell clicked
+---@field _focus string?  which surface the arrows, the title and the ratings row follow ("armor"|"weapons") — the last cell clicked
 ---@field _cell table?  the browsed weapon cell, { group, set }; nil until one is browsed
 ---@field _cellHand string?  which hand the browsed look occupies ("main"|"off"), nil when it isn't staged
 ---@field _loadCell fun(self: DressingRoom, group: table, set: table)
@@ -38,9 +43,11 @@ local DressingRoom = ns.DressingRoom
 ---@field _titleWeapon fun(self: DressingRoom)
 
 ---Browse a weapon cell: dock its chooser and put its first look on the doll. The weapon-cell half
----of `_load`, which routes here — and which is the whole of the difference between the two: not one
----field of the armour preview is touched, so the set on the body, its slot columns, its class icon,
----tier bars and ratings row all stay exactly as they were.
+---of `_load`, which routes here — and which is nearly the whole of the difference between the two:
+---not one field of the armour preview is touched, so the set on the body, its slot columns, its
+---class icon and tier bars all stay exactly as they were. The ratings row is the one thing that
+---does move, because it follows `_focus` (#827) — the staging below repaints it onto this cell's
+---shown look.
 ---@param group table  the synthetic weapon-cell group from ns.PreviewWeaponCell
 ---@param set table    its single set, carrying `_looks`
 function DressingRoom:_loadCell(group, set)
@@ -128,9 +135,13 @@ end
 -- "Frostbrand (2/5)"). Item names load async, so retitle shortly (capped) until the name is cached,
 -- guarding against a cell/piece change mid-wait.
 --
--- The title follows `_focus` like the arrow keys do: browsing a weapon names the weapon, previewing
--- a set names the set (`_load`). The armour set is still on the doll either way — its slot columns
--- and class icon say so — and the position readout is what makes ↑/↓ legible.
+-- The title follows `_focus` like the arrow keys and the ratings row do: browsing a weapon names the
+-- weapon, previewing a set names the set (`_load`). The armour set is still on the doll either way —
+-- its slot columns and class icon say so — and the position readout is what makes ↑/↓ legible.
+--
+-- Being the subject readout is what earns the row the right to infer its target instead of
+-- captioning it (#827): the room says, continuously and in the place the eye already goes, which of
+-- the two live selections the controls below are acting on.
 function DressingRoom:_titleWeapon()
   local set, idx = self._cell.set, self._weaponPiece or 1
   local count = #set._looks
