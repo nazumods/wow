@@ -118,6 +118,16 @@ function API:HideDressingRoom()
   ns.HideDressingRoom()
 end
 
+---Record which grid the consumer is browsing, so the shared room's ratings row is rated against the
+---right one (#827). Published because the Armor|Weapons toggle both hosts build is `ui.SegmentedToggle`
+---since #816 — a LibNUI widget that knows nothing of this addon, so each host pushes the mode itself
+---and the embedded view needs a way in. Forwards lazily to `ns.SetGridMode`
+---(`controls/DressingRoomModel.lua`, loaded after this file).
+---@param weapons boolean  true while the Weapons grid is the one being browsed
+function API:SetGridMode(weapons)
+  ns.SetGridMode(weapons)
+end
+
 -- ─── Ratings (read + write) ─────────────────────────────────────────────────-
 -- The wanted/rank DB is account-wide, so consumers mutate it through here (the
 -- shared dressing room and Warbandeer's own grid both edit the same data).

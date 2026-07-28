@@ -121,26 +121,36 @@ local MainWindow = Class(TitleFrame, function(self)
   -- shown via SetMode. Armor is the default and stays fully intact when Weapons is off; the two
   -- grids overlap (same anchors), so only their SetShown state differs.
   self.active, self.activeScroll, self._weaponsMode = self.data, self.scroll, false
-  -- 108, not 92: halved, the old width left each segment 46px, which ellipsized "Weapons" to
-  -- "Wea…" (#770 step 12). Long-standing in this window; it only became obvious once the embedded
-  -- view adopted the same builder and started truncating too.
-  local TOGGLE_W, TGAP = 108, 6
-
-  -- Shift the armor strip right to clear the persistent toggle at the far left. Kept on `self`
-  -- because the weapon strip lines up with it, and that one is built later (`_ensureWeapons`).
-  self._stripX = 2 + TOGGLE_W + TGAP
-  self.filterStrip:Position({ TopLeft = {self.titlebar, ui.edge.BottomLeft, self._stripX, -2} })
-
-  -- The persistent Armor/Weapons segmented toggle (two halves; the active half gets the gold
-  -- border). Built through the shared `ns.ModeToggle` because the dressing room carries the same
-  -- control (#653) and two hand-rolled copies of one toggle would drift.
+  -- The persistent Armor/Weapons segmented toggle (the active segment takes the gold rim).
+  --
+  -- `ui.SegmentedToggle` since #816. It was this addon's own builder, self-published so the embedded
+  -- view could reach it; in LibNUI both hosts simply call it, and neither carries a copy for the
+  -- version where the other doesn't have one.
   --
   -- Eager, unlike the grid it reveals: it IS the thing that asks for that grid.
-  self._modeToggle = ns.ModeToggle{
-    parent = self, theme = theme, width = TOGGLE_W, height = STRIP_H, weapons = false,
+  self._modeToggle = ui.SegmentedToggle:new{
+    parent = self, height = STRIP_H, selected = "armor",
+    options = { { key = "armor", label = "Armor" }, { key = "weapons", label = "Weapons" } },
     position = { TopLeft = {self.titlebar, ui.edge.BottomLeft, 2, -2} },
-    onClick = function(weapons) self:SetMode(weapons) end,
+    onSelect = function(_, key)
+      local weapons = key == "weapons"
+      self:SetMode(weapons)
+      -- The shared dressing room needs to know which grid is being browsed, for one rule: while a
+      -- loaded look is on the doll its ratings row is hidden, a browsed weapon earns the row back,
+      -- and switching to Armor without clicking a cell gives it up again (#827). From the handler
+      -- rather than from `SetMode`, which early-returns when the click repeats the mode already in
+      -- force; the builder used to carry this for both hosts, and can't now that it is a LibNUI
+      -- widget with no knowledge of this addon.
+      ns.SetGridMode(weapons)
+    end,
   }
+
+  -- Shift the armor strip right to clear the toggle. Read back rather than declared: the toggle
+  -- sizes itself to its captions, which is what stopped "Weapons" rendering as "Wea…" at a
+  -- hand-picked 92 (#770 step 12). Kept on `self` because the weapon strip lines up with it, and
+  -- that one is built later (`_ensureWeapons`).
+  self._stripX = 2 + self._modeToggle:Width() + 6
+  self.filterStrip:Position({ TopLeft = {self.titlebar, ui.edge.BottomLeft, self._stripX, -2} })
 
   self:RefreshCounter()
   self:RefreshWanted()
@@ -231,7 +241,7 @@ function MainWindow:SetMode(weapons)
   self.data:SetShown(not weapons); self.filterStrip:SetShown(not weapons); self.scroll:SetShown(not weapons)
   self.weapons:SetShown(weapons); self.weaponStrip:SetShown(weapons); self.weaponScroll:SetShown(weapons)
   self:RefreshWanted()   -- the tally switches units with the grid: wanted sets ↔ wanted weapon looks
-  self._modeToggle:Select(weapons)
+  self._modeToggle:Select(weapons and "weapons" or "armor")
   -- The weapon name column is too narrow to hold the counter over the header, so in weapon mode
   -- the counter rides the strip row (right of the dropdowns); armor keeps it over the header.
   self.counter:Position(weapons and { TopLeft = {self.weaponStrip, ui.edge.TopRight, 12, -3} }
