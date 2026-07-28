@@ -334,6 +334,25 @@ link onto the end of the command — chat links can't be dropped into the addon'
 Both formats carry exactly the same look, including your shirt, tabard, both weapons and a
 weapon illusion.
 
+## Taking a look off someone you can see
+
+Target a player whose transmog you like and run `/collected outfit inspect`. It reads what
+they're wearing and hands it back as the same `/customset` string Export produces — copy it,
+send it to a friend, or paste it into `/collected outfit import` to wear it yourself. If the
+preview window is already open it dresses itself from their look straight away, **with the
+name field already filled in with their name** — so keeping it is a single click on **Save**.
+
+This is the game's ordinary inspect, so the usual rules apply: it has to be a player, they
+have to be close enough to inspect, and their gear takes a moment to arrive. If it doesn't,
+you'll be told to get closer and try again. **Faction and realm are no obstacle** — someone
+from the opposite faction, or from another realm standing beside you in a city, reads just
+the same as a guildmate.
+
+Everything you can see on them comes across, down to the **enchant glow** on their weapons.
+The one thing that can't travel is a **weapon they aren't holding** — the format has no way
+to say "empty hand", so an off-hand they've left bare shows yours instead. The listing in the
+copy window says so explicitly, rather than leaving the slot out.
+
 **Pieces you haven't collected are fine to share.** Both formats carry appearances you
 don't own yet, which makes either a good way to pass a wishlist look around. The export marks
 those slots `(not owned)` so you can see at a glance which ones you're still chasing.
@@ -372,6 +391,7 @@ and how many of the game's set slots are used.
 | `/collected outfit export` | Copy the previewed look as a shareable `/customset` string |
 | `/collected outfit post` | Put the previewed look in your chat box as a clickable link |
 | `/collected outfit import <string>` | Dress the preview from a `/customset` string or a shift-clicked link |
+| `/collected outfit inspect` | Read your target's transmog as a `/customset` string, and dress the preview with it |
 | `/collected outfit list` | Your account-wide library, plus this character's transmog sets |
 | `/collected outfit save <name>` | Save the previewed look to your library |
 | `/collected outfit load <name>` | Dress the preview from your library |

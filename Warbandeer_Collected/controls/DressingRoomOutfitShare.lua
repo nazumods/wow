@@ -159,8 +159,13 @@ end
 ---
 ---`str` is for the command form; the button passes nothing and reads the row's field. Either way
 ---this is the only import path, so the two can't diverge.
+---
+---`title` exists for the one caller that knows whose look this is — `/collected outfit inspect`
+---(#819) reads a targeted player's transmog and can title the room after them. Every other path has
+---nothing better to say than the default.
 ---@param str string?
-function DressingRoom:ImportOutfit(str)
+---@param title string?
+function DressingRoom:ImportOutfit(str, title)
   local pasted = str or self:_pastedOutfit()
   local list, err = ns.ParseOutfitInput(pasted)
   if not list then
@@ -170,9 +175,16 @@ function DressingRoom:ImportOutfit(str)
   -- Named for what it is rather than left titled as whatever set was last previewed: an imported
   -- look has no name of its own until it's saved, and the title is what tells you the model is no
   -- longer showing the set you clicked.
-  self:EnterOutfitMode("Imported look", list)
+  self:EnterOutfitMode(title or "Imported look", list)
   self._outfitSel = nil
-  self._outfitName:Text("")
+  -- **Seeded from `title` rather than cleared, when the caller had one to give.** An inspected look
+  -- arrives already named after whose it is (#819), and with `_outfitSel` nil the row is in "create"
+  -- mode, where Save is greyed until a name is typed — so pre-filling turns "target someone, keep
+  -- their look" into one click instead of typing out a name for a look you didn't build. Writing
+  -- non-empty text fires `OnTextChanged`, which is what un-greys Save; every other import has no
+  -- name to offer and still clears. Deliberately no `SetFocus`: this runs from a slash command, and
+  -- stealing the keyboard from someone who didn't click into a field would be a surprise.
+  self._outfitName:Text(title or "")
   self:RefreshOutfits()
   -- The field has done its job; clearing it restores the prompt and re-greys Import, so the row
   -- can't re-import the same string on a stray second click.

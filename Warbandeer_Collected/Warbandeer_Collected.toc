@@ -42,6 +42,7 @@ outfitfilter.lua
 outfitmodel.lua
 outfitsave.lua
 outfitverbs.lua
+outfitinspect.lua
 outfitcommands.lua
 api.lua
 

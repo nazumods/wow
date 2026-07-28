@@ -103,4 +103,83 @@ describe("shareable outfits", function()
       assert.equal(0, decoded[INVSLOT_MAINHAND].appearanceID)
     end)
   end)
+
+  -- **A targeted player's look (#819).** `C_TransmogCollection.GetInspectItemTransmogInfoList`
+  -- returns `ItemTransmogInfo[]` densely indexed by inventory slot id — which #819's whole premise
+  -- is that `ns.EncodeOutfit` already takes unchanged. That claim is what these pin: the in-game
+  -- half (the CanInspect/NotifyInspect/INSPECT_READY handshake) can't be reached from here, but the
+  -- shape it hands over can, and a wrong assumption about it would silently corrupt every string
+  -- the verb produces rather than failing loudly.
+  describe("an inspected look", function()
+    -- What the client hands back: EVERY equippable slot present (which is exactly
+    -- `ns.EmptyOutfitList`'s shape), carrying 0 wherever the target renders bare.
+    local function inspected()
+      local list = ns.EmptyOutfitList()
+      list[INVSLOT_HEAD].appearanceID = 106405
+      list[INVSLOT_SHOULDER].appearanceID = 100
+      list[INVSLOT_SHOULDER].secondaryAppearanceID = 101
+      list[INVSLOT_CHEST].appearanceID = 30087
+      list[INVSLOT_MAINHAND].appearanceID = 76305
+      -- An ordinary weapon rather than a paired artifact — the one legitimate negative in the format.
+      list[INVSLOT_MAINHAND].secondaryAppearanceID = -1
+      list[INVSLOT_MAINHAND].illusionID = 5364
+      list[INVSLOT_OFFHAND].appearanceID = 76306
+      list[INVSLOT_OFFHAND].illusionID = 5365
+      return list
+    end
+
+    local function wire(list) return ns.EncodeOutfit(ns.ShareableOutfit(list, nil, hideFor)) end
+
+    it("encodes to the format's 17 values", function()
+      local values = 1
+      for _ in wire(inspected()):gmatch(",") do values = values + 1 end
+      assert.equal(17, values)
+    end)
+
+    -- The inspect list carries neck, rings and trinkets too — slots that are equippable but never
+    -- transmoggable, and so absent from the wire format. If the encoder walked the list rather than
+    -- `ns.OutfitSlotOrder`, they would shift every value after them and produce a string that
+    -- decodes into a different outfit entirely.
+    it("ignores the equippable slots the format doesn't carry", function()
+      local plain = wire(inspected())
+      local cluttered = inspected()
+      for _, slotID in ipairs({ 2, 11, 12, 13, 14 }) do
+        cluttered[slotID].appearanceID = 9999
+      end
+      assert.equal(plain, wire(cluttered))
+    end)
+
+    it("round-trips byte-identically through the /customset format", function()
+      local str = wire(inspected())
+      local decoded = assert(ns.DecodeOutfit(str))
+      assert.equal(str, ns.EncodeOutfit(decoded))
+    end)
+
+    it("keeps both secondaries and both illusions", function()
+      local decoded = assert(ns.DecodeOutfit(wire(inspected())))
+      assert.equal(101, decoded[INVSLOT_SHOULDER].secondaryAppearanceID)
+      assert.equal(-1, decoded[INVSLOT_MAINHAND].secondaryAppearanceID)
+      assert.equal(5364, decoded[INVSLOT_MAINHAND].illusionID)
+      assert.equal(5365, decoded[INVSLOT_OFFHAND].illusionID)
+    end)
+
+    -- The reason an inspected list can't go on the wire raw: 0 means "show the wearer's own gear",
+    -- so a target with no cloak would otherwise arrive wearing the RECIPIENT's.
+    it("bares the slots the target renders empty", function()
+      local decoded = assert(ns.DecodeOutfit(wire(inspected())))
+      assert.equal(hideFor(INVSLOT_BACK), decoded[INVSLOT_BACK].appearanceID)
+      assert.equal(hideFor(INVSLOT_TABARD), decoded[INVSLOT_TABARD].appearanceID)
+      assert.equal(106405, decoded[INVSLOT_HEAD].appearanceID, "a filled slot is untouched")
+    end)
+
+    -- And the limit that leaves: no weapon has a hide visual, so a target holding nothing in their
+    -- off-hand still can't be expressed.
+    it("can't bare a weapon slot", function()
+      local list = ns.EmptyOutfitList()
+      list[INVSLOT_CHEST].appearanceID = 30087
+      local decoded = assert(ns.DecodeOutfit(wire(list)))
+      assert.equal(0, decoded[INVSLOT_MAINHAND].appearanceID)
+      assert.equal(0, decoded[INVSLOT_OFFHAND].appearanceID)
+    end)
+  end)
 end)
