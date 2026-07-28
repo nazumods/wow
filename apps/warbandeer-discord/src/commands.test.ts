@@ -4,7 +4,7 @@ import { describe, expect, test } from "bun:test";
 // time — satisfy the required vars before importing so this file runs standalone.
 process.env.DISCORD_TOKEN ??= "test-token";
 process.env.ANNOUNCE_CHANNEL_ID ??= "100";
-const { isAdmin, bareName } = await import("./commands");
+const { isAdmin, bareName, updateReply } = await import("./commands");
 
 describe("isAdmin", () => {
   test("accepts a user on the allowlist", () => {
@@ -51,5 +51,26 @@ describe("bareName", () => {
 
   test("strips only the first occurrence", () => {
     expect(bareName("r_r_dmf", "r_")).toBe("r_dmf");
+  });
+});
+
+describe("updateReply", () => {
+  const SHA = "b".repeat(40);
+
+  test("names the build it is restarting to pick up", () => {
+    expect(updateReply("restart", SHA)).toContain(SHA.slice(0, 7));
+  });
+
+  // The bot now answers this itself, with a follow-up naming the build it landed on —
+  // handing the verification back to the user was the whole complaint in #681.
+  test("no longer asks the user to check whether the build changed", () => {
+    const reply = updateReply("restart", SHA);
+    expect(reply).not.toContain("same build");
+    expect(reply).toContain("report back");
+  });
+
+  test("reports disabled and current without promising a follow-up", () => {
+    expect(updateReply("disabled", "")).toContain("GIT_SHA");
+    expect(updateReply("current", SHA)).toContain("latest build");
   });
 });

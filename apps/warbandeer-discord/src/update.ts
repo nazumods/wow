@@ -1,5 +1,5 @@
 import { config } from "./config";
-import { state, saveState } from "./state";
+import { state, saveState, type PendingUpdateReport } from "./state";
 import { requestRestart } from "./restart";
 
 // Self-update detection. The bot has no releases of its own (apps/ is excluded from
@@ -45,6 +45,28 @@ export function decideUpdate(o: {
   return "restart";
 }
 
+/** Who asked for the update, and where to reach them once the bot is back. */
+export interface UpdateRequester {
+  userId: string;
+  channelId?: string;
+  applicationId?: string;
+  interactionToken?: string;
+}
+
+/**
+ * The follow-up record to persist across a restart, or `undefined` when nobody asked —
+ * an `AUTO_UPDATE` exit has no requester, so it leaves no report and stays silent.
+ */
+export function buildUpdateReport(o: {
+  runningSha: string;
+  latestSha: string;
+  requester?: UpdateRequester;
+  now: number;
+}): PendingUpdateReport | undefined {
+  if (!o.requester) return undefined;
+  return { ...o.requester, fromSha: o.runningSha, toSha: o.latestSha, requestedAt: o.now };
+}
+
 /** Newest commit touching the bot's directory on `config.botBranch`. */
 export async function fetchLatestBotSha(): Promise<string> {
   const headers: Record<string, string> = {
@@ -77,12 +99,15 @@ export interface UpdateCheck {
 /**
  * Compare this build against the newest bot commit and, when stale, ask for a
  * restart so the orchestrator can bring up the new code. `force` is an admin's
- * explicit /update: it overrides the anti-loop suppression.
+ * explicit /update: it overrides the anti-loop suppression. `requester` is that
+ * admin, recorded so the next boot can report back what build it landed on.
  *
  * The restart is only *requested* — `restart.ts` holds it until any in-flight
  * announcement and state write have finished.
  */
-export async function checkForUpdate(force = false): Promise<UpdateCheck> {
+export async function checkForUpdate(
+  o: { force?: boolean; requester?: UpdateRequester } = {},
+): Promise<UpdateCheck> {
   if (!config.gitSha) return { decision: "disabled", latestSha: "" };
 
   const latestSha = await fetchLatestBotSha();
@@ -90,7 +115,7 @@ export async function checkForUpdate(force = false): Promise<UpdateCheck> {
     runningSha: config.gitSha,
     latestSha,
     attemptedSha: state.attemptedUpdateToSha,
-    force,
+    force: o.force,
   });
 
   if (decision === "current" && state.attemptedUpdateToSha) {
@@ -108,6 +133,12 @@ export async function checkForUpdate(force = false): Promise<UpdateCheck> {
 
   if (decision === "restart") {
     state.attemptedUpdateToSha = latestSha;
+    state.pendingUpdateReport = buildUpdateReport({
+      runningSha: config.gitSha,
+      latestSha,
+      requester: o.requester,
+      now: Date.now(),
+    });
     await saveState();
     requestRestart(`update ${config.gitSha.slice(0, 7)} -> ${latestSha.slice(0, 7)}`);
   }

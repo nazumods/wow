@@ -3,6 +3,21 @@ import { join } from "node:path";
 import { config } from "./config";
 import type { RealmStatus } from "./wow/realm";
 
+/**
+ * A `/update`-initiated restart, recorded so the bot can tell the requester what build it
+ * actually came back on. Written only by the command path — an `AUTO_UPDATE` exit or a host
+ * reboot leaves it unset, and produces no follow-up.
+ */
+export interface PendingUpdateReport {
+  fromSha: string; // sha we were running when /update fired
+  toSha: string; // sha we exited to pick up
+  userId: string; // who ran /update
+  channelId?: string; // last-resort delivery target
+  applicationId?: string; // with interactionToken, addresses the follow-up webhook route
+  interactionToken?: string; // valid ~15 min from the interaction
+  requestedAt: number; // ms epoch, so boot can tell a fresh restart from a week-old one
+}
+
 // Persisted so restarts never re-announce something already posted.
 export interface BotState {
   // Seen release ids keyed by `owner/repo`, so watched repos never collide and each seeds
@@ -12,6 +27,7 @@ export interface BotState {
   weeklyAnnouncedFor?: string; // ISO timestamp of the reset announced
   realmStatus?: RealmStatus; // last observed realm status; drives up/down transition announcements
   attemptedUpdateToSha?: string; // sha we last exited to update to; guards against an exit loop
+  pendingUpdateReport?: PendingUpdateReport; // /update follow-up owed on next boot; consumed once
 }
 
 const RELEASE_ID_CAP = 100;

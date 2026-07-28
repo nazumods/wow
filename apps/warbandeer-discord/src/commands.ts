@@ -115,7 +115,16 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
       // Inside a critical section so the restart waits for the reply to be delivered.
       await withCritical(async () => {
         try {
-          const { decision, latestSha } = await checkForUpdate(true);
+          const { decision, latestSha } = await checkForUpdate({
+            force: true,
+            // Recorded so the next boot can report back what build it actually landed on.
+            requester: {
+              userId: interaction.user.id,
+              channelId: interaction.channelId ?? undefined,
+              applicationId: interaction.applicationId,
+              interactionToken: interaction.token,
+            },
+          });
           await interaction.editReply(updateReply(decision, latestSha));
         } catch (err) {
           await interaction.editReply(`⚠️ Update check failed: ${(err as Error).message}`);
@@ -130,7 +139,7 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
   }
 }
 
-function updateReply(decision: UpdateDecision, latestSha: string): string {
+export function updateReply(decision: UpdateDecision, latestSha: string): string {
   const short = latestSha.slice(0, 7);
   switch (decision) {
     case "disabled":
@@ -139,9 +148,8 @@ function updateReply(decision: UpdateDecision, latestSha: string): string {
       return `✅ Already on the latest build (\`${config.gitSha?.slice(0, 7)}\`).`;
     case "suppressed":
     case "restart":
-      return (
-        `🔄 Restarting to pick up \`${short}\`.\n` +
-        "If I come back on the same build, the image wasn't rebuilt — see the README."
-      );
+      // No "if I come back on the same build…" caveat: the bot answers that itself now,
+      // with a follow-up naming the build it actually landed on (see updateReport.ts).
+      return `🔄 Restarting to pick up \`${short}\`. I'll report back once I'm up.`;
   }
 }

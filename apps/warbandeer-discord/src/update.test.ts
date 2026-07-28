@@ -4,7 +4,7 @@ import { describe, expect, test } from "bun:test";
 // time — satisfy the required vars before importing so this file runs standalone.
 process.env.DISCORD_TOKEN ??= "test-token";
 process.env.ANNOUNCE_CHANNEL_ID ??= "100";
-const { decideUpdate, sameSha } = await import("./update");
+const { decideUpdate, sameSha, buildUpdateReport } = await import("./update");
 
 const OLD = "a".repeat(40);
 const NEW = "b".repeat(40);
@@ -72,5 +72,38 @@ describe("decideUpdate", () => {
 
   test("force cannot enable updates without a GIT_SHA", () => {
     expect(decideUpdate({ latestSha: NEW, force: true })).toBe("disabled");
+  });
+});
+
+describe("buildUpdateReport", () => {
+  const NOW = 1_700_000_000_000;
+
+  test("records who asked, where to reach them, and both shas", () => {
+    expect(
+      buildUpdateReport({
+        runningSha: OLD,
+        latestSha: NEW,
+        requester: {
+          userId: "42",
+          channelId: "100",
+          applicationId: "999",
+          interactionToken: "tok",
+        },
+        now: NOW,
+      }),
+    ).toEqual({
+      fromSha: OLD,
+      toSha: NEW,
+      userId: "42",
+      channelId: "100",
+      applicationId: "999",
+      interactionToken: "tok",
+      requestedAt: NOW,
+    });
+  });
+
+  // An AUTO_UPDATE exit or a host reboot has no requester, so it leaves nothing to follow up on.
+  test("no requester means no report, so an unattended restart stays silent", () => {
+    expect(buildUpdateReport({ runningSha: OLD, latestSha: NEW, now: NOW })).toBeUndefined();
   });
 });
