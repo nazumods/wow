@@ -233,13 +233,19 @@ end
 -- Under "wanted only" it counts what the grid actually SHOWS: the rows and cells that survive the
 -- filter, whole. A cell holding one wanted dagger out of four still renders (and shades) all four,
 -- so counting only the flagged one would make the tally disagree with the number in the cell.
+--
+-- PTR preview counts the upcoming source table, the same swap `ns.WeaponRows` makes (#769 L-10) —
+-- and drops the collected map with it, exactly as the row builder does, since an upcoming
+-- appearance isn't obtainable yet and no PTR cell carries a collected count. Walking the live table
+-- there returned the whole of it, because `matches` is unconditionally true under `_ptr`.
 ---@param self WeaponView
 ---@return number sources, number appearances, number collected
 function ns.WeaponVisibleCounts(self)
-  local cmap = ns:WeaponCollectedMap()
+  local ptr = self._ptr
+  local cmap = (not ptr) and ns:WeaponCollectedMap() or nil
   local wantedOnly = self._wantedOnly
   local sources, apps, coll = 0, 0, 0
-  for _, grp in ipairs(ns.WeaponSources) do
+  for _, grp in ipairs(ptr and ns.WeaponPtrSources or ns.WeaponSources) do
     if matches(self, grp) and (not wantedOnly or groupWeaponWanted(grp)) then
       sources = sources + 1
       for _, t in ipairs(ns.WeaponTypeOrder) do
@@ -247,7 +253,7 @@ function ns.WeaponVisibleCounts(self)
         if visuals and (not wantedOnly or ns:WeaponCellWanted(visuals)) then
           for _, v in ipairs(visuals) do
             apps = apps + 1
-            if cmap[v] then coll = coll + 1 end
+            if cmap and cmap[v] then coll = coll + 1 end
           end
         end
       end
