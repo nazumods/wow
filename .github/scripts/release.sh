@@ -103,12 +103,23 @@ declare -A ADDON_NOTES_FILES
 
 for addon in "${ADDONS[@]}"; do
 
-  # Resolve the primary .toc (prefer <AddonName>.toc, fall back to any .toc).
+  # Resolve the primary .toc. WoW loads <Folder>/<Folder>.toc and nothing else, so a folder
+  # carrying a .toc under any OTHER name is broken, not merely unconventional — this used to
+  # fall back to "any .toc in the folder", which let a missed rename tag and publish an
+  # unloadable addon (#742). A folder with no .toc at all is simply not an addon: skip it, as
+  # before. Only the mismatched case is fatal, and it fails here, before the tag exists.
   toc="${addon}/${addon}.toc"
   if [[ ! -f "$toc" ]]; then
-    toc=$(ls "${addon}"/*.toc 2>/dev/null | head -1 || true)
+    toc="${addon}/${addon}_Mainline.toc"
   fi
-  [[ -z "$toc" || ! -f "$toc" ]] && continue
+  if [[ ! -f "$toc" ]]; then
+    if compgen -G "${addon}"/*.toc > /dev/null; then
+      echo "ERROR: ${addon}/ has a .toc but none named ${addon}.toc — WoW will not load it" >&2
+      ls "${addon}"/*.toc >&2
+      exit 1
+    fi
+    continue
+  fi
 
   # Find the most recent release tag for this addon.
   last_tag=$(git tag -l "${addon}-v*" | sort -V | tail -1 || true)

@@ -27,7 +27,18 @@ concurrency:
 
 jobs:
   refresh:
-    runs-on: ubuntu-latest
+    # Windows, matching app-test.yml and app-release.yml. This job compiles the Tauri crate
+    # (see the validation step below), and it was the ONLY place in the repo doing that on
+    # Ubuntu — where the Tauri system dependencies aren't present, so `cargo test` died in
+    # pkg-config looking for `glib-2.0.pc` and the weekly refresh stopped running (#808).
+    #
+    # Installing the Linux Tauri stack here would also work, but it means carrying an
+    # apt dependency list for a Windows-targeted app that nothing else in the repo builds on
+    # Linux. Running where the app is already tested keeps one platform to maintain.
+    #
+    # The generator itself is unaffected: it is pwsh (native here) and normalises its own line
+    # endings precisely so a Linux run and a Windows run produce an identical bundle.
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v7
 

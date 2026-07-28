@@ -50,6 +50,52 @@ jobs:
       - name: Run luacheck
         run: luacheck . --codes
 
+  # WoW loads `<Folder>/<Folder>.toc` and nothing else, so a folder rename that misses its .toc
+  # produces a package that silently fails to load for every user who installs it — which is
+  # exactly what shipped as ShadowsOfUI-Inventory-v12.0.7-r5 (#742). Both the release script and
+  # the publish workflow fell back to *any* .toc in the folder, so the rename sailed through:
+  # metadata was read, the zip was built, everything reported success.
+  #
+  # Caught here rather than only at release time because the rename arrived in a PR, and this is
+  # the stage where it costs nothing to fix. release.sh and publish.yml are hardened too, so the
+  # same mistake now fails at all three stages.
+  toc-name:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Every addon folder has a matching .toc
+        run: |
+          fail=0
+          for dir in */; do
+            addon="${dir%/}"
+            # A .toc is what makes a folder an addon — same rule release.sh uses. This is what
+            # keeps Tooling/, apps/, docs/ and .github/ out without hardcoding a skip list.
+            compgen -G "${addon}/*.toc" > /dev/null || continue
+            # Retail-only suite, so these are the two names WoW accepts. Add the other flavor
+            # suffixes only if a Classic flavor is ever shipped.
+            if ! compgen -G "${addon}/${addon}.toc" > /dev/null \
+               && ! compgen -G "${addon}/${addon}_Mainline.toc" > /dev/null; then
+              echo "::error file=${addon}::${addon}/ has a .toc but none named ${addon}.toc — WoW will not load it"
+              ls "${addon}"/*.toc
+              fail=1
+            fi
+          done
+          exit $fail
+
+  # Diff each addon's .toc metadata against its CONTEXT.md header (#798). Three batches of this
+  # drift have been caught by hand, months late; most of it was mechanically detectable all along.
+  # Fully offline, so unlike stale-ids it needs no wago fetch and no daily run — a PR gate is enough.
+  doc-drift:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: .toc metadata matches the CONTEXT.md headers
+        run: python Tooling/doc_drift.py
+
   # Validate the hand-authored WoW id literals in the static data files against the live client
   # DB2 (wago.tools). Gated on the linted files so a PR that touches no id-bearing data never
   # depends on wago being up; when it does run, a stale/typo'd id fails the build.
