@@ -28,8 +28,50 @@ function Theme:Apply(overrides)
       for token, value in pairs(src) do self[slot][token] = value end
     end
   end
+  -- A runtime font swap introduces paths the constructor never saw, and the widgets repainted just
+  -- below are the first to ask for them — exactly the case `_preload` exists to get in front of.
+  if overrides.fonts then self:_preload() end
   for _, repaint in ipairs(self._themed) do repaint() end
   return self
+end
+
+-- Throwaway FontStrings holding every theme TTF resident, keyed by path. Kept for the session on
+-- purpose: dropping one would let its file unload and re-open the race below.
+local preloader, preloaded = nil, {}
+
+-- Make every font file this theme declares resident, before any real widget asks for one.
+--
+-- A FontString built while its TTF is still loading gets a glyph run against a font that isn't there
+-- yet, and nothing invalidates it afterwards: the text is set, the rect is correct, SetFont reports
+-- success — and it never draws (nazumods/wow#718). Only the FIRST label to request a given file
+-- survives, being the one whose SetFont triggers the load; every label built during that load is
+-- blank, and everything built afterwards is fine. That ordering is by font FILE, not by clock time,
+-- which is why one row of a grid could render while the rest of the same grid did not.
+--
+-- So the race is removed rather than papered over: one throwaway FontString per distinct path,
+-- created when the theme is — addon load time, long before a window exists — so it is the throwaway
+-- that takes the hit instead of a real caption. Both the holder and its strings are ANCHORED and
+-- alpha-0 rather than hidden or unanchored: an unanchored region, or one on a hidden frame, is never
+-- laid out, and so never builds the glyph run that is what actually pulls the file into residency.
+--
+-- Once per path per session: themes share files, and re-preloading a resident one does nothing.
+function Theme:_preload()
+  for _, info in pairs(self.fonts or {}) do
+    local path = info and info[1]
+    if path and not preloaded[path] then
+      if not preloader then
+        preloader = CreateFrame("Frame", nil, UIParent)
+        preloader:SetPoint("TOPLEFT")
+        preloader:SetSize(1, 1)
+        preloader:SetAlpha(0)
+      end
+      local fs = preloader:CreateFontString(nil, "BACKGROUND")
+      fs:SetPoint("TOPLEFT")
+      fs:SetFont(path, info[2] or 12, "")
+      fs:SetText(".")   -- SetFont opens the file; a glyph run is what makes it resident
+      preloaded[path] = fs
+    end
+  end
 end
 
 -- The default "dark" theme: the styling LibNUI widgets have always shipped with.
@@ -90,5 +132,7 @@ function ui.Theme(t)
   t.fonts = setmetatable(t.fonts or {}, {__index = dark.fonts})
   t.textures = setmetatable(t.textures or {}, {__index = dark.textures})
   t._themed = {}
-  return setmetatable(t, {__index = Theme})
+  setmetatable(t, {__index = Theme})
+  t:_preload()
+  return t
 end
