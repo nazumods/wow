@@ -12,11 +12,11 @@ local GetFriendshipReputation, GetFriendshipReputationRanks = C_GossipInfo.GetFr
 ---@field label string display standing ("Exalted" / "Renown 12" / "Best Friend")
 ---@field rank integer normalized standing for sorting (reaction 1-8 / renown level / friendship level)
 ---@field done boolean at the cap (Exalted / max renown / max friendship)
----@field paragon boolean? earning paragon rewards past the cap
+---@field paragon boolean? earning paragon rewards past the cap; such a faction is `done = true`, so its `current`/`threshold` are nil by design — a paragon consumer reads `paragonCurrent`/`paragonThreshold` instead
 ---@field accountWide boolean? the standing is shared across the whole warband (show once, not per character)
 ---@field categoryId integer? the top-level expansion header's factionID (0 = uncategorized/Other); locale-proof grouping key for Warbandeer's Reputations view
----@field current integer? progress within the current rank/level (bar-fill numerator: renown XP earned / friendship or reaction points past the current tier floor); nil when there's no next tier to fill toward (e.g. a maxed standard faction)
----@field threshold integer? total needed to complete the current rank/level (bar-fill denominator); paired with `current`
+---@field current integer? progress within the current rank/level (bar-fill numerator: renown XP earned / friendship or reaction points past the current tier floor); nil when there's no next tier to fill toward. **Read `done`, don't infer from absence:** nil + `done = true` means MAXED (render a full bar), nil + `done = false` means not captured / no tier data (render empty or unknown)
+---@field threshold integer? total needed to complete the current rank/level (bar-fill denominator); paired with `current`, and nil under the same conditions
 ---@field paragonCurrent integer? progress within the current paragon reputation-bag cycle, when `paragon` is true
 ---@field paragonThreshold integer? reputation needed per paragon bag, when `paragon` is true
 
@@ -40,7 +40,11 @@ local function resolve(data)
     local label = RENOWN_LEVEL_LABEL
     label = (label:find("%%d") and label:format(level)) or (label .. " " .. level)
     e.label, e.rank, e.done = label, level, HasMaximumRenown(fid) or false
-    if mf and mf.renownLevelThreshold and mf.renownLevelThreshold > 0 then
+    -- `not e.done` on all three branches (#739). At the cap the client still reports a tier band,
+    -- so `threshold > 0` passes and the fill is written from a `current` sitting at that band's
+    -- floor — storing a NEAR-EMPTY bar for a maxed faction, the exact inversion of the truth, and
+    -- contradicting `@field current`'s own promise of nil when there's no next tier to fill toward.
+    if not e.done and mf and mf.renownLevelThreshold and mf.renownLevelThreshold > 0 then
       e.current, e.threshold = mf.renownReputationEarned, mf.renownLevelThreshold
     end
   else
@@ -51,7 +55,7 @@ local function resolve(data)
       e.rank = (ranks and ranks.currentLevel) or 0
       e.done = (ranks and ranks.currentLevel >= ranks.maxLevel) or false
       local threshold = (friend.nextThreshold or 0) - (friend.reactionThreshold or 0)
-      if threshold > 0 then
+      if not e.done and threshold > 0 then
         e.current, e.threshold = friend.standing - friend.reactionThreshold, threshold
       end
     else
@@ -59,7 +63,7 @@ local function resolve(data)
       e.label = _G["FACTION_STANDING_LABEL" .. reaction] or tostring(reaction)
       e.rank, e.done = reaction, reaction >= 8
       local threshold = (data.nextReactionThreshold or 0) - (data.currentReactionThreshold or 0)
-      if threshold > 0 then
+      if not e.done and threshold > 0 then
         e.current, e.threshold = data.currentStanding - data.currentReactionThreshold, threshold
       end
     end

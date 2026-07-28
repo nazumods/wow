@@ -32,9 +32,20 @@ local ipairs, pairs, select = ipairs, pairs, select
 -- Mount ownership is TRI-STATE: `true` collected, `false` resolved-but-not-collected, and ABSENT
 -- when the id didn't resolve to a mountID this scan. GetMountFromItem returns nil for an item whose
 -- data hasn't loaded, so a cold first-login scan must record "unknown", never a false negative.
+--
+-- **This snapshot only ever grows within a build.** Both halves are monotonic, so every scan ORs
+-- against the stored one instead of replacing it (see `scanRows`). That is the invariant a future
+-- maintainer needs: nothing here may be written from a live read alone, because a live read on a
+-- cold login is indistinguishable from a genuine negative — and this store is account-wide, so one
+-- bad login on any alt would blank the answer for the whole warband (#733).
 
 -- Trailing-scan delay for the re-scan events (matching data/titlecatalog.lua's debounce).
 local SCAN_DEBOUNCE = 1000
+
+-- How many ITEM_DATA_LOAD_RESULT rounds a single catalog item gets before it is dropped from the
+-- watch set. A real load resolves on the first; the cap is what stops an id that reports success
+-- but never resolves from driving a permanent rebuild loop.
+local MAX_ITEM_RETRIES = 5
 
 ---@class ClassCollectibleMounts
 ---@field spells table<integer, boolean>  spell-keyed catalog entry -> collected; absent = unresolved
@@ -102,29 +113,53 @@ end
 -- unlock's `startQuest` alongside its `quest` (see the header). A mount row leaves `collected` nil
 -- when the id doesn't resolve and re-requests the cold item, so ITEM_DATA_LOAD_RESULT re-scans it.
 local function scanRows()
+  -- **Sticky against the stored snapshot.** Both payloads are monotonic — an account-completed
+  -- quest never un-completes, a collected mount is never un-collected — so `new or previous` is the
+  -- correct semantics rather than a heuristic, and it is immune to a cold read no matter which half
+  -- is cold or how the timing lands. Without it, a login where the mount journal has populated but
+  -- the account quest-completion payload has not writes `quests = {}` over the whole warband's
+  -- answer (#733): the store is account-wide, so one bad login on any alt blanks every character.
+  --
+  -- Applied here rather than in ShapeClassCollectibles, which stays a pure transform. Stale keys are
+  -- still handled: only ids the CURRENT catalog declares are emitted, so an id dropped from
+  -- ns.AppearanceUnlocks / ns.ClassMounts still vanishes on the next scan.
+  local prev = ns.db.classCollectibles or {}
+  local prevQuests = prev.quests or {}
+  local prevSpells = (prev.mounts and prev.mounts.spells) or {}
+  local prevItems = (prev.mounts and prev.mounts.items) or {}
+
   local isDone = C_QuestLog.IsQuestFlaggedCompletedOnAccount
   local quests = {}
+  local function addQuest(id)
+    quests[#quests + 1] = { id = id, done = isDone(id) == true or prevQuests[id] == true }
+  end
   for _, list in pairs(ns.AppearanceUnlocks) do
     for _, e in ipairs(list) do
-      quests[#quests + 1] = { id = e.quest, done = isDone(e.quest) == true }
-      if e.startQuest then
-        quests[#quests + 1] = { id = e.startQuest, done = isDone(e.startQuest) == true }
-      end
+      addQuest(e.quest)
+      if e.startQuest then addQuest(e.startQuest) end
     end
   end
 
   local fromSpell, fromItem = C_MountJournal.GetMountFromSpell, C_MountJournal.GetMountFromItem
   local infoByID = C_MountJournal.GetMountInfoByID
+  -- A populated journal is what makes a `false` here mean "resolved, not collected" rather than
+  -- "the journal hasn't answered yet" — see the tri-state note in the header.
+  local journalReady = (C_MountJournal.GetNumMounts() or 0) > 0
   local mounts = {}
   for _, roster in pairs(ns.ClassMounts) do
     for _, e in ipairs(roster) do
       local mountID = (e.spellID and fromSpell(e.spellID)) or (e.itemID and fromItem(e.itemID))
+      local was = (e.spellID and prevSpells[e.spellID]) or (e.itemID and prevItems[e.itemID])
       local collected
-      if mountID then
+      if was == true then
+        collected = true                    -- sticky: never un-collected
+      elseif mountID and journalReady then
         collected = select(11, infoByID(mountID)) == true
       elseif e.itemID then
         C_Item.RequestLoadItemDataByID(e.itemID)
       end
+      -- `collected` stays nil when the id didn't resolve OR the journal isn't ready, so the entry is
+      -- counted as unresolved rather than persisting a definite `false` (#733): absent ≠ false.
       mounts[#mounts + 1] = { spellID = e.spellID, itemID = e.itemID, collected = collected }
     end
   end
@@ -132,8 +167,13 @@ local function scanRows()
   return { quests = quests, mounts = mounts }
 end
 
--- Re-scan and replace the stored snapshot. Bails keeping the last snapshot while the mount journal
--- reports no mounts at all (pre-data login), so a cold read never blanks a good snapshot.
+-- Re-scan and replace the stored snapshot.
+--
+-- The empty-journal bail is a cheap early-out and NOTHING MORE. It used to be the only protection
+-- against a cold read blanking a good snapshot, and it never actually provided that: it tests a
+-- mount quantity while the half most likely to be cold is the account QUEST payload, which it says
+-- nothing about (#733). `scanRows` is sticky now, so correctness no longer rests here — this just
+-- skips work that would find nothing.
 local function refresh()
   if (C_MountJournal.GetNumMounts() or 0) == 0 then return end
   local _, build = GetBuildInfo()
@@ -165,10 +205,19 @@ end
 function ns:InitClassCollectibles()
   refresh()
   local items = catalogItems()
+  local attempts = {}
   local function rescan() ns:debounce("classCollectibles", SCAN_DEBOUNCE, refresh) end
   ns:registerEvent("NEW_MOUNT_ADDED", rescan)
   ns:registerEvent("QUEST_TURNED_IN", rescan)
-  ns:registerEvent("ITEM_DATA_LOAD_RESULT", function(_, itemID)
-    if items[itemID] then rescan() end
+  ns:registerEvent("ITEM_DATA_LOAD_RESULT", function(_, itemID, success)
+    -- `success` is checked for the reason data/stats.lua:90 states verbatim — "so a failed load
+    -- can't drive a request/rescan loop". Without it, an id that never resolves makes every scan
+    -- re-request it, which fires this event again, at roughly 1 Hz for the whole session (#733).
+    if not success or not items[itemID] then return end
+    -- The cap covers the other half: an id that keeps reporting success but never resolves to a
+    -- mountID would otherwise loop just as hard. A handful of tries is plenty for a real load.
+    attempts[itemID] = (attempts[itemID] or 0) + 1
+    if attempts[itemID] > MAX_ITEM_RETRIES then items[itemID] = nil; return end
+    rescan()
   end)
 end

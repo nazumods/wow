@@ -80,12 +80,25 @@ end
 
 -- The cache's recipes table, recreated empty whenever the client build changes
 -- (patches can rewire recipes and items).
+--
+-- The build stamp alone is not enough: `name` comes from C_Item.GetItemInfo and is
+-- locale-dependent, so a language switch inside one build kept foreign names and silently broke the
+-- family match (#745-5). Stamp the locale too, following data/titlecatalog.lua's precedent — but
+-- clear only the NAMES on a switch, since itemID / equipLoc / classID / subClassID are
+-- locale-independent and expensive to re-resolve.
 local function cachedRecipes()
   local db = ns.db
   local version, buildNum = GetBuildInfo()
   local build = version .. "-" .. buildNum
+  local locale = GetLocale()
   if not db.recipeGear or db.recipeGear.build ~= build then
-    db.recipeGear = { build = build, recipes = {} }
+    db.recipeGear = { build = build, locale = locale, recipes = {} }
+  elseif db.recipeGear.locale ~= locale then
+    -- `if r then` matters: `false` is a valid cached value ("doesn't craft profession gear"). An
+    -- existing cache with no `locale` key takes this path once on first load after this ships,
+    -- which is correct and self-healing. ResolveRecipeOutput's lazy backfill re-resolves the names.
+    for _, r in pairs(db.recipeGear.recipes) do if r then r.name = nil end end
+    db.recipeGear.locale = locale
   end
   return db.recipeGear.recipes
 end
