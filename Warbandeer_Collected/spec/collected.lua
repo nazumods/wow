@@ -181,8 +181,9 @@ function M.loadTransmogButtons(ns)
     CharacterPreview = { GetItemTransmogInfoList = function() return env.model end },
   }
 
-  ns.ui = { justify = { Center = "CENTER" } }
-  ns.DressingRoom = { _k = { selBox = function(box) return box end } }
+  -- No `ns.ui` / `ns.DressingRoom` stub: that file builds its widgets from `CreateFrame` +
+  -- `UIPanelButtonTemplate` so they wear the GAME's chrome on the GAME's frame (#819), and nothing
+  -- it names at load time comes from us any more.
   ns.registerEvent = function() end
   ns.Print = function(msg) env.printed[#env.printed + 1] = msg end
   -- outfit.lua's real one, minus the `PlayerCanCollectSource` call that decides `pending` — the
