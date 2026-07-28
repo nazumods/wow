@@ -143,14 +143,13 @@ local MainWindow = Class(TitleFrame, function(self)
       -- widget with no knowledge of this addon.
       ns.SetGridMode(weapons)
     end,
+    -- The toggle can only measure its captions once its fonts are resident and it has been laid
+    -- out, so the width read below is a floor rather than the final answer. When it re-measures,
+    -- re-place the strips against the real width.
+    onResize = function() self:_applyStripX() end,
   }
 
-  -- Shift the armor strip right to clear the toggle. Read back rather than declared: the toggle
-  -- sizes itself to its captions, which is what stopped "Weapons" rendering as "Wea…" at a
-  -- hand-picked 92 (#770 step 12). Kept on `self` because the weapon strip lines up with it, and
-  -- that one is built later (`_ensureWeapons`).
-  self._stripX = 2 + self._modeToggle:Width() + 6
-  self.filterStrip:Position({ TopLeft = {self.titlebar, ui.edge.BottomLeft, self._stripX, -2} })
+  self:_applyStripX()
 
   self:RefreshCounter()
   self:RefreshWanted()
@@ -167,6 +166,20 @@ end, {
   special = true,
   level = 580,
 })
+
+---Place both filter strips clear of the Armor/Weapons toggle, at the toggle's current width.
+---
+---Read back rather than declared: the toggle sizes itself to its captions, which is what stopped
+---"Weapons" rendering as "Wea…" at a hand-picked 92 (#770 step 12). Re-run from its `onResize`,
+---because a caption is only measurable once its font is resident and the window has been laid out —
+---so the width available at construction is a floor, not the answer. The weapon strip is nil until
+---`_ensureWeapons`, and picks the value up itself when built.
+function MainWindow:_applyStripX()
+  self._stripX = 2 + self._modeToggle:Width() + 6
+  local at = { TopLeft = {self.titlebar, ui.edge.BottomLeft, self._stripX, -2} }
+  self.filterStrip:Position(at)
+  if self.weaponStrip then self.weaponStrip:Position(at) end
+end
 
 ---Build the weapon grid + its filter strip and scroll container, once, on the first switch to
 ---Weapons mode. No-op afterwards.
@@ -201,6 +214,8 @@ function MainWindow:_ensureWeapons()
   self.weaponStrip = self.weapons:BuildFilterStrip(self, function() self:RefreshCounter() end)
   self.weaponStrip:Position({ TopLeft = {self.titlebar, ui.edge.BottomLeft, self._stripX, -2} })
   self.weaponStrip:Hide()
+  -- Built long after the toggle settled, so `_stripX` above is already final for it. Placed by
+  -- `_applyStripX` from here on, which is what a later re-measure would move.
 
   self.weaponScroll = ScrollFrame:new{
     parent = self,

@@ -186,13 +186,14 @@ local CollectedView = Class(Frame, function(self)
         -- published window exists that has the grid but not this call.
         if WarbandeerCollectedApi.SetGridMode then WarbandeerCollectedApi:SetGridMode(weapons) end
       end,
+      -- The toggle can only measure its captions once its fonts are resident and it has been laid
+      -- out, so the width read in `_applyStripX` is a floor rather than the final answer. When it
+      -- re-measures, re-place the strips against the real width.
+      onResize = function() self:_applyStripX() end,
     }
 
-    -- Shift the armor strip right to clear the toggle. Read back rather than declared: the toggle
-    -- sizes itself to its captions, which is what stopped "Weapons" rendering as "Wea…".
-    local stripX = self._modeToggle:Width() + 6
-    self._weaponGeom = { top = TOP, headerH = headerH, capH = capH, stripX = stripX }
-    self.filterStrip:Position({ TopLeft = {stripX, 0} })
+    self._weaponGeom = { top = TOP, headerH = headerH, capH = capH, stripX = 0 }
+    self:_applyStripX()
   end
 
   self:Width(gridW + SCROLLBAR_W)
@@ -257,6 +258,19 @@ end
 -- (so a /collected scan run after the view was built is reflected on next open).
 function CollectedView:OnBeforeShow()
   self:_render()
+end
+
+---Place both filter strips clear of the Armor/Weapons toggle, at the toggle's current width.
+---
+---Read back rather than declared: the toggle sizes itself to its captions, which is what stopped
+---"Weapons" rendering as "Wea…". Re-run from its `onResize`, because a caption is only measurable
+---once its font is resident and the view has been laid out — so the width available at construction
+---is a floor, not the answer. `_weaponGeom.stripX` is kept in step for the weapon strip built later.
+function CollectedView:_applyStripX()
+  local stripX = self._modeToggle:Width() + 6
+  self._weaponGeom.stripX = stripX
+  self.filterStrip:Position({ TopLeft = {stripX, 0} })
+  if self.weaponStrip then self.weaponStrip:Position({ TopLeft = {stripX, 0} }) end
 end
 
 ---Build the weapon grid + its filter strip and scroll container, once, on the first switch to
