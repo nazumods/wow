@@ -33,4 +33,5 @@ minimapbutton.lua
 filterdropdown.lua
 ring.lua
 copywindow.lua
+hairlines.lua
 entry.lua
