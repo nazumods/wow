@@ -87,6 +87,49 @@ position = {
 > This only affects **re-**positioning; the constructor's `position` runs once on a fresh widget.
 > `FilterDropdown` re-lays its pooled rows this way.
 
+### Hairlines
+
+Layout is in **UI units**, and a UI unit is not a pixel. How many pixels it is depends on the
+player's resolution and `uiScale` together:
+
+```
+physicalPixelsPerUnit = effectiveScale / (768 / physicalScreenHeight)
+```
+
+That lands on exactly 1 at one specific `uiScale` per resolution (`768 / height`) and is a fraction
+either side of it. Whenever it is below 1, a `Width(1)` border edge does not cover a whole pixel,
+and the renderer resolves it to a whole pixel or to nothing depending on where the line falls —
+so **an edge drawn in UI units is a coin toss on hardware you don't control**.
+
+How bad depends on how far below 1 it sits. Just below (say 0.97) the sub-pixel phase drifts only
+~0.03px per unit of travel, so the misses are not scattered — they fall on a fixed stripe every
+~34 units across the screen, and every widget sitting on one loses the same edge every time, which
+is why it reads as "that widget's left edge never draws" rather than as rounding noise. Well below
+(a small window, or `uiScale` at its 0.64 floor) and a third of all positions can drop.
+
+Anything thin enough to vanish — border edges, dividers, rules, and the rim of a framed box — sizes
+itself with the snapping helpers instead of raw `Width`/`Height`:
+
+```lua
+edge:PixelWidth(1)               -- one whole physical pixel, whatever the scale
+fill:Inset(1)                    -- ...or as the inset that leaves a 1px rim showing
+local u = region:Pixels(1)       -- the raw conversion, when you need the number
+```
+
+They take **UI units**, not a pixel count: the length is rounded to the *nearest* whole pixel, so a
+border keeps its apparent weight at every resolution instead of thinning to a hair on a high-DPI
+display. Only the floor rounds out, and only ever to one pixel. `position` dispatches
+by method name, so `{ PixelHeight = 1 }` and `{ Inset = 1 }` work in a constructor's position table.
+
+Snapped lengths are re-derived on `UI_SCALE_CHANGED` and `DISPLAY_SIZE_CHANGED`, since both move the
+conversion. Everything larger than a few units can keep using plain `Width`/`Height` — the rounding
+is too small to reach it.
+
+> **A clean pass at one resolution proves nothing about another** — and at the pixel-perfect
+> `uiScale` for a display, unsnapped code looks perfect too. `/nui test hairlines` stacks a raw comb
+> over a snapped one and prints the pixels-per-unit it is running at; check it somewhere that figure
+> is *not* 1.000, which for a windowed client means simply resizing the window.
+
 ### Themes
 
 Built-in widget styling lives in `ui.themes.dark` as named tokens (`colors`, `fonts`, `textures`). Widgets resolve styling against the **active theme**: the `theme` constructor option, inherited through the parent widget chain, falling back to `ui.themes.dark`. Pass a theme once on a top-level window and every child widget inherits it.
@@ -198,6 +241,9 @@ Base class for all positioned widgets.
 | `Center/Top/TopLeft/...(...)`  | Anchor helpers for each edge                    |
 | `Size(x, y)`                  | Get/set size                                     |
 | `Width(w)` / `Height(h)`      | Get/set individual dimensions                    |
+| `Pixels(units)`               | A length in UI units, snapped to whole physical pixels (see *Hairlines*) |
+| `PixelWidth(u)` / `PixelHeight(u)` | Set a dimension snapped to whole physical pixels |
+| `Inset(units)`                | Anchor to the parent's rect, inset all round by a snapped length |
 | `Show()` / `Hide()`           | Visibility; `Show` fires `OnBeforeShow` if set   |
 | `Toggle()`                    | Toggle visibility                                |
 | `SetShown(bool)`              | Conditional show/hide                            |
@@ -378,11 +424,13 @@ f:Size(400, 300)
 
 Inherits `Frame`. A thin rectangular outline — four edge textures hugging the frame's own rect, with a transparent interior (it draws only the border). Each edge is two-point-anchored to a pair of the frame's corners, so it stretches with the frame and a resize needs no re-layout. Overlay it on content, or anchor it to a sub-region to frame just that part (e.g. a border around an icon + its number inside a composite [`Cell`](#cell-data-format)).
 
+Edges are sized with `PixelWidth`/`PixelHeight` (see [*Hairlines*](#hairlines)), so `thickness = 1` is a whole physical pixel rather than a fraction of one.
+
 ### Constructor options
 
 | Option      | Type              | Description                                      |
 |-------------|-------------------|--------------------------------------------------|
-| `thickness` | number            | Edge width in px (default `1`)                   |
+| `thickness` | number            | Edge width in UI units, snapped to whole pixels (default `1`) |
 | `color`     | string \| number[] | Edge colour: theme token or rgba (default `"border"`) |
 
 ### Methods
@@ -390,7 +438,7 @@ Inherits `Frame`. A thin rectangular outline — four edge textures hugging the 
 | Method          | Description                          |
 |-----------------|--------------------------------------|
 | `Color(c)`      | Recolour all four edges (chainable)  |
-| `Thickness(t)`  | Set edge thickness in px (chainable) |
+| `Thickness(t)`  | Set edge thickness (chainable)       |
 
 ```lua
 -- a 1px gold outline hugging an icon

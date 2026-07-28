@@ -34,7 +34,7 @@ local StatTile = Class(Frame, function(self)
   }
   self._fill = Texture:new{
     parent = self, layer = ui.layer.Border, color = self.fill,
-    position = { TopLeft = {1, -1}, BottomRight = {-1, 1} },
+    position = { Inset = 1 },
   }
 
   self.valueLabel = Label:new{

@@ -48,7 +48,7 @@ local FilterDropdown = Class(Frame, function(self)
     Texture:new{ parent = self, layer = ui.layer.Background, position = { All = true }, color = "divider" }
     Texture:new{
       parent = self, layer = ui.layer.Border, color = FILL,
-      position = { TopLeft = {1, -1}, BottomRight = {-1, 1} },
+      position = { Inset = 1 },
     }
   end
   self.button = Button:new{
@@ -105,7 +105,7 @@ function FilterDropdown:_buildMenu()
   Texture:new{ parent = menu, layer = ui.layer.Background, position = { All = true }, color = "divider" }
   Texture:new{
     parent = menu, layer = ui.layer.Border, color = FILL,
-    position = { TopLeft = {1, -1}, BottomRight = {-1, 1} },
+    position = { Inset = 1 },
   }
   self.menu = menu
   self._rows = {}
@@ -186,7 +186,7 @@ function FilterDropdown:_layoutMenu()
   if needsScroll and not self._scroll then
     self._scroll = ui.ScrollFrame:new{
       parent = self.menu, scrollbar = true,
-      position = { TopLeft = {1, -1}, BottomRight = {-1, 1} },
+      position = { Inset = 1 },
     }
     self._menuContent = Frame:new{ parent = self._scroll, position = { Size = {1, 1} } }
     self._scroll:Child(self._menuContent)
