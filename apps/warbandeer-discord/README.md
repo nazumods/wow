@@ -8,7 +8,7 @@ Discord bot for the guild channel: WoW timers and announcements.
 - **Resets** — `/reset` shows the next daily and weekly reset; announces the weekly reset when it happens.
 - **Server status** — continuously polls the Blizzard API for your realm's status and announces whenever it goes **down** or comes back **up** — for any outage, not just weekly-reset maintenance. `/status` checks the realm on demand.
 - **Release notifications** — polls GitHub and announces new releases. Watches this repo by default, or any list of repos you configure (e.g. ActionBarMaster too).
-- **Self-update** — `/update` (admins only) restarts the bot onto the latest build, so code changes don't need someone on the box. See [Self-update](#self-update).
+- **Self-update** — `/update` (admins only) restarts the bot onto the latest build, so code changes don't need someone on the box, then messages you once it's back with the build it actually landed on. See [Self-update](#self-update).
 - **Issue reports** — `/report` lets members with a configured role file a GitHub issue (Title + Description via a popup form) straight into the mapped project's repo (`wow`, `abm`), labeled `automated` and noting who filed it.
 
 All times are posted as Discord timestamps, so everyone sees them in their own timezone.
@@ -63,6 +63,12 @@ Behavior:
 - `BOT_BRANCH` must name a branch that exists on `GITHUB_REPO` — it's queried through the GitHub API, so a branch that only exists on your machine can't be used. Point a staging deploy at its own pushed branch. A deploy running something unpushed should build **without** `GIT_SHA` instead, so self-update reports itself disabled rather than reporting a permanent, undeliverable update.
 - The bot exits with code **75** (distinct from a crash, so a supervisor can tell an update apart from a failure).
 - A restart never lands mid-announcement: it waits for the in-flight tick and its `data/state.json` write to finish.
+- **Once it's back up, it messages whoever ran `/update`** with the build it actually came back on, and which of three things happened:
+  - ✅ **updated** — came back on the build it was picking up.
+  - ⚠️ **no-op** — came back on the *same* build it left on, i.e. nothing was rebuilt. This is the failure that otherwise looks exactly like success: a container recreated without `--build` comes back happily on the old image and logs a clean startup.
+  - ❓ **unexpected** — came back on some third build, so something else deployed in between.
+- That follow-up survives the restart (it's recorded in `data/state.json`, not held in memory), and it tries the original command's reply first, then a DM, then the channel. An expired reply token, closed DMs, or a deleted channel just log — they never hold up or crash startup.
+- Only a restart **`/update` asked for** produces a follow-up. An `AUTO_UPDATE` exit, a host reboot, or a plain `docker compose up` stays silent.
 - If the bot exits to update and comes back on the same build, it says so once in the log and **stops trying** — a misconfigured deploy produces a warning, not a restart loop. `/update` overrides that suppression.
 - Without `GIT_SHA`, self-update reports itself disabled rather than guessing.
 
@@ -100,6 +106,7 @@ Once the bot exposes a local port, map a public hostname to it (`http://bot:<por
 | `src/report.ts` | `/report` — role gate, modal form, files a GitHub issue |
 | `src/announce.ts` | Scheduler tick: DMF/reset/release announcements, realm watch |
 | `src/update.ts` | Self-update: staleness check against the bot's newest commit |
+| `src/updateReport.ts` | The follow-up after a `/update` restart: which build it came back on |
 | `src/restart.ts` | Graceful restart, deferred past in-flight announcements |
 | `src/state.ts` | Announcement dedup state (`data/state.json`) |
 | `src/wow/dmf.ts` | Darkmoon Faire schedule math (timezone-correct) |

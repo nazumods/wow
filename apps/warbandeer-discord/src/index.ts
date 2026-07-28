@@ -3,6 +3,7 @@ import { config } from "./config";
 import { commandData, handleCommand } from "./commands";
 import { isReportModal, handleReportModal } from "./report";
 import { startScheduler } from "./announce";
+import { reportUpdateOutcome } from "./updateReport";
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
@@ -17,6 +18,9 @@ client.once(Events.ClientReady, async (c) => {
   );
   console.log(`Registered ${commandData.length} slash commands`);
   startScheduler(client);
+  // Deliberately not awaited: an owed /update follow-up must never hold up the scheduler,
+  // and reportUpdateOutcome already swallows every delivery failure of its own.
+  reportUpdateOutcome(client).catch((err) => console.error("[updateReport]", err));
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {
