@@ -26,21 +26,30 @@ local GetTimePreciseSec = GetTimePreciseSec
 local MAX_SAMPLES, PAINT_FRAMES = 20, 3
 
 ---@class CollectedProfiler
----@field armed boolean    instrumentation on — the `/collected profile` toggle
 ---@field _run table?      the run being timed (nil = not inside one, so every Mark no-ops)
 ---@field _ticker Frame?   reusable OnUpdate frame that times the frames after a build
 ---@field _lastScan table? `{ at, ms }` of the most recent ns:Scan, for the overlap note
-local Prof = { armed = false }
+local Prof = {}
 
 ---@class Warbandeer_Collected
 ---@field prof CollectedProfiler
 ns.prof = Prof
 
+---Is instrumentation on? Read from the DB rather than an in-memory flag **so arming survives a
+---/reload**. The run that matters most is the first open, which happens once per session — an
+---in-memory flag would mean re-arming by hand after every login, which in practice means the
+---multi-sample set this is built around never gets collected.
+---@return boolean
+function Prof:Armed()
+  local store = ns.db.profile
+  return store ~= nil and store.armed == true
+end
+
 ---Start timing a run. No-op unless armed, and a run already in flight is left alone so a nested
 ---span can't restart the clock on the one that encloses it.
 ---@param kind string  "open" | "weapons" | "armor"
 function Prof:Begin(kind)
-  if not self.armed or self._run then return end
+  if self._run or not self:Armed() then return end
   local now = GetTimePreciseSec()
   self._run = { kind = kind, t0 = now, last = now, phases = {} }
 end
@@ -196,24 +205,32 @@ function Prof:Report()
 end
 
 -- dev: time the window build and the Armor/Weapons swaps. A bare call toggles instrumentation and,
--- when the window doesn't exist yet, opens it — the first open is the measurement that can only be
--- taken once per session, so arming and opening have to be one step. Every run prints as it
--- completes; `report` aggregates the stored samples across reloads.
+-- when the window doesn't exist yet, opens it in the same step — the first open can only be timed
+-- once per session, so arming and opening can't be two commands.
+--
+-- **Arming persists across a /reload** (see Prof:Armed), so once it is on every later session times
+-- its first open on its own, however the window gets opened — command, minimap button, compartment.
+-- That is the whole point: one login is a single noisy sample, and nobody re-arms by hand every
+-- time. Turn it off when you have enough; `report` aggregates, `clear` wipes the samples but leaves
+-- it armed.
 ns:registerCommand("profile", nil, function(self, args)
   local arg = (args or ""):lower():match("^%s*(.-)%s*$")
   if arg == "report" then Prof:Report(); return end
+  local store = ns.db.profile or {}
+  ns.db.profile = store
   if arg == "clear" then
-    ns.db.profile = nil
-    ns.Print("Cleared the stored build-profile samples.")
+    store.open, store.weapons, store.armor = nil, nil, nil
+    ns.Print("Cleared the stored build-profile samples (still " ..
+      (store.armed and "armed" or "off") .. ").")
     return
   end
-  Prof.armed = not Prof.armed
-  if not Prof.armed then ns.Print("Build profiling off."); return end
+  store.armed = not store.armed
+  if not store.armed then ns.Print("Build profiling off."); return end
   if ns.window then
-    ns.Print("Build profiling on. The first open already happened this session — /reload, then")
-    ns.Print("  /collected profile  to time it. Armor/Weapons swaps are timed from now.")
+    ns.Print("Build profiling on — it stays on across reloads, so your next login times its own")
+    ns.Print("  first open. Armor/Weapons swaps are timed from now.")
     return
   end
-  ns.Print("Build profiling on — opening the window.")
+  ns.Print("Build profiling on (stays on across reloads) — opening the window.")
   self:Open()
 end, "dev: time the window build + Armor/Weapons swaps (`report` aggregates samples, `clear` wipes)")
