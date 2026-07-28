@@ -41,9 +41,15 @@ function ns.SelBox(parent)
   return border
 end
 
----One framed, labelled button. Three surfaces built this: the dressing room's control rows, the
----outfit library's verb row, and the buttons added to Blizzard's transmogrifier — two of which
----carried comments admitting they were copies of a third they couldn't reach.
+---One framed, labelled button, in LibNUI's chrome — so every surface that sits on one of OUR themed
+---windows. Three of them built this separately: the dressing room's control rows, the outfit
+---library's verb row, and the buttons on Blizzard's transmogrifier, two of which carried comments
+---admitting they were copies of a third they couldn't reach.
+---
+---The transmogrifier has since left, and with it the `opaque` fill option that existed only for it:
+---buttons on a Blizzard frame want the GAME's chrome, not a flat box wearing our theme, so
+---`controls/TransmogFrameButtons.lua` builds `UIPanelButtonTemplate` by hand. Everything remaining
+---here sits on an opaque window of ours and needs nothing behind it.
 ---
 ---Returns the **room's** handle shape, the superset of the three: `box`, `border` (recolour to arm
 ---or select), `label` (the Label), `text` (the resting caption, so an armed button can restore it)
@@ -58,15 +64,11 @@ end
 ---
 ---**Disabled swallows the click** rather than firing and printing a refusal afterwards; the caption
 ---greys to match. Same "don't offer what won't work" as Blizzard's own name prompt.
----@param spec table  `{ parent, x, w, label, onClick, height?, opaque? }`
+---@param spec table  `{ parent, x, w, label, onClick, height? }`
 ---@return table btn
 function ns.RowButton(spec)
   local box = Frame:new{
     parent = spec.parent,
-    -- An explicit opaque fill only where asked for: the transmogrifier's buttons sit on BLIZZARD's
-    -- frame, where a bare border and a caption read as text floating over the scene rather than as
-    -- buttons. The two on our own opaque windows need nothing behind them.
-    background = spec.opaque and {0.11372549019, 0.14117647058, 0.16470588235, 0.95} or nil,
     position = { TopLeft = {spec.x, 0}, Width = spec.w, Height = spec.height or 20 },
   }
   local btn = { box = box, border = ns.SelBox(box), text = spec.label }

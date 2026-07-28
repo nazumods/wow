@@ -508,6 +508,16 @@ std = {
     "SetOverrideBindingClick",
     "ShowOptionsCategory",
     "StaticPopup_Show",
+    -- Inspecting a targeted player (Warbandeer_Collected's outfit inspect). The two frames are
+    -- load-on-demand, so every read of them is nil-guarded.
+    "CanInspect",
+    "ClearInspectPlayer",
+    "GetUnitName",
+    "InspectFrame",
+    "NotifyInspect",
+    "PlayerSpellsFrame",
+    "UnitIsPlayer",
+
     "UnitCastingInfo",
     "UnitChannelInfo",
     "UnitClass",

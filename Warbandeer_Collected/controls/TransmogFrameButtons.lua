@@ -1,14 +1,13 @@
 ---@type Warbandeer_Collected
 local ns = select(2, ...)
----@type LibNUI
-local ui = ns.ui
-local Frame = ui.Frame
--- No `ns.DressingRoom._k.selBox` reach any more: `ns.RowButton` owns the framed box, so this file
--- no longer depends on the dressing room at all (#770 step 6).
+-- Nothing from `ns.ui` is imported here, and that is the point: see `rowButton` below.
 
 -- **Two buttons on the game's own transmogrifier** (#699) — this addon's only presence on a
 -- Blizzard frame. The transmogrifier is where looks actually get built, yet until now one staged
 -- there could only reach the account-wide library by being rebuilt by hand in our dressing room.
+--
+-- **They wear the game's chrome, not ours**, which is the whole reason this file builds its widgets
+-- by hand instead of calling `ns.RowButton` like every other surface in the addon. See `rowButton`.
 --
 -- **The frame is `TransmogFrame`, not `WardrobeTransmogFrame`.** Retail 12.x replaced the NPC UI
 -- wholesale: `Blizzard_Wardrobe` is now only the Appearances journal, and the transmogrifier lives
@@ -33,21 +32,35 @@ local CENTER_GAP = 170
 -- band this sits level with the **Link** button off to the left — which is NOT Blizzard's (nothing
 -- in `Blizzard_Transmog` creates one, so it belongs to another addon) and therefore cannot be
 -- anchored to without depending on a frame that won't exist for everyone. The alignment is a
--- measured offset instead, so this is the one number to nudge if the two ever drift apart.
+-- measured offset instead, so this is the one number to nudge if the two ever drift apart. That
+-- button is also the reference for how these should LOOK: it is a plain `UIPanelButtonTemplate`,
+-- and a row that matches it reads as part of the frame rather than as an addon's overlay.
 local BOTTOM_Y = 16
 
----One labelled button: framed box, centred caption, click target. The same idiom as the library
----window's strip buttons — a peer class can't reach the room's `_rowButton`.
----@param parent Frame
+---One button, in the GAME's chrome rather than ours.
+---
+---**These are the suite's only buttons that don't use `ns.RowButton`, and deliberately so.** Every
+---other surface in this addon sits on one of our own themed windows, where LibNUI's flat framed box
+---is what the eye expects. These two sit on Blizzard's transmogrifier, beside Blizzard's own
+---furniture — and there our chrome reads as something pasted on rather than as part of the panel.
+---`UIPanelButtonTemplate` is what the frame is already full of, so they simply look like they
+---belong. It also brings the hover, pushed and disabled states for free, which is what `ns.RowButton`
+---had to hand-shadow.
+---
+---This is also why the row below is a plain `CreateFrame` and not a `ui.Frame`: a LibNUI Frame would
+---force `parent._widget` on every anchor here, and reaching into `_widget` from outside its class is
+---exactly what this codebase forbids.
+---@param parent table  a plain frame
 ---@param x number
 ---@param label string
 ---@param onClick fun()
 local function rowButton(parent, x, label, onClick)
-  -- `opaque` because these alone sit on BLIZZARD's frame, where there is nothing behind them: a bare
-  -- border and a caption would read as text floating over the transmogrifier rather than as buttons.
-  -- The two sibling surfaces sit on our own opaque windows and need no fill (#770 step 6).
-  return ns.RowButton{ parent = parent, x = x, w = BTNW, label = label,
-    onClick = onClick, height = BTNH, opaque = true }.box
+  local btn = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+  btn:SetSize(BTNW, BTNH)
+  btn:SetPoint("TOPLEFT", x, 0)
+  btn:SetText(label)
+  btn:SetScript("OnClick", onClick)
+  return btn
 end
 
 ---The dialog's edit box. Retail has moved this between a plain field and an accessor across
@@ -192,13 +205,12 @@ local function build()
   local preview = TransmogFrame and TransmogFrame.CharacterPreview
   if not preview then return end
 
-  _row = Frame:new{
-    parent = preview,
-    position = { Bottom = {0, BOTTOM_Y}, Width = 2 * BTNW + CENTER_GAP, Height = BTNH },
-  }
+  _row = CreateFrame("Frame", nil, preview)
+  _row:SetSize(2 * BTNW + CENTER_GAP, BTNH)
+  _row:SetPoint("BOTTOM", 0, BOTTOM_Y)
   -- Above the model scene, which fills CharacterPreview — and above `CharacterPreview.SavedFrame`,
   -- a hidden full-width overlay that flashes its glow across this band during the save animation.
-  _row._widget:SetFrameLevel(preview:GetFrameLevel() + 20)
+  _row:SetFrameLevel(preview:GetFrameLevel() + 20)
 
   rowButton(_row, 0, "Save Look", function() StaticPopup_Show(SAVE_POPUP) end)
   rowButton(_row, BTNW + CENTER_GAP, "Outfit Library", function() ns.OpenOutfitLibrary() end)
