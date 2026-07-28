@@ -1,6 +1,6 @@
 # ShadowsOfUI-PostOffice — CONTEXT
 
-**Deps:** LibNAddOn, LibNUI (optional Warbandeer_Characters → alts menu) · **Commands:** `/spost` · **DB:** `ShadowsOfUI_PostOfficeDB` (v7) · **UI lib:** LibNUI (copy window only)
+**Deps:** LibNAddOn, LibNUI · **OptionalDeps:** Warbandeer_Characters (alts menu) · **Commands:** `/spost` · **DB:** `ShadowsOfUI_PostOfficeDB` (v7) · **UI lib:** LibNUI (copy window only)
 
 Headless mailbox helper (no window of its own). Re-derives Postal modules in LibNAddOn
 style — augments the native mail frames + exposes Settings-panel toggles. Phase 1 (Rake,
