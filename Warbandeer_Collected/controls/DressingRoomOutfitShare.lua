@@ -159,8 +159,13 @@ end
 ---
 ---`str` is for the command form; the button passes nothing and reads the row's field. Either way
 ---this is the only import path, so the two can't diverge.
+---
+---`title` exists for the one caller that knows whose look this is — `/collected outfit inspect`
+---(#819) reads a targeted player's transmog and can title the room after them. Every other path has
+---nothing better to say than the default.
 ---@param str string?
-function DressingRoom:ImportOutfit(str)
+---@param title string?
+function DressingRoom:ImportOutfit(str, title)
   local pasted = str or self:_pastedOutfit()
   local list, err = ns.ParseOutfitInput(pasted)
   if not list then
@@ -170,7 +175,7 @@ function DressingRoom:ImportOutfit(str)
   -- Named for what it is rather than left titled as whatever set was last previewed: an imported
   -- look has no name of its own until it's saved, and the title is what tells you the model is no
   -- longer showing the set you clicked.
-  self:EnterOutfitMode("Imported look", list)
+  self:EnterOutfitMode(title or "Imported look", list)
   self._outfitSel = nil
   self._outfitName:Text("")
   self:RefreshOutfits()
