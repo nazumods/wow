@@ -16,6 +16,7 @@
 ## X-Curse-Project-ID: 1615351
 
 init.lua
+profile.lua
 commands.lua
 
 data\sets.lua

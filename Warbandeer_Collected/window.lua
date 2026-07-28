@@ -62,6 +62,9 @@ local MainWindow = Class(TitleFrame, function(self)
   -- below the titlebar; the PTR toggle refreshes this window's mode counter.
   self.filterStrip = self.data:BuildFilterStrip(self, function() self:RefreshCounter() end)
   self.filterStrip:Position({ TopLeft = {self.titlebar, ui.edge.BottomLeft, 2, -2} })
+  -- Both dropdowns' option lists walk the whole row source to build themselves, so the strip is a
+  -- deferral candidate in its own right rather than a rounding error on the grid (see profile.lua).
+  ns.prof:Mark("strip")
 
   self.scroll = ScrollFrame:new{
     parent = self,
@@ -71,6 +74,7 @@ local MainWindow = Class(TitleFrame, function(self)
     },
   }
   self.scroll:Child(self.data.rowArea)
+  ns.prof:Mark("scroll")
 
   -- Counter rides the grid's header row, over the group-name column and in line with
   -- the class icons (matches the embedded view); gold wanted tally to its right.
@@ -150,11 +154,16 @@ local MainWindow = Class(TitleFrame, function(self)
   }
 
   self:_applyStripX()
+  ns.prof:Mark("chrome")
 
+  -- `VisibleCounts` walks every group and set independently of the cells, so the counter is its own
+  -- split — it is paid again on every mode swap, where nothing is being built at all.
   self:RefreshCounter()
   self:RefreshWanted()
+  ns.prof:Mark("counter")
   self:_fitToGrid()
   self:Width(w)
+  ns.prof:Mark("fit")
 end, {
   name = ns._NAME,
   title = ns._TITLE,
@@ -212,6 +221,7 @@ function MainWindow:_ensureWeapons()
                         -- until the swap, exactly as the eager build did.
 
   self.weaponStrip = self.weapons:BuildFilterStrip(self, function() self:RefreshCounter() end)
+  ns.prof:Mark("strip")
   self.weaponStrip:Position({ TopLeft = {self.titlebar, ui.edge.BottomLeft, self._stripX, -2} })
   self.weaponStrip:Hide()
   -- Built long after the toggle settled, so `_stripX` above is already final for it. Placed by
@@ -226,6 +236,7 @@ function MainWindow:_ensureWeapons()
   }
   self.weaponScroll:Child(self.weapons.rowArea)
   self.weaponScroll:Hide()
+  ns.prof:Mark("scroll")
 end
 
 ---Every grid that currently exists, for the callers that refresh "both". The weapon grid is built
@@ -243,6 +254,10 @@ end
 ---@param weapons boolean
 function MainWindow:SetMode(weapons)
   if self._weaponsMode == weapons then return end
+  -- Timed as its own run so the three swaps read separately: the FIRST switch to Weapons builds a
+  -- second grid, every later swap builds nothing. If a swap that builds nothing is still slow, the
+  -- cost is the counter + refit below rather than construction — a different fix (see profile.lua).
+  ns.prof:Begin(weapons and "weapons" or "armor")
   -- First switch to Weapons builds the trio. Switching back can't reach a nil one: the guard above
   -- means `SetMode(false)` only proceeds when we were already in Weapons mode.
   if weapons then self:_ensureWeapons() end
@@ -255,6 +270,9 @@ function MainWindow:SetMode(weapons)
   if self.active._ptr ~= prevGrid._ptr then self.active:SetPtr(prevGrid._ptr) end
   self.data:SetShown(not weapons); self.filterStrip:SetShown(not weapons); self.scroll:SetShown(not weapons)
   self.weapons:SetShown(weapons); self.weaponStrip:SetShown(weapons); self.weaponScroll:SetShown(weapons)
+  -- `SetShown` routes through Region:Show → OnBeforeShow → _fitNameCol on the grid coming up, so
+  -- this split is not the free visibility flip it looks like.
+  ns.prof:Mark("show")
   self:RefreshWanted()   -- the tally switches units with the grid: wanted sets ↔ wanted weapon looks
   self._modeToggle:Select(weapons and "weapons" or "armor")
   -- The weapon name column is too narrow to hold the counter over the header, so in weapon mode
@@ -262,7 +280,10 @@ function MainWindow:SetMode(weapons)
   self.counter:Position(weapons and { TopLeft = {self.weaponStrip, ui.edge.TopRight, 12, -3} }
     or { TopLeft = {self.filterStrip, ui.edge.TopRight, 12, -3} })
   self:RefreshCounter()
+  ns.prof:Mark("counter")
   self:_fitToGrid()   -- sizes BOTH axes now (#768 L-4), so the mode swap needs no width of its own
+  ns.prof:Mark("fit")
+  ns.prof:Finish()
   -- The preview window is deliberately NOT touched here (#673). It used to be: with two dolls, one
   -- per view, the toggle had to swap which was on screen or toggling back to Armor left a weapon on
   -- the model (#656). There is one doll now — the armour set and the browsed weapon are on it
@@ -383,12 +404,18 @@ ns.window = nil
 ---Open the main window, creating it on first use.
 function ns:Open()
   if not ns.window then
+    -- The one measurement that can only be taken once per session (`/collected profile` arms it and
+    -- opens in the same step for exactly that reason). Begins here rather than inside the class so
+    -- the theme resolution and RememberPosition below are inside the run too.
+    ns.prof:Begin("open")
     -- Theme the whole window (titlebar included) to match Warbandeer's collected view;
     -- the explicit opaque `background` (in defaults) overrides the theme's alpha-0
     -- `window` token so the surface stays solid. Resolved here, not in the class
     -- defaults, since the void-dark theme registers only once Warbandeer has loaded.
     ns.window = MainWindow:new{ theme = collectedTheme() }
     ns.window:RememberPosition(ns.db.windowPos)   -- restore + persist the user's dragged position
+    ns.prof:Mark("position")
+    ns.prof:Finish()
   else
     ns.window:Show()
   end

@@ -31,14 +31,19 @@ local GameTooltip = GameTooltip
 ---@field _dressedSource table? source group currently previewed in the shared dressing room (drives the cell cursor; nil = none)
 ---@field _dressedType number? weapon type currently previewed (with _dressedSource, pins the exact cell)
 local WeaponView = Class(TableFrame, function(self)
+  -- Base TableFrame is done here: columns, GetData, and every cell frame from `update()`. Mirrors
+  -- the armour grid's marks so the two builds are directly comparable (see profile.lua).
+  ns.prof:Mark("cells")
   -- Autosize the name column (col 1) to the widest source name (+ its expansion badge). Called raw
   -- (not through _fitNameCol) because the host hasn't assigned its own grid field yet — firing
   -- onResized here would refit against a nil grid.
   ns.FitNameCol(self, 1)
+  ns.prof:Mark("fitname")
   -- A label only measures true once WoW has laid the grid out, so measure again on the next frame,
   -- when it definitely has — this is the repair for a short first pass (#718).
   C_Timer.After(0, function() self:_fitNameCol() end)
   self:_refreshMarks()   -- the constructor-time update() ran before our override was mixed in
+  ns.prof:Mark("marks")
 end, {
   headerHeight = 28,
   _reverse = true,
@@ -47,7 +52,13 @@ end, {
   _wantedOnly = false,
   _ptr = false,
   -- Row builder lives in WeaponViewData.lua; the base TableFrame calls it via GetData in onLoad.
-  GetData = function(self) return ns.WeaponRows(self) end,
+  -- Bracketed for the profiler exactly as the armour grid's is (see profile.lua).
+  GetData = function(self)
+    ns.prof:Mark("cols")
+    local rows = ns.WeaponRows(self)
+    ns.prof:Mark("data")
+    return rows
+  end,
 })
 
 -- Fit the name column (col 1) to its widest source name and let the host refit when it grew.

@@ -40,13 +40,20 @@ local TableFrame = ui.TableFrame
 ---@field onResized fun(self: DataView)?  host callback fired after a filter/PTR change shrinks or grows the row area, so the host can refit its scroll container (see _refilter / SetPtr)
 ---@field onFilterChanged fun(self: DataView)?  host callback fired after the wanted-only filter flips, so the host can recompute its filter-scoped counter (see ToggleWantedOnly)
 local DataView = Class(TableFrame, function(self)
+  -- Reaching this body means the base TableFrame has finished: columns built, GetData run, and
+  -- `update()` done creating every cell frame. That is the profiler's `cells` split — the base
+  -- class can't mark it itself without a LibNUI change, and this is the first addon-owned code to
+  -- run after it (see profile.lua).
+  ns.prof:Mark("cells")
   -- Autosize the name column. Called raw (not through _fitNameCol) because the host hasn't
   -- assigned its own grid field yet — firing onResized here would refit against a nil grid.
   ns.FitNameCol(self, self.embedded and 1 or 2)
+  ns.prof:Mark("fitname")
   -- A label only measures true once WoW has laid the grid out, so measure again on the next
   -- frame, when it definitely has — this is the repair for a short first pass (#718).
   C_Timer.After(0, function() self:_fitNameCol() end)
   self:_refreshMarks()   -- the constructor-time update() ran before our override was mixed in
+  ns.prof:Mark("marks")
 end, {
   headerHeight = 28,
   _reverse = true,   -- default to newest expansion first (release 12→1)
@@ -57,7 +64,16 @@ end, {
   embedded = false,
   -- The row builder lives in DataViewData.lua (too large to inline here); base
   -- TableFrame construction calls this through onLoad, by which point it's defined.
-  GetData = function(self) return ns.CollectedRows(self) end,
+  --
+  -- The two profiler marks bracket the row build, which also dates the column build before it:
+  -- `onLoad` calls this first thing, so everything since the run began was TableFrame's own
+  -- constructor (see profile.lua).
+  GetData = function(self)
+    ns.prof:Mark("cols")
+    local rows = ns.CollectedRows(self)
+    ns.prof:Mark("data")
+    return rows
+  end,
 })
 
 -- Fit the name column to its widest set name (col 1 embedded, col 2 in the window — the lock takes
