@@ -106,7 +106,9 @@
 - **The interaction follow-up posts unauthenticated via raw `REST.post(Routes.webhook(...), { auth: false })`,
   not `WebhookClient`** — the webhook route is authenticated by the interaction token itself, and
   discord.js's `WebhookClient.send` typing can't set the ephemeral flag, which the follow-up needs
-  to match the ephemeral `/update` reply it continues.
+  to match the ephemeral `/update` reply it continues. **Measured on the box's debug bot (#681):
+  the token does survive the restart** — the follow-up lands ephemerally in the original command's
+  thread, so DM and channel are true fallbacks rather than the load-bearing path.
 - `requestRestart()` exits **immediately** when no critical section is open — anything that must
   survive the exit (a Discord reply, a state write) has to run inside `withCritical()`. The
   `/update` handler wraps its `checkForUpdate` for exactly this reason; without it the process
