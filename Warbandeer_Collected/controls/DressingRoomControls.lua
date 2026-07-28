@@ -11,7 +11,7 @@ local DressingRoom = ns.DressingRoom
 -- The two bottom control rows (Undress/Background + the ratings row) and the
 -- three-panel race selector. Reopens the DressingRoom class; called by the constructor.
 local k = DressingRoom._k
-local selBox, SELECTED = k.selBox, k.SELECTED
+local selBox, SELECTED, IDLE = k.selBox, k.SELECTED, k.IDLE
 local GRIDW, PAD, ROWH, TOPGAP = k.GRIDW, k.PAD, k.ROWH, k.TOPGAP
 local CELL, STEP, PANELPAD, RACEICON_CROP = k.CELL, k.STEP, k.PANELPAD, k.RACEICON_CROP
 local AHCOLS, PANELGAP, PANELSTOP, PBORDER = k.AHCOLS, k.PANELGAP, k.PANELSTOP, k.PBORDER
@@ -61,9 +61,10 @@ function DressingRoom:_buildControls(controls)
   }
   self._wantedBorder = selBox(wantBox)
   -- wantBox is kept on self so outfit mode can hide it separately from _ratingsBoxes — an outfit has
-  -- neither a set id nor a look to flag. Everything in this row rates the previewed ARMOUR set,
-  -- browsing a weapon or not (#673); a weapon look's own ★ and S–F tier live in the cell chooser
-  -- pane, on the look that's actually on the doll (controls/WeaponCellPicker.lua).
+  -- neither a set id nor a look to flag. Everything in this row rates whatever `_focus` says the
+  -- room is driving (#827): the previewed armour set, or the browsed weapon look when one is on the
+  -- doll — see _refreshRatings (DressingRoomActions.lua) and the weapon half it delegates to
+  -- (controls/WeaponCellPicker.lua).
   self._wantBox = wantBox
   Texture:new{ parent = wantBox, layer = ui.layer.Artwork, atlas = ns.WantedIcon, atlasSize = false,
     position = { Left = {6, 0}, Size = {14, 14} } }
@@ -107,10 +108,45 @@ function DressingRoom:_buildControls(controls)
   }
   self._raceOnlyBorder = selBox(raceBox)
   self._ratingsBoxes[#self._ratingsBoxes + 1] = raceBox
+  -- The handle `_enableRaceOnly` greys through. Shaped like a `ns.RowButton` — `label` is what
+  -- `ns.EnableRowButton` recolours, `disabled` is what the click below reads — without being one:
+  -- this is a fixed-position toggle in the ratings row, not a button on a laid-out control row.
+  self._raceOnlyBtn = { box = raceBox, border = self._raceOnlyBorder }
   Button:new{ parent = raceBox, position = { All = true },
-    OnClick = function() self:SetRaceOnly(not self._raceOnly) end }
-  Label:new{ parent = raceBox, justifyH = ui.justify.Center,
+    OnClick = function()
+      if self._raceOnlyBtn.disabled then return end
+      self:SetRaceOnly(not self._raceOnly)
+    end }
+  self._raceOnlyBtn.label = Label:new{ parent = raceBox, justifyH = ui.justify.Center,
     position = { Left = {4, 0}, Right = {-4, 0} }, text = "This race" }
+end
+
+---Hide the whole ratings row — a loaded look is on the doll with nothing browsed on top of it, so
+---there is nothing to rate. Both boxes lists, since `_wantBox` is kept out of `_ratingsBoxes` so
+---outfit mode can hide it separately.
+---
+---`EnterOutfitMode` does this on the way in, and `_refreshRatings` repeats it on every pass because
+---the row is no longer hidden once and left that way: a weapon browsed on top of a loaded look SHOWS
+---it (#827), and giving up that claim — switching back to the Armor grid — has to take it away
+---again. Without this second site the row leaked, staying visible over the look for the rest of its
+---life.
+function DressingRoom:_hideRatingsRow()
+  if self._ratingsBoxes then for _, b in ipairs(self._ratingsBoxes) do b:Hide() end end
+  if self._wantBox then self._wantBox:Hide() end
+end
+
+---Enable or grey the "This race" toggle. Weapon appearances carry no per-race override — one
+---renders identically on every race (#688) — so it greys while the ratings row's subject is a
+---weapon, and the click is swallowed with it: `_raceOnly` must not be flippable under a subject it
+---has nothing to say about.
+---
+---The gold border drops with the caption rather than surviving it. A lit "This race" over a write
+---that is going to the flat weapon tier anyway would be the same wrong-target claim #827 is about,
+---one control along; re-enabling restores it from the flag it actually reflects.
+---@param on boolean
+function DressingRoom:_enableRaceOnly(on)
+  ns.EnableRowButton(self._raceOnlyBtn, on)
+  self._raceOnlyBorder:Color(on and self._raceOnly and SELECTED or IDLE)
 end
 
 -- Race selector: three faction panels (Alliance | Neutral | Horde), centered as a

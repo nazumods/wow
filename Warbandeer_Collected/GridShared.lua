@@ -571,7 +571,16 @@ function ns.ModeToggle(spec)
     Texture:new{ parent = cell, layer = ui.layer.Border, color = {0.09, 0.09, 0.11, 0.95},
       position = { TopLeft = {1, -1}, BottomRight = {-1, 1} } }
     local btn = Button:new{ parent = cell, position = { All = true },
-      OnClick = function() spec.onClick(weapons) end }
+      OnClick = function()
+        spec.onClick(weapons)
+        -- The shared dressing room needs to know which grid is being browsed, for one rule: while a
+        -- loaded look is on the doll its ratings row is hidden, a browsed weapon earns the row back,
+        -- and switching to Armor without clicking a cell gives it up again (#827). Told from HERE
+        -- rather than from either host's `SetMode` because both hosts build their toggle through
+        -- this one function, so one call covers Collected's window and Warbandeer's embedded view.
+        -- Resolved at click time, so it needs nothing from the room's later .toc position.
+        ns.SetGridMode(weapons)
+      end }
     Label:new{ parent = btn, fontInfo = caps and {caps[1], 10} or nil, justifyH = ui.justify.Center,
       position = { All = true }, text = label, color = theme.colors.text }
     return border

@@ -99,10 +99,13 @@ local selBox = ns.SelBox
 ---@field _idLabel Label  set-id text in the title bar (left of the close button)
 ---@field _masterName string?  master-grid group name for the id label's hover tooltip
 ---@field _undressBorder Texture  undress-toggle border (gold while every slot is toggled off)
----@field _wantedBorder Texture  wanted-toggle border (gold while the set is wanted)
+---@field _wantedBorder Texture  wanted-toggle border (gold while the rated subject is wanted)
 ---@field _rankBtns table<string, { border: Texture }>  tier buttons keyed by letter
 ---@field _raceOnly boolean  edit/show the per-race override instead of the baseline
 ---@field _raceOnlyBorder Texture  per-race-override toggle border (gold while active)
+---@field _raceOnlyBtn table  the per-race toggle's greyable handle ({ box, border, label, disabled? }) (DressingRoomControls.lua)
+---@field _enableRaceOnly fun(self: DressingRoom, on: boolean)  enable/grey the per-race toggle — off while a weapon is the rated subject (DressingRoomControls.lua)
+---@field _hideRatingsRow fun(self: DressingRoom)  hide the whole ratings row — a loaded look with nothing browsed on it has nothing to rate (DressingRoomControls.lua)
 ---@field _slots table[]  paper-doll slot entries ({ slotID, icon, border, itemID?, collected?, cosmetic? }) — cosmetic ones are picker-driven, not set pieces
 ---@field _cosmeticSlots table[]  the shirt/tabard subset of _slots ({ slotID, label, target, look, empty, ... }) (DressingRoomCosmeticSlots.lua)
 ---@field _hiddenSlots table<number, string>  inventory slot ids that aren't being worn, by state — `"hidden"` (composes as the slot's hide visual) or `"empty"` (composes as 0, no transmog); absent = worn (reset per set) (DressingRoomSlotStates.lua)
@@ -208,10 +211,11 @@ local selBox = ns.SelBox
 ---@field _useCellLook fun(self: DressingRoom, hand: string)  move the browsed weapon to a hand (WeaponCellPicker.lua)
 ---@field _syncCellActions fun(self: DressingRoom)  re-sync the hand buttons to the hand the browsed weapon is in (WeaponCellPicker.lua)
 ---@field _toggleCellWanted fun(self: DressingRoom, idx: number)  shift-click gesture: flag a browsed weapon look wanted (WeaponCellPicker.lua)
----@field _cellRankBtns table<string, table>?  the chooser's S–F tier buttons, keyed by tier letter (WeaponCellPicker.lua)
----@field _buildCellRanks fun(self: DressingRoom, pane: Frame, y: number)  build the chooser's tier row (WeaponCellPicker.lua)
----@field SetCellRank fun(self: DressingRoom, letter: string?)  rate the shown weapon look, or clear its tier (WeaponCellPicker.lua)
----@field _syncCellRanks fun(self: DressingRoom)  move the tier row's gold border to the shown look's tier (WeaponCellPicker.lua)
+---@field _ratedWeapon fun(self: DressingRoom): table?  the weapon look the room's ratings row acts on, nil when the subject is the previewed set (WeaponCellPicker.lua)
+---@field _paintWeaponRatings fun(self: DressingRoom, look: table)  paint the room's ratings row from a weapon look (WeaponCellPicker.lua)
+---@field _rateWeapon fun(self: DressingRoom, look: table, letter: string?)  rate the shown weapon look, or clear its tier (WeaponCellPicker.lua)
+---@field _wantWeapon fun(self: DressingRoom, look: table)  flag/unflag the shown weapon look (WeaponCellPicker.lua)
+---@field _afterWeaponRating fun(self: DressingRoom, look: table)  repaint the row, the Weapons grid and the chooser row after a weapon rating change (WeaponCellPicker.lua)
 ---@field ShowCellChooser fun(self: DressingRoom, looks: table[])  dock the chooser on a cell's looks (WeaponCellPicker.lua)
 ---@field HideCellChooser fun(self: DressingRoom)  undock the chooser (WeaponCellPicker.lua)
 ---@field SelectCellLook fun(self: DressingRoom, idx: number)  show a cell look on the doll (WeaponCellPicker.lua)
