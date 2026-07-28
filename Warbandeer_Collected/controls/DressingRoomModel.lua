@@ -231,6 +231,21 @@ ns.HideDressingRoom = function()
   if _room then _room:Hide() end
 end
 
+---Record which grid the user is browsing — pushed by the shared Armor|Weapons toggle
+---(`ns.ModeToggle`) — and repaint the room's ratings row against it.
+---
+---The flag lives on `ns` rather than on the room so a room built later still reads the current mode,
+---and so a click while the room is closed isn't lost. Last write wins across the two hosts, which is
+---what `_focus` already does with the last cell clicked: there is one room, so it follows whichever
+---grid the user last touched.
+---@class Warbandeer_Collected
+---@field gridWeaponsMode boolean?  true while the Weapons grid is the one being browsed
+---@field SetGridMode fun(weapons: boolean)
+ns.SetGridMode = function(weapons)
+  ns.gridWeaponsMode = weapons
+  if _room then _room:_refreshRatings() end
+end
+
 -- Keep the room's ★ and tier borders in step with a rating changed anywhere else — the grid's
 -- Shift-click, the other host's grid, Warbandeer's Top-Characters overlay (#765). Without this the
 -- room subscribed to NOTHING: `_refreshRatings` ran only from `_load`, `SetRace` and the room's own

@@ -116,11 +116,15 @@ through the looks and **←/→** to jump to the neighbouring weapon type from t
 source — the character re-renders in place each time, wearing your outfit. The grid
 draws a white box around the cell you're viewing so you never lose your place.
 
-**Wanted & tiers, per look.** Weapons are flagged and rated one appearance at a time,
-in the chooser rather than in the dressing room's ratings row (that row belongs to the
-armor set still on the model). **Shift-click** a chooser row to flag that look wanted —
-it gets a gold star. The **S / A / B / C / F** row above the list rates the look you're
-currently viewing; click the tier it already has, or the **–**, to clear it. Every row
+**Wanted & tiers, per look.** Weapons are flagged and rated one appearance at a time.
+While you're browsing a weapon the dressing room's own **Wanted** star and
+**S / A / B / C / F** row act on the look you're currently viewing — the window title
+tells you which one that is — so it's the same strip of buttons you use for armor sets,
+pointed at whatever you're actually looking at. Click the tier it already has, or the
+**–**, to clear it. (**This race** greys out here: a weapon looks the same on every
+race, so there's nothing to override.) Click any armor set in the grid and the row goes
+back to rating that set. You can also **shift-click** any chooser row to flag that look
+wanted without stepping to it — it gets a gold star. Every row
 carries its own tier letter, so you can see the whole cell ranked at a glance while you
 step through it. Back in the grid, a cell is starred when **any** look in it is wanted
 and shows the **best** tier among its looks, so a bucket of four daggers advertises the
@@ -306,8 +310,10 @@ not one that quietly falls back to your equipped gear. A slot you clicked all th
 *no transmog* saves as exactly that.
 
 While a saved look is loaded the window shows its name, and the rating buttons are hidden —
-a look isn't one of the tracked sets, so there's nothing to rate. Click any set in the
-grid to go back to normal previewing.
+a look isn't one of the tracked sets, so there's nothing to rate. (Click a weapon in the
+Weapons grid and they come back, pointed at that weapon; switch the grid back to Armor
+without picking anything and they go away again.) Click any set in the grid to go back to
+normal previewing.
 
 ## Sharing a look
 

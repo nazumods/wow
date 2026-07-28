@@ -227,8 +227,7 @@ function DressingRoom:EnterOutfitMode(name, list)
   self:_showClass(entry and ns.ClassId(entry.forClass or entry.class))
   self._tierBarL:Hide()
   self._tierBarR:Hide()
-  if self._ratingsBoxes then for _, b in ipairs(self._ratingsBoxes) do b:Hide() end end
-  if self._wantBox then self._wantBox:Hide() end
+  self:_hideRatingsRow()
   self:HideCellChooser()
   self:UpdateSlotsFromOutfit()
   self:_syncUndressBorder()
