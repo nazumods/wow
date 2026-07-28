@@ -232,22 +232,33 @@ end
 ---render a **green** check — a fully collected set (`isComplete`, however it got there).
 ---When "wanted only" is active it mirrors the grid: whole rows with no wanted set are
 ---skipped, and within a shown row only the wanted class cells count.
+---
+---Counts what the grid SHOWS in either mode, PTR preview included (#769 L-10) — it reads the same
+---`_ptr and ns.PtrSets or ns.Sets` source the row builder does. It used to walk `ns.Sets`
+---unconditionally while `matches` returns true for everything under `_ptr`, so a PTR-mode caller got
+---the whole live table back, unfiltered. Both in-repo hosts branch to `UpcomingCounts` before
+---reaching here, which is why nothing showed it — but this class is exported to Warbandeer, and a
+---consumer taking the doc at its word had no warning.
+---
+---Under PTR the greens are always 0, matching the grid: an upcoming cell renders a piece count (or a
+---muted dot on live), never a completion shade, and it renders for every set id — there is no
+---collection status to gate it on, so `cells` counts the slots rather than the scanned ones.
 ---@return number sets, number cells, number green
 function DataView:VisibleCounts()
   local sets, cells, green = 0, 0, 0
-  local wantedOnly = self._wantedOnly
-  for _, grp in ipairs(ns.Sets) do
+  local wantedOnly, isPtr = self._wantedOnly, self._ptr
+  for _, grp in ipairs(isPtr and ns.PtrSets or ns.Sets) do
     if matches(self, grp) and (not wantedOnly or groupWanted(grp)) then
       sets = sets + 1
       local gsets = ns.db.sets[grp.id]
-      if gsets then
-        for _, set in ipairs(grp.sets) do
-          if set.id and (not wantedOnly or ns:IsWanted(set.id)) then
-            local s = gsets[set.id]
-            if s ~= nil then
-              cells = cells + 1
-              if isComplete(s) then green = green + 1 end
-            end
+      for _, set in ipairs(grp.sets) do
+        if set.id and (not wantedOnly or ns:IsWanted(set.id)) then
+          local s = gsets and gsets[set.id]
+          if isPtr then
+            cells = cells + 1
+          elseif s ~= nil then
+            cells = cells + 1
+            if isComplete(s) then green = green + 1 end
           end
         end
       end
