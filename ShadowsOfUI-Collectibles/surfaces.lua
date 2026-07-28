@@ -47,8 +47,36 @@ local function updateMerchant()
 end
 
 hooksecurefunc("MerchantFrame_UpdateMerchantInfo", updateMerchant)
+
+-- The Buyback tab repaints the SAME MerchantItem<i>ItemButton frames via a different function, so
+-- our Buy-tab paint can ride a recycled button onto an unrelated bought-back item (#737).
+--
+-- Only the desaturation leaks. Blizzard's `MerchantFrame_UpdateBuybackInfo` already resets all four
+-- vertex colours on every button, in each of its branches (red = unusable, white = usable, grey =
+-- empty row) — but it never calls SetItemButtonDesaturated; its only such call is on the Buy path,
+-- for known heirlooms. So a bought-back item lands in a slot a desaturated collectible occupied and
+-- renders greyed out.
+--
+-- Resetting the four colours here as well would be actively WRONG: it would overwrite exactly the
+-- cues Blizzard just set, the same hazard `updateMerchant`'s comment above calls out. Clearing only
+-- the property Blizzard leaves alone is safe precisely because there is nothing of its own to stomp.
+--
+-- NOT the shape of ShadowsOfUI-HousingVendor's #592 fix, despite the identical root cause (button
+-- reuse across tabs): that addon owns the overlay frames it creates, so a blanket CleanOverlay is
+-- correct there. This one owns no frames — it mutates Blizzard's own button properties.
+local function clearMerchantDesaturation()
+  for i = 1, MERCHANT_ITEMS_PER_PAGE do
+    local itemButton = _G["MerchantItem" .. i .. "ItemButton"]
+    if itemButton then SetItemButtonDesaturated(itemButton, false) end
+  end
+end
+hooksecurefunc("MerchantFrame_UpdateBuybackInfo", clearMerchantDesaturation)
+
 ns.AddRefresher(function()
-  if MerchantFrame and MerchantFrame:IsShown() then updateMerchant() end
+  -- Tab-gated: an external refresh (learning a collectible, a settings toggle) while the Buyback
+  -- tab is open would otherwise repaint Buy-tab tints straight onto buyback rows — the larger of
+  -- the two leaks, and unlike the desaturation one it drags all five properties across.
+  if MerchantFrame and MerchantFrame:IsShown() and MerchantFrame.selectedTab == 1 then updateMerchant() end
 end)
 
 -- Auction House browse list ────────────────────────────────────────────────────

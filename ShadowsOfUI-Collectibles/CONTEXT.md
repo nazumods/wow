@@ -84,6 +84,18 @@ change re-tints what's on screen (pattern from `ShadowsOfUI-Ilvl/surfaces.lua`).
 
 ## Gotchas
 
+- **The Merchant Buy and Buyback tabs share the same `MerchantItem<i>ItemButton` frames**, repainted
+  by two different Blizzard functions, so our Buy-tab paint can ride a recycled button onto an
+  unrelated bought-back item (#737). Two separate leaks, two separate fixes:
+  - `MerchantFrame_UpdateBuybackInfo` resets all four vertex colours in every branch but **never**
+    `SetItemButtonDesaturated` — so only the desaturation leaks, and we hook it to clear just that.
+    Resetting the colours there too would stomp Blizzard's own red-unusable / grey-empty cues.
+  - `ns.AddRefresher` is **tab-gated** (`MerchantFrame.selectedTab == 1`). Ungated, an external
+    refresh with the Buyback tab open repainted Buy-tab tints onto buyback rows — all five
+    properties, the larger of the two leaks.
+  - **Not the shape of `ShadowsOfUI-HousingVendor`'s #592 fix**, despite the same root cause: that
+    addon owns the overlay frames it creates, so a blanket `CleanOverlay` is right there. This one
+    owns no frames and mutates Blizzard's own button properties. Don't "align" them.
 - **`X and f()` truncates multiple returns to one.** `local r,g,b,desat = link and tintFor(link)`
   silently drops g/b/desat — always guard with `if link then r,g,b,desat = tintFor(link) end`.
 - **Recipe knowledge is name-matched + capture-gated.** A profession never opened on an alt has no
