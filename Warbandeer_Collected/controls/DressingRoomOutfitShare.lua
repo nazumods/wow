@@ -177,7 +177,14 @@ function DressingRoom:ImportOutfit(str, title)
   -- longer showing the set you clicked.
   self:EnterOutfitMode(title or "Imported look", list)
   self._outfitSel = nil
-  self._outfitName:Text("")
+  -- **Seeded from `title` rather than cleared, when the caller had one to give.** An inspected look
+  -- arrives already named after whose it is (#819), and with `_outfitSel` nil the row is in "create"
+  -- mode, where Save is greyed until a name is typed — so pre-filling turns "target someone, keep
+  -- their look" into one click instead of typing out a name for a look you didn't build. Writing
+  -- non-empty text fires `OnTextChanged`, which is what un-greys Save; every other import has no
+  -- name to offer and still clears. Deliberately no `SetFocus`: this runs from a slash command, and
+  -- stealing the keyboard from someone who didn't click into a field would be a surprise.
+  self._outfitName:Text(title or "")
   self:RefreshOutfits()
   -- The field has done its job; clearing it restores the prompt and re-greys Import, so the row
   -- can't re-import the same string on a stray second click.
