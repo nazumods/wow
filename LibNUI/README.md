@@ -142,7 +142,9 @@ local myTheme = ui.Theme{   -- unlisted tokens fall back to the dark theme
 local win = ui.TitleFrame:new{ title = "Mine", theme = myTheme }
 ```
 
-Any color option also accepts a token name string (e.g. `background = "window"`), resolved against the widget's active theme. Always build custom themes via `ui.Theme{}` — raw tables miss the dark-theme fallback.
+Any color option also accepts a token name string (e.g. `background = "window"`), resolved against the widget's active theme. Always build custom themes via `ui.Theme{}` — raw tables miss the dark-theme fallback, **and miss the font preload described next.**
+
+**Bundled fonts are preloaded for you.** `ui.Theme{}` parks one throwaway FontString per distinct TTF path it is given, so the file is resident before any real widget asks for it. This matters because a FontString created while its font file is still loading renders **blank permanently** — the text is set, the rect is correct and `SetFont` succeeds, but the glyph run was built against a font that wasn't there and nothing invalidates it afterwards. Only the *first* label to request a given file survives, which is why the symptom looks random: it tracks which font file each label wanted, not when it was built. Declare your fonts on the theme and you get this for free; call `SetFont` with a bundled path outside a theme and you are back in the race.
 
 **Runtime theme swaps.** `theme:Apply{ colors = {...}, fonts = {...}, textures = {...} }` merges the given tokens into the theme **in place** and repaints registered widgets — so a settings control can switch an accent colour live:
 
