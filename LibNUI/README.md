@@ -616,6 +616,8 @@ strip:Position({ TopLeft = {modes:Width() + 6, 0} })   -- the width is computed,
 
 Every segment takes the width of the widest caption, so a long label can't ellipsize and the frame's own width is an outcome rather than a number you pick — read it back with `Width()` to lay out beside it. The lit rim is a [`BorderBox`](#borderbox), so it lands on whole physical pixels.
 
+**Treat the constructor's `Width()` as a floor, not the answer — use `onResize` if you lay out against it.** A caption measures nothing until its font is resident and the frame has been laid out, neither of which is guaranteed when the toggle is built inside a window that is still being assembled. The toggle re-measures itself on first show when that happens and fires `onResize`; a host that positioned something against the earlier width should re-place it there. Build it into an already-shown parent and the first measurement is correct and `onResize` never fires.
+
 `Select(nil)` lights none. That is a real state for a mode switch — what it shows while the thing on screen belongs to neither mode — and lighting a segment that isn't in force would be a lie.
 
 ### Constructor options
@@ -632,6 +634,7 @@ Every segment takes the width of the widest caption, so a long label can't ellip
 | `textColor`     | table/str| Caption colour (default `"text"`)                    |
 | `font`          | table    | `{path, size}`; defaults to the theme's `caps` slot at 10 |
 | `onSelect`      | func     | `fun(self, key)` called when a segment is clicked    |
+| `onResize`      | func     | `fun(self)` called when a deferred re-measure changes the width |
 
 ### Methods
 

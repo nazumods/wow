@@ -181,7 +181,9 @@ Weekly.fields = {
     maxLevel = true,
     resetOn = ns.RESET_WEEKLY,
     get = function() return C_WeeklyRewards.HasAvailableRewards() end,
-    -- depends on vault being reset first; safe because "hasUnclaimedVault" < "vault" in fieldOrder
+    -- must run BEFORE vault is reset (it reads last week's vault.best, and vault declares no reset,
+    -- so broker.lua's default nils it); safe because "hasUnclaimedVault" < "vault" in the
+    -- alphabetical fieldOrder. The comment used to state this dependency backwards (#745-2).
     reset = function(_, toon) return toon.weeklies and toon.weeklies.vault and toon.weeklies.vault.best > 0 end,
     event = "WEEKLY_REWARDS_UPDATE",
     eventDelay = 1000,
