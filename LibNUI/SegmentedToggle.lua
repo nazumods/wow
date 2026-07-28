@@ -37,14 +37,15 @@ local e = ui.edge
 ---@field textColor string|number[]              caption colour (default "text")
 ---@field font table?                            `{path, size}`; defaults to the theme's `caps` slot at 10
 ---@field onSelect fun(self: SegmentedToggle, key: any)?  fired when a segment is clicked
----@field _rims BorderBox[]                      per-segment rims, index-aligned to `options`
+---@field onResize fun(self: SegmentedToggle)?  fired when a deferred re-measure changes the width
+---@field _rims BorderBox[]                     per-segment rims, index-aligned to `options`
+---@field _cells Frame[]                        per-segment cells, each carrying its caption `label`
 local SegmentedToggle = Class(Frame, function(self)
   local h = self.height
   local caps = self:Theme().fonts.caps
   local font = self.font or (caps and {caps[1], 10}) or nil
 
-  self._rims = {}
-  local cells, widest = {}, 0
+  self._rims, self._cells = {}, {}
   for i, opt in ipairs(self.options) do
     -- Width comes later: it isn't known until every caption has been measured.
     local cell = Frame:new{ parent = self, position = { Height = h } }
@@ -52,23 +53,25 @@ local SegmentedToggle = Class(Frame, function(self)
     local key = opt.key
     local btn = Button:new{ parent = cell, position = { All = true },
       OnClick = function() self:_pick(key) end }
-    local label = Label:new{ parent = btn, fontInfo = font, justifyH = ui.justify.Center,
+    cell.label = Label:new{ parent = btn, fontInfo = font, justifyH = ui.justify.Center,
       position = { All = true }, text = opt.label, color = self.textColor }
-    -- Unbounded, because the label is anchored to a cell with no width yet — the bounded
-    -- measurement would report whatever that zero-width rect allows rather than the caption.
-    widest = max(widest, label:UnboundedWidth() or 0)
     -- After the button, so the rim draws over its hover glow rather than under it.
     self._rims[i] = BorderBox:new{ parent = cell, position = { All = true }, color = self.inactiveColor }
-    cells[i] = cell
+    self._cells[i] = cell
   end
 
-  local segW = ceil(widest) + self.padding
-  for i, cell in ipairs(cells) do
-    cell:ClearAllPoints()
-    cell:SetPoint(e.TopLeft, self, e.TopLeft, (i - 1) * segW, 0)
-    cell:Width(segW)
+  -- Measure now for the common case, and again on first show if nothing was measurable yet. A
+  -- caption reports zero width until its font is resident and the chain it hangs from has been laid
+  -- out, neither of which is guaranteed when the toggle is built inside a window still being
+  -- assembled. Sizing once in the constructor baked that zero in permanently: blank captions in a
+  -- box collapsed to padding width, with the host's `Width()` read-back wrong to match.
+  if not self:_layout() then
+    self:SetScript("OnShow", function()
+      if not self:_layout() then return end
+      self:RemoveScript("OnShow")
+      if self.onResize then self:onResize() end
+    end)
   end
-  self:Size(segW * #self.options, h)
   self:_apply()
 end, {
   options = {},
@@ -80,6 +83,34 @@ end, {
   textColor = "text",
 })
 ui.SegmentedToggle = SegmentedToggle
+
+-- Size every segment to the widest caption and lay them out left to right, so the frame's own width
+-- is an outcome rather than a guess. Unbounded measurement, because a label is anchored to a cell
+-- with no width yet — the bounded one would report whatever that zero-width rect allows rather than
+-- the caption.
+--
+-- Returns whether any caption was actually measurable. A zero here means "not measurable yet", never
+-- "this caption is empty": a FontString reports nothing until its font is resident and it has been
+-- laid out. The layout is applied either way, so an unmeasured toggle is a narrow box rather than an
+-- invisible one, and the constructor re-runs this on first show when it comes back false.
+---@return boolean  true when at least one caption reported a width
+function SegmentedToggle:_layout()
+  local widest, measured = 0, false
+  for _, cell in ipairs(self._cells) do
+    local w = cell.label:UnboundedWidth() or 0
+    if w > 0 then measured = true end
+    widest = max(widest, w)
+  end
+
+  local segW = ceil(widest) + self.padding
+  for i, cell in ipairs(self._cells) do
+    cell:ClearAllPoints()
+    cell:SetPoint(e.TopLeft, self, e.TopLeft, (i - 1) * segW, 0)
+    cell:Width(segW)
+  end
+  self:Size(segW * #self.options, self.height)
+  return measured
+end
 
 -- The lit rim's colour: the theme's `gold` accent where it defines one, else its `header` token —
 -- which is gold in LibNUI's own dark theme, so this renders correctly under no theme at all.
