@@ -105,6 +105,7 @@ local selBox = ns.SelBox
 ---@field _raceOnlyBorder Texture  per-race-override toggle border (gold while active)
 ---@field _raceOnlyBtn table  the per-race toggle's greyable handle ({ box, border, label, disabled? }) (DressingRoomControls.lua)
 ---@field _enableRaceOnly fun(self: DressingRoom, on: boolean)  enable/grey the per-race toggle — off while a weapon is the rated subject (DressingRoomControls.lua)
+---@field _hideRatingsRow fun(self: DressingRoom)  hide the whole ratings row — a loaded look with nothing browsed on it has nothing to rate (DressingRoomControls.lua)
 ---@field _slots table[]  paper-doll slot entries ({ slotID, icon, border, itemID?, collected?, cosmetic? }) — cosmetic ones are picker-driven, not set pieces
 ---@field _cosmeticSlots table[]  the shirt/tabard subset of _slots ({ slotID, label, target, look, empty, ... }) (DressingRoomCosmeticSlots.lua)
 ---@field _hiddenSlots table<number, string>  inventory slot ids that aren't being worn, by state — `"hidden"` (composes as the slot's hide visual) or `"empty"` (composes as 0, no transmog); absent = worn (reset per set) (DressingRoomSlotStates.lua)

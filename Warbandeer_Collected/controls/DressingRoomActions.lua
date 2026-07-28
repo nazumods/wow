@@ -92,7 +92,9 @@ function DressingRoom:_refreshRatings()
   local look = self:_ratedWeapon()
   if look then return self:_paintWeaponRatings(look) end
   self:_enableRaceOnly(true)
-  if self._outfit then return end   -- an outfit has no set id to rate
+  -- An outfit has no set id to rate. Hidden rather than merely left alone: a weapon browsed on top
+  -- of a loaded look shows this row, so every pass has to be able to take it back (#827).
+  if self._outfit then return self:_hideRatingsRow() end
   -- No set previewed yet (a weapon cell browsed straight from a fresh open): nothing to rate, so
   -- drop every border rather than leaving the last set's ratings lit under an unrelated doll.
   if not self._set then

@@ -107,6 +107,17 @@ end
 ---@return table?  the shown cell look, or nil
 function DressingRoom:_ratedWeapon()
   if self._focus ~= "weapons" then return nil end
+  -- **Outfit mode is the one place the GRID the user is on matters.** A loaded look hides the row
+  -- (nothing to rate) and a browsed weapon is what earns it back — but only for as long as the
+  -- Weapons grid is the one being browsed. Switch back to Armor without clicking a cell and the
+  -- claim lapses, which puts the row back to hidden rather than leaving it floating over a look.
+  --
+  -- Scoped to outfit mode deliberately: outside it the toggle must not move the write target, since
+  -- it swaps grids and nothing else (#673) — it leaves the doll and the window title alone, so a row
+  -- that followed it would go back out of step with the title, which is the whole of #827. An unset
+  -- flag (the toggle never clicked) can't coexist with a browsed weapon, and comparing against
+  -- `false` rather than falsiness keeps that case failing toward showing the row.
+  if self._outfit and ns.gridWeaponsMode == false then return nil end
   return self:_shownCellLook()
 end
 

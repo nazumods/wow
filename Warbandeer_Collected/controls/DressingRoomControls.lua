@@ -121,6 +121,20 @@ function DressingRoom:_buildControls(controls)
     position = { Left = {4, 0}, Right = {-4, 0} }, text = "This race" }
 end
 
+---Hide the whole ratings row — a loaded look is on the doll with nothing browsed on top of it, so
+---there is nothing to rate. Both boxes lists, since `_wantBox` is kept out of `_ratingsBoxes` so
+---outfit mode can hide it separately.
+---
+---`EnterOutfitMode` does this on the way in, and `_refreshRatings` repeats it on every pass because
+---the row is no longer hidden once and left that way: a weapon browsed on top of a loaded look SHOWS
+---it (#827), and giving up that claim — switching back to the Armor grid — has to take it away
+---again. Without this second site the row leaked, staying visible over the look for the rest of its
+---life.
+function DressingRoom:_hideRatingsRow()
+  if self._ratingsBoxes then for _, b in ipairs(self._ratingsBoxes) do b:Hide() end end
+  if self._wantBox then self._wantBox:Hide() end
+end
+
 ---Enable or grey the "This race" toggle. Weapon appearances carry no per-race override — one
 ---renders identically on every race (#688) — so it greys while the ratings row's subject is a
 ---weapon, and the click is swallowed with it: `_raceOnly` must not be flippable under a subject it

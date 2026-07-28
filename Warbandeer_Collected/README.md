@@ -310,8 +310,10 @@ not one that quietly falls back to your equipped gear. A slot you clicked all th
 *no transmog* saves as exactly that.
 
 While a saved look is loaded the window shows its name, and the rating buttons are hidden —
-a look isn't one of the tracked sets, so there's nothing to rate. (Browse a weapon and they
-come back, pointed at that weapon.) Click any set in the grid to go back to normal previewing.
+a look isn't one of the tracked sets, so there's nothing to rate. (Click a weapon in the
+Weapons grid and they come back, pointed at that weapon; switch the grid back to Armor
+without picking anything and they go away again.) Click any set in the grid to go back to
+normal previewing.
 
 ## Sharing a look
 
