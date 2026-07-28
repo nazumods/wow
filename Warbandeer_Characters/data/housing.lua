@@ -101,7 +101,10 @@ local Housing = ns:RegisterBroker("housing")
 Housing.fields = {
   active = {
     -- feeds /wbc missing ("endeavor") whenever a character has no active endeavor (active == nil)
-    missing = { label = "endeavor", order = 130 },
+    -- 140, not 130 — the Hunter stable-pets provider (data/pets.lua:140) claimed 130 first, and two
+    -- providers on one slot leave their relative order undeclared (#745-3). 120 is glyph unlocks,
+    -- 130 pets, 150 lumber axe, so 140 is the free slot between them.
+    missing = { label = "endeavor", order = 140 },
     get = function(_, _, current)
       if GetPlayerOwnedHouses then GetPlayerOwnedHouses() end          -- kick the async house list
       if RequestNeighborhoodInitiativeInfo then RequestNeighborhoodInitiativeInfo() end

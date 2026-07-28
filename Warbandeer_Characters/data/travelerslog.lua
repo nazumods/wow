@@ -32,6 +32,11 @@ local PerksProgram = C_PerksProgram
 ---@field tender integer         current spendable Trader's Tender balance
 ---@field rewards TravelersLogRewards
 
+-- Reward ids whose name was still cold on the last `derive`, so the ITEM_DATA_LOAD_RESULT hook can
+-- tell our loads from every other item the UI touches. Rebuilt by each derive, so an id that has
+-- since arrived drops out on its own and the set drains to empty.
+local cold = {}
+
 -- Build the compact snapshot from the raw API tables.
 ---@param info table   C_PerksActivities.GetPerksActivitiesInfo()
 ---@param pending table C_PerksProgram.GetPendingChestRewards()
@@ -39,6 +44,7 @@ local PerksProgram = C_PerksProgram
 ---@param prev table<integer, {name: string?, icon: integer?}>? the last snapshot's `rewards.itemInfo`, so a cold item keeps its captured name
 ---@return TravelersLogData
 local function derive(info, pending, currency, prev)
+  cold = {}
   local thresholdMax = 0
   for _, t in pairs(info.thresholds) do
     if t.requiredContributionAmount > thresholdMax then thresholdMax = t.requiredContributionAmount end
@@ -77,6 +83,7 @@ local function derive(info, pending, currency, prev)
         -- captured — a Perks event re-derives the whole snapshot shortly after.
         if not name then
           C_Item.RequestLoadItemDataByID(t.itemReward)
+          cold[t.itemReward] = true
           name = prev and prev[t.itemReward] and prev[t.itemReward].name or nil
         end
         itemInfo[t.itemReward] = { name = name, icon = C_Item.GetItemIconByID(t.itemReward) or nil }
@@ -129,6 +136,21 @@ function ns:InitTravelersLog()
   end)
   ns:registerEvent("CHEST_REWARDS_UPDATED_FROM_SERVER", refresh)
   ns:registerEvent("PERKS_PROGRAM_CURRENCY_REFRESH", refresh)
+  -- `derive` already fires RequestLoadItemDataByID for a cold reward item but nothing listened for
+  -- the answer (#745-4), so an item still cold on the LAST Perks event of the month kept `name =
+  -- nil` for the rest of the session — the comment's "a Perks event re-derives shortly after" holds
+  -- while thresholds are still being crossed, not at rest.
+  --
+  -- No bounded fallback timer here, unlike data/professions_gear.lua: that one guards against the
+  -- event never firing for an ALREADY-CACHED item, which can't strand us — an already-cached item
+  -- returns its name from GetItemInfo, so it is never added to `cold` in the first place. An id that
+  -- genuinely never resolves simply stays in the set, which costs nothing and loops nothing; the
+  -- existing `prev` fallback keeps whatever name was last captured.
+  ns:registerEvent("ITEM_DATA_LOAD_RESULT", function(_, itemID, success)
+    if not cold[itemID] then return end
+    cold[itemID] = nil
+    if success then refresh() end
+  end)
 end
 
 ns:registerDump("travelerslog", "Traveler's Log", "Dump Traveler's Log progress + rewards", function(self, out)

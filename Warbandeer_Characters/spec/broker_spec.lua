@@ -94,3 +94,42 @@ describe("Warbandeer_Characters Broker per-character guards (#624)", function()
     assert.equal("got-daily", current.professionKnowledge.daily)
   end)
 end)
+
+-- data/weekly.lua's `hasUnclaimedVault.reset` reads last week's `vault.best`, and `vault` declares
+-- no reset so the default nils it — meaning the pair is only correct because neither declares an
+-- `order` and "hasUnclaimedVault" sorts before "vault". That contract is load-bearing and invisible:
+-- renaming either field, or giving one an `order`, would silently invert the reset sequence (#745-2).
+describe("Warbandeer_Characters Broker field ordering", function()
+  local ns
+
+  before_each(function() ns = loadBroker() end)
+
+  ---@return table fieldOrder
+  local function orderFor(fields)
+    local broker = ns.Broker:new{ name = "weeklies", fields = fields }
+    broker:Init({})
+    return broker.fieldOrder
+  end
+
+  local function noop() return nil end
+
+  it("sorts order-less fields alphabetically, so a reset can depend on running before a sibling", function()
+    local order = orderFor({
+      vault = { get = noop },
+      hasUnclaimedVault = { get = noop },
+      keystone = { get = noop },
+    })
+    assert.equal("hasUnclaimedVault", order[1])
+    assert.equal("keystone", order[2])
+    assert.equal("vault", order[3])
+  end)
+
+  it("puts any field carrying an explicit order ahead of every order-less one", function()
+    local order = orderFor({
+      aardvark = { get = noop },
+      vault = { order = 10, get = noop },
+    })
+    assert.equal("vault", order[1])
+    assert.equal("aardvark", order[2])
+  end)
+end)
