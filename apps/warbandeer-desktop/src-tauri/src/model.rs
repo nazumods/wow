@@ -14,6 +14,35 @@ pub struct CharDb {
     pub version: Option<f64>,
     pub warband: Warband,
     pub characters: HashMap<String, Character>,
+    /// Account-wide, so it hangs off the DB root rather than a character — the addon
+    /// stores it at `db.achievements` (Warbandeer_Characters/data/achievements.lua).
+    /// A save written before that shipped has no key at all, which `#[serde(default)]`
+    /// renders as "not captured yet" instead of failing the whole parse.
+    pub achievements: Achievements,
+}
+
+/// `db.achievements` — the account-wide completion snapshot plus the point total.
+#[derive(Deserialize, Default)]
+#[serde(default)]
+pub struct Achievements {
+    /// Keyed by achievement id as an INTEGER. The addon writes a Lua numeric key, and mlua's
+    /// deserializer preserves that — unlike `staticdata`'s maps, which are string-keyed only
+    /// because JSON object keys always are. Typing this `String` parses every other save fine
+    /// and then fails on the first one that actually has achievements captured.
+    pub snapshot: HashMap<i64, AchievementEntry>,
+    #[serde(rename = "totalPoints")]
+    pub total_points: f64,
+}
+
+/// One tracked achievement's persisted state.
+///
+/// `wasEarnedByMe` is deliberately NOT surfaced: the addon documents it as
+/// last-captured-character-wins rather than per-alt, so exposing it here would invite a
+/// per-character reading the data cannot support.
+#[derive(Deserialize, Default)]
+#[serde(default)]
+pub struct AchievementEntry {
+    pub completed: bool,
 }
 
 #[derive(Deserialize, Default)]

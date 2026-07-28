@@ -386,6 +386,7 @@ mod tests {
             version: Some(30.0),
             warband: Default::default(),
             characters,
+            achievements: Default::default(),
         }
     }
 
