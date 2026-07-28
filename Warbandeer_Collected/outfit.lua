@@ -141,12 +141,34 @@ end
 ---false, see `ns.OutfitIssues`.
 ---@param list table[]
 ---@return string
+---Why a weapon slot is empty, in the terms that matter to whoever reads the string.
+---
+---**The off-hand of a two-handed main hand is empty STRUCTURALLY**, and telling the reader they'd
+---keep their own would be wrong: the weapon fills both hands, so nothing shows there for anyone.
+---`ns.SuppressesOffHand` is the same rule the look-builder greys its off-hand slot with (#661), so
+---the listing and the room can't disagree about what has room for a weapon — and it correctly does
+---NOT fire for the Titan's Grip three, where an off-hand was genuinely possible and simply absent.
+---@param list table[]
+---@param slotID number
+---@return string
+local function emptyWeaponNote(list, slotID)
+  if slotID == INVSLOT_OFFHAND then
+    local main = list[INVSLOT_MAINHAND]
+    local mainID = main and main.appearanceID or 0
+    if mainID > 0 and ns.SuppressesOffHand(C_TransmogCollection.GetCategoryForItem(mainID)) then
+      return "(none — the main hand is two-handed)"
+    end
+  end
+  return "(empty — the recipient keeps their own)"
+end
+
 function ns.OutfitSummary(list)
-  local lines = {}
+  local lines, filled = {}, 0
   for _, slotID in ipairs(ns.OutfitSlotOrder) do
     local info = list[slotID]
     local appearanceID = info and info.appearanceID or 0
     if appearanceID > 0 then
+      filled = filled + 1
       local src = GetSourceInfo(appearanceID)
       local extra = ""
       if info.illusionID and info.illusionID > 0 then
@@ -161,9 +183,21 @@ function ns.OutfitSummary(list)
         ns.SlotLabel(slotID), appearanceID,
         (src and src.name) or "(name pending)", extra,
         (src and not src.isCollected) and "   (not owned)" or "")
+    elseif not ns.HideVisual(slotID) then
+      -- **A slot the format CAN'T express, named rather than omitted (#819).** Only the two weapons
+      -- reach here: `ns.ShareableOutfit` fills every other bare slot with that slot's hide visual, so
+      -- a `0` that survives is one with no hide visual to write. Skipping it made the listing say
+      -- something it doesn't mean — a missing "Off Hand" line reads as "they aren't holding one",
+      -- where what actually happens is that the RECIPIENT keeps their own. That gap between what the
+      -- listing names and what goes on the wire is the same one #666 closed for armour, and this is
+      -- the half of it no hide visual can fix.
+      lines[#lines + 1] = ("%-14s %-8s %s"):format(
+        ns.SlotLabel(slotID), "-", emptyWeaponNote(list, slotID))
     end
   end
-  if #lines == 0 then return "(empty outfit)" end
+  -- Counted rather than `#lines`: the weapon lines above are emitted for an EMPTY slot, so a look
+  -- with nothing in it now produces two of them and would never reach this fallback.
+  if filled == 0 then return "(empty outfit)" end
   return table.concat(lines, "\n")
 end
 

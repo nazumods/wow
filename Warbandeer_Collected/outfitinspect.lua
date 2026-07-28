@@ -69,7 +69,16 @@ local function finish(list)
   local title = ("%s's look"):format(who)
   -- The same body shape `DressingRoom:ExportOutfit` writes: the string first, so it is at the top of
   -- the pre-selected text, then the per-slot listing to eyeball it against.
-  ui.ShowCopyWindow(title, table.concat({ str, "", ns.OutfitSummary(shared) }, "\n"))
+  local body = { str, "", ns.OutfitSummary(shared) }
+  -- **The note ExportOutfit carries, and here it is the NORMAL case rather than the rare one**: the
+  -- target's items were never in this client's cache, so the listing comes back mostly
+  -- `(name pending)` while `GetSourceInfo` streams them. Only the listing is affected — the string
+  -- above it is complete either way, since an appearance id needs no item data to be an id.
+  if ns.OutfitIssues(shared).pending then
+    body[#body + 1] = ""
+    body[#body + 1] = "NOTE: some item data is still loading — re-run to re-check."
+  end
+  ui.ShowCopyWindow(title, table.concat(body, "\n"))
   ns.Print(("Read %s's look — the /customset string is in the copy window."):format(who))
 
   -- Dressing the preview goes through the room's ordinary import path rather than applying the list

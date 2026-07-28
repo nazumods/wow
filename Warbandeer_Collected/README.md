@@ -339,15 +339,17 @@ weapon illusion.
 Target a player whose transmog you like and run `/collected outfit inspect`. It reads what
 they're wearing and hands it back as the same `/customset` string Export produces — copy it,
 send it to a friend, or paste it into `/collected outfit import` to wear it yourself. If the
-preview window is already open it dresses itself from their look straight away, so you can
-name it and **Save** it to your library in one more click.
+preview window is already open it dresses itself from their look straight away, **with the
+name field already filled in with their name** — so keeping it is a single click on **Save**.
 
 This is the game's ordinary inspect, so the usual rules apply: it has to be a player, they
 have to be close enough to inspect, and their gear takes a moment to arrive. If it doesn't,
 you'll be told to get closer and try again.
 
+Everything you can see on them comes across, down to the **enchant glow** on their weapons.
 The one thing that can't travel is a **weapon they aren't holding** — the format has no way
-to say "empty hand", so an off-hand they've left bare shows yours instead.
+to say "empty hand", so an off-hand they've left bare shows yours instead. The listing in the
+copy window says so explicitly, rather than leaving the slot out.
 
 **Pieces you haven't collected are fine to share.** Both formats carry appearances you
 don't own yet, which makes either a good way to pass a wishlist look around. The export marks
