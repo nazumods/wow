@@ -42,20 +42,23 @@ ns.prof = Prof
 -- creates the table.
 _G.WarbandeerCollectedApi.prof = Prof
 
----Is instrumentation on? **On by default**, and only an explicit `false` turns it off — so a fresh
----install collects from its first login with nothing typed.
+---Is instrumentation on? **Off by default** — only an explicit `true` (from `/collected profile`) arms
+---it, and that choice persists across a `/reload`.
 ---
----Deliberately the default while #718's slow open is being investigated, for two reasons that both
----come down to the same thing: the run that matters most is the FIRST open, which happens once per
----session, and one session's reading is noise. Anything that has to be armed by hand each login
----doesn't get armed, and the multi-sample set this is built around never accumulates.
+---It ran by default for the duration of #843, because the run that mattered most was the FIRST open,
+---which happens once per session, and one session's reading is noise — anything needing to be armed by
+---hand each login never accumulates the sample set. That earned its keep: nine to twenty samples per
+---kind are what showed the cost was engine layout rather than Lua, which is what ruled out chunking the
+---build and pointed at virtualisation instead.
 ---
----**Flip this default back to off once that question is settled** — it is a diagnostic, not a
----permanent resident. `/collected profile` turns it off in the meantime, and the state persists.
+---#843 has landed, so the reason has expired and the default is back off. It is a diagnostic, not a
+---permanent resident: arming it costs every consumer a timer and a `GetTimePreciseSec` pair per window
+---open and per Armor/Weapons swap, forever, to answer a question nobody is asking any more. Turn it
+---back on with `/collected profile` when there is a next question — the machinery is all still here.
 ---@return boolean
 function Prof:Armed()
   local store = ns.db.profile
-  return not (store and store.armed == false)
+  return store ~= nil and store.armed == true
 end
 
 ---Should each run print as it completes? **Off by default**, the mirror of `Armed`.
@@ -259,14 +262,17 @@ function Prof:Report()
   ui.ShowCopyWindow("Collected build profile", table.concat(lines, "\n"))
 end
 
--- dev: the build profiler's controls. It runs on its own (see Prof:Armed) — every window open and
--- every Armor/Weapons swap is timed with nothing typed — so a bare call is the OFF switch, not the
--- on switch. Recording and printing are separate: it records **quietly** by default, and `show`
--- turns the per-run lines on for when you're actively measuring. Both states persist across a
--- /reload.
+-- dev: the build profiler's controls. **Off by default since #843 landed** (see Prof:Armed), so a bare
+-- call is the ON switch — and it opens the window in the same step, because the first open is the run
+-- that can only be taken once per session.
 --
--- `report` aggregates the stored samples across sessions, which is the reading that means anything;
--- `clear` wipes them without changing whether it's running.
+-- Recording and printing stay separate switches: armed, it records **quietly**, and `show` turns the
+-- per-run lines on for when you're actively measuring rather than accumulating. Both states persist
+-- across a /reload, so arming once covers however many logins the question needs.
+--
+-- `report` aggregates the stored samples across sessions, which is the reading that means anything —
+-- and it works whether or not the profiler is currently armed, so old samples stay readable after you
+-- turn it off. `clear` wipes them without changing whether it's running.
 ns:registerCommand("profile", nil, function(self, args)
   local arg = (args or ""):lower():match("^%s*(.-)%s*$")
   if arg == "report" then Prof:Report(); return end
@@ -294,4 +300,4 @@ ns:registerCommand("profile", nil, function(self, args)
   -- Opening from here only matters when there's no window yet: the first open is the run that can
   -- only be taken once per session, so don't make the user issue a second command to get it.
   if not ns.window then self:Open() end
-end, "dev: build profiling records by default, quietly — bare call turns it OFF (`report` aggregates, `show` prints live, `clear` wipes)")
+end, "dev: build profiling, off by default — bare call arms it (`report` aggregates, `show` prints live, `clear` wipes)")
