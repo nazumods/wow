@@ -1,7 +1,7 @@
 ---@type Warbandeer_Collected
 local ns = select(2, ...)
 local tinsert = tinsert
--- Generated from wago.tools TransmogSet PTR delta (live 12.0.7.68275 vs PTR 12.1.0.68301, 2026-06-24) by tools/update-sets.ps1 -PtrDelta.
+-- Generated from wago.tools TransmogSet PTR delta (live 12.0.7.68887 vs PTR 12.1.0.68914, 2026-07-24) by tools/update-sets.ps1 -PtrDelta.
 -- Sets present on the PTR but not yet on live ("upcoming"). VOLATILE — regenerate
 -- on demand; not part of the weekly live refresh. release tags the newest expansion;
 -- instance/difficulty are omitted (no lockouts for unreleased content).
@@ -10,7 +10,7 @@ local tinsert = tinsert
 ---@field PtrSets table[] PTR-only set groups (same shape as ns.Sets)
 ---@field PtrBuild { live: string, ptr: string } the builds this delta was generated from
 ns.PtrSets = {}
-ns.PtrBuild = { live = "12.0.7.68275", ptr = "12.1.0.68301" }
+ns.PtrBuild = { live = "12.0.7.68887", ptr = "12.1.0.68914" }
 
 tinsert(ns.PtrSets, {
   id = 396,
@@ -19,17 +19,17 @@ tinsert(ns.PtrSets, {
   sets = {
     { id = 5719, name = "Warplate of Nalorakk's Chosen", classId = 1 },
     { id = 5719, name = "Warplate of Nalorakk's Chosen", classId = 2 },
-    { id = 5718, name = "Chainmail of Jan'alai's Chosen", classId = 3 },
+    { id = 5718, name = "Chainmail of Akil'zon's Chosen", classId = 3 },
     { id = 5717, name = "Battlegear of Halazzi's Chosen", classId = 4 },
-    { id = 5716, name = "Vestments of Akil'zon's Chosen", classId = 5 },
+    { id = 5716, name = "Vestments of Jan'alai's Chosen", classId = 5 },
     { id = 5719, name = "Warplate of Nalorakk's Chosen", classId = 6 },
-    { id = 5718, name = "Chainmail of Jan'alai's Chosen", classId = 7 },
-    { id = 5716, name = "Vestments of Akil'zon's Chosen", classId = 8 },
-    { id = 5716, name = "Vestments of Akil'zon's Chosen", classId = 9 },
+    { id = 5718, name = "Chainmail of Akil'zon's Chosen", classId = 7 },
+    { id = 5716, name = "Vestments of Jan'alai's Chosen", classId = 8 },
+    { id = 5716, name = "Vestments of Jan'alai's Chosen", classId = 9 },
     { id = 5717, name = "Battlegear of Halazzi's Chosen", classId = 10 },
     { id = 5717, name = "Battlegear of Halazzi's Chosen", classId = 11 },
     { id = 5717, name = "Battlegear of Halazzi's Chosen", classId = 12 },
-    { id = 5718, name = "Chainmail of Jan'alai's Chosen", classId = 13 },
+    { id = 5718, name = "Chainmail of Akil'zon's Chosen", classId = 13 },
   },
 })
 
@@ -40,17 +40,17 @@ tinsert(ns.PtrSets, {
   sets = {
     { id = 5830, name = "Venom-Cursed Bear's Guard", classId = 1 },
     { id = 5830, name = "Venom-Cursed Bear's Guard", classId = 2 },
-    { id = 5829, name = "Venom-Cursed Dragonhawk's Scales", classId = 3 },
+    { id = 5829, name = "Venom-Cursed Eagle's Scales", classId = 3 },
     { id = 5828, name = "Venom-Cursed Lynx's Garb", classId = 4 },
-    { id = 5827, name = "Venom-Cursed Eagle's Raiment", classId = 5 },
+    { id = 5827, name = "Venom-Cursed Dragonhawk's Raiment", classId = 5 },
     { id = 5830, name = "Venom-Cursed Bear's Guard", classId = 6 },
-    { id = 5829, name = "Venom-Cursed Dragonhawk's Scales", classId = 7 },
-    { id = 5827, name = "Venom-Cursed Eagle's Raiment", classId = 8 },
-    { id = 5827, name = "Venom-Cursed Eagle's Raiment", classId = 9 },
+    { id = 5829, name = "Venom-Cursed Eagle's Scales", classId = 7 },
+    { id = 5827, name = "Venom-Cursed Dragonhawk's Raiment", classId = 8 },
+    { id = 5827, name = "Venom-Cursed Dragonhawk's Raiment", classId = 9 },
     { id = 5828, name = "Venom-Cursed Lynx's Garb", classId = 10 },
     { id = 5828, name = "Venom-Cursed Lynx's Garb", classId = 11 },
     { id = 5828, name = "Venom-Cursed Lynx's Garb", classId = 12 },
-    { id = 5829, name = "Venom-Cursed Dragonhawk's Scales", classId = 13 },
+    { id = 5829, name = "Venom-Cursed Eagle's Scales", classId = 13 },
   },
 })
 
@@ -250,17 +250,17 @@ tinsert(ns.PtrSets, {
   sets = {
     { id = 5902, name = "Pledgebearer's Warplate", classId = 1 },
     { id = 5902, name = "Pledgebearer's Warplate", classId = 2 },
-    { id = 5901, name = "Pyrewalker's Battlegear", classId = 3 },
+    { id = 5901, name = "Galerider's Battlegear", classId = 3 },
     { id = 5900, name = "Miststalker's Harness", classId = 4 },
-    { id = 5898, name = "Galerider's Panoply", classId = 5 },
+    { id = 5898, name = "Pyrewalker's Panoply", classId = 5 },
     { id = 5902, name = "Pledgebearer's Warplate", classId = 6 },
-    { id = 5901, name = "Pyrewalker's Battlegear", classId = 7 },
-    { id = 5898, name = "Galerider's Panoply", classId = 8 },
-    { id = 5898, name = "Galerider's Panoply", classId = 9 },
+    { id = 5901, name = "Galerider's Battlegear", classId = 7 },
+    { id = 5898, name = "Pyrewalker's Panoply", classId = 8 },
+    { id = 5898, name = "Pyrewalker's Panoply", classId = 9 },
     { id = 5900, name = "Miststalker's Harness", classId = 10 },
     { id = 5900, name = "Miststalker's Harness", classId = 11 },
     { id = 5900, name = "Miststalker's Harness", classId = 12 },
-    { id = 5901, name = "Pyrewalker's Battlegear", classId = 13 },
+    { id = 5901, name = "Galerider's Battlegear", classId = 13 },
   },
 })
 
@@ -271,16 +271,16 @@ tinsert(ns.PtrSets, {
   sets = {
     { id = 5896, name = "Stonehide Plate", classId = 1 },
     { id = 5896, name = "Stonehide Plate", classId = 2 },
-    { id = 5895, name = "Flamebeak Chainmail", classId = 3 },
+    { id = 5895, name = "Skytalon Chainmail", classId = 3 },
     { id = 5894, name = "Shadowclaw Leathers", classId = 4 },
-    { id = 5893, name = "Skytalon Vestments", classId = 5 },
+    { id = 5893, name = "Flamebeak Vestments", classId = 5 },
     { id = 5896, name = "Stonehide Plate", classId = 6 },
-    { id = 5895, name = "Flamebeak Chainmail", classId = 7 },
-    { id = 5893, name = "Skytalon Vestments", classId = 8 },
-    { id = 5893, name = "Skytalon Vestments", classId = 9 },
+    { id = 5895, name = "Skytalon Chainmail", classId = 7 },
+    { id = 5893, name = "Flamebeak Vestments", classId = 8 },
+    { id = 5893, name = "Flamebeak Vestments", classId = 9 },
     { id = 5894, name = "Shadowclaw Leathers", classId = 10 },
     { id = 5894, name = "Shadowclaw Leathers", classId = 11 },
     { id = 5894, name = "Shadowclaw Leathers", classId = 12 },
-    { id = 5895, name = "Flamebeak Chainmail", classId = 13 },
+    { id = 5895, name = "Skytalon Chainmail", classId = 13 },
   },
 })
