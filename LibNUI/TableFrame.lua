@@ -44,6 +44,13 @@ local Top, Bottom = ui.edge.Top, ui.edge.Bottom
 ---@field _sortKey? any  key of the active sort column (nil = unsorted)
 ---@field _sortDesc? boolean  active sort direction
 ---@field _sortCols? table[]  {col, key} for every sortable column, driven by `_refreshSortHeaders`
+---@field virtual? boolean  opt-in: build cell frames only for the rows the viewport can show, and
+---  re-bind them to a sliding window of `data` as it scrolls. Off by default — see `BindViewport`
+---  for the wiring and the constraints it imposes.
+---@field overscan? integer  rows kept resident beyond each edge of the viewport (default 3)
+---@field _viewport ScrollFrame?  bound viewport (virtual mode)
+---@field _resident integer?  live row-frame count (virtual mode)
+---@field _top integer?  data index currently bound to resident row 1 (virtual mode)
 local TableFrame = Class(Frame, function(self)
   if not self.colNames and self.colInfo then
     self.colNames = {}
@@ -148,13 +155,139 @@ local TableFrame = Class(Frame, function(self)
 end, {
   cellWidth = 100,
   cellHeight = 20,
+  virtual = false,
+  overscan = 3,
 })
 ui.TableFrame = TableFrame
+
+-- ─── Viewport virtualisation (opt-in via `virtual = true`) ────────────────────
+--
+-- A static table builds one cell frame per (row, column) in `data`. That cost is a function of the
+-- DATA size, not of what the user can see: a 473-row grid in a 23-row viewport built 6,622 cells to
+-- show ~5% of them, and the frame count drove not just creation but the engine's own layout pass and
+-- the scroll frame's content-extent walk (nazumods/wow#843).
+--
+-- Virtual mode keeps only enough row frames to cover the viewport (plus `overscan` beyond each edge)
+-- and re-binds them to a sliding window of `data` as the view scrolls. The row area still spans
+-- every data row, so the scrollbar range and any offset maths a consumer already does are unchanged
+-- — only the number of frames inside it shrinks.
+--
+-- CONSTRAINTS, all of them checkable at the call site:
+--   * **Uniform row height.** The window↔offset mapping is `floor(offset / cellHeight)`, so per-row
+--     `rowInfo[i].height` is not honoured. A variable-height table needs a prefix-sum index; not
+--     built, because nothing needs it yet.
+--   * **`Autosize` measures resident rows only.** It walks `self.rows`/`self.cells`, which in this
+--     mode is the visible window — so a column sized from cell text would resize as you scroll. Size
+--     such a column from the DATA instead, or give it a fixed width.
+--   * **Row headers are per-frame**, so `rowNames` entries follow the window rather than the data.
+--     Don't combine `virtual` with row headers.
+--   * **No footer.** `setFooter` anchors to the row area's bottom, which is now the bottom of the
+--     whole dataset rather than of the visible rows.
+
+-- Bind the viewport this table scrolls inside. Required for `virtual` — without it there is no
+-- offset to derive the window from. The scroll frame's child must be this table's `rowArea`, which
+-- is already how a scrolling TableFrame is wired.
+---@param scroll ScrollFrame  the viewport whose child is `self.rowArea`
+---@return TableFrame
+function TableFrame:BindViewport(scroll)
+  self._viewport = scroll
+  -- Chain rather than replace: a consumer may already be watching its own scroll.
+  local prior = scroll.onScroll
+  scroll.onScroll = function(s, offset)
+    if prior then prior(s, offset) end
+    self:_rebind()
+  end
+  scroll._widget:SetScript("OnVerticalScroll", function(_, offset) scroll:onScroll(offset) end)
+  return self
+end
+
+-- How many row frames it takes to cover the viewport, plus overscan at both edges.
+---@return integer
+function TableFrame:_residentCount()
+  local view = self._viewport and self._viewport:Height() or 0
+  return math.max(math.ceil(view / self.cellHeight) + self.overscan * 2, 1)
+end
+
+-- Grow the resident pool to cover the viewport, size the row area to the WHOLE dataset (so the
+-- scroll range still spans every row), and bind the window to the current offset.
+function TableFrame:_virtualUpdate()
+  local n, rowH = #self.data, self.cellHeight
+  local want = math.min(self:_residentCount(), n)
+  for _ = #self.rows + 1, want do self:addRow{} end
+  -- Hide any resident rows this dataset doesn't need (a smaller `data` than a previous pass).
+  for i = 1, #self.rows do
+    local live = i <= want
+    self.rows[i]:SetShown(live)
+    for _, cell in pairs(self.cells[i]) do cell:SetShown(live) end
+  end
+  self._resident = want
+  -- addRow grew both heights by a row apiece as it went, so both are restated outright rather than
+  -- adjusted — but they are NOT the same number.
+  --
+  -- The row area is the scroll child, so it spans the whole dataset: that extent is what gives the
+  -- viewport its scroll range. The table itself is not scrolled — it holds the column frames, which
+  -- anchor their Bottom to it — so sizing it to the dataset stretches every column backdrop
+  -- thousands of pixels past the viewport and paints them down the screen as vertical bands. It
+  -- gets the visible height instead.
+  self.rowArea:Height(n * rowH)
+  local visibleH = self._viewport and self._viewport:Height() or (want * rowH)
+  self:Height(self.offsetY + visibleH)
+  self._top = nil   -- force the bind below even if the offset hasn't moved
+  self:_rebind()
+end
+
+-- Point the resident rows at the slice of `data` the current offset exposes. Cheap enough to run on
+-- every scroll event: it early-outs unless the window actually moved, and when it does move it costs
+-- one re-anchor plus one `Cell:update` per resident cell — no frame creation.
+function TableFrame:_rebind()
+  local resident = self._resident
+  if not (self.virtual and resident and resident > 0) then return end
+  local rowH, n = self.cellHeight, #self.data
+  local offset = self._viewport and self._viewport:VerticalScroll() or 0
+  local first = math.floor(offset / rowH) - self.overscan + 1
+  local last = n - resident + 1
+  if first > last then first = last end
+  if first < 1 then first = 1 end
+  if first == self._top then return end
+  self._top = first
+
+  for k = 1, resident do
+    local rowFrame, dataRow = self.rows[k], self.data[first + k - 1]
+    -- Resident frames are a sliding window, so they can't stay chained to their predecessor the way
+    -- a static table's are — each is placed at its data row's absolute offset. Re-setting TOPLEFT
+    -- replaces that point and leaves the row's Right/Height anchors alone (a ClearAllPoints here
+    -- would drop them).
+    rowFrame:TopLeft(self.rowArea, ui.edge.TopLeft, 0, -((first + k - 2) * rowH))
+    for colN = 1, #self.cols do
+      local data = dataRow and dataRow[colN]
+      local cell = self.cells[k][colN]
+      if data and not cell then
+        self.cells[k][colN] = Cell:new{
+          parent = self.rowArea,
+          name = "$parentCell"..k.."-"..colN,
+          position = self:cellPosition(colN, rowFrame),
+          data = data,
+        }
+      elseif data then
+        cell:update(data)
+        cell:Show()
+      elseif cell then
+        -- The incoming row has nothing for this column; blank the slot rather than leaving the
+        -- previous occupant's content sitting under a different row's data.
+        cell:Hide()
+      end
+    end
+  end
+end
 
 -- Resize the frame to show exactly n rows, hiding dead space when the active
 -- row count shrinks below the pool size. Safe to call after addRow growth loops.
 ---@param n integer  number of visible rows
 function TableFrame:ResizeRows(n)
+  -- No-op in virtual mode: the resident window already governs which frames exist, and the row
+  -- area is already sized to the whole dataset. Hiding "surplus" rows here would blank part of the
+  -- visible window, since a resident row index is a viewport slot, not a data row.
+  if self.virtual then return end
   local rowH = 0
   for i = 1, math.min(n, #self.rows) do
     rowH = rowH + (self.rowInfo[i] and self.rowInfo[i].height or self.cellHeight)
@@ -475,6 +608,9 @@ function TableFrame:setFooter(data)
 end
 
 function TableFrame:update()
+  -- Virtual tables size their pool to the viewport, not to the data, so they take their own path
+  -- rather than the create-a-cell-per-data-row loop below.
+  if self.virtual then return self:_virtualUpdate() end
   for rowN,row in ipairs(self.data) do
     if not self.rows[rowN] then self:addRow{} end
     -- ipairs stops at the first nil, dropping data in sparse rows.
