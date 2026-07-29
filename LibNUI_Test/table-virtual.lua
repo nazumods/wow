@@ -2,6 +2,7 @@ local TableFrame  = LibNUI.TableFrame
 local ScrollFrame = LibNUI.ScrollFrame
 local Button      = LibNUI.Button
 local Label       = LibNUI.Label
+local Texture     = LibNUI.Texture
 local window      = LibNUITest.window
 local toggling    = LibNUITest.toggling
 
@@ -16,6 +17,12 @@ local toggling    = LibNUITest.toggling
 -- Correctness is the other half: scroll the virtual table and every row must show ITS own data,
 -- with the first column's "Row N" matching the values beside it. A window that binds wrong reads as
 -- rows jumping or repeating as you drag.
+--
+-- The gold dot on every fifth row (Row 5, 10, 15, …) tests `onRebind` specifically. It is an overlay
+-- keyed by the cell's DATA row, not part of the cell's data — the same shape as Collected's ★/rank
+-- marks — so `Cell:update` alone doesn't maintain it; only the `onRebind` hook re-deriving it per
+-- bind does. If the dots ever cling to a screen position instead of following "Row 5/10/15…" as you
+-- scroll, the hook has regressed. The readout counts how many times it fired.
 --
 -- EXPECT the static build to paint faint vertical bands down the screen below the window. That is
 -- not a fault in this test: `addRow` grows the TABLE's height per row and `TableCol` anchors its
@@ -57,10 +64,50 @@ local function makeVirtual()
   }
 
   local grid, scroll
+  local rebinds = 0
+
+  -- Re-stamp the "every fifth row" marker onto whichever cells are resident now, reading each Name
+  -- cell's own data to decide — exactly how a real consumer (Collected's marks) re-derives overlays
+  -- after a bind. The marker is a child of the cell, created once and reused, shown/hidden per row.
+  -- `first`/`last` are the data indices now resident — slot k holds row `first + k - 1`. Keyed off
+  -- that rather than off the cell's text on purpose: it's the harder half of the contract to get right,
+  -- so this is what exercises it.
+  --
+  -- Mismatches are REPORTED, not asserted: this runs on the scroll path, and a hard error there would
+  -- spam the error frame once per frame while dragging — which buries the one message you wanted. The
+  -- readout naming the bad slot is louder in practice and doesn't fight the thing it's diagnosing.
+  local function restampMarkers(g, first, last)
+    rebinds = rebinds + 1
+    local bad
+    for k, row in ipairs(g.cells) do
+      local nameCell = row[1]
+      if nameCell then
+        local dataRow = first + k - 1
+        local live = dataRow <= last
+        if live and tostring(nameCell.data) ~= "Row " .. dataRow then
+          bad = bad or ("slot %d holds %q, expected \"Row %d\""):format(k, tostring(nameCell.data), dataRow)
+        end
+        if not nameCell._mark then
+          nameCell._mark = Texture:new{
+            parent = nameCell, layer = LibNUI.layer.Overlay,
+            color = "header", position = { TopLeft = { 2, -2 }, Size = { 6, 6 } },
+          }
+        end
+        nameCell._mark:SetShown(live and dataRow % 5 == 0)
+      end
+    end
+    if bad then
+      readout:Text("|cffff4444onRebind WINDOW MISMATCH: " .. bad .. "|r")
+      return
+    end
+    readout:Text(("virtual: rows %d-%d resident, onRebind fired %d times (gold dot follows Row 5/10/15…)")
+      :format(first, last, rebinds))
+  end
 
   local function build(virtual)
     if grid then grid:Hide() end
     if scroll then scroll:Hide() end
+    rebinds = 0
 
     local t0 = GetTimePreciseSec()
     grid = TableFrame:new{
@@ -70,6 +117,7 @@ local function makeVirtual()
       cellHeight   = CELL_H,
       headerHeight = HEADER_H,
       virtual      = virtual,
+      onRebind     = virtual and restampMarkers or nil,
       position     = { TopLeft = { PAD, -(TITLE_H + BTN_H + 8 + 16) } },
     }
     scroll = ScrollFrame:new{

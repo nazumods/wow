@@ -1343,6 +1343,7 @@ Inherits `Frame`. Renders a 2D grid with optional column and row headers, altern
 | `rowHeaderGap`  | number  | Gap between an autosized **row header** and the first column (default `8`). Separate from `padding`, which also spaces autosized columns, so this can be widened without moving every column; falls back to `padding` when unset |
 | `virtual`       | bool    | Build cell frames only for the rows the viewport shows, re-binding them as it scrolls (default `false`) — see **Viewport virtualisation** below |
 | `overscan`      | number  | Rows kept resident beyond each edge of the viewport when `virtual` (default `3`) |
+| `onRebind`      | func    | `fun(self, first, last)` fired after a virtual table re-points its cells at a new window of `data` — re-derive any overlay you draw on a cell keyed by its row (see **Viewport virtualisation**) |
 | `backdrop`      | table   | Default backdrop for all cells                                            |
 | `colBackdrop`   | table   | Default backdrop for column headers                                       |
 | `GetData`       | func    | Called by `onLoad` to fetch data table                                    |
@@ -1491,14 +1492,53 @@ scroll:Child(grid.rowArea)
 `BindViewport` chains onto any `onScroll` the viewport already carries, so binding a grid doesn't
 take that callback away from a consumer already watching it.
 
-**Constraints** — each one checkable where you build the table:
+**Overlays keyed by row — `onRebind`.** `Cell:update` refreshes each cell's own content on a bind,
+but anything you draw *on top* of a cell that isn't part of its `data` — a wanted-★, a status pip —
+is keyed by the row, not the cell, so after the window slides it's sitting on the wrong one. Give the
+table an `onRebind` callback and re-derive those overlays from the resident cells' `cell.data`:
+
+```lua
+local grid = TableFrame:new{
+  colInfo = cols, cellHeight = 20, virtual = true,
+  -- first/last are the DATA indices now resident: slot k holds row `first + k - 1`
+  onRebind = function(g, first, last) reapplyMyOverlays(g, first, last) end,
+}
+```
+
+It fires after the bind (so `cell.data` is final) and only on a real move — a scroll that doesn't
+change the window early-outs before it — so it's as cheap to handle as the bind is to run. It also
+fires on the **initial** bind from `update()`, so one registration covers both build and scroll.
+
+`first`/`last` are given so an overlay keyed by row *position* doesn't have to infer the window from
+cell content or read private state; `last` is clamped to the data length, since the final window can
+be shorter than the resident pool.
+
+A static table never fires it. Overlays there are applied once after `update()` — so a consumer that
+supports both modes applies them in `update()` and re-applies them in `onRebind`, and the virtual
+path's initial fire makes that idempotent rather than doubled.
+
+**If the host resizes the viewport, call `RefreshViewport()`.** The resident count is derived from the
+viewport's height at `update()` time. A host that refits its scroll height from the row count changes
+the viewport *after* that, so filtering down to a few rows and back leaves the pool sized for the small
+viewport and a band of empty space below the data — the table has no way to notice on its own.
+
+```lua
+scroll:Height(newHeight)
+grid:RefreshViewport()         -- re-sizes the pool, re-binds; no-op if nothing changed or not virtual
+```
+
+**Constraints:**
 
 | | |
 |---|---|
 | **Uniform row height** | The window↔offset map is `floor(offset / cellHeight)`, so per-row `rowInfo[i].height` isn't honoured |
 | **`Autosize` sees resident rows only** | It walks `self.rows`/`self.cells`, which here is just the visible window — a column sized from *cell text* would resize as you scroll. Size it from the **data**, or fix its width |
-| **No row headers** | `rowNames` entries live on the row frame, so they'd follow the window rather than the data |
-| **No footer** | `setFooter` anchors to the row area's bottom, which is now the bottom of the whole dataset |
+| **No row headers** — *enforced* | `rowNames` entries live on the row frame, so they'd follow the viewport rather than the data. Declaring them with `virtual` raises at construction; an empty `rowNames = {}` (the dynamic-table idiom) stays legal |
+| **No footer** — *enforced* | `setFooter` anchors to the row area's bottom, which is now the bottom of the whole dataset — it would sit far below the viewport. Calling it on a virtual table raises |
+
+The last two raise rather than mis-render on purpose: both fail *silently and misleadingly* otherwise —
+headers naming the wrong rows reads as a data bug, and a footer parked below the dataset just looks
+missing.
 
 `ResizeRows` is a no-op on a virtual table — the resident window already governs which frames exist,
 and a resident row index is a viewport slot, not a data row.

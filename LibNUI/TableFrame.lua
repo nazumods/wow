@@ -51,6 +51,13 @@ local Top, Bottom = ui.edge.Top, ui.edge.Bottom
 ---@field _viewport ScrollFrame?  bound viewport (virtual mode)
 ---@field _resident integer?  live row-frame count (virtual mode)
 ---@field _top integer?  data index currently bound to resident row 1 (virtual mode)
+---@field onRebind? fun(self: TableFrame, first: integer, last: integer)  fired after `_rebind` re-points
+---  the resident cells at a new window of `data` (virtual mode) — the moment anything a consumer draws
+---  ON TOP of a cell goes stale. `first`/`last` are the data indices now resident (row `first + k - 1`
+---  is in slot `k`), so an overlay keyed by row POSITION rather than by cell content has what it needs
+---  without reaching into the private `_top`. Fires on the initial `update()` bind as well as on scroll,
+---  so one registration covers both; only fires when the window actually moved, so it is as cheap to
+---  handle as `_rebind` is to run. A static table never fires it.
 local TableFrame = Class(Frame, function(self)
   if not self.colNames and self.colInfo then
     self.colNames = {}
@@ -150,6 +157,15 @@ local TableFrame = Class(Frame, function(self)
   if not self.colInfo then self.colInfo = {} end
   if not self.rowInfo then self.rowInfo = {} end
 
+  -- Two of virtualisation's constraints are checkable right here, and silent breakage is much worse
+  -- than a loud one: row headers live on the row frame, so under a sliding window they'd follow the
+  -- VIEWPORT while the data moved past them — every label naming the wrong row, which reads as a data
+  -- bug rather than a misconfiguration. An empty `rowNames = {}` is the documented dynamic-table idiom
+  -- and stays legal; only actually declaring headers is the error.
+  if self.virtual and self.rowNames and #self.rowNames > 0 then
+    error("TableFrame: `virtual` does not support row headers — rowNames live on the row frame and would follow the viewport, not the data", 2)
+  end
+
   self:Width(width)
   self:Height(height)
 end, {
@@ -198,6 +214,22 @@ function TableFrame:BindViewport(scroll)
     self:_rebind()
   end
   scroll._widget:SetScript("OnVerticalScroll", function(_, offset) scroll:onScroll(offset) end)
+  return self
+end
+
+-- Re-size the resident pool to the viewport's CURRENT height and re-bind.
+--
+-- Needed because the resident count is derived from the viewport at `update()` time, and a host that
+-- refits its scroll height from the row count changes the viewport *after* that — Collected's
+-- `_fitToGrid` does exactly this on every filter change. Filter down to a handful of rows and back and
+-- the pool is still sized for the small viewport, leaving a band of empty space below the data with no
+-- way for the table to notice. A host that resizes the viewport must call this afterwards.
+--
+-- Cheap and idempotent when nothing changed: `_virtualUpdate` recomputes the same numbers and
+-- `_rebind` re-points the same window. A no-op on a static table.
+---@return TableFrame
+function TableFrame:RefreshViewport()
+  if self.virtual and self.data then self:_virtualUpdate() end
   return self
 end
 
@@ -278,6 +310,18 @@ function TableFrame:_rebind()
       end
     end
   end
+
+  -- The resident cells now hold a different slice of `data`. `Cell:update` refreshed each cell's own
+  -- content, but anything a consumer draws OVER a cell — an overlay keyed by that cell's row, not part
+  -- of its `data` — is now sitting on the wrong row and must be re-derived. Fired after the bind so
+  -- the consumer sees final `cell.data`, and only on a real move (the early-out above already
+  -- returned otherwise), so it costs nothing on a scroll that didn't change the window.
+  --
+  -- Passing the window's data range is what makes this usable by a consumer whose overlay is keyed by
+  -- row POSITION rather than by cell content: without it the only way to learn which rows are resident
+  -- is `_top`, and a consumer reading a private field is a contract that breaks silently. `last` is
+  -- clamped to the data length, since the final window can be shorter than the resident pool.
+  if self.onRebind then self:onRebind(first, math.min(first + resident - 1, n)) end
 end
 
 -- Resize the frame to show exactly n rows, hiding dead space when the active
@@ -556,6 +600,13 @@ end
 ---@param data table  footer cell data keyed by column index
 ---@return TableFrame
 function TableFrame:setFooter(data)
+  -- The other checkable constraint. A footer anchors to the row area's bottom, which in virtual mode is
+  -- the bottom of the whole DATASET rather than of the visible rows — so it would sit thousands of
+  -- pixels below the viewport, invisible, and the caller would be left wondering where their totals
+  -- went. Erroring names the reason at the call site.
+  if self.virtual then
+    error("TableFrame: `virtual` does not support a footer — it anchors to the row area's bottom, which spans the whole dataset", 2)
+  end
   if not self.footerRow then
     self.footerHeight = self.footerHeight or self.cellHeight
     self.footerRow = TableRow:new{
