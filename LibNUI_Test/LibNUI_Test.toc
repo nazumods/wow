@@ -36,4 +36,5 @@ ring.lua
 copywindow.lua
 hairlines.lua
 segmentedtoggle.lua
+button-glow.lua
 entry.lua

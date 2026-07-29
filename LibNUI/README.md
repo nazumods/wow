@@ -294,6 +294,7 @@ Inherits `Region`. Wraps a Blizzard `Texture` widget.
 | `SetVertexColor(r,g,b,a)`| Vertex tint — accepts table           |
 | `Coords(l,r,t,b)`        | `SetTexCoord`                         |
 | `Rotation(r)`            | Get/set render rotation (radians)     |
+| `BlendMode(mode)`        | Get/set alpha blend mode (`"BLEND"`, `"ADD"`, `"MOD"`, `"ALPHAKEY"`, `"DISABLE"`) |
 | `Gradient(orient,min,max)`| `SetGradient` — re-apply a vertex gradient (ColorMixin min/max, alpha interpolated) over the base texture |
 | `DrawLayer(layer, sublevel?)` | Set the draw layer + optional sublevel (higher sublevel draws on top within a layer) |
 
@@ -325,6 +326,10 @@ Inherits `Region`. Wraps a `FontString`.
 |----------------|-----------------------------------------|
 | `Text(text)`   | Get/set text                            |
 | `Color(r,g,b,a)` | Set text color — accepts table        |
+| `Font(fontInfo)` | Get/set the `{path, size[, flags]}` tuple |
+| `JustifyH(justify)` | Get/set horizontal alignment (`ui.justify.Left/Center/Right`) |
+| `JustifyV(justify)` | Get/set vertical alignment (`ui.justify.Top/Middle/Bottom`) |
+| `WordWrap(wrap)` | Get/set multi-line wrapping. Tests against `nil`, not falsiness — `WordWrap(false)` sets, `WordWrap()` gets |
 | `StringWidth()` | Natural (unwrapped) width of the current text |
 | `UnboundedWidth()` | Single-line width ignoring wrapping and width constraints |
 | `DrawLayer(layer, sublevel?)` | Set the draw layer + optional sublevel |
@@ -1335,6 +1340,7 @@ Inherits `Frame`. Renders a 2D grid with optional column and row headers, altern
 | `headerHeight`  | number  | Column header height (defaults to `cellHeight`)                           |
 | `autosize`      | bool    | Auto-size all columns to text-content width (icon-only columns keep their set width) |
 | `padding`       | number  | Padding added during auto-size                                            |
+| `rowHeaderGap`  | number  | Gap between an autosized **row header** and the first column (default `8`). Separate from `padding`, which also spaces autosized columns, so this can be widened without moving every column; falls back to `padding` when unset |
 | `virtual`       | bool    | Build cell frames only for the rows the viewport shows, re-binding them as it scrolls (default `false`) — see **Viewport virtualisation** below |
 | `overscan`      | number  | Rows kept resident beyond each edge of the viewport when `virtual` (default `3`) |
 | `backdrop`      | table   | Default backdrop for all cells                                            |
@@ -1458,8 +1464,9 @@ A cell whose data has a `parts` array renders **multiple positioned elements** (
 ```
 
 - **Symbolic anchor targets** — in a part's or the border's `position`, an anchor arg's target may be the string `"cell"` (the cell itself) or an integer `N` (part `N`'s widget). A part may only anchor to an *earlier* part. Only anchor keys (`Left`, `TopLeft`, `Center`, …) are resolved; scalar keys like `Size` pass through. `Center = {}` (no target) still anchors to the cell.
-- **Recycling** — composite cells survive re-sorts: parts are reused when the kind matches and rebuilt otherwise, and a cell transitions cleanly between composite and plain (single texture/label / empty string) data.
-- **Autosize** — a composite cell has no single `.label`, so `TableFrame:Autosize` skips it; give composite columns a fixed `width` (via `colInfo`).
+  - **A part index must be followed by an edge**: `{1, "RIGHT", 3, 0}`. The bare `{x, y}` offset shorthand (`Center = {0, -2}`) carries a number at position 2 and is passed through as an offset against the cell, not read as a part index.
+- **Recycling** — composite cells survive re-sorts: parts are reused when the kind matches and rebuilt otherwise, and a cell transitions cleanly between composite and plain (single texture/label / empty string) data. Every part field is re-applied on reuse, each omitted one resetting to its neutral value (`rotation` `0`, `blendMode` `"BLEND"`, full `coords`/`vertexColor`, `justifyH` Left, `justifyV` Middle, wrapping on, colour `"text"`) — so an omitted field never inherits the previous occupant's. The one exception is `fontInfo`, deliberately kept when omitted since there is no "no font" to reset to.
+- **Autosize** — a composite cell's single `.label` is emptied and hidden when the cell goes composite, so it measures as zero width and `TableFrame:Autosize` effectively skips it. Still give composite columns a fixed `width` (via `colInfo`) — nothing else sizes them.
 
 ### Viewport virtualisation (`virtual = true`)
 
