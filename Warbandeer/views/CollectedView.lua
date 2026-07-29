@@ -40,6 +40,22 @@ local function ensureRowVisible(grid, scroll, rowTop, rowH)
   elseif rowTop + rowH > cur + view then scroll:VerticalScroll(rowTop + rowH - view) end
 end
 
+-- No-op stand-in for the sibling addon's build profiler, so the call sites below need no guards.
+local NOOP = { Begin = function() end, Mark = function() end, Finish = function() end }
+
+---Collected's build profiler (nazumods/wow#718), which owns the grid the marks fire from and so
+---owns the run they belong to. This view builds the SAME grid as the `/collected` window through
+---different chrome, and the point of instrumenting both is that a slow one beside a fast one is
+---itself the finding.
+---
+---Resolved per call rather than cached at file scope: Collected is an OptionalDep on its own
+---release cadence, so a published version exists without it — and this file's load can precede the
+---API global being populated.
+---@return table
+local function prof()
+  return (WarbandeerCollectedApi and WarbandeerCollectedApi.prof) or NOOP
+end
+
 ---@class CollectedView: Frame
 ---@field grid DataView the shared set-by-class grid (Collected's own DataView, embedded)
 ---@field filterStrip Frame the shared filter chrome row (DataView:BuildFilterStrip)
@@ -56,8 +72,12 @@ end
 ---@field active DataView|WeaponView the currently-shown grid (armor default, or weapon)
 ---@field activeScroll ScrollFrame the currently-shown scroll container
 ---@field _weaponsMode boolean? true when the weapon grid is shown (the Armor/Weapons toggle)
+---@field _gridFresh boolean? one-shot: the constructor just built the cells, so the `_render` fired by the show that immediately follows skips its rebuild (cleared by that render, on every path)
 local CollectedView = Class(Frame, function(self)
   _view = self
+  -- Views are built lazily (MainWindow:getView), so reaching this constructor IS the first click on
+  -- Collected in `/wb` — the wait the user actually feels. Later clicks only re-render (`OnBeforeShow`).
+  prof():Begin("wb-build")
   local STRIP_H, GAP = WarbandeerCollectedApi.DataView.STRIP_H, 6
   local TOP = STRIP_H + GAP   -- the grid sits below the filter strip
   self._top = TOP             -- _fitToGrid re-derives the view + scroll height from it
@@ -86,6 +106,7 @@ local CollectedView = Class(Frame, function(self)
   -- along the top; the PTR toggle re-renders this view so its mode counter updates.
   self.filterStrip = self.grid:BuildFilterStrip(self, function() _view:_render() end)
   self.filterStrip:Position({ TopLeft = {0, 0} })
+  prof():Mark("strip")
 
   local headerH = self.grid.headerHeight
   local capH = min(self.grid.MAX_HEIGHT, self.grid.rowArea:Height())
@@ -100,6 +121,7 @@ local CollectedView = Class(Frame, function(self)
     },
   }
   self.scroll:Child(self.grid.rowArea)
+  prof():Mark("scroll")
 
   -- Counter rides the grid's header row (over the name column, in line with the class
   -- icons), below the filter strip. Created after the grid so it draws above the header.
@@ -195,9 +217,18 @@ local CollectedView = Class(Frame, function(self)
     self._weaponGeom = { top = TOP, headerH = headerH, capH = capH, stripX = 0 }
     self:_applyStripX()
   end
+  prof():Mark("chrome")
 
   self:Width(gridW + SCROLLBAR_W)
-  self:_fitToGrid()
+  self:_fitToGrid()   -- emits the fit:* splits itself
+  -- The base TableFrame has just built every cell from this same data, and the show that reveals a
+  -- freshly-built view fires `OnBeforeShow` → `_render` in this same frame — so that first render's
+  -- `GetData()` + `update()` walk all ~6,600 cells to reproduce what is already on them. Measured at
+  -- 104ms of a 120ms `wb-show`, immediately after a 1357ms build. One-shot: `_render` clears it, so
+  -- only the render that cannot possibly have new data skips, and every later show rebuilds as
+  -- before — by then a scan, rating or filter change genuinely may have landed.
+  self._gridFresh = true
+  prof():Finish(self.grid)
 end, {})
 CollectedView.name = "collected"
 CollectedView._title = "Collected"
@@ -257,7 +288,13 @@ end
 -- Refresh counts, grid data, and the empty-state message each time the view shows
 -- (so a /collected scan run after the view was built is reflected on next open).
 function CollectedView:OnBeforeShow()
+  -- Every click on Collected after the first lands here rather than in the constructor, so this is
+  -- the run that says whether re-entering the view is cheap. `_render` refreshes counts and grid
+  -- data, which is not nothing on a 473-row grid.
+  prof():Begin("wb-show")
   self:_render()
+  prof():Mark("render")
+  prof():Finish(self.active or self.grid)
 end
 
 ---Place both filter strips clear of the Armor/Weapons toggle, at the toggle's current width.
@@ -302,6 +339,7 @@ function CollectedView:_ensureWeapons()
   self.weaponStrip = self.weaponGrid:BuildFilterStrip(self, function() _view:_render() end)
   self.weaponStrip:Position({ TopLeft = {g.stripX, 0} })
   self.weaponStrip:Hide()
+  prof():Mark("strip")
 
   self.weaponScroll = ui.ScrollFrame:new{
     parent = self,
@@ -309,6 +347,11 @@ function CollectedView:_ensureWeapons()
   }
   self.weaponScroll:Child(self.weaponGrid.rowArea)
   self.weaponScroll:Hide()
+  prof():Mark("scroll")
+  -- Same waste as the constructor's, at the second site: the grid has just been built from this
+  -- data, and `SetMode` calls `_render` a few lines later, which walks all ~4,400 cells to reproduce
+  -- what is already on them. Measured at 55ms of a 1600ms first swap to Weapons.
+  self._gridFresh = true
 end
 
 ---Switch the embedded view between the armor grid and the weapon grid (the Armor/Weapons toggle).
@@ -318,6 +361,9 @@ end
 ---@param weapons boolean
 function CollectedView:SetMode(weapons)
   if not self._weaponsAvailable or self._weaponsMode == weapons then return end
+  -- Timed separately from the `/collected` window's swap, so the same toggle can be compared across
+  -- the two hosts. The first `wb-weapons` run builds a second grid; every later swap builds nothing.
+  prof():Begin(weapons and "wb-weapons" or "wb-armor")
   -- First switch to Weapons builds the trio. Switching back can't reach a nil one: the guard above
   -- means `SetMode(false)` only proceeds when we were already in Weapons mode.
   if weapons then self:_ensureWeapons() end
@@ -327,9 +373,18 @@ function CollectedView:SetMode(weapons)
   -- Carry the PTR PREVIEW state across the Armor/Weapons swap (one window-level mode): the grid being
   -- shown adopts the mode of the one being hidden (SetPtr repaints its own toggle).
   local prevGrid = weapons and self.grid or self.weaponGrid
-  if self.active._ptr ~= prevGrid._ptr then self.active:SetPtr(prevGrid._ptr) end
+  if self.active._ptr ~= prevGrid._ptr then
+    self.active:SetPtr(prevGrid._ptr)
+    -- Drop the freshness claim `_ensureWeapons` just made: PTR preview swaps the row source
+    -- entirely, so whatever the cells hold is no longer what `GetData()` would return. Cheaper to
+    -- forfeit the skip in this one rare case than to reason about what SetPtr leaves behind.
+    self._gridFresh = nil
+  end
   self.grid:SetShown(not weapons); self.filterStrip:SetShown(not weapons); self.scroll:SetShown(not weapons)
   self.weaponGrid:SetShown(weapons); self.weaponStrip:SetShown(weapons); self.weaponScroll:SetShown(weapons)
+  -- Not the free visibility flip it looks like: SetShown routes through Region:Show → OnBeforeShow
+  -- → _fitNameCol on the grid coming up.
+  prof():Mark("show")
   -- Unguarded: the toggle is built in the same block that sets `_weaponsAvailable`, which the
   -- early return above already required.
   self._modeToggle:Select(weapons and "weapons" or "armor")
@@ -338,7 +393,9 @@ function CollectedView:SetMode(weapons)
   self.counter:Position(weapons and { TopLeft = {self.weaponStrip, ui.edge.TopRight, 12, -3} }
     or { TopLeft = {self.filterStrip, ui.edge.TopRight, 12, -3} })
   self:_render()
-  self:_fitToGrid()   -- sizes both axes and refits the main window (#768 L-4)
+  prof():Mark("render")
+  self:_fitToGrid()   -- sizes both axes and refits the main window (#768 L-4); emits the fit:* splits
+  prof():Finish(self.active)
 end
 
 -- Cap the visible grid at the shared `DataView.MAX_HEIGHT` and size the scroll container
@@ -355,10 +412,15 @@ function CollectedView:_fitToGrid()
   local capH = min(grid.MAX_HEIGHT, grid.rowArea:Height())
   scroll:Height(capH)
   self:Height(self._top + grid.headerHeight + capH + 4)
+  -- Split three ways because the phase measured 185ms on a build — far more than a resize should
+  -- cost — and which of the three owns it decides whether there's anything cheap to do about it.
+  prof():Mark("fit:size")
   scroll:Refresh()   -- recompute the scroll range for the new child height
+  prof():Mark("fit:scroll")
   -- The main window sizes itself to this view, so a resize here has to carry through — otherwise a
   -- widened view is just clipped one frame further out.
   if ns.MainWindow then ns.MainWindow:Fit() end
+  prof():Mark("fit:window")
 end
 
 -- Show/hide the grid (header icons + scrolling rows) as a unit, so the empty-state
@@ -378,6 +440,10 @@ end
 -- Render the active dataset. PTR PREVIEW shows only the upcoming sets (no scan
 -- needed for the upcoming rows); live-only mode shows collected/total and needs a scan.
 function CollectedView:_render()
+  -- Consumed on whatever path this render takes, including the early returns below, so the flag can
+  -- never survive into a later show where the data really could have moved on (see the constructor).
+  local fresh = self._gridFresh
+  self._gridFresh = nil
   -- Weapon mode: no scan gate (WeaponView computes collected state live via ns:WeaponCollectedMap);
   -- the source/appearance/collected counts, its own wanted tally, and a data refresh.
   if self._weaponsMode then
@@ -392,7 +458,11 @@ function CollectedView:_render()
       self.counter:Text(("%d sources · %d/%d collected"):format(sources, coll, apps))
     end
     self.counter:Font({theme.fonts.title[1], 12})
-    self.weaponGrid.data = self.weaponGrid:GetData(); self.weaponGrid:update()
+    -- Skipped only for the render that follows `_ensureWeapons` in the same `SetMode` call, where
+    -- the cells already hold exactly this (see the constructor for the armour-side twin).
+    if not fresh then
+      self.weaponGrid.data = self.weaponGrid:GetData(); self.weaponGrid:update()
+    end
     return
   end
   local api = WarbandeerCollectedApi
@@ -430,8 +500,12 @@ function CollectedView:_render()
   -- The counter sits in the strip row in every mode, so keep it at the compact strip font.
   self.counter:Font({theme.fonts.title[1], 12})
   self:RefreshWanted()
-  self.grid.data = self.grid:GetData()
-  self.grid:update()
+  -- Skipped only for the render that immediately follows construction, where the cells already hold
+  -- exactly this. The counter and tally above still run — those the constructor never did.
+  if not fresh then
+    self.grid.data = self.grid:GetData()
+    self.grid:update()
+  end
 end
 
 -- Refresh the running wanted tally in the header (gold star + N), matching the /collected window:
