@@ -1228,6 +1228,7 @@ are unaffected.
 | `scrollbar`      | bool   | Build the themed auto-hiding scrollbar (default `false`) |
 | `scrollbarWidth` | number | Themed scrollbar width in px (default `16`)             |
 | `wheelStep`      | number | Pixels scrolled per mousewheel notch (default `30`)    |
+| `onScroll`       | func   | `fun(self, offset)` fired whenever the offset changes — from the thumb, the wheel, `EnsureVisible`, or the engine. Hooked on the widget's own `OnVerticalScroll`, so no source is missed |
 
 ### Methods
 
@@ -1334,6 +1335,8 @@ Inherits `Frame`. Renders a 2D grid with optional column and row headers, altern
 | `headerHeight`  | number  | Column header height (defaults to `cellHeight`)                           |
 | `autosize`      | bool    | Auto-size all columns to text-content width (icon-only columns keep their set width) |
 | `padding`       | number  | Padding added during auto-size                                            |
+| `virtual`       | bool    | Build cell frames only for the rows the viewport shows, re-binding them as it scrolls (default `false`) — see **Viewport virtualisation** below |
+| `overscan`      | number  | Rows kept resident beyond each edge of the viewport when `virtual` (default `3`) |
 | `backdrop`      | table   | Default backdrop for all cells                                            |
 | `colBackdrop`   | table   | Default backdrop for column headers                                       |
 | `GetData`       | func    | Called by `onLoad` to fetch data table                                    |
@@ -1457,6 +1460,44 @@ A cell whose data has a `parts` array renders **multiple positioned elements** (
 - **Symbolic anchor targets** — in a part's or the border's `position`, an anchor arg's target may be the string `"cell"` (the cell itself) or an integer `N` (part `N`'s widget). A part may only anchor to an *earlier* part. Only anchor keys (`Left`, `TopLeft`, `Center`, …) are resolved; scalar keys like `Size` pass through. `Center = {}` (no target) still anchors to the cell.
 - **Recycling** — composite cells survive re-sorts: parts are reused when the kind matches and rebuilt otherwise, and a cell transitions cleanly between composite and plain (single texture/label / empty string) data.
 - **Autosize** — a composite cell has no single `.label`, so `TableFrame:Autosize` skips it; give composite columns a fixed `width` (via `colInfo`).
+
+### Viewport virtualisation (`virtual = true`)
+
+A static `TableFrame` builds one cell frame per (row, column) of its data, whether or not any of it
+is on screen. A 473-row grid in a 23-row viewport built **6,622 cells to show ~5% of them**, and the
+frame count drove not only creation but the engine's layout pass and the scroll frame's
+content-extent walk.
+
+`virtual = true` keeps only enough row frames to cover the viewport (plus `overscan` beyond each
+edge) and re-binds them to a sliding window of `data` as it scrolls. The row area still spans every
+data row, so the scroll range — and any offset maths you already do — is unchanged.
+
+```lua
+local grid = TableFrame:new{ colInfo = cols, cellHeight = 20, virtual = true }
+local scroll = ScrollFrame:new{ parent = host, position = {...} }
+grid:BindViewport(scroll)      -- BEFORE the data lands: the resident count comes from the viewport
+grid.data = rows
+grid:update()
+scroll:Child(grid.rowArea)
+```
+
+`BindViewport` chains onto any `onScroll` the viewport already carries, so binding a grid doesn't
+take that callback away from a consumer already watching it.
+
+**Constraints** — each one checkable where you build the table:
+
+| | |
+|---|---|
+| **Uniform row height** | The window↔offset map is `floor(offset / cellHeight)`, so per-row `rowInfo[i].height` isn't honoured |
+| **`Autosize` sees resident rows only** | It walks `self.rows`/`self.cells`, which here is just the visible window — a column sized from *cell text* would resize as you scroll. Size it from the **data**, or fix its width |
+| **No row headers** | `rowNames` entries live on the row frame, so they'd follow the window rather than the data |
+| **No footer** | `setFooter` anchors to the row area's bottom, which is now the bottom of the whole dataset |
+
+`ResizeRows` is a no-op on a virtual table — the resident window already governs which frames exist,
+and a resident row index is a viewport slot, not a data row.
+
+`/nui test tablevirtual` builds the same 500×12 data both ways and reports build time and frame
+count side by side.
 
 ---
 

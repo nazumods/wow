@@ -10,8 +10,16 @@ local Frame, Slider = ui.Frame, ui.Slider
 ---@field scrollbarWidth number  themed scrollbar width in px (default 16)
 ---@field wheelStep number  pixels scrolled per mousewheel notch (default 30)
 ---@field _syncing boolean?  guard so scrollbar<->offset writes don't feed back on each other
+---@field onScroll fun(self: ScrollFrame, offset: number)?  fired whenever the offset changes
 local ScrollFrame = Class(Frame, function(self)
   if self.scrollbar then self:_buildScrollbar() end
+  -- Hooked on the widget's own event rather than wrapped around VerticalScroll, so it fires for
+  -- EVERY source of movement — thumb, wheel, EnsureVisible, and any engine-driven scroll — not
+  -- just the writes that happen to come through this class. A viewport-bound consumer that misses
+  -- one of those renders the wrong slice of its content (see TableFrame's `virtual` option).
+  if self.onScroll then
+    self._widget:SetScript("OnVerticalScroll", function(_, offset) self:onScroll(offset) end)
+  end
 end, {
   type = "ScrollFrame",
   template = "UIPanelScrollFrameTemplate",
