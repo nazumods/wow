@@ -21,6 +21,32 @@ export function decideRealmTransition(
   return next === "DOWN" ? "down" : "up";
 }
 
+/**
+ * Whether `slug` names a realm in the configured region.
+ *
+ * Exists to separate two causes the character endpoint can't: Blizzard returns the *same* 404 for
+ * a character that doesn't exist and a realm that doesn't exist, so the only way to tell them
+ * apart is to ask about the realm on its own. Called only on the failure path, so a successful
+ * lookup never pays for it.
+ *
+ * **Fails open.** If this check can't complete, it reports `true` — an outage or a rate limit must
+ * not turn "we couldn't ask" into "your realm is wrong", which would send someone chasing a typo
+ * that isn't there.
+ */
+export async function realmExists(slug: string): Promise<boolean> {
+  const url =
+    `https://${config.region}.api.blizzard.com/data/wow/search/connected-realm` +
+    `?namespace=dynamic-${config.region}&realms.slug=${slug}&_pageSize=1`;
+  try {
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${await blizzardToken()}` } });
+    if (!res.ok) return true;
+    const data = (await res.json()) as { results?: unknown[] };
+    return (data.results?.length ?? 0) > 0;
+  } catch {
+    return true;
+  }
+}
+
 export async function realmStatus(): Promise<RealmStatus> {
   const url =
     `https://${config.region}.api.blizzard.com/data/wow/search/connected-realm` +

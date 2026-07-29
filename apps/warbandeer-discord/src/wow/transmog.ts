@@ -1,5 +1,6 @@
 import { config } from "../config";
 import { blizzardToken } from "./blizzard";
+import { realmExists } from "./realm";
 
 // Build a `/customset v1 …` outfit import string from a character's equipment, for the case the
 // in-game path (#819) structurally can't reach: someone you can't inspect — offline, another
@@ -252,11 +253,24 @@ export async function fetchTransmog(character: string, realm: string): Promise<O
 
   const res = await fetch(url, { headers: { Authorization: `Bearer ${await blizzardToken()}` } });
   if (res.status === 404) {
-    // One status, several causes — name it as the ambiguity it is rather than guessing.
+    // Blizzard returns the same 404 for a character that doesn't exist and a realm that doesn't
+    // exist (verified against the live API), so a single message would have to name both causes
+    // and let the reader work it out. One of them is separable: ask about the realm directly.
+    // Only on this path, so a successful lookup never pays for the extra call.
+    if (!(await realmExists(slug))) {
+      throw new TransmogLookupError(
+        `No realm **${slug}** in ${config.region.toUpperCase()}. ` +
+          `Check the realm name — it's the realm the character is *on*, spelled as in game ` +
+          `(e.g. \`Argent Dawn\`).`,
+        404,
+      );
+    }
+    // The realm checked out, so this is about the character — but "never logged in" and "no such
+    // character" really are indistinguishable here, so both are named rather than guessed between.
     throw new TransmogLookupError(
       `No character **${character}** on **${slug}** (${config.region.toUpperCase()}). ` +
-        `Check the spelling and the realm — a character who has never logged in since the ` +
-        `profile API last indexed them also 404s.`,
+        `Check the spelling — a character who has never logged in since the profile API last ` +
+        `indexed them also 404s.`,
       404,
     );
   }
