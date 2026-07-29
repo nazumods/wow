@@ -137,8 +137,15 @@ local function withClassFilter(classID, fn)
   local prev = C_TransmogCollection.GetClassFilter()
   if not classID or prev == classID then return fn() end
   C_TransmogCollection.SetClassFilter(classID)
-  local result = fn()
+  -- Restore even when `fn` errors. This is a GLOBAL wardrobe filter shared with Blizzard's own
+  -- collections UI, so an error escaping mid-sweep would leave the player's wardrobe silently
+  -- filtered to some arbitrary class with nothing on screen to explain it — a confusing failure
+  -- long outliving the error that caused it. The error is re-raised unchanged (level 0, so the
+  -- message keeps its original position), so this restores state without swallowing anything —
+  -- the house rule is that WoW API errors surface in-game, and they still do.
+  local ok, result = pcall(fn)
   C_TransmogCollection.SetClassFilter(prev)
+  if not ok then error(result, 0) end
   return result
 end
 
@@ -227,26 +234,45 @@ ns.AppearanceSource = ns.WeaponSource
 local _collectedMap               -- [visualID] = true for every collected weapon appearance (all classes; wiped on collection change)
 
 ---Account-wide collected-appearance lookup for the Weapons grid: `[visualID] = true` for every
----weapon appearance the account owns, across ALL classes. Built by sweeping each weapon category
----under every class filter (GetCategoryAppearances is class-scoped, so a single unfiltered pass would
----miss a caster's un-wieldable-but-collected 2H axes); the account-wide `isCollected` is the same
----wherever a visual surfaces, so the union is correct. Cached (a ~200-call build); wiped on
----TRANSMOG_COLLECTION_UPDATED so a freshly learned weapon flips on the next scan. The wardrobe class
----filter is snapshot/restored around the sweep so global state is untouched.
+---weapon appearance the account owns, across ALL classes. Built by sweeping each class's **wieldable**
+---weapon categories under that class's filter (GetCategoryAppearances is class-scoped, so a single
+---unfiltered pass would miss a caster's un-wieldable-but-collected 2H axes, and there is no way to
+---clear the filter — `SetClassFilter` takes a required classID and Blizzard's own wardrobe dropdown
+---offers no "all" entry); the account-wide `isCollected` is the same wherever a visual surfaces, so
+---the union is correct. Cached; wiped on TRANSMOG_COLLECTION_UPDATED so a freshly learned weapon
+---flips on the next scan.
+---
+---**Only the categories each class can actually wield** (#854). This walked all 17 categories under
+---all 13 filters — 221 `GetCategoryAppearances` round trips, a good third of them asking whether a
+---Mage owns any Warglaives. `WeaponCategories` already resolves the wieldable set per class (it is
+---static per client, and cached), so the unanswerable pairs are simply not asked. The whole build was
+---measured at 274ms, against 15ms for the armour grid's row builder, and it is paid inside the first
+---click on Weapons — watch the Weapons `data` phase in `/collected profile report`.
+---
+---Filter handling goes through `withClassFilter` rather than a hand-rolled snapshot/restore, once per
+---class around the whole inner sweep: the helpers called inside re-enter it with the same classID,
+---where it short-circuits, so the global filter is still written 13 times rather than per category.
 ---@return table<number, boolean>
 function ns:WeaponCollectedMap()
   if _collectedMap then return _collectedMap end
   local map = {}
-  local prev = C_TransmogCollection.GetClassFilter()
   for classID = 1, #ns.icons.classes do
-    C_TransmogCollection.SetClassFilter(classID)
-    for _, cat in ipairs(WEAPON_CATEGORIES) do
-      for _, a in ipairs(GetCategoryAppearances(cat) or {}) do
-        if a.isCollected then map[a.visualID] = true end
+    -- One filter change per class, around the whole inner sweep. `WeaponCategories` and any other
+    -- helper in here re-enter `withClassFilter` with this same classID, where it short-circuits to
+    -- a plain call — so the global filter is written 13 times, not once per category.
+    withClassFilter(classID, function()
+      -- Only the categories this class can actually wield. `GetCategoryInfo` name-gates on the same
+      -- global filter, so `WeaponCategories` has already worked out which those are (and caches the
+      -- answer per class — it is static per client). Asking for the rest spends a round trip per
+      -- (class, category) pair to be told the class has no such weapons: a Mage was queried for
+      -- Warglaives, Polearms, Bows, Guns and Crossbows on every build.
+      for _, cat in ipairs(ns.WeaponCategories(classID)) do
+        for _, a in ipairs(GetCategoryAppearances(cat.category) or {}) do
+          if a.isCollected then map[a.visualID] = true end
+        end
       end
-    end
+    end)
   end
-  C_TransmogCollection.SetClassFilter(prev)
   _collectedMap = map
   return map
 end
