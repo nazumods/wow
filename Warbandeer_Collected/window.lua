@@ -288,6 +288,24 @@ function MainWindow:SetMode(weapons)
   -- shown, and nothing else. Every other action is on the one model viewer.
 end
 
+---Width the header chrome needs, so the window can never be sized under it.
+---
+---The counter and the gold ★ tally sit to the RIGHT of the filter strip, and WoW does not clip a
+---FontString to its parent — so a window sized to the grid alone lets them spill across whatever
+---happens to be beside it rather than being cut off, which is how it went unnoticed.
+---
+---Derived from the labels rather than padded by a constant, so it keeps holding when the counts
+---grow a digit. `UnboundedWidth` (`GetUnboundedStringWidth`) is layout-order independent — the #718
+---lesson — so unlike `Width()` this is safe to call mid-construction.
+---
+---`filterStrip` stands in for both strips: `ns.BuildGridStrip` builds them from the same widths, and
+---`_applyStripX` places both at `_stripX`, so the weapon strip's right edge is the same number.
+---@return number
+function MainWindow:_chromeWidth()
+  return self._stripX + self.filterStrip:Width() + 12 + self.counter:UnboundedWidth()
+    + 16 + self.wantedCount:UnboundedWidth() + 6
+end
+
 ---Cap the visible grid at the shared `DataView.MAX_HEIGHT` and size the window with the
 ---same header + cap + margin math as the embedded view, plus the filter strip. Called at
 ---construction and again on every filter/PTR change (via the grid's `onResized` hook), so
@@ -309,7 +327,14 @@ function MainWindow:_fitToGrid()
   -- further from the right edge. `rowArea` is single-anchored with an explicit width — the column
   -- sum, kept in step by `ns.FitNameCol` — so it is the one true content measurement, and both
   -- modes now sit flush against the same margin.
-  self:Width(max(110, grid.rowArea:Width() + 4))
+  -- The WIDEST grid that exists, not the active one. The two differ (armour's ~13 class columns and
+  -- a long set-name column against weapons' ~17 narrow icon columns), so sizing to whichever is up
+  -- resized the window on every mode swap — and in Weapons mode shrank it out from under the header
+  -- chrome, which doesn't shrink with it. Equal widths also mean the swap no longer moves the
+  -- window's edges at all, which is what it always looked like it should do.
+  local content = 0
+  for _, g in ipairs(self:Grids()) do content = max(content, g.rowArea:Width()) end
+  self:Width(max(110, content + 4, self:_chromeWidth()))
   local capH = min(grid.MAX_HEIGHT, grid.rowArea:Height())
   self:Height(self.titlebar:Height() + self._top + grid.headerHeight + capH + 4)
   scroll:Refresh()   -- the scroll frame tracks the window's BottomRight; recompute its range
