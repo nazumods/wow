@@ -10,10 +10,12 @@ local insert, sort = table.insert, table.sort
 -- GetGuildRecipeInfoPostQuery + GetGuildRecipeMember. No SavedVars, no addon comms —
 -- the client already tracks guild recipe knowledge; we just ask it per recipe.
 --
--- The query is finicky about the skill line it's handed, so we try the recipe's own
--- (expansion-specific) profession then its parent (base) profession. Some recipes are
--- gaps in Blizzard's guild data and never answer — a per-attempt timeout treats those
--- as "no crafters" rather than leaving the query hanging.
+-- The query is finicky about the skill line it's handed, so we try the parent (base)
+-- profession — the one Blizzard itself resolves to — then the recipe's own
+-- (expansion-specific) one as a fallback. A response is correlated back to the candidate
+-- that asked for it by the (skillLineID, recipeID) pair, since both candidates carry the
+-- same recipeID. Some recipes are gaps in Blizzard's guild data and never answer — a
+-- per-attempt timeout treats those as "no crafters" rather than leaving the query hanging.
 
 local QUERY_TIMEOUT = 3   -- seconds to await GUILD_RECIPE_KNOWN_BY_MEMBERS per skill line
 local MAX_CACHE = 30      -- bounded per-recipe result cache (FIFO eviction)
@@ -54,36 +56,53 @@ local function cacheResult(recipeID, crafters)
   cache[recipeID] = crafters
 end
 
--- ─── One-shot priming ─────────────────────────────────────────────────────────
+-- ─── Priming ──────────────────────────────────────────────────────────────────
 -- The guild-recipe subsystem must be initialised for GUILD_RECIPE_KNOWN_BY_MEMBERS to
--- fire: Blizzard_Communities loaded and QueryGuildRecipes() called once. Primed when the
+-- fire: Blizzard_Communities loaded and QueryGuildRecipes() called. Primed when the
 -- customer-orders frame opens, so data is ready by the time a row is hovered.
-local primed = false
-local function prime()
-  if primed or not IsInGuild() then return end
-  primed = true
+--
+-- Getting the subsystem up at all is one-shot: load the addon and issue the first query.
+local loaded = false
+local function primeOnce()
+  if loaded or not IsInGuild() then return end
+  loaded = true
   if C_AddOns and not C_AddOns.IsAddOnLoaded("Blizzard_Communities") then
     C_AddOns.LoadAddOn("Blizzard_Communities")
   end
   if QueryGuildRecipes then QueryGuildRecipes() end
 end
 
+-- Keeping it *fresh* is not one-shot. Each browsing session wipes the cache to get current data
+-- (online/offline especially), which only holds if the roster is re-queried too — otherwise the
+-- wipe just re-reads the same stale state. Deliberately scoped to the frame-open event rather
+-- than to prime-on-lookup: ns.GuildCrafters primes on every *cold* recipe, so re-querying there
+-- would fire a guild query per uncached hover instead of one per browsing session.
+local function refreshGuildRecipes()
+  if not IsInGuild() then return end
+  if not loaded then primeOnce() return end   -- primeOnce already issued the first query
+  if QueryGuildRecipes then QueryGuildRecipes() end
+end
+
 -- ─── Async query state machine ────────────────────────────────────────────────
--- One query is in flight at a time (a tooltip hovers one row). `session` invalidates a
--- stale timeout/event when a newer hover supersedes an older query.
-local active    -- { recipeID, queryID, candidates, idx, tooltip, session }
-local session = 0
+-- One query is in flight at a time (a tooltip hovers one row). A newer hover replaces `active`
+-- with a *new* table, so the identity check `active == a` is what invalidates a stale timeout or
+-- event — that alone is the supersession mechanism. (`a.idx == idx` is separate: it rejects a
+-- timeout for candidate N that fires after advance() already moved on to N+1.)
+local active    -- { recipeID, recipeLevel, queryID, skillLineID, candidates, idx, tooltip }
 
 local GetProfInfo = C_TradeSkillUI and C_TradeSkillUI.GetProfessionInfoByRecipeID
 
--- Skill lines to try for a recipe: its own profession then the parent (base) profession —
--- QueryGuildMembersForRecipe wants one of these exact ids.
+-- Skill lines to try for a recipe: the parent (base) profession first, then the recipe's own
+-- (expansion-specific) one — QueryGuildMembersForRecipe wants one of these exact ids.
+-- Blizzard resolves this as `parentProfessionID or professionID` and never tries the other, so
+-- the parent is the likelier match and goes first; we keep the expansion id as the fallback
+-- Blizzard's single-shot form has no recovery for.
 local function candidateSkillLines(recipeID)
   local out, seen = {}, {}
   if GetProfInfo then
     local ok, info = pcall(GetProfInfo, recipeID)
     if ok and info then
-      for _, id in ipairs({ info.professionID, info.parentProfessionID }) do
+      for _, id in ipairs({ info.parentProfessionID, info.professionID }) do
         if id and not seen[id] then seen[id] = true; insert(out, id) end
       end
     end
@@ -110,10 +129,19 @@ local advance  -- fwd (mutually recursive with fireCandidate)
 
 local function fireCandidate()
   if not active then return end
-  local a, idx, s = active, active.idx, active.session
-  a.queryID = C_GuildInfo.QueryGuildMembersForRecipe(a.candidates[idx], a.recipeID, 1) or a.recipeID
+  local a, idx = active, active.idx
+  local skillLineID = a.candidates[idx]
+  local queryID = C_GuildInfo.QueryGuildMembersForRecipe(skillLineID, a.recipeID, a.recipeLevel)
+  -- Documented MayReturnNothing: a nil return means no query was issued, so no event can ever
+  -- answer it. Advance immediately rather than masking it as a queryID and then waiting out
+  -- QUERY_TIMEOUT for a response that cannot come — that was 3s of dead air per dead candidate.
+  if not queryID then advance() return end
+  -- The pair onGuildRecipeResult correlates the response on.
+  a.queryID, a.skillLineID = queryID, skillLineID
+  -- What remains covers only "query accepted, no event arrived" — the genuine gap in Blizzard's
+  -- guild data described at the top of this file, and now the rare path rather than the common one.
   C_Timer.After(QUERY_TIMEOUT, function()
-    if active == a and a.session == s and a.idx == idx then advance() end
+    if active == a and a.idx == idx then advance() end
   end)
 end
 
@@ -128,8 +156,18 @@ end
 local function onGuildRecipeResult()
   if not (active and GetGuildRecipeInfoPostQuery) then return end
   local a = active
-  local _, postRecipeID, numMembers = GetGuildRecipeInfoPostQuery()
+  -- The response carries the skill line it answers for as its *first* return. Both candidates
+  -- query the same recipeID, so that is the only thing telling them apart: without it a late
+  -- answer for candidate 1 satisfies the in-flight candidate-2 query and the crafter list is
+  -- computed from the wrong skill line. Correlate on the (skillLine, recipe) pair recorded by
+  -- fireCandidate, as Blizzard's own handler does.
+  local postSkillLineID, postRecipeID, numMembers = GetGuildRecipeInfoPostQuery()
+  postSkillLineID, postRecipeID = nonsecret(postSkillLineID), nonsecret(postRecipeID)
+  -- numMembers is compared and used as a loop bound below, so it needs the guard as much as the
+  -- GetGuildRecipeMember returns do; a secret one falls into the "no crafters" branch and advances.
+  numMembers = nonsecret(numMembers)
   if not postRecipeID then return end
+  if postSkillLineID ~= a.skillLineID then return end                          -- another candidate's answer
   if postRecipeID ~= a.queryID and postRecipeID ~= a.recipeID then return end  -- not our query
   if not (numMembers and numMembers > 0) then advance() return end
 
@@ -152,7 +190,7 @@ ns:registerEvent("GUILD_RECIPE_KNOWN_BY_MEMBERS", onGuildRecipeResult)
 
 -- Fresh guild data (and online/offline) each browsing session; cancel any in-flight query.
 ns:registerEvent("CRAFTINGORDERS_SHOW_CUSTOMER", function()
-  prime()
+  refreshGuildRecipes()
   active = nil
   wipe(cache)
   wipe(order)
@@ -164,9 +202,13 @@ end)
 -- or the recipe has no resolvable profession).
 ---@param recipeID integer
 ---@param tooltip table?
+---@param recipeLevel integer?  selected rank of a leveled recipe; nil (the documented Nilable
+---  default) means "no particular level", which is correct in the crafting-orders context since
+---  there is no schematic form to ask. NOTE: if a caller ever passes one, the result cache must
+---  key on recipeID..":"..level — two levels of a recipe can have different crafters.
 ---@return GuildCrafterEntry[]? crafters
 ---@return string? state  "ready" | "pending" | nil
-function ns.GuildCrafters(recipeID, tooltip)
+function ns.GuildCrafters(recipeID, tooltip, recipeLevel)
   if not recipeID then return nil, nil end
   local hit = cache[recipeID]
   if hit then return hit, "ready" end
@@ -177,9 +219,8 @@ function ns.GuildCrafters(recipeID, tooltip)
   if not (IsInGuild() and C_GuildInfo and C_GuildInfo.QueryGuildMembersForRecipe) then return nil, nil end
   local candidates = candidateSkillLines(recipeID)
   if #candidates == 0 then return nil, nil end
-  prime()
-  session = session + 1
-  active = { recipeID = recipeID, candidates = candidates, idx = 1, tooltip = tooltip, session = session }
+  primeOnce()
+  active = { recipeID = recipeID, recipeLevel = recipeLevel, candidates = candidates, idx = 1, tooltip = tooltip }
   fireCandidate()
   return nil, "pending"
 end
