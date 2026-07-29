@@ -48,7 +48,12 @@ function Cell:_resolvePosition(pos)
   local out = {}
   for k, v in pairs(pos) do
     local target = ANCHORS[k] and type(v) == "table" and v[1]
-    if target == "cell" or type(target) == "number" then
+    -- A part index must be followed by an EDGE string ({1, "RIGHT", 3, 0}); the bare {x, y}
+    -- offset shorthand (Region:SetPoint's 3-arg form) carries a number or nothing at v[2].
+    -- Without that discriminator a documented `Center = {0, -2}` resolved as "part 0" and
+    -- placed silently wrong instead of erroring. A "cell" target is a string, so unambiguous.
+    local symbolic = target == "cell" or (type(target) == "number" and type(v[2]) == "string")
+    if symbolic then
       local copy = { target == "cell" and self or self.parts[target].widget }
       for i = 2, #v do copy[i] = v[i] end
       out[k] = copy
@@ -75,15 +80,27 @@ function Cell:_buildPart(kind, spec)
       rotation = spec.rotation, blendMode = spec.blendMode,
     }
   end
+  -- Defaults are spelled out rather than left to Label's own, so a freshly built part and a
+  -- recycled one (see _applyPart) resolve an omitted field to the *same* value. They disagreed
+  -- before, so a composite label could render differently depending only on whether its cell
+  -- happened to be new or reused.
   return Label:new{
     parent = self, position = pos, layer = spec.layer or ui.layer.Artwork,
-    text = spec.text, color = spec.color, font = spec.font, fontInfo = spec.fontInfo,
-    justifyH = spec.justifyH, justifyV = spec.justifyV, wordWrap = spec.wordWrap,
+    text = spec.text, color = spec.color or "text", font = spec.font, fontInfo = spec.fontInfo,
+    justifyH = spec.justifyH or ui.justify.Left,
+    justifyV = spec.justifyV or ui.justify.Middle,
+    wordWrap = spec.wordWrap ~= false,
   }
 end
 
 -- Re-apply a part spec to an existing widget (recycled across re-sorts): reposition, then
 -- refresh its content in place.
+--
+-- Fields are applied UNCONDITIONALLY, each omitted one falling back to its neutral value. The
+-- conditional form this replaced meant "an omitted field keeps the previous occupant's value",
+-- which is precisely the recycling bug the whole reuse path has to defend against — the same
+-- rule CONTEXT states for plain cells. Sort a table whose composite column renders a rotated
+-- arrow and the recycled cell used to keep the previous row's rotation until a /reload.
 ---@param widget Texture|Label
 ---@param kind string  "texture" | "label"
 ---@param spec table
@@ -91,20 +108,31 @@ function Cell:_applyPart(widget, kind, spec)
   widget:ClearAllPoints()
   widget:Position(self:_resolvePosition(spec.position))
   if kind == "texture" then
+    -- path / atlas / color stay conditional: they are mutually exclusive texture *sources* and
+    -- each replaces whatever the others set, so an omitted one leaves no stale state to clear.
+    -- (Defaulting `color` would be actively wrong — Texture:Color is SetColorTexture, which
+    -- would replace the part's texture with a solid fill on every refresh.)
     if spec.path then widget:Texture(spec.path) end
     if spec.atlas then
       if spec.atlasSize == nil then widget:Atlas(spec.atlas) else widget:Atlas(spec.atlas, spec.atlasSize) end
     end
-    if spec.coords then widget:Coords(unpack(spec.coords)) end
-    if spec.vertexColor then widget:SetVertexColor(spec.vertexColor) end
     if spec.color then widget:Color(spec.color) end
+    -- These four are modifiers layered over that source, so each needs an explicit reset.
+    widget:Rotation(spec.rotation or 0)
+    widget:BlendMode(spec.blendMode or "BLEND")
+    if spec.coords then widget:Coords(unpack(spec.coords)) else widget:Coords(0, 0, 1, 1) end
+    widget:SetVertexColor(spec.vertexColor or {1, 1, 1, 1})
   else
     -- Coerce nil → "" so a reused part with no text is cleared (Label:Text treats a
-    -- falsy arg as a getter). Re-apply justify/font: parts are reused across re-sorts.
+    -- falsy arg as a getter). Defaults mirror _buildPart field for field.
     widget:Text(spec.text or "")
-    if spec.color then widget:Color(spec.color) end
+    widget:Color(spec.color or "text")
+    -- fontInfo alone stays conditional, deliberately: an empty part carries no font and there is
+    -- no "no font" to reset to, so the prior one is kept. Don't align this with the others.
     if spec.fontInfo then widget:Font(spec.fontInfo) end
     widget:JustifyH(spec.justifyH or ui.justify.Left)
+    widget:JustifyV(spec.justifyV or ui.justify.Middle)
+    widget:WordWrap(spec.wordWrap ~= false)
   end
 end
 
@@ -114,7 +142,12 @@ end
 -- re-sort recycling. The single-texture / single-label content is hidden.
 function Cell:Composite()
   if self.texture then self.texture:Hide() end
-  if self.label then self.label:Hide() end
+  -- Clear the text as well as hiding it. TableFrame:Autosize measures any cell with a truthy
+  -- `.label`, and a cell recycled from plain-label to composite still has one — holding the
+  -- previous occupant's text. Hiding alone left Autosize measuring that ghost, which is why
+  -- "Autosize skips composite cells" wasn't actually true. Emptied, it contributes 0 width, so
+  -- the claim holds without TableFrame needing to know composites exist.
+  if self.label then self.label:Text(""); self.label:Hide() end
   self.parts = self.parts or {}
   local specs = self.data.parts
   for i, spec in ipairs(specs) do
@@ -171,7 +204,11 @@ function Cell:Texture()
         self.texture:Atlas(data.atlas, data.atlasSize)
       end
     end
-    if data.position then self.texture:Position(data.position) end
+    -- Position ADDS anchors rather than replacing them, so without clearing first they
+    -- accumulate across re-sorts. Falls back to the same default the constructor below applies
+    -- instead of skipping, so a recycled cell can't keep the previous occupant's anchors.
+    self.texture:ClearAllPoints()
+    self.texture:Position(data.position or { All = true })
   else
     self.texture = Texture:new{
       parent = self,

@@ -89,6 +89,24 @@ function Label:JustifyH(justify)
   return self
 end
 
+---@param justify string?
+---@return string|Label
+function Label:JustifyV(justify)
+  if not justify then return self._widget:GetJustifyV() end
+  self._widget:SetJustifyV(justify)
+  return self
+end
+
+-- Getter/setter for multi-line wrapping. Tests against nil rather than falsiness, unlike the
+-- setters above: `false` is a meaningful value here, not a request for the getter.
+---@param wrap boolean?
+---@return boolean|Label
+function Label:WordWrap(wrap)
+  if wrap == nil then return self._widget:CanWordWrap() end
+  self._widget:SetWordWrap(wrap)
+  return self
+end
+
 -- Natural (unwrapped) pixel width of the current text, ignoring any width
 -- constraint on the FontString — useful for autosizing a column to its content.
 ---@return number
