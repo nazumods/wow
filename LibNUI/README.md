@@ -1343,6 +1343,7 @@ Inherits `Frame`. Renders a 2D grid with optional column and row headers, altern
 | `rowHeaderGap`  | number  | Gap between an autosized **row header** and the first column (default `8`). Separate from `padding`, which also spaces autosized columns, so this can be widened without moving every column; falls back to `padding` when unset |
 | `virtual`       | bool    | Build cell frames only for the rows the viewport shows, re-binding them as it scrolls (default `false`) — see **Viewport virtualisation** below |
 | `overscan`      | number  | Rows kept resident beyond each edge of the viewport when `virtual` (default `3`) |
+| `onRebind`      | func    | `fun(self)` fired after a virtual table re-points its cells at a new window of `data` — re-derive any overlay you draw on a cell keyed by its row (see **Viewport virtualisation**) |
 | `backdrop`      | table   | Default backdrop for all cells                                            |
 | `colBackdrop`   | table   | Default backdrop for column headers                                       |
 | `GetData`       | func    | Called by `onLoad` to fetch data table                                    |
@@ -1490,6 +1491,23 @@ scroll:Child(grid.rowArea)
 
 `BindViewport` chains onto any `onScroll` the viewport already carries, so binding a grid doesn't
 take that callback away from a consumer already watching it.
+
+**Overlays keyed by row — `onRebind`.** `Cell:update` refreshes each cell's own content on a bind,
+but anything you draw *on top* of a cell that isn't part of its `data` — a wanted-★, a status pip —
+is keyed by the row, not the cell, so after the window slides it's sitting on the wrong one. Give the
+table an `onRebind` callback and re-derive those overlays from the resident cells' `cell.data`:
+
+```lua
+local grid = TableFrame:new{
+  colInfo = cols, cellHeight = 20, virtual = true,
+  onRebind = function(g) reapplyMyOverlays(g) end,   -- runs only when the window actually moved
+}
+```
+
+It fires after the bind (so `cell.data` is final) and only on a real move (a scroll that doesn't
+change the window early-outs before it), so it's as cheap to handle as the bind is to run. A static
+table never fires it, so the same consumer code is correct in both modes — the overlays are just
+applied once at build time instead.
 
 **Constraints** — each one checkable where you build the table:
 

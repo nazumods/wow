@@ -2,6 +2,7 @@ local TableFrame  = LibNUI.TableFrame
 local ScrollFrame = LibNUI.ScrollFrame
 local Button      = LibNUI.Button
 local Label       = LibNUI.Label
+local Texture     = LibNUI.Texture
 local window      = LibNUITest.window
 local toggling    = LibNUITest.toggling
 
@@ -16,6 +17,12 @@ local toggling    = LibNUITest.toggling
 -- Correctness is the other half: scroll the virtual table and every row must show ITS own data,
 -- with the first column's "Row N" matching the values beside it. A window that binds wrong reads as
 -- rows jumping or repeating as you drag.
+--
+-- The gold dot on every fifth row (Row 5, 10, 15, …) tests `onRebind` specifically. It is an overlay
+-- keyed by the cell's DATA row, not part of the cell's data — the same shape as Collected's ★/rank
+-- marks — so `Cell:update` alone doesn't maintain it; only the `onRebind` hook re-deriving it per
+-- bind does. If the dots ever cling to a screen position instead of following "Row 5/10/15…" as you
+-- scroll, the hook has regressed. The readout counts how many times it fired.
 --
 -- EXPECT the static build to paint faint vertical bands down the screen below the window. That is
 -- not a fault in this test: `addRow` grows the TABLE's height per row and `TableCol` anchors its
@@ -57,10 +64,34 @@ local function makeVirtual()
   }
 
   local grid, scroll
+  local rebinds = 0
+
+  -- Re-stamp the "every fifth row" marker onto whichever cells are resident now, reading each Name
+  -- cell's own data to decide — exactly how a real consumer (Collected's marks) re-derives overlays
+  -- after a bind. The marker is a child of the cell, created once and reused, shown/hidden per row.
+  local function restampMarkers(g)
+    rebinds = rebinds + 1
+    for _, row in ipairs(g.cells) do
+      local nameCell = row[1]
+      if nameCell then
+        local n = tonumber((tostring(nameCell.data):match("Row (%d+)")))
+        if not nameCell._mark then
+          nameCell._mark = Texture:new{
+            parent = nameCell, layer = LibNUI.layer.Overlay,
+            color = "header", position = { TopLeft = { 2, -2 }, Size = { 6, 6 } },
+          }
+        end
+        nameCell._mark:SetShown(n ~= nil and n % 5 == 0)
+      end
+    end
+    readout:Text(("virtual: scrolling — onRebind fired %d times (gold dot must follow Row 5/10/15…)")
+      :format(rebinds))
+  end
 
   local function build(virtual)
     if grid then grid:Hide() end
     if scroll then scroll:Hide() end
+    rebinds = 0
 
     local t0 = GetTimePreciseSec()
     grid = TableFrame:new{
@@ -70,6 +101,7 @@ local function makeVirtual()
       cellHeight   = CELL_H,
       headerHeight = HEADER_H,
       virtual      = virtual,
+      onRebind     = virtual and restampMarkers or nil,
       position     = { TopLeft = { PAD, -(TITLE_H + BTN_H + 8 + 16) } },
     }
     scroll = ScrollFrame:new{

@@ -51,6 +51,10 @@ local Top, Bottom = ui.edge.Top, ui.edge.Bottom
 ---@field _viewport ScrollFrame?  bound viewport (virtual mode)
 ---@field _resident integer?  live row-frame count (virtual mode)
 ---@field _top integer?  data index currently bound to resident row 1 (virtual mode)
+---@field onRebind? fun(self: TableFrame)  fired after `_rebind` re-points the resident cells at a new
+---  window of `data` (virtual mode) — the moment anything a consumer draws ON TOP of a cell, keyed by
+---  that cell's data, goes stale. Only fires when the window actually moved, so it is as cheap to
+---  handle as `_rebind` is to run. A static table never fires it.
 local TableFrame = Class(Frame, function(self)
   if not self.colNames and self.colInfo then
     self.colNames = {}
@@ -278,6 +282,13 @@ function TableFrame:_rebind()
       end
     end
   end
+
+  -- The resident cells now hold a different slice of `data`. `Cell:update` refreshed each cell's own
+  -- content, but anything a consumer draws OVER a cell — an overlay keyed by that cell's row, not part
+  -- of its `data` — is now sitting on the wrong row and must be re-derived. Fired after the bind so
+  -- the consumer sees final `cell.data`, and only on a real move (the early-out above already
+  -- returned otherwise), so it costs nothing on a scroll that didn't change the window.
+  if self.onRebind then self:onRebind() end
 end
 
 -- Resize the frame to show exactly n rows, hiding dead space when the active
