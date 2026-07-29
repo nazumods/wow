@@ -113,19 +113,15 @@ function DataView:update()
 end
 
 -- Show or hide a centered empty-state message in the row area, so an empty grid reads as
--- intentionally empty rather than blank/broken. The mechanics are shared with the weapons grid
--- (ns.GridEmptyMessage); only the wording is ours.
+-- intentionally empty rather than blank/broken. Both the mechanics and the phrasing are shared with
+-- the weapons grid (ns.GridEmptyMessage); only the noun is ours.
 --
 -- Shown for ANY empty result since #768 L-5, not just the ★ filter: an expansion × category
 -- combination that matches nothing used to collapse the grid to its bare header with no message
 -- and no reserved height, which reads as the addon having broken rather than the filter being
--- narrow. The wording still has to say WHY it's empty, hence the branch.
+-- narrow.
 ---@param on boolean
-function DataView:_setEmpty(on)
-  ns.GridEmptyMessage(self, on, self._wantedOnly
-    and "You don't have any Wanted sets."
-    or "No sets match these filters.")
-end
+function DataView:_setEmpty(on) ns.GridEmptyMessage(self, on, "sets") end
 
 -- Scroll `scroll` so a row is fully in view — the shared clamp, exposed as a METHOD purely so the
 -- embedded host can reach it: Warbandeer's collected view is a different addon with its own `ns`, so

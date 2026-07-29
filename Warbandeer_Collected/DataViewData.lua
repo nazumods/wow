@@ -3,7 +3,6 @@ local ns = select(2, ...)
 local ui, api = ns.ui, ns.api
 local lists = ns.lua.lists
 local Texture = ui.Texture
-local GameTooltip = GameTooltip
 local DataView = ns.DataView
 
 -- PTR mode marks every existing set "upcoming" rather than counting collected
@@ -149,24 +148,12 @@ function ns.CollectedRows(self)
     -- full class count so they get a blank cell and don't keep another row's value
     -- on re-sort.
     for i = #r + 1, #ns.icons.classes do r[i] = {} end
-    -- Prefix the name with its expansion badge (inline texture escape, auto-sized to
-    -- the font height via :0); the name column auto-sizes to fit it. ReleaseIcons is
-    -- parallel to Releases, indexed by the group's release. Hovering the name cell
-    -- shows the expansion name in a cursor-anchored tooltip (the cell spans the whole
-    -- name, so a frame-anchored tip would land far off to the side).
-    local icon = ns.ReleaseIcons[grp.release]
-    local expName = ns.Releases[grp.release]
-    local nameText = icon and ("|T%s:0|t %s"):format(icon, grp.name) or grp.name
-    local onNameEnter = expName and function()
-      GameTooltip:SetOwner(UIParent, "ANCHOR_CURSOR")
-      GameTooltip:SetText(expName)
-      GameTooltip:Show()
-    end or nil
-    local onNameLeave = expName and function() GameTooltip:Hide() end or nil
-    -- Embedded hosts have no lock column or lockout panel — just the group name as
-    -- the leading (col 1) cell, inert.
+    -- The expansion-badged name cell, with the expansion's name on hover — `ns.GridNameCell`,
+    -- shared with the weapons grid, which drew the identical badge and said nothing about it.
+    -- Embedded hosts have no lock column or lockout panel, so it is the leading (col 1) cell
+    -- there and inert.
     if self.embedded then
-      tinsert(r, 1, { text = nameText, onEnter = onNameEnter, onLeave = onNameLeave })
+      tinsert(r, 1, ns.GridNameCell(grp))
       return r
     end
     -- Windowed grid: a lock-icon column then the name. The name click opens the
@@ -180,48 +167,45 @@ function ns.CollectedRows(self)
       coords = {0, 0.875, 0, 0.875},
       position = { Center = {}, Size = {12, 12} },
     } or {})
-    tinsert(r, 2, {
-      text = nameText,
-      onEnter = onNameEnter,
-      onLeave = onNameLeave,
-      onClick = isPtr and function() end or function()
-        -- Toggle: clicking the row whose lockouts are already open closes the panel.
-        if self._selectedRow == dispIdx then
-          self:_clearSelection()
-          return
-        end
-        ns.ShowLockoutView(srcIdx, ns.window, {
-          TopRight = {ns.window, ui.edge.TopLeft, -25, 0},
-          BottomRight = {ns.window, ui.edge.BottomLeft, -25, 0},
-        })
-        local row = self.rows[dispIdx]
-        if self._selectedRow ~= nil then
-          self.cells[self._selectedRow][2].label:Color(WHITE_FONT_COLOR)
-        end
-        self._selectedRow = dispIdx
-        self.cells[dispIdx][2].label:Color(NORMAL_FONT_COLOR:GetRGBA())
-        if not self._arrow then
-          self._arrow = Texture:new{
-            -- rowArea, not the grid (#768 L-9): parented to the grid it wasn't clipped by the
-            -- scroll frame, so scrolling the selected row out of view left the arrow drawn over
-            -- the column header. `ns.EnsureDressedCursor` parents to rowArea for the same reason —
-            -- "so it scrolls with the cells". The anchor still targets the row itself, which is a
-            -- child of rowArea, so the positioning is unchanged.
-            parent = self.rowArea,
-            path = "interface/common/commonicons",
-            coords = {
-              0.02654,
-              0.10273,
-              0.2529296875,
-              0.5029296875
-            },
-          }
-        end
-        self._arrow._widget:SetSize(14, 16)
-        self._arrow:TopRight(row, ui.edge.TopLeft, -3, -2)
-        self._arrow:Show()  -- re-show: _clearSelection hides it, and SetPoint alone won't
-      end,
-    })
+    local nameCell = ns.GridNameCell(grp)
+    nameCell.onClick = isPtr and function() end or function()
+      -- Toggle: clicking the row whose lockouts are already open closes the panel.
+      if self._selectedRow == dispIdx then
+        self:_clearSelection()
+        return
+      end
+      ns.ShowLockoutView(srcIdx, ns.window, {
+        TopRight = {ns.window, ui.edge.TopLeft, -25, 0},
+        BottomRight = {ns.window, ui.edge.BottomLeft, -25, 0},
+      })
+      local row = self.rows[dispIdx]
+      if self._selectedRow ~= nil then
+        self.cells[self._selectedRow][2].label:Color(WHITE_FONT_COLOR)
+      end
+      self._selectedRow = dispIdx
+      self.cells[dispIdx][2].label:Color(NORMAL_FONT_COLOR:GetRGBA())
+      if not self._arrow then
+        self._arrow = Texture:new{
+          -- rowArea, not the grid (#768 L-9): parented to the grid it wasn't clipped by the
+          -- scroll frame, so scrolling the selected row out of view left the arrow drawn over
+          -- the column header. `ns.EnsureDressedCursor` parents to rowArea for the same reason —
+          -- "so it scrolls with the cells". The anchor still targets the row itself, which is a
+          -- child of rowArea, so the positioning is unchanged.
+          parent = self.rowArea,
+          path = "interface/common/commonicons",
+          coords = {
+            0.02654,
+            0.10273,
+            0.2529296875,
+            0.5029296875
+          },
+        }
+      end
+      self._arrow._widget:SetSize(14, 16)
+      self._arrow:TopRight(row, ui.edge.TopLeft, -3, -2)
+      self._arrow:Show()  -- re-show: _clearSelection hides it, and SetPoint alone won't
+    end
+    tinsert(r, 2, nameCell)
     return r
   end)
 end
