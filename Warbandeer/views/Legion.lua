@@ -164,10 +164,6 @@ end, {
   end,
 })
 
--- Catalog lives in Warbandeer_Characters (data/achievementcatalog.lua) since the
--- persistence layer needs the full id set regardless of whether this view is open.
-local achievementIds = api:GetAchievementCatalog().legion
-
 -- Achievements Table
 ---@class LegionAchievements: TableFrame
 ---@field GetData fun(self: LegionAchievements): table  builds the achievement cell grid
@@ -178,8 +174,12 @@ end, {
   headerHeight = 0,
   headerWidth = 0,
   GetData = function(self)
+    -- Catalog lives in Warbandeer_Characters (data/achievementcatalog.lua) since the persistence
+    -- layer needs the full id set regardless of whether this view is open. Read here rather than
+    -- at file scope so a missing or stale producer costs this view when opened, not three files
+    -- at load (#746).
     return ns.lua.maps.map(
-      ns.lua.lists.fold(achievementIds, 3),
+      ns.lua.lists.fold(api:GetAchievementCatalog().legion, 3),
       function(ids)
         return ns.lua.lists.map(ids, function(achievementId)
           local _, name = GetAchievementInfo(achievementId)

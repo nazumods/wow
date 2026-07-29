@@ -12,15 +12,6 @@ ns.overview = ns.overview or {}
 
 local TransparentBackdrop = {color = ns.Colors.TransparentBlack}
 
--- Per-expansion achievement ID lists (display order), consumed by Overview's EXPANSIONS
--- table and passed to an Achievements instance as `achievementIds`. The catalog itself lives
--- in Warbandeer_Characters (data/achievementcatalog.lua) since the persistence layer needs
--- the full id set regardless of whether this view is open.
-local checklist = api:GetAchievementCatalog().checklist
-ns.overview.wwiAchievementIds = checklist.wwi
-ns.overview.midnightAchievementIds = checklist.midnight
-ns.overview.dragonflightAchievementIds = checklist.dragonflight
-
 -- Persisted completion colour for one achievement (metaAlts, e.g. 41818's Heroic variant
 -- 41820, is resolved by IsAchievementComplete).
 local function achColor(achievementId)
@@ -29,8 +20,15 @@ end
 
 -- Single-column achievement checklist for one expansion.
 ---@class OverviewAchievements: TableFrame
----@field achievementIds number[]  achievement IDs to list, in display order
+---@field catalogKey string  key into the catalog's `checklist` (e.g. "midnight")
+---@field achievementIds number[]  resolved from `catalogKey` at construction, in display order
 local Achievements = Class(TableFrame, function(self)
+  -- The catalog lives in Warbandeer_Characters (data/achievementcatalog.lua) since the
+  -- persistence layer needs the full id set regardless of whether this view is open. Resolved
+  -- per instance rather than at file scope so a missing or stale producer costs the view being
+  -- opened, at the moment it is opened, instead of erroring three files at load (#746). Kept on
+  -- self because Refresh recolours against the same list.
+  self.achievementIds = api:GetAchievementCatalog().checklist[self.catalogKey]
   self.data = {}
   for _, achievementId in ipairs(self.achievementIds) do
     self:addRow({backdrop = TransparentBackdrop})
@@ -50,7 +48,6 @@ local Achievements = Class(TableFrame, function(self)
   end
   self:update()
 end, {
-  achievementIds = {},
   headerHeight = 0,
   headerWidth = 0,
   colInfo = {

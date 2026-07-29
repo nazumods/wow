@@ -91,7 +91,15 @@ end
 -- anywhere (this grid or the standalone /wbdecor window). Registered once at load.
 if WarbandeerHousingDecorApi and WarbandeerHousingDecorApi.OnScanned then
   WarbandeerHousingDecorApi:OnScanned(function()
-    if _view then _view.grid:Render(); _view:RefreshWanted() end
+    if _view then
+      -- The filter strip snapshots CategoryOptions() at construction, so a tab opened before
+      -- the async catalog scan lands would keep a categoryless dropdown for the session (#738).
+      -- Same recovery path the standalone /wbdecor window uses -- guarded because the two addons
+      -- version independently and an older Warbandeer_Decor may predate the method (#592).
+      if _view.grid.RefreshCategoryFilter then _view.grid:RefreshCategoryFilter() end
+      _view.grid:Render()
+      _view:RefreshWanted()
+    end
   end)
 end
 if WarbandeerHousingDecorApi and WarbandeerHousingDecorApi.OnRatingsChanged then

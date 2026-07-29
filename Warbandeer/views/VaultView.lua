@@ -190,6 +190,12 @@ function VaultView:_layoutEmpty()
   end
   self.emptyMsg:Text(msg)
   local w = self.emptyMsg:UnboundedWidth() + 40  -- breathing room on both sides of the message
+  -- Never narrower than the floor MainWindow:Fit will apply anyway. The Vault's titlebar floor is
+  -- wide (title + faction filter + close button), so sizing purely to the message left the window
+  -- wider than the view -- and the message, centred within the view, visibly left of centre in the
+  -- window (#746). Standalone/embedded hosts have no window to ask, and keep the message width.
+  local host = ns.MainWindow
+  if host then w = math.max(w, host:MinContentWidth(self)) end
   self.emptyMsg:Width(w)
   self.emptyMsg:Show()
   self:Width(w)
