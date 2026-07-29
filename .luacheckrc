@@ -457,6 +457,7 @@ std = {
     "GetSpecializationInfoForClassID",
     "GetSpecializationRoleByID",
     "GetTime",
+    "GetTimePreciseSec",
     "GetCurrentTitle",
     "GetNumTitles",
     "GetTitleName",

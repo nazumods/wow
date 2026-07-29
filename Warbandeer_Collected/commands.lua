@@ -194,6 +194,7 @@ end, "dev: verify the #596 weapon-browser data layer (no arg = categories; <name
 -- window. Leaves the rating keys (wanted/rank/raceRank) untouched. Silent so the
 -- collection-change event can call it without chat spam; the command prints.
 function ns:Scan()
+  local scanStart = GetTimePreciseSec()
   self.db.collected = 0
   self.db.total = 0
   self.db.sets = {}
@@ -267,6 +268,11 @@ function ns:Scan()
   if ns._scanned then
     for _, fn in ipairs(ns._scanned) do fn() end
   end
+  -- The login burst of TRANSMOG_COLLECTION_UPDATED schedules a scan 500ms out, and a scan walks
+  -- every set through the transmog API *and* rebuilds both grids. Landing one next to a window open
+  -- is the difference between a slow build and a build that also paid for a rescan, so the profiler
+  -- records it whether or not a run is in flight (see profile.lua).
+  ns.prof:Scan((GetTimePreciseSec() - scanStart) * 1000)
 end
 
 ns:registerCommand("scan", "", function(self)

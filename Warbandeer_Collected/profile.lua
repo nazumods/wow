@@ -1,0 +1,297 @@
+---@type Warbandeer_Collected
+local ns = select(2, ...)
+local ui = ns.ui
+local floor = math.floor
+local GetTimePreciseSec = GetTimePreciseSec
+
+-- Build-time profiler for the Collected window (`/collected profile`), off by default.
+--
+-- It exists to answer ONE question, because the two possible answers want opposite fixes: is the
+-- wait Lua work, or is it the engine laying out the frames that work created? A grid build is
+-- ~6,600 `Cell` frames, and the layout cost of those lands AFTER the constructor returns — so a
+-- Lua-only timer reports a fast build for a window that visibly isn't. Hence two clocks per run:
+-- `lua` (the synchronous call) and `paint1..3` (the frames that follow it).
+--
+-- If `lua` dominates → chunk the build across frames and the window appears immediately.
+-- If `paint` dominates → chunking buys nothing and the answer is FEWER frames (virtualise rows to
+-- the viewport). Reading only the first number is how you end up building the wrong thing.
+--
+-- `GetTimePreciseSec` rather than `debugprofilestop`: the latter is zeroed by anyone calling
+-- `debugprofilestart()`, which would silently corrupt a span mid-run.
+--
+-- Samples persist to `db.profile` because the first open happens once per session — a single
+-- reading is noise, and #718 has already burned two PRs on exactly that mistake.
+
+-- Samples kept per kind (bounds the SavedVariables), and frames timed after each build.
+local MAX_SAMPLES, PAINT_FRAMES = 20, 3
+
+---@class CollectedProfiler
+---@field _run table?      the run being timed (nil = not inside one, so every Mark no-ops)
+---@field _ticker Frame?   reusable OnUpdate frame that times the frames after a build
+---@field _lastScan table? `{ at, ms }` of the most recent ns:Scan, for the overlap note
+local Prof = {}
+
+---@class Warbandeer_Collected
+---@field prof CollectedProfiler
+ns.prof = Prof
+
+-- Shared with Warbandeer's embedded collected view through the API global, the same route the grid
+-- classes take. The grid's own marks already fire for either host (they close over THIS addon's
+-- `ns`), but the run they belong to has to be opened by whichever host is building — and that host
+-- is a different addon with a different `ns`, so it needs a handle. Loaded after `api.lua`, which
+-- creates the table.
+_G.WarbandeerCollectedApi.prof = Prof
+
+---Is instrumentation on? **On by default**, and only an explicit `false` turns it off — so a fresh
+---install collects from its first login with nothing typed.
+---
+---Deliberately the default while #718's slow open is being investigated, for two reasons that both
+---come down to the same thing: the run that matters most is the FIRST open, which happens once per
+---session, and one session's reading is noise. Anything that has to be armed by hand each login
+---doesn't get armed, and the multi-sample set this is built around never accumulates.
+---
+---**Flip this default back to off once that question is settled** — it is a diagnostic, not a
+---permanent resident. `/collected profile` turns it off in the meantime, and the state persists.
+---@return boolean
+function Prof:Armed()
+  local store = ns.db.profile
+  return not (store and store.armed == false)
+end
+
+---Should each run print as it completes? **Off by default**, the mirror of `Armed`.
+---
+---Collecting and reporting are separate switches because they want opposite defaults: samples are
+---only worth anything in bulk, so collection has to run unattended across many sessions — but a
+---profiler that prints two lines on every window open and every Armor/Weapons swap is noise during
+---normal play. So it accumulates silently and `report` is the readout; `/collected profile show`
+---turns the live lines on while actively measuring.
+---@return boolean
+function Prof:Verbose()
+  local store = ns.db.profile
+  return store ~= nil and store.verbose == true
+end
+
+---Start timing a run. No-op unless armed, and a run already in flight is left alone so a nested
+---span can't restart the clock on the one that encloses it.
+---@param kind string  "open" | "weapons" | "armor"
+function Prof:Begin(kind)
+  if self._run or not self:Armed() then return end
+  local now = GetTimePreciseSec()
+  self._run = { kind = kind, t0 = now, last = now, phases = {} }
+end
+
+---Record a split since the previous mark. No-op outside a run, which is what keeps the call sites
+---in the window and grid constructors free when profiling is off.
+---@param name string
+function Prof:Mark(name)
+  local run = self._run
+  if not run then return end
+  local now = GetTimePreciseSec()
+  run.phases[#run.phases + 1] = { name = name, ms = (now - run.last) * 1000 }
+  run.last = now
+end
+
+---Note a completed `ns:Scan`. Recorded whether or not a run is in flight: the login burst of
+---TRANSMOG_COLLECTION_UPDATED schedules a scan 500ms out, and a scan rebuilds BOTH grids — so a
+---scan landing next to an open is the difference between a slow build and a build that also paid
+---for a full rescan. Without this the open timings look unreproducible.
+---@param ms number
+function Prof:Scan(ms)
+  self._lastScan = { at = GetTimePreciseSec(), ms = ms }
+end
+
+---Rows and live cells in the grid this run built or swapped to — the count that decides between
+---"chunk the Lua" and "create fewer frames", which time alone can't separate.
+---
+---The host passes its own grid: falling back to `ns.window` alone reported `0 rows, 0 cells` for
+---every run driven by Warbandeer's embedded view, which has no `ns.window` at all.
+---@param grid table?  the host's active grid; falls back to the /collected window's
+---@return number rows, number cells
+function Prof:_gridStats(grid)
+  grid = grid or (ns.window and (ns.window.active or ns.window.data))
+  if not (grid and grid.cells) then return 0, 0 end
+  local cells = 0
+  for r = 1, #grid.cells do
+    local row = grid.cells[r]
+    for c = 1, #grid.cols do if row[c] then cells = cells + 1 end end
+  end
+  return #grid.rows, cells
+end
+
+---Close the run: stamp the Lua total, then time the next few frames before recording it.
+---@param grid table?  the host's active grid, for the row/cell counts
+function Prof:Finish(grid)
+  local run = self._run
+  if not run then return end
+  self._run = nil
+  run.lua = (GetTimePreciseSec() - run.t0) * 1000
+  run.rows, run.cells = self:_gridStats(grid)
+  if self._lastScan then
+    run.scanGap, run.scanMs = run.t0 - self._lastScan.at, self._lastScan.ms
+  end
+  self:_timePaint(run)
+end
+
+---Time the frames following the build. The engine lays out freshly created frames after the Lua
+---call returns, so that cost is invisible to `run.lua`. There is no present/paint callback in the
+---client, so "how long did the next three frames take" is the closest available proxy — a build
+---whose frames run long is one the user is still waiting on.
+---
+---**Runs are QUEUED, not one-at-a-time.** Two runs finish inside the same frame routinely — the
+---embedded view's constructor and the `OnBeforeShow` that immediately follows it — and an earlier
+---design re-pointed one shared `OnUpdate` per run, so the second silently replaced the first and
+---its run was never recorded. That dropped `wb-build`, the single most interesting measurement
+---here, while leaving output that looked healthy.
+---@param run table
+function Prof:_timePaint(run)
+  run._frames = 0
+  self._pending = self._pending or {}
+  self._pending[#self._pending + 1] = run
+  self._ticker = self._ticker or ui.Frame:new{ parent = UIParent }
+  if self._ticking then return end
+  self._ticking = true
+  self._ticker:SetScript("OnUpdate", function()
+    local now, still = GetTimePreciseSec(), {}
+    for _, r in ipairs(self._pending) do
+      r._frames = r._frames + 1
+      r["paint" .. r._frames] = (now - r.t0) * 1000
+      if r._frames < PAINT_FRAMES then still[#still + 1] = r else self:_record(r) end
+    end
+    self._pending = still
+    if #still > 0 then return end
+    self._ticker:RemoveScript("OnUpdate")
+    self._ticking = false
+  end)
+end
+
+---Persist the finished run and print it. `db.profile` is seeded here rather than in `MigrateDB`:
+---it's purely additive and filled lazily, so per the DB rule it earns no version bump.
+---@param run table
+function Prof:_record(run)
+  run.t0, run.last, run._frames = nil, nil, nil   -- clock state, not results; don't persist it
+  local store = ns.db.profile or {}
+  ns.db.profile = store
+  local samples = store[run.kind] or {}
+  store[run.kind] = samples
+  samples[#samples + 1] = run
+  while #samples > MAX_SAMPLES do table.remove(samples, 1) end
+  -- Recorded either way; only the live line is optional (see Prof:Verbose).
+  if self:Verbose() then self:_print(run, #samples) end
+end
+
+---@param ms number?
+---@return string
+local function fmt(ms) return ("%.0f"):format(ms or 0) end
+
+---@param run table
+---@param n number  how many samples of this kind are now stored
+function Prof:_print(run, n)
+  local parts = {}
+  for _, p in ipairs(run.phases) do parts[#parts + 1] = ("%s %s"):format(p.name, fmt(p.ms)) end
+  ns.Print(("%s — lua %sms · paint +%s/+%s/+%sms · %d rows, %d cells  (sample %d)"):format(
+    run.kind, fmt(run.lua), fmt(run.paint1), fmt(run.paint2), fmt(run.paint3),
+    run.rows, run.cells, n))
+  ns.Print("  " .. table.concat(parts, "  "))
+  -- Only worth saying when the scan is close enough to have shared the frame budget.
+  local gap = run.scanGap
+  if gap and gap > -5 and gap < 5 then
+    ns.Print(gap < 0
+      and ("  |cffff8800a scan (%sms) ran DURING this run — it rebuilds both grids|r"):format(fmt(run.scanMs))
+      or  ("  |cffff8800a scan (%sms) ran %.1fs before this run|r"):format(fmt(run.scanMs), gap))
+  end
+end
+
+---Min / median / max of a list of numbers (sorted copy — the caller's order is the sample order).
+---@param list number[]
+---@return number, number, number
+local function spread(list)
+  if #list == 0 then return 0, 0, 0 end
+  local s = {}
+  for i, v in ipairs(list) do s[i] = v end
+  table.sort(s)
+  return s[1], s[floor((#s + 1) / 2)], s[#s]
+end
+
+-- Every run kind, in report order — both hosts of the shared grid, kept apart because they build
+-- the same grid through different chrome and a slow one beside a fast one is itself the finding.
+-- `wb-build` is the first click on Collected in `/wb` (views are lazy, so that click runs the
+-- constructor); `wb-show` is every later click, which only re-renders.
+--
+-- One list rather than a literal per site: `clear` had its own copy that still named only the three
+-- `/collected` kinds, so it silently left every `wb-*` sample behind.
+local KINDS = { "open", "weapons", "armor", "wb-build", "wb-show", "wb-weapons", "wb-armor" }
+
+---Aggregate every stored sample to a copy window. The point of aggregating is that one login tells
+---you nothing: the phase that matters is the one whose MEDIAN is large, not the one that spiked
+---while a scan happened to be running.
+function Prof:Report()
+  local store = ns.db.profile
+  if not store then ns.Print("No samples yet — /collected profile arms it."); return end
+  local lines = {}
+  for _, kind in ipairs(KINDS) do
+    local samples = store[kind]
+    if samples and #samples > 0 then
+      lines[#lines + 1] = ("== %s (%d samples) =="):format(kind, #samples)
+      -- Collect each metric across samples, then report its spread. Phase names come off the first
+      -- sample: every run of a kind walks the same call path, so the set is stable.
+      local cols = { { "lua", function(r) return r.lua end } }
+      for i = 1, PAINT_FRAMES do
+        cols[#cols + 1] = { "paint+" .. i, function(r) return r["paint" .. i] end }
+      end
+      for i, p in ipairs(samples[1].phases) do
+        cols[#cols + 1] = { "  " .. p.name, function(r) return r.phases[i] and r.phases[i].ms end }
+      end
+      for _, col in ipairs(cols) do
+        local vals = {}
+        for _, r in ipairs(samples) do
+          local v = col[2](r)
+          if v then vals[#vals + 1] = v end
+        end
+        local lo, mid, hi = spread(vals)
+        lines[#lines + 1] = ("%-14s  min %6.1f   median %6.1f   max %6.1f  (ms)"):format(col[1], lo, mid, hi)
+      end
+      local last = samples[#samples]
+      lines[#lines + 1] = ("%-14s  %d rows, %d cells"):format("grid", last.rows, last.cells)
+      lines[#lines + 1] = ""
+    end
+  end
+  if #lines == 0 then ns.Print("No samples yet — /collected profile arms it."); return end
+  ui.ShowCopyWindow("Collected build profile", table.concat(lines, "\n"))
+end
+
+-- dev: the build profiler's controls. It runs on its own (see Prof:Armed) — every window open and
+-- every Armor/Weapons swap is timed with nothing typed — so a bare call is the OFF switch, not the
+-- on switch. Recording and printing are separate: it records **quietly** by default, and `show`
+-- turns the per-run lines on for when you're actively measuring. Both states persist across a
+-- /reload.
+--
+-- `report` aggregates the stored samples across sessions, which is the reading that means anything;
+-- `clear` wipes them without changing whether it's running.
+ns:registerCommand("profile", nil, function(self, args)
+  local arg = (args or ""):lower():match("^%s*(.-)%s*$")
+  if arg == "report" then Prof:Report(); return end
+  local store = ns.db.profile or {}
+  ns.db.profile = store
+  if arg == "clear" then
+    for _, kind in ipairs(KINDS) do store[kind] = nil end
+    ns.Print(("Cleared the stored build-profile samples (profiling is still %s)."):format(
+      Prof:Armed() and "on" or "off"))
+    return
+  end
+  if arg == "show" then
+    store.verbose = not Prof:Verbose()
+    ns.Print(store.verbose and "Build profiling now prints each run as it completes."
+      or "Build profiling is quiet again — still recording; read it with /collected profile report.")
+    return
+  end
+  store.armed = not Prof:Armed()
+  if not store.armed then ns.Print("Build profiling off."); return end
+  -- Say where the numbers went: with the live lines off by default, "on" is otherwise indistinguishable
+  -- from nothing happening.
+  local n = 0
+  for _, kind in ipairs(KINDS) do n = n + #(store[kind] or {}) end
+  ns.Print(("Build profiling on — recording quietly (%d samples stored). `report` reads them, `show` prints live."):format(n))
+  -- Opening from here only matters when there's no window yet: the first open is the run that can
+  -- only be taken once per session, so don't make the user issue a second command to get it.
+  if not ns.window then self:Open() end
+end, "dev: build profiling records by default, quietly — bare call turns it OFF (`report` aggregates, `show` prints live, `clear` wipes)")

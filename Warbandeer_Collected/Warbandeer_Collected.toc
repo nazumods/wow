@@ -45,6 +45,7 @@ outfitverbs.lua
 outfitinspect.lua
 outfitcommands.lua
 api.lua
+profile.lua
 
 chrome.lua
 retry.lua
