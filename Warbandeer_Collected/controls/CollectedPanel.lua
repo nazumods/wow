@@ -416,12 +416,16 @@ function CollectedPanel:_chromeWidth()
   return self._chromeMax
 end
 
----Which column carries a grid's row names — col 2 in the window host's armour grid (the lock column
----takes col 1), col 1 everywhere else.
+---Which column carries a grid's row names — col 2 in the armour grid (the lock column takes col 1 in
+---both hosts since #864, zero-width where the host owns lockouts), col 1 in the weapon grid, which has
+---no lock column at all.
+---
+---Branches on WHICH GRID, not on which host: the two grids genuinely have different column layouts,
+---where the host never did — that asymmetry was the bug.
 ---@param grid table
 ---@return number
 function CollectedPanel:_nameColOf(grid)
-  if grid == self.grid then return self.lockouts and 2 or 1 end
+  if grid == self.grid then return 2 end
   return 1
 end
 

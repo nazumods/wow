@@ -47,7 +47,9 @@ local DataView = Class(TableFrame, function(self)
   ns.prof:Mark("cells")
   -- Autosize the name column. Called raw (not through _fitNameCol) because the host hasn't
   -- assigned its own grid field yet — firing onResized here would refit against a nil grid.
-  ns.FitNameCol(self, self.embedded and 1 or 2)
+  -- Always col 2: the lock column at col 1 is emitted in both hosts and merely zero-width when the
+  -- host owns lockouts (#864), so this index no longer depends on who is rendering.
+  ns.FitNameCol(self, 2)
   ns.prof:Mark("fitname")
   -- A label only measures true once WoW has laid the grid out, so measure again on the next
   -- frame, when it definitely has — this is the repair for a short first pass (#718).
@@ -80,7 +82,7 @@ end, {
 -- col 1) and let the host refit when it grew. Re-runnable (see ns.FitNameCol), so it doubles as the
 -- repair for a first measurement taken before WoW had laid the grid out.
 function DataView:_fitNameCol()
-  if ns.FitNameCol(self, self.embedded and 1 or 2) and self.onResized then self:onResized() end
+  if ns.FitNameCol(self, 2) and self.onResized then self:onResized() end
 end
 
 -- Re-fit on show. The window's Armor/Weapons swap shows this grid via SetShown, which routes

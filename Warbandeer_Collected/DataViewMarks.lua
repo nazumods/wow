@@ -7,6 +7,11 @@ local DataView = ns.DataView
 -- — embedded hosts have no lockout selection. Selection state (`self._selectedRow` /
 -- `self._arrow`) is set by the name-cell click handler in DataViewData.lua.
 function DataView:_clearSelection()
+  -- Nothing selected, nothing to clear — and callers no longer have to know whether this grid can even
+  -- have a selection (#864). It replaces three `if not self.embedded then` guards at the call sites,
+  -- and closes a latent cross-host bug those guards were the only defence against: `ns.HideLockoutView`
+  -- is global, so an embedded grid re-filtering would have closed the STANDALONE window's lockout panel.
+  if not self._selectedRow then return end
   -- `_selectedRow` is a DATA index; under virtualisation `cells` is keyed by viewport slot, so the
   -- translation has to go through ns.ResidentCell (nil when the row isn't on screen — normal, and
   -- nothing to un-highlight in that case).

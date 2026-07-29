@@ -200,17 +200,12 @@ function ns.CollectedRows(self)
     -- full class count so they get a blank cell and don't keep another row's value
     -- on re-sort.
     for i = #r + 1, #ns.icons.classes do r[i] = {} end
-    -- The expansion-badged name cell — `ns.GridNameCell`, shared with the weapons grid. Embedded
-    -- hosts have no lock column or lockout panel, so it is the leading (col 1) cell there and
-    -- click-inert; "inert" is about the CLICK only, and both hover tooltips still apply, which is
-    -- what this host is mostly looked at through.
-    if self.embedded then
-      tinsert(r, 1, ns.GridNameCell(grp, ns.SetGroupInfo))
-      return r
-    end
-    -- Windowed grid: a lock-icon column then the name. The name click opens the
-    -- lockout panel, except in PTR mode (srcIdx indexes ns.PtrSets, not ns.Sets, so
-    -- there are no lockouts to show), where it's inert.
+    -- Lock cell at col 1 then the name at col 2, in BOTH hosts (#864). An embedded host resolves no
+    -- lock state (`toon` is false above), so this lands a blank cell in what `buildColInfo` made a
+    -- zero-width column — which is the point: one column layout, one name-cell call site, and an index
+    -- that doesn't depend on who is rendering. The previous early-return for embedded hosts is what let
+    -- a one-argument change to the name cell half-land (#865).
+    --
     -- Render the lock as a real texture, not a `|T…|t` font-escape in a Label — that
     -- escape doesn't fit/measure reliably in the narrow column under a custom font
     -- (it truncated to "|…"); a Texture cell is immune to font + ellipsis truncation.
@@ -220,7 +215,11 @@ function ns.CollectedRows(self)
       position = { Center = {}, Size = {12, 12} },
     } or {})
     local nameCell = ns.GridNameCell(grp, ns.SetGroupInfo)
-    nameCell.onClick = isPtr and function() end or function()
+    -- The name click opens the lockout panel. Inert when the host owns lockouts (there is no panel of
+    -- ours to open, and `ns.window` is the wrong frame to anchor one to), and inert in PTR mode, where
+    -- `srcIdx` indexes `ns.PtrSets` rather than `ns.Sets` so there are no lockouts to show. This is the
+    -- one place `embedded` still decides anything for this cell — a behaviour branch, not a layout one.
+    nameCell.onClick = (self.embedded or isPtr) and function() end or function()
       -- Toggle: clicking the row whose lockouts are already open closes the panel.
       if self._selectedRow == dispIdx then
         self:_clearSelection()

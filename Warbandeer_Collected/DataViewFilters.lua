@@ -5,12 +5,19 @@ local lists, prepend = ns.lua.lists, ns.lua.lists.prepend
 local GameTooltip = GameTooltip
 local DataView = ns.DataView
 
--- Build the column layout: a zero-width auto-sized name column then one icon column
--- per class. The windowed grid prepends a narrow lock column (the lockout glyph);
--- `embedded` hosts omit it entirely, so the name column is col 1 there and col 2 in
--- the window. Passed in at construction by each host (defaults can't branch on the
--- per-instance `embedded` flag, since the base table consumes colInfo first).
----@param embedded boolean?  true → no lock column (host owns lockouts)
+-- Build the column layout: a narrow lock column (the lockout glyph), a zero-width auto-sized name
+-- column, then one icon column per class. Passed in at construction by each host (defaults can't
+-- branch on the per-instance `embedded` flag, since the base table consumes colInfo first).
+--
+-- **The lock column is always emitted; `embedded` only makes it zero-width** (#864). It used to be
+-- omitted entirely for embedded hosts, which put the name column at index 1 there and index 2 in the
+-- window — and that single asymmetry was the source of every host branch in the grid: the index was
+-- recomputed in three places, `colInfo` was built two ways, and the name cell had two call sites. A
+-- one-argument change to the name cell then had to be made twice, half-landed, and silently dropped
+-- the embedded host's hover tooltip (#865). Emitting the column unconditionally costs a zero-width
+-- column and a blank cell per resident row; that only became cheap once #863 virtualised the grid to
+-- the viewport (~29 rows resident rather than 473), which is why this wasn't worth doing before.
+---@param embedded boolean?  true → the host owns lockouts, so the lock column collapses to zero width
 ---@return table
 local function buildColInfo(embedded)
   local cols = lists.map(ns.icons.classes, function(icon, classId)
@@ -28,12 +35,10 @@ local function buildColInfo(embedded)
       backdrop = {color = Colors.TransparentBlack},
     }
   end)
-  if embedded then
-    return prepend(cols, { width = 0, backdrop = {color = Colors.TransparentBlack} })
-  end
   return prepend(cols,
-    { width = 15, backdrop = {color = Colors.TransparentBlack} },  -- lock
-    { width =  0, backdrop = {color = Colors.TransparentBlack} })  -- name
+    -- lock — zero-width when the host owns lockouts, so the indices below never move
+    { width = embedded and 0 or 15, backdrop = {color = Colors.TransparentBlack} },
+    { width = 0, backdrop = {color = Colors.TransparentBlack} })   -- name (autosized by ns.FitNameCol)
 end
 
 -- Column-layout builder, exposed so each host passes its own `colInfo` at
@@ -48,7 +53,7 @@ DataView.BuildColInfo = buildColInfo
 ---@return boolean reversed  the new order state
 function DataView:ToggleOrder()
   self._reverse = not self._reverse
-  if not self.embedded then self:_clearSelection() end
+  self:_clearSelection()   -- self-guarding since #864; a grid with no selection returns immediately
   self.data = self:GetData()
   self:update()
   return self._reverse
@@ -94,7 +99,7 @@ end
 function DataView:SetPtr(on)
   self._ptr = on
   if self._repaintPtr then self._repaintPtr(on) end   -- keep the toggle border in sync on a programmatic set (mode swap)
-  if not self.embedded then self:_clearSelection() end
+  self:_clearSelection()   -- self-guarding since #864; a grid with no selection returns immediately
   self.data = self:GetData()
   self:update()
   -- The live and PTR row counts differ wildly, so the host must refit its scroll container.
@@ -105,7 +110,7 @@ end
 -- Rebuild after a filter change (shared by SetExpansion/SetCategory). Clears any
 -- lockout selection first, since the visible rows change.
 function DataView:_refilter()
-  if not self.embedded then self:_clearSelection() end
+  self:_clearSelection()   -- self-guarding since #864; a grid with no selection returns immediately
   self.data = self:GetData()
   self:update()
   -- ResizeRows (inside update) shrank/grew the row area; let the host refit its scroll
