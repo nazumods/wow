@@ -11,6 +11,7 @@ table-dynamic.lua
 table-icon.lua
 table-footer.lua
 table-composite.lua
+table-virtual.lua
 tab.lua
 theme.lua
 accent.lua
