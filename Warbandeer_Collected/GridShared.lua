@@ -17,7 +17,11 @@ local GameTooltip = GameTooltip
 ---@field gridShades number[][]  10-shade red→green completion gradient (shared cell coloring)
 ---@field CompletionCell fun(collected: number, total: number, cell: table?): table
 ---@field ApplyCellMarks fun(cell: table, wanted: boolean?, rank: string?)  wanted star + tier pip overlays
----@field GridNameCell fun(grp: table): table  a row's leading badge + name cell, with its expansion tooltip
+---@field GridNameCell fun(grp: table, info: (fun(grp: table): string[])?): table  a row's leading badge + name cell; `info` supplies the row tooltip's progress lines
+---@field ApplyNameBadgeTip fun(cell: table, expName: string?)  mouse zone over the badge, tooltipping the expansion
+---@field ShowGridNameTip fun(grp: table, info: fun(grp: table): string[])  the row tooltip: name, expansion · category, progress
+---@field SetGroupInfo fun(grp: table): string[]  armour row progress lines (DataViewData)
+---@field WeaponSourceInfo fun(grp: table, isPtr: boolean?): string[]  weapon row progress lines (WeaponViewData)
 ---@field GRID_EMPTY_H number  row-area height reserved for a grid's empty-state message
 ---@field GridEmptyMessage fun(grid: table, on: boolean, noun: string)
 ---@field baseName fun(name: string): string
@@ -320,6 +324,10 @@ function ns.ApplyNameBadgeTip(cell, expName)
       position = { TopLeft = {0, 0}, BottomLeft = {0, 0}, Width = BADGE_ZONE },
     }
     zone:EnableMouse(true)
+    -- Above the cell, not merely a child of it. `Cell` raises itself over the rows and columns, so a
+    -- zone left at the inherited level competes with its own parent for the hover and the winner isn't
+    -- defined — the dressed cursor bumps its level over the cells for the same reason.
+    zone:Level(cell:Level() + 1)
     zone:SetScript("OnEnter", function()
       GameTooltip:SetOwner(UIParent, "ANCHOR_CURSOR")
       GameTooltip:SetText(cell._badgeExp)

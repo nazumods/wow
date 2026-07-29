@@ -200,12 +200,12 @@ function ns.CollectedRows(self)
     -- full class count so they get a blank cell and don't keep another row's value
     -- on re-sort.
     for i = #r + 1, #ns.icons.classes do r[i] = {} end
-    -- The expansion-badged name cell, with the expansion's name on hover — `ns.GridNameCell`,
-    -- shared with the weapons grid, which drew the identical badge and said nothing about it.
-    -- Embedded hosts have no lock column or lockout panel, so it is the leading (col 1) cell
-    -- there and inert.
+    -- The expansion-badged name cell — `ns.GridNameCell`, shared with the weapons grid. Embedded
+    -- hosts have no lock column or lockout panel, so it is the leading (col 1) cell there and
+    -- click-inert; "inert" is about the CLICK only, and both hover tooltips still apply, which is
+    -- what this host is mostly looked at through.
     if self.embedded then
-      tinsert(r, 1, ns.GridNameCell(grp))
+      tinsert(r, 1, ns.GridNameCell(grp, ns.SetGroupInfo))
       return r
     end
     -- Windowed grid: a lock-icon column then the name. The name click opens the
