@@ -72,6 +72,7 @@ end
 ---@field active DataView|WeaponView the currently-shown grid (armor default, or weapon)
 ---@field activeScroll ScrollFrame the currently-shown scroll container
 ---@field _weaponsMode boolean? true when the weapon grid is shown (the Armor/Weapons toggle)
+---@field _gridFresh boolean? one-shot: the constructor just built the cells, so the `_render` fired by the show that immediately follows skips its rebuild (cleared by that render, on every path)
 local CollectedView = Class(Frame, function(self)
   _view = self
   -- Views are built lazily (MainWindow:getView), so reaching this constructor IS the first click on
@@ -347,6 +348,10 @@ function CollectedView:_ensureWeapons()
   self.weaponScroll:Child(self.weaponGrid.rowArea)
   self.weaponScroll:Hide()
   prof():Mark("scroll")
+  -- Same waste as the constructor's, at the second site: the grid has just been built from this
+  -- data, and `SetMode` calls `_render` a few lines later, which walks all ~4,400 cells to reproduce
+  -- what is already on them. Measured at 55ms of a 1600ms first swap to Weapons.
+  self._gridFresh = true
 end
 
 ---Switch the embedded view between the armor grid and the weapon grid (the Armor/Weapons toggle).
@@ -368,7 +373,13 @@ function CollectedView:SetMode(weapons)
   -- Carry the PTR PREVIEW state across the Armor/Weapons swap (one window-level mode): the grid being
   -- shown adopts the mode of the one being hidden (SetPtr repaints its own toggle).
   local prevGrid = weapons and self.grid or self.weaponGrid
-  if self.active._ptr ~= prevGrid._ptr then self.active:SetPtr(prevGrid._ptr) end
+  if self.active._ptr ~= prevGrid._ptr then
+    self.active:SetPtr(prevGrid._ptr)
+    -- Drop the freshness claim `_ensureWeapons` just made: PTR preview swaps the row source
+    -- entirely, so whatever the cells hold is no longer what `GetData()` would return. Cheaper to
+    -- forfeit the skip in this one rare case than to reason about what SetPtr leaves behind.
+    self._gridFresh = nil
+  end
   self.grid:SetShown(not weapons); self.filterStrip:SetShown(not weapons); self.scroll:SetShown(not weapons)
   self.weaponGrid:SetShown(weapons); self.weaponStrip:SetShown(weapons); self.weaponScroll:SetShown(weapons)
   -- Not the free visibility flip it looks like: SetShown routes through Region:Show → OnBeforeShow
@@ -447,7 +458,11 @@ function CollectedView:_render()
       self.counter:Text(("%d sources · %d/%d collected"):format(sources, coll, apps))
     end
     self.counter:Font({theme.fonts.title[1], 12})
-    self.weaponGrid.data = self.weaponGrid:GetData(); self.weaponGrid:update()
+    -- Skipped only for the render that follows `_ensureWeapons` in the same `SetMode` call, where
+    -- the cells already hold exactly this (see the constructor for the armour-side twin).
+    if not fresh then
+      self.weaponGrid.data = self.weaponGrid:GetData(); self.weaponGrid:update()
+    end
     return
   end
   local api = WarbandeerCollectedApi
