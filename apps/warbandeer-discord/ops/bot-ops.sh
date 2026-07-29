@@ -156,7 +156,11 @@ cmd_env_set() {
   fi
 
   local backup="$ENV_FILE.bak.$(date +%Y%m%d-%H%M%S)"
-  cp "$ENV_FILE" "$backup"
+  # Pin the backup to 0600 rather than inheriting .env's mode. `cp` would copy that mode, which is
+  # only safe while .env is itself owner-only — and a .env recreated by hand or by a fresh deploy
+  # picks up the umask (0664 under the usual 002) instead. This file holds DISCORD_TOKEN and
+  # BLIZZARD_CLIENT_SECRET, so its exposure shouldn't depend on the source being right.
+  install -m 600 "$ENV_FILE" "$backup"
 
   # Rewrite .env: replace matching KEY= lines in place, preserve everything else verbatim,
   # append any changed key that wasn't already present.
@@ -178,6 +182,11 @@ cmd_env_set() {
     [[ -z "${APPLIED[$k]+x}" ]] && printf '%s=%s\n' "$k" "${DIFF[$k]}" >> "$tmp"
   done
   mv "$tmp" "$ENV_FILE"
+  # State the mode instead of inheriting whatever mktemp happened to create. `mv` carries the temp
+  # file's mode onto .env, so today .env ends up 0600 purely as a side effect of mktemp's default —
+  # correct by accident, and silently narrowing for anyone who set .env to 0640 on purpose. Saying
+  # 0600 outright makes the intent the contract.
+  chmod 600 "$ENV_FILE"
 
   # Apply: recreate the container so the new env is loaded (a plain restart would not reload it).
   cd "$BOT_DIR"
