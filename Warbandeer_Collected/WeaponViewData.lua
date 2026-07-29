@@ -83,6 +83,47 @@ local function groupWeaponWanted(grp)
   return false
 end
 
+---Progress lines for a weapon row's name tooltip — the armour `ns.SetGroupInfo` counterpart, over what
+---a SOURCE drops rather than what a set contains: how many weapon types it covers, how many of its
+---individual looks are owned, and how many are flagged wanted.
+---
+---Wanted is counted per APPEARANCE, not per type, because that is the unit the Weapons grid's own ★
+---filter acts on — `ns:WeaponCellWanted` answers "does this bucket hold anything wanted" for a cell,
+---which is the wrong granularity for a total.
+---
+---Under PTR preview the looks aren't obtainable on a live client, so the count reads "N upcoming"
+---rather than "0/N collected" — the latter implies you've missed them. `isPtr` is passed in by the row
+---builder, which already knows: asking the group would mean scanning `ns.WeaponPtrSources` for it on
+---every hover to recover something the caller had for free.
+---@param grp table
+---@param isPtr boolean?
+---@return string[]
+function ns.WeaponSourceInfo(grp, isPtr)
+  local cmap = (not isPtr) and ns:WeaponCollectedMap() or nil
+  local types, coll, total, wanted = 0, 0, 0, 0
+  for _, t in ipairs(ns.WeaponTypeOrder) do
+    local visuals = grp.types[t]
+    if visuals then
+      types = types + 1
+      for _, v in ipairs(visuals) do
+        total = total + 1
+        if cmap and cmap[v] then coll = coll + 1 end
+        if ns.db.weaponWanted[v] then wanted = wanted + 1 end
+      end
+    end
+  end
+  local out = { ("%d weapon %s"):format(types, types == 1 and "type" or "types") }
+  if cmap then
+    out[#out + 1] = ("%d/%d appearances collected"):format(coll, total)
+  else
+    out[#out + 1] = ("%d appearances upcoming"):format(total)
+  end
+  if wanted > 0 then
+    out[#out + 1] = ("|A:%s:14:14|a %d wanted"):format(ns.WantedIcon, wanted)
+  end
+  return out
+end
+
 ---The Weapons grid's row data: one row per ns.WeaponSources group (name + one cell per weapon
 ---type), sorted by expansion (newest-first by default) then alphabetically. `self` is the
 ---WeaponView instance (its filter/sort flags drive the output).
@@ -139,7 +180,9 @@ function ns.WeaponRows(self)
     -- tinsert at 1 shifts the 17 type cells to columns 2..18, mirroring the armor grid's embedded
     -- name column (col 1; weapons have no lock column since there are no per-character lockouts).
     -- Click-inert: the armour grid's name opens a lockout panel, and weapons have no lockouts.
-    tinsert(r, 1, ns.GridNameCell(grp))
+    -- The closure carries `ptr` rather than the tooltip re-deriving it: the row builder already knows
+    -- which source this group came from.
+    tinsert(r, 1, ns.GridNameCell(grp, function(g) return ns.WeaponSourceInfo(g, ptr) end))
     return r
   end)
 end

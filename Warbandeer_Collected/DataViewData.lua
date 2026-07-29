@@ -49,6 +49,56 @@ local function groupWanted(grp)
   return false
 end
 
+---Progress lines for an armour row's name tooltip: how many of the row's class sets are finished, how
+---many individual appearances are owned across all of them, and how many are flagged wanted.
+---
+---Counted over the sets the SCAN knows about (`db.sets[grp.id]`), which is the same gate the cells
+---render on — so "7/13 class sets" agrees with the seven cells you can see rather than with how many
+---classes the group nominally lists. A set the client can't resolve draws no cell and is counted in
+---neither figure.
+---
+---Wanted is counted over every set id in the group, scanned or not: the flag is keyed by the globally
+---unique setId and survives the set being unresolvable on this client, so hiding it here would
+---under-report a target list the ★ filter would still act on.
+---
+---Yields no progress lines at all for a PTR-preview row, and does so by construction rather than by a
+---mode check: an upcoming group has no `db.sets` entry, so `classes` stays 0 and the guard below skips
+---both figures. That is the right outcome — 0/0 would read as "you own none of this" rather than "this
+---isn't out yet" — and the title and expansion · category lines still carry the useful part.
+---@param grp table
+---@return string[]
+function ns.SetGroupInfo(grp)
+  local gsets = ns.db.sets[grp.id]
+  local classes, complete, coll, total, wanted = 0, 0, 0, 0, 0
+  for _, set in ipairs(grp.sets) do
+    if set.id then
+      if ns:IsWanted(set.id) then wanted = wanted + 1 end
+      local status = gsets and gsets[set.id]
+      if status then
+        classes = classes + 1
+        -- `true` is the scan's shorthand for "base set collected", carrying no piece counts — so it
+        -- contributes one owned appearance out of one rather than being skipped, which would make a
+        -- fully-collected row read 0/0.
+        if status == true then
+          complete, coll, total = complete + 1, coll + 1, total + 1
+        else
+          coll, total = coll + status.collected, total + status.total
+          if status.collected >= status.total then complete = complete + 1 end
+        end
+      end
+    end
+  end
+  local out = {}
+  if classes > 0 then
+    out[#out + 1] = ("%d/%d class sets complete"):format(complete, classes)
+    out[#out + 1] = ("%d/%d appearances collected"):format(coll, total)
+  end
+  if wanted > 0 then
+    out[#out + 1] = ("|A:%s:14:14|a %d wanted"):format(ns.WantedIcon, wanted)
+  end
+  return out
+end
+
 ---The grid's row data: one row per set group (lock + name + one cell per class),
 ---sorted by expansion (newest-first by default) then alphabetically within an
 ---expansion. Module function (not a method) because the base TableFrame calls it via
@@ -169,7 +219,7 @@ function ns.CollectedRows(self)
       coords = {0, 0.875, 0, 0.875},
       position = { Center = {}, Size = {12, 12} },
     } or {})
-    local nameCell = ns.GridNameCell(grp)
+    local nameCell = ns.GridNameCell(grp, ns.SetGroupInfo)
     nameCell.onClick = isPtr and function() end or function()
       -- Toggle: clicking the row whose lockouts are already open closes the panel.
       if self._selectedRow == dispIdx then
