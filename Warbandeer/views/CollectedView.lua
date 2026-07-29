@@ -221,7 +221,7 @@ local CollectedView = Class(Frame, function(self)
   self:Width(gridW + SCROLLBAR_W)
   self:_fitToGrid()
   prof():Mark("fit")
-  prof():Finish()
+  prof():Finish(self.grid)
 end, {})
 CollectedView.name = "collected"
 CollectedView._title = "Collected"
@@ -287,7 +287,7 @@ function CollectedView:OnBeforeShow()
   prof():Begin("wb-show")
   self:_render()
   prof():Mark("render")
-  prof():Finish()
+  prof():Finish(self.active or self.grid)
 end
 
 ---Place both filter strips clear of the Armor/Weapons toggle, at the toggle's current width.
@@ -379,7 +379,7 @@ function CollectedView:SetMode(weapons)
   prof():Mark("render")
   self:_fitToGrid()   -- sizes both axes and refits the main window (#768 L-4)
   prof():Mark("fit")
-  prof():Finish()
+  prof():Finish(self.active)
 end
 
 -- Cap the visible grid at the shared `DataView.MAX_HEIGHT` and size the scroll container

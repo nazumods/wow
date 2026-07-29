@@ -89,11 +89,14 @@ end
 
 ---Rows and live cells in the grid this run built or swapped to — the count that decides between
 ---"chunk the Lua" and "create fewer frames", which time alone can't separate.
+---
+---The host passes its own grid: falling back to `ns.window` alone reported `0 rows, 0 cells` for
+---every run driven by Warbandeer's embedded view, which has no `ns.window` at all.
+---@param grid table?  the host's active grid; falls back to the /collected window's
 ---@return number rows, number cells
-function Prof:_gridStats()
-  local w = ns.window
-  if not w then return 0, 0 end
-  local grid = w.active or w.data
+function Prof:_gridStats(grid)
+  grid = grid or (ns.window and (ns.window.active or ns.window.data))
+  if not (grid and grid.cells) then return 0, 0 end
   local cells = 0
   for r = 1, #grid.cells do
     local row = grid.cells[r]
@@ -103,12 +106,13 @@ function Prof:_gridStats()
 end
 
 ---Close the run: stamp the Lua total, then time the next few frames before recording it.
-function Prof:Finish()
+---@param grid table?  the host's active grid, for the row/cell counts
+function Prof:Finish(grid)
   local run = self._run
   if not run then return end
   self._run = nil
   run.lua = (GetTimePreciseSec() - run.t0) * 1000
-  run.rows, run.cells = self:_gridStats()
+  run.rows, run.cells = self:_gridStats(grid)
   if self._lastScan then
     run.scanGap, run.scanMs = run.t0 - self._lastScan.at, self._lastScan.ms
   end
@@ -119,16 +123,31 @@ end
 ---call returns, so that cost is invisible to `run.lua`. There is no present/paint callback in the
 ---client, so "how long did the next three frames take" is the closest available proxy — a build
 ---whose frames run long is one the user is still waiting on.
+---
+---**Runs are QUEUED, not one-at-a-time.** Two runs finish inside the same frame routinely — the
+---embedded view's constructor and the `OnBeforeShow` that immediately follows it — and an earlier
+---design re-pointed one shared `OnUpdate` per run, so the second silently replaced the first and
+---its run was never recorded. That dropped `wb-build`, the single most interesting measurement
+---here, while leaving output that looked healthy.
 ---@param run table
 function Prof:_timePaint(run)
+  run._frames = 0
+  self._pending = self._pending or {}
+  self._pending[#self._pending + 1] = run
   self._ticker = self._ticker or ui.Frame:new{ parent = UIParent }
-  local n = 0
+  if self._ticking then return end
+  self._ticking = true
   self._ticker:SetScript("OnUpdate", function()
-    n = n + 1
-    run["paint" .. n] = (GetTimePreciseSec() - run.t0) * 1000
-    if n < PAINT_FRAMES then return end
+    local now, still = GetTimePreciseSec(), {}
+    for _, r in ipairs(self._pending) do
+      r._frames = r._frames + 1
+      r["paint" .. r._frames] = (now - r.t0) * 1000
+      if r._frames < PAINT_FRAMES then still[#still + 1] = r else self:_record(r) end
+    end
+    self._pending = still
+    if #still > 0 then return end
     self._ticker:RemoveScript("OnUpdate")
-    self:_record(run)
+    self._ticking = false
   end)
 end
 
@@ -136,7 +155,7 @@ end
 ---it's purely additive and filled lazily, so per the DB rule it earns no version bump.
 ---@param run table
 function Prof:_record(run)
-  run.t0, run.last = nil, nil   -- clock state, not results; don't persist it
+  run.t0, run.last, run._frames = nil, nil, nil   -- clock state, not results; don't persist it
   local store = ns.db.profile or {}
   ns.db.profile = store
   local samples = store[run.kind] or {}

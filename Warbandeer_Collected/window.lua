@@ -283,7 +283,7 @@ function MainWindow:SetMode(weapons)
   ns.prof:Mark("counter")
   self:_fitToGrid()   -- sizes BOTH axes now (#768 L-4), so the mode swap needs no width of its own
   ns.prof:Mark("fit")
-  ns.prof:Finish()
+  ns.prof:Finish(self.active)
   -- The preview window is deliberately NOT touched here (#673). It used to be: with two dolls, one
   -- per view, the toggle had to swap which was on screen or toggling back to Armor left a weapon on
   -- the model (#656). There is one doll now — the armour set and the browsed weapon are on it
@@ -415,7 +415,7 @@ function ns:Open()
     ns.window = MainWindow:new{ theme = collectedTheme() }
     ns.window:RememberPosition(ns.db.windowPos)   -- restore + persist the user's dragged position
     ns.prof:Mark("position")
-    ns.prof:Finish()
+    ns.prof:Finish(ns.window.data)
   else
     ns.window:Show()
   end
