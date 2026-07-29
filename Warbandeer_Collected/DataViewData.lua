@@ -180,12 +180,16 @@ function ns.CollectedRows(self)
         TopRight = {ns.window, ui.edge.TopLeft, -25, 0},
         BottomRight = {ns.window, ui.edge.BottomLeft, -25, 0},
       })
-      local row = self.rows[dispIdx]
-      if self._selectedRow ~= nil then
-        self.cells[self._selectedRow][2].label:Color(WHITE_FONT_COLOR)
-      end
+      -- `dispIdx` and `_selectedRow` are DATA indices, and `cells`/`rows` are keyed by viewport slot
+      -- once the grid is virtual — so both lookups go through ns.ResidentCell / ns.ResidentRow. The
+      -- previously-selected row may have scrolled out since it was picked, in which case there is
+      -- nothing on screen to un-highlight.
+      local row = ns.ResidentRow(self, dispIdx)
+      local prev = ns.ResidentCell(self, self._selectedRow, 2)
+      if prev then prev.label:Color(WHITE_FONT_COLOR) end
       self._selectedRow = dispIdx
-      self.cells[dispIdx][2].label:Color(NORMAL_FONT_COLOR:GetRGBA())
+      local picked = ns.ResidentCell(self, dispIdx, 2)
+      if picked then picked.label:Color(NORMAL_FONT_COLOR:GetRGBA()) end
       if not self._arrow then
         self._arrow = Texture:new{
           -- rowArea, not the grid (#768 L-9): parented to the grid it wasn't clipped by the

@@ -88,6 +88,12 @@ end
 -- being built gets a second chance every time it comes back on screen (#718).
 function DataView:OnBeforeShow() self:_fitNameCol() end
 
+-- Re-derive the rating overlays and the dressed-set cursor after virtualisation re-points the resident
+-- cells at a new window (`TableFrame.onRebind`, #843). Neither is cell data, so `Cell:update` leaves
+-- both attached to whichever row the slot held before. Defined even when `virtual` is off, where it
+-- simply never fires.
+function DataView:onRebind() ns.OnGridRebind(self) end
+
 -- Refresh overlays after the base table (re)builds its cells. The row count varies
 -- (PTR PREVIEW swaps the ~live-raid list for the small upcoming list), so follow the
 -- variable-height pattern: grow the row pool for any new rows, pad the data out to the
@@ -96,11 +102,18 @@ function DataView:OnBeforeShow() self:_fitNameCol() end
 -- space below the active rows.
 function DataView:update()
   local real = #self.data
-  for _ = #self.rows + 1, real do self:addRow{} end
-  if real < #self.rows then
-    local blank = {}
-    for c = 1, #self.cols do blank[c] = "" end
-    for i = real + 1, #self.rows do self.data[i] = blank end
+  -- Both halves of the variable-height dance are STATIC-mode only (#843). Under virtualisation the
+  -- resident pool is sized from the viewport by `_virtualUpdate`, so growing it to the row count here
+  -- would build a frame per data row and defeat the whole thing — and padding `data` out to the pool
+  -- is worse than useless: `#data` is what gives the scroll range its extent, so appending blank rows
+  -- would add empty scrollable space below the real ones.
+  if not self.virtual then
+    for _ = #self.rows + 1, real do self:addRow{} end
+    if real < #self.rows then
+      local blank = {}
+      for c = 1, #self.cols do blank[c] = "" end
+      for i = real + 1, #self.rows do self.data[i] = blank end
+    end
   end
   TableFrame.update(self)
   self:ResizeRows(real)

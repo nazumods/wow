@@ -7,12 +7,32 @@ local DataView = ns.DataView
 -- — embedded hosts have no lockout selection. Selection state (`self._selectedRow` /
 -- `self._arrow`) is set by the name-cell click handler in DataViewData.lua.
 function DataView:_clearSelection()
-  if self._selectedRow and self.cells[self._selectedRow] and self.cells[self._selectedRow][2] then
-    self.cells[self._selectedRow][2].label:Color(WHITE_FONT_COLOR)
-  end
+  -- `_selectedRow` is a DATA index; under virtualisation `cells` is keyed by viewport slot, so the
+  -- translation has to go through ns.ResidentCell (nil when the row isn't on screen — normal, and
+  -- nothing to un-highlight in that case).
+  local cell = ns.ResidentCell(self, self._selectedRow, 2)
+  if cell then cell.label:Color(WHITE_FONT_COLOR) end
   self._selectedRow = nil
   if self._arrow then self._arrow:Hide() end
   ns.HideLockoutView()
+end
+
+-- Re-apply the lockout selection's highlight after a rebind has moved which slot holds the selected
+-- DATA row (`ns.OnGridRebind`). Without this, scrolling the selected row out of view and back leaves
+-- its name white and the arrow parked on whatever row inherited the slot.
+function DataView:_reapplySelection()
+  if not self._selectedRow then return end
+  local cell = ns.ResidentCell(self, self._selectedRow, 2)
+  if cell then cell.label:Color(NORMAL_FONT_COLOR:GetRGBA()) end
+  local row = ns.ResidentRow(self, self._selectedRow)
+  if self._arrow then
+    if row then
+      self._arrow:TopRight(row, ns.ui.edge.TopLeft, -3, -2)
+      self._arrow:Show()
+    else
+      self._arrow:Hide()   -- selected row scrolled out of the resident window
+    end
+  end
 end
 
 -- Per-cell rating overlays (the star + tier pip themselves are drawn by ns.ApplyCellMarks, shared

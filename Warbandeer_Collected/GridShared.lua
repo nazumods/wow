@@ -421,16 +421,38 @@ end
 -- every row, which on the several-hundred-row grids is a visible hitch if it runs on every show
 -- (it did, on the Armor/Weapons swap). While the width is still 0 the scan is monotonic and applies
 -- only the delta, so re-running can never compound it.
+--
+-- **Measured from `grid.data`, not from the cells (#843).** Under viewport virtualisation only the ~25
+-- rows covering the viewport have cells at all, so a cell walk measures a slice of the dataset — and
+-- a *different* slice depending on where the view happens to be scrolled, so the column width would
+-- depend on scroll position. `grid.data` is the whole set in both modes, which makes this
+-- mode-independent and scroll-independent.
+--
+-- A string still has to be measured against a real FontString, so each grid keeps one scratch Label to
+-- measure into. It's parented to the row area so it resolves the same theme font the cells use, and
+-- **alpha-0 rather than hidden**: a region on a hidden frame is never laid out (#836), and that is
+-- exactly the state in which text measurement stops being trustworthy.
 ---@param grid table  a DataView / WeaponView instance
 ---@param nameCol number  index of the name column
 ---@return boolean grew  true when the column actually widened (the host should refit)
 function ns.FitNameCol(grid, nameCol)
   local applied = grid._nameColW or 0
   if applied > 0 then return false end   -- already fitted; don't re-walk the rows
+  if not grid.data then return false end
+  local probe = grid._nameProbe
+  if not probe then
+    probe = Label:new{ parent = grid.rowArea, position = { TopLeft = {0, 0} } }
+    probe:Alpha(0)
+    grid._nameProbe = probe
+  end
   local w = applied
-  for _, r in ipairs(grid.cells) do
-    local cell = r[nameCol]
-    if cell and cell.label then w = max(w, cell.label:UnboundedWidth()) end
+  for _, row in ipairs(grid.data) do
+    local cell = row[nameCol]
+    local text = type(cell) == "table" and cell.text
+    if text then
+      probe:Text(text)
+      w = max(w, probe:UnboundedWidth())
+    end
   end
   if w <= applied then return false end
   grid._nameColW = w
@@ -479,14 +501,35 @@ function ns.EnsureDressedCursor(grid)
   grid._dressedBox = box
 end
 
--- Box the first cell whose `match(cell.data)` is true, following the grid as it re-resolves; hide the
--- cursor when `match` is nil (cleared) or nothing matches (filtered out). `scroll` asks the host's
--- onEnsureVisible hook to bring the matched row into view. Shared by DataView:HighlightSet +
--- WeaponView:HighlightWeaponCell — each passes a one-line predicate over its own cell identity fields.
+-- The DATA row index the cursor predicate matches, or nil. Searched over `grid.data` rather than
+-- `grid.cells` because it feeds the scroll target: under virtualisation a cell index is a viewport
+-- slot, so scrolling by it lands on the wrong row — and the row being scrolled TO generally has no
+-- cell yet, which is the whole point of scrolling to it.
 ---@param grid table
----@param match (fun(data: table): boolean)?
----@param scroll boolean?
-function ns.HighlightGridCell(grid, match, scroll)
+---@param match fun(data: table): boolean
+---@return number?
+local function matchedDataRow(grid, match)
+  for r = 1, #(grid.data or {}) do
+    local row = grid.data[r]
+    for c = 1, #grid.cols do
+      local d = row[c]
+      if type(d) == "table" and match(d) then return r end
+    end
+  end
+end
+
+-- Re-anchor the dressed-cell cursor onto whichever RESIDENT cell matches, or hide it when none does.
+--
+-- Split out of `HighlightGridCell` for virtualisation (#843): the box anchors to a cell, and a cell is
+-- a recycled viewport slot whose data changes under it as the view scrolls. So the anchoring has to be
+-- re-run on every rebind (see each grid's `onRebind`) rather than once when the selection changes, or
+-- the box stays on a screen position while the row it was tracking scrolls away beneath it.
+--
+-- Hiding when nothing matches is correct rather than a fallback: with a sliding window, "the dressed
+-- row exists but isn't resident" is a normal state, and the cursor genuinely shouldn't be drawn then.
+---@param grid table
+function ns.AnchorDressedCursor(grid)
+  local match = grid._cursorMatch
   if match then
     for r = 1, #grid.cells do
       local row = grid.cells[r]
@@ -498,15 +541,98 @@ function ns.HighlightGridCell(grid, match, scroll)
           grid._dressedBox:TopLeft(cell, ui.edge.TopLeft, 0, 0)
           grid._dressedBox:BottomRight(cell, ui.edge.BottomRight, 0, 0)
           grid._dressedBox:Show()
-          if scroll and grid.onEnsureVisible then
-            grid:onEnsureVisible((r - 1) * grid.cellHeight, grid.cellHeight)
-          end
           return
         end
       end
     end
   end
   if grid._dressedBox then grid._dressedBox:Hide() end
+end
+
+-- Box the cell whose `match(cell.data)` is true, following the grid as it re-resolves; clear the
+-- cursor when `match` is nil. `scroll` asks the host's onEnsureVisible hook to bring the matched row
+-- into view. Shared by DataView:HighlightSet + WeaponView:HighlightWeaponCell — each passes a
+-- one-line predicate over its own cell identity fields.
+--
+-- The predicate is REMEMBERED on the grid, not just applied: under virtualisation the cursor has to be
+-- re-derived on every rebind, so the grid has to keep knowing what it was looking for.
+---@param grid table
+---@param match (fun(data: table): boolean)?
+---@param scroll boolean?
+function ns.HighlightGridCell(grid, match, scroll)
+  grid._cursorMatch = match
+  if match and scroll and grid.onEnsureVisible then
+    local r = matchedDataRow(grid, match)
+    -- Scroll first, then anchor: the scroll rebinds the window, so anchoring afterwards finds the cell
+    -- that has just arrived rather than deciding against the pre-scroll slice.
+    if r then grid:onEnsureVisible((r - 1) * grid.cellHeight, grid.cellHeight) end
+  end
+  ns.AnchorDressedCursor(grid)
+end
+
+-- What a grid re-derives after its resident cells are re-pointed at a new window of `data`
+-- (`TableFrame.onRebind`, #843). `Cell:update` refreshes each cell's own content, but neither the
+-- rating overlays nor the dressed-cell cursor are cell data — they're drawn on top, keyed by the row —
+-- so both would otherwise stay behind on whichever row the slot held before.
+--
+-- `_refreshMarks` is the per-grid one (armour reads a set's flags, weapons aggregate over a bucket), so
+-- this dispatches through the instance rather than reimplementing either.
+---@param grid table
+---@param first number?  first resident DATA index (nil in static mode)
+---@param last number?   last resident DATA index
+function ns.OnGridRebind(grid, first, last)
+  -- Recorded so `ns.ResidentCell` can map a data index to a slot without reaching into TableFrame's
+  -- private `_top`. This is why `onRebind` carries the range at all.
+  grid._residentFirst, grid._residentLast = first, last
+  grid:_refreshMarks()
+  ns.AnchorDressedCursor(grid)
+  -- The lockout selection is a DATA index whose highlight lives on a cell, so it has the same problem
+  -- the cursor does: scrolling the selected row back into view has to re-colour whichever slot now
+  -- holds it. Window-only, so the grid may not have it.
+  if grid._reapplySelection then grid:_reapplySelection() end
+end
+
+-- The cell at DATA row `dataRow`, column `colN`, or nil when that row has no cell right now.
+--
+-- **In virtual mode a `grid.cells` index is a viewport slot, not a data row** — they coincide only in
+-- static mode. Anything holding a data index (the lockout selection's `_selectedRow`, a display index
+-- by contract) must come through here rather than indexing `cells` directly: with ~29 slots against
+-- 473 rows, `cells[400]` isn't the wrong cell, it's `nil`, and `nil[2]` is a Lua error on clicking any
+-- set below the first screenful.
+--
+-- Returning nil for a non-resident row is a normal answer, not a failure: under a sliding window the
+-- selected row genuinely has no cell most of the time, and its highlight is re-derived when it returns
+-- (see `ns.OnGridRebind`).
+---@param grid table
+---@param dataRow number?
+---@param colN number
+---@return table? cell
+function ns.ResidentCell(grid, dataRow, colN)
+  if not dataRow then return nil end
+  local slot = dataRow
+  if grid.virtual then
+    local first = grid._residentFirst
+    if not first then return nil end
+    slot = dataRow - first + 1
+  end
+  local row = grid.cells[slot]
+  return row and row[colN]
+end
+
+-- The row FRAME at DATA row `dataRow`, or nil when not resident — the `ResidentCell` companion, for
+-- the lockout arrow, which anchors to a row rather than to a cell.
+---@param grid table
+---@param dataRow number?
+---@return table? rowFrame
+function ns.ResidentRow(grid, dataRow)
+  if not dataRow then return nil end
+  local slot = dataRow
+  if grid.virtual then
+    local first = grid._residentFirst
+    if not first then return nil end
+    slot = dataRow - first + 1
+  end
+  return grid.rows[slot]
 end
 
 -- Row-area height reserved for a grid's empty-state message. Both grids reach it the same way: the

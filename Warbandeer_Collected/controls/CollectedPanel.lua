@@ -81,6 +81,10 @@ local CollectedPanel = Class(Frame, function(self)
     parent = self,
     position = { TopLeft = {0, -TOP} },
     embedded = not self.lockouts,
+    -- Viewport virtualisation (#843): build cell frames for the ~25 rows on screen, not all 473. The
+    -- grid built 6,622–7,095 cells to show ~5% of them, and that frame count drove the 1.13s build,
+    -- ~570ms of engine layout afterwards, and up to 366ms per swap in `UpdateScrollChildRect`.
+    virtual = true,
     colInfo = ns.DataView.BuildColInfo(not self.lockouts),
     infoTipAnchor = self.infoTipAnchor,
     onWantedToggle = function() self:RefreshWanted() end,
@@ -103,6 +107,13 @@ local CollectedPanel = Class(Frame, function(self)
     position = { TopLeft = {0, -(TOP + self._headerH)}, Width = self.grid:Width(), Height = self._capH },
   }
   self.scroll:Child(self.grid.rowArea)
+  -- Bind AFTER construction, then re-size the pool. The grid builds its data in `onLoad`, inside
+  -- `:new{}`, so there is no moment before the data lands at which this scroll frame exists — it needs
+  -- the grid's width and row-area height to be created at all. With no viewport bound the first pass
+  -- sizes the pool from a zero height and builds `overscan * 2` rows, so the cost of doing it in this
+  -- order is ~6 rows rebuilt, against the 473 the eager path built.
+  self.grid:BindViewport(self.scroll)
+  self.grid:RefreshViewport()
   ns.prof:Mark("scroll")
 
   -- Counter + tally, anchored to the panel's RIGHT edge and growing leftward (see the header note).
@@ -313,6 +324,7 @@ function CollectedPanel:_ensureWeapons()
     parent = self,
     position = { TopLeft = {0, -self._top} },
     colInfo = ns.WeaponView.BuildColInfo(),
+    virtual = true,   -- see the armour grid's note (#843); 244 rows x 18 cols was 4,392 cells
     onFilterChanged = function() self:Render() end,
     onResized = function() self:_fitToGrid() end,
     -- weaponScroll is assigned just below; the closure only reads it at highlight time.
@@ -332,6 +344,9 @@ function CollectedPanel:_ensureWeapons()
   }
   self.weaponScroll:Child(self.weaponGrid.rowArea)
   self.weaponScroll:Hide()
+  -- Bind + re-size, same order and for the same reason as the armour grid's in the constructor.
+  self.weaponGrid:BindViewport(self.weaponScroll)
+  self.weaponGrid:RefreshViewport()
   ns.prof:Mark("scroll")
   -- Same one-shot as the constructor's, at the second site: the grid has just been built from this
   -- data and `SetMode` calls Render a few lines later.
@@ -549,6 +564,11 @@ function CollectedPanel:_fitToGrid()
   -- Split because the phase measured 185ms on a build — far more than a resize should cost — and
   -- which of the three owns it decides whether there is anything cheap to do about it.
   ns.prof:Mark("fit:size")
+  -- A virtual grid sizes its resident pool from the viewport's height, and the line above just changed
+  -- that height — so tell it. `capH` shrinks whenever a filter leaves fewer rows than fill the view;
+  -- without this, clearing that filter would leave the pool sized for the small viewport and a band of
+  -- empty space below the data (#843). No-op when the height didn't move, and when not virtual.
+  grid:RefreshViewport()
   scroll:Refresh()   -- recompute the scroll range for the new child height
   ns.prof:Mark("fit:scroll")
   if self.onSized then self:onSized() end
