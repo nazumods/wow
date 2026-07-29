@@ -6,6 +6,19 @@ local ns = select(2, ...)
 -- same conventional-commit grouping used for the GitHub/CurseForge release notes.
 ---@type { version: string, notes: string }[]
 ns.changelog = {
+  { version = "12.0.7-r35", notes = [==[
+### Features
+- profile the grid build, and stop rebuilding a grid that was just built (#844)
+
+### Bug Fixes
+- dock the Overview set preview onto Warbandeer's own window (#852)
+- nine view, command and rendering fixes from the 07-24 review (#846)
+- re-measure the segmented toggle when its captions were unmeasurable at construction (#837)
+
+### Refactoring
+- promote the segmented Armor|Weapons toggle into LibNUI (#833)
+
+]==] },
   { version = "12.0.7-r34", notes = [==[
 ### Performance
 - scope a ratings refresh to the grid that can have changed (#828)
