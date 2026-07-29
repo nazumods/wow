@@ -73,16 +73,26 @@ end
 -- screen, rather than living with whatever it measured while the window was still being built (#718).
 function WeaponView:OnBeforeShow() self:_fitNameCol() end
 
+-- Re-derive the rating overlays and the dressed-weapon cursor after virtualisation re-points the
+-- resident cells at a new window (`TableFrame.onRebind`, #843) — the armour grid's twin, for the same
+-- reason: neither is cell data, so `Cell:update` leaves both on whichever row the slot held before.
+function WeaponView:onRebind() ns.OnGridRebind(self) end
+
 -- Variable-height rebuild (the visible row count changes with the filter): grow the pool for new
 -- rows, pad shrinking data with blank-string cells so stale rows blank, base update, then hide the
 -- dead rows below the active count. Mirrors DataView:update.
 function WeaponView:update()
   local real = #self.data
-  for _ = #self.rows + 1, real do self:addRow{} end
-  if real < #self.rows then
-    local blank = {}
-    for c = 1, #self.cols do blank[c] = "" end
-    for i = real + 1, #self.rows do self.data[i] = blank end
+  -- Static-mode only, exactly as in `DataView:update` (#843): virtual mode sizes its pool from the
+  -- viewport, so growing it per data row defeats virtualisation, and padding `data` to the pool would
+  -- extend the scroll range with blank rows.
+  if not self.virtual then
+    for _ = #self.rows + 1, real do self:addRow{} end
+    if real < #self.rows then
+      local blank = {}
+      for c = 1, #self.cols do blank[c] = "" end
+      for i = real + 1, #self.rows do self.data[i] = blank end
+    end
   end
   TableFrame.update(self)
   self:ResizeRows(real)
