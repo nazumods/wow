@@ -41,26 +41,50 @@ local function endeavorCell(xp, faction)
   }
 end
 
+-- Trend cell (#743): an arrow whose ROTATION and a label whose JUSTIFICATION differ per row, so
+-- reversing the rows swaps both between cells. Neither field is observable without recycling —
+-- a static case can't show them — and before #743 the reused part kept the previous occupant's
+-- value, rendering a down arrow on an up row until a /reload.
+--
+-- The arrow is also positioned with the bare {x, y} offset shorthand, which the composite path
+-- used to misread as a part index.
+local ARROW = "Interface\\Buttons\\UI-MicroStream-Green"
+local function trendCell(up)
+  return {
+    parts = {
+      { path = ARROW, rotation = up and 0 or math.pi,
+        position = { Left = {6, 0}, Size = {12, 12} } },
+      { text = up and "up" or "down", color = "muted",
+        justifyH = up and ui.justify.Right or Left,
+        position = { Left = {1, "RIGHT", 3, 0}, Width = 30 } },
+    },
+  }
+end
+
 local function rows()
   return {
-    { "Alice", endeavorCell(3, "alliance") },
-    { "Bob",   "" }, -- no active endeavor → blank cell (plain, not composite)
-    { "Cara",  endeavorCell(1, "horde") },
-    { "Dane",  endeavorCell(5, "alliance") },
+    { "Alice", endeavorCell(3, "alliance"), trendCell(true) },
+    { "Bob",   "", "" }, -- no active endeavor → blank cell (plain, not composite)
+    { "Cara",  endeavorCell(1, "horde"), trendCell(false) },
+    { "Dane",  endeavorCell(5, "alliance"), trendCell(true) },
   }
 end
 
 local PAD, TITLE_H, CH, HH = 8, 38, 20, 22
-local NAME_W, ENDV_W = 70, 66
+local NAME_W, ENDV_W, TREND_W = 70, 66, 56
 
 ---@return TitleFrame
 local function makeComposite()
-  local f = window("Composite Cell", NAME_W + ENDV_W + PAD * 2 + 8, TITLE_H + HH + 4 * CH + PAD * 3 + 22)
+  local f = window("Composite Cell", NAME_W + ENDV_W + TREND_W + PAD * 2 + 8, TITLE_H + HH + 4 * CH + PAD * 3 + 22)
 
   local data = rows()
   local t = TableFrame:new{
     parent       = f,
-    colInfo      = { { name = "Name", width = NAME_W }, { name = "Endeavors", width = ENDV_W } },
+    colInfo      = {
+      { name = "Name", width = NAME_W },
+      { name = "Endeavors", width = ENDV_W },
+      { name = "Trend", width = TREND_W },
+    },
     cellWidth    = NAME_W,
     cellHeight   = CH,
     headerHeight = HH,
@@ -76,7 +100,7 @@ local function makeComposite()
     parent     = f,
     glow       = false,
     background = "backdrop",
-    position   = { TopLeft = {t, "BOTTOMLEFT", 0, -PAD}, Size = {NAME_W + ENDV_W, 22} },
+    position   = { TopLeft = {t, "BOTTOMLEFT", 0, -PAD}, Size = {NAME_W + ENDV_W + TREND_W, 22} },
     onClick    = function()
       reversed = not reversed
       local src, out = rows(), {}
@@ -93,6 +117,6 @@ end
 table.insert(LibNUITest.tests, {
   key  = "composite",
   name = "Table: composite cell + border",
-  desc = "Icon + number in one cell with a gold border box; Re-sort exercises recycling (#571)",
+  desc = "Icon + number with a gold border; Re-sort exercises recycling of rotation/justify (#571, #743)",
   run  = toggling(makeComposite),
 })

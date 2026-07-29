@@ -24,6 +24,9 @@ local Top, Bottom = ui.edge.Top, ui.edge.Bottom
 ---@field cellHeight? integer
 ---@field cellWidth? integer
 ---@field padding? integer
+---@field rowHeaderGap? integer  gap between an autosized row header and the first column (default
+---  8). Separate from `padding`, which also spaces autosized columns, so this can be widened
+---  without moving every column; falls back to `padding` when unset.
 ---@field hPad? integer  horizontal inset (px) applied to both sides of every cell; per-column override via colInfo[i].hPad (or asymmetric colInfo[i].hPadL / hPadR)
 ---@field rowNames table
 ---@field offsetX integer
@@ -179,7 +182,12 @@ function TableFrame:Autosize()
     for _,r in ipairs(self.rows) do
       if r.header.label then s = max(s, r.header.label:Width()) end
     end
-    s = s + (self.padding or 2)
+    -- The widest header fills the whole gutter, so this gap is the only thing between its text
+    -- and the first cell's value — and at header font size the old 2px default read as touching
+    -- (#784). Shorter headers only looked right because their leftover label width stood in for
+    -- spacing. Kept separate from `padding` so widening it doesn't also pad every autosized
+    -- column; falls back to `padding` so a caller already passing one as a workaround keeps it.
+    s = s + (self.rowHeaderGap or self.padding or 8)
     for _,r in ipairs(self.rows) do
       if r.header.label then r.header.label:Width(s) end
     end

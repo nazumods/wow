@@ -113,7 +113,14 @@ function Frame:EnableKeyboard(enabled) self._widget:EnableKeyboard(enabled); ret
 ---@return Frame
 function Frame:SetPropagateKeyboardInput(propagate)
   -- Restricted for insecure code in combat lockdown (Patch 10.1.5) — calling it then fires
-  -- ADDON_ACTION_BLOCKED. It no-ops in combat anyway, so skip it and dodge the taint error.
+  -- ADDON_ACTION_BLOCKED, so it is skipped to dodge the taint error.
+  --
+  -- The skip is NOT free, despite what this comment used to claim. The call no-ops, but the
+  -- frame keeps whatever propagation state it last had, and that state outlives combat entry:
+  -- a frame that consumed a key (propagate false) and then entered combat stays consuming.
+  -- So a caller that also holds the keyboard (EnableKeyboard) in combat will eat the player's
+  -- movement and action-bar keys with no way to release them. Pair capture with this call and
+  -- drop both for the duration of combat — see nazumods/wow#736.
   if not InCombatLockdown() then self._widget:SetPropagateKeyboardInput(propagate) end
   return self
 end
