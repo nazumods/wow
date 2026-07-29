@@ -219,8 +219,14 @@ local CollectedView = Class(Frame, function(self)
   prof():Mark("chrome")
 
   self:Width(gridW + SCROLLBAR_W)
-  self:_fitToGrid()
-  prof():Mark("fit")
+  self:_fitToGrid()   -- emits the fit:* splits itself
+  -- The base TableFrame has just built every cell from this same data, and the show that reveals a
+  -- freshly-built view fires `OnBeforeShow` → `_render` in this same frame — so that first render's
+  -- `GetData()` + `update()` walk all ~6,600 cells to reproduce what is already on them. Measured at
+  -- 104ms of a 120ms `wb-show`, immediately after a 1357ms build. One-shot: `_render` clears it, so
+  -- only the render that cannot possibly have new data skips, and every later show rebuilds as
+  -- before — by then a scan, rating or filter change genuinely may have landed.
+  self._gridFresh = true
   prof():Finish(self.grid)
 end, {})
 CollectedView.name = "collected"
@@ -377,8 +383,7 @@ function CollectedView:SetMode(weapons)
     or { TopLeft = {self.filterStrip, ui.edge.TopRight, 12, -3} })
   self:_render()
   prof():Mark("render")
-  self:_fitToGrid()   -- sizes both axes and refits the main window (#768 L-4)
-  prof():Mark("fit")
+  self:_fitToGrid()   -- sizes both axes and refits the main window (#768 L-4); emits the fit:* splits
   prof():Finish(self.active)
 end
 
@@ -396,10 +401,15 @@ function CollectedView:_fitToGrid()
   local capH = min(grid.MAX_HEIGHT, grid.rowArea:Height())
   scroll:Height(capH)
   self:Height(self._top + grid.headerHeight + capH + 4)
+  -- Split three ways because the phase measured 185ms on a build — far more than a resize should
+  -- cost — and which of the three owns it decides whether there's anything cheap to do about it.
+  prof():Mark("fit:size")
   scroll:Refresh()   -- recompute the scroll range for the new child height
+  prof():Mark("fit:scroll")
   -- The main window sizes itself to this view, so a resize here has to carry through — otherwise a
   -- widened view is just clipped one frame further out.
   if ns.MainWindow then ns.MainWindow:Fit() end
+  prof():Mark("fit:window")
 end
 
 -- Show/hide the grid (header icons + scrolling rows) as a unit, so the empty-state
@@ -419,6 +429,10 @@ end
 -- Render the active dataset. PTR PREVIEW shows only the upcoming sets (no scan
 -- needed for the upcoming rows); live-only mode shows collected/total and needs a scan.
 function CollectedView:_render()
+  -- Consumed on whatever path this render takes, including the early returns below, so the flag can
+  -- never survive into a later show where the data really could have moved on (see the constructor).
+  local fresh = self._gridFresh
+  self._gridFresh = nil
   -- Weapon mode: no scan gate (WeaponView computes collected state live via ns:WeaponCollectedMap);
   -- the source/appearance/collected counts, its own wanted tally, and a data refresh.
   if self._weaponsMode then
@@ -471,8 +485,12 @@ function CollectedView:_render()
   -- The counter sits in the strip row in every mode, so keep it at the compact strip font.
   self.counter:Font({theme.fonts.title[1], 12})
   self:RefreshWanted()
-  self.grid.data = self.grid:GetData()
-  self.grid:update()
+  -- Skipped only for the render that immediately follows construction, where the cells already hold
+  -- exactly this. The counter and tally above still run — those the constructor never did.
+  if not fresh then
+    self.grid.data = self.grid:GetData()
+    self.grid:update()
+  end
 end
 
 -- Refresh the running wanted tally in the header (gold star + N), matching the /collected window:
