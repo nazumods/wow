@@ -156,12 +156,24 @@ function CopyWindow:_createPicker()
     })
   end
   menu = Tooltip:new{
+    -- The menu parents to UIParent (so the titlebar/scroll frame can't clip it), which means it
+    -- does NOT inherit this window's frame level — and within one strata, level decides stacking.
+    -- This window pins itself at 600 to clear the Settings panel, so a UIParent-parented menu at
+    -- the same DIALOG strata drew *behind* it: shown, correctly sized, and completely invisible.
+    -- Derived from the window rather than hardcoded so raising `level` can't silently re-break it.
+    -- (FilterDropdown never hit this only because its hosts leave their level at the default.)
+    strata   = "DIALOG",
+    level    = self:Level() + 20,
     position = {
       TopRight = { btn, ui.edge.BottomRight, 0, 2 },
       Width    = 44,
     },
     lines = lines,
   }
+  -- A Tooltip is shown on construction and Toggle inverts whatever state it finds, so without
+  -- this the first click *hides* the menu instead of opening it. FilterDropdown:_buildMenu hides
+  -- its panel immediately after construction for the same reason.
+  menu:Hide()
   btn.OnClick = function() menu:Toggle() end
   -- The menu is parented to UIParent (so the titlebar/scroll frame can't clip it),
   -- so it won't hide with the window on its own — close it when the window hides

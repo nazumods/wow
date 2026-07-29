@@ -87,6 +87,15 @@ function Texture:Rotation(r)
   self._widget:SetRotation(r)
   return self
 end
+-- Getter/setter for the alpha blend mode ("BLEND", "ADD", "MOD", "ALPHAKEY", "DISABLE").
+-- Constructor-only until now, which left Cell's recycled composite parts unable to reset it.
+---@param mode string?
+---@return string|Texture
+function Texture:BlendMode(mode)
+  if mode == nil then return self._widget:GetBlendMode() end
+  self._widget:SetBlendMode(mode)
+  return self
+end
 -- Apply (or re-apply) a vertex gradient over the texture. minColor sits at the
 -- left/top edge, maxColor at the right/bottom; both are ColorMixins, so their
 -- alpha is interpolated too. Needs a base texture (e.g. a solid color fill).
