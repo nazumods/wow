@@ -58,6 +58,19 @@ function Prof:Armed()
   return not (store and store.armed == false)
 end
 
+---Should each run print as it completes? **Off by default**, the mirror of `Armed`.
+---
+---Collecting and reporting are separate switches because they want opposite defaults: samples are
+---only worth anything in bulk, so collection has to run unattended across many sessions — but a
+---profiler that prints two lines on every window open and every Armor/Weapons swap is noise during
+---normal play. So it accumulates silently and `report` is the readout; `/collected profile show`
+---turns the live lines on while actively measuring.
+---@return boolean
+function Prof:Verbose()
+  local store = ns.db.profile
+  return store ~= nil and store.verbose == true
+end
+
 ---Start timing a run. No-op unless armed, and a run already in flight is left alone so a nested
 ---span can't restart the clock on the one that encloses it.
 ---@param kind string  "open" | "weapons" | "armor"
@@ -162,7 +175,8 @@ function Prof:_record(run)
   store[run.kind] = samples
   samples[#samples + 1] = run
   while #samples > MAX_SAMPLES do table.remove(samples, 1) end
-  self:_print(run, #samples)
+  -- Recorded either way; only the live line is optional (see Prof:Verbose).
+  if self:Verbose() then self:_print(run, #samples) end
 end
 
 ---@param ms number?
@@ -198,6 +212,15 @@ local function spread(list)
   return s[1], s[floor((#s + 1) / 2)], s[#s]
 end
 
+-- Every run kind, in report order — both hosts of the shared grid, kept apart because they build
+-- the same grid through different chrome and a slow one beside a fast one is itself the finding.
+-- `wb-build` is the first click on Collected in `/wb` (views are lazy, so that click runs the
+-- constructor); `wb-show` is every later click, which only re-renders.
+--
+-- One list rather than a literal per site: `clear` had its own copy that still named only the three
+-- `/collected` kinds, so it silently left every `wb-*` sample behind.
+local KINDS = { "open", "weapons", "armor", "wb-build", "wb-show", "wb-weapons", "wb-armor" }
+
 ---Aggregate every stored sample to a copy window. The point of aggregating is that one login tells
 ---you nothing: the phase that matters is the one whose MEDIAN is large, not the one that spiked
 ---while a scan happened to be running.
@@ -205,11 +228,7 @@ function Prof:Report()
   local store = ns.db.profile
   if not store then ns.Print("No samples yet — /collected profile arms it."); return end
   local lines = {}
-  -- Both hosts of the shared grid, kept apart: the `/collected` window and Warbandeer's embedded
-  -- view build the same grid through different chrome, and a slow one alongside a fast one is
-  -- itself the finding. `wb-build` is the first click on Collected in `/wb` (views are lazy, so
-  -- that click runs the constructor); `wb-show` is every later click, which only re-renders.
-  for _, kind in ipairs({ "open", "weapons", "armor", "wb-build", "wb-show", "wb-weapons", "wb-armor" }) do
+  for _, kind in ipairs(KINDS) do
     local samples = store[kind]
     if samples and #samples > 0 then
       lines[#lines + 1] = ("== %s (%d samples) =="):format(kind, #samples)
@@ -241,8 +260,10 @@ function Prof:Report()
 end
 
 -- dev: the build profiler's controls. It runs on its own (see Prof:Armed) — every window open and
--- every Armor/Weapons swap is timed and printed with nothing typed — so a bare call is the OFF
--- switch, not the on switch. The state persists across a /reload either way.
+-- every Armor/Weapons swap is timed with nothing typed — so a bare call is the OFF switch, not the
+-- on switch. Recording and printing are separate: it records **quietly** by default, and `show`
+-- turns the per-run lines on for when you're actively measuring. Both states persist across a
+-- /reload.
 --
 -- `report` aggregates the stored samples across sessions, which is the reading that means anything;
 -- `clear` wipes them without changing whether it's running.
@@ -252,15 +273,25 @@ ns:registerCommand("profile", nil, function(self, args)
   local store = ns.db.profile or {}
   ns.db.profile = store
   if arg == "clear" then
-    store.open, store.weapons, store.armor = nil, nil, nil
+    for _, kind in ipairs(KINDS) do store[kind] = nil end
     ns.Print(("Cleared the stored build-profile samples (profiling is still %s)."):format(
       Prof:Armed() and "on" or "off"))
     return
   end
+  if arg == "show" then
+    store.verbose = not Prof:Verbose()
+    ns.Print(store.verbose and "Build profiling now prints each run as it completes."
+      or "Build profiling is quiet again — still recording; read it with /collected profile report.")
+    return
+  end
   store.armed = not Prof:Armed()
   if not store.armed then ns.Print("Build profiling off."); return end
-  ns.Print("Build profiling on.")
+  -- Say where the numbers went: with the live lines off by default, "on" is otherwise indistinguishable
+  -- from nothing happening.
+  local n = 0
+  for _, kind in ipairs(KINDS) do n = n + #(store[kind] or {}) end
+  ns.Print(("Build profiling on — recording quietly (%d samples stored). `report` reads them, `show` prints live."):format(n))
   -- Opening from here only matters when there's no window yet: the first open is the run that can
   -- only be taken once per session, so don't make the user issue a second command to get it.
   if not ns.window then self:Open() end
-end, "dev: build profiling runs by default — bare call turns it OFF (`report` aggregates, `clear` wipes)")
+end, "dev: build profiling records by default, quietly — bare call turns it OFF (`report` aggregates, `show` prints live, `clear` wipes)")
