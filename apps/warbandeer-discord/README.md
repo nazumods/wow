@@ -9,6 +9,7 @@ Discord bot for the guild channel: WoW timers and announcements.
 - **Server status** — continuously polls the Blizzard API for your realm's status and announces whenever it goes **down** or comes back **up** — for any outage, not just weekly-reset maintenance. `/status` checks the realm on demand.
 - **Release notifications** — polls GitHub and announces new releases. Watches this repo by default, or any list of repos you configure (e.g. ActionBarMaster too).
 - **Self-update** — `/update` (admins only) restarts the bot onto the latest build, so code changes don't need someone on the box, then messages you once it's back with the build it actually landed on. See [Self-update](#self-update).
+- **Transmog import strings** — `/transmog <character> <realm>` returns a `/customset v1 …` string for what a character is wearing, pasteable into `/collected outfit import`. For the characters you *can't* inspect in-game: offline, another realm, or a name someone pasted in chat. Needs the same Blizzard API credentials as realm status. Two caveats it states in every reply: weapon illusions aren't in the profile data, and profile data is a snapshot from the character's **last logout** — so someone online right now reports what they wore last session.
 - **Issue reports** — `/report` lets members with a configured role file a GitHub issue (Title + Description via a popup form) straight into the mapped project's repo (`wow`, `abm`), labeled `automated` and noting who filed it.
 
 All times are posted as Discord timestamps, so everyone sees them in their own timezone.
@@ -102,7 +103,9 @@ Once the bot exposes a local port, map a public hostname to it (`http://bot:<por
 |---|---|
 | `src/index.ts` | Client login, command registration, interaction routing (commands + `/report` modals) |
 | `src/config.ts` | Env config (`.env`); `/report` project→repo map |
-| `src/commands.ts` | `/dmf`, `/reset`, `/status`, `/update`, `/report` handlers |
+| `src/commands.ts` | `/dmf`, `/reset`, `/status`, `/transmog`, `/update`, `/report` handlers |
+| `src/wow/transmog.ts` | `/transmog` — equipment → `/customset` import string, realm slugs, reply text |
+| `src/wow/blizzard.ts` | Shared Blizzard client-credentials token |
 | `src/report.ts` | `/report` — role gate, modal form, files a GitHub issue |
 | `src/announce.ts` | Scheduler tick: DMF/reset/release announcements, realm watch |
 | `src/update.ts` | Self-update: staleness check against the bot's newest commit |

@@ -9,6 +9,13 @@ import { handleReportCommand } from "./report";
 import { currentOrNextDmf } from "./wow/dmf";
 import { nextDailyReset, nextWeeklyReset } from "./wow/reset";
 import { realmStatus, realmWatchConfigured } from "./wow/realm";
+import { blizzardConfigured } from "./wow/blizzard";
+import {
+  fetchTransmog,
+  formatTransmogReply,
+  realmSlug,
+  TransmogLookupError,
+} from "./wow/transmog";
 import { checkForUpdate, type UpdateDecision } from "./update";
 import { withCritical } from "./restart";
 
@@ -55,6 +62,14 @@ export const commandData: RESTPostAPIChatInputApplicationCommandsJSONBody[] = [
         .setDescription("Which project the report is about")
         .setRequired(true)
         .addChoices(...Object.keys(REPORT_PROJECTS).map((k) => ({ name: k, value: k }))),
+    ),
+  cmd("transmog")
+    .setDescription("Get a /customset import string for a character's transmog")
+    .addStringOption((o) =>
+      o.setName("character").setDescription("Character name").setRequired(true),
+    )
+    .addStringOption((o) =>
+      o.setName("realm").setDescription('Realm, e.g. "Argent Dawn"').setRequired(true),
     ),
   cmd("update")
     .setDescription("Restart the bot to pick up the latest build (admins only)")
@@ -130,6 +145,33 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
           await interaction.editReply(`⚠️ Update check failed: ${(err as Error).message}`);
         }
       });
+      return;
+    }
+    case "transmog": {
+      if (!blizzardConfigured()) {
+        await interaction.reply({
+          content:
+            "Transmog lookup is not configured — set `BLIZZARD_CLIENT_ID` and `BLIZZARD_CLIENT_SECRET`.",
+          flags: MessageFlags.Ephemeral,
+        });
+        return;
+      }
+      const character = interaction.options.getString("character", true);
+      const realm = interaction.options.getString("realm", true);
+      // Deferred: a token refresh plus the profile call can outrun Discord's 3s reply window.
+      await interaction.deferReply();
+      try {
+        const result = await fetchTransmog(character, realm);
+        await interaction.editReply(formatTransmogReply(character, realmSlug(realm), result));
+      } catch (err) {
+        // A lookup error is the user's to act on (wrong name/realm), so it carries its own
+        // wording; anything else is ours and gets the generic shape.
+        await interaction.editReply(
+          err instanceof TransmogLookupError
+            ? `⚠️ ${err.message}`
+            : `⚠️ Transmog lookup failed: ${(err as Error).message}`,
+        );
+      }
       return;
     }
     case "report": {
