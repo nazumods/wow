@@ -36,7 +36,7 @@ end
 -- Achievements box (right), each under its own caps header. The two sit a box-gap
 -- (GAP*2) apart so each can carry its own module background. Returns the reps and
 -- achievements section sizes (width, height) for the caller to size those boxes.
-local function buildTab(panel, expansionLevel, extraFactionIDs, achievementIds)
+local function buildTab(panel, expansionLevel, extraFactionIDs, catalogKey)
   capsHeader(panel, "Reputations", { TopLeft = {0, 0} })
   local bars = FactionBars:new{
     parent = panel,
@@ -50,7 +50,7 @@ local function buildTab(panel, expansionLevel, extraFactionIDs, achievementIds)
   local achHead = capsHeader(panel, "Achievements", { TopLeft = {0, 0} })
   local ach = Achievements:new{
     parent = panel,
-    achievementIds = achievementIds,
+    catalogKey = catalogKey,
     position = { TopLeft = {0, -HEAD_H} },
   }
   panel._ach = ach -- reachable for the cold-session font heal (ns.HealCellFonts)
@@ -58,11 +58,13 @@ local function buildTab(panel, expansionLevel, extraFactionIDs, achievementIds)
 end
 
 -- Expansions selectable via the titlebar dropdown. Each builds its own
--- Reputations + Achievements panel; only the selected one is shown.
+-- Reputations + Achievements panel; only the selected one is shown. `catalogKey` names the
+-- achievement list rather than carrying it, so the cross-addon catalog is read when a panel is
+-- built instead of at this file's load (#746).
 local EXPANSIONS = {
-  { key = "midnight",     label = "Midnight",       expansionLevel = 11, extraFactionIDs = {}, achievementIds = ns.overview.midnightAchievementIds },
-  { key = "wwi",          label = "The War Within", expansionLevel = 10, extraFactionIDs = {}, achievementIds = ns.overview.wwiAchievementIds },
-  { key = "dragonflight", label = "Dragonflight",   expansionLevel = 9,  extraFactionIDs = {}, achievementIds = ns.overview.dragonflightAchievementIds },
+  { key = "midnight",     label = "Midnight",       expansionLevel = 11, extraFactionIDs = {}, catalogKey = "midnight" },
+  { key = "wwi",          label = "The War Within", expansionLevel = 10, extraFactionIDs = {}, catalogKey = "wwi" },
+  { key = "dragonflight", label = "Dragonflight",   expansionLevel = 9,  extraFactionIDs = {}, catalogKey = "dragonflight" },
 }
 
 -- Overview
@@ -124,7 +126,7 @@ local Overview = Class(Frame, function(self)
       parent = self,
       position = { TopLeft = {P, -contentTop}, Hide = true },
     }
-    local bw, bh, aw, ah, achHead = buildTab(panel, e.expansionLevel, e.extraFactionIDs, e.achievementIds)
+    local bw, bh, aw, ah, achHead = buildTab(panel, e.expansionLevel, e.extraFactionIDs, e.catalogKey)
     panel:Height(HEAD_H + math.max(bh, ah))
     self._panels[e.key] = panel
     self._repsH[e.key] = HEAD_H + bh
