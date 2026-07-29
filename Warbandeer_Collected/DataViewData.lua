@@ -86,8 +86,10 @@ function ns.CollectedRows(self)
       local status = gsets and gsets[set.id]
       if not isPtr and not status then return {} end
       -- "Wanted only" blanks the cell (no content/click/marks) for sets that
-      -- aren't flagged, so the grid shows just the target list in context.
-      if self._wantedOnly and not ns:IsWanted(set.id) then return {} end
+      -- aren't flagged, so the grid shows just the target list in context. Off under PTR preview
+      -- (ns.WantedOnlyActive) — the upcoming list is a few rows and the dropdowns are bypassed there
+      -- too, so the star gutting it was the odd one out.
+      if ns.WantedOnlyActive(self) and not ns:IsWanted(set.id) then return {} end
       -- Same per-slot source tooltip on every cell, complete or partial — for a
       -- fully-collected set every slot shows green.
       local onEnter = function(cell)
@@ -230,7 +232,8 @@ end
 ---@return number sets, number cells, number green
 function DataView:VisibleCounts()
   local sets, cells, green = 0, 0, 0
-  local wantedOnly, isPtr = self._wantedOnly, self._ptr
+  local isPtr = self._ptr
+  local wantedOnly = ns.WantedOnlyActive(self)   -- never in force under PTR preview
   for _, grp in ipairs(isPtr and ns.PtrSets or ns.Sets) do
     if matches(self, grp) and (not wantedOnly or groupWanted(grp)) then
       sets = sets + 1

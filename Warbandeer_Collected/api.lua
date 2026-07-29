@@ -18,6 +18,9 @@ local ns = select(2, ...)
 ---@field WantedIcon string atlas for the "wanted" marker
 ---@field OnScanned fun(self, fn: fun()) register a callback fired after each scan refreshes the data
 ---@field DataView DataView the shared set-by-class grid class (set in `DataView.lua`); build with `embedded = true` to reuse it in a host view
+---@field WeaponView WeaponView the shared weapon-source grid class (set in `WeaponView.lua`)
+---@field CollectedPanel CollectedPanel the **whole assembled panel** — both grids, both filter strips, the Armor/Weapons toggle, the counter + wanted tally, the scroll containers and the sizing. What a consumer should build: hosting this is the difference between a view that tracks `/collected` and one that reimplements it and drifts (see `controls/CollectedPanel.lua`)
+---@field prof CollectedProfiler the build profiler, so a host can open the run its grid's marks belong to
 local API = {}
 
 -- Static set-group definitions (rows), release names, and the parallel expansion

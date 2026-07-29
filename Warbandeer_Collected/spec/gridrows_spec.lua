@@ -82,6 +82,20 @@ describe("GridRowOrder", function()
       local source = { group("A", 1), group("B", 2) }
       assert.same({ 2 }, ns.GridRowOrder(view{ wantedOnly = true, expansion = 2 }, source, all))
     end)
+
+    -- The star is bypassed under PTR preview exactly as the dropdowns are. It used to be the one
+    -- filter that still bit there, which left the preview half-filtered — and since the header
+    -- counter reads `UpcomingCounts()` and honours no filter at all, a starred PTR view showed
+    -- "+227 appearances upcoming" over an empty grid.
+    it("ignores the wanted filter under PTR preview", function()
+      local source = { group("A", 1), group("B", 1) }
+      assert.same({ 1, 2 }, ns.GridRowOrder(view{ ptr = true, wantedOnly = true }, source, none))
+    end)
+
+    it("still applies the wanted filter once PTR preview is off", function()
+      local source = { group("A", 1), group("B", 1) }
+      assert.same({}, ns.GridRowOrder(view{ wantedOnly = true }, source, none))
+    end)
   end)
 
   describe("ordering", function()

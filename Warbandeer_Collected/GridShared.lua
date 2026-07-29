@@ -23,6 +23,8 @@ local GameTooltip = GameTooltip
 ---@field baseName fun(name: string): string
 ---@field sortByExpansion fun(order: number[], source: table[], reverse: boolean?)
 ---@field FitNameCol fun(grid: table, nameCol: number): boolean
+---@field PadNameCol fun(grid: table, nameCol: number, extra: number)
+---@field WantedOnlyActive fun(view: table): boolean  is the ★ filter in force (never under PTR preview)
 ---@field GridMatches fun(view: table, grp: table): boolean
 ---@field CategoryOptions fun(source: table[], order: string[]): table[]
 ---@field BuildGridStrip fun(grid: table, parent: table, onModeChanged: fun()?, words: string): table
@@ -186,6 +188,25 @@ end
 ---
 ---PTR preview is never filtered (a small upcoming-only list with no category), so the dropdowns
 ---apply to the live grid only.
+---Is the "wanted only" (★) filter actually in force?
+---
+---**Not under PTR preview.** The upcoming list is a handful of rows with no collection state behind
+---it, so filtering it to what you've flagged mostly empties it — and the expansion/category
+---dropdowns are already bypassed there (see `GridMatches` right below). The star was the one filter
+---that still bit, because it is applied outside `GridMatches`: once in the row gate of
+---`GridRowOrder`, again in each grid's cell builder, and again in each `VisibleCounts`. That left
+---PTR preview half-filtered — dropdowns ignored, star honoured — and the header counter, which reads
+---`UpcomingCounts()` and honours nothing, contradicting the grid underneath it.
+---
+---The button keeps its lit state across the toggle rather than being forced off, exactly as the
+---dropdowns keep their selection: the filter is the user's standing preference, it simply does not
+---apply while previewing.
+---@param view table  a DataView / WeaponView instance
+---@return boolean
+function ns.WantedOnlyActive(view)
+  return view._wantedOnly and not view._ptr
+end
+
 ---@param view table  a DataView / WeaponView instance
 ---@param grp table  a row source group
 ---@return boolean
@@ -370,10 +391,11 @@ end
 ---@return number[] order  source indices, in display order
 function ns.GridRowOrder(view, source, wantedFn)
   local order = {}
+  local wantedOnly = ns.WantedOnlyActive(view)
   for i = 1, #source do
     -- Expansion/category filter, plus (when "wanted only" is on) drop whole rows holding nothing
     -- wanted, so the grid shows just the target list rather than blanked filler rows.
-    if ns.GridMatches(view, source[i]) and (not view._wantedOnly or wantedFn(source[i])) then
+    if ns.GridMatches(view, source[i]) and (not wantedOnly or wantedFn(source[i])) then
       order[#order + 1] = i
     end
   end
@@ -416,6 +438,30 @@ function ns.FitNameCol(grid, nameCol)
   grid.rowArea:Width(grid.rowArea:Width() + (w - applied))
   grid:Width(grid:Width() + (w - applied))
   return true
+end
+
+-- Widen `grid`'s name column by `extra` px, growing the row area and the frame with it — the same
+-- three-field mutation `FitNameCol` makes, split out so a host can bring a narrower grid up to a
+-- wider sibling's total width.
+--
+-- The armour and weapon grids are genuinely different widths (armour's 13 class columns and long
+-- set names against weapons' 17 narrow icon columns and shorter source names — 800 against 704 as
+-- measured). A panel that doesn't resize when you toggle between them therefore has to leave one
+-- mode short of its own right edge, and it was the weapon grid wearing the whole 96px of it. Padding
+-- the narrower grid's NAME column absorbs the difference into left-aligned text with room to spare,
+-- rather than into a hole beside the last data column.
+--
+-- `_nameColW` is kept in step because `FitNameCol` reads it as "the width already applied"; the two
+-- must agree or a later fit would compute its delta against a stale number.
+---@param grid table
+---@param nameCol number  index of the name column
+---@param extra number  px to add (no-op at <= 0)
+function ns.PadNameCol(grid, nameCol, extra)
+  if extra <= 0 then return end
+  grid._nameColW = (grid._nameColW or 0) + extra
+  grid.cols[nameCol]:Width(grid._nameColW)
+  grid.rowArea:Width(grid.rowArea:Width() + extra)
+  grid:Width(grid:Width() + extra)
 end
 
 -- Lazily build a grid's dressed-cell cursor: one reusable white 4-edge box parented to the row area
@@ -480,8 +526,8 @@ ns.GRID_EMPTY_H = 48
 ---@param on boolean
 ---@param noun string  plural noun for what the grid is empty of ("sets" / "weapon looks")
 function ns.GridEmptyMessage(grid, on, noun)
-  local text = grid._wantedOnly and ("You haven't flagged any %s wanted."):format(noun)
-                                or  ("No %s match these filters."):format(noun)
+  local text = ns.WantedOnlyActive(grid) and ("You haven't flagged any %s wanted."):format(noun)
+                                         or  ("No %s match these filters."):format(noun)
   if not on then
     if grid._emptyMsg then grid._emptyMsg:Hide() end
     return

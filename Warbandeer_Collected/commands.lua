@@ -243,7 +243,7 @@ function ns:Scan()
     end
   end
   if ns.window then
-    ns.window:RefreshCounter()   -- respects live/PTR mode (leaves the upcoming count alone in PTR)
+    local panel = ns.window.panel
     -- **BOTH grids, and unconditionally (#761).** This rebuilt only the armor grid, so collecting a
     -- weapon appearance with the Weapons grid open left three surfaces disagreeing at once: the
     -- header counter ticked up (`VisibleCounts` recomputes live from `ns.WeaponSources` and the
@@ -258,10 +258,15 @@ function ns:Scan()
     -- `Grids()` and not a literal pair: the weapons grid is built lazily on the first switch to it
     -- (#770 step 19), and a grid that doesn't exist yet has no stale counts to refresh — it reads
     -- them when it's built.
-    for _, grid in ipairs(ns.window:Grids()) do
+    for _, grid in ipairs(panel:Grids()) do
       grid.data = grid:GetData()
       grid:update()
     end
+    -- Counter + wanted tally only: the loop above already rebuilt every grid from this data, and
+    -- `_gridFresh` is exactly the flag that tells `Render` its cells are current (it clears the flag
+    -- itself). Respects live/PTR mode, leaving the upcoming count alone in PTR.
+    panel._gridFresh = true
+    panel:Render()
   end
   -- Notify consumers (Warbandeer's collected view) now the DB is fresh, so both
   -- grids stay in sync (see api.lua OnScanned).
@@ -291,18 +296,43 @@ end, "Scan all sets for collected status")
 -- It doubles as a probe: if this fixes a blank grid, the cells were built correctly and something
 -- hid them or stopped them drawing — which is a different bug from the row builder never producing
 -- the text, and narrows #718 accordingly.
+-- Dev: where each open panel's width comes from. The `/collected` window and Warbandeer's embedded
+-- view render the same `CollectedPanel` and are supposed to come out the same width; when they don't,
+-- the useful question is never "how wide is it" but "which term is setting it" — the widest grid's
+-- content, or the header chrome's floor. Those want opposite fixes, and guessing between them from a
+-- screenshot has cost more rounds than this command does.
+--
+-- One block per panel built this session, so the two hosts read side by side, into the shared copy
+-- window rather than chat — the blocks scroll off the console before they can be read, and a number
+-- that can't be pasted back is how this ended up being reasoned about from a screenshot in the first
+-- place. Same route `coverage` and `profile report` take.
+ns:registerCommand("width", nil, function()
+  if #ns._panels == 0 then
+    ns.Print("No collection panel is built yet — open /collected or /wb's Collected view.")
+    return
+  end
+  local lines = {}
+  for _, panel in ipairs(ns._panels) do
+    for _, l in ipairs(panel:WidthReport()) do lines[#lines + 1] = l end
+    lines[#lines + 1] = ""
+  end
+  ui.ShowCopyWindow(("Collected width — %d panel(s)"):format(#ns._panels), table.concat(lines, "\n"))
+  ns.Print(("Width report for %d panel(s) — see the copy window."):format(#ns._panels))
+end, "Dev: dump what is setting each collection panel's width (copy window)")
+
 ns:registerCommand("refresh", nil, function()
   if not ns.window then
     ns.Print("The Collected window isn't open — /collected opens it.")
     return
   end
-  for _, grid in ipairs(ns.window:Grids()) do
+  local panel = ns.window.panel
+  for _, grid in ipairs(panel:Grids()) do
     grid.data = grid:GetData()
     grid:update()
     if grid.onResized then grid:onResized() end
   end
-  ns.window:RefreshCounter()
-  ns.window:RefreshWanted()
+  panel._gridFresh = true   -- the loop above rebuilt them; Render only needs to redo the counters
+  panel:Render()
   ns.Print("Rebuilt the Collected grids from the current data.")
 end, "Rebuild the open window's grids without rescanning (fixes a blank grid — see #718)")
 
