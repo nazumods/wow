@@ -51,9 +51,12 @@ local Top, Bottom = ui.edge.Top, ui.edge.Bottom
 ---@field _viewport ScrollFrame?  bound viewport (virtual mode)
 ---@field _resident integer?  live row-frame count (virtual mode)
 ---@field _top integer?  data index currently bound to resident row 1 (virtual mode)
----@field onRebind? fun(self: TableFrame)  fired after `_rebind` re-points the resident cells at a new
----  window of `data` (virtual mode) — the moment anything a consumer draws ON TOP of a cell, keyed by
----  that cell's data, goes stale. Only fires when the window actually moved, so it is as cheap to
+---@field onRebind? fun(self: TableFrame, first: integer, last: integer)  fired after `_rebind` re-points
+---  the resident cells at a new window of `data` (virtual mode) — the moment anything a consumer draws
+---  ON TOP of a cell goes stale. `first`/`last` are the data indices now resident (row `first + k - 1`
+---  is in slot `k`), so an overlay keyed by row POSITION rather than by cell content has what it needs
+---  without reaching into the private `_top`. Fires on the initial `update()` bind as well as on scroll,
+---  so one registration covers both; only fires when the window actually moved, so it is as cheap to
 ---  handle as `_rebind` is to run. A static table never fires it.
 local TableFrame = Class(Frame, function(self)
   if not self.colNames and self.colInfo then
@@ -288,7 +291,12 @@ function TableFrame:_rebind()
   -- of its `data` — is now sitting on the wrong row and must be re-derived. Fired after the bind so
   -- the consumer sees final `cell.data`, and only on a real move (the early-out above already
   -- returned otherwise), so it costs nothing on a scroll that didn't change the window.
-  if self.onRebind then self:onRebind() end
+  --
+  -- Passing the window's data range is what makes this usable by a consumer whose overlay is keyed by
+  -- row POSITION rather than by cell content: without it the only way to learn which rows are resident
+  -- is `_top`, and a consumer reading a private field is a contract that breaks silently. `last` is
+  -- clamped to the data length, since the final window can be shorter than the resident pool.
+  if self.onRebind then self:onRebind(first, math.min(first + resident - 1, n)) end
 end
 
 -- Resize the frame to show exactly n rows, hiding dead space when the active

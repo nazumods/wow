@@ -69,23 +69,39 @@ local function makeVirtual()
   -- Re-stamp the "every fifth row" marker onto whichever cells are resident now, reading each Name
   -- cell's own data to decide — exactly how a real consumer (Collected's marks) re-derives overlays
   -- after a bind. The marker is a child of the cell, created once and reused, shown/hidden per row.
-  local function restampMarkers(g)
+  -- `first`/`last` are the data indices now resident — slot k holds row `first + k - 1`. Keyed off
+  -- that rather than off the cell's text on purpose: it's the harder half of the contract to get right,
+  -- so this is what exercises it.
+  --
+  -- Mismatches are REPORTED, not asserted: this runs on the scroll path, and a hard error there would
+  -- spam the error frame once per frame while dragging — which buries the one message you wanted. The
+  -- readout naming the bad slot is louder in practice and doesn't fight the thing it's diagnosing.
+  local function restampMarkers(g, first, last)
     rebinds = rebinds + 1
-    for _, row in ipairs(g.cells) do
+    local bad
+    for k, row in ipairs(g.cells) do
       local nameCell = row[1]
       if nameCell then
-        local n = tonumber((tostring(nameCell.data):match("Row (%d+)")))
+        local dataRow = first + k - 1
+        local live = dataRow <= last
+        if live and tostring(nameCell.data) ~= "Row " .. dataRow then
+          bad = bad or ("slot %d holds %q, expected \"Row %d\""):format(k, tostring(nameCell.data), dataRow)
+        end
         if not nameCell._mark then
           nameCell._mark = Texture:new{
             parent = nameCell, layer = LibNUI.layer.Overlay,
             color = "header", position = { TopLeft = { 2, -2 }, Size = { 6, 6 } },
           }
         end
-        nameCell._mark:SetShown(n ~= nil and n % 5 == 0)
+        nameCell._mark:SetShown(live and dataRow % 5 == 0)
       end
     end
-    readout:Text(("virtual: scrolling — onRebind fired %d times (gold dot must follow Row 5/10/15…)")
-      :format(rebinds))
+    if bad then
+      readout:Text("|cffff4444onRebind WINDOW MISMATCH: " .. bad .. "|r")
+      return
+    end
+    readout:Text(("virtual: rows %d-%d resident, onRebind fired %d times (gold dot follows Row 5/10/15…)")
+      :format(first, last, rebinds))
   end
 
   local function build(virtual)
