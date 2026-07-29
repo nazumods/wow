@@ -47,6 +47,42 @@ pub struct TopCharacter {
     pub is_alliance: bool,
 }
 
+/// One checklist row: the persisted completion bit joined to the bundled display metadata.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AchievementRow {
+    pub id: u32,
+    /// `None` when the id isn't in the bundle — a catalog/bundle skew rather than an error.
+    /// The frontend renders the bare id in that case, so the skew is visible instead of silent.
+    pub name: Option<String>,
+    pub points: i64,
+    pub completed: bool,
+}
+
+/// The checklist for one expansion, in the catalog's own order.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AchievementGroup {
+    /// Catalog key (`wwi` / `midnight` / `dragonflight`); the frontend owns label + order.
+    pub key: String,
+    pub rows: Vec<AchievementRow>,
+    pub completed_count: usize,
+}
+
+/// The Achievements column.
+///
+/// Joined HERE rather than in the frontend: `get_achievement_meta` is a per-id command, and this
+/// column spans ~35 ids across three groups — one pre-joined payload beats 35 IPC round trips.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OverviewAchievements {
+    pub groups: Vec<AchievementGroup>,
+    pub total_points: i64,
+    /// False when the save has no `db.achievements` at all — i.e. it predates the addon-side
+    /// snapshot. Distinguishes "nothing captured yet" from "captured, nothing completed".
+    pub captured: bool,
+}
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Overview {
@@ -55,6 +91,47 @@ pub struct Overview {
     pub stats: OverviewStats,
     pub reputations: Vec<FactionStanding>,
     pub top_characters: Vec<TopCharacter>,
+    pub achievements: OverviewAchievements,
+}
+
+/// Expansion keys in the order the in-game Overview lists them
+/// (`Warbandeer/views/Overview.lua`'s `EXPANSIONS`). A key the bundle doesn't carry yields an
+/// empty group rather than being dropped, so a catalog addition shows up as a visible hole.
+const EXPANSION_ORDER: [&str; 3] = ["midnight", "wwi", "dragonflight"];
+
+/// Join `db.achievements` against the bundled catalog into the per-expansion checklist.
+fn build_achievements(db: &CharDb) -> OverviewAchievements {
+    let bundle = crate::staticdata::get();
+    let snapshot = &db.achievements.snapshot;
+    let groups = EXPANSION_ORDER
+        .iter()
+        .map(|key| {
+            let rows: Vec<AchievementRow> = bundle
+                .achievement_group(key)
+                .iter()
+                .map(|&id| {
+                    let meta = bundle.achievement(id);
+                    AchievementRow {
+                        id,
+                        name: meta.map(|m| m.name.clone()),
+                        points: meta.map_or(0, |m| m.points),
+                        completed: snapshot.get(&(id as i64)).is_some_and(|e| e.completed),
+                    }
+                })
+                .collect();
+            AchievementGroup {
+                key: (*key).to_string(),
+                completed_count: rows.iter().filter(|r| r.completed).count(),
+                rows,
+            }
+        })
+        .collect();
+
+    OverviewAchievements {
+        groups,
+        total_points: db.achievements.total_points as i64,
+        captured: !snapshot.is_empty(),
+    }
 }
 
 fn ilvl_of(c: &Character) -> f64 {
@@ -268,12 +345,61 @@ fn build(db: &CharDb, account: Option<String>) -> Overview {
         stats,
         reputations,
         top_characters: top,
+        achievements: build_achievements(db),
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::model::{AchievementEntry, Achievements};
+
+    /// A save written before the addon-side snapshot shipped has no `db.achievements` at all.
+    /// That must render as "not captured", never fail the parse or the join — this is the case
+    /// that regresses if the field stops being `#[serde(default)]`.
+    #[test]
+    fn absent_achievements_yield_an_uncaptured_column() {
+        let db = CharDb::default();
+        let a = build_achievements(&db);
+        assert!(!a.captured, "no snapshot means not captured");
+        assert_eq!(a.total_points, 0);
+        // The groups still exist, so the column renders its structure rather than vanishing.
+        assert_eq!(a.groups.len(), EXPANSION_ORDER.len());
+        assert!(a.groups.iter().all(|g| g.completed_count == 0));
+    }
+
+    /// A populated snapshot joins onto the bundled catalog: completion comes from the save,
+    /// name and points from the bundle, and the per-group tally counts only completed rows.
+    #[test]
+    fn present_achievements_join_against_the_bundle() {
+        let bundle = crate::staticdata::get();
+        // Drive the test off whatever the catalog actually declares, so it can't rot when the
+        // checklist changes — a hardcoded id would.
+        let key = "midnight";
+        let ids = bundle.achievement_group(key);
+        assert!(!ids.is_empty(), "the bundle should carry a {key} checklist");
+        let done = ids[0];
+
+        let db = CharDb {
+            achievements: Achievements {
+                snapshot: [(done as i64, AchievementEntry { completed: true })]
+                    .into_iter()
+                    .collect(),
+                total_points: 1234.0,
+            },
+            ..Default::default()
+        };
+
+        let a = build_achievements(&db);
+        assert!(a.captured);
+        assert_eq!(a.total_points, 1234);
+        let group = a.groups.iter().find(|g| g.key == key).expect("group");
+        assert_eq!(group.rows.len(), ids.len());
+        assert_eq!(group.completed_count, 1);
+        let row = group.rows.iter().find(|r| r.id == done).expect("row");
+        assert!(row.completed);
+        assert!(row.name.is_some(), "a tracked id resolves against the bundle");
+    }
 
     // End-to-end against the live install if present (mlua deserialize of the real
     // SavedVariables is the riskiest path). Skips cleanly when no install is found.

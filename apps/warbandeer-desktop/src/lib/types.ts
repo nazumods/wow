@@ -35,12 +35,38 @@ export interface TopCharacter {
   isAlliance: boolean;
 }
 
+// One row of the Overview achievement checklist: the persisted completion bit joined
+// (in Rust, to avoid a per-id IPC round trip) to the bundled display metadata.
+export interface AchievementRow {
+  id: number;
+  // null when the id isn't in the bundle — a catalog/bundle skew, not an error. Render
+  // the bare id so the skew stays visible rather than blanking the row.
+  name: string | null;
+  points: number;
+  completed: boolean;
+}
+
+export interface AchievementGroup {
+  key: string; // catalog key: "wwi" | "midnight" | "dragonflight"
+  rows: AchievementRow[];
+  completedCount: number;
+}
+
+export interface OverviewAchievements {
+  groups: AchievementGroup[];
+  totalPoints: number;
+  // false when the save predates the addon-side snapshot — distinguishes "nothing
+  // captured yet" from "captured, nothing completed".
+  captured: boolean;
+}
+
 export interface Overview {
   account: string | null;
   dbVersion: number | null;
   stats: OverviewStats;
   reputations: FactionStanding[];
   topCharacters: TopCharacter[];
+  achievements: OverviewAchievements;
 }
 
 export interface CombatLogFile {

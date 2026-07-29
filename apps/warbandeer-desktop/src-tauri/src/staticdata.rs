@@ -57,6 +57,16 @@ pub struct StaticData {
     /// so a miss means "not tracked", not "unknown to the client".
     #[serde(default)]
     pub achievements: HashMap<String, AchievementMeta>,
+    /// Which tracked ids belong to which expansion, keyed by the catalog's own expansion key
+    /// (`wwi`, `midnight`, `dragonflight`). Covers only the Overview CHECKLIST — the milestones
+    /// and legion ids in `achievements` are tracked but not part of this column, so the union of
+    /// these lists is deliberately smaller than `achievements`.
+    ///
+    /// Carries no display order or labels: in game those live in the view
+    /// (`Warbandeer/views/Overview.lua`'s `EXPANSIONS`), not the catalog, and a consumer owns
+    /// its presentation the same way.
+    #[serde(default)]
+    pub achievement_groups: HashMap<String, Vec<u32>>,
 }
 
 impl StaticData {
@@ -66,6 +76,12 @@ impl StaticData {
 
     pub fn achievement(&self, id: u32) -> Option<&AchievementMeta> {
         self.achievements.get(&id.to_string())
+    }
+
+    /// The checklist ids for one expansion key, or an empty slice when the bundle predates the
+    /// grouping (or the key is unknown).
+    pub fn achievement_group(&self, key: &str) -> &[u32] {
+        self.achievement_groups.get(key).map_or(&[], |v| v.as_slice())
     }
 }
 

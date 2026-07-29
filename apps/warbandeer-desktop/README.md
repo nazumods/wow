@@ -18,7 +18,7 @@ the game. The first view is a desktop mirror of the addon's **Overview**.
 | Stat strip — warband wealth (+weekly), playtime (+this patch), top ilvl | `WarbandeerCharDB.warband` + per-char `currency`/`playtime`/`equipment` | ✅ exact |
 | Reputations | per-char `reputations.factions` — best standing per faction, account-wide | ✅ (offline analogue of the live rep bars) |
 | Top Characters | top char per class by level/ilvl | ✅ (raid set-completion columns: planned, needs the Collected DB) |
-| Achievements | not persisted to SavedVariables | ⛔ placeholder (needs live game state) |
+| Achievements | `db.achievements` snapshot + bundled catalog | ✅ per-expansion checklist, completed/total and points (text only — no icons yet) |
 | Combat logs | `Logs/WoWCombatLog*.txt` | ✅ list + lightweight CLEU summary (encounters, top damage) |
 | Character Sort | `WTF/Account/<name>/character-list-order.txt` | ✅ reorder the character-select list (see below) |
 | Ops (operator-only) | the `warbandeer-discord` bot on the box, over SSH | 🔧 hidden unless `ops.json` is present (see below) |
@@ -144,15 +144,20 @@ the Tauri CLI). `npm run icon:source` regenerates the bundled placeholder mark f
 ## Releases (CI)
 
 `.github/workflows/app-release.yml` builds the portable Windows exe and publishes a
-GitHub release whenever the app's source changes on `main` (doc-only changes are
-ignored). The release is tagged `app-warbandeer-desktop-v<version>` and the exe is
-attached as `Warbandeer-v<version>-portable.exe`, where `<version>` comes from
+GitHub release on a **daily cron**, whenever commits have landed since the last `app-*`
+tag (doc-only changes are ignored). The release is tagged
+`app-warbandeer-desktop-v<version>` and the exe is attached as
+`Warbandeer-v<version>-portable.exe`, where `<version>` comes from
 `src-tauri/tauri.conf.json`.
 
-**Every source change to the app needs a version bump** — edit that `version` and keep
-`package.json` + `src-tauri/Cargo.toml` in sync. GitHub releases are **immutable**, so a
-push that leaves the version alone can't refresh the existing release's asset: the job
-fails with `Cannot delete asset from an immutable release` and **no exe is published**.
-The failure is easy to miss, since it happens after the merge rather than in PR CI.
+**No manual version bump needed.** `.github/scripts/app-release.sh` bumps the version
+itself and keeps `tauri.conf.json` + `package.json` + `Cargo.toml` + `Cargo.lock` in sync.
+This is why the flow moved to a cron rather than firing on push: the bump commit is pushed
+with an admin token to get past `main`'s ruleset, and admin-token pushes *do* re-trigger
+push-based workflows, so a push trigger would release itself in a loop.
+
+GitHub releases are immutable, which is what the auto-bump exists to stay ahead of — a
+release built twice at one version fails with `Cannot delete asset from an immutable
+release` and publishes no exe.
 
 App tags use the `app-` prefix so the addon CurseForge publisher skips them.

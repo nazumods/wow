@@ -4,8 +4,18 @@
 it. It is the suite's offline lookup layer: constant client data that SavedVariables only
 store ids for.
 
-Current contents: **currencies** (the full `CurrencyTypes` table) and **achievements**
-(`Achievement`, filtered to the ids Warbandeer's views track).
+Current contents: **currencies** (the full `CurrencyTypes` table), **achievements**
+(`Achievement`, filtered to the ids Warbandeer's views track), and **achievementGroups**
+(which of those ids belong to which expansion).
+
+`achievementGroups` is the only key not sourced from wago: it is parsed out of
+`achievementcatalog.lua`'s `checklist` table, the same file the id filter already reads, so
+there is one source of truth and the existing `achievementcatalog.id` lint rule guards it.
+It covers only the Overview **checklist**, so the union of its lists is deliberately smaller
+than `achievements` — the milestones and legion ids are tracked but aren't part of that
+column. It carries **no display order and no labels**: in game those live in the view
+(`Warbandeer/views/Overview.lua`'s `EXPANSIONS`), not the catalog, and a consumer owns its
+own presentation the same way.
 
 **Why the generator and its output live apart.** The bundle sits with the desktop app
 because that app compiles it in with `include_str!`. The generator sits in `Tooling/` for

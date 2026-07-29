@@ -84,7 +84,7 @@
       />
       <div class="caps head">Achievements</div>
       <div class="module">
-        <Achievements />
+        <Achievements achievements={data.achievements} />
       </div>
     </section>
 

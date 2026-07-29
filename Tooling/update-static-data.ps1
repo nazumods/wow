@@ -139,6 +139,39 @@ if ($trackedIds.Count -eq 0) {
   throw "No achievement ids parsed from $CatalogFile — the catalog's shape changed, aborting."
 }
 
+# The per-expansion GROUPING, for consumers that render the Overview checklist (nazumods/wow#731).
+# The flat id set above is enough to filter the DB2 extract, but a reader with no client cannot
+# reconstruct which ids belong to which expansion, and that is exactly what the checklist column
+# is. Emitted from this same file so there is one source of truth, guarded by the existing
+# achievementcatalog.id rule in lint-stale-ids.ps1.
+#
+# ORDER AND LABELS ARE DELIBERATELY NOT EMITTED. In game they live in the VIEW
+# (Warbandeer/views/Overview.lua's EXPANSIONS table: midnight, then The War Within, then
+# Dragonflight), not in the catalog — a consumer owns its own presentation the same way.
+#
+# Brace-matched rather than regexed: `checklist` holds sub-tables, so a non-greedy `\{.*?\}`
+# would stop at the first expansion's closing brace.
+$checklistStart = $catalogBody.IndexOf('checklist')
+if ($checklistStart -lt 0) { throw "No `checklist` table in $CatalogFile — the catalog's shape changed, aborting." }
+$open = $catalogBody.IndexOf('{', $checklistStart)
+$depth = 0
+$close = -1
+for ($i = $open; $i -lt $catalogBody.Length; $i++) {
+  if ($catalogBody[$i] -eq '{') { $depth++ }
+  elseif ($catalogBody[$i] -eq '}') { $depth--; if ($depth -eq 0) { $close = $i; break } }
+}
+if ($close -lt 0) { throw "Unbalanced braces in $CatalogFile's checklist table, aborting." }
+$checklistBody = $catalogBody.Substring($open + 1, $close - $open - 1)
+
+$achievementGroups = [ordered]@{}
+foreach ($m in [regex]::Matches($checklistBody, '(\w+)\s*=\s*\{([^{}]*)\}')) {
+  $ids = @([regex]::Matches($m.Groups[2].Value, '\d+') | ForEach-Object { [int]$_.Value })
+  if ($ids.Count -gt 0) { $achievementGroups[$m.Groups[1].Value] = $ids }
+}
+if ($achievementGroups.Count -eq 0) {
+  throw "No expansion groups parsed from $CatalogFile's checklist — the catalog's shape changed, aborting."
+}
+
 $achRows = (Get-Cached "Achievement-$Build" "https://wago.tools/db2/Achievement/csv?build=$Build" 300) | ConvertFrom-Csv
 if (-not $achRows) { throw 'No rows returned from wago.tools (Achievement).' }
 Assert-Columns $achRows 'Achievement'
@@ -270,6 +303,10 @@ $bundle = [ordered]@{
   buildDate    = $buildDate
   currencies   = $currencies
   achievements = $achievements
+  # Which tracked ids belong to which expansion. Keyed by the catalog's own expansion key, in
+  # the order they appear in achievementcatalog.lua — the CONSUMER owns display order and
+  # labels, exactly as the in-game view does (see the parse above).
+  achievementGroups = $achievementGroups
 }
 
 # ConvertTo-Json emits CRLF on Windows and LF on Linux. The scheduled refresh runs on
