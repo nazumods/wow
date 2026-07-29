@@ -157,6 +157,15 @@ local TableFrame = Class(Frame, function(self)
   if not self.colInfo then self.colInfo = {} end
   if not self.rowInfo then self.rowInfo = {} end
 
+  -- Two of virtualisation's constraints are checkable right here, and silent breakage is much worse
+  -- than a loud one: row headers live on the row frame, so under a sliding window they'd follow the
+  -- VIEWPORT while the data moved past them — every label naming the wrong row, which reads as a data
+  -- bug rather than a misconfiguration. An empty `rowNames = {}` is the documented dynamic-table idiom
+  -- and stays legal; only actually declaring headers is the error.
+  if self.virtual and self.rowNames and #self.rowNames > 0 then
+    error("TableFrame: `virtual` does not support row headers — rowNames live on the row frame and would follow the viewport, not the data", 2)
+  end
+
   self:Width(width)
   self:Height(height)
 end, {
@@ -205,6 +214,22 @@ function TableFrame:BindViewport(scroll)
     self:_rebind()
   end
   scroll._widget:SetScript("OnVerticalScroll", function(_, offset) scroll:onScroll(offset) end)
+  return self
+end
+
+-- Re-size the resident pool to the viewport's CURRENT height and re-bind.
+--
+-- Needed because the resident count is derived from the viewport at `update()` time, and a host that
+-- refits its scroll height from the row count changes the viewport *after* that — Collected's
+-- `_fitToGrid` does exactly this on every filter change. Filter down to a handful of rows and back and
+-- the pool is still sized for the small viewport, leaving a band of empty space below the data with no
+-- way for the table to notice. A host that resizes the viewport must call this afterwards.
+--
+-- Cheap and idempotent when nothing changed: `_virtualUpdate` recomputes the same numbers and
+-- `_rebind` re-points the same window. A no-op on a static table.
+---@return TableFrame
+function TableFrame:RefreshViewport()
+  if self.virtual and self.data then self:_virtualUpdate() end
   return self
 end
 
@@ -575,6 +600,13 @@ end
 ---@param data table  footer cell data keyed by column index
 ---@return TableFrame
 function TableFrame:setFooter(data)
+  -- The other checkable constraint. A footer anchors to the row area's bottom, which in virtual mode is
+  -- the bottom of the whole DATASET rather than of the visible rows — so it would sit thousands of
+  -- pixels below the viewport, invisible, and the caller would be left wondering where their totals
+  -- went. Erroring names the reason at the call site.
+  if self.virtual then
+    error("TableFrame: `virtual` does not support a footer — it anchors to the row area's bottom, which spans the whole dataset", 2)
+  end
   if not self.footerRow then
     self.footerHeight = self.footerHeight or self.cellHeight
     self.footerRow = TableRow:new{

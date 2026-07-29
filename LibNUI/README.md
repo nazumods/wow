@@ -1517,14 +1517,28 @@ A static table never fires it. Overlays there are applied once after `update()` 
 supports both modes applies them in `update()` and re-applies them in `onRebind`, and the virtual
 path's initial fire makes that idempotent rather than doubled.
 
-**Constraints** — each one checkable where you build the table:
+**If the host resizes the viewport, call `RefreshViewport()`.** The resident count is derived from the
+viewport's height at `update()` time. A host that refits its scroll height from the row count changes
+the viewport *after* that, so filtering down to a few rows and back leaves the pool sized for the small
+viewport and a band of empty space below the data — the table has no way to notice on its own.
+
+```lua
+scroll:Height(newHeight)
+grid:RefreshViewport()         -- re-sizes the pool, re-binds; no-op if nothing changed or not virtual
+```
+
+**Constraints:**
 
 | | |
 |---|---|
 | **Uniform row height** | The window↔offset map is `floor(offset / cellHeight)`, so per-row `rowInfo[i].height` isn't honoured |
 | **`Autosize` sees resident rows only** | It walks `self.rows`/`self.cells`, which here is just the visible window — a column sized from *cell text* would resize as you scroll. Size it from the **data**, or fix its width |
-| **No row headers** | `rowNames` entries live on the row frame, so they'd follow the window rather than the data |
-| **No footer** | `setFooter` anchors to the row area's bottom, which is now the bottom of the whole dataset |
+| **No row headers** — *enforced* | `rowNames` entries live on the row frame, so they'd follow the viewport rather than the data. Declaring them with `virtual` raises at construction; an empty `rowNames = {}` (the dynamic-table idiom) stays legal |
+| **No footer** — *enforced* | `setFooter` anchors to the row area's bottom, which is now the bottom of the whole dataset — it would sit far below the viewport. Calling it on a virtual table raises |
+
+The last two raise rather than mis-render on purpose: both fail *silently and misleadingly* otherwise —
+headers naming the wrong rows reads as a data bug, and a footer parked below the dataset just looks
+missing.
 
 `ResizeRows` is a no-op on a virtual table — the resident window already governs which frames exist,
 and a resident row index is a viewport slot, not a data row.
