@@ -13,13 +13,18 @@ local DataView = ns.DataView
 ---@param embedded boolean?  true → no lock column (host owns lockouts)
 ---@return table
 local function buildColInfo(embedded)
-  local cols = lists.map(ns.icons.classes, function(icon)
+  local cols = lists.map(ns.icons.classes, function(icon, classId)
     return {
       atlas = icon,
       atlasSize = false,
       width = ns.gridCellWidth,
       padding = 2,
       justifyH = ui.justify.Center,
+      -- Name the class on hover, as the weapon grid's headers have always named their weapon type.
+      -- A class atlas is recognisable rather than labelled, and at 28px the less-played ones are a
+      -- guess. `ns.icons.classes` is indexed BY class id, so the name comes straight off the index
+      -- (parenthesised: GetClassInfo also returns the class file + id).
+      tooltip = (GetClassInfo(classId)),
       backdrop = {color = Colors.TransparentBlack},
     }
   end)
