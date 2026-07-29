@@ -398,6 +398,26 @@ function CollectedView:SetMode(weapons)
   prof():Finish(self.active)
 end
 
+-- Width the header chrome needs, so the view can never be sized under it.
+--
+-- The counter and the gold ★ tally sit to the RIGHT of the filter strip, and WoW does not clip a
+-- FontString to its parent — so a view sized to the grid alone lets them spill across whatever is
+-- beside it (the model viewer, in the case that surfaced this) rather than being cut off, which is
+-- how it went unnoticed.
+--
+-- Derived from the labels rather than padded by a constant, so it keeps holding when the counts grow
+-- a digit. `UnboundedWidth` (`GetUnboundedStringWidth`) is layout-order independent — the #718 lesson
+-- — so unlike `Width()` it is safe to call mid-construction.
+--
+-- `stripX` is 0 until the Armor/Weapons toggle has measured its captions (`_applyStripX`); this is
+-- re-run on every refit, so it picks the real value up with everything else.
+---@return number
+function CollectedView:_chromeWidth()
+  local stripX = (self._weaponGeom and self._weaponGeom.stripX) or 0
+  return stripX + self.filterStrip:Width() + 12 + self.counter:UnboundedWidth()
+    + 16 + self.wantedCount:UnboundedWidth() + 6
+end
+
 -- Cap the visible grid at the shared `DataView.MAX_HEIGHT` and size the scroll container
 -- (and the view) to match. Called at construction and again on every filter/PTR change
 -- (via the grid's `onResized` hook), so the scroll range tracks the filtered row count and
@@ -408,7 +428,15 @@ function CollectedView:_fitToGrid()
   -- "the host should refit", but this only ever adjusted height — so the deferred login-path
   -- measurement (#718's repair) grew the grid while the view stayed narrow and clipped its
   -- rightmost column. Only `SetMode` re-widened.
-  self:Width(grid:Width() + SCROLLBAR_W)
+  -- The WIDEST grid that exists, not the active one. Armour's ~13 class columns and long set-name
+  -- column make it wider than weapons' ~17 narrow icon columns, so sizing to whichever is up
+  -- resized the view on every mode swap — and in Weapons mode shrank it out from under the header
+  -- chrome, which doesn't shrink with it, spilling the counter across the frame beside it.
+  -- `grid:Width()` (not `rowArea:Width()`, which the /collected window has to use) because this
+  -- host's grids are single-anchored, so the frame width genuinely is the content width.
+  local content = self.grid:Width()
+  if self.weaponGrid then content = math.max(content, self.weaponGrid:Width()) end
+  self:Width(math.max(content + SCROLLBAR_W, self:_chromeWidth()))
   local capH = min(grid.MAX_HEIGHT, grid.rowArea:Height())
   scroll:Height(capH)
   self:Height(self._top + grid.headerHeight + capH + 4)
