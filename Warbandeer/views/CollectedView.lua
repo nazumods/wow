@@ -40,6 +40,22 @@ local function ensureRowVisible(grid, scroll, rowTop, rowH)
   elseif rowTop + rowH > cur + view then scroll:VerticalScroll(rowTop + rowH - view) end
 end
 
+-- No-op stand-in for the sibling addon's build profiler, so the call sites below need no guards.
+local NOOP = { Begin = function() end, Mark = function() end, Finish = function() end }
+
+---Collected's build profiler (nazumods/wow#718), which owns the grid the marks fire from and so
+---owns the run they belong to. This view builds the SAME grid as the `/collected` window through
+---different chrome, and the point of instrumenting both is that a slow one beside a fast one is
+---itself the finding.
+---
+---Resolved per call rather than cached at file scope: Collected is an OptionalDep on its own
+---release cadence, so a published version exists without it — and this file's load can precede the
+---API global being populated.
+---@return table
+local function prof()
+  return (WarbandeerCollectedApi and WarbandeerCollectedApi.prof) or NOOP
+end
+
 ---@class CollectedView: Frame
 ---@field grid DataView the shared set-by-class grid (Collected's own DataView, embedded)
 ---@field filterStrip Frame the shared filter chrome row (DataView:BuildFilterStrip)
@@ -58,6 +74,9 @@ end
 ---@field _weaponsMode boolean? true when the weapon grid is shown (the Armor/Weapons toggle)
 local CollectedView = Class(Frame, function(self)
   _view = self
+  -- Views are built lazily (MainWindow:getView), so reaching this constructor IS the first click on
+  -- Collected in `/wb` — the wait the user actually feels. Later clicks only re-render (`OnBeforeShow`).
+  prof():Begin("wb-build")
   local STRIP_H, GAP = WarbandeerCollectedApi.DataView.STRIP_H, 6
   local TOP = STRIP_H + GAP   -- the grid sits below the filter strip
   self._top = TOP             -- _fitToGrid re-derives the view + scroll height from it
@@ -86,6 +105,7 @@ local CollectedView = Class(Frame, function(self)
   -- along the top; the PTR toggle re-renders this view so its mode counter updates.
   self.filterStrip = self.grid:BuildFilterStrip(self, function() _view:_render() end)
   self.filterStrip:Position({ TopLeft = {0, 0} })
+  prof():Mark("strip")
 
   local headerH = self.grid.headerHeight
   local capH = min(self.grid.MAX_HEIGHT, self.grid.rowArea:Height())
@@ -100,6 +120,7 @@ local CollectedView = Class(Frame, function(self)
     },
   }
   self.scroll:Child(self.grid.rowArea)
+  prof():Mark("scroll")
 
   -- Counter rides the grid's header row (over the name column, in line with the class
   -- icons), below the filter strip. Created after the grid so it draws above the header.
@@ -195,9 +216,12 @@ local CollectedView = Class(Frame, function(self)
     self._weaponGeom = { top = TOP, headerH = headerH, capH = capH, stripX = 0 }
     self:_applyStripX()
   end
+  prof():Mark("chrome")
 
   self:Width(gridW + SCROLLBAR_W)
   self:_fitToGrid()
+  prof():Mark("fit")
+  prof():Finish()
 end, {})
 CollectedView.name = "collected"
 CollectedView._title = "Collected"
@@ -257,7 +281,13 @@ end
 -- Refresh counts, grid data, and the empty-state message each time the view shows
 -- (so a /collected scan run after the view was built is reflected on next open).
 function CollectedView:OnBeforeShow()
+  -- Every click on Collected after the first lands here rather than in the constructor, so this is
+  -- the run that says whether re-entering the view is cheap. `_render` refreshes counts and grid
+  -- data, which is not nothing on a 473-row grid.
+  prof():Begin("wb-show")
   self:_render()
+  prof():Mark("render")
+  prof():Finish()
 end
 
 ---Place both filter strips clear of the Armor/Weapons toggle, at the toggle's current width.
@@ -302,6 +332,7 @@ function CollectedView:_ensureWeapons()
   self.weaponStrip = self.weaponGrid:BuildFilterStrip(self, function() _view:_render() end)
   self.weaponStrip:Position({ TopLeft = {g.stripX, 0} })
   self.weaponStrip:Hide()
+  prof():Mark("strip")
 
   self.weaponScroll = ui.ScrollFrame:new{
     parent = self,
@@ -309,6 +340,7 @@ function CollectedView:_ensureWeapons()
   }
   self.weaponScroll:Child(self.weaponGrid.rowArea)
   self.weaponScroll:Hide()
+  prof():Mark("scroll")
 end
 
 ---Switch the embedded view between the armor grid and the weapon grid (the Armor/Weapons toggle).
@@ -318,6 +350,9 @@ end
 ---@param weapons boolean
 function CollectedView:SetMode(weapons)
   if not self._weaponsAvailable or self._weaponsMode == weapons then return end
+  -- Timed separately from the `/collected` window's swap, so the same toggle can be compared across
+  -- the two hosts. The first `wb-weapons` run builds a second grid; every later swap builds nothing.
+  prof():Begin(weapons and "wb-weapons" or "wb-armor")
   -- First switch to Weapons builds the trio. Switching back can't reach a nil one: the guard above
   -- means `SetMode(false)` only proceeds when we were already in Weapons mode.
   if weapons then self:_ensureWeapons() end
@@ -330,6 +365,9 @@ function CollectedView:SetMode(weapons)
   if self.active._ptr ~= prevGrid._ptr then self.active:SetPtr(prevGrid._ptr) end
   self.grid:SetShown(not weapons); self.filterStrip:SetShown(not weapons); self.scroll:SetShown(not weapons)
   self.weaponGrid:SetShown(weapons); self.weaponStrip:SetShown(weapons); self.weaponScroll:SetShown(weapons)
+  -- Not the free visibility flip it looks like: SetShown routes through Region:Show → OnBeforeShow
+  -- → _fitNameCol on the grid coming up.
+  prof():Mark("show")
   -- Unguarded: the toggle is built in the same block that sets `_weaponsAvailable`, which the
   -- early return above already required.
   self._modeToggle:Select(weapons and "weapons" or "armor")
@@ -338,7 +376,10 @@ function CollectedView:SetMode(weapons)
   self.counter:Position(weapons and { TopLeft = {self.weaponStrip, ui.edge.TopRight, 12, -3} }
     or { TopLeft = {self.filterStrip, ui.edge.TopRight, 12, -3} })
   self:_render()
+  prof():Mark("render")
   self:_fitToGrid()   -- sizes both axes and refits the main window (#768 L-4)
+  prof():Mark("fit")
+  prof():Finish()
 end
 
 -- Cap the visible grid at the shared `DataView.MAX_HEIGHT` and size the scroll container

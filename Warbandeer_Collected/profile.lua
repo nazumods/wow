@@ -35,6 +35,13 @@ local Prof = {}
 ---@field prof CollectedProfiler
 ns.prof = Prof
 
+-- Shared with Warbandeer's embedded collected view through the API global, the same route the grid
+-- classes take. The grid's own marks already fire for either host (they close over THIS addon's
+-- `ns`), but the run they belong to has to be opened by whichever host is building — and that host
+-- is a different addon with a different `ns`, so it needs a handle. Loaded after `api.lua`, which
+-- creates the table.
+_G.WarbandeerCollectedApi.prof = Prof
+
 ---Is instrumentation on? **On by default**, and only an explicit `false` turns it off — so a fresh
 ---install collects from its first login with nothing typed.
 ---
@@ -179,7 +186,11 @@ function Prof:Report()
   local store = ns.db.profile
   if not store then ns.Print("No samples yet — /collected profile arms it."); return end
   local lines = {}
-  for _, kind in ipairs({ "open", "weapons", "armor" }) do
+  -- Both hosts of the shared grid, kept apart: the `/collected` window and Warbandeer's embedded
+  -- view build the same grid through different chrome, and a slow one alongside a fast one is
+  -- itself the finding. `wb-build` is the first click on Collected in `/wb` (views are lazy, so
+  -- that click runs the constructor); `wb-show` is every later click, which only re-renders.
+  for _, kind in ipairs({ "open", "weapons", "armor", "wb-build", "wb-show", "wb-weapons", "wb-armor" }) do
     local samples = store[kind]
     if samples and #samples > 0 then
       lines[#lines + 1] = ("== %s (%d samples) =="):format(kind, #samples)
