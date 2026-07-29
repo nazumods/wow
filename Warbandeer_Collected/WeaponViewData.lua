@@ -135,11 +135,11 @@ function ns.WeaponRows(self)
         r[ci] = cell
       end
     end
-    -- Prepend the name cell (expansion badge + source name), inert — tinsert at 1 shifts the
-    -- 17 type cells to columns 2..18, mirroring the armor grid's embedded name column (col 1;
-    -- weapons have no lock column since there are no per-character lockouts).
-    local icon = ns.ReleaseIcons[grp.release]
-    tinsert(r, 1, { text = icon and ("|T%s:0|t %s"):format(icon, grp.name) or grp.name })
+    -- Prepend the name cell (expansion badge + source name, hovering for the expansion's name) —
+    -- tinsert at 1 shifts the 17 type cells to columns 2..18, mirroring the armor grid's embedded
+    -- name column (col 1; weapons have no lock column since there are no per-character lockouts).
+    -- Click-inert: the armour grid's name opens a lockout panel, and weapons have no lockouts.
+    tinsert(r, 1, ns.GridNameCell(grp))
     return r
   end)
 end

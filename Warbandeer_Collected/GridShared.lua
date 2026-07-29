@@ -17,8 +17,9 @@ local GameTooltip = GameTooltip
 ---@field gridShades number[][]  10-shade red→green completion gradient (shared cell coloring)
 ---@field CompletionCell fun(collected: number, total: number, cell: table?): table
 ---@field ApplyCellMarks fun(cell: table, wanted: boolean?, rank: string?)  wanted star + tier pip overlays
+---@field GridNameCell fun(grp: table): table  a row's leading badge + name cell, with its expansion tooltip
 ---@field GRID_EMPTY_H number  row-area height reserved for a grid's empty-state message
----@field GridEmptyMessage fun(grid: table, on: boolean, text: string)
+---@field GridEmptyMessage fun(grid: table, on: boolean, noun: string)
 ---@field baseName fun(name: string): string
 ---@field sortByExpansion fun(order: number[], source: table[], reverse: boolean?)
 ---@field FitNameCol fun(grid: table, nameCol: number): boolean
@@ -260,6 +261,31 @@ function ns.CompletionCell(collected, total, cell)
   return cell
 end
 
+-- A row's leading name cell: the group's expansion badge (an inline texture escape, auto-sized to the
+-- font height via `:0`) followed by its name, with the expansion's own name in a cursor-anchored
+-- tooltip on hover — cursor-anchored because the cell spans the whole name column, so a frame anchor
+-- would land far off to the side.
+--
+-- Shared because both grids draw the same badge + name, and there was no reason for only the armour
+-- one to say which expansion the badge meant: the weapon rows carried the identical badge and were
+-- inert. Callers add their own handlers on top of the returned table — the armour window hangs the
+-- lockout-panel click off it, and nothing else does.
+---@param grp table  a row source group
+---@return table  cell data
+function ns.GridNameCell(grp)
+  local icon = ns.ReleaseIcons[grp.release]
+  local expName = ns.Releases[grp.release]
+  return {
+    text = icon and ("|T%s:0|t %s"):format(icon, grp.name) or grp.name,
+    onEnter = expName and function()
+      GameTooltip:SetOwner(UIParent, "ANCHOR_CURSOR")
+      GameTooltip:SetText(expName)
+      GameTooltip:Show()
+    end or nil,
+    onLeave = expName and function() GameTooltip:Hide() end or nil,
+  }
+end
+
 -- Per-cell rating overlays, drawn identically by both grids: a gold "wanted" star (top-left) and the
 -- tier letter in its tier colour (top-right), each lazily created on the cell and reused. Only the
 -- DRAWING is shared — the caller resolves what the marks mean, which is where the two grids genuinely
@@ -443,12 +469,19 @@ end
 ns.GRID_EMPTY_H = 48
 
 -- Show or hide a centered empty-state message in a grid's row area, reserving GRID_EMPTY_H for it
--- (the host's onResized → _fitToGrid then sizes the window to fit). The wording is the caller's, so
--- each grid names what it has none of.
+-- (the host's onResized → _fitToGrid then sizes the window to fit).
+--
+-- The WORDING lives here too, not just the mechanics: each grid supplies only the noun it has none
+-- of, and the two sentences are built from it. Left to the callers, the same two states drifted into
+-- two voices — "You don't have any Wanted sets." against "You haven't flagged any weapon looks
+-- wanted." — for a message the user reads one toggle apart. The branch stays because the message
+-- still has to say WHY it is empty; only the phrasing is now shared.
 ---@param grid table  a DataView / WeaponView instance
 ---@param on boolean
----@param text string
-function ns.GridEmptyMessage(grid, on, text)
+---@param noun string  plural noun for what the grid is empty of ("sets" / "weapon looks")
+function ns.GridEmptyMessage(grid, on, noun)
+  local text = grid._wantedOnly and ("You haven't flagged any %s wanted."):format(noun)
+                                or  ("No %s match these filters."):format(noun)
   if not on then
     if grid._emptyMsg then grid._emptyMsg:Hide() end
     return
