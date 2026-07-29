@@ -112,7 +112,12 @@ local function gearCell(tbl, api, grp, classId)
       -- and an older Collected has no publish method.
       if api.NotifyRatingsChanged then api:NotifyRatingsChanged(set.id) end
     else
-      api:ShowDressingRoom(grp, set)
+      -- Dock the room onto Warbandeer's own window. Without an explicit host ResolveDockHost
+      -- falls back to ns:Open(), putting the whole /collected window on screen just to have
+      -- something to hang the doll off — it only looked right when an earlier click in the
+      -- embedded Collected view had already left a host behind. An older Collected predates
+      -- the host param and harmlessly discards it, so this needs no capability guard.
+      api:ShowDressingRoom(grp, set, ns.MainWindow)
     end
   end
   if status == true or status.collected >= status.total then
