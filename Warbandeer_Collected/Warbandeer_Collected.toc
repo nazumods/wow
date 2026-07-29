@@ -89,5 +89,6 @@ WeaponView.lua
 WeaponViewFilters.lua
 WeaponViewMarks.lua
 
+controls\CollectedPanel.lua
 window.lua
 controls\WorkspaceDock.lua

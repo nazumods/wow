@@ -108,7 +108,7 @@ end
 ---@param grid table?  the host's active grid; falls back to the /collected window's
 ---@return number rows, number cells
 function Prof:_gridStats(grid)
-  grid = grid or (ns.window and (ns.window.active or ns.window.data))
+  grid = grid or (ns.window and ns.window.panel and ns.window.panel.active)
   if not (grid and grid.cells) then return 0, 0 end
   local cells = 0
   for r = 1, #grid.cells do

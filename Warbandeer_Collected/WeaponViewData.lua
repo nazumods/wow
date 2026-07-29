@@ -94,7 +94,7 @@ function ns.WeaponRows(self)
   local cmap = (not ptr) and ns:WeaponCollectedMap() or nil         -- upcoming weapons aren't obtainable yet, so no collected state to track
   local usable = ns.WeaponUsableTypes()   -- greying hint: types this class can't wield are muted
   local GREYED = {0.42, 0.42, 0.45, 1}    -- one shared muted colour for every unusable-type cell
-  local wantedOnly = self._wantedOnly
+  local wantedOnly = ns.WantedOnlyActive(self)   -- never in force under PTR preview
   -- Filter + sort is `ns.GridRowOrder` (GridShared.lua, #770 step 13), shared with the armour grid.
   local order = ns.GridRowOrder(self, source, groupWeaponWanted)
   return lists.map(order, function(srcIdx)
@@ -243,7 +243,7 @@ end
 function ns.WeaponVisibleCounts(self)
   local ptr = self._ptr
   local cmap = (not ptr) and ns:WeaponCollectedMap() or nil
-  local wantedOnly = self._wantedOnly
+  local wantedOnly = ns.WantedOnlyActive(self)   -- never in force under PTR preview
   local sources, apps, coll = 0, 0, 0
   for _, grp in ipairs(ptr and ns.WeaponPtrSources or ns.WeaponSources) do
     if matches(self, grp) and (not wantedOnly or groupWeaponWanted(grp)) then
