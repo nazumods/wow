@@ -64,8 +64,17 @@ export interface OutfitResult {
   code: string;
   /** Transmogged slots, in wire order, with the item name the payload supplied. */
   named: { slot: string; name: string }[];
-  /** Wire slots carrying no transmog — encoded as 0, so the look is incomplete. */
+  /**
+   * Slots holding an item that simply isn't transmogged. Encoded as 0, and the look really is
+   * incomplete — the character shows that item's own appearance, which the payload can't identify.
+   */
   bare: string[];
+  /**
+   * Slots with nothing equipped at all. Also encoded as 0, but nothing is missing: a two-hander
+   * leaves the off hand empty, and plenty of characters wear no shirt or tabard. Kept apart from
+   * `bare` so the reply doesn't call a complete look incomplete.
+   */
+  empty: string[];
   /**
    * Slot types the payload contained that the wire format has no place for. Neck, rings and
    * trinkets are expected here and filtered out; anything else means the slot vocabulary has
@@ -111,19 +120,29 @@ export function buildCustomSet(equipment: EquipmentResponse): OutfitResult {
   const values: number[] = [];
   const named: { slot: string; name: string }[] = [];
   const bare: string[] = [];
+  const empty: string[] = [];
 
   for (const slot of SLOT_ORDER) {
-    const tm = bySlot.get(slot)?.transmog;
+    const item = bySlot.get(slot);
+    const tm = item?.transmog;
     const primary = tm?.item_modified_appearance_id ?? 0;
     values.push(primary);
-    if (SECONDARY_SLOTS.has(slot)) values.push(tm?.second_item_modified_appearance_id ?? 0);
+    if (SECONDARY_SLOTS.has(slot)) {
+      // The REST payload echoes the PRIMARY here when a slot has no distinct secondary
+      // appearance, where the in-game producer (#819) emits 0 — and 0 is what this format means
+      // by "no secondary". Normalising keeps the two producers emitting the same string for the
+      // same look, which is the property that makes them interchangeable.
+      const secondary = tm?.second_item_modified_appearance_id ?? 0;
+      values.push(secondary === primary ? 0 : secondary);
+    }
     if (ILLUSION_SLOTS.has(slot)) values.push(0);
 
     if (primary > 0) named.push({ slot, name: tm?.item?.name ?? `appearance ${primary}` });
-    else bare.push(slot);
+    else if (item) bare.push(slot);
+    else empty.push(slot);
   }
 
-  return { code: `/customset v1 ${values.join(",")}`, named, bare, unknown };
+  return { code: `/customset v1 ${values.join(",")}`, named, bare, empty, unknown };
 }
 
 /**
@@ -188,9 +207,12 @@ export function formatTransmogReply(character: string, realm: string, r: OutfitR
       r.named.map((n) => `${SLOT_LABEL[n.slot] ?? n.slot} — ${n.name}`).join(" · "));
   }
 
+  // Only an EQUIPPED slot with no transmog leaves a gap. An empty slot — a two-hander's off hand,
+  // no shirt, no tabard — encodes 0 because there is nothing there, and saying "incomplete" about
+  // it would be wrong.
   if (r.bare.length > 0 && r.named.length > 0) {
     lines.push(
-      `ℹ️ ${r.bare.length} slot${r.bare.length === 1 ? "" : "s"} not transmogged ` +
+      `ℹ️ ${r.bare.length} equipped slot${r.bare.length === 1 ? "" : "s"} not transmogged ` +
         `(${r.bare.map((s) => SLOT_LABEL[s] ?? s).join(", ")}) — encoded as 0, so the look is incomplete.`,
     );
   }

@@ -57,21 +57,42 @@ describe("buildCustomSet", () => {
   });
 
   test("always emits 17 values, even for a character wearing nothing", () => {
-    const { code, bare } = buildCustomSet({ equipped_items: [] });
+    const { code, bare, empty } = buildCustomSet({ equipped_items: [] });
     const values = code.split(" ")[2]!.split(",");
     expect(values).toHaveLength(OUTFIT_VALUE_COUNT);
     expect(values.every((v) => v === "0")).toBe(true);
-    expect(bare).toHaveLength(13);
+    // Nothing equipped is not the same as nothing transmogged.
+    expect(bare).toHaveLength(0);
+    expect(empty).toHaveLength(13);
   });
 
-  test("an absent transmog object encodes 0 and is reported as bare", () => {
-    const { code, bare, named } = buildCustomSet({
+  test("an equipped-but-untransmogged slot is bare; an unequipped one is empty", () => {
+    // The distinction drives the reply: only `bare` leaves the look incomplete. An empty off hand
+    // is what a two-hander looks like, and calling that incomplete would be wrong.
+    const { code, bare, empty, named } = buildCustomSet({
       equipped_items: [mog("HEAD", 101, "Helm"), plain("CHEST")],
     });
     expect(code.startsWith("/customset v1 101,0,0,0,0,")).toBe(true);
-    expect(bare).toContain("CHEST");
-    expect(bare).not.toContain("HEAD");
+    expect(bare).toEqual(["CHEST"]);
+    expect(empty).toContain("OFF_HAND");
+    expect(empty).not.toContain("CHEST");
     expect(named).toEqual([{ slot: "HEAD", name: "Helm" }]);
+  });
+
+  test("a secondary that merely echoes the primary encodes 0", () => {
+    // The REST payload repeats the primary when a slot has no distinct secondary; the in-game
+    // producer emits 0, and 0 is what the format means by "none". Both must agree.
+    const { code } = buildCustomSet({
+      equipped_items: [mog("SHOULDER", 107743, "Pauldrons", { id: 107743, name: "Pauldrons" })],
+    });
+    expect(code).toBe("/customset v1 0,107743,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0");
+  });
+
+  test("a genuinely distinct secondary is preserved", () => {
+    const { code } = buildCustomSet({
+      equipped_items: [mog("SHOULDER", 1, "Right", { id: 2, name: "Left" })],
+    });
+    expect(code).toBe("/customset v1 0,1,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0");
   });
 
   test("illusion positions are always 0 — the payload carries no visual enchant", () => {
@@ -144,9 +165,19 @@ describe("formatTransmogReply", () => {
     expect(out).toContain("last logout");
   });
 
-  test("counts the untransmogged slots rather than hiding them", () => {
+  test("counts equipped-but-untransmogged slots, and says nothing about empty ones", () => {
+    // `full()` equips only head and chest, so the other 11 wire slots are EMPTY, not untransmogged
+    // — a reply that called those a gap would be telling the user their look is broken when it
+    // isn't (the off hand of any two-hander).
     const out = formatTransmogReply("Testchar", "argent-dawn", full());
-    expect(out).toContain("11 slots not transmogged");
+    expect(out).not.toContain("not transmogged");
+
+    const withBare = buildCustomSet({
+      equipped_items: [mog("HEAD", 101, "Helm"), plain("CHEST")],
+    });
+    const out2 = formatTransmogReply("Testchar", "argent-dawn", withBare);
+    expect(out2).toContain("1 equipped slot not transmogged");
+    expect(out2).toContain("Chest");
   });
 
   test("an all-zero result says so instead of offering an empty outfit as a success", () => {
