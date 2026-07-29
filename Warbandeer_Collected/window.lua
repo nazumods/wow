@@ -37,7 +37,6 @@ local MainWindow = Class(TitleFrame, function(self)
   local STRIP_H, GAP = DataView.STRIP_H, 6
   local TOP = STRIP_H + GAP   -- the grid sits below the filter strip
   self._top = TOP             -- _fitToGrid re-derives the window height from it
-  local w = 110
 
   self.data = DataView:new{
     parent = self,                           -- inherits the window's theme
@@ -56,7 +55,6 @@ local MainWindow = Class(TitleFrame, function(self)
     -- Scroll the dressed-set row into view (VerticalScroll clamps out-of-range targets).
     onEnsureVisible = function(_, rowTop, rowH) ns.EnsureRowVisible(self.scroll, rowTop, rowH) end,
   }
-  w = max(w, self.data:Width() + 4)
 
   -- Shared filter strip (PTR / Wanted / Sort toggles + Expansion / Category dropdowns)
   -- below the titlebar; the PTR toggle refreshes this window's mode counter.
@@ -161,8 +159,7 @@ local MainWindow = Class(TitleFrame, function(self)
   self:RefreshCounter()
   self:RefreshWanted()
   ns.prof:Mark("counter")
-  self:_fitToGrid()
-  self:Width(w)
+  self:_fitToGrid()   -- sole owner of the window's size, in both axes
   ns.prof:Mark("fit")
 end, {
   name = ns._NAME,
@@ -302,7 +299,17 @@ function MainWindow:_fitToGrid()
   -- deferred second measurement (#718's repair) supplies the real width, the grid grew and the
   -- window didn't, pushing the rightmost column past the edge. Only `SetMode` re-widened, so Armor
   -- mode stayed clipped for the rest of the session unless you toggled to Weapons and back.
-  self:Width(max(110, grid:Width() + (self._weaponsMode and 20 or 4)))
+  --
+  -- Measured off the grid's CONTENT, not its frame. **In this host a grid frame has no width of its
+  -- own**: both are anchored TopLeft *and* TopRight to the titlebar, so `grid:Width()` reads back
+  -- the window's own width minus the 2px-per-side inset. Armor's `+ 4` put that straight back and
+  -- held still by luck; Weapons' `+ 20` (copied from the embedded view, where the grid *is*
+  -- single-anchored and the extra 20 is real scrollbar room) left a net +16 on every call, so the
+  -- window crept 16px wider on every mode swap and every filter change and its columns drifted ever
+  -- further from the right edge. `rowArea` is single-anchored with an explicit width — the column
+  -- sum, kept in step by `ns.FitNameCol` — so it is the one true content measurement, and both
+  -- modes now sit flush against the same margin.
+  self:Width(max(110, grid.rowArea:Width() + 4))
   local capH = min(grid.MAX_HEIGHT, grid.rowArea:Height())
   self:Height(self.titlebar:Height() + self._top + grid.headerHeight + capH + 4)
   scroll:Refresh()   -- the scroll frame tracks the window's BottomRight; recompute its range

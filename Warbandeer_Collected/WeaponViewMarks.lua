@@ -68,14 +68,9 @@ end
 
 -- Show or hide the centered empty-state message, so an empty grid reads as intentionally empty
 -- rather than blank/broken. ResizeRows already collapsed the row area; the shared helper reserves
--- the height back and the host's onResized refits the window.
+-- the height back, phrases both states, and the host's onResized refits the window.
 --
 -- Shown for ANY empty result since #768 L-5, not just the ★ filter — an expansion × category
--- combination matching nothing left a bare header and no explanation. The wording branches so it
--- still says why.
+-- combination matching nothing left a bare header and no explanation.
 ---@param on boolean
-function WeaponView:_setEmpty(on)
-  ns.GridEmptyMessage(self, on, self._wantedOnly
-    and "You haven't flagged any weapon looks wanted."
-    or "No weapon looks match these filters.")
-end
+function WeaponView:_setEmpty(on) ns.GridEmptyMessage(self, on, "weapon looks") end
