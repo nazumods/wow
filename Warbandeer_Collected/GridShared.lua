@@ -17,7 +17,11 @@ local GameTooltip = GameTooltip
 ---@field gridShades number[][]  10-shade red→green completion gradient (shared cell coloring)
 ---@field CompletionCell fun(collected: number, total: number, cell: table?): table
 ---@field ApplyCellMarks fun(cell: table, wanted: boolean?, rank: string?)  wanted star + tier pip overlays
----@field GridNameCell fun(grp: table): table  a row's leading badge + name cell, with its expansion tooltip
+---@field GridNameCell fun(grp: table, info: (fun(grp: table): string[])?): table  a row's leading badge + name cell; `info` supplies the row tooltip's progress lines
+---@field ApplyNameBadgeTip fun(cell: table, expName: string?)  mouse zone over the badge, tooltipping the expansion
+---@field ShowGridNameTip fun(grp: table, info: fun(grp: table): string[])  the row tooltip: name, expansion · category, progress
+---@field SetGroupInfo fun(grp: table): string[]  armour row progress lines (DataViewData)
+---@field WeaponSourceInfo fun(grp: table, isPtr: boolean?): string[]  weapon row progress lines (WeaponViewData)
 ---@field GRID_EMPTY_H number  row-area height reserved for a grid's empty-state message
 ---@field GridEmptyMessage fun(grid: table, on: boolean, noun: string)
 ---@field baseName fun(name: string): string
@@ -84,6 +88,11 @@ function ns.RefreshGridMarks(grid, resolve, only)
       local cell = row[c]
       if cell then
         local data = type(cell.data) == "table" and cell.data or nil
+        -- The expansion badge's hover zone is a per-cell overlay derived from cell data, exactly like
+        -- the marks below, and it goes stale on a recycled cell for exactly the same reason — so it
+        -- rides the same walk rather than needing a second one. Unconditional (not behind `only`):
+        -- the walk visits every cell regardless, and this is a field read plus a SetShown.
+        ns.ApplyNameBadgeTip(cell, data and data._expName or nil)
         if not only then
           grid:_applyCellMarks(cell, data and resolve(data) or nil)
         elseif data and only(data) then
@@ -282,28 +291,104 @@ function ns.CompletionCell(collected, total, cell)
   return cell
 end
 
--- A row's leading name cell: the group's expansion badge (an inline texture escape, auto-sized to the
--- font height via `:0`) followed by its name, with the expansion's own name in a cursor-anchored
--- tooltip on hover — cursor-anchored because the cell spans the whole name column, so a frame anchor
--- would land far off to the side.
+-- Horizontal zone, from the cell's left edge, treated as "the expansion badge" for hover purposes.
 --
--- Shared because both grids draw the same badge + name, and there was no reason for only the armour
--- one to say which expansion the badge meant: the weapon rows carried the identical badge and were
--- inert. Callers add their own handlers on top of the returned table — the armour window hangs the
--- lockout-panel click off it, and nothing else does.
+-- Approximate on purpose. The badge is an inline `|T…|t:0` escape, so it is part of the FontString's
+-- text rather than a region with a queryable rect — its advance is the font height plus the trailing
+-- space, and there is no API to ask where it ended. This is a hover zone, not layout: a pixel of
+-- over-coverage costs a tooltip firing marginally early, which is why an approximation is acceptable
+-- here and would not be if it were positioning anything.
+local BADGE_ZONE = 14
+
+-- Give `cell` a mouse-enabled zone over its expansion badge that tooltips the expansion's name, or
+-- retire the zone when the cell has no badge. The companion to `ns.GridNameCell`, applied per cell
+-- because a *frame* isn't something cell data can carry — the same reason `ns.ApplyCellMarks` builds
+-- the star and pip rather than declaring them.
+--
+-- **The handler reads `cell._badgeExp` rather than closing over the name.** Cells are recycled — across
+-- a re-sort, and under virtualisation on every scroll — so a captured expansion would keep answering
+-- for whichever row the slot held when the zone was built. Same trap as the marks.
+---@param cell table  a TableFrame Cell
+---@param expName string?  the expansion's name, or nil for a cell with no badge
+function ns.ApplyNameBadgeTip(cell, expName)
+  if not expName then
+    if cell._badgeTip then cell._badgeTip:Hide() end
+    return
+  end
+  cell._badgeExp = expName
+  if not cell._badgeTip then
+    local zone = Frame:new{
+      parent = cell,
+      -- Spans the cell's height by anchoring both left corners, so it tracks a row-height change
+      -- rather than baking one in.
+      position = { TopLeft = {0, 0}, BottomLeft = {0, 0}, Width = BADGE_ZONE },
+    }
+    zone:EnableMouse(true)
+    -- Above the cell, not merely a child of it. `Cell` raises itself over the rows and columns, so a
+    -- zone left at the inherited level competes with its own parent for the hover and the winner isn't
+    -- defined — the dressed cursor bumps its level over the cells for the same reason.
+    zone:Level(cell:Level() + 1)
+    zone:SetScript("OnEnter", function()
+      GameTooltip:SetOwner(UIParent, "ANCHOR_CURSOR")
+      GameTooltip:SetText(cell._badgeExp)
+      GameTooltip:Show()
+    end)
+    zone:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    cell._badgeTip = zone
+  end
+  cell._badgeTip:Show()
+end
+
+-- The name cell's own tooltip: what the ROW is, and how far through it you are. Cursor-anchored, since
+-- the cell spans the whole name column and a frame anchor would land far off to the side.
+--
+-- `info` is the caller's, because the two grids' rows are different things — a group of one set per
+-- class against a source that drops weapon looks — so only the shape (title, expansion · category,
+-- then progress) is shared. Same split as `ns.GridEmptyMessage`, which shares the mechanics and takes
+-- the noun.
 ---@param grp table  a row source group
----@return table  cell data
-function ns.GridNameCell(grp)
-  local icon = ns.ReleaseIcons[grp.release]
+---@param info fun(grp: table): string[]  progress lines for this grid's kind of row
+function ns.ShowGridNameTip(grp, info)
+  GameTooltip:SetOwner(UIParent, "ANCHOR_CURSOR")
+  GameTooltip:SetText(grp.name, 1, 1, 1)
   local expName = ns.Releases[grp.release]
+  local subtitle = expName
+  if grp.category then
+    subtitle = subtitle and (expName .. " · " .. grp.category) or grp.category
+  end
+  if subtitle then GameTooltip:AddLine(subtitle, 0.62, 0.62, 0.66) end
+  local lines = info(grp)
+  if lines and #lines > 0 then
+    GameTooltip:AddLine(" ")
+    for _, line in ipairs(lines) do GameTooltip:AddLine(line, 0.9, 0.9, 0.9) end
+  end
+  GameTooltip:Show()
+end
+
+-- A row's leading name cell: the group's expansion badge (an inline texture escape, auto-sized to the
+-- font height via `:0`) followed by its name.
+--
+-- **Two hover zones, not one.** The cell tooltips the ROW — name, expansion · category, progress — and
+-- a `BADGE_ZONE`-wide strip at the left tooltips just the expansion (see `ns.ApplyNameBadgeTip`). The
+-- expansion name used to be the tooltip for the entire line, which meant hovering a set told you only
+-- which expansion it came from: true, and almost never what you wanted to know. Moving onto the strip
+-- fires the cell's `OnLeave` and then the strip's `OnEnter`, so the two swap cleanly with no third
+-- state to manage.
+--
+-- Shared because both grids draw the same badge + name. Callers add their own handlers on top of the
+-- returned table — the armour window hangs the lockout-panel click off it, and nothing else does.
+---@param grp table  a row source group
+---@param info (fun(grp: table): string[])?  progress lines for the row tooltip; omit for an inert cell
+---@return table  cell data
+function ns.GridNameCell(grp, info)
+  local icon = ns.ReleaseIcons[grp.release]
   return {
     text = icon and ("|T%s:0|t %s"):format(icon, grp.name) or grp.name,
-    onEnter = expName and function()
-      GameTooltip:SetOwner(UIParent, "ANCHOR_CURSOR")
-      GameTooltip:SetText(expName)
-      GameTooltip:Show()
-    end or nil,
-    onLeave = expName and function() GameTooltip:Hide() end or nil,
+    -- Read back by the marks walk to build the badge's hover zone; nil for a release with no icon,
+    -- which is also how the zone gets retired on a recycled cell.
+    _expName = icon and ns.Releases[grp.release] or nil,
+    onEnter = info and function() ns.ShowGridNameTip(grp, info) end or nil,
+    onLeave = info and function() GameTooltip:Hide() end or nil,
   }
 end
 
