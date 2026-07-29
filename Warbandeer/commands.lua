@@ -52,8 +52,12 @@ local function setDebug(self, on)
   ns.RefreshSummaryColumns()
 end
 
-ns:registerCommand("debug", "on", function(self) setDebug(self, true) end, "Show Summary column-boundary guides (dev)")
-ns:registerCommand("debug", "off", function(self) setDebug(self, false) end, "Hide Summary column-boundary guides (dev)")
+-- Registration order is load-bearing: the first registration for a command becomes its base
+-- handler, and a bare `/wb debug` never matches a subcommand (the parser yields no target), so
+-- it falls through to that base. Registering "" first is what makes the bare form print status
+-- instead of enabling the guides (#740) -- keep it above on/off.
 ns:registerCommand("debug", "", function(self)
   self.Print("Summary column guides are " .. (self.db.settings.debug and "on" or "off") .. ". Use /wb debug on|off.")
 end, "Column-guide debug status (dev)")
+ns:registerCommand("debug", "on", function(self) setDebug(self, true) end, "Show Summary column-boundary guides (dev)")
+ns:registerCommand("debug", "off", function(self) setDebug(self, false) end, "Hide Summary column-boundary guides (dev)")

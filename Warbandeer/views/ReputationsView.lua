@@ -54,11 +54,17 @@ local ReputationsView = Class(Frame, function(self)
   -- Arrow-key navigation, scoped to while the view is shown so it never eats the
   -- player's movement keys.  SetPropagateKeyboardInput lets every non-arrow key fall
   -- through to its default binding (Escape closes the window, etc.).
+  -- Capture goes through _setKeyCapture so combat takes it away (#736); the regen pair hands
+  -- it back. TitlesView and Warbandeer_Collected's DressingRoomBuild carry the same shape --
+  -- slated to become a shared LibNUI Frame:CaptureKeys.
   local w = self._widget
   w:EnableKeyboard(false)
   w:SetScript("OnKeyDown", function(_, key) self:_onKey(key) end)
-  w:HookScript("OnShow", function() w:EnableKeyboard(true); self:SetPropagateKeyboardInput(true) end)
-  w:HookScript("OnHide", function() w:EnableKeyboard(false); ui.tip:Hide() end)
+  w:HookScript("OnShow", function() self:_setKeyCapture(true) end)
+  w:HookScript("OnHide", function() self:_setKeyCapture(false); ui.tip:Hide() end)
+  self:listenForEvents()
+  self:registerEvent("PLAYER_REGEN_DISABLED")
+  self:registerEvent("PLAYER_REGEN_ENABLED")
 
   self:Width(CONTENT_W + SCROLLBAR_W)
   self:Height(MAX_H)
@@ -196,6 +202,22 @@ function ReputationsView:_flipPage(d)
   self:_renderPage()
   if ns.MainWindow then ns.MainWindow:Fit() end
 end
+
+-- Holding the keyboard and steering propagation are one decision, so they are taken and given
+-- up together. SetPropagateKeyboardInput is restricted in combat lockdown and LibNUI skips it
+-- there, so a view that kept the keyboard in combat would consume the player's movement and
+-- action-bar keys with no way to pass them on (#736). Releasing capture instead costs arrow
+-- navigation for the fight, which is the right trade. Re-asserting propagation on regain also
+-- clears the `false` the last arrow press left behind.
+---@param on boolean  capture keys -- only honoured out of combat
+function ReputationsView:_setKeyCapture(on)
+  on = on and not InCombatLockdown()
+  self:EnableKeyboard(on)
+  if on then self:SetPropagateKeyboardInput(true) end
+end
+
+function ReputationsView:PLAYER_REGEN_DISABLED() self:_setKeyCapture(false) end
+function ReputationsView:PLAYER_REGEN_ENABLED() self:_setKeyCapture(self._widget:IsShown()) end
 
 function ReputationsView:_onKey(key)
   -- Route through the LibNUI Frame wrapper (self, not the raw widget) so the propagation

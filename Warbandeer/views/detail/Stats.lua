@@ -91,17 +91,23 @@ end
 -- character has no stored spell (not yet re-scanned) or it doesn't resolve yet.
 --
 -- The description prefers the character's own scan-time capture: GetSpellDescription
--- substitutes the *logged-in* character's mastery coefficient, so resolving it live for
--- an alt would show this character's figures under that alt's mastery. The live call is
--- only a fallback for characters cached before the field existed.
-local function masteryOverride(sec)
+-- substitutes the *logged-in* character's mastery coefficient, so it is only ever right for
+-- our own record. For an alt it is contamination, not a fallback -- an alt cached before the
+-- field existed (i.e. every alt until its next login) would otherwise show this character's
+-- figures under that alt's mastery (#741). Such an alt gets an explicit not-captured line
+-- naming the one action that fills it, rather than a silent gap that reads as a bug.
+local NOT_CAPTURED = "Log in on this character to capture its mastery description."
+---@param sec table?     the character's stats.secondary
+---@param isSelf boolean true when `sec` belongs to the logged-in character
+local function masteryOverride(sec, isSelf)
   local m = sec and sec.mastery
   local spellID = m and m.spell
   if not spellID then return nil, nil end
   local name = C_Spell.GetSpellName(spellID)
-  local desc = m.description or C_Spell.GetSpellDescription(spellID)
   if not name then return nil, nil end
-  return name, (desc ~= nil and desc ~= "") and desc or nil
+  local desc = m.description or (isSelf and C_Spell.GetSpellDescription(spellID)) or nil
+  if desc == nil or desc == "" then return name, not isSelf and NOT_CAPTURED or nil end
+  return name, desc
 end
 
 -- Hover tooltip for a stat cell that has an Archon target: the stat name, the colour-matched
@@ -189,6 +195,8 @@ function DetailView:_showStats()
   local top = topStats(self._char.name)
   local api = ShadowsOfUI_UpgradeApi
   local targets = api and api.StatTargets and api:StatTargets(self._char.name)
+  -- Constant per render: only our own record may resolve a mastery description live (#741).
+  local isSelf = self._char.name == ns.api.GetCurrentCharacter()
   for _, cell in ipairs(self._statCells) do
     local s = sec and sec[cell.key]
     local hot = top[cell.key]
@@ -197,7 +205,7 @@ function DetailView:_showStats()
     local pctVal = s and safeNum(s.pct)
     cell.name:Color(hot and c.gold or c.muted)
     -- Mastery's meaning is spec-specific: name it from the captured passive spell.
-    if cell.key == "mastery" then cell._pctTitle, cell._pctBody = masteryOverride(sec) end
+    if cell.key == "mastery" then cell._pctTitle, cell._pctBody = masteryOverride(sec, isSelf) end
     local target = s and targets and targets[cell.key]
     local state = (ratingVal and target) and deltaState(ratingVal, target) or nil
     cell.frame._tip = state and { label = cell.label, state = state, current = ratingVal, target = target } or nil

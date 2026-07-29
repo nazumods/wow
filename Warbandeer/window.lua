@@ -150,12 +150,24 @@ end
 -- filter control anchored just left of the close button; too narrow and the two collide.
 -- Filter-less views contribute 0 for the filter term. The +30 covers the inter-element
 -- gaps and the close button's right inset.
+---@param view Frame?  view sharing the titlebar (defaults to the shown one)
 ---@return number
-function MainWindow:_titlebarMinWidth()
+function MainWindow:_titlebarMinWidth(view)
+  view = view or self._view
   local titleW  = self.titlebar.title:UnboundedWidth()
-  local filterW = (self._view and self._view._filter and self._view._filter:Width()) or 0
+  local filterW = (view and view._filter and view._filter:Width()) or 0
   local closeW  = self.closeButton:Width()
   return 33 + titleW + filterW + closeW + 30
+end
+
+-- The narrowest content width Fit will settle on for `view` — the titlebar floor less the 6px
+-- Fit adds to a view's own width. A view that sizes itself to its content (an empty state, say)
+-- reads this so it never ends up narrower than the window around it: the view anchors top-left,
+-- so anything it centres within itself would otherwise sit left of centre in the window (#746).
+---@param view Frame  the view that will occupy the window
+---@return number
+function MainWindow:MinContentWidth(view)
+  return self:_titlebarMinWidth(view) - 6
 end
 
 function MainWindow:Fit()

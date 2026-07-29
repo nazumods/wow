@@ -50,6 +50,13 @@ local function slotTex(slot, macroMap)
     return icon or "Interface\\Icons\\achievement_guildperk_mountup"
   elseif t == "summonpet" then
     local icon = slot.strindex and select(9, C_PetJournal.GetPetInfoByPetID(slot.strindex))
+    -- A caged/released pet's GUID stops resolving, which used to cost the icon while the name
+    -- path below still degraded to the stored copy. v3 profiles snapshot speciesID precisely so
+    -- the pet stays renderable: species lookups are account-wide and don't need it still owned.
+    -- Pre-v3 profiles carry no speciesID and keep the generic fallback.
+    if not icon and slot.speciesID then
+      icon = select(2, C_PetJournal.GetPetInfoBySpeciesID(slot.speciesID))
+    end
     return icon or "Interface\\Icons\\inv_pet_achievement_capturer"
   elseif t == "equipmentset" then
     return "Interface\\Icons\\inv_misc_enggizmos_19"

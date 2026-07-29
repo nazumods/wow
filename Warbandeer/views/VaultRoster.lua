@@ -14,6 +14,7 @@ local filter = ns.lua.lists.filter
 ---@field faction "alliance"|"horde"|"both"  which roster this table shows
 ---@field columns SummaryColumn[]  the visible columns this table renders (passed in by VaultView)
 ---@field _toons Character[]  row index -> character (refreshed each OnBeforeShow)
+---@field _divided integer  how many pooled rows have been given a divider (the pool only grows)
 local VaultRoster = Class(TableFrame, function(self)
   self._toons = self:GetCharacters()
   self.data = {}
@@ -23,23 +24,32 @@ local VaultRoster = Class(TableFrame, function(self)
   self:update()
   for i, row in ipairs(self.rows) do
     self:restRow(i)
-    Texture:new{
-      parent = row,
-      layer = ui.layer.Overlay,
-      position = {
-        TopLeft = { row, ui.edge.TopLeft, 0, 0 },
-        TopRight = { row, ui.edge.TopRight, 0, 0 },
-        Height = 1,
-      },
-      color = theme.colors.divider,
-    }
+    self:_addDivider(row)
   end
+  self._divided = #self.rows
   self:AutosizeColumns()  -- fit the Raid Lockouts column to its widest cell (see AutosizeColumn)
 end, {
   faction = "alliance",
   backdrop = { color = ns.Colors.TransparentBlack },
 })
 ns.VaultRoster = VaultRoster
+
+-- Hairline separator along a row's top edge. Parented to the row frame, so it is created once per
+-- row *frame* and rides the pool: rows that update() grows into on a later pass need their own
+-- (the constructor only ever sees the rows the first roster had). Hidden rows hide it with them.
+---@param row Frame  row frame to separate from the one above it
+function VaultRoster:_addDivider(row)
+  Texture:new{
+    parent = row,
+    layer = ui.layer.Overlay,
+    position = {
+      TopLeft = { row, ui.edge.TopLeft, 0, 0 },
+      TopRight = { row, ui.edge.TopRight, 0, 0 },
+      Height = 1,
+    },
+    color = theme.colors.divider,
+  }
+end
 
 -- Size every autosize-flagged column (colInfo.autosize) to the widest text it renders. The Vault
 -- twin of ClassSummary:AutosizeColumn: VaultRoster is a plain TableFrame, so it can't use
@@ -154,6 +164,13 @@ function VaultRoster:OnBeforeShow()
     self.data[i] = self:decorateRow(self:GetRowData(t), i)
   end
   self:update()
+  -- Reconcile the pool with the roster this pass built. update() only ever grows it, so without
+  -- this a shrunk roster keeps its surplus rows shown -- and, per TableFrame:ResizeRows, keeps a
+  -- hosting ScrollFrame's range full enough to overscroll into the dead space below the data.
+  self:ResizeRows(#self._toons)
   for i in ipairs(self.rows) do self:restRow(i) end
+  -- Rows update() grew into since the last pass have no divider of their own yet.
+  for i = self._divided + 1, #self.rows do self:_addDivider(self.rows[i]) end
+  self._divided = #self.rows
   self:AutosizeColumns()  -- re-fit the Raid Lockouts column to this roster's widest cell
 end

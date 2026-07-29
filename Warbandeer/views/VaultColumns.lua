@@ -40,9 +40,17 @@ local function resetIn(epoch)
 end
 
 -- Trim a long raid name so the progress + difficulty after it stay visible in the fixed-width cell.
+-- Walks UTF-8 sequences rather than bytes: `#name`/`sub` would cut a multibyte glyph in half on a
+-- non-English client. `maxLen` is a character budget standing in for a pixel one, so a CJK client
+-- can still overflow the fixed cell -- measuring instead of counting is the real answer.
 local function trimName(name, maxLen)
-  if #name <= maxLen then return name end
-  return name:sub(1, maxLen - 1) .. "…"
+  local out, n = {}, 0
+  for ch in name:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
+    n = n + 1
+    if n > maxLen then return table.concat(out) .. "…" end
+    out[n] = ch
+  end
+  return name   -- fewer than maxLen characters; nothing to trim
 end
 
 -- Rich per-slot tooltip from vaultSlots: each slot's threshold + reward ilvl (or its locked progress).
