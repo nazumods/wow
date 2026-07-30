@@ -7,10 +7,15 @@ local DataView = ns.DataView
 -- — embedded hosts have no lockout selection. Selection state (`self._selectedRow` /
 -- `self._arrow`) is set by the name-cell click handler in DataViewData.lua.
 function DataView:_clearSelection()
+  -- Nothing selected, nothing to clear — and callers no longer have to know whether this grid can even
+  -- have a selection (#864). It replaces three `if not self.embedded then` guards at the call sites,
+  -- and closes a latent cross-host bug those guards were the only defence against: `ns.HideLockoutView`
+  -- is global, so an embedded grid re-filtering would have closed the STANDALONE window's lockout panel.
+  if not self._selectedRow then return end
   -- `_selectedRow` is a DATA index; under virtualisation `cells` is keyed by viewport slot, so the
   -- translation has to go through ns.ResidentCell (nil when the row isn't on screen — normal, and
   -- nothing to un-highlight in that case).
-  local cell = ns.ResidentCell(self, self._selectedRow, 2)
+  local cell = ns.ResidentCell(self, self._selectedRow, DataView.NAME_COL)
   if cell then cell.label:Color(WHITE_FONT_COLOR) end
   self._selectedRow = nil
   if self._arrow then self._arrow:Hide() end
@@ -22,7 +27,7 @@ end
 -- its name white and the arrow parked on whatever row inherited the slot.
 function DataView:_reapplySelection()
   if not self._selectedRow then return end
-  local cell = ns.ResidentCell(self, self._selectedRow, 2)
+  local cell = ns.ResidentCell(self, self._selectedRow, DataView.NAME_COL)
   if cell then cell.label:Color(NORMAL_FONT_COLOR:GetRGBA()) end
   local row = ns.ResidentRow(self, self._selectedRow)
   if self._arrow then

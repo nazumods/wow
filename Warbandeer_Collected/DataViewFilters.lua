@@ -2,17 +2,68 @@
 local ns = select(2, ...)
 local ui, Colors = ns.ui, ns.Colors
 local lists, prepend = ns.lua.lists, ns.lua.lists.prepend
+local unpack = unpack
 local GameTooltip = GameTooltip
 local DataView = ns.DataView
 
--- Build the column layout: a zero-width auto-sized name column then one icon column
--- per class. The windowed grid prepends a narrow lock column (the lockout glyph);
--- `embedded` hosts omit it entirely, so the name column is col 1 there and col 2 in
--- the window. Passed in at construction by each host (defaults can't branch on the
--- per-instance `embedded` flag, since the base table consumes colInfo first).
----@param embedded boolean?  true → no lock column (host owns lockouts)
+-- The leading NON-CLASS columns, declared ONCE — the column spec and the cell that fills it, side by
+-- side, in the order they appear.
+--
+-- The column layout and the row builder have to agree on how many of these there are and what order
+-- they come in, and keeping that agreement in two files is what broke this grid twice (#864): the lock
+-- column was dropped from `buildColInfo` while the row builder still inserted the name past where it
+-- used to be, so class 1 landed in the name column and the name rendered as "C…" in a 28px class
+-- column. Nothing caught it, because each half was internally consistent.
+--
+-- Now adding or removing a chrome column is one edit here. `buildColInfo` maps out the `column`s,
+-- `DataView.ChromeCells` maps out the `cell`s, and `DataView.NAME_COL` is derived rather than written
+-- down — so the three cannot drift apart.
+local CHROME = {
+  {
+    nameCol = true,
+    -- Declared `width = 0` and given a real one by `ns.FitNameCol` on the same frame. Safe only because
+    -- the fit follows immediately: `Region:Width(0)` reaches `SetWidth(0)`, which in WoW *clears* the
+    -- explicit dimension rather than setting a zero one, so a column left at 0 contributes nothing to
+    -- the width arithmetic and something else entirely to the anchor chain positioning its neighbours.
+    -- A permanently-collapsed column rendered every class column hundreds of px off the panel while
+    -- `/collected width` reported all declared widths correct.
+    column = { width = 0, backdrop = {color = Colors.TransparentBlack} },
+    -- `ns.SetGroupInfo` resolves at call time: it lives in DataViewData.lua, which loads after this.
+    cell = function(grp) return ns.GridNameCell(grp, ns.SetGroupInfo) end,
+  },
+}
+
+---The leading cells for one row, in the same order and count as `buildColInfo`'s chrome columns.
+---The caller attaches anything that needs its own closure state — the lockout name-click needs
+---`dispIdx`/`srcIdx`, which only the row builder has.
+---@param grp table  a row source group
+---@return table[]
+function DataView.ChromeCells(grp)
+  return lists.map(CHROME, function(c) return c.cell(grp) end)
+end
+
+---Index of the name column, derived from CHROME rather than written down in each consumer. Read by
+---the row builder, `ns.FitNameCol`, `ns.ResidentCell` and `ns.PadNameCol`.
+DataView.NAME_COL = (function()
+  for i, c in ipairs(CHROME) do if c.nameCol then return i end end
+end)()
+
+-- Build the column layout: a zero-width auto-sized name column, then one icon column per class.
+--
+-- **There is no lock column (#864).** The windowed host used to prepend a 15px one carrying a padlock
+-- for groups the current character is saved to, which the embedded host omitted — so the name column
+-- was index 1 in one host and index 2 in the other, and that single asymmetry was the source of every
+-- host branch in the grid: the index recomputed in three places, `colInfo` built two ways, the name
+-- cell built from two call sites. A one-argument change to the name cell then had to be made twice,
+-- half-landed, and silently dropped the embedded host's hover tooltip (#865).
+--
+-- Dropping it makes the name column index 1 everywhere, takes the leading gutter off the `/collected`
+-- window, and removes a per-row `LockedFor` lookup from the row builder. The lockout data itself is
+-- unaffected: clicking a set name still opens the lockout panel in the windowed host, which is where
+-- the per-character detail actually lives — the column only ever carried an at-a-glance padlock for
+-- the logged-in character, invisible to anyone without an active raid lockout.
 ---@return table
-local function buildColInfo(embedded)
+local function buildColInfo()
   local cols = lists.map(ns.icons.classes, function(icon, classId)
     return {
       atlas = icon,
@@ -28,17 +79,11 @@ local function buildColInfo(embedded)
       backdrop = {color = Colors.TransparentBlack},
     }
   end)
-  if embedded then
-    return prepend(cols, { width = 0, backdrop = {color = Colors.TransparentBlack} })
-  end
-  return prepend(cols,
-    { width = 15, backdrop = {color = Colors.TransparentBlack} },  -- lock
-    { width =  0, backdrop = {color = Colors.TransparentBlack} })  -- name
+  return prepend(cols, unpack(lists.map(CHROME, function(c) return c.column end)))
 end
 
 -- Column-layout builder, exposed so each host passes its own `colInfo` at
--- construction (windowed = with lock column, embedded = without).
----@param embedded boolean?
+-- construction; identical for every host since #864, so it takes no arguments.
 ---@return table
 DataView.BuildColInfo = buildColInfo
 
@@ -48,7 +93,7 @@ DataView.BuildColInfo = buildColInfo
 ---@return boolean reversed  the new order state
 function DataView:ToggleOrder()
   self._reverse = not self._reverse
-  if not self.embedded then self:_clearSelection() end
+  self:_clearSelection()   -- self-guarding since #864; a grid with no selection returns immediately
   self.data = self:GetData()
   self:update()
   return self._reverse
@@ -94,7 +139,7 @@ end
 function DataView:SetPtr(on)
   self._ptr = on
   if self._repaintPtr then self._repaintPtr(on) end   -- keep the toggle border in sync on a programmatic set (mode swap)
-  if not self.embedded then self:_clearSelection() end
+  self:_clearSelection()   -- self-guarding since #864; a grid with no selection returns immediately
   self.data = self:GetData()
   self:update()
   -- The live and PTR row counts differ wildly, so the host must refit its scroll container.
@@ -105,7 +150,7 @@ end
 -- Rebuild after a filter change (shared by SetExpansion/SetCategory). Clears any
 -- lockout selection first, since the visible rows change.
 function DataView:_refilter()
-  if not self.embedded then self:_clearSelection() end
+  self:_clearSelection()   -- self-guarding since #864; a grid with no selection returns immediately
   self.data = self:GetData()
   self:update()
   -- ResizeRows (inside update) shrank/grew the row area; let the host refit its scroll

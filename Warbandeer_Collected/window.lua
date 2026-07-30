@@ -42,7 +42,7 @@ local MainWindow = Class(TitleFrame, function(self)
   self.panel = ns.CollectedPanel:new{
     parent = self,   -- inherits the window's theme
     position = { TopLeft = {self.titlebar, ui.edge.BottomLeft, PAD, -PAD} },
-    -- This host keeps the armour grid's lock column and the lockout side-panel its name-click
+    -- This host keeps the lockout side-panel that the armour grid's name-click
     -- opens; Warbandeer's view doesn't, so lockouts stay a `/collected` feature.
     lockouts = true,
     onSized = function(p) self:_fit(p) end,

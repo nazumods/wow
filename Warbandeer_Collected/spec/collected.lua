@@ -121,6 +121,81 @@ function M.loadRatings(ns)
   return ns
 end
 
+---Load DataViewFilters.lua into an already-loaded `ns`, over stubs of what it destructures at load
+---time. Only `DataView.BuildColInfo` is exercised — the filter/sort methods it also defines drive
+---frames and stay in-game-tested.
+---
+---It earns a loader for one invariant: **the armour grid's name column is index 2 in BOTH hosts**
+---(#864). It used to be index 1 for embedded hosts and 2 in the window, and that single asymmetry was
+---the source of every host branch in the grid — the index recomputed in three places, `colInfo` built
+---two ways, the name cell called from two sites. A one-argument change to the name cell then had to be
+---made twice, half-landed, and silently dropped the embedded host's tooltip (#865). This is the
+---regression guard for the collapse, and it is pure table-building given the stubs below.
+---
+---`ns.icons.classes` is stubbed at three entries rather than the real thirteen: the count is irrelevant
+---to the contract (the leading two columns and their order are what matter) and a fixed small number
+---makes the index assertions readable.
+---@param ns table  as returned by M.load()
+---@return table ns
+function M.loadDataViewFilters(ns)
+  -- The REAL list helpers, not a stub: `buildColInfo` is `lists.map` over the class icons and a
+  -- `prepend` of the two chrome columns, so stubbing them would mean the column ORDER and INDICES this
+  -- spec exists to pin came from the stub rather than from LibNAddOn. Loaded directly rather than
+  -- through `loadInto`, which is scoped to this addon's folder; `lists.lua` needs only `ns.lua` to
+  -- exist and is self-contained beyond that.
+  ns.lua = ns.lua or {}
+  assert(loadfile("LibNAddOn/lua/lists.lua"))("LibNAddOn", ns)
+  ns.ui = ns.ui or {}
+  ns.ui.justify = ns.ui.justify or { Center = "CENTER", Left = "LEFT", Right = "RIGHT" }
+  ns.Colors = ns.Colors or { TransparentBlack = {0, 0, 0, 0} }
+  ns.icons = ns.icons or {}
+  ns.icons.classes = ns.icons.classes or { "atlas-1", "atlas-2", "atlas-3" }
+  ns.gridCellWidth = ns.gridCellWidth or 28
+  -- Captured as an upvalue at load time, so it has to exist before the file runs. Returns the class
+  -- name as its FIRST value, which is the one `buildColInfo` parenthesises out for the header tooltip.
+  _G.GetClassInfo = _G.GetClassInfo or function(classId) return "Class" .. classId, "CLASS" .. classId, classId end
+  -- `DataView` is the table the file hangs its methods on; the real one is a Class instance, but
+  -- BuildColInfo is assigned to it as a plain field so a bare table is enough.
+  ns.DataView = ns.DataView or {}
+  loadInto(ns, "DataViewFilters.lua")
+  return ns
+end
+
+---Load DataViewData.lua over the loaders it depends on, so `ns.CollectedRows` can be called.
+---
+---It earns a loader for the invariant `spec/colinfo_spec.lua` cannot reach: **the row builder prepends
+---exactly the chrome cells `BuildColInfo` prepends columns for**. Each half was internally consistent
+---while disagreeing with the other, twice (#864) — the second time putting class 1 in the name column
+---and rendering the name as "C…" in a 28px class column. A column-layout spec can't see that; only
+---calling the row builder and comparing can.
+---
+---Composes the existing loaders rather than hand-stubbing: `loadDataViewFilters` supplies `CHROME`,
+---`BuildColInfo` and `NAME_COL`; `loadGridShared` supplies `GridRowOrder`, `CompletionCell` and
+---`GridNameCell`; `loadRatings` supplies `IsWanted`. What's left is the handful of names
+---`DataViewData.lua` captures at load or reaches during a row build — the handlers it hangs on cells
+---resolve their globals lazily and are never fired here.
+---@param ns table  as returned by M.load()
+---@return table ns
+function M.loadDataViewData(ns)
+  M.loadDataViewFilters(ns)
+  M.loadGridShared(ns)
+  M.loadRatings(ns)
+  ns.ui.edge = ns.ui.edge or { Top = "TOP", TopLeft = "TOPLEFT" }
+  ns.ui.Texture = ns.ui.Texture or {}
+  _G.tinsert = _G.tinsert or table.insert
+  -- One release with an icon and one without, so the name cell's badge branch is exercised both ways.
+  ns.ReleaseIcons = ns.ReleaseIcons or { [12] = "icon-midnight" }
+  ns.Releases = ns.Releases or { [12] = "Midnight", [11] = "The War Within" }
+  ns.db.sets = ns.db.sets or {}
+  ns.Sets, ns.PtrSets = ns.Sets or {}, ns.PtrSets or {}
+  -- Reached only from inside cell handlers, which these specs never fire — present so a stray call
+  -- fails loudly as a nil-call rather than silently resolving to a global.
+  ns.SavedCharacters = ns.SavedCharacters or function() return nil end
+  ns.WantedOnlyActive = ns.WantedOnlyActive or function(view) return view._wantedOnly and not view._ptr end
+  loadInto(ns, "DataViewData.lua")
+  return ns
+end
+
 ---Load viewsync.lua into an already-loaded `ns`. Needs no C_ stub at all — the only WoW name it
 ---touches is `Enum.TransmogCollectionType`, a table of constants — but it still loads separately
 ---because the caller supplies that table and the weapon-hand sets are built from it at load time.

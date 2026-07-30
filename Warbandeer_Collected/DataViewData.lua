@@ -1,7 +1,8 @@
 ---@type Warbandeer_Collected
 local ns = select(2, ...)
-local ui, api = ns.ui, ns.api
-local lists = ns.lua.lists
+local ui = ns.ui
+local lists, prepend = ns.lua.lists, ns.lua.lists.prepend
+local unpack = unpack
 local Texture = ui.Texture
 local DataView = ns.DataView
 
@@ -96,6 +97,8 @@ function ns.SetGroupInfo(grp)
   if wanted > 0 then
     out[#out + 1] = ("|A:%s:14:14|a %d wanted"):format(ns.WantedIcon, wanted)
   end
+  local saved = ns.SavedCharacters(grp)
+  if saved then out[#out + 1] = saved end
   return out
 end
 
@@ -107,8 +110,6 @@ end
 ---@param self DataView
 ---@return table
 function ns.CollectedRows(self)
-  -- Lockouts are window-only chrome; the embedded host omits the lock column.
-  local toon = not self.embedded and api:GetCharacterData(api:GetCurrentCharacter())
   -- PTR PREVIEW shows ONLY the upcoming-only delta (ns.PtrSets); off, the live ns.Sets.
   local source = self._ptr and ns.PtrSets or ns.Sets
   -- Display order is keyed on **expansion** (`release`), not array position: sets are
@@ -123,7 +124,6 @@ function ns.CollectedRows(self)
   return lists.map(order, function(srcIdx, dispIdx)
     local grp = source[srcIdx]
     local isPtr = self._ptr
-    local lock = toon and ns.LockedFor(toon, grp)
     local gsets = ns.db.sets[grp.id]
     -- Always emit a positional cell per class (blank {} where there's no set, e.g.
     -- Evoker in pre-Dragonflight raids). Returning nil would make table.insert drop
@@ -200,27 +200,18 @@ function ns.CollectedRows(self)
     -- full class count so they get a blank cell and don't keep another row's value
     -- on re-sort.
     for i = #r + 1, #ns.icons.classes do r[i] = {} end
-    -- The expansion-badged name cell — `ns.GridNameCell`, shared with the weapons grid. Embedded
-    -- hosts have no lock column or lockout panel, so it is the leading (col 1) cell there and
-    -- click-inert; "inert" is about the CLICK only, and both hover tooltips still apply, which is
-    -- what this host is mostly looked at through.
-    if self.embedded then
-      tinsert(r, 1, ns.GridNameCell(grp, ns.SetGroupInfo))
-      return r
-    end
-    -- Windowed grid: a lock-icon column then the name. The name click opens the
-    -- lockout panel, except in PTR mode (srcIdx indexes ns.PtrSets, not ns.Sets, so
-    -- there are no lockouts to show), where it's inert.
-    -- Render the lock as a real texture, not a `|T…|t` font-escape in a Label — that
-    -- escape doesn't fit/measure reliably in the narrow column under a custom font
-    -- (it truncated to "|…"); a Texture cell is immune to font + ellipsis truncation.
-    tinsert(r, 1, lock and {
-      path = "Interface\\LFGFrame\\UI-LFG-ICON-LOCK",
-      coords = {0, 0.875, 0, 0.875},
-      position = { Center = {}, Size = {12, 12} },
-    } or {})
-    local nameCell = ns.GridNameCell(grp, ns.SetGroupInfo)
-    nameCell.onClick = isPtr and function() end or function()
+    -- The name is col 1 in BOTH hosts (#864). There is no lock column any more — the padlock it carried
+    -- for the logged-in character now reads as a line in the row's own tooltip, where there is room to
+    -- name who is saved instead of implying it with a glyph (see `ns.SetGroupInfo`). One column layout,
+    -- one name-cell call site, and an index that doesn't depend on who is rendering; the previous
+    -- per-host early-return here is what let a one-argument change to this cell half-land (#865).
+    local chrome = ns.DataView.ChromeCells(grp)
+    local nameCell = chrome[ns.DataView.NAME_COL]
+    -- The name click opens the lockout panel. Inert when the host owns lockouts (there is no panel of
+    -- ours to open, and `ns.window` is the wrong frame to anchor one to), and inert in PTR mode, where
+    -- `srcIdx` indexes `ns.PtrSets` rather than `ns.Sets` so there are no lockouts to show. This is the
+    -- one place `embedded` still decides anything for this cell — a behaviour branch, not a layout one.
+    nameCell.onClick = (self.embedded or isPtr) and function() end or function()
       -- Toggle: clicking the row whose lockouts are already open closes the panel.
       if self._selectedRow == dispIdx then
         self:_clearSelection()
@@ -235,10 +226,10 @@ function ns.CollectedRows(self)
       -- previously-selected row may have scrolled out since it was picked, in which case there is
       -- nothing on screen to un-highlight.
       local row = ns.ResidentRow(self, dispIdx)
-      local prev = ns.ResidentCell(self, self._selectedRow, 2)
+      local prev = ns.ResidentCell(self, self._selectedRow, ns.DataView.NAME_COL)
       if prev then prev.label:Color(WHITE_FONT_COLOR) end
       self._selectedRow = dispIdx
-      local picked = ns.ResidentCell(self, dispIdx, 2)
+      local picked = ns.ResidentCell(self, dispIdx, ns.DataView.NAME_COL)
       if picked then picked.label:Color(NORMAL_FONT_COLOR:GetRGBA()) end
       if not self._arrow then
         self._arrow = Texture:new{
@@ -261,8 +252,10 @@ function ns.CollectedRows(self)
       self._arrow:TopRight(row, ui.edge.TopLeft, -3, -2)
       self._arrow:Show()  -- re-show: _clearSelection hides it, and SetPoint alone won't
     end
-    tinsert(r, 2, nameCell)
-    return r
+    -- Prepend the SAME chrome cells `buildColInfo` prepended columns for, from the one CHROME list —
+    -- so the count and order can't drift apart the way they did in #864. `prepend` is what the column
+    -- side uses too, which is the point: one list, two mappings, no index arithmetic in either.
+    return prepend(r, unpack(chrome))
   end)
 end
 
