@@ -13,9 +13,9 @@
 | `src/index.ts` | Client login (Guilds intent only), slash-command registration (guild if `GUILD_ID`, else global), starts the scheduler, then fires `reportUpdateOutcome()` un-awaited (an owed `/update` follow-up must not delay startup); routes interactions — chat commands → `handleCommand`, `/report` modal submits → `handleReportModal` |
 | `src/config.ts` | Env config from `.env` — pure `resolveConfig(env)` (exported for tests) + the `config` singleton resolved from `process.env`; throws at import time on missing required vars or an invalid `COMMAND_PREFIX`. Also the `/report` project→repo map (`REPORT_PROJECTS` + `repoForProject`) + `reportRoleId`, the release-watch list (`watchedRepos` from `WATCHED_REPOS`, comma-separated `owner/repo`, defaulting to `[githubRepo]` — distinct from `githubRepo`, which anchors self-update), and the self-update config (`gitSha`, `botBranch`, `autoUpdate`, `adminUserIds`) |
 | `src/commands.ts` | `/dmf`, `/reset`, `/status`, `/update`, `/report` command builders + dispatch; `cmd(name)` builds every command under `config.commandPrefix`, `bareName()` strips it back off on dispatch; `isAdmin()` allowlist gate for `/update`; `updateReply(decision, latestSha, { runningSha, reason })` (exported for tests) renders the `/update` acknowledgement — the running sha is a **parameter, not a `config` read**, because config resolves env at import time and is one singleton for the whole bun test process, so a formatter reading it is only testable by winning a race with whichever test file imports config first; dispatch passes the interaction's user/channel/application/token to `checkForUpdate` as the follow-up requester; Discord `<t:…>` timestamp helpers |
-| `src/report.ts` | `/report` flow: role gate (reads roles from the interaction — no Members intent), Title/Description modal, then `createIssue` in the mapped repo labeled `automated`; `reportBody` footer names the reporter (plain username, no mention) |
+| `src/report.ts` | `/report` flow: role gate (reads roles from the interaction — no Members intent), Title/Description modal, then `createIssue` in the mapped repo labeled `automated`; `reportBody` footer names the reporter (plain username, no mention); pure `reportAnnouncement()` renders the channel-visible confirmation (reporter, `repo#N` + url, title, description clamped to Discord's 2000-char cap with a truncation note) |
 | `src/announce.ts` | 60 s tick scheduler: DMF-open + weekly-reset announcements, continuous realm up/down watch (`checkRealm`, polls every `REALM_POLL_GAP_MS` = 2 min whenever `realmWatchConfigured()`), release polling (`checkReleases` loops `config.watchedRepos`, isolating each repo's failure via a per-repo try/catch so one bad repo can't starve the others); routes per `AnnounceKind` via `channelFor()` — releases → `RELEASE_ANNOUNCE_CHANNEL_ID` (falls back to `ANNOUNCE_CHANNEL_ID`), everything else → `ANNOUNCE_CHANNEL_ID` |
-| `src/config.test.ts` | bun tests for `resolveConfig` (release-channel fallback, required-var, region, `COMMAND_PREFIX`, `REPORT_ROLE_ID`, `WATCHED_REPOS` parse/default, self-update vars) + report helpers (`repoForProject`, `reportBody`) |
+| `src/config.test.ts` | bun tests for `resolveConfig` (release-channel fallback, required-var, region, `COMMAND_PREFIX`, `REPORT_ROLE_ID`, `WATCHED_REPOS` parse/default, self-update vars) + report helpers (`repoForProject`, `reportBody`, `reportAnnouncement` — content, no-truncation-when-it-fits, the 2000-char clamp, and the boundary either side of it) |
 | `src/github.test.ts` | bun tests for pure `decideReleaseAnnouncements`: silent seed on never-polled, unseen-only oldest-first, no-op when nothing new, first release of a zero-release repo |
 | `src/state.test.ts` | bun tests for pure `normalizeSeenReleaseIds`: legacy-array migration under the default repo, empty array → `{}`, keyed map/`undefined` pass-through |
 | `src/commands.test.ts` | bun tests for `isAdmin` (allowlist hit/miss, fails closed, whole-id match) + `bareName()` (strips the prefix, no-op when unset, passes an unprefixed name through unmangled) + `updateReply()` (names the target build; no longer asks the reader to check whether it changed; both `disabled` reasons — a missing `GIT_SHA` vs. an unpublished one, which is named) |
@@ -72,6 +72,16 @@
   so `/report` never fails on a missing `automated` label — it creates it on first use. Role check
   reads `member.roles` from the interaction payload (cached manager **or** raw `string[]`), so no
   privileged Members intent is needed.
+- **A `/report` outcome is public; its refusals are not (#870).** The modal submit defers
+  **without** `MessageFlags.Ephemeral`, so the filed-issue confirmation (and the failure that
+  replaces it) lands in the channel the report came from — the transparency is the feature, and the
+  confirmation *is* the announcement, so there's no second message and no channel config. The three
+  pre-flight refusals stay ephemeral on purpose: an unconfigured bot, a missing role, and an unknown
+  project are the reporter's own business, not something the channel needs. Two consequences of
+  going public: the send passes `allowedMentions: { parse: [] }`, because the description is
+  now untrusted free text in a public message and an `@everyone` typed into the modal would
+  otherwise fire; and the message is clamped to 2000 chars by `reportAnnouncement`, since the
+  modal's Description field is unbounded and Discord rejects an over-long send outright.
 - `config.ts` reads env at import time (the `config` singleton) — tests/scripts must set
   `DISCORD_TOKEN` and `ANNOUNCE_CHANNEL_ID` **before** importing any module that imports it
   (see `config.test.ts`: env vars + dynamic import). Config *logic* is testable without env
