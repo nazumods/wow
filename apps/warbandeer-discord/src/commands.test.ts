@@ -4,8 +4,6 @@ import { describe, expect, test } from "bun:test";
 // time — satisfy the required vars before importing so this file runs standalone.
 process.env.DISCORD_TOKEN ??= "test-token";
 process.env.ANNOUNCE_CHANNEL_ID ??= "100";
-// updateReply names the running build in two of its branches, so give it one to name.
-process.env.GIT_SHA ??= "def4567890abcdef";
 const { isAdmin, bareName, updateReply } = await import("./commands");
 
 describe("isAdmin", () => {
@@ -78,13 +76,17 @@ describe("updateReply", () => {
 
   // #871: `disabled` has two causes now, and they ask different things of the operator.
   test("names the unpublished sha rather than blaming a missing GIT_SHA", () => {
-    const reply = updateReply("disabled", "", "unpublished-sha");
+    const running = "def4567890abcdef";
+    const reply = updateReply("disabled", "", { runningSha: running, reason: "unpublished-sha" });
     expect(reply).toContain("def4567");
-    expect(reply).toContain("nazumods/wow");
     expect(reply).not.toContain("no `GIT_SHA`");
   });
 
   test("still blames a missing GIT_SHA when that's the reason", () => {
-    expect(updateReply("disabled", "", "no-sha")).toContain("no `GIT_SHA`");
+    expect(updateReply("disabled", "", { reason: "no-sha" })).toContain("no `GIT_SHA`");
+  });
+
+  test("names the running build, not the target, when already current", () => {
+    expect(updateReply("current", SHA, { runningSha: "abc1234567" })).toContain("abc1234");
   });
 });
