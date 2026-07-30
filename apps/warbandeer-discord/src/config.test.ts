@@ -5,7 +5,7 @@ import { describe, expect, test } from "bun:test";
 process.env.DISCORD_TOKEN ??= "test-token";
 process.env.ANNOUNCE_CHANNEL_ID ??= "100";
 const { resolveConfig, repoForProject } = await import("./config");
-const { reportBody } = await import("./report");
+const { reportBody, reportAnnouncement } = await import("./report");
 
 const base = {
   DISCORD_TOKEN: "test-token",
@@ -85,6 +85,50 @@ describe("report helpers", () => {
     const b = reportBody("it crashed on login", "alice");
     expect(b).toContain("it crashed on login");
     expect(b).toContain("alice");
+  });
+});
+
+// #870: the confirmation is posted in the channel now, so it has to carry the report itself
+// rather than just a link — and it has to survive a description longer than Discord allows.
+describe("reportAnnouncement", () => {
+  const base = {
+    repo: "nazumods/wow",
+    number: 42,
+    url: "https://github.com/nazumods/wow/issues/42",
+    title: "Login crash",
+    description: "it crashed on login",
+    username: "alice",
+  };
+
+  test("names the reporter, the issue, and carries the report", () => {
+    const m = reportAnnouncement(base);
+    expect(m).toContain("alice");
+    expect(m).toContain("nazumods/wow#42");
+    expect(m).toContain(base.url);
+    expect(m).toContain("Login crash");
+    expect(m).toContain("it crashed on login");
+  });
+
+  test("a description that fits is carried whole, with no truncation note", () => {
+    expect(reportAnnouncement(base)).not.toContain("truncated");
+  });
+
+  test("clamps to Discord's 2000-char limit and says it truncated", () => {
+    const m = reportAnnouncement({ ...base, description: "x".repeat(5000) });
+    expect(m.length).toBeLessThanOrEqual(2000);
+    expect(m).toContain("truncated");
+    // The head survives: a truncated report is still traceable to its issue.
+    expect(m).toContain("nazumods/wow#42");
+    expect(m).toContain(base.url);
+  });
+
+  // The boundary the clamp is actually built around — one char past what fits must still fit.
+  test("stays within the limit right at the boundary", () => {
+    const head = reportAnnouncement({ ...base, description: "" }).length;
+    for (const len of [2000 - head - 1, 2000 - head, 2000 - head + 1]) {
+      const m = reportAnnouncement({ ...base, description: "x".repeat(len) });
+      expect(m.length).toBeLessThanOrEqual(2000);
+    }
   });
 });
 

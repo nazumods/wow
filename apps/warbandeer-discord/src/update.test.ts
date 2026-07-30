@@ -1,10 +1,10 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
 
 // `update.ts` pulls in the `config` singleton, which resolves process.env at import
 // time — satisfy the required vars before importing so this file runs standalone.
 process.env.DISCORD_TOKEN ??= "test-token";
 process.env.ANNOUNCE_CHANNEL_ID ??= "100";
-const { decideUpdate, sameSha, buildUpdateReport } = await import("./update");
+const { decideUpdate, sameSha, buildUpdateReport, fetchShaRelation } = await import("./update");
 
 const OLD = "a".repeat(40);
 const NEW = "b".repeat(40);
@@ -72,6 +72,121 @@ describe("decideUpdate", () => {
 
   test("force cannot enable updates without a GIT_SHA", () => {
     expect(decideUpdate({ latestSha: NEW, force: true })).toBe("disabled");
+  });
+});
+
+// #871: staleness is an ancestry question, not an equality one. GIT_SHA is the tip the image was
+// built from, which on most days is a main commit NEWER than the last bot-touching commit.
+describe("decideUpdate ancestry", () => {
+  // The regression that motivated the issue: a correct, current deploy built from a main tip that
+  // already contains the newest bot commit. Under sha equality this was "restart" every time.
+  test("ahead is current — a build newer than the last bot commit is not stale", () => {
+    expect(decideUpdate({ runningSha: OLD, latestSha: NEW, relation: "ahead" })).toBe("current");
+  });
+
+  test("identical is current", () => {
+    expect(decideUpdate({ runningSha: OLD, latestSha: NEW, relation: "identical" })).toBe("current");
+  });
+
+  test("behind still restarts — genuinely missing bot code", () => {
+    expect(decideUpdate({ runningSha: OLD, latestSha: NEW, relation: "behind" })).toBe("restart");
+  });
+
+  // Answers the same question as `behind` with the same no: this build doesn't contain it.
+  test("diverged restarts", () => {
+    expect(decideUpdate({ runningSha: OLD, latestSha: NEW, relation: "diverged" })).toBe("restart");
+  });
+
+  // A sha the remote has never seen can never be matched, so an update would be undeliverable.
+  test("unpublished disables rather than offering an update it can never deliver", () => {
+    expect(decideUpdate({ runningSha: OLD, latestSha: NEW, relation: "unpublished" })).toBe(
+      "disabled",
+    );
+  });
+
+  test("unpublished outranks the anti-loop suppression", () => {
+    expect(
+      decideUpdate({ runningSha: OLD, latestSha: NEW, relation: "unpublished", attemptedSha: NEW }),
+    ).toBe("disabled");
+  });
+
+  test("force cannot turn an unpublished sha into a restart", () => {
+    expect(
+      decideUpdate({ runningSha: OLD, latestSha: NEW, relation: "unpublished", force: true }),
+    ).toBe("disabled");
+  });
+
+  // An API failure must not invent a verdict — it degrades to the pre-#871 behaviour.
+  test("unknown falls back to treating a sha mismatch as stale", () => {
+    expect(decideUpdate({ runningSha: OLD, latestSha: NEW, relation: "unknown" })).toBe("restart");
+    expect(
+      decideUpdate({ runningSha: OLD, latestSha: NEW, relation: "unknown", attemptedSha: NEW }),
+    ).toBe("suppressed");
+  });
+
+  // The shortcut is what keeps the common path at one request: matching shas never consult it.
+  test("the equality shortcut wins before any relation is read", () => {
+    expect(decideUpdate({ runningSha: NEW, latestSha: NEW, relation: "behind" })).toBe("current");
+    expect(decideUpdate({ runningSha: NEW.slice(0, 7), latestSha: NEW, relation: "unpublished" })).toBe(
+      "current",
+    );
+  });
+
+  // Missing GIT_SHA is decided before ancestry is even relevant.
+  test("no running sha is disabled whatever the relation says", () => {
+    expect(decideUpdate({ latestSha: NEW, relation: "ahead" })).toBe("disabled");
+  });
+});
+
+describe("fetchShaRelation", () => {
+  const realFetch = globalThis.fetch;
+  const stub = (impl: () => Promise<Response> | Response) => {
+    globalThis.fetch = impl as unknown as typeof fetch;
+  };
+  afterEach(() => {
+    globalThis.fetch = realFetch;
+  });
+
+  const ok = (status: string) =>
+    new Response(JSON.stringify({ status }), { status: 200, headers: { "Content-Type": "application/json" } });
+
+  for (const status of ["identical", "ahead", "behind", "diverged"] as const) {
+    test(`passes through ${status}`, async () => {
+      stub(() => ok(status));
+      expect(await fetchShaRelation(NEW, OLD)).toBe(status);
+    });
+  }
+
+  test("404 means the running sha isn't on the remote", async () => {
+    stub(() => new Response("", { status: 404 }));
+    expect(await fetchShaRelation(NEW, OLD)).toBe("unpublished");
+  });
+
+  test("a server error is unknown, not a throw", async () => {
+    stub(() => new Response("", { status: 500 }));
+    expect(await fetchShaRelation(NEW, OLD)).toBe("unknown");
+  });
+
+  // Startup awaits this, so a network failure escaping here would take the bot down with it.
+  test("a network failure is unknown, not a throw", async () => {
+    stub(() => Promise.reject(new Error("ECONNREFUSED")));
+    expect(await fetchShaRelation(NEW, OLD)).toBe("unknown");
+  });
+
+  test("an unrecognised status is unknown", async () => {
+    stub(() => ok("sideways"));
+    expect(await fetchShaRelation(NEW, OLD)).toBe("unknown");
+  });
+
+  // Base is the newest bot commit, head is us — so `ahead` reads as "we contain it".
+  test("compares latest...running, in that order", async () => {
+    let seen = "";
+    stub((...args: unknown[]) => {
+      seen = String((args as [string])[0]);
+      return ok("ahead");
+    });
+    await fetchShaRelation(NEW, OLD);
+    expect(seen).toContain(`/compare/${NEW}...${OLD}`);
   });
 });
 

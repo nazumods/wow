@@ -19,6 +19,27 @@ export function reportBody(description: string, username: string): string {
   return `${description}\n\n---\n_Filed from Discord via \`/report\` by **${username}**._`;
 }
 
+// Discord's hard cap on a message's content. The modal's Description field is unbounded, so a
+// long report has to be clamped rather than rejected at send time (#870).
+const MESSAGE_LIMIT = 2000;
+const TRUNCATED = "\n… (truncated — the issue has the rest)";
+
+/** The channel-visible confirmation: who filed what, where it landed, and the report itself.
+ * Pure — unit-tested. */
+export function reportAnnouncement(o: {
+  repo: string;
+  number: number;
+  url: string;
+  title: string;
+  description: string;
+  username: string;
+}): string {
+  const head = `📋 **${o.username}** filed **${o.repo}#${o.number}** — ${o.url}\n**${o.title}**\n`;
+  const room = MESSAGE_LIMIT - head.length;
+  if (o.description.length <= room) return head + o.description;
+  return head + o.description.slice(0, Math.max(0, room - TRUNCATED.length)) + TRUNCATED;
+}
+
 /** Does the interacting member hold the configured REPORT_ROLE_ID? Reads roles straight from
  * the interaction payload (no privileged Members intent), handling both a cached role manager
  * and the raw string[] of an uncached member. */
@@ -77,7 +98,18 @@ export async function handleReportCommand(interaction: ChatInputCommandInteracti
   await interaction.showModal(modal);
 }
 
-/** Modal submit → create the GitHub issue in the mapped repo, reply (ephemeral) with its link. */
+/**
+ * Modal submit → create the GitHub issue in the mapped repo, then say so **in the channel the
+ * report was filed from** (#870).
+ *
+ * The outcome is deliberately not ephemeral: the point is transparency about what's been
+ * reported, so the confirmation is the announcement. The refusals above stay private, since a
+ * missing role or an unconfigured bot is the reporter's own business and not an issue anyone
+ * else needs to see.
+ *
+ * `allowedMentions: { parse: [] }` because the description is now free text on its way into a
+ * public message — an `@everyone` typed into the modal must render as text, not fire.
+ */
 export async function handleReportModal(interaction: ModalSubmitInteraction): Promise<void> {
   const project = interaction.customId.slice(MODAL_PREFIX.length);
   const repo = repoForProject(project);
@@ -88,13 +120,15 @@ export async function handleReportModal(interaction: ModalSubmitInteraction): Pr
 
   const title = interaction.fields.getTextInputValue("title");
   const description = interaction.fields.getTextInputValue("description");
-  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+  const username = interaction.user.username;
+  await interaction.deferReply();
   try {
     await ensureLabel(repo, REPORT_LABEL);
-    const issue = await createIssue(repo, title, reportBody(description, interaction.user.username), [
-      REPORT_LABEL,
-    ]);
-    await interaction.editReply(`✅ Filed **${repo}#${issue.number}** — ${issue.url}`);
+    const issue = await createIssue(repo, title, reportBody(description, username), [REPORT_LABEL]);
+    await interaction.editReply({
+      content: reportAnnouncement({ repo, number: issue.number, url: issue.url, title, description, username }),
+      allowedMentions: { parse: [] },
+    });
   } catch (err) {
     await interaction.editReply(`⚠️ Couldn't file the issue: ${(err as Error).message}`);
   }

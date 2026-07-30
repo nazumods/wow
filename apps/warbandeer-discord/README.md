@@ -10,7 +10,7 @@ Discord bot for the guild channel: WoW timers and announcements.
 - **Release notifications** — polls GitHub and announces new releases. Watches this repo by default, or any list of repos you configure (e.g. ActionBarMaster too).
 - **Self-update** — `/update` (admins only) restarts the bot onto the latest build, so code changes don't need someone on the box, then messages you once it's back with the build it actually landed on. See [Self-update](#self-update).
 - **Transmog import strings** — `/transmog <character> <realm>` returns a `/customset v1 …` string for what a character is wearing, pasteable into `/collected outfit import`. For the characters you *can't* inspect in-game: offline, another realm, or a name someone pasted in chat. Needs the same Blizzard API credentials as realm status. Two caveats it states in every reply: weapon illusions aren't in the profile data, and profile data is a snapshot from the character's **last logout** — so someone online right now reports what they wore last session.
-- **Issue reports** — `/report` lets members with a configured role file a GitHub issue (Title + Description via a popup form) straight into the mapped project's repo (`wow`, `abm`), labeled `automated` and noting who filed it.
+- **Issue reports** — `/report` lets members with a configured role file a GitHub issue (Title + Description via a popup form) straight into the mapped project's repo (`wow`, `abm`), labeled `automated` and noting who filed it. The confirmation posts **in the channel the report was filed from**, carrying the title, the description and the issue link, so the channel can see what's been raised.
 
 All times are posted as Discord timestamps, so everyone sees them in their own timezone.
 
@@ -60,8 +60,11 @@ Setup:
 
 Behavior:
 
-- Staleness is "the newest commit on `BOT_BRANCH` (default `main`) touching `apps/warbandeer-discord` isn't my `GIT_SHA`", checked at startup and every 15 minutes when `AUTO_UPDATE=true`, and on demand via `/update`.
-- `BOT_BRANCH` must name a branch that exists on `GITHUB_REPO` — it's queried through the GitHub API, so a branch that only exists on your machine can't be used. Point a staging deploy at its own pushed branch. A deploy running something unpushed should build **without** `GIT_SHA` instead, so self-update reports itself disabled rather than reporting a permanent, undeliverable update.
+- Staleness is "my build doesn't **contain** the newest commit on `BOT_BRANCH` (default `main`) touching `apps/warbandeer-discord`", checked at startup and every 15 minutes when `AUTO_UPDATE=true`, and on demand via `/update`.
+- It's a containment question, not an equality one, because `GIT_SHA` is the tip you built from and non-bot commits land on `main` most days — so the sha you built is usually *newer* than the last bot-touching commit, not equal to it. When the two differ the bot asks GitHub's compare endpoint how they relate: if your build is `ahead` of (or identical to) the newest bot commit it's **current**; only `behind` or a diverged side branch counts as stale.
+- `BOT_BRANCH` must name a branch that exists on `GITHUB_REPO` — it's queried through the GitHub API, so a branch that only exists on your machine can't be used. Point a staging deploy at its own pushed branch.
+- A deploy running **unpushed** commits is recognised rather than mishandled: the compare comes back 404, and self-update reports itself **disabled naming the sha** instead of offering an update it could never deliver. You no longer need to build without `GIT_SHA` to get sane behaviour there.
+- If the compare call fails (GitHub down, rate limited), the check falls back to treating a sha mismatch as stale — the pre-existing behaviour — rather than failing startup.
 - The bot exits with code **75** (distinct from a crash, so a supervisor can tell an update apart from a failure).
 - A restart never lands mid-announcement: it waits for the in-flight tick and its `data/state.json` write to finish.
 - **Once it's back up, it messages whoever ran `/update`** with the build it actually came back on, and which of three things happened:
@@ -71,7 +74,7 @@ Behavior:
 - That follow-up survives the restart (it's recorded in `data/state.json`, not held in memory), and it tries the original command's reply first, then a DM, then the channel. An expired reply token, closed DMs, or a deleted channel just log — they never hold up or crash startup.
 - Only a restart **`/update` asked for** produces a follow-up. An `AUTO_UPDATE` exit, a host reboot, or a plain `docker compose up` stays silent.
 - If the bot exits to update and comes back on the same build, it says so once in the log and **stops trying** — a misconfigured deploy produces a warning, not a restart loop. `/update` overrides that suppression.
-- Without `GIT_SHA`, self-update reports itself disabled rather than guessing.
+- Without `GIT_SHA` — or with one the remote has never seen — self-update reports itself disabled rather than guessing, and says which of the two it is.
 
 ## Cloudflare Tunnel
 
@@ -96,6 +99,7 @@ Once the bot exposes a local port, map a public hostname to it (`http://bot:<por
 - The server status watch runs continuously (whenever `WOW_REALM` + Blizzard credentials are set), polling every 2 minutes and announcing each up/down transition once. The first reading after a start seeds silently, so a fresh install or restart never posts a phantom up/down.
 - Releases publish from a daily cron at 14:00 UTC, so GitHub is only polled in a 90-minute window after that (every 5 minutes), plus once at startup to catch anything published while the bot was offline.
 - `COMMAND_PREFIX` lets a second (debug) instance run in the same server: it prefixes every slash-command name (e.g. `r_` → `/r_status`). A second instance needs its own Discord application/token and its own state volume.
+- A filed `/report` is **public in the channel it was filed from** — that's the point of it, so the channel knows what's been raised, but it does mean a report is visible to everyone who can see that channel. `/report` stays role-gated via `REPORT_ROLE_ID`. Only the outcome is public: being refused for a missing role, or for an unconfigured bot, is still shown to you alone. Mentions in a report never ping — an `@everyone` typed into the form renders as text. A description too long for Discord's 2000-character message limit is truncated with a note, and the issue itself always has the full text.
 
 ## Files
 
@@ -106,7 +110,7 @@ Once the bot exposes a local port, map a public hostname to it (`http://bot:<por
 | `src/commands.ts` | `/dmf`, `/reset`, `/status`, `/transmog`, `/update`, `/report` handlers |
 | `src/wow/transmog.ts` | `/transmog` — equipment → `/customset` import string, realm slugs, reply text |
 | `src/wow/blizzard.ts` | Shared Blizzard client-credentials token |
-| `src/report.ts` | `/report` — role gate, modal form, files a GitHub issue |
+| `src/report.ts` | `/report` — role gate, modal form, files a GitHub issue, announces it in the channel |
 | `src/announce.ts` | Scheduler tick: DMF/reset/release announcements, realm watch |
 | `src/update.ts` | Self-update: staleness check against the bot's newest commit |
 | `src/updateReport.ts` | The follow-up after a `/update` restart: which build it came back on |
