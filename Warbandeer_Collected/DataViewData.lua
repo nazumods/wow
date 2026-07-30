@@ -1,6 +1,6 @@
 ---@type Warbandeer_Collected
 local ns = select(2, ...)
-local ui, api = ns.ui, ns.api
+local ui = ns.ui
 local lists = ns.lua.lists
 local Texture = ui.Texture
 local DataView = ns.DataView
@@ -96,6 +96,8 @@ function ns.SetGroupInfo(grp)
   if wanted > 0 then
     out[#out + 1] = ("|A:%s:14:14|a %d wanted"):format(ns.WantedIcon, wanted)
   end
+  local saved = ns.SavedCharacters(grp)
+  if saved then out[#out + 1] = saved end
   return out
 end
 
@@ -107,8 +109,6 @@ end
 ---@param self DataView
 ---@return table
 function ns.CollectedRows(self)
-  -- Lockouts are window-only chrome; the embedded host omits the lock column.
-  local toon = not self.embedded and api:GetCharacterData(api:GetCurrentCharacter())
   -- PTR PREVIEW shows ONLY the upcoming-only delta (ns.PtrSets); off, the live ns.Sets.
   local source = self._ptr and ns.PtrSets or ns.Sets
   -- Display order is keyed on **expansion** (`release`), not array position: sets are
@@ -123,7 +123,6 @@ function ns.CollectedRows(self)
   return lists.map(order, function(srcIdx, dispIdx)
     local grp = source[srcIdx]
     local isPtr = self._ptr
-    local lock = toon and ns.LockedFor(toon, grp)
     local gsets = ns.db.sets[grp.id]
     -- Always emit a positional cell per class (blank {} where there's no set, e.g.
     -- Evoker in pre-Dragonflight raids). Returning nil would make table.insert drop
@@ -200,20 +199,11 @@ function ns.CollectedRows(self)
     -- full class count so they get a blank cell and don't keep another row's value
     -- on re-sort.
     for i = #r + 1, #ns.icons.classes do r[i] = {} end
-    -- Lock cell at col 1 then the name at col 2, in BOTH hosts (#864). An embedded host resolves no
-    -- lock state (`toon` is false above), so this lands a blank cell in what `buildColInfo` made a
-    -- zero-width column — which is the point: one column layout, one name-cell call site, and an index
-    -- that doesn't depend on who is rendering. The previous early-return for embedded hosts is what let
-    -- a one-argument change to the name cell half-land (#865).
-    --
-    -- Render the lock as a real texture, not a `|T…|t` font-escape in a Label — that
-    -- escape doesn't fit/measure reliably in the narrow column under a custom font
-    -- (it truncated to "|…"); a Texture cell is immune to font + ellipsis truncation.
-    tinsert(r, 1, lock and {
-      path = "Interface\\LFGFrame\\UI-LFG-ICON-LOCK",
-      coords = {0, 0.875, 0, 0.875},
-      position = { Center = {}, Size = {12, 12} },
-    } or {})
+    -- The name is col 1 in BOTH hosts (#864). There is no lock column any more — the padlock it carried
+    -- for the logged-in character now reads as a line in the row's own tooltip, where there is room to
+    -- name who is saved instead of implying it with a glyph (see `ns.SetGroupInfo`). One column layout,
+    -- one name-cell call site, and an index that doesn't depend on who is rendering; the previous
+    -- per-host early-return here is what let a one-argument change to this cell half-land (#865).
     local nameCell = ns.GridNameCell(grp, ns.SetGroupInfo)
     -- The name click opens the lockout panel. Inert when the host owns lockouts (there is no panel of
     -- ours to open, and `ns.window` is the wrong frame to anchor one to), and inert in PTR mode, where
@@ -234,10 +224,10 @@ function ns.CollectedRows(self)
       -- previously-selected row may have scrolled out since it was picked, in which case there is
       -- nothing on screen to un-highlight.
       local row = ns.ResidentRow(self, dispIdx)
-      local prev = ns.ResidentCell(self, self._selectedRow, 2)
+      local prev = ns.ResidentCell(self, self._selectedRow, 1)
       if prev then prev.label:Color(WHITE_FONT_COLOR) end
       self._selectedRow = dispIdx
-      local picked = ns.ResidentCell(self, dispIdx, 2)
+      local picked = ns.ResidentCell(self, dispIdx, 1)
       if picked then picked.label:Color(NORMAL_FONT_COLOR:GetRGBA()) end
       if not self._arrow then
         self._arrow = Texture:new{

@@ -18,8 +18,8 @@ local GameTooltip = GameTooltip
 -- it, so the panel lives here and both hosts build it.
 --
 -- What a host still owns is genuinely host-shaped and nothing else: its own frame (a TitleFrame with
--- a titlebar and a remembered position, or a view inside Warbandeer's window), whether the armour
--- grid carries the lockout column, and what to do when the panel resizes. Everything else is here.
+-- a titlebar and a remembered position, or a view inside Warbandeer's window), whether a set name
+-- opens the lockout panel, and what to do when the panel resizes. Everything else is here.
 --
 -- Sizing, since it is the thing that kept diverging:
 --   width  = max(widest grid's content + scrollbar room, chrome floor)
@@ -53,7 +53,7 @@ local GameTooltip = GameTooltip
 ---@field emptyMsg Label  centered "run a scan" message, shown before the first scan
 ---@field active DataView|WeaponView  the grid currently shown
 ---@field activeScroll ScrollFrame  the scroll container currently shown
----@field lockouts boolean  build the armour grid with its lock column + lockout name-click (window host only)
+---@field lockouts boolean  enable the lockout name-click on the armour grid (window host only); no longer affects the column layout (#864)
 ---@field infoTipAnchor fun(cell: Cell): table?  host override for the hover InfoTip anchor
 ---@field onSized fun(self: CollectedPanel)?  fired after the panel resizes, so the host can refit around it
 ---@field profPrefix string  profiler run-name prefix, so each host's Armor/Weapons swaps are timed apart
@@ -85,7 +85,7 @@ local CollectedPanel = Class(Frame, function(self)
     -- grid built 6,622–7,095 cells to show ~5% of them, and that frame count drove the 1.13s build,
     -- ~570ms of engine layout afterwards, and up to 366ms per swap in `UpdateScrollChildRect`.
     virtual = true,
-    colInfo = ns.DataView.BuildColInfo(not self.lockouts),
+    colInfo = ns.DataView.BuildColInfo(),
     infoTipAnchor = self.infoTipAnchor,
     onWantedToggle = function() self:RefreshWanted() end,
     onFilterChanged = function() self:Render() end,
@@ -416,18 +416,8 @@ function CollectedPanel:_chromeWidth()
   return self._chromeMax
 end
 
----Which column carries a grid's row names — col 2 in the armour grid (the lock column takes col 1 in
----both hosts since #864, zero-width where the host owns lockouts), col 1 in the weapon grid, which has
----no lock column at all.
----
----Branches on WHICH GRID, not on which host: the two grids genuinely have different column layouts,
----where the host never did — that asymmetry was the bug.
----@param grid table
----@return number
-function CollectedPanel:_nameColOf(grid)
-  if grid == self.grid then return 2 end
-  return 1
-end
+-- The name column is col 1 in EVERY grid and every host since #864 dropped the lock column, so there
+-- is nothing left to resolve — `_nameColOf(grid)` is gone and its one caller passes the constant.
 
 ---Pad every grid's name column out to one shared content width, so all of them fill the panel and
 ---the leftover space lands BETWEEN the row names and the first data column.
@@ -452,7 +442,7 @@ function CollectedPanel:_padGridsToWidth()
   -- The chrome floor is a PANEL width; the grids only get what's left after the scrollbar gutter.
   local target = max(natural, self:_chromeWidth() - self.scrollbarW)
   for _, g in ipairs(self:Grids()) do
-    ns.PadNameCol(g, self:_nameColOf(g), target - g.rowArea:Width())
+    ns.PadNameCol(g, 1, target - g.rowArea:Width())
   end
   return target
 end

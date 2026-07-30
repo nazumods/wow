@@ -16,6 +16,32 @@ ns.LockedFor = function(toon, group)
   return locks and locks[group.instance] and locks[group.instance][group.difficulty]
 end
 
+---One tooltip line naming every character saved to this group's instance, or nil when there is nothing
+---to say — the group isn't an instance, or nobody is locked to it.
+---
+---This is where the lock column went (#864). It used to be a padlock in a 15px column that only the
+---`/collected` window had, drawn only for the logged-in character, and invisible to anyone without an
+---active lockout — so it cost a leading gutter on every row to say nothing on almost all of them.
+---A tooltip line can name WHO is saved, which the glyph never could, and costs nothing when silent.
+---
+---**Returns nil rather than "nobody saved"** for the same reason the glyph didn't draw: the useful
+---signal is the lockout, and a line on all 34 instance groups saying nothing is wrong would be noise
+---on the rows you look at most. Clicking the name still opens the full per-character panel.
+---
+---Only ~34 of the 473 armour groups carry `instance` at all, so this is nil for the rest without
+---touching the roster.
+---@param group table  a set group, carrying `instance` + `difficulty` when it is an instance
+---@return string?
+function ns.SavedCharacters(group)
+  if not group.instance then return nil end
+  local names = {}
+  for _, toon in ipairs(api.GetAllCharacters()) do
+    if ns.LockedFor(toon, group) then names[#names + 1] = toon.name end
+  end
+  if #names == 0 then return nil end
+  return ("|cffff7f7fSaved:|r %s"):format(table.concat(names, ", "))
+end
+
 ---The panel's rows, sorted and coloured. `group` is what the two callers differ by: the constructor
 ---has no group yet and wants the plain roster, while a show is always for one instance and sorts its
 ---locked characters to the top, colouring them red against green for the ones still free.

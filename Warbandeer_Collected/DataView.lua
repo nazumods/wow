@@ -4,14 +4,14 @@ local Class = ns.lua.Class
 local ui = ns.ui
 local TableFrame = ui.TableFrame
 
----Main grid: one row per set group (lock icon + name), one column per class,
+---Main grid: one row per set group (the group's name), one column per class,
 ---cells show missing-piece counts color-shaded by completion.
 ---
 ---Shared by both the standalone /collected window and Warbandeer's embedded
 ---collected view (single source of truth). `embedded` trims the chrome the host
----window owns: the lock column is dropped (so the name column is col 1, not col 2)
----and the lockout-panel name-click is removed (Warbandeer keeps lockouts in
----/collected's own window). Each host passes its `colInfo` via `BuildColInfo`.
+---window owns: the lockout-panel name-click is removed (Warbandeer keeps lockouts
+---in /collected's own window). The COLUMN layout is identical in both hosts since
+---#864 — see `BuildColInfo`.
 ---
 ---The class is assembled across four files, all hanging off this one shared table:
 ---`DataView.lua` (constructor + lifecycle), `DataViewData.lua` (`ns.CollectedRows`
@@ -34,7 +34,7 @@ local TableFrame = ui.TableFrame
 ---@field _dressedBox Frame? the white 4-edge cursor box re-anchored over the dressed set's cell (created lazily)
 ---@field onEnsureVisible fun(self: DataView, rowTop: number, rowH: number)?  host hook to scroll a row into view (see HighlightSet)
 ---@field _emptyMsg Label? centered empty-state message (created lazily; shown when "wanted only" matches nothing)
----@field embedded boolean? render trimmed for a host view (no lock column / lockout name-click)
+---@field embedded boolean? render trimmed for a host view (no lockout name-click); affects behaviour only, never the column layout (#864)
 ---@field infoTipAnchor fun(cell: Cell): table?  host override for the hover InfoTip anchor (defaults to "above the cell")
 ---@field onWantedToggle fun(self: DataView)?  host callback fired after a Shift-click wanted toggle (refresh the host's header)
 ---@field onResized fun(self: DataView)?  host callback fired after a filter/PTR change shrinks or grows the row area, so the host can refit its scroll container (see _refilter / SetPtr)
@@ -47,9 +47,9 @@ local DataView = Class(TableFrame, function(self)
   ns.prof:Mark("cells")
   -- Autosize the name column. Called raw (not through _fitNameCol) because the host hasn't
   -- assigned its own grid field yet — firing onResized here would refit against a nil grid.
-  -- Always col 2: the lock column at col 1 is emitted in both hosts and merely zero-width when the
-  -- host owns lockouts (#864), so this index no longer depends on who is rendering.
-  ns.FitNameCol(self, 2)
+  -- Always col 1: there is no lock column in either host since #864, so this index no longer depends
+  -- on who is rendering.
+  ns.FitNameCol(self, 1)
   ns.prof:Mark("fitname")
   -- A label only measures true once WoW has laid the grid out, so measure again on the next
   -- frame, when it definitely has — this is the repair for a short first pass (#718).
@@ -78,11 +78,11 @@ end, {
   end,
 })
 
--- Fit the name column to its widest set name (col 1 embedded, col 2 in the window — the lock takes
--- col 1) and let the host refit when it grew. Re-runnable (see ns.FitNameCol), so it doubles as the
+-- Fit the name column (col 1 in every host since #864) to its widest set name, and let the host refit
+-- when it grew. Re-runnable (see ns.FitNameCol), so it doubles as the
 -- repair for a first measurement taken before WoW had laid the grid out.
 function DataView:_fitNameCol()
-  if ns.FitNameCol(self, 2) and self.onResized then self:onResized() end
+  if ns.FitNameCol(self, 1) and self.onResized then self:onResized() end
 end
 
 -- Re-fit on show. The window's Armor/Weapons swap shows this grid via SetShown, which routes

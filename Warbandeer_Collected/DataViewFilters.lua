@@ -5,21 +5,22 @@ local lists, prepend = ns.lua.lists, ns.lua.lists.prepend
 local GameTooltip = GameTooltip
 local DataView = ns.DataView
 
--- Build the column layout: a narrow lock column (the lockout glyph), a zero-width auto-sized name
--- column, then one icon column per class. Passed in at construction by each host (defaults can't
--- branch on the per-instance `embedded` flag, since the base table consumes colInfo first).
+-- Build the column layout: a zero-width auto-sized name column, then one icon column per class.
 --
--- **The lock column is always emitted; `embedded` only makes it zero-width** (#864). It used to be
--- omitted entirely for embedded hosts, which put the name column at index 1 there and index 2 in the
--- window — and that single asymmetry was the source of every host branch in the grid: the index was
--- recomputed in three places, `colInfo` was built two ways, and the name cell had two call sites. A
--- one-argument change to the name cell then had to be made twice, half-landed, and silently dropped
--- the embedded host's hover tooltip (#865). Emitting the column unconditionally costs a zero-width
--- column and a blank cell per resident row; that only became cheap once #863 virtualised the grid to
--- the viewport (~29 rows resident rather than 473), which is why this wasn't worth doing before.
----@param embedded boolean?  true → the host owns lockouts, so the lock column collapses to zero width
+-- **There is no lock column (#864).** The windowed host used to prepend a 15px one carrying a padlock
+-- for groups the current character is saved to, which the embedded host omitted — so the name column
+-- was index 1 in one host and index 2 in the other, and that single asymmetry was the source of every
+-- host branch in the grid: the index recomputed in three places, `colInfo` built two ways, the name
+-- cell built from two call sites. A one-argument change to the name cell then had to be made twice,
+-- half-landed, and silently dropped the embedded host's hover tooltip (#865).
+--
+-- Dropping it makes the name column index 1 everywhere, takes the leading gutter off the `/collected`
+-- window, and removes a per-row `LockedFor` lookup from the row builder. The lockout data itself is
+-- unaffected: clicking a set name still opens the lockout panel in the windowed host, which is where
+-- the per-character detail actually lives — the column only ever carried an at-a-glance padlock for
+-- the logged-in character, invisible to anyone without an active raid lockout.
 ---@return table
-local function buildColInfo(embedded)
+local function buildColInfo()
   local cols = lists.map(ns.icons.classes, function(icon, classId)
     return {
       atlas = icon,
@@ -35,23 +36,17 @@ local function buildColInfo(embedded)
       backdrop = {color = Colors.TransparentBlack},
     }
   end)
-  return prepend(cols,
-    -- lock — collapsed to 1px, not 0, when the host owns lockouts, so the indices below never move.
-    --
-    -- **1 rather than 0 deliberately.** At 0 the embedded grid rendered with every column several
-    -- hundred px right of the panel and no cells drawn — and only that host, which is the host whose
-    -- lock column is the collapsed one, so the width is the only variable. `Region:Width(0)` reaches
-    -- `SetWidth(0)`, which in WoW clears the explicit dimension rather than setting a zero one, leaving
-    -- the frame's width anchor-derived; the name column survives being declared `width = 0` only
-    -- because `ns.FitNameCol` gives it a real width immediately, where a permanently-collapsed column
-    -- never gets one. 1px is a sub-pixel sliver at any UI scale and costs nothing visually.
-    { width = embedded and 1 or 15, backdrop = {color = Colors.TransparentBlack} },
-    { width = 0, backdrop = {color = Colors.TransparentBlack} })   -- name (autosized by ns.FitNameCol)
+  -- Declared `width = 0` and given a real one by `ns.FitNameCol` on the same frame. That is safe only
+  -- because the fit follows immediately: `Region:Width(0)` reaches `SetWidth(0)`, which in WoW *clears*
+  -- the explicit dimension rather than setting a zero one, so a column left at 0 contributes nothing to
+  -- the width arithmetic and something else entirely to the anchor chain that positions its neighbours
+  -- — which is exactly how a permanently-collapsed column rendered every class column hundreds of px
+  -- off the panel while `/collected width` reported every declared width correct.
+  return prepend(cols, { width = 0, backdrop = {color = Colors.TransparentBlack} })
 end
 
 -- Column-layout builder, exposed so each host passes its own `colInfo` at
--- construction (windowed = with lock column, embedded = without).
----@param embedded boolean?
+-- construction; identical for every host since #864, so it takes no arguments.
 ---@return table
 DataView.BuildColInfo = buildColInfo
 
