@@ -207,6 +207,15 @@ local Overview = Class(Frame, function(self)
       pct = tl.pct or 0,
       valueColor = c.gold,
       hoverColor = c.muted,
+      -- Click through to the Adventure Guide's Traveler's Log tab (#869). Mirrors
+      -- Blizzard's own MonthlyActivitiesFrame_OpenFrameToActivity ordering; the
+      -- globals are read inside the closure since the journal is load-on-demand.
+      onClick = function()
+        if not C_PlayerInfo.IsTravelersLogAvailable() then return end
+        if not EncounterJournal then EncounterJournal_LoadUI() end
+        if not EncounterJournal:IsShown() then EncounterJournal_OpenJournal() end
+        MonthlyActivitiesFrame_OpenFrame()
+      end,
       position = { TopLeft = {P, -(stripTop + HEAD_H)} },
     }
     -- rewards line: a gold call-to-collect (bag glyph, pending Tender, reward item
