@@ -36,8 +36,16 @@ local function buildColInfo(embedded)
     }
   end)
   return prepend(cols,
-    -- lock — zero-width when the host owns lockouts, so the indices below never move
-    { width = embedded and 0 or 15, backdrop = {color = Colors.TransparentBlack} },
+    -- lock — collapsed to 1px, not 0, when the host owns lockouts, so the indices below never move.
+    --
+    -- **1 rather than 0 deliberately.** At 0 the embedded grid rendered with every column several
+    -- hundred px right of the panel and no cells drawn — and only that host, which is the host whose
+    -- lock column is the collapsed one, so the width is the only variable. `Region:Width(0)` reaches
+    -- `SetWidth(0)`, which in WoW clears the explicit dimension rather than setting a zero one, leaving
+    -- the frame's width anchor-derived; the name column survives being declared `width = 0` only
+    -- because `ns.FitNameCol` gives it a real width immediately, where a permanently-collapsed column
+    -- never gets one. 1px is a sub-pixel sliver at any UI scale and costs nothing visually.
+    { width = embedded and 1 or 15, backdrop = {color = Colors.TransparentBlack} },
     { width = 0, backdrop = {color = Colors.TransparentBlack} })   -- name (autosized by ns.FitNameCol)
 end
 

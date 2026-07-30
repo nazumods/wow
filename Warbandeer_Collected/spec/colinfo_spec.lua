@@ -45,9 +45,17 @@ describe("DataView.BuildColInfo", function()
 
   -- The lock column is always present; only its width tells the two hosts apart. This is the mechanism
   -- that keeps the index above stable, so it is worth pinning separately from the index itself.
-  it("keeps the lock column in both hosts, collapsing it to zero width when the host owns lockouts", function()
+  --
+  -- **1, not 0, and that is load-bearing.** At 0 the embedded grid rendered every column several
+  -- hundred px right of the panel with no cells drawn, while all its declared widths measured correct —
+  -- `Region:Width(0)` reaches `SetWidth(0)`, which in WoW clears the explicit dimension instead of
+  -- setting a zero one, so the column contributed 0 to the arithmetic and something else entirely to
+  -- the anchor chain that positions its neighbours. Asserting the exact value keeps someone from
+  -- "tidying" it back to 0.
+  it("keeps the lock column in both hosts, collapsing it to 1px when the host owns lockouts", function()
     assert.equals(15, windowed()[1].width)
-    assert.equals(0, embedded()[1].width)
+    assert.equals(1, embedded()[1].width)
+    assert.is_true(embedded()[1].width > 0, "a collapsed column must not be declared 0 wide - see the note above")
   end)
 
   it("starts the class columns at index 3 in both hosts", function()
