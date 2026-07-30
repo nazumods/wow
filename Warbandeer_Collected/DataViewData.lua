@@ -250,7 +250,11 @@ function ns.CollectedRows(self)
       self._arrow:TopRight(row, ui.edge.TopLeft, -3, -2)
       self._arrow:Show()  -- re-show: _clearSelection hides it, and SetPoint alone won't
     end
-    tinsert(r, 2, nameCell)
+    -- Index 1, and it must match `buildColInfo` prepending exactly one chrome column. These two are a
+    -- pair: the column layout decides what index the name lives at, and this decides what goes there.
+    -- Dropping the lock column changed both ends, and changing only one put class 1 in the name column
+    -- and the name in a 28px class column, where it rendered as "C…".
+    tinsert(r, 1, nameCell)
     return r
   end)
 end
