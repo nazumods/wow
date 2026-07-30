@@ -12,15 +12,15 @@
 |---|---|
 | `src/index.ts` | Client login (Guilds intent only), slash-command registration (guild if `GUILD_ID`, else global), starts the scheduler, then fires `reportUpdateOutcome()` un-awaited (an owed `/update` follow-up must not delay startup); routes interactions — chat commands → `handleCommand`, `/report` modal submits → `handleReportModal` |
 | `src/config.ts` | Env config from `.env` — pure `resolveConfig(env)` (exported for tests) + the `config` singleton resolved from `process.env`; throws at import time on missing required vars or an invalid `COMMAND_PREFIX`. Also the `/report` project→repo map (`REPORT_PROJECTS` + `repoForProject`) + `reportRoleId`, the release-watch list (`watchedRepos` from `WATCHED_REPOS`, comma-separated `owner/repo`, defaulting to `[githubRepo]` — distinct from `githubRepo`, which anchors self-update), and the self-update config (`gitSha`, `botBranch`, `autoUpdate`, `adminUserIds`) |
-| `src/commands.ts` | `/dmf`, `/reset`, `/status`, `/update`, `/report` command builders + dispatch; `cmd(name)` builds every command under `config.commandPrefix`, `bareName()` strips it back off on dispatch; `isAdmin()` allowlist gate for `/update`; `updateReply()` (exported for tests) renders the `/update` acknowledgement, passing the interaction's user/channel/application/token to `checkForUpdate` as the follow-up requester; Discord `<t:…>` timestamp helpers |
+| `src/commands.ts` | `/dmf`, `/reset`, `/status`, `/update`, `/report` command builders + dispatch; `cmd(name)` builds every command under `config.commandPrefix`, `bareName()` strips it back off on dispatch; `isAdmin()` allowlist gate for `/update`; `updateReply(decision, latestSha, { runningSha, reason })` (exported for tests) renders the `/update` acknowledgement — the running sha is a **parameter, not a `config` read**, because config resolves env at import time and is one singleton for the whole bun test process, so a formatter reading it is only testable by winning a race with whichever test file imports config first; dispatch passes the interaction's user/channel/application/token to `checkForUpdate` as the follow-up requester; Discord `<t:…>` timestamp helpers |
 | `src/report.ts` | `/report` flow: role gate (reads roles from the interaction — no Members intent), Title/Description modal, then `createIssue` in the mapped repo labeled `automated`; `reportBody` footer names the reporter (plain username, no mention) |
 | `src/announce.ts` | 60 s tick scheduler: DMF-open + weekly-reset announcements, continuous realm up/down watch (`checkRealm`, polls every `REALM_POLL_GAP_MS` = 2 min whenever `realmWatchConfigured()`), release polling (`checkReleases` loops `config.watchedRepos`, isolating each repo's failure via a per-repo try/catch so one bad repo can't starve the others); routes per `AnnounceKind` via `channelFor()` — releases → `RELEASE_ANNOUNCE_CHANNEL_ID` (falls back to `ANNOUNCE_CHANNEL_ID`), everything else → `ANNOUNCE_CHANNEL_ID` |
 | `src/config.test.ts` | bun tests for `resolveConfig` (release-channel fallback, required-var, region, `COMMAND_PREFIX`, `REPORT_ROLE_ID`, `WATCHED_REPOS` parse/default, self-update vars) + report helpers (`repoForProject`, `reportBody`) |
 | `src/github.test.ts` | bun tests for pure `decideReleaseAnnouncements`: silent seed on never-polled, unseen-only oldest-first, no-op when nothing new, first release of a zero-release repo |
 | `src/state.test.ts` | bun tests for pure `normalizeSeenReleaseIds`: legacy-array migration under the default repo, empty array → `{}`, keyed map/`undefined` pass-through |
-| `src/commands.test.ts` | bun tests for `isAdmin` (allowlist hit/miss, fails closed, whole-id match) + `bareName()` (strips the prefix, no-op when unset, passes an unprefixed name through unmangled) + `updateReply()` (names the target build; no longer asks the reader to check whether it changed) |
-| `src/update.ts` | Self-update: pure `decideUpdate()` + `sameSha()`, `fetchLatestBotSha()` (newest `config.botBranch` commit touching `apps/warbandeer-discord`), stateful `checkForUpdate({ force, requester })`; pure `buildUpdateReport()` returns the `PendingUpdateReport` to persist across the restart, or `undefined` when there's no requester (which is what keeps an `AUTO_UPDATE` exit silent) |
-| `src/update.test.ts` | bun tests for `decideUpdate`/`sameSha`: staleness, short-sha prefixes, anti-loop suppression, `force`; plus `buildUpdateReport` (records requester + both shas; no requester → no report) |
+| `src/commands.test.ts` | bun tests for `isAdmin` (allowlist hit/miss, fails closed, whole-id match) + `bareName()` (strips the prefix, no-op when unset, passes an unprefixed name through unmangled) + `updateReply()` (names the target build; no longer asks the reader to check whether it changed; both `disabled` reasons — a missing `GIT_SHA` vs. an unpublished one, which is named) |
+| `src/update.ts` | Self-update: pure `decideUpdate()` + `sameSha()`, `fetchLatestBotSha()` (newest `config.botBranch` commit touching `apps/warbandeer-discord`), `fetchShaRelation()` (the `ShaRelation` ancestry answer from `GET /compare/{latest}...{running}`; 404 → `unpublished`, any other failure → `unknown`, never throws), stateful `checkForUpdate({ force, requester })` returning a `DisabledReason` when it disables; pure `buildUpdateReport()` returns the `PendingUpdateReport` to persist across the restart, or `undefined` when there's no requester (which is what keeps an `AUTO_UPDATE` exit silent) |
+| `src/update.test.ts` | bun tests for `decideUpdate`/`sameSha`: staleness, short-sha prefixes, anti-loop suppression, `force`; the ancestry matrix (`ahead`/`identical` → current, `behind`/`diverged` → restart, `unpublished` → disabled and outranking both suppression and `force`, `unknown` → pre-#871 fallback, equality shortcut winning before any relation is read); `fetchShaRelation` against a stubbed `fetch` (each status, 404, 500, a rejected fetch, an unrecognised status, and the `latest...running` argument order); plus `buildUpdateReport` (records requester + both shas; no requester → no report) |
 | `src/updateReport.ts` | The follow-up owed after a `/update`-initiated restart. Pure `decideUpdateOutcome()` (`updated`/`noop`/`unexpected`/`unknown` by comparing the running `GIT_SHA` against the report's `toSha`/`fromSha`), `updateOutcomeMessage()`, `tokenUsable()` (15-min interaction-token window), `reportTooOld()` (24 h); `deliverUpdateReport()` walks interaction follow-up → DM → channel with injected deliverers, logging and falling through on each failure; `reportUpdateOutcome(client)` is the boot entry point |
 | `src/updateReport.test.ts` | bun tests for the four outcomes (incl. short-sha tolerance and a missing `GIT_SHA`), per-outcome message content, the token/staleness windows, and the delivery fallback order — including "every route fails" resolving to `none` rather than throwing |
 | `src/restart.ts` | Ref-counted critical section + `requestRestart()`; exits `RESTART_EXIT_CODE` (75); `setExitFn`/`resetForTest` for tests |
@@ -52,8 +52,8 @@
   polls every 5 min inside a 90-min window from 14:00 UTC, plus once at startup to catch
   anything published while the bot was offline. Each repo in `config.watchedRepos` is polled
   independently; a repo's first-ever poll (its key absent from `seenReleaseIds`) seeds silently.
-- **Self-update** compares baked-in `GIT_SHA` against the newest `BOT_BRANCH` (default `main`)
-  commit touching the bot's dir (flat 15-min cadence + startup, only when `AUTO_UPDATE=true`;
+- **Self-update** asks whether the baked-in `GIT_SHA` **contains** the newest `BOT_BRANCH` (default
+  `main`) commit touching the bot's dir (flat 15-min cadence + startup, only when `AUTO_UPDATE=true`;
   `/update` checks on demand with `force`). Stale → persist `attemptedUpdateToSha`, then exit 75
   for the orchestrator to respawn. `/update` is gated on the `ADMIN_USER_IDS` allowlist and fails
   closed when empty.
@@ -96,11 +96,22 @@
   registry image + Watchtower-style updater). The `attemptedUpdateToSha` marker exists precisely
   because the naive version exit-loops forever against a non-cooperating orchestrator: once the
   bot has exited for a sha and come back unchanged, it warns instead of exiting again.
+- **Staleness is ancestry, not sha equality (#871).** `GIT_SHA` is baked as `git rev-parse HEAD` —
+  the tip the image was built from — which is only occasionally the last commit to touch
+  `apps/warbandeer-discord`, because non-bot commits land on `main` most days. Asking "is my sha
+  *the* newest bot commit" therefore called a correct deploy stale as its **normal** state: one
+  wasted exit-75 per deploy under `AUTO_UPDATE`, and every `/update` (always `force`) overriding
+  the suppression to waste another. `decideUpdate` takes a `ShaRelation` from
+  `fetchShaRelation()` (`GET /compare/{latest}...{running}`) instead: `identical`/`ahead` →
+  `current`, `behind`/`diverged` → `restart`. It's only fetched when the shas differ, so the
+  common path still costs one request.
 - **`BOT_BRANCH` is queried through the GitHub API, so it must exist on the remote.** A deploy
-  running a local-only branch (e.g. an unpushed integration branch that merges several PRs)
-  can't point at it — and since such a branch never equals any remote branch's tip, self-update
-  there reports a permanent update it can never deliver. Build those **without `GIT_SHA`** so
-  self-update disables itself honestly instead.
+  running a local-only branch (e.g. an unpushed integration branch that merges several PRs) can't
+  point at it. The *running sha* being unpushed is handled, though: the compare 404s, which is its
+  own `ShaRelation` (`unpublished`) and resolves to `disabled` naming the sha — so such a deploy
+  can keep `GIT_SHA` baked, where it previously had to be built without one. `unknown` (any other
+  compare failure) deliberately falls back to the pre-#871 "mismatch = stale", so a GitHub outage
+  degrades the check rather than failing startup.
 - **`reportUpdateOutcome()` clears and saves `pendingUpdateReport` *before* it tries to deliver.**
   Delivery is the part that can fail — an expired token, closed DMs, a deleted channel — and a
   report left in place after a failed send would re-fire on every subsequent boot. Losing one

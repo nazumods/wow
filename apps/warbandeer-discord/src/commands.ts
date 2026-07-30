@@ -16,7 +16,7 @@ import {
   realmSlug,
   TransmogLookupError,
 } from "./wow/transmog";
-import { checkForUpdate, type UpdateDecision } from "./update";
+import { checkForUpdate, type DisabledReason, type UpdateDecision } from "./update";
 import { withCritical } from "./restart";
 
 const ts = (d: Date, style: "F" | "R" = "F") => `<t:${Math.floor(d.getTime() / 1000)}:${style}>`;
@@ -130,7 +130,7 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
       // Inside a critical section so the restart waits for the reply to be delivered.
       await withCritical(async () => {
         try {
-          const { decision, latestSha } = await checkForUpdate({
+          const { decision, latestSha, reason } = await checkForUpdate({
             force: true,
             // Recorded so the next boot can report back what build it actually landed on.
             requester: {
@@ -140,7 +140,9 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
               interactionToken: interaction.token,
             },
           });
-          await interaction.editReply(updateReply(decision, latestSha));
+          await interaction.editReply(
+            updateReply(decision, latestSha, { runningSha: config.gitSha, reason }),
+          );
         } catch (err) {
           await interaction.editReply(`⚠️ Update check failed: ${(err as Error).message}`);
         }
@@ -181,13 +183,33 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
   }
 }
 
-export function updateReply(decision: UpdateDecision, latestSha: string): string {
+/**
+ * `runningSha` is passed in rather than read off the `config` singleton: config resolves
+ * process.env at import time and is shared across the whole bun test process, so a formatter
+ * that reaches into it can only be tested by winning a race against whichever test file
+ * imports config first.
+ */
+export function updateReply(
+  decision: UpdateDecision,
+  latestSha: string,
+  o: { runningSha?: string; reason?: DisabledReason } = {},
+): string {
   const short = latestSha.slice(0, 7);
+  const running = o.runningSha?.slice(0, 7);
   switch (decision) {
     case "disabled":
+      // Two ways to end up here, and they need different things from the operator: bake a
+      // GIT_SHA, versus push the branch you built from (#871).
+      if (o.reason === "unpublished-sha") {
+        return (
+          `⚠️ Self-update is disabled — this build's commit \`${running}\` ` +
+          `isn't on \`${config.githubRepo}\`, so I can't tell what I'm missing. ` +
+          `Push the branch you built from, or deploy a pushed commit.`
+        );
+      }
       return "⚠️ Self-update is disabled — this build has no `GIT_SHA` baked in.";
     case "current":
-      return `✅ Already on the latest build (\`${config.gitSha?.slice(0, 7)}\`).`;
+      return `✅ Already on the latest build (\`${running}\`).`;
     case "suppressed":
     case "restart":
       // No "if I come back on the same build…" caveat: the bot answers that itself now,

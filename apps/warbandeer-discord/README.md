@@ -60,8 +60,11 @@ Setup:
 
 Behavior:
 
-- Staleness is "the newest commit on `BOT_BRANCH` (default `main`) touching `apps/warbandeer-discord` isn't my `GIT_SHA`", checked at startup and every 15 minutes when `AUTO_UPDATE=true`, and on demand via `/update`.
-- `BOT_BRANCH` must name a branch that exists on `GITHUB_REPO` — it's queried through the GitHub API, so a branch that only exists on your machine can't be used. Point a staging deploy at its own pushed branch. A deploy running something unpushed should build **without** `GIT_SHA` instead, so self-update reports itself disabled rather than reporting a permanent, undeliverable update.
+- Staleness is "my build doesn't **contain** the newest commit on `BOT_BRANCH` (default `main`) touching `apps/warbandeer-discord`", checked at startup and every 15 minutes when `AUTO_UPDATE=true`, and on demand via `/update`.
+- It's a containment question, not an equality one, because `GIT_SHA` is the tip you built from and non-bot commits land on `main` most days — so the sha you built is usually *newer* than the last bot-touching commit, not equal to it. When the two differ the bot asks GitHub's compare endpoint how they relate: if your build is `ahead` of (or identical to) the newest bot commit it's **current**; only `behind` or a diverged side branch counts as stale.
+- `BOT_BRANCH` must name a branch that exists on `GITHUB_REPO` — it's queried through the GitHub API, so a branch that only exists on your machine can't be used. Point a staging deploy at its own pushed branch.
+- A deploy running **unpushed** commits is recognised rather than mishandled: the compare comes back 404, and self-update reports itself **disabled naming the sha** instead of offering an update it could never deliver. You no longer need to build without `GIT_SHA` to get sane behaviour there.
+- If the compare call fails (GitHub down, rate limited), the check falls back to treating a sha mismatch as stale — the pre-existing behaviour — rather than failing startup.
 - The bot exits with code **75** (distinct from a crash, so a supervisor can tell an update apart from a failure).
 - A restart never lands mid-announcement: it waits for the in-flight tick and its `data/state.json` write to finish.
 - **Once it's back up, it messages whoever ran `/update`** with the build it actually came back on, and which of three things happened:
@@ -71,7 +74,7 @@ Behavior:
 - That follow-up survives the restart (it's recorded in `data/state.json`, not held in memory), and it tries the original command's reply first, then a DM, then the channel. An expired reply token, closed DMs, or a deleted channel just log — they never hold up or crash startup.
 - Only a restart **`/update` asked for** produces a follow-up. An `AUTO_UPDATE` exit, a host reboot, or a plain `docker compose up` stays silent.
 - If the bot exits to update and comes back on the same build, it says so once in the log and **stops trying** — a misconfigured deploy produces a warning, not a restart loop. `/update` overrides that suppression.
-- Without `GIT_SHA`, self-update reports itself disabled rather than guessing.
+- Without `GIT_SHA` — or with one the remote has never seen — self-update reports itself disabled rather than guessing, and says which of the two it is.
 
 ## Cloudflare Tunnel
 
