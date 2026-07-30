@@ -49,14 +49,18 @@ The bot can't rewrite its own code: it restarts, and **whatever supervises it is
 
 That distinction matters, because `restart: unless-stopped` on its own **will not update anything** — Docker respawns the same container from the same image, so the bot comes back on the identical code. For self-update to actually do something, the respawn has to supply a rebuilt image. Either:
 
+- **install the redeploy watcher** (recommended — `ops/bot-redeploy-watch.service`, see [ops/README.md](ops/README.md)), which makes `/update` do the whole job by itself: a stale build exits **76**, the watcher runs `bot-ops.sh rebuild` on the host, and the bot comes back on new code;
 - redeploy manually with `GIT_SHA=$(git rev-parse HEAD) docker compose up -d --build` (in which case `/update` is unnecessary — the rebuild already restarts it), or
 - run an image-updating supervisor (e.g. Watchtower) against a registry image that CI builds.
+
+The bot can't see whether the watcher is installed — that's outside its container — so tell it with `REDEPLOY_SUPERVISOR=true`. That flag changes nothing about what the bot *does*; it's how `/update` knows whether to promise a rebuild or warn that a restart will come back on the same build.
 
 Setup:
 
 1. Set `ADMIN_USER_IDS` to a comma-separated list of Discord user IDs (right-click a user → **Copy User ID**, with Developer Mode on). This is an explicit ID allowlist rather than a role check — roles get reassigned and inherited; the list only changes when you edit `.env`. It fails closed: with none set, `/update` is refused for everyone.
 2. Build with `GIT_SHA` as above.
-3. Optionally set `AUTO_UPDATE=true` to exit as soon as a newer build exists, without waiting for `/update`. **Off by default** — it's only useful with a supervisor that supplies new code.
+3. Install the redeploy watcher ([ops/README.md](ops/README.md)) and set `REDEPLOY_SUPERVISOR=true`, so `/update` actually rebuilds rather than just asking to be replaced. Skip this and everything still works — `/update` restarts and then tells you nothing was rebuilt.
+4. Optionally set `AUTO_UPDATE=true` to exit as soon as a newer build exists, without waiting for `/update`. **Off by default** — it's only useful with a supervisor that supplies new code, which step 3 is.
 
 Behavior:
 
@@ -65,7 +69,7 @@ Behavior:
 - `BOT_BRANCH` must name a branch that exists on `GITHUB_REPO` — it's queried through the GitHub API, so a branch that only exists on your machine can't be used. Point a staging deploy at its own pushed branch.
 - A deploy running **unpushed** commits is recognised rather than mishandled: the compare comes back 404, and self-update reports itself **disabled naming the sha** instead of offering an update it could never deliver. You no longer need to build without `GIT_SHA` to get sane behaviour there.
 - If the compare call fails (GitHub down, rate limited), the check falls back to treating a sha mismatch as stale — the pre-existing behaviour — rather than failing startup.
-- The bot exits with code **75** (distinct from a crash, so a supervisor can tell an update apart from a failure).
+- An update-driven exit uses code **76** — *"rebuild me, don't just respawn me"* — which is what the redeploy watcher acts on. Code **75** stays the plain restart. Both are distinct from a crash, so a supervisor can tell an update apart from a failure, and with no watcher installed 76 behaves exactly as 75 always has (Docker respawns on any exit code).
 - A restart never lands mid-announcement: it waits for the in-flight tick and its `data/state.json` write to finish.
 - **Once it's back up, it messages whoever ran `/update`** with the build it actually came back on, and which of three things happened:
   - ✅ **updated** — came back on the build it was picking up.

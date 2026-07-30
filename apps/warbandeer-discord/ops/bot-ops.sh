@@ -12,6 +12,8 @@
 #   status        Print JSON: container running?, status line, image, realm status.
 #   logs [N]      Print the last N (default 200, max 5000) container log lines, raw.
 #   restart       Restart the bot process in place (docker compose restart). No env reload.
+#   rebuild       Pull the checkout and `up -d --build` with a fresh GIT_SHA, so the bot comes
+#                 back on NEW code. Prints JSON with the before/after sha.
 #   env-get       Print JSON of the NON-SECRET whitelisted env keys and their current values.
 #   env-set       Read KEY=VALUE lines from stdin, validate against the whitelist, back up
 #                 .env, apply only real changes, then `up -d --force-recreate` to load them.
@@ -61,6 +63,7 @@ declare -A ALLOWED=(
   [WATCHED_REPOS]='^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(,[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)*$'
   [DMF_TIMEZONE]='^[A-Za-z_]+/[A-Za-z_]+$'
   [AUTO_UPDATE]='^(true|false)$'
+  [REDEPLOY_SUPERVISOR]='^(true|false)$'
   [BOT_BRANCH]='^[A-Za-z0-9._/-]{1,100}$'
   [COMMAND_PREFIX]='^[a-z0-9_-]{1,20}$'
 )
@@ -105,6 +108,40 @@ cmd_restart() {
   cd "$BOT_DIR"
   docker compose -p "$PROJECT" restart 2>&1
   echo "restarted $CONTAINER"
+}
+
+# Pull the checkout and rebuild the image, so the container comes back on NEW code — the thing a
+# plain `restart` (and Docker's own `unless-stopped` respawn) can never do (#868). This is what
+# `bot-redeploy-watch.sh` runs when the bot exits 76, and what the Ops panels' Redeploy button
+# calls directly.
+#
+# The pull is BEST-EFFORT and its outcome is reported rather than fatal. `--ff-only` fails by
+# design on a checkout carrying local commits — which is exactly the debug bot's shape (a worktree
+# on `local` with unpushed work) — and refusing to rebuild there would make this useless on the one
+# deploy that most needs it. Rebuilding the tree as it stands is what a human would do by hand, and
+# GIT_SHA is taken from the resulting HEAD, so the bot's own follow-up still names the true build.
+cmd_rebuild() {
+  need docker; need git; need jq
+  local repo before after pulled=true pull_log up_log rc=0
+  repo="$(git -C "$BOT_DIR" rev-parse --show-toplevel 2>/dev/null)" \
+    || die "rebuild: $BOT_DIR is not inside a git checkout"
+  before="$(git -C "$repo" rev-parse HEAD)"
+  pull_log="$(git -C "$repo" pull --ff-only 2>&1)" || pulled=false
+  after="$(git -C "$repo" rev-parse HEAD)"
+
+  # GIT_SHA is what the image bakes in, so it must be the sha actually being built — not the one
+  # we started from. Passed inline: it is a build arg, not something in the SSH shell's env.
+  cd "$BOT_DIR"
+  up_log="$(GIT_SHA="$after" docker compose -p "$PROJECT" up -d --build 2>&1)" || rc=$?
+
+  jq -n --arg before "$before" --arg after "$after" \
+        --argjson pulled "$pulled" --arg pull_log "$pull_log" \
+        --argjson ok "$([ "$rc" -eq 0 ] && echo true || echo false)" \
+        --argjson changed "$([ "$before" != "$after" ] && echo true || echo false)" \
+        --arg log "$up_log" \
+        '{ok: $ok, pulled: $pulled, changed: $changed, before: $before, after: $after,
+          pullLog: $pull_log, log: $log}'
+  return "$rc"
 }
 
 cmd_env_get() {
@@ -210,9 +247,10 @@ main() {
     status)  cmd_status ;;
     logs)    cmd_logs "$@" ;;
     restart) cmd_restart ;;
+    rebuild) cmd_rebuild ;;
     env-get) cmd_env_get ;;
     env-set) cmd_env_set ;;
-    *) die "usage: bot-ops.sh {status|logs [N]|restart|env-get|env-set}" ;;
+    *) die "usage: bot-ops.sh {status|logs [N]|restart|rebuild|env-get|env-set}" ;;
   esac
 }
 

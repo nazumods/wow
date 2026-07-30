@@ -18,6 +18,7 @@ time, not silently written.
 | `status` | JSON: container running?, status line, image, last-observed realm status |
 | `logs [N]` | Last `N` container log lines (default 200, capped 5000), raw |
 | `restart` | Restart the bot process in place (`docker compose restart`) — no env reload |
+| `rebuild` | Pull the checkout, then `up -d --build` with a fresh `GIT_SHA` — the bot comes back on **new code**. JSON with before/after sha |
 | `env-get` | JSON of the **non-secret** editable env keys and their current values |
 | `env-set` | Read `KEY=VALUE` lines from **stdin**, validate, back up `.env`, apply real changes, then `up -d --force-recreate` to load them |
 
@@ -32,8 +33,8 @@ echo "RELEASE_ANNOUNCE_CHANNEL_ID=1529152068055728330" | bash .../bot-ops.sh env
 
 `ANNOUNCE_CHANNEL_ID`, `RELEASE_ANNOUNCE_CHANNEL_ID`, `GUILD_ID`, `REPORT_ROLE_ID`,
 `ADMIN_USER_IDS`, `WOW_REALM`, `WOW_REGION`, `WATCHED_REPOS`, `DMF_TIMEZONE`, `AUTO_UPDATE`,
-`BOT_BRANCH`, `COMMAND_PREFIX`. Each is validated against a format regex; an empty value clears
-the key back to its documented default.
+`REDEPLOY_SUPERVISOR`, `BOT_BRANCH`, `COMMAND_PREFIX`. Each is validated against a format regex; an
+empty value clears the key back to its documented default.
 
 **Secrets are intentionally absent** — `DISCORD_TOKEN`, `BLIZZARD_CLIENT_ID`,
 `BLIZZARD_CLIENT_SECRET`, `GITHUB_TOKEN`, `CLOUDFLARE_TUNNEL_TOKEN`. `env-get` never reads them
@@ -52,6 +53,42 @@ out and `env-set` refuses to write them. Edit those by hand with `nano` on the b
   restart the bot.
 - Applying an env change **recreates the container** (brief restart) because env vars are frozen
   at container start; a plain `restart` would not reload them.
+- **`rebuild`'s pull is best-effort, not fatal.** `--ff-only` fails by design on a checkout
+  carrying local commits — the debug bot's exact shape (a worktree on `local` with unpushed work) —
+  and refusing to build there would make the subcommand useless on the deploy that most needs it.
+  A failed pull is reported as `pulled: false` with its log, and the tree is rebuilt as it stands.
+  `GIT_SHA` comes from the resulting `HEAD`, so the bot's own follow-up still names the true build.
+
+## Redeploy on exit 76
+
+`/update` can only ask to be replaced — the bot has no host access, and mounting the docker socket
+into the container would hand it root-equivalent control of the box. So a stale build exits **76**
+("rebuild me") and `bot-redeploy-watch.sh` is the host half that turns that into `bot-ops.sh
+rebuild`. Without it installed, `/update` still works exactly as it did before: the container
+respawns on the same image and the bot's follow-up reports the no-op honestly — and `/update`
+says up front that no supervisor is configured (set `REDEPLOY_SUPERVISOR=true` once it is).
+
+The watcher reads the **Docker event stream**, because `restart: unless-stopped` respawns the
+container on any exit code without ever showing that code to a parent process — the event stream
+is the only place it's observable from the host.
+
+**The respawn races the rebuild, by design.** Docker brings the old image straight back up, then
+the rebuild recreates the container on the new one seconds later, so an update bounces the bot
+twice. That's the cost of keeping `unless-stopped`, and it's the right trade: if the watcher is
+dead or absent, the bot still comes back.
+
+Install (one unit per bot — two bots means two copies under distinct names):
+
+```sh
+sudo cp ops/bot-redeploy-watch.service /etc/systemd/system/
+sudoedit /etc/systemd/system/bot-redeploy-watch.service   # User, paths, BOT_OPS_* for this target
+sudo systemctl daemon-reload
+sudo systemctl enable --now bot-redeploy-watch
+journalctl -u bot-redeploy-watch -f
+```
+
+Then set `REDEPLOY_SUPERVISOR=true` in the bot's `.env` (it's on the editable whitelist, so the Ops
+panel can do it) so `/update` stops warning that nothing will rebuild the image.
 
 ## Enabling a panel + choosing a bot (debug/prod)
 

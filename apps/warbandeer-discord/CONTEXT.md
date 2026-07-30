@@ -23,8 +23,10 @@
 | `src/update.test.ts` | bun tests for `decideUpdate`/`sameSha`: staleness, short-sha prefixes, anti-loop suppression, `force`; the ancestry matrix (`ahead`/`identical` → current, `behind`/`diverged` → restart, `unpublished` → disabled and outranking both suppression and `force`, `unknown` → pre-#871 fallback, equality shortcut winning before any relation is read); `fetchShaRelation` against a stubbed `fetch` (each status, 404, 500, a rejected fetch, an unrecognised status, and the `latest...running` argument order); plus `buildUpdateReport` (records requester + both shas; no requester → no report) |
 | `src/updateReport.ts` | The follow-up owed after a `/update`-initiated restart. Pure `decideUpdateOutcome()` (`updated`/`noop`/`unexpected`/`unknown` by comparing the running `GIT_SHA` against the report's `toSha`/`fromSha`), `updateOutcomeMessage()`, `tokenUsable()` (15-min interaction-token window), `reportTooOld()` (24 h); `deliverUpdateReport()` walks interaction follow-up → DM → channel with injected deliverers, logging and falling through on each failure; `reportUpdateOutcome(client)` is the boot entry point |
 | `src/updateReport.test.ts` | bun tests for the four outcomes (incl. short-sha tolerance and a missing `GIT_SHA`), per-outcome message content, the token/staleness windows, and the delivery fallback order — including "every route fails" resolving to `none` rather than throwing |
-| `src/restart.ts` | Ref-counted critical section + `requestRestart()`; exits `RESTART_EXIT_CODE` (75); `setExitFn`/`resetForTest` for tests |
-| `src/restart.test.ts` | bun tests: immediate vs deferred exit, nesting, exit-once, release-on-throw |
+| `src/restart.ts` | Ref-counted critical section + `requestRestart(reason, { redeploy })`; exits `RESTART_EXIT_CODE` (75) or `REDEPLOY_EXIT_CODE` (76, "rebuild me" — #868); the pending request carries its code, so the first request's code wins along with its reason; `setExitFn`/`resetForTest` for tests |
+| `src/restart.test.ts` | bun tests: immediate vs deferred exit, nesting, exit-once, release-on-throw; and the same matrix for the redeploy code (76 vs 75, surviving deferral and nested unwind, first-request's-code-wins in both directions) |
+| `ops/bot-redeploy-watch.sh` | The host half of `/update` (#868): reads the Docker event stream for the container's `die` events and runs `bot-ops.sh rebuild` when the exit code is 76. Every other code is ignored, including the ones its own rebuild causes. A failed rebuild logs rather than exiting, so one bad build can't silently disable future updates |
+| `ops/bot-redeploy-watch.service` | systemd unit for the watcher — one per bot, `Restart=always` because `docker events` blocks forever and any exit is a fault worth recovering from |
 | `src/state.ts` | Announcement dedup state, persisted to `data/state.json` (gitignored). `seenReleaseIds` is keyed per `owner/repo`; pure `normalizeSeenReleaseIds()` migrates the legacy global array (single-repo era) under `config.githubRepo` on load; `saveState` caps each repo's list at 100. `attemptedUpdateToSha` guards the self-update exit loop; `pendingUpdateReport` (`PendingUpdateReport`: `fromSha`, `toSha`, `userId`, `channelId?`, `applicationId?`, `interactionToken?`, `requestedAt`) is the `/update` follow-up owed on next boot — purely additive, so an old `state.json` simply lacks the key |
 | `src/wow/dmf.ts` | DMF schedule math: first Sunday of month 00:01 in `config.dmfTimezone`, one week; IANA-timezone-correct (two-pass DST conversion) |
 | `src/wow/reset.ts` | Daily/weekly reset math (fixed UTC: us = Tue 15:00, eu = Wed 04:00) |
@@ -54,9 +56,9 @@
   independently; a repo's first-ever poll (its key absent from `seenReleaseIds`) seeds silently.
 - **Self-update** asks whether the baked-in `GIT_SHA` **contains** the newest `BOT_BRANCH` (default
   `main`) commit touching the bot's dir (flat 15-min cadence + startup, only when `AUTO_UPDATE=true`;
-  `/update` checks on demand with `force`). Stale → persist `attemptedUpdateToSha`, then exit 75
-  for the orchestrator to respawn. `/update` is gated on the `ADMIN_USER_IDS` allowlist and fails
-  closed when empty.
+  `/update` checks on demand with `force`). Stale → persist `attemptedUpdateToSha`, then exit **76**
+  ("rebuild me") for the host watcher to act on. `/update` is gated on the `ADMIN_USER_IDS`
+  allowlist and fails closed when empty.
 - **Update follow-up** closes the loop `/update` used to leave open: the command also persists a
   `pendingUpdateReport` (requester + both shas), and the next boot messages that requester with
   the build it actually came back on — `updated` / `noop` / `unexpected` named explicitly, since
@@ -106,6 +108,18 @@
   registry image + Watchtower-style updater). The `attemptedUpdateToSha` marker exists precisely
   because the naive version exit-loops forever against a non-cooperating orchestrator: once the
   bot has exited for a sha and come back unchanged, it warns instead of exiting again.
+- **The bot cannot redeploy itself, so exit 76 is a request, not an action (#868).** Inside the
+  container there is no host access, and mounting `/var/run/docker.sock` in would be
+  root-equivalent control of the box — so a stale build exits 76 and `ops/bot-redeploy-watch.sh`
+  turns that into `bot-ops.sh rebuild` on the host. **Nothing acted on exit 75 before this** (no
+  wrapper, no unit — `restart: unless-stopped` respawns on any code without showing it to a
+  parent), which is exactly why `/update` was a no-op; the watcher is the mechanism, not an
+  increment on one. Three consequences: the exit code is unconditional while
+  `REDEPLOY_SUPERVISOR` only changes what `/update` *says* (the code states what the bot wants,
+  not what it thinks the host can do); with no watcher installed 76 degrades to precisely today's
+  behaviour; and the respawn **races** the rebuild — Docker brings the old image back immediately
+  and the rebuild recreates seconds later, so an update bounces the bot twice. That's the price of
+  keeping `unless-stopped`, and it's what makes a dead watcher harmless.
 - **Staleness is ancestry, not sha equality (#871).** `GIT_SHA` is baked as `git rev-parse HEAD` —
   the tip the image was built from — which is only occasionally the last commit to touch
   `apps/warbandeer-discord`, because non-bot commits land on `main` most days. Asking "is my sha

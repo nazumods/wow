@@ -20,6 +20,13 @@ export interface Config {
   /** Branch self-update measures staleness against. Must exist on `githubRepo`. */
   botBranch: string;
   autoUpdate: boolean;
+  /**
+   * Whether a host-side watcher is installed to turn the redeploy exit code into an actual
+   * rebuild (`ops/bot-redeploy-watch.sh`). The bot has no way to detect this — it's outside
+   * the container — so it's declared. Purely a truthfulness flag: it changes what `/update`
+   * promises, never what the bot does.
+   */
+  redeploySupervisor: boolean;
   /** Discord user IDs allowed to run /update. Empty = nobody. */
   adminUserIds: string[];
   reportRoleId?: string;
@@ -100,6 +107,7 @@ export function resolveConfig(env: Env): Config {
     gitSha: optional("GIT_SHA"),
     botBranch: optional("BOT_BRANCH") ?? "main",
     autoUpdate: optional("AUTO_UPDATE") === "true",
+    redeploySupervisor: optional("REDEPLOY_SUPERVISOR") === "true",
     adminUserIds: list("ADMIN_USER_IDS"),
     reportRoleId: optional("REPORT_ROLE_ID"),
     commandPrefix,

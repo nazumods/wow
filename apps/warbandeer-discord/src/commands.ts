@@ -141,7 +141,11 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
             },
           });
           await interaction.editReply(
-            updateReply(decision, latestSha, { runningSha: config.gitSha, reason }),
+            updateReply(decision, latestSha, {
+              runningSha: config.gitSha,
+              reason,
+              redeploySupervisor: config.redeploySupervisor,
+            }),
           );
         } catch (err) {
           await interaction.editReply(`⚠️ Update check failed: ${(err as Error).message}`);
@@ -192,7 +196,7 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
 export function updateReply(
   decision: UpdateDecision,
   latestSha: string,
-  o: { runningSha?: string; reason?: DisabledReason } = {},
+  o: { runningSha?: string; reason?: DisabledReason; redeploySupervisor?: boolean } = {},
 ): string {
   const short = latestSha.slice(0, 7);
   const running = o.runningSha?.slice(0, 7);
@@ -212,8 +216,15 @@ export function updateReply(
       return `✅ Already on the latest build (\`${running}\`).`;
     case "suppressed":
     case "restart":
-      // No "if I come back on the same build…" caveat: the bot answers that itself now,
-      // with a follow-up naming the build it actually landed on (see updateReport.ts).
-      return `🔄 Restarting to pick up \`${short}\`. I'll report back once I'm up.`;
+      // The follow-up names the build it actually landed on either way (updateReport.ts), so
+      // this doesn't caveat the outcome — but it does have to be honest about the *mechanism*
+      // (#868). With a host watcher the exit triggers a real rebuild; without one, exiting only
+      // gets the same image back, and saying "restarting to pick up X" would be a promise the
+      // deploy can't keep.
+      return o.redeploySupervisor
+        ? `🔄 Rebuilding and redeploying onto \`${short}\`. I'll report back once I'm up.`
+        : `🔄 Restarting to pick up \`${short}\`. I'll report back once I'm up. ` +
+            `⚠️ No redeploy supervisor is configured here, so unless something else rebuilds the ` +
+            `image I'll come back on the build I left on.`;
   }
 }

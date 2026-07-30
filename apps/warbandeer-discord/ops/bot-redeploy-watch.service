@@ -1,0 +1,36 @@
+# systemd unit for the host half of /update (#868) — see ops/README.md to install.
+#
+# Copy to /etc/systemd/system/, edit User/paths/environment for the target bot, then:
+#   sudo systemctl daemon-reload && sudo systemctl enable --now bot-redeploy-watch
+#
+# One unit per bot. Running two (debug + prod) means two copies under distinct names, each with
+# its own BOT_OPS_PROJECT / BOT_OPS_CONTAINER and WorkingDirectory.
+
+[Unit]
+Description=Rebuild the Warbandeer Discord bot when it exits 76 (redeploy requested)
+# The watcher reads the Docker event stream, so it is useless until the daemon is up — but it must
+# not fail permanently if docker is slow to start, hence Wants rather than Requires.
+Wants=docker.service
+After=docker.service network-online.target
+
+[Service]
+Type=simple
+# Must be the user that owns the checkout and can talk to docker (in the `docker` group, no sudo) —
+# the same account the Ops panels SSH in as.
+User=roshne
+WorkingDirectory=/home/roshne/repos/wow-debug/apps/warbandeer-discord
+Environment=BOT_OPS_PROJECT=warbandeer-discord-debug
+Environment=BOT_OPS_CONTAINER=warbandeer-discord
+ExecStart=/home/roshne/repos/wow-debug/apps/warbandeer-discord/ops/bot-redeploy-watch.sh
+
+# `docker events` blocks forever, so any exit at all is a fault worth recovering from: a daemon
+# restart, a dropped stream, a box resuming from sleep. RestartSec keeps a hard-failing script
+# (bad path, missing docker) from spinning.
+Restart=always
+RestartSec=10s
+
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

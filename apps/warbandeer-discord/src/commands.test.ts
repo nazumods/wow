@@ -89,4 +89,33 @@ describe("updateReply", () => {
   test("names the running build, not the target, when already current", () => {
     expect(updateReply("current", SHA, { runningSha: "abc1234567" })).toContain("abc1234");
   });
+
+  // #868: the reply has to be honest about the mechanism. Exiting only gets the same image back
+  // unless a host watcher turns the exit code into a rebuild, so promising an update without one
+  // is a promise the deploy can't keep.
+  describe("redeploy supervisor", () => {
+    test("with a supervisor, says it's rebuilding and adds no caveat", () => {
+      const reply = updateReply("restart", SHA, { redeploySupervisor: true });
+      expect(reply).toContain("Rebuilding");
+      expect(reply).toContain(SHA.slice(0, 7));
+      expect(reply).not.toContain("⚠️");
+    });
+
+    test("without one, warns that it'll come back on the same image", () => {
+      const reply = updateReply("restart", SHA, { redeploySupervisor: false });
+      expect(reply).toContain("⚠️");
+      expect(reply).toContain("redeploy supervisor");
+    });
+
+    // Unset must behave as absent, not as configured — the caveat is the safe default.
+    test("an unset flag warns, same as false", () => {
+      expect(updateReply("restart", SHA)).toContain("redeploy supervisor");
+    });
+
+    // Both branches still promise the follow-up, which is what actually reports the outcome.
+    test("both branches still promise to report back", () => {
+      expect(updateReply("restart", SHA, { redeploySupervisor: true })).toContain("report back");
+      expect(updateReply("restart", SHA, { redeploySupervisor: false })).toContain("report back");
+    });
+  });
 });

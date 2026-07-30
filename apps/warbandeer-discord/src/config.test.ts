@@ -161,6 +161,15 @@ describe("resolveConfig — self-update", () => {
     expect(resolveConfig({ ...base, AUTO_UPDATE: "" }).autoUpdate).toBe(false);
   });
 
+  // #868: the bot can't see outside its container, so the host watcher's existence is declared.
+  test("REDEPLOY_SUPERVISOR is off unless exactly \"true\"", () => {
+    expect(resolveConfig(base).redeploySupervisor).toBe(false);
+    expect(resolveConfig({ ...base, REDEPLOY_SUPERVISOR: "true" }).redeploySupervisor).toBe(true);
+    expect(resolveConfig({ ...base, REDEPLOY_SUPERVISOR: "false" }).redeploySupervisor).toBe(false);
+    expect(resolveConfig({ ...base, REDEPLOY_SUPERVISOR: "1" }).redeploySupervisor).toBe(false);
+    expect(resolveConfig({ ...base, REDEPLOY_SUPERVISOR: "" }).redeploySupervisor).toBe(false);
+  });
+
   test("ADMIN_USER_IDS splits on commas", () => {
     expect(resolveConfig({ ...base, ADMIN_USER_IDS: "111,222" }).adminUserIds).toEqual([
       "111",

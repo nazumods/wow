@@ -249,7 +249,12 @@ export async function checkForUpdate(
       now: Date.now(),
     });
     await saveState();
-    requestRestart(`update ${config.gitSha.slice(0, 7)} -> ${latestSha.slice(0, 7)}`);
+    // Redeploy, not a bare restart (#868): coming back on the same image is the failure this
+    // whole path exists to avoid, so the exit code says "rebuild me" and a host watcher acts on
+    // it. With no watcher installed this is indistinguishable from the old 75 — see restart.ts.
+    requestRestart(`update ${config.gitSha.slice(0, 7)} -> ${latestSha.slice(0, 7)}`, {
+      redeploy: true,
+    });
   }
 
   return { decision, latestSha };
