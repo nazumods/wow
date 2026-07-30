@@ -163,6 +163,25 @@ function ns.WeaponRows(self)
         for _, v in ipairs(visuals) do if cmap[v] then coll = coll + 1 end end
         local onEnter = function() ns.ShowWeaponCellTip(grp, t, visuals) end
         local onLeave = function() GameTooltip:Hide() end
+        -- **No Shift-click here, deliberately (#857)** — and the PTR cell above is the same. The
+        -- armour grid's cell takes the modifier to flag its set wanted (DataViewData), so the absence
+        -- reads as an omission; it was weighed and declined.
+        --
+        -- An armour cell is one set, so "flag this" names one thing. A weapon cell is a
+        -- (source × weapon type) BUCKET: two thirds of the ~2,100 cells hold more than one
+        -- appearance, averaging six and running to 249. Its ★ and pip are aggregates over that bucket
+        -- (`ns:WeaponCellWanted` = any, `ns:WeaponCellRank` = best), and writing back through a
+        -- summary is what has no unambiguous answer — flagging all N is the blunt instrument for the
+        -- "I want the one dagger" case that dominates.
+        --
+        -- Nor is there a gentler job to give the modifier: "Shift opens the chooser" is precisely
+        -- what an ordinary click already does, since `_load` routes a weaponCell group to `_loadCell`,
+        -- which docks `ShowCellChooser` over this cell's own looks.
+        --
+        -- So weapon wanted stays editable only where the look being flagged is visible and named:
+        -- Shift-click a chooser row (`_toggleCellWanted`), or the room's ★ on the shown look
+        -- (`_wantWeapon`, #827). The InfoTip's "Shift-click to mark wanted" hint is therefore true of
+        -- the armour grid only, and any tooltip shared between the two must condition it (#856).
         local onClick = function() ns.PreviewWeaponCell(grp, t, visuals, ns.GridHost(self)) end   -- dock onto this grid's window (#708)
         -- `_source`/`_type` identify the cell so the dressed-weapon cursor can find it
         -- (the weapon analogue of a cell's setId/classIndex — see WeaponView:HighlightWeaponCell).

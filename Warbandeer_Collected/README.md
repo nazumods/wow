@@ -46,7 +46,9 @@ you've collected the thing.
   character's race.
 - **Weapons** get the same two, one look at a time rather than one set at a time —
   see **Weapons view** below. There's no **This race** for a weapon: it looks the
-  same on everybody.
+  same on everybody. Flagging is the one part that doesn't work from the grid: a
+  weapon cell stands for every look of that type from that source at once, so you
+  flag a weapon in the chooser beside the dressing room instead.
 
 Click an appearance to open a 3D dressing
 room showing the set worn by any playable **race** you pick — handy for
@@ -128,7 +130,9 @@ wanted without stepping to it — it gets a gold star. Every row
 carries its own tier letter, so you can see the whole cell ranked at a glance while you
 step through it. Back in the grid, a cell is starred when **any** look in it is wanted
 and shows the **best** tier among its looks, so a bucket of four daggers advertises the
-one you actually want out of it.
+one you actually want out of it. That star is a readout of the whole bucket, which is why
+the cell itself doesn't take a shift-click the way an armor set's does — flagging happens
+in the chooser, where you can see which of the four you're picking.
 
 **Which hand.** The chooser's **Main hand** and **Off hand** buttons say where the
 weapon you're browsing is being held, and clicking the other one moves it there. Only
