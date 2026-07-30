@@ -6,6 +6,14 @@ local ns = select(2, ...)
 -- same conventional-commit grouping used for the GitHub/CurseForge release notes.
 ---@type { version: string, notes: string }[]
 ns.changelog = {
+  { version = "12.0.7-r36", notes = [==[
+### Bug Fixes
+- keep the counter and wanted tally inside the window (#858)
+
+### Refactoring
+- extract the collection panel so both hosts render one implementation (#860)
+
+]==] },
   { version = "12.0.7-r35", notes = [==[
 ### Features
 - profile the grid build, and stop rebuilding a grid that was just built (#844)
