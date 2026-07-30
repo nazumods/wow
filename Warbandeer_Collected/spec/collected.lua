@@ -161,6 +161,41 @@ function M.loadDataViewFilters(ns)
   return ns
 end
 
+---Load DataViewData.lua over the loaders it depends on, so `ns.CollectedRows` can be called.
+---
+---It earns a loader for the invariant `spec/colinfo_spec.lua` cannot reach: **the row builder prepends
+---exactly the chrome cells `BuildColInfo` prepends columns for**. Each half was internally consistent
+---while disagreeing with the other, twice (#864) — the second time putting class 1 in the name column
+---and rendering the name as "C…" in a 28px class column. A column-layout spec can't see that; only
+---calling the row builder and comparing can.
+---
+---Composes the existing loaders rather than hand-stubbing: `loadDataViewFilters` supplies `CHROME`,
+---`BuildColInfo` and `NAME_COL`; `loadGridShared` supplies `GridRowOrder`, `CompletionCell` and
+---`GridNameCell`; `loadRatings` supplies `IsWanted`. What's left is the handful of names
+---`DataViewData.lua` captures at load or reaches during a row build — the handlers it hangs on cells
+---resolve their globals lazily and are never fired here.
+---@param ns table  as returned by M.load()
+---@return table ns
+function M.loadDataViewData(ns)
+  M.loadDataViewFilters(ns)
+  M.loadGridShared(ns)
+  M.loadRatings(ns)
+  ns.ui.edge = ns.ui.edge or { Top = "TOP", TopLeft = "TOPLEFT" }
+  ns.ui.Texture = ns.ui.Texture or {}
+  _G.tinsert = _G.tinsert or table.insert
+  -- One release with an icon and one without, so the name cell's badge branch is exercised both ways.
+  ns.ReleaseIcons = ns.ReleaseIcons or { [12] = "icon-midnight" }
+  ns.Releases = ns.Releases or { [12] = "Midnight", [11] = "The War Within" }
+  ns.db.sets = ns.db.sets or {}
+  ns.Sets, ns.PtrSets = ns.Sets or {}, ns.PtrSets or {}
+  -- Reached only from inside cell handlers, which these specs never fire — present so a stray call
+  -- fails loudly as a nil-call rather than silently resolving to a global.
+  ns.SavedCharacters = ns.SavedCharacters or function() return nil end
+  ns.WantedOnlyActive = ns.WantedOnlyActive or function(view) return view._wantedOnly and not view._ptr end
+  loadInto(ns, "DataViewData.lua")
+  return ns
+end
+
 ---Load viewsync.lua into an already-loaded `ns`. Needs no C_ stub at all — the only WoW name it
 ---touches is `Enum.TransmogCollectionType`, a table of constants — but it still loads separately
 ---because the caller supplies that table and the weapon-hand sets are built from it at load time.

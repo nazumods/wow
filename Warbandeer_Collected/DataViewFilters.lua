@@ -2,8 +2,51 @@
 local ns = select(2, ...)
 local ui, Colors = ns.ui, ns.Colors
 local lists, prepend = ns.lua.lists, ns.lua.lists.prepend
+local unpack = unpack
 local GameTooltip = GameTooltip
 local DataView = ns.DataView
+
+-- The leading NON-CLASS columns, declared ONCE — the column spec and the cell that fills it, side by
+-- side, in the order they appear.
+--
+-- The column layout and the row builder have to agree on how many of these there are and what order
+-- they come in, and keeping that agreement in two files is what broke this grid twice (#864): the lock
+-- column was dropped from `buildColInfo` while the row builder still inserted the name past where it
+-- used to be, so class 1 landed in the name column and the name rendered as "C…" in a 28px class
+-- column. Nothing caught it, because each half was internally consistent.
+--
+-- Now adding or removing a chrome column is one edit here. `buildColInfo` maps out the `column`s,
+-- `DataView.ChromeCells` maps out the `cell`s, and `DataView.NAME_COL` is derived rather than written
+-- down — so the three cannot drift apart.
+local CHROME = {
+  {
+    nameCol = true,
+    -- Declared `width = 0` and given a real one by `ns.FitNameCol` on the same frame. Safe only because
+    -- the fit follows immediately: `Region:Width(0)` reaches `SetWidth(0)`, which in WoW *clears* the
+    -- explicit dimension rather than setting a zero one, so a column left at 0 contributes nothing to
+    -- the width arithmetic and something else entirely to the anchor chain positioning its neighbours.
+    -- A permanently-collapsed column rendered every class column hundreds of px off the panel while
+    -- `/collected width` reported all declared widths correct.
+    column = { width = 0, backdrop = {color = Colors.TransparentBlack} },
+    -- `ns.SetGroupInfo` resolves at call time: it lives in DataViewData.lua, which loads after this.
+    cell = function(grp) return ns.GridNameCell(grp, ns.SetGroupInfo) end,
+  },
+}
+
+---The leading cells for one row, in the same order and count as `buildColInfo`'s chrome columns.
+---The caller attaches anything that needs its own closure state — the lockout name-click needs
+---`dispIdx`/`srcIdx`, which only the row builder has.
+---@param grp table  a row source group
+---@return table[]
+function DataView.ChromeCells(grp)
+  return lists.map(CHROME, function(c) return c.cell(grp) end)
+end
+
+---Index of the name column, derived from CHROME rather than written down in each consumer. Read by
+---the row builder, `ns.FitNameCol`, `ns.ResidentCell` and `ns.PadNameCol`.
+DataView.NAME_COL = (function()
+  for i, c in ipairs(CHROME) do if c.nameCol then return i end end
+end)()
 
 -- Build the column layout: a zero-width auto-sized name column, then one icon column per class.
 --
@@ -36,13 +79,7 @@ local function buildColInfo()
       backdrop = {color = Colors.TransparentBlack},
     }
   end)
-  -- Declared `width = 0` and given a real one by `ns.FitNameCol` on the same frame. That is safe only
-  -- because the fit follows immediately: `Region:Width(0)` reaches `SetWidth(0)`, which in WoW *clears*
-  -- the explicit dimension rather than setting a zero one, so a column left at 0 contributes nothing to
-  -- the width arithmetic and something else entirely to the anchor chain that positions its neighbours
-  -- — which is exactly how a permanently-collapsed column rendered every class column hundreds of px
-  -- off the panel while `/collected width` reported every declared width correct.
-  return prepend(cols, { width = 0, backdrop = {color = Colors.TransparentBlack} })
+  return prepend(cols, unpack(lists.map(CHROME, function(c) return c.column end)))
 end
 
 -- Column-layout builder, exposed so each host passes its own `colInfo` at

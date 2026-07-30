@@ -442,7 +442,8 @@ function CollectedPanel:_padGridsToWidth()
   -- The chrome floor is a PANEL width; the grids only get what's left after the scrollbar gutter.
   local target = max(natural, self:_chromeWidth() - self.scrollbarW)
   for _, g in ipairs(self:Grids()) do
-    ns.PadNameCol(g, 1, target - g.rowArea:Width())
+    -- Armour reads its own derived index; the weapon grid has a single name column at 1.
+    ns.PadNameCol(g, g == self.grid and ns.DataView.NAME_COL or 1, target - g.rowArea:Width())
   end
   return target
 end

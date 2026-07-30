@@ -1,7 +1,8 @@
 ---@type Warbandeer_Collected
 local ns = select(2, ...)
 local ui = ns.ui
-local lists = ns.lua.lists
+local lists, prepend = ns.lua.lists, ns.lua.lists.prepend
+local unpack = unpack
 local Texture = ui.Texture
 local DataView = ns.DataView
 
@@ -204,7 +205,8 @@ function ns.CollectedRows(self)
     -- name who is saved instead of implying it with a glyph (see `ns.SetGroupInfo`). One column layout,
     -- one name-cell call site, and an index that doesn't depend on who is rendering; the previous
     -- per-host early-return here is what let a one-argument change to this cell half-land (#865).
-    local nameCell = ns.GridNameCell(grp, ns.SetGroupInfo)
+    local chrome = ns.DataView.ChromeCells(grp)
+    local nameCell = chrome[ns.DataView.NAME_COL]
     -- The name click opens the lockout panel. Inert when the host owns lockouts (there is no panel of
     -- ours to open, and `ns.window` is the wrong frame to anchor one to), and inert in PTR mode, where
     -- `srcIdx` indexes `ns.PtrSets` rather than `ns.Sets` so there are no lockouts to show. This is the
@@ -224,10 +226,10 @@ function ns.CollectedRows(self)
       -- previously-selected row may have scrolled out since it was picked, in which case there is
       -- nothing on screen to un-highlight.
       local row = ns.ResidentRow(self, dispIdx)
-      local prev = ns.ResidentCell(self, self._selectedRow, 1)
+      local prev = ns.ResidentCell(self, self._selectedRow, ns.DataView.NAME_COL)
       if prev then prev.label:Color(WHITE_FONT_COLOR) end
       self._selectedRow = dispIdx
-      local picked = ns.ResidentCell(self, dispIdx, 1)
+      local picked = ns.ResidentCell(self, dispIdx, ns.DataView.NAME_COL)
       if picked then picked.label:Color(NORMAL_FONT_COLOR:GetRGBA()) end
       if not self._arrow then
         self._arrow = Texture:new{
@@ -250,12 +252,10 @@ function ns.CollectedRows(self)
       self._arrow:TopRight(row, ui.edge.TopLeft, -3, -2)
       self._arrow:Show()  -- re-show: _clearSelection hides it, and SetPoint alone won't
     end
-    -- Index 1, and it must match `buildColInfo` prepending exactly one chrome column. These two are a
-    -- pair: the column layout decides what index the name lives at, and this decides what goes there.
-    -- Dropping the lock column changed both ends, and changing only one put class 1 in the name column
-    -- and the name in a 28px class column, where it rendered as "C…".
-    tinsert(r, 1, nameCell)
-    return r
+    -- Prepend the SAME chrome cells `buildColInfo` prepended columns for, from the one CHROME list —
+    -- so the count and order can't drift apart the way they did in #864. `prepend` is what the column
+    -- side uses too, which is the point: one list, two mappings, no index arithmetic in either.
+    return prepend(r, unpack(chrome))
   end)
 end
 
