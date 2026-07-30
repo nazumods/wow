@@ -19,8 +19,8 @@
 | `src/github.test.ts` | bun tests for pure `decideReleaseAnnouncements`: silent seed on never-polled, unseen-only oldest-first, no-op when nothing new, first release of a zero-release repo |
 | `src/state.test.ts` | bun tests for pure `normalizeSeenReleaseIds`: legacy-array migration under the default repo, empty array → `{}`, keyed map/`undefined` pass-through |
 | `src/commands.test.ts` | bun tests for `isAdmin` (allowlist hit/miss, fails closed, whole-id match) + `bareName()` (strips the prefix, no-op when unset, passes an unprefixed name through unmangled) + `updateReply()` (names the target build; no longer asks the reader to check whether it changed) |
-| `src/update.ts` | Self-update: pure `decideUpdate()` + `sameSha()`, `fetchLatestBotSha()` (newest `config.botBranch` commit touching `apps/warbandeer-discord`), stateful `checkForUpdate({ force, requester })`; pure `buildUpdateReport()` returns the `PendingUpdateReport` to persist across the restart, or `undefined` when there's no requester (which is what keeps an `AUTO_UPDATE` exit silent) |
-| `src/update.test.ts` | bun tests for `decideUpdate`/`sameSha`: staleness, short-sha prefixes, anti-loop suppression, `force`; plus `buildUpdateReport` (records requester + both shas; no requester → no report) |
+| `src/update.ts` | Self-update: pure `decideUpdate()` + `sameSha()`, `fetchLatestBotSha()` (newest `config.botBranch` commit touching `apps/warbandeer-discord`), `fetchShaRelation()` (the `ShaRelation` ancestry answer from `GET /compare/{latest}...{running}`; 404 → `unpublished`, any other failure → `unknown`, never throws), stateful `checkForUpdate({ force, requester })` returning a `DisabledReason` when it disables; pure `buildUpdateReport()` returns the `PendingUpdateReport` to persist across the restart, or `undefined` when there's no requester (which is what keeps an `AUTO_UPDATE` exit silent) |
+| `src/update.test.ts` | bun tests for `decideUpdate`/`sameSha`: staleness, short-sha prefixes, anti-loop suppression, `force`; the ancestry matrix (`ahead`/`identical` → current, `behind`/`diverged` → restart, `unpublished` → disabled and outranking both suppression and `force`, `unknown` → pre-#871 fallback, equality shortcut winning before any relation is read); `fetchShaRelation` against a stubbed `fetch` (each status, 404, 500, a rejected fetch, an unrecognised status, and the `latest...running` argument order); plus `buildUpdateReport` (records requester + both shas; no requester → no report) |
 | `src/updateReport.ts` | The follow-up owed after a `/update`-initiated restart. Pure `decideUpdateOutcome()` (`updated`/`noop`/`unexpected`/`unknown` by comparing the running `GIT_SHA` against the report's `toSha`/`fromSha`), `updateOutcomeMessage()`, `tokenUsable()` (15-min interaction-token window), `reportTooOld()` (24 h); `deliverUpdateReport()` walks interaction follow-up → DM → channel with injected deliverers, logging and falling through on each failure; `reportUpdateOutcome(client)` is the boot entry point |
 | `src/updateReport.test.ts` | bun tests for the four outcomes (incl. short-sha tolerance and a missing `GIT_SHA`), per-outcome message content, the token/staleness windows, and the delivery fallback order — including "every route fails" resolving to `none` rather than throwing |
 | `src/restart.ts` | Ref-counted critical section + `requestRestart()`; exits `RESTART_EXIT_CODE` (75); `setExitFn`/`resetForTest` for tests |
@@ -52,8 +52,8 @@
   polls every 5 min inside a 90-min window from 14:00 UTC, plus once at startup to catch
   anything published while the bot was offline. Each repo in `config.watchedRepos` is polled
   independently; a repo's first-ever poll (its key absent from `seenReleaseIds`) seeds silently.
-- **Self-update** compares baked-in `GIT_SHA` against the newest `BOT_BRANCH` (default `main`)
-  commit touching the bot's dir (flat 15-min cadence + startup, only when `AUTO_UPDATE=true`;
+- **Self-update** asks whether the baked-in `GIT_SHA` **contains** the newest `BOT_BRANCH` (default
+  `main`) commit touching the bot's dir (flat 15-min cadence + startup, only when `AUTO_UPDATE=true`;
   `/update` checks on demand with `force`). Stale → persist `attemptedUpdateToSha`, then exit 75
   for the orchestrator to respawn. `/update` is gated on the `ADMIN_USER_IDS` allowlist and fails
   closed when empty.
@@ -96,11 +96,22 @@
   registry image + Watchtower-style updater). The `attemptedUpdateToSha` marker exists precisely
   because the naive version exit-loops forever against a non-cooperating orchestrator: once the
   bot has exited for a sha and come back unchanged, it warns instead of exiting again.
+- **Staleness is ancestry, not sha equality (#871).** `GIT_SHA` is baked as `git rev-parse HEAD` —
+  the tip the image was built from — which is only occasionally the last commit to touch
+  `apps/warbandeer-discord`, because non-bot commits land on `main` most days. Asking "is my sha
+  *the* newest bot commit" therefore called a correct deploy stale as its **normal** state: one
+  wasted exit-75 per deploy under `AUTO_UPDATE`, and every `/update` (always `force`) overriding
+  the suppression to waste another. `decideUpdate` takes a `ShaRelation` from
+  `fetchShaRelation()` (`GET /compare/{latest}...{running}`) instead: `identical`/`ahead` →
+  `current`, `behind`/`diverged` → `restart`. It's only fetched when the shas differ, so the
+  common path still costs one request.
 - **`BOT_BRANCH` is queried through the GitHub API, so it must exist on the remote.** A deploy
-  running a local-only branch (e.g. an unpushed integration branch that merges several PRs)
-  can't point at it — and since such a branch never equals any remote branch's tip, self-update
-  there reports a permanent update it can never deliver. Build those **without `GIT_SHA`** so
-  self-update disables itself honestly instead.
+  running a local-only branch (e.g. an unpushed integration branch that merges several PRs) can't
+  point at it. The *running sha* being unpushed is handled, though: the compare 404s, which is its
+  own `ShaRelation` (`unpublished`) and resolves to `disabled` naming the sha — so such a deploy
+  can keep `GIT_SHA` baked, where it previously had to be built without one. `unknown` (any other
+  compare failure) deliberately falls back to the pre-#871 "mismatch = stale", so a GitHub outage
+  degrades the check rather than failing startup.
 - **`reportUpdateOutcome()` clears and saves `pendingUpdateReport` *before* it tries to deliver.**
   Delivery is the part that can fail — an expired token, closed DMs, a deleted channel — and a
   report left in place after a failed send would re-fire on every subsequent boot. Losing one
