@@ -73,4 +73,20 @@ describe("updateReply", () => {
     expect(updateReply("disabled", "")).toContain("GIT_SHA");
     expect(updateReply("current", SHA)).toContain("latest build");
   });
+
+  // #871: `disabled` has two causes now, and they ask different things of the operator.
+  test("names the unpublished sha rather than blaming a missing GIT_SHA", () => {
+    const running = "def4567890abcdef";
+    const reply = updateReply("disabled", "", { runningSha: running, reason: "unpublished-sha" });
+    expect(reply).toContain("def4567");
+    expect(reply).not.toContain("no `GIT_SHA`");
+  });
+
+  test("still blames a missing GIT_SHA when that's the reason", () => {
+    expect(updateReply("disabled", "", { reason: "no-sha" })).toContain("no `GIT_SHA`");
+  });
+
+  test("names the running build, not the target, when already current", () => {
+    expect(updateReply("current", SHA, { runningSha: "abc1234567" })).toContain("abc1234");
+  });
 });
