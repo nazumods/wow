@@ -13,11 +13,8 @@
 #   logs [N]      Print the last N (default 200, max 5000) container log lines, raw.
 #   restart       Restart the bot process in place (docker compose restart). No env reload.
 #   env-get       Print JSON of the NON-SECRET whitelisted env keys and their current values.
-#   migrate       One-time: move .env + docker-compose.yml out of the checkout into the config
-#                 dir, repoint the build context, recreate, and delete the checkout's .env.
 #   env-set       Read KEY=VALUE lines from stdin, validate against the whitelist, back up
-#                 .env beside itself, apply only real changes, then `up -d --force-recreate`
-#                 to load them.
+#                 .env, apply only real changes, then `up -d --force-recreate` to load them.
 #
 # Design notes:
 #   - The compose project + container come from BOT_OPS_PROJECT / BOT_OPS_CONTAINER (the caller
@@ -30,18 +27,6 @@
 #     with nano on the box.
 #   - env-set rebuilds .env line-by-line (no sed) so a value can never inject into the file, and
 #     comment/blank/secret lines are preserved verbatim.
-#   - RUNNING CONFIG LIVES OUTSIDE THE CHECKOUT. `.env` holds the live tokens, and a git checkout
-#     of a PUBLIC repo is the wrong home for it — it is one `git add -A` from being published and
-#     it survives `git reset --hard`. So .env and docker-compose.yml both live in the config dir
-#     (WARBANDEER_DISCORD_CONFIG_DIR, default /opt/warbandeer-discord/<project>) and backups land
-#     beside .env there. Relocating one file while leaving the other behind is not the fix: the
-#     config LOCATION is what is configurable.
-#   - They move TOGETHER because compose resolves `env_file: .env` relative to the compose file,
-#     not the cwd (`--env-file` is a different mechanism — it controls interpolation). Splitting
-#     them would silently feed the bot the wrong .env, so this script refuses that state.
-#   - A checkout that still holds .env keeps working — see resolve_config below. That is a
-#     compatibility path for un-migrated hosts and for running from source, not a second mode;
-#     `migrate` is how a deployment moves, once, when its operator decides to.
 set -euo pipefail
 
 # Target bot: defaults to the debug bot; a panel passes these per selected target (debug/prod).
@@ -58,38 +43,9 @@ LOGS_MAX=5000
   exit 1
 }
 
-# Where running config lives. Absolute only, so a relative path can't quietly resolve back into the
-# checkout from whatever cwd a non-interactive SSH call lands in. Namespaced by project so debug and
-# prod coexist on one host.
-CONFIG_DIR="${WARBANDEER_DISCORD_CONFIG_DIR:-/opt/warbandeer-discord/$PROJECT}"
-[[ "$CONFIG_DIR" = /* ]] || {
-  echo "bot-ops: WARBANDEER_DISCORD_CONFIG_DIR must be an absolute path" >&2
-  exit 1
-}
-
-# Bot dir = this script's parent's parent — the checkout. Still where the script itself ships from,
-# and (pre-migration, or when running from source) where config may still be.
+# Project dir = this script's parent's parent (ops/ lives inside the bot dir, beside .env).
 BOT_DIR="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
-
-die() { echo "bot-ops: $*" >&2; exit 1; }
-
-# Pick the directory holding this deployment's config, preferring the machine location. CONFIG_HOME
-# is the answer, and .env + docker-compose.yml BOTH come from it — never one from each, which would
-# hand compose a different .env than the one this script edits.
-resolve_config() {
-  if [ -f "$CONFIG_DIR/.env" ]; then
-    CONFIG_HOME="$CONFIG_DIR"
-  elif [ -f "$BOT_DIR/.env" ]; then
-    CONFIG_HOME="$BOT_DIR"
-    # stderr, never stdout: every subcommand's stdout is a JSON/raw contract the panels parse.
-    echo "bot-ops: using config from the checkout ($BOT_DIR) — run 'bot-ops.sh migrate' to move it" >&2
-  else
-    die "no .env found at $CONFIG_DIR or $BOT_DIR — copy .env.example to $CONFIG_DIR/.env"
-  fi
-  ENV_FILE="$CONFIG_HOME/.env"
-  [ -f "$CONFIG_HOME/docker-compose.yml" ] \
-    || die "$CONFIG_HOME holds .env but no docker-compose.yml — compose reads env_file relative to itself, so both must live together"
-}
+ENV_FILE="$BOT_DIR/.env"
 
 # Non-secret keys the panel may read and write. Anything not here is rejected by env-set and
 # omitted by env-get. Each key pairs with a validation regex (empty string is always allowed —
@@ -108,6 +64,8 @@ declare -A ALLOWED=(
   [BOT_BRANCH]='^[A-Za-z0-9._/-]{1,100}$'
   [COMMAND_PREFIX]='^[a-z0-9_-]{1,20}$'
 )
+
+die() { echo "bot-ops: $*" >&2; exit 1; }
 
 need() { command -v "$1" >/dev/null 2>&1 || die "'$1' not found on the box"; }
 
@@ -131,10 +89,7 @@ cmd_status() {
             | jq -r '.realmStatus // ""' 2>/dev/null || true)"
   jq -n --argjson running "${running:-false}" \
         --arg status "$status" --arg image "$image" --arg realm "$realm" \
-        --arg configDir "$CONFIG_HOME" \
-        --argjson migrated "$([ "$CONFIG_HOME" != "$BOT_DIR" ] && echo true || echo false)" \
-        '{running: $running, status: $status, image: $image, realmStatus: $realm,
-          configDir: $configDir, migrated: $migrated}'
+        '{running: $running, status: $status, image: $image, realmStatus: $realm}'
 }
 
 cmd_logs() {
@@ -147,7 +102,7 @@ cmd_logs() {
 
 cmd_restart() {
   need docker
-  cd "$CONFIG_HOME"
+  cd "$BOT_DIR"
   docker compose -p "$PROJECT" restart 2>&1
   echo "restarted $CONTAINER"
 }
@@ -200,9 +155,6 @@ cmd_env_set() {
     return 0
   fi
 
-  # Beside .env, wherever that is. No separate backup location: once the config dir is itself
-  # outside the checkout there is nothing to hide the backup from, and carving one file off to its
-  # own directory would leave the actual secret file where it started.
   local backup="$ENV_FILE.bak.$(date +%Y%m%d-%H%M%S)"
   # Pin the backup to 0600 rather than inheriting .env's mode. `cp` would copy that mode, which is
   # only safe while .env is itself owner-only — and a .env recreated by hand or by a fresh deploy
@@ -237,7 +189,7 @@ cmd_env_set() {
   chmod 600 "$ENV_FILE"
 
   # Apply: recreate the container so the new env is loaded (a plain restart would not reload it).
-  cd "$CONFIG_HOME"
+  cd "$BOT_DIR"
   local recreate_log rc=0
   recreate_log="$(docker compose -p "$PROJECT" up -d --force-recreate 2>&1)" || rc=$?
 
@@ -250,53 +202,8 @@ cmd_env_set() {
   return "$rc"
 }
 
-# One-time move of a deployment's config out of the checkout. Deliberately a subcommand an operator
-# runs, never something that happens at startup: silently relocating a file full of live tokens is a
-# bad surprise, and it would be flat wrong in a dev checkout where the config legitimately belongs.
-cmd_migrate() {
-  need docker
-  [ "$CONFIG_HOME" = "$BOT_DIR" ] || die "migrate: already migrated — config is at $CONFIG_HOME"
-  [ -f "$BOT_DIR/docker-compose.yml" ] || die "migrate: no docker-compose.yml in $BOT_DIR"
-
-  # Creating the directory needs root; everything after this point is unprivileged. Hand over the
-  # exact command rather than making the operator work it out.
-  [ -d "$CONFIG_DIR" ] || die "migrate: $CONFIG_DIR does not exist. Create it first:
-  sudo install -d -o $(id -un) -g $(id -gn) -m 700 $CONFIG_DIR"
-  [ -w "$CONFIG_DIR" ] || die "migrate: $CONFIG_DIR is not writable by $(id -un)"
-
-  install -m 600 "$BOT_DIR/.env" "$CONFIG_DIR/.env"
-  install -m 644 "$BOT_DIR/docker-compose.yml" "$CONFIG_DIR/docker-compose.yml"
-
-  # `context: .` meant "the checkout" while the compose file lived in it. From the config dir it
-  # would mean a directory with no Dockerfile, so repoint it. Fail loudly if the compose file no
-  # longer has the shape we expect rather than writing a subtly broken one.
-  grep -qE '^[[:space:]]+context: \.[[:space:]]*$' "$CONFIG_DIR/docker-compose.yml" \
-    || die "migrate: no 'context: .' line in docker-compose.yml — repoint the build context by hand"
-  sed -i -E "s|^([[:space:]]+)context: \.[[:space:]]*$|\1context: $BOT_DIR|" \
-    "$CONFIG_DIR/docker-compose.yml"
-
-  # Prove the relocated pair actually resolves before anything is torn down or deleted.
-  ( cd "$CONFIG_DIR" && docker compose -p "$PROJECT" config -q ) \
-    || die "migrate: $CONFIG_DIR/docker-compose.yml does not validate — nothing was removed"
-
-  local recreate_log rc=0
-  recreate_log="$( cd "$CONFIG_DIR" && docker compose -p "$PROJECT" up -d --force-recreate 2>&1 )" || rc=$?
-  if [ "$rc" -ne 0 ]; then
-    jq -n --arg log "$recreate_log" --arg dir "$CONFIG_DIR" \
-      '{ok: false, movedTo: $dir, removedOldEnv: false,
-        note: "recreate failed; the checkout .env was left in place", log: $log}'
-    return "$rc"
-  fi
-
-  # Only now is the checkout copy redundant. Leaving it would defeat the entire point.
-  rm -f "$BOT_DIR/.env"
-
-  jq -n --arg dir "$CONFIG_DIR" --arg log "$recreate_log" \
-    '{ok: true, movedTo: $dir, removedOldEnv: true, log: $log}'
-}
-
 main() {
-  resolve_config
+  [ -f "$ENV_FILE" ] || die ".env not found at $ENV_FILE (is remoteDir correct?)"
   local sub="${1:-}"
   shift || true
   case "$sub" in
@@ -305,8 +212,7 @@ main() {
     restart) cmd_restart ;;
     env-get) cmd_env_get ;;
     env-set) cmd_env_set ;;
-    migrate) cmd_migrate ;;
-    *) die "usage: bot-ops.sh {status|logs [N]|restart|env-get|env-set|migrate}" ;;
+    *) die "usage: bot-ops.sh {status|logs [N]|restart|env-get|env-set}" ;;
   esac
 }
 

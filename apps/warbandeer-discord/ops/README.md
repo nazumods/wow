@@ -20,7 +20,6 @@ time, not silently written.
 | `restart` | Restart the bot process in place (`docker compose restart`) — no env reload |
 | `env-get` | JSON of the **non-secret** editable env keys and their current values |
 | `env-set` | Read `KEY=VALUE` lines from **stdin**, validate, back up `.env`, apply real changes, then `up -d --force-recreate` to load them |
-| `migrate` | **One-time.** Move `.env` + `docker-compose.yml` out of the checkout into the config dir, repoint the build context, recreate, and delete the checkout's `.env` |
 
 Run directly on the box to test:
 
@@ -48,49 +47,11 @@ out and `env-set` refuses to write them. Edit those by hand with `nano` on the b
   non-interactive SSH shell's environment (a bare `docker compose` would default to the directory
   name and miss the running container); both are validated to a safe charset before use.
 - **`env-set` rebuilds `.env` line-by-line** (no `sed`), so a value can never inject into the
-  file, and comment/blank/secret lines are preserved verbatim. A timestamped backup is written
-  before any change; a no-op (new value equals current) does nothing and does **not** restart the
-  bot.
-- **Backups land beside `.env`**, as `.env.bak.<stamp>` (`0600`), wherever `.env` itself lives. Once
-  the config dir is outside the checkout there is nothing to hide the backup from — and relocating
-  the backup while leaving the actual secret file behind was never the fix. The path is returned in
-  `env-set`'s JSON so the panels show where it went.
+  file, and comment/blank/secret lines are preserved verbatim. A timestamped `.env.bak.<stamp>`
+  is written before any change; a no-op (new value equals current) does nothing and does **not**
+  restart the bot.
 - Applying an env change **recreates the container** (brief restart) because env vars are frozen
   at container start; a plain `restart` would not reload them.
-
-## Where running config lives
-
-`.env` and `docker-compose.yml` belong in the **config dir** —
-`WARBANDEER_DISCORD_CONFIG_DIR`, default `/opt/warbandeer-discord/<project>` — not in the checkout.
-The path must be **absolute**, so a relative value can't quietly resolve back into the checkout from
-whatever cwd a non-interactive SSH call lands in.
-
-**They move together, and the script enforces it.** Compose resolves `env_file: .env` relative to
-*the compose file*, not the working directory — and `docker compose --env-file` does not change that
-(it controls variable interpolation, a different mechanism). Splitting the pair would silently feed
-the bot a different `.env` than the one `env-set` edits, so a config dir holding one without the
-other is a hard error.
-
-A checkout that still holds `.env` keeps working: the script falls back to it and prints a one-line
-notice on **stderr** (never stdout, which is a JSON contract the panels parse). That is a
-compatibility path for un-migrated hosts and for running from source — not a second supported mode.
-`status` reports `configDir` and `migrated` so you can see which is in play.
-
-### Migrating a deployment
-
-Once, when you decide to — nothing relocates itself at startup, because silently moving a file full
-of live tokens is a bad surprise and would be wrong in a dev checkout where config legitimately
-belongs. Creating the directory is the only step needing root:
-
-```sh
-sudo install -d -o "$USER" -g "$USER" -m 700 /opt/warbandeer-discord/warbandeer-discord-debug
-bash ~/repos/wow-debug/apps/warbandeer-discord/ops/bot-ops.sh migrate
-```
-
-`migrate` copies both files, repoints `build: context:` at the checkout (there is no published image
-to reference yet), validates the result with `docker compose config` **before** touching the running
-container, recreates it, and only then deletes the checkout's `.env`. If the recreate fails, nothing
-is removed.
 
 ## Enabling a panel + choosing a bot (debug/prod)
 

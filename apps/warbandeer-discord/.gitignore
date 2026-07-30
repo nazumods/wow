@@ -1,7 +1,7 @@
 node_modules/
 .env
 data/
-# ops/bot-ops.sh env-set backups. Once a deployment has migrated these live beside .env in the
-# config dir, outside this checkout entirely — but an un-migrated host (or a dev running from
-# source) still writes them here, and they hold the live token, so they must never be committable.
+# ops/bot-ops.sh env-set writes a timestamped copy of .env beside it before applying a change.
+# That copy holds the live DISCORD_TOKEN and BLIZZARD_CLIENT_SECRET, and this is a public repo:
+# untracked, it sits one `git add -A` from being published, and `git reset --hard` won't clear it.
 .env.bak.*
