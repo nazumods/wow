@@ -1,3 +1,6 @@
 node_modules/
 .env
 data/
+# Legacy ops/bot-ops.sh env-set backups — it now writes them outside the checkout, but any left
+# beside .env by an older copy of the script hold the live token and must never be committable.
+.env.bak.*

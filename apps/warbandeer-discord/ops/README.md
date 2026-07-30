@@ -47,9 +47,16 @@ out and `env-set` refuses to write them. Edit those by hand with `nano` on the b
   non-interactive SSH shell's environment (a bare `docker compose` would default to the directory
   name and miss the running container); both are validated to a safe charset before use.
 - **`env-set` rebuilds `.env` line-by-line** (no `sed`), so a value can never inject into the
-  file, and comment/blank/secret lines are preserved verbatim. A timestamped `.env.bak.<stamp>`
-  is written before any change; a no-op (new value equals current) does nothing and does **not**
-  restart the bot.
+  file, and comment/blank/secret lines are preserved verbatim. A timestamped backup is written
+  before any change; a no-op (new value equals current) does nothing and does **not** restart the
+  bot.
+- **Backups land outside the checkout**, in `BOT_OPS_BACKUP_DIR` (default
+  `${XDG_STATE_HOME:-$HOME/.local/state}/warbandeer-bot-ops`, created `0700`), named
+  `env-<project>.bak.<stamp>` so debug and prod can share it. The bot dir is a git checkout of a
+  **public** repo, and a backup beside `.env` is an untracked file holding the live token — one
+  `git add -A` from being published, and `git reset --hard` won't clear it. The path is returned in
+  `env-set`'s JSON, so the panels still show where it went. An unwritable backup dir aborts the edit
+  rather than applying it unprotected.
 - Applying an env change **recreates the container** (brief restart) because env vars are frozen
   at container start; a plain `restart` would not reload them.
 

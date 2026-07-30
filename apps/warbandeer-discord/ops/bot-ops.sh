@@ -14,7 +14,8 @@
 #   restart       Restart the bot process in place (docker compose restart). No env reload.
 #   env-get       Print JSON of the NON-SECRET whitelisted env keys and their current values.
 #   env-set       Read KEY=VALUE lines from stdin, validate against the whitelist, back up
-#                 .env, apply only real changes, then `up -d --force-recreate` to load them.
+#                 .env outside the checkout, apply only real changes, then `up -d
+#                 --force-recreate` to load them.
 #
 # Design notes:
 #   - The compose project + container come from BOT_OPS_PROJECT / BOT_OPS_CONTAINER (the caller
@@ -27,6 +28,10 @@
 #     with nano on the box.
 #   - env-set rebuilds .env line-by-line (no sed) so a value can never inject into the file, and
 #     comment/blank/secret lines are preserved verbatim.
+#   - Its .env backups land OUTSIDE the bot dir (BOT_OPS_BACKUP_DIR), because that dir is a git
+#     checkout of a PUBLIC repo: a backup written beside .env is an untracked, token-bearing file
+#     one `git add -A` away from being published, and it survives `git reset --hard`. Same
+#     reasoning as the desktop app parking character-order backups outside the WTF tree.
 set -euo pipefail
 
 # Target bot: defaults to the debug bot; a panel passes these per selected target (debug/prod).
@@ -40,6 +45,14 @@ LOGS_MAX=5000
 }
 [[ "$CONTAINER" =~ ^[A-Za-z0-9_.-]+$ ]] || {
   echo "bot-ops: invalid BOT_OPS_CONTAINER" >&2
+  exit 1
+}
+
+# Where .env backups are parked — deliberately not the bot dir (see Design notes). Absolute only,
+# so a relative path can't quietly resolve back into the checkout from whatever cwd we're invoked in.
+BACKUP_DIR="${BOT_OPS_BACKUP_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/warbandeer-bot-ops}"
+[[ "$BACKUP_DIR" = /* ]] || {
+  echo "bot-ops: BOT_OPS_BACKUP_DIR must be an absolute path" >&2
   exit 1
 }
 
@@ -155,7 +168,10 @@ cmd_env_set() {
     return 0
   fi
 
-  local backup="$ENV_FILE.bak.$(date +%Y%m%d-%H%M%S)"
+  # Namespaced by project so debug and prod can share one backup dir. Created before .env is
+  # touched, so an unwritable backup dir aborts the edit instead of applying it unprotected.
+  local backup="$BACKUP_DIR/env-$PROJECT.bak.$(date +%Y%m%d-%H%M%S)"
+  install -d -m 700 "$BACKUP_DIR"
   # Pin the backup to 0600 rather than inheriting .env's mode. `cp` would copy that mode, which is
   # only safe while .env is itself owner-only — and a .env recreated by hand or by a fresh deploy
   # picks up the umask (0664 under the usual 002) instead. This file holds DISCORD_TOKEN and
