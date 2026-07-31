@@ -19,9 +19,11 @@
       duplicated into every save. Filtered to the ids Warbandeer actually tracks.
 
   Everything else the desktop app needs is persisted by the addon itself (title
-  catalog, keystone/mastery/currency display metadata, pet species, reputations),
-  so it is deliberately not bundled. Adding a table later means extending the fetch
-  below, not reworking this file. See UPDATING-static-data.md in this folder.
+  catalog, mastery passive text, pet species, reputations), so it is deliberately
+  not bundled. Currency display metadata is NOT among them — it comes from the
+  CurrencyTypes table above; nor is keystone, whose dungeon name the addon resolves
+  live at render time rather than persisting. Adding a table later means extending
+  the fetch below, not reworking this file. See UPDATING-static-data.md in this folder.
 
   Two wago endpoints drive it:
     * /db2/<table>/csv?build=<b> — the table itself, pinned to a real product build
