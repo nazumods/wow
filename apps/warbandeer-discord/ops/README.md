@@ -52,6 +52,11 @@ out and `env-set` refuses to write them. Edit those by hand with `nano` on the b
   restart the bot.
 - Applying an env change **recreates the container** (brief restart) because env vars are frozen
   at container start; a plain `restart` would not reload them.
+- That recreate deliberately does **not** pass `--build`, so it reuses whatever image is currently
+  tagged — including one a `/update` self-deploy (#879) just built. Adding `--build` would rebuild
+  from the box's checkout and roll the bot back on every settings edit.
+- These subcommands keep working across a self-update: the replacement container takes the
+  original's name as it retires it, so `BOT_OPS_CONTAINER` still resolves and needs no change.
 
 ## Enabling a panel + choosing a bot (debug/prod)
 
