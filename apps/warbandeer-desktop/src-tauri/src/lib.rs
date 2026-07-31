@@ -1,5 +1,6 @@
 mod charorder;
 mod combatlog;
+mod icons;
 mod model;
 mod overview;
 mod savedvars;
@@ -13,6 +14,9 @@ pub fn run() {
     bot_ops::set_config_env_var("WARBANDEER_OPS_CONFIG");
 
     tauri::Builder::default()
+        // Serves the embedded icon pack to the webview. Not an invoke command: an <img src>
+        // wants a URL, and going through IPC would mean base64 in the DOM per row.
+        .register_uri_scheme_protocol(icons::SCHEME, |_ctx, request| icons::serve(&request))
         .invoke_handler(tauri::generate_handler![
             overview::get_overview,
             combatlog::list_combat_logs,

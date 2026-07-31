@@ -59,22 +59,33 @@ jobs:
         uses: swatinem/rust-cache@v2
         with:
           workspaces: apps/warbandeer-desktop/src-tauri -> target
+      # `icons` as well as `staticdata`: the two artifacts are generated together from one
+      # name set, and the icons tests are what assert they stayed in step (every icon name
+      # the bundle references has a pack entry).
       - name: Validate the regenerated bundle
         working-directory: apps/warbandeer-desktop/src-tauri
-        run: cargo test --lib staticdata
+        run: |
+          cargo test --lib staticdata
+          cargo test --lib icons
 
       - name: Open PR if changed
         uses: peter-evans/create-pull-request@v8
         with:
           branch: bot/desktop-static-data-refresh
           delete-branch: true
-          add-paths: apps/warbandeer-desktop/src-tauri/data/static-data.json
+          # icons.bin too, or a refresh that adds an icon-bearing row would land the name
+          # without the image it needs. It usually won't change — the icon set only moves
+          # when a row gains, loses or swaps an icon — so most refreshes stay a JSON-only diff.
+          add-paths: |
+            apps/warbandeer-desktop/src-tauri/data/static-data.json
+            apps/warbandeer-desktop/src-tauri/data/icons.bin
           commit-message: "chore(desktop): refresh static game data from wago.tools"
           title: "chore(desktop): refresh static game data from wago.tools"
           body: |
             Automated refresh of the desktop app's offline lookup bundle
             (`apps/warbandeer-desktop/src-tauri/data/static-data.json`) from live
-            [wago.tools](https://wago.tools) `CurrencyTypes` data.
+            [wago.tools](https://wago.tools) `CurrencyTypes` data, plus the packed
+            icon set (`icons.bin`) when the icons those rows reference changed.
 
             **No version bump needed.** Since #638 the app release runs on a daily cron and
             auto-bumps `tauri.conf.json` + `package.json` + `Cargo.toml` + `Cargo.lock`

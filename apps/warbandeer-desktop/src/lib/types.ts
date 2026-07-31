@@ -42,6 +42,8 @@ export interface AchievementRow {
   // null when the id isn't in the bundle — a catalog/bundle skew, not an error. Render
   // the bare id so the skew stays visible rather than blanking the row.
   name: string | null;
+  // Bare icon name for `iconUrl()`, or null when the bundle carries no icon for the id.
+  icon: string | null;
   points: number;
   completed: boolean;
 }

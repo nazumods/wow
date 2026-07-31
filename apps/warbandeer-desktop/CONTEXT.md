@@ -7,7 +7,7 @@
 | File | Purpose |
 |---|---|
 | **Rust backend (`src-tauri/`)** | |
-| `src/lib.rs` | Tauri builder — registers the 14 commands (see command surface) |
+| `src/lib.rs` | Tauri builder — registers the 14 commands (see command surface) and the `wbicon` URI scheme (`icons.rs`) |
 | `src/main.rs` | Thin entry point calling `lib.rs::run()` |
 | `src/wow.rs` | Locate `_retail_` (override/`WOW_DIR` → exe/cwd ancestor with `WTF/Account` → default install path); find SavedVariables per account; list accounts with an order file |
 | `src/savedvars.rs` | `load_char_db(path)` — exec the file in a fresh `mlua` Lua 5.1 VM, deserialize global `WarbandeerCharDB` via `LuaSerdeExt` |
@@ -15,6 +15,7 @@
 | `src/overview.rs` | `get_overview` — computes the Overview payload (stat strip, best-standing-per-faction reps, top char per class); mirrors `Warbandeer/views/Overview.lua` + `overview/TopAlts.lua` + `FactionBars.lua`. Has an end-to-end test against the live install (skips if none) |
 | `src/combatlog.rs` | `list_combat_logs` (newest first) + `summarize_combat_log` — streaming CLEU parse: unique `ENCOUNTER_START` names, damage-by-source top 10 |
 | `src/charorder.rs` | Parse/resolve/save `character-list-order.txt` + the remembered-order file; timestamped backups; extensive unit tests |
+| `src/icons.rs` | Bare icon name → image. `data/icons.bin` embedded via `include_bytes!`, parsed once into a `OnceLock<IconPack>`. `image(name)` returns the JPEG bytes, or `None` when the name is unknown **or** packed empty (referenced but imageless). `serve()` backs the `wbicon` URI scheme registered in `lib.rs`, percent-decoding the path first — a few names carry literal spaces |
 | `src/staticdata.rs` | Offline lookup layer — `data/static-data.json` embedded via `include_str!`, parsed once into a `OnceLock`. `currency(id)` resolves a currency id to name / icon name / cap / quality; `achievement(id)` resolves a **tracked** achievement id to name / icon name / points. Generated data, never hand-edited |
 | _(bot ops)_ | **Not in this crate** — the `bot-ops` crate at [`../../bot-ops/rust`](../../bot-ops/rust), a `path` dependency, because `roshne/wow-companion` ships the same panel and vendors it. Operator-only: `ops_config` gate + `bot_status`/`bot_logs`/`bot_restart`/`bot_env_get`/`bot_env_set`, all shelling `ssh` to the box's `apps/warbandeer-discord/ops/bot-ops.sh` (the only privileged surface). **Multi-target**: `ops.json` lists bots (debug/prod, each ssh/remoteDir + compose project/container); every command takes a `target` index and passes `BOT_OPS_PROJECT`/`BOT_OPS_CONTAINER`. Legacy flat `{ssh,remoteDir}` = one `debug` target. Config from the app config dir, `BOT_OPS_CONFIG`, or `WARBANDEER_OPS_CONFIG` (registered from `run()` via `set_config_env_var`); absent ⇒ `ops_config` returns `None` and the tab stays hidden. Registered as `bot_ops::commands::*` — the `commands::` segment is load-bearing, see the module's CONTEXT. Its unit tests live and run upstream |
 | **Svelte frontend (`src/`)** | |
@@ -23,6 +24,8 @@
 | `lib/types.ts` | TS mirrors of the Rust serde structs — **kept in sync by hand** with `overview.rs`/`combatlog.rs`/`charorder.rs` |
 | `lib/theme.ts` | WoW class colors by `classKey` + ilvl tier colors (mirrors addon `data.lua` gearTiers) |
 | `lib/format.ts` | Gold/hours/bytes formatting matching the addon (`en-US` thousands separators) |
+| `lib/icons.ts` | `iconUrl(name)` — bare icon name → a `wbicon` URL via `convertFileSrc`, or `null`. The only place that knows the scheme's name |
+| `lib/components/Icon.svelte` | One game icon at `size` px, with a same-size placeholder when there is no image (null name **or** a 404, tracked by failed URL so a recycled row self-clears). Reserves its box in every case so rows stay aligned |
 | `lib/sort.ts` | Pure sort engine for the Sort tab: `SortMode`, `applySort`, `applyLocked`, gap-rank math (`assignPositions`/`gapRanksFromOrder`), remembered profession-primary choices (localStorage) |
 | `lib/components/Overview.svelte` | 3-column mirror of the addon Overview (StatCard × 3 + FactionBars + Achievements + TopCharacters) |
 | `lib/components/CombatLogPanel.svelte` | Log file list + on-demand summary |
@@ -32,10 +35,11 @@
 | `lib/components/BotOps.svelte` | Operator-only Ops tab: a target (debug/prod) selector when >1 bot, status bar (running/realm), restart (confirmed), an env form over the non-secret whitelist (dirty-tracked, apply → recreate, confirmed), and a log tail. `App.svelte` renders it before the WoW-data gate so it works with no install. **View only** — the field list (`OPS_FIELDS`), the dirty diff (`changedFields`) and the commands come from the shared `@bot-ops` module; wow-companion's React panel renders the same data |
 | **Generated data** | |
 | `src-tauri/data/static-data.json` | **Generated** lookup bundle (~230 KB) from wago.tools + the `interface/icons/` listfile: `currencies` (all 1,490 `CurrencyTypes` rows) and `achievements` (`Achievement` filtered to the 93 ids `Warbandeer_Characters/data/achievementcatalog.lua` declares). Records its source build, carries no timestamp (so an unchanged build regenerates byte-identically) |
+| `src-tauri/data/icons.bin` | **Generated** icon pack (~475 KB) — the 437 distinct icons those two tables reference, 36×36 JPEG, fetched at generation time so the app stays offline (#842). Self-describing: magic, count, name-sorted index of `{nameLen, name, offset, len}`, then the image bytes; `len == 0` marks a referenced name the source has no image for (9 today, all names with a literal space). **`.gitattributes` marks `*.bin binary`** — the repo-wide `* text eol=lf` otherwise collapses CRLF pairs inside the JPEGs and silently truncates the file |
 | `../../Tooling/update-static-data.ps1` | The generator — **lives in `Tooling/`, not here**: it serves `wow-companion` too, and anything under `apps/warbandeer-desktop/` triggers `app-release.yml`, so a generator edit would cut a desktop release for a file that compiles into nothing. Pins a wago build, asserts the DB2 schema per table, resolves icon FileDataIDs → icon names, guards row floor / deletion % / icon-resolution %, and aborts on a tracked achievement id DB2 doesn't know. `-Check` is the staleness gate, `-CacheDir` avoids refetching the ~2 MB listfile |
 | `../../Tooling/UPDATING-static-data.md` | Regeneration workflow, guard rationale, **what earns a place in the bundle** (the #639 offline-vs-credentials decision), and the external-consumer release contract |
 | `../../Warbandeer_Characters/data/achievementcatalog.lua` | Not ours, but the achievement extract is filtered to it — adding an id there needs a bundle regeneration, or the app renders a nameless row. `Tooling/lint-stale-ids.ps1`'s `achievementcatalog.id` rule gates it at PR time |
-| `../../.github/workflows/update-static-data.yml` | **Weekly** refresh → PR only when the data changed; runs `cargo test --lib staticdata` against the fresh asset. Never auto-merged (see Gotchas) |
+| `../../.github/workflows/update-static-data.yml` | **Weekly** refresh → PR only when the data changed; runs `cargo test --lib staticdata` **and** `--lib icons` against the fresh assets, and commits `static-data.json` + `icons.bin` together. Never auto-merged (see Gotchas) |
 | `../../.github/workflows/publish-static-data.yml` | Post-merge: attaches the bundle to a release tagged `app-static-data-v<build>-<sha8>` for consumers **outside** this repo (`roshne/wow-companion`). The app itself doesn't use it — it embeds the file. Content-addressed + skip-if-exists, because releases are immutable |
 | **Build & release** | |
 | `vite.config.ts`, `svelte.config.js`, `tsconfig*.json` | Vite on fixed port 1420 (`strictPort`), `src-tauri/` excluded from watch |
@@ -101,6 +105,8 @@ Version lives in **three places kept in sync by hand**: `src-tauri/tauri.conf.js
 ## Gotchas
 
 - **Every numeric in `model.rs` is `f64`** — WoW's Lua 5.1 has no integer type, so saved numbers must deserialize as doubles (serde's float visitor accepts integers too); typed as `i64` they'd fail with "invalid type". Casts to `i64` happen at the payload edge.
+- **`static-data.json` and `icons.bin` must be regenerated and committed together.** They're generated from one name set, and the bundle's icon names are only meaningful if the pack carries them. `icons::tests::embedded_pack_covers_every_icon_the_bundle_references` is the guard; the refresh workflow commits both paths.
+- **A packed icon can be missing even when the bundle names one.** Two independent "no icon" cases reach the UI — the bundle's `icon` is null (DB2 has none, true for ~916 of 1,490 currencies), or the pack has the name with no image (9 today). Both render as the placeholder, so no consumer should treat a name as a promise of an image.
 - **Rust structs ↔ `lib/types.ts` sync is manual.** Payloads are `#[serde(rename_all = "camelCase")]`; a field added on one side silently arrives as `undefined` on the other — no codegen, no runtime check.
 - **Multi-account behavior differs by tab**: Overview auto-picks the account with the newest `Warbandeer_Characters.lua`; the Sort tab lists all accounts that have an order file and lets the user choose.
 - **`_retail_` auto-detection relies on the repo location** — the exe/cwd ancestor walk works in dev precisely because the app lives under `…/_retail_/Interface/AddOns/apps/`. A portable exe run elsewhere falls back to the default install path or needs `WOW_DIR`.

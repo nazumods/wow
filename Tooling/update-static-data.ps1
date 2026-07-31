@@ -35,16 +35,27 @@
       lookup (?search= matches on path), so the whole icons map is fetched once and
       cached — see -CacheDir.
 
+  A bare icon name is still not something a browser can draw, so this script ALSO packs
+  the referenced icon images into a second artifact, icons.bin, embedded the same way
+  (nazumods/wow#842). The images are fetched HERE, at generation time, from the Wowhead
+  CDN — the shipped app never talks to the network, which is the whole reason the bundle
+  is embedded in the first place. Only the ~440 icons the two tables actually reference
+  are packed, not all of interface/icons/.
+
   The output carries NO generation timestamp, only the build it came from. A rerun
   against an unchanged build must produce a byte-identical file, or the scheduled
-  refresh would open a PR every week with an empty diff.
+  refresh would open a PR every week with an empty diff. icons.bin holds the same
+  property: entries are name-sorted, and a name already in the previous blob is reused
+  rather than refetched, so an unchanged icon set reproduces the identical file at no
+  download cost.
 
 .PARAMETER OutFile      Bundle path. Defaults to ../src-tauri/data/static-data.json.
+.PARAMETER IconFile     Packed icon blob path. Defaults to ../src-tauri/data/icons.bin.
 .PARAMETER CatalogFile  Lua file whose achievement ids the Achievement extract is filtered to.
 .PARAMETER Product      wago product. 'wow' = live retail.
 .PARAMETER Build        Optional client build (e.g. 12.0.7.68453). Omit for latest.
 .PARAMETER CacheDir     Reuse downloaded responses instead of refetching (wago politeness).
-.PARAMETER Check        Don't write; exit 1 if the bundle would change (CI staleness gate).
+.PARAMETER Check        Don't write; exit 1 if either artifact would change (CI staleness gate).
 
 .EXAMPLE
   pwsh ./update-static-data.ps1
@@ -59,6 +70,8 @@ param(
   # the published release) and because anything under apps/warbandeer-desktop/ triggers
   # app-release.yml — a generator edit must not cut a desktop release.
   [string]$OutFile = (Join-Path $PSScriptRoot '..' 'apps' 'warbandeer-desktop' 'src-tauri' 'data' 'static-data.json'),
+  # Sits beside the bundle for the same reason, and is embedded the same way (include_bytes!).
+  [string]$IconFile = (Join-Path $PSScriptRoot '..' 'apps' 'warbandeer-desktop' 'src-tauri' 'data' 'icons.bin'),
   # The achievement extract is filtered to the ids Warbandeer's views actually track, which
   # this file already exists to declare ("single source of truth for the achievement ids
   # Warbandeer's views track"). Filtering keeps a 13.8k-row / 2 MB table down to a few KB;
@@ -72,6 +85,11 @@ param(
   [int]$MinIcons = 20000,   # abort if the icons listfile looks truncated
   [int]$MaxDeletePct = 5,   # abort if regeneration would drop more than this % of either table
   [int]$MaxUnresolvedPct = 5, # abort if this % of REAL icon ids miss the listfile (see below)
+  # 36x36. The app draws these at ~16-18px, so 'medium' is already 2x for HiDPI; 'large'
+  # (56x56) doubles the packed size for nothing visible.
+  [ValidateSet('small', 'medium', 'large')]
+  [string]$IconSize = 'medium',
+  [int]$MaxIconMissPct = 5, # abort if this % of referenced icon names fail to download
   [switch]$Check
 )
 
@@ -108,6 +126,102 @@ function Get-Cached([string]$key, [string]$url, [int]$timeoutSec) {
   $content = (Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec $timeoutSec -ErrorAction Stop).Content
   if ($CacheDir) { [System.IO.File]::WriteAllText($path, $content, [System.Text.UTF8Encoding]::new($false)) }
   return $content
+}
+
+# --- Packed icon blob ------------------------------------------------------
+# One file rather than a directory of images, because the consumer embeds it with a single
+# include_bytes! and a sidecar directory would break the single-portable-exe property.
+#
+#   magic  "WBICON1\0"                                              8 bytes
+#   count  u32                                                      little-endian
+#   index  count x { nameLen u16, name utf8, offset u32, len u32 }   sorted by name
+#   data   concatenated JPEG bytes
+#
+# A len of 0 means "referenced, but the CDN has no image under that name" — recorded rather
+# than omitted so a rerun doesn't retry the same dead names, and so -Check stays a pure byte
+# comparison once the name set has settled. The consumer renders that the same as icon:null.
+$IconMagic = [byte[]]@(0x57, 0x42, 0x49, 0x43, 0x4F, 0x4E, 0x31, 0x00)
+
+function Read-IconBlob([string]$path) {
+  $map = @{}
+  if (-not (Test-Path -LiteralPath $path)) { return $map }
+  $bytes = [System.IO.File]::ReadAllBytes($path)
+  if ($bytes.Length -lt ($IconMagic.Length + 4)) { return $map }
+  for ($i = 0; $i -lt $IconMagic.Length; $i++) {
+    # An unrecognised blob is treated as absent: every icon is refetched and the file is
+    # rewritten in the current format, which is what a format bump wants to happen.
+    if ($bytes[$i] -ne $IconMagic[$i]) { return @{} }
+  }
+  $reader = [System.IO.BinaryReader]::new([System.IO.MemoryStream]::new($bytes, $false))
+  try {
+    $null = $reader.ReadBytes($IconMagic.Length)
+    $count = $reader.ReadUInt32()
+    for ($i = 0; $i -lt $count; $i++) {
+      $nameLen = $reader.ReadUInt16()
+      $name = [System.Text.Encoding]::UTF8.GetString($reader.ReadBytes($nameLen))
+      $offset = $reader.ReadUInt32()
+      $len = $reader.ReadUInt32()
+      # A truncated or otherwise inconsistent blob is discarded WHOLE rather than yielding
+      # empty entries: an empty entry means "the CDN has no such icon", and quietly
+      # inventing those would refetch nothing and rewrite the same broken file forever.
+      if ($offset + $len -gt $bytes.Length) { return @{} }
+      $map[$name] = if ($len -eq 0) { [byte[]]@() } else { [byte[]]$bytes[$offset..($offset + $len - 1)] }
+    }
+  } finally { $reader.Dispose() }
+  return $map
+}
+
+function New-IconBlob([string[]]$names, [hashtable]$images) {
+  $stream = [System.IO.MemoryStream]::new()
+  $writer = [System.IO.BinaryWriter]::new($stream)
+  try {
+    $writer.Write($IconMagic)
+    $writer.Write([uint32]$names.Count)
+    # Index entries are fixed-width apart from the name, so the data section's start is known
+    # before any of it is written — no second pass needed to backfill offsets.
+    $offset = $IconMagic.Length + 4
+    foreach ($n in $names) { $offset += 2 + [System.Text.Encoding]::UTF8.GetByteCount($n) + 8 }
+    foreach ($n in $names) {
+      $nameBytes = [System.Text.Encoding]::UTF8.GetBytes($n)
+      $len = ([byte[]]$images[$n]).Length
+      $writer.Write([uint16]$nameBytes.Length)
+      $writer.Write($nameBytes)
+      $writer.Write([uint32]$offset)
+      $writer.Write([uint32]$len)
+      $offset += $len
+    }
+    foreach ($n in $names) {
+      # Cast every time: BinaryWriter.Write picks its overload off the STATIC type, and an
+      # Object[] of bytes silently takes a different one instead of writing the image.
+      $data = [byte[]]$images[$n]
+      if ($data.Length -gt 0) { $writer.Write($data) }
+    }
+    $writer.Flush()
+    # Comma operator throughout this script's binary paths: a bare `return $bytes` is unrolled
+    # by the pipeline into individual bytes and reassembled as Object[], which then loses the
+    # BinaryWriter overload above.
+    return , $stream.ToArray()
+  } finally { $writer.Dispose() }
+}
+
+function Get-IconImage([string]$name) {
+  # Escaped, because not every icon name is url-safe: the listfile carries a handful with
+  # literal spaces ("ui_majorfaction_ vines"). Those happen to have no image at the source
+  # today, but the request has to be well-formed for the day one of them does.
+  $url = "https://wow.zamimg.com/images/wow/icons/$IconSize/$([uri]::EscapeDataString($name)).jpg"
+  try {
+    $body = (Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 60 -ErrorAction Stop).Content
+  } catch {
+    # A 404 is the expected miss (a name the CDN doesn't carry); anything else is a transport
+    # problem, and both are handled the same way — record the miss and let the aggregate
+    # MaxIconMissPct guard below decide whether the run as a whole is trustworthy.
+    return , [byte[]]@()
+  }
+  if ($body -isnot [byte[]]) { throw "Expected image bytes for $name, got $($body.GetType().Name)." }
+  # JPEG SOI. The CDN answers a missing icon with an HTML error page on some edges, and
+  # packing that as an image would fail silently at render time instead of here.
+  if ($body.Length -lt 2 -or $body[0] -ne 0xFF -or $body[1] -ne 0xD8) { return , [byte[]]@() }
+  return , $body
 }
 
 # --- 1. Resolve the build to pull ------------------------------------------
@@ -295,6 +409,36 @@ if (Test-Path -LiteralPath $OutFile) {
   }
 }
 
+# --- 6. Pack the referenced icons -----------------------------------------
+# Scoped to the names the two tables actually reference — a few hundred, not the tens of
+# thousands under interface/icons/. Both tables share the pool (an achievement and a currency
+# can carry the same icon), so it is deduped across them and packed once.
+$iconNames = @(
+  ($currencies.Values.icon + $achievements.Values.icon) |
+    Where-Object { $_ } | Sort-Object -Unique
+)
+$haveIcons = Read-IconBlob $IconFile
+$iconImages = @{}
+$fetched = 0
+$iconMisses = @()
+foreach ($n in $iconNames) {
+  if ($haveIcons.ContainsKey($n)) { $iconImages[$n] = $haveIcons[$n] }
+  else { $iconImages[$n] = Get-IconImage $n; $fetched++ }
+  if ($iconImages[$n].Length -eq 0) { $iconMisses += $n }
+}
+if ($iconNames.Count -gt 0) {
+  # Mirrors the MaxUnresolvedPct guard on the listfile join: a handful of names the CDN has
+  # never carried is normal, a spike means the fetch itself broke and the next release would
+  # ship a blob full of holes.
+  $missPct = [math]::Round(($iconMisses.Count / $iconNames.Count) * 100, 2)
+  if ($missPct -gt $MaxIconMissPct) {
+    throw "$missPct% of referenced icons failed to download ($($iconMisses.Count)/$($iconNames.Count), max $MaxIconMissPct%) — the icon CDN fetch looks wrong, aborting."
+  }
+}
+$iconBlob = New-IconBlob $iconNames $iconImages
+$iconExisting = if (Test-Path -LiteralPath $IconFile) { [System.IO.File]::ReadAllBytes($IconFile) } else { $null }
+$iconStale = ($null -eq $iconExisting) -or (-not [System.Linq.Enumerable]::SequenceEqual([byte[]]$iconBlob, [byte[]]$iconExisting))
+
 # No generatedAt: the bundle must be byte-identical for an unchanged build so the
 # scheduled refresh only opens a PR when the DATA moved.
 $bundle = [ordered]@{
@@ -320,20 +464,35 @@ $existing = if (Test-Path -LiteralPath $OutFile) { (Get-Content -LiteralPath $Ou
 Write-Host "$($currencies.Count) currencies — $noIconData carry no icon in DB2, $unresolved icon ids missed the listfile." -ForegroundColor Cyan
 Write-Host "$($achievements.Count) achievements of $($trackedIds.Count) tracked — $achNoIconData carry no icon in DB2, $achUnresolved icon ids missed the listfile." -ForegroundColor Cyan
 
+$packedBytes = ($iconNames | ForEach-Object { $iconImages[$_].Length } | Measure-Object -Sum).Sum
+Write-Host "$($iconNames.Count) distinct icons packed, $fetched newly downloaded, $($iconMisses.Count) unavailable — $([math]::Round($packedBytes / 1KB)) KB of images." -ForegroundColor Cyan
+
+$jsonStale = $json -ne $existing
+
 if ($Check) {
-  if ($json -ne $existing) {
-    Write-Host 'static-data.json is STALE — rerun without -Check to regenerate.' -ForegroundColor Yellow
+  if ($jsonStale -or $iconStale) {
+    $what = @(if ($jsonStale) { 'static-data.json' }; if ($iconStale) { 'icons.bin' }) -join ' and '
+    Write-Host "$what is STALE — rerun without -Check to regenerate." -ForegroundColor Yellow
     exit 1
   }
-  Write-Host 'static-data.json is current.' -ForegroundColor Green
+  Write-Host 'static-data.json and icons.bin are current.' -ForegroundColor Green
   exit 0
 }
 
-if ($json -eq $existing) {
-  Write-Host 'No changes — static-data.json already current.' -ForegroundColor Green
+if (-not $jsonStale -and -not $iconStale) {
+  Write-Host 'No changes — static-data.json and icons.bin already current.' -ForegroundColor Green
   exit 0
 }
 
-$null = New-Item -ItemType Directory -Force -Path (Split-Path -Parent $OutFile)
-[System.IO.File]::WriteAllText($OutFile, $json, [System.Text.UTF8Encoding]::new($false))
-Write-Host "Wrote $OutFile" -ForegroundColor Green
+# Written independently: the icon set only moves when a currency or achievement gains, loses
+# or changes an icon, so most data refreshes leave icons.bin byte-identical and out of the diff.
+if ($jsonStale) {
+  $null = New-Item -ItemType Directory -Force -Path (Split-Path -Parent $OutFile)
+  [System.IO.File]::WriteAllText($OutFile, $json, [System.Text.UTF8Encoding]::new($false))
+  Write-Host "Wrote $OutFile" -ForegroundColor Green
+}
+if ($iconStale) {
+  $null = New-Item -ItemType Directory -Force -Path (Split-Path -Parent $IconFile)
+  [System.IO.File]::WriteAllBytes($IconFile, $iconBlob)
+  Write-Host "Wrote $IconFile" -ForegroundColor Green
+}

@@ -55,6 +55,10 @@ pub struct AchievementRow {
     /// `None` when the id isn't in the bundle — a catalog/bundle skew rather than an error.
     /// The frontend renders the bare id in that case, so the skew is visible instead of silent.
     pub name: Option<String>,
+    /// Bare icon name for the `wbicon` scheme, or `None` when the bundle carries no icon for
+    /// the id. Sent even though it duplicates the bundle, for the same reason `name` is: the
+    /// alternative is an IPC round trip per row.
+    pub icon: Option<String>,
     pub points: i64,
     pub completed: bool,
 }
@@ -114,6 +118,7 @@ fn build_achievements(db: &CharDb) -> OverviewAchievements {
                     AchievementRow {
                         id,
                         name: meta.map(|m| m.name.clone()),
+                        icon: meta.and_then(|m| m.icon.clone()),
                         points: meta.map_or(0, |m| m.points),
                         completed: snapshot.get(&(id as i64)).is_some_and(|e| e.completed),
                     }
@@ -399,6 +404,26 @@ mod tests {
         let row = group.rows.iter().find(|r| r.id == done).expect("row");
         assert!(row.completed);
         assert!(row.name.is_some(), "a tracked id resolves against the bundle");
+
+        // Every checklist row carries its icon NAME through to the frontend — unlike
+        // currencies, every tracked achievement has one in DB2, so a null is a plumbing bug.
+        //
+        // Serving it is a weaker claim on purpose: a few names are indexed with no image
+        // because the source has none for them (all of them names with a literal space, e.g.
+        // "ui_majorfaction_ vines"). That is the graceful-fallback case the UI has to render
+        // anyway, so this pins the bulk rather than demanding every single one.
+        let mut servable = 0;
+        for r in &group.rows {
+            let icon = r.icon.as_deref().expect("a tracked achievement carries an icon");
+            if crate::icons::get().image(icon).is_some() {
+                servable += 1;
+            }
+        }
+        assert!(
+            servable * 10 >= group.rows.len() * 9,
+            "only {servable}/{} checklist icons resolve to an image",
+            group.rows.len()
+        );
     }
 
     // End-to-end against the live install if present (mlua deserialize of the real

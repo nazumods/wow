@@ -8,6 +8,11 @@ Current contents: **currencies** (the full `CurrencyTypes` table), **achievement
 (`Achievement`, filtered to the ids Warbandeer's views track), and **achievementGroups**
 (which of those ids belong to which expansion).
 
+The generator emits a **second artifact** beside it, `data/icons.bin` — the icon images the
+two tables reference, packed into one file and embedded with `include_bytes!`. See
+[The packed icon set](#the-packed-icon-set) below. Both files are generated; neither is
+hand-editable, and they must be regenerated and committed **together**.
+
 `achievementGroups` is the only key not sourced from wago: it is parsed out of
 `achievementcatalog.lua`'s `checklist` table, the same file the id filter already reads, so
 there is one source of truth and the existing `achievementcatalog.id` lint rule guards it.
@@ -87,8 +92,10 @@ pwsh ./Tooling/update-static-data.ps1
 
 | Flag | Effect |
 |---|---|
-| `-Check` | Don't write; exit 1 if the bundle is stale. CI staleness gate. |
-| `-CacheDir <dir>` | Reuse downloaded responses instead of refetching. Use this while iterating — the icons listfile is ~2 MB. |
+| `-Check` | Don't write; exit 1 if **either** artifact is stale. CI staleness gate. |
+| `-CacheDir <dir>` | Reuse downloaded responses instead of refetching. Use this while iterating — the icons listfile is ~2 MB. (The icon *images* need no cache dir: they're reused from the existing `icons.bin`.) |
+| `-IconSize <s>` | `small` (18×18), `medium` (36×36, default), `large` (56×56). |
+| `-IconFile <f>` | Packed icon blob path. Defaults to `apps/warbandeer-desktop/src-tauri/data/icons.bin`. |
 | `-Build <v>` | Pin a specific client build instead of the latest. |
 | `-Product <p>` | wago product; `wow` = live retail, `wowt` = PTR. |
 | `-CatalogFile <f>` | Lua file the achievement filter reads ids from. Defaults to `Warbandeer_Characters/data/achievementcatalog.lua`. |
@@ -101,6 +108,55 @@ pwsh ./Tooling/update-static-data.ps1
   FileDataID becomes a renderable icon **name** (`inv_misc_coin_01`) rather than an opaque
   number. There is no per-FileDataID endpoint (`?search=` matches on path), so the whole icons
   map is fetched once — hence `-CacheDir`.
+- `wow.zamimg.com/images/wow/icons/<size>/<name>.jpg` — the icon **image** for each referenced
+  name, packed into `icons.bin`. The only non-wago source, and the only one fetched per-item
+  rather than in bulk; names already present in the previous blob are not refetched.
+
+## The packed icon set
+
+Both tables store an icon **name** (`inv_misc_coin_01`) — the identity WoW uses internally,
+which is not a path, not a FileDataID, and nothing a browser can load. `data/icons.bin` closes
+that gap ([#842](https://github.com/nazumods/wow/issues/842)): the images are fetched **here,
+at generation time**, from the Wowhead CDN, and embedded in the exe. The shipped app makes no
+network request — the property that made the bundle an `include_str!` in the first place.
+
+Of the three sourcing options #842 weighed, this is the only one that leaves that property
+untouched. Fetching per-icon at runtime would put the app on the network and need an on-disk
+cache it has none of today; extracting from the player's own client means implementing CASC
+and BLP decoding, an order of magnitude more work.
+
+Scope is what the bundle **references**, not all of `interface/icons/`: currencies and
+achievements share icons heavily, so 573 + 93 icon-bearing rows come to **437 distinct names**,
+~460 KB at 36×36 (`-IconSize medium`, downscaled to ~14 px in the UI). `-IconSize large`
+(56×56) doubles that for nothing visible.
+
+Layout — one file, because the consumer embeds it with a single `include_bytes!`:
+
+```
+magic  "WBICON1\0"                                             8 bytes
+count  u32                                                     little-endian throughout
+index  count × { nameLen u16, name utf8, offset u32, len u32 }  sorted by name
+data   concatenated JPEG bytes
+```
+
+A **zero-length entry** means "referenced, but the source has no image under that name". It is
+recorded rather than omitted so a rerun doesn't retry a known-dead name, and so `-Check` stays
+a pure byte comparison. 9 of the 437 are like this today — every one of them a name with a
+literal space (`ui_majorfaction_ vines`), which the CDN carries under no spelling. The consumer
+renders them exactly like a row whose `icon` is null, which is the common case anyway.
+
+Determinism holds the same way the JSON's does: entries are name-sorted, and a name already in
+the previous blob is **reused rather than refetched** — so an unchanged icon set reproduces a
+byte-identical file at no download cost, and most data refreshes leave `icons.bin` out of the
+diff entirely.
+
+> `.gitattributes` marks `*.bin binary`. Without it the repo-wide `* text eol=lf` collapses
+> every CRLF byte pair **inside the packed JPEGs**, silently shortening the file on commit.
+
+`icons.bin` is **not** published to external consumers — `publish-static-data.yml` still
+attaches only `static-data.json`. A consumer outside a portable exe (e.g. `wow-companion`) has
+network access and can resolve icon names against a CDN itself; the pack exists specifically to
+buy offline rendering.
 
 ## Guards
 
@@ -115,7 +171,12 @@ The generator aborts rather than writing a wrong file when:
 - the icons listfile has fewer than `-MinIcons` entries;
 - regeneration would drop more than `-MaxDeletePct` % of *either* table (a table missing from the
   previous bundle is treated as newly added, not as a 100% deletion);
-- more than `-MaxUnresolvedPct` % of *real* currency icon ids miss the listfile.
+- more than `-MaxUnresolvedPct` % of *real* currency icon ids miss the listfile;
+- more than `-MaxIconMissPct` % of referenced icon **names** fail to download. The same idea as
+  the previous guard, one step further down the chain: a handful of dead names is normal (9 of
+  437 today), a spike means the CDN fetch itself broke and the next release would ship a pack
+  full of holes. A response that isn't a JPEG counts as a miss, so an error page can't be
+  packed in place of an image.
 
 That last guard is deliberately scoped to rows that **have** an icon id. Most currencies
 (~916 of 1,490) carry `InventoryIconFileID = 0` — DB2 simply has no icon for them, which is
@@ -130,7 +191,9 @@ worth noticing rather than averaging away. The counts are printed either way.
 
 The bundle records the build it came from and **no generation timestamp**, and the generator
 normalises its output to LF. A rerun against an unchanged build produces a byte-identical
-file — otherwise the scheduled refresh would open an empty-diff PR every week.
+file — otherwise the scheduled refresh would open an empty-diff PR every week. `icons.bin`
+holds the same property by a different route (name-sorted entries, images reused from the
+previous blob); the two are written independently, so an unchanged one stays out of the diff.
 
 ## Refresh cadence
 
