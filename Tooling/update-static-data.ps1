@@ -203,7 +203,10 @@ function New-IconBlob([string[]]$names, [hashtable]$images) {
 }
 
 function Get-IconImage([string]$name) {
-  $url = "https://wow.zamimg.com/images/wow/icons/$IconSize/$name.jpg"
+  # Escaped, because not every icon name is url-safe: the listfile carries a handful with
+  # literal spaces ("ui_majorfaction_ vines"). Those happen to have no image at the source
+  # today, but the request has to be well-formed for the day one of them does.
+  $url = "https://wow.zamimg.com/images/wow/icons/$IconSize/$([uri]::EscapeDataString($name)).jpg"
   try {
     $body = (Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 60 -ErrorAction Stop).Content
   } catch {

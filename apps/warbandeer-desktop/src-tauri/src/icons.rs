@@ -109,8 +109,12 @@ pub fn get() -> &'static IconPack {
 /// image-less name is a plain 404 — the frontend already has to render "no icon" for the many
 /// bundle rows whose `icon` is null, so it needs no distinct signal here.
 pub fn serve(request: &tauri::http::Request<Vec<u8>>) -> tauri::http::Response<Cow<'static, [u8]>> {
-    let name = request.uri().path().trim_start_matches('/');
-    match get().image(name) {
+    // Decoded, not taken raw: not every icon name is url-safe. A handful in the listfile carry
+    // literal spaces ("ui_majorfaction_ vines"), which the frontend's convertFileSrc
+    // percent-encodes, so an undecoded lookup would miss every one of them.
+    let name = percent_encoding::percent_decode_str(request.uri().path().trim_start_matches('/'))
+        .decode_utf8_lossy();
+    match get().image(&name) {
         Some(bytes) => tauri::http::Response::builder()
             .status(200)
             .header(tauri::http::header::CONTENT_TYPE, "image/jpeg")
@@ -211,6 +215,50 @@ mod tests {
         let at = MAGIC.len() + 4 + 2 + "a_icon".len() + 4;
         blob[at..at + 4].copy_from_slice(&9999u32.to_le_bytes());
         assert!(parse(leak(blob)).is_err());
+    }
+
+    fn serve_path(path: &str) -> tauri::http::Response<Cow<'static, [u8]>> {
+        let request = tauri::http::Request::builder()
+            .uri(format!("http://wbicon.localhost{path}"))
+            .body(Vec::new())
+            .expect("test request builds");
+        serve(&request)
+    }
+
+    #[test]
+    fn serves_a_packed_icon_and_404s_the_rest() {
+        let icon = get()
+            .entries
+            .iter()
+            .find(|(_, b)| !b.is_empty())
+            .map(|(n, _)| *n)
+            .expect("the pack has at least one image");
+        let ok = serve_path(&format!("/{icon}"));
+        assert_eq!(ok.status(), 200);
+        assert_eq!(ok.headers()["content-type"], "image/jpeg");
+        assert!(!ok.body().is_empty());
+
+        assert_eq!(serve_path("/no_such_icon_at_all").status(), 404);
+        assert_eq!(serve_path("/").status(), 404);
+    }
+
+    #[test]
+    fn serves_a_percent_encoded_name() {
+        // The listfile carries names with literal spaces, which the frontend encodes as %20.
+        // Asserted against the real pack so it stays honest about what those names are: they
+        // are all currently image-less, so the win is that the LOOKUP hits its entry rather
+        // than missing the index entirely.
+        let spaced = get()
+            .entries
+            .keys()
+            .find(|n| n.contains(' '))
+            .expect("the pack indexes at least one name with a space");
+        let encoded = spaced.replace(' ', "%20");
+        assert_eq!(
+            get().image(spaced).is_some(),
+            serve_path(&format!("/{encoded}")).status() == 200,
+            "'{spaced}' must resolve the same whether or not the space arrives encoded"
+        );
     }
 
     #[test]
