@@ -54,9 +54,16 @@ metadata attached to it, and the bundle covers only the residue:
 | `Achievement` | `Warbandeer_Characters/data/achievements.lua` deliberately snapshots only `completed` + `wasEarnedByMe`, leaving name/points/icon to be looked up rather than duplicated into every save. Filtered to the tracked ids — see below. |
 
 Deliberately **absent**, because the addon persists them itself: the title catalog (#721),
-keystone/mastery/currency display metadata (#722), appearance-unlock and class-mount state
-(#724), pet species (#726), reputation thresholds (#702), and item names in the gear caches
-(#635). Bundling those would ship a second, staler copy of data the app already reads.
+mastery passive text (#722), appearance-unlock and class-mount state (#724), pet species
+(#726), reputation thresholds (#702), and item names in the gear caches (#635). Bundling
+those would ship a second, staler copy of data the app already reads.
+
+**Currency display metadata is not on that list**, despite having been listed here — it comes
+from `CurrencyTypes` in this bundle, exactly as the table above says. Neither is **keystone**:
+`Warbandeer_Characters/data/weekly.lua` persists the raw challenge-map id and resolves the
+dungeon name at render time from the live client, so an offline reader has neither, and nothing
+bundles it today. #722 covered mastery passive text, gear-cache item names, prof-gear slots and
+Traveler's Log rewards — it touched no currency or keystone file.
 
 Adding a table later means extending the generator, not reworking it — but the bar is that
 same rule: the addon must have no way to persist it, or a good reason not to.
