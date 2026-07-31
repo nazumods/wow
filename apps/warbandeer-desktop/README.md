@@ -18,7 +18,7 @@ the game. The first view is a desktop mirror of the addon's **Overview**.
 | Stat strip — warband wealth (+weekly), playtime (+this patch), top ilvl | `WarbandeerCharDB.warband` + per-char `currency`/`playtime`/`equipment` | ✅ exact |
 | Reputations | per-char `reputations.factions` — best standing per faction, account-wide | ✅ (offline analogue of the live rep bars) |
 | Top Characters | top char per class by level/ilvl | ✅ (raid set-completion columns: planned, needs the Collected DB) |
-| Achievements | `db.achievements` snapshot + bundled catalog | ✅ per-expansion checklist, completed/total and points (text only — no icons yet) |
+| Achievements | `db.achievements` snapshot + bundled catalog | ✅ per-expansion checklist with icons, completed/total and points |
 | Combat logs | `Logs/WoWCombatLog*.txt` | ✅ list + lightweight CLEU summary (encounters, top damage) |
 | Character Sort | `WTF/Account/<name>/character-list-order.txt` | ✅ reorder the character-select list (see below) |
 | Ops (operator-only) | the `warbandeer-discord` bot on the box, over SSH | 🔧 hidden unless `ops.json` is present (see below) |

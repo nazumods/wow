@@ -3785,6 +3785,7 @@ dependencies = [
  "bot-ops",
  "chrono",
  "mlua",
+ "percent-encoding",
  "serde",
  "serde_json",
  "tauri",

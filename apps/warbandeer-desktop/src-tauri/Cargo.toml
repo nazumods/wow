@@ -19,6 +19,9 @@ tauri = { version = "2", features = [] }
 bot-ops = { path = "../../bot-ops/rust" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+# Icon names are not all url-safe — the listfile carries a handful with literal spaces
+# ("ui_majorfaction_ vines") — so the wbicon scheme has to decode what the webview encoded.
+percent-encoding = "2"
 mlua = { version = "0.10", features = ["lua51", "vendored", "serialize"] }
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 
