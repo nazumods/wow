@@ -4,7 +4,7 @@ import { state, saveState } from "./state";
 import { currentOrNextDmf } from "./wow/dmf";
 import { lastWeeklyReset } from "./wow/reset";
 import { realmStatus, realmWatchConfigured, decideRealmTransition, type RealmStatus } from "./wow/realm";
-import { fetchReleases, decideReleaseAnnouncements } from "./github";
+import { fetchReleases, decideReleaseAnnouncements, createReachabilityLog } from "./github";
 import { checkForUpdate } from "./update";
 import { restartPending, withCritical } from "./restart";
 
@@ -144,8 +144,27 @@ async function checkReleases(client: Client): Promise<void> {
   }
 }
 
+// A watched repo can be unreadable for as long as it is watched — renamed, deleted, or private
+// to the bot's token — and that must not reprint the same failure every poll, where it would
+// bury a real one. Track it here so the condition is reported on its edges only.
+const releaseReachability = createReachabilityLog();
+
 async function checkRepoReleases(client: Client, repo: string): Promise<void> {
   const releases = await fetchReleases(repo);
+  if (releases === null) {
+    if (releaseReachability.observe(repo, false) === "lost") {
+      console.warn(
+        `[release] ${repo} is unreachable (missing, or GITHUB_TOKEN cannot see it) — ` +
+          `skipping it quietly until it answers again`,
+      );
+    }
+    // Leave its seen-id list untouched, so a repo that comes back seeds silently rather
+    // than announcing everything published while it was invisible.
+    return;
+  }
+  if (releaseReachability.observe(repo, true) === "recovered") {
+    console.log(`[release] ${repo} is reachable again`);
+  }
   const { toAnnounce, nextSeen } = decideReleaseAnnouncements(releases, state.seenReleaseIds[repo]);
   for (const release of toAnnounce) {
     await announce(client, "release", `📦 New release: **${release.name}**\n${release.url}`);

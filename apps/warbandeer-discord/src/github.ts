@@ -7,13 +7,22 @@ export interface Release {
   url: string;
 }
 
-export async function fetchReleases(repo: string): Promise<Release[]> {
+/**
+ * A watched repo's releases, or `null` when GitHub answers 404 — the repo doesn't exist, or
+ * `GITHUB_TOKEN` can't see it (GitHub deliberately 404s a private repo rather than 403ing it,
+ * so the two are indistinguishable from here). That is a standing condition, not a blip, so it
+ * returns rather than throws and lets the caller skip the repo quietly; every other failure —
+ * 403 rate-limit, 401 bad token, 5xx — still throws, so a real outage stays loud. A repo with
+ * no releases answers 200 with `[]`, so it never reaches the 404 path.
+ */
+export async function fetchReleases(repo: string): Promise<Release[] | null> {
   const headers: Record<string, string> = {
     Accept: "application/vnd.github+json",
     "User-Agent": "warbandeer-discord",
   };
   if (config.githubToken) headers.Authorization = `Bearer ${config.githubToken}`;
   const res = await fetch(`https://api.github.com/repos/${repo}/releases?per_page=15`, { headers });
+  if (res.status === 404) return null;
   if (!res.ok) throw new Error(`GitHub releases query failed for ${repo}: ${res.status}`);
   const data = (await res.json()) as {
     id: number;
@@ -50,6 +59,32 @@ export function decideReleaseAnnouncements(
   const seenSet = new Set(seen);
   const toAnnounce = releases.filter((r) => !seenSet.has(r.id)).reverse();
   return { toAnnounce, nextSeen: [...seen, ...toAnnounce.map((r) => r.id)] };
+}
+
+export type ReachabilityTransition = "lost" | "recovered";
+
+export interface ReachabilityLog {
+  /**
+   * Record one observation of `repo` and report whether it changed state: `"lost"` on the
+   * first failure, `"recovered"` when it answers again, `null` while it stays as it was.
+   * Log only on a transition and a repo that is unreachable for good reports itself once
+   * instead of once per poll.
+   */
+  observe(repo: string, reachable: boolean): ReachabilityTransition | null;
+}
+
+/** Deliberately in-memory: a restart re-reports a still-unreachable repo exactly once, which
+ * is the right amount of noise after a redeploy. */
+export function createReachabilityLog(): ReachabilityLog {
+  const unreachable = new Set<string>();
+  return {
+    observe(repo, reachable) {
+      if (reachable) return unreachable.delete(repo) ? "recovered" : null;
+      if (unreachable.has(repo)) return null;
+      unreachable.add(repo);
+      return "lost";
+    },
+  };
 }
 
 export interface CreatedIssue {
