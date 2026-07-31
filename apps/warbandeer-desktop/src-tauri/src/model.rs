@@ -82,6 +82,8 @@ pub struct Character {
     pub is_alliance: bool,
     pub basic: Basic,
     pub equipment: Option<Equipment>,
+    /// Absent on a character the currency broker has never run for; `Currency::get` then
+    /// reports every field as "never captured", which is a render case, not an error.
     pub currency: Option<Currency>,
     pub playtime: Option<Playtime>,
     pub reputations: Option<Reputations>,
@@ -126,10 +128,66 @@ pub struct Equipment {
     pub ilvl: Option<f64>,
 }
 
-#[derive(Deserialize, Default)]
+/// One entry of `toon.currency`, in every shape the broker writes.
+///
+/// `Warbandeer_Characters/data/currency.lua` stores four scalar fields (`gold`,
+/// `RestoredCofferKey`, `FieldAccolade`, `UnalloyedAbundance`) and six tables, the tables
+/// themselves in four different shapes depending on which caps the currency has. One
+/// all-defaulted [`CurrencyTable`] collapses those four; the `Scalar` arm covers the plain
+/// numbers **and** the legacy `NebulousVoidcore`, which real saves can still hold as a bare
+/// count from before it became a table (the addon's own `reset` carries a `type(c) ==
+/// "number"` branch for exactly this).
+#[derive(Deserialize, Clone, Debug)]
+#[serde(untagged)]
+pub enum CurrencyValue {
+    Scalar(f64),
+    Table(CurrencyTable),
+}
+
+/// The table-shaped currency entries. Every key is optional because no single broker field
+/// writes all of them: `max` is a hold cap, `weeklyMax` a weekly earn cap, and only
+/// `ShardOfDundun` carries both.
+#[derive(Deserialize, Default, Clone, Debug)]
 #[serde(default)]
+pub struct CurrencyTable {
+    pub quantity: f64,
+    pub earned: f64,
+    pub max: f64,
+    #[serde(rename = "weeklyMax")]
+    pub weekly_max: f64,
+    pub capped: bool,
+}
+
+/// `toon.currency` — kept as the raw field map rather than named fields.
+///
+/// The keys are the broker's hand-written field names, and the map from those to currency ids
+/// lives in the static-data bundle (`currencyFields`), not here — so naming them in Rust would
+/// duplicate a table that already has one source of truth, and would silently drop any field
+/// added to the broker later. `gold` is the one field with no currency id behind it: it is
+/// `GetMoney()` in copper.
+#[derive(Deserialize, Default)]
+#[serde(transparent)]
 pub struct Currency {
-    pub gold: f64,
+    pub fields: HashMap<String, CurrencyValue>,
+}
+
+impl Currency {
+    /// The character's money in copper. Absent (never captured) reads as 0, which is what
+    /// summing warband wealth wants.
+    pub fn gold(&self) -> f64 {
+        match self.fields.get("gold") {
+            Some(CurrencyValue::Scalar(n)) => *n,
+            Some(CurrencyValue::Table(t)) => t.quantity,
+            None => 0.0,
+        }
+    }
+
+    /// One field's persisted value, or `None` when this character has never captured it —
+    /// which is normal, not an error: the broker skips max-level-only fields entirely for a
+    /// levelling character, and `GetCurrencyInfo` returns nil for an undiscovered currency.
+    pub fn get(&self, field: &str) -> Option<&CurrencyValue> {
+        self.fields.get(field)
+    }
 }
 
 #[derive(Deserialize, Default)]

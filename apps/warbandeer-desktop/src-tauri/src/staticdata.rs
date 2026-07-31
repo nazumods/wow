@@ -52,6 +52,16 @@ pub struct StaticData {
     /// Keyed by currency id as a string — JSON object keys are always strings.
     #[serde(default)]
     pub currencies: HashMap<String, CurrencyMeta>,
+    /// Which currency id each of the currency broker's FIELD NAMES means
+    /// (`"HeroDawncrest" -> 3345`). A save keys `toon.currency` by those names and carries the
+    /// mapping nowhere, so without this the amounts join to nothing — see nazumods/wow#884.
+    /// Parsed out of `Warbandeer_Characters/data/currency.lua`, the only place it exists.
+    ///
+    /// `gold` is deliberately absent (it is `GetMoney()` in copper, not a currency), and so are
+    /// display order and labels: in game those live in the views, not the broker, so a consumer
+    /// owns its own presentation — same contract as [`Self::achievement_groups`].
+    #[serde(default)]
+    pub currency_fields: HashMap<String, u32>,
     /// Keyed by achievement id as a string. Covers only the ids Warbandeer's views track
     /// (`Warbandeer_Characters/data/achievementcatalog.lua`), not all of `Achievement.db2` —
     /// so a miss means "not tracked", not "unknown to the client".
@@ -72,6 +82,12 @@ pub struct StaticData {
 impl StaticData {
     pub fn currency(&self, id: u32) -> Option<&CurrencyMeta> {
         self.currencies.get(&id.to_string())
+    }
+
+    /// The currency id a broker field name means, or `None` for `gold` (no id), for a field the
+    /// bundle predates, or for a bundle generated before the map shipped.
+    pub fn currency_field(&self, field: &str) -> Option<u32> {
+        self.currency_fields.get(field).copied()
     }
 
     pub fn achievement(&self, id: u32) -> Option<&AchievementMeta> {
@@ -219,6 +235,36 @@ mod tests {
         let honor = get().currency(1792).expect("Honor (1792) should be present");
         assert_eq!(honor.name, "Honor");
         assert!(honor.icon.is_some(), "Honor should have resolved an icon");
+    }
+
+    #[test]
+    fn a_bundle_without_the_currency_field_map_still_parses() {
+        // SAMPLE predates currencyFields, as every published bundle before #884 does. A
+        // consumer pinned to an older asset must degrade to "no columns", not fail to load.
+        let d = parse(SAMPLE).unwrap();
+        assert!(d.currency_fields.is_empty());
+        assert_eq!(d.currency_field("HeroDawncrest"), None);
+    }
+
+    #[test]
+    fn embedded_bundle_maps_broker_fields_to_currencies() {
+        // Drives off whatever currency.lua actually declares rather than a hardcoded field, so
+        // it can't rot when the broker gains or loses one. Every mapped id must resolve, or the
+        // Currencies tab renders a nameless, iconless column.
+        let d = get();
+        assert!(
+            d.currency_fields.len() >= 8,
+            "expected the broker's currency field map, got {}",
+            d.currency_fields.len()
+        );
+        for (field, id) in &d.currency_fields {
+            let meta = d
+                .currency(*id)
+                .unwrap_or_else(|| panic!("{field} maps to {id}, which the bundle doesn't know"));
+            assert!(!meta.name.is_empty(), "{field} ({id}) resolved a blank name");
+        }
+        // gold is GetMoney() in copper, not a currency — it must never acquire an id.
+        assert_eq!(d.currency_field("gold"), None);
     }
 
     #[test]
