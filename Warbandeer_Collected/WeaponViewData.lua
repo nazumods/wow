@@ -2,7 +2,6 @@
 local ns = select(2, ...)
 local ui = ns.ui
 local lists = ns.lua.lists
-local GameTooltip = GameTooltip
 
 -- Data layer for the Weapons grid (the Armor/Weapons toggle's weapon view). Parallels
 -- DataViewData for armor: WeaponRows builds one row per ns.WeaponSources group (name + one
@@ -20,7 +19,6 @@ local GameTooltip = GameTooltip
 ---@field WeaponUsableTypes fun(): table<number, boolean> logged-in class's usable weapon types (greying hint)
 ---@field WeaponRows fun(self: WeaponView): table
 ---@field WeaponVisibleCounts fun(self: WeaponView): number, number, number
----@field ShowWeaponCellTip fun(grp: table, t: number, visuals: number[])
 ---@field PreviewWeaponCell fun(grp: table, t: number, visuals: number[], host: TitleFrame?, ptr: boolean?)
 
 -- Grid column order (main-hand 1H, then 2H, ranged, wand, then off-hands), matching
@@ -138,6 +136,14 @@ function ns.WeaponRows(self)
   local wantedOnly = ns.WantedOnlyActive(self)   -- never in force under PTR preview
   -- Filter + sort is `ns.GridRowOrder` (GridShared.lua, #770 step 13), shared with the armour grid.
   local order = ns.GridRowOrder(self, source, groupWeaponWanted)
+  -- Where the shared hover panel sits: above the cell, unless the host overrides (#856). Identical to
+  -- the armour grid's rule in DataViewData — Warbandeer's embedded view passes `ns.InfoTipPosition`,
+  -- which flips the tip to whichever side of the cell has room.
+  local function tipAnchor(cell)
+    return self.infoTipAnchor and self.infoTipAnchor(cell) or {
+      BottomRight = {cell, ui.edge.Top, -2, 2},
+    }
+  end
   return lists.map(order, function(srcIdx)
     local grp = source[srcIdx]
     local r = {}
@@ -154,15 +160,15 @@ function ns.WeaponRows(self)
         -- patch lands, so there's no collected/remaining state to shade. PTR blue either way, no class
         -- greying. Clickable: on the PTR the looks resolve and open the dressing room; on live it notes.
         r[ci] = { text = ns.OnPtr(ns.WeaponPtrBuild and ns.WeaponPtrBuild.ptr) and #visuals or "•", justifyH = ui.justify.Center, color = UPCOMING,
-          onEnter = function() ns.ShowWeaponCellTip(grp, t, visuals) end,
-          onLeave = function() GameTooltip:Hide() end,
+          onEnter = function(cell) ns.ShowWeaponCellTip(grp, t, visuals, cell, tipAnchor(cell), true) end,
+          onLeave = function() ns.HideInfoTip() end,
           onClick = function() ns.PreviewWeaponCell(grp, t, visuals, ns.GridHost(self), true) end,
           _source = grp, _type = t }
       else
         local total, coll = #visuals, 0
         for _, v in ipairs(visuals) do if cmap[v] then coll = coll + 1 end end
-        local onEnter = function() ns.ShowWeaponCellTip(grp, t, visuals) end
-        local onLeave = function() GameTooltip:Hide() end
+        local onEnter = function(cell) ns.ShowWeaponCellTip(grp, t, visuals, cell, tipAnchor(cell)) end
+        local onLeave = function() ns.HideInfoTip() end
         -- **No Shift-click here, deliberately (#857)** — and the PTR cell above is the same. The
         -- armour grid's cell takes the modifier to flag its set wanted (DataViewData), so the absence
         -- reads as an omission; it was weighed and declined.
@@ -206,42 +212,9 @@ function ns.WeaponRows(self)
   end)
 end
 
--- Hover tooltip for a weapon cell: the source + type, then each individual appearance in the
--- cell with a collected mark (so the "two daggers" case reads as two named, separately-tracked
--- looks). Cursor-anchored (the cell spans the column; a frame anchor would land off to the side).
--- Weapon item names load async, so a name not yet resolved falls back to the visual id.
----@param grp table
----@param t number
----@param visuals number[]
-function ns.ShowWeaponCellTip(grp, t, visuals)
-  local cmap = ns:WeaponCollectedMap()
-  GameTooltip:SetOwner(UIParent, "ANCHOR_CURSOR")
-  GameTooltip:SetText(("%s — %s"):format(grp.name, ns.WeaponTypeName[t] or "?"))
-  for i, v in ipairs(visuals) do
-    if i > 12 then
-      GameTooltip:AddLine(("… and %d more"):format(#visuals - 12), 0.6, 0.6, 0.62)
-      break
-    end
-    local src = ns.WeaponSource(v)
-    local name = (src and src.name) or ("Appearance " .. v)
-    -- Suffix the boss-drop difficulty (muted gold) so same-named recolours read apart, matching the chooser.
-    if src and src.difficulty then name = name .. "  |cffb0a060" .. src.difficulty .. "|r" end
-    -- Atlas check/redx (the grid's own icons) render reliably in the tooltip font, unlike a raw
-    -- ✓/✗ glyph (which shows as a missing-glyph box).
-    local mark = ("|A:%s:12:12|a "):format(cmap[v] and ns.icons.CheckGreen or ns.icons.RedX)
-    GameTooltip:AddLine(mark .. name, 1, 1, 1)
-  end
-  -- A curated "where from" line, carried only by the arsenal rows (data/arsenals.lua). The
-  -- generated rows are named for their source already — "Black Temple" says where it drops — but an
-  -- arsenal is named for the bundle, so without this the move out of the armour grid would lose the
-  -- one thing that row was telling you (#653).
-  if grp.obtain then
-    GameTooltip:AddLine(" ")
-    GameTooltip:AddLine("How to obtain", 1, 0.82, 0)
-    GameTooltip:AddLine(grp.obtain, 0.7, 0.7, 0.7, true)
-  end
-  GameTooltip:Show()
-end
+-- The hover tooltip moved to the shared panel in `controls/InfoTipWeapon.lua` (#856) — a weapon cell
+-- and an armour cell one toggle apart now open the same chrome, anchored the same way, instead of a
+-- raw GameTooltip beside the addon's own InfoTip.
 
 -- Drill-in: browse a weapon cell's individual looks on the shared dressing room's paper doll — the
 -- same one armour is previewed on, with the browsed weapon live in a hand of the composed look

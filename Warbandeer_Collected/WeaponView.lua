@@ -24,6 +24,7 @@ local GameTooltip = GameTooltip
 ---@field _repaintPtr fun(on: boolean)? repaints the PTR toggle border on a programmatic SetPtr (mode swap)
 ---@field _emptyMsg Label? centered empty-state message (created lazily; shown when "wanted only" matches nothing)
 ---@field _nameColW number? name-column width already applied, so a re-fit adds only the delta (see ns.FitNameCol)
+---@field infoTipAnchor fun(cell: Cell): table?  host override for the hover InfoTip anchor (defaults to "above the cell"), matching DataView's
 ---@field onResized fun(self: WeaponView)? host hook fired after a filter/sort change resizes the row area
 ---@field onFilterChanged fun(self: WeaponView)? host hook fired after the wanted-only filter flips, so the host can recompute its filter-scoped counter
 ---@field onEnsureVisible fun(self: WeaponView, rowTop: number, rowH: number)? host hook to scroll a row into view (see HighlightWeaponCell)
