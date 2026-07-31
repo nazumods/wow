@@ -62,6 +62,44 @@ export interface OverviewAchievements {
   captured: boolean;
 }
 
+// ── Currencies tab ───────────────────────────────────────────────────────────
+// A grid: one row per character, one column per currency the addon's broker persists.
+// Column metadata is joined in Rust against the bundled CurrencyTypes extract, through the
+// bundle's `currencyFields` map — a save keys currencies by the broker's FIELD NAME and
+// carries no id, so nothing here can be resolved on the frontend.
+
+export interface CurrencyColumn {
+  field: string; // broker field name, e.g. "HeroDawncrest" — also the {#each} key
+  id: number | null; // null for gold alone (it's GetMoney() copper, not a currency)
+  name: string; // the currency's DB2 name; falls back to `field` if the bundle missed it
+  icon: string | null; // bare icon name for `iconUrl()`, null when DB2 carries none
+  maxQty: number; // the currency's own hold cap, 0 = uncapped
+  isGold: boolean; // format as gold rather than a bare count
+}
+
+export interface CurrencyCell {
+  // null = NEVER CAPTURED (blank), which is different from a captured 0 (an em-dash):
+  // the broker skips max-level-only fields for a levelling character entirely.
+  quantity: number | null;
+  earned: number;
+  max: number; // hold cap as this character's client reported it
+  weeklyMax: number; // weekly earn cap; 0 when the currency has none
+  capped: boolean;
+}
+
+export interface CurrencyRow {
+  name: string;
+  realm: string | null;
+  classKey: string;
+  level: number;
+  cells: CurrencyCell[]; // parallel to `columns`
+}
+
+export interface Currencies {
+  columns: CurrencyColumn[];
+  rows: CurrencyRow[];
+}
+
 export interface Overview {
   account: string | null;
   dbVersion: number | null;
@@ -69,6 +107,9 @@ export interface Overview {
   reputations: FactionStanding[];
   topCharacters: TopCharacter[];
   achievements: OverviewAchievements;
+  // The Currencies TAB's grid. It rides on this payload rather than a command of its own so
+  // the whole app costs one mlua exec of the save per load, and so ⟳ refreshes it too.
+  currencies: Currencies;
 }
 
 export interface CombatLogFile {
