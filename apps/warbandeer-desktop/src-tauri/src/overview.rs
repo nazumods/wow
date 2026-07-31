@@ -55,6 +55,10 @@ pub struct AchievementRow {
     /// `None` when the id isn't in the bundle — a catalog/bundle skew rather than an error.
     /// The frontend renders the bare id in that case, so the skew is visible instead of silent.
     pub name: Option<String>,
+    /// Bare icon name for the `wbicon` scheme, or `None` when the bundle carries no icon for
+    /// the id. Sent even though it duplicates the bundle, for the same reason `name` is: the
+    /// alternative is an IPC round trip per row.
+    pub icon: Option<String>,
     pub points: i64,
     pub completed: bool,
 }
@@ -114,6 +118,7 @@ fn build_achievements(db: &CharDb) -> OverviewAchievements {
                     AchievementRow {
                         id,
                         name: meta.map(|m| m.name.clone()),
+                        icon: meta.and_then(|m| m.icon.clone()),
                         points: meta.map_or(0, |m| m.points),
                         completed: snapshot.get(&(id as i64)).is_some_and(|e| e.completed),
                     }
