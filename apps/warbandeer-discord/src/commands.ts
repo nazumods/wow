@@ -18,6 +18,8 @@ import {
 } from "./wow/transmog";
 import { checkForUpdate, type DisabledReason, type UpdateDecision } from "./update";
 import { withCritical } from "./restart";
+import { handoffFailureMessage } from "./handoff";
+import type { RedeployResult } from "./redeploy";
 
 const ts = (d: Date, style: "F" | "R" = "F") => `<t:${Math.floor(d.getTime() / 1000)}:${style}>`;
 const when = (d: Date) => `${ts(d)} (${ts(d, "R")})`;
@@ -130,7 +132,7 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
       // Inside a critical section so the restart waits for the reply to be delivered.
       await withCritical(async () => {
         try {
-          const { decision, latestSha, reason } = await checkForUpdate({
+          const { decision, latestSha, reason, redeploy } = await checkForUpdate({
             force: true,
             // Recorded so the next boot can report back what build it actually landed on.
             requester: {
@@ -141,7 +143,7 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
             },
           });
           await interaction.editReply(
-            updateReply(decision, latestSha, { runningSha: config.gitSha, reason }),
+            updateReply(decision, latestSha, { runningSha: config.gitSha, reason, redeploy }),
           );
         } catch (err) {
           await interaction.editReply(`⚠️ Update check failed: ${(err as Error).message}`);
@@ -192,7 +194,7 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
 export function updateReply(
   decision: UpdateDecision,
   latestSha: string,
-  o: { runningSha?: string; reason?: DisabledReason } = {},
+  o: { runningSha?: string; reason?: DisabledReason; redeploy?: RedeployResult } = {},
 ): string {
   const short = latestSha.slice(0, 7);
   const running = o.runningSha?.slice(0, 7);
@@ -212,6 +214,16 @@ export function updateReply(
       return `✅ Already on the latest build (\`${running}\`).`;
     case "suppressed":
     case "restart":
+      // A self-contained redeploy that *worked* never reaches here: the replacement retires
+      // this process mid-await, and delivers the ✅ itself from `pendingUpdateReport`. So a
+      // result present at all is a failed swap, and the reply says so instead of promising a
+      // return that isn't coming (#879).
+      if (o.redeploy && !o.redeploy.ok) {
+        return handoffFailureMessage(o.redeploy.outcome === "timeout" ? "timeout" : "failed", {
+          targetSha: latestSha,
+          error: o.redeploy.error,
+        });
+      }
       // No "if I come back on the same build…" caveat: the bot answers that itself now,
       // with a follow-up naming the build it actually landed on (see updateReport.ts).
       return `🔄 Restarting to pick up \`${short}\`. I'll report back once I'm up.`;
