@@ -89,4 +89,21 @@ describe("updateReply", () => {
   test("names the running build, not the target, when already current", () => {
     expect(updateReply("current", SHA, { runningSha: "abc1234567" })).toContain("abc1234");
   });
+
+  test("a second /update mid-swap is refused, not promised", () => {
+    const reply = updateReply("busy", "");
+    expect(reply).toContain("already in progress");
+    expect(reply).not.toContain("Restarting");
+  });
+
+  // A redeploy result present at all is a failed swap — the successful path never returns.
+  test("a failed swap reports the failure instead of promising a restart", () => {
+    const reply = updateReply("restart", SHA, { redeploy: { outcome: "failed", error: "build failed" } });
+    expect(reply).toContain("build failed");
+    expect(reply).not.toContain("report back");
+  });
+
+  test("a stalled swap gets the stall wording, not the generic failure", () => {
+    expect(updateReply("restart", SHA, { redeploy: { outcome: "stalled" } })).toContain("verified");
+  });
 });

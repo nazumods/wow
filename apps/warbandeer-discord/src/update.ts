@@ -1,6 +1,6 @@
 import { config } from "./config";
 import { state, saveState, type PendingUpdateReport } from "./state";
-import { requestRestart } from "./restart";
+import { handoffActive, requestRestart } from "./restart";
 import { redeploy, redeployAvailable, type RedeployResult } from "./redeploy";
 
 // Self-update detection. The bot has no releases of its own (apps/ is excluded from
@@ -24,7 +24,9 @@ export type UpdateDecision =
   /** Stale: exit and let the orchestrator bring up the new code. */
   | "restart"
   /** Stale, but we already exited for this sha and came back unchanged. */
-  | "suppressed";
+  | "suppressed"
+  /** A handoff is already in flight — this call refuses before touching anything. */
+  | "busy";
 
 /** Tolerant of short vs full shas, so GIT_SHA can be either. */
 export function sameSha(a: string, b: string): boolean {
@@ -206,6 +208,11 @@ export interface UpdateCheck {
 export async function checkForUpdate(
   o: { force?: boolean; requester?: UpdateRequester } = {},
 ): Promise<UpdateCheck> {
+  // Refused before anything else — even reading the shas. A second /update mid-swap would
+  // otherwise overwrite the in-flight attempt's pendingUpdateReport, then force-remove its
+  // replacement (`force: true` bypasses the anti-loop suppression, and interaction handling
+  // does not quiesce during a handoff — only the scheduler does).
+  if (handoffActive()) return { decision: "busy", latestSha: "" };
   if (!config.gitSha) return { decision: "disabled", latestSha: "", reason: "no-sha" };
 
   const latestSha = await fetchLatestBotSha();
@@ -279,12 +286,12 @@ async function applyUpdate(latestSha: string): Promise<RedeployResult | undefine
     return undefined;
   }
 
+  // `redeploy` resolving at all means the swap failed — success kills this process mid-await.
   const result = await redeploy(latestSha);
-  if (result.ok) return result; // handed over; this process is on its way out
 
-  // The swap didn't happen and we're still the live bot, so the update is un-owed: drop the
-  // markers, or the next boot would deliver a follow-up for a restart that never occurred and
-  // the anti-loop guard would suppress a later, genuine attempt.
+  // We're still the live bot, so the update is un-owed: drop the markers, or the next boot
+  // would deliver a follow-up for a restart that never occurred and the anti-loop guard would
+  // suppress a later, genuine attempt.
   state.attemptedUpdateToSha = undefined;
   state.pendingUpdateReport = undefined;
   await saveState();

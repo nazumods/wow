@@ -64,7 +64,14 @@ Setup — the whole of it is `docker compose up -d`:
 
 There is no key to set to enable any of this. The bot discovers its own compose project, volumes, network and container name from its own container through the daemon, so there is nothing to configure and nothing to keep in sync.
 
-**What it costs.** The compose file mounts `/var/run/docker.sock` into the bot and runs it as root. That is root-equivalent access to the host, accepted deliberately: it's the only way `/update` completes with nothing installed outside the container. The trigger stays behind the `ADMIN_USER_IDS` allowlist and fails closed. If you don't want that, remove the socket mount — the bot detects its absence and falls back to the older behaviour of exiting with code **75** for a supervisor to replace it, which needs one of:
+**What it costs.** The compose file mounts `/var/run/docker.sock` into the bot. That is root-equivalent access to the host, accepted deliberately: it's the only way `/update` completes with nothing installed outside the container. Two things follow from it, and both belong in the open:
+
+- **Anyone with push access to `BOT_BRANCH` on `GITHUB_REPO` can get root on the box.** The build uses a remote git context, so whatever that branch contains is what gets built and run against the socket — via `/update`, or automatically with `AUTO_UPDATE=true`. The *trigger* is admin-gated; the *content* is gated only by who can push to that branch. Treat push access to it accordingly.
+- The container **starts** as root, but only for its entrypoint: the socket's owning group has a host-specific GID (115 here, 999 on stock Debian), so the entrypoint reads the GID off the socket itself, then drops to the `bun` user carrying that one group before the bot runs. No GID to configure, and the long-running process stays non-root — though that is hygiene, not a boundary: whoever holds the socket is root-equivalent regardless. On the way it also chowns `data/` to `bun`, healing state files an earlier root-run deployment left behind.
+
+`GITHUB_REPO` must also be **publicly clonable** — the daemon fetches the build context itself, with no credentials. On a private repo the build fails with an opaque error rather than a hint about auth.
+
+If you don't want any of this, remove the socket mount — the bot detects its absence and falls back to the older behaviour of exiting with code **75** for a supervisor to replace it, which needs one of:
 
 - a manual redeploy with `GIT_SHA=$(git rev-parse HEAD) docker compose up -d --build`, or
 - an image-updating supervisor (e.g. Watchtower) against a registry image that CI builds.
@@ -80,6 +87,8 @@ Behavior:
 - The two containers never write `data/state.json` at once: the original stops its scheduler before the replacement starts, and the handoff signal is a separate file with one writer.
 - Each build is also tagged with its short sha, and the newest three are kept — so the previous build stays on disk and addressable if you ever need to pin back to it.
 - A swap never lands mid-announcement: it waits for the in-flight tick and its `data/state.json` write to finish.
+- A second `/update` while a swap is in flight is **refused**, not queued — it would otherwise tear down the in-flight replacement.
+- Every wait has an end: if a replacement verifies but then never manages to retire the original (daemon trouble mid-swap), the original reclaims after 3 minutes and reports, rather than sitting quiesced until someone notices.
 - Without the daemon socket the bot exits with code **75** instead (distinct from a crash, so a supervisor can tell an update apart from a failure).
 - **Once it's back up, it messages whoever ran `/update`** with the build it actually came back on, and which of three things happened:
   - ✅ **updated** — came back on the build it was picking up.

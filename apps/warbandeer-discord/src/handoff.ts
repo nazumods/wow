@@ -21,6 +21,19 @@ export const HANDOFF_DEADLINE_MS = 120_000;
  *  replacement that gives up says so — the original learns why instead of just timing out. */
 export const VERIFY_DEADLINE_MS = 90_000;
 
+/**
+ * How long the original stays quiesced after seeing `ready` before deciding it is never going
+ * to be retired.
+ *
+ * Seeing `ready` stops the original counting, because a replacement that has signalled is about
+ * to stop it — normally within a second or two. But the marker is written *before* the retiring,
+ * so a `retireOriginal` that throws in between leaves the original waiting on a stop that is
+ * never coming: quiesced, not announcing, and silent until someone SSHes in. That is the exact
+ * failure #879 set out to remove, so the quiesce gets an outer bound of its own. Generous on
+ * purpose — every second here is one the ordinary path spends already dead.
+ */
+export const RETIREMENT_DEADLINE_MS = 180_000;
+
 const DATA_DIR = join(import.meta.dir, "..", "data");
 export const MARKER_FILE = join(DATA_DIR, "handoff.json");
 
@@ -79,6 +92,9 @@ export type HandoffOutcome =
   | "failed"
   /** It never answered either way. Same response as `failed`, but a different message. */
   | "timeout"
+  /** Verified, then never retired us. Never returned by `decideHandoffOutcome` — this one is
+   *  decided by outliving `RETIREMENT_DEADLINE_MS`, which only `redeploy` can observe. */
+  | "stalled"
   /** Nothing decided yet — keep waiting. */
   | "waiting";
 
@@ -106,7 +122,7 @@ export function decideHandoffOutcome(o: {
 
 /** What the requester is told when the swap didn't happen. The original is still running, which
  *  is the part that matters — this is a report, not an apology for being down. */
-export function handoffFailureMessage(outcome: "failed" | "timeout", o: {
+export function handoffFailureMessage(outcome: "failed" | "timeout" | "stalled", o: {
   targetSha: string;
   error?: string;
 }): string {
@@ -115,6 +131,15 @@ export function handoffFailureMessage(outcome: "failed" | "timeout", o: {
     return (
       `⚠️ The replacement for \`${short}\` never reported in within ` +
       `${Math.round(HANDOFF_DEADLINE_MS / 1000)}s — I removed it and stayed on the current build.`
+    );
+  }
+  if (outcome === "stalled") {
+    // Distinct from `failed` on purpose: the replacement *worked* and then couldn't retire me,
+    // which points at the daemon socket rather than at the new build.
+    return (
+      `⚠️ The replacement for \`${short}\` verified but never retired me within ` +
+      `${Math.round(RETIREMENT_DEADLINE_MS / 60_000)}m — I removed it and stayed on the ` +
+      `current build. Check the daemon socket.`
     );
   }
   return (

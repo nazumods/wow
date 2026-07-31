@@ -199,6 +199,8 @@ export function updateReply(
   const short = latestSha.slice(0, 7);
   const running = o.runningSha?.slice(0, 7);
   switch (decision) {
+    case "busy":
+      return "⏳ An update is already in progress — I'll report how it went; ask again after that.";
     case "disabled":
       // Two ways to end up here, and they need different things from the operator: bake a
       // GIT_SHA, versus push the branch you built from (#871).
@@ -218,11 +220,12 @@ export function updateReply(
       // this process mid-await, and delivers the ✅ itself from `pendingUpdateReport`. So a
       // result present at all is a failed swap, and the reply says so instead of promising a
       // return that isn't coming (#879).
-      if (o.redeploy && !o.redeploy.ok) {
-        return handoffFailureMessage(o.redeploy.outcome === "timeout" ? "timeout" : "failed", {
-          targetSha: latestSha,
-          error: o.redeploy.error,
-        });
+      if (o.redeploy) {
+        const kind =
+          o.redeploy.outcome === "timeout" || o.redeploy.outcome === "stalled"
+            ? o.redeploy.outcome
+            : "failed";
+        return handoffFailureMessage(kind, { targetSha: latestSha, error: o.redeploy.error });
       }
       // No "if I come back on the same build…" caveat: the bot answers that itself now,
       // with a follow-up naming the build it actually landed on (see updateReport.ts).

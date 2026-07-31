@@ -4,7 +4,9 @@ import { afterEach, describe, expect, test } from "bun:test";
 // time — satisfy the required vars before importing so this file runs standalone.
 process.env.DISCORD_TOKEN ??= "test-token";
 process.env.ANNOUNCE_CHANNEL_ID ??= "100";
-const { decideUpdate, sameSha, buildUpdateReport, fetchShaRelation } = await import("./update");
+const { checkForUpdate, decideUpdate, sameSha, buildUpdateReport, fetchShaRelation } =
+  await import("./update");
+const { beginHandoff, endHandoff } = await import("./restart");
 
 const OLD = "a".repeat(40);
 const NEW = "b".repeat(40);
@@ -187,6 +189,25 @@ describe("fetchShaRelation", () => {
     });
     await fetchShaRelation(NEW, OLD);
     expect(seen).toContain(`/compare/${NEW}...${OLD}`);
+  });
+});
+
+describe("checkForUpdate during a handoff", () => {
+  const realFetch = globalThis.fetch;
+  afterEach(() => {
+    globalThis.fetch = realFetch;
+    endHandoff();
+  });
+
+  // The guard must come before everything — a second /update mid-swap would overwrite the
+  // in-flight attempt's pendingUpdateReport and then force-remove its replacement. Proven by
+  // making the network unreachable: `busy` coming back means no sha was ever fetched.
+  test("refuses with busy before touching the network", async () => {
+    globalThis.fetch = (() => {
+      throw new Error("checkForUpdate reached the network while a handoff was active");
+    }) as unknown as typeof fetch;
+    beginHandoff("test swap in flight");
+    expect((await checkForUpdate({ force: true })).decision).toBe("busy");
   });
 });
 

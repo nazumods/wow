@@ -116,6 +116,20 @@ describe("selectImagesToPrune", () => {
   test("an untagged image doesn't blow up the scan", () => {
     expect(selectImagesToPrune([{ Id: "x", RepoTags: null, Created: 1 }], `${repo}:latest`, 0)).toEqual([]);
   });
+
+  // A registry-qualified name's dots must match literally — as a regex they'd match any
+  // character, and another repo's sha tags could get swept into the prune.
+  test("a dotted registry name never matches another repo loosely", () => {
+    const pruned = selectImagesToPrune(
+      [
+        img(["registryXexample.com/bot:1111111"], 1),
+        img(["registry.example.com/bot:2222222"], 2),
+      ],
+      "registry.example.com/bot:latest",
+      0,
+    );
+    expect(pruned).toEqual(["registry.example.com/bot:2222222"]);
+  });
 });
 
 describe("buildCreateSpec", () => {

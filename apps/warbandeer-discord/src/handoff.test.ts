@@ -114,9 +114,17 @@ describe("handoffFailureMessage", () => {
     expect(handoffFailureMessage("failed", { targetSha: sha })).not.toContain("undefined");
   });
 
+  // Distinct from `failed` on purpose: the new build verified fine — what broke is the
+  // retiring, which points at the daemon, not the code being deployed.
+  test("a stall blames the socket, not the build", () => {
+    const msg = handoffFailureMessage("stalled", { targetSha: sha });
+    expect(msg).toContain("verified");
+    expect(msg).toContain("socket");
+  });
+
   // The headline of #879: whatever went wrong, the original is still serving.
   test("every failure says the current build is still running", () => {
-    for (const outcome of ["failed", "timeout"] as const) {
+    for (const outcome of ["failed", "timeout", "stalled"] as const) {
       expect(handoffFailureMessage(outcome, { targetSha: sha })).toContain("current build");
     }
   });
