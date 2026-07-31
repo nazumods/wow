@@ -7,15 +7,14 @@
   // catalog — the join happens in Rust, so this receives one payload rather than making an IPC
   // call per achievement.
   //
-  // TEXT ONLY, deliberately (nazumods/wow#731). The bundle carries a bare icon NAME
-  // ("achievement_bg_takexflags_ab"), not a path or a FileDataID, and this app has no icon
-  // resolution at all yet — currencies have carried the same unused names since the bundle
-  // landed. That is one shared capability rather than an achievements problem, so it is split
-  // out; name, points and a completed marker are most of the in-game column's information.
+  // Icons come from the shared resolver (nazumods/wow#842), which turns the bundle's bare icon
+  // NAME ("achievement_bg_takexflags_ab") into something an <img> can load. This column was
+  // shipped text-only until that landed.
   //
   // `wasEarnedByMe` is NOT shown. The addon documents it as last-captured-character-wins
   // rather than per-alt, so any per-character framing here would be a lie.
   import type { OverviewAchievements } from "../types";
+  import Icon from "./Icon.svelte";
 
   interface Props {
     achievements: OverviewAchievements;
@@ -55,6 +54,7 @@
         </div>
         {#each g.rows as r (r.id)}
           <div class="row" class:done={r.completed}>
+            <Icon name={r.icon} size={14} />
             <span class="name">{r.name ?? `#${r.id}`}</span>
             <span class="points num">{r.points}</span>
           </div>
@@ -100,15 +100,20 @@
   }
   .row {
     display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 8px;
+    /* center, not baseline: an icon box has no baseline of its own, so baseline alignment
+       drops it to sit on the text's, hanging it below the line. */
+    align-items: center;
+    gap: 6px;
     color: var(--muted);
   }
   .row.done {
     color: var(--green);
   }
   .name {
+    /* Takes the slack so the points stay flush right now that the row has three children;
+       min-width:0 is what lets a flex item actually ellipsis rather than overflow. */
+    flex: 1;
+    min-width: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
