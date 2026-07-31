@@ -54,7 +54,7 @@ local GameTooltip = GameTooltip
 ---@field active DataView|WeaponView  the grid currently shown
 ---@field activeScroll ScrollFrame  the scroll container currently shown
 ---@field lockouts boolean  enable the lockout name-click on the armour grid (window host only); no longer affects the column layout (#864)
----@field infoTipAnchor fun(cell: Cell): table?  host override for the hover InfoTip anchor
+---@field infoTipAnchor fun(cell: Cell): table?  host override for the hover InfoTip anchor; applies to BOTH grids (#856)
 ---@field onSized fun(self: CollectedPanel)?  fired after the panel resizes, so the host can refit around it
 ---@field profPrefix string  profiler run-name prefix, so each host's Armor/Weapons swaps are timed apart
 ---@field scrollbarW number  gutter reserved to the right of the columns for the scroll frame's scrollbar
@@ -325,6 +325,7 @@ function CollectedPanel:_ensureWeapons()
     position = { TopLeft = {0, -self._top} },
     colInfo = ns.WeaponView.BuildColInfo(),
     virtual = true,   -- see the armour grid's note (#843); 244 rows x 18 cols was 4,392 cells
+    infoTipAnchor = self.infoTipAnchor,
     onFilterChanged = function() self:Render() end,
     onResized = function() self:_fitToGrid() end,
     -- weaponScroll is assigned just below; the closure only reads it at highlight time.

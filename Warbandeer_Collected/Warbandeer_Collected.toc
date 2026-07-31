@@ -33,6 +33,7 @@ data\hidevisuals.lua
 data\models.lua
 
 ratings.lua
+weapontip.lua
 viewsync.lua
 outfitcodec.lua
 outfit.lua
@@ -51,6 +52,8 @@ chrome.lua
 retry.lua
 
 controls\InfoTip.lua
+controls\InfoTipArmor.lua
+controls\InfoTipWeapon.lua
 controls\LockoutView.lua
 controls\DressingRoom.lua
 controls\DressingRoomBuild.lua
