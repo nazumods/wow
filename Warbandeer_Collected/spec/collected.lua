@@ -281,6 +281,29 @@ function M.loadTransmogButtons(ns)
   return env
 end
 
+---Load `weapontip.lua` over `loadRatings`, and return a handle for driving the one thing it reaches
+---outside itself: `ns.WeaponSource`.
+---
+---It earns a spec because the two rules it owns are the ones the panel can't show you are wrong.
+---The **cap** is load-bearing — a weapon cell is a (source x weapon type) bucket, and the largest
+---holds 249 appearances, so a panel that tried to render them all would run off the screen (#856);
+---the tail count is what tells you the list is truncated at all. And the **status counts** are
+---per-APPEARANCE while the cell's own markers are bucket aggregates (`ns:WeaponCellWanted` = any,
+---`ns:WeaponCellRank` = best), which is exactly the kind of unit mismatch that reads as correct.
+---
+---`ns.WeaponSource` is stubbed rather than loaded: the real one calls `C_TransmogCollection` and
+---caches per visual, and what these tests need is to choose per look whether a name has streamed in
+---yet — the branch that decides the "Appearance N" fallback and the pending-itemID retry.
+---@param ns table  as returned by M.load()
+---@return table env  `.sources` visualID → WeaponSource (write it to change what resolves)
+function M.loadWeaponTip(ns)
+  M.loadRatings(ns)
+  local env = { sources = {} }
+  ns.WeaponSource = function(visualID) return env.sources[visualID] or false end
+  loadInto(ns, "weapontip.lua")
+  return env
+end
+
 ---Load the illusion + arsenal data files. Both are plain tables plus (for arsenals) a pure
 ---table transform, so they need no stub at all — only `ns.WeaponSources` to fold into, seeded
 ---empty here since the real generated data isn't loaded under busted.
