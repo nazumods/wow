@@ -103,7 +103,9 @@ gold, the ones it can't are dimmed (a hint, not a filter, so every column stays 
 works just like the armor grid: the number of appearances you still
 need, shaded red→green by how close you are (a green check when you've collected them
 all). Hover a cell for the list of individual weapons in it, each with a collected
-mark and its **difficulty** (LFR / Normal / Heroic / Mythic). Sort by expansion and
+mark and its **difficulty** (LFR / Normal / Heroic / Mythic), above a line telling you
+how many of them you've collected and how many you've flagged wanted — the same panel
+an armor cell opens, one toggle away. Sort by expansion and
 filter by expansion or source category, exactly like the armor grid — including the
 **★ Wanted only** button, which cuts the grid down to just the sources and weapon
 types holding something you've flagged. The header's `★` count switches with the
