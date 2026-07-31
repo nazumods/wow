@@ -13,7 +13,9 @@
     * CurrencyTypes — SavedVariables store a currency amount keyed by id and nothing
       else, and there is no Blizzard REST equivalent (the Game Data API has no
       currency endpoint at all), so this one is wago-only whatever the app later
-      decides about credentials.
+      decides about credentials. Shipped alongside it is currencyFields, the broker's
+      field-name -> id map parsed out of the addon source, without which a save's
+      amounts cannot be joined to the table at all (nazumods/wow#884).
     * Achievement — data/achievements.lua deliberately snapshots only `completed` +
       `wasEarnedByMe`, leaving name/points/icon to be resolved here rather than
       duplicated into every save. Filtered to the ids Warbandeer actually tracks.
@@ -52,6 +54,7 @@
 .PARAMETER OutFile      Bundle path. Defaults to ../src-tauri/data/static-data.json.
 .PARAMETER IconFile     Packed icon blob path. Defaults to ../src-tauri/data/icons.bin.
 .PARAMETER CatalogFile  Lua file whose achievement ids the Achievement extract is filtered to.
+.PARAMETER CurrencyFile Lua file declaring the currency broker's field -> currency id mapping.
 .PARAMETER Product      wago product. 'wow' = live retail.
 .PARAMETER Build        Optional client build (e.g. 12.0.7.68453). Omit for latest.
 .PARAMETER CacheDir     Reuse downloaded responses instead of refetching (wago politeness).
@@ -77,6 +80,9 @@ param(
   # Warbandeer's views track"). Filtering keeps a 13.8k-row / 2 MB table down to a few KB;
   # the coupling is kept honest by the achievementcatalog.id rule in lint-stale-ids.ps1.
   [string]$CatalogFile = (Join-Path $PSScriptRoot '..' 'Warbandeer_Characters' 'data' 'achievementcatalog.lua'),
+  # SavedVariables key toon.currency by this broker's hand-written FIELD NAMES, never by
+  # currency id, so the map between the two lives here and nowhere else — see the parse below.
+  [string]$CurrencyFile = (Join-Path $PSScriptRoot '..' 'Warbandeer_Characters' 'data' 'currency.lua'),
   [string]$Product = 'wow',
   [string]$Build,
   [string]$CacheDir,
@@ -242,6 +248,61 @@ if ($rows.Count -lt $MinRows) {
   throw "CurrencyTypes returned only $($rows.Count) rows (< MinRows $MinRows) — likely an incomplete download, aborting."
 }
 
+# --- 2b. The currency broker's field -> id map -----------------------------
+# A save keys toon.currency by the broker's hand-written FIELD NAMES ("HeroDawncrest"), while
+# this bundle keys currencies by id ("3345"), and nothing in SavedVariables carries the mapping
+# between them (nazumods/wow#884). That is exactly the gap achievementGroups exists to close —
+# a reader with no client cannot reconstruct it — so it is closed the same way: emitted from the
+# one file that already declares it, guarded by the currency.id rule in lint-stale-ids.ps1.
+#
+# ORDER AND LABELS ARE DELIBERATELY NOT EMITTED, as with achievementGroups. In game those live
+# in the VIEWS (Warbandeer/views/summaryCol/*.lua, ordered by the .toc), not in the broker, and
+# a consumer owns its own presentation the same way. `gold` is likewise absent on purpose: it is
+# GetMoney() in copper, not a currency id.
+#
+# Brace-matched per entry rather than regexed flat, and the id match refuses a preceding dot or
+# word character: every get/eventFilter closure references `self.id`, and the entry bodies carry
+# bare numbers (100, 600, 8) that a flat \d+ sweep would happily read as currency ids.
+$currencyText = Get-Content -LiteralPath $CurrencyFile -Raw
+$fieldsAt = $currencyText.IndexOf('Currency.fields')
+if ($fieldsAt -lt 0) { throw "No ``Currency.fields`` table in $CurrencyFile — the broker's shape changed, aborting." }
+$currencyBody = [regex]::Replace($currencyText.Substring($fieldsAt), '--[^\r\n]*', '')
+$cOpen = $currencyBody.IndexOf('{')
+$cDepth = 0
+$cClose = -1
+for ($i = $cOpen; $i -lt $currencyBody.Length; $i++) {
+  if ($currencyBody[$i] -eq '{') { $cDepth++ }
+  elseif ($currencyBody[$i] -eq '}') { $cDepth--; if ($cDepth -eq 0) { $cClose = $i; break } }
+}
+if ($cClose -lt 0) { throw "Unbalanced braces in $CurrencyFile's Currency.fields table, aborting." }
+$fieldsBody = $currencyBody.Substring($cOpen + 1, $cClose - $cOpen - 1)
+
+$currencyFields = [ordered]@{}
+$depth = 0
+$entryName = $null
+$entryStart = 0
+for ($i = 0; $i -lt $fieldsBody.Length; $i++) {
+  $ch = $fieldsBody[$i]
+  if ($ch -eq '{') {
+    if ($depth -eq 0) {
+      $m = [regex]::Match($fieldsBody.Substring(0, $i), '(\w+)\s*=\s*\z')
+      $entryName = if ($m.Success) { $m.Groups[1].Value } else { $null }
+      $entryStart = $i + 1
+    }
+    $depth++
+  } elseif ($ch -eq '}') {
+    $depth--
+    if ($depth -eq 0 -and $entryName) {
+      $idMatch = [regex]::Match($fieldsBody.Substring($entryStart, $i - $entryStart), '(?<![.\w])id\s*=\s*(\d+)')
+      if ($idMatch.Success) { $currencyFields[$entryName] = [int]$idMatch.Groups[1].Value }
+      $entryName = $null
+    }
+  }
+}
+if ($currencyFields.Count -eq 0) {
+  throw "No currency field ids parsed from $CurrencyFile — the broker's shape changed, aborting."
+}
+
 # --- 3. Achievement, filtered to the ids Warbandeer tracks -----------------
 # Parsing starts at the `ns.AchievementCatalog` assignment on purpose: the file's only
 # other digits are the `select(2, ...)` addon-namespace import, whose `2` would otherwise
@@ -343,6 +404,20 @@ foreach ($r in ($rows | Sort-Object { [int]$_.ID })) {
   }
 }
 if ($currencies.Count -eq 0) { throw 'No named currencies resolved — aborting rather than writing an empty bundle.' }
+
+# A broker field pointing at an id this build doesn't know is a STALE BROKER ENTRY, the same
+# failure the tracked-achievement guard catches: shipping it would render a nameless, iconless
+# column. Validated against what actually ships rather than the raw CSV, so an id that exists
+# but was dropped for having no name is caught too. Collected so the message names every
+# offender at once.
+$staleFields = @(
+  $currencyFields.GetEnumerator() |
+    Where-Object { -not $currencies.Contains([string]$_.Value) } |
+    ForEach-Object { "$($_.Key)=$($_.Value)" }
+)
+if ($staleFields.Count -gt 0) {
+  throw "$($staleFields.Count) currency broker field(s) name an id absent from CurrencyTypes at build $Build — a stale entry in $CurrencyFile, aborting: $($staleFields -join ', ')"
+}
 
 # Guard the icon join specifically: rows that DO carry a FileDataID should almost all
 # resolve. If they stop resolving, the listfile fetch changed shape and every icon in
@@ -448,6 +523,9 @@ $bundle = [ordered]@{
   build        = $Build
   buildDate    = $buildDate
   currencies   = $currencies
+  # Which of the currency broker's field names maps to which id above. Without it a reader of a
+  # save has amounts keyed by a name this bundle knows nothing about (see the parse above).
+  currencyFields = $currencyFields
   achievements = $achievements
   # Which tracked ids belong to which expansion. Keyed by the catalog's own expansion key, in
   # the order they appear in achievementcatalog.lua — the CONSUMER owns display order and
@@ -462,6 +540,7 @@ $json = (($bundle | ConvertTo-Json -Depth 6) -replace "`r`n", "`n") + "`n"
 $existing = if (Test-Path -LiteralPath $OutFile) { (Get-Content -LiteralPath $OutFile -Raw) -replace "`r`n", "`n" } else { $null }
 
 Write-Host "$($currencies.Count) currencies — $noIconData carry no icon in DB2, $unresolved icon ids missed the listfile." -ForegroundColor Cyan
+Write-Host "$($currencyFields.Count) broker currency fields mapped to ids from $(Split-Path -Leaf $CurrencyFile)." -ForegroundColor Cyan
 Write-Host "$($achievements.Count) achievements of $($trackedIds.Count) tracked — $achNoIconData carry no icon in DB2, $achUnresolved icon ids missed the listfile." -ForegroundColor Cyan
 
 $packedBytes = ($iconNames | ForEach-Object { $iconImages[$_].Length } | Measure-Object -Sum).Sum
