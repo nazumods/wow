@@ -87,6 +87,14 @@
   `Config.Env` merges the image's baked ENV with the container's own, so copying it verbatim pins
   the *old* sha onto the new container and overrides the new image's — a bot that updated correctly
   would then report its own update as a ⚠️ no-op.
+- **A plain `compose up -d` after a swap recreates the container — expected, not a bug.** The
+  replacement copies the original's labels verbatim, including `com.docker.compose.config-hash`,
+  which embeds the `GIT_SHA` build-arg environment of whatever `up` created the original — so
+  compose sees a stale hash and recreates. Benign, verified on the box: compose recognises the
+  replacement as its own service (no second bot — the trap the labels exist to prevent), and the
+  recreate reuses `:latest`, which *is* the self-deployed build, so no rollback. Don't "fix" it by
+  computing a fresh hash — a wrong guess would make compose orphan the service and start a second
+  container, the far worse failure.
 - **The standby attaches nothing** until it has taken over: both instances hold the same
   `DISCORD_TOKEN` and Discord delivers every event to **both** gateway sessions, so a standby that
   registered handlers would double every command reply for the length of the overlap.
