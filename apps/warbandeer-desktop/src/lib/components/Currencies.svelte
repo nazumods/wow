@@ -63,7 +63,9 @@
             <th class="who">Character</th>
             {#each columns as col (col.field)}
               <th title={col.name}>
-                <Icon name={col.icon} size={18} />
+                <!-- Gold has no DB2 row, so no icon can arrive from the bundle; the
+                     pseudo-name resolves to the app's own stand-in (see icons.ts). -->
+                <Icon name={col.isGold ? "wb:gold" : col.icon} size={18} />
                 <span class="label">{col.name}</span>
               </th>
             {/each}

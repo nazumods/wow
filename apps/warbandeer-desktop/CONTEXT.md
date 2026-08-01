@@ -25,7 +25,7 @@
 | `lib/types.ts` | TS mirrors of the Rust serde structs — **kept in sync by hand** with `overview.rs`/`combatlog.rs`/`charorder.rs` |
 | `lib/theme.ts` | WoW class colors by `classKey` + ilvl tier colors (mirrors addon `data.lua` gearTiers) |
 | `lib/format.ts` | Gold/hours/bytes formatting matching the addon (`en-US` thousands separators) |
-| `lib/icons.ts` | `iconUrl(name)` — bare icon name → a `wbicon` URL via `convertFileSrc`, or `null`. The only place that knows the scheme's name |
+| `lib/icons.ts` | `iconUrl(name)` — bare icon name → a `wbicon` URL via `convertFileSrc`, or `null`. The only place that knows the scheme's name. Checks `LOCAL` first: hand-shipped `src/assets/` stand-ins for the two names the packed set can never carry — Untainted Mana-Crystals (DB2 name has a literal space, no CDN image under any spelling; converted from the addon's own TGA) and the Gold column's `wb:gold` pseudo-name (GetMoney() copper, no DB2 row). App assets, not icons.bin entries — the blob is regenerated from bundle-referenced names, so hand-injected entries would be dropped on the next refresh |
 | `lib/components/Icon.svelte` | One game icon at `size` px, with a same-size placeholder when there is no image (null name **or** a 404, tracked by failed URL so a recycled row self-clears). Reserves its box in every case so rows stay aligned |
 | `lib/sort.ts` | Pure sort engine for the Sort tab: `SortMode`, `applySort`, `applyLocked`, gap-rank math (`assignPositions`/`gapRanksFromOrder`), remembered profession-primary choices (localStorage) |
 | `lib/components/Overview.svelte` | 3-column mirror of the addon Overview (StatCard × 3 + FactionBars + Achievements + TopCharacters) |
