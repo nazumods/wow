@@ -14,6 +14,7 @@ type ExitFn = (code: number) => void;
 
 let critical = 0;
 let pending: string | undefined;
+let handoff: string | undefined;
 let exitFn: ExitFn = (code) => process.exit(code);
 
 /** Swap the exit for tests. Returns a restore fn. */
@@ -29,6 +30,7 @@ export function setExitFn(fn: ExitFn): () => void {
 export function resetForTest(): void {
   critical = 0;
   pending = undefined;
+  handoff = undefined;
 }
 
 export function beginCritical(): void {
@@ -50,8 +52,33 @@ export async function withCritical<T>(fn: () => Promise<T>): Promise<T> {
   }
 }
 
+/**
+ * Quiesce for a handoff (#879): the scheduler stops ticking, so nothing else writes
+ * `data/state.json` while the replacement container comes up sharing that volume.
+ *
+ * Deliberately *not* a restart — this process must stay alive through the handoff. It is the
+ * only thing left that can remove a replacement which fails to verify, and the only thing that
+ * can tell the requester it failed. The replacement does the retiring; we never exit ourselves.
+ */
+export function beginHandoff(reason: string): void {
+  handoff = reason;
+  console.log(`[handoff] quiesced: ${reason}`);
+}
+
+/** Come back from a handoff that didn't happen, so the bot resumes its normal duties. */
+export function endHandoff(): void {
+  if (handoff === undefined) return;
+  handoff = undefined;
+  console.log("[handoff] resumed — still on the current build");
+}
+
+export function handoffActive(): boolean {
+  return handoff !== undefined;
+}
+
+/** True while either an exit or a handoff is in flight — both mean "start no new work". */
 export function restartPending(): boolean {
-  return pending !== undefined;
+  return pending !== undefined || handoff !== undefined;
 }
 
 /**

@@ -2,7 +2,10 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import {
   RESTART_EXIT_CODE,
   beginCritical,
+  beginHandoff,
   endCritical,
+  endHandoff,
+  handoffActive,
   requestRestart,
   resetForTest,
   restartPending,
@@ -58,6 +61,49 @@ describe("requestRestart", () => {
     endCritical();
     expect(exits).toEqual([]);
     expect(restartPending()).toBe(false);
+  });
+});
+
+// #879: the outgoing bot has to stay alive through a handoff — it is the only thing that can
+// remove a replacement which fails to verify, and the only thing that can report the failure.
+describe("beginHandoff", () => {
+  test("quiesces the scheduler without exiting", () => {
+    beginHandoff("redeploy");
+    expect(restartPending()).toBe(true);
+    expect(handoffActive()).toBe(true);
+    expect(exits).toEqual([]);
+  });
+
+  test("resuming lets normal work start again", () => {
+    beginHandoff("redeploy");
+    endHandoff();
+    expect(restartPending()).toBe(false);
+    expect(handoffActive()).toBe(false);
+    expect(exits).toEqual([]);
+  });
+
+  test("resuming when no handoff is in flight is a no-op", () => {
+    endHandoff();
+    expect(restartPending()).toBe(false);
+    expect(exits).toEqual([]);
+  });
+
+  // A handoff must not mask a genuine exit path, nor be masked by one.
+  test("a restart requested during a handoff still exits", () => {
+    beginHandoff("redeploy");
+    requestRestart("test");
+    expect(exits).toEqual([RESTART_EXIT_CODE]);
+  });
+
+  test("resuming does not clear a restart that is genuinely pending", () => {
+    beginCritical();
+    beginHandoff("redeploy");
+    requestRestart("test");
+    endHandoff();
+    expect(restartPending()).toBe(true);
+    expect(exits).toEqual([]);
+    endCritical();
+    expect(exits).toEqual([RESTART_EXIT_CODE]);
   });
 });
 

@@ -189,6 +189,10 @@ cmd_env_set() {
   chmod 600 "$ENV_FILE"
 
   # Apply: recreate the container so the new env is loaded (a plain restart would not reload it).
+  # Deliberately NO --build: a self-update (#879) tags its freshly built image as the same
+  # `<project>-bot:latest` compose expects, so recreating without building reuses it. Adding
+  # --build here would rebuild from whatever this checkout happens to be on, silently rolling
+  # the bot back to older code every time someone edits a setting.
   cd "$BOT_DIR"
   local recreate_log rc=0
   recreate_log="$(docker compose -p "$PROJECT" up -d --force-recreate 2>&1)" || rc=$?

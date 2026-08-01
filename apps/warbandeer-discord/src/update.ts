@@ -1,6 +1,7 @@
 import { config } from "./config";
 import { state, saveState, type PendingUpdateReport } from "./state";
-import { requestRestart } from "./restart";
+import { handoffActive, requestRestart } from "./restart";
+import { redeploy, redeployAvailable, type RedeployResult } from "./redeploy";
 
 // Self-update detection. The bot has no releases of its own (apps/ is excluded from
 // the release pipeline), so "am I stale?" is answered against the newest commit on the
@@ -23,7 +24,9 @@ export type UpdateDecision =
   /** Stale: exit and let the orchestrator bring up the new code. */
   | "restart"
   /** Stale, but we already exited for this sha and came back unchanged. */
-  | "suppressed";
+  | "suppressed"
+  /** A handoff is already in flight — this call refuses before touching anything. */
+  | "busy";
 
 /** Tolerant of short vs full shas, so GIT_SHA can be either. */
 export function sameSha(a: string, b: string): boolean {
@@ -188,6 +191,9 @@ export interface UpdateCheck {
   latestSha: string;
   /** Set only when `decision` is `disabled`. */
   reason?: DisabledReason;
+  /** Set when `decision` is `restart` and the swap was attempted in-process (#879). Present
+   *  only on failure — a successful handoff never returns, since the replacement retires us. */
+  redeploy?: RedeployResult;
 }
 
 /**
@@ -202,6 +208,11 @@ export interface UpdateCheck {
 export async function checkForUpdate(
   o: { force?: boolean; requester?: UpdateRequester } = {},
 ): Promise<UpdateCheck> {
+  // Refused before anything else — even reading the shas. A second /update mid-swap would
+  // otherwise overwrite the in-flight attempt's pendingUpdateReport, then force-remove its
+  // replacement (`force: true` bypasses the anti-loop suppression, and interaction handling
+  // does not quiesce during a handoff — only the scheduler does).
+  if (handoffActive()) return { decision: "busy", latestSha: "" };
   if (!config.gitSha) return { decision: "disabled", latestSha: "", reason: "no-sha" };
 
   const latestSha = await fetchLatestBotSha();
@@ -242,6 +253,8 @@ export async function checkForUpdate(
 
   if (decision === "restart") {
     state.attemptedUpdateToSha = latestSha;
+    // Written before the replacement starts and read by it after — never by both at once,
+    // which is what keeps two containers off the same state file (#879).
     state.pendingUpdateReport = buildUpdateReport({
       runningSha: config.gitSha,
       latestSha,
@@ -249,8 +262,39 @@ export async function checkForUpdate(
       now: Date.now(),
     });
     await saveState();
-    requestRestart(`update ${config.gitSha.slice(0, 7)} -> ${latestSha.slice(0, 7)}`);
+    return { decision, latestSha, redeploy: await applyUpdate(latestSha) };
   }
 
   return { decision, latestSha };
+}
+
+/**
+ * Become the new build.
+ *
+ * With the daemon socket mounted the bot does the whole thing itself: build, start the
+ * replacement, hand over. Without it there is nothing to build with, so it falls back to the
+ * original behaviour — exit and let whatever supervises the container supply a new image. That
+ * fallback is why an existing deployment on an older compose file keeps working unchanged.
+ */
+async function applyUpdate(latestSha: string): Promise<RedeployResult | undefined> {
+  const shortRun = config.gitSha!.slice(0, 7);
+  const shortNew = latestSha.slice(0, 7);
+
+  if (!(await redeployAvailable())) {
+    console.log("[update] no docker socket — falling back to exit-and-be-respawned");
+    requestRestart(`update ${shortRun} -> ${shortNew}`);
+    return undefined;
+  }
+
+  // `redeploy` resolving at all means the swap failed — success kills this process mid-await.
+  const result = await redeploy(latestSha);
+
+  // We're still the live bot, so the update is un-owed: drop the markers, or the next boot
+  // would deliver a follow-up for a restart that never occurred and the anti-loop guard would
+  // suppress a later, genuine attempt.
+  state.attemptedUpdateToSha = undefined;
+  state.pendingUpdateReport = undefined;
+  await saveState();
+  console.warn(`[update] redeploy to ${shortNew} failed: ${result.error ?? result.outcome}`);
+  return result;
 }

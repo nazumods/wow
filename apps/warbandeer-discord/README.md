@@ -8,7 +8,7 @@ Discord bot for the guild channel: WoW timers and announcements.
 - **Resets** — `/reset` shows the next daily and weekly reset; announces the weekly reset when it happens.
 - **Server status** — continuously polls the Blizzard API for your realm's status and announces whenever it goes **down** or comes back **up** — for any outage, not just weekly-reset maintenance. `/status` checks the realm on demand.
 - **Release notifications** — polls GitHub and announces new releases. Watches this repo by default, or any list of repos you configure (e.g. ActionBarMaster too).
-- **Self-update** — `/update` (admins only) restarts the bot onto the latest build, so code changes don't need someone on the box, then messages you once it's back with the build it actually landed on. See [Self-update](#self-update).
+- **Self-update** — `/update` (admins only) builds the latest code and moves the bot onto it, with nothing outside Discord involved. It verifies the new build before retiring the old one, so a bad build leaves the bot running, and messages you with the build it actually landed on. See [Self-update](#self-update).
 - **Transmog import strings** — `/transmog <character> <realm>` returns a `/customset v1 …` string for what a character is wearing, pasteable into `/collected outfit import`. For the characters you *can't* inspect in-game: offline, another realm, or a name someone pasted in chat. Needs the same Blizzard API credentials as realm status. Two caveats it states in every reply: weapon illusions aren't in the profile data, and profile data is a snapshot from the character's **last logout** — so someone online right now reports what they wore last session.
 - **Issue reports** — `/report` lets members with a configured role file a GitHub issue (Title + Description via a popup form) straight into the mapped project's repo (`wow`, `abm`), labeled `automated` and noting who filed it. The confirmation posts **in the channel the report was filed from**, carrying the title, the description and the issue link, so the channel can see what's been raised.
 
@@ -45,18 +45,36 @@ All times are posted as Discord timestamps, so everyone sees them in their own t
 
 ## Self-update
 
-The bot can't rewrite its own code: it restarts, and **whatever supervises it is responsible for bringing up the new build**. `/update` is an admin-triggered *"stop, so you can be replaced"*, not a `git pull`.
+`/update` (admins only) takes the bot all the way to the new build on its own. Nothing outside the container is involved: no host service, no SSH session, nobody running `--build`.
 
-That distinction matters, because `restart: unless-stopped` on its own **will not update anything** — Docker respawns the same container from the same image, so the bot comes back on the identical code. For self-update to actually do something, the respawn has to supply a rebuilt image. Either:
+It works by **starting the replacement before retiring the original**, which is what makes it safe:
 
-- redeploy manually with `GIT_SHA=$(git rev-parse HEAD) docker compose up -d --build` (in which case `/update` is unnecessary — the rebuild already restarts it), or
-- run an image-updating supervisor (e.g. Watchtower) against a registry image that CI builds.
+1. **Build.** The bot builds a new image through the Docker daemon. It's fully alive for this, so a build failure is reported straight back to you and nothing else happens.
+2. **Start alongside.** It creates a second container on the new image. Created by the daemon, that container is a sibling — nothing about its lifetime is tied to the bot's.
+3. **Verify.** The new instance has to complete a Discord gateway login to count as working. Until it does it stays in standby: connected, but answering nothing.
+4. **Retire.** The verified new instance stops and removes the old container, takes its name, and goes active.
 
-Setup:
+If step 3 doesn't happen, the new container is removed and **the original keeps running** and tells you why. Rollback is the normal case, not a recovery procedure.
+
+Setup — the whole of it is `docker compose up -d`:
 
 1. Set `ADMIN_USER_IDS` to a comma-separated list of Discord user IDs (right-click a user → **Copy User ID**, with Developer Mode on). This is an explicit ID allowlist rather than a role check — roles get reassigned and inherited; the list only changes when you edit `.env`. It fails closed: with none set, `/update` is refused for everyone.
 2. Build with `GIT_SHA` as above.
-3. Optionally set `AUTO_UPDATE=true` to exit as soon as a newer build exists, without waiting for `/update`. **Off by default** — it's only useful with a supervisor that supplies new code.
+3. Optionally set `AUTO_UPDATE=true` to update as soon as a newer build exists, without waiting for `/update`. **Off by default.**
+
+There is no key to set to enable any of this. The bot discovers its own compose project, volumes, network and container name from its own container through the daemon, so there is nothing to configure and nothing to keep in sync.
+
+**What it costs.** The compose file mounts `/var/run/docker.sock` into the bot. That is root-equivalent access to the host, accepted deliberately: it's the only way `/update` completes with nothing installed outside the container. Two things follow from it, and both belong in the open:
+
+- **Anyone with push access to `BOT_BRANCH` on `GITHUB_REPO` can get root on the box.** The build uses a remote git context, so whatever that branch contains is what gets built and run against the socket — via `/update`, or automatically with `AUTO_UPDATE=true`. The *trigger* is admin-gated; the *content* is gated only by who can push to that branch. Treat push access to it accordingly.
+- The container **starts** as root, but only for its entrypoint: the socket's owning group has a host-specific GID (115 here, 999 on stock Debian), so the entrypoint reads the GID off the socket itself, then drops to the `bun` user carrying that one group before the bot runs. No GID to configure, and the long-running process stays non-root — though that is hygiene, not a boundary: whoever holds the socket is root-equivalent regardless.
+
+`GITHUB_REPO` must also be **publicly clonable** — the daemon fetches the build context itself, with no credentials. On a private repo the build fails with an opaque error rather than a hint about auth.
+
+If you don't want any of this, remove the socket mount — the bot detects its absence and falls back to the older behaviour of exiting with code **75** for a supervisor to replace it, which needs one of:
+
+- a manual redeploy with `GIT_SHA=$(git rev-parse HEAD) docker compose up -d --build`, or
+- an image-updating supervisor (e.g. Watchtower) against a registry image that CI builds.
 
 Behavior:
 
@@ -65,11 +83,16 @@ Behavior:
 - `BOT_BRANCH` must name a branch that exists on `GITHUB_REPO` — it's queried through the GitHub API, so a branch that only exists on your machine can't be used. Point a staging deploy at its own pushed branch.
 - A deploy running **unpushed** commits is recognised rather than mishandled: the compare comes back 404, and self-update reports itself **disabled naming the sha** instead of offering an update it could never deliver. You no longer need to build without `GIT_SHA` to get sane behaviour there.
 - If the compare call fails (GitHub down, rate limited), the check falls back to treating a sha mismatch as stale — the pre-existing behaviour — rather than failing startup.
-- The bot exits with code **75** (distinct from a crash, so a supervisor can tell an update apart from a failure).
-- A restart never lands mid-announcement: it waits for the in-flight tick and its `data/state.json` write to finish.
+- The overlap is silent. Both containers hold the same `DISCORD_TOKEN`, and Discord delivers every event to both sessions, so the standby registers no commands, no handlers and no scheduler until it has taken over. You won't see doubled replies or doubled announcements.
+- The two containers never write `data/state.json` at once: the original stops its scheduler before the replacement starts, and the handoff signal is a separate file with one writer.
+- Each build is also tagged with its short sha, and the newest three are kept — so the previous build stays on disk and addressable if you ever need to pin back to it.
+- A swap never lands mid-announcement: it waits for the in-flight tick and its `data/state.json` write to finish.
+- A second `/update` while a swap is in flight is **refused**, not queued — it would otherwise tear down the in-flight replacement.
+- Every wait has an end: if a replacement verifies but then never manages to retire the original (daemon trouble mid-swap), the original reclaims after 3 minutes and reports, rather than sitting quiesced until someone notices.
+- Without the daemon socket the bot exits with code **75** instead (distinct from a crash, so a supervisor can tell an update apart from a failure).
 - **Once it's back up, it messages whoever ran `/update`** with the build it actually came back on, and which of three things happened:
   - ✅ **updated** — came back on the build it was picking up.
-  - ⚠️ **no-op** — came back on the *same* build it left on, i.e. nothing was rebuilt. This is the failure that otherwise looks exactly like success: a container recreated without `--build` comes back happily on the old image and logs a clean startup.
+  - ⚠️ **no-op** — came back on the *same* build it left on, i.e. nothing was rebuilt. This is the failure that otherwise looks exactly like success: a container recreated without `--build` comes back happily on the old image and logs a clean startup. (With the socket mounted this shouldn't happen — the bot builds the image itself.)
   - ❓ **unexpected** — came back on some third build, so something else deployed in between.
 - That follow-up survives the restart (it's recorded in `data/state.json`, not held in memory), and it tries the original command's reply first, then a DM, then the channel. An expired reply token, closed DMs, or a deleted channel just log — they never hold up or crash startup.
 - Only a restart **`/update` asked for** produces a follow-up. An `AUTO_UPDATE` exit, a host reboot, or a plain `docker compose up` stays silent.
@@ -113,6 +136,9 @@ Once the bot exposes a local port, map a public hostname to it (`http://bot:<por
 | `src/report.ts` | `/report` — role gate, modal form, files a GitHub issue, announces it in the channel |
 | `src/announce.ts` | Scheduler tick: DMF/reset/release announcements, realm watch |
 | `src/update.ts` | Self-update: staleness check against the bot's newest commit |
+| `src/redeploy.ts` | The swap: builds the new image, starts the replacement, hands over |
+| `src/handoff.ts` | Standby/verify/retire protocol shared by both instances |
+| `src/docker.ts` | Docker Engine API client over the daemon socket |
 | `src/updateReport.ts` | The follow-up after a `/update` restart: which build it came back on |
 | `src/restart.ts` | Graceful restart, deferred past in-flight announcements |
 | `src/state.ts` | Announcement dedup state (`data/state.json`) |

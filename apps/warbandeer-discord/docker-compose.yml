@@ -10,6 +10,18 @@ services:
     env_file: .env
     volumes:
       - state:/app/data
+      # Self-update (#879): the bot builds its own replacement and hands off to it through the
+      # daemon. This is root-equivalent on the host — accepted deliberately, because it is the
+      # only way `/update` completes with nothing installed outside the container. The trigger
+      # stays ADMIN_USER_IDS-gated and fails closed.
+      - /var/run/docker.sock:/var/run/docker.sock
+    # Started as root so the entrypoint can read the socket's group off the socket itself —
+    # it is mode 0660 root:docker and the docker group's GID differs per host (115 here, 999
+    # on a stock Debian), so naming one would be exactly the operator-supplied config this
+    # design rules out. The entrypoint immediately drops to `bun` carrying that one group;
+    # root never survives past its first exec. Security-wise this changes nothing either way:
+    # the socket mount above is already root-equivalent on the host.
+    user: "0:0"
     restart: unless-stopped
     init: true
 
