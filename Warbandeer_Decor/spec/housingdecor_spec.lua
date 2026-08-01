@@ -121,6 +121,15 @@ describe("Warbandeer_Decor", function()
       assert.is_nil(body:find("Plain Rug\n    ", 1, true))
     end)
 
+    it("treats an empty-string source blurb as no source (no dangling indent)", function()
+      -- owned == true so the row is the bare name: a mutation dropping the `~= ""`
+      -- guard would append "\n    " (an indented blank line) and trip this.
+      local entries = { { recordID = 40, name = "Bare Shelf", owned = true, sourceText = "" } }
+      local body = ns.WantedListText(entries, wants({ [40] = true }), 1)
+      assert.is_truthy(body:find("Bare Shelf", 1, true))
+      assert.is_nil(body:find("Bare Shelf\n    ", 1, true))
+    end)
+
     it("footers the count when some wanted ids aren't in the current scan", function()
       local body, named = ns.WantedListText(ENTRIES, wants({ [10] = true }), 3)
       assert.equals(1, named)
