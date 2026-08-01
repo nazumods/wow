@@ -4,6 +4,7 @@ local ns = select(2, ...)
 local GetItemInfoInstant = C_Item.GetItemInfoInstant
 
 ---@class HVDecorInfo
+---@field recordID integer?      -- stable catalog key, carried through so consumers can cross-reference (e.g. Warbandeer_Decor's wanted list); nil only on a raw entry that lacks it
 ---@field owned boolean          -- owns at least one instance (in storage or placed)
 ---@field stored integer         -- instances on hand (in storage + redeemable), i.e. placeable
 ---@field total integer          -- instances owned anywhere (stored + placed)
@@ -16,6 +17,9 @@ local GetItemInfoInstant = C_Item.GetItemInfoInstant
 --   total  = stored + totalNumPlaced                (GetEntryTotalOwned)
 -- `bonusAvailable` gates the star on *unowned* decor so an owned item whose
 -- firstAcquisitionBonus field hasn't zeroed out can't dangle a claimed bonus.
+-- `recordID` is the entry's stable catalog key (non-nilable on the real struct);
+-- carried through so a consumer can cross-reference the counts against a list keyed
+-- on it — e.g. Warbandeer_Decor's wanted flags — which EntryFor previously couldn't.
 ---@param entry table? HousingCatalogEntryInfo
 ---@return HVDecorInfo?
 function ns.NormalizeEntry(entry)
@@ -24,6 +28,7 @@ function ns.NormalizeEntry(entry)
   local total = stored + (entry.totalNumPlaced or 0)
   local bonus = entry.firstAcquisitionBonus or 0
   return {
+    recordID = entry.recordID,
     owned = total > 0,
     stored = stored,
     total = total,

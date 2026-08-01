@@ -6,6 +6,16 @@ local function db(key) return ns.db and ns.db[key] end
 local NUMBER_FONT = "Fonts\\ARIALN.TTF"
 local STAR_ATLAS = "auctionhouse-icon-favorite"           -- gold star (AH/profession favourite)
 local CHECK_TEX = "Interface\\RaidFrame\\ReadyCheck-Ready" -- green check
+-- The "wanted" marker's atlas. Warbandeer_Decor publishes the same atlas on its API so
+-- every surface that draws the wanted flag reads identically; this literal is the
+-- fallback used only when that addon isn't installed (in which case the marker never
+-- actually shows), so the two can't visibly drift.
+local WANTED_ATLAS = "PetJournal-FavoritesIcon"
+
+-- Warbandeer_Decor's read/write wanted API (a global it publishes), or nil when that
+-- addon isn't loaded. A soft dependency: the wanted marker is simply never drawn without
+-- it, mirroring how ShadowsOfUI-Collectibles treats *this* addon's HousingDecorApi.
+local function wantedApi() return _G.WarbandeerHousingDecorApi end
 
 -- Create an overlay indicator hidden. Textures/FontStrings are created shown by
 -- default, and ApplyOverlay only ever :Show()s the ones that pass their gate (it
@@ -50,6 +60,16 @@ function ns.EnsureOverlay(button)
   check:SetPoint("TOPLEFT", 1, -1)
   o.check = check
 
+  -- "Wanted" marker, top-right — the corner the star/check block deliberately leaves free.
+  -- Reads its atlas from Warbandeer_Decor's API so it matches that addon's own wanted star,
+  -- falling back to the identical literal when the addon is absent (the marker never shows then).
+  local wanted = hidden(o:CreateTexture(nil, "OVERLAY"))
+  local api = wantedApi()
+  wanted:SetAtlas(api and api.WantedIcon or WANTED_ATLAS)
+  wanted:SetSize(14, 14)
+  wanted:SetPoint("TOPRIGHT", -1, -1)
+  o.wanted = wanted
+
   button.shvOverlay = o
   return o
 end
@@ -59,7 +79,7 @@ end
 ---@param button table item button (frame)
 function ns.CleanOverlay(button)
   local o = button.shvOverlay
-  if o then o.count:Hide(); o.star:Hide(); o.check:Hide() end
+  if o then o.count:Hide(); o.star:Hide(); o.check:Hide(); o.wanted:Hide() end
 end
 
 -- Paint a button's overlay from normalized decor info, honouring the per-indicator
@@ -76,4 +96,11 @@ function ns.ApplyOverlay(button, d)
   end
   if db("ownedCheck") and d.owned then o.check:Show() end
   if db("bonusBadge") and d.bonusAvailable then o.star:Show() end
+  -- Wanted marker: cross-reference the entry's recordID against Warbandeer_Decor's wanted
+  -- flags. The API methods are colon-defined, so `:IsWanted` (not `.IsWanted`) — a dot call
+  -- would pass recordID as `self`. No-op when the addon (hence the API) isn't loaded.
+  local wanted = wantedApi()
+  if db("wantedBadge") and wanted and d.recordID and wanted:IsWanted(d.recordID) then
+    o.wanted:Show()
+  end
 end
