@@ -41,7 +41,7 @@
 | `src/wow/transmog.test.ts` | bun tests: wire order and the fixed 17-value count, absent-transmog → 0 + reported bare, illusions always 0, a secondary not bleeding into the next slot, non-transmoggable slots ignored vs unknown ones surfaced; `realmSlug` (spaces, apostrophes, accents, already-a-slug); `formatTransmogReply` (code + import target, slot labels, caveats always present, all-zero special case) |
 | `src/github.ts` | GitHub API client: `fetchReleases(repo)` (drafts filtered; returns `null` on a 404 — the repo is missing or invisible to `GITHUB_TOKEN`, which GitHub reports identically — while 401/403/429/5xx still throw, and a releaseless repo is a plain `[]`) + `createReachabilityLog()` (edge-triggered per-repo tracker: `observe(repo, reachable)` → `"lost"` / `"recovered"` / `null`, in-memory so a restart re-reports once) + pure `decideReleaseAnnouncements(releases, seen)` (seed-silently on `seen===undefined`, else announce unseen oldest-first) + `createIssue` / idempotent `ensureLabel` for `/report` (both need `GITHUB_TOKEN` with issues:write) |
 | `Dockerfile` | `oven/bun:1-slim` (Debian — Intl IANA timezones), prod-only install, non-root `bun` user, `VOLUME /app/data`, `ARG/ENV GIT_SHA`, `ENTRYPOINT entrypoint.sh` |
-| `entrypoint.sh` | Root→`bun` drop when compose starts the container as root: joins the socket's group by reading its GID off the socket (`setpriv --groups`), chowns `data/`, execs the CMD; a plain exec under `USER bun` |
+| `entrypoint.sh` | Root→`bun` drop when compose starts the container as root: joins the socket's group by reading its GID off the socket (`setpriv --groups`), execs the CMD; a plain exec under `USER bun` |
 | `docker-compose.yml` | `GIT_SHA=$(git rev-parse HEAD) docker compose up -d --build`: `env_file: .env`, `GIT_SHA` build arg, named volume `state` → `/app/data`, `restart: unless-stopped`. Opt-in `cloudflared` sidecar (`profiles: [tunnel]`, needs `CLOUDFLARE_TUNNEL_TOKEN`) for exposing a future local API without inbound firewall ports |
 | `ops/bot-ops.sh` + `ops/README.md` | Operator admin surface for the desktop app's **Ops** tab (`apps/warbandeer-desktop`): whitelisted `status`/`logs`/`restart`/`env-get`/`env-set` over docker+`.env`, invoked over SSH. Secrets are never read/written (whitelist excludes them); env-set backs up then `-p warbandeer-discord-debug up -d --force-recreate`. The only privileged surface — the desktop app just SSHes to it |
 
@@ -110,9 +110,10 @@
   docker GID differs per host (115 on the box, 999 on a stock Debian) — naming one would be the
   operator-supplied config #879 rules out — so the entrypoint reads the GID off the socket
   itself (`stat -c %g`), then `setpriv`s to `bun` carrying that one supplementary group. Hygiene,
-  not a boundary: the socket mount is already root-equivalent either way. The entrypoint also
-  chowns `data/` to `bun` on the way, healing root-owned state from the pre-drop deployments;
-  under the image's own `USER bun` (no socket, older compose file) it execs the CMD untouched.
+  not a boundary: the socket mount is already root-equivalent either way. Under the image's own
+  `USER bun` (no socket, older compose file) it execs the CMD untouched. State written by a
+  pre-drop root-run deployment stays root-owned — a one-time `chown -R bun:bun` on the host's
+  `data/`, not something the entrypoint redoes every start.
 - **`ready` is a promise of a stop, not the stop itself.** The replacement writes the marker
   *before* retiring the original, so a `retireOriginal` that dies in between would leave the
   original quiesced forever — seen `ready`, stopped counting, waiting to be killed. Two guards

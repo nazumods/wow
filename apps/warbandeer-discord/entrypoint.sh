@@ -13,8 +13,6 @@ set -e
 SOCK=/var/run/docker.sock
 
 if [ "$(id -u)" = "0" ]; then
-  # Heal state a root-run bot (the pre-drop deployments) left behind, or `bun` can't write it.
-  chown -R bun:bun /app/data 2>/dev/null || true
   if [ -S "$SOCK" ]; then
     exec setpriv --reuid bun --regid bun --groups "$(stat -c %g "$SOCK")" -- "$@"
   fi
