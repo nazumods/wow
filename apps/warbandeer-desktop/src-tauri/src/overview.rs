@@ -96,6 +96,11 @@ pub struct Overview {
     pub reputations: Vec<FactionStanding>,
     pub top_characters: Vec<TopCharacter>,
     pub achievements: OverviewAchievements,
+    /// The Currencies TAB's grid, not an Overview column. It rides along on this one command
+    /// because it comes out of the same parsed save: a command of its own would mean a second
+    /// mlua exec of a multi-megabyte SavedVariables file on every load, and would sit outside
+    /// the ⟳ refresh the frontend already wires to this payload.
+    pub currencies: crate::currencies::Currencies,
 }
 
 /// Expansion keys in the order the in-game Overview lists them
@@ -156,8 +161,9 @@ fn version_gt(a: &str, b: &str) -> bool {
     false
 }
 
-/// `byLevelIlvl`: level desc, then ilvl desc, then name asc.
-fn cmp_by_level_ilvl(a: &Character, an: &str, b: &Character, bn: &str) -> std::cmp::Ordering {
+/// `byLevelIlvl`: level desc, then ilvl desc, then name asc. Shared with the Currencies grid,
+/// which orders its rows the same way the in-game Summary view does.
+pub fn cmp_by_level_ilvl(a: &Character, an: &str, b: &Character, bn: &str) -> std::cmp::Ordering {
     use std::cmp::Ordering;
     let la = a.basic.level as i64;
     let lb = b.basic.level as i64;
@@ -196,7 +202,7 @@ fn build(db: &CharDb, account: Option<String>) -> Overview {
     for c in db.characters.values() {
         count += 1;
         if let Some(cur) = &c.currency {
-            wealth += cur.gold;
+            wealth += cur.gold();
         }
         if let Some(pt) = &c.playtime {
             total_play += pt.total;
@@ -351,6 +357,7 @@ fn build(db: &CharDb, account: Option<String>) -> Overview {
         reputations,
         top_characters: top,
         achievements: build_achievements(db),
+        currencies: crate::currencies::build(db),
     }
 }
 
@@ -454,6 +461,26 @@ mod tests {
         for t in ov.top_characters.iter().take(5) {
             eprintln!("  {:>3} {:<14} ilvl {}", t.level, t.name, t.ilvl);
         }
+
+        // The currency grid runs over the same real save. The unit tests cover the shapes with
+        // hand-built values; this is the one place the untagged enum meets what mlua actually
+        // hands back — including a legacy bare-number entry, if this account still has one.
+        let cur = &ov.currencies;
+        assert!(!cur.columns.is_empty(), "expected currency columns");
+        assert_eq!(cur.rows.len(), ov.stats.char_count, "a row per character");
+        assert!(
+            cur.rows.iter().all(|r| r.cells.len() == cur.columns.len()),
+            "every row must be as wide as the header"
+        );
+        // Any live save has at least its characters' gold, so an all-blank grid means the
+        // deserialization went wrong, not that the account is poor.
+        assert!(
+            cur.rows
+                .iter()
+                .flat_map(|r| &r.cells)
+                .any(|c| c.quantity.is_some()),
+            "no cell captured anything from a real save"
+        );
     }
 }
 

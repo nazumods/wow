@@ -3,6 +3,7 @@
   import { getVersion } from "@tauri-apps/api/app";
   import { getOverview, listCombatLogs, opsConfig } from "./lib/api";
   import OverviewView from "./lib/components/Overview.svelte";
+  import Currencies from "./lib/components/Currencies.svelte";
   import CombatLogPanel from "./lib/components/CombatLogPanel.svelte";
   import CharacterSort from "./lib/components/CharacterSort.svelte";
   import BotOps from "./lib/components/BotOps.svelte";
@@ -11,7 +12,7 @@
   let logs = $state<CombatLogFile[]>([]);
   let error = $state<string | null>(null);
   let loading = $state(true);
-  let tab = $state<"overview" | "logs" | "sort" | "ops">("overview");
+  let tab = $state<"overview" | "currencies" | "logs" | "sort" | "ops">("overview");
 
   // Operator-only Ops tab: shown only when ops mode is configured (ops.json present).
   // A broken or absent config resolves to null, keeping the tab hidden in normal builds.
@@ -54,6 +55,9 @@
     <button class:active={tab === "overview"} onclick={() => (tab = "overview")}>
       Overview
     </button>
+    <button class:active={tab === "currencies"} onclick={() => (tab = "currencies")}>
+      Currencies
+    </button>
     <button class:active={tab === "logs"} onclick={() => (tab = "logs")}>
       Logs{#if logs.length}<span class="badge">{logs.length}</span>{/if}
     </button>
@@ -80,6 +84,8 @@
   {:else if overview}
     {#if tab === "overview"}
       <OverviewView data={overview} />
+    {:else if tab === "currencies"}
+      <Currencies data={overview.currencies} />
     {:else if tab === "logs"}
       <CombatLogPanel {logs} />
     {:else if tab === "sort"}

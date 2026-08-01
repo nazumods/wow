@@ -8946,6 +8946,18 @@
       "quality": 4
     }
   },
+  "currencyFields": {
+    "RestoredCofferKey": 3028,
+    "CofferKeyShard": 3310,
+    "Catalyst": 3378,
+    "HeroDawncrest": 3345,
+    "NebulousVoidcore": 3418,
+    "FieldAccolade": 3405,
+    "UnalloyedAbundance": 3377,
+    "MythDawncrest": 3347,
+    "UntaintedManaCrystal": 3356,
+    "ShardOfDundun": 3376
+  },
   "achievements": {
     "158": {
       "name": "Me and the Cappin' Makin' It Happen",

@@ -5,11 +5,24 @@
 // are packed into the exe at generation time and served by src-tauri/src/icons.rs; this is the
 // only place that knows the scheme's name.
 import { convertFileSrc } from "@tauri-apps/api/core";
+import manacrystal from "../assets/manacrystal.png";
+import gold from "../assets/gold.jpg";
 
 // Matches icons::SCHEME. Tauri rewrites it per platform — http://wbicon.localhost/<name> on
 // Windows, wbicon://localhost/<name> elsewhere — which is exactly what convertFileSrc does, so
 // the URL is never assembled by hand here.
 const SCHEME = "wbicon";
+
+// Hand-shipped stand-in icons, mirroring the in-game addon, which ships its own TGAs for
+// exactly this reason (Warbandeer/icons/*.tga). Only ever keyed by `wb:` names — an app-owned
+// namespace the backend assigns (see currencies.rs `standin_icon`), so no weekly bundle
+// regeneration can invalidate an entry and no DB2 name can collide with one. App assets
+// rather than icons.bin entries on purpose: the blob is rebuilt byte-for-byte from what the
+// bundle references, so anything injected by hand would be dropped on the next refresh.
+const LOCAL: Record<string, string> = {
+  "wb:manacrystal": manacrystal,
+  "wb:gold": gold,
+};
 
 /**
  * The image URL for a bare icon name, or null when there is nothing to draw.
@@ -21,5 +34,5 @@ const SCHEME = "wbicon";
  */
 export function iconUrl(name: string | null | undefined): string | null {
   if (!name) return null;
-  return convertFileSrc(name, SCHEME);
+  return LOCAL[name] ?? convertFileSrc(name, SCHEME);
 }

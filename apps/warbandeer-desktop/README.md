@@ -19,6 +19,7 @@ the game. The first view is a desktop mirror of the addon's **Overview**.
 | Reputations | per-char `reputations.factions` — best standing per faction, account-wide | ✅ (offline analogue of the live rep bars) |
 | Top Characters | top char per class by level/ilvl | ✅ (raid set-completion columns: planned, needs the Collected DB) |
 | Achievements | `db.achievements` snapshot + bundled catalog | ✅ per-expansion checklist with icons, completed/total and points |
+| Currencies | per-char `currency` + the bundled currency table | ✅ own tab — a row per character, a column per tracked currency, capped amounts in red |
 | Combat logs | `Logs/WoWCombatLog*.txt` | ✅ list + lightweight CLEU summary (encounters, top damage) |
 | Character Sort | `WTF/Account/<name>/character-list-order.txt` | ✅ reorder the character-select list (see below) |
 | Ops (operator-only) | the `warbandeer-discord` bot on the box, over SSH | 🔧 hidden unless `ops.json` is present (see below) |
@@ -96,6 +97,10 @@ currency's name, icon or cap. The app has no network access, so it ships a small
 table (`src-tauri/data/static-data.json`, generated from [wago.tools](https://wago.tools))
 compiled into the exe. Nothing to install or configure; it just means currency ids can be
 shown as names and icons offline.
+
+The same file also carries the map from the addon's internal currency field names to those
+ids — without it the amounts in your save join to nothing, which is why the **Currencies**
+tab can name and illustrate every column without a WoW client running.
 
 The table is refreshed by CI and regenerated with `pwsh Tooling/update-static-data.ps1`
 from the repo root — see `Tooling/UPDATING-static-data.md`.

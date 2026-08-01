@@ -4,16 +4,31 @@
 it. It is the suite's offline lookup layer: constant client data that SavedVariables only
 store ids for.
 
-Current contents: **currencies** (the full `CurrencyTypes` table), **achievements**
-(`Achievement`, filtered to the ids Warbandeer's views track), and **achievementGroups**
-(which of those ids belong to which expansion).
+Current contents: **currencies** (the full `CurrencyTypes` table), **currencyFields** (which
+currency id each of the currency broker's field names means), **achievements** (`Achievement`,
+filtered to the ids Warbandeer's views track), and **achievementGroups** (which of those ids
+belong to which expansion).
 
 The generator emits a **second artifact** beside it, `data/icons.bin` — the icon images the
 two tables reference, packed into one file and embedded with `include_bytes!`. See
 [The packed icon set](#the-packed-icon-set) below. Both files are generated; neither is
 hand-editable, and they must be regenerated and committed **together**.
 
-`achievementGroups` is the only key not sourced from wago: it is parsed out of
+`currencyFields` and `achievementGroups` are the two keys not sourced from wago — both are
+parsed out of the addon's own source, for the same reason: a reader holding only a save cannot
+reconstruct them.
+
+`currencyFields` maps the currency broker's hand-written field names to currency ids
+([#884](https://github.com/nazumods/wow/issues/884)). A save stores `toon.currency.HeroDawncrest`;
+this bundle stores currency `"3345"`; nothing in SavedVariables carries the link, and it exists
+only inline in `Warbandeer_Characters/data/currency.lua` as an `id` on each field. Parsing it
+from there keeps one source of truth, and the `currency.id` lint rule guards the coupling —
+the same arrangement `achievementGroups` uses. `gold` is deliberately absent: it is `GetMoney()`
+in copper, not a currency id. So is display **order** and any label, for the same reason as
+below — in game those live in the views (`Warbandeer/views/summaryCol/*.lua`, ordered by the
+`.toc`), not in the broker.
+
+`achievementGroups` is parsed out of
 `achievementcatalog.lua`'s `checklist` table, the same file the id filter already reads, so
 there is one source of truth and the existing `achievementcatalog.id` lint rule guards it.
 It covers only the Overview **checklist**, so the union of its lists is deliberately smaller
@@ -99,6 +114,7 @@ pwsh ./Tooling/update-static-data.ps1
 | `-Build <v>` | Pin a specific client build instead of the latest. |
 | `-Product <p>` | wago product; `wow` = live retail, `wowt` = PTR. |
 | `-CatalogFile <f>` | Lua file the achievement filter reads ids from. Defaults to `Warbandeer_Characters/data/achievementcatalog.lua`. |
+| `-CurrencyFile <f>` | Lua file the `currencyFields` map is parsed from. Defaults to `Warbandeer_Characters/data/currency.lua`. |
 
 ## What it pulls
 
@@ -168,6 +184,11 @@ The generator aborts rather than writing a wrong file when:
 - no achievement ids parse out of the catalog file (its shape changed);
 - **a tracked achievement id is absent from `Achievement.db2`** — a stale catalog entry, reported
   with every offending id rather than failing on the first;
+- no currency fields parse out of `currency.lua`, or its `Currency.fields` braces don't balance
+  (the broker's shape changed);
+- **a currency broker field names an id absent from `CurrencyTypes`** — the same stale-entry
+  failure as the achievement one, checked against the currencies actually being written so an id
+  dropped for having no name is caught too, and likewise reported all at once;
 - the icons listfile has fewer than `-MinIcons` entries;
 - regeneration would drop more than `-MaxDeletePct` % of *either* table (a table missing from the
   previous bundle is treated as newly added, not as a 100% deletion);
