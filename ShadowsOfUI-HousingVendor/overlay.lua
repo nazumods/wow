@@ -29,17 +29,23 @@ local function hidden(region)
   return region
 end
 
--- Overlay layer for an item button (merchant / bags / bank / Bagnon): a frame one
--- level above the icon with three indicators, each in a corner clear of the icon's
--- own stack-count number (bottom-right). Built lazily and reused across refreshes.
+-- Overlay layer for an item button (merchant / bags / bank / Bagnon): a frame above the
+-- icon with four indicators, each in a corner clear of the icon's own stack-count number
+-- (bottom-right). Built lazily and reused across refreshes.
 -- Decor is never gear, so this never collides with ShadowsOfUI-Ilvl's overlays.
+-- Frame level: +1 clears the button's own icon / border / IconOverlay TEXTURES (which sit
+-- at the button's level), which is all the count / bonus-star / owned-check corners need.
+-- But a sibling suite overlay draws an "already-collected" check on a higher child FRAME in
+-- the top-right — the very corner the wanted star uses — so at +1 the star drew *under* it.
+-- Lift the whole overlay well above that; the offset is generous on purpose (the exact
+-- level of another addon's frame isn't ours to assume). Verified in-game (#894).
 ---@param button table item button (frame)
 ---@return table overlay
 function ns.EnsureOverlay(button)
   if button.shvOverlay then return button.shvOverlay end
   local o = CreateFrame("Frame", nil, button)
   o:SetAllPoints()
-  o:SetFrameLevel(button:GetFrameLevel() + 1)
+  o:SetFrameLevel(button:GetFrameLevel() + 20)
 
   local count = hidden(o:CreateFontString(nil, "OVERLAY"))
   count:SetFont(NUMBER_FONT, 12, "OUTLINE")

@@ -36,7 +36,7 @@ One synchronous call drives everything: `C_HousingCatalog.GetCatalogEntryInfoByI
 
 ## Overlay (`overlay.lua`)
 
-The overlay is a `Frame` one level above each item button (`button.shvOverlay`), built lazily and reused. Four indicators, each in a corner clear of the icon's own stack-count number (bottom-right). Shared by **every** surface via `ns.EnsureOverlay` / `ns.CleanOverlay` / `ns.ApplyOverlay(button, d)`:
+The overlay is a `Frame` above each item button (`button.shvOverlay`), built lazily and reused. Four indicators, each in a corner clear of the icon's own stack-count number (bottom-right). Shared by **every** surface via `ns.EnsureOverlay` / `ns.CleanOverlay` / `ns.ApplyOverlay(button, d)`. **Frame level = `button + 20`, not `+1`:** `+1` clears the button's own icon/border/`IconOverlay` *textures* (enough for the count / bonus-star / owned-check corners), but a sibling suite overlay draws an "already-collected" check on a higher child *frame* in the **top-right** — the wanted star's corner — so at `+1` the star drew *under* it. The generous offset lifts the whole overlay above that sibling frame (its exact level isn't ours to assume). Indicators:
 
 - **count** — `NUMBER_FONT` (Arial Narrow) FontString, **bottom-left**; the `stored` number (white; dim grey when `stored == 0` but owned). Gated on `db.countBadge`.
 - **star** — Texture atlas `auctionhouse-icon-favorite` (the gold favourite star the AH/profession windows use), **top-left**; shown when `bonusAvailable`. Gated on `db.bonusBadge`.
