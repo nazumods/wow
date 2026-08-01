@@ -28,7 +28,7 @@ const SELF: ContainerInspect = {
     },
     User: "0:0",
   },
-  HostConfig: { RestartPolicy: { Name: "unless-stopped" }, NetworkMode: "wbd_default" },
+  HostConfig: { RestartPolicy: { Name: "unless-stopped" }, NetworkMode: "wbd_default", Init: true },
   Mounts: [
     { Type: "volume", Name: "wbd_state", Source: "/var/lib/docker/volumes/wbd_state/_data", Destination: "/app/data", RW: true },
     { Type: "bind", Source: "/var/run/docker.sock", Destination: "/var/run/docker.sock", RW: true },
@@ -183,6 +183,14 @@ describe("buildCreateSpec", () => {
   test("defaults the restart policy when the original somehow has none", () => {
     const bare = buildCreateSpec({ ...SELF, HostConfig: {} }, { image: "i", handoffFrom: "x" });
     expect(bare.HostConfig.RestartPolicy).toEqual({ Name: "unless-stopped" });
+  });
+
+  // Found on the debug box: the swapped-in bot ran with bun as PID 1 because compose's
+  // `init: true` is container config, not image config, and wasn't carried over.
+  test("keeps init, so the replacement still runs under docker-init", () => {
+    expect(spec.HostConfig.Init).toBe(true);
+    const bare = buildCreateSpec({ ...SELF, HostConfig: {} }, { image: "i", handoffFrom: "x" });
+    expect(bare.HostConfig.Init).toBeUndefined();
   });
 
   test("stays on the original's network", () => {

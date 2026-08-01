@@ -122,6 +122,9 @@ export function buildCreateSpec(
       ),
       RestartPolicy: { Name: self.HostConfig.RestartPolicy?.Name || "unless-stopped" },
       NetworkMode: self.HostConfig.NetworkMode,
+      // Compose's `init: true` lives on the container, not the image — without carrying it
+      // over, the replacement runs its process as PID 1 instead of under docker-init.
+      Init: self.HostConfig.Init ?? undefined,
     },
   };
 }

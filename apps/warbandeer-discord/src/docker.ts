@@ -20,6 +20,7 @@ export interface ContainerInspect {
     Binds?: string[] | null;
     RestartPolicy?: { Name: string; MaximumRetryCount?: number };
     NetworkMode?: string;
+    Init?: boolean | null;
   };
   Mounts: { Type: string; Name?: string; Source: string; Destination: string; RW: boolean }[];
   NetworkSettings: { Networks: Record<string, unknown> };
@@ -36,6 +37,7 @@ export interface CreateContainerSpec {
     Binds: string[];
     RestartPolicy: { Name: string };
     NetworkMode?: string;
+    Init?: boolean;
   };
 }
 
