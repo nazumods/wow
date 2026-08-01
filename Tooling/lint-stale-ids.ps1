@@ -74,6 +74,17 @@ $extractAchievementIds = {
   [regex]::Matches($text.Substring($i), '\d+') | ForEach-Object { [int]$_.Value }
 }
 
+# currency.lua's field ids are the join between a save (keyed by field NAME) and the desktop
+# app's bundle (keyed by currency id) — see update-static-data.ps1's currencyFields parse, which
+# uses this same shape. A flat `id\s*=\s*(\d+)` almost works but not quite: every get/eventFilter
+# closure references `self.id`, so the match refuses a preceding dot or word character.
+$extractCurrencyIds = {
+  param($text)
+  $i = $text.IndexOf('Currency.fields')
+  if ($i -lt 0) { throw 'currency.lua no longer declares Currency.fields — extractor is stale.' }
+  [regex]::Matches($text.Substring($i), '(?<![.\w])id\s*=\s*(\d+)') | ForEach-Object { [int]$_.Groups[1].Value }
+}
+
 # Each rule: file = repo-relative data file; rx = single-capture id regex (group 1) OR extract =
 # a scriptblock taking the comment-stripped file text and returning the ids; table/col = DB2
 # target; sev = fail|warn; big = six-figure table (ID is col 1, hashed from the raw CSV).
@@ -107,6 +118,10 @@ $rules = @(
   # Achievement puts ID after three *_lang columns, so the first-field fast path would read
   # Description_lang instead.
   @{ file='Warbandeer_Characters/data/achievementcatalog.lua'; label='achievementcatalog.id';         extract=$extractAchievementIds;        table='Achievement';     col='ID'; sev='fail'; big=$false }
+  # Same contract for the currency broker (#884): the bundle's currencyFields map is parsed from
+  # this file, and its generator aborts on an id CurrencyTypes doesn't know. This rule turns that
+  # hard failure into a PR-time diagnostic naming the stale field.
+  @{ file='Warbandeer_Characters/data/currency.lua';           label='currency.id';                  extract=$extractCurrencyIds;           table='CurrencyTypes';   col='ID'; sev='fail'; big=$false }
 )
 
 # Identify ourselves so heavy automated traffic to wago.tools is attributable, not anonymous.

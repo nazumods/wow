@@ -1,5 +1,6 @@
 mod charorder;
 mod combatlog;
+mod currencies;
 mod icons;
 mod model;
 mod overview;
