@@ -119,6 +119,25 @@ function Assert-Columns($rows, [string]$table) {
   }
 }
 
+# The body of the Lua table assigned at the first occurrence of $Anchor: strip line comments,
+# then brace-match from the first '{'. Both Lua parses below (the broker's `Currency.fields`,
+# the catalog's `checklist`) feed on this — one scanner, so a Lua-shape change is fixed once.
+function Get-LuaTableBody([string]$Text, [string]$Anchor, [string]$File) {
+  $at = $Text.IndexOf($Anchor)
+  if ($at -lt 0) { throw "No ``$Anchor`` table in $File — the file's shape changed, aborting." }
+  $body = [regex]::Replace($Text.Substring($at), '--[^\r\n]*', '')
+  $open = $body.IndexOf('{')
+  $depth = 0
+  for ($i = $open; $i -lt $body.Length; $i++) {
+    if ($body[$i] -eq '{') { $depth++ }
+    elseif ($body[$i] -eq '}') {
+      $depth--
+      if ($depth -eq 0) { return $body.Substring($open + 1, $i - $open - 1) }
+    }
+  }
+  throw "Unbalanced braces in $File's $Anchor table, aborting."
+}
+
 function Get-Cached([string]$key, [string]$url, [int]$timeoutSec) {
   if ($CacheDir) {
     $null = New-Item -ItemType Directory -Force -Path $CacheDir
@@ -263,19 +282,8 @@ if ($rows.Count -lt $MinRows) {
 # Brace-matched per entry rather than regexed flat, and the id match refuses a preceding dot or
 # word character: every get/eventFilter closure references `self.id`, and the entry bodies carry
 # bare numbers (100, 600, 8) that a flat \d+ sweep would happily read as currency ids.
-$currencyText = Get-Content -LiteralPath $CurrencyFile -Raw
-$fieldsAt = $currencyText.IndexOf('Currency.fields')
-if ($fieldsAt -lt 0) { throw "No ``Currency.fields`` table in $CurrencyFile — the broker's shape changed, aborting." }
-$currencyBody = [regex]::Replace($currencyText.Substring($fieldsAt), '--[^\r\n]*', '')
-$cOpen = $currencyBody.IndexOf('{')
-$cDepth = 0
-$cClose = -1
-for ($i = $cOpen; $i -lt $currencyBody.Length; $i++) {
-  if ($currencyBody[$i] -eq '{') { $cDepth++ }
-  elseif ($currencyBody[$i] -eq '}') { $cDepth--; if ($cDepth -eq 0) { $cClose = $i; break } }
-}
-if ($cClose -lt 0) { throw "Unbalanced braces in $CurrencyFile's Currency.fields table, aborting." }
-$fieldsBody = $currencyBody.Substring($cOpen + 1, $cClose - $cOpen - 1)
+$fieldsBody = Get-LuaTableBody -Text (Get-Content -LiteralPath $CurrencyFile -Raw) `
+  -Anchor 'Currency.fields' -File $CurrencyFile
 
 $currencyFields = [ordered]@{}
 $depth = 0
@@ -328,17 +336,7 @@ if ($trackedIds.Count -eq 0) {
 #
 # Brace-matched rather than regexed: `checklist` holds sub-tables, so a non-greedy `\{.*?\}`
 # would stop at the first expansion's closing brace.
-$checklistStart = $catalogBody.IndexOf('checklist')
-if ($checklistStart -lt 0) { throw "No `checklist` table in $CatalogFile — the catalog's shape changed, aborting." }
-$open = $catalogBody.IndexOf('{', $checklistStart)
-$depth = 0
-$close = -1
-for ($i = $open; $i -lt $catalogBody.Length; $i++) {
-  if ($catalogBody[$i] -eq '{') { $depth++ }
-  elseif ($catalogBody[$i] -eq '}') { $depth--; if ($depth -eq 0) { $close = $i; break } }
-}
-if ($close -lt 0) { throw "Unbalanced braces in $CatalogFile's checklist table, aborting." }
-$checklistBody = $catalogBody.Substring($open + 1, $close - $open - 1)
+$checklistBody = Get-LuaTableBody -Text $catalogBody -Anchor 'checklist' -File $CatalogFile
 
 $achievementGroups = [ordered]@{}
 foreach ($m in [regex]::Matches($checklistBody, '(\w+)\s*=\s*\{([^{}]*)\}')) {
