@@ -70,11 +70,9 @@ export interface OverviewAchievements {
 
 export interface CurrencyColumn {
   field: string; // broker field name, e.g. "HeroDawncrest" — also the {#each} key
-  id: number | null; // null for gold alone (it's GetMoney() copper, not a currency)
   name: string; // the currency's DB2 name; falls back to `field` if the bundle missed it
-  icon: string | null; // bare icon name for `iconUrl()`, null when DB2 carries none
-  maxQty: number; // the currency's own hold cap, 0 = uncapped
-  isGold: boolean; // format as gold rather than a bare count
+  icon: string | null; // icon name for `iconUrl()` (may be a `wb:` app asset), null when DB2 carries none
+  format: "money" | "count"; // how quantities render; carried on the column like the in-game getData
 }
 
 export interface CurrencyCell {
@@ -83,13 +81,12 @@ export interface CurrencyCell {
   quantity: number | null;
   earned: number;
   max: number; // hold cap as this character's client reported it
-  weeklyMax: number; // weekly earn cap; 0 when the currency has none
+  weeklyMax: number; // 0 when the currency has no weekly cap
   capped: boolean;
 }
 
 export interface CurrencyRow {
-  name: string;
-  realm: string | null;
+  name: string; // unique — the save keys characters by it — so also the row key
   classKey: string;
   level: number;
   cells: CurrencyCell[]; // parallel to `columns`

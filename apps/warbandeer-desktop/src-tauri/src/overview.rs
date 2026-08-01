@@ -472,16 +472,14 @@ mod tests {
             cur.rows.iter().all(|r| r.cells.len() == cur.columns.len()),
             "every row must be as wide as the header"
         );
-        let captured = cur
-            .rows
-            .iter()
-            .flat_map(|r| &r.cells)
-            .filter(|c| c.quantity.is_some())
-            .count();
-        eprintln!(
-            "currencies: {} columns x {} rows, {captured} cells captured",
-            cur.columns.len(),
-            cur.rows.len(),
+        // Any live save has at least its characters' gold, so an all-blank grid means the
+        // deserialization went wrong, not that the account is poor.
+        assert!(
+            cur.rows
+                .iter()
+                .flat_map(|r| &r.cells)
+                .any(|c| c.quantity.is_some()),
+            "no cell captured anything from a real save"
         );
     }
 }

@@ -144,6 +144,16 @@ pub enum CurrencyValue {
     Table(CurrencyTable),
 }
 
+impl CurrencyValue {
+    /// The held amount, whichever shape the broker wrote it in.
+    pub fn quantity(&self) -> f64 {
+        match self {
+            CurrencyValue::Scalar(n) => *n,
+            CurrencyValue::Table(t) => t.quantity,
+        }
+    }
+}
+
 /// The table-shaped currency entries. Every key is optional because no single broker field
 /// writes all of them: `max` is a hold cap, `weeklyMax` a weekly earn cap, and only
 /// `ShardOfDundun` carries both.
@@ -171,22 +181,14 @@ pub struct Currency {
     pub fields: HashMap<String, CurrencyValue>,
 }
 
+/// The broker's money field: the one key with no currency id behind it.
+pub const GOLD_FIELD: &str = "gold";
+
 impl Currency {
     /// The character's money in copper. Absent (never captured) reads as 0, which is what
     /// summing warband wealth wants.
     pub fn gold(&self) -> f64 {
-        match self.fields.get("gold") {
-            Some(CurrencyValue::Scalar(n)) => *n,
-            Some(CurrencyValue::Table(t)) => t.quantity,
-            None => 0.0,
-        }
-    }
-
-    /// One field's persisted value, or `None` when this character has never captured it —
-    /// which is normal, not an error: the broker skips max-level-only fields entirely for a
-    /// levelling character, and `GetCurrencyInfo` returns nil for an undiscovered currency.
-    pub fn get(&self, field: &str) -> Option<&CurrencyValue> {
-        self.fields.get(field)
+        self.fields.get(GOLD_FIELD).map_or(0.0, CurrencyValue::quantity)
     }
 }
 

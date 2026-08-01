@@ -8,7 +8,7 @@
 //! currency-id map, which is the only thing that connects a save's `toon.currency.HeroDawncrest`
 //! to the bundle's `"3345"`. Nothing here hand-maintains a currency list.
 
-use crate::model::{CharDb, Character, CurrencyValue};
+use crate::model::{CharDb, Character, CurrencyValue, GOLD_FIELD};
 use crate::staticdata::StaticData;
 use serde::Serialize;
 
@@ -32,9 +32,31 @@ const CURRENCY_ORDER: [&str; 10] = [
     "UnalloyedAbundance",
 ];
 
-/// The broker's money field. It has no currency id — it is `GetMoney()` in copper — so it
-/// carries no bundle metadata and the frontend formats it as gold rather than a bare count.
-const GOLD_FIELD: &str = "gold";
+/// How a column's quantities render. Carried on the column — like each in-game column's own
+/// `getData` formatter — so the frontend never needs to know which field is which.
+#[derive(Serialize, PartialEq, Eq, Clone, Copy, Debug)]
+#[serde(rename_all = "lowercase")]
+pub enum ColumnFormat {
+    /// `GetMoney()` copper: formatted as gold, and a zero is real money information, not the
+    /// captured-nothing a count's em-dash marks.
+    Money,
+    /// An ordinary currency amount.
+    Count,
+}
+
+/// App-shipped stand-in icons, by currency id, for the headers the packed set can never carry.
+/// Keyed by id rather than by DB2's icon-name string because the id is stable and lint-gated
+/// (`currency.id` in lint-stale-ids.ps1) while the art name regenerates weekly — a re-art would
+/// silently orphan a name-keyed entry. The `wb:` names resolve in the frontend's own asset map
+/// (`lib/icons.ts`), never through the `wbicon` scheme.
+fn standin_icon(id: u32) -> Option<&'static str> {
+    match id {
+        // Untainted Mana-Crystals: DB2's icon name carries a literal space and the CDN has no
+        // image under any spelling of it (#883) — the app ships the addon's own TGA instead.
+        3356 => Some("wb:manacrystal"),
+        _ => None,
+    }
+}
 
 /// One column: a broker field joined to its bundled display metadata.
 #[derive(Serialize, PartialEq, Debug)]
@@ -42,19 +64,13 @@ const GOLD_FIELD: &str = "gold";
 pub struct CurrencyColumn {
     /// The broker field name — also the key the frontend uses for `{#each}`.
     pub field: String,
-    /// `None` for gold alone; every other field resolves through `currencyFields`.
-    pub id: Option<u32>,
     /// The currency's real name from DB2, so no labels are hand-maintained here. Falls back to
     /// the field name if the bundle can't resolve it, keeping the skew visible rather than blank.
     pub name: String,
-    /// Bare icon name for `iconUrl()`. `None` for gold (no currency row to take one from) and
-    /// for any currency DB2 carries no icon for — the frontend reserves the box either way.
+    /// Bare icon name for `iconUrl()` — or a `wb:`-prefixed app asset. `None` when DB2 carries
+    /// no icon; the frontend reserves the box either way.
     pub icon: Option<String>,
-    /// The currency's own hold cap from DB2, 0 when uncapped. Distinct from the per-character
-    /// `max`/`weeklyMax` below, which are what that character's client reported.
-    pub max_qty: i64,
-    /// True for the money column, which is copper and formats differently from a count.
-    pub is_gold: bool,
+    pub format: ColumnFormat,
 }
 
 /// One character's value for one column.
@@ -76,8 +92,8 @@ pub struct CurrencyCell {
 #[derive(Serialize, PartialEq, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct CurrencyRow {
+    /// Unique by construction — `db.characters` is keyed by it — so it is also the row key.
     pub name: String,
-    pub realm: Option<String>,
     pub class_key: String,
     pub level: i64,
     pub cells: Vec<CurrencyCell>,
@@ -112,22 +128,22 @@ fn build_columns(bundle: &StaticData) -> Vec<CurrencyColumn> {
             let meta = bundle.currency(id);
             Some(CurrencyColumn {
                 field: field.to_string(),
-                id: Some(id),
                 name: meta.map_or_else(|| field.to_string(), |m| m.name.clone()),
-                icon: meta.and_then(|m| m.icon.clone()),
-                max_qty: meta.map_or(0, |m| m.max_qty),
-                is_gold: false,
+                icon: standin_icon(id)
+                    .map(str::to_string)
+                    .or_else(|| meta.and_then(|m| m.icon.clone())),
+                format: ColumnFormat::Count,
             })
         })
         .collect();
 
+    // Gold has no currency id — it is `GetMoney()` copper — so it joins nothing and brings its
+    // own icon, an app asset like the stand-ins above.
     columns.push(CurrencyColumn {
         field: GOLD_FIELD.to_string(),
-        id: None,
         name: "Gold".to_string(),
-        icon: None,
-        max_qty: 0,
-        is_gold: true,
+        icon: Some("wb:gold".to_string()),
+        format: ColumnFormat::Money,
     });
     columns
 }
@@ -153,14 +169,15 @@ fn cell_of(value: Option<&CurrencyValue>) -> CurrencyCell {
 }
 
 fn row_of(name: &str, c: &Character, columns: &[CurrencyColumn]) -> CurrencyRow {
+    // One map, many lookups.
+    let cur = c.currency.as_ref();
     CurrencyRow {
         name: name.to_string(),
-        realm: c.realm.clone(),
         class_key: c.class_key.clone().unwrap_or_default(),
         level: c.basic.level as i64,
         cells: columns
             .iter()
-            .map(|col| cell_of(c.currency.as_ref().and_then(|cur| cur.get(&col.field))))
+            .map(|col| cell_of(cur.and_then(|cur| cur.fields.get(&col.field))))
             .collect(),
     }
 }
@@ -295,7 +312,7 @@ mod tests {
             .collect();
         assert_eq!(&fields[..expected.len()], &expected[..]);
         assert_eq!(fields.last(), Some(&GOLD_FIELD));
-        assert!(cs.columns.last().unwrap().is_gold);
+        assert_eq!(cs.columns.last().unwrap().format, ColumnFormat::Money);
     }
 
     /// The whole point of sourcing the field list from the bundle: a currency added to the
@@ -310,18 +327,37 @@ mod tests {
                 "{field} is mapped by the bundle but has no column"
             );
         }
-        // Gold is the one column with no id, and it must not be looked up as a currency.
-        let gold = cs.columns.iter().find(|c| c.is_gold).expect("gold column");
-        assert_eq!(gold.id, None);
-        assert!(cs.columns.iter().filter(|c| c.is_gold).count() == 1);
+        // Gold is the one money-formatted column, and it brings its own icon.
+        let money: Vec<_> = cs
+            .columns
+            .iter()
+            .filter(|c| c.format == ColumnFormat::Money)
+            .collect();
+        assert_eq!(money.len(), 1);
+        assert_eq!(money[0].field, GOLD_FIELD);
+        assert_eq!(money[0].icon.as_deref(), Some("wb:gold"));
     }
 
-    /// Every non-gold column has to arrive with real metadata, or the tab renders a header with
+    /// The stand-in mechanism: 3356's DB2 icon name is unrenderable (a literal space, no CDN
+    /// image — #883), so its column must carry the app-owned `wb:` name instead of whatever
+    /// the bundle regenerated this week.
+    #[test]
+    fn the_mana_crystal_column_carries_the_app_stand_in() {
+        let cs = build(&CharDb::default());
+        let col = cs
+            .columns
+            .iter()
+            .find(|c| c.field == "UntaintedManaCrystal")
+            .expect("the broker still maps UntaintedManaCrystal");
+        assert_eq!(col.icon.as_deref(), Some("wb:manacrystal"));
+    }
+
+    /// Every currency column has to arrive with real metadata, or the tab renders a header with
     /// no name and no icon — the bundle/broker skew this join exists to make visible.
     #[test]
     fn every_currency_column_resolves_a_name() {
-        for col in build(&CharDb::default()).columns.iter().filter(|c| !c.is_gold) {
-            assert!(col.id.is_some(), "{} should map to an id", col.field);
+        let cs = build(&CharDb::default());
+        for col in cs.columns.iter().filter(|c| c.format == ColumnFormat::Count) {
             assert_ne!(
                 col.name, col.field,
                 "{} fell back to its field name — the bundle didn't resolve it",

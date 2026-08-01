@@ -19,12 +19,12 @@
   }
   let { data }: Props = $props();
 
-  const columns = $derived(data?.columns ?? []);
-  const rows = $derived(data?.rows ?? []);
+  const columns = $derived(data.columns);
+  const rows = $derived(data.rows);
 
   function cellText(col: CurrencyColumn, c: CurrencyCell): string {
     if (c.quantity === null) return "";
-    if (col.isGold) return goldText(c.quantity);
+    if (col.format === "money") return goldText(c.quantity);
     // A captured zero is information ("nothing banked"), not absence — so it gets the dash
     // rather than the blank an uncaptured cell gets.
     if (c.quantity === 0) return "—";
@@ -63,29 +63,30 @@
             <th class="who">Character</th>
             {#each columns as col (col.field)}
               <th title={col.name}>
-                <!-- Gold has no DB2 row, so no icon can arrive from the bundle; the
-                     pseudo-name resolves to the app's own stand-in (see icons.ts). -->
-                <Icon name={col.isGold ? "wb:gold" : col.icon} size={18} />
+                <Icon name={col.icon} size={18} />
                 <span class="label">{col.name}</span>
               </th>
             {/each}
           </tr>
         </thead>
         <tbody>
-          {#each rows as r (r.name + (r.realm ?? ""))}
+          {#each rows as r (r.name)}
             <tr>
               <th class="who" scope="row">
                 <span class="lvl num">{r.level}</span>
                 <span class="name" style:color={classColor(r.classKey)}>{r.name}</span>
               </th>
+              <!-- `cells` is built by mapping the same `columns` slice, so the two are always
+                   the same width — no per-cell existence guards. -->
               {#each columns as col, i (col.field)}
+                {@const c = r.cells[i]}
                 <td
                   class="num"
-                  class:capped={r.cells[i]?.capped}
-                  class:zero={r.cells[i]?.quantity === 0 && !col.isGold}
-                  title={r.cells[i] ? cellTitle(col, r.cells[i]) : ""}
+                  class:capped={c.capped}
+                  class:zero={c.quantity === 0 && col.format !== "money"}
+                  title={cellTitle(col, c)}
                 >
-                  {r.cells[i] ? cellText(col, r.cells[i]) : ""}
+                  {cellText(col, c)}
                 </td>
               {/each}
             </tr>
@@ -141,7 +142,6 @@
     line-height: 1.2;
     color: var(--faded);
   }
-  /* The character column stays put while the currencies scroll under it. */
   .who {
     position: sticky;
     left: 0;
