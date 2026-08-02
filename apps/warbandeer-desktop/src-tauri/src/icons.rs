@@ -109,12 +109,22 @@ pub fn get() -> &'static IconPack {
 /// image-less name is a plain 404 — the frontend already has to render "no icon" for the many
 /// bundle rows whose `icon` is null, so it needs no distinct signal here.
 pub fn serve(request: &tauri::http::Request<Vec<u8>>) -> tauri::http::Response<Cow<'static, [u8]>> {
+    serve_from(get(), request)
+}
+
+/// Serve a request out of a given pack. Split from [`serve`] the same way [`parse`] is split from
+/// [`get`], so the decode-then-lookup is testable against a fixture pack — the embedded one carries
+/// an image under none of its spaced names, so it cannot show the decode doing any work.
+fn serve_from(
+    pack: &IconPack,
+    request: &tauri::http::Request<Vec<u8>>,
+) -> tauri::http::Response<Cow<'static, [u8]>> {
     // Decoded, not taken raw: not every icon name is url-safe. A handful in the listfile carry
     // literal spaces ("ui_majorfaction_ vines"), which the frontend's convertFileSrc
     // percent-encodes, so an undecoded lookup would miss every one of them.
     let name = percent_encoding::percent_decode_str(request.uri().path().trim_start_matches('/'))
         .decode_utf8_lossy();
-    match get().image(&name) {
+    match pack.image(&name) {
         Some(bytes) => tauri::http::Response::builder()
             .status(200)
             .header(tauri::http::header::CONTENT_TYPE, "image/jpeg")
@@ -218,11 +228,18 @@ mod tests {
     }
 
     fn serve_path(path: &str) -> tauri::http::Response<Cow<'static, [u8]>> {
+        serve_path_on(get(), path)
+    }
+
+    fn serve_path_on(
+        pack: &IconPack,
+        path: &str,
+    ) -> tauri::http::Response<Cow<'static, [u8]>> {
         let request = tauri::http::Request::builder()
             .uri(format!("http://wbicon.localhost{path}"))
             .body(Vec::new())
             .expect("test request builds");
-        serve(&request)
+        serve_from(pack, &request)
     }
 
     #[test]
@@ -244,21 +261,16 @@ mod tests {
 
     #[test]
     fn serves_a_percent_encoded_name() {
-        // The listfile carries names with literal spaces, which the frontend encodes as %20.
-        // Asserted against the real pack so it stays honest about what those names are: they
-        // are all currently image-less, so the win is that the LOOKUP hits its entry rather
-        // than missing the index entirely.
-        let spaced = get()
-            .entries
-            .keys()
-            .find(|n| n.contains(' '))
-            .expect("the pack indexes at least one name with a space");
-        let encoded = spaced.replace(' ', "%20");
-        assert_eq!(
-            get().image(spaced).is_some(),
-            serve_path(&format!("/{encoded}")).status() == 200,
-            "'{spaced}' must resolve the same whether or not the space arrives encoded"
-        );
+        // The listfile carries names with literal spaces, which the frontend encodes as %20. A
+        // FIXTURE with an image under such a name — the embedded pack has one under NONE of its
+        // spaced names, so it can't show the decode doing anything — makes the decode load-bearing:
+        // the encoded path resolves only because serve() turns %20 back into a space before the
+        // lookup. Delete the percent_decode_str call and the raw "%20" name misses the index, 404.
+        let p = parse(leak(pack(&[("ui_majorfaction_ vines", &[0xFF, 0xD8, 7])]))).unwrap();
+        let got = serve_path_on(&p, "/ui_majorfaction_%20vines");
+        assert_eq!(got.status(), 200, "the encoded space must resolve to the spaced entry");
+        assert_eq!(got.headers()["content-type"], "image/jpeg");
+        assert_eq!(got.body().as_ref(), &[0xFF, 0xD8, 7][..]);
     }
 
     #[test]
