@@ -143,14 +143,40 @@ describe("weapon tip content", function()
     end)
 
     -- #857 settled this permanently: a weapon cell's Shift-click stays a no-op, so the armour tip's
-    -- "Shift-click to mark wanted" hint must never reach a weapon cell. The status here is counts
-    -- only — there is no hint field for the renderer to pick up by accident.
-    it("carries no shift-click hint", function()
-      local st = ns.WeaponTipStatus({10}, {})
-      assert.is_nil(st.hint)
-      for _, v in pairs(st) do
-        if type(v) == "string" then assert.is_nil(v:find("Shift%-click")) end
-      end
+    -- "Shift-click to mark wanted" hint must never reach a weapon cell. Assert on the COMPOSED status
+    -- line — the string the renderer actually draws (ns.WeaponTipStatusLine) — not on the
+    -- WeaponTipStatus table, which has no hint field to set and so cannot catch a hint added where
+    -- the line is built (controls/InfoTipWeapon.lua used to build it inline, out of the spec's reach).
+    it("composes a status line carrying no shift-click hint, on live and under PTR", function()
+      ns.db.weaponWanted[10] = true
+      ns.db.weaponRank[10] = "S"
+      local live = ns.WeaponTipStatusLine(ns.WeaponTipStatus({10, 20}, { [10] = true }), false)
+      local ptr = ns.WeaponTipStatusLine(ns.WeaponTipStatus({10, 20}, nil), true)
+      assert.is_nil(live:find("Shift"))
+      assert.is_nil(ptr:find("Shift"))
+      -- The count fills the slot the hint would have taken, so the line is never an empty gap.
+      assert.is_true(#live > 0)
+      assert.is_true(#ptr > 0)
+    end)
+
+    it("puts the collected count in the status line on live", function()
+      local line = ns.WeaponTipStatusLine(ns.WeaponTipStatus({10, 20, 30}, { [10] = true, [30] = true }), false)
+      assert.is_not_nil(line:find("2/3 collected"))
+    end)
+
+    it("shows the upcoming count instead of collected under PTR preview", function()
+      local line = ns.WeaponTipStatusLine(ns.WeaponTipStatus({10, 20}, nil), true)
+      assert.is_not_nil(line:find("2 upcoming"))
+      assert.is_nil(line:find("collected"))
+    end)
+
+    it("carries the wanted count and the best-tier tag when flagged", function()
+      ns.db.weaponWanted[10] = true
+      ns.db.weaponRank[10] = "A"
+      ns.db.weaponRank[20] = "S"
+      local line = ns.WeaponTipStatusLine(ns.WeaponTipStatus({10, 20}, {}), false)
+      assert.is_not_nil(line:find("1 wanted"))
+      assert.is_not_nil(line:find("Tier S %(best%)"))
     end)
   end)
 end)
