@@ -14,6 +14,7 @@ local ns = select(2, ...)
 ---@field WeaponTipCap number  most appearance lines a weapon tip renders before the "and N more" tail
 ---@field WeaponTipLines fun(visuals: number[], cmap: table<number, boolean>?, cap: number?): WeaponTipLine[], number
 ---@field WeaponTipStatus fun(visuals: number[], cmap: table<number, boolean>?): WeaponTipStatus
+---@field WeaponTipStatusLine fun(st: WeaponTipStatus, ptr: boolean?): string
 
 ---One appearance in the cell, ready to render.
 ---@class WeaponTipLine
@@ -81,4 +82,36 @@ function ns.WeaponTipStatus(visuals, cmap)
     if cmap and cmap[v] then coll = coll + 1 end
   end
   return { wanted = wanted, rank = ns:WeaponCellRank(visuals), collected = coll, total = #visuals }
+end
+
+---The status line under the cell header, composed from its counts as one inline-coloured string.
+---
+---Lives in this pure module rather than the renderer (controls/InfoTipWeapon.lua) so #857's rule is
+---guarded by a spec that reads the ACTUAL text: a weapon cell carries NO "Shift-click to mark
+---wanted" hint, unlike the armour grid, because writing a flag back through a bucket summary has no
+---unambiguous answer. Asserting that on the composed line — not on the shape of the WeaponTipStatus
+---table, which never had a hint field to accidentally set — is what makes the guard able to fail.
+---The collected/upcoming count takes the hint's slot instead, so the line always has content.
+---@param st WeaponTipStatus
+---@param ptr boolean?  PTR preview: the bucket's appearances aren't obtainable yet, so count them as
+---"upcoming" rather than "collected"
+---@return string
+function ns.WeaponTipStatusLine(st, ptr)
+  local bits = {}
+  if st.wanted > 0 then
+    bits[#bits + 1] = ("|A:%s:14:14|a |cffffd100%d wanted|r"):format(ns.WantedIcon, st.wanted)
+  end
+  if st.rank then
+    -- The cell's pip advertises the BEST tier in the bucket, not a tier the bucket uniformly has, so
+    -- say which it is whenever there's more than one look for it to be the best of.
+    local tag = st.total > 1 and ("Tier " .. st.rank .. " (best)") or ("Tier " .. st.rank)
+    bits[#bits + 1] = "|cff" .. ns.RankHex(st.rank) .. tag .. "|r"
+  end
+  if ptr then
+    bits[#bits + 1] = "|cff8cc8ffNot yet on live (PTR)|r"
+    bits[#bits + 1] = ("%d upcoming"):format(st.total)
+  else
+    bits[#bits + 1] = ("%d/%d collected"):format(st.collected, st.total)
+  end
+  return table.concat(bits, "   ")
 end

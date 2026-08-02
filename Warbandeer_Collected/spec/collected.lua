@@ -118,6 +118,10 @@ function M.loadRatings(ns)
   db.weaponWanted, db.weaponRank = {}, {}
   db.cosmeticWanted, db.illusionWanted = {}, {}
   loadInto(ns, "ratings.lua")
+  -- In game ns.RefreshInfoTip is always defined (controls/InfoTip.lua) and NotifyRatingsChanged
+  -- calls it to re-render an open hover tip. That file is frame-bound and not loaded here, so stand
+  -- in a no-op; a spec that wants to observe the call installs its own spy (see ratings_spec).
+  ns.RefreshInfoTip = function() end
   return ns
 end
 
