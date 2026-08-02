@@ -161,6 +161,11 @@ a pure byte comparison. 9 of the 437 are like this today — every one of them a
 literal space (`ui_majorfaction_ vines`), which the CDN carries under no spelling. The consumer
 renders them exactly like a row whose `icon` is null, which is the common case anyway.
 
+A zero-length entry is only ever a genuine **404** — a name the CDN has no image for. Any other
+fetch failure (a timeout, a 5xx, a 429, a DNS error) **aborts the whole run** instead, so a
+transient blip can never be mistaken for a permanent absence and baked into the pack; the operator
+reruns once the CDN is healthy (nazumods/wow#889).
+
 Determinism holds the same way the JSON's does: entries are name-sorted, and a name already in
 the previous blob is **reused rather than refetched** — so an unchanged icon set reproduces a
 byte-identical file at no download cost, and most data refreshes leave `icons.bin` out of the
@@ -197,7 +202,8 @@ The generator aborts rather than writing a wrong file when:
   the previous guard, one step further down the chain: a handful of dead names is normal (9 of
   437 today), a spike means the CDN fetch itself broke and the next release would ship a pack
   full of holes. A response that isn't a JPEG counts as a miss, so an error page can't be
-  packed in place of an image.
+  packed in place of an image. Only a genuine **404** or a non-JPEG body reaches this count in the
+  first place — any transport failure has already aborted the run one step earlier (nazumods/wow#889).
 
 That last guard is deliberately scoped to rows that **have** an icon id. Most currencies
 (~916 of 1,490) carry `InventoryIconFileID = 0` — DB2 simply has no icon for them, which is
