@@ -33,29 +33,11 @@ ns.InfoTipBodies.weapon = function(tip, desc)
   local cmap = (not ptr) and ns:WeaponCollectedMap() or nil
   tip.name:Text(("%s — %s"):format(grp.name, ns.WeaponTypeName[t] or "?"))
 
-  -- Status line, built from the same inline-coloured `bits` idiom as the armour body — but WITHOUT
-  -- its "Shift-click to mark wanted" fallback, which is true of the armour grid only and permanently
-  -- so (#857: a weapon cell's Shift-click stays a no-op, because writing a flag back through a
-  -- bucket summary has no unambiguous answer). The collected/upcoming count takes that slot instead,
-  -- so this line always has content rather than collapsing to an empty gap.
-  local st = ns.WeaponTipStatus(visuals, cmap)
-  local bits = {}
-  if st.wanted > 0 then
-    bits[#bits + 1] = ("|A:%s:14:14|a |cffffd100%d wanted|r"):format(ns.WantedIcon, st.wanted)
-  end
-  if st.rank then
-    -- The cell's pip advertises the BEST tier in the bucket, not a tier the bucket uniformly has, so
-    -- say which it is whenever there's more than one look for it to be the best of.
-    local tag = st.total > 1 and ("Tier " .. st.rank .. " (best)") or ("Tier " .. st.rank)
-    bits[#bits + 1] = "|cff" .. ns.RankHex(st.rank) .. tag .. "|r"
-  end
-  if ptr then
-    bits[#bits + 1] = "|cff8cc8ffNot yet on live (PTR)|r"
-    bits[#bits + 1] = ("%d upcoming"):format(st.total)
-  else
-    bits[#bits + 1] = ("%d/%d collected"):format(st.collected, st.total)
-  end
-  tip.status:Text(table.concat(bits, "   "))
+  -- Status line composed in the pure weapontip.lua (ns.WeaponTipStatusLine), NOT here — so #857's
+  -- rule that a weapon cell carries no "Shift-click to mark wanted" hint (unlike the armour grid, and
+  -- permanently: writing a flag back through a bucket summary has no unambiguous answer) is guarded
+  -- by a spec reading the composed text. The collected/upcoming count fills that slot instead.
+  tip.status:Text(ns.WeaponTipStatusLine(ns.WeaponTipStatus(visuals, cmap), ptr))
 
   local lines, overflow = ns.WeaponTipLines(visuals, cmap)
   local incomplete = false

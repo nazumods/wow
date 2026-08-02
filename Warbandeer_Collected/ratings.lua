@@ -265,10 +265,18 @@ end
 ---
 ---The scoping decision itself is the grids' own (`_ratingScope`), so both hosts get it by asking
 ---rather than by each reimplementing which key belongs to which grid.
+---
+---It also re-renders an open hover tip in place (`RefreshInfoTip`) — the one surface no grid listener
+---reaches, and the only path that covers weapon cells, whose own Shift-click is a no-op (#857/#890).
 ---@param setId number?  the single armour set that changed
 ---@param visualID number?  the single weapon appearance that changed
 function ns:NotifyRatingsChanged(setId, visualID)
   for _, fn in ipairs(self._ratingListeners) do fn(setId, visualID) end
+  -- The open hover tip is a surface no grid listener covers: a rating changed while a tip is up
+  -- (armour cells on Shift-click; weapon cells only ever get here, via the dressing-room mutators,
+  -- since their own Shift-click is a no-op — #857/#890) has to re-render its status line in place.
+  -- RefreshInfoTip is a no-op when nothing is shown, so firing it on every change is safe.
+  ns.RefreshInfoTip()
 end
 
 -- ─── Dressed-set highlight ───────────────────────────────────────────────────

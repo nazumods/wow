@@ -180,6 +180,19 @@ describe("ratings", function()
       ns:NotifyRatingsChanged(nil, 5)
       assert.same({5, 5, 5}, seen)
     end)
+
+    -- The open hover tip is a fourth surface the broadcast has to reach: a rating changed while a tip
+    -- is up must re-render it in place (#890). RefreshInfoTip no-ops when nothing is shown, so firing
+    -- it on every notify is safe — and it is the ONE path that covers weapon cells, whose own
+    -- Shift-click is a no-op (#857), so a regression here would silently strand the weapon tip.
+    it("re-renders an open info tip on any change", function()
+      local calls = 0
+      ns.RefreshInfoTip = function() calls = calls + 1 end
+      ns:NotifyRatingsChanged(7)          -- armour
+      ns:NotifyRatingsChanged(nil, 8080)  -- weapon
+      ns:NotifyRatingsChanged()           -- everything
+      assert.equal(3, calls)
+    end)
   end)
 
   -- The four wishlists come off one `wantedStore` factory since #770 step 2. Before that each was
