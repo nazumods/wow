@@ -8,6 +8,8 @@ local ns = LibNAddOn(...)
 --     bonusBadge — the first-acquisition House XP bonus star, top-left
 --     ownedCheck — a green "you own this" check, top-left (off: the count already
 --                  signals ownership; on for users who run without the count badge)
+--     wantedBadge — a "wanted" star, top-right, on decor flagged wanted in
+--                  Warbandeer_Decor (soft dep: never drawn when that addon is absent)
 --   Surfaces (the merchant window is always decorated — no toggle)
 --     bags   — decor in the Blizzard bags
 --     bank   — decor in the Blizzard bank
@@ -16,6 +18,7 @@ local Defaults = {
   countBadge = true,
   bonusBadge = true,
   ownedCheck = false,
+  wantedBadge = true,
   bags = true,
   bank = true,
   bagnon = true,
@@ -58,6 +61,9 @@ ns:RegisterSettings{
       { typ = "checkbox", key = "ownedCheck", default = false, name = "Owned check",
         label = "owned check", table = dbTable,
         tooltip = "Add a green check to decor you already own. The storage count already implies ownership, so this is off by default." },
+      { typ = "checkbox", key = "wantedBadge", default = true, name = "Wanted star",
+        label = "wanted star", table = dbTable,
+        tooltip = "Mark decor flagged 'wanted' in the Decor tracker (Warbandeer_Decor) with a star, top-right. Needs that addon; ignored without it." },
       { typ = "checkbox", key = "bags", default = true, name = "In bags",
         label = "in bags", table = dbTable,
         tooltip = "Show the indicators on decor in your bags (the merchant window is always decorated)." },
@@ -80,6 +86,13 @@ ns:RegisterChangelog("Shadows of UI")
 function ns:onLogin()
   if C_HousingCatalog and C_HousingCatalog.CreateCatalogSearcher then
     C_HousingCatalog.CreateCatalogSearcher()
+  end
+  -- Repaint every visible surface when a decor's wanted flag flips elsewhere (e.g. a
+  -- shift-click in the /wbdecor window while a merchant is open), so the wanted marker
+  -- never sits stale. Soft dep: a no-op when Warbandeer_Decor (and its API) isn't loaded.
+  local wanted = _G.WarbandeerHousingDecorApi
+  if wanted and wanted.OnRatingsChanged then
+    wanted:OnRatingsChanged(ns.Refresh)
   end
 end
 
@@ -125,7 +138,8 @@ SlashCmdList["SUI_HVENDOR"] = function(msg)
   else
     local db = ns.db
     ns:Print("indicators — storage count:", tostring(db.countBadge),
-      "· first-acquisition star:", tostring(db.bonusBadge), "· owned check:", tostring(db.ownedCheck))
+      "· first-acquisition star:", tostring(db.bonusBadge), "· owned check:", tostring(db.ownedCheck),
+      "· wanted star:", tostring(db.wantedBadge))
     ns:Print("surfaces — merchant: always · bags:", tostring(db.bags),
       "· bank:", tostring(db.bank), "· bagnon:", tostring(db.bagnon))
     ns:Print("  /shvendor itemtest")

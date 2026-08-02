@@ -4,6 +4,7 @@
 ## Author: Nazuraki
 ## Version: 12.0.7-r4
 ## Dependencies: LibNAddOn
+## OptionalDeps: Warbandeer_Decor
 ## SavedVariables: ShadowsOfUI_HousingVendorDB
 ## X-NUI-DB: ShadowsOfUI_HousingVendorDB
 ## X-NUI-DB-VERSION: 2

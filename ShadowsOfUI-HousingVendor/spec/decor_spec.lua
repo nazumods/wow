@@ -47,6 +47,13 @@ describe("ShadowsOfUI-HousingVendor decor", function()
       assert.is_false(d.owned)
       assert.is_false(d.bonusAvailable)
     end)
+
+    it("carries the entry's recordID through, so counts can be cross-referenced", function()
+      local d = ns.NormalizeEntry({ recordID = 4242, totalNumStored = 1 })
+      assert.equals(4242, d.recordID)
+      -- absent on a raw entry that lacks it (nothing to carry), never invented
+      assert.is_nil(ns.NormalizeEntry({}).recordID)
+    end)
   end)
 
   describe("DecorEntryFor — class gate + cache", function()
@@ -86,6 +93,14 @@ describe("ShadowsOfUI-HousingVendor decor", function()
       assert.equals(1, ns.DecorEntryFor("item:40").stored) -- still served from cache
       ns.WipeDecorCache()
       assert.equals(9, ns.DecorEntryFor("item:40").stored) -- re-queried
+    end)
+
+    it("round-trips the entry's recordID so a wanted list keyed on it can be matched", function()
+      state.itemInfo[50] = { classID = Enum.ItemClass.Housing, subClassID = Enum.ItemHousingSubclass.Decor }
+      state.entries[50] = { recordID = 909, totalNumStored = 1 }
+      assert.equals(909, ns.DecorEntryFor("item:50").recordID)
+      -- and through the published API alias consumers actually call
+      assert.equals(909, ns.api.EntryFor("item:50").recordID)
     end)
   end)
 

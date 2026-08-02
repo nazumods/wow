@@ -33,8 +33,12 @@ in storage vs placed), and the first-acquisition bonus.
 ## Wanted
 
 **Shift-click** any row to flag (or unflag) that decor as wanted. Wanted decor show a gold
-star, the header keeps a running `★` count, and `/housingdecor wanted` lists them all in chat.
-Wanted flags are saved account-wide.
+star, the header keeps a running `★` count, and `/housingdecor wanted` opens a **copyable
+list** of everything you've flagged — each with its source text — so you can paste your
+shopping list wherever you like. Wanted flags are saved account-wide.
+
+If you also run **ShadowsOfUI-HousingVendor**, your wanted flags show up as a star right on
+the item icons at decor vendors, so you can see what you still need while you shop.
 
 ## Usage
 
@@ -42,7 +46,7 @@ Wanted flags are saved account-wide.
 |---|---|
 | `/housingdecor` or `/wbdecor` | Open/close the window |
 | `/housingdecor scan` | Re-scan the housing catalog |
-| `/housingdecor wanted` | List the decor you've flagged as wanted |
+| `/housingdecor wanted` | Open a copyable list of the decor you've flagged as wanted |
 
 (`/decor` is intentionally left alone — a popular decor-vendor addon already uses it.)
 

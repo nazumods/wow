@@ -7,6 +7,7 @@ Housing decor vendors sell a long grid of furniture, and the item tooltip alread
 - **Storage count** — the number you have **in storage** (ready to place) is stamped on the bottom-left corner of every decor icon you already own. A greyed-out **0** means you own it but every copy is already placed.
 - **First-acquisition star** — a gold **★** on the top-left corner marks decor that awards a **first-time House XP bonus** and that you **don't own yet**. That's the stuff worth grabbing for the bonus.
 - **Owned check** *(off by default)* — a green check on the top-left for decor you already own, for anyone who turns the storage count off.
+- **Wanted star** — a gold star on the top-right for decor you've flagged **wanted** in the Decor tracker (**Warbandeer_Decor**). Your "still need this" shopping list, answered right at the vendor. Only appears if that addon is installed.
 
 Everything else the icon draws — price, affordability, stack counts, Blizzard's own red/grey cues — is left untouched. Non-decor items are ignored entirely.
 
@@ -20,13 +21,14 @@ Each surface can be turned off independently (see Settings).
 
 ## Settings
 
-In **Options → AddOns → Shadows of UI → Housing Vendor**. The three **indicators** control *what* is drawn (on every surface); the **surface** toggles control *where*.
+In **Options → AddOns → Shadows of UI → Housing Vendor**. The four **indicators** control *what* is drawn (on every surface); the **surface** toggles control *where*.
 
 | Setting | Default | Effect |
 |---|---|---|
 | Storage count | On | Stamp the in-storage owned count on decor you own |
 | First-acquisition star | On | Gold star on unowned decor that grants a first-time House XP bonus |
 | Owned check | Off | Green check on decor you already own |
+| Wanted star | On | Gold star on decor flagged "wanted" in the Decor tracker (needs Warbandeer_Decor) |
 | In bags | On | Show the indicators on decor in your bags |
 | In bank | On | Show the indicators on decor in your bank |
 | In Bagnon | On | Show the indicators on Bagnon / Bagnonium bag buttons |
@@ -44,10 +46,12 @@ A **Changelog** button in this addon's settings opens its release history in a s
 
 - **LibNAddOn**
 - **Bagnon / Bagnonium** *(optional)* — only needed for the Bagnon overlay.
+- **Warbandeer_Decor** *(optional)* — only needed for the **Wanted star**; without it that indicator simply never appears and everything else works unchanged.
 
 ## Notes
 
 - Overlays are drawn on housing-decor items only, on the Merchant window's Buy tab and on bag/bank slots.
 - Ownership data comes from the game's housing catalog, which finishes loading a moment after you log in — the counts fill in on their own and refresh whenever your storage changes.
 - If you also run **Collectible Tints** (ShadowsOfUI-Collectibles), it reuses this addon's decor detection rather than computing owned-state a second time.
+- The **Wanted star** reads your flags live: flag or unflag a decor in the Decor tracker while a vendor is open and the star updates without a reload.
 - No window, and no saved data beyond the indicator and surface toggles.

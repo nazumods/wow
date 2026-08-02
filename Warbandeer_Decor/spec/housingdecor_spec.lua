@@ -92,6 +92,51 @@ describe("Warbandeer_Decor", function()
     end)
   end)
 
+  describe("WantedListText -- the copyable wanted block", function()
+    local ns
+    before_each(function() ns = hd.load() end)
+
+    -- A snapshot with an owned entry, an unowned+sourced entry, and one with no blurb.
+    local ENTRIES = {
+      { recordID = 10, name = "Oak Chair",   owned = true,  sourceText = "Sold by Barkeep Kelly" },
+      { recordID = 20, name = "Iron Sconce", owned = false, sourceText = "Drops in Blackrock" },
+      { recordID = 30, name = "Plain Rug",   owned = false },
+    }
+    local function wants(set) return function(id) return set[id] == true end end
+
+    it("names each wanted row with its owned marker and source blurb", function()
+      local body, named = ns.WantedListText(ENTRIES, wants({ [10] = true, [20] = true }), 2)
+      assert.equals(2, named)
+      assert.equals("2 wanted decor:", body:match("^[^\n]+"))
+      assert.is_truthy(body:find("Oak Chair", 1, true))
+      assert.is_truthy(body:find("Sold by Barkeep Kelly", 1, true))
+      assert.is_truthy(body:find("Iron Sconce  (not owned)", 1, true))
+      assert.is_truthy(body:find("\n    Drops in Blackrock", 1, true)) -- source indented beneath
+      assert.is_nil(body:find("Oak Chair  (not owned)", 1, true))      -- owned: no marker
+    end)
+
+    it("omits the indented source line for an entry with no sourceText", function()
+      local body = ns.WantedListText(ENTRIES, wants({ [30] = true }), 1)
+      assert.is_truthy(body:find("Plain Rug", 1, true))
+      assert.is_nil(body:find("Plain Rug\n    ", 1, true))
+    end)
+
+    it("treats an empty-string source blurb as no source (no dangling indent)", function()
+      -- owned == true so the row is the bare name: a mutation dropping the `~= ""`
+      -- guard would append "\n    " (an indented blank line) and trip this.
+      local entries = { { recordID = 40, name = "Bare Shelf", owned = true, sourceText = "" } }
+      local body = ns.WantedListText(entries, wants({ [40] = true }), 1)
+      assert.is_truthy(body:find("Bare Shelf", 1, true))
+      assert.is_nil(body:find("Bare Shelf\n    ", 1, true))
+    end)
+
+    it("footers the count when some wanted ids aren't in the current scan", function()
+      local body, named = ns.WantedListText(ENTRIES, wants({ [10] = true }), 3)
+      assert.equals(1, named)
+      assert.is_truthy(body:find("3 wanted decor (2 not in the current scan", 1, true))
+    end)
+  end)
+
   describe("Scan -- the persisted collected/total tally", function()
     -- Three decor: two owned (stored / placed) and one not.
     local VARIANTS = {

@@ -42,6 +42,40 @@ function ns:WantedCount()
   return n
 end
 
+---Build a copyable text block of the decor currently flagged wanted, for the `wanted`
+---command's portable output. Pure over its inputs (the live snapshot + a wanted predicate
+---+ the authoritative total), so it's unit-tested without the catalog. Each named row is
+---the decor's name, an unowned marker, and -- indented beneath -- its `sourceText` "where
+---to get it" blurb: that free-text blurb is *displayed* per row, never *grouped on* (it
+---carries no structured vendor/zone/price, which is exactly why the wanted list is taken to
+---the vendor rather than the reverse). `total` is `ns:WantedCount()`; when it exceeds the
+---rows the snapshot can name (catalog still loading) a footer says how many are missing.
+---@param entries HousingDecorEntry[]  live snapshot
+---@param isWanted fun(recordID: number): boolean
+---@param total number  authoritative wanted count (may exceed the nameable rows mid-load)
+---@return string body, number named
+function ns.WantedListText(entries, isWanted, total)
+  local rows, named = {}, 0
+  for _, e in ipairs(entries) do
+    if isWanted(e.recordID) then
+      named = named + 1
+      local row = e.name .. (e.owned and "" or "  (not owned)")
+      if e.sourceText and e.sourceText ~= "" then
+        row = row .. "\n    " .. e.sourceText
+      end
+      rows[#rows + 1] = row
+    end
+  end
+  local header
+  if named < total then
+    header = ("%d wanted decor (%d not in the current scan -- open /wbdecor to refresh):")
+      :format(total, total - named)
+  else
+    header = ("%d wanted decor:"):format(total)
+  end
+  return header .. "\n\n" .. table.concat(rows, "\n"), named
+end
+
 -- ─── Change notification ─────────────────────────────────────────────────────
 -- The wanted flags are shared by two grids (the standalone /wbdecor window and
 -- Warbandeer's embedded decor view, each its own frame), so a toggle in one can't
