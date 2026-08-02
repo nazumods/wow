@@ -35,7 +35,7 @@ end
 -- Decor is never gear, so this never collides with ShadowsOfUI-Ilvl's overlays.
 -- Frame level: +1 clears the button's own icon / border / IconOverlay TEXTURES (which sit
 -- at the button's level), which is all the count / bonus-star / owned-check corners need.
--- But a sibling suite overlay draws an "already-collected" check on a higher child FRAME in
+-- But another addon's overlay draws an "already-collected" check on a higher child FRAME in
 -- the top-right — the very corner the wanted star uses — so at +1 the star drew *under* it.
 -- Lift the whole overlay well above that; the offset is generous on purpose (the exact
 -- level of another addon's frame isn't ours to assume). Verified in-game (#894).
