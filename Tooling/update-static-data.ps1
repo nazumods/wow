@@ -237,10 +237,16 @@ function Get-IconImage([string]$name) {
   try {
     $body = (Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 60 -ErrorAction Stop).Content
   } catch {
-    # A 404 is the expected miss (a name the CDN doesn't carry); anything else is a transport
-    # problem, and both are handled the same way — record the miss and let the aggregate
-    # MaxIconMissPct guard below decide whether the run as a whole is trustworthy.
-    return , [byte[]]@()
+    # A 404 is the ONE expected miss — the CDN genuinely carries no image under this name (the
+    # spaced names above are all 404s today). Record it as a zero-length entry: a real, permanent
+    # absence a rerun should not retry.
+    if ($_.Exception.Response.StatusCode.value__ -eq 404) { return , [byte[]]@() }
+    # Anything else — a 5xx, a 429, a timeout, a DNS/connection failure with no response at all —
+    # is a TRANSPORT problem, not a missing icon. Baking it as a zero-length entry would poison
+    # this name permanently: Read-IconBlob reuses zero-length entries without retrying, and a
+    # sub-threshold handful slips under MaxIconMissPct. Fail the whole run loudly and let the
+    # operator rerun rather than shipping a hole (nazumods/wow#889).
+    throw "Icon fetch for '$name' failed (not a 404), aborting rather than baking an empty entry: $($_.Exception.Message)"
   }
   if ($body -isnot [byte[]]) { throw "Expected image bytes for $name, got $($body.GetType().Name)." }
   # JPEG SOI. The CDN answers a missing icon with an HTML error page on some edges, and
