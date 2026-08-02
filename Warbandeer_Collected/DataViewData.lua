@@ -164,10 +164,12 @@ function ns.CollectedRows(self)
           -- (#776) and covers the OTHER grid, the other host, and the dressing room, none of which
           -- a local refresh can reach. Scoped to this set so the click stays cheap.
           ns:NotifyRatingsChanged(set.id)
+          -- The open hover tip's in-place refresh now rides inside NotifyRatingsChanged (#890), so it
+          -- is not repeated here — folding in the weapon cells, which reach the broadcast but never
+          -- this armour-only Shift-click branch (#857).
           -- Still fired: `onWantedToggle` is part of DataView's public hook contract. Both in-repo
           -- hosts are already covered by the broadcast above, so this is for consumers, not them.
           if self.onWantedToggle then self:onWantedToggle() end
-          ns.RefreshInfoTip()
         else
           ns.ShowDressingRoom(grp, set, ns.GridHost(self))   -- dock onto this grid's window (#708)
         end
