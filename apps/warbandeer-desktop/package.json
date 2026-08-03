@@ -1,7 +1,7 @@
 {
   "name": "warbandeer-desktop",
   "private": true,
-  "version": "0.2.9",
+  "version": "0.2.10",
   "type": "module",
   "description": "Desktop companion that reads Warbandeer addon data + WoW combat logs",
   "scripts": {
