@@ -149,6 +149,10 @@ function TitlesView:_select(idx)
     if ep.cat then ui.tip:AddLine(MUTED .. "Category: " .. END .. tostring(ep.cat)) end
     local source = ep.obtainability_reason or ep.achievement or ep.kind
     if source then ui.tip:AddLine(MUTED .. "Source: " .. END .. tostring(source)) end
+    -- Apache-2.0 NOTICE attribution for the live Epithet catalog read (epithetById in
+    -- TitlesData.lua) -- only shown on an entry Epithet actually enriched, so it degrades
+    -- silently when Epithet isn't installed.
+    ui.tip:AddLine(MUTED .. "Title data via Epithet" .. END)
   end
 
   if e.earnable then
