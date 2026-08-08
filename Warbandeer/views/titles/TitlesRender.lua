@@ -38,7 +38,8 @@ function TitlesView:_createRow(l)
     position = { Left = {row.check, ui.edge.Right, 6, 0}, Right = {row.mark, ui.edge.Left, -6, 0} },
   }
   row._widget:SetScript("OnEnter", function() self:_select(row._index) end)
-  row._widget:SetScript("OnLeave", function() ui.tip:Hide() end)
+  -- Reset the shared tooltip's width cap on leave so it doesn't linger for other views.
+  row._widget:SetScript("OnLeave", function() ui.tip:Hide(); ui.tip:MaxWidth(nil) end)
   row._widget:SetScript("OnMouseUp", function() self:_select(row._index) end)
   return row
 end

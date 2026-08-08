@@ -140,6 +140,7 @@ function TitlesView:_select(idx)
   if not e then return end
   local row = self.list:Row(self._sel)
   ns.AnchorTip(row)
+  ui.tip:MaxWidth(300) -- cap width so a long Epithet source/category description wraps instead of running off-screen
   ui.tip:ClearLines()
 
   local rc = T.rarityCode(e.epithet)
