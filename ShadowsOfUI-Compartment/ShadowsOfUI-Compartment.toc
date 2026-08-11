@@ -1,8 +1,8 @@
-## Interface: 120007
+## Interface: 120100
 ## Category: Shadows of UI
 ## Title: Addon Compartment
 ## Author: Nazuraki
-## Version: 12.0.7-r5
+## Version: 12.1.0-r0
 ## IconTexture: Interface\Icons\inv_misc_gear_08
 ## SavedVariables: ShadowsOfUI_CompartmentDB
 ## Dependencies: LibNAddOn, LibNUI
