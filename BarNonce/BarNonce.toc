@@ -2,7 +2,7 @@
 ## Category: Shadows of UI
 ## Title: BarNonce
 ## Notes: Set 70% opacity on Action Bar 1 and 2
-## Version: 12.1.0-r0
+## Version: 12.1.0-r1
 ## Author: nazuraki
 ## IconTexture: Interface\Icons\spell_holy_powerinfusion
 

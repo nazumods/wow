@@ -2,7 +2,7 @@
 ## Category: Warband
 ## Title: Characters
 ## Author: Nazuraki
-## Version: 12.1.0-r0
+## Version: 12.1.0-r1
 ## IconTexture: Interface\Icons\inv_10_tailoring2_banner_green.blp
 ## SavedVariables: WarbandeerCharDB
 ## Dependencies: LibNAddOn, LibNUI
