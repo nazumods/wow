@@ -1,8 +1,8 @@
-## Interface: 120007
+## Interface: 120100
 ## Category: Shadows of UI
 ## Title: Recipe Learners
 ## Author: Nazuraki
-## Version: 12.0.7-r7
+## Version: 12.1.0-r0
 ## Dependencies: LibNAddOn, Warbandeer_Characters
 ## OptionalDeps: Warbandeer
 ## X-Curse-Project-ID: 1573500
