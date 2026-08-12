@@ -27,12 +27,12 @@ export function classColor(classKey: string | undefined): string {
 // Item-level tier thresholds + colors (data.lua: gearTiers + IlvlColorObj).
 // Thresholds are by ilvl, not upgrade track, matching the addon.
 const TIERS: { min: number; color: string }[] = [
-  { min: 272, color: "#e6cc80" }, // mythic  (ITEM_ARTIFACT_COLOR, muted gold)
-  { min: 259, color: "#ff8000" }, // hero    (legendary orange)
-  { min: 246, color: "#a335ee" }, // champion(epic purple)
-  { min: 233, color: "#0070dd" }, // veteran (superior blue)
-  { min: 220, color: "#1eff00" }, // adventurer (good green)
-  { min: 207, color: "#ffffff" }, // explorer (standard white)
+  { min: 318, color: "#e6cc80" }, // mythic  (ITEM_ARTIFACT_COLOR, muted gold)
+  { min: 305, color: "#ff8000" }, // hero    (legendary orange)
+  { min: 292, color: "#a335ee" }, // champion(epic purple)
+  { min: 279, color: "#0070dd" }, // veteran (superior blue)
+  { min: 266, color: "#1eff00" }, // adventurer (good green)
+  { min: 253, color: "#ffffff" }, // explorer (standard white)
 ];
 const POOR = "#9d9d9d";
 
