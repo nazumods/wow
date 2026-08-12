@@ -2,7 +2,7 @@
 ## Category: Warband
 ## Title: Decor
 ## Author: Nazuraki
-## Version: 12.1.0-r0
+## Version: 12.1.0-r1
 ## IconTexture: Interface\Icons\garrison_building_storehouse
 ## SavedVariables: WarbandeerHousingDecorDB
 ## AddonCompartmentFunc: WarbandeerHousingDecor_OnAddonCompartmentClick

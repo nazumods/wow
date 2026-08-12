@@ -2,7 +2,7 @@
 ## Category: Shadows of UI
 ## Title: Item Level
 ## Author: Nazuraki
-## Version: 12.1.0-r0
+## Version: 12.1.0-r1
 ## IconTexture: Interface\Icons\inv_misc_armorkit_17
 ## SavedVariables: ShadowsOfUI_IlvlDB
 ## Dependencies: LibNAddOn

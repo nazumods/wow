@@ -2,7 +2,7 @@
 ## Category: Shadows of UI
 ## Title: Artisan Currency
 ## Author: Nazuraki
-## Version: 12.1.0-r0
+## Version: 12.1.0-r1
 ## Dependencies: LibNAddOn, Warbandeer_Characters
 ## OptionalDeps: Warbandeer
 ## X-NUI-API: WarbandeerApi

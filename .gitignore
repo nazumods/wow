@@ -129,3 +129,4 @@ ProfessionShoppingList
 # Python bytecode cache (Tooling/*.py)
 __pycache__/
 *.pyc
+/EnhanceQoLQuickActions

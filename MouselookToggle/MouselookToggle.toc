@@ -2,7 +2,7 @@
 ## Category: Shadows of UI
 ## Title: Mouselook Toggle
 ## Notes: Toggle mouselook (steer the camera by moving the mouse) with a configurable keybind
-## Version: 12.1.0-r0
+## Version: 12.1.0-r1
 ## Author: nazuraki
 ## IconTexture: Interface\Icons\ability_eyeoftheowl
 ## SavedVariables: MouselookToggleDB
