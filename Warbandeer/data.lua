@@ -17,14 +17,14 @@ ns.factionIcon = {
   [false] = {path = FACTION_ICONS.."horde.tga",    coords = {0, 1, 0, 1}, vertexColor = {1.000, 0.125, 0.125}},
 }
 
--- Ready for Midnight
+-- Midnight 12.1 season — gear upgrade-track 1/6 starts (#524)
 local gearTiers = {
-  explorer = 207,
-  adventurer = 220,
-  veteran = 233,
-  champion = 246,
-  hero = 259,
-  mythic = 272,
+  explorer = 253,
+  adventurer = 266,
+  veteran = 279,
+  champion = 292,
+  hero = 305,
+  mythic = 318,
 }
 
 ns.data.gearTiers = gearTiers
@@ -68,7 +68,7 @@ end
 ---@field IlvlColorObj fun(iLvl: number): ColorMixin
 -- ColorMixin for an item level, by gear tier. Thresholds are by ilvl, not upgrade
 -- track, by design: gear maxed on a lower track counts as the tier its ilvl reaches
--- (e.g. a fully upgraded Hero item at 272+ reads as mythic gold).
+-- (e.g. a fully upgraded Hero item at 318+ reads as mythic gold).
 ---@param ilvl number
 ---@return ColorMixin
 function ns.IlvlColorObj(ilvl)
