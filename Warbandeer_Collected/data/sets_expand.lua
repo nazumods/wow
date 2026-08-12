@@ -1410,7 +1410,7 @@ tinsert(ns.Sets, {
 })
 tinsert(ns.Sets, {
   id = 383,
-  name = "Tangled Raiment",
+  name = "Tangled Raiment (Dungeons)",
   release = 12,
   category = "Dungeon",
   sets = {
