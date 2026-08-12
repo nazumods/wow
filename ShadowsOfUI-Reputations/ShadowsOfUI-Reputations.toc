@@ -2,7 +2,7 @@
 ## Category: Shadows of UI
 ## Title: Reputations
 ## Author: Nazuraki
-## Version: 12.1.0-r0
+## Version: 12.1.0-r1
 ## Dependencies: LibNAddOn, Warbandeer_Characters
 ## X-NUI-API: WarbandeerApi
 ## X-Curse-Project-ID: 1614342
