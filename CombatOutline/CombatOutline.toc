@@ -1,7 +1,7 @@
 ## Interface: 120100
 ## Title: Combat Outline
 ## Author: Nazuraki
-## Version: 12.1.0-r0
+## Version: 12.1.0-r1
 ## IconTexture: Interface\Icons\inv_shadowflame_debuff
 ## Dependencies: LibNAddOn
 
