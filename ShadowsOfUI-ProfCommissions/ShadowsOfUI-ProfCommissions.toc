@@ -2,7 +2,7 @@
 ## Category: Shadows of UI
 ## Title: Prof Commissions
 ## Author: Nazuraki
-## Version: 12.1.0-r0
+## Version: 12.1.0-r1
 ## IconTexture: Interface\Icons\inv_misc_treasurechest01
 ## Dependencies: LibNAddOn
 ## X-Curse-Project-ID: 1615367
