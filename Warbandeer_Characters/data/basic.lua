@@ -94,12 +94,12 @@ ns:registerDump("bank", "Bank Expansion Info", "Dump bank expansion info", funct
 end)
 
 local gt = {
-  explorer = 207,
-  adventurer = 220,
-  veteran = 233,
-  champion = 246,
-  hero = 259,
-  mythic = 272,
+  explorer = 253,
+  adventurer = 266,
+  veteran = 279,
+  champion = 292,
+  hero = 305,
+  mythic = 318,
 }
 
 ns:registerDump("gt", "Gear Tiers", "Gear Tier ilvl info", function(_, out)
