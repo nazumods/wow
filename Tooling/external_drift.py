@@ -10,29 +10,34 @@ external project, and ideally update the external resource too? The research ans
     documented API is upload-only. So a page cannot be auto-updated; the most CI can do
     is DETECT that the source moved and prompt a human to paste it into the dashboard.
   * DEPENDENCIES: the one writable surface, CurseForge-only. Its Upload API takes a
-    `relations` block at file-upload time. `--emit-relations` renders exactly that block
-    from the .toc, so a future publish.yml step could POST it. Wago exposes no relations
-    API at all.
+    `relations` block at file-upload time. `--emit-relations` renders that block from the
+    .toc, so a future publish.yml step could POST it -- resolved suite deps carry their
+    projectID; an external dep is flagged `unresolved` for a human to confirm its slug
+    first. Wago exposes no relations API at all.
 
 This module is the offline half of that finding: no API key, no network, so it runs as
 a PR gate in .github/workflows/test.yml the same way doc_drift.py does. It stays inert
 until #911 lands EXTERNAL.md files -- an addon without one is skipped, not failed,
 because missing page copy is a content gap, not drift.
 
-Checks per EXTERNAL.md (#911's two stated, offline-verifiable invariants):
+Checks per EXTERNAL.md (#911's two stated, offline-verifiable invariants; HTML comments
+are stripped first, so copy hidden in a `<!-- ... -->` never satisfies a check):
 
-  1. GITHUB URL   The first non-empty line references the repo (github.com/nazumods/wow),
-                  so the external page always links home.
-  2. BUG SECTION  A "Found a bug / Have a suggestion?" heading exists, so a reader always
-                  has a reporting path.
+  1. GITHUB URL   The first non-empty line references the repo itself -- github.com/
+                  nazumods/wow, not a `wow`-prefixed sibling like wow-companion -- so the
+                  external page always links home.
+  2. BUG SECTION  A "Found a bug / Have a suggestion?" section: an ATX heading (`## ...`),
+                  a setext heading, or a bold lead-in carrying "bug"/"suggestion", so a
+                  reader always has a reporting path.
 
-An addon folder is one containing <folder>/<folder>.toc -- the same rule release.sh,
-the toc-name gate and doc_drift.py use, which keeps Tooling/, apps/ and .github/ out
-without a hardcoded skip list.
+An addon folder is one containing <folder>/<folder>.toc -- the same rule doc_drift.py
+uses. (release.sh and the toc-name gate deliberately accept any *.toc, and release.sh
+additionally carries a NON_ADDON_DIRS skip list; the folder-named-.toc rule needs no skip
+list because Tooling/, apps/ and .github/ have no such file.)
 
 Usage:
     python Tooling/external_drift.py [--root .]              # lint (CI gate); exit 1 on drift
-    python Tooling/external_drift.py --emit-relations [ADDON]  # print CF relations JSON, exit 0
+    python Tooling/external_drift.py --emit-relations [ADDON]  # print CF relations JSON; exit 1 if ADDON has no .toc
 
 Output is ASCII only (the Windows console is cp1252 and raises UnicodeEncodeError on
 non-ASCII).
@@ -47,13 +52,19 @@ import sys
 from pathlib import Path
 
 REPO = "nazumods/wow"
-REPO_URL_RE = re.compile(r"github\.com/nazumods/wow", re.IGNORECASE)
+# Trailing (?![\w-]) so a `wow`-prefixed sibling repo (wow-companion, wowfoo) does not
+# satisfy the "links home" invariant -- only nazumods/wow itself, or a path/anchor under
+# it (a following "/", ".", ")", whitespace, ...), counts.
+REPO_URL_RE = re.compile(r"github\.com/nazumods/wow(?![\w-])", re.IGNORECASE)
 
-# A "Found a bug / Have a suggestion?" section (#911). Accept a markdown heading or a
-# bold lead-in so the copy can be styled either way; key on the spec's own keywords.
-BUG_SECTION_RE = re.compile(
-    r"^\s{0,3}(#{1,6}\s|\*\*).*\b(bug|suggestion)s?\b", re.IGNORECASE | re.MULTILINE
-)
+# HTML comments are stripped before any check: copy hidden in a `<!-- ... -->` (a link or
+# a whole heading) renders invisible on the external page, so it must not pass a check.
+HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
+
+# #911's own section keywords, and the header shapes that count as a "section".
+BUG_KEYWORD_RE = re.compile(r"\b(bug|suggestion)s?\b", re.IGNORECASE)
+ATX_HEADER_RE = re.compile(r"#{1,6}\s")
+SETEXT_UNDERLINE_RE = re.compile(r"^\s{0,3}[=-]{2,}\s*$")
 
 TOC_FIELD_RE = re.compile(r"^##\s*([^:]+):\s*(.*?)\s*$")
 PARENS_RE = re.compile(r"\([^()]*\)")
@@ -65,6 +76,11 @@ REL_OPTIONAL = "optionalDependency"
 def ascii_only(text: str) -> str:
     """Strip non-ASCII so printing to a cp1252 console can't raise."""
     return text.encode("ascii", "replace").decode("ascii")
+
+
+def strip_html_comments(text: str) -> str:
+    """Remove `<!-- ... -->` (including multi-line) so hidden copy can't satisfy a check."""
+    return HTML_COMMENT_RE.sub("", text)
 
 
 def parse_toc(path: Path) -> dict[str, str]:
@@ -93,6 +109,25 @@ def first_nonempty_line(text: str) -> str:
     return ""
 
 
+def has_bug_section(text: str) -> bool:
+    """True if a "Found a bug / Have a suggestion?" section header is present.
+
+    A header carrying "bug"/"suggestion" as an ATX heading (`## ...`), a bold lead-in
+    (`**...**`), or a setext heading (the keyword line underlined by `===`/`---`). Plain
+    prose that merely mentions a bug is intentionally NOT a section -- #911 asks for one.
+    """
+    lines = text.splitlines()
+    for i, line in enumerate(lines):
+        if not BUG_KEYWORD_RE.search(line):
+            continue
+        stripped = line.lstrip()
+        if ATX_HEADER_RE.match(stripped) or stripped.startswith("**"):
+            return True
+        if i + 1 < len(lines) and SETEXT_UNDERLINE_RE.match(lines[i + 1]):
+            return True
+    return False
+
+
 def dep_list(value: str) -> list[str]:
     """Ordered addon names from a .toc dependency field, dropping parenthetical notes
     and the literal `none`; .toc order is preserved and duplicates collapsed."""
@@ -108,7 +143,7 @@ def dep_list(value: str) -> list[str]:
 def check_external(addon: str, path: Path) -> list[str]:
     """Problems for one EXTERNAL.md; empty when it satisfies #911's invariants."""
     problems: list[str] = []
-    text = path.read_text(encoding="utf-8-sig", errors="replace")
+    text = strip_html_comments(path.read_text(encoding="utf-8-sig", errors="replace"))
 
     first = first_nonempty_line(text)
     if not REPO_URL_RE.search(first):
@@ -117,7 +152,7 @@ def check_external(addon: str, path: Path) -> list[str]:
             f"{addon}: EXTERNAL.md first line must reference github.com/{REPO} (got: {shown})"
         )
 
-    if not BUG_SECTION_RE.search(text):
+    if not has_bug_section(text):
         problems.append(
             f"{addon}: EXTERNAL.md needs a 'Found a bug / Have a suggestion?' section"
         )
@@ -182,7 +217,7 @@ def emit_relations(root: Path, only: str | None) -> int:
     payload: dict[str, dict] = {}
     for addon in targets:
         if not (root / addon / f"{addon}.toc").is_file():
-            print(f"! {addon}: no {addon}/{addon}.toc", file=sys.stderr)
+            print(f"! {ascii_only(addon)}: no {addon}/{addon}.toc", file=sys.stderr)
             return 1
         payload[addon] = relations_for(addon, root, ids)
     print(json.dumps(payload, indent=2))
