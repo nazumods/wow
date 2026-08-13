@@ -30,12 +30,13 @@ Each doc has a fixed audience — keep them in sync with code changes:
 |---|---|---|
 | Root `README.md` | Anyone landing on the repo | Suite overview + addon table (one row per addon, linking its README) |
 | `CONTRIBUTING.md` | Contributors | Style, testing, lint, release process |
-| `<addon>/README.md` | **End users** | What it does, commands, settings, dependencies, saved data. Written to be reusable verbatim as the CurseForge page — standalone, no repo-relative links. Exception: library addons (LibNAddOn, LibNUI, Warbandeer_Bars) have developer-facing API READMEs |
+| `<addon>/README.md` | **End users (in-repo)** | What it does, commands, settings, dependencies, saved data — the in-repo end-user reference. Exception: library addons (LibNAddOn, LibNUI, LibNUI-ModelViewer, Warbandeer_Bars) have developer-facing API READMEs |
+| `<addon>/EXTERNAL.md` | **CurseForge / Wago.io page** | Marketing page copy for each externally-published addon (one per addon carrying an `X-Curse-Project-ID`). Standalone, no repo-relative links: the first non-empty line links back to the GitHub repo, and a "Found a bug / Have a suggestion?" section points to the issue tracker. Enforced by `Tooling/external_drift.py` (the `external-drift` CI gate); an addon without one is skipped, not failed |
 | `CONTEXT.md` + `<addon>/CONTEXT.md` | Claude / code reference | File maps, classes, APIs, data structures, gotchas |
 
 Upkeep rules:
 
-- **New addon** → end-user `README.md`, a row in the root `README.md` table, its own `CONTEXT.md`, entries in the root `CONTEXT.md` (dependency graph, addon index, slash registry), and its dir glob in `.luacheckrc` `include_files` (only suite addons are linted — the local AddOns dir also holds untracked third-party addons).
+- **New addon** → end-user `README.md`, a row in the root `README.md` table, its own `CONTEXT.md`, entries in the root `CONTEXT.md` (dependency graph, addon index, slash registry), and its dir glob in `.luacheckrc` `include_files` (only suite addons are linted — the local AddOns dir also holds untracked third-party addons). If it is published externally (carries an `X-Curse-Project-ID`), also add an `EXTERNAL.md` — its CurseForge/Wago page copy (see the doc table above).
 - **Changed slash commands, settings, dependencies, API surface, or DB version** → update the addon's `README.md`, its `CONTEXT.md`, and the root `CONTEXT.md` registry/index in the same change.
 - **New/changed public methods or ns fields** → LuaLS annotations are part of the change, not a follow-up.
 - Use the `doc:` conventional-commit type for doc-only commits — `.md` changes never trigger a release.

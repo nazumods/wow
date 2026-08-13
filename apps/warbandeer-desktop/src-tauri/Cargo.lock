@@ -3780,7 +3780,7 @@ dependencies = [
 
 [[package]]
 name = "warbandeer-desktop"
-version = "0.2.10"
+version = "0.2.11"
 dependencies = [
  "bot-ops",
  "chrono",
