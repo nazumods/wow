@@ -96,6 +96,23 @@ jobs:
       - name: .toc metadata matches the CONTEXT.md headers
         run: python Tooling/doc_drift.py
 
+  # Check each addon's EXTERNAL.md (the CurseForge/Wago page copy, #911) against the two invariants
+  # that spec states -- the GitHub URL on the first line and a bug/suggestion section -- and unit-test
+  # the checker. Fully offline (no API key, no network), so like doc-drift it is a PR gate with no
+  # daily run. Inert until #911 lands the EXTERNAL.md files; the module docstring records why detection
+  # is the ceiling -- no public API writes a CurseForge or Wago description (#912 SPIKE).
+  external-drift:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: EXTERNAL.md satisfies the #911 invariants
+        run: python Tooling/external_drift.py
+
+      - name: external_drift.py unit tests
+        run: python Tooling/test_external_drift.py
+
   # Validate the hand-authored WoW id literals in the static data files against the live client
   # DB2 (wago.tools). Gated on the linted files so a PR that touches no id-bearing data never
   # depends on wago being up; when it does run, a stale/typo'd id fails the build.
