@@ -33,7 +33,7 @@ are stripped first, so copy hidden in a `<!-- ... -->` never satisfies a check):
 An addon folder is one containing <folder>/<folder>.toc -- the same rule doc_drift.py
 uses. (release.sh and the toc-name gate deliberately accept any *.toc, and release.sh
 additionally carries a NON_ADDON_DIRS skip list; the folder-named-.toc rule needs no skip
-list because Tooling/, apps/ and .github/ have no such file.)
+list because Tooling/, apps/, docs/ and .github/ have no such file.)
 
 Usage:
     python Tooling/external_drift.py [--root .]              # lint (CI gate); exit 1 on drift
