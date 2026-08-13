@@ -101,6 +101,7 @@ views\Milestones.lua
 views\profs\ProfsData.lua
 views\ProfsView.lua
 views\MidnightProfs.lua
+views\crafting\CraftingData.lua
 views\CraftingView.lua
 views\PlaytimeView.lua
 views\BarsPreview.lua
