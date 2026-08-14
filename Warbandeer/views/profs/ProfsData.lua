@@ -20,7 +20,10 @@ local EXP_ABBR = {
   ["Pandaria"]     = "MoP",
   ["Draenor"]      = "WoD",
   ["Legion"]       = "Leg",
+  -- BfA is the only faction-split profession tier: Alliance trains "Kul Tiran <Prof>",
+  -- Horde trains "Zandalari <Prof>". Both expansionNames map to the one BfA column (#910).
   ["Kul Tiran"]    = "BfA",
+  ["Zandalari"]    = "BfA",
   ["Shadowlands"]  = "SL",
   ["Dragon Isles"] = "DF",
   ["Khaz Algar"]   = "TWW",

@@ -6,6 +6,18 @@ local ns = select(2, ...)
 -- same conventional-commit grouping used for the GitHub/CurseForge release notes.
 ---@type { version: string, notes: string }[]
 ns.changelog = {
+  { version = "12.1.0-r2", notes = [==[
+### Bug Fixes
+- match expansion skill by continent name, not marketing label (#914)
+- show Horde BFA profession skills in the grid (#913)
+
+]==] },
+  { version = "12.1.0-r1", notes = [==[
+### Maintenance
+- shift gear-tier ilvl thresholds to the 12.1 season (#524) (#907)
+- target WoW 12.1.0 (Interface 120100) (#905)
+
+]==] },
   { version = "12.0.7-r38", notes = [==[
 ### Features
 - credit Epithet in the Titles view tooltip (#901)

@@ -29,13 +29,11 @@ local PROF_INFO = {
 local INTENT_LABEL = { main = "Main Crafter", secondary = "Secondary", gatherer = "Gatherer" }
 
 -- Expansion filter.  Only Midnight is wired for now; DF/TWW are greyed placeholders
--- until their recipe/concentration data is captured (separate session).
-local EXP_LABEL = { df = "Dragonflight", tww = "The War Within", midnight = "Midnight" }
-local EXPANSIONS = {
-  { key = "df",       label = "Dragonflight",   enabled = false },
-  { key = "tww",      label = "The War Within", enabled = false },
-  { key = "midnight", label = "Midnight",       enabled = true  },
-}
+-- until their recipe/concentration data is captured (separate session).  The table and its
+-- lookups live in views/crafting/CraftingData.lua (loaded first): EXP_LABEL drives the
+-- toggle + tooltips, EXP_SKILL_NAME the skill match against exp.name.
+local EXPANSIONS = ns.crafting.EXPANSIONS
+local EXP_LABEL  = ns.crafting.EXP_LABEL
 
 local PROF_COL_W, CRAFTER_COL_W, SKILL_COL_W, CONC_COL_W, RECIPE_COL_W = 104, 104, 52, 72, 78
 local VIEW_WIDTH = PROF_COL_W + CRAFTER_COL_W + SKILL_COL_W + CONC_COL_W + RECIPE_COL_W
@@ -162,7 +160,9 @@ end
 -- Main crafter's skill for the selected expansion — just the number, colour-coded
 -- by progress toward the expansion cap.
 function CraftingView:skillCell(id, mainCrafter)
-  local skill, max = expansionSkill(mainCrafter, id, EXP_LABEL[self._expansion])
+  -- EXP_SKILL_NAME (continent name), not EXP_LABEL: expansionSkill matches exp.name, the stored
+  -- expansionName; the marketing label never matches it (the #910 class of bug, one tier over).
+  local skill, max = expansionSkill(mainCrafter, id, ns.crafting.EXP_SKILL_NAME[self._expansion])
   if not skill then
     return { text = C_GREY .. "—" .. C_END, justifyH = ui.justify.Center }
   end

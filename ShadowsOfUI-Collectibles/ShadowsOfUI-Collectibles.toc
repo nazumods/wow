@@ -1,8 +1,8 @@
-## Interface: 120007
+## Interface: 120100
 ## Category: Shadows of UI
 ## Title: Collectible Tints
 ## Author: Nazuraki
-## Version: 12.0.7-r10
+## Version: 12.1.0-r1
 ## Dependencies: LibNAddOn
 ## OptionalDeps: Warbandeer_Characters, ShadowsOfUI-HousingVendor
 ## SavedVariables: ShadowsOfUI_CollectiblesDB

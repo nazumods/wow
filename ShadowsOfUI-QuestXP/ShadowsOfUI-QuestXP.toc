@@ -1,8 +1,8 @@
-## Interface: 120007
+## Interface: 120100
 ## Category: Shadows of UI
 ## Title: Quest XP
 ## Notes: Shows what percentage of a level a quest's XP reward is worth, in the quest log's reward pane
-## Version: 12.0.7-r4
+## Version: 12.1.0-r1
 ## Author: Nazuraki
 ## Dependencies: LibNAddOn
 ## X-Curse-Project-ID: 1615396
