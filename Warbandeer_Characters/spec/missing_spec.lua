@@ -12,12 +12,13 @@
 -- so it always evaluates to nil and never affects these assertions.
 local function newNS(maxLevel)
   local ns = {
-    brokers = {}, brokerOrder = {}, missingProviders = {},
+    brokers = {}, brokerOrder = {}, missingProviders = {}, commands = {},
     wow = { maxLevel = maxLevel or 80 },
     db = { characters = {} },
   }
   function ns:RegisterMissing(p) table.insert(self.missingProviders, p) end
-  function ns:registerCommand() end
+  -- capture handlers by subcommand so a test can invoke `/wbc missing audit` and inspect its output
+  function ns:registerCommand(_, sub, fn) self.commands[sub] = fn end
   ns.Print = function() end
   _G.C_Timer = { After = function() end } -- missing.lua schedules a load-time audit nudge
   assert(loadfile("Warbandeer_Characters/missing.lua"))("Warbandeer_Characters", ns)
@@ -30,6 +31,20 @@ end
 local function addBroker(ns, name, fields)
   ns.brokers[name] = { name = name, fields = fields }
   table.insert(ns.brokerOrder, name)
+end
+
+-- Invoke the `/wbc missing audit` handler captured by newNS and return its printed lines in
+-- order. The handler emits header lines via ns.Print and indented item lines via the global
+-- print, so capture both channels and restore them afterwards.
+local function runAudit(ns)
+  local out = {}
+  local nsPrint, gPrint = ns.Print, _G.print
+  ns.Print = function(m) out[#out + 1] = m end
+  _G.print = function(m) out[#out + 1] = m end
+  local ok, err = pcall(ns.commands.audit, ns)
+  ns.Print, _G.print = nsPrint, gPrint
+  assert(ok, err)
+  return out
 end
 
 describe("Warbandeer_Characters missing walker", function()
@@ -132,6 +147,35 @@ describe("Warbandeer_Characters missing walker", function()
     local undeclared, collisions = ns:AuditMissing()
     assert.same({}, undeclared)  -- both fn and off are a declared stance, not undeclared
     assert.same({}, collisions)  -- and neither carries an order, so neither can collide
+  end)
+
+  -- The `/wbc missing audit` command body itself (headers via ns.Print, indented items via the
+  -- global print). These execute the handler, which the other tests reach only through AuditMissing.
+  it("`missing audit` reports the all-clear line when nothing is wrong", function()
+    local ns = newNS()
+    addBroker(ns, "b", { g = { missing = { label = "g", order = 5 } } })
+    assert.same(
+      { "Every broker field declares a completeness stance, and all report orders are unique." },
+      runAudit(ns))
+  end)
+
+  it("`missing audit` prints each duplicate-order collision as an indented item", function()
+    local ns = newNS()
+    addBroker(ns, "housing", { active = { missing = { label = "endeavor", order = 140 } } })
+    ns:RegisterMissing{ order = 140, name = "demons", check = function() end }
+    local out = runAudit(ns)
+    assert.equal(2, #out)
+    assert.truthy(out[1]:match("^1 duplicate report order"))     -- ns.Print header
+    assert.equal("  order 140: demons, housing.active", out[2])  -- global-print item
+  end)
+
+  it("`missing audit` prints each undeclared field as an indented item", function()
+    local ns = newNS()
+    addBroker(ns, "b", { y = { get = function() end } }) -- no `missing` key at all
+    local out = runAudit(ns)
+    assert.equal(2, #out)
+    assert.truthy(out[1]:match("^1 broker field%(s%)"))  -- ns.Print header
+    assert.equal("  b.y", out[2])                        -- global-print item
   end)
 
   it("only applies a maxLevel descriptor at the level cap", function()
