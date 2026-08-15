@@ -106,6 +106,21 @@ describe("DataView lockout-selection highlight (#921)", function()
     end)
   end)
 
+  describe("onRebind forwarding (#921 root cause)", function()
+    -- The wrapper must pass TableFrame's resident range through to ns.OnGridRebind, which records it as
+    -- _residentFirst for ns.ResidentCell's data-index -> slot math. Dropping it (the pre-#921 bug) left
+    -- _residentFirst nil, so under virtualisation ResidentCell always returned nil and the gold name
+    -- never resolved a cell. Reverting DataView:onRebind to drop its args fails this test.
+    it("passes TableFrame's resident range through to OnGridRebind", function()
+      local g = grid(10, 3, WHITE)
+      g._refreshMarks = function() end        -- OnGridRebind calls it unconditionally
+      ns.AnchorDressedCursor = function() end  -- would walk real cells; irrelevant to this assertion
+      DV.onRebind(g, 5, 9)
+      assert.equal(5, g._residentFirst)
+      assert.equal(9, g._residentLast)
+    end)
+  end)
+
   describe("_clearSelection", function()
     it("whites the selected slot, drops the selection and hides the arrow", function()
       local g = grid(10, 3, WHITE)
