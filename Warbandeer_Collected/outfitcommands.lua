@@ -153,20 +153,11 @@ end
 ---@param name string
 local function outfitPush(name)
   withLook(name, function(entry)
-    local look = entry.name
-    local list, err = ns.LibraryOutfitList(look)
-    if not list then
-      ns.Print("Couldn't read that look: " .. err)
-      return
-    end
-    local existing
-    for _, s in ipairs(ns.CustomSets()) do if s.name == look then existing = s.id end end
-    local id, saveErr = ns.SaveCustomSet(look, list, existing)
-    if not id then
-      ns.Print("Couldn't push: " .. saveErr)
-      return
-    end
-    ns.Print(("Pushed \"%s\" to this character's transmog sets."):format(look))
+    -- Route through the shared push rule rather than re-scanning here: its existing-set match is
+    -- case-insensitive (#770 step 8), which this command's own scan was not — a case-mismatched name
+    -- created a SECOND character set instead of replacing (#922). `confirmed = true` keeps the
+    -- command's existing replace-without-prompt behaviour (a typed verb is explicit intent).
+    ns.Print(ns.PushLookToCharacter(entry.name, true).message)
   end)
 end
 
