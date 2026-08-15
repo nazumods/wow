@@ -489,5 +489,6 @@ end)
 -- character-list-order.txt's raw GUID fragments.
 ns:RegisterMissing{
   order = 40,
+  name = "guid",
   check = function(toon) if not toon.guid then return "guid" end end,
 }
