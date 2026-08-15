@@ -27,6 +27,16 @@ end
 -- its name white and the arrow parked on whatever row inherited the slot.
 function DataView:_reapplySelection()
   if not self._selectedRow then return end
+  -- Reset every resident name cell to white before re-golding the selected one. Under virtualisation a
+  -- slot the selected row scrolled out of keeps its gold colour when it recycles to another row —
+  -- name-cell data carries no `color`, so Cell:Label's guarded re-apply never clears it — and the gold
+  -- would smear across rows as the selection scrolls (#921). Same "reset all, then set the one"
+  -- discipline ns.RefreshGridMarks uses for the star/pip overlays.
+  for r = 1, #self.cells do
+    local rowCells = self.cells[r]
+    local nameCell = rowCells and rowCells[DataView.NAME_COL]
+    if nameCell and nameCell.label then nameCell.label:Color(WHITE_FONT_COLOR) end
+  end
   local cell = ns.ResidentCell(self, self._selectedRow, DataView.NAME_COL)
   if cell then cell.label:Color(NORMAL_FONT_COLOR:GetRGBA()) end
   local row = ns.ResidentRow(self, self._selectedRow)
