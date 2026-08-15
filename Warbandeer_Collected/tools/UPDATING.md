@@ -167,6 +167,8 @@ CSV download). It compares the latest PTR patch against the `ptr` build stamped 
 | other | A real error (wago unreachable, etc.) — the script threw |
 
 > **Why exit 3 exists:** when 12.1 shipped, its sets sat only under the PTR-preview toggle because nobody seeded live shells, and the preview kept showing now-live content as "upcoming" (the old `-Check` only fired on a *new* PTR patch). Exit 3 makes the daily watcher self-clear the stale preview **and** file a curation reminder, so neither is forgotten again. The weapon watcher clears the same way (weapons auto-derive, so no curation reminder).
+>
+> Edge case (harmless): if the PTR ever serves a newer *build* of the **same** patch that is already live, with net-new sets, `-Check` returns 3 each day — the regenerate is a no-op (same content, no PR churn) and the `collected-curate-live` issue is deduped while open. It's consistent with the patch-granular preview model; not worth special-casing.
 
 ```
 pwsh ./update-sets.ps1 -PtrDelta -Check     # is a new PTR patch out? (exit 2 = yes)

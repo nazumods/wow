@@ -44,6 +44,10 @@ jobs:
           elseif ($code -eq 3) { "regen=true"  >> $env:GITHUB_OUTPUT; "caughtup=true"  >> $env:GITHUB_OUTPUT }
           elseif ($code -eq 0) { "regen=false" >> $env:GITHUB_OUTPUT; "caughtup=false" >> $env:GITHUB_OUTPUT }
           else { exit 1 }   # real failure (wago unreachable, etc.)
+          # The child's exit 2/3 leaves $LASTEXITCODE non-zero; the pwsh shell appends `exit
+          # $LASTEXITCODE`, which would FAIL this step (skipping every downstream step). Reset it: the
+          # handled 0/2/3 cases are a success — only the `else` above is a real failure.
+          exit 0
 
       - name: Regenerate sets_ptr.lua for the new patch
         if: steps.check.outputs.regen == 'true'

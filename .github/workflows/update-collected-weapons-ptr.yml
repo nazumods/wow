@@ -28,55 +28,60 @@ jobs:
       - uses: actions/checkout@v7
 
       # Cheap, patch-aware probe (no CSV download). Runs in a child process so the
-      # script's `exit` doesn't terminate this step. Exit 2 = a new PTR patch (or a
-      # missing file) → regenerate; 0 = same patch, nothing to do; else a real error.
-      - name: Check for a new PTR patch
+      # script's `exit` doesn't terminate this step. Exit 2 = regenerate — a new PTR patch,
+      # a missing file, OR live catching up to the previewed patch (weapons auto-derive, so
+      # both just clear/replace); 0 = nothing to do; else a real error.
+      - name: Check for a new PTR patch or live catch-up
         id: check
         shell: pwsh
         run: |
           pwsh -File ./Warbandeer_Collected/tools/update-sets.ps1 -Weapons -PtrDelta -Check
           $code = $LASTEXITCODE
           Write-Host "check exit code: $code"
-          if ($code -eq 2) { "newpatch=true"  >> $env:GITHUB_OUTPUT }
-          elseif ($code -eq 0) { "newpatch=false" >> $env:GITHUB_OUTPUT }
+          if ($code -eq 2) { "regen=true"  >> $env:GITHUB_OUTPUT }
+          elseif ($code -eq 0) { "regen=false" >> $env:GITHUB_OUTPUT }
           else { exit 1 }   # real failure (wago unreachable, etc.)
+          # The child's exit 2 leaves $LASTEXITCODE non-zero; the pwsh shell appends `exit
+          # $LASTEXITCODE`, which would FAIL this step (skipping regen/PR). Reset it — the handled
+          # 2/0 cases are successes; only the `else` above is a real failure.
+          exit 0
 
       - name: Regenerate weaponsources_ptr.lua for the new patch
-        if: steps.check.outputs.newpatch == 'true'
+        if: steps.check.outputs.regen == 'true'
         shell: pwsh
         run: ./Warbandeer_Collected/tools/update-sets.ps1 -Weapons -PtrDelta
 
       # Validate here: PRs opened with GITHUB_TOKEN don't trigger the normal luacheck
       # workflow, so lint the regenerated file before opening one.
       - uses: leafo/gh-actions-lua@v13
-        if: steps.check.outputs.newpatch == 'true'
+        if: steps.check.outputs.regen == 'true'
         with:
           luaVersion: "5.1.5"
       - uses: leafo/gh-actions-luarocks@v6
-        if: steps.check.outputs.newpatch == 'true'
+        if: steps.check.outputs.regen == 'true'
       - name: Install luacheck
-        if: steps.check.outputs.newpatch == 'true'
+        if: steps.check.outputs.regen == 'true'
         run: luarocks install luacheck
       - name: Lint regenerated file
-        if: steps.check.outputs.newpatch == 'true'
+        if: steps.check.outputs.regen == 'true'
         run: luacheck Warbandeer_Collected/data/weaponsources_ptr.lua --codes
 
       - name: Open PR replacing the weapon PTR preview
-        if: steps.check.outputs.newpatch == 'true'
+        if: steps.check.outputs.regen == 'true'
         uses: peter-evans/create-pull-request@v8
         with:
           branch: bot/collected-weapons-ptr-refresh
           delete-branch: true
           # Only the data file — the luacheck step leaves a .luarocks/ dir behind.
           add-paths: Warbandeer_Collected/data/weaponsources_ptr.lua
-          commit-message: "chore(collected): replace weapon PTR preview data for a new PTR patch"
-          title: "chore(collected): replace weapon PTR preview data for a new PTR patch"
+          commit-message: "chore(collected): refresh the weapon PTR preview data"
+          title: "chore(collected): refresh the weapon PTR preview data"
           body: |
-            A new **PTR patch** has opened, so the upcoming-weapon preview
-            (`Warbandeer_Collected/data/weaponsources_ptr.lua`) has been regenerated from
-            the new patch's [wago.tools](https://wago.tools) weapon delta — the
-            weapon/off-hand appearances on the latest PTR (`wowt`) build but not yet on
-            live (`wow`).
+            The upcoming-weapon preview (`Warbandeer_Collected/data/weaponsources_ptr.lua`)
+            has been regenerated from the latest [wago.tools](https://wago.tools) weapon
+            delta — the weapon/off-hand appearances on the PTR (`wowt`) build but not yet on
+            live (`wow`). This fires when a **new PTR patch** opens, or when the previewed
+            patch has **gone live** (the delta then empties — nothing is upcoming).
 
             The whole list is replaced (it represents one patch). `ns.WeaponPtrBuild` at
             the top of the file shows the live/PTR builds it came from.
