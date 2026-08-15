@@ -77,7 +77,10 @@ function WeaponView:OnBeforeShow() self:_fitNameCol() end
 -- Re-derive the rating overlays and the dressed-weapon cursor after virtualisation re-points the
 -- resident cells at a new window (`TableFrame.onRebind`, #843) — the armour grid's twin, for the same
 -- reason: neither is cell data, so `Cell:update` leaves both on whichever row the slot held before.
-function WeaponView:onRebind() ns.OnGridRebind(self) end
+-- Forward the resident range like the armour grid (#921): `ns.OnGridRebind` records it for
+-- `ns.ResidentCell` / `ns.ResidentRow` (the weapons grid has no lockout selection, but keeps the
+-- contract identical rather than silently leaving `_residentFirst` nil).
+function WeaponView:onRebind(first, last) ns.OnGridRebind(self, first, last) end
 
 -- Variable-height rebuild (the visible row count changes with the filter): grow the pool for new
 -- rows, pad shrinking data with blank-string cells so stale rows blank, base update, then hide the

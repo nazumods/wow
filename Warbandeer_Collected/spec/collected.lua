@@ -200,6 +200,40 @@ function M.loadDataViewData(ns)
   return ns
 end
 
+---Load DataViewMarks.lua over the loaders that supply what it reaches: `loadDataViewFilters` for
+---`ns.DataView` and `DataView.NAME_COL`, `loadGridShared` for the REAL `ns.ResidentCell` /
+---`ns.ResidentRow` (pure slot math, no widgets), so the selection tests exercise the actual DATA
+---index → viewport slot translation the fix depends on rather than a stub of it.
+---
+---It earns a loader for the #921 invariant: the lockout-selection gold highlight is painted straight
+---onto the name label, outside the shared mark walk, so `_reapplySelection` must reset EVERY resident
+---name cell before re-golding the selected one — otherwise a recycled slot keeps stale gold and the
+---highlight smears across rows as the selection scrolls. That is exactly the kind of "reset all, then
+---set the one" discipline a cell walk enforces and a single-cell re-apply silently drops.
+---
+---`DataView.lua` is loaded too, purely so the REAL `DataView:onRebind` wrapper is under test (the #921
+---root cause was that wrapper dropping the resident range it must forward to `ns.OnGridRebind`). Only
+---the wrapper is exercised — it is a one-liner that calls `ns.OnGridRebind(self, first, last)` and no
+---instance is ever built — so `ns.lua.Class` and `ns.ui.TableFrame` are stubbed to bare tables: the
+---method is defined directly on the class, not inherited, so the stub is enough and pulling in the real
+---LibNAddOn class chain would buy nothing. Loaded FIRST so the reopening files add onto the same
+---`ns.DataView` table (matching the `.toc` order).
+---@param ns table  as returned by M.load()
+---@return table ns
+function M.loadDataViewMarks(ns)
+  ns.lua = ns.lua or {}
+  ns.lua.Class = ns.lua.Class or function() return {} end
+  ns.ui = ns.ui or {}
+  ns.ui.TableFrame = ns.ui.TableFrame or {}
+  _G.WarbandeerCollectedApi = _G.WarbandeerCollectedApi or {} -- DataView.lua exports the class onto it
+  loadInto(ns, "DataView.lua")
+  M.loadDataViewFilters(ns)
+  M.loadGridShared(ns)
+  ns.ui.edge = ns.ui.edge or { TopLeft = "TOPLEFT" }
+  loadInto(ns, "DataViewMarks.lua")
+  return ns
+end
+
 ---Load viewsync.lua into an already-loaded `ns`. Needs no C_ stub at all — the only WoW name it
 ---touches is `Enum.TransmogCollectionType`, a table of constants — but it still loads separately
 ---because the caller supplies that table and the weapon-hand sets are built from it at load time.
