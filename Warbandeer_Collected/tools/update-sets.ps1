@@ -1047,6 +1047,13 @@ if ($Weapons -and $PtrDelta) {
     $have = ($stamped -split '\.')[0..2] -join '.'
     $want = ($PtrBuild -split '\.')[0..2] -join '.'
     if ($have -ne $want) { Write-Host "NEW PTR PATCH: $have -> $want (stamped $stamped, latest $PtrBuild) — replace the upcoming weapons." -ForegroundColor Yellow; exit 2 }
+    # Live caught up (mirrors -PtrDelta): the delta still lists weapons whose patch is now live, so
+    # regenerate to clear them. Guarded on the delta still having rows so an empty delta doesn't thrash.
+    if ($cur -match 'tinsert\(ns\.WeaponPtrSources,') {
+      $lp = $LiveBuild -split '\.'; $hp = $have -split '\.'; $caught = $true
+      for ($i = 0; $i -lt 3; $i++) { $x = [int]$lp[$i]; $y = [int]$hp[$i]; if ($x -ne $y) { $caught = ($x -gt $y); break } }
+      if ($caught) { Write-Host "LIVE CAUGHT UP: patch $have is now live (live $LiveBuild) — clear the stale weapon preview." -ForegroundColor Yellow; exit 2 }
+    }
     Write-Host "PTR up to date: still patch $have (stamped $stamped, latest $PtrBuild)." -ForegroundColor Green; exit 0
   }
 
@@ -1115,6 +1122,12 @@ if ($PtrDelta) {
   # whole upcoming list should be replaced; within-patch build bumps (…68301 -> …69xxx)
   # are routine churn the daily watcher deliberately ignores.
   function PtrPatch([string]$v) { ($v -split '\.')[0..2] -join '.' }
+  # True when patch $a is at or past patch $b (first three components, numeric).
+  function PtrPatchGe([string]$a, [string]$b) {
+    $pa = $a -split '\.'; $pb = $b -split '\.'
+    for ($i = 0; $i -lt 3; $i++) { $x = [int]$pa[$i]; $y = [int]$pb[$i]; if ($x -ne $y) { return ($x -gt $y) } }
+    return $true
+  }
 
   # Resolve both builds (explicit overrides, else the latest of each product). The
   # bare /csv endpoint serves the newest build across ALL products, so always pin one.
@@ -1145,6 +1158,16 @@ if ($PtrDelta) {
     if ($have -ne $want) {
       Write-Host "NEW PTR PATCH: $have -> $want (stamped $stamped, latest $PtrBuild) — replace the upcoming list." -ForegroundColor Yellow
       exit 2
+    }
+    # Live caught up: the delta still lists sets whose patch ($have) has since gone live, so those
+    # "upcoming" rows are now stale — regenerate (producing an empty, or the next PTR patch's, delta)
+    # rather than leaving now-live content flagged upcoming. Guarded on the delta still having rows so
+    # an already-cleared (empty) delta doesn't make the daily watcher regenerate on every run.
+    if (($cur -match 'tinsert\(ns\.PtrSets,') -and (PtrPatchGe (PtrPatch $LiveBuild) $have)) {
+      # Exit 3 (not 2) so the watcher can BOTH regenerate (clearing the now-live rows) AND file a
+      # "curate this patch into the live grid" reminder — the manual step the live generator can't do.
+      Write-Host "LIVE CAUGHT UP: patch $have is now live (live $LiveBuild) — clear the stale preview and curate it into the live grid." -ForegroundColor Yellow
+      exit 3
     }
     Write-Host "PTR up to date: still patch $have (stamped $stamped, latest $PtrBuild)." -ForegroundColor Green
     exit 0

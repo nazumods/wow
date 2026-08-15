@@ -163,7 +163,12 @@ CSV download). It compares the latest PTR patch against the `ptr` build stamped 
 |---|---|
 | `0` | Same patch — nothing to do (a within-patch build bump alone is ignored) |
 | `2` | A **new PTR patch** (or `sets_ptr.lua` missing/unstamped) — regenerate |
+| `3` | **Live caught up** — the delta still lists a patch that has since gone live (its stamped `ptr` patch ≤ the latest live patch, and the delta still has rows). Regenerate to **clear** the now-live rows, and the watcher opens a `collected-curate-live` tracking issue (the now-live sets still need hand-curating into the live grid — the one thing the live generator can't do). Guarded on the delta having rows, so an already-empty delta reports `0`, not `3` |
 | other | A real error (wago unreachable, etc.) — the script threw |
+
+> **Why exit 3 exists:** when 12.1 shipped, its sets sat only under the PTR-preview toggle because nobody seeded live shells, and the preview kept showing now-live content as "upcoming" (the old `-Check` only fired on a *new* PTR patch). Exit 3 makes the daily watcher self-clear the stale preview **and** file a curation reminder, so neither is forgotten again. The weapon watcher clears the same way (weapons auto-derive, so no curation reminder).
+>
+> Edge case (harmless): if the PTR ever serves a newer *build* of the **same** patch that is already live, with net-new sets, `-Check` returns 3 each day — the regenerate is a no-op (same content, no PR churn) and the `collected-curate-live` issue is deduped while open. It's consistent with the patch-granular preview model; not worth special-casing.
 
 ```
 pwsh ./update-sets.ps1 -PtrDelta -Check     # is a new PTR patch out? (exit 2 = yes)
@@ -178,6 +183,31 @@ the live job.
 
 > To refresh the list **within** the current patch (pick up sets added since the last
 > generate without waiting for a patch bump), just run `-PtrDelta` by hand and commit.
+
+## Patch-day baseline (promoting new content into the live grid)
+
+New content on a live patch does **not** reach the curated live grid automatically — the generator only *fills* shells that already exist, and can't tell a raid tier from a PvP season. The daily PTR watcher now **auto-clears** the stale preview and files a `collected-curate-live` issue (the exit-`3` row above), but the curation itself is a hand step:
+
+1. **`pwsh ./update-sets.ps1 -AuditCoverage`** — lists every uncaptured live group by heuristic category. The authoritative "what's new" list.
+2. **Seed shells** in `data/sets_late.lua`, one mechanism per category (all `sets = {}`, generator-filled):
+   - **Raid** — one shell per difficulty, `name = "<Raid> (Raid Finder|Normal|Heroic|Mythic)"`, `instance = <JournalInstanceID>` (look up on `https://wago.tools/db2/JournalInstance?filter[Name_lang]=<raid>`), `release`, `minLevel`, `category = "Raid"`.
+   - **PvP season** — one shell per bracket (mirror the previous season; match wago's label **verbatim** — 12.1's entry bracket is `"Aspirant and War Mode"`, not `"Aspirant"`), `category = "PvP"`. Include the **War Mode** bracket — it's a distinct set (see S1's id 377).
+   - **Delve / Renown / World / other single-label groups** — one bare-named shell (no suffix) + its `category`.
+   - **Dungeon / recolour armour-type groups** (several group ids, one set each) — a `merge <id>+<id>+… | Dungeon | <Name>` line in `expand-groups.txt` (run `-Expand`), **not** a shell.
+3. **`pwsh ./update-sets.ps1`** (+ **`-Expand`** if you edited `expand-groups.txt`) to fill; then **`-PtrDelta`** / **`-Weapons -PtrDelta`** if the previews weren't already auto-cleared. Verify in-game (`/reload`; each category renders with aligned class icons), then close the `collected-curate-live` issue.
+
+### Blizzard-id baseline (Midnight, `release = 12`)
+
+The shell **shape is stable, but the two Blizzard ids change every tier** and must be looked up — they are not derivable:
+
+| | S1 raid — Voidspire / Dreamrift | S2 raid — The Venomous Abyss (12.1) |
+|---|---|---|
+| TransmogSet group id | 372 | 404 |
+| `JournalInstanceID` (`instance`) | omitted (multi-instance, no single lockout) | 1320 |
+| `release` / `minLevel` / `category` | 12 / 80 / Raid | 12 / 80 / Raid |
+| `difficulty` field | not used (name-suffix only) | not used |
+
+12.1 group ids (from `-AuditCoverage` vs live `12.1.0.69299`): raid **404**, dungeon armour-type **397–400**, PvP season **401**, delve **408**, renown **396**, world-quest **409**, prey **403**. Midnight PvP seasons are hand-curated shells here (S1 = id 371 + War Mode id 377), **not** `mergeseason` (that's for older expansions).
 
 ## Auditing coverage (what we're *not* capturing)
 
