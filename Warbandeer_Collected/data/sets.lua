@@ -1,7 +1,7 @@
 ---@type Warbandeer_Collected
 local ns = select(2, ...)
 local tinsert = tinsert
--- Generated from wago.tools TransmogSet (product wow, build 12.0.7.68275, 2026-06-23) by tools/update-sets.ps1.
+-- Generated from wago.tools TransmogSet (product wow, build 12.1.0.69299, 2026-08-13) by tools/update-sets.ps1.
 
 ---@class Warbandeer_Collected
 ---@field Sets table[] transmog set groups: `{ id, name, release, category, instance, difficulty, minLevel, sets = { { id, name, classId }... } }` (category = Raid|PvP|Dungeon|Delve|Covenant|Renown|World|Trading Post|Event, drives the grid's category filter)

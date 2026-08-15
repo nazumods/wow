@@ -1595,6 +1595,27 @@ tinsert(ns.Sets, {
   },
 })
 tinsert(ns.Sets, {
+  id = 397,
+  name = "Altar of Fangs",
+  release = 12,
+  category = "Dungeon",
+  sets = {
+    { id = 5830, name = "Venom-Cursed Bear's Guard", classId = 1 },
+    { id = 5830, name = "Venom-Cursed Bear's Guard", classId = 2 },
+    { id = 5829, name = "Venom-Cursed Eagle's Scales", classId = 3 },
+    { id = 5828, name = "Venom-Cursed Lynx's Garb", classId = 4 },
+    { id = 5827, name = "Venom-Cursed Dragonhawk's Raiment", classId = 5 },
+    { id = 5830, name = "Venom-Cursed Bear's Guard", classId = 6 },
+    { id = 5829, name = "Venom-Cursed Eagle's Scales", classId = 7 },
+    { id = 5827, name = "Venom-Cursed Dragonhawk's Raiment", classId = 8 },
+    { id = 5827, name = "Venom-Cursed Dragonhawk's Raiment", classId = 9 },
+    { id = 5828, name = "Venom-Cursed Lynx's Garb", classId = 10 },
+    { id = 5828, name = "Venom-Cursed Lynx's Garb", classId = 11 },
+    { id = 5828, name = "Venom-Cursed Lynx's Garb", classId = 12 },
+    { id = 5829, name = "Venom-Cursed Eagle's Scales", classId = 13 },
+  },
+})
+tinsert(ns.Sets, {
   id = 297,
   name = "Legion (Timewalking)",
   release = 7,
