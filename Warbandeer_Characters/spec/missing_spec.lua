@@ -51,16 +51,87 @@ describe("Warbandeer_Characters missing walker", function()
       y = { missing = { label = "y", order = 1 } },
     })
     assert.same({ "y" }, ns.getMissingFields({ basic = { level = 80 } }))
-    assert.same({}, ns:AuditMissing())
+    local undeclared = ns:AuditMissing()
+    assert.same({}, undeclared)
   end)
 
   it("auto-flags an undeclared field by name and reports it from AuditMissing", function()
     local ns = newNS()
     addBroker(ns, "b", { y = { get = function() end } }) -- no `missing` key at all
     assert.same({ "y" }, ns.getMissingFields({ basic = { level = 80 } }))
-    assert.same({ "b.y" }, ns:AuditMissing())
+    local undeclared = ns:AuditMissing()
+    assert.same({ "b.y" }, undeclared)
     -- once the value is present it is no longer flagged
     assert.same({}, ns.getMissingFields({ basic = { level = 80 }, b = { y = 1 } }))
+  end)
+
+  -- Duplicate-`order` guard. Two entries sharing an explicit order leave their relative
+  -- position undeclared (they fall back to registration order) — the #745-3 / #922
+  -- demons-vs-housing bug. AuditMissing's second return flags these; nothing else does, so
+  -- these lock the only assertion of order uniqueness the suite has (in-game the same call
+  -- drives the load-time nudge + `/wbc missing audit` against the real registrations).
+  it("flags a duplicate `order` shared by a provider and a broker field (the #922 case)", function()
+    local ns = newNS()
+    addBroker(ns, "housing", { active = { missing = { label = "endeavor", order = 140 } } })
+    ns:RegisterMissing{ order = 140, name = "demons", check = function() end }
+    local _, collisions = ns:AuditMissing()
+    assert.same({ "order 140: demons, housing.active" }, collisions)
+  end)
+
+  it("reports every colliding order, sorted, naming fields `<broker>.<field>`", function()
+    local ns = newNS()
+    addBroker(ns, "b", {
+      p = { missing = { label = "p", order = 15 } },
+      q = { missing = { label = "q", order = 15 } },
+      r = { missing = { label = "r", order = 140 } },
+    })
+    ns:RegisterMissing{ order = 140, name = "demons", check = function() end }
+    local _, collisions = ns:AuditMissing()
+    -- sorted by numeric order (15 before 140), each collision's members sorted alphabetically
+    assert.same({ "order 15: b.p, b.q", "order 140: b.r, demons" }, collisions)
+  end)
+
+  it("ignores a table descriptor that omits `order` (no crash, not order-claimed)", function()
+    local ns = newNS()
+    addBroker(ns, "b", {
+      noord = { missing = { label = "no order" } }, -- table descriptor, order omitted
+      y     = { missing = { label = "y", order = 5 } },
+    })
+    local undeclared, collisions = ns:AuditMissing()
+    assert.same({}, undeclared)
+    assert.same({}, collisions)
+  end)
+
+  it("synthesises a label for an unnamed provider in a collision", function()
+    local ns = newNS()
+    ns:RegisterMissing{ order = 35, check = function() end } -- no name
+    ns:RegisterMissing{ order = 35, name = "named", check = function() end }
+    local _, collisions = ns:AuditMissing()
+    assert.same({ "order 35: named, provider(order=35)" }, collisions)
+  end)
+
+  it("reports no collisions when every explicit order is unique", function()
+    local ns = newNS()
+    addBroker(ns, "b", {
+      ten    = { missing = { label = "ten", order = 10 } },
+      twenty = { missing = { label = "twenty", order = 20 } },
+    })
+    ns:RegisterMissing{ order = 30, name = "thirty", check = function() end }
+    local undeclared, collisions = ns:AuditMissing()
+    assert.same({}, undeclared)
+    assert.same({}, collisions)
+  end)
+
+  it("never order-claims a bare-function or opt-out `missing` (they carry no order)", function()
+    local ns = newNS()
+    addBroker(ns, "b", {
+      fn  = { missing = function() return "x" end }, -- bare function: declared, no order
+      off = { missing = false },                     -- opt-out: declared, no order
+      y   = { missing = { label = "y", order = 5 } },
+    })
+    local undeclared, collisions = ns:AuditMissing()
+    assert.same({}, undeclared)  -- both fn and off are a declared stance, not undeclared
+    assert.same({}, collisions)  -- and neither carries an order, so neither can collide
   end)
 
   it("only applies a maxLevel descriptor at the level cap", function()

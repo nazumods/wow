@@ -108,5 +108,6 @@ end
 -- Last-seen cache, not a broker field, so it registers here.
 ns:RegisterMissing{
   order = 80,
+  name = "mail",
   check = function(toon) if not toon.mail or toon.mail.count == nil then return "mail" end end,
 }

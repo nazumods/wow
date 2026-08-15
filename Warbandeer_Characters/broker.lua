@@ -199,6 +199,7 @@ end
 ---the broker fields' own `missing` descriptors, so a new cache participates the same way.
 ---@class MissingProvider
 ---@field order integer? position within the per-character report line (ascending; unset sorts last)
+---@field name string? stable identifier for `ns:AuditMissing`'s duplicate-order report (providers have no broker.field name)
 ---@field maxLevel boolean? only evaluate at max level
 ---@field check fun(toon: Character): string|string[]|nil evaluator returning label(s), or nil when complete
 

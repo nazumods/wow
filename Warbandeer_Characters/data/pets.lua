@@ -138,5 +138,6 @@ ns:registerDump("tames", "Challenge Tames",
 -- `pets` cache hasn't visited one since the field was added. Non-Hunters have no stable.
 ns:RegisterMissing{
   order = 130,
+  name = "stable pets",
   check = function(toon) if toon.classId == HUNTER and not toon.pets then return "stable pets" end end,
 }
