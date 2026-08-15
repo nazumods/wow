@@ -1,1 +1,3 @@
 .vscode/settings.json
+# -SeedShells review-only scratch output (see tools/UPDATING.md)
+tools/seed-shells.txt
