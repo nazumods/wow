@@ -74,6 +74,7 @@ assemble 5555:1+3850:2+5553:3+3854:4+5556:5+5551:6+3855:7+3853:8+3848:9+5554:10+
 #   merge <id>+<id>+... | <Category> | <Name> [| <release>]
 #   release (1=Vanilla..12=Midnight) overrides wago's ExpansionID when it's mistagged.
 merge 279+280+281+282 | Dungeon | The War Within (Dungeons)   # mail/leather/plate/cloth armor groups
+merge 397+398+399+400 | Dungeon | Altar of Fangs   # Midnight 12.1: four armor-type groups (1 set each) → one row
 merge 349+297 | Dungeon | Legion (Timewalking) | 7   # plate (349) + mail (297); release pinned Legion (wago mistags 349 as Shadowlands)
 
 # ── mergeseason: own a whole PvP group — bucket its sets by ItemNameDescription label, then
