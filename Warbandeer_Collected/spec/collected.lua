@@ -73,6 +73,25 @@ function M.loadOutfitVerbs(ns)
   return ns
 end
 
+---Load outfitcommands.lua and return the registered `/collected outfit` handler, so the push verb's
+---delegation to the shared rule can be driven without the game. The file resolves every ns.* it needs
+---at CALL time, so only `ns.ui` and `ns:registerCommand` have to exist at load; a test stubs the
+---handful the exercised path actually reaches (`ns.LibraryOutfit`, `ns.PushLookToCharacter`, `ns.Print`).
+---
+---It earns a loader for the #922 fix: `/collected outfit push` had reimplemented the push with an
+---EXACT-match existing-set scan, so a case-mismatched name created a duplicate character set where the
+---shared `ns.PushLookToCharacter` (case-insensitive since #770 step 8) would have replaced. The command
+---now delegates; this pins that it does, and passes `confirmed = true`.
+---@param ns table  as returned by M.load()
+---@return fun(prefix: any, args: string)  the `outfit` command handler
+function M.loadOutfitCommands(ns)
+  ns.ui = ns.ui or {}
+  local handler
+  ns.registerCommand = function(_, name, _sub, fn) if name == "outfit" then handler = fn end end
+  loadInto(ns, "outfitcommands.lua")
+  return handler
+end
+
 ---Load GridShared.lua into an already-loaded `ns`, over a stub of the `ns.ui` widgets it
 ---destructures at load time.
 ---
