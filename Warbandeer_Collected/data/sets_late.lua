@@ -1418,6 +1418,27 @@ tinsert(ns.Sets, {
   },
 })
 tinsert(ns.Sets, {
+  id = 401,
+  name = "Midnight Season 2 (War Mode)",
+  release = 12,
+  category = "PvP",
+  sets = {
+    { id = 5724, name = "Venomous Warmonger's Plate Armor", classId = 1 },
+    { id = 5724, name = "Venomous Warmonger's Plate Armor", classId = 2 },
+    { id = 5723, name = "Venomous Warmonger's Chain Armor", classId = 3 },
+    { id = 5722, name = "Venomous Warmonger's Leather Armor", classId = 4 },
+    { id = 5721, name = "Venomous Warmonger's Silk Armor", classId = 5 },
+    { id = 5724, name = "Venomous Warmonger's Plate Armor", classId = 6 },
+    { id = 5723, name = "Venomous Warmonger's Chain Armor", classId = 7 },
+    { id = 5721, name = "Venomous Warmonger's Silk Armor", classId = 8 },
+    { id = 5721, name = "Venomous Warmonger's Silk Armor", classId = 9 },
+    { id = 5722, name = "Venomous Warmonger's Leather Armor", classId = 10 },
+    { id = 5722, name = "Venomous Warmonger's Leather Armor", classId = 11 },
+    { id = 5722, name = "Venomous Warmonger's Leather Armor", classId = 12 },
+    { id = 5723, name = "Venomous Warmonger's Chain Armor", classId = 13 },
+  },
+})
+tinsert(ns.Sets, {
   id = 408,
   name = "Amani Gear",
   release = 12,
