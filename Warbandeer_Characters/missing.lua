@@ -36,6 +36,7 @@ end
 
 ns:RegisterMissing{
   order = 50,
+  name = "bars",
   check = function(toon) return missingBars(toon.name) end,
 }
 
@@ -138,22 +139,62 @@ function ns:getMissingReport()
   return missing
 end
 
--- Broker fields with no completeness stance (neither a `missing` descriptor nor an explicit
--- `missing = false`). These are auto-flagged by the walker, so this is the forcing function
--- that keeps the report complete by construction: a clean build returns nothing.
+-- Dev-facing health check on the report's declarations. Returns two lists:
+--   1. undeclared: broker fields with no completeness stance (neither a `missing` descriptor
+--      nor an explicit `missing = false`) — auto-flagged by the walker, so this is the forcing
+--      function that keeps the report complete by construction.
+--   2. collisions: "order N: a, b" lines for every explicit `order` shared by more than one
+--      entry (across broker-field descriptors AND providers). A duplicate order leaves those
+--      entries' relative position undeclared (they fall back to registration order), the exact
+--      #745-3 / #922 demons-vs-housing bug — nothing else asserts order uniqueness, so this is
+--      the only guard. Entries with no explicit order (undeclared fields, bare-function or
+--      order-less descriptors) share the huge-order tail by design and are never a collision.
+-- A clean build returns two empty lists.
 ---@class Warbandeer_Characters
----@field AuditMissing fun(self): string[] "<broker>.<field>" names lacking a completeness declaration
+---@field AuditMissing fun(self): string[], string[] undeclared "<broker>.<field>" names; "order N: a, b" duplicate-order lines
 function ns:AuditMissing()
   local undeclared = {}
+  local byOrder = {} -- explicit order -> list of entry names sharing it
+  local function claim(order, name)
+    if order == nil then return end
+    local names = byOrder[order]
+    if not names then names = {}; byOrder[order] = names end
+    insert(names, name)
+  end
+
   for _, bname in ipairs(self.brokerOrder) do
     for fname, field in pairs(self.brokers[bname].fields or {}) do
-      if field.missing == nil then
+      local d = field.missing
+      if d == nil then
         insert(undeclared, bname .. "." .. fname)
+      elseif type(d) == "table" then
+        -- Only a descriptor TABLE carries an explicit `order`; a bare `false` (opt-out) or a
+        -- bare function has none, so neither is order-claimed.
+        claim(d.order, bname .. "." .. fname)
       end
     end
   end
+
+  for _, p in ipairs(self.missingProviders) do
+    claim(p.order, p.name or ("provider(order=" .. tostring(p.order) .. ")"))
+  end
+
+  -- Ordered by numeric `order` (the key is number-typed, so a plain sort is numeric — sorting
+  -- the assembled "order N:" strings instead would print 140 before 15).
+  local orders = {}
+  for order, names in pairs(byOrder) do
+    if #names > 1 then insert(orders, order) end
+  end
+  sort(orders)
+  local collisions = {}
+  for _, order in ipairs(orders) do
+    local names = byOrder[order]
+    sort(names)
+    insert(collisions, "order " .. order .. ": " .. table.concat(names, ", "))
+  end
+
   sort(undeclared)
-  return undeclared
+  return undeclared, collisions
 end
 
 ns:registerCommand("missing", "", function(self)
@@ -182,25 +223,37 @@ ns:registerCommand("missing", "me", function(self)
 end, "List the current character's missing data")
 
 ns:registerCommand("missing", "audit", function(self)
-  local undeclared = self:AuditMissing()
-  if #undeclared == 0 then
-    ns.Print("Every broker field declares a completeness stance.")
+  local undeclared, collisions = self:AuditMissing()
+  if #undeclared == 0 and #collisions == 0 then
+    ns.Print("Every broker field declares a completeness stance, and all report orders are unique.")
     return
   end
-  ns.Print(#undeclared .. " broker field(s) with no `missing` declaration (auto-flagged by "
-    .. "default — add a descriptor or `missing = false`):")
-  for _, f in ipairs(undeclared) do print("  " .. f) end
+  if #undeclared > 0 then
+    ns.Print(#undeclared .. " broker field(s) with no `missing` declaration (auto-flagged by "
+      .. "default — add a descriptor or `missing = false`):")
+    for _, f in ipairs(undeclared) do print("  " .. f) end
+  end
+  if #collisions > 0 then
+    ns.Print(#collisions .. " duplicate report order(s) (relative order is undeclared — renumber "
+      .. "one so every `order` is unique):")
+    for _, c in ipairs(collisions) do print("  " .. c) end
+  end
 end, "Audit broker fields lacking a completeness declaration (dev)")
 
 -- Dev nudge: shortly after load, warn once if any broker field ships with no completeness
--- stance. Silent in a clean build (every field declares a descriptor or `missing = false`),
--- so users never see it — it only fires when a field is added without one, catching exactly
--- the "someone forgot to update the report" gap this system removes.
+-- stance, or if two entries share a report `order`. Silent in a clean build (every field
+-- declares a descriptor or `missing = false`, and every explicit order is unique), so users
+-- never see it — it fires only when a field is added without a stance or a new order collides
+-- with an existing one, catching on the next /reload exactly the gaps this system removes.
 C_Timer.After(10, function()
-  local undeclared = ns:AuditMissing()
+  local undeclared, collisions = ns:AuditMissing()
   if #undeclared > 0 then
     ns.Print(("missing: %d broker field(s) undeclared for completeness (%s) — add a `missing` "
       .. "descriptor or `missing = false`; see /wbc missing audit."):format(
       #undeclared, table.concat(undeclared, ", ")))
+  end
+  if #collisions > 0 then
+    ns.Print(("missing: %d duplicate report order(s) (%s) — renumber one so every `order` is "
+      .. "unique; see /wbc missing audit."):format(#collisions, table.concat(collisions, "; ")))
   end
 end)

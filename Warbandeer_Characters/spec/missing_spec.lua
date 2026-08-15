@@ -12,12 +12,13 @@
 -- so it always evaluates to nil and never affects these assertions.
 local function newNS(maxLevel)
   local ns = {
-    brokers = {}, brokerOrder = {}, missingProviders = {},
+    brokers = {}, brokerOrder = {}, missingProviders = {}, commands = {},
     wow = { maxLevel = maxLevel or 80 },
     db = { characters = {} },
   }
   function ns:RegisterMissing(p) table.insert(self.missingProviders, p) end
-  function ns:registerCommand() end
+  -- capture handlers by subcommand so a test can invoke `/wbc missing audit` and inspect its output
+  function ns:registerCommand(_, sub, fn) self.commands[sub] = fn end
   ns.Print = function() end
   _G.C_Timer = { After = function() end } -- missing.lua schedules a load-time audit nudge
   assert(loadfile("Warbandeer_Characters/missing.lua"))("Warbandeer_Characters", ns)
@@ -30,6 +31,20 @@ end
 local function addBroker(ns, name, fields)
   ns.brokers[name] = { name = name, fields = fields }
   table.insert(ns.brokerOrder, name)
+end
+
+-- Invoke the `/wbc missing audit` handler captured by newNS and return its printed lines in
+-- order. The handler emits header lines via ns.Print and indented item lines via the global
+-- print, so capture both channels and restore them afterwards.
+local function runAudit(ns)
+  local out = {}
+  local nsPrint, gPrint = ns.Print, _G.print
+  ns.Print = function(m) out[#out + 1] = m end
+  _G.print = function(m) out[#out + 1] = m end
+  local ok, err = pcall(ns.commands.audit, ns)
+  ns.Print, _G.print = nsPrint, gPrint
+  assert(ok, err)
+  return out
 end
 
 describe("Warbandeer_Characters missing walker", function()
@@ -51,16 +66,116 @@ describe("Warbandeer_Characters missing walker", function()
       y = { missing = { label = "y", order = 1 } },
     })
     assert.same({ "y" }, ns.getMissingFields({ basic = { level = 80 } }))
-    assert.same({}, ns:AuditMissing())
+    local undeclared = ns:AuditMissing()
+    assert.same({}, undeclared)
   end)
 
   it("auto-flags an undeclared field by name and reports it from AuditMissing", function()
     local ns = newNS()
     addBroker(ns, "b", { y = { get = function() end } }) -- no `missing` key at all
     assert.same({ "y" }, ns.getMissingFields({ basic = { level = 80 } }))
-    assert.same({ "b.y" }, ns:AuditMissing())
+    local undeclared = ns:AuditMissing()
+    assert.same({ "b.y" }, undeclared)
     -- once the value is present it is no longer flagged
     assert.same({}, ns.getMissingFields({ basic = { level = 80 }, b = { y = 1 } }))
+  end)
+
+  -- Duplicate-`order` guard. Two entries sharing an explicit order leave their relative
+  -- position undeclared (they fall back to registration order) — the #745-3 / #922
+  -- demons-vs-housing bug. AuditMissing's second return flags these; nothing else does, so
+  -- these lock the only assertion of order uniqueness the suite has (in-game the same call
+  -- drives the load-time nudge + `/wbc missing audit` against the real registrations).
+  it("flags a duplicate `order` shared by a provider and a broker field (the #922 case)", function()
+    local ns = newNS()
+    addBroker(ns, "housing", { active = { missing = { label = "endeavor", order = 140 } } })
+    ns:RegisterMissing{ order = 140, name = "demons", check = function() end }
+    local _, collisions = ns:AuditMissing()
+    assert.same({ "order 140: demons, housing.active" }, collisions)
+  end)
+
+  it("reports every colliding order, sorted, naming fields `<broker>.<field>`", function()
+    local ns = newNS()
+    addBroker(ns, "b", {
+      p = { missing = { label = "p", order = 15 } },
+      q = { missing = { label = "q", order = 15 } },
+      r = { missing = { label = "r", order = 140 } },
+    })
+    ns:RegisterMissing{ order = 140, name = "demons", check = function() end }
+    local _, collisions = ns:AuditMissing()
+    -- sorted by numeric order (15 before 140), each collision's members sorted alphabetically
+    assert.same({ "order 15: b.p, b.q", "order 140: b.r, demons" }, collisions)
+  end)
+
+  it("ignores a table descriptor that omits `order` (no crash, not order-claimed)", function()
+    local ns = newNS()
+    addBroker(ns, "b", {
+      noord = { missing = { label = "no order" } }, -- table descriptor, order omitted
+      y     = { missing = { label = "y", order = 5 } },
+    })
+    local undeclared, collisions = ns:AuditMissing()
+    assert.same({}, undeclared)
+    assert.same({}, collisions)
+  end)
+
+  it("synthesises a label for an unnamed provider in a collision", function()
+    local ns = newNS()
+    ns:RegisterMissing{ order = 35, check = function() end } -- no name
+    ns:RegisterMissing{ order = 35, name = "named", check = function() end }
+    local _, collisions = ns:AuditMissing()
+    assert.same({ "order 35: named, provider(order=35)" }, collisions)
+  end)
+
+  it("reports no collisions when every explicit order is unique", function()
+    local ns = newNS()
+    addBroker(ns, "b", {
+      ten    = { missing = { label = "ten", order = 10 } },
+      twenty = { missing = { label = "twenty", order = 20 } },
+    })
+    ns:RegisterMissing{ order = 30, name = "thirty", check = function() end }
+    local undeclared, collisions = ns:AuditMissing()
+    assert.same({}, undeclared)
+    assert.same({}, collisions)
+  end)
+
+  it("never order-claims a bare-function or opt-out `missing` (they carry no order)", function()
+    local ns = newNS()
+    addBroker(ns, "b", {
+      fn  = { missing = function() return "x" end }, -- bare function: declared, no order
+      off = { missing = false },                     -- opt-out: declared, no order
+      y   = { missing = { label = "y", order = 5 } },
+    })
+    local undeclared, collisions = ns:AuditMissing()
+    assert.same({}, undeclared)  -- both fn and off are a declared stance, not undeclared
+    assert.same({}, collisions)  -- and neither carries an order, so neither can collide
+  end)
+
+  -- The `/wbc missing audit` command body itself (headers via ns.Print, indented items via the
+  -- global print). These execute the handler, which the other tests reach only through AuditMissing.
+  it("`missing audit` reports the all-clear line when nothing is wrong", function()
+    local ns = newNS()
+    addBroker(ns, "b", { g = { missing = { label = "g", order = 5 } } })
+    assert.same(
+      { "Every broker field declares a completeness stance, and all report orders are unique." },
+      runAudit(ns))
+  end)
+
+  it("`missing audit` prints each duplicate-order collision as an indented item", function()
+    local ns = newNS()
+    addBroker(ns, "housing", { active = { missing = { label = "endeavor", order = 140 } } })
+    ns:RegisterMissing{ order = 140, name = "demons", check = function() end }
+    local out = runAudit(ns)
+    assert.equal(2, #out)
+    assert.truthy(out[1]:match("^1 duplicate report order"))     -- ns.Print header
+    assert.equal("  order 140: demons, housing.active", out[2])  -- global-print item
+  end)
+
+  it("`missing audit` prints each undeclared field as an indented item", function()
+    local ns = newNS()
+    addBroker(ns, "b", { y = { get = function() end } }) -- no `missing` key at all
+    local out = runAudit(ns)
+    assert.equal(2, #out)
+    assert.truthy(out[1]:match("^1 broker field%(s%)"))  -- ns.Print header
+    assert.equal("  b.y", out[2])                        -- global-print item
   end)
 
   it("only applies a maxLevel descriptor at the level cap", function()

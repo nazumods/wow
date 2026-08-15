@@ -347,6 +347,7 @@ end)
 -- Account-wide cache, not a per-character broker field, so it registers here.
 ns:RegisterMissing{
   order = 60,
+  name = "bank contents",
   check = function(toon)
     local banks = ns.db.bank and ns.db.bank.characters
     if not (banks and banks[toon.name]) then return "bank contents" end

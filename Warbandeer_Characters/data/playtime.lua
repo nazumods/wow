@@ -97,6 +97,7 @@ end
 local patch = select(1, GetBuildInfo())
 ns:RegisterMissing{
   order = 20,
+  name = "playtime",
   check = function(toon)
     if not toon.playtime or toon.playtime.total == nil then return "playtime" end
     if not toon.playtime.byPatch or toon.playtime.byPatch[patch] == nil then

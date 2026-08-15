@@ -96,5 +96,6 @@ ns:registerDump("demons", "Warlock Demons",
 -- with no `demons` cache hasn't summoned any since the field was added. Non-Warlocks have none.
 ns:RegisterMissing{
   order = 140,
+  name = "demons",
   check = function(toon) if toon.classId == WARLOCK and not toon.demons then return "demons" end end,
 }
