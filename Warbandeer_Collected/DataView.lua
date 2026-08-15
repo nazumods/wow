@@ -96,7 +96,12 @@ function DataView:OnBeforeShow() self:_fitNameCol() end
 -- cells at a new window (`TableFrame.onRebind`, #843). Neither is cell data, so `Cell:update` leaves
 -- both attached to whichever row the slot held before. Defined even when `virtual` is off, where it
 -- simply never fires.
-function DataView:onRebind() ns.OnGridRebind(self) end
+--
+-- The resident data range MUST be forwarded: `ns.OnGridRebind` records it so `ns.ResidentCell` /
+-- `ns.ResidentRow` can map a DATA index to a viewport slot. Dropping it (as this did until #921) left
+-- `_residentFirst` nil, so under virtualisation ResidentCell always returned nil and the lockout
+-- selection's gold name + arrow never resolved a cell — the highlight simply never appeared.
+function DataView:onRebind(first, last) ns.OnGridRebind(self, first, last) end
 
 -- Refresh overlays after the base table (re)builds its cells. The row count varies
 -- (PTR PREVIEW swaps the ~live-raid list for the small upcoming list), so follow the
