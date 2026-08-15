@@ -1071,7 +1071,7 @@ if ($Weapons -and $PtrDelta) {
   $L = [System.Collections.Generic.List[string]]::new()
   $L.Add('---@type Warbandeer_Collected')
   $L.Add('local ns = select(2, ...)')
-  $L.Add('local tinsert = tinsert')
+  if ($ptrOnly.Count -gt 0) { $L.Add('local tinsert = tinsert') }   # omit when empty so a no-upcoming delta stays luacheck-clean
   $L.Add('-- luacheck: no max line length')
   $L.Add("-- Generated from wago.tools weapon PTR delta (live $LiveBuild vs PTR $PtrBuild$(if($ptrDate){", $ptrDate"})) by tools/update-sets.ps1 -Weapons -PtrDelta.")
   $L.Add('-- Weapon/off-hand APPEARANCES on the PTR but not yet on live ("upcoming"), same source x weapon')
@@ -1237,7 +1237,7 @@ if ($PtrDelta) {
   $L = [System.Collections.Generic.List[string]]::new()
   $L.Add('---@type Warbandeer_Collected')
   $L.Add('local ns = select(2, ...)')
-  $L.Add('local tinsert = tinsert')
+  if ($buckets.Count -gt 0) { $L.Add('local tinsert = tinsert') }   # omit when empty so a no-upcoming delta stays luacheck-clean
   $L.Add("-- Generated from wago.tools TransmogSet PTR delta (live $LiveBuild vs PTR $PtrBuild$(if($ptrDate){", $ptrDate"})) by tools/update-sets.ps1 -PtrDelta.")
   $L.Add('-- Sets present on the PTR but not yet on live ("upcoming"). VOLATILE — regenerate')
   $L.Add('-- on demand; not part of the weekly live refresh. release tags the newest expansion;')
