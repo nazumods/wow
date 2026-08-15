@@ -105,7 +105,7 @@ end
 ---
 ---**Through `_refilter`, for the `_clearSelection` this used to skip (#762).** It was the one
 ---rebuild path that didn't clear — `ToggleOrder`, `SetPtr` and `_refilter` all do — and
----`_selectedRow` is a *display* index, so an open lockout panel survived onto whatever set landed
+---`_selectedRow` indexes `self.data`, which `_refilter` rebuilds, so an open lockout panel survived onto whatever set landed
 ---on that screen row: the gold name stayed put (`Cell:Label` only re-applies colour for data
 ---carrying a `color` field, which the name cell doesn't), the arrow stayed anchored to the pooled
 ---row frame, and the side panel went on listing the previous set's lockouts with nothing naming
