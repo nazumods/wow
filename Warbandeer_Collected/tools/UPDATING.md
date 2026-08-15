@@ -189,12 +189,57 @@ the live job.
 New content on a live patch does **not** reach the curated live grid automatically — the generator only *fills* shells that already exist, and can't tell a raid tier from a PvP season. The daily PTR watcher now **auto-clears** the stale preview and files a `collected-curate-live` issue (the exit-`3` row above), but the curation itself is a hand step:
 
 1. **`pwsh ./update-sets.ps1 -AuditCoverage`** — lists every uncaptured live group by heuristic category. The authoritative "what's new" list.
-2. **Seed shells** in `data/sets_late.lua`, one mechanism per category (all `sets = {}`, generator-filled):
+2. **Seed shells** in `data/sets_late.lua`, one mechanism per category (all `sets = {}`, generator-filled). **`-SeedShells` auto-drafts every shell below into a review file** (see **Auto-drafting the shells** after this list) — or write them by hand:
    - **Raid** — one shell per difficulty, `name = "<Raid> (Raid Finder|Normal|Heroic|Mythic)"`, `instance = <JournalInstanceID>` (look up on `https://wago.tools/db2/JournalInstance?filter[Name_lang]=<raid>`), `release`, `minLevel`, `category = "Raid"`.
    - **PvP season** — one shell per bracket (mirror the previous season; match wago's label **verbatim** — 12.1's entry bracket is `"Aspirant and War Mode"`, not `"Aspirant"`), `category = "PvP"`. Include the **War Mode** bracket — it's a distinct set (see S1's id 377).
    - **Delve / Renown / World / other single-label groups** — one bare-named shell (no suffix) + its `category`.
    - **Dungeon / recolour armour-type groups** (several group ids, one set each) — a `merge <id>+<id>+… | Dungeon | <Name>` line in `expand-groups.txt` (run `-Expand`), **not** a shell.
 3. **`pwsh ./update-sets.ps1`** (+ **`-Expand`** if you edited `expand-groups.txt`) to fill; then **`-PtrDelta`** / **`-Weapons -PtrDelta`** if the previews weren't already auto-cleared. Verify in-game (`/reload`; each category renders with aligned class icons), then close the `collected-curate-live` issue.
+
+### Auto-drafting the shells (`-SeedShells`)
+
+Step 2 is mechanical — the shape of each shell is fully determined by the group's category and
+its wago labels — so **`-SeedShells`** types it for you, turning the manual seeding into a
+review-only pass:
+
+```
+pwsh ./update-sets.ps1 -SeedShells                         # every uncaptured live group
+pwsh ./update-sets.ps1 -SeedShells -Groups 404,401,397     # only these group ids (comma-separated)
+pwsh ./update-sets.ps1 -SeedShells -SeedFile out.txt       # custom output path
+```
+
+Its **source is `-AuditCoverage`'s uncaptured live groups** (the same shared aggregation and
+heuristic categories), or an explicit **`-Groups`** list — for re-running a known patch or a
+subset. It **routes each group by shape**, mirroring step 2 one-for-one:
+
+- **Raid** (labels are Raid Finder/Normal/Heroic/Mythic) → one shell per difficulty,
+  `name = "<group> (<difficulty>)"`, ordered Raid Finder→Mythic, `category = "Raid"`, `minLevel`
+  (`-MinLevel`, default 80), and `instance` left as a **`-- TODO`** comment carrying the
+  JournalInstance lookup URL.
+- **PvP season** (several bracket labels) → one shell per bracket, **label verbatim** (incl. the
+  War Mode bracket), `category = "PvP"`.
+- **Single-label group** (delve / renown / world / …) → one bare-named shell.
+- **Several same-named armour-type groups** (one set each) → an `expand-groups.txt`
+  **`merge <id>+… | Dungeon | <Name>`** line, *not* shells.
+- A non-raid/non-PvP group with **several** labels → a review **note** pointing at an
+  `expand-groups.txt` line (it's a `-Expand` mega-set, not a shell).
+
+It writes a **review-only scratch file** (`tools/seed-shells.txt` by default — never
+`sets_late.lua`), grouped into paste-ready sections, and lists anything it can't shell cleanly as
+a **review note** (a group mixing labeled + unlabeled rows, a bare name ending in `(...)`). Two
+things are deliberately left for you:
+
+- **`category`** is the audit **heuristic** — right for most (Raid/PvP/Delve/Renown/World) but it
+  can miss (12.1's *Preyhunter's Armor* comes out `Event`; it should be `World`). Check each.
+- **Raid `instance`** (the `TODO`), and any **group name** that should read differently in-game
+  than wago's (the raid/delve/renown names usually match verbatim, and even the PvP
+  "Midnight Season 2" name happens to match — but verify).
+
+Then move the reviewed shells into `data/sets_late.lua` and the merge lines into
+`expand-groups.txt`, and run **`pwsh ./update-sets.ps1`** (+ **`-Expand`**) to fill — i.e. rejoin
+step 3. Validated against 12.1: `-SeedShells -Groups 396,397,398,399,400,401,403,404,408,409`,
+then once the two review items above are applied (403 → `World`, 404 `instance = 1320`), filling
+reproduces the committed live grid's class×set cells exactly.
 
 ### Blizzard-id baseline (Midnight, `release = 12`)
 

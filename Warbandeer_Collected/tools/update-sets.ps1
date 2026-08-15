@@ -89,7 +89,15 @@ param(
   # Weapon PTR-preview delta: with -PtrDelta, -Weapons regenerates data/weaponsources_ptr.lua
   # (ns.WeaponPtrSources) — weapon/off-hand APPEARANCES on the PTR (wowt) but not yet on live (wow),
   # bucketed like weaponsources.lua. Volatile; the daily watcher runs it patch-gated. See UPDATING.md.
-  [string]$WeaponsPtrFile = (Join-Path $PSScriptRoot '..' 'data' 'weaponsources_ptr.lua')
+  [string]$WeaponsPtrFile = (Join-Path $PSScriptRoot '..' 'data' 'weaponsources_ptr.lua'),
+  # Seed-shells mode: auto-generate the curated live-grid SHELLS for a newly-live patch's
+  # uncaptured transmog groups — the mechanical half of the collected-curate-live / "Patch-day
+  # baseline" curation (see UPDATING.md). REVIEW-ONLY: writes a scratch text file, never
+  # sets_late.lua. Source is -AuditCoverage's uncaptured live groups (or an explicit -Groups list).
+  [switch]$SeedShells,
+  [string]$SeedFile = (Join-Path $PSScriptRoot 'seed-shells.txt'),
+  [string]$Groups,            # -SeedShells: explicit wago group ids to seed, comma-separated e.g. 404,401 (default: every uncaptured live group)
+  [int]$MinLevel = 80         # -SeedShells: minLevel stamped on raid shells (current-expansion cap; maintainer verifies)
 )
 
 $ErrorActionPreference = 'Stop'
@@ -142,6 +150,67 @@ function Get-ExpandIds([string]$file) {
   return $ids
 }
 
+# ── Shared coverage helpers (used by -AuditCoverage and -SeedShells) ──────────
+# Heuristic category from a group's name + difficulty/variant labels. Ordered: first match
+# wins, so specific signals (PvP brackets, Dungeon recolors) precede the generic raid
+# difficulty words. A triage aid, NOT authoritative — every use is maintainer-verified. Single
+# source of truth shared by the coverage report (bucket headings) and the seed-shell generator
+# (the `category` a shell is stamped with).
+$CoverageCatRules = [ordered]@{
+  'PvP'                            = 'gladiator|elite|aspirant|combatant|rival|duelist|\bhonor\b|war mode|\bpvp\b|arena|conquest'
+  'Dungeon / Mythic+'              = '^dungeon|dungeons|mythic\+|dawn of the infinite|time rifts|horrific vision'
+  'Delve'                          = 'delve'
+  'Raid'                           = 'raid finder|\bnormal\b|\bheroic\b|\bmythic\b|\d+\s*player'
+  'Profession / Crafted'           = 'craft|profession'
+  'Trading Post / Anniversary'     = 'trading post|anniversary'
+  'Timewalking'                    = 'timewalking'
+  'Reputation / Renown / Campaign' = 'renown|campaign|reputation|quest reward'
+  'World drops / quests'           = 'world drop|world quest|world and weekly|treasures|weekly|\bquest'
+}
+function Get-CoverageCategory([string]$name, [string[]]$labels) {
+  $text = (@($name) + $labels) -join ' '
+  foreach ($cat in $CoverageCatRules.Keys) { if ($text -match "(?i)$($CoverageCatRules[$cat])") { return $cat } }
+  return 'Event / feature / other'
+}
+
+# Bucket placeable TransmogSet rows (real group + >=1 class bit, non-test) into one aggregate
+# per group id: name, set count, max ExpansionID, the difficulty/variant label set, and a
+# `hasBare` flag (any placeable row with NO label). The shared "what groups exist and what they
+# look like" computation behind both the coverage report and the seed-shell generator.
+# $grpName / $indLabel are the id->name / id->label maps.
+function Get-TransmogGroupAggregate($tsRows, $grpName, $indLabel) {
+  $grp = @{}
+  foreach ($r in $tsRows) {
+    $gid = 0; [void][int]::TryParse($r.TransmogSetGroupID, [ref]$gid); if ($gid -le 0) { continue }
+    $mask = 0; [void][int]::TryParse($r.ClassMask, [ref]$mask); if ($mask -le 0) { continue }
+    if (([string]$grpName[$gid]) -match '^(?i)test\b') { continue }   # skip Blizzard test placeholders
+    if (-not $grp.ContainsKey($gid)) {
+      $grp[$gid] = @{ name = $grpName[$gid]; sets = 0; exp = -1; labels = (New-Object 'System.Collections.Generic.HashSet[string]'); hasBare = $false }
+    }
+    $grp[$gid].sets++
+    $e = 0; [void][int]::TryParse($r.ExpansionID, [ref]$e); if ($e -gt $grp[$gid].exp) { $grp[$gid].exp = $e }
+    $ind = 0; [void][int]::TryParse($r.ItemNameDescriptionID, [ref]$ind)
+    # The no-label ('') rows are tracked separately (hasBare), NOT added to labels: the normal
+    # filler treats '' as its own label key, so a group mixing labeled + unlabeled rows can't be
+    # shelled cleanly. -AuditCoverage ignores hasBare; -SeedShells reads it to flag that shape.
+    if ($indLabel.ContainsKey($ind) -and $indLabel[$ind]) { [void]$grp[$gid].labels.Add($indLabel[$ind]) } else { $grp[$gid].hasBare = $true }
+  }
+  return $grp
+}
+
+# Curated wago group ids already in ns.Sets: the group-level `id = N,` lines across both
+# hand-curated body files, plus every merge-component id referenced by expand-groups.txt (a
+# merged row keeps only its lowest id, so the others are captured but have no `id = N,` line).
+function Get-CuratedGroupIds([string]$setsFile, [string]$expandFile) {
+  $curated = @{}
+  foreach ($bf in @($setsFile, (Join-Path (Split-Path $setsFile) 'sets_late.lua'))) {
+    if (-not (Test-Path -LiteralPath $bf)) { continue }
+    foreach ($ln in (Get-Content -LiteralPath $bf)) { if ($ln -match '^\s+id\s*=\s*(\d+),\s*$') { $curated[[int]$Matches[1]] = $true } }
+  }
+  foreach ($k in (Get-ExpandIds $expandFile).Keys) { $curated[$k] = $true }
+  return $curated
+}
+
 # ── Coverage-audit mode ──────────────────────────────────────────────────────
 # Report the wago TransmogSetGroups we DON'T yet curate in ns.Sets, with enough
 # metadata (expansion, difficulty/variant labels, set count) to triage which to
@@ -182,51 +251,11 @@ if ($AuditCoverage) {
   }
   function ExpName([int]$e) { if ($e -ge 0 -and $e -lt $rel.Count) { $rel[$e] } else { "Expansion $e" } }
 
-  # Curated wago group ids already in ns.Sets (the group-level `id = N,` lines), across
-  # both hand-curated body files.
-  $curated = @{}
-  foreach ($bf in @($SetsFile, (Join-Path (Split-Path $SetsFile) 'sets_late.lua'))) {
-    if (-not (Test-Path -LiteralPath $bf)) { continue }
-    foreach ($ln in (Get-Content -LiteralPath $bf)) { if ($ln -match '^\s+id\s*=\s*(\d+),\s*$') { $curated[[int]$Matches[1]] = $true } }
-  }
-  # Also count merge-component ids: a merged row keeps only its lowest id, so the others
-  # are captured (shown in that row) but no longer appear as `id = N,` lines above.
-  foreach ($k in (Get-ExpandIds $ExpandFile).Keys) { $curated[$k] = $true }
-
-  # Aggregate placeable rows (real group + at least one class bit) per group id.
-  $grp = @{}
-  foreach ($r in $tsRows) {
-    $gid = 0; [void][int]::TryParse($r.TransmogSetGroupID, [ref]$gid); if ($gid -le 0) { continue }
-    $mask = 0; [void][int]::TryParse($r.ClassMask, [ref]$mask); if ($mask -le 0) { continue }
-    if (([string]$grpName[$gid]) -match '^(?i)test\b') { continue }   # skip Blizzard test placeholders
-    if (-not $grp.ContainsKey($gid)) {
-      $grp[$gid] = @{ name = $grpName[$gid]; sets = 0; exp = -1; labels = (New-Object 'System.Collections.Generic.HashSet[string]') }
-    }
-    $grp[$gid].sets++
-    $e = 0; [void][int]::TryParse($r.ExpansionID, [ref]$e); if ($e -gt $grp[$gid].exp) { $grp[$gid].exp = $e }
-    $ind = 0; [void][int]::TryParse($r.ItemNameDescriptionID, [ref]$ind)
-    if ($indLabel.ContainsKey($ind) -and $indLabel[$ind]) { [void]$grp[$gid].labels.Add($indLabel[$ind]) }
-  }
-
-  # Heuristic category from the group's labels + name. Ordered: first match wins, so
-  # the more specific signals (PvP brackets, Dungeon recolors) precede the generic
-  # raid difficulty words. Purely a triage aid, not authoritative.
-  $catRules = [ordered]@{
-    'PvP'                            = 'gladiator|elite|aspirant|combatant|rival|duelist|\bhonor\b|war mode|\bpvp\b|arena|conquest'
-    'Dungeon / Mythic+'              = '^dungeon|dungeons|mythic\+|dawn of the infinite|time rifts|horrific vision'
-    'Delve'                          = 'delve'
-    'Raid'                           = 'raid finder|\bnormal\b|\bheroic\b|\bmythic\b|\d+\s*player'
-    'Profession / Crafted'           = 'craft|profession'
-    'Trading Post / Anniversary'     = 'trading post|anniversary'
-    'Timewalking'                    = 'timewalking'
-    'Reputation / Renown / Campaign' = 'renown|campaign|reputation|quest reward'
-    'World drops / quests'           = 'world drop|world quest|world and weekly|treasures|weekly|\bquest'
-  }
-  function Categorize([string]$name, [string[]]$labels) {
-    $text = (@($name) + $labels) -join ' '
-    foreach ($cat in $catRules.Keys) { if ($text -match "(?i)$($catRules[$cat])") { return $cat } }
-    return 'Event / feature / other'
-  }
+  # Curated group ids, the placeable-group aggregate, and the category heuristic all come from
+  # the shared coverage helpers above (also used by -SeedShells), so the report and the seed
+  # generator agree on what's captured and how each group is categorized.
+  $curated = Get-CuratedGroupIds $SetsFile $ExpandFile
+  $grp = Get-TransmogGroupAggregate $tsRows $grpName $indLabel
 
   $excl = (Get-Excludes).groups
   $unc = @()
@@ -237,13 +266,13 @@ if ($AuditCoverage) {
     $labels = @($g.labels) | Sort-Object
     $unc += [pscustomobject]@{
       id = $gid; name = $g.name; exp = $g.exp; release = (ExpName $g.exp)
-      sets = $g.sets; labels = $labels; category = (Categorize $g.name $labels)
+      sets = $g.sets; labels = $labels; category = (Get-CoverageCategory $g.name $labels)
     }
   }
 
   # ── Build the markdown report ──────────────────────────────────────────────
   function MdCell([string]$s) { ([string]$s).Replace('|', '\|') }
-  $catOrder = @($catRules.Keys) + 'Event / feature / other'
+  $catOrder = @($CoverageCatRules.Keys) + 'Event / feature / other'
   $L = [System.Collections.Generic.List[string]]::new()
   $L.Add('# Collected coverage audit — uncaptured transmog-set groups')
   $L.Add('')
@@ -284,6 +313,246 @@ if ($AuditCoverage) {
   $report = ($L -join "`n").TrimEnd() + "`n"
   [System.IO.File]::WriteAllText($ReportFile, $report, [System.Text.UTF8Encoding]::new($false))
   Write-Host "Wrote $ReportFile ($($unc.Count) uncaptured group(s))." -ForegroundColor Green
+  exit 0
+}
+
+# ── Seed-shells mode ─────────────────────────────────────────────────────────
+# Auto-generate the curated live-grid SHELLS for a newly-live patch's uncaptured transmog
+# groups — the mechanical half of the "Patch-day baseline" curation the `collected-curate-live`
+# issue asks for (the daily PTR watcher files it on exit 3). The live generator only FILLS
+# existing `sets = {}` shells and can't tell a raid tier from a PvP season, so the shells still
+# have to be authored by hand; this types them so the maintainer only reviews.
+#
+# SOURCE is -AuditCoverage's uncaptured live groups (or an explicit -Groups list), via the same
+# shared aggregate + category heuristic. Each group is ROUTED by shape:
+#   * Raid (labels are Raid Finder/Normal/Heroic/Mythic) -> one shell per difficulty,
+#     name "<group> (<difficulty>)", instance a TODO to look up, category "Raid".
+#   * PvP season (several bracket labels) -> one shell per bracket (incl. War Mode), label
+#     verbatim, category "PvP".
+#   * Several same-named armor-type groups (one set each) -> one expand-groups.txt
+#     `merge <id>+... | Dungeon | <Name>` line, NOT shells.
+#   * Any other single-label group (delve/renown/world/...) -> one bare-named shell.
+#   * A non-raid/non-PvP group with several labels -> a review note (it's a -Expand mega-set,
+#     not a shell) rather than a wrong single shell.
+#
+# REVIEW-ONLY: writes a scratch text file (never sets_late.lua). `category` stays the audit
+# heuristic and raid `instance` a TODO — the maintainer verifies both, moves the reviewed shells
+# into data/sets_late.lua and the merge lines into expand-groups.txt, and runs `update-sets.ps1`
+# (+ `-Expand`) to fill. Self-contained (own single-build download); see UPDATING.md.
+if ($SeedShells) {
+  function SeedCsv([string]$table, [string]$build) {
+    $url = "https://wago.tools/db2/$table/csv?build=$build"
+    Write-Host "Fetching $url" -ForegroundColor Cyan
+    (Invoke-WebRequest -Uri $url -UseBasicParsing -ErrorAction Stop).Content | ConvertFrom-Csv
+  }
+  function LuaEsc([string]$s) { $s.Replace('\', '\\').Replace('"', '\"') }
+
+  # Resolve the live build (pin it — the bare endpoint serves PTR too).
+  $builds = (Invoke-WebRequest -Uri 'https://wago.tools/api/builds' -UseBasicParsing -ErrorAction Stop).Content | ConvertFrom-Json
+  if (-not $Build) { $Build = $builds.wow[0].version }
+  $bMatch = $builds.wow | Where-Object { $_.version -eq $Build } | Select-Object -First 1
+  $bDate  = if ($bMatch) { ($bMatch.created_at -split ' ')[0] } else { '' }
+  Write-Host "Seed shells against wow build $Build $bDate" -ForegroundColor Cyan
+
+  $tsRows  = SeedCsv 'TransmogSet' $Build
+  $grpRows = SeedCsv 'TransmogSetGroup' $Build
+  $indRows = SeedCsv 'ItemNameDescription' $Build
+  foreach ($col in @('ID', 'ClassMask', 'TransmogSetGroupID', 'ItemNameDescriptionID', 'ExpansionID')) {
+    if ($col -notin $tsRows[0].PSObject.Properties.Name) { throw "TransmogSet CSV missing '$col' — aborting." }
+  }
+  if ($tsRows.Count -lt $MinRows) { throw "TransmogSet returned $($tsRows.Count) rows (< $MinRows) — incomplete download, aborting." }
+
+  $grpName = @{}; foreach ($g in $grpRows) { $grpName[[int]$g.ID] = ([string]$g.Name_lang).Trim() }
+  $indLabel = @{}; foreach ($d in $indRows) { $id = 0; [void][int]::TryParse($d.ID, [ref]$id); if ($id -gt 0) { $indLabel[$id] = ([string]$d.Description_lang).Trim() } }
+
+  $grp = Get-TransmogGroupAggregate $tsRows $grpName $indLabel
+
+  # Select the groups to seed: an explicit -Groups list (verbatim — for re-running a known patch
+  # or a subset), else every uncaptured live group (the audit's source: placeable groups minus
+  # curated minus deliberately-excluded).
+  if ($Groups) {
+    # -Groups is a string, not [int[]] — a comma list stays ONE token under `pwsh script.ps1
+    # -Groups 404,401` (an int[] param there would fail to bind), so split + parse it here. The
+    # split also tolerates a *quoted* space list ("404 401"); an unquoted one binds only the first.
+    $reqIds = @($Groups -split '[,\s]+' | Where-Object { $_ -match '^\d+$' } | ForEach-Object { [int]$_ })
+    if (-not $reqIds) { throw "-Groups '$Groups' has no numeric group ids." }
+    $pick = @($reqIds | Where-Object { $grp.ContainsKey($_) } | Sort-Object -Unique)
+    $missing = @($reqIds | Where-Object { -not $grp.ContainsKey($_) })
+    if ($missing) { Write-Warning "No placeable rows for group id(s): $($missing -join ', ') — skipped." }
+    $source = "explicit -Groups ($($pick.Count) of $($reqIds.Count) requested)"
+  } else {
+    $curated = Get-CuratedGroupIds $SetsFile $ExpandFile
+    $excl = (Get-Excludes).groups
+    $pick = @($grp.Keys | Where-Object { -not $curated.ContainsKey($_) -and -not $excl.ContainsKey($_) } | Sort-Object)
+    $source = "$($pick.Count) uncaptured live group(s)"
+  }
+  Write-Host "Seeding $($pick.Count) group(s): $source" -ForegroundColor Cyan
+
+  # Short `category` token stamped on shells / merge lines (the sets.lua field), mapped from the
+  # verbose audit heuristic. Maintainer-verified, so an approximate token is fine; an unmapped
+  # category falls through to its verbose name.
+  $catToken = @{
+    'PvP' = 'PvP'; 'Dungeon / Mythic+' = 'Dungeon'; 'Delve' = 'Delve'; 'Raid' = 'Raid'
+    'Profession / Crafted' = 'Crafted'; 'Trading Post / Anniversary' = 'Trading Post'
+    'Timewalking' = 'Timewalking'; 'Reputation / Renown / Campaign' = 'Renown'
+    'World drops / quests' = 'World'; 'Event / feature / other' = 'Event'
+  }
+  function Tok([string]$cat) { if ($catToken.ContainsKey($cat)) { $catToken[$cat] } else { $cat } }
+  $diffRank = [ordered]@{ 'Raid Finder' = 1; 'Normal' = 2; 'Heroic' = 3; 'Mythic' = 4 }
+
+  $raidShells   = [System.Collections.Generic.List[string]]::new()
+  $pvpShells    = [System.Collections.Generic.List[string]]::new()
+  $singleShells = [System.Collections.Generic.List[string]]::new()
+  $mergeLines   = [System.Collections.Generic.List[string]]::new()
+  $notes        = [System.Collections.Generic.List[string]]::new()
+  $shellCount = 0
+
+  # First: armor-type splits — the SAME group name on >=2 picked group ids, each a small set
+  # count (one set per armor type). These collapse to ONE expand-groups.txt merge line, not
+  # shells. Detected up front so the member ids drop out of the per-group routing below.
+  $byName = @{}
+  foreach ($gid in $pick) { $nm = $grp[$gid].name; if (-not $byName.ContainsKey($nm)) { $byName[$nm] = @() }; $byName[$nm] += $gid }
+  $merged = @{}
+  foreach ($nm in ($byName.Keys | Sort-Object)) {
+    $ids = @($byName[$nm] | Sort-Object)
+    if ($ids.Count -lt 2) { continue }
+    # Only the small "one set per armor type" shape is a clean auto-merge. A same-named
+    # collision that isn't (bigger groups) gets a note instead of silently producing
+    # duplicate-named shells; mark them handled so per-group routing skips them.
+    if (@($ids | Where-Object { $grp[$_].sets -gt 3 }).Count) {
+      $notes.Add("group ids $($ids -join ', ') share the name '$nm' but aren't all 1-set armour-type splits (sets: $(($ids | ForEach-Object { $grp[$_].sets }) -join '/')) — merge or seed by hand.")
+      foreach ($id in $ids) { $merged[$id] = $true }
+      continue
+    }
+    $exp = ($ids | ForEach-Object { $grp[$_].exp } | Measure-Object -Maximum).Maximum
+    $labels = @(); foreach ($id in $ids) { $labels += @($grp[$id].labels) }
+    $cat = Tok (Get-CoverageCategory $nm (@($labels | Sort-Object -Unique)))
+    $mergeLines.Add("merge $($ids -join '+') | $cat | $(LuaEsc $nm)   # release $($exp + 1); $($ids.Count) armor-type groups, 1 set each")
+    foreach ($id in $ids) { $merged[$id] = $true }
+  }
+
+  foreach ($gid in $pick) {
+    if ($merged.ContainsKey($gid)) { continue }
+    $g = $grp[$gid]
+    $name = $g.name
+    $release = $g.exp + 1
+    $labels = @($g.labels) | Sort-Object
+    $cat = Get-CoverageCategory $name $labels
+    $tok = Tok $cat
+
+    # A group mixing labeled rows with a no-label ('') bucket can't be shelled cleanly: the
+    # normal filler treats '' as its own label key, so a bare shell won't fill (it needs exactly
+    # one label key) and a suffixed raid/PvP shell silently drops the no-label set. excludes.txt
+    # already carries these by hand (e.g. 59 Time's Keeper, 60 Trial of Style) — flag, don't guess.
+    if ($g.hasBare -and $labels.Count -ge 1) {
+      $notes.Add("group $gid '$name' — mixes labeled row(s) [$($labels -join ', ')] with unlabeled row(s); the no-label set can't attach to a shell cleanly (cf. excludes.txt 59/60) — seed or exclude by hand.")
+      continue
+    }
+
+    if ($cat -eq 'Raid') {
+      # One shell per canonical difficulty label present, ordered Raid Finder -> Mythic.
+      $diffs = @($labels | Where-Object { $diffRank.Contains($_) } | Sort-Object { $diffRank[$_] })
+      $other = @($labels | Where-Object { -not $diffRank.Contains($_) })
+      if (-not $diffs) { $notes.Add("group $gid '$name' — Raid heuristic but no Raid Finder/Normal/Heroic/Mythic label; labels [$($labels -join ', ')] — seed by hand."); continue }
+      if ($other) { $notes.Add("group $gid '$name' — Raid tier also carries non-difficulty label(s) [$($other -join ', ')]; those were not seeded.") }
+      $enc = [uri]::EscapeDataString($name)
+      foreach ($d in $diffs) {
+        $raidShells.Add('tinsert(ns.Sets, {')
+        $raidShells.Add("  id = $gid,")
+        $raidShells.Add("  name = ""$(LuaEsc "$name ($d)")"",")
+        $raidShells.Add("  -- TODO instance = <JournalInstanceID>  https://wago.tools/db2/JournalInstance?filter[Name_lang]=$enc")
+        $raidShells.Add("  release = $release,")
+        $raidShells.Add("  category = ""$tok"",")
+        $raidShells.Add("  minLevel = $MinLevel,")
+        $raidShells.Add('  sets = {},')
+        $raidShells.Add('})')
+        $shellCount++
+      }
+    }
+    elseif ($cat -eq 'PvP') {
+      # One shell per bracket label (incl. War Mode), label verbatim.
+      $brackets = @($labels | Where-Object { $_ })
+      if (-not $brackets) { $notes.Add("group $gid '$name' — PvP heuristic but no bracket labels; seed by hand."); continue }
+      foreach ($b in $brackets) {
+        $pvpShells.Add('tinsert(ns.Sets, {')
+        $pvpShells.Add("  id = $gid,")
+        $pvpShells.Add("  name = ""$(LuaEsc "$name ($b)")"",")
+        $pvpShells.Add("  release = $release,")
+        $pvpShells.Add("  category = ""$tok"",")
+        $pvpShells.Add('  sets = {},')
+        $pvpShells.Add('})')
+        $shellCount++
+      }
+    }
+    elseif (@($labels | Where-Object { $_ }).Count -gt 1) {
+      # Several non-raid/non-PvP labels = a recolor/multi-source mega-set -> -Expand territory,
+      # not a single shell. Point the maintainer at an expand-groups.txt line instead.
+      $notes.Add("group $gid '$name' — $($labels.Count) labels [$($labels -join ', ')], category '$cat': looks like a mega-set. Add '$($gid):$tok' to expand-groups.txt and run -Expand (not a shell).")
+    }
+    else {
+      # Single-label (or label-less) group -> one bare-named shell. If the wago name itself ends
+      # in "(...)", the filler reads that as a difficulty label and would leave the shell empty,
+      # so flag it (latent — no live group hits this today) while still emitting the shell.
+      if ($name -match '\([^)]+\)\s*$') {
+        $notes.Add("group $gid '$name' — bare shell name ends in '(...)', which the filler reads as a difficulty label; verify it fills or rename.")
+      }
+      $singleShells.Add('tinsert(ns.Sets, {')
+      $singleShells.Add("  id = $gid,")
+      $singleShells.Add("  name = ""$(LuaEsc $name)"",")
+      $singleShells.Add("  release = $release,")
+      $singleShells.Add("  category = ""$tok"",")
+      $singleShells.Add('  sets = {},')
+      $singleShells.Add('})')
+      $shellCount++
+    }
+  }
+
+  # ── Emit the review file ──
+  $L = [System.Collections.Generic.List[string]]::new()
+  $L.Add("-- Seed shells — generated by tools/update-sets.ps1 -SeedShells (wow build $Build$(if($bDate){", $bDate"})).")
+  $L.Add('-- REVIEW-ONLY SCRATCH — not loaded, not committed. The mechanical half of the')
+  $L.Add('-- collected-curate-live / "Patch-day baseline" step (see tools/UPDATING.md).')
+  $L.Add('--')
+  $L.Add('-- Before use:')
+  $L.Add('--   * verify each `category` — it is the audit heuristic and may be wrong;')
+  $L.Add('--   * fill each raid `instance` (the TODO line) via the linked JournalInstance lookup;')
+  $L.Add('--   * rename any group whose in-game name should differ from wago''s.')
+  $L.Add('-- Then paste the Lua shells into data/sets_late.lua and the merge lines into')
+  $L.Add('-- tools/expand-groups.txt, and run `update-sets.ps1` (+ `-Expand`) to fill.')
+  $L.Add("-- Source: $source.")
+  $L.Add('')
+  if ($raidShells.Count) {
+    $L.Add('-- ===== Raid tiers  ->  data/sets_late.lua =====')
+    foreach ($ln in $raidShells) { $L.Add($ln) }
+    $L.Add('')
+  }
+  if ($pvpShells.Count) {
+    $L.Add('-- ===== PvP seasons  ->  data/sets_late.lua =====')
+    foreach ($ln in $pvpShells) { $L.Add($ln) }
+    $L.Add('')
+  }
+  if ($singleShells.Count) {
+    $L.Add('-- ===== Single-label groups (delve / renown / world / ...)  ->  data/sets_late.lua =====')
+    foreach ($ln in $singleShells) { $L.Add($ln) }
+    $L.Add('')
+  }
+  if ($mergeLines.Count) {
+    $L.Add('-- ===== Armor-type splits  ->  tools/expand-groups.txt (then run -Expand) =====')
+    foreach ($ln in $mergeLines) { $L.Add($ln) }
+    $L.Add('')
+  }
+  if ($notes.Count) {
+    $L.Add('-- ===== Review notes =====')
+    foreach ($ln in $notes) { $L.Add("-- $ln") }
+    $L.Add('')
+  }
+  if (-not ($raidShells.Count -or $pvpShells.Count -or $singleShells.Count -or $mergeLines.Count -or $notes.Count)) {
+    $L.Add('-- Nothing to seed — no groups selected (all captured/excluded, or the -Groups list was empty).')
+  }
+
+  $newText = ($L -join "`n").TrimEnd() + "`n"
+  [System.IO.File]::WriteAllText($SeedFile, $newText, [System.Text.UTF8Encoding]::new($false))
+  Write-Host "Wrote $SeedFile — $shellCount shell(s), $($mergeLines.Count) merge line(s), $($notes.Count) note(s) across $($pick.Count) group(s)." -ForegroundColor Green
   exit 0
 }
 
