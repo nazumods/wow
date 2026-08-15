@@ -129,7 +129,7 @@ end
 ---time. Only `DataView.BuildColInfo` is exercised — the filter/sort methods it also defines drive
 ---frames and stay in-game-tested.
 ---
----It earns a loader for one invariant: **the armour grid's name column is index 2 in BOTH hosts**
+---It earns a loader for one invariant: **the armour grid's name column is index 1 in BOTH hosts**
 ---(#864). It used to be index 1 for embedded hosts and 2 in the window, and that single asymmetry was
 ---the source of every host branch in the grid — the index recomputed in three places, `colInfo` built
 ---two ways, the name cell called from two sites. A one-argument change to the name cell then had to be
@@ -137,13 +137,13 @@ end
 ---regression guard for the collapse, and it is pure table-building given the stubs below.
 ---
 ---`ns.icons.classes` is stubbed at three entries rather than the real thirteen: the count is irrelevant
----to the contract (the leading two columns and their order are what matter) and a fixed small number
+---to the contract (the name column and the first class column, and their order, are what matter) and a fixed small number
 ---makes the index assertions readable.
 ---@param ns table  as returned by M.load()
 ---@return table ns
 function M.loadDataViewFilters(ns)
   -- The REAL list helpers, not a stub: `buildColInfo` is `lists.map` over the class icons and a
-  -- `prepend` of the two chrome columns, so stubbing them would mean the column ORDER and INDICES this
+  -- `prepend` of the one chrome column, so stubbing them would mean the column ORDER and INDICES this
   -- spec exists to pin came from the stub rather than from LibNAddOn. Loaded directly rather than
   -- through `loadInto`, which is scoped to this addon's folder; `lists.lua` needs only `ns.lua` to
   -- exist and is self-contained beyond that.
