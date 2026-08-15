@@ -565,6 +565,12 @@ function CollectedPanel:_fitToGrid()
   -- without this, clearing that filter would leave the pool sized for the small viewport and a band of
   -- empty space below the data (#843). No-op when the height didn't move, and when not virtual.
   grid:RefreshViewport()
+  -- RefreshViewport sizes rowArea to n*cellHeight — 0 for an empty grid, which clobbers the
+  -- GRID_EMPTY_H the empty-state message reserved. Re-assert it so the ratings-broadcast path (which
+  -- sets `_gridFresh` before Render and so skips the `update()`/`_setEmpty` re-reserve) keeps the "no
+  -- matches" message centred rather than pinned to a zero-height band (#922). Before `scroll:Refresh`
+  -- so the scroll range is computed against the restored height.
+  grid:_setEmpty(#grid.data == 0)
   scroll:Refresh()   -- recompute the scroll range for the new child height
   ns.prof:Mark("fit:scroll")
   if self.onSized then self:onSized() end
