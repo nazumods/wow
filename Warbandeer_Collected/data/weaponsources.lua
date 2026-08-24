@@ -2,7 +2,7 @@
 local ns = select(2, ...)
 local tinsert = tinsert
 -- luacheck: no max line length
--- Generated from wago.tools (wow build 12.1.0.69273, 2026-08-11) by tools/update-sets.ps1 -Weapons.
+-- Generated from wago.tools (wow build 12.1.0.69382, 2026-08-18) by tools/update-sets.ps1 -Weapons.
 -- Every weapon/off-hand APPEARANCE bucketed by source (row) x weapon type (column);
 -- types are keyed by Enum.TransmogCollectionType, values are ItemAppearanceIDs (visuals).
 -- Derived wholesale from DB2 — do not hand-edit; regenerate with -Weapons. See UPDATING.md.
@@ -591,7 +591,7 @@ tinsert(ns.WeaponSources, {
     [17] = { 3417, 4699, 14391, 15604, 93498, 129494 },
     [20] = { 298, 333, 626, 855, 857, 881, 1336, 1925, 2787, 3523, 14387, 15600, 16391, 120114, 129633, 129971 },
     [21] = { 294, 335, 625, 872, 879, 1378, 1720, 5553, 9598, 14400, 15615, 16389, 22284, 70169, 117381, 118543, 129607, 130311, 133166, 133169 },
-    [22] = { 296, 769, 801, 859, 876, 883, 1706, 5402, 9057, 14394, 15608, 16390, 22646, 130315 },
+    [22] = { 296, 769, 801, 859, 876, 883, 1706, 5402, 9057, 14394, 15608, 16390, 22646, 129158, 130315 },
     [24] = { 491, 14395, 15609, 15632, 16382, 31423, 117399, 127826, 129983, 129986, 130312 },
     [23] = { 263, 299, 306, 460, 544, 686, 878, 3524, 3921, 5371, 5372, 5532, 14396, 14397, 14398, 15610, 15611, 15612, 15936, 16095, 16383, 16387, 26411, 121758, 129164, 129627, 130314, 130711 },
     [28] = { 43750, 117376, 129170, 129864, 130308 },
