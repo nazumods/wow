@@ -78,8 +78,13 @@ local function store()
   return dt
 end
 
--- Whether the player is currently inside a delve.
+-- Whether the player is currently inside a (recordable) delve.  Lairs are raid-boss encounters: they
+-- report HasActiveDelve()/IsDelveInProgress() true but complete via a boss kill, not SCENARIO_COMPLETED,
+-- so a timer started there would only be discarded on exit.  Exclude them explicitly (they're raid
+-- content, not delve run-times, #411); IsInLair() reads false inside a normal delve, so this never
+-- suppresses real delve tracking.
 local function inDelve()
+  if C_DelvesUI and C_DelvesUI.IsInLair and C_DelvesUI.IsInLair() then return false end
   if C_DelvesUI and C_DelvesUI.HasActiveDelve and C_DelvesUI.HasActiveDelve() then return true end
   if C_PartyInfo and C_PartyInfo.IsDelveInProgress and C_PartyInfo.IsDelveInProgress() then return true end
   return false
