@@ -2,8 +2,8 @@
   "source": "wago.tools",
   "generator": "Tooling/update-static-data.ps1",
   "product": "wow",
-  "build": "12.0.7.68974",
-  "buildDate": "2026-08-03",
+  "build": "12.1.0.69404",
+  "buildDate": "2026-08-20",
   "currencies": {
     "42": {
       "name": "Badge of Justice",
@@ -8480,7 +8480,7 @@
     "3363": {
       "name": "Community Coupons",
       "icon": "inv_misc_ticket_tarot_twistingnether_01",
-      "maxQty": 2000,
+      "maxQty": 0,
       "quality": 2
     },
     "3364": {
@@ -8665,7 +8665,7 @@
     },
     "3418": {
       "name": "Nebulous Voidcore",
-      "icon": "inv_1205_voidforge_fluctuatingvoidcores_cosmicvoid",
+      "icon": "inv_1205_voidforge_fluctuatingvoidcores_green",
       "maxQty": 0,
       "quality": 4
     },
@@ -8677,7 +8677,7 @@
     },
     "3420": {
       "name": "[DNT] Nebulous Voidcore Turn-In Tracker",
-      "icon": "inv_1205_voidforge_fluctuatingvoidcores_cosmicvoid",
+      "icon": "inv_1205_voidforge_fluctuatingvoidcores_green",
       "maxQty": 0,
       "quality": 4
     },
@@ -8728,6 +8728,72 @@
       "icon": null,
       "maxQty": 0,
       "quality": 0
+    },
+    "3437": {
+      "name": "Adventurer Mistcrest",
+      "icon": "inv_121_crest_adventurer",
+      "maxQty": 0,
+      "quality": 3
+    },
+    "3438": {
+      "name": "Veteran Mistcrest",
+      "icon": "inv_121_crest_veteran",
+      "maxQty": 0,
+      "quality": 4
+    },
+    "3439": {
+      "name": "Champion Mistcrest",
+      "icon": "inv_121_crest_champion",
+      "maxQty": 0,
+      "quality": 4
+    },
+    "3440": {
+      "name": "Hero Mistcrest",
+      "icon": "inv_121_crest_hero",
+      "maxQty": 0,
+      "quality": 4
+    },
+    "3441": {
+      "name": "Myth Mistcrest",
+      "icon": "inv_121_crest_myth",
+      "maxQty": 0,
+      "quality": 4
+    },
+    "3442": {
+      "name": "Adventurer Mistcrest",
+      "icon": "inv_121_crest_adventurer",
+      "maxQty": 100,
+      "quality": 3
+    },
+    "3443": {
+      "name": "Veteran Mistcrest",
+      "icon": "inv_121_crest_veteran",
+      "maxQty": 100,
+      "quality": 4
+    },
+    "3444": {
+      "name": "Champion Mistcrest",
+      "icon": "inv_121_crest_champion",
+      "maxQty": 100,
+      "quality": 4
+    },
+    "3445": {
+      "name": "Hero Mistcrest",
+      "icon": "inv_121_crest_hero",
+      "maxQty": 100,
+      "quality": 4
+    },
+    "3446": {
+      "name": "Myth Mistcrest",
+      "icon": "inv_121_crest_myth",
+      "maxQty": 100,
+      "quality": 4
+    },
+    "3448": {
+      "name": "Corrosive Coin",
+      "icon": "inv_121_ulatek_currency",
+      "maxQty": 0,
+      "quality": 2
     },
     "3449": {
       "name": "Total Score",
@@ -8813,6 +8879,18 @@
       "maxQty": 0,
       "quality": 0
     },
+    "3464": {
+      "name": "Renown - Season 2 Delves",
+      "icon": null,
+      "maxQty": 10,
+      "quality": 6
+    },
+    "3465": {
+      "name": "Venomblight Manaflux",
+      "icon": "inv_10_blacksmithing_craftedoptional_blacksmithdye_earth",
+      "maxQty": 8,
+      "quality": 4
+    },
     "3466": {
       "name": "Sites Deaths",
       "icon": null,
@@ -8824,6 +8902,12 @@
       "icon": null,
       "maxQty": 0,
       "quality": 0
+    },
+    "3471": {
+      "name": "Renown - Zul'jarra's Forces",
+      "icon": "ui_majorfaction_renown_zuljarrasforces",
+      "maxQty": 20,
+      "quality": 6
     },
     "3474": {
       "name": "Bonus Experience",
@@ -8860,6 +8944,12 @@
       "icon": null,
       "maxQty": 0,
       "quality": 0
+    },
+    "3483": {
+      "name": "Delver's Journey",
+      "icon": "inv_10_dungeonjewelry_explorer_trinket_1compass_color5",
+      "maxQty": 0,
+      "quality": 1
     },
     "3487": {
       "name": "Tailoring Specialization Reset",
@@ -8927,6 +9017,12 @@
       "maxQty": 0,
       "quality": 0
     },
+    "3504": {
+      "name": "Zul'jarra's Forces",
+      "icon": "ui_majorfaction_renown_zuljarrasforces",
+      "maxQty": 0,
+      "quality": 1
+    },
     "3505": {
       "name": "[DNT] Diver Score",
       "icon": "inv_armor_diversuit_d_01_helm",
@@ -8939,11 +9035,113 @@
       "maxQty": 0,
       "quality": 0
     },
-    "3513": {
-      "name": "Nebulous Voidcore",
-      "icon": "inv_1205_voidforge_fluctuatingvoidcores_cosmicvoid",
+    "3508": {
+      "name": "Salty Pet Charms",
+      "icon": "inv_misc_summonable_boss_token",
+      "maxQty": 2000,
+      "quality": 2
+    },
+    "3509": {
+      "name": "Tidal Spark Dust",
+      "icon": "inv_enchanting_dust_color3",
+      "maxQty": 3,
+      "quality": 4
+    },
+    "3511": {
+      "name": "[DNT, Unused] Venomous Voidcore",
+      "icon": "inv_1205_voidforge_fluctuatingvoidcores_green",
       "maxQty": 0,
       "quality": 4
+    },
+    "3513": {
+      "name": "Nebulous Voidcore",
+      "icon": "inv_1205_voidforge_fluctuatingvoidcores_green",
+      "maxQty": 0,
+      "quality": 4
+    },
+    "3514": {
+      "name": "Renown - Prey Season 2",
+      "icon": "ui_prey",
+      "maxQty": 10,
+      "quality": 6
+    },
+    "3515": {
+      "name": "Preyseeker's Journey",
+      "icon": "ui_prey",
+      "maxQty": 0,
+      "quality": 3
+    },
+    "3532": {
+      "name": "12.1 Delves - Personal Tracker - S2 Weekly Turn-In (Hidden)",
+      "icon": null,
+      "maxQty": 99,
+      "quality": 0
+    },
+    "3540": {
+      "name": "Captain Tokka",
+      "icon": "inv_faction_tortollanseekers",
+      "maxQty": 0,
+      "quality": 1
+    },
+    "3543": {
+      "name": "Test Myth Dawncrest",
+      "icon": "inv_120_crest_myth",
+      "maxQty": 100,
+      "quality": 4
+    },
+    "3545": {
+      "name": "Renown - Season 3 Delves",
+      "icon": null,
+      "maxQty": 10,
+      "quality": 6
+    },
+    "3546": {
+      "name": "Coiled Filament",
+      "icon": "inv_12_profession_questandcrafting_sparkshard_green",
+      "maxQty": 0,
+      "quality": 2
+    },
+    "3568": {
+      "name": "Contained Corruption",
+      "icon": "ability_titankeeper_corruptiondot",
+      "maxQty": 0,
+      "quality": 0
+    },
+    "3569": {
+      "name": "Cleansing Multiplier",
+      "icon": "inv_12_profession_thematicfoozles_moteofpurelight_green",
+      "maxQty": 0,
+      "quality": 0
+    },
+    "3570": {
+      "name": "Wave Multiplier",
+      "icon": "inv_sonic_wave",
+      "maxQty": 0,
+      "quality": 0
+    },
+    "3574": {
+      "name": "PMM Currency 1",
+      "icon": "inv_valorstone_base",
+      "maxQty": 2000,
+      "quality": 3
+    },
+    "3575": {
+      "name": "PMM Currency 2",
+      "icon": "inv_valorstone_base",
+      "maxQty": 2000,
+      "quality": 3
+    },
+    "3583": {
+      "name": "Housing - Going Postal - Personal Best Record - Alliance - Rt1",
+      "icon": null,
+      "maxQty": 0,
+      "quality": 0
+    },
+    "3584": {
+      "name": "Housing - Going Postal - Personal Best Record - Alliance - Rt1",
+      "icon": null,
+      "maxQty": 0,
+      "quality": 0
     }
   },
   "currencyFields": {
