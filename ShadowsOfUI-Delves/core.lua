@@ -33,7 +33,8 @@ end
 -- /sdelves — dev/calibration aid, opened in a copyable window (tooltip/chat text can't be copied).
 -- No argument dumps the live delve state used by the tracker (the in-game source for the name + tier
 -- readout) — compare the name candidates against the map pin; `dump` shows the recorded stats for the
--- current delve.
+-- current delve.  It also surfaces the 12.1 structured Delve fields (GetActiveDelveTier tier/
+-- difficultyID, GetTieredEntranceType, HasActiveLair/IsInLair): the probe targets for #411.
 SLASH_SUI_DELVES1 = "/sdelves"
 SlashCmdList["SUI_DELVES"] = function(msg)
   msg = msg and strtrim(msg):lower() or ""
@@ -76,5 +77,22 @@ SlashCmdList["SUI_DELVES"] = function(msg)
     end
   end
   lines[#lines + 1] = "  AssumedTier: " .. tostring(ns.AssumedTier())
+  -- 12.1 structured Delve fields (additive APIs — each guarded so this stays inert on older clients).
+  -- Probe targets for #411: a numeric tier from GetActiveDelveTier (compare against the header
+  -- widget's tierText above), the new difficultyID, the tiered-entrance type (Lairs = 4), and the
+  -- Lair / companion-Flavor readouts.
+  local D = C_DelvesUI
+  local tierInfo = D and D.GetActiveDelveTier and D.GetActiveDelveTier()
+  local etType = D and D.GetTieredEntranceType and D.GetTieredEntranceType()
+  local ET_LABELS = { [0] = "Invalid", [1] = "Delve", [2] = "Sites", [3] = "WorldTier", [4] = "Lairs" }
+  lines[#lines + 1] = "  --- 12.1 structured fields ---"
+  lines[#lines + 1] = "  GetActiveDelveTier.tier: " .. tostring(tierInfo and tierInfo.tier)
+  lines[#lines + 1] = "  GetActiveDelveTier.difficultyID: " .. tostring(tierInfo and tierInfo.difficultyID)
+  lines[#lines + 1] = "  GetActiveDelveTier.suggestedILvl: " .. tostring(tierInfo and tierInfo.suggestedILvl)
+  lines[#lines + 1] = ("  GetTieredEntranceType: %s (%s)"):format(tostring(etType), etType and ET_LABELS[etType] or "?")
+  lines[#lines + 1] = "  HasActiveLair: " .. tostring(D and D.HasActiveLair and D.HasActiveLair())
+  lines[#lines + 1] = "  IsInLair: " .. tostring(D and D.IsInLair and D.IsInLair())
+  lines[#lines + 1] = "  GetFlavorNodeForCompanion: " .. tostring(D and D.GetFlavorNodeForCompanion and D.GetFlavorNodeForCompanion())
+  lines[#lines + 1] = "  GetFlavorNodeNameForCompanion: " .. tostring(D and D.GetFlavorNodeNameForCompanion and D.GetFlavorNodeNameForCompanion())
   ui.ToggleCopyWindow("Delve live state", table.concat(lines, "\n"))
 end
