@@ -34,36 +34,30 @@ local function GetPrefix()
   return "(" .. ns.db.settings.alias .. ") "
 end
 
-local function hookEditBox(editBox)
-  if not editBox or editBox._aliasHooked then return end
+-- Blizzard's designated addon hook: SendText fires this after ParseText (chatType
+-- already resolved) and before GetText is read for the send, so SetText here lands
+-- in the outgoing message. One registration covers every chat edit box.
+local function OnPreSendText(_, editBox)
+  -- A SetText from insecure code inside the send path taints the protected
+  -- SendChatMessage that follows and drops the message — skip in combat.
+  if InCombatLockdown() then return end
+  if not ShouldPrefix() then return end
 
-  -- OnKeyDown fires before OnEnterPressed, so SetText here is picked up by
-  -- the secure send path without causing taint (HookScript doesn't spread taint).
-  editBox:HookScript("OnKeyDown", function(eb, key)
-    if key ~= "ENTER" and key ~= "NUMPADENTER" then return end
-    if not ShouldPrefix() then return end
+  local text = editBox:GetText()
+  if not text or text == "" then return end
 
-    local text = eb:GetText()
-    if not text or text == "" then return end
+  if editBox:GetChatType() ~= "GUILD" then return end
 
-    local chatType = eb:GetAttribute("chatType") or
-                     (eb.GetChatType and eb:GetChatType()) or
-                     eb.chatType
-    if chatType ~= "GUILD" then return end
+  if text:match("^%s*[/!#@?]") then return end
 
-    if text:match("^%s*[/!#@?]") then return end
+  -- SendChatMessage enforces WoW's 255-byte server-side cap and silently drops the
+  -- tail past it. Prepending the prefix must not push a near-max message over that cap,
+  -- or the end of the user's own text is lost — leave it untouched instead (# is the
+  -- byte length WoW counts).
+  local prefix = GetPrefix()
+  if #text + #prefix > 255 then return end
 
-    -- SendChatMessage enforces WoW's 255-byte server-side cap and silently drops the
-    -- tail past it. Prepending the prefix must not push a near-max message over that cap,
-    -- or the end of the user's own text is lost — leave it untouched instead (# is the
-    -- byte length WoW counts).
-    local prefix = GetPrefix()
-    if #text + #prefix > 255 then return end
-
-    eb:SetText(prefix .. text)
-  end)
-
-  editBox._aliasHooked = true
+  editBox:SetText(prefix .. text)
 end
 
 function ns:onLoad()
@@ -77,16 +71,5 @@ function ns:onLoad()
   ns.settingsCategory = settings:RegisterSubcategory(ns:GetSettingsParent("Warbandeer"))
   ns.api.AliasSettingsCategory = ns.settingsCategory
 
-  local numFrames = NUM_CHAT_WINDOWS or 10
-  for i = 1, numFrames do
-    hookEditBox(_G["ChatFrame" .. i .. "EditBox"])
-  end
-
-  if type(FCF_OpenTemporaryWindow) == "function" then
-    hooksecurefunc("FCF_OpenTemporaryWindow", function()
-      for i = 1, (NUM_CHAT_WINDOWS or 10) do
-        hookEditBox(_G["ChatFrame" .. i .. "EditBox"])
-      end
-    end)
-  end
+  EventRegistry:RegisterCallback("ChatFrame.OnEditBoxPreSendText", OnPreSendText, ns)
 end
