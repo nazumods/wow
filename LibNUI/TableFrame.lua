@@ -199,6 +199,14 @@ ui.TableFrame = TableFrame
 --     Don't combine `virtual` with row headers.
 --   * **No footer.** `setFooter` anchors to the row area's bottom, which is now the bottom of the
 --     whole dataset rather than of the visible rows.
+--   * **Default row striping is viewport-slot-anchored, not data-row-anchored.** `addRow` sets a
+--     resident row's default backdrop once, from its pool SLOT index (`fmod(n, 2)`) — and `_rebind`
+--     re-points a slot's anchor and cells at a new data row without touching that backdrop. So a
+--     given data row's stripe colour flips as it slides through resident slots while scrolling, and
+--     the visible bands stay anchored to screen position rather than to the data. Cosmetic (no wrong
+--     data), and may be exactly what's wanted; data-anchored striping would need `_rebind` to re-set
+--     each resident row's backdrop from the parity of its bound data index (`first + k - 1`) instead
+--     of leaving the slot default in place.
 
 -- Bind the viewport this table scrolls inside. Required for `virtual` — without it there is no
 -- offset to derive the window from. The scroll frame's child must be this table's `rowArea`, which
