@@ -54,7 +54,18 @@ export interface OpsField {
  * Frozen because both host UIs iterate it directly — a view must not be able to reorder or
  * mutate the shared list for the other app.
  */
+// `DISCORD_SERVER_ID` and `GUILD_ID` are the SAME setting under two different key names: the
+// `rackbops-discord-bot` fork's `bot-ops.sh` renamed `GUILD_ID` to `DISCORD_SERVER_ID`, but
+// `nazumods/wow`'s own (unmigrated) `apps/warbandeer-discord/ops/bot-ops.sh` still only accepts
+// `GUILD_ID` — this module is shared by both, so both keys stay listed rather than picking one and
+// breaking whichever bot doesn't use that spelling. A save only ever sends the fields you actually
+// changed (see `changedFields`), so touching one of the pair never risks the other.
 export const OPS_FIELDS: readonly OpsField[] = Object.freeze([
+  {
+    key: "DISCORD_SERVER_ID",
+    label: "Discord server ID",
+    hint: "Server for guild-scoped slash commands (newer bot-ops.sh — see GUILD_ID below for the older one)",
+  },
   {
     key: "ANNOUNCE_CHANNEL_ID",
     label: "Announce channel",
@@ -65,24 +76,24 @@ export const OPS_FIELDS: readonly OpsField[] = Object.freeze([
     label: "Release channel",
     hint: "Channel ID for release posts (blank = same as announce)",
   },
-  {
-    key: "WATCHED_REPOS",
-    label: "Watched repos",
-    hint: "owner/repo,owner/repo — release announcements",
-  },
-  { key: "WOW_REALM", label: "Realm slug", hint: "Realm watched for up/down, e.g. eitrigg" },
-  { key: "WOW_REGION", label: "Region", hint: "us or eu" },
-  { key: "GUILD_ID", label: "Guild ID", hint: "Server for guild-scoped slash commands" },
-  { key: "COMMAND_PREFIX", label: "Command prefix", hint: "Slash-command prefix, e.g. r -> /rdmf" },
+  { key: "REPORT_ROLE_ID", label: "Report role ID", hint: "Role allowed to use /report" },
   {
     key: "ADMIN_USER_IDS",
     label: "Admin user IDs",
     hint: "Comma-separated user IDs allowed to /update",
   },
-  { key: "REPORT_ROLE_ID", label: "Report role ID", hint: "Role allowed to use /report" },
+  { key: "WOW_REALM", label: "Realm slug", hint: "Realm watched for up/down, e.g. eitrigg" },
+  { key: "WOW_REGION", label: "Region", hint: "us or eu" },
+  { key: "GUILD_ID", label: "Guild ID (older bot-ops.sh)", hint: "Server for guild-scoped slash commands" },
+  {
+    key: "WATCHED_REPOS",
+    label: "Watched repos",
+    hint: "owner/repo,owner/repo — release announcements",
+  },
   { key: "DMF_TIMEZONE", label: "DMF timezone", hint: "e.g. America/Los_Angeles" },
-  { key: "BOT_BRANCH", label: "Bot branch", hint: "Branch self-update measures against" },
   { key: "AUTO_UPDATE", label: "Auto-update", hint: "true or false" },
+  { key: "BOT_BRANCH", label: "Bot branch", hint: "Branch self-update measures against" },
+  { key: "COMMAND_PREFIX", label: "Command prefix", hint: "Slash-command prefix, e.g. r -> /rdmf" },
 ] as const satisfies readonly OpsField[]);
 
 /**
