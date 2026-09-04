@@ -81,11 +81,13 @@ bare `Not Known` if the name can't be resolved).
 
 ## "Guild crafters" (Place Crafting Order)
 
-`ns.GuildCrafters(recipeID, tooltip?)` answers "which guild members can craft this recipe"
-from Blizzard's own guild-recipe data — no SavedVariables and no addon-to-addon sync (unlike
-VamoosesGuildCraft's peer store this replaces). The flow is **async**: `GetProfessionInfoByRecipeID`
-gives the recipe's profession(s) → `C_GuildInfo.QueryGuildMembersForRecipe(skillLineID, recipeID, 1)`
-fires → the `GUILD_RECIPE_KNOWN_BY_MEMBERS` event lands → `GetGuildRecipeInfoPostQuery()` +
+`ns.GuildCrafters(recipeID, tooltip?, recipeLevel?)` answers "which guild members can craft this
+recipe" from Blizzard's own guild-recipe data — no SavedVariables and no addon-to-addon sync
+(unlike VamoosesGuildCraft's peer store this replaces). The flow is **async**:
+`GetProfessionInfoByRecipeID` gives the recipe's profession(s) →
+`C_GuildInfo.QueryGuildMembersForRecipe(skillLineID, recipeID, recipeLevel)` fires — `recipeLevel`
+is `nil` in the crafting-orders context, the documented `Nilable` default, since no caller here
+passes one — → the `GUILD_RECIPE_KNOWN_BY_MEMBERS` event lands → `GetGuildRecipeInfoPostQuery()` +
 `GetGuildRecipeMember(i)` (`displayName, fullName, classFileName, online`) build the list.
 
 Because the tooltip renders synchronously, the first hover kicks off the query and renders a
