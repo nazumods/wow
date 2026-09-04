@@ -56,10 +56,19 @@ for itself.
 
 ## The whitelist is a mirror, not the authority
 
-`OPS_FIELDS` mirrors the key whitelist in `apps/warbandeer-discord/ops/bot-ops.sh`. That script
-runs on the box and is the thing that actually enforces which keys may be written — adding a key
-here without adding it there gets a rejection at apply time, not a silent write. Secrets are
-absent from both by design.
+`OPS_FIELDS` mirrors the key whitelist enforced by `bot-ops.sh` on the box — that script is what
+actually decides which keys may be written; adding a key here without adding it there gets a
+rejection at apply time, not a silent write. Secrets are absent from both by design.
+
+**Two `bot-ops.sh` copies exist now, and `OPS_FIELDS` has to satisfy both**: this repo's own
+`apps/warbandeer-discord/ops/bot-ops.sh` (what `warbandeer-desktop` talks to), and
+[`roshne/rackbops-discord-bot`'s fork](https://github.com/roshne/rackbops-discord-bot/blob/main/ops/bot-ops.sh)
+(what the debug bot instance itself now runs, post-cutover — `wow-companion`'s own `ops.json`
+hasn't been pointed at it yet; see `apps/bot-ops/README.md`'s "Two `bot-ops.sh` copies exist" note
+for the current state and the full divergence). Where the two scripts' whitelists
+disagree on a key's *name* (so far: `GUILD_ID` vs. `DISCORD_SERVER_ID`, the same setting renamed
+in the fork), list both rather than picking one — a save only ever sends the fields that actually
+changed, so listing both never risks sending a key the target you're not touching would reject.
 
 ## Vendoring is one-directional
 
