@@ -2,8 +2,8 @@
   "source": "wago.tools",
   "generator": "Tooling/update-static-data.ps1",
   "product": "wow",
-  "build": "12.1.0.69875",
-  "buildDate": "2026-09-18",
+  "build": "12.1.0.69933",
+  "buildDate": "2026-09-22",
   "currencies": {
     "42": {
       "name": "Badge of Justice",
