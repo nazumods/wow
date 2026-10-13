@@ -1,8 +1,8 @@
-## Interface: 120100
+## Interface: 120105
 ## Category: Inventory
 ## Title: Recycle
 ## Author: Nazuraki
-## Version: 12.1.0-r1
+## Version: 12.1.5-r0
 ## IconTexture: Interface\Icons\inv_misc_coin_02
 ## SavedVariablesPerCharacter: RecycleDB
 ## Dependencies: LibNAddOn, LibNUI
