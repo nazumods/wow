@@ -359,7 +359,6 @@ std = {
     "GetInventoryItemID",
     "GetInventoryItemLink",
     "GetInventorySlotInfo",
-    "GetItemIcon", -- removed in 12.1.5; kept only until LibNAddOn/globals/items.lua stops reading it
     "GetLocale",
     "GetLootSlotLink",
     "GetLootSpecialization",
