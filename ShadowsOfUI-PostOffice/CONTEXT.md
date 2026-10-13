@@ -23,7 +23,7 @@ control on top; DoNotWant gives per-letter return/delete.)
 | File | Purpose |
 |---|---|
 | `core.lua` | `LibNAddOn` init, `Defaults`/`MigrateDB`, the mailbox lifecycle + `OnOpenMailUpdate` + `OnInboxRow` dispatches (see below), `ns.RefreshInbox`, settings-change routing, `RegisterSettings` (11 toggles), changelog button, `/spost`. |
-| `rake.lua` | Snapshot `GetMoney()` on mail open, print the gain (`GetCoinTextureString`) on close. Report-only; does not auto-loot. |
+| `rake.lua` | Snapshot `GetMoney()` on mail open, print the gain (`C_CurrencyInfo.GetCoinTextureString`; the bare global was removed in 12.1.5) on close. Report-only; does not auto-loot. |
 | `tradeBlock.lua` | `ns:SetTemporaryCVar("BlockTrades", 1)` on open, `RestoreCVar` on close; reacts to a live toggle while `ns._atMailbox`. |
 | `wire.lua` | Installs an `onValueChangedFunc` on `SendMailMoney` (lazily, first open) to fill a blank `SendMailSubjectEditBox` with `ns.wow.CoinString`; only overwrites its own prior value. |
 | `express.lua` | Modifier-click shortcuts (lazy install, first open): replaces `InboxFrame_OnClick` for ctrl-click-return, posthooks `HandleModifiedItemClick` for alt-click-attach (+ optional auto-send), posthooks `InboxFrameItem_OnEnter` + `ns:OnItemTooltip` for hint lines. `db.express` / `db.expressAutoSend`. |

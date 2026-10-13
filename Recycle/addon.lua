@@ -1,5 +1,6 @@
 ---@class Recycle: AddOn
 local ns = LibNAddOn(...)
+local GetItemInfo = C_Item.GetItemInfo
 
 -- ─── DB migration ─────────────────────────────────────────────────────────────
 
