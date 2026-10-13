@@ -123,7 +123,7 @@ local function buildRow(self, sample)
 
   local price = card:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
   price:SetPoint("LEFT", slot, "RIGHT", -1, -13)
-  price:SetText(GetCoinTextureString(sample.price))
+  price:SetText(C_CurrencyInfo.GetCoinTextureString(sample.price))
 
   return card
 end

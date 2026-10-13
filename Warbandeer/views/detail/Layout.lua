@@ -3,7 +3,7 @@ local ns = select(2, ...)
 ---@type LibNUI
 local ui = ns.ui
 local Texture = ui.Texture
-local GetItemInfo, select = GetItemInfo, select
+local GetItemInfo, select = C_Item.GetItemInfo, select
 local theme = ns.theme
 
 -- Shared layout constants + leaf helpers for the Detail view, split out of

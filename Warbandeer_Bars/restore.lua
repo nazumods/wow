@@ -167,7 +167,7 @@ local function RestoreSlots(slots, overrides)
         end
         -- try by link string (some items only respond to this form)
         if not GetCursorInfo() then
-          local link = select(2, GetItemInfo(s.index))
+          local link = select(2, C_Item.GetItemInfo(s.index))
           if link then PickupItem(link) end
         end
         if not GetCursorInfo() then
