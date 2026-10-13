@@ -1,8 +1,8 @@
-## Interface: 120100
+## Interface: 120105
 ## Category: Lib
 ## Title: LibNAddOn
 ## Author: Nazuraki
-## Version: 12.1.0-r1
+## Version: 12.1.5-r0
 ## IconTexture: Interface\Icons\achievement_guildperk_bountifulbags
 ## X-Curse-Project-ID: 1339490
 ## X-NUI-COMMANDS: /lib
