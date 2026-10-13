@@ -1,8 +1,8 @@
-## Interface: 120100
+## Interface: 120105
 ## Category: Lib
 ## Title: LibNUI ModelViewer
 ## Author: Nazuraki
-## Version: 12.1.0-r1
+## Version: 12.1.5-r0
 ## IconTexture: Interface\Icons\Ability_Rogue_Disguise
 ## Dependencies: LibNAddOn, LibNUI
 ## X-NUI-UI: LibNUI
