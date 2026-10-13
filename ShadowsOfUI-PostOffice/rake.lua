@@ -16,6 +16,6 @@ ns.OnMailHide(function()
   local gained = GetMoney() - moneyAtOpen
   moneyAtOpen = nil
   if gained > 0 then
-    ns:Print("Collected", GetCoinTextureString(gained))
+    ns:Print("Collected", C_CurrencyInfo.GetCoinTextureString(gained))
   end
 end)

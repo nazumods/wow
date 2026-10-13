@@ -185,7 +185,7 @@ SlashCmdList["SUI_KNOWN"] = function(msg)
   end
   local itemID = tonumber(msg:match("%d+"))
   if not itemID then ns.Print("Usage: /sknown <itemID>") return end
-  local nm = GetItemInfo(itemID)
+  local nm = C_Item.GetItemInfo(itemID)
   local list, knownList = ns.BuildLearnable(itemID, 0, nm)
   if not list then ns.Print(itemID, "is not a craftable recipe item (or its data isn't loaded yet).") return end
   if #list == 0 then

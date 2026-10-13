@@ -98,7 +98,7 @@ SLASH_SUI_WINV1 = "/swinv"
 SlashCmdList["SUI_WINV"] = function(msg)
   local itemID = tonumber(msg and msg:match("item:(%d+)")) or tonumber(msg and msg:match("%d+"))
   if not itemID then ns.Print("Usage: /swinv <itemID or item link>") return end
-  local name = GetItemInfo(itemID) or itemID
+  local name = C_Item.GetItemInfo(itemID) or itemID
   local report = API:GetItemCounts(itemID)
   if not report then
     ns.Print("No copies of", name, "tracked yet (log alts in / open bags + banks to populate).")
