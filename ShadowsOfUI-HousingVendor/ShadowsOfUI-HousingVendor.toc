@@ -2,7 +2,7 @@
 ## Category: Shadows of UI
 ## Title: Housing Vendor
 ## Author: Nazuraki
-## Version: 12.1.5-r0
+## Version: 12.1.5-r1
 ## Dependencies: LibNAddOn
 ## OptionalDeps: Warbandeer_Decor
 ## SavedVariables: ShadowsOfUI_HousingVendorDB
