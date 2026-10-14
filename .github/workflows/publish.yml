@@ -66,8 +66,11 @@ jobs:
 
       # Reads X-Curse-Project-ID and Interface from the .toc.
       # An addon is only published if X-Curse-Project-ID is present.
-      # Interface values (e.g. "120005" or "110002, 110005") are converted to
-      # CurseForge game version strings: XXYYZZ → X.Y.Z (leading zeros stripped).
+      # Interface values (e.g. "120105" or "110002, 110005") are converted to
+      # CurseForge game version strings: <major>.<minor>.<patch>, read from the RIGHT, so the
+      # last two digits are the patch, the two before them the minor, and whatever is left the
+      # major (leading zeros stripped): 120105 → 12.1.5, 16001 → 1.60.1, 11509 → 1.15.9.
+      # Reading from the left turned the five-digit 16001 into 16.0.1.
       - name: Read .toc metadata
         id: toc
         run: |
@@ -99,18 +102,65 @@ jobs:
           IFACE_RAW=$(grep -E "^## Interface:" "$TOC" \
             | sed 's/## Interface:[[:space:]]*//' | tr -d '\r')
 
+          # BEGIN iface_to_version -- extracted and tested by Tooling/tests/game-versions.test.sh
+          iface_to_version() {
+            local i="${1//[[:space:]]/}"
+            if [[ ! "$i" =~ ^[0-9]{5,6}$ ]]; then
+              echo "::error::Unrecognised Interface value '$1' (expected 5 or 6 digits)" >&2
+              return 1
+            fi
+            printf '%d.%d.%d' $(( 10#${i:0: -4} )) $(( 10#${i: -4:2} )) $(( 10#${i: -2:2} ))
+          }
+          # END iface_to_version
+
           GAME_VERSIONS=""
           IFS=',' read -ra IFACES <<< "$IFACE_RAW"
           for iface in "${IFACES[@]}"; do
-            iface=$(echo "$iface" | tr -d ' ')
-            major=$(( 10#${iface:0:2} ))
-            minor=$(( 10#${iface:2:2} ))
-            patch=$(( 10#${iface:4:2} ))
-            ver="${major}.${minor}.${patch}"
+            ver=$(iface_to_version "$iface") || exit 1
             GAME_VERSIONS="${GAME_VERSIONS:+${GAME_VERSIONS},}${ver}"
           done
 
           echo "game_versions=$GAME_VERSIONS" >> "$GITHUB_OUTPUT"
+
+      # The upload action drops any game-version NAME CurseForge doesn't know, silently -- it filters the
+      # API's version list by name and never reports a miss (curseforge-upload.js:56-85 at v3.1.2). That is
+      # how `16.0.1` would have shipped Forever builds unlabelled. Fail loudly instead; re-run the
+      # workflow once CurseForge has added the version.
+      - name: Verify game versions exist on CurseForge
+        if: steps.toc.outputs.skip != 'true'
+        env:
+          CF_TOKEN: ${{ secrets.CURSEFORGE_API_TOKEN }}
+          GAME_VERSIONS: ${{ steps.toc.outputs.game_versions }}
+        run: |
+          # BEGIN missing_versions -- extracted and tested by Tooling/tests/game-versions.test.sh
+          # $1 = newline-separated names CurseForge knows; $2 = comma-separated wanted names.
+          missing_versions() {
+            local known="$1" v out=""
+            local -a want
+            IFS=',' read -ra want <<< "$2"
+            for v in "${want[@]}"; do
+              grep -qxF -- "$v" <<< "$known" || out="${out:+$out }$v"
+            done
+            printf '%s' "$out"
+          }
+          # END missing_versions
+          if [[ -z "$GAME_VERSIONS" ]]; then
+            echo "::error::No game version to upload with -- the .toc has no '## Interface:' value"
+            exit 1
+          fi
+          # Not one pipeline: GitHub's default shell has no pipefail, so a failed curl would reach jq
+          # as empty input and surface as "CurseForge has no game version named: ..." for every version.
+          if ! response=$(curl -sf -H "X-Api-Token: $CF_TOKEN" https://wow.curseforge.com/api/game/versions); then
+            echo "::error::Could not list CurseForge game versions (bad token or CurseForge API down) -- re-run the workflow later"
+            exit 1
+          fi
+          known=$(jq -r '.[].name' <<< "$response")
+          missing=$(missing_versions "$known" "$GAME_VERSIONS")
+          if [[ -n "$missing" ]]; then
+            echo "::error::CurseForge has no game version named: $missing -- the upload would silently drop it"
+            exit 1
+          fi
+          echo "CurseForge knows every game version: $GAME_VERSIONS"
 
       # Zip just the addon folder so it installs correctly into AddOns/.
       # spec/ holds busted unit tests and tools/ holds maintainer-only scripts —
@@ -123,7 +173,7 @@ jobs:
 
       - name: Upload to CurseForge
         if: steps.toc.outputs.skip != 'true'
-        uses: itsmeow/curseforge-upload@master
+        uses: itsmeow/curseforge-upload@1493c4408b462f2ad8beb600f09c505e0c158397 # v3.1.2
         with:
           token: ${{ secrets.CURSEFORGE_API_TOKEN }}
           game_endpoint: wow

@@ -55,8 +55,12 @@
 .PARAMETER IconFile     Packed icon blob path. Defaults to ../src-tauri/data/icons.bin.
 .PARAMETER CatalogFile  Lua file whose achievement ids the Achievement extract is filtered to.
 .PARAMETER CurrencyFile Lua file declaring the currency broker's field -> currency id mapping.
-.PARAMETER Product      wago product. 'wow' = live retail.
-.PARAMETER Build        Optional client build (e.g. 12.0.7.68453). Omit for latest.
+.PARAMETER Product      wago product. 'wow' = live retail. 'wow_classic_beta' is a shared bucket for every
+                        Classic beta since 2019 -- WoW: Forever's 1.60 builds among them -- so pair it with
+                        -VersionPrefix or -Build.
+.PARAMETER Build        Optional client build (e.g. 12.0.7.68453), pinned outright. Omit for the newest.
+.PARAMETER VersionPrefix Optional version family to pick the newest build from (e.g. '1.60.' for Forever;
+                        keep the trailing dot). Ignored when -Build is given.
 .PARAMETER CacheDir     Reuse downloaded responses instead of refetching (wago politeness).
 .PARAMETER Check        Don't write; exit 1 if either artifact would change (CI staleness gate).
 
@@ -64,6 +68,8 @@
   pwsh ./update-static-data.ps1
 .EXAMPLE
   pwsh ./update-static-data.ps1 -Check
+.EXAMPLE
+  pwsh ./update-static-data.ps1 -Product wow_classic_beta -VersionPrefix 1.60.   # newest Forever beta
 #>
 [CmdletBinding()]
 param(
@@ -85,6 +91,7 @@ param(
   [string]$CurrencyFile = (Join-Path $PSScriptRoot '..' 'Warbandeer_Characters' 'data' 'currency.lua'),
   [string]$Product = 'wow',
   [string]$Build,
+  [string]$VersionPrefix,
   [string]$CacheDir,
   [int]$MinRows = 1200,     # abort if CurrencyTypes returns fewer (incomplete download)
   [int]$MinAchievementRows = 10000, # abort if Achievement returns fewer (incomplete download)
@@ -255,13 +262,37 @@ function Get-IconImage([string]$name) {
   return , $body
 }
 
+# The wago /api/builds entry to pull. An explicit -Build is pinned outright (and wins over
+# -VersionPrefix). Otherwise the NEWEST BY DATE, optionally within a version family -- never the
+# first listed: /api/builds is unsorted per product, and wow_classic_beta, a shared bucket for every
+# Classic beta since 2019 (1.13, 2.5, 3.4, 4.4, 5.5 and WoW: Forever's 1.60), lists a 2025 MoP
+# Classic build first. $VersionPrefix keeps its trailing dot ('1.60.' does not match '1.600.').
+function Select-WagoBuild($List, [string]$Build, [string]$VersionPrefix, [string]$Product = '') {
+  if ($Build) {
+    $pinned = $List | Where-Object { $_.version -eq $Build } | Select-Object -First 1
+    if (-not $pinned) { throw "wago.tools has no build '$Build' for product '$Product'." }
+    return $pinned
+  }
+  $builds = $List
+  if ($VersionPrefix) {
+    $builds = $builds | Where-Object { $_.version.StartsWith($VersionPrefix, [System.StringComparison]::Ordinal) }
+  }
+  # Compared as dates, not as text: created_at is "yyyy-MM-dd HH:mm:ss" today, but the cast keeps
+  # the order right if wago ever switches to another format (ISO-8601 'T'/'Z' sorts after ' ' as text).
+  $newest = $builds | Sort-Object { [datetime]$_.created_at } -Descending | Select-Object -First 1
+  if (-not $newest) {
+    $family = if ($VersionPrefix) { " whose version starts with '$VersionPrefix'" } else { '' }
+    throw "wago.tools has no '$Product' build$family."
+  }
+  return $newest
+}
+
 # --- 1. Resolve the build to pull ------------------------------------------
 $all = (Get-Cached 'builds' 'https://wago.tools/api/builds' 60) | ConvertFrom-Json
 $list = $all.$Product
 if (-not $list) { throw "wago.tools has no builds for product '$Product'." }
-if (-not $Build) { $Build = $list[0].version }
-$match = $list | Where-Object { $_.version -eq $Build } | Select-Object -First 1
-if (-not $match) { throw "wago.tools has no build '$Build' for product '$Product'." }
+$match = Select-WagoBuild $list $Build $VersionPrefix $Product
+$Build = $match.version
 $buildDate = ($match.created_at -split ' ')[0]
 Write-Host "Using $Product build $Build $buildDate" -ForegroundColor Cyan
 

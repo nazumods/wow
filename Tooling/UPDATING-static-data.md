@@ -111,8 +111,9 @@ pwsh ./Tooling/update-static-data.ps1
 | `-CacheDir <dir>` | Reuse downloaded responses instead of refetching. Use this while iterating — the icons listfile is ~2 MB. (The icon *images* need no cache dir: they're reused from the existing `icons.bin`.) |
 | `-IconSize <s>` | `small` (18×18), `medium` (36×36, default), `large` (56×56). |
 | `-IconFile <f>` | Packed icon blob path. Defaults to `apps/warbandeer-desktop/src-tauri/data/icons.bin`. |
-| `-Build <v>` | Pin a specific client build instead of the latest. |
-| `-Product <p>` | wago product; `wow` = live retail, `wowt` = PTR. |
+| `-Build <v>` | Pin a specific client build instead of the newest (by date). Wins over `-VersionPrefix`. |
+| `-Product <p>` | wago product; `wow` = live retail, `wowt` = PTR. `wow_classic_beta` is a shared bucket for every Classic beta since 2019 (WoW: Forever is its `1.60.` family), so pair it with `-VersionPrefix` or `-Build`. |
+| `-VersionPrefix <p>` | Take the newest build (by date) whose version starts with this, e.g. `1.60.` for Forever. Keep the trailing dot: `1.60.` does not match `1.600.`. |
 | `-CatalogFile <f>` | Lua file the achievement filter reads ids from. Defaults to `Warbandeer_Characters/data/achievementcatalog.lua`. |
 | `-CurrencyFile <f>` | Lua file the `currencyFields` map is parsed from. Defaults to `Warbandeer_Characters/data/currency.lua`. |
 
