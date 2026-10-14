@@ -221,8 +221,9 @@ the client once, when it loads, and every addon gets the result:
 
 `{ id = "forever" | "retail", isForever = boolean, isRetail = boolean }`. Forever when
 `WOW_PROJECT_ID == WOW_PROJECT_CAMELOT`; otherwise, when LibNAddOn's own `## X-Game:` metadata is
-`Camelot` or `Forever` (the TOC line is `## X-Game: [Game]`, which per the wiki's TOC format page the
-client expands to the game type; `/lib flavor` shows what it expanded to); otherwise Retail.
+`Camelot` or `Forever` (the TOC line is `## X-Game: [Game]`, which the client expands to the game type;
+shipping addons such as Plumber and DialogueUI read it the same way, and `/lib flavor` shows the value
+this client produced); otherwise Retail.
 Detection never uses `GetBuildInfo()`, and is safe where the constants or `C_AddOns` don't exist
 (busted).
 
@@ -247,7 +248,7 @@ that is not in the table is supported.
 
 LibNAddOn's own helpers are guarded for Forever. `Player.GetActiveSpecialization()` and
 `Player.GetPrimarySpecialization()` return nothing where the client lacks the functions they call
-(Forever has no `GetSpecialization` or `GetSpecializationInfo`); they test for the functions
+(per Blizzard's source, Forever does not define `GetSpecialization` or `GetSpecializationInfo`); they test for the functions
 themselves, not through `Supports`. `GetRewardOptions()` is gated through the table: it returns the
 zero result (`best == 0`, empty tables) without calling `C_WeeklyRewards` when `greatVault` is
 unsupported. `greatVault` is the only feature LibNAddOn itself consults so far.

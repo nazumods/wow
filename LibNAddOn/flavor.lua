@@ -11,8 +11,8 @@ local ns = select(2, ...)
 -- cases that really are about the client. Never detect with `GetBuildInfo()` ranges.
 --
 -- Two call shapes, on purpose: LibNAddOn's own files call `ns.Supports(feature)` (this
--- namespace is not an addon, so it gets no method), and every addon gets
--- `addOn:Supports(feature)` through `ns.linkFlavor`. Calling the wrong shape does not error:
+-- namespace never passes through `LibNAddOn(...)`, so `ns.linkFlavor` is never applied to it),
+-- and every addon gets `addOn:Supports(feature)` through `ns.linkFlavor`. Calling the wrong shape does not error:
 -- the feature argument is then not a known name, and a name not in the table is supported.
 
 -- Which game systems are ABSENT on which client flavor; anything not listed exists everywhere.

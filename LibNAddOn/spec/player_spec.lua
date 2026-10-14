@@ -19,7 +19,7 @@ describe("LibNAddOn Player flavor guards", function()
     for _, name in ipairs(STUBBED) do saved[name] = _G[name]; _G[name] = nil end
 
     activityCalls, activities, links, ilvls = 0, {}, {}, {}
-    _G.C_Container = { ContainerIDToInventoryID = function() end }
+    _G.C_Container = { ContainerIDToInventoryID = function(_slot) end }
     _G.C_WeeklyRewards = {
       GetActivities = function() activityCalls = activityCalls + 1; return activities end,
       GetExampleRewardItemHyperlinks = function(id) return links[id] end,

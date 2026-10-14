@@ -195,6 +195,14 @@ describe("LibNAddOn flavor", function()
       assert.same({ "flavor: forever (WOW_PROJECT_ID 18, WOW_PROJECT_CAMELOT 18, X-Game Camelot)" }, printed)
     end)
 
+    it("prints each signal in its own slot (ID, then CAMELOT, then X-Game)", function()
+      _G.WOW_PROJECT_CAMELOT, _G.WOW_PROJECT_ID = 18, 1
+      stubXGame("Standard")
+      load(ns)
+      registered.flavor.handler(ns, "")
+      assert.same({ "flavor: retail (WOW_PROJECT_ID 1, WOW_PROJECT_CAMELOT 18, X-Game Standard)" }, printed)
+    end)
+
     it("prints the Retail flavor, showing missing signals as nil", function()
       load(ns)
       registered.flavor.handler(ns, "")
