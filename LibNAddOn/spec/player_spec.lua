@@ -55,6 +55,11 @@ describe("LibNAddOn Player flavor guards", function()
       assert.equals(0, select("#", Player.GetActiveSpecialization()))
     end)
 
+    it("returns nothing where GetSpecializationInfo exists but GetSpecialization does not", function()
+      _G.GetSpecializationInfo = function() error("must not be called without a spec index") end
+      assert.equals(0, select("#", Player.GetActiveSpecialization()))
+    end)
+
     it("returns the spec info where the client has the spec API (Retail)", function()
       _G.GetSpecialization = function() return 2 end
       _G.GetSpecializationInfo = function(idx)

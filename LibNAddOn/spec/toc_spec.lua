@@ -1,7 +1,8 @@
 -- LibNAddOn.toc holds two things the flavor detection depends on that no module spec can see: the
--- `## X-Game: [Game]` line it falls back on when WOW_PROJECT_CAMELOT is missing, and flavor.lua's
--- position in the file list (it registers `/lib flavor` through registerCommand, which
--- slashCommands.lua provides -- loaded earlier, the command is skipped silently).
+-- `## X-Game: [Game]` line detection falls back on when the WOW_PROJECT_* comparison doesn't say
+-- Forever, and flavor.lua's position in the file list. flavor.lua registers `/lib flavor` through
+-- registerCommand, which slashCommands.lua provides; if flavor.lua loaded first, ns.registerCommand
+-- would be nil and the command would be skipped without any error.
 
 describe("LibNAddOn.toc", function()
   local text, files

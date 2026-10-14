@@ -3,11 +3,17 @@ local ns = select(2, ...)
 
 -- Client-flavor detection and the feature table that gates systems a flavor lacks.
 --
--- Forever (the WoW 1.x "Camelot" client) is Mainline-family: it exposes C_Housing,
--- C_WeeklyRewards, C_PerksProgram and friends with no server system behind them, so "does
--- the API exist" is NOT a feature test there. Anything a flavor lacks is recorded once,
--- in UNSUPPORTED below, and addons ask `ns:Supports("housing")` instead of probing C_*.
--- Detect with `ns.flavor` / `ns:Supports(feature)`; never with `GetBuildInfo()` ranges.
+-- Forever (the WoW 1.x "Camelot" client) is Mainline-family: its client exposes the Mainline
+-- C_* namespaces (C_Housing, C_WeeklyRewards, C_PerksProgram, ...) while Blizzard's own TOCs
+-- load whole systems for `standard` only (the Housing UI), so "does the API exist" is NOT a
+-- feature test there. Anything a flavor lacks is recorded once, in UNSUPPORTED below, and an
+-- addon asks `addOn:Supports("housing")` instead of probing C_*; `addOn.flavor` is for the
+-- cases that really are about the client. Never detect with `GetBuildInfo()` ranges.
+--
+-- Two call shapes, on purpose: LibNAddOn's own files call `ns.Supports(feature)` (this
+-- namespace is not an addon, so it gets no method), and every addon gets
+-- `addOn:Supports(feature)` through `ns.linkFlavor`. Calling the wrong shape does not error:
+-- the feature argument is then not a known name, and a name not in the table is supported.
 
 -- Which game systems are ABSENT on which client flavor; anything not listed exists everywhere.
 local UNSUPPORTED = {
@@ -47,14 +53,11 @@ local id = detect()
 ---@field isForever boolean
 ---@field isRetail boolean
 
----@class LibNAddOn
----@field flavor Flavor the detected client flavor
+---@type Flavor
 ns.flavor = { id = id, isForever = id == "forever", isRetail = id == "retail" }
 
 ---Does the detected client flavor have this game system? Anything not in the feature table is
----supported everywhere.
----@class LibNAddOn
----@field Supports fun(feature: string): boolean
+---supported everywhere. The library-level (dot) form; an addon calls `addOn:Supports(feature)`.
 ---@param feature string e.g. "housing", "specializations", "legion", "greatVault"
 ---@return boolean
 function ns.Supports(feature)
@@ -73,7 +76,7 @@ end
 -- detected flavor and the signals behind it. Skipped when there is no command registry (the
 -- busted harness loads this file into a bare namespace).
 if ns.registerCommand then
-  ns:registerCommand("flavor", "", function()
+  ns:registerCommand("flavor", nil, function()
     ns.Print(("flavor: %s (WOW_PROJECT_ID %s, WOW_PROJECT_CAMELOT %s, X-Game %s)"):format(
       ns.flavor.id, tostring(WOW_PROJECT_ID), tostring(WOW_PROJECT_CAMELOT), tostring(tocGame())))
   end, "print the detected client flavor and the signals behind it")

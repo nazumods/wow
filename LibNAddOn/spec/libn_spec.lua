@@ -58,6 +58,14 @@ describe("libn.load flavor option", function()
     assert.has_error(function() libn.load({ flavor = "classic" }) end)
   end)
 
+  it("rejects options that aren't a table, so a spec can't silently run as Retail", function()
+    assert.has_error(function() libn.load("forever") end)
+  end)
+
+  it("rejects an unknown option key (e.g. a misspelt 'flavour')", function()
+    assert.has_error(function() libn.load({ flavour = "forever" }) end)
+  end)
+
   it("rethrows a load failure, and still restores the globals", function()
     -- A default (Retail) load reaches C_AddOns in flavor.lua's detection, which throws here.
     local savedAddOns = _G.C_AddOns

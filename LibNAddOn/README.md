@@ -214,24 +214,26 @@ end)
 
 ### Client flavor (Retail / Forever)
 
-The suite runs on Retail and on WoW: Forever from one folder. LibNAddOn detects the client once,
-when it loads, and every addon gets the result:
+The suite is being ported to run on Retail and on WoW: Forever from one folder. LibNAddOn detects
+the client once, when it loads, and every addon gets the result:
 
 #### `myAddOn.flavor`
 
 `{ id = "forever" | "retail", isForever = boolean, isRetail = boolean }`. Forever when
-`WOW_PROJECT_ID == WOW_PROJECT_CAMELOT`; on a build without those constants, when LibNAddOn's own
-`## X-Game:` metadata is `Camelot` or `Forever` (the TOC line `## X-Game: [Game]` is expanded by the
-client); otherwise Retail. Detection never uses `GetBuildInfo()`, and is safe where the constants or
-`C_AddOns` don't exist (busted).
+`WOW_PROJECT_ID == WOW_PROJECT_CAMELOT`; otherwise, when LibNAddOn's own `## X-Game:` metadata is
+`Camelot` or `Forever` (the TOC line is `## X-Game: [Game]`, which per the wiki's TOC format page the
+client expands to the game type; `/lib flavor` shows what it expanded to); otherwise Retail.
+Detection never uses `GetBuildInfo()`, and is safe where the constants or `C_AddOns` don't exist
+(busted).
 
 #### Supports(feature)
 
-`myAddOn:Supports("housing")` answers whether the detected client has a game system. On Forever an
-API existing is not evidence the system does: the client exposes `C_Housing`, `C_WeeklyRewards` and
-friends with no server system behind them, so probing `if C_Housing then` is wrong there. The
-systems Forever lacks are listed once, in `UNSUPPORTED` in `flavor.lua`; anything not listed is
-supported everywhere.
+`myAddOn:Supports("housing")` answers whether the detected client has a game system. Prefer asking
+for the feature over checking the flavor. On Forever an API existing is not evidence the system
+exists: the client exposes the Mainline `C_*` namespaces (`C_Housing`, `C_WeeklyRewards`,
+`C_PerksProgram`, ...) while Blizzard's own TOCs load whole systems, such as the Housing UI, for
+`standard` only. So probing `if C_Housing then` is wrong there. The systems Forever lacks are listed
+once, in `UNSUPPORTED` in `flavor.lua`; anything not listed is supported everywhere.
 
 | Feature | Forever |
 |---|---|
@@ -240,11 +242,15 @@ supported everywhere.
 | anything else | supported |
 
 LibNAddOn's own code uses the dot form, `ns.Supports("greatVault")`; an addon uses the method form.
+Calling the wrong form does not error: the argument is then not a known feature name, and a name
+that is not in the table is supported.
 
-LibNAddOn applies it to its own helpers: `Player.GetActiveSpecialization()` and
-`Player.GetPrimarySpecialization()` return nothing where the client has no `GetSpecialization*`
-functions, and `GetRewardOptions()` returns the zero result (`best == 0`, empty tables) without
-calling `C_WeeklyRewards` when `greatVault` is unsupported.
+LibNAddOn's own helpers are guarded for Forever. `Player.GetActiveSpecialization()` and
+`Player.GetPrimarySpecialization()` return nothing where the client lacks the functions they call
+(Forever has no `GetSpecialization` or `GetSpecializationInfo`); they test for the functions
+themselves, not through `Supports`. `GetRewardOptions()` is gated through the table: it returns the
+zero result (`best == 0`, empty tables) without calling `C_WeeklyRewards` when `greatVault` is
+unsupported. `greatVault` is the only feature LibNAddOn itself consults so far.
 
 `/lib flavor` prints the detected flavor and the signals behind it (`WOW_PROJECT_ID`,
 `WOW_PROJECT_CAMELOT`, and the `X-Game` metadata).

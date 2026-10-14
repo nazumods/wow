@@ -4,7 +4,8 @@
 -- AddOns root, where busted runs.
 --
 -- Only WoW-API-free files belong here; anything touching C_* or frames
--- stays in-game-tested.
+-- stays in-game-tested. The one deliberate exception is flavor.lua, which reads
+-- WOW_PROJECT_* and C_AddOns but only if they exist (libn.load below controls the former).
 
 local libn = {}
 
@@ -39,9 +40,15 @@ local CAMELOT = 18
 ---as Retail (neither constant defined), "forever" as Forever (WOW_PROJECT_ID = WOW_PROJECT_CAMELOT).
 ---The two WOW_PROJECT_* globals are set only for the duration of the load and restored after,
 ---so one spec's flavor never leaks into another's. This lets an addon's specs run as both flavors.
+---A malformed call (options that aren't a table, an unknown option key, an unknown flavor) errors
+---rather than silently loading as Retail, which would let a spec believe it ran as Forever.
 ---@param opts { flavor: ("retail"|"forever")? }?
 ---@return table ns a fresh LibNAddOn namespace with ns.lua.* populated
 function libn.load(opts)
+  assert(opts == nil or type(opts) == "table", "libn.load: options must be a table, got " .. type(opts))
+  for key in pairs(opts or {}) do
+    assert(key == "flavor", "libn.load: unknown option " .. tostring(key))
+  end
   local flavor = opts and opts.flavor
   assert(flavor == nil or flavor == "retail" or flavor == "forever", "libn.load: unknown flavor " .. tostring(flavor))
   _G.Mixin = _G.Mixin or Mixin

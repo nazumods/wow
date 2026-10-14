@@ -40,8 +40,8 @@ local wow = ns.wow
 ---@field GetPowerType fun(): number, string powerType enum, token (e.g. "MANA")
 ---@field GetPowerValues fun(self: Player, idx: number?): number, number power, max
 ---@field GetShapeshiftFormID fun(): number? form/stance/stealth ID, nil when not shifted
----@field GetActiveSpecialization fun(): number?, string?, string?, number?, string?, string?, string? id, name, description, icon, role, classFile, className; returns nothing on a client without specializations (Forever)
----@field GetPrimarySpecialization fun(): number?, string?, string?, number?, string?, string?, string? id, name, description, icon, role, classFile, className (loot spec); returns nothing on a client without specializations (Forever)
+---@field GetActiveSpecialization fun(): number?, string?, string?, number?, string?, string?, string? id, name, description, icon, role, classFile, className; returns nothing where the client lacks the spec functions (Forever)
+---@field GetPrimarySpecialization fun(): number?, string?, string?, number?, string?, string?, string? id, name, description, icon, role, classFile, className (loot spec); returns nothing where the client lacks the spec functions (Forever)
 ---@field GetRace fun(): string, number raceFile, raceId
 ---@field GetXP fun(): number
 ---@field GetXPExhaustion fun(): number? rested bonus XP remaining, nil if none
@@ -88,8 +88,10 @@ local Player = {
   -- https://wowpedia.fandom.com/wiki/API_GetShapeshiftFormID (forms, stealth, wolf, stance, etc)
   GetShapeshiftFormID = GetShapeshiftFormID,
   -- id, name, description, icon (FileID), role (DAMAGE | TANK | HEALER, classFile (e.g. PRIEST), className (e.g. Priest)
-  -- Forever has no GetSpecialization / GetSpecializationInfo / GetSpecializationInfoByID (Blizzard_DeprecatedSpecialization
-  -- isn't loaded there), so these return nil -- "no spec" -- instead of erroring on a nil global.
+  -- Forever has no GetSpecialization / GetSpecializationInfo: Blizzard defines those two only in
+  -- Blizzard_DeprecatedSpecialization, which loads for `classic, standard` and not on Forever. They return nil --
+  -- "no spec" -- there instead of erroring on a nil global. GetSpecializationInfoByID and GetLootSpecialization are
+  -- guarded the same way, defensively: shared Blizzard code calls GetSpecializationInfoByID, so whether Forever defines it is unverified.
   GetActiveSpecialization = function()
     if not (GetSpecialization and GetSpecializationInfo) then return end
     local spec = GetSpecialization()
@@ -212,7 +214,7 @@ ns.wow.GreatVault = {}
 ---@return number best highest reward item level
 ---@return integer bestN number of rewards at the best item level
 function ns.wow.GreatVault.getRewardOptions()
-  -- Forever exposes C_WeeklyRewards with no Great Vault behind it (availability unverified), so the
+  -- Forever's client exposes C_WeeklyRewards, but whether a Great Vault backs it is unverified (#952), so the
   -- API existing is not evidence: gate on the feature table. Same five-value shape as below.
   if not ns.Supports("greatVault") then return {}, {}, {}, 0, 0 end
   local rewards = {}

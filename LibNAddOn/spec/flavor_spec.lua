@@ -39,6 +39,13 @@ describe("LibNAddOn flavor", function()
       assert.is_false(ns.flavor.isRetail)
     end)
 
+    it("compares WOW_PROJECT_ID against WOW_PROJECT_CAMELOT's value, not a literal", function()
+      _G.WOW_PROJECT_CAMELOT, _G.WOW_PROJECT_ID = 99, 99
+      assert.equals("forever", load().flavor.id)
+      _G.WOW_PROJECT_CAMELOT, _G.WOW_PROJECT_ID = 99, 18
+      assert.equals("retail", load().flavor.id)
+    end)
+
     it("is Retail when the client project is not Camelot", function()
       _G.WOW_PROJECT_CAMELOT, _G.WOW_PROJECT_ID = 18, 1
       local ns = load()
@@ -175,6 +182,7 @@ describe("LibNAddOn flavor", function()
       load(ns)
       assert.is_table(registered.flavor)
       assert.equals(ns, registered.flavor.self)
+      assert.is_nil(registered.flavor.subcmd)   -- takes no argument: a subcommand would add "<target>" to /lib usage
       assert.is_function(registered.flavor.handler)
       assert.is_string(registered.flavor.description)
     end)
