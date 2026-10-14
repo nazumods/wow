@@ -212,6 +212,46 @@ ns:OnItemTooltip(function(tooltip, data)
 end)
 ```
 
+### Client flavor (Retail / Forever)
+
+The suite runs on Retail and on WoW: Forever from one folder. LibNAddOn detects the client once,
+when it loads, and every addon gets the result:
+
+#### `myAddOn.flavor`
+
+`{ id = "forever" | "retail", isForever = boolean, isRetail = boolean }`. Forever when
+`WOW_PROJECT_ID == WOW_PROJECT_CAMELOT`; on a build without those constants, when LibNAddOn's own
+`## X-Game:` metadata is `Camelot` or `Forever` (the TOC line `## X-Game: [Game]` is expanded by the
+client); otherwise Retail. Detection never uses `GetBuildInfo()`, and is safe where the constants or
+`C_AddOns` don't exist (busted).
+
+#### Supports(feature)
+
+`myAddOn:Supports("housing")` answers whether the detected client has a game system. On Forever an
+API existing is not evidence the system does: the client exposes `C_Housing`, `C_WeeklyRewards` and
+friends with no server system behind them, so probing `if C_Housing then` is wrong there. The
+systems Forever lacks are listed once, in `UNSUPPORTED` in `flavor.lua`; anything not listed is
+supported everywhere.
+
+| Feature | Forever |
+|---|---|
+| `specializations`, `housing`, `delves`, `mythicPlus`, `encounterJournal`, `travelersLog`, `garrison`, `legion` | not supported |
+| `greatVault`, `warbandBank` | not supported *for now* — unverified on the beta, so off until it is shown to work |
+| anything else | supported |
+
+LibNAddOn's own code uses the dot form, `ns.Supports("greatVault")`; an addon uses the method form.
+
+LibNAddOn applies it to its own helpers: `Player.GetActiveSpecialization()` and
+`Player.GetPrimarySpecialization()` return nothing where the client has no `GetSpecialization*`
+functions, and `GetRewardOptions()` returns the zero result (`best == 0`, empty tables) without
+calling `C_WeeklyRewards` when `greatVault` is unsupported.
+
+`/lib flavor` prints the detected flavor and the signals behind it (`WOW_PROJECT_ID`,
+`WOW_PROJECT_CAMELOT`, and the `X-Game` metadata).
+
+In busted specs, `libn.load({ flavor = "forever" })` (`spec/libn.lua`) loads LibNAddOn as the Forever
+client would; `libn.load()` loads it as Retail.
+
 ### An event handler for ADDON_LOADED
 
 Calls `myAddOn.onLoad` when the event is fired for `ADDON_NAME`.

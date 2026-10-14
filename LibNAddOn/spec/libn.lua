@@ -18,6 +18,7 @@ local FILES = {
   "lua/maps.lua",
   "lua/sets.lua",
   "lua/class.lua",
+  "flavor.lua",   -- nil-safe: detection reads WOW_PROJECT_* / C_AddOns only if present
 }
 
 -- WoW global used by class.lua: shallow-copies each source into the target.
@@ -30,13 +31,31 @@ local function Mixin(target, ...)
   return target
 end
 
+-- The client's WOW_PROJECT_CAMELOT / WOW_PROJECT_ID, as flavor.lua reads them at load time.
+local CAMELOT = 18
+
+---Load LibNAddOn's pure-Lua modules into a fresh namespace.
+---`opts.flavor` picks the client flavor flavor.lua detects while loading: nil or "retail" loads
+---as Retail (neither constant defined), "forever" as Forever (WOW_PROJECT_ID = WOW_PROJECT_CAMELOT).
+---The two WOW_PROJECT_* globals are set only for the duration of the load and restored after,
+---so one spec's flavor never leaks into another's. This lets an addon's specs run as both flavors.
+---@param opts { flavor: ("retail"|"forever")? }?
 ---@return table ns a fresh LibNAddOn namespace with ns.lua.* populated
-function libn.load()
+function libn.load(opts)
+  local flavor = opts and opts.flavor
+  assert(flavor == nil or flavor == "retail" or flavor == "forever", "libn.load: unknown flavor " .. tostring(flavor))
   _G.Mixin = _G.Mixin or Mixin
   local ns = {}
-  for _, f in ipairs(FILES) do
-    assert(loadfile("LibNAddOn/" .. f))("LibNAddOn", ns)
-  end
+  local prevId, prevCamelot = _G.WOW_PROJECT_ID, _G.WOW_PROJECT_CAMELOT
+  _G.WOW_PROJECT_ID, _G.WOW_PROJECT_CAMELOT = nil, nil
+  if flavor == "forever" then _G.WOW_PROJECT_ID, _G.WOW_PROJECT_CAMELOT = CAMELOT, CAMELOT end
+  local ok, err = pcall(function()
+    for _, f in ipairs(FILES) do
+      assert(loadfile("LibNAddOn/" .. f))("LibNAddOn", ns)
+    end
+  end)
+  _G.WOW_PROJECT_ID, _G.WOW_PROJECT_CAMELOT = prevId, prevCamelot
+  if not ok then error(err, 0) end
   return ns
 end
 

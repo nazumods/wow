@@ -272,6 +272,8 @@ std = {
     "TRADESKILL_EXPERIENCE_COLOR",
     "YES",
     "WHITE_FONT_COLOR",
+    "WOW_PROJECT_CAMELOT",
+    "WOW_PROJECT_ID",
     "GameFontHighlightSmall",
     "NumberFontNormalSmallGray",
     "ITEM_PET_KNOWN",

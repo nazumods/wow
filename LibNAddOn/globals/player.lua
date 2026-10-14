@@ -40,8 +40,8 @@ local wow = ns.wow
 ---@field GetPowerType fun(): number, string powerType enum, token (e.g. "MANA")
 ---@field GetPowerValues fun(self: Player, idx: number?): number, number power, max
 ---@field GetShapeshiftFormID fun(): number? form/stance/stealth ID, nil when not shifted
----@field GetActiveSpecialization fun(): number, string, string, number, string, string, string id, name, description, icon, role, classFile, className
----@field GetPrimarySpecialization fun(): number, string, string, number, string, string, string id, name, description, icon, role, classFile, className (loot spec)
+---@field GetActiveSpecialization fun(): number?, string?, string?, number?, string?, string?, string? id, name, description, icon, role, classFile, className; returns nothing on a client without specializations (Forever)
+---@field GetPrimarySpecialization fun(): number?, string?, string?, number?, string?, string?, string? id, name, description, icon, role, classFile, className (loot spec); returns nothing on a client without specializations (Forever)
 ---@field GetRace fun(): string, number raceFile, raceId
 ---@field GetXP fun(): number
 ---@field GetXPExhaustion fun(): number? rested bonus XP remaining, nil if none
@@ -88,12 +88,18 @@ local Player = {
   -- https://wowpedia.fandom.com/wiki/API_GetShapeshiftFormID (forms, stealth, wolf, stance, etc)
   GetShapeshiftFormID = GetShapeshiftFormID,
   -- id, name, description, icon (FileID), role (DAMAGE | TANK | HEALER, classFile (e.g. PRIEST), className (e.g. Priest)
+  -- Forever has no GetSpecialization / GetSpecializationInfo / GetSpecializationInfoByID (Blizzard_DeprecatedSpecialization
+  -- isn't loaded there), so these return nil -- "no spec" -- instead of erroring on a nil global.
   GetActiveSpecialization = function()
+    if not (GetSpecialization and GetSpecializationInfo) then return end
     local spec = GetSpecialization()
     if not spec then return end  -- no active spec yet (e.g. very early login)
     return GetSpecializationInfo(spec)
   end,
-  GetPrimarySpecialization = function() return GetSpecializationInfoByID(GetLootSpecialization()) end,
+  GetPrimarySpecialization = function()
+    if not (GetSpecializationInfoByID and GetLootSpecialization) then return end
+    return GetSpecializationInfoByID(GetLootSpecialization())
+  end,
   GetRace = function()
     local _, raceFile, raceId = UnitRace("player")
     return raceFile, raceId
@@ -206,6 +212,9 @@ ns.wow.GreatVault = {}
 ---@return number best highest reward item level
 ---@return integer bestN number of rewards at the best item level
 function ns.wow.GreatVault.getRewardOptions()
+  -- Forever exposes C_WeeklyRewards with no Great Vault behind it (availability unverified), so the
+  -- API existing is not evidence: gate on the feature table. Same five-value shape as below.
+  if not ns.Supports("greatVault") then return {}, {}, {}, 0, 0 end
   local rewards = {}
   local counts = {}
   local progress = {}

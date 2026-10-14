@@ -7,6 +7,8 @@ local G = _G
 ---@field RegisterSettings fun(self: AddOn, settings: table) register Settings-panel categories; call at file-load time (before ADDON_LOADED), requires a DB
 ---@field GetSettingsParent fun(self: AddOn, name: string): table get-or-create a shared parent Settings category to nest under (e.g. for a LibNUI SettingsFrame subcategory)
 ---@field RegisterChangelog fun(self: AddOn, parentName: string?) add a "Changelog" button to the addon's settings category (needs a `changelog.lua` data file); uses the addon's own category if it has one, else creates one — a subcategory under `parentName` when given, else top-level
+---@field flavor Flavor the detected client flavor (`isForever` / `isRetail`); shared by every addon
+---@field Supports fun(self: AddOn, feature: string): boolean does the detected client flavor have this game system (e.g. "housing", "specializations")? Anything not in the feature table is supported everywhere
 
 ---@param features {name: string, addOn: AddOn, [any]: any}|string
 ---@param o AddOn|nil
@@ -44,6 +46,8 @@ function LibNAddOn(features, o)
   ns.createEventListener(addOn)
 
   ns.linkCVarHelpers(addOn)
+
+  ns.linkFlavor(addOn)
 
   ns.linkTooltipHelpers(addOn)
 

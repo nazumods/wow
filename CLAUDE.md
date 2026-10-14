@@ -167,6 +167,10 @@ Use `/dump <expr>` or `/run <lua>` to inspect live data. Output appears in the c
 - Render bars/overlays on the correct frame layer (not `BACKGROUND`) and verify z-order and mouse-grab behavior.
 - Creature-display models cannot be dressed — use a `ModelScene` actor for arbitrary races.
 
+## Several Clients (Retail + Forever)
+
+The suite targets Retail and WoW: Forever from one folder. **The rules live in one place: [CONTRIBUTING.md → Writing for several clients](CONTRIBUTING.md#writing-for-several-clients-retail--forever)** — read it before touching a system Forever may lack. In short: detect with `ns.flavor` / `ns:Supports(feature)` (LibNAddOn's `flavor.lua`), never `GetBuildInfo()`; on Forever an API existing is not a feature test, so a missing system goes in the feature table there; guard a genuinely missing global function by existence.
+
 ## Key Gotchas
 
 - **TableFrame offsetX/offsetY** are computed once at construction based on whether `rowNames`/`colNames` are non-nil. For dynamic tables, pass `rowNames = {}` / `colNames = {}`.

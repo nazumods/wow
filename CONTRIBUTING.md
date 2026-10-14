@@ -157,9 +157,41 @@ luacheck 1.2.0.
 
 ## Testing against the beta client
 
-Symlink an addon into the beta installation:
+Symlink an addon into the beta installation. The Forever beta lives in `_classic_beta_`
+(its `.flavor.info` says `wow_classic_beta`), not `_beta_`:
 
 ```
-cd _beta_\Interface\Addons
+cd _classic_beta_\Interface\Addons
 mklink /D HideBagBar ..\..\..\_retail_\Interface\AddOns\HideBagBar
 ```
+
+## Writing for several clients (Retail + Forever)
+
+One addon folder serves both clients. The detection helper and the feature table live in
+LibNAddOn (`LibNAddOn/flavor.lua`); every addon gets them from `LibNAddOn(...)`.
+
+- **One TOC, comma-delimited Interface**: `## Interface: 120105, 16001`. An addon that is ported to
+  Forever also carries `## X-Game: [Game]` and `## X-Family: [Family]`, added in the same commit as
+  `16001` (that commit releases the addon anyway). The helper reads LibNAddOn's own `X-Game`, so the
+  lines in another addon's TOC are not what it reads.
+- **Detect with the helper, never with `GetBuildInfo()`**: `ns.flavor.isForever` /
+  `ns.flavor.isRetail`, and `ns:Supports("housing")` for a feature. Build-number ranges drift;
+  the helper checks `WOW_PROJECT_ID == WOW_PROJECT_CAMELOT`, then LibNAddOn's `X-Game` metadata
+  (`Camelot` or `Forever`), and falls back to Retail. `/lib flavor` in-game prints what it found.
+- **On Forever, an API existing is not a feature test.** The client is Mainline-family and, as
+  observed on the beta, exposes `C_Housing`, `C_NeighborhoodInitiative`, `C_WeeklyRewards` and
+  `C_PerksProgram` with no server system behind them, so `if C_Housing then` is true there and wrong. A game system Forever lacks
+  goes in the `UNSUPPORTED` feature table in `LibNAddOn/flavor.lua` (anything not listed exists
+  everywhere), and addon code asks `ns:Supports(feature)`. The table is the one place a gap is recorded.
+- **Gate at registration.** A file for a missing system returns at its top
+  (`if not ns:Supports("housing") then return end`), so its broker, view, command and events never
+  register, rather than every call site checking.
+- **Guard a genuinely missing global function by existence** (`if not GetSpecialization then return end`):
+  those functions really are absent on Forever, unlike the systems above. Return nothing, or a "no
+  data" value the caller already handles.
+- **Forever-only files** go in the TOC file list with inline directives:
+  `ForeverOnly.lua [AllowLoadGameType camelot] [ExcludeLoadGameType standard, classic]`. The paired
+  exclude is there because, per the wiki's TOC format page, an allow list none of whose names the
+  client recognises still passes.
+- **Specs run as either flavor**: `libn.load({ flavor = "forever" })` (see `LibNAddOn/spec/libn.lua`)
+  loads LibNAddOn as the Forever client would; `libn.load()` loads it as Retail.
