@@ -59,7 +59,9 @@ describe("libn.load flavor option", function()
   end)
 
   it("rejects options that aren't a table, so a spec can't silently run as Retail", function()
-    assert.has_error(function() libn.load("forever") end)
+    local ok, err = pcall(libn.load, "forever")
+    assert.is_false(ok)
+    assert.is_truthy(tostring(err):find("options must be a table", 1, true))
   end)
 
   it("rejects an unknown option key (e.g. a misspelt 'flavour')", function()
