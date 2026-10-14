@@ -7,6 +7,7 @@ describe("LibNAddOn Player flavor guards", function()
   local STUBBED = {
     "C_Container", "C_WeeklyRewards", "C_Item", "C_MountJournal",
     "GetSpecialization", "GetSpecializationInfo", "GetSpecializationInfoByID", "GetLootSpecialization",
+    "WOW_PROJECT_ID", "WOW_PROJECT_CAMELOT", "C_AddOns",   -- read by the real flavor.lua in the last block
   }
   local saved
   local ns, Player
@@ -142,6 +143,39 @@ describe("LibNAddOn Player flavor guards", function()
       assert.equals(639, best)
       assert.equals(1, bestN)
       assert.same({ "greatVault" }, supportsAsked)
+    end)
+  end)
+
+  -- The blocks above stub ns.Supports; this one loads the real flavor.lua beside player.lua so the
+  -- guard is exercised against the real feature table (the seam between the two files).
+  describe("with the real feature table", function()
+    local function loadReal(clientProject)
+      _G.WOW_PROJECT_CAMELOT, _G.WOW_PROJECT_ID = 18, clientProject
+      local real = { wow = {}, registerCommand = function() end }
+      assert(loadfile("LibNAddOn/flavor.lua"))("LibNAddOn", real)
+      assert(loadfile("LibNAddOn/globals/player.lua"))("LibNAddOn", real)
+      return real
+    end
+
+    it("Forever: getRewardOptions returns the zero result without reading C_WeeklyRewards", function()
+      local real = loadReal(18)
+      activities = { { id = 11, type = 3, progress = 2, threshold = 2 } }
+      local _, counts, progress, best, bestN = real.wow.GreatVault.getRewardOptions()
+      assert.same({}, counts)
+      assert.same({}, progress)
+      assert.equals(0, best)
+      assert.equals(0, bestN)
+      assert.equals(0, activityCalls)
+    end)
+
+    it("Retail: getRewardOptions reads C_WeeklyRewards", function()
+      local real = loadReal(1)
+      activities = { { id = 11, type = 3, progress = 2, threshold = 2 } }
+      links[11], ilvls.link11 = "link11", 639
+      local _, _, progress, best = real.wow.GreatVault.getRewardOptions()
+      assert.equals(1, activityCalls)
+      assert.equals(1, progress.Raid.complete)
+      assert.equals(639, best)
     end)
   end)
 end)
