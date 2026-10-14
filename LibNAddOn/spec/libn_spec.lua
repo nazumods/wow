@@ -57,4 +57,17 @@ describe("libn.load flavor option", function()
   it("rejects an unknown flavor", function()
     assert.has_error(function() libn.load({ flavor = "classic" }) end)
   end)
+
+  it("rethrows a load failure, and still restores the globals", function()
+    -- A default (Retail) load reaches C_AddOns in flavor.lua's detection, which throws here.
+    local savedAddOns = _G.C_AddOns
+    _G.C_AddOns = setmetatable({}, { __index = function() error("boom") end })
+    _G.WOW_PROJECT_ID, _G.WOW_PROJECT_CAMELOT = 1, 18
+    local ok, err = pcall(libn.load)
+    _G.C_AddOns = savedAddOns
+    assert.is_false(ok)
+    assert.is_truthy(tostring(err):find("boom", 1, true))
+    assert.equals(1, _G.WOW_PROJECT_ID)
+    assert.equals(18, _G.WOW_PROJECT_CAMELOT)
+  end)
 end)
