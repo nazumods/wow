@@ -99,8 +99,9 @@ jobs:
   # publish.yml turns each .toc `## Interface:` value into a CurseForge game version, and checks that
   # CurseForge knows it. Reading `16001` (Forever) from the left once gave `16.0.1` (#954), and the upload
   # action drops an unknown version silently -- so the release would have shipped unlabelled. The functions
-  # live inline in publish.yml (an older tag re-published via workflow_dispatch can't source a helper
-  # file); this runs them as extracted from the YAML. Fully offline and fast, so no path filter.
+  # live inline in publish.yml, beside their only caller; this extracts them, and the two steps that call
+  # them, from the YAML text and runs those (stub curl, fake .toc files). Fully offline and fast, so no
+  # path filter.
   game-versions:
     runs-on: ubuntu-latest
 

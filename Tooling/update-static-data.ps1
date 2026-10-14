@@ -264,9 +264,10 @@ function Get-IconImage([string]$name) {
 
 # The wago /api/builds entry to pull. An explicit -Build is pinned outright (and wins over
 # -VersionPrefix). Otherwise the NEWEST BY DATE, optionally within a version family -- never the
-# first listed: /api/builds is unsorted per product, and wow_classic_beta, a shared bucket for every
-# Classic beta since 2019 (1.13, 2.5, 3.4, 4.4, 5.5 and WoW: Forever's 1.60), lists a 2025 MoP
-# Classic build first. $VersionPrefix keeps its trailing dot ('1.60.' does not match '1.600.').
+# first listed: /api/builds is not newest-first for every product. wow_classic_beta, a shared bucket for
+# every Classic beta since 2019 (1.13, 2.5, 3.4, 4.4, 5.5 and WoW: Forever's 1.60), lists whole families
+# one after another, so its first entry is a 2025 MoP Classic build (each family is newest-first).
+# $VersionPrefix keeps its trailing dot ('1.60.' does not match '1.600.').
 function Select-WagoBuild($List, [string]$Build, [string]$VersionPrefix, [string]$Product = '') {
   if ($Build) {
     $pinned = $List | Where-Object { $_.version -eq $Build } | Select-Object -First 1

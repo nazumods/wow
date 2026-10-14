@@ -75,10 +75,12 @@ Describe 'Get-IconImage' {
   }
 }
 
-# wago's /api/builds is unsorted per product. For wow_classic_beta -- a shared bucket for every Classic
-# beta since 2019 -- the first entry is a 2025 MoP Classic build while the NEWEST is WoW: Forever 1.60.
-# The fixture keeps that shape (live data, 2026-10-14): MoP first, and inside the 1.60 family the older
-# build listed before the newer one, so "first listed" is wrong both overall and within a family.
+# wago's /api/builds is not ordered newest-first overall for every product. wow_classic_beta -- a shared
+# bucket for every Classic beta since 2019 -- lists whole families one after another (5.5, 4.4, 3.4, 2.5,
+# 1.60, 1.13 on 2026-10-14), so its first entry is a 2025 MoP Classic build while the NEWEST is WoW:
+# Forever 1.60. Live data lists each family newest-first. The fixture keeps the MoP-first shape and, to
+# prove the pick is by date and not by position, lists the older 1.60 build BEFORE the newer one (an
+# order wago does not use today).
 Describe 'Select-WagoBuild' {
   BeforeAll {
     $script:Builds = @(
@@ -121,6 +123,17 @@ Describe 'Select-WagoBuild' {
     { Select-WagoBuild $script:Builds '' '7.' 'wow_classic_beta' } | Should -Throw -ExpectedMessage "*starts with '7.'*"
   }
 
+  It 'matches -VersionPrefix at the START of the version, with its dot' {
+    # '11.60.0.9999' contains '1.60.' and '1.600.0.1' starts with '1.60'; both are NEWER than the real
+    # 1.60.1 build, so a Contains() match or a prefix without its dot would pick one of them.
+    $lookalikes = @(
+      [pscustomobject]@{ version = '1.60.1.70374';  created_at = '2026-10-13 23:25:05' }
+      [pscustomobject]@{ version = '11.60.0.9999';  created_at = '2026-10-14 00:00:00' }
+      [pscustomobject]@{ version = '1.600.0.1';     created_at = '2026-10-14 01:00:00' }
+    )
+    (Select-WagoBuild $lookalikes '' '1.60.').version | Should -Be '1.60.1.70374'
+  }
+
   It 'compares created_at as dates, not as text' {
     # As text '...T01:00:00Z' sorts after '... 23:59:00' ('T' > ' '); as dates it is the earlier build.
     $mixed = @(
@@ -137,14 +150,23 @@ Describe 'Select-WagoBuild' {
   # The tests above drive the function directly; the original bug (`$list[0]`) lived in the code that
   # CALLS it. Pin that boundary: the script resolves its build through Select-WagoBuild, handing it the
   # operator's -Build and -VersionPrefix, and no longer indexes the build list by position.
-  It 'is what the script calls to resolve its build, with -Build and -VersionPrefix' {
+  It 'is what the script calls to resolve its build, with the list, -Build, -VersionPrefix, -Product in order' {
     $calls = @($script:ScriptAst.FindAll({
           param($node)
           $node -is [System.Management.Automation.Language.CommandAst] -and $node.GetCommandName() -eq 'Select-WagoBuild'
         }, $true))
     $calls.Count | Should -Be 1
-    $calls[0].Extent.Text | Should -Match '\$Build\b'
-    $calls[0].Extent.Text | Should -Match '\$VersionPrefix\b'
+    $callArgs = @($calls[0].CommandElements | Select-Object -Skip 1 | ForEach-Object { $_.Extent.Text })
+    $callArgs -join ' ' | Should -Be '$list $Build $VersionPrefix $Product'
     $script:ScriptAst.Extent.Text | Should -Not -Match '\$list\[0\]'
+  }
+
+  It 'takes the build number from the selected record' {
+    $assigns = @($script:ScriptAst.FindAll({
+          param($node)
+          $node -is [System.Management.Automation.Language.AssignmentStatementAst] -and
+          $node.Left.Extent.Text -eq '$Build' -and $node.Right.Extent.Text -eq '$match.version'
+        }, $true))
+    $assigns.Count | Should -Be 1
   }
 }

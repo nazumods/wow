@@ -42,8 +42,10 @@
   EVERY Classic beta since 2019 (1.13, 2.5, 3.4, 4.4, 5.5, 1.60), so "latest" is merely whichever
   shipped last. -VersionPrefix (keep the trailing dot: 1.60. does not match 1.600.) takes the
   newest-by-date build of that version family instead; -Build pins one build outright and wins over
-  both. Stale-id failures against a Forever build are expected until its data files carry Forever
-  ids -- the data files are Retail ids today. Cached CSVs are named by table only, so give each
+  both. wow_classic_beta is where Forever's pre-launch beta builds are listed (2026-10-14); wago
+  also lists a 'wowf' product (one 1.60.1 build then), and which product Forever uses after launch is
+  unconfirmed. Stale-id failures against a Forever build are expected until its data files carry
+  Forever ids -- the data files are Retail ids today. Cached CSVs are named by table only, so give each
   product/build its own -CacheDir (CI keys the whole directory on product + build).
 
   wago politeness: -CacheDir <dir> reads/writes each table's CSV under <dir> instead of re-pulling,

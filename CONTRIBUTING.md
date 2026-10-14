@@ -147,8 +147,9 @@ luacheck 1.2.0.
   `X-Curse-Project-ID` in their `.toc`. The upload's CurseForge game versions come from the
   `.toc`'s `## Interface:` values read from the right (`120105` → `12.1.5`, `16001` →
   `1.60.1`); if CurseForge doesn't know one yet, the workflow fails instead of uploading without
-  it — re-run the workflow once CurseForge has added the version. The conversion is covered by
-  `bash Tooling/tests/game-versions.test.sh` (a `test.yml` job).
+  it — re-run the workflow once CurseForge has added the version. The conversion, that check and
+  the workflow wiring around them are covered by `bash Tooling/tests/game-versions.test.sh` (a
+  `test.yml` job), which runs the shipped steps against fake `.toc` files and a stub `curl`.
 - Doc-only (`.md`) and test-only (`spec/`) commits never trigger a release.
 
 ## Database compatibility

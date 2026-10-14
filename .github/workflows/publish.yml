@@ -154,7 +154,10 @@ jobs:
             echo "::error::Could not list CurseForge game versions (bad token or CurseForge API down) -- re-run the workflow later"
             exit 1
           fi
-          known=$(jq -r '.[].name' <<< "$response")
+          if ! known=$(jq -r '.[].name' <<< "$response"); then
+            echo "::error::Unexpected CurseForge game-versions response (expected a JSON list of objects with a name)"
+            exit 1
+          fi
           missing=$(missing_versions "$known" "$GAME_VERSIONS")
           if [[ -n "$missing" ]]; then
             echo "::error::CurseForge has no game version named: $missing -- the upload would silently drop it"

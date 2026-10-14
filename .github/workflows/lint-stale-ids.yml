@@ -18,7 +18,7 @@ on:
   workflow_dispatch:
     inputs:
       product:
-        description: "wago product to lint (default wow = live retail; Forever = wow_classic_beta)"
+        description: "wago product to lint (default wow = live retail; Forever's pre-launch beta = wow_classic_beta)"
         type: string
         default: wow
       version_prefix:
@@ -79,9 +79,10 @@ jobs:
         run: ./Tooling/lint-stale-ids.ps1 -Product $env:WAGO_PRODUCT -Build "${{ steps.build.outputs.version }}" -CacheDir .wago-cache
 
   # Two consecutive failures (a stale id that persists across days, not a one-off wago blip)
-  # open or comment on a tracking issue; a successful run closes it. Only runs that lint the daily
+  # open or comment on a tracking issue; a successful run closes it. Only SCHEDULED runs of the daily
   # default (wow, latest) count: a manual run against another product (Forever's Retail-id data
-  # files are expected to fail it) must neither raise that issue nor close the real one.
+  # files are expected to fail it) must not raise that issue, close the real one, or become the
+  # "previous run" the next scheduled failure is compared with (hence `--event schedule` below).
   notify:
     needs: lint
     if: always() && (inputs.product || 'wow') == 'wow' && (inputs.version_prefix || '') == ''
@@ -96,7 +97,7 @@ jobs:
         if: needs.lint.result == 'failure'
         run: |
           prev=$(gh run list -R "$REPO" --workflow lint-stale-ids.yml --branch main \
-                   --status completed --limit 1 --json conclusion --jq '.[0].conclusion // ""')
+                   --event schedule --status completed --limit 1 --json conclusion --jq '.[0].conclusion // ""')
           echo "Previous completed run conclusion: ${prev:-none}"
           if [ "$prev" != "failure" ]; then
             echo "First failure — could be a transient wago.tools blip; the daily schedule retries tomorrow. No issue yet."
