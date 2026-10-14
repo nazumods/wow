@@ -303,7 +303,6 @@
     "GetInventoryItemID",
     "GetInventoryItemLink",
     "GetInventorySlotInfo",
-    "GetItemIcon",
     "GetLocale",
     "GetLootSlotLink",
     "GetLootSpecialization",
