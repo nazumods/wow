@@ -28,7 +28,7 @@ include_files = {
 -- -luarocks use .lua/.luarocks/.install); keep `luacheck .` off those trees.
 exclude_files = {".lua", ".luarocks", ".install"}
 
-files["**/spec/**/*.lua"] = {std = "+busted", read_globals = {"loadfile", "assert", "require", "tostring"}, globals = {"Mixin", "_G.Mixin"}}
+files["**/spec/**/*.lua"] = {std = "+busted", read_globals = {"loadfile", "assert", "require", "tostring", "io"}, globals = {"Mixin", "_G.Mixin"}}
 -- Addons that intentionally define their own globals.
 files["LibNUI/globals.lua"] = {globals = {"LibNUI"}, read_globals = {"LibNUITest"}}
 files["LibNUI/debug.lua"] = {globals = {"SLASH_WDEBUG1"}}
