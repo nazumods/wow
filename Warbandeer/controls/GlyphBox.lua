@@ -71,6 +71,8 @@ ns.GlyphBox = GlyphBox
 ---@return { id: integer, name: string, icon: integer }[]
 local function classSpecs(classId)
   local out = {}
+  -- Neither spec query need exist (Forever has no specializations): no picker, no error.
+  if not (GetNumSpecs and GetSpecInfo) then return out end
   for i = 1, (GetNumSpecs(classId) or 0) do
     local id, name, _, icon = GetSpecInfo(classId, i)
     if id then out[#out + 1] = { id = id, name = name, icon = icon } end
