@@ -1,4 +1,4 @@
-## Interface: 120105
+## Interface: 120105, 16001
 ## Title: Combat Outline
 ## Author: Nazuraki
 ## Version: 12.1.5-r1
