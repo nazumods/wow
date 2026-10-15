@@ -16,7 +16,7 @@ describe("LibNAddOn Player flavor guards", function()
   local ns, Player
   local supportsAsked, supportsResult
   local activityCalls, activities, links, ilvls
-  local specCalls, spellBookCalls
+  local spellBookCalls
 
   before_each(function()
     saved = {}
@@ -30,10 +30,9 @@ describe("LibNAddOn Player flavor guards", function()
     }
     _G.C_Item = { GetDetailedItemLevelInfo = function(link) return ilvls[link] end }
     _G.C_MountJournal = { SummonByID = function() end }
-    specCalls = 0
     _G.C_SpecializationInfo = {
-      GetSpecialization = function() specCalls = specCalls + 1; return nil end,
-      GetSpecializationInfo = function() specCalls = specCalls + 1; error("must not be asked for a nil spec") end,
+      GetSpecialization = function() return nil end,
+      GetSpecializationInfo = function() error("must not be asked for a nil spec") end,
     }
     spellBookCalls = {}
     _G.C_SpellBook = {

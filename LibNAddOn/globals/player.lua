@@ -40,7 +40,7 @@ local wow = ns.wow
 ---@field GetPowerType fun(): number, string powerType enum, token (e.g. "MANA")
 ---@field GetPowerValues fun(self: Player, idx: number?): number, number power, max
 ---@field GetShapeshiftFormID fun(): number? form/stance/stealth ID, nil when not shifted
----@field GetActiveSpecialization fun(): number?, string?, string?, number?, string?, string?, string? id, name, description, icon, role, classFile, className; returns nothing where the client lacks the spec functions (Forever)
+---@field GetActiveSpecialization fun(): number?, string?, string?, number?, string?, string?, string? id, name, description, icon, role, classFile, className; returns nothing where `specializations` is unsupported (Forever)
 ---@field GetPrimarySpecialization fun(): number?, string?, string?, number?, string?, string?, string? id, name, description, icon, role, classFile, className (loot spec); returns nothing where the client lacks the spec functions (Forever)
 ---@field GetRace fun(): string, number raceFile, raceId
 ---@field GetXP fun(): number
@@ -90,7 +90,7 @@ local Player = {
   -- id, name, description, icon (FileID), role (DAMAGE | TANK | HEALER, classFile (e.g. PRIEST), className (e.g. Priest)
   -- Calls C_SpecializationInfo directly: GetSpecialization / GetSpecializationInfo are only Blizzard's deprecated
   -- shims for it (Blizzard_DeprecatedSpecialization, gated by loadDeprecationFallbacks). Forever has the C_ functions
-  -- but they report ONE class-wide spec (a mage is spec 1482, "Mage"), which is not a spec as the suite means it, so
+  -- but they report ONE class-wide spec (seen on the beta: a mage is spec 1482, "Mage"), which is not a spec as the suite means it, so
   -- the feature table, not a missing global, is what makes this return nothing there (flavor.lua:
   -- specializations = unsupported). Whether Forever should expose that class spec is a separate decision.
   -- GetSpecializationInfoByID and GetLootSpecialization are still guarded by existence, defensively: shared

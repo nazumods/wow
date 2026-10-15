@@ -206,9 +206,9 @@ feature table live in LibNAddOn (`LibNAddOn/flavor.lua`); every addon gets them 
   "no data" value the caller already handles. This is for a global that really can be absent, not for a
   Blizzard deprecation shim: `GetSpecialization`, `GetSpecializationInfo` and `IsSpellKnown` are only
   shims over `C_SpecializationInfo` / `C_SpellBook` (gated by `loadDeprecationFallbacks`), so call the
-  `C_` functions, which luacheck enforces. A spec is asked through `ns.Supports("specializations")`,
-  not through a global's absence: Forever's `C_SpecializationInfo` exists but reports one class-wide
-  spec.
+  `C_` functions, which luacheck enforces. A spec is asked through the feature table (`ns.Supports("specializations")` inside
+  LibNAddOn, `addOn:Supports("specializations")` from an addon), not through a global's absence:
+  Forever's `C_SpecializationInfo` exists but, as seen on the beta, reports one class-wide spec.
 - **Forever-only files** go in the TOC file list with inline directives:
   `ForeverOnly.lua [AllowLoadGameType camelot] [ExcludeLoadGameType standard, classic]`. The paired
   exclude is there because, per the wiki's TOC format page, an allow list none of whose names the
