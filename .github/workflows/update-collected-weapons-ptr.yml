@@ -1,8 +1,10 @@
 name: Update Collected weapon PTR preview
 
-# Watches for a NEW PTR PATCH (e.g. 12.1.0 -> 12.1.5) and, when one opens, replaces
+# Watches for a NEW PTR PATCH (e.g. 12.1.0 -> 12.1.5) on EITHER of wago's two PTR products
+# (`wowt` or `wowxptr`; the newest patch above live wins) and, when one opens, replaces
 # Warbandeer_Collected/data/weaponsources_ptr.lua with the new patch's upcoming-weapon
-# delta and opens a PR. Like the armor PTR watcher, it's gated on the PTR *patch* not
+# delta and opens a PR. With no PTR stream ahead of live the preview is empty: the check exits 0 once it is,
+# and regenerates it first (exit 2) while stale rows remain. Like the armor PTR watcher, it's gated on the PTR *patch* not
 # every build: within-patch PTR builds churn, so a daily PR on each would be noise. The
 # cheap check only hits wago's build list; the heavy double-download (full PTR weapon
 # pipeline + live visual set) runs only when the patch actually moved.
@@ -29,8 +31,9 @@ jobs:
 
       # Cheap, patch-aware probe (no CSV download). Runs in a child process so the
       # script's `exit` doesn't terminate this step. Exit 2 = regenerate — a new PTR patch,
-      # a missing file, OR live catching up to the previewed patch (weapons auto-derive, so
-      # both just clear/replace); 0 = nothing to do; else a real error.
+      # a missing file, live catching up to the previewed patch, OR no PTR stream ahead of live
+      # while stale rows remain (weapons auto-derive, so all just clear/replace); 0 = nothing
+      # to do; else a real error.
       - name: Check for a new PTR patch or live catch-up
         id: check
         shell: pwsh
@@ -79,8 +82,8 @@ jobs:
           body: |
             The upcoming-weapon preview (`Warbandeer_Collected/data/weaponsources_ptr.lua`)
             has been regenerated from the latest [wago.tools](https://wago.tools) weapon
-            delta — the weapon/off-hand appearances on the PTR (`wowt`) build but not yet on
-            live (`wow`). This fires when a **new PTR patch** opens, or when the previewed
+            delta — the weapon/off-hand appearances on the newest PTR patch above live (wago's
+            `wowt` or `wowxptr` product, named in the file header) but not yet on live (`wow`). This fires when a **new PTR patch** opens, or when the previewed
             patch has **gone live** (the delta then empties — nothing is upcoming).
 
             The whole list is replaced (it represents one patch). `ns.WeaponPtrBuild` at
