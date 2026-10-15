@@ -1,5 +1,8 @@
 ---@class Warbandeer
 local ns = select(2, ...)
+-- The Great Vault does not exist on Forever: never register the view there (no tab, no slash
+-- command, no ring slice). Gated before any frame is built or ns.views is touched.
+if not ns:Supports("greatVault") then return end
 ---@type LibNUI
 local ui = ns.ui
 local theme = ns.theme

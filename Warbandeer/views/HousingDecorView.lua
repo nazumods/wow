@@ -1,5 +1,7 @@
 ---@type Warbandeer
 local ns = select(2, ...)
+-- There is no housing on Forever: never register the view (or the listeners below) there.
+if not ns:Supports("housing") then return end
 local ui = ns.ui
 local theme = ns.theme
 local Class, Frame, Label = ns.lua.Class, ui.Frame, ui.Label

@@ -1,5 +1,6 @@
 ---@type Warbandeer
 local ns = select(2, ...)
+if not ns:Supports("housing") then return end -- endeavors are a housing system: no housing, no column
 ---@type LibNUI
 local ui = ns.ui
 local Center = ui.justify.Center
