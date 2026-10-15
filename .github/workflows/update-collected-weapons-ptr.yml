@@ -31,8 +31,9 @@ jobs:
 
       # Cheap, patch-aware probe (no CSV download). Runs in a child process so the
       # script's `exit` doesn't terminate this step. Exit 2 = regenerate — a new PTR patch,
-      # a missing file, OR live catching up to the previewed patch (weapons auto-derive, so
-      # both just clear/replace); 0 = nothing to do; else a real error.
+      # a missing file, live catching up to the previewed patch, OR no PTR stream ahead of live
+      # while stale rows remain (weapons auto-derive, so all just clear/replace); 0 = nothing
+      # to do; else a real error.
       - name: Check for a new PTR patch or live catch-up
         id: check
         shell: pwsh

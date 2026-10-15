@@ -139,7 +139,7 @@ either: the 12.1.5 PTR lived on `wowxptr` (12.1.5.69594 -> 12.1.5.70340) while `
 stopped at 12.1.0.69587. So the script takes each product's head (its newest build by
 `created_at`, not by list position), keeps the heads whose **patch** (first three
 components, compared numerically: `12.1.10` is above `12.1.9`) is **strictly above live's**,
-and picks the highest patch -- a tie going to the newer build. An explicit `-PtrBuild` wins
+and picks the highest patch -- a tie going to the build with the newer `created_at` (`wowt` if those are equal too). An explicit `-PtrBuild` wins
 outright (even one wago lists nowhere; the header then says `[unlisted]`). When **no stream is
 ahead of live** the preview is empty: the generator runs on live-vs-live and stamps
 `ptr == live`, `-Check` says `No PTR stream is ahead of live (live <L>; <heads>) -- the preview is
@@ -178,7 +178,7 @@ CSV download). It compares the PTR patch it resolves (see *PTR source*) against 
 | `0` | Same patch — nothing to do (a within-patch build bump alone is ignored), or **no PTR stream is ahead of live** and the preview is already empty |
 | `2` | A **new PTR patch** (or `sets_ptr.lua` missing/unstamped) — regenerate; also: no PTR stream is ahead of live but the preview still lists rows of a patch that is **not** yet live |
 | `3` | **Live caught up** — the delta still lists a patch that has since gone live (its stamped `ptr` patch ≤ the latest live patch, and the delta still has rows). Regenerate to **clear** the now-live rows, and the watcher opens a `collected-curate-live` tracking issue (the now-live sets still need hand-curating into the live grid — the one thing the live generator can't do). Guarded on the delta having rows, so an already-empty delta reports `0`, not `3` |
-| other | A real error (wago unreachable, etc.) — the script threw |
+| other | A real error (wago unreachable, etc.; or wago's build list names neither PTR product, which is a hiccup, not "nothing ahead") — the script threw |
 
 > **Why exit 3 exists:** when 12.1 shipped, its sets sat only under the PTR-preview toggle because nobody seeded live shells, and the preview kept showing now-live content as "upcoming" (the old `-Check` only fired on a *new* PTR patch). Exit 3 makes the daily watcher self-clear the stale preview **and** file a curation reminder, so neither is forgotten again. The weapon watcher clears the same way (weapons auto-derive, so no curation reminder).
 >

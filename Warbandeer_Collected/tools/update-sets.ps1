@@ -163,8 +163,8 @@ function Get-ExpandIds([string]$file) {
 #     compared numerically: 12.1.10 > 12.1.9) is strictly above the live build's patch. The highest
 #     patch wins, a tie going to the newer created_at. No candidate -> Version/Product = $null: no
 #     PTR stream is ahead of live, and the preview is empty.
-# Returns [pscustomobject]@{ Version; Product; Date; Heads } -- Heads is a printable summary of both
-# products' heads ("wowt 12.1.0.69587, wowxptr 12.1.5.70340").
+# Returns [pscustomobject]@{ Version; Product; Date; Heads } -- Heads is a printable summary of the
+# heads of the products wago lists ("wowt 12.1.0.69587, wowxptr 12.1.5.70340").
 function Resolve-PtrSource($Builds, [string]$LiveBuild, [string]$PtrBuild) {
   $products = @('wowt', 'wowxptr')
   function ParseWagoDate([string]$s) {
