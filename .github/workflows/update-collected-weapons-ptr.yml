@@ -3,7 +3,8 @@ name: Update Collected weapon PTR preview
 # Watches for a NEW PTR PATCH (e.g. 12.1.0 -> 12.1.5) on EITHER of wago's two PTR products
 # (`wowt` or `wowxptr`; the newest patch above live wins) and, when one opens, replaces
 # Warbandeer_Collected/data/weaponsources_ptr.lua with the new patch's upcoming-weapon
-# delta and opens a PR. With no PTR stream ahead of live the preview is empty and the check exits 0. Like the armor PTR watcher, it's gated on the PTR *patch* not
+# delta and opens a PR. With no PTR stream ahead of live the preview is empty: the check exits 0 once it is,
+# and regenerates it first (exit 2) while stale rows remain. Like the armor PTR watcher, it's gated on the PTR *patch* not
 # every build: within-patch PTR builds churn, so a daily PR on each would be noise. The
 # cheap check only hits wago's build list; the heavy double-download (full PTR weapon
 # pipeline + live visual set) runs only when the patch actually moved.

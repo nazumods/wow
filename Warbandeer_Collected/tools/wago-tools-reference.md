@@ -25,7 +25,7 @@ product codes currently served, with build counts and latest version as of the s
 |---|---|---:|---|
 | `wow` | Retail — **live** | 496 | 12.0.7.68453 |
 | `wowt` | Retail — **PTR** (public test) | 468 | 12.1.0.68745 |
-| `wowxptr` | Retail — **second PTR** (carried the whole 12.1.5 PTR cycle, 12.1.5.69594 on 2026-09-03 through 12.1.5.70340 on 2026-10-12, while `wowt` stopped at 12.1.0.69587 on 2026-09-01) | 105 | 12.0.7.68774 |
+| `wowxptr` | Retail — **second PTR** (see the note below) | 105 | 12.0.7.68774 |
 | `wow_beta` | Retail — next-expansion beta | 186 | 12.0.1.66220 |
 | `wowlivetest` | Retail — live-event test realm (legacy) | 25 | 10.2.5.52646 |
 | `wowz` | Retail — internal/submission (legacy) | 67 | 9.0.2.35978 |
@@ -36,6 +36,8 @@ product codes currently served, with build counts and latest version as of the s
 | `wow_classic_era` | Classic Era — live (Vanilla-era) | 105 | 1.15.8.67156 |
 | `wow_classic_era_ptr` | Classic Era — PTR | 121 | 10.1.5.49595 |
 | `wow_anniversary` | Anniversary / Fresh realms | 21 | 2.5.6.68775 |
+
+`wowxptr` is not a footnote PTR: it carried the whole 12.1.5 PTR cycle (12.1.5.69594 on 2026-09-03 through 12.1.5.70340 on 2026-10-12) while `wowt` stopped at 12.1.0.69587 on 2026-09-01. The build counts and "Latest" column above are the snapshot's, not current.
 
 The pipeline pins `wow` for the live refresh. The PTR-preview delta reads **both** PTR
 products, `wowt` and `wowxptr`: the PTR build is the newest patch above live across their

@@ -56,6 +56,10 @@ function Set-Fixture($Wow, $Wowt, $Wowxptr) {
   $global:Wago945Json = $f | ConvertTo-Json -Depth 5
 }
 
+# A fixture given as raw JSON text: shapes the typed setter would normalise (a product that is a single
+# object rather than an array, a null created_at, a malformed version).
+function Set-RawFixture([string]$Json) { $global:Wago945Json = $Json }
+
 # Runs the script in `-Check` mode for one delta mode -> @{ Exit; Out; Requested; Agent }.
 # $Mode is 'armor' or 'weapons'; $Rows writes a `tinsert(` row line into the preview file; $Stamp is the
 # ptr build stamped in it ($null = no file at all).
@@ -76,9 +80,15 @@ function Invoke-Check([string]$Mode, [hashtable]$ScriptArgs, [string]$Stamp, [bo
     foreach ($k in $ScriptArgs.Keys) { $a[$k] = $ScriptArgs[$k] }
     $lines = [System.Collections.Generic.List[string]]::new()
     $global:LASTEXITCODE = $null
-    # Strict mode is inherited by child scopes, and the script under test is not written for it.
-    & { Set-StrictMode -Off; & $script:Target @a } *>&1 | ForEach-Object { $null = $lines.Add([string]$_) }
-    $code = $LASTEXITCODE
+    $code = $null
+    try {
+      # Strict mode is inherited by child scopes, and the script under test is not written for it.
+      & { Set-StrictMode -Off; & $script:Target @a } *>&1 | ForEach-Object { $null = $lines.Add([string]$_) }
+      $code = $LASTEXITCODE
+    } catch {
+      $code = 'throw'
+      $lines.Add("THROW: $($_.Exception.Message)")
+    }
     @{
       Exit = $code; Out = ($lines -join "`n"); Requested = @($global:Wago945Requested)
       Agent = $(if ($global:Wago945Agents.Count) { $global:Wago945Agents[0] } else { '' })
@@ -123,12 +133,13 @@ foreach ($mode in 'armor', 'weapons') {
   $r = Invoke-Check $mode @{} $stampOld $false
   Test-Case "$mode today-nothing-ahead: exit" 0 $r.Exit
   Test-Contains "$mode today-nothing-ahead: says no stream is ahead" $r.Out 'No PTR stream is ahead of live'
-  Test-Contains "$mode today-nothing-ahead: names both heads" $r.Out 'wowt 12.1.0.69587, wowxptr 12.1.5.70340'
+  Test-Contains "$mode today-nothing-ahead: the verdict line names live and both heads" $r.Out '(live 12.1.5.70391; wowt 12.1.0.69587, wowxptr 12.1.5.70340) -- the preview is empty, nothing to do.'
   Test-Lacks "$mode today-nothing-ahead: never says still patch" $r.Out 'still patch'
 
   # no-file: nothing ahead but no preview file at all -> regenerate (the missing check comes first).
   $r = Invoke-Check $mode @{} $null $false
   Test-Case "$mode no-file: exit" 2 $r.Exit
+  Test-Contains "$mode no-file: does not call the live build the latest PTR" $r.Out 'regenerate (no PTR stream is ahead of live)'
 
   # rows-no-stream: nothing ahead but the committed preview still lists rows of a patch that is now live.
   $r = Invoke-Check $mode @{} $stampOld $true
@@ -140,6 +151,8 @@ foreach ($mode in 'armor', 'weapons') {
   # armor regenerates without the curate reminder (2); weapons 2 as always.
   $r = Invoke-Check $mode @{} '12.9.0.1' $true
   Test-Case "$mode rows-no-stream-stamp-ahead: exit" 2 $r.Exit
+  Test-Contains "$mode rows-no-stream-stamp-ahead: says the preview is stale, not caught up" $r.Out 'STALE PREVIEW'
+  Test-Lacks "$mode rows-no-stream-stamp-ahead: not LIVE CAUGHT UP" $r.Out 'LIVE CAUGHT UP'
 
   # wowt-ahead: wowt carries the newer patch; wowxptr is behind live.
   Set-Fixture @($liveNow) @(New-Build 'wowt' '12.2.0.71000' '2026-10-14 08:00:00') @(New-Build 'wowxptr' '12.1.5.70340' '2026-10-12 08:00:00')
@@ -176,6 +189,24 @@ foreach ($mode in 'armor', 'weapons') {
   Test-Case "$mode unlisted-explicit: exit" 2 $r.Exit
   Test-Contains "$mode unlisted-explicit: product unlisted" $r.Out 'PTR 12.9.9.1 [unlisted]'
   Test-Contains "$mode unlisted-explicit: used as given" $r.Out 'NEW PTR PATCH: 12.1.0 -> 12.9.9'
+
+  # no-products: neither PTR product listed (a wago hiccup) -> the run FAILS, never "nothing ahead".
+  Set-Fixture @($liveNow) $null $null
+  $r = Invoke-Check $mode @{} $stampOld $true
+  Test-Case "$mode no-products: the run throws (a watcher sees a failure, not an empty preview)" 'throw' $r.Exit
+  Test-Contains "$mode no-products: says no builds are listed" $r.Out 'lists no builds for wowt or wowxptr'
+
+  # malformed-version: a head with a non-numeric component never throws and is never ahead.
+  Set-RawFixture '{"wow":[{"product":"wow","version":"12.1.5.70391","created_at":"2026-10-13 21:16:02"}],"wowt":[{"product":"wowt","version":"12.x.0.1","created_at":"2026-10-14 08:00:00"}],"wowxptr":[{"product":"wowxptr","version":"12.2.0.71000","created_at":"2026-10-14 08:00:00"}]}'
+  $r = Invoke-Check $mode @{} $stampOld $false
+  Test-Case "$mode malformed-version: exit" 2 $r.Exit
+  Test-Contains "$mode malformed-version: the other product still resolves" $r.Out 'PTR 12.2.0.71000 [wowxptr]'
+
+  # single-object-product + null created_at: wago shapes ConvertTo-Json would hide.
+  Set-RawFixture '{"wow":[{"product":"wow","version":"12.1.5.70391","created_at":"2026-10-13 21:16:02"}],"wowt":{"product":"wowt","version":"12.2.0.71000","created_at":null},"wowxptr":[{"product":"wowxptr","version":"12.2.0.70900","created_at":"2026-10-10T08:00:00Z"}]}'
+  $r = Invoke-Check $mode @{} $stampOld $false
+  Test-Case "$mode odd-shapes: exit" 2 $r.Exit
+  Test-Contains "$mode odd-shapes: a null created_at loses a tie, an ISO date parses" $r.Out 'PTR 12.2.0.70900 [wowxptr]'
 
   # one-product: wowxptr absent from wago's list entirely -> wowt alone decides.
   Set-Fixture @($liveNow) @(New-Build 'wowt' '12.2.0.71000' '2026-10-14 08:00:00') $null

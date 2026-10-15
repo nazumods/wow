@@ -172,7 +172,12 @@ function Resolve-PtrSource($Builds, [string]$LiveBuild, [string]$PtrBuild) {
     if ($s -and [datetime]::TryParse($s, [cultureinfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::AssumeUniversal, [ref]$d)) { return $d }
     return [datetime]::MinValue
   }
-  function PatchOf([string]$v) { $p = $v -split '\.'; ,@(0..2 | ForEach-Object { if ($_ -lt $p.Count) { [int]$p[$_] } else { 0 } }) }
+  # A component that is not a number counts as 0 (a malformed head can then never be "ahead"; it must
+  # not throw the whole run -- the other product may be the right answer).
+  function PatchOf([string]$v) {
+    $p = $v -split '\.'
+    ,@(0..2 | ForEach-Object { $n = 0; if ($_ -lt $p.Count -and [int]::TryParse($p[$_], [ref]$n)) { $n } else { 0 } })
+  }
   function ComparePatch([int[]]$a, [int[]]$b) {
     for ($i = 0; $i -lt 3; $i++) { if ($a[$i] -ne $b[$i]) { return $(if ($a[$i] -gt $b[$i]) { 1 } else { -1 }) } }
     return 0
@@ -188,6 +193,10 @@ function Resolve-PtrSource($Builds, [string]$LiveBuild, [string]$PtrBuild) {
   foreach ($p in $listed.Keys) {
     $heads[$p] = @($listed[$p] | Sort-Object { ParseWagoDate ([string]$_.created_at) } -Descending)[0]
   }
+  # Neither PTR product listed (an empty or partial /api/builds): that is a wago hiccup, not "nothing is
+  # ahead" -- fail the run (the old code threw here) instead of regenerating an empty preview over a
+  # good one. An explicit -PtrBuild needs no list.
+  if (-not $PtrBuild -and $heads.Count -eq 0) { throw "Could not resolve a PTR build: wago.tools lists no builds for $($products -join ' or ')." }
   $summary = (@($heads.Keys | ForEach-Object { "$_ $($heads[$_].version)" }) -join ', ')
   function DayOf($entry) { if ($entry) { ([string]$entry.created_at -split ' ')[0] } else { '' } }
 
@@ -1376,19 +1385,23 @@ if ($Weapons -and $PtrDelta) {
 
   # -Check: patch-aware staleness (no CSV download), reading ns.WeaponPtrBuild.ptr. Exit 0 = same
   # patch (up to date) or nothing ahead of live on an already-empty preview, 2 = new patch / file
-  # missing / stale rows (regenerate), else a real error. Mirrors -PtrDelta.
+  # missing / live caught up / stale rows with no stream ahead (regenerate), else a real error. The
+  # armor -PtrDelta -Check also has exit 3 (live caught up: regenerate AND file the curate reminder).
   if ($Check) {
     $stamped = $null
     if (Test-Path -LiteralPath $WeaponsPtrFile) {
       $cur = [System.IO.File]::ReadAllText($WeaponsPtrFile)
       if ($cur -match 'ns\.WeaponPtrBuild\s*=\s*\{[^}]*ptr\s*=\s*"([^"]+)"') { $stamped = $Matches[1] }
     }
-    if (-not $stamped) { Write-Host "weaponsources_ptr.lua missing or unstamped — regenerate (latest PTR $PtrBuild)." -ForegroundColor Yellow; exit 2 }
+    if (-not $stamped) { Write-Host "weaponsources_ptr.lua missing or unstamped — regenerate ($(if ($nothingAhead) { 'no PTR stream is ahead of live' } else { "latest PTR $PtrBuild" }))." -ForegroundColor Yellow; exit 2 }
     if ($nothingAhead) {
       # No PTR stream carries a patch above live. Rows still listed are stale (their patch is now
       # live or gone): regenerate to clear them. An already-empty preview is the settled state.
       if ($cur -match 'tinsert\(ns\.WeaponPtrSources,') {
-        Write-Host "LIVE CAUGHT UP: no PTR stream is ahead of live (live $LiveBuild; $($src.Heads)) — clear the stale weapon preview." -ForegroundColor Yellow; exit 2
+        $lp = $LiveBuild -split '\.'; $sp = $stamped -split '\.'; $caught = $true
+        for ($i = 0; $i -lt 3; $i++) { $x = [int]$lp[$i]; $y = [int]$sp[$i]; if ($x -ne $y) { $caught = ($x -gt $y); break } }
+        if ($caught) { Write-Host "LIVE CAUGHT UP: no PTR stream is ahead of live (live $LiveBuild; $($src.Heads)) and the stamped patch is now live — clear the stale weapon preview." -ForegroundColor Yellow; exit 2 }
+        Write-Host "STALE PREVIEW: no PTR stream is ahead of live (live $LiveBuild; $($src.Heads)) but the preview still lists rows stamped $stamped — regenerate to clear them." -ForegroundColor Yellow; exit 2
       }
       Write-Host "No PTR stream is ahead of live (live $LiveBuild; $($src.Heads)) -- the preview is empty, nothing to do." -ForegroundColor Green; exit 0
     }
@@ -1492,8 +1505,9 @@ if ($PtrDelta) {
 
   # -Check is a cheap, PATCH-aware staleness probe (no CSV download): it reports only
   # whether a new PTR PATCH has opened since the committed list was generated — the
-  # signal the daily watcher acts on. Exit codes: 0 = same patch (up to date),
-  # 2 = new patch / file missing (regenerate), anything else = a real error (throw).
+  # signal the daily watcher acts on. Exit codes: 0 = same patch (up to date) or no PTR stream ahead of
+  # live on an already-empty preview, 2 = new patch / file missing / stale rows with no stream ahead
+  # (regenerate), 3 = live caught up (regenerate + curate reminder), anything else = a real error (throw).
   if ($Check) {
     $stamped = $null
     if (Test-Path -LiteralPath $PtrFile) {
@@ -1501,7 +1515,7 @@ if ($PtrDelta) {
       if ($cur -match 'ns\.PtrBuild\s*=\s*\{[^}]*ptr\s*=\s*"([^"]+)"') { $stamped = $Matches[1] }
     }
     if (-not $stamped) {
-      Write-Host "sets_ptr.lua missing or unstamped — regenerate (latest PTR $PtrBuild)." -ForegroundColor Yellow
+      Write-Host "sets_ptr.lua missing or unstamped — regenerate ($(if ($nothingAhead) { 'no PTR stream is ahead of live' } else { "latest PTR $PtrBuild" }))." -ForegroundColor Yellow
       exit 2
     }
     if ($nothingAhead) {
