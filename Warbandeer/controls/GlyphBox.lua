@@ -71,7 +71,9 @@ ns.GlyphBox = GlyphBox
 ---@return { id: integer, name: string, icon: integer }[]
 local function classSpecs(classId)
   local out = {}
-  -- Neither spec query need exist (Forever has no specializations): no picker, no error.
+  -- Neither spec query need exist on every client (LibNAddOn's feature table lists
+  -- `specializations` as absent on Forever; the query names there are unverified): no picker,
+  -- no error.
   if not (GetNumSpecs and GetSpecInfo) then return out end
   for i = 1, (GetNumSpecs(classId) or 0) do
     local id, name, _, icon = GetSpecInfo(classId, i)
