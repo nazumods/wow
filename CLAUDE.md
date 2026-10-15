@@ -118,6 +118,8 @@ Every commit and merge follows a strict discipline: (1) provide the commit messa
 
 The `## Version:` field in each `.toc` uses the format **`MAJOR.MINOR.PATCH-rREVISION`**, where `MAJOR.MINOR.PATCH` mirrors the WoW client version (e.g. `12.0.5-r0`) and `REVISION` is a zero-based counter that resets each patch cycle. `r0` is the initial release adding support for that client version (at minimum a client version bump in the `.toc`). The `v` prefix is added by the release tooling to tags and titles (e.g. `AddonName-v12.0.5-r0`).
 
+When a `.toc` serves both the Retail and the WoW: Forever clients (a comma-separated `## Interface:` such as `120105, 16001`), `## Version:` keeps mirroring the **Retail** client (`12.1.5-rN`), and Forever users see that string. The CurseForge game versions come from the `Interface` values, not from `## Version:`: `publish.yml` reads each one from the right (`120105` → `12.1.5`, `16001` → `1.60.1`) and fails the publish when CurseForge has no game version of that name.
+
 **Do not bump the `-rREVISION` in `.toc` files** when making code changes — the release script bumps it automatically. (Other `.toc` fields, e.g. `X-NUI-DB-VERSION`, are still bumped by hand — but only when the version bump is actually warranted, see **DB Backwards Compatibility** below.)
 
 ## DB Backwards Compatibility

@@ -33,7 +33,23 @@
     pwsh Tooling/lint-stale-ids.ps1              # full (pulls Item, the one big table)
     pwsh Tooling/lint-stale-ids.ps1 -SkipBig     # skip big-table rules (fast; races/prof/mount-spell)
     pwsh Tooling/lint-stale-ids.ps1 -Build 12.0.7.68453 -CacheDir .wago-cache
+    pwsh Tooling/lint-stale-ids.ps1 -Product wow_classic_beta -VersionPrefix 1.60.   # WoW: Forever beta
+    pwsh Tooling/lint-stale-ids.ps1 -Product wow_classic_beta -Build 1.60.1.70338    # ... or pinned
   Exit 0 = every fail-rule id resolves; 1 = one or more stale.
+
+  -Product picks the wago product whose latest build is linted (default 'wow' = live retail).
+  Forever must not use the bare "latest" of wow_classic_beta: that product is a shared bucket of
+  several Classic betas since 2019 (1.13, 2.5, 3.4, 4.4, 5.5 and 1.60 on 2026-10-14), so "latest" is
+  merely whichever shipped last. -VersionPrefix (keep the trailing dot: 1.60. does not match 1.600.)
+  takes the newest-by-date build of that version family instead; -Build pins one build outright and
+  wins over both. wow_classic_beta is where Forever's pre-launch beta builds are listed (2026-10-14);
+  wago also lists the 1.60.1 family under a 'wowf' product (one build then) and under 'wow_cn_beta'
+  (eight), and which product Forever uses after launch is unconfirmed. A Forever run does not lint
+  yet: the data files are Retail ids, so the early rules report ids as missing, and the run then
+  stops at the first DB2 table the Forever build lacks (TransmogIllusion: wago answers HTTP 400
+  "Table not found.", exit 1, as of 2026-10-14). What it shows today is the resolved build in the
+  first line. Cached CSVs are named by table only, so give each product/build its own -CacheDir (CI
+  keys the whole directory on product + build).
 
   wago politeness: -CacheDir <dir> reads/writes each table's CSV under <dir> instead of re-pulling,
   and both CI workflows wrap it in an actions/cache keyed on the resolved build -- so wago's heavy
@@ -41,6 +57,8 @@
 #>
 param(
   [string]$Build,
+  [string]$Product = 'wow',
+  [string]$VersionPrefix,
   [switch]$SkipBig,
   [string]$CacheDir
 )
@@ -130,10 +148,20 @@ $wagoHeaders = @{ 'User-Agent' = 'Warbandeer-suite-ci (github.com/nazumods/wow)'
 # ── resolve build -- skipped entirely when the caller pins -Build (the CI workflows resolve it once
 # for the cache key and pass it through, so a cached run makes no /api/builds call either) ──
 if (-not $Build) {
-  $Build = ((Invoke-WebRequest -Uri 'https://wago.tools/api/builds/wow/latest' -Headers $wagoHeaders -UseBasicParsing).Content | ConvertFrom-Json).version
+  if ($VersionPrefix) {
+    # /latest is the newest build of the PRODUCT, which for a shared bucket (wow_classic_beta) is not
+    # necessarily the family asked for -- so take the newest-by-date build within the family instead.
+    $all = (Invoke-WebRequest -Uri 'https://wago.tools/api/builds' -Headers $wagoHeaders -UseBasicParsing).Content | ConvertFrom-Json
+    if (-not $all.$Product) { throw "wago.tools has no builds for product '$Product'." }
+    $family = @($all.$Product | Where-Object { $_.version.StartsWith($VersionPrefix, [System.StringComparison]::Ordinal) })
+    if ($family.Count -eq 0) { throw "wago.tools has no '$Product' build whose version starts with '$VersionPrefix'." }
+    $Build = ($family | Sort-Object { [datetime]$_.created_at } -Descending | Select-Object -First 1).version
+  } else {
+    $Build = ((Invoke-WebRequest -Uri "https://wago.tools/api/builds/$Product/latest" -Headers $wagoHeaders -UseBasicParsing).Content | ConvertFrom-Json).version
+  }
 }
 if ($CacheDir -and -not (Test-Path $CacheDir)) { New-Item -ItemType Directory -Path $CacheDir | Out-Null }
-Write-Host ("Linting hand-authored ids against wow build $Build{0}`n" -f $(if ($CacheDir) { " (cache $CacheDir)" } else { "" })) -ForegroundColor Cyan
+Write-Host ("Linting hand-authored ids against $Product build $Build{0}`n" -f $(if ($CacheDir) { " (cache $CacheDir)" } else { "" })) -ForegroundColor Cyan
 
 # ── table CSV text: fetched once per run, and when -CacheDir is set, persisted per build on disk
 # so a re-run for the same build reads it instead of re-pulling. The CI workflows wrap <CacheDir>

@@ -96,6 +96,39 @@ jobs:
       - name: .toc metadata matches the CONTEXT.md headers
         run: python Tooling/doc_drift.py
 
+  # publish.yml turns each .toc `## Interface:` value into a CurseForge game version, and checks that
+  # CurseForge knows it. Reading `16001` (Forever) from the left once gave `16.0.1` (#954), and the upload
+  # action drops an unknown version silently -- so the release would have shipped unlabelled. The functions
+  # live inline in publish.yml, beside their only caller; this extracts them, and the two steps that call
+  # them, from the YAML text and runs those (stub curl, fake .toc files). Fully offline and fast, so no
+  # path filter.
+  game-versions:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: publish.yml game-version helpers
+        run: bash Tooling/tests/game-versions.test.sh
+
+  # Which wago build the lint tooling resolves, and for which product (#954): wow_classic_beta is a shared
+  # bucket of several Classic betas whose "latest" is Forever only while Forever is the newest, so Forever
+  # runs select a version family. Covers the lint-stale-ids.yml resolve step and its gating (a stub curl
+  # over a fixture shaped like wago's /api/builds), the stale-ids job's wiring in this file, and
+  # lint-stale-ids.ps1's own resolution (a stub Invoke-WebRequest). Offline and fast, so no path filter.
+  wago-build-resolution:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: lint-stale-ids.yml and test.yml build resolution
+        run: bash Tooling/tests/lint-stale-ids-workflow.test.sh
+
+      - name: lint-stale-ids.ps1 build resolution
+        shell: pwsh
+        run: ./Tooling/tests/lint-stale-ids.build.test.ps1
+
   # Check each addon's EXTERNAL.md (the CurseForge/Wago page copy, #911) against the two invariants
   # that spec states -- the GitHub URL on the first line and a bug/suggestion section -- and unit-test
   # the checker. Fully offline (no API key, no network), so like doc-drift it is a PR gate with no
@@ -118,6 +151,11 @@ jobs:
   # depends on wago being up; when it does run, a stale/typo'd id fails the build.
   stale-ids:
     runs-on: ubuntu-latest
+    env:
+      # The wago product whose latest build is linted: 'wow' = live retail. A Forever run must not use
+      # this job's "latest" resolve for wow_classic_beta (a shared bucket of several Classic betas since
+      # 2019); pass -VersionPrefix 1.60. or -Build to lint-stale-ids.ps1 instead (Tooling/README.md).
+      WAGO_PRODUCT: wow
 
     steps:
       - uses: actions/checkout@v7
@@ -143,13 +181,13 @@ jobs:
       - name: Resolve wago build
         if: success() && steps.changed.outputs.data == 'true'
         id: build
-        run: echo "version=$(curl -sf -A 'Warbandeer-suite-ci (github.com/nazumods/wow)' https://wago.tools/api/builds/wow/latest | jq -r .version)" >> "$GITHUB_OUTPUT"
+        run: echo "version=$(curl -sf -A 'Warbandeer-suite-ci (github.com/nazumods/wow)' "https://wago.tools/api/builds/${WAGO_PRODUCT}/latest" | jq -r .version)" >> "$GITHUB_OUTPUT"
       - name: Restore wago CSV cache for this build
         if: success() && steps.changed.outputs.data == 'true'
         uses: actions/cache@v6
         with:
           path: .wago-cache
-          key: wago-csv-${{ steps.build.outputs.version }}
+          key: wago-csv-${{ env.WAGO_PRODUCT }}-${{ steps.build.outputs.version }}
       - name: Lint hand-authored ids
         if: success() && steps.changed.outputs.data == 'true'
-        run: pwsh Tooling/lint-stale-ids.ps1 -Build "${{ steps.build.outputs.version }}" -CacheDir .wago-cache
+        run: pwsh Tooling/lint-stale-ids.ps1 -Product "$WAGO_PRODUCT" -Build "${{ steps.build.outputs.version }}" -CacheDir .wago-cache
