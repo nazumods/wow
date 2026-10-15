@@ -1,4 +1,4 @@
-## Interface: 120105, 16001
+## Interface: 120105
 ## Category: Shadows of UI
 ## Title: Post Office
 ## Author: Nazuraki
