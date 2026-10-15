@@ -52,12 +52,14 @@ param(
   [int]$MaxDeletePct = 5,     # abort if regeneration would drop more than this % of sets
   [switch]$Check,
   # PTR-delta mode: regenerate data/sets_ptr.lua (ns.PtrSets) from the diff between
-  # the latest live (wow) and PTR (wowt) TransmogSet tables — sets on the PTR but
-  # not yet on live ("upcoming"). Volatile; run on demand, not on the weekly cadence.
+  # the latest live (wow) and PTR TransmogSet tables — sets on the PTR but not yet on
+  # live ("upcoming"). The PTR is the newest patch above live across wago's two PTR
+  # products, wowt and wowxptr (nothing ahead -> an empty preview). Volatile; run on
+  # demand, not on the weekly cadence.
   [switch]$PtrDelta,
   [string]$PtrFile = (Join-Path $PSScriptRoot '..' 'data' 'sets_ptr.lua'),
   [string]$LiveBuild,         # explicit live build for the delta (default: latest wow)
-  [string]$PtrBuild,          # explicit PTR build for the delta (default: latest wowt)
+  [string]$PtrBuild,          # explicit PTR build for the delta (default: the newest patch above live across wowt and wowxptr; none ahead -> empty preview)
   # Coverage-audit mode: report the wago TransmogSet groups we DON'T curate in
   # ns.Sets yet, categorized so a human can pick which to add. Writes a markdown
   # report; touches no Lua. See UPDATING.md ("Auditing coverage").
@@ -87,7 +89,7 @@ param(
   [switch]$Weapons,
   [string]$WeaponsFile = (Join-Path $PSScriptRoot '..' 'data' 'weaponsources.lua'),
   # Weapon PTR-preview delta: with -PtrDelta, -Weapons regenerates data/weaponsources_ptr.lua
-  # (ns.WeaponPtrSources) — weapon/off-hand APPEARANCES on the PTR (wowt) but not yet on live (wow),
+  # (ns.WeaponPtrSources) — weapon/off-hand APPEARANCES on the PTR (wowt or wowxptr) but not yet on live (wow),
   # bucketed like weaponsources.lua. Volatile; the daily watcher runs it patch-gated. See UPDATING.md.
   [string]$WeaponsPtrFile = (Join-Path $PSScriptRoot '..' 'data' 'weaponsources_ptr.lua'),
   # Seed-shells mode: auto-generate the curated live-grid SHELLS for a newly-live patch's
@@ -148,6 +150,80 @@ function Get-ExpandIds([string]$file) {
     }
   }
   return $ids
+}
+
+# Which wago PTR build a -PtrDelta preview should read (nazumods/wow#945). wago keeps Blizzard's PTRs
+# under two products -- `wowt` and `wowxptr` -- and a patch cycle can run on either (the 12.1.5 PTR
+# lived on wowxptr while wowt stopped at 12.1.0), so the PTR source is chosen across both, never
+# from `wowt` alone. $Builds is wago's /api/builds object (product -> builds, newest first by
+# convention, but the head here is the newest by created_at, not by position).
+#   * Explicit -PtrBuild: used as given (no "ahead of live" filter); Product = the first of the two
+#     products listing exactly that version, else 'unlisted'.
+#   * Otherwise: each product's head; candidates = heads whose PATCH (first three components,
+#     compared numerically: 12.1.10 > 12.1.9) is strictly above the live build's patch. The highest
+#     patch wins, a tie going to the newer created_at. No candidate -> Version/Product = $null: no
+#     PTR stream is ahead of live, and the preview is empty.
+# Returns [pscustomobject]@{ Version; Product; Date; Heads } -- Heads is a printable summary of the
+# heads of the products wago lists ("wowt 12.1.0.69587, wowxptr 12.1.5.70340").
+function Resolve-PtrSource($Builds, [string]$LiveBuild, [string]$PtrBuild) {
+  $products = @('wowt', 'wowxptr')
+  function ParseWagoDate([string]$s) {
+    $d = [datetime]::MinValue
+    if ($s -and [datetime]::TryParse($s, [cultureinfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::AssumeUniversal, [ref]$d)) { return $d }
+    return [datetime]::MinValue
+  }
+  # A component that is not a number counts as 0 (a malformed head can then never be "ahead"; it must
+  # not throw the whole run -- the other product may be the right answer).
+  function PatchOf([string]$v) {
+    $p = $v -split '\.'
+    ,@(0..2 | ForEach-Object { $n = 0; if ($_ -lt $p.Count -and [int]::TryParse($p[$_], [ref]$n)) { $n } else { 0 } })
+  }
+  function ComparePatch([int[]]$a, [int[]]$b) {
+    for ($i = 0; $i -lt 3; $i++) { if ($a[$i] -ne $b[$i]) { return $(if ($a[$i] -gt $b[$i]) { 1 } else { -1 }) } }
+    return 0
+  }
+  $listed = [ordered]@{}   # product -> every build entry that has a version
+  foreach ($p in $products) {
+    if ($Builds -and ($Builds.PSObject.Properties.Name -contains $p)) {
+      $entries = @($Builds.$p | Where-Object { $_ -and $_.version })
+      if ($entries.Count) { $listed[$p] = $entries }
+    }
+  }
+  $heads = [ordered]@{}    # product -> its newest entry by created_at
+  foreach ($p in $listed.Keys) {
+    $heads[$p] = @($listed[$p] | Sort-Object { ParseWagoDate ([string]$_.created_at) } -Descending)[0]
+  }
+  # Neither PTR product listed (an empty or partial /api/builds): that is a wago hiccup, not "nothing is
+  # ahead" -- fail the run (the old code threw here) instead of regenerating an empty preview over a
+  # good one. An explicit -PtrBuild needs no list.
+  if (-not $PtrBuild -and $heads.Count -eq 0) { throw "Could not resolve a PTR build: wago.tools lists no builds for $($products -join ' or ')." }
+  $summary = (@($heads.Keys | ForEach-Object { "$_ $($heads[$_].version)" }) -join ', ')
+  function DayOf($entry) { if ($entry) { ([string]$entry.created_at -split ' ')[0] } else { '' } }
+
+  if ($PtrBuild) {
+    foreach ($p in $listed.Keys) {
+      $hit = @($listed[$p] | Where-Object { $_.version -eq $PtrBuild })[0]
+      if ($hit) { return [pscustomobject]@{ Version = $PtrBuild; Product = $p; Date = (DayOf $hit); Heads = $summary } }
+    }
+    return [pscustomobject]@{ Version = $PtrBuild; Product = 'unlisted'; Date = ''; Heads = $summary }
+  }
+
+  $livePatch = PatchOf $LiveBuild
+  $best = $null; $bestProduct = $null; $bestPatch = $null
+  foreach ($p in $heads.Keys) {
+    $patch = PatchOf ([string]$heads[$p].version)
+    if ((ComparePatch $patch $livePatch) -le 0) { continue }
+    $take = $false
+    if ($null -eq $best) { $take = $true }
+    else {
+      $c = ComparePatch $patch $bestPatch
+      if ($c -gt 0) { $take = $true }
+      elseif ($c -eq 0 -and (ParseWagoDate ([string]$heads[$p].created_at)) -gt (ParseWagoDate ([string]$best.created_at))) { $take = $true }
+    }
+    if ($take) { $best = $heads[$p]; $bestProduct = $p; $bestPatch = $patch }
+  }
+  if ($null -eq $best) { return [pscustomobject]@{ Version = $null; Product = $null; Date = ''; Heads = $summary } }
+  return [pscustomobject]@{ Version = [string]$best.version; Product = $bestProduct; Date = (DayOf $best); Heads = $summary }
 }
 
 # ── Shared coverage helpers (used by -AuditCoverage and -SeedShells) ──────────
@@ -1291,28 +1367,44 @@ function Write-WeaponRowLiterals($rows, [string]$tableVar) {
 
 # ── Weapon PTR-delta mode ────────────────────────────────────────────────────
 # Emit data/weaponsources_ptr.lua (ns.WeaponPtrSources / ns.WeaponPtrBuild): weapon/off-hand
-# APPEARANCES on the PTR (wowt) but NOT yet on live (wow) — the weapon analogue of the armor
+# APPEARANCES on the PTR (wowt or wowxptr) but NOT yet on live (wow) — the weapon analogue of the armor
 # -PtrDelta below. The delta is at the APPEARANCE level (weapons have no TransmogSet grouping):
 # run the full bucketing pipeline over the PTR build, then keep only visuals absent from the live
 # weapon-visual set. Must sit before `if ($PtrDelta)` so the -Weapons -PtrDelta combo lands here.
 if ($Weapons -and $PtrDelta) {
   $wBuilds = (Invoke-WebRequest -Uri 'https://wago.tools/api/builds' -UseBasicParsing -ErrorAction Stop).Content | ConvertFrom-Json
   if (-not $LiveBuild) { $LiveBuild = $wBuilds.wow[0].version }
-  if (-not $PtrBuild)  { $PtrBuild  = $wBuilds.wowt[0].version }
-  if (-not $LiveBuild -or -not $PtrBuild) { throw 'Could not resolve live/PTR builds from wago.tools.' }
-  $ptrMatch = $wBuilds.wowt | Where-Object { $_.version -eq $PtrBuild } | Select-Object -First 1
-  $ptrDate  = if ($ptrMatch) { ($ptrMatch.created_at -split ' ')[0] } else { '' }
-  Write-Host "Weapon PTR delta: live $LiveBuild  vs  PTR $PtrBuild $ptrDate" -ForegroundColor Cyan
+  if (-not $LiveBuild) { throw 'Could not resolve the live build from wago.tools.' }
+  # The PTR source is the newest patch above live across wago's two PTR products (wowt, wowxptr);
+  # an explicit -PtrBuild wins. Nothing ahead of live -> an empty preview stamped ptr == live (#945).
+  $src = Resolve-PtrSource $wBuilds $LiveBuild $PtrBuild
+  $nothingAhead = (-not $src.Version)
+  if ($nothingAhead) { $PtrBuild = $LiveBuild; $ptrProduct = 'none ahead of live'; $ptrDate = '' }
+  else { $PtrBuild = $src.Version; $ptrProduct = $src.Product; $ptrDate = $src.Date }
+  Write-Host "Weapon PTR delta: live $LiveBuild  vs  PTR $PtrBuild [$ptrProduct] $ptrDate$(if ($nothingAhead) { "  (heads: $($src.Heads))" })" -ForegroundColor Cyan
 
   # -Check: patch-aware staleness (no CSV download), reading ns.WeaponPtrBuild.ptr. Exit 0 = same
-  # patch (up to date), 2 = new patch / file missing (regenerate), else a real error. Mirrors -PtrDelta.
+  # patch (up to date) or nothing ahead of live on an already-empty preview, 2 = new patch / file
+  # missing / live caught up / stale rows with no stream ahead (regenerate), else a real error. The
+  # armor -PtrDelta -Check also has exit 3 (live caught up: regenerate AND file the curate reminder).
   if ($Check) {
     $stamped = $null
     if (Test-Path -LiteralPath $WeaponsPtrFile) {
       $cur = [System.IO.File]::ReadAllText($WeaponsPtrFile)
       if ($cur -match 'ns\.WeaponPtrBuild\s*=\s*\{[^}]*ptr\s*=\s*"([^"]+)"') { $stamped = $Matches[1] }
     }
-    if (-not $stamped) { Write-Host "weaponsources_ptr.lua missing or unstamped — regenerate (latest PTR $PtrBuild)." -ForegroundColor Yellow; exit 2 }
+    if (-not $stamped) { Write-Host "weaponsources_ptr.lua missing or unstamped — regenerate ($(if ($nothingAhead) { 'no PTR stream is ahead of live' } else { "latest PTR $PtrBuild" }))." -ForegroundColor Yellow; exit 2 }
+    if ($nothingAhead) {
+      # No PTR stream carries a patch above live. Rows still listed are stale (their patch is now
+      # live or gone): regenerate to clear them. An already-empty preview is the settled state.
+      if ($cur -match 'tinsert\(ns\.WeaponPtrSources,') {
+        $lp = $LiveBuild -split '\.'; $sp = $stamped -split '\.'; $caught = $true
+        for ($i = 0; $i -lt 3; $i++) { $x = [int]$lp[$i]; $y = [int]$sp[$i]; if ($x -ne $y) { $caught = ($x -gt $y); break } }
+        if ($caught) { Write-Host "LIVE CAUGHT UP: no PTR stream is ahead of live (live $LiveBuild; $($src.Heads)) and the stamped patch is now live — clear the stale weapon preview." -ForegroundColor Yellow; exit 2 }
+        Write-Host "STALE PREVIEW: no PTR stream is ahead of live (live $LiveBuild; $($src.Heads)) but the preview still lists rows stamped $stamped — regenerate to clear them." -ForegroundColor Yellow; exit 2
+      }
+      Write-Host "No PTR stream is ahead of live (live $LiveBuild; $($src.Heads)) -- the preview is empty, nothing to do." -ForegroundColor Green; exit 0
+    }
     $have = ($stamped -split '\.')[0..2] -join '.'
     $want = ($PtrBuild -split '\.')[0..2] -join '.'
     if ($have -ne $want) { Write-Host "NEW PTR PATCH: $have -> $want (stamped $stamped, latest $PtrBuild) — replace the upcoming weapons." -ForegroundColor Yellow; exit 2 }
@@ -1349,7 +1441,7 @@ if ($Weapons -and $PtrDelta) {
   $L.Add('local ns = select(2, ...)')
   if ($ptrOnly.Count -gt 0) { $L.Add('local tinsert = tinsert') }   # omit when empty so a no-upcoming delta stays luacheck-clean
   $L.Add('-- luacheck: no max line length')
-  $L.Add("-- Generated from wago.tools weapon PTR delta (live $LiveBuild vs PTR $PtrBuild$(if($ptrDate){", $ptrDate"})) by tools/update-sets.ps1 -Weapons -PtrDelta.")
+  $L.Add("-- Generated from wago.tools weapon PTR delta (live $LiveBuild vs PTR $PtrBuild [$ptrProduct]$(if($ptrDate){", $ptrDate"})) by tools/update-sets.ps1 -Weapons -PtrDelta.")
   $L.Add('-- Weapon/off-hand APPEARANCES on the PTR but not yet on live ("upcoming"), same source x weapon')
   $L.Add('-- type shape as weaponsources.lua. VOLATILE — regenerate on demand; not part of the weekly refresh.')
   $L.Add('')
@@ -1398,20 +1490,24 @@ if ($PtrDelta) {
     return $true
   }
 
-  # Resolve both builds (explicit overrides, else the latest of each product). The
-  # bare /csv endpoint serves the newest build across ALL products, so always pin one.
+  # Resolve both builds (explicit overrides, else the live head and the newest PTR patch above
+  # it across wago's two PTR products, wowt and wowxptr -- see Resolve-PtrSource). The bare /csv
+  # endpoint serves the newest build across ALL products, so always pin one. Nothing ahead of
+  # live -> an empty preview stamped ptr == live (#945).
   $builds = (Invoke-WebRequest -Uri 'https://wago.tools/api/builds' -UseBasicParsing -ErrorAction Stop).Content | ConvertFrom-Json
   if (-not $LiveBuild) { $LiveBuild = $builds.wow[0].version }
-  if (-not $PtrBuild)  { $PtrBuild  = $builds.wowt[0].version }
-  if (-not $LiveBuild -or -not $PtrBuild) { throw 'Could not resolve live/PTR builds from wago.tools.' }
-  $ptrMatch = $builds.wowt | Where-Object { $_.version -eq $PtrBuild } | Select-Object -First 1
-  $ptrDate  = if ($ptrMatch) { ($ptrMatch.created_at -split ' ')[0] } else { '' }
-  Write-Host "PTR delta: live $LiveBuild  vs  PTR $PtrBuild $ptrDate" -ForegroundColor Cyan
+  if (-not $LiveBuild) { throw 'Could not resolve the live build from wago.tools.' }
+  $src = Resolve-PtrSource $builds $LiveBuild $PtrBuild
+  $nothingAhead = (-not $src.Version)
+  if ($nothingAhead) { $PtrBuild = $LiveBuild; $ptrProduct = 'none ahead of live'; $ptrDate = '' }
+  else { $PtrBuild = $src.Version; $ptrProduct = $src.Product; $ptrDate = $src.Date }
+  Write-Host "PTR delta: live $LiveBuild  vs  PTR $PtrBuild [$ptrProduct] $ptrDate$(if ($nothingAhead) { "  (heads: $($src.Heads))" })" -ForegroundColor Cyan
 
   # -Check is a cheap, PATCH-aware staleness probe (no CSV download): it reports only
   # whether a new PTR PATCH has opened since the committed list was generated — the
-  # signal the daily watcher acts on. Exit codes: 0 = same patch (up to date),
-  # 2 = new patch / file missing (regenerate), anything else = a real error (throw).
+  # signal the daily watcher acts on. Exit codes: 0 = same patch (up to date) or no PTR stream ahead of
+  # live on an already-empty preview, 2 = new patch / file missing / stale rows with no stream ahead
+  # (regenerate), 3 = live caught up (regenerate + curate reminder), anything else = a real error (throw).
   if ($Check) {
     $stamped = $null
     if (Test-Path -LiteralPath $PtrFile) {
@@ -1419,8 +1515,23 @@ if ($PtrDelta) {
       if ($cur -match 'ns\.PtrBuild\s*=\s*\{[^}]*ptr\s*=\s*"([^"]+)"') { $stamped = $Matches[1] }
     }
     if (-not $stamped) {
-      Write-Host "sets_ptr.lua missing or unstamped — regenerate (latest PTR $PtrBuild)." -ForegroundColor Yellow
+      Write-Host "sets_ptr.lua missing or unstamped — regenerate ($(if ($nothingAhead) { 'no PTR stream is ahead of live' } else { "latest PTR $PtrBuild" }))." -ForegroundColor Yellow
       exit 2
+    }
+    if ($nothingAhead) {
+      # No PTR stream carries a patch above live. Rows still listed are stale: exit 3 when the stamped
+      # patch has gone live (regenerate AND file the curate reminder, as below), else 2 (regenerate:
+      # the stream the rows came from is gone). An already-empty preview is the settled state.
+      if ($cur -match 'tinsert\(ns\.PtrSets,') {
+        if (PtrPatchGe (PtrPatch $LiveBuild) (PtrPatch $stamped)) {
+          Write-Host "LIVE CAUGHT UP: no PTR stream is ahead of live (live $LiveBuild; $($src.Heads)) and patch $(PtrPatch $stamped) is now live — clear the stale preview and curate it into the live grid." -ForegroundColor Yellow
+          exit 3
+        }
+        Write-Host "STALE PREVIEW: no PTR stream is ahead of live (live $LiveBuild; $($src.Heads)) but the preview still lists patch $(PtrPatch $stamped) rows — regenerate to clear them." -ForegroundColor Yellow
+        exit 2
+      }
+      Write-Host "No PTR stream is ahead of live (live $LiveBuild; $($src.Heads)) -- the preview is empty, nothing to do." -ForegroundColor Green
+      exit 0
     }
     $have = PtrPatch $stamped
     $want = PtrPatch $PtrBuild
@@ -1530,7 +1641,7 @@ if ($PtrDelta) {
   $L.Add('---@type Warbandeer_Collected')
   $L.Add('local ns = select(2, ...)')
   if ($buckets.Count -gt 0) { $L.Add('local tinsert = tinsert') }   # omit when empty so a no-upcoming delta stays luacheck-clean
-  $L.Add("-- Generated from wago.tools TransmogSet PTR delta (live $LiveBuild vs PTR $PtrBuild$(if($ptrDate){", $ptrDate"})) by tools/update-sets.ps1 -PtrDelta.")
+  $L.Add("-- Generated from wago.tools TransmogSet PTR delta (live $LiveBuild vs PTR $PtrBuild [$ptrProduct]$(if($ptrDate){", $ptrDate"})) by tools/update-sets.ps1 -PtrDelta.")
   $L.Add('-- Sets present on the PTR but not yet on live ("upcoming"). VOLATILE — regenerate')
   $L.Add('-- on demand; not part of the weekly live refresh. release tags the newest expansion;')
   $L.Add('-- instance/difficulty are omitted (no lockouts for unreleased content).')

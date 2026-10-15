@@ -12,7 +12,7 @@ local insert = table.insert
 -- recommended gem (ClassCodex per-spec, else the bundled top-stat pick).
 if not ShadowsOfUI_UpgradeApi or not ShadowsOfUI_UpgradeApi.MissingGems then return end
 
-local GetItemTex = (C_Item and C_Item.GetItemIconByID) or _G.GetItemIcon
+local GetItemTex = C_Item.GetItemIconByID
 
 local getData = function(toon)
   if (toon.basic.level or 0) < ns.wow.maxLevel then return ns.ZeroDashC end

@@ -13,7 +13,7 @@ if not ShadowsOfUI_UpgradeApi then return end
 
 local theme = ns.theme
 local WARBAND = theme.colors.gold
-local GetItemTex = (C_Item and C_Item.GetItemIconByID) or _G.GetItemIcon
+local GetItemTex = C_Item.GetItemIconByID
 
 -- Building a character's upgrade list scans its bags/bank + the warband bank and
 -- evaluates every candidate — far too heavy to run for *every* character while the

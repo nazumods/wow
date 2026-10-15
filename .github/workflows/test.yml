@@ -115,7 +115,10 @@ jobs:
   # bucket of several Classic betas whose "latest" is Forever only while Forever is the newest, so Forever
   # runs select a version family. Covers the lint-stale-ids.yml resolve step and its gating (a stub curl
   # over a fixture shaped like wago's /api/builds), the stale-ids job's wiring in this file, and
-  # lint-stale-ids.ps1's own resolution (a stub Invoke-WebRequest). Offline and fast, so no path filter.
+  # lint-stale-ids.ps1's own resolution (a stub Invoke-WebRequest). It also covers which PTR build the
+  # Collected preview reads (#945): update-sets.ps1 -PtrDelta, armor and weapons, picks the newest patch
+  # above live across wago's two PTR products (wowt, wowxptr) and says plainly when none is ahead (the
+  # same stub). Offline and fast, so no path filter.
   wago-build-resolution:
     runs-on: ubuntu-latest
 
@@ -128,6 +131,10 @@ jobs:
       - name: lint-stale-ids.ps1 build resolution
         shell: pwsh
         run: ./Tooling/tests/lint-stale-ids.build.test.ps1
+
+      - name: update-sets.ps1 PTR build resolution
+        shell: pwsh
+        run: ./Tooling/tests/update-sets-ptr.test.ps1
 
   # Check each addon's EXTERNAL.md (the CurseForge/Wago page copy, #911) against the two invariants
   # that spec states -- the GitHub URL on the first line and a bug/suggestion section -- and unit-test
