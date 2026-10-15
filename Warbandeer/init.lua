@@ -81,9 +81,15 @@ local GetClassInfo, GetClassColor = GetClassInfo, C_ClassColor.GetClassColor
 
 -- class colors: https://wowpedia.fandom.com/wiki/Class_colors
 
+-- GetClassInfo(i) returns nil for an index with no class: Forever's class ids have gaps (only
+-- the original classes exist there), and GetClassColor(nil) throws, which aborted this whole
+-- file at load (BugSack on the beta, 2026-10-14). A gap is skipped: the explicit `return nil`
+-- keeps Generate's table.insert at two arguments, which appends nothing, so the list stays
+-- packed with the classes that exist.
 ns.CLASSES = Generate(
   function(i)
     local n, id = GetClassInfo(i)
+    if not id then return nil end
     local c = GetClassColor(id)
     return {name = n, id = id, color = c}
   end,
