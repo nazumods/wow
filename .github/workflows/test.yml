@@ -111,6 +111,24 @@ jobs:
       - name: publish.yml game-version helpers
         run: bash Tooling/tests/game-versions.test.sh
 
+  # Which wago build the lint tooling resolves, and for which product (#954): wow_classic_beta is a shared
+  # bucket of several Classic betas whose "latest" is Forever only while Forever is the newest, so Forever
+  # runs select a version family. Covers the lint-stale-ids.yml resolve step and its gating (a stub curl
+  # over a fixture shaped like wago's /api/builds), the stale-ids job's wiring in this file, and
+  # lint-stale-ids.ps1's own resolution (a stub Invoke-WebRequest). Offline and fast, so no path filter.
+  wago-build-resolution:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: lint-stale-ids.yml and test.yml build resolution
+        run: bash Tooling/tests/lint-stale-ids-workflow.test.sh
+
+      - name: lint-stale-ids.ps1 build resolution
+        shell: pwsh
+        run: ./Tooling/tests/lint-stale-ids.build.test.ps1
+
   # Check each addon's EXTERNAL.md (the CurseForge/Wago page copy, #911) against the two invariants
   # that spec states -- the GitHub URL on the first line and a bug/suggestion section -- and unit-test
   # the checker. Fully offline (no API key, no network), so like doc-drift it is a PR gate with no
@@ -135,7 +153,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # The wago product whose latest build is linted: 'wow' = live retail. A Forever run must not use
-      # this job's "latest" resolve for wow_classic_beta (a shared bucket of every Classic beta since
+      # this job's "latest" resolve for wow_classic_beta (a shared bucket of several Classic betas since
       # 2019); pass -VersionPrefix 1.60. or -Build to lint-stale-ids.ps1 instead (Tooling/README.md).
       WAGO_PRODUCT: wow
 

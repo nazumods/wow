@@ -8,7 +8,7 @@
   the test exercises the shipped code verbatim while the production script stays free of any
   test-only scaffolding.
 
-  Not wired into CI (the repo runs busted + luacheck only); run locally with:
+  Not wired into CI (no workflow runs Pester); run locally with:
     pwsh -NoProfile -Command "Invoke-Pester -Path Tooling/tests/update-static-data.Tests.ps1"
 #>
 
@@ -76,7 +76,7 @@ Describe 'Get-IconImage' {
 }
 
 # wago's /api/builds is not ordered newest-first overall for every product. wow_classic_beta -- a shared
-# bucket for every Classic beta since 2019 -- lists whole families one after another (5.5, 4.4, 3.4, 2.5,
+# bucket of several Classic betas since 2019 -- lists whole families one after another (5.5, 4.4, 3.4, 2.5,
 # 1.60, 1.13 on 2026-10-14), so its first entry is a 2025 MoP Classic build while the NEWEST is WoW:
 # Forever 1.60. Live data lists each family newest-first. The fixture keeps the MoP-first shape and, to
 # prove the pick is by date and not by position, lists the older 1.60 build BEFORE the newer one (an

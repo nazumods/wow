@@ -38,15 +38,18 @@
   Exit 0 = every fail-rule id resolves; 1 = one or more stale.
 
   -Product picks the wago product whose latest build is linted (default 'wow' = live retail).
-  Forever must not use the bare "latest" of wow_classic_beta: that product is a shared bucket for
-  EVERY Classic beta since 2019 (1.13, 2.5, 3.4, 4.4, 5.5, 1.60), so "latest" is merely whichever
-  shipped last. -VersionPrefix (keep the trailing dot: 1.60. does not match 1.600.) takes the
-  newest-by-date build of that version family instead; -Build pins one build outright and wins over
-  both. wow_classic_beta is where Forever's pre-launch beta builds are listed (2026-10-14); wago
-  also lists a 'wowf' product (one 1.60.1 build then), and which product Forever uses after launch is
-  unconfirmed. Stale-id failures against a Forever build are expected until its data files carry
-  Forever ids -- the data files are Retail ids today. Cached CSVs are named by table only, so give each
-  product/build its own -CacheDir (CI keys the whole directory on product + build).
+  Forever must not use the bare "latest" of wow_classic_beta: that product is a shared bucket of
+  several Classic betas since 2019 (1.13, 2.5, 3.4, 4.4, 5.5 and 1.60 on 2026-10-14), so "latest" is
+  merely whichever shipped last. -VersionPrefix (keep the trailing dot: 1.60. does not match 1.600.)
+  takes the newest-by-date build of that version family instead; -Build pins one build outright and
+  wins over both. wow_classic_beta is where Forever's pre-launch beta builds are listed (2026-10-14);
+  wago also lists the 1.60.1 family under a 'wowf' product (one build then) and under 'wow_cn_beta'
+  (eight), and which product Forever uses after launch is unconfirmed. A Forever run does not lint
+  yet: the data files are Retail ids, so the early rules report ids as missing, and the run then
+  stops at the first DB2 table the Forever build lacks (TransmogIllusion: wago answers HTTP 400
+  "Table not found.", exit 1, as of 2026-10-14). What it shows today is the resolved build in the
+  first line. Cached CSVs are named by table only, so give each product/build its own -CacheDir (CI
+  keys the whole directory on product + build).
 
   wago politeness: -CacheDir <dir> reads/writes each table's CSV under <dir> instead of re-pulling,
   and both CI workflows wrap it in an actions/cache keyed on the resolved build -- so wago's heavy

@@ -131,6 +131,7 @@ check "iface tab-prefixed          -> 1.60.1" "1.60.1" "$(iface_to_version $'\t1
 # 08 / 09 are invalid octal; the 10# prefixes are what keep the minor and the patch decimal.
 check "iface 110009 (patch 09)     -> 11.0.9" "11.0.9" "$(iface_to_version 110009)"
 check "iface 110809 (minor 08)     -> 11.8.9" "11.8.9" "$(iface_to_version 110809)"
+check "iface 080123 (major 08)     -> 8.1.23" "8.1.23" "$(iface_to_version 080123)"
 
 # A value that is not 5-6 digits must fail, and say so on STDERR: the caller captures stdout with
 # $(...), so a message written to stdout would be swallowed instead of reaching the workflow log.
@@ -165,17 +166,20 @@ TOC_SCRIPT="$WORK/toc-step.sh"
 step_script "Read .toc metadata" | sed 's/\${{ steps.info.outputs.addon }}/Foo/g' > "$TOC_SCRIPT"
 grep -q '\${{' "$TOC_SCRIPT" && { echo "FAIL: 'Read .toc metadata' has a GitHub expression this test does not substitute"; exit 1; }
 
-# run_toc <interface-line-or-empty> <project-id-or-empty> -> TOC_RC, TOC_OUT (GITHUB_OUTPUT), TOC_LOG
+# run_toc <interface-line-or-empty> <project-id-or-empty> [second-interface-line] -> TOC_RC, TOC_OUT
+# (GITHUB_OUTPUT), TOC_LOG. TOC_SHELL_FLAGS is the shell's option: -e (GitHub's default for `run:`).
+TOC_SHELL_FLAGS=-e
 run_toc() {
   rm -rf "$WORK/addon"; mkdir -p "$WORK/addon/Foo"
   {
     if [[ -n "$1" ]]; then printf '## Interface: %s\r\n' "$1"; fi   # CRLF, as a Windows-authored .toc
     printf '## Version: 12.1.5-r0\n'
+    if [[ -n "${3:-}" ]]; then printf '## Interface: %s\r\n' "$3"; fi
     if [[ -n "$2" ]]; then printf '## X-Curse-Project-ID: %s\n' "$2"; fi
   } > "$WORK/addon/Foo/Foo.toc"
   : > "$WORK/gh-output"
   TOC_RC=0
-  TOC_LOG=$(cd "$WORK/addon" && GITHUB_OUTPUT="$WORK/gh-output" bash -e "$TOC_SCRIPT" 2>&1) || TOC_RC=$?
+  TOC_LOG=$(cd "$WORK/addon" && GITHUB_OUTPUT="$WORK/gh-output" bash "$TOC_SHELL_FLAGS" "$TOC_SCRIPT" 2>&1) || TOC_RC=$?
   TOC_OUT=$(cat "$WORK/gh-output")
 }
 
@@ -194,6 +198,19 @@ run_toc "abc" 1234
 check "toc: bad Interface          rc" "1" "$TOC_RC"
 assert_has "toc: bad Interface          annotation" "$TOC_LOG" "::error::Unrecognised Interface value 'abc'"
 assert_lacks "toc: bad Interface          writes no versions" "$TOC_OUT" "game_versions="
+# The failure must be an explicit `exit 1`, not an accident of the shell's -e: a later `shell:` key on
+# the step would change the options, and a swallowed failure would write an empty version list.
+TOC_SHELL_FLAGS=+e
+run_toc "abc" 1234
+check "toc: bad Interface, no -e  rc (explicit exit)" "1" "$TOC_RC"
+assert_lacks "toc: bad Interface, no -e  writes no versions" "$TOC_OUT" "game_versions="
+TOC_SHELL_FLAGS=-e
+# The version read takes the first `## Interface:` line only; a second line would be dropped silently
+# and Forever would ship unlabelled, so a second line fails the step.
+run_toc "120105" 1234 "16001"
+check "toc: two Interface lines   rc" "1" "$TOC_RC"
+assert_has "toc: two Interface lines   annotation" "$TOC_LOG" "::error::Foo/Foo.toc has 2 '## Interface:' lines"
+assert_lacks "toc: two Interface lines   writes no versions" "$TOC_OUT" "game_versions="
 run_toc "120105" ""
 check "toc: no project id          rc" "0" "$TOC_RC"
 assert_has "toc: no project id          is skipped" "$TOC_OUT" "skip=true"
@@ -208,14 +225,15 @@ VERIFY_SCRIPT="$WORK/verify-step.sh"
 step_script "Verify game versions exist on CurseForge" > "$VERIFY_SCRIPT"
 mkdir -p "$WORK/bin"
 # Records its arguments. STUB_MODE=ok prints STUB_BODY. STUB_MODE=http-error acts like a 5xx: with -f
-# among the flags it fails (exit 22, no body), as the real curl does; without -f it prints an error body.
+# (in a flag cluster such as -sf) or --fail among the arguments it fails (exit 22, no body), as the
+# real curl does; without either it prints an error body.
 cat > "$WORK/bin/curl" <<'EOF'
 #!/usr/bin/env bash
 printf '%s\n' "$*" > "$STUB_ARGS_FILE"
 case "${STUB_MODE:-ok}" in
   ok) printf '%s' "$STUB_BODY" ;;
   http-error)
-    if [[ " $* " =~ [[:space:]]-[a-zA-Z]*f[a-zA-Z]*[[:space:]] ]]; then exit 22; fi
+    if [[ " $* " =~ [[:space:]]-[a-zA-Z]*f[a-zA-Z]*[[:space:]] || " $* " == *" --fail "* ]]; then exit 22; fi
     printf '%s' '{"error":"internal"}' ;;
 esac
 EOF
@@ -238,6 +256,8 @@ check "verify: all known           rc" "0" "$V_RC"
 assert_has "verify: all known           says so" "$V_LOG" "CurseForge knows every game version: 12.1.5,1.60.1"
 assert_has "verify: asks the game-versions endpoint" "$V_ARGS" "https://wow.curseforge.com/api/game/versions"
 assert_has "verify: sends the API token header" "$V_ARGS" "X-Api-Token: tok-954"
+assert_has "verify: bounds the request time" "$V_ARGS" "--max-time"
+assert_has "verify: retries a transient failure" "$V_ARGS" "--retry"
 
 run_verify "12.1.5,1.60.1" ok '[{"id":11,"name":"12.1.5","slug":"zz-1"}]'
 check "verify: Forever unknown     rc (fails, does not drop silently)" "1" "$V_RC"

@@ -18,7 +18,7 @@ on:
   workflow_dispatch:
     inputs:
       product:
-        description: "wago product to lint (default wow = live retail; Forever's pre-launch beta = wow_classic_beta)"
+        description: "wago product to lint (default wow = live retail; Forever's pre-launch beta = wow_classic_beta -- always set version_prefix with it, its latest build is Forever only while Forever is the newest beta)"
         type: string
         default: wow
       version_prefix:
@@ -48,8 +48,9 @@ jobs:
       # Resolve the live build once (a ~1KB call) and key the CSV cache on it, so heavy tables are
       # pulled only when a new build shipped. Shares the build-keyed cache the PR gate warms on main.
       # With a version prefix, take the newest-by-date build of that family from /api/builds instead of
-      # the product's /latest: wow_classic_beta is a shared bucket for every Classic beta since 2019,
-      # so its "latest" is only Forever (1.60) while Forever happens to be the newest beta.
+      # the product's /latest: wow_classic_beta is a shared bucket of several Classic betas since 2019
+      # (1.13, 2.5, 3.4, 4.4, 5.5 and Forever's 1.60 on 2026-10-14), so its "latest" is only Forever
+      # while Forever happens to be the newest beta.
       - name: Resolve wago build
         id: build
         run: |
@@ -79,10 +80,12 @@ jobs:
         run: ./Tooling/lint-stale-ids.ps1 -Product $env:WAGO_PRODUCT -Build "${{ steps.build.outputs.version }}" -CacheDir .wago-cache
 
   # Two consecutive failures (a stale id that persists across days, not a one-off wago blip)
-  # open or comment on a tracking issue; a successful run closes it. Only SCHEDULED runs of the daily
-  # default (wow, latest) count: a manual run against another product (Forever's Retail-id data
-  # files are expected to fail it) must not raise that issue, close the real one, or become the
-  # "previous run" the next scheduled failure is compared with (hence `--event schedule` below).
+  # open or comment on a tracking issue; a successful run closes it. This job runs for the daily
+  # default (wow, latest build): the schedule, and a manual run left on the default inputs, as before.
+  # A manual run against another product or version family (a Forever run fails on Retail ids and
+  # stops at a DB2 table Forever lacks) is skipped by the `if:` below, so it can neither raise that
+  # issue nor close the real one. The "previous run" a failure is compared with is the last SCHEDULED
+  # run on main (`--event schedule` below): a manual run of any kind never serves as that comparison.
   notify:
     needs: lint
     if: always() && (inputs.product || 'wow') == 'wow' && (inputs.version_prefix || '') == ''

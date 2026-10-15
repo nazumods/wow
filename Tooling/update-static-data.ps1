@@ -55,8 +55,8 @@
 .PARAMETER IconFile     Packed icon blob path. Defaults to ../src-tauri/data/icons.bin.
 .PARAMETER CatalogFile  Lua file whose achievement ids the Achievement extract is filtered to.
 .PARAMETER CurrencyFile Lua file declaring the currency broker's field -> currency id mapping.
-.PARAMETER Product      wago product. 'wow' = live retail. 'wow_classic_beta' is a shared bucket for every
-                        Classic beta since 2019 -- WoW: Forever's 1.60 builds among them -- so pair it with
+.PARAMETER Product      wago product. 'wow' = live retail. 'wow_classic_beta' is a shared bucket of several
+                        Classic betas since 2019 -- WoW: Forever's 1.60 builds among them -- so pair it with
                         -VersionPrefix or -Build.
 .PARAMETER Build        Optional client build (e.g. 12.0.7.68453), pinned outright. Omit for the newest.
 .PARAMETER VersionPrefix Optional version family to pick the newest build from (e.g. '1.60.' for Forever;
@@ -264,9 +264,10 @@ function Get-IconImage([string]$name) {
 
 # The wago /api/builds entry to pull. An explicit -Build is pinned outright (and wins over
 # -VersionPrefix). Otherwise the NEWEST BY DATE, optionally within a version family -- never the
-# first listed: /api/builds is not newest-first for every product. wow_classic_beta, a shared bucket for
-# every Classic beta since 2019 (1.13, 2.5, 3.4, 4.4, 5.5 and WoW: Forever's 1.60), lists whole families
-# one after another, so its first entry is a 2025 MoP Classic build (each family is newest-first).
+# first listed: /api/builds is not newest-first for every product. wow_classic_beta, a shared bucket of
+# several Classic betas since 2019 (1.13, 2.5, 3.4, 4.4, 5.5 and WoW: Forever's 1.60 on 2026-10-14), lists
+# whole families one after another, so its first entry is a 2025 MoP Classic build (each family is
+# newest-first).
 # $VersionPrefix keeps its trailing dot ('1.60.' does not match '1.600.').
 function Select-WagoBuild($List, [string]$Build, [string]$VersionPrefix, [string]$Product = '') {
   if ($Build) {
