@@ -12,7 +12,19 @@ name: Lint stale ids
 on:
   schedule:
     - cron: "0 8 * * *" # daily 08:00 UTC (offset from the 07:00 set-refresh)
+  # A manual run can lint another wago product (WoW: Forever = wow_classic_beta, version_prefix 1.60.).
+  # The schedule always lints `wow`, the latest live retail build. Both inputs reach the shell only
+  # through env vars, never interpolated into a `run:` script.
   workflow_dispatch:
+    inputs:
+      product:
+        description: "wago product to lint (default wow = live retail; Forever's pre-launch beta = wow_classic_beta -- always set version_prefix with it, its latest build is Forever only while Forever is the newest beta)"
+        type: string
+        default: wow
+      version_prefix:
+        description: "Lint the newest build of this version family instead of the product's latest (Forever: 1.60. -- keep the dot)"
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -26,30 +38,58 @@ concurrency:
 jobs:
   lint:
     runs-on: ubuntu-latest
+    env:
+      # `inputs` is empty on a schedule run, so these fall back to the daily default (wow, latest).
+      WAGO_PRODUCT: ${{ inputs.product || 'wow' }}
+      WAGO_VERSION_PREFIX: ${{ inputs.version_prefix || '' }}
     steps:
       - uses: actions/checkout@v7
 
-      # Resolve the live build once (a ~1KB call) and key the CSV cache on it, so heavy tables are
-      # pulled only when a new build shipped. Shares the build-keyed cache the PR gate warms on main.
+      # Resolve the live build once (the product's /latest is a ~230-byte call) and key the CSV cache on
+      # it, so heavy tables are pulled only when a new build shipped. Shares the build-keyed cache the PR
+      # gate warms on main. With a version prefix, take the newest-by-date build of that family from the
+      # full /api/builds list (~550 KB, ~130 KB gzipped on 2026-10-14) instead of the product's /latest:
+      # wow_classic_beta is a shared bucket of several Classic betas since 2019
+      # (1.13, 2.5, 3.4, 4.4, 5.5 and Forever's 1.60 on 2026-10-14), so its "latest" is only Forever
+      # while Forever happens to be the newest beta.
       - name: Resolve wago build
         id: build
-        run: echo "version=$(curl -sf -A 'Warbandeer-suite-ci (github.com/nazumods/wow)' https://wago.tools/api/builds/wow/latest | jq -r .version)" >> "$GITHUB_OUTPUT"
+        run: |
+          ua='Warbandeer-suite-ci (github.com/nazumods/wow)'
+          if [[ -n "$WAGO_VERSION_PREFIX" ]]; then
+            # jq -e: a missing product, an empty family or an unreachable wago.tools fails the step
+            # instead of handing the lint a blank or "null" build.
+            if ! version=$(curl -sf -A "$ua" https://wago.tools/api/builds \
+                | jq -er --arg p "$WAGO_PRODUCT" --arg pre "$WAGO_VERSION_PREFIX" \
+                    '[.[$p][] | select(.version | startswith($pre))] | max_by(.created_at) | .version'); then
+              echo "::error::No wago '$WAGO_PRODUCT' build starting '$WAGO_VERSION_PREFIX' (or wago.tools is unreachable)"
+              exit 1
+            fi
+          else
+            version=$(curl -sf -A "$ua" "https://wago.tools/api/builds/${WAGO_PRODUCT}/latest" | jq -r .version)
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@v6
         with:
           path: .wago-cache
-          key: wago-csv-${{ steps.build.outputs.version }}
+          key: wago-csv-${{ env.WAGO_PRODUCT }}-${{ steps.build.outputs.version }}
 
       # Full check against that build (no -SkipBig: drift can hit the Item-backed rules too).
       # pwsh is preinstalled on ubuntu runners. Exit 1 on any stale fail-rule id.
       - name: Validate hand-authored ids against live client DB2
         shell: pwsh
-        run: ./Tooling/lint-stale-ids.ps1 -Build "${{ steps.build.outputs.version }}" -CacheDir .wago-cache
+        run: ./Tooling/lint-stale-ids.ps1 -Product $env:WAGO_PRODUCT -Build "${{ steps.build.outputs.version }}" -CacheDir .wago-cache
 
   # Two consecutive failures (a stale id that persists across days, not a one-off wago blip)
-  # open or comment on a tracking issue; a successful run closes it.
+  # open or comment on a tracking issue; a successful run closes it. This job runs for the daily
+  # default (wow, latest build): the schedule, and a manual run left on the default inputs, as before.
+  # A manual run against another product or version family (a Forever run fails on Retail ids and
+  # stops at a DB2 table Forever lacks) is skipped by the `if:` below, so it can neither raise that
+  # issue nor close the real one. The "previous run" a failure is compared with is the last SCHEDULED
+  # run on main (`--event schedule` below): a manual run of any kind never serves as that comparison.
   notify:
     needs: lint
-    if: always()
+    if: always() && (inputs.product || 'wow') == 'wow' && (inputs.version_prefix || '') == ''
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
@@ -61,7 +101,7 @@ jobs:
         if: needs.lint.result == 'failure'
         run: |
           prev=$(gh run list -R "$REPO" --workflow lint-stale-ids.yml --branch main \
-                   --status completed --limit 1 --json conclusion --jq '.[0].conclusion // ""')
+                   --event schedule --status completed --limit 1 --json conclusion --jq '.[0].conclusion // ""')
           echo "Previous completed run conclusion: ${prev:-none}"
           if [ "$prev" != "failure" ]; then
             echo "First failure — could be a transient wago.tools blip; the daily schedule retries tomorrow. No issue yet."
