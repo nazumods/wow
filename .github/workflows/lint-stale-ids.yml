@@ -45,10 +45,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # Resolve the live build once (a ~1KB call) and key the CSV cache on it, so heavy tables are
-      # pulled only when a new build shipped. Shares the build-keyed cache the PR gate warms on main.
-      # With a version prefix, take the newest-by-date build of that family from /api/builds instead of
-      # the product's /latest: wow_classic_beta is a shared bucket of several Classic betas since 2019
+      # Resolve the live build once (the product's /latest is a ~230-byte call) and key the CSV cache on
+      # it, so heavy tables are pulled only when a new build shipped. Shares the build-keyed cache the PR
+      # gate warms on main. With a version prefix, take the newest-by-date build of that family from the
+      # full /api/builds list (~550 KB, ~130 KB gzipped on 2026-10-14) instead of the product's /latest:
+      # wow_classic_beta is a shared bucket of several Classic betas since 2019
       # (1.13, 2.5, 3.4, 4.4, 5.5 and Forever's 1.60 on 2026-10-14), so its "latest" is only Forever
       # while Forever happens to be the newest beta.
       - name: Resolve wago build

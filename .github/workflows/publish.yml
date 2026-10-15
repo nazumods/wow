@@ -160,8 +160,10 @@ jobs:
           fi
           # Not one pipeline: GitHub's default shell has no pipefail, so a failed curl would reach jq
           # as empty input and surface as "CurseForge has no game version named: ..." for every version.
-          # --max-time/--retry: a hung connection must not hold the release job for hours, and one transient
-          # 5xx or rate limit should not fail the publish.
+          # --max-time 30 bounds each attempt, so a connection that hangs is dropped after 30 s instead of
+          # waiting for the job's own timeout; --retry 2 absorbs one transient 5xx or rate limit. curl honours
+          # a Retry-After header between attempts, so a long one can still delay this step: the job's own
+          # timeout is the outer bound.
           if ! response=$(curl -sf --max-time 30 --retry 2 -H "X-Api-Token: $CF_TOKEN" https://wow.curseforge.com/api/game/versions); then
             echo "::error::Could not list CurseForge game versions (bad token or CurseForge API down) -- re-run the workflow later"
             exit 1

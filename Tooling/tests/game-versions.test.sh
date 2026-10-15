@@ -166,15 +166,16 @@ TOC_SCRIPT="$WORK/toc-step.sh"
 step_script "Read .toc metadata" | sed 's/\${{ steps.info.outputs.addon }}/Foo/g' > "$TOC_SCRIPT"
 grep -q '\${{' "$TOC_SCRIPT" && { echo "FAIL: 'Read .toc metadata' has a GitHub expression this test does not substitute"; exit 1; }
 
-# run_toc <interface-line-or-empty> <project-id-or-empty> [second-interface-line] -> TOC_RC, TOC_OUT
-# (GITHUB_OUTPUT), TOC_LOG. TOC_SHELL_FLAGS is the shell's option: -e (GitHub's default for `run:`).
+# run_toc <interface-value-or-empty> <project-id-or-empty> [extra-raw-line] -> TOC_RC, TOC_OUT
+# (GITHUB_OUTPUT), TOC_LOG. The extra line is written verbatim after `## Version:` (CRLF). TOC_SHELL_FLAGS
+# is the shell's option: -e (GitHub's default for `run:`).
 TOC_SHELL_FLAGS=-e
 run_toc() {
   rm -rf "$WORK/addon"; mkdir -p "$WORK/addon/Foo"
   {
     if [[ -n "$1" ]]; then printf '## Interface: %s\r\n' "$1"; fi   # CRLF, as a Windows-authored .toc
     printf '## Version: 12.1.5-r0\n'
-    if [[ -n "${3:-}" ]]; then printf '## Interface: %s\r\n' "$3"; fi
+    if [[ -n "${3:-}" ]]; then printf '%s\r\n' "$3"; fi
     if [[ -n "$2" ]]; then printf '## X-Curse-Project-ID: %s\n' "$2"; fi
   } > "$WORK/addon/Foo/Foo.toc"
   : > "$WORK/gh-output"
@@ -207,10 +208,23 @@ assert_lacks "toc: bad Interface, no -e  writes no versions" "$TOC_OUT" "game_ve
 TOC_SHELL_FLAGS=-e
 # The version read takes the first `## Interface:` line only; a second line would be dropped silently
 # and Forever would ship unlabelled, so a second line fails the step.
-run_toc "120105" 1234 "16001"
+run_toc "120105" 1234 "## Interface: 16001"
 check "toc: two Interface lines   rc" "1" "$TOC_RC"
 assert_has "toc: two Interface lines   annotation" "$TOC_LOG" "::error::Foo/Foo.toc has 2 '## Interface:' lines"
 assert_lacks "toc: two Interface lines   writes no versions" "$TOC_OUT" "game_versions="
+# Lines that merely look like a second Interface line do not count: the per-flavour keys WoW reads
+# (`## Interface-Classic:`) and a commented-out line. Only an exact `## Interface:` at column 1 does.
+run_toc "120105" 1234 "## Interface-Classic: 11509"
+check "toc: Interface-Classic key  rc (not a second line)" "0" "$TOC_RC"
+assert_has "toc: Interface-Classic key  versions" "$TOC_OUT" "game_versions=12.1.5"
+run_toc "120105" 1234 "# ## Interface: 16001"
+check "toc: commented-out line     rc (not a second line)" "0" "$TOC_RC"
+assert_has "toc: commented-out line     versions" "$TOC_OUT" "game_versions=12.1.5"
+# An addon without a CurseForge project id is skipped BEFORE its Interface lines are looked at.
+run_toc "120105" "" "## Interface: 16001"
+check "toc: no project id, 2 lines rc (skipped, not failed)" "0" "$TOC_RC"
+assert_has "toc: no project id, 2 lines is skipped" "$TOC_OUT" "skip=true"
+assert_lacks "toc: no project id, 2 lines raises no error" "$TOC_LOG" "::error::"
 run_toc "120105" ""
 check "toc: no project id          rc" "0" "$TOC_RC"
 assert_has "toc: no project id          is skipped" "$TOC_OUT" "skip=true"

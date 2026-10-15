@@ -4,8 +4,10 @@
 #
 #   1. the "Resolve wago build" step of lint-stale-ids.yml, extracted by step name and run under
 #      `bash -e` (GitHub's default shell: no pipefail) against a stub `curl` that serves a fixture
-#      shaped like wago's real /api/builds: a shared Classic-beta bucket that lists a 5.5 build first,
-#      then Forever's 1.60.1 builds oldest-first, with version look-alikes that are NEWER than them.
+#      modelled on wago's /api/builds: a shared Classic-beta bucket that lists a 5.5 build first, then
+#      Forever's 1.60.1 builds in the OPPOSITE of wago's real order (every live family is listed
+#      newest-first; here the older build comes first, so a pick by position cannot pass), with version
+#      look-alikes that are NEWER than them.
 #   2. text pins for the wiring no script can see: the product/prefix env vars, the product in the
 #      cache key and in the lint call, the gate on the notify job, and `--event schedule`.
 #
@@ -124,7 +126,8 @@ BUILDS='{
 
 mkdir -p "$WORK/bin"
 # Records its arguments, one call per line. The URL is always the last argument. STUB_MODE=fail acts like
-# an unreachable server (curl -f exits 22 with no body); html acts like a captive page / error page.
+# a server answering with an HTTP error under -f (curl exits 22 with no body; an unreachable server would
+# exit 6, 7 or 28, and takes the same failing path); html acts like a captive page / error page.
 cat > "$WORK/bin/curl" <<'EOF'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >> "$STUB_ARGS_FILE"

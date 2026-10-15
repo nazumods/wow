@@ -5,12 +5,13 @@
 
 .DESCRIPTION
   Runs the REAL script with Invoke-WebRequest replaced by a function (functions outrank cmdlets, and a
-  function defined here is visible to the script it calls) that serves a fixture shaped like wago's
-  /api/builds: a shared Classic-beta bucket listing a 5.5 build first, then Forever's 1.60.1 builds
-  OLDEST first, with version look-alikes that are newer than them and one build whose date is in another
-  format (M/d/yyyy: as text it sorts AFTER the others, as a date it is months earlier; ConvertFrom-Json
-  leaves it a string, where it would turn an ISO 'T...Z' date into a DateTime). The stub throws on the
-  first DB2 table
+  function defined here is visible to the script it calls) that serves a fixture modelled on wago's
+  /api/builds: a shared Classic-beta bucket listing a 5.5 build first, then Forever's 1.60.1 builds in
+  the OPPOSITE of wago's real order (every live family is listed newest-first; here the older build comes
+  first, so a pick by position cannot pass), with version look-alikes that are newer than them and one
+  build whose date is in another format (M/d/yyyy: as text it sorts AFTER the others, as a date it is
+  months earlier; ConvertFrom-Json leaves it a string, where it would turn an ISO 'T...Z' date into a
+  DateTime). The stub also records each request's User-Agent header, and throws on the first DB2 table
   request, so each run ends right after the "Linting ... build X" line this test reads: nothing else is
   fetched and no cache is written.
 
@@ -27,6 +28,10 @@ if (-not (Test-Path $lint)) { Write-Output "FAIL: $lint does not exist"; exit 1 
 
 $script:Failures = 0
 $global:Wago954Requested = [System.Collections.Generic.List[string]]::new()
+$global:Wago954Agents = [System.Collections.Generic.List[string]]::new()
+
+# The User-Agent every wago request must send (README: "all wago requests send an identifying User-Agent").
+$userAgent = 'Warbandeer-suite-ci (github.com/nazumods/wow)'
 
 $builds = [ordered]@{
   wow_classic_beta = @(
@@ -48,16 +53,18 @@ $global:Wago954BuildsJson = $builds | ConvertTo-Json -Depth 5
 function Invoke-WebRequest {
   param([string]$Uri, $Headers, [switch]$UseBasicParsing)
   $global:Wago954Requested.Add($Uri)
+  $global:Wago954Agents.Add($(if ($Headers -is [hashtable] -and $Headers.ContainsKey('User-Agent')) { [string]$Headers['User-Agent'] } else { '' }))
   if ($Uri -eq 'https://wago.tools/api/builds') { return [pscustomobject]@{ Content = $global:Wago954BuildsJson } }
   if ($Uri -match '^https://wago\.tools/api/builds/[^/]+/latest$') { return [pscustomobject]@{ Content = '{"version":"9.9.9.1"}' } }
   throw "STOP-954: $Uri"
 }
 
 # Runs the script with the parameters in $LintArgs (a hashtable, splatted) -> @{ Product; Build; Error;
-# Requested; First }. The header is the first line the script writes; the run is expected to end in the
+# Requested; First; Agent }. The header is the first line the script writes; the run is expected to end in the
 # stub's STOP (or an earlier throw).
 function Invoke-Lint([hashtable]$LintArgs) {
   $global:Wago954Requested.Clear()
+  $global:Wago954Agents.Clear()
   $lines = [System.Collections.Generic.List[string]]::new()
   $err = ''
   try {
@@ -66,8 +73,8 @@ function Invoke-Lint([hashtable]$LintArgs) {
   } catch {
     $err = $_.Exception.Message
   }
-  $result = @{ Product = ''; Build = ''; Error = $err; Requested = @($global:Wago954Requested); First = '' }
-  if ($global:Wago954Requested.Count -gt 0) { $result.First = $global:Wago954Requested[0] }
+  $result = @{ Product = ''; Build = ''; Error = $err; Requested = @($global:Wago954Requested); First = ''; Agent = '' }
+  if ($global:Wago954Requested.Count -gt 0) { $result.First = $global:Wago954Requested[0]; $result.Agent = $global:Wago954Agents[0] }
   $header = @($lines | Where-Object { $_ -match 'Linting hand-authored ids against (\S+) build (\S+)' })
   if ($header.Count -gt 0 -and $header[0] -match 'against (\S+) build (\S+)') {
     $result.Product = $Matches[1]
@@ -99,6 +106,7 @@ Test-Case 'prefix 1.60.: Forever family, newest by date (not first listed, not a
 Test-Case 'prefix 1.60.: header names the product' 'wow_classic_beta' $r.Product
 Test-Case 'prefix 1.60.: reads the full builds list' 'https://wago.tools/api/builds' $r.First
 Test-Case 'prefix 1.60.: makes no /latest request' '0' @($r.Requested | Where-Object { $_ -like '*/latest' }).Count
+Test-Case 'prefix 1.60.: the builds request identifies itself' $userAgent $r.Agent
 
 $r = Invoke-Lint @{ Product = 'wow_classic_beta'; VersionPrefix = '5.5.' }
 Test-Case 'prefix 5.5.: another family' '5.5.0.62071' $r.Build
@@ -114,6 +122,7 @@ Test-Contains 'unknown product with a prefix: says it has no builds' $r.Error "n
 $r = Invoke-Lint @{ Product = 'wow_classic_beta' }
 Test-Case 'bare product: takes that product''s latest' '9.9.9.1' $r.Build
 Test-Case 'bare product: asks /api/builds/<product>/latest' 'https://wago.tools/api/builds/wow_classic_beta/latest' $r.First
+Test-Case 'bare product: the latest request identifies itself' $userAgent $r.Agent
 
 $r = Invoke-Lint @{}
 Test-Case 'default: the live retail product' 'wow' $r.Product
