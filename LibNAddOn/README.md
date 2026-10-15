@@ -212,6 +212,53 @@ ns:OnItemTooltip(function(tooltip, data)
 end)
 ```
 
+### Client flavor (Retail / Forever)
+
+The suite is being ported to run on Retail and on WoW: Forever from one folder. LibNAddOn detects
+the client once, when it loads, and every addon gets the result:
+
+#### `myAddOn.flavor`
+
+`{ id = "forever" | "retail", isForever = boolean, isRetail = boolean }`. Forever when
+`WOW_PROJECT_ID == WOW_PROJECT_CAMELOT`; otherwise, when LibNAddOn's own `## X-Game:` metadata is
+`Camelot` or `Forever` (the TOC line is `## X-Game: [Game]`, which the client expands to the game type;
+shipping addons such as Plumber and DialogueUI read it the same way, and `/lib flavor` shows the value
+this client produced); otherwise Retail.
+Detection never uses `GetBuildInfo()`, and is safe where the constants or `C_AddOns` don't exist
+(busted).
+
+#### Supports(feature)
+
+`myAddOn:Supports("housing")` answers whether the detected client has a game system. Prefer asking
+for the feature over checking the flavor. On Forever an API existing is not evidence the system
+exists: the client exposes the Mainline `C_*` namespaces (`C_Housing`, `C_WeeklyRewards`,
+`C_PerksProgram`, ...) while Blizzard's own TOCs load whole systems, such as the Housing UI, for
+`standard` only. So probing `if C_Housing then` is wrong there. The systems Forever lacks are listed
+once, in `UNSUPPORTED` in `flavor.lua`; anything not listed is supported everywhere.
+
+| Feature | Forever |
+|---|---|
+| `specializations`, `housing`, `delves`, `mythicPlus`, `encounterJournal`, `travelersLog`, `garrison`, `legion` | not supported |
+| `greatVault`, `warbandBank` | not supported *for now* — unverified on the beta, so off until it is shown to work |
+| anything else | supported |
+
+LibNAddOn's own code uses the dot form, `ns.Supports("greatVault")`; an addon uses the method form.
+Calling the wrong form does not error: the argument is then not a known feature name, and a name
+that is not in the table is supported.
+
+LibNAddOn's own helpers are guarded for Forever. `Player.GetActiveSpecialization()` and
+`Player.GetPrimarySpecialization()` return nothing where the client lacks the functions they call
+(per Blizzard's source, Forever does not define `GetSpecialization` or `GetSpecializationInfo`); they test for the functions
+themselves, not through `Supports`. `GetRewardOptions()` is gated through the table: it returns the
+zero result (`best == 0`, empty tables) without calling `C_WeeklyRewards` when `greatVault` is
+unsupported. `greatVault` is the only feature LibNAddOn itself consults so far.
+
+`/lib flavor` prints the detected flavor and the signals behind it (`WOW_PROJECT_ID`,
+`WOW_PROJECT_CAMELOT`, and the `X-Game` metadata).
+
+In busted specs, `libn.load({ flavor = "forever" })` (`spec/libn.lua`) loads LibNAddOn as the Forever
+client would; `libn.load()` loads it as Retail.
+
 ### An event handler for ADDON_LOADED
 
 Calls `myAddOn.onLoad` when the event is fired for `ADDON_NAME`.
