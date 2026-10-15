@@ -50,18 +50,25 @@ Retail drives the mail window via the player-interaction manager; the legacy
 - Defining `ns.EVENT_NAME` methods is not enough — core also calls
   `ns:registerEvent(...)` for both, since the listener only dispatches registered
   events.
-- `ns.OnOpenMailUpdate(fn)` — open-letter refresh dispatch. Core posthooks Blizzard's
-  `OpenMail_Update` once (lazily on first mailbox open, since it's load-on-demand) and
-  fans out to subscribers. Forward + CarbonCopy use it to refresh their buttons whenever
-  a letter is opened or an attachment is taken.
-- `ns.OnInboxRow(fn)` — **shared inbox-row decorator.** Core posthooks `InboxFrame_Update`
-  once (lazily) and calls each subscriber for all 7 visible rows with a `row` table
+- `ns.OnOpenMailUpdate(fn)` — open-letter refresh dispatch. Core posthooks the open-mail
+  redraw once (lazily on first mailbox open, since Blizzard_MailFrame is load-on-demand)
+  and fans out to subscribers. Retail has it as the `OpenMail_Update` global; Forever's
+  mail frame replaced that with the method `OpenMailFrame:Update`, so core's local
+  `hookUpdate(globalName, frame, fn)` hooks the global when it exists and the frame method
+  otherwise (detected by existence, not flavor; the global is tried first, so Retail is
+  unchanged). It returns true only when a hook was installed: if the frame does not exist
+  yet the next mailbox open retries. Forward + CarbonCopy use it to refresh their buttons
+  whenever a letter is opened or an attachment is taken.
+- `ns.OnInboxRow(fn)` — **shared inbox-row decorator.** Core posthooks the inbox redraw
+  once (lazily; `InboxFrame_Update` on Retail, `InboxFrame:Update` on Forever, via the same
+  `hookUpdate`) and calls each subscriber for all 7 visible rows with a `row` table
   (`i`, `index`, `present`, `item` = `MailItemN`, `expire` = `MailItemNExpireTime`).
-  Features register ONE per-row callback instead of racing their own `InboxFrame_Update`
-  hooks. Per-row widgets anchor to `row.item`/`row.expire` so they follow the active row
-  layout; the row layout itself is owned by whichever feature changes it (Select).
-  `ns.RefreshInbox()` re-runs `InboxFrame_Update` to apply a live toggle (no-op away from
-  an open mailbox).
+  Features register ONE per-row callback instead of racing their own inbox hooks. Per-row
+  widgets anchor to `row.item`/`row.expire` so they follow the active row layout; the row
+  layout itself is owned by whichever feature changes it (Select).
+  `ns.UpdateInbox()` redraws the inbox through whichever of those exists (the global, else
+  the frame method, else nothing); Express's Ctrl-click return uses it, and
+  `ns.RefreshInbox()` calls it to apply a live toggle (no-op away from an open mailbox).
 
 ## Settings-change routing
 
