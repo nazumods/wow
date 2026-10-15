@@ -48,7 +48,7 @@ The build manifest. This is the only official machine API besides files. All ret
 
 | Endpoint | Returns |
 |---|---|
-| `GET /api/builds` | **Every** version, as an object keyed by product → array of build records (newest first for most products; **not** for `wow_classic_beta`, `wow_classic_era_ptr` or `wowz`, whose first entry is not the newest — take the newest by `created_at`, as `Tooling/update-static-data.ps1`'s `Select-WagoBuild` does). |
+| `GET /api/builds` | **Every** version, as an object keyed by product → array of build records (roughly newest first: the first entry is the newest for most products, but **not** for `wow_classic_beta`, `wow_classic_era_ptr` or `wowz`, and even `wow` has a few neighbouring entries out of date order — take the newest by `created_at`, as `Tooling/update-static-data.ps1`'s `Select-WagoBuild` does). |
 | `GET /api/builds/latest` | The latest build **per product**, as an object keyed by product → one record. |
 | `GET /api/builds/{product}/latest` | The single latest build for one product (e.g. `/api/builds/wow/latest`). |
 

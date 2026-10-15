@@ -20,6 +20,7 @@
 #                                                                             # copy, e.g. a mutation
 # Needs bash, awk, sed, grep and jq (all preinstalled on GitHub's ubuntu runners).
 # Exit 0 = every case passed; 1 = a case failed or the YAML no longer has the expected shape.
+# shellcheck disable=SC2016  # the single-quoted '${{ ... }}' strings are literal GitHub expressions on purpose
 set -euo pipefail
 
 REPO_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
@@ -59,9 +60,11 @@ extract_block() {
 
 # The whole step named $1 (name line through the line before the next step).
 step_block() {
+  # awk reads to EOF (no early `exit`): under `pipefail` an awk that quit while `tr` still had bytes to
+  # write would turn into a SIGPIPE failure of the whole pipeline.
   tr -d '\r' < "$PUBLISH_YML" | awk -v want="      - name: $1" '
     $0 == want { instep = 1; print; next }
-    instep && /^      - / { exit }
+    instep && /^      - / { instep = 0; next }
     instep { print }'
 }
 
@@ -69,10 +72,10 @@ step_block() {
 step_script() {
   local out
   out=$(step_block "$1" | awk '
-    !inrun && /^        run: \|[[:space:]]*$/ { inrun = 1; next }
+    !done && !inrun && /^        run: \|[[:space:]]*$/ { inrun = 1; next }
     inrun {
       if ($0 ~ /^[[:space:]]*$/) { print ""; next }
-      if (substr($0, 1, 10) != "          ") exit
+      if (substr($0, 1, 10) != "          ") { inrun = 0; done = 1; next }
       print substr($0, 11)
     }')
   if [[ -z "$out" ]]; then
@@ -259,6 +262,13 @@ assert_has "verify: HTML body           annotated" "$V_LOG" "::error::Unexpected
 run_verify "12.1.5" ok '{"error":"nope"}'
 check "verify: object body         rc" "1" "$V_RC"
 assert_has "verify: object body         annotated" "$V_LOG" "::error::Unexpected CurseForge game-versions response"
+
+# jq prints "12.1.5" BEFORE it fails on the string element, so the half-parsed list alone would satisfy
+# the wanted version: only the step's own exit on the jq failure stops it.
+run_verify "12.1.5" ok '[{"id":11,"name":"12.1.5"},"stray"]'
+check "verify: half-valid list     rc (jq fails mid-list)" "1" "$V_RC"
+assert_has "verify: half-valid list     annotated" "$V_LOG" "::error::Unexpected CurseForge game-versions response"
+assert_lacks "verify: half-valid list     is not reported as known" "$V_LOG" "knows every game version"
 
 run_verify "" ok "$LIST"
 check "verify: no game versions    rc" "1" "$V_RC"
