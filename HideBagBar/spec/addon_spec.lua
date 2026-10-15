@@ -1,10 +1,18 @@
 -- Loads HideBagBar/addon.lua against a fake environment: CreateFrame hands back a frame
 -- that records its OnEvent script, and each Blizzard bag-bar frame is a stub that records
 -- SetShown. Path is relative to the AddOns root.
-local ALL = {
+local HIDDEN = {
   "MainMenuBarBackpackButton", "BagBarExpandToggle", "CharacterBag0Slot", "CharacterBag1Slot",
-  "CharacterBag2Slot", "CharacterBag3Slot", "CharacterReagentBag0Slot", "KeyRingButton",
+  "CharacterBag2Slot", "CharacterBag3Slot", "CharacterReagentBag0Slot",
 }
+-- Forever's bag bar adds a key ring button; roshne decided it stays visible (2026-10-15).
+local KEY_RING = "KeyRingButton"
+
+local function with_key_ring()
+  local all = { unpack(HIDDEN) }
+  all[#all + 1] = KEY_RING
+  return all
+end
 
 local function stub()
   local f = { shown = true }
@@ -35,16 +43,16 @@ end
 
 describe("HideBagBar", function()
   it("hides every listed frame", function()
-    local env = load({ unpack(ALL, 1, 7) })
+    local env = load(HIDDEN)
     env.onEvent({}, "ADDON_LOADED", "HideBagBar")
-    for i = 1, 7 do
-      assert.is_false(env.frames[ALL[i]].shown, ALL[i])
+    for _, name in ipairs(HIDDEN) do
+      assert.is_false(env.frames[name].shown, name)
     end
   end)
 
   it("a missing frame does not stop the later ones", function()
     local present = {}
-    for _, name in ipairs(ALL) do
+    for _, name in ipairs(HIDDEN) do
       if name ~= "BagBarExpandToggle" then present[#present + 1] = name end
     end
     local env = load(present)
@@ -54,16 +62,19 @@ describe("HideBagBar", function()
     end
   end)
 
-  it("hides KeyRingButton when it exists", function()
-    local env = load(ALL)
+  it("leaves KeyRingButton shown when it exists", function()
+    local env = load(with_key_ring())
     env.onEvent({}, "ADDON_LOADED", "HideBagBar")
-    assert.is_false(env.frames.KeyRingButton.shown)
+    assert.is_true(env.frames[KEY_RING].shown)
+    for _, name in ipairs(HIDDEN) do
+      assert.is_false(env.frames[name].shown, name)
+    end
   end)
 
   it("does nothing for another addon's ADDON_LOADED", function()
-    local env = load(ALL)
+    local env = load(with_key_ring())
     env.onEvent({}, "ADDON_LOADED", "SomeOtherAddon")
-    for _, name in ipairs(ALL) do
+    for _, name in ipairs(with_key_ring()) do
       assert.is_true(env.frames[name].shown, name)
     end
   end)

@@ -4,7 +4,6 @@ frame:RegisterEvent("ADDON_LOADED")
 
 -- Looked up by name, not listed as frames: a frame that does not exist on a client is nil,
 -- and a nil in a literal `ipairs` list ends the loop there, leaving every later frame shown.
--- KeyRingButton exists only on WoW Forever's bag bar.
 local FRAME_NAMES = {
   "MainMenuBarBackpackButton",
   "BagBarExpandToggle",
@@ -13,7 +12,6 @@ local FRAME_NAMES = {
   "CharacterBag2Slot",
   "CharacterBag3Slot",
   "CharacterReagentBag0Slot",
-  "KeyRingButton",
 }
 
 frame:SetScript("OnEvent", function(self, event, arg1)
