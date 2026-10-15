@@ -1,8 +1,9 @@
 name: Update Collected PTR preview
 
-# Watches for a NEW PTR PATCH (e.g. 12.1.0 -> 12.1.5) and, when one opens, replaces
+# Watches for a NEW PTR PATCH (e.g. 12.1.0 -> 12.1.5) on EITHER of wago's two PTR products
+# (`wowt` or `wowxptr`; the newest patch above live wins) and, when one opens, replaces
 # Warbandeer_Collected/data/sets_ptr.lua with the new patch's upcoming-set delta and
-# opens a PR. Unlike the live set-data refresh, this is gated on the PTR *patch*, not
+# opens a PR. With no PTR stream ahead of live the preview is empty and the check exits 0. Unlike the live set-data refresh, this is gated on the PTR *patch*, not
 # every build: within-patch PTR builds churn constantly (sets added/removed between
 # bumps), so a daily PR on each would be noise. The cheap check only hits wago's
 # build list; the full download + regenerate runs only when the patch actually moved.
@@ -82,7 +83,8 @@ jobs:
           body: |
             The upcoming-set preview (`Warbandeer_Collected/data/sets_ptr.lua`) has been
             regenerated from the latest [wago.tools](https://wago.tools) `TransmogSet`
-            delta (sets on the PTR `wowt` build but not yet on live `wow`). This fires
+            delta (sets on the newest PTR patch above live -- wago's `wowt` or `wowxptr` product,
+            named in the file header -- but not yet on live `wow`). This fires
             either because a **new PTR patch** opened, or because the previously-previewed
             patch has **gone live** — in which case the delta empties (nothing is upcoming)
             and a separate `collected-curate-live` issue tracks curating it into the live grid.
