@@ -1,5 +1,6 @@
 ---@class Warbandeer
 local ns = select(2, ...)
+if not ns:Supports("greatVault") then return end -- only the Great Vault view uses these (gated like it)
 ---@type LibNUI
 local ui = ns.ui
 local Icons = ns.icons

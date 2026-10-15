@@ -1,5 +1,9 @@
 ---@type Warbandeer_Characters
 local ns = select(2, ...)
+
+-- Housing's pure shapers: unused where housing is unsupported (Forever), so ns.ShapeHousing / ns.ShapeHouses are absent there.
+-- Gate at registration (CONTRIBUTING, "Writing for several clients"): nothing below registers.
+if not ns:Supports("housing") then return end
 local pairs = pairs
 
 -- Pure shapes + shaping for the per-character neighborhood-endeavor tracker (issue #550). The

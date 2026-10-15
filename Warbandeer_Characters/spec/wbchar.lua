@@ -33,6 +33,9 @@ function M.load()
   -- WoW-API user) never runs under test, so a stub RegisterBroker returning a bare object lets the
   -- pure catalog + summariser load without the addon core.
   ns.RegisterBroker = function() return {} end
+  -- data/housinginfo.lua (and the other feature-gated files) ask `ns:Supports` at load; this harness plays a client
+  -- where everything is supported, so the pure shapers load. spec/forever_gating_spec.lua drives the unsupported side.
+  ns.Supports = function() return true end
   for _, f in ipairs(FILES) do
     assert(loadfile("Warbandeer_Characters/" .. f))("Warbandeer_Characters", ns)
   end

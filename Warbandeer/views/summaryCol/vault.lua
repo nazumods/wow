@@ -1,5 +1,6 @@
 ---@type Warbandeer
 local ns = select(2, ...)
+if not ns:Supports("greatVault") then return end -- no Great Vault, no column (never registered)
 ---@type LibNUI
 local ui = ns.ui
 local Icons = ns.icons

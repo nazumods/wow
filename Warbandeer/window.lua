@@ -31,6 +31,21 @@ function ns.NavViews()
   return nav
 end
 
+-- The saved default view's name, or nil. A saved default can name a view this client does not
+-- register (the Great Vault on Forever, or a settings file carried over from Retail): that is
+-- ignored, because opening it would index a nil view class.
+---@class Warbandeer
+---@field DefaultViewName fun(): string?
+function ns.DefaultViewName()
+  local index = ns.db.settings.defaultView
+  local name = index and ns.viewKeys[index]
+  if not name then return nil end
+  for _, c in pairs(ns.views) do
+    if c.name == name then return name end
+  end
+  return nil
+end
+
 ---@class MainWindow: TitleFrame
 ---@field views table<string, Frame>         constructed view instances, by view name
 ---@field _viewClasses table<string, table>  registered view classes, by view name
@@ -64,10 +79,8 @@ local MainWindow = Class(TitleFrame, function(self)
     position = { TopRight = {self, ui.edge.TopLeft, -8, 0} },
   }
 
-  local defaultView = ns.db.settings.defaultView
-  if defaultView and ns.viewKeys[defaultView] then
-    self:view(ns.viewKeys[defaultView])
-  end
+  local defaultName = ns.DefaultViewName()
+  if defaultName then self:view(defaultName) end
 
   -- Persist position when the user finishes dragging the titlebar. The base
   -- TitleFrame wires the titlebar OnMouseUp to StopMovingOrSizing; wrap it so we

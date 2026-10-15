@@ -85,11 +85,12 @@ local Reputations = ns:RegisterBroker("reputations")
 -- A full GetNumFactions walk (hundreds of factions, each resolved through several C_*
 -- calls) is heavy, and UPDATE_FACTION fires in large bursts (any rep gain, opening the
 -- panel), so the live handler below is carefully rate-limited — an unguarded re-scan per
--- event pegged the CPU in-game. Three guards (see eventHandler):
+-- event pegged the CPU in-game. Guards (see eventHandler; the `scanning` flag is guard 0):
 --   1. Self-trigger suppression. The scan's own ExpandAllFactionHeaders fires more
---      UPDATE_FACTION events, but ASYNC (after get returns), so a synchronous in-scan flag
---      can't catch them. Instead we stamp the scan-completion time and ignore any event
---      landing within SELF_WINDOW of it — the echo can never schedule a new scan.
+--      UPDATE_FACTION events. On Retail they are ASYNC (after get returns), so we stamp the
+--      scan-completion time and ignore any event landing within SELF_WINDOW of it. On Forever they
+--      are SYNCHRONOUS (inside the expand), so a `scanning` flag set around the expand drops them
+--      (guard 0). Either way the echo can never schedule a new scan.
 --   2. Throttle: a scan never lands sooner than MIN_INTERVAL after the previous one, so a
 --      sustained rep-gain stream can't fire a full walk more than once per window.
 --   3. Debounce (LibNAddOn's ns:debounce, like worldquests): only the last event in a burst runs.
@@ -98,6 +99,11 @@ local MIN_INTERVAL  = 6 -- s: throttle — at most one faction walk per this win
 local SELF_WINDOW   = 1 -- s: ignore UPDATE_FACTION this soon after our own scan (its echo)
 
 local lastScanAt  = 0   -- GetTime() of the last completed scan (0 = never)
+-- True only while get() expands the headers. On Forever (beta, 2026-10-14) the expand's UPDATE_FACTION echo fires
+-- SYNCHRONOUSLY, inside the scan and before lastScanAt is stamped, so guard (1) below never caught it and each
+-- scan scheduled the next (a 2 s / 4 s loop for the whole session). Retail's echo is async and still lands in
+-- SELF_WINDOW. The flag is cleared on every path out of the expand, errors included (see get).
+local scanning = false
 
 -- All factions the character has a standing with, keyed by factionID. Headers must be
 -- expanded for the index walk to reach collapsed children. Pure headers (no rep of their
@@ -110,7 +116,12 @@ Reputations.fields = {
   factions = {
     missing = { label = "reputations", order = 90 },
     get = function()
-      if C_Reputation.ExpandAllFactionHeaders then C_Reputation.ExpandAllFactionHeaders() end
+      if C_Reputation.ExpandAllFactionHeaders then
+        scanning = true
+        local ok, err = pcall(C_Reputation.ExpandAllFactionHeaders)
+        scanning = false          -- cleared whether or not the expand errored, so a throw can't strand the guard
+        if not ok then error(err, 0) end
+      end
       local reps = {}
       local categoryId = 0
       for i = 1, (C_Reputation.GetNumFactions() or 0) do
@@ -133,6 +144,9 @@ Reputations.fields = {
       local toon = field._toon or ns.currentData
       if not toon then return end
       local now = GetTime()
+
+      -- (0) Ignore the synchronous echo fired while our own scan expands the headers.
+      if scanning then return end
 
       -- (1) Suppress the async echo of our own ExpandAllFactionHeaders.
       if now - lastScanAt < SELF_WINDOW then return end
