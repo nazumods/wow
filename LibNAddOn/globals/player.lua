@@ -88,15 +88,18 @@ local Player = {
   -- https://wowpedia.fandom.com/wiki/API_GetShapeshiftFormID (forms, stealth, wolf, stance, etc)
   GetShapeshiftFormID = GetShapeshiftFormID,
   -- id, name, description, icon (FileID), role (DAMAGE | TANK | HEALER, classFile (e.g. PRIEST), className (e.g. Priest)
-  -- Forever has no GetSpecialization / GetSpecializationInfo: Blizzard defines those two only in
-  -- Blizzard_DeprecatedSpecialization, which loads for `classic, standard` and not on Forever. They return nil --
-  -- "no spec" -- there instead of erroring on a nil global. GetSpecializationInfoByID and GetLootSpecialization are
-  -- guarded the same way, defensively: shared Blizzard code calls GetSpecializationInfoByID, so whether Forever defines it is unverified.
+  -- Calls C_SpecializationInfo directly: GetSpecialization / GetSpecializationInfo are only Blizzard's deprecated
+  -- shims for it (Blizzard_DeprecatedSpecialization, gated by loadDeprecationFallbacks). Forever has the C_ functions
+  -- but they report ONE class-wide spec (a mage is spec 1482, "Mage"), which is not a spec as the suite means it, so
+  -- the feature table, not a missing global, is what makes this return nothing there (flavor.lua:
+  -- specializations = unsupported). Whether Forever should expose that class spec is a separate decision.
+  -- GetSpecializationInfoByID and GetLootSpecialization are still guarded by existence, defensively: shared
+  -- Blizzard code calls GetSpecializationInfoByID, so whether Forever defines it is unverified.
   GetActiveSpecialization = function()
-    if not (GetSpecialization and GetSpecializationInfo) then return end
-    local spec = GetSpecialization()
+    if not ns.Supports("specializations") then return end
+    local spec = C_SpecializationInfo.GetSpecialization()
     if not spec then return end  -- no active spec yet (e.g. very early login)
-    return GetSpecializationInfo(spec)
+    return C_SpecializationInfo.GetSpecializationInfo(spec)
   end,
   GetPrimarySpecialization = function()
     if not (GetSpecializationInfoByID and GetLootSpecialization) then return end
@@ -128,7 +131,11 @@ local Player = {
     local _, _, _, _, _, _, _, _, _, _, collected = C_MountJournal.GetMountInfoByID(id)
     return collected
   end,
-  IsSpellKnown = IsSpellKnown,
+  -- Blizzard's deprecated IsSpellKnown shim, spelled out (call time, no load-time capture): the spell book's
+  -- IsSpellInSpellBook with the player/pet bank chosen by isPet and spell overrides excluded.
+  IsSpellKnown = function(spellId, isPet)
+    return C_SpellBook.IsSpellInSpellBook(spellId, isPet and Enum.SpellBookSpellBank.Pet or Enum.SpellBookSpellBank.Player, false)
+  end,
   Mount = C_MountJournal.SummonByID,
   UseToy = UseToy,
 
