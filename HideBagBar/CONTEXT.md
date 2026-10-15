@@ -9,7 +9,7 @@ Hides Blizzard's bag bar buttons on load. No LibNAddOn, no DB, no LibNUI.
 | File | Purpose |
 |---|---|
 | `addon.lua` | On `ADDON_LOADED` (self), looks each frame in `FRAME_NAMES` up in `_G` and calls `SetShown(false)` on the ones that exist: the backpack button, bag-bar expand toggle, the four bag slots, the reagent bag slot, and the Forever key ring. |
-| `spec/addon_spec.lua` | busted: every listed frame hidden, a missing frame does not stop the later ones, `KeyRingButton` hidden when present, another addon's `ADDON_LOADED` ignored. |
+| `spec/addon_spec.lua` | busted: the original seven frames hidden, a missing frame does not stop the later ones, `KeyRingButton` hidden when present, another addon's `ADDON_LOADED` ignored. |
 
 Frames hidden: `MainMenuBarBackpackButton`, `BagBarExpandToggle`, `CharacterBag0Slot`–`CharacterBag3Slot`, `CharacterReagentBag0Slot`, `KeyRingButton`.
 
