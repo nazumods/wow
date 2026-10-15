@@ -51,8 +51,8 @@ Retail drives the mail window via the player-interaction manager; the legacy
   `ns:registerEvent(...)` for both, since the listener only dispatches registered
   events.
 - `ns.OnOpenMailUpdate(fn)` — open-letter refresh dispatch. Core posthooks the open-mail
-  redraw once (lazily on first mailbox open, since Blizzard_MailFrame is load-on-demand)
-  and fans out to subscribers. Retail has it as the `OpenMail_Update` global; Forever's
+  redraw once (lazily on first mailbox open, since the mail frames are not guaranteed to
+  exist when core loads) and fans out to subscribers. Retail has it as the `OpenMail_Update` global; Forever's
   mail frame replaced that with the method `OpenMailFrame:Update`, so core's local
   `hookUpdate(globalName, frame, fn)` hooks the global when it exists and the frame method
   otherwise (detected by existence, not flavor; the global is tried first, so Retail is

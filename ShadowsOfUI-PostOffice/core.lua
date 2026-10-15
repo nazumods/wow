@@ -88,8 +88,8 @@ end
 -- Open-letter refresh. Blizzard's OpenMail_Update (Forever: OpenMailFrame:Update) runs
 -- whenever the open-mail view redraws (opening a letter, taking an attachment). Features
 -- that decorate the open letter (Forward, CarbonCopy) subscribe here to refresh their
--- button. Both are load-on-demand (Blizzard_MailFrame), so hook lazily on the first
--- mailbox open.
+-- button. Blizzard_MailFrame's frames are not guaranteed to exist when this file loads,
+-- so hook lazily on the first mailbox open (and retry on the next one if they were absent).
 ns._onOpenMailUpdate = {} ---@type function[]
 function ns.OnOpenMailUpdate(fn) table.insert(ns._onOpenMailUpdate, fn) end
 
@@ -107,7 +107,8 @@ end)
 -- { i = 1..7, index = mail index, present = has a letter, item = MailItemN frame,
 -- expire = MailItemNExpireTime frame }. Per-row WIDGETS anchor to those frames so they
 -- follow the active row layout; the row LAYOUT itself (width/indent) is owned by
--- whichever feature changes it. Hooked lazily — Blizzard_MailFrame is load-on-demand.
+-- whichever feature changes it. Hooked lazily on the first mailbox open (the mail frames
+-- are not guaranteed to exist when this file loads).
 local INBOX_ROWS = 7
 ns._onInboxRow = {} ---@type fun(row: table)[]
 function ns.OnInboxRow(fn) table.insert(ns._onInboxRow, fn) end

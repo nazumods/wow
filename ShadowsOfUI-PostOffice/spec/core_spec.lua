@@ -63,6 +63,27 @@ describe("ShadowsOfUI-PostOffice core mail-frame hooks", function()
     assert.equals(1, fired)
   end)
 
+  it("Retail: reopening the mailbox does not hook the global a second time", function()
+    _G.InboxFrame_Update = function() end
+    _G.InboxFrame = { pageNum = 1 }
+    fakeRows(1)
+    local seen = 0
+    ns.OnInboxRow(function() seen = seen + 1 end)
+    po.openMailbox(ns); po.openMailbox(ns); po.openMailbox(ns)
+    _G.InboxFrame_Update()
+    assert.equals(7, seen)                         -- 7 rows once, not 21
+  end)
+
+  it("a non-function value in the global slot is not hooked as a global", function()
+    _G.OpenMail_Update = true                      -- truthy but not callable
+    _G.OpenMailFrame = newOpenMailFrame()
+    local fired = 0
+    ns.OnOpenMailUpdate(function() fired = fired + 1 end)
+    assert.has_no.errors(function() po.openMailbox(ns) end)
+    _G.OpenMailFrame:Update()
+    assert.equals(1, fired)                        -- fell through to the frame method
+  end)
+
   it("Retail: hooks the OpenMail_Update global", function()
     _G.OpenMail_Update = function() end
     _G.OpenMailFrame = newOpenMailFrame()          -- present, but the global wins
@@ -87,8 +108,23 @@ describe("ShadowsOfUI-PostOffice core mail-frame hooks", function()
     assert.equals(7, inboxSeen)
     assert.equals(1, openFired)
     po.openMailbox(ns)                             -- already installed: no double hook
-    _G.InboxFrame:Update()
+    _G.InboxFrame:Update(); _G.OpenMailFrame:Update()
     assert.equals(14, inboxSeen)
+    assert.equals(2, openFired)                    -- one hook, not two, on the open-letter side too
+  end)
+
+  it("a frame that exists without an Update method is not hooked and the install is retried", function()
+    _G.InboxFrame = { pageNum = 1 }                -- no Update field yet
+    _G.OpenMailFrame = {}
+    ns.OnInboxRow(function() end)
+    assert.has_no.errors(function() po.openMailbox(ns) end)
+    _G.InboxFrame.Update = function() end          -- the mixin arrives later
+    fakeRows(0)
+    local seen = 0
+    ns.OnInboxRow(function() seen = seen + 1 end)
+    po.openMailbox(ns)
+    _G.InboxFrame:Update()
+    assert.equals(7, seen)
   end)
 
   describe("ns.RefreshInbox", function()
