@@ -23,7 +23,7 @@ local ACCRUE_INTERVAL = 60 -- seconds
 
 -- Suppress the CHAT_MSG_SYSTEM that fires alongside the automatic login query.
 local suppressTimePlayed = false
-ChatFrame_AddMessageEventFilter("CHAT_MSG_SYSTEM", function(_, _, _)
+ChatFrameUtil.AddMessageEventFilter("CHAT_MSG_SYSTEM", function(_, _, _)
   if suppressTimePlayed then suppressTimePlayed = false; return true end
 end)
 
