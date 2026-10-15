@@ -95,7 +95,9 @@ describe("Warbandeer on Forever", function()
       local function settings(flavor)
         local registered = {}
         wb.loadFlavored(flavor, { "views/VaultColumns.lua", "views/vaultColumnsSettings.lua" }, {
-          ns = { RegisterSettings = function(_, spec) registered[#registered + 1] = spec end },
+          -- VaultColumns = false: where VaultColumns.lua does not run, the name is simply absent
+          -- in the game (a bare ipairs over it would raise); the stub would otherwise invent one.
+          ns = { VaultColumns = false, RegisterSettings = function(_, spec) registered[#registered + 1] = spec end },
         })
         return registered
       end
