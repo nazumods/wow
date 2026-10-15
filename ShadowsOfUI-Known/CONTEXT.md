@@ -8,7 +8,7 @@ data (`professions.details[skillLineID].recipes[bucket].learned[] = { id, name }
 1. **"Learnable by:"** on **recipe items** (the patterns/scrolls) — characters that have the
    recipe's profession but haven't learned it, plus a **"Known by:"** line naming those who
    already know it (matched by recipe name).
-2. **"Known by:" / "Not Known"** on the **Place Crafting Order** browse list — which characters
+2. **"Known by:" / "Not Known"** (the "Not Known" part only where recipe data exists) on the **Place Crafting Order** browse list — which characters
    already know the hovered recipe (matched by exact recipe id; red "Not Known" when none do),
    then a **"Guild crafters:"** line — guild members who can craft it — from a separate, **live
    native** guild query (not the captured data); see below.
@@ -77,7 +77,7 @@ takes it), so it serves as both the UI gate and the exact recipe identity. Rende
 `and N more.` past 5); 0 → a red `Not Known: <Profession>` (the profession is resolved from the
 row's `option.skillLineAbilityID` via `C_TradeSkillUI.GetProfessionNameForSkillLineAbility` —
 available even though no captured-data path exists when nobody knows the recipe; falls back to a
-bare `Not Known` if the name can't be resolved).
+bare `Not Known` if the name can't be resolved). **Omitted entirely when no character has any captured recipes** (`ns.HasRecipeData()` false): with no data "nobody knows it" is not a finding -- on Forever, until Warbandeer_Characters captures recipes there (#961), the line would be a false claim on every row. The guild section is independent and still shows.
 
 ## "Guild crafters" (Place Crafting Order)
 
@@ -114,7 +114,7 @@ them apart.
   exact — no name/locale ambiguity.
 - **Known by needs the profession opened once per crafter.** A character whose profession was
   never opened (while its trade-skill window was up) has no `learned` capture, so a recipe they
-  actually know reads as "Not Known" until they've opened that profession once.
+  actually know reads as "Not Known" until they've opened that profession once (and with no character captured at all, nothing is said -- see above).
 - **`ns.ReqSkill` parsing is locale-derived.** The requirement line is located via the
   `ITEM_MIN_SKILL` ("Requires %s (%d)") prefix, so it tracks the client locale; recipes with no
   numeric threshold (most modern ones) yield 0, so nobody is shown red.

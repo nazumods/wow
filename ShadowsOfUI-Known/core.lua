@@ -84,6 +84,23 @@ local function knowsRecipeID(toon, recipeID)
   return nil
 end
 
+-- Whether ANY character has a captured recipes bucket. Learned recipes are captured when a
+-- profession window opens (Warbandeer_Characters data/professions.lua), so before that -- and on
+-- a client where that capture produced nothing -- "no character knows this recipe" is the
+-- absence of data, not a finding, and a tooltip must not state it as one.
+---@return boolean
+function ns.HasRecipeData()
+  local api = ns.api
+  if not (api and api.GetAllCharacters) then return false end
+  for _, toon in ipairs(api:GetAllCharacters()) do
+    local details = toon.professions and toon.professions.details
+    for _, det in pairs(details or {}) do
+      if det.recipes and next(det.recipes) then return true end
+    end
+  end
+  return false
+end
+
 ---@class CrafterEntry
 ---@field name string
 ---@field classKey string

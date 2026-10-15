@@ -95,6 +95,9 @@ end
 renderKnownBy = function(tooltip, list, skillLineAbilityID)
   local n = #list
   if n == 0 then
+    -- "Not Known" is a finding only where recipes were captured: with none captured anywhere
+    -- (Forever until its capture lands) it would be a false claim on every recipe -- omit it.
+    if not ns.HasRecipeData() then return end
     local prof = skillLineAbilityID and GetProfessionName and GetProfessionName(skillLineAbilityID)
     local text = prof and ("Not Known: " .. prof) or "Not Known"
     tooltip:AddLine(RED_FONT_COLOR:WrapTextInColorCode(text))
@@ -165,7 +168,11 @@ SlashCmdList["SUI_KNOWN"] = function(msg)
   local recipeID = tonumber(msg:match("^%s*knownby%s+(%d+)"))
   if recipeID then
     local list = ns.BuildKnownBy(recipeID)
-    if #list == 0 then ns.Print("Not Known by any character — recipe", recipeID); return end
+    if #list == 0 then
+      ns.Print(ns.HasRecipeData() and "Not Known by any character — recipe"
+        or "No recipe data captured yet (open a profession window on a character) — recipe", recipeID)
+      return
+    end
     ns.Print(("Known by (%d):"):format(#list))
     for _, e in ipairs(list) do
       ns.Print((" - %s  lvl %d, rank %d"):format(e.name, e.level, e.rank))
