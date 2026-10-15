@@ -56,7 +56,7 @@ function M.loadTooltips(opts)
   setGlobal("SlashCmdList", {})
   setGlobal("wipe", function(t) for k in pairs(t) do t[k] = nil end end)
   setGlobal("Enum", { ItemClass = { Recipe = 9 } })
-  -- GetItemInfoInstant(itemID) -> ..., classID (7th-1), subClassID: a Tailoring recipe item
+  -- GetItemInfoInstant(itemID) -> 6th return = classID, 7th = subClassID: a Tailoring recipe item
   setGlobal("C_Item", { GetItemInfoInstant = function() return nil, nil, nil, nil, nil, 9, 2 end })
   setGlobal("C_TradeSkillUI", { GetProfessionNameForSkillLineAbility = function() return opts.profName end })
   setGlobal("ProfessionsCustomerOrdersFrame", { IsShown = function() return true end })

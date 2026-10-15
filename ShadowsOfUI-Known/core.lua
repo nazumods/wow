@@ -109,7 +109,8 @@ end
 
 -- Characters that have learned the recipe `recipeID` (any profession), ordered main-intent
 -- crafters first, then level desc, name. Drives the "Place Crafting Order" tooltip's "Known by"
--- line; an empty list means no character knows it (→ "Not Known"). Matches by the captured
+-- line; an empty list means no character knows it (→ "Not Known" where recipes were captured,
+-- nothing at all where none were: see ns.HasRecipeData). Matches by the captured
 -- recipe id (Warbandeer_Characters stores `{ id, name }` per learned recipe), so it's exact —
 -- no name/locale ambiguity.
 -- The crafting-orders browse list hovers BuildKnownBy on every row, and the scan is

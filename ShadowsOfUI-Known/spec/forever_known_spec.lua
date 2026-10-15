@@ -1,6 +1,6 @@
 local known = require("ShadowsOfUI-Known.spec.known")
 
--- #961: Known never states a finding it has no data for, and never shows a header with no rows.
+-- #961: Known never states a "Known by" / "Not Known" finding it has no data for, and never shows a header with no rows.
 -- The REAL core.lua + tooltip.lua run against fake characters; Forever is the case where
 -- Warbandeer_Characters has captured no recipes (the PR's D2 note: inferred from the beta data, not
 -- proven), Retail the case where it has.
@@ -152,6 +152,8 @@ describe("ShadowsOfUI-Known tooltips", function()
     it("is false when the characters API is absent", function()
       local d = known.loadTooltips({ toons = { toon("A", {}) } })
       d.ns.api = nil
+      assert.is_false(d.ns.HasRecipeData())
+      d.ns.api = {}                                     -- an api table without GetAllCharacters
       assert.is_false(d.ns.HasRecipeData())
     end)
 

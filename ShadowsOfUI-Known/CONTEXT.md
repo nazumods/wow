@@ -66,8 +66,7 @@ character whose captured `learned[]` contains that **recipe id** (`knowsRecipeID
 professions — recipe ids are globally unique). Each `CrafterEntry { name, classKey, rank,
 level }`; sorted by `rank ↑` (intent: main → secondary → other), `level ↓`, `name ↑`. The result
 is **cached per recipeID** (the crafting-order list hovers this on every row, and the scan is
-heavy) and wiped on `NEW_RECIPE_LEARNED` — cross-alt data is static within a session, and only the
-current character's own learns change it.
+heavy) and wiped on `NEW_RECIPE_LEARNED`. Cross-alt data comes from SavedVariables and mostly only the current character's own learns change it -- but a profession-window capture by Warbandeer_Characters (`TRADE_SKILL_SHOW`) fires no such event, so: an EMPTY answer is not cached while `ns.HasRecipeData()` is false (the first capture is picked up), yet once any alt has recipe data an empty answer IS cached, and a recipe hovered before ANOTHER alt's first capture reads "Not Known" until `/reload` (pre-existing behaviour, not widened by the Forever work).
 
 `tooltip.lua`'s second hook fires only when `customerOrderRecipeID(tooltip)` resolves — i.e.
 `ProfessionsCustomerOrdersFrame` is shown and the tooltip's owner (the hovered browse row)
@@ -77,7 +76,7 @@ takes it), so it serves as both the UI gate and the exact recipe identity. Rende
 `and N more.` past 5); 0 → a red `Not Known: <Profession>` (the profession is resolved from the
 row's `option.skillLineAbilityID` via `C_TradeSkillUI.GetProfessionNameForSkillLineAbility` —
 available even though no captured-data path exists when nobody knows the recipe; falls back to a
-bare `Not Known` if the name can't be resolved). **Omitted entirely when no character has any captured recipes** (`ns.HasRecipeData()` false): with no data "nobody knows it" is not a finding -- on Forever, until Warbandeer_Characters captures recipes there (#961), the line would be a false claim on every row. The guild section is independent and still shows.
+bare `Not Known` if the name can't be resolved). **Omitted entirely when no character has any captured recipes** (`ns.HasRecipeData()` false): with no data "nobody knows it" is not a finding -- on Forever, until Warbandeer_Characters captures recipes there (#961; inferred from the beta data, not proven), the line would be a false claim on every row. The guild section is independent and still shows.
 
 ## "Guild crafters" (Place Crafting Order)
 
@@ -114,7 +113,7 @@ them apart.
   exact — no name/locale ambiguity.
 - **Known by needs the profession opened once per crafter.** A character whose profession was
   never opened (while its trade-skill window was up) has no `learned` capture, so a recipe they
-  actually know reads as "Not Known" until they've opened that profession once (and with no character captured at all, nothing is said -- see above).
+  actually know reads as "Not Known" until they've opened that profession once (and with no character captured at all, no Known by / Not Known line is said -- see above; the guild section is unaffected).
 - **`ns.ReqSkill` parsing is locale-derived.** The requirement line is located via the
   `ITEM_MIN_SKILL` ("Requires %s (%d)") prefix, so it tracks the client locale; recipes with no
   numeric threshold (most modern ones) yield 0, so nobody is shown red.
