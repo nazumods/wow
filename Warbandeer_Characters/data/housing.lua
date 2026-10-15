@@ -1,5 +1,9 @@
 ---@type Warbandeer_Characters
 local ns = select(2, ...)
+
+-- Forever has the C_Housing / C_NeighborhoodInitiative tables but they are empty, and the game has no housing.
+-- Gate at registration (CONTRIBUTING, "Writing for several clients"): nothing below registers.
+if not ns:Supports("housing") then return end
 local pairs, ipairs, next = pairs, ipairs, next
 local tostring, format = tostring, string.format
 local GetServerTime = GetServerTime

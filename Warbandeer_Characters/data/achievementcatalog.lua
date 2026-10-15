@@ -46,7 +46,7 @@ ns.AchievementCatalog = {
     10698,  9415,  8316,  7322,  6981,  5442,  5245,  5223,  4859,  4405,  1157,  1153,   940,   938,   231,   229,
       222,   221,   213,   212,   200,   158
   },
-  legion = {10459, 11160, 11163},
+  legion = ns:Supports("legion") and {10459, 11160, 11163} or {},  -- empty (not absent) on Forever: consumers iterate it
   -- A tracked id whose completion is also satisfied by an alternate id (e.g. a Heroic variant
   -- awarding the same meta). API:IsAchievementComplete ORs the two.
   metaAlts = {

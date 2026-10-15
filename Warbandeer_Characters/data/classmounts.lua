@@ -117,6 +117,9 @@ ns.ClassMounts = {
   },
 }
 
+-- Legion class halls are absent on Forever: keep the table (consumers index and iterate it) but empty.
+if not ns:Supports("legion") then ns.ClassMounts = {} end
+
 -- `/wbc dump mounts` (+ `wdump mounts`): the in-game verification probe. Prints each catalog
 -- entry's stored label beside its live-resolved mountID + mount name and collected state — a
 -- wrong or duplicate id reads "<unresolved>"/mismatch/shared mountID, never a false owned.
