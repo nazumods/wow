@@ -1,6 +1,6 @@
 ---@type Warbandeer
 local ns = select(2, ...)
-local GetItemName = (C_Item and C_Item.GetItemInfo) or _G.GetItemInfo
+local GetItemName = C_Item.GetItemInfo
 
 ns:registerCommand("", nil, function(self)
   self:Open()

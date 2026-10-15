@@ -7,7 +7,7 @@ local theme = ns.theme
 local select = select
 local insert, sort = table.insert, table.sort
 local GetItemInfo = C_Item.GetItemInfo
-local GetItemIcon = (C_Item and C_Item.GetItemIconByID) or _G.GetItemIcon
+local GetItemIcon = C_Item.GetItemIconByID
 local OpenWorldMap = C_Map and C_Map.OpenWorldMap
 local SetSuperTrackedQuestID = C_SuperTrack and C_SuperTrack.SetSuperTrackedQuestID
 

@@ -64,7 +64,7 @@ end
 -- ClassCodex pick carries its own `name`; a bundled recipe resolves via GetSpellName;
 -- an item id falls back to GetItemInfo. The Bars views use the same GetSpellName shim.
 local GetSpellName = (C_Spell and C_Spell.GetSpellName) or _G.GetSpellInfo
-local GetItemName = (C_Item and C_Item.GetItemInfo) or _G.GetItemInfo
+local GetItemName = C_Item.GetItemInfo
 
 -- Resolve an EnchantSuggestion descriptor (shared by the enchant + gem recommenders).
 ---@param s table?
