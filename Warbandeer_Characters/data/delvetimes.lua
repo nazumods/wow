@@ -68,6 +68,12 @@ function ns.FinishRunXP(snap)
   return nil -- two+ level-ups this run: intermediate maxes unknown, drop the sample
 end
 
+-- Everything above is shared (data/dungeontimes.lua calls StartRunXP / FinishRunXP / NormalizeDelveKey, and api.lua
+-- calls NormalizeDelveKey), so it stays defined on every client. The delve recorder below is the Delves system's own:
+-- Forever has no Delves (and C_DelvesUI / the scenario events misfire there, recording a "delve" named after the
+-- starting zone), so its events, dump and command never register.
+if not ns:Supports("delves") then return end
+
 -- (Lazily create and) return the current character's delveTimes store.
 local function store()
   local toon = ns.currentData

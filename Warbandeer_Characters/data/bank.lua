@@ -174,9 +174,13 @@ local function scanPersonalBanks()
   local now = GetServerTime()
   cold = {}
   local charGear, charEquip, charCounts = scanBankType(BankType.Character)
-  local wbGear, wbEquip, wbCounts = scanBankType(BankType.Account)
   b.characters[ns.currentPlayer] = { scannedAt = now, gear = charGear, equip = charEquip, items = charCounts }
-  b.warband = { scannedAt = now, gear = wbGear, equip = wbEquip, items = wbCounts }
+  -- The account (warband) bank is a Mainline system; where the feature table says Forever lacks it, record no
+  -- `b.warband` (the character bank above is unchanged).
+  if ns:Supports("warbandBank") then
+    local wbGear, wbEquip, wbCounts = scanBankType(BankType.Account)
+    b.warband = { scannedAt = now, gear = wbGear, equip = wbEquip, items = wbCounts }
+  end
   local pending = cold
   cold = nil
   for _, loc in ipairs(pending) do RequestLoadItemData(loc) end

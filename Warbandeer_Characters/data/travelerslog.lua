@@ -1,5 +1,10 @@
 ---@type Warbandeer_Characters
 local ns = select(2, ...)
+
+-- The Trading Post is not on Forever (Blizzard_PerksProgram is excluded on camelot). ns:InitTravelersLog is therefore
+-- absent there; database.lua calls it only when it exists.
+-- Gate at registration (CONTRIBUTING, "Writing for several clients"): nothing below registers.
+if not ns:Supports("travelersLog") then return end
 local floor, min = math.floor, math.min
 local GetServerTime = GetServerTime
 local PerksActivities = C_PerksActivities
