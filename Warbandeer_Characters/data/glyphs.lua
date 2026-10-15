@@ -4,7 +4,6 @@ local C_SpellBook = C_SpellBook
 local C_Spell = C_Spell
 local C_SpecializationInfo = C_SpecializationInfo
 local GetFlyoutInfo, GetFlyoutSlotInfo = GetFlyoutInfo, GetFlyoutSlotInfo
-local IsSpellKnown = IsSpellKnown
 local PLAYER_BANK = Enum.SpellBookSpellBank.Player
 local FLYOUT = Enum.SpellBookItemType.Flyout
 local GetItemName = C_Item.GetItemNameByID
@@ -58,11 +57,11 @@ local function scanAllSpecs(activeSpecID)
           local _, _, numSpells = GetFlyoutInfo(actionID)
           for s = 1, (numSpells or 0) do
             local spellID = GetFlyoutSlotInfo(actionID, s)
-            if spellID and IsSpellKnown(spellID) then
+            if spellID and C_SpellBook.IsSpellInSpellBook(spellID, PLAYER_BANK, false) then
               addGlyph(bySpec, spec, C_Spell.GetSpellLink(spellID))
             end
           end
-        elseif actionID and IsSpellKnown(actionID) then
+        elseif actionID and C_SpellBook.IsSpellInSpellBook(actionID, PLAYER_BANK, false) then
           addGlyph(bySpec, spec, C_SpellBook.GetSpellBookItemLink(j, PLAYER_BANK))
         end
       end

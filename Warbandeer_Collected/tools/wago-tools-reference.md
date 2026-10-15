@@ -25,7 +25,7 @@ product codes currently served, with build counts and latest version as of the s
 |---|---|---:|---|
 | `wow` | Retail — **live** | 496 | 12.0.7.68453 |
 | `wowt` | Retail — **PTR** (public test) | 468 | 12.1.0.68745 |
-| `wowxptr` | Retail — secondary/experimental PTR | 105 | 12.0.7.68774 |
+| `wowxptr` | Retail — **second PTR** (see the note below) | 105 | 12.0.7.68774 |
 | `wow_beta` | Retail — next-expansion beta | 186 | 12.0.1.66220 |
 | `wowlivetest` | Retail — live-event test realm (legacy) | 25 | 10.2.5.52646 |
 | `wowz` | Retail — internal/submission (legacy) | 67 | 9.0.2.35978 |
@@ -37,8 +37,13 @@ product codes currently served, with build counts and latest version as of the s
 | `wow_classic_era_ptr` | Classic Era — PTR | 121 | 10.1.5.49595 |
 | `wow_anniversary` | Anniversary / Fresh realms | 21 | 2.5.6.68775 |
 
-The pipeline pins `wow` for the live refresh and `wowt` for the PTR-preview delta —
-never the bare/newest build, which would mix products (see `UPDATING.md`, "Source build").
+`wowxptr` is not a footnote PTR: it carried the whole 12.1.5 PTR cycle (12.1.5.69594 on 2026-09-03 through 12.1.5.70340 on 2026-10-12) while `wowt` stopped at 12.1.0.69587 on 2026-09-01. The build counts and "Latest" column above are the snapshot's, not current.
+
+The pipeline pins `wow` for the live refresh. The PTR-preview delta reads **both** PTR
+products, `wowt` and `wowxptr`: the PTR build is the newest patch above live across their
+heads (an explicit `-PtrBuild` wins), and "no PTR stream is ahead of live" means an empty
+preview. Never the bare/newest build, which would mix products (see `UPDATING.md`, "Source
+build" and the PTR-preview section).
 
 ---
 
@@ -48,7 +53,7 @@ The build manifest. This is the only official machine API besides files. All ret
 
 | Endpoint | Returns |
 |---|---|
-| `GET /api/builds` | **Every** version, as an object keyed by product → array of build records (newest first). |
+| `GET /api/builds` | **Every** version, as an object keyed by product → array of build records (roughly newest first: as of 2026-10-14 the first entry is the newest for most products, but **not** for `wow_classic_beta`, `wow_classic_era_ptr` or `wowz`, and even `wow` has a few neighbouring entries out of date order — take the newest by `created_at`, as `Tooling/update-static-data.ps1`'s `Select-WagoBuild` does). |
 | `GET /api/builds/latest` | The latest build **per product**, as an object keyed by product → one record. |
 | `GET /api/builds/{product}/latest` | The single latest build for one product (e.g. `/api/builds/wow/latest`). |
 

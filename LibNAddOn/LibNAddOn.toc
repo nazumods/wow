@@ -2,7 +2,9 @@
 ## Category: Lib
 ## Title: LibNAddOn
 ## Author: Nazuraki
-## Version: 12.1.5-r0
+## Version: 12.1.5-r1
+## X-Game: [Game]
+## X-Family: [Family]
 ## IconTexture: Interface\Icons\achievement_guildperk_bountifulbags
 ## X-Curse-Project-ID: 1339490
 ## X-NUI-COMMANDS: /lib
@@ -18,6 +20,7 @@ lua/strings.lua
 lua/signal.lua
 
 slashCommands.lua
+flavor.lua
 
 globals/globalCommands.lua
 globals/colors.lua

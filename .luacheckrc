@@ -28,7 +28,7 @@ include_files = {
 -- -luarocks use .lua/.luarocks/.install); keep `luacheck .` off those trees.
 exclude_files = {".lua", ".luarocks", ".install"}
 
-files["**/spec/**/*.lua"] = {std = "+busted", read_globals = {"loadfile", "assert", "require", "tostring"}, globals = {"Mixin", "_G.Mixin"}}
+files["**/spec/**/*.lua"] = {std = "+busted", read_globals = {"loadfile", "assert", "require", "tostring", "io"}, globals = {"Mixin", "_G.Mixin"}}
 -- Addons that intentionally define their own globals.
 files["LibNUI/globals.lua"] = {globals = {"LibNUI"}, read_globals = {"LibNUITest"}}
 files["LibNUI/debug.lua"] = {globals = {"SLASH_WDEBUG1"}}
@@ -53,6 +53,8 @@ files["ShadowsOfUI-ProfCommissions/**/*.lua"] = {globals = {"SLASH_SUI_PROFCOMM1
 files["ShadowsOfUI-QuestXP/**/*.lua"] = {globals = {"SLASH_SUI_QUESTXP1"}}
 files["ShadowsOfUI-PostOffice/**/*.lua"] = {globals = {"SLASH_SUI_POSTOFFICE1", "InboxFrame", "InboxFrame_OnClick", "SendMailNameEditBox"}}
 files["Warbandeer_Bars/init.lua"] = {globals = {"WarbandeerBarsSettings"}}
+-- until nazumods/wow#949 PR 2 moves player.lua off the deprecated shims
+files["LibNAddOn/globals/player.lua"] = {read_globals = {"GetSpecialization", "GetSpecializationInfo", "IsSpellKnown"}}
 
 std = {
   -- Globals the suite intentionally writes: dynamic global registration via
@@ -272,6 +274,8 @@ std = {
     "TRADESKILL_EXPERIENCE_COLOR",
     "YES",
     "WHITE_FONT_COLOR",
+    "WOW_PROJECT_CAMELOT",
+    "WOW_PROJECT_ID",
     "GameFontHighlightSmall",
     "NumberFontNormalSmallGray",
     "ITEM_PET_KNOWN",
@@ -322,7 +326,6 @@ std = {
     "BreakUpLargeNumbers",
     "BuyMerchantItem",
     "CastSpell",
-    "ChatFrame_AddMessageEventFilter",
     "ClearCursor",
     "ContainerFrameUtil_EnumerateContainerFrames",
     "CreateMacro",
@@ -358,7 +361,6 @@ std = {
     "GetInstanceInfo",
     "GetInventoryItemID",
     "GetInventoryItemLink",
-    "GetInventorySlotInfo",
     "GetLocale",
     "GetLootSlotLink",
     "GetLootSpecialization",
@@ -450,9 +452,6 @@ std = {
     "GetServerExpansionLevel",
     "GetServerTime",
     "GetShapeshiftFormID",
-    "GetSpecialization",
-    "GetSpecializationInfo",
-    "GetSpecializationMasterySpells",
     "GetSpecializationInfoByID",
     "GetSpecializationInfoForClassID",
     "GetSpecializationRoleByID",
@@ -474,7 +473,6 @@ std = {
     "IsMouseButtonDown",
     "IsMouselooking",
     "IsShiftKeyDown",
-    "IsSpellKnown",
     "IsTitleKnown",
     "IsWindowsClient",
     "LibStub",

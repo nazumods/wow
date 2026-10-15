@@ -12,7 +12,7 @@ local insert = table.insert
 -- muted em-dash (n/a) and a fully-enchanted max-level character a green check.
 if not ShadowsOfUI_UpgradeApi then return end
 
-local GetItemTex = (C_Item and C_Item.GetItemIconByID) or _G.GetItemIcon
+local GetItemTex = C_Item.GetItemIconByID
 
 local getData = function(toon)
   if (toon.basic.level or 0) < ns.wow.maxLevel then return ns.ZeroDashC end

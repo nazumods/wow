@@ -118,6 +118,8 @@ Every commit and merge follows a strict discipline: (1) provide the commit messa
 
 The `## Version:` field in each `.toc` uses the format **`MAJOR.MINOR.PATCH-rREVISION`**, where `MAJOR.MINOR.PATCH` mirrors the WoW client version (e.g. `12.0.5-r0`) and `REVISION` is a zero-based counter that resets each patch cycle. `r0` is the initial release adding support for that client version (at minimum a client version bump in the `.toc`). The `v` prefix is added by the release tooling to tags and titles (e.g. `AddonName-v12.0.5-r0`).
 
+When a `.toc` serves both the Retail and the WoW: Forever clients (a comma-separated `## Interface:` such as `120105, 16001`), `## Version:` keeps mirroring the **Retail** client (`12.1.5-rN`), and Forever users see that string. The CurseForge game versions come from the `Interface` values, not from `## Version:`: `publish.yml` reads each one from the right (`120105` → `12.1.5`, `16001` → `1.60.1`) and fails the publish when CurseForge has no game version of that name.
+
 **Do not bump the `-rREVISION` in `.toc` files** when making code changes — the release script bumps it automatically. (Other `.toc` fields, e.g. `X-NUI-DB-VERSION`, are still bumped by hand — but only when the version bump is actually warranted, see **DB Backwards Compatibility** below.)
 
 ## DB Backwards Compatibility
@@ -166,6 +168,10 @@ Use `/dump <expr>` or `/run <lua>` to inspect live data. Output appears in the c
 - Verify `/wdebug` probes compile and stay under WoW's chat input length limit (255 chars including the prefix).
 - Render bars/overlays on the correct frame layer (not `BACKGROUND`) and verify z-order and mouse-grab behavior.
 - Creature-display models cannot be dressed — use a `ModelScene` actor for arbitrary races.
+
+## Several Clients (Retail + Forever)
+
+The suite is being ported to run on Retail and on WoW: Forever from one folder. **The rules live in one place: [CONTRIBUTING.md → Writing for several clients](CONTRIBUTING.md#writing-for-several-clients-retail--forever)** — read it before touching a system Forever may lack. In short: detect with `ns.flavor` / `ns:Supports(feature)` (LibNAddOn's `flavor.lua`), never `GetBuildInfo()`; on Forever an API existing is not a feature test, so a missing system goes in the feature table there; guard a genuinely missing global function by existence.
 
 ## Key Gotchas
 

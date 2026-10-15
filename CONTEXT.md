@@ -134,7 +134,7 @@ Clone these alongside this repo when the work needs them; the paths are yours to
 
 | Addon | Commands | Sub-commands |
 |---|---|---|
-| LibNAddOn | `/lib`, `/rl`, `/fs`, `/etc` | `player`; `/rl` (ReloadUI), `/fs` (framestack toggle), `/etc` (Edit Mode) — suite-wide, unscoped |
+| LibNAddOn | `/lib`, `/rl`, `/fs`, `/etc` | `player`, `flavor` (detected client flavor + the signals behind it); `/rl` (ReloadUI), `/fs` (framestack toggle), `/etc` (Edit Mode) — suite-wide, unscoped |
 | LibNUI | `/nui`, `/wdebug` | `version`, `test [key]`; `/wdebug <lua>` (raw command: eval Lua → copyable window) |
 | Warbandeer_Characters | `/characters`, `/wbc` | `list`, `delete <name>`, `cleanup`, `refresh`, `refresh items/locks`, `dump`, `dump bank/bankgear/gt/locks/artifact/warband/profgear/wq[ self]/m+/vault/delves/dungeons/glyphs/pets/demons/tames/titles/travelerslog/knowledge`, `wdump [*]` / `wdump <same subcmds>` (copyable-window variant of every `dump`), `clear delves/dungeons`, `stat`, `missing`, `missing me`, `missing audit`, `wmissing` |
 | Warbandeer | `/warband`, `/wb` | `""` (open), `overview`, `summary`, `vault`, `gear`, `detail`, `roles`, `races`, `legion`, `midnight`, `profs`, `midnightprofs`, `crafting`, `playtime`, `bars`, `collected`, `reputations`, `titles`, `check legion`, `enchants` (list accepted wrong-enchants), `enchants clear`, `minimap` (toggle the minimap button), `reps0` (dev: dump uncategorized "Other" reps to a copy window), `debug on/off` (dev: toggle Summary column-boundary guides; bare `/wb debug` = status) |

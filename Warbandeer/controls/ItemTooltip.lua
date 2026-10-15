@@ -141,9 +141,9 @@ function ns.ShowItemTooltip(frame, link, compareLink, noUpgradeBlock, obtain)
 end
 
 local GetSpellName = (C_Spell and C_Spell.GetSpellName) or _G.GetSpellInfo
-local GetItemName = (C_Item and C_Item.GetItemInfo) or _G.GetItemInfo
+local GetItemName = C_Item.GetItemInfo
 local GetSpellDescription = (C_Spell and C_Spell.GetSpellDescription) or _G.GetSpellDescription
-local GetItemSpell = (C_Item and C_Item.GetItemSpell) or _G.GetItemSpell
+local GetItemSpell = C_Item.GetItemSpell
 
 -- Resolve an EnchantSuggestion to (name, effect-description). The description is the line
 -- that says what the enchant *grants* — for a spell id (bundled enchanting recipe) it's the

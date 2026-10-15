@@ -144,7 +144,14 @@ luacheck 1.2.0.
   release. See LibNAddOn's README.
 - Publishing a GitHub release triggers `.github/workflows/publish.yml`, which zips the
   addon folder (excluding `spec/`) and uploads it to CurseForge for addons that have an
-  `X-Curse-Project-ID` in their `.toc`.
+  `X-Curse-Project-ID` in their `.toc`. The upload's CurseForge game versions come from the
+  `.toc`'s `## Interface:` values read from the right (`120105` → `12.1.5`, `16001` →
+  `1.60.1`). List every client on ONE comma-separated `## Interface:` line (`120105, 16001`): a
+  second `## Interface:` line fails the workflow rather than being dropped. If CurseForge doesn't
+  know a version yet, the workflow fails instead of uploading without it — re-run the workflow once
+  CurseForge has added the version. The conversion, those checks and the workflow wiring around
+  them are covered by `bash Tooling/tests/game-versions.test.sh` (a `test.yml` job), which runs the
+  shipped steps against fake `.toc` files and a stub `curl`.
 - Doc-only (`.md`) and test-only (`spec/`) commits never trigger a release.
 
 ## Database compatibility
@@ -157,9 +164,50 @@ luacheck 1.2.0.
 
 ## Testing against the beta client
 
-Symlink an addon into the beta installation:
+Symlink an addon into the beta installation. The Forever beta lives in `_classic_beta_`
+(its `.flavor.info` says `wow_classic_beta`), not `_beta_`:
 
 ```
-cd _beta_\Interface\Addons
+cd _classic_beta_\Interface\Addons
 mklink /D HideBagBar ..\..\..\_retail_\Interface\AddOns\HideBagBar
 ```
+
+## Writing for several clients (Retail + Forever)
+
+The suite is being ported so one addon folder serves both clients. The detection helper and the
+feature table live in LibNAddOn (`LibNAddOn/flavor.lua`); every addon gets them from `LibNAddOn(...)`.
+
+- **One TOC, comma-delimited Interface**: `## Interface: 120105, 16001`. An addon that is ported to
+  Forever also carries `## X-Game: [Game]` and `## X-Family: [Family]`, added in the same commit as
+  `16001` (that commit releases the addon anyway). The helper reads LibNAddOn's own `X-Game`, so the
+  lines in another addon's TOC are not what it reads. Note that `.github/workflows/publish.yml` reads
+  a five-digit Interface value as `16.0.1` rather than 1.60.1 until the Forever CI work (#954) fixes
+  its conversion.
+- **Detect with the helper, never with `GetBuildInfo()`**: `ns.flavor.isForever` /
+  `ns.flavor.isRetail`, and `ns:Supports("housing")` for a feature. Build-number ranges drift;
+  the helper checks `WOW_PROJECT_ID == WOW_PROJECT_CAMELOT`, then LibNAddOn's `X-Game` metadata
+  (`Camelot` or `Forever`), and falls back to Retail. `/lib flavor` in-game prints what it found.
+  Prefer asking for the feature (`Supports`) over checking the flavor (`isForever`) whenever the
+  question is "does this system exist".
+- **On Forever, an API existing is not a feature test.** The client is Mainline-family and exposes
+  the Mainline `C_*` namespaces (`C_Housing`, `C_NeighborhoodInitiative`, `C_WeeklyRewards`,
+  `C_PerksProgram`, ...) while Blizzard's own TOCs load whole systems, such as the Housing UI, for
+  `standard` only. So `if C_Housing then` is true there and says nothing about the game. A game system
+  Forever lacks goes in the `UNSUPPORTED` feature table in `LibNAddOn/flavor.lua` (anything not listed
+  exists everywhere), and addon code asks `ns:Supports(feature)`. The table is the one place a gap is
+  recorded; `greatVault` and `warbandBank` are in it only because they are unverified on the beta.
+- **Gate at registration.** A file for a missing system returns at its top
+  (`if not ns:Supports("housing") then return end`), so its broker, view, command and events never
+  register, rather than every call site checking.
+- **Guard a genuinely missing global function by existence** (`if not GetSpecialization then return end`):
+  `GetSpecialization` and `GetSpecializationInfo` are not defined on Forever according to Blizzard's
+  source (it defines them only in `Blizzard_DeprecatedSpecialization`, which loads for `classic,
+  standard`; confirm in-game with `/dump GetSpecialization`), unlike the systems above, whose APIs
+  exist. Return nothing, or a "no data" value the caller already handles.
+- **Forever-only files** go in the TOC file list with inline directives:
+  `ForeverOnly.lua [AllowLoadGameType camelot] [ExcludeLoadGameType standard, classic]`. The paired
+  exclude is there because, per the wiki's TOC format page, an allow list none of whose names the
+  client recognises still passes.
+- **Specs run as either flavor**: `libn.load({ flavor = "forever" })` (see `LibNAddOn/spec/libn.lua`)
+  loads LibNAddOn as the Forever client would; `libn.load()` loads it as Retail. An unknown option
+  or flavor errors instead of quietly loading as Retail.
