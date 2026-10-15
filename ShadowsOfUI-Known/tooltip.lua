@@ -89,7 +89,8 @@ end
 
 -- "Known by:" — a single crafter inline, multiple as a header + up to 5 class-coloured names,
 -- or a red "Not Known: <Profession>" when no character has learned the recipe (the profession
--- comes from the row's skillLineAbilityID, so it shows even though nobody knows the recipe).
+-- comes from the row's skillLineAbilityID, so it shows even though nobody knows the recipe) --
+-- but only where recipes have been captured at all (ns.HasRecipeData); with none, nothing is said.
 ---@param list CrafterEntry[]
 ---@param skillLineAbilityID integer?  the hovered recipe's ability id, for the profession name
 renderKnownBy = function(tooltip, list, skillLineAbilityID)

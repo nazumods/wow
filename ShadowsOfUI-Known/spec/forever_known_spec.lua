@@ -2,7 +2,8 @@ local known = require("ShadowsOfUI-Known.spec.known")
 
 -- #961: Known never states a finding it has no data for, and never shows a header with no rows.
 -- The REAL core.lua + tooltip.lua run against fake characters; Forever is the case where
--- Warbandeer_Characters has captured no recipes yet (see the PR's D2 note), Retail the case where it has.
+-- Warbandeer_Characters has captured no recipes (the PR's D2 note: inferred from the beta data, not
+-- proven), Retail the case where it has.
 describe("ShadowsOfUI-Known tooltips", function()
   after_each(function() known.restore() end)
 
@@ -112,6 +113,17 @@ describe("ShadowsOfUI-Known tooltips", function()
       assert.is_true(has(pending.hoverCraftingOrderRow(999, 77), "querying..."))
     end)
 
+    it("the first capture landing mid-session is picked up: a recipe hovered before it is not stuck on 'empty'", function()
+      local toons = { toon("Alt") }
+      local d = known.loadTooltips({ profName = "Tailoring", toons = toons })
+      assert.same({}, d.hoverCraftingOrderRow(999, 77))          -- no data yet: nothing said (and not cached)
+      -- Warbandeer_Characters' TRADE_SKILL_SHOW capture writes the bucket; it fires no NEW_RECIPE_LEARNED
+      toons[1].professions = { details = { [197] = { recipes = { midnight = { learned = { { id = 999, name = "X" } }, total = 1 } } } } }
+      local lines = d.hoverCraftingOrderRow(999, 77)
+      assert.is_true(has(lines, "Known by:"))
+      assert.is_false(has(lines, "Not Known"))
+    end)
+
     it("no recipes bucket anywhere but a guild answer: the guild section still shows", function()
       local d = known.loadTooltips({ toons = { toon("Alt") },
         guild = { { { name = "Gina", classKey = "Mage", online = true } }, "ready" } })
@@ -121,7 +133,28 @@ describe("ShadowsOfUI-Known tooltips", function()
     end)
   end)
 
+  describe("/sknown knownby", function()
+    it("says no data was captured (not 'Not Known by any character') when nothing is captured", function()
+      local d = known.loadTooltips({ toons = { toon("Alt") } })
+      d.slash("knownby 999")
+      assert.equals(1, #d.printed)
+      assert.is_true(d.printed[1]:find("No recipe data captured yet", 1, true) ~= nil)
+    end)
+
+    it("says 'Not Known by any character' where recipes exist but nobody knows this one", function()
+      local d = known.loadTooltips({ toons = { toon("Alt", { { id = 1, name = "Other" } }) } })
+      d.slash("knownby 999")
+      assert.is_true(d.printed[1]:find("Not Known by any character", 1, true) ~= nil)
+    end)
+  end)
+
   describe("ns.HasRecipeData", function()
+    it("is false when the characters API is absent", function()
+      local d = known.loadTooltips({ toons = { toon("A", {}) } })
+      d.ns.api = nil
+      assert.is_false(d.ns.HasRecipeData())
+    end)
+
     it("is false with no characters, no details, and an empty recipes table; true with a bucket", function()
       assert.is_false(known.loadTooltips({ toons = {} }).ns.HasRecipeData())
       known.restore()

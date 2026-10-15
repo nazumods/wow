@@ -143,6 +143,10 @@ function ns.BuildKnownBy(recipeID)
     if a.level ~= b.level then return a.level > b.level end
     return a.name < b.name
   end)
+  -- An empty answer is a finding only where recipes were captured. With no capture anywhere it
+  -- is the absence of data, and caching it would keep this recipe empty after the first capture
+  -- lands mid-session (capture fires no NEW_RECIPE_LEARNED to wipe the cache).
+  if #list == 0 and not ns.HasRecipeData() then return list end
   knownByCache[recipeID] = list
   return list
 end

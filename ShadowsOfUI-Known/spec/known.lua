@@ -61,12 +61,16 @@ function M.loadTooltips(opts)
   setGlobal("C_TradeSkillUI", { GetProfessionNameForSkillLineAbility = function() return opts.profName end })
   setGlobal("ProfessionsCustomerOrdersFrame", { IsShown = function() return true end })
 
-  local callbacks = {}
+  local callbacks, printed = {}, {}
   local ns = {
     RegisterChangelog = function() end,
     registerEvent = function() end,
     OnItemTooltip = function(_, fn) callbacks[#callbacks + 1] = fn end,
-    Print = function() end,
+    Print = function(...)
+      local parts = {}
+      for i = 1, select("#", ...) do parts[i] = tostring((select(i, ...))) end
+      printed[#printed + 1] = table.concat(parts, " ")
+    end,
     Colors = { className = function(name) return name end },
     api = { GetAllCharacters = function() return opts.toons or {} end },
   }
@@ -83,7 +87,9 @@ function M.loadTooltips(opts)
     function t:GetOwner() return owner end
     return t
   end
-  local d = { ns = ns }
+  local d = { ns = ns, printed = printed }
+  -- Run the /sknown slash handler (messages land in d.printed).
+  function d.slash(msg) _G.SlashCmdList["SUI_KNOWN"](msg) end
   -- Hover a recipe ITEM (name-matched "Learnable by / Known by" surface).
   function d.hoverRecipeItem(itemName, reqSkill)
     local tip = newTooltip(nil)
