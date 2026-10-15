@@ -632,7 +632,7 @@ function API:GetTitleCatalog() return ns.db.titleCatalog end
 function API:GetHousing(charName)
   local c = self:GetCharacterData(charName)
   local hb = c and c.housing
-  if not hb then return nil end
+  if not (hb and ns.ShapeHousing) then return nil end   -- ns.ShapeHousing is absent where housing is unsupported (Forever)
   return ns.ShapeHousing(hb.active, ns.db.housing and ns.db.housing.neighborhoods)
 end
 
@@ -643,7 +643,7 @@ end
 ---@return { alliance: HouseView?, horde: HouseView? }?
 function API:GetHouses()
   local hs = ns.db.housing
-  if not hs then return nil end
+  if not (hs and ns.ShapeHouses) then return nil end   -- ns.ShapeHouses is absent where housing is unsupported (Forever)
   local out = ns.ShapeHouses(hs.houses, hs.neighborhoods)
   if not (out.alliance or out.horde) then return nil end
   return out

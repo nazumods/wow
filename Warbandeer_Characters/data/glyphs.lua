@@ -23,6 +23,10 @@ local IsAccountQuestDone = C_QuestLog.IsQuestFlaggedCompletedOnAccount
 
 -- Numeric id of the active specialization (nil before specs are chosen at low level).
 local function currentSpecID()
+  -- Forever's C_SpecializationInfo reports one class-wide spec (1482 for a mage), which is not a spec as the suite
+  -- means it: keep "no spec" there (what LibNAddOn's docstring says Player.GetActiveSpecialization yields, since its
+  -- GetSpecialization globals are absent on Forever -- inferred, not read from the client).
+  if not ns:Supports("specializations") then return nil end
   local idx = C_SpecializationInfo.GetSpecialization()
   if not idx then return nil end
   return (C_SpecializationInfo.GetSpecializationInfo(idx))
@@ -123,6 +127,9 @@ Glyphs.fields = {
     eventDelay = 1000,
   },
 }
+
+-- No spec-keyed `applied` map where specializations are unsupported (Forever); the per-character `unlocks` stay.
+if not ns:Supports("specializations") then Glyphs.fields.applied = nil end
 
 -- `/wbc dump glyphs` (+ `wdump glyphs`): the in-game verification probe. Prints each catalog
 -- entry's stored label beside its live-resolved item name (a wrong item id shows a mismatch),
