@@ -1,5 +1,7 @@
 ---@type Warbandeer
 local ns = select(2, ...)
+-- No Great Vault view on Forever, so no column toggles for it (and ns.VaultColumns is not built).
+if not ns:Supports("greatVault") then return end
 
 -- Build one checkbox per toggleable Great Vault column (those carrying a `key`; the always-on
 -- crest / Character / Lvl identity columns have none and are skipped). ns.VaultColumns is fully
