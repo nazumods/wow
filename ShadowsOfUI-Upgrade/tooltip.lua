@@ -84,7 +84,7 @@ do
   }
   for slot, invName in pairs(names) do
     if ns.EnchantableSlots[slot] or slot == "OffHand" then
-      ENCH_INV[slot] = GetInventorySlotInfo(invName)
+      ENCH_INV[slot] = C_PaperDollInfo.GetInventorySlotInfo(invName)
     end
   end
 end

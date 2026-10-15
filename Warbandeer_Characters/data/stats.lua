@@ -3,7 +3,7 @@ local ns = select(2, ...)
 local GetCritChance, GetHaste = GetCritChance, GetHaste
 local GetMasteryEffect = GetMasteryEffect
 local GetCombatRating, GetCombatRatingBonus = GetCombatRating, GetCombatRatingBonus
-local GetSpecialization, GetSpecializationMasterySpells = GetSpecialization, GetSpecializationMasterySpells
+local C_SpecializationInfo = C_SpecializationInfo
 local CR_CRIT, CR_HASTE = CR_CRIT_MELEE, CR_HASTE_MELEE
 local CR_MASTERY_, CR_VERS = CR_MASTERY, CR_VERSATILITY_DAMAGE_DONE
 local canaccessvalue = canaccessvalue
@@ -32,8 +32,9 @@ end
 -- same spell meanwhile, and let SPELL_DATA_LOAD_RESULT (below) re-scan once it lands.
 local pendingMasterySpell
 local function masteryInfo(prev)
-  local idx = GetSpecialization()
-  local spell = idx and GetSpecializationMasterySpells(idx) or nil
+  local idx = C_SpecializationInfo.GetSpecialization()
+  local spells = idx and C_SpecializationInfo.GetSpecializationMasterySpells(idx)
+  local spell = spells and spells[1] or nil
   if not spell then return nil, nil end
   local desc = C_Spell.GetSpellDescription(spell)
   if desc == nil or desc == "" then
