@@ -53,6 +53,8 @@ files["ShadowsOfUI-ProfCommissions/**/*.lua"] = {globals = {"SLASH_SUI_PROFCOMM1
 files["ShadowsOfUI-QuestXP/**/*.lua"] = {globals = {"SLASH_SUI_QUESTXP1"}}
 files["ShadowsOfUI-PostOffice/**/*.lua"] = {globals = {"SLASH_SUI_POSTOFFICE1", "InboxFrame", "InboxFrame_OnClick", "SendMailNameEditBox"}}
 files["Warbandeer_Bars/init.lua"] = {globals = {"WarbandeerBarsSettings"}}
+-- until nazumods/wow#949 PR 2 moves player.lua off the deprecated shims
+files["LibNAddOn/globals/player.lua"] = {read_globals = {"GetSpecialization", "GetSpecializationInfo", "IsSpellKnown"}}
 
 std = {
   -- Globals the suite intentionally writes: dynamic global registration via
@@ -324,7 +326,6 @@ std = {
     "BreakUpLargeNumbers",
     "BuyMerchantItem",
     "CastSpell",
-    "ChatFrame_AddMessageEventFilter",
     "ClearCursor",
     "ContainerFrameUtil_EnumerateContainerFrames",
     "CreateMacro",
@@ -360,7 +361,6 @@ std = {
     "GetInstanceInfo",
     "GetInventoryItemID",
     "GetInventoryItemLink",
-    "GetInventorySlotInfo",
     "GetLocale",
     "GetLootSlotLink",
     "GetLootSpecialization",
@@ -452,9 +452,6 @@ std = {
     "GetServerExpansionLevel",
     "GetServerTime",
     "GetShapeshiftFormID",
-    "GetSpecialization",
-    "GetSpecializationInfo",
-    "GetSpecializationMasterySpells",
     "GetSpecializationInfoByID",
     "GetSpecializationInfoForClassID",
     "GetSpecializationRoleByID",
@@ -476,7 +473,6 @@ std = {
     "IsMouseButtonDown",
     "IsMouselooking",
     "IsShiftKeyDown",
-    "IsSpellKnown",
     "IsTitleKnown",
     "IsWindowsClient",
     "LibStub",

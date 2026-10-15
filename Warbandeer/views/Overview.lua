@@ -67,6 +67,20 @@ local EXPANSIONS = {
   { key = "dragonflight", label = "Dragonflight",   expansionLevel = 9,  extraFactionIDs = {}, catalogKey = "dragonflight" },
 }
 
+-- Click through from the Traveler's Log bar to the Adventure Guide's Traveler's Log tab (#869).
+-- Mirrors Blizzard's own MonthlyActivitiesFrame_OpenFrameToActivity ordering; the globals are
+-- read inside the function since the journal is load-on-demand. Forever has no Encounter
+-- Journal (EncounterJournal_LoadUI and EncounterJournal are nil there), so there the click does
+-- nothing and never references either. Exposed on ns so a spec can drive it.
+local function openTravelersLog()
+  if not ns:Supports("encounterJournal") then return end
+  if not C_PlayerInfo.IsTravelersLogAvailable() then return end
+  if not EncounterJournal then EncounterJournal_LoadUI() end
+  if not EncounterJournal:IsShown() then EncounterJournal_OpenJournal() end
+  MonthlyActivitiesFrame_OpenFrame()
+end
+ns.OpenTravelersLog = openTravelersLog
+
 -- Overview
 ---@class Overview: Frame
 ---@field topAlts TopAlts
@@ -207,15 +221,7 @@ local Overview = Class(Frame, function(self)
       pct = tl.pct or 0,
       valueColor = c.gold,
       hoverColor = c.muted,
-      -- Click through to the Adventure Guide's Traveler's Log tab (#869). Mirrors
-      -- Blizzard's own MonthlyActivitiesFrame_OpenFrameToActivity ordering; the
-      -- globals are read inside the closure since the journal is load-on-demand.
-      onClick = function()
-        if not C_PlayerInfo.IsTravelersLogAvailable() then return end
-        if not EncounterJournal then EncounterJournal_LoadUI() end
-        if not EncounterJournal:IsShown() then EncounterJournal_OpenJournal() end
-        MonthlyActivitiesFrame_OpenFrame()
-      end,
+      onClick = openTravelersLog,
       position = { TopLeft = {P, -(stripTop + HEAD_H)} },
     }
     -- rewards line: a gold call-to-collect (bag glyph, pending Tender, reward item

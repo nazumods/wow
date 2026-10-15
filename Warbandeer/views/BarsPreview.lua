@@ -22,7 +22,7 @@ local SCALE = 0.7
 
 local GetSpellTex  = (C_Spell and C_Spell.GetSpellTexture) or _G.GetSpellTexture
 local GetSpellName = (C_Spell and C_Spell.GetSpellName)    or _G.GetSpellInfo
-local GetItemTex   = (C_Item  and C_Item.GetItemIconByID)  or _G.GetItemIcon
+local GetItemTex   = C_Item.GetItemIconByID
 
 -- ─── Slot resolvers (passed to ui.BarsPreview) ────────────────────────────────
 -- Texture for a captured profile slot; nil hides the cell.

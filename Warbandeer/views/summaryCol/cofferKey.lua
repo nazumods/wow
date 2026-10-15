@@ -1,5 +1,6 @@
 ---@type Warbandeer
 local ns = select(2, ...)
+if not ns:Supports("delves") then return end -- Restored Coffer Keys are a delve currency: no delves, no column
 ---@type LibNUI
 local ui = ns.ui
 

@@ -56,7 +56,8 @@ local getNameString = function(toon)
       ui.tip:AnchorTo(self, "ANCHOR_BOTTOMRIGHT", -10, 10)
       ui.tip:ClearLines()
       ui.tip:AddLine(toon.realm)
-      ui.tip:AddLine(toon.basic and toon.basic.specialization and toon.basic.specialization.active)
+      local spec = toon.basic and toon.basic.specialization and toon.basic.specialization.active
+      if spec then ui.tip:AddLine(spec) end -- Forever has no spec: show no line, not AddLine(nil)
       ui.tip:Show()
     end,
     onLeave = function(self) ui.tip:Hide() end,

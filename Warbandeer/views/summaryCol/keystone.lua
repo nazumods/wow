@@ -1,5 +1,6 @@
 ---@type Warbandeer
 local ns = select(2, ...)
+if not ns:Supports("mythicPlus") then return end -- no Mythic+ (and no C_ChallengeMode data): no column
 ---@type LibNUI
 local ui = ns.ui
 

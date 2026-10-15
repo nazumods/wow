@@ -5,7 +5,7 @@ local ui = ns.ui
 local Class, Frame, Label, Texture = ns.lua.Class, ui.Frame, ui.Label, ui.Texture
 local theme = ns.theme
 local GetItemInfo = C_Item.GetItemInfo
-local GetItemIcon = (C_Item and C_Item.GetItemIconByID) or _G.GetItemIcon
+local GetItemIcon = C_Item.GetItemIconByID
 local RequestItem = C_Item and C_Item.RequestLoadItemDataByID
 
 -- Consumables box: the spec's recommended raid/M+ consumables — flask, combat potion,
