@@ -42,9 +42,9 @@ function bars.loadCapture(env)
 end
 
 -- Loads restore.lua into a fresh namespace so ns.Restore can be driven out of game. Every
--- load-time WoW touch in the file (C_Spell/C_Item/C_SpellBook, Constants.MacroConsts, the
+-- load-time WoW touch in the file (C_Spell/C_SpellBook, Constants.MacroConsts, the
 -- MAX_*_MACROS globals) is `and`/`or`-guarded, so it loads clean against bare Lua and the
--- guarded fallbacks apply. Call-time globals come from `env` via setfenv, so the stubs stay
+-- guarded fallbacks apply; C_Item is not guarded, so `env` must carry a C_Item table. Call-time globals come from `env` via setfenv, so the stubs stay
 -- scoped to this copy; anything env omits falls through to the real _G.
 ---@param env table  WoW globals the test drives (GetActionInfo, PickupAction, ...)
 ---@return table ns  a fresh namespace with ns.Restore defined; ns.printed collects ns.Print
@@ -95,6 +95,10 @@ function bars.actionbars(initial)
       PickupSpell  = function(id) bar.cursor = { "spell", id } end,
       GetSpellName = function(id) return "Spell " .. id end,
       GetSpellLink = function(id) return "[Spell " .. id .. "]" end,
+    },
+    -- restore.lua captures C_Item.PickupItem at load; the item-pickup paths aren't driven here.
+    C_Item = {
+      PickupItem = function(item) bar.cursor = { "item", item } end,
     },
   }
   return bar

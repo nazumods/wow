@@ -114,7 +114,7 @@ end
 
 -- Display name for an EnchantSuggestion: ClassCodex carries its own name; a bundled
 -- recipe (spell) resolves via GetSpellName; an item id falls back to GetItemInfo.
-local GetItemName = (C_Item and C_Item.GetItemInfo) or _G.GetItemInfo
+local GetItemName = C_Item.GetItemInfo
 local function suggestionName(s)
   if not s then return nil end
   if s.name then return s.name end
