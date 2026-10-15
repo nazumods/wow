@@ -1,5 +1,8 @@
 ---@type Warbandeer
 local ns = select(2, ...)
+-- Legion content (artifacts, class halls, order-hall mounts, Legion achievements) does not exist
+-- on Forever: neither the view nor its /wb check legion command is registered there.
+if not ns:Supports("legion") then return end
 ---@type LibNUI
 local ui = ns.ui
 local Class, Frame, TableFrame = ns.lua.Class, ui.Frame, ui.TableFrame

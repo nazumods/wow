@@ -471,7 +471,7 @@ function ns:initialize()
 
   self:InitBrokers()
   self:InitWarband()
-  self:InitTravelersLog()
+  if self.InitTravelersLog then self:InitTravelersLog() end   -- absent where the Trading Post is unsupported (Forever)
   self:InitAchievements()
   self:InitTitleCatalog()
   self:InitClassCollectibles()

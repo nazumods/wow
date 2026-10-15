@@ -4,7 +4,6 @@ local C_SpellBook = C_SpellBook
 local C_Spell = C_Spell
 local C_SpecializationInfo = C_SpecializationInfo
 local GetFlyoutInfo, GetFlyoutSlotInfo = GetFlyoutInfo, GetFlyoutSlotInfo
-local IsSpellKnown = IsSpellKnown
 local PLAYER_BANK = Enum.SpellBookSpellBank.Player
 local FLYOUT = Enum.SpellBookItemType.Flyout
 local GetItemName = C_Item.GetItemNameByID
@@ -24,6 +23,10 @@ local IsAccountQuestDone = C_QuestLog.IsQuestFlaggedCompletedOnAccount
 
 -- Numeric id of the active specialization (nil before specs are chosen at low level).
 local function currentSpecID()
+  -- Forever's C_SpecializationInfo reports one class-wide spec (1482 for a mage), which is not a spec as the suite
+  -- means it: keep "no spec" there (what LibNAddOn's docstring says Player.GetActiveSpecialization yields, since its
+  -- GetSpecialization globals are absent on Forever -- inferred, not read from the client).
+  if not ns:Supports("specializations") then return nil end
   local idx = C_SpecializationInfo.GetSpecialization()
   if not idx then return nil end
   return (C_SpecializationInfo.GetSpecializationInfo(idx))
@@ -58,11 +61,11 @@ local function scanAllSpecs(activeSpecID)
           local _, _, numSpells = GetFlyoutInfo(actionID)
           for s = 1, (numSpells or 0) do
             local spellID = GetFlyoutSlotInfo(actionID, s)
-            if spellID and IsSpellKnown(spellID) then
+            if spellID and C_SpellBook.IsSpellInSpellBook(spellID, PLAYER_BANK, false) then
               addGlyph(bySpec, spec, C_Spell.GetSpellLink(spellID))
             end
           end
-        elseif actionID and IsSpellKnown(actionID) then
+        elseif actionID and C_SpellBook.IsSpellInSpellBook(actionID, PLAYER_BANK, false) then
           addGlyph(bySpec, spec, C_SpellBook.GetSpellBookItemLink(j, PLAYER_BANK))
         end
       end
@@ -124,6 +127,9 @@ Glyphs.fields = {
     eventDelay = 1000,
   },
 }
+
+-- No spec-keyed `applied` map where specializations are unsupported (Forever); the per-character `unlocks` stay.
+if not ns:Supports("specializations") then Glyphs.fields.applied = nil end
 
 -- `/wbc dump glyphs` (+ `wdump glyphs`): the in-game verification probe. Prints each catalog
 -- entry's stored label beside its live-resolved item name (a wrong item id shows a mismatch),

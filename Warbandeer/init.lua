@@ -1,13 +1,21 @@
 ---@class Warbandeer: AddOn
 local ns = LibNAddOn(...)
 
-local Views = {"Overview", "Races", "Summary", "Gear", "Detail", "Roles", "Professions", "Great Vault"}
+local Views = {"Overview", "Races", "Summary", "Gear", "Detail", "Roles", "Professions"}
 
 -- Parallel view-key list: index i in Views maps to the view name ns.viewKeys[i].
 -- Kept adjacent so the two lists stay in sync. Used by MainWindow to resolve
 -- db.settings.defaultView (a 1-based index) to an actual view name. New entries append
 -- (keeping existing indices stable, so a stored defaultView needs no migration).
-ns.viewKeys = {"overview", "races", "summary", "gear", "detail", "roles", "profs", "vault"}
+ns.viewKeys = {"overview", "races", "summary", "gear", "detail", "roles", "profs"}
+
+-- The Great Vault view exists only where the Great Vault does (views/VaultView.lua gates itself
+-- the same way), so it is offered as a default view only there. It is the LAST entry, so the
+-- indices of the others never move.
+if ns:Supports("greatVault") then
+  Views[#Views + 1] = "Great Vault"
+  ns.viewKeys[#ns.viewKeys + 1] = "vault"
+end
 
 -- Index → side for the character-tooltip anchor (see CharacterTooltip.lua).
 ns.TOOLTIP_SIDES = {"Left", "Right"}
@@ -81,9 +89,15 @@ local GetClassInfo, GetClassColor = GetClassInfo, C_ClassColor.GetClassColor
 
 -- class colors: https://wowpedia.fandom.com/wiki/Class_colors
 
+-- GetClassInfo(i) returns nil for an index with no class: Forever's class ids have gaps (only
+-- the original classes exist there), and GetClassColor(nil) throws, which aborted this whole
+-- file at load (BugSack on the beta, 2026-10-14). A gap is skipped: the explicit `return nil`
+-- keeps Generate's table.insert at two arguments, which appends nothing, so the list stays
+-- packed with the classes that exist.
 ns.CLASSES = Generate(
   function(i)
     local n, id = GetClassInfo(i)
+    if not id then return nil end
     local c = GetClassColor(id)
     return {name = n, id = id, color = c}
   end,

@@ -1,5 +1,9 @@
 ---@type Warbandeer_Characters
 local ns = select(2, ...)
+
+-- Legion artifacts / class halls: no Legion content on Forever. No `artifacts` broker, so no `toon.artifacts`.
+-- Gate at registration (CONTRIBUTING, "Writing for several clients"): nothing below registers.
+if not ns:Supports("legion") then return end
 local IsQuestFlaggedCompleted = C_QuestLog.IsQuestFlaggedCompleted
 
 ---@type Maps
