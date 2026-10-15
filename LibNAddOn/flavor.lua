@@ -18,7 +18,7 @@ local ns = select(2, ...)
 -- Which game systems are ABSENT on which client flavor; anything not listed exists everywhere.
 local UNSUPPORTED = {
   forever = {
-    specializations = true,  -- Blizzard_DeprecatedSpecialization is not loaded; Camelot has no specs
+    specializations = true,  -- Camelot has no specs as the suite means them: C_SpecializationInfo exists but reports one class-wide spec
     housing = true,
     delves = true,
     mythicPlus = true,

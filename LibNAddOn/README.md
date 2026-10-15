@@ -246,10 +246,12 @@ LibNAddOn's own code uses the dot form, `ns.Supports("greatVault")`; an addon us
 Calling the wrong form does not error: the argument is then not a known feature name, and a name
 that is not in the table is supported.
 
-LibNAddOn's own helpers are guarded for Forever. `Player.GetActiveSpecialization()` and
-`Player.GetPrimarySpecialization()` return nothing where the client lacks the functions they call
-(per Blizzard's source, Forever does not define `GetSpecialization` or `GetSpecializationInfo`); they test for the functions
-themselves, not through `Supports`. `GetRewardOptions()` is gated through the table: it returns the
+LibNAddOn's own helpers are guarded for Forever. `Player.GetActiveSpecialization()` is gated through
+the table: it returns nothing, without calling `C_SpecializationInfo`, where `specializations` is unsupported
+(Forever's `C_SpecializationInfo` exists but, as seen on the beta, reports one class-wide spec).
+`Player.GetPrimarySpecialization()` returns nothing where the globals it calls are missing
+(whether Forever defines `GetSpecializationInfoByID` is unverified); it tests for the functions themselves,
+not through `Supports`. `GetRewardOptions()` is gated through the table: it returns the
 zero result (`best == 0`, empty tables) without calling `C_WeeklyRewards` when `greatVault` is
 unsupported. `greatVault` is the only feature LibNAddOn itself consults so far.
 
