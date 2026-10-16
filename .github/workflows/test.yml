@@ -136,6 +136,10 @@ jobs:
         shell: pwsh
         run: ./Tooling/tests/update-sets-ptr.test.ps1
 
+      - name: update-sets.ps1 -Forever generation
+        shell: pwsh
+        run: ./Tooling/tests/update-sets-forever.test.ps1
+
   # Check each addon's EXTERNAL.md (the CurseForge/Wago page copy, #911) against the two invariants
   # that spec states -- the GitHub URL on the first line and a bug/suggestion section -- and unit-test
   # the checker. Fully offline (no API key, no network), so like doc-drift it is a PR gate with no
