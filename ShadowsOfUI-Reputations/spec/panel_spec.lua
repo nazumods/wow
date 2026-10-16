@@ -62,6 +62,28 @@ describe("ShadowsOfUI-Reputations panel hooks", function()
     assert.equal("Faction 2640", w.tooltip.lines[1])
   end)
 
+  it("Forever: entering the same row twice without leaving shows the block once", function()
+    local w = reputations.load({ forever = true })
+    w.enter()
+    w.enter()
+    local blocks = 0
+    for _, l in ipairs(w.tooltip.lines) do
+      if l:find("Standing across your warband", 1, true) then blocks = blocks + 1 end
+    end
+    assert.is_true(w.tooltip.shown)
+    assert.equal(1, blocks)
+  end)
+
+  it("Forever: a tooltip another addon opened for the row is rebuilt, not appended to", function()
+    local w = reputations.load({ forever = true })
+    w.tooltip.owner = w.row
+    w.tooltip.lines = { "Other addon line" }
+    w.tooltip.shown = true
+    w.enter()
+    assert.is_false(has(w.tooltip.lines, "Other addon line"))
+    assert.is_true(has(w.tooltip.lines, "Standing across your warband"))
+  end)
+
   it("OnLeave hides only the addon's own tooltip", function()
     -- Forever: the tooltip the addon opened is hidden when the row is left ...
     local f = reputations.load({ forever = true })

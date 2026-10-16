@@ -37,10 +37,13 @@ in-game Reputation tab (hover a faction) and faction-tied item tooltips. Assignm
 - **Forever's rows open no tooltip, so the addon opens its own.** Camelot's `ReputationEntryMixin:OnEnter`
   (`Blizzard_UIPanels_Game/Camelot/ReputationFrame.lua`) only shows the bar text and the highlight. The Forever branch
   in `panel.lua` is a deliberate addition (Blizzard shows nothing there), keyed on `ns.flavor.isForever` because it is
-  a client UI difference, not a missing game system. Retail behaviour is unchanged. `GameTooltip:Hide()` is not
-  known to clear the owner (unverified in the client), so on Forever a hidden tooltip still owned by the row counts as
-  unowned (otherwise re-entering the row could append the block to the stale lines). Sub-header rows (`ReputationSubHeaderMixin` copies `OnEnter` at file load,
-  before this hook exists) are not hooked, on either client, as before.
+  a client UI difference, not a missing game system. Retail behaviour is unchanged. On Forever the
+  "row owns `GameTooltip`, append to it" branch is never taken: Blizzard's row opens no tooltip there, so a row that
+  owns it is only a leftover (a second `OnEnter` without an `OnLeave`, another addon's tooltip, or, if the real
+  `Hide()` keeps the owner (unverified; the spec's fake does), our own hidden one). The addon always `SetOwner`s
+  (which clears the lines) and rebuilds, so the block is never appended twice. Sub-header rows
+  (`ReputationSubHeaderMixin` copies `OnEnter` at file load, before this hook exists) are not hooked, on either
+  client, as before.
 - **`GetFactionStandings` is account-wide and sorted** (highest `rank` first) in the data layer,
   so the renderer just walks the list.
 - **`X-Curse-Project-ID`** — `1614342`.

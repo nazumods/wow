@@ -20,10 +20,12 @@ local function onRepEnter(self)
   -- IsSelected) — appending + Show()ing GameTooltip there floats a detached, mis-anchored
   -- tooltip with only our block. Guard on ownership so we only extend the row's own tooltip.
   local forever = ns.flavor and ns.flavor.isForever
-  -- On Forever, Blizzard's row opens no tooltip, so a row that still "owns" GameTooltip while
-  -- it is hidden is only the owner our own OnLeave hide left behind (Hide keeps the owner):
-  -- treat that as unowned and open a fresh tooltip, never append to the stale lines.
-  if GameTooltip:GetOwner() == self and (not forever or GameTooltip:IsShown()) then
+  -- Retail only: the row opened (and owns) the tooltip, so extend it. On Forever Blizzard's row
+  -- opens none, so a row that "owns" GameTooltip there is only a leftover (our own tooltip after
+  -- a second OnEnter without an OnLeave, or, if Hide() keeps the owner in the real client
+  -- (unverified; the spec's fake does), after our own hide, or one another addon opened for the
+  -- row): never append to it, always SetOwner (which clears the lines) and rebuild below.
+  if not forever and GameTooltip:GetOwner() == self then
     if ns.AppendStandings(GameTooltip, fid) then GameTooltip:Show() end
     return
   end
