@@ -25,7 +25,7 @@ local function inboxOnClick(button, index)
       ReturnInboxItem(index)
       button:SetChecked(false)
       InboxFrame.openMailID = 0
-      InboxFrame_Update()
+      ns.UpdateInbox()
       return
     end
   end

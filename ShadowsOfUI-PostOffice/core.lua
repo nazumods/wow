@@ -66,38 +66,57 @@ end
 ns:registerEvent("PLAYER_INTERACTION_MANAGER_FRAME_SHOW")
 ns:registerEvent("PLAYER_INTERACTION_MANAGER_FRAME_HIDE")
 
--- Open-letter refresh. Blizzard's OpenMail_Update runs whenever the open-mail view
--- redraws (opening a letter, taking an attachment). Features that decorate the open
--- letter (Forward, CarbonCopy) subscribe here to refresh their button. OpenMail_Update
--- is load-on-demand (Blizzard_MailFrame), so hook it lazily on the first mailbox open.
+-- Hook one of the mail frame's redraw functions. Retail has them as globals
+-- (InboxFrame_Update, OpenMail_Update); Forever's mail frame replaced them with the
+-- frames' own methods (InboxFrame:Update, OpenMailFrame:Update), which Blizzard calls
+-- through the frame, so a hook on the method sees every redraw. This is an API-shape
+-- difference, so it is detected by existence, not by flavor (the global is tried first:
+-- Retail is unchanged). Returns true only when a hook was installed, so a caller can
+-- retry on a later mailbox open if Blizzard_MailFrame had not created the frame yet.
+local function hookUpdate(globalName, frame, fn)
+  if type(_G[globalName]) == "function" then
+    hooksecurefunc(globalName, fn)
+    return true
+  end
+  if frame and frame.Update then
+    hooksecurefunc(frame, "Update", fn)
+    return true
+  end
+  return false
+end
+
+-- Open-letter refresh. Blizzard's OpenMail_Update (Forever: OpenMailFrame:Update) runs
+-- whenever the open-mail view redraws (opening a letter, taking an attachment). Features
+-- that decorate the open letter (Forward, CarbonCopy) subscribe here to refresh their
+-- button. Blizzard_MailFrame's frames are not guaranteed to exist when this file loads,
+-- so hook lazily on the first mailbox open (and retry on the next one if they were absent).
 ns._onOpenMailUpdate = {} ---@type function[]
 function ns.OnOpenMailUpdate(fn) table.insert(ns._onOpenMailUpdate, fn) end
 
 local openMailHooked = false
 ns.OnMailShow(function()
-  if openMailHooked or not OpenMail_Update then return end
-  openMailHooked = true
-  hooksecurefunc("OpenMail_Update", function()
+  if openMailHooked then return end
+  openMailHooked = hookUpdate("OpenMail_Update", OpenMailFrame, function()
     for _, fn in ipairs(ns._onOpenMailUpdate) do fn() end
   end)
 end)
 
--- Shared inbox-row decoration. Blizzard's InboxFrame_Update redraws the 7 visible
--- inbox rows for the current page; features register ONE per-row callback here rather
--- than each racing its own InboxFrame_Update hook. The callback receives a `row` with
+-- Shared inbox-row decoration. Blizzard's InboxFrame_Update (Forever: InboxFrame:Update)
+-- redraws the 7 visible inbox rows for the current page; features register ONE per-row
+-- callback here rather than each racing its own hook. The callback receives a `row` with
 -- { i = 1..7, index = mail index, present = has a letter, item = MailItemN frame,
 -- expire = MailItemNExpireTime frame }. Per-row WIDGETS anchor to those frames so they
 -- follow the active row layout; the row LAYOUT itself (width/indent) is owned by
--- whichever feature changes it. Hooked lazily — InboxFrame_Update is load-on-demand.
+-- whichever feature changes it. Hooked lazily on the first mailbox open (the mail frames
+-- are not guaranteed to exist when this file loads).
 local INBOX_ROWS = 7
 ns._onInboxRow = {} ---@type fun(row: table)[]
 function ns.OnInboxRow(fn) table.insert(ns._onInboxRow, fn) end
 
 local inboxHooked = false
 ns.OnMailShow(function()
-  if inboxHooked or not InboxFrame_Update then return end
-  inboxHooked = true
-  hooksecurefunc("InboxFrame_Update", function()
+  if inboxHooked then return end
+  inboxHooked = hookUpdate("InboxFrame_Update", InboxFrame, function()
     local num = GetInboxNumItems()
     local page = InboxFrame.pageNum or 1
     for i = 1, INBOX_ROWS do
@@ -109,10 +128,20 @@ ns.OnMailShow(function()
   end)
 end)
 
--- Ask the inbox to redraw (re-runs InboxFrame_Update → our per-row callbacks). Used by
--- inbox features to apply a live settings toggle. Safe no-op away from an open mailbox.
+-- Redraw the inbox through whichever API this client has (Retail: the InboxFrame_Update
+-- global; Forever: InboxFrame:Update); does nothing if neither exists yet.
+function ns.UpdateInbox()
+  if InboxFrame_Update then
+    InboxFrame_Update()
+  elseif InboxFrame and InboxFrame.Update then
+    InboxFrame:Update()
+  end
+end
+
+-- Ask the inbox to redraw (re-runs our per-row callbacks). Used by inbox features to
+-- apply a live settings toggle. Safe no-op away from an open mailbox.
 function ns.RefreshInbox()
-  if InboxFrame_Update and ns._atMailbox then InboxFrame_Update() end
+  if ns._atMailbox then ns.UpdateInbox() end
 end
 
 --------------------------------------------------------------------------------
