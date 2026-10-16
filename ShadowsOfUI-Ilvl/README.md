@@ -21,6 +21,9 @@ read at a glance how far an upgradeable piece has been crafted up.
 The track letters are **A**dventurer, **V**eteran, **C**hampion, **H**ero and
 **M**yth, followed by the current rank within that track.
 
+Also loads on **WoW: Forever**. Track badges are Retail-only for now: Forever reported
+no upgrade-track data on its beta, so only the item level is drawn there.
+
 ## Settings
 
 Options are under **Game Menu → Options → AddOns → Shadows of UI → Item Level**:
