@@ -128,6 +128,40 @@ local function CaptureSlots(overrides, cursorFree, stored)
   return slots
 end
 
+---A cheap fingerprint of what the player sets up on the bars, compared by the change-checking ticker in tracker.lua (#984):
+---every action slot's type and id (a macro slot also carries its macro NAME via the action text, never the cursor), every
+---macro's name and icon, and every bound command's keys. Deliberately NOT macro bodies: another addon can rewrite one every few
+---seconds (observed on Retail: ~800 UPDATE_MACROS in two minutes), which would read as a change forever. Absolute slot ids
+---are read, so a shapeshift page change does not alter slots 1-120.
+---@return string
+function ns.Fingerprint()
+  local parts = {}
+  for i = 1, MAX_BARS do
+    local slotType, id = GetActionInfo(i)
+    if slotType and slotType ~= "" then
+      if slotType == "macro" then
+        local name = C_ActionBar and C_ActionBar.GetActionText and C_ActionBar.GetActionText(i)
+        parts[#parts + 1] = i .. ":macro:" .. tostring(id) .. ":" .. tostring(name)
+      else
+        parts[#parts + 1] = i .. ":" .. slotType .. ":" .. tostring(id)
+      end
+    end
+  end
+  parts[#parts + 1] = "|macros"
+  for i = 1, MAX_MACROS do
+    local name, icon = GetMacroInfo(i)
+    if name then parts[#parts + 1] = i .. ":" .. name .. ":" .. tostring(icon) end
+  end
+  parts[#parts + 1] = "|binds"
+  for i = 1, GetNumBindings() do
+    local command, _, key1, key2 = GetBinding(i)
+    if command and (key1 or key2) then
+      parts[#parts + 1] = command .. "=" .. tostring(key1) .. "," .. tostring(key2)
+    end
+  end
+  return table.concat(parts, "\n")
+end
+
 -- Capture key bindings (skip unbound)
 local function CaptureBindings()
   local binds = {}

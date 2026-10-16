@@ -8,12 +8,12 @@ local CAPTURE_ALL = { bars = true, bindings = true, macros = true, petbar = true
 
 local SPEC_SETTLE_MS  = 500   -- let the new spec's bars settle after a spec change
 local LOGIN_SETTLE_MS = 2000  -- let bars load after entering the world
-local CHANGE_SETTLE_MS = 10000 -- quiet time after the LAST bar / macro / binding change before it is saved (a run of
-                                -- moves, e.g. one bar to another, is then ONE snapshot)
+local CHANGE_CHECK_SECONDS = 10 -- how often the bars' fingerprint is compared (#984)
 
-local ready = false          -- armed once the login snapshot has run (change events before it are ignored)
-local capturing = false      -- a cursor-path capture is running: the events it fires are ours, ignore them
-local pendingChange = false  -- a change snapshot came due in combat; run it on PLAYER_REGEN_ENABLED
+local ready = false          -- armed once the login snapshot has run (no change checking before it)
+local ticker = nil           -- the ONE change-checking ticker (cancelled and replaced if login runs again)
+local lastStoredPrint = nil  -- fingerprint when the stored profile was last written (login snapshot / change snapshot)
+local lastTickPrint = nil    -- fingerprint at the previous (non-skipped) tick
 
 -- Decide whether a freshly captured profile should replace the stored one.
 -- `guardSparse` (set by the login / spec-change timers) refuses a capture with
@@ -50,45 +50,38 @@ end
 ---@return table|nil profile  the stored profile, or nil if the snapshot was skipped
 function ns.Snapshot(guardSparse, cursorFree)
   if InCombatLockdown() or GetCursorInfo() then return end
-  -- A cursor-path capture picks actions up and puts them back, which fires bar events at us: ignore them (D10).
-  capturing = not cursorFree
-  local ok, profile = pcall(function() return store(ns.Capture(CAPTURE_ALL, true, true, cursorFree), guardSparse) end)
-  capturing = false
-  if not ok then error(profile, 0) end
-  return profile
+  return store(ns.Capture(CAPTURE_ALL, true, true, cursorFree), guardSparse)
 end
 
 -- Change-driven snapshot (#984). By PLAYER_LOGOUT the client has already emptied the action bars (observed on Retail
 -- 2026-10-15: a logout snapshot stored 0 slots; the spec presumably reads empty too, inferred), so nothing is captured at
--- logout; bar changes are saved as they happen instead. Armed only after the login snapshot (before it the bars are still
--- populating, which is why that snapshot is sparse-guarded); cursor-free, so it fires no bar events itself and cannot
--- loop; unguarded, so it records a legitimate reduction; a snapshot that comes due in combat runs when combat ends, and
--- one that comes due while the cursor holds something is tried again after another quiet period (Snapshot skips then).
-local function runChangeSnapshot()
-  if not ready then return end    -- disarmed by logout: a late timer must not capture the emptied bars
-  if InCombatLockdown() then pendingChange = true; return end
-  if GetCursorInfo() then ns:debounce("change", CHANGE_SETTLE_MS, runChangeSnapshot); return end
-  ns.Snapshot(false, true)
+-- logout. Bar EVENTS cannot say "the player changed something" on a live Retail client (observed in about two minutes:
+-- UPDATE_MACROS 798 times, ACTIONBAR_SLOT_CHANGED 535, UPDATE_BINDINGS 4; the 10 s quiet-time debounce never fired), so
+-- instead every CHANGE_CHECK_SECONDS the tracker compares a fingerprint of the bars (ns.Fingerprint: slots, macro names
+-- and icons, bindings; NOT macro bodies) and snapshots when it differs from the last stored one AND held steady for one
+-- full check. A run of changes is then ONE snapshot, 10-20 s after the last of them. The snapshot is cursor-free (it
+-- fires no bar events and runs no other addon's action-bar hook) and unguarded (it records a legitimate reduction).
+local function fingerprint()
+  local ok, fp = pcall(ns.Fingerprint)
+  if ok then return fp end
 end
 
-local function onBarChange()
-  if not ready or capturing then return end
-  -- `debounce` keeps its own keyed timer: `delay` is one shared timer that the spec-change handler also uses.
-  ns:debounce("change", CHANGE_SETTLE_MS, runChangeSnapshot)
+local function tick()
+  if not ready then return end                          -- disarmed by logout (or not armed yet)
+  if InCombatLockdown() or GetCursorInfo() then return end  -- skipped entirely: lastTickPrint does not advance
+  local fp = fingerprint()
+  if not fp then return end                             -- unreadable this tick: say nothing, try again next time
+  if fp ~= lastStoredPrint and fp == lastTickPrint then
+    -- Changed since the last stored profile and unchanged for a full check. The attempt counts as "stored" even if
+    -- it stored nothing (no spec yet), so a profile that cannot be written is not re-captured every 10 s.
+    lastStoredPrint = fp
+    ns.Snapshot(false, true)
+  end
+  lastTickPrint = fp
 end
 
-function ns.ACTIONBAR_SLOT_CHANGED() onBarChange() end
-function ns.UPDATE_MACROS() onBarChange() end
-function ns.UPDATE_BINDINGS() onBarChange() end
-
-function ns.PLAYER_REGEN_ENABLED()
-  if not pendingChange then return end
-  pendingChange = false
-  runChangeSnapshot()
-end
-
--- Takes no snapshot (see above). It only disarms the change tracking, so a timer still pending when the client starts
--- tearing down the UI cannot capture bars that are being emptied.
+-- Takes no snapshot (see above). It only disarms the change checking, so a tick that is already due when the client
+-- starts tearing down the UI cannot capture bars that are being emptied.
 function ns.PLAYER_LOGOUT() ready = false end
 
 -- Capture at session boundaries: entering world and spec change (never at logout, see above).
@@ -98,13 +91,18 @@ function ns:onLogin()
   -- overwrite this pending login capture and drop CaptureLayouts. The
   -- spec-change handler keeps `delay` for its debounce.
   self:after(LOGIN_SETTLE_MS, function()
-    -- Armed AFTER the login snapshot (its own cursor-path events are also ignored by `capturing`), and armed even if the
-    -- login work throws, so one login-time error cannot switch change tracking off for the session.
+    -- Armed AFTER the login snapshot, and armed even if the login work throws, so one login-time error cannot switch
+    -- change checking off for the session.
     local ok, err = pcall(function()
       ns.CaptureLayouts()
       ns.Snapshot(true)
     end)
+    lastStoredPrint = fingerprint()
+    lastTickPrint = lastStoredPrint
     ready = true
+    -- exactly one ticker, even if login runs again
+    if ticker then ticker:Cancel() end
+    ticker = C_Timer.NewTicker(CHANGE_CHECK_SECONDS, tick)
     if not ok then error(err, 0) end
   end)
 end
@@ -117,8 +115,4 @@ function ns.EDIT_MODE_LAYOUTS_UPDATED() ns.CaptureLayouts() end
 
 ns:registerEvent("ACTIVE_TALENT_GROUP_CHANGED")
 ns:registerEvent("EDIT_MODE_LAYOUTS_UPDATED")
-ns:registerEvent("ACTIONBAR_SLOT_CHANGED")
-ns:registerEvent("UPDATE_MACROS")
-ns:registerEvent("UPDATE_BINDINGS")
-ns:registerEvent("PLAYER_REGEN_ENABLED")
 ns:registerEvent("PLAYER_LOGOUT")

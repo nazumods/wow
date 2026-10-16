@@ -15,20 +15,23 @@ setup is captured on its own, in the background, with nothing to remember.
 
 ## How it tracks
 
-Profiles are captured at session boundaries and, after that, once you stop changing things for 10 seconds:
+Profiles are captured at session boundaries and, after that, whenever a check shows your bars have changed:
 
 | Trigger | When |
 |---|---|
 | `onLogin` | 2 s after entering the world (lets the bars finish loading); skipped if sparser than the stored profile |
 | `ACTIVE_TALENT_GROUP_CHANGED` | 500 ms after a spec change (lets the new spec settle); skipped if sparser than the stored profile |
-| `ACTIONBAR_SLOT_CHANGED`, `UPDATE_MACROS`, `UPDATE_BINDINGS` | 10 s after the **last** such event (every change restarts the wait, so moving buttons one after another is one snapshot); only after the login snapshot has run; always stored, so a removed button is recorded |
-| logout / `/reload` | **never** — by `PLAYER_LOGOUT` the client has already emptied the action bars (a logout snapshot stored 0 slots on Retail, 2026-10-15; the spec presumably reads empty too, inferred), so there is nothing real left to capture. A change made in the last 10 s before logout or `/reload` is not saved (a removal is then only recorded at the next change, because the login snapshot refuses a sparser capture) |
+| a change to the bars | every 10 s the addon compares a fingerprint of your action slots, macro names and icons, and keybindings with the last saved one, and saves when it differs **and** has stayed the same for a full check, so a run of changes is one snapshot 10-20 s after the last of them; only after the login snapshot has run; always stored, so a removed button is recorded |
+| logout / `/reload` | **never** — by `PLAYER_LOGOUT` the client has already emptied the action bars (a logout snapshot stored 0 slots on Retail, 2026-10-15; the spec presumably reads empty too, inferred), so there is nothing real left to capture. A change made in the last 10-20 s before logout or `/reload` is not saved (a removal is then only recorded at the next change, because the login snapshot refuses a sparser capture) |
 
-A capture is skipped while a cursor drag is in progress (it would clobber the held action) and
-during combat; a change snapshot that comes due in combat runs when combat ends, and one that comes due
-while the cursor holds something is tried again after another 10 s of quiet. The
-change-driven snapshot resolves a temporary macro's index without touching the cursor (see
-`CONTEXT.md`), so it fires no action-bar events itself and cannot loop.
+The checks use no bar events because they cannot tell a change from noise on a live client (observed on Retail in about
+two minutes: `UPDATE_MACROS` 798 times, `ACTIONBAR_SLOT_CHANGED` 535, `UPDATE_BINDINGS` 4; something rewrites a macro
+constantly, inferred). Macro **bodies** are deliberately not part of the fingerprint, so a macro edited only in its body is saved
+at your next slot, macro-name, icon or keybinding change, or at the next login.
+
+A check is skipped while a cursor drag is in progress (it would clobber the held action) and
+during combat. The change snapshot resolves a temporary macro's index without touching the cursor (see
+`CONTEXT.md`), so it fires no action-bar events itself.
 
 Captures are always **full fidelity** (bars + binds + macros + pet bar + outfits). What a
 *restore* applies is filtered separately — see the include settings below.

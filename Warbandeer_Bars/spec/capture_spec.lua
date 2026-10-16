@@ -188,6 +188,79 @@ describe("Warbandeer_Bars capture", function()
     end)
   end)
 
+  describe("Fingerprint (the change check, #984)", function()
+    -- A mutable fake client: action slots, macros (name, icon, body), actionText per slot, bindings.
+    local function client()
+      local c = {
+        slots = { [1] = { "spell", 100 }, [7] = { "macro", 12, "x" } },
+        macros = { [12] = { "Heal", 134400, "/cast Heal" } },
+        text = { [7] = "Heal" },
+        binds = { { "ACTIONBUTTON1", "A" } },
+      }
+      c.ns = bars.loadCapture{
+        GetActionInfo = function(i) local s = c.slots[i]; if s then return s[1], s[2], s[3] end end,
+        C_ActionBar = { GetActionText = function(i) return c.text[i] end },
+        GetMacroInfo = function(i) local m = c.macros[i]; if m then return m[1], m[2], m[3] end end,
+        GetNumBindings = function() return #c.binds end,
+        GetBinding = function(i) local b = c.binds[i]; return b[1], "cat", b[2], b[3] end,
+      }
+      return c
+    end
+
+    it("is stable while nothing changed", function()
+      local c = client()
+      assert.equal(c.ns.Fingerprint(), c.ns.Fingerprint())
+    end)
+
+    it("a macro body change alone does not change it", function()
+      local c = client()
+      local before = c.ns.Fingerprint()
+      c.macros[12][3] = "/cast Heal\n/targetexact Rare"
+      assert.equal(before, c.ns.Fingerprint())
+    end)
+
+    it("a macro rename changes it, and so does an icon change", function()
+      local c = client()
+      local before = c.ns.Fingerprint()
+      c.macros[12][1] = "Heal2"
+      local renamed = c.ns.Fingerprint()
+      assert.are_not.equal(before, renamed)
+      c.macros[12][1] = "Heal"
+      c.macros[12][2] = 999
+      assert.are_not.equal(before, c.ns.Fingerprint())
+    end)
+
+    it("the action text of a macro slot is part of it (a different macro put on the slot)", function()
+      local c = client()
+      local before = c.ns.Fingerprint()
+      c.text[7] = "Other"
+      assert.are_not.equal(before, c.ns.Fingerprint())
+    end)
+
+    it("a slot change, a binding change and a removed slot all change it", function()
+      local c = client()
+      local base = c.ns.Fingerprint()
+      c.slots[2] = { "item", 5 }
+      local added = c.ns.Fingerprint()
+      assert.are_not.equal(base, added)
+      c.slots[2] = nil
+      c.binds[1][2] = "B"
+      assert.are_not.equal(base, c.ns.Fingerprint())
+      c.binds[1][2] = "A"
+      c.slots[1] = nil
+      assert.are_not.equal(base, c.ns.Fingerprint())
+    end)
+
+    it("an unbound command is ignored; the macro slot is read by action text, never the cursor", function()
+      local c = client()
+      local base = c.ns.Fingerprint()
+      c.binds[#c.binds + 1] = { "SOMETHING", nil, nil }
+      assert.equal(base, c.ns.Fingerprint())
+      -- PickupAction / GetCursorInfo are not even stubbed in this client: reaching for them would raise
+      assert.has_no.errors(function() c.ns.Fingerprint() end)
+    end)
+  end)
+
   it("stamps the profile as schema v3", function()
     assert.equal(3, capture({}).version)
   end)

@@ -38,18 +38,10 @@ describe("Warbandeer_Bars tracker", function()
     end)
   end)
 
-  describe("change-driven snapshots (#984)", function()
-    -- tracker.lua loaded with its call-time globals stubbed through the environment and a recording ns.
-    local t, env, debounced, captures, registered, after_fns, delayed, pending, now
-
-    local function advance(ms)  -- move the simulated clock; fire the pending debounces that fall due
-      now = now + ms
-      local due = {}
-      for key, p in pairs(pending) do
-        if p.due <= now then pending[key] = nil; due[#due + 1] = p.fn end
-      end
-      for _, fn in ipairs(due) do fn() end
-    end
+  describe("change checking by fingerprint (#984)", function()
+    -- tracker.lua loaded with its call-time globals stubbed through the environment and a recording ns. A fake clock
+    -- is not needed: the ticker is a plain recorded callback that each test fires by hand (one call = one 10 s check).
+    local t, env, captures, after_fns, delayed, tickers
 
     local function profile(nSlots)
       local slots = {}
@@ -58,188 +50,173 @@ describe("Warbandeer_Bars tracker", function()
     end
 
     before_each(function()
-      env = { combat = false, cursor = false }
-      debounced, captures, registered, after_fns, delayed = {}, {}, {}, {}, {}
-      pending, now = {}, 0
+      env = { combat = false, cursor = false, print = "A", C_Timer = nil }
+      captures, after_fns, delayed, tickers = {}, {}, {}, {}
+      env.C_Timer = {
+        NewTicker = function(seconds, fn)
+          local tk = { seconds = seconds, fn = fn, cancelled = false }
+          function tk:Cancel() self.cancelled = true end
+          tickers[#tickers + 1] = tk
+          return tk
+        end,
+      }
       local chunk = assert(loadfile("Warbandeer_Bars/tracker.lua"))
       setfenv(chunk, setmetatable({
         InCombatLockdown = function() return env.combat end,
         GetCursorInfo = function() return env.cursor and "item" or nil end,
+        C_Timer = env.C_Timer,
       }, { __index = _G }))
       t = {
         db = { profiles = {} },
-        registerEvent = function(_, name) registered[#registered + 1] = name end,
-        -- records every call; `pending[key]` models the real reset-trailing debounce on a simulated clock (`now`, in ms)
-        debounce = function(_, key, ms, fn)
-          debounced[#debounced + 1] = { key = key, ms = ms, fn = fn }
-          pending[key] = { due = now + ms, fn = fn }
-        end,
+        registerEvent = function() end,
         after = function(_, ms, fn) after_fns[#after_fns + 1] = { ms = ms, fn = fn } end,
         delay = function(_, ms, fn) delayed[#delayed + 1] = { ms = ms, fn = fn } end,
         CaptureLayouts = function() end,
+        Fingerprint = function() return env.print end,
         nSlots = 10,
       }
       t.Capture = function(_, _, _, cursorFree)
         captures[#captures + 1] = { cursorFree = cursorFree }
-        -- a cursor-path capture picks actions up and puts them back, which fires bar events at us
-        if not cursorFree then t.ACTIONBAR_SLOT_CHANGED() end
         return profile(t.nSlots)
       end
       chunk("Warbandeer_Bars", t)
     end)
 
-    local function login()  -- run the pending login timer (the login snapshot, then arming)
+    local function login()  -- run the pending login timer: the login snapshot, then arming and the ticker
       t:onLogin()
-      after_fns[1].fn()
+      after_fns[#after_fns].fn()
     end
 
-    it("nothing snapshots at PLAYER_LOGOUT", function()
+    local function tick()  -- one 10 s check on the live ticker
+      for i = #tickers, 1, -1 do
+        if not tickers[i].cancelled then tickers[i].fn(); return end
+      end
+      error("no live ticker")
+    end
+
+    it("no snapshot while the fingerprint is unchanged", function()
       login()
-      t.PLAYER_LOGOUT()
+      for _ = 1, 5 do tick() end
       assert.equal(1, #captures)       -- only the login snapshot
     end)
 
-    it("a change timer still pending at logout captures nothing", function()
+    it("a change, then one steady tick -> exactly one snapshot, and it is cursor-free and unguarded", function()
       login()
-      t.ACTIONBAR_SLOT_CHANGED()
-      t.PLAYER_LOGOUT()
-      advance(10000)
+      env.print = "B"
+      tick()                            -- changed, but not yet steady
       assert.equal(1, #captures)
-    end)
-
-    it("a burst of slot changes schedules one snapshot, 10 s after the last", function()
-      login()
-      t.ACTIONBAR_SLOT_CHANGED(); t.ACTIONBAR_SLOT_CHANGED(); t.ACTIONBAR_SLOT_CHANGED()
-      -- every event restarts the wait on the SAME keyed timer (the debounce replaces the pending call)
-      assert.equal(3, #debounced)
-      for _, d in ipairs(debounced) do
-        assert.equal("change", d.key)
-        assert.equal(10000, d.ms)
-      end
-      assert.equal(1, #captures)       -- only the login snapshot so far
-      advance(10000)
-      assert.equal(2, #captures)
-      advance(10000)
-      assert.equal(2, #captures)       -- one snapshot, not one per event
-    end)
-
-    it("a change 9 s after the previous one pushes the snapshot back again", function()
-      login()
-      t.ACTIONBAR_SLOT_CHANGED()
-      advance(9000)
-      assert.equal(1, #captures)
-      t.ACTIONBAR_SLOT_CHANGED()       -- restarts the wait
-      advance(9000)                    -- 18 s after the first change, 9 s after the second
-      assert.equal(1, #captures)
-      advance(1000)                    -- 10 s after the second
-      assert.equal(2, #captures)
-    end)
-
-    it("a login-time error does not leave change tracking switched off", function()
-      t.CaptureLayouts = function() error("boom") end
-      t:onLogin()
-      assert.has_error(function() after_fns[1].fn() end)
-      t.ACTIONBAR_SLOT_CHANGED()
-      assert.equal(1, #debounced)
-    end)
-
-    it("a change due while the cursor holds something is tried again after another quiet period", function()
-      login()
-      t.ACTIONBAR_SLOT_CHANGED()
-      env.cursor = true
-      advance(10000)
-      assert.equal(1, #captures)       -- skipped: the cursor is held
-      env.cursor = false
-      advance(10000)
-      assert.equal(2, #captures)
-    end)
-
-    it("macro and binding changes schedule it too", function()
-      login()
-      t.UPDATE_MACROS()
-      t.UPDATE_BINDINGS()
-      assert.equal(2, #debounced)
-    end)
-
-    it("registers the change events and PLAYER_REGEN_ENABLED", function()
-      local seen = {}
-      for _, n in ipairs(registered) do seen[n] = true end
-      for _, n in ipairs({ "ACTIONBAR_SLOT_CHANGED", "UPDATE_MACROS", "UPDATE_BINDINGS", "PLAYER_REGEN_ENABLED" }) do
-        assert.is_true(seen[n], n)
-      end
-    end)
-
-    it("change events before the login snapshot has run are ignored", function()
-      t.ACTIONBAR_SLOT_CHANGED(); t.UPDATE_MACROS(); t.UPDATE_BINDINGS()
-      assert.equal(0, #debounced)
-    end)
-
-    it("the event the login snapshot's own cursor path fires does not schedule a change snapshot", function()
-      -- the stub Capture fires a bar event during the cursor-path login capture; arming comes after it
-      login()
-      assert.equal(0, #debounced)
-    end)
-
-    it("events fired by a cursor-path capture are ignored", function()
-      login()
-      t.Snapshot(false, false)   -- e.g. the snapshot command: fires a bar event from inside Capture
-      assert.equal(0, #debounced)
-    end)
-
-    it("a capture that errors does not leave the capturing flag stuck", function()
-      login()
-      t.Capture = function() error("boom") end
-      assert.has_error(function() t.Snapshot(false, false) end)
-      t.ACTIONBAR_SLOT_CHANGED()
-      assert.equal(1, #debounced)
-    end)
-
-    it("the change snapshot is cursor-free", function()
-      login()
-      t.ACTIONBAR_SLOT_CHANGED()
-      debounced[1].fn()
-      assert.is_true(captures[#captures].cursorFree)
-    end)
-
-    it("a change snapshot due in combat runs after combat", function()
-      login()
-      t.ACTIONBAR_SLOT_CHANGED()
-      env.combat = true
-      debounced[1].fn()
-      assert.equal(1, #captures)         -- nothing captured while in combat
-      env.combat = false
-      t.PLAYER_REGEN_ENABLED()
+      tick()                            -- unchanged across one full check
       assert.equal(2, #captures)
       assert.is_true(captures[2].cursorFree)
-      t.PLAYER_REGEN_ENABLED()           -- the pending flag was consumed
+      tick(); tick()
+      assert.equal(2, #captures)        -- the new fingerprint is the stored one now
+    end)
+
+    it("a fingerprint that changes every tick -> no snapshot until it holds", function()
+      login()
+      for i = 1, 6 do env.print = "P" .. i; tick() end
+      assert.equal(1, #captures)
+      tick()                            -- P6 held for a second tick
       assert.equal(2, #captures)
     end)
 
-    it("leaving combat with nothing pending captures nothing", function()
+    it("a change that is reverted before it holds snapshots nothing", function()
       login()
-      t.PLAYER_REGEN_ENABLED()
+      env.print = "B"; tick()
+      env.print = "A"; tick(); tick()
       assert.equal(1, #captures)
     end)
 
-    it("the change snapshot stores a reduction (unguarded)", function()
+    it("the snapshot stores a reduction (unguarded)", function()
       t.nSlots = 40
-      login()                              -- stores 40 slots
+      login()                           -- stores 40 slots
       assert.equal(40, #t.db.profiles.Lurias[62].slots)
       t.nSlots = 5
-      t.ACTIONBAR_SLOT_CHANGED()
-      debounced[1].fn()
+      env.print = "B"; tick(); tick()
       assert.equal(5, #t.db.profiles.Lurias[62].slots)
     end)
 
-    it("a spec change and a bar change don't cancel each other's pending snapshot", function()
+    it("combat skips the tick without advancing it", function()
+      login()
+      env.print = "B"
+      tick()                            -- changed: remembered as the last tick's print
+      env.combat = true
+      env.print = "C"                   -- the bars changed again during combat
+      tick(); tick()                    -- skipped entirely: nothing captured, the remembered print is still "B"
+      assert.equal(1, #captures)
+      env.combat = false
+      tick()                            -- "C" vs the remembered "B": not steady. (Had combat ticks advanced it, this would snapshot.)
+      assert.equal(1, #captures)
+      tick()
+      assert.equal(2, #captures)
+    end)
+
+    it("a held cursor skips the tick without advancing it", function()
+      login()
+      env.print = "B"
+      tick()
+      env.cursor = true
+      env.print = "C"
+      tick(); tick()
+      assert.equal(1, #captures)
+      env.cursor = false
+      tick()
+      assert.equal(1, #captures)
+      tick()
+      assert.equal(2, #captures)
+    end)
+
+    it("nothing before the login snapshot has armed it, and nothing after PLAYER_LOGOUT", function()
+      assert.equal(0, #tickers)         -- no ticker before login
+      login()
+      assert.equal(1, #tickers)
+      env.print = "B"
+      tick()
+      t.PLAYER_LOGOUT()                 -- the ticker may still fire once while the UI tears down
+      tick()
+      assert.equal(1, #captures)        -- only the login snapshot: no logout snapshot, no late change snapshot
+    end)
+
+    it("a login-time error does not leave change checking switched off", function()
+      t.CaptureLayouts = function() error("boom") end
+      t:onLogin()
+      assert.has_error(function() after_fns[#after_fns].fn() end)
+      assert.equal(1, #tickers)
+      assert.equal(0, #captures)        -- the login work threw before its snapshot
+      env.print = "B"; tick(); tick()
+      assert.equal(1, #captures)        -- ... but a later change is still saved
+    end)
+
+    it("only one ticker exists after a /reload-style re-login", function()
+      login()
+      login()
+      local live = 0
+      for _, tk in ipairs(tickers) do if not tk.cancelled then live = live + 1 end end
+      assert.equal(2, #tickers)
+      assert.equal(1, live)
+      assert.equal(10, tickers[#tickers].seconds)
+    end)
+
+    it("an unreadable fingerprint is skipped quietly and does not advance the comparison", function()
+      login()
+      t.Fingerprint = function() error("api down") end
+      assert.has_no.errors(tick)
+      t.Fingerprint = function() return env.print end
+      env.print = "B"
+      tick()
+      assert.equal(1, #captures)
+      tick()
+      assert.equal(2, #captures)
+    end)
+
+    it("a spec change and a fingerprint change don't interfere", function()
       login()
       t.ACTIVE_TALENT_GROUP_CHANGED()
-      t.ACTIONBAR_SLOT_CHANGED()
-      assert.equal(1, #delayed)                 -- the spec change's own (shared) timer
-      assert.equal("change", debounced[1].key)  -- the bar change's keyed timer, not `delay`
+      assert.equal(1, #delayed)         -- the spec change's own (shared) timer
+      env.print = "B"; tick(); tick()
       delayed[1].fn()
-      debounced[1].fn()
-      assert.equal(3, #captures)                -- login + spec change + bar change
+      assert.equal(3, #captures)        -- login + change + spec change
+      assert.is_falsy(captures[3].cursorFree)
     end)
 
     it("an in-session snapshot (login, spec change, snapshot command) is not cursor-free", function()
@@ -247,6 +224,12 @@ describe("Warbandeer_Bars tracker", function()
       t.Snapshot()
       assert.is_falsy(captures[1].cursorFree)
       assert.is_falsy(captures[2].cursorFree)
+    end)
+
+    it("the bar events are no longer used", function()
+      for _, name in ipairs({ "ACTIONBAR_SLOT_CHANGED", "UPDATE_MACROS", "UPDATE_BINDINGS", "PLAYER_REGEN_ENABLED" }) do
+        assert.is_nil(t[name], name)
+      end
     end)
   end)
 end)
