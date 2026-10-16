@@ -1,4 +1,4 @@
-## Interface: 120105
+## Interface: 120105, 16001
 ## Category: Shadows of UI
 ## Title: Quest XP
 ## Notes: Shows what percentage of a level a quest's XP reward is worth, in the quest log's reward pane
