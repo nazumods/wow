@@ -1204,14 +1204,15 @@ if ($Expand) {
 
 # ── Forever mode (-Forever) ───────────────────────────────────────────────────
 # WoW: Forever (the 1.x "Camelot" client, Interface 16001) has its OWN, tiny TransmogSet table (7 sets in build
-# 1.60.1.70425), and every set there has ClassMask 0 (any class can wear it) -- which every other mode skips as
+# 1.60.1.70425), and every set there has ClassMask 0 (any class can wear it) -- which every mode that reads sets skips as
 # "no class bits" and the normal pass rejects as an incomplete download (< $MinRows). So Forever gets its own mode:
 # one ns.Sets row per SET into data/sets_forever.lua, which REPLACES the Retail tables on Forever only (see the
 # generated header). Owned wholesale by this mode. Reads only /api/builds and the TransmogSet table.
 #   * A ClassMask-0 set fills every class column (classId 1..13) with itself and its row carries allClasses = true.
 #   * A set with class bits fills only those classes, the way -Expand decomposes ClassMask (bit b -> classId b+1).
 #   * release = ExpansionID + 1; category = "World" (Forever's sources are unknown; revisit when launch adds sets).
-# See UPDATING.md ("Forever").
+# -Check: don't write; exit 1 if the file would change. Don't combine -Forever with another mode switch (the first mode
+# in the script wins). See UPDATING.md ("Forever").
 if ($Forever) {
   if (-not $PSBoundParameters.ContainsKey('Product')) { $Product = 'wow_classic_beta' }
   if (-not $PSBoundParameters.ContainsKey('VersionPrefix')) { $VersionPrefix = '1.60.' }
@@ -1255,7 +1256,13 @@ if ($Forever) {
     $id = ForeverInt 'ID' $r.ID
     $mask = ForeverInt 'ClassMask' $r.ClassMask
     $exp = ForeverInt 'ExpansionID' $r.ExpansionID
-    $name = LuaEsc ([string]$r.Name_lang).Trim()
+    # Refuse rows that would write a wrong or unloadable file (the file is left untouched).
+    if ($id -in $ids) { throw "Forever: TransmogSet has two rows with ID $id -- aborting." }
+    if ($mask -lt 0 -or $mask -gt 8191) { throw "Forever: set $id has ClassMask $mask (outside 0..8191, the 13 class bits) -- aborting." }
+    if ($exp -lt 0) { throw "Forever: set $id has ExpansionID $exp -- aborting." }
+    $rawName = ([string]$r.Name_lang).Trim()
+    if (-not $rawName -or $rawName -match '[\x00-\x1f]') { throw "Forever: set $id has an empty or control-character name -- aborting." }
+    $name = LuaEsc $rawName
     $cells = @{}
     if ($mask -eq 0) { foreach ($c in 1..13) { $cells[$c] = $true } }
     else { for ($b = 0; $b -lt 13; $b++) { if ($mask -band (1 -shl $b)) { $cells[$b + 1] = $true } } }
@@ -1291,6 +1298,7 @@ if ($Forever) {
     Write-Host "Forever: no change -- $ForeverFile already current." -ForegroundColor Green
     exit 0
   }
+  if ($Check) { Write-Host "Forever: $ForeverFile is OUT OF DATE (run -Forever to regenerate)." -ForegroundColor Yellow; exit 1 }
   [System.IO.File]::WriteAllText($ForeverFile, $newText, [System.Text.UTF8Encoding]::new($false))
   Write-Host "Forever: wrote $($ids.Count) row(s) into $ForeverFile." -ForegroundColor Green
   exit 0

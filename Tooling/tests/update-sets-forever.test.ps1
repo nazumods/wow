@@ -6,8 +6,8 @@
 
 .DESCRIPTION
   Runs the REAL script with Invoke-WebRequest replaced by a function (functions outrank cmdlets, and a
-  function defined here is visible to the script it calls) that serves wago's /api/builds and the three
-  CSV URLs from per-case fixtures -- the TransmogSet rows are build 1.60.1.70425's real seven -- and THROWS
+  function defined here is visible to the script it calls) that serves wago's /api/builds and the
+  CSV URLs of the three tables the suite's generators read from per-case fixtures -- the TransmogSet rows are build 1.60.1.70425's real seven -- and THROWS
   on any other URL. Every case writes a temp -ForeverFile (the real data/sets_forever.lua is never
   touched) and reads the file, the output and the exit code.
 
@@ -33,8 +33,8 @@ $global:Wago989Requested = [System.Collections.Generic.List[string]]::new()
 $global:Wago989Agents = [System.Collections.Generic.List[string]]::new()
 $userAgent = 'Warbandeer-suite-ci (github.com/nazumods/wow)'
 
-# The stand-in for the real cmdlet. /api/builds and the three CSV tables the suite's generators read are
-# served from the current case; anything else throws (so a case also proves nothing else is fetched).
+# The stand-in for the real cmdlet. /api/builds and the CSV tables the suite's generators read are served from the
+# current case (the generator under test must only ask for TransmogSet); anything else throws.
 function Invoke-WebRequest {
   [CmdletBinding()]
   param([string]$Uri, [string]$UserAgent, [switch]$UseBasicParsing)
@@ -219,6 +219,43 @@ Set-Ts $realRows
 $r = Invoke-Forever
 Test-Case 'requests only /api/builds and the TransmogSet CSV' 'https://wago.tools/api/builds|https://wago.tools/db2/TransmogSet/csv?build=1.60.1.70425' (@($r.Requested | Select-Object -Unique) -join '|')
 Test-Case 'the requests identify themselves' $userAgent $r.Agent
+
+# 13. numeric sort: 3-digit and 5-digit ids order by value, not as text
+Set-Ts ($realRows + '"Low",999,0,1,1,0,13968,0,1,0,1,1,0' + '"High",12000,0,1,1,0,13968,0,1,0,1,1,0')
+$r = Invoke-Forever
+$ids = @([regex]::Matches($r.Text, '(?m)^  \{ id = (\d+),') | ForEach-Object { [int]$_.Groups[1].Value })
+Test-Case 'rows sort numerically by id' '999,3634,4397,5700,5701,5702,5703,5914,12000' ($ids -join ',')
+Set-Ts $realRows
+
+# 14. rows that would write a wrong or unloadable file are refused, file untouched
+$badRows = [ordered]@{
+  'a duplicate set id'            = '"Dup",3634,0,1,1,0,13968,0,1,0,1,1,0'
+  'a ClassMask above the 13 bits' = '"Wide",6003,16384,1,1,0,13968,0,1,0,1,1,0'
+  'a negative ClassMask'          = '"Neg",6004,-1,1,1,0,13968,0,1,0,1,1,0'
+  'a negative ExpansionID'        = '"Early",6005,0,1,1,0,13968,0,1,-1,1,1,0'
+  'an empty name'                 = '"",6006,0,1,1,0,13968,0,1,0,1,1,0'
+  'a name with a newline'         = "`"Two`nLines`",6007,0,1,1,0,13968,0,1,0,1,1,0"
+  'a non-numeric id'              = '"Odd",abc,0,1,1,0,13968,0,1,0,1,1,0'
+}
+foreach ($k in $badRows.Keys) {
+  Set-Ts ($realRows + $badRows[$k])
+  $r = Invoke-Forever @{} $sentinel
+  Test-Failed "$k is refused" $r
+  Test-Case "$k is refused: the file is untouched" $sentinel $r.Text
+}
+Set-Ts $realRows
+
+# 15. -Check never writes: exit 1 when the file would change, 0 when current
+$r = Invoke-Forever @{ Check = $true } $sentinel
+Test-Case '-Check: a stale file exits 1' 1 $r.Exit
+Test-Case '-Check: a stale file is not written' $sentinel $r.Text
+$current = (Invoke-Forever).Text
+$r = Invoke-Forever @{ Check = $true } $current
+Test-Case '-Check: a current file exits 0' 0 $r.Exit
+Test-Case '-Check: a current file is not rewritten' $current $r.Text
+$r = Invoke-Forever @{ Check = $true }
+Test-Case '-Check: a missing file exits 1 and is not created' 1 $r.Exit
+Test-Case '-Check: a missing file is not created (no text)' '' $r.Text
 
 if ($script:Failures -gt 0) {
   Write-Output "FAILED: $($script:Failures) case(s)"

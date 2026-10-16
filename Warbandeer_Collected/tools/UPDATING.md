@@ -452,7 +452,7 @@ groups from the audit.
 ## Forever (`-Forever`)
 
 WoW: Forever (the 1.x "Camelot" client, Interface 16001) has its **own, tiny `TransmogSet` table**: 7 sets in build
-`1.60.1.70425`, all with `ClassMask` 0 (any class can wear them). Every other mode skips a set with no class bits and the
+`1.60.1.70425`, all with `ClassMask` 0 (any class can wear them). Every mode that reads sets skips a set with no class bits and the
 normal pass rejects fewer than `-MinRows` rows, so Forever has a mode of its own. It writes
 [`../data/sets_forever.lua`](../data/sets_forever.lua), **owned wholesale by `-Forever`** (never hand-edit):
 
@@ -474,8 +474,10 @@ pwsh ./update-sets.ps1 -Forever                        # the newest 1.60 build (
 - **The file replaces the Retail tables on Forever only.** It returns at the top unless `ns.flavor.isForever`, then assigns
   `ns.Sets`, `ns.PtrSets = {}` and `ns.PtrBuild = nil`. It is the last `data\` file that writes them in the toc
   (after `sets_review.lua`).
-- **Safety:** 0 `TransmogSet` rows, or a CSV missing `ID`/`Name_lang`/`ClassMask`/`ExpansionID`, aborts with the existing
-  file untouched. There is no percentage guard (7 rows); the run prints the set ids added and removed against the file on
+- **Safety:** 0 `TransmogSet` rows, a CSV missing `ID`/`Name_lang`/`ClassMask`/`ExpansionID`, a non-numeric value, a duplicate
+  set id, a `ClassMask` outside 0..8191, a negative `ExpansionID` or an empty/control-character name aborts with the existing
+  file untouched. `-Check` writes nothing and exits 1 when the file would change. Don't combine `-Forever` with another mode
+  switch (the first mode in the script wins). There is no percentage guard (7 rows); the run prints the set ids added and removed against the file on
   disk instead. `-MinRows` and the raid difficulty labels do not apply.
 - **No churn:** the file is rewritten only when the body changes (the header's product/build/date line is ignored in the
   comparison), so a rerun on a newer build with the same sets leaves it byte-identical.
