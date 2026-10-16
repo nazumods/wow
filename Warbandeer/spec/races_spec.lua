@@ -17,6 +17,11 @@ describe("Warbandeer RaceView", function()
   -- Build the view for `toons` and return its physical rows ({ label, color, cells = {name...} }).
   local function build(toons, opts)
     opts = opts or {}
+    local dividerParents = {}
+    -- the real ui table is a UI library; the divider is the only Texture the view creates
+    local ui = setmetatable({
+      Texture = { new = function(_, o) dividerParents[#dividerParents + 1] = o.parent end },
+    }, { __index = function() return wb.anything() end })
     local ns = wb.loadFlavored(opts.flavor or "forever", { "views/RaceView.lua" }, {
       globals = {
         gsub = string.gsub,
@@ -24,7 +29,7 @@ describe("Warbandeer RaceView", function()
         PLAYER_FACTION_COLOR_HORDE = H_COLOR,
         C_CreatureInfo = { GetRaceInfo = opts.getRaceInfo or function() return nil end },
       },
-      ns = { api = {
+      ns = { ui = ui, api = {
         ALLIANCE_RACES = ALLIANCE, HORDE_RACES = HORDE,
         GetAllCharacters = function() return toons end,
       } },
@@ -45,6 +50,10 @@ describe("Warbandeer RaceView", function()
       for col, cell in pairs(self.data[i] or {}) do cells[#cells + 1] = col .. ":" .. cell.text end
       table.sort(cells)
       rows[i] = { label = r.name, color = r.color, cells = cells }
+    end
+    -- the physical row the Alliance/Horde divider is drawn under
+    for i, r in ipairs(added) do
+      if r == dividerParents[1] then rows.dividerRow = i end
     end
     return rows
   end
@@ -117,6 +126,22 @@ describe("Warbandeer RaceView", function()
     assert.is_nil(rowOf(withInfo, "Skyborne"))
     local without = build({ toon("Sky", "Priest", "Skyborne", true, 0, 95) })
     assert.is_not_nil(rowOf(without, "Skyborne"))
+  end)
+
+  it("the Alliance/Horde divider sits under the last Alliance row, unknown races included", function()
+    assert.equals(#ALLIANCE, build({ toon("H", "Priest", "Human", true, 1, 1) }).dividerRow)
+    local rows = build({
+      toon("Sky", "Priest", "Skyborne", true, 0, 95),
+      toon("Hsky", "Priest", "Hordesky", false, 0, 96),
+    })
+    assert.equals(#ALLIANCE + 1, rows.dividerRow)   -- under "Skyborne", above "Orc"
+    assert.equals("Skyborne", rows[rows.dividerRow].label)
+  end)
+
+  it("a character with no faction flag stays on the Horde side, as before", function()
+    local rows = build({ toon("N", "Priest", "Orc", nil, 1, 2) })
+    assert.same({ "1:N" }, rows[#ALLIANCE + 1].cells)
+    assert.equals("Orc", rows[#ALLIANCE + 1].label)
   end)
 
   it("a raceIdx beyond the table is treated as unknown too", function()
