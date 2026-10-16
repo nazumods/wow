@@ -88,7 +88,8 @@ change re-tints what's on screen (pattern from `ShadowsOfUI-Ilvl/surfaces.lua`).
 TOC `## Interface: 120105, 16001`. Facts are from Blizzard's Forever UI source (build 1.60.1.70425,
 branch `origin/forever` of `wow-ui-source`) unless marked otherwise; nothing here has been run on the beta yet.
 
-- **Hook targets exist.** Merchant: `[Family]\MerchantFrame.lua` loads (`Blizzard_UIPanels_Game.toc:110`) and defines
+- **Hook targets exist** (inferred: the `.toc` lines below say `mainline`, and camelot is treated as mainline-family because
+  other lines pair `mainline` with an explicit `[ExcludeLoadGameType camelot]`; the source never states it). Merchant: `[Family]\MerchantFrame.lua` loads (`Blizzard_UIPanels_Game.toc:110`) and defines
   `MerchantFrame_UpdateMerchantInfo` (`Mainline/MerchantFrame.lua:274`) and `MerchantFrame_UpdateBuybackInfo` (`:532`).
   Auction house: `Blizzard_AuctionHouseUI.toc:9` allows `mainline, cata, mists`; `AuctionHouseFrame.BrowseResultsFrame`
   (`Shared/Blizzard_AuctionHouseFrame.xml:82`) holds `ItemList` (`Shared/Blizzard_AuctionHouseBrowseResultsFrame.xml:6`).
@@ -99,8 +100,10 @@ branch `origin/forever` of `wow-ui-source`) unless marked otherwise; nothing her
   unchanged: no Housing-class item is expected to reach them on Forever. `core.lua` has no housing/decor setting.
 - **Pet and toy calls.** `C_PetJournal.GetNumPets` / `GetPetInfoByIndex` and `PlayerHasToy` / `C_ToyBox.GetToyInfo` are
   absent from the generated API docs, but Blizzard's own Forever-loaded files call them (`Classic/Blizzard_PetCollection.lua:240,257`,
-  loaded for camelot per `Blizzard_Collections.toc:28`; `Classic/Blizzard_ToyBox.lua:169,242`, via `[Family]\Blizzard_ToyBox.lua`,
-  `toc:34`). Their existence on Forever is inferred from those load lists, not checked in game, and the addon calls them unguarded.
+  loaded for camelot per `Blizzard_Collections.toc:28`; the toy box is `[Family]\Blizzard_ToyBox.lua`, `toc:34`, which
+  calls both in `Mainline/Blizzard_ToyBox.lua:257,331` and in `Classic/Blizzard_ToyBox.lua:169,242`; which of the two a camelot
+  client resolves `[Family]` to was not determined). Their existence on Forever is inferred from those load lists, not checked
+  in game, and the addon calls them unguarded.
 - **`C_PetJournal.GetNumCollectedInfo` is guarded.** Blizzard calls it only from `Shared/Blizzard_PetBattleUI.lua:1272`;
   whether it exists on Forever is unknown. `ns.IsKnown` treats a `battlepet:` link as not known, and does not cache that,
   while the function is missing (so the link reads as known once it appears).
