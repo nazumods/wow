@@ -42,8 +42,8 @@ local function BuildSpellOverrides()
   return map
 end
 
--- Real macro index of a temp macro on action slot `i`, without touching the cursor (logout: PickupAction shows the
--- empty-slot grid, which runs other addons' action-bar hooks while the UI is tearing down, #984). By the slot's
+-- Real macro index of a temp macro on action slot `i`, without touching the cursor (PickupAction shows the empty-slot
+-- grid, which runs other addons' action-bar hooks -- Bartender4 threw there at logout, #984). By the slot's
 -- action text (a macro's name; the first macro of that name wins, inferred), else the index the stored profile had at the
 -- same slot, else nil (restore skips a slot with no index).
 local function MacroIndexNoCursor(i, stored)
@@ -61,9 +61,9 @@ local function MacroIndexNoCursor(i, stored)
   return nil
 end
 
--- Capture all non-empty action bar slots. `atLogout` resolves a temp macro's index without the cursor;
+-- Capture all non-empty action bar slots. `cursorFree` (the change-driven snapshot) resolves a temp macro's index without the cursor;
 -- `stored` is the profile already stored for this character and spec (the fallback for that path).
-local function CaptureSlots(overrides, atLogout, stored)
+local function CaptureSlots(overrides, cursorFree, stored)
   local slots = {}
   for i = 1, MAX_BARS do
     local slotType, index, subType = GetActionInfo(i)
@@ -83,7 +83,7 @@ local function CaptureSlots(overrides, atLogout, stored)
         end
       elseif slotType == "macro" then
         -- subType means it's a temp macro; resolve real index via cursor
-        if subType and atLogout then
+        if subType and cursorFree then
           index = MacroIndexNoCursor(i, stored)
         elseif subType then
           PickupAction(i)
@@ -206,14 +206,8 @@ local function CaptureOutfits()
   return outfits
 end
 
--- The last non-zero spec any capture in this session resolved ({ char, id, name, icon }). At PLAYER_LOGOUT the spec
--- info can read empty while the UI tears down (inferred from a Retail logout, 2026-10-15: spec index 1 and nothing stored, so the id
--- presumably read 0 and store() refused the profile, #984); the logout snapshot then borrows this instead of storing nothing.
-local lastSpec
-
--- Build profile metadata from current character. `atLogout` permits the lastSpec fallback for the SAME character;
--- every in-session capture that resolves no spec keeps specID 0 and is never stored (the login-race guard).
-local function ProfileMeta(atLogout)
+-- Build profile metadata from current character
+local function ProfileMeta()
   local specIndex = GetSpec and GetSpec()
   local specID, specName, specIcon
   if specIndex then
@@ -221,14 +215,8 @@ local function ProfileMeta(atLogout)
     specID, specName, specIcon = id, name, icon
   end
   local _, class, classID = UnitClass("player")
-  local char = UnitName("player")
-  if specID and specID ~= 0 then
-    lastSpec = { char = char, id = specID, name = specName, icon = specIcon }
-  elseif atLogout and lastSpec and lastSpec.char == char then
-    specID, specName, specIcon = lastSpec.id, lastSpec.name, lastSpec.icon
-  end
   return {
-    char       = char,
+    char       = UnitName("player"),
     realm      = GetRealmName(),
     class      = class,                 -- class file token, e.g. "MAGE"
     classID    = classID,
@@ -286,16 +274,16 @@ end
 ---@param include table  keys: bars, bindings, macros, petbar, outfits
 ---@param accountMacros boolean
 ---@param charMacros boolean
----@param atLogout boolean? this is the logout snapshot: no cursor calls, and the last known spec if none resolves
+---@param cursorFree boolean? resolve temp macros without the cursor (the change-driven snapshot, #984)
 ---@return table profile
-function ns.Capture(include, accountMacros, charMacros, atLogout)
+function ns.Capture(include, accountMacros, charMacros, cursorFree)
   local overrides = BuildSpellOverrides()
-  local profile = ProfileMeta(atLogout)
-  local byChar = atLogout and ns.db and ns.db.profiles and ns.db.profiles[profile.char]
+  local profile = ProfileMeta()
+  local byChar = cursorFree and ns.db and ns.db.profiles and ns.db.profiles[profile.char]
   local stored = byChar and byChar[profile.specID]
   profile.version  = 3   -- v2 adds barLayout; v3 adds summonpet species/custom names
   profile.captured = time()
-  profile.slots    = include.bars     and CaptureSlots(overrides, atLogout, stored) or {}
+  profile.slots    = include.bars     and CaptureSlots(overrides, cursorFree, stored) or {}
   profile.binds    = include.bindings and CaptureBindings()                        or {}
   profile.macros   = include.macros   and CaptureMacros(accountMacros, charMacros) or {}
   profile.petslots = include.petbar   and CapturePetBar()                          or {}

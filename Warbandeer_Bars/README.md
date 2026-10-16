@@ -15,17 +15,19 @@ setup is captured on its own, in the background, with nothing to remember.
 
 ## How it tracks
 
-Profiles are captured at session boundaries — never on a churning per-click basis:
+Profiles are captured at session boundaries and, after that, a couple of seconds after a change:
 
 | Trigger | When |
 |---|---|
-| `onLogin` | 2 s after entering the world (lets the bars finish loading) |
-| `ACTIVE_TALENT_GROUP_CHANGED` | 500 ms after a spec change (lets the new spec settle) |
-| `PLAYER_LOGOUT` | on logout **and** on `/reload` |
+| `onLogin` | 2 s after entering the world (lets the bars finish loading); skipped if sparser than the stored profile |
+| `ACTIVE_TALENT_GROUP_CHANGED` | 500 ms after a spec change (lets the new spec settle); skipped if sparser than the stored profile |
+| `ACTIONBAR_SLOT_CHANGED`, `UPDATE_MACROS`, `UPDATE_BINDINGS` | 2 s after the **last** such event (a burst is one snapshot); only after the login snapshot has run; always stored, so a removed button is recorded |
+| logout / `/reload` | **never** — by `PLAYER_LOGOUT` the client has already emptied the action bars and the spec (observed on Retail, 2026-10-15), so there is nothing real left to capture |
 
-A capture is skipped during combat (the macro temp-index resolution touches protected APIs)
-and while a cursor drag is in progress (it would clobber the held action). None of the triggers
-above fire in combat, so in practice this is just insurance.
+A capture is skipped while a cursor drag is in progress (it would clobber the held action) and
+during combat; a change snapshot that comes due in combat runs when combat ends. The
+change-driven snapshot resolves a temporary macro's index without touching the cursor (see
+`CONTEXT.md`), so it fires no action-bar events itself and cannot loop.
 
 Captures are always **full fidelity** (bars + binds + macros + pet bar + outfits). What a
 *restore* applies is filtered separately — see the include settings below.

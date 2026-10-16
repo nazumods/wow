@@ -38,38 +38,159 @@ describe("Warbandeer_Bars tracker", function()
     end)
   end)
 
-  describe("the logout snapshot (#984)", function()
-    -- tracker.lua loaded with the call-time globals Snapshot reads stubbed through its environment.
-    local seen
-    local function load_tracker()
-      seen = {}
-      local chunk = assert(loadfile("Warbandeer_Bars/tracker.lua"))
-      setfenv(chunk, setmetatable({
-        InCombatLockdown = function() return false end,
-        GetCursorInfo = function() return nil end,
-      }, { __index = _G }))
-      local t = { registerEvent = function() end, db = { profiles = {} } }
-      t.Capture = function(_, _, _, atLogout)
-        seen[#seen + 1] = { atLogout = atLogout }
-        return { char = "Lurias", specID = 62, slots = {} }
-      end
-      chunk("Warbandeer_Bars", t)
-      return t
+  describe("change-driven snapshots (#984)", function()
+    -- tracker.lua loaded with its call-time globals stubbed through the environment and a recording ns.
+    local t, env, debounced, captures, registered, after_fns, delayed
+
+    local function profile(nSlots)
+      local slots = {}
+      for i = 1, nSlots do slots[i] = { id = i } end
+      return { char = "Lurias", specID = 62, slots = slots }
     end
 
-    it("PLAYER_LOGOUT captures with atLogout set", function()
-      local t = load_tracker()
-      t.PLAYER_LOGOUT()
-      assert.same({ { atLogout = true } }, seen)
+    before_each(function()
+      env = { combat = false, cursor = false }
+      debounced, captures, registered, after_fns, delayed = {}, {}, {}, {}, {}
+      local chunk = assert(loadfile("Warbandeer_Bars/tracker.lua"))
+      setfenv(chunk, setmetatable({
+        InCombatLockdown = function() return env.combat end,
+        GetCursorInfo = function() return env.cursor and "item" or nil end,
+      }, { __index = _G }))
+      t = {
+        db = { profiles = {} },
+        registerEvent = function(_, name) registered[#registered + 1] = name end,
+        debounce = function(_, key, ms, fn) debounced[#debounced + 1] = { key = key, ms = ms, fn = fn } end,
+        after = function(_, ms, fn) after_fns[#after_fns + 1] = { ms = ms, fn = fn } end,
+        delay = function(_, ms, fn) delayed[#delayed + 1] = { ms = ms, fn = fn } end,
+        CaptureLayouts = function() end,
+        nSlots = 10,
+      }
+      t.Capture = function(_, _, _, cursorFree)
+        captures[#captures + 1] = { cursorFree = cursorFree }
+        -- a cursor-path capture picks actions up and puts them back, which fires bar events at us
+        if not cursorFree then t.ACTIONBAR_SLOT_CHANGED() end
+        return profile(t.nSlots)
+      end
+      chunk("Warbandeer_Bars", t)
     end)
 
-    it("an in-session snapshot (login, spec change, snapshot command) does not set atLogout", function()
-      local t = load_tracker()
-      t.Snapshot(true)
+    local function login()  -- run the pending login timer (the login snapshot, then arming)
+      t:onLogin()
+      after_fns[1].fn()
+    end
+
+    it("nothing snapshots at PLAYER_LOGOUT", function()
+      assert.is_nil(t.PLAYER_LOGOUT)
+      for _, name in ipairs(registered) do assert.not_equal("PLAYER_LOGOUT", name) end
+    end)
+
+    it("a burst of slot changes schedules one snapshot, 2 s after the last", function()
+      login()
+      t.ACTIONBAR_SLOT_CHANGED(); t.ACTIONBAR_SLOT_CHANGED(); t.ACTIONBAR_SLOT_CHANGED()
+      -- every event restarts the wait on the SAME keyed timer (the debounce replaces the pending call)
+      assert.equal(3, #debounced)
+      for _, d in ipairs(debounced) do
+        assert.equal("change", d.key)
+        assert.equal(2000, d.ms)
+      end
+      assert.equal(1, #captures)       -- only the login snapshot so far
+      debounced[3].fn()
+      assert.equal(2, #captures)
+    end)
+
+    it("macro and binding changes schedule it too", function()
+      login()
+      t.UPDATE_MACROS()
+      t.UPDATE_BINDINGS()
+      assert.equal(2, #debounced)
+    end)
+
+    it("registers the change events and PLAYER_REGEN_ENABLED", function()
+      local seen = {}
+      for _, n in ipairs(registered) do seen[n] = true end
+      for _, n in ipairs({ "ACTIONBAR_SLOT_CHANGED", "UPDATE_MACROS", "UPDATE_BINDINGS", "PLAYER_REGEN_ENABLED" }) do
+        assert.is_true(seen[n], n)
+      end
+    end)
+
+    it("change events before the login snapshot has run are ignored", function()
+      t.ACTIONBAR_SLOT_CHANGED(); t.UPDATE_MACROS(); t.UPDATE_BINDINGS()
+      assert.equal(0, #debounced)
+    end)
+
+    it("the event the login snapshot's own cursor path fires does not schedule a change snapshot", function()
+      -- the stub Capture fires a bar event during the cursor-path login capture; arming comes after it
+      login()
+      assert.equal(0, #debounced)
+    end)
+
+    it("events fired by a cursor-path capture are ignored", function()
+      login()
+      t.Snapshot(false, false)   -- e.g. the snapshot command: fires a bar event from inside Capture
+      assert.equal(0, #debounced)
+    end)
+
+    it("a capture that errors does not leave the capturing flag stuck", function()
+      login()
+      t.Capture = function() error("boom") end
+      assert.has_error(function() t.Snapshot(false, false) end)
+      t.ACTIONBAR_SLOT_CHANGED()
+      assert.equal(1, #debounced)
+    end)
+
+    it("the change snapshot is cursor-free", function()
+      login()
+      t.ACTIONBAR_SLOT_CHANGED()
+      debounced[1].fn()
+      assert.is_true(captures[#captures].cursorFree)
+    end)
+
+    it("a change snapshot due in combat runs after combat", function()
+      login()
+      t.ACTIONBAR_SLOT_CHANGED()
+      env.combat = true
+      debounced[1].fn()
+      assert.equal(1, #captures)         -- nothing captured while in combat
+      env.combat = false
+      t.PLAYER_REGEN_ENABLED()
+      assert.equal(2, #captures)
+      assert.is_true(captures[2].cursorFree)
+      t.PLAYER_REGEN_ENABLED()           -- the pending flag was consumed
+      assert.equal(2, #captures)
+    end)
+
+    it("leaving combat with nothing pending captures nothing", function()
+      login()
+      t.PLAYER_REGEN_ENABLED()
+      assert.equal(1, #captures)
+    end)
+
+    it("the change snapshot stores a reduction (unguarded)", function()
+      t.nSlots = 40
+      login()                              -- stores 40 slots
+      assert.equal(40, #t.db.profiles.Lurias[62].slots)
+      t.nSlots = 5
+      t.ACTIONBAR_SLOT_CHANGED()
+      debounced[1].fn()
+      assert.equal(5, #t.db.profiles.Lurias[62].slots)
+    end)
+
+    it("a spec change and a bar change don't cancel each other's pending snapshot", function()
+      login()
+      t.ACTIVE_TALENT_GROUP_CHANGED()
+      t.ACTIONBAR_SLOT_CHANGED()
+      assert.equal(1, #delayed)                 -- the spec change's own (shared) timer
+      assert.equal("change", debounced[1].key)  -- the bar change's keyed timer, not `delay`
+      delayed[1].fn()
+      debounced[1].fn()
+      assert.equal(3, #captures)                -- login + spec change + bar change
+    end)
+
+    it("an in-session snapshot (login, spec change, snapshot command) is not cursor-free", function()
+      login()
       t.Snapshot()
-      assert.equal(2, #seen)
-      assert.is_falsy(seen[1].atLogout)
-      assert.is_falsy(seen[2].atLogout)
+      assert.is_falsy(captures[1].cursorFree)
+      assert.is_falsy(captures[2].cursorFree)
     end)
   end)
 end)

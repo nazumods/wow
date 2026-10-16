@@ -12,9 +12,9 @@ character/spec's setup and import it onto the current character. Profiles are st
 | File | Purpose |
 |---|---|
 | `init.lua` | Assignment-form bootstrap; `MigrateDB` (v1 seeds `profiles={}`; v2 adds `layouts={}`), `DefaultSettings`, `onLoad` per-char settings init |
-| `capture.lua` | `ns.Capture(include, accountMacros, charMacros, atLogout?)` → profile table; per-section capture + spell/flyout override resolution |
+| `capture.lua` | `ns.Capture(include, accountMacros, charMacros, cursorFree?)` → profile table; per-section capture + spell/flyout override resolution |
 | `restore.lua` | `ns.Restore(profile, include, silent?, barFilter?)` — applies a profile, recreating macros on import; flyouts-first pre-pass, spellbook fallbacks, per-bar filter |
-| `tracker.lua` | `ns.Snapshot(guardSparse?, atLogout?)` + `ns.shouldStore` + auto-capture triggers (login / spec change / logout); combat- & cursor-guarded |
+| `tracker.lua` | `ns.Snapshot(guardSparse?, cursorFree?)` + `ns.shouldStore` + auto-capture triggers (login / spec change / bar, macro and binding changes; none at logout); combat- & cursor-guarded |
 | `api.lua` | `WarbandeerBarsApi` methods |
 | `commands.lua` | `/wbb` inspection sub-commands (no window — data layer only) |
 | `spec/` | busted unit tests (`ns.shouldStore` sparse-capture guard, the WoW-API-free `api.lua` DB methods, the `ns.Capture` slot schema via `bars.loadCapture`'s `setfenv` global stubs, and `ns.Restore`'s petaction/futurespell clear via `bars.loadRestore` + the `bars.actionbars` fake bar, whose `PickupAction`/`PlaceAction` **swap** slot and cursor as they do in game — that swap is what made the clear a round-trip, so a harness modelling pickup as a plain removal wouldn't reproduce it); excluded from zip + release detection |
@@ -119,15 +119,32 @@ missing `WarbandeerBarsSettings` keys from `ns.DefaultSettings`.
 |---|---|
 | `onLogin` (entering world) | 2000 ms |
 | `ACTIVE_TALENT_GROUP_CHANGED` (spec swap) | 500 ms |
-| `PLAYER_LOGOUT` (also fires on `/reload`) | none |
+| `ACTIONBAR_SLOT_CHANGED`, `UPDATE_MACROS`, `UPDATE_BINDINGS` | 2000 ms after the **last** event (`ns:debounce("change", ...)`, its own keyed timer) |
 | `EDIT_MODE_LAYOUTS_UPDATED` (→ `ns.CaptureLayouts()`) | none |
 
-`atLogout` marks the logout snapshot (`ns.Snapshot(guardSparse, atLogout)` → `ns.Capture(..., atLogout)`); `ns.PLAYER_LOGOUT` is the only caller that sets it, and it changes two things. First, it never calls
+There is **no logout snapshot**. By `PLAYER_LOGOUT` the client has already emptied the action bars and the spec: on Retail
+on 2026-10-15 a logout snapshot that was made to store (using the last known spec) wrote a profile with 0 action slots over
+a 101-slot one, and before that the spec id presumably read 0 so `store()` refused it (inferred, not read from the client).
+Bar changes are saved as they happen instead (`tracker.lua`):
+
+- **Armed only after the login snapshot** has run (`ready`): before it the bars are still populating, which is why the login
+  snapshot is sparse-guarded. Change events earlier are ignored.
+- **No self-trigger.** While a cursor-path capture runs (login snapshot, `snapshot` command, `API:Snapshot`) a `capturing` flag
+  makes the handlers ignore events. The change snapshot itself is `cursorFree`, which picks nothing up, so it fires no
+  action-bar event and cannot loop. (If the client delivers a cursor-path capture's events after it returns, one extra
+  cursor-free snapshot results; it cannot loop.)
+- **Unguarded** (`Snapshot(false, true)`): it records a legitimate reduction, the role the logout snapshot used to have.
+- **Combat:** a snapshot that comes due in combat sets `pendingChange` and runs on `PLAYER_REGEN_ENABLED`.
+- **Spec change** keeps its own `ns:delay` timer; a bar change uses `ns:debounce`'s keyed timer, so neither cancels the other.
+
+`cursorFree` (`ns.Snapshot(guardSparse, cursorFree)` → `ns.Capture(..., cursorFree)`) never calls
 `PickupAction`/`PlaceAction`/`ClearCursor`: picking an action up shows the empty-slot grid, which runs other addons'
-action-bar hooks at logout (Bartender4 threw there, #984). A temp macro's index is then the first macro whose name equals
-`C_ActionBar.GetActionText(slot)` (`GetMacroIndexByName`; two macros with the same name resolve to the first -- inferred from the API's documented behaviour, not readable in the Blizzard UI source), else the
-index the stored profile for this character and spec had at the same slot when it was a macro (which can be stale if macros were deleted or reordered since that snapshot), else nil (restore skips a
-macro slot with no index). Second, the spec: `ProfileMeta` remembers the last non-zero spec any capture resolved (`lastSpec`: character, id, name, icon). If the spec reads empty at logout (seen on Retail 2026-10-15: spec index 1 and no profile stored at logout, so the id presumably read 0 and `store()` refused the `specID == 0` profile -- the cause is inferred, not read from the client), the logout capture uses `lastSpec` when it belongs to the same character; a capture outside logout that resolves no spec still has `specID == 0` and is never stored. Every other snapshot (login, spec change, the `snapshot` command, `API:Snapshot`) keeps the cursor round-trip and has no spec fallback.
+action-bar hooks (Bartender4 threw there at logout, #984). A temp macro's index is then the first macro whose name equals
+`C_ActionBar.GetActionText(slot)` (`GetMacroIndexByName`; two macros with the same name resolve to the first -- inferred from
+the API's documented behaviour, not readable in the Blizzard UI source), else the index the stored profile for this
+character and spec had at the same slot when it was a macro (which can be stale if macros were deleted or reordered since
+that snapshot), else nil (restore skips a macro slot with no index). Every other snapshot (login, spec change, the
+`snapshot` command, `API:Snapshot`) keeps the cursor round-trip.
 
 ## Gotchas
 
@@ -138,14 +155,14 @@ macro slot with no index). Second, the spec: `ProfileMeta` remembers the last no
 
 - **`ns.Snapshot()` is a no-op during combat or mid-drag.** Macro temp-index resolution in capture
   touches protected APIs, and an in-progress cursor drag would be clobbered. Guarded by
-  `InCombatLockdown()` / `GetCursorInfo()`. None of the triggers fire in combat anyway.
+  `InCombatLockdown()` / `GetCursorInfo()`. The login and spec timers don't fire in combat; a change-driven snapshot that does come
+  due in combat is held (`pendingChange`) and run on `PLAYER_REGEN_ENABLED`.
 - **Sparse-capture guard (`Snapshot(true)` on the login/spec timers).** The login (`onLogin`, 2 s
   after entering the world) and spec-change (500 ms) snapshots run on a delay and can fire before
   the action bars finish populating — an unguarded store would then overwrite a good profile with a
   half-empty capture. `ns.shouldStore` refuses a *guarded* capture whose `slots` count is below the
-  stored profile's. The **logout** snapshot is unguarded (bars are fully loaded — it's authoritative,
-  so a legitimate button removal is still recorded). Same for the public `API:Snapshot()` / `/wbb`
-  snapshot. Covered by `spec/tracker_spec.lua`.
+  stored profile's. The **change-driven** snapshot is unguarded (it only runs after the login snapshot, so the bars are populated; a
+  legitimate button removal is still recorded). Same for the public `API:Snapshot()` / `/wbb` snapshot. Covered by `spec/tracker_spec.lua`.
 - **`ns.Restore` bails in combat** (taint) — it prints a notice and returns.
 - **Flyouts restore FIRST** (`RestoreFlyouts` pre-pass): `PickupSpellBookItem` for flyout-type
   spellbook items (e.g. the warlock Summon Demon drawer) silently fails after any other protected

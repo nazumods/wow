@@ -129,137 +129,62 @@ describe("Warbandeer_Bars capture", function()
         time = function() return 1700000000 end,
       }
       ns.db = { profiles = { Lurias = { [62] = opts.stored } } }
-      return slotsById(ns.Capture({ bars = true }, false, false, opts.atLogout))
+      return slotsById(ns.Capture({ bars = true }, false, false, opts.cursorFree))
     end
 
     before_each(function() cursorIndex = 42 end)
 
     it("an in-session snapshot still resolves via the cursor", function()
-      local slots = run{ atLogout = false, text = "Mine", byName = { Mine = 9 } }
+      local slots = run{ cursorFree = false, text = "Mine", byName = { Mine = 9 } }
       assert.equal(42, slots[7].index)
       assert.same({ "PickupAction", "PlaceAction", "ClearCursor" }, calls)
     end)
 
-    it("logout never touches the cursor", function()
-      run{ atLogout = true, text = "Mine", byName = { Mine = 9 } }
+    it("the change snapshot never touches the cursor", function()
+      run{ cursorFree = true, text = "Mine", byName = { Mine = 9 } }
       assert.same({}, calls)
     end)
 
-    it("logout resolves a temp macro by its action text", function()
-      local slots = run{ atLogout = true, text = "Mine", byName = { Mine = 9 } }
+    it("the change snapshot resolves a temp macro by its action text", function()
+      local slots = run{ cursorFree = true, text = "Mine", byName = { Mine = 9 } }
       assert.equal(9, slots[7].index)
     end)
 
-    it("logout falls back to the stored profile's index at the same slot", function()
-      local slots = run{ atLogout = true, text = "Gone",
+    it("the change snapshot falls back to the stored profile's index at the same slot", function()
+      local slots = run{ cursorFree = true, text = "Gone",
         stored = { slots = { { id = 7, type = "macro", index = 31 } } } }
       assert.equal(31, slots[7].index)
     end)
 
-    it("logout does not take a stored index from a slot that was not a macro", function()
-      local slots = run{ atLogout = true, text = "Gone",
+    it("the change snapshot does not take a stored index from a slot that was not a macro", function()
+      local slots = run{ cursorFree = true, text = "Gone",
         stored = { slots = { { id = 7, type = "spell", index = 31 } } } }
       assert.is_nil(slots[7].index)
     end)
 
-    it("logout matches the stored profile by slot id, not by taking any macro entry", function()
-      local slots = run{ atLogout = true, text = "Gone",
+    it("the change snapshot matches the stored profile by slot id, not by taking any macro entry", function()
+      local slots = run{ cursorFree = true, text = "Gone",
         stored = { slots = { { id = 9, type = "macro", index = 77 }, { id = 7, type = "macro", index = 31 } } } }
       assert.equal(31, slots[7].index)
-      local other = run{ atLogout = true, text = "Gone",
+      local other = run{ cursorFree = true, text = "Gone",
         stored = { slots = { { id = 9, type = "macro", index = 77 } } } }
       assert.is_nil(other[7].index)
     end)
 
-    it("logout ignores an empty action text rather than looking up the empty name", function()
-      local slots = run{ atLogout = true, text = "", byName = { [""] = 5 } }
+    it("the change snapshot ignores an empty action text rather than looking up the empty name", function()
+      local slots = run{ cursorFree = true, text = "", byName = { [""] = 5 } }
       assert.is_nil(slots[7].index)
     end)
 
-    it("logout leaves index nil when neither works", function()
-      local slots = run{ atLogout = true, text = "Gone" }
+    it("the change snapshot leaves index nil when neither works", function()
+      local slots = run{ cursorFree = true, text = "Gone" }
       assert.is_nil(slots[7].index)
       assert.equal("macro", slots[7].type)
     end)
 
-    it("logout keeps a non-temp macro's own index", function()
-      local slots = run{ atLogout = true, actions = { [7] = { type = "macro", index = 12 } } }
+    it("the change snapshot keeps a non-temp macro's own index", function()
+      local slots = run{ cursorFree = true, actions = { [7] = { type = "macro", index = 12 } } }
       assert.equal(12, slots[7].index)
-    end)
-  end)
-
-  describe("the logout snapshot's spec fallback (#984)", function()
-    -- One loaded capture.lua (so its lastSpec lives across calls) whose spec info and character the test steers.
-    local ns, spec, char
-    local ACTIONS = { [1] = { "spell", 133 } }
-
-    before_each(function()
-      spec, char = { 62, "Arcane", "", 1 }, "Lurias"
-      ns = bars.loadCapture{
-        GetActionInfo = function(i) local a = ACTIONS[i]; if a then return a[1], a[2] end end,
-        C_SpecializationInfo = {
-          GetSpecialization = function() return 1 end,
-          GetSpecializationInfo = function() return spec and spec[1], spec and spec[2], nil, spec and spec[4] end,
-        },
-        UnitName = function() return char end,
-        UnitClass = function() return "Mage", "MAGE", 8 end,
-        GetRealmName = function() return "Draenor" end,
-        GetCurrentBindingSet = function() return 1 end,
-        UnitLevel = function() return 80 end,
-        time = function() return 1700000000 end,
-      }
-    end)
-
-    local function cap(atLogout) return ns.Capture({ bars = true }, false, false, atLogout) end
-
-    it("logout with empty spec info stores under the character's last known spec", function()
-      cap(false)
-      spec = nil
-      local p = cap(true)
-      assert.equal(62, p.specID)
-      assert.equal("Arcane", p.spec)
-      assert.equal(1, p.specIcon)
-    end)
-
-    it("logout with empty spec info and no last spec for this character stores nothing", function()
-      spec = nil
-      assert.equal(0, cap(true).specID)
-    end)
-
-    it("a last spec from another character is never used", function()
-      cap(false)
-      spec, char = nil, "Other"
-      assert.equal(0, cap(true).specID)
-    end)
-
-    it("an in-session capture with no spec is still not stored", function()
-      cap(false)
-      spec = nil
-      assert.equal(0, cap(false).specID)
-    end)
-
-    it("lastSpec updates on a spec change", function()
-      cap(false)
-      spec = { 63, "Fire", "", 2 }
-      cap(false)
-      spec = nil
-      local p = cap(true)
-      assert.equal(63, p.specID)
-      assert.equal("Fire", p.spec)
-    end)
-
-    it("a capture that resolves spec id 0 does not overwrite the remembered spec", function()
-      cap(false)
-      spec = { 0, "None", "", 0 }
-      cap(false)
-      spec = nil
-      assert.equal(62, cap(true).specID)
-    end)
-
-    it("a spec that resolves at logout wins over the remembered one", function()
-      cap(false)
-      spec = { 64, "Frost", "", 3 }
-      assert.equal(64, cap(true).specID)
     end)
   end)
 
