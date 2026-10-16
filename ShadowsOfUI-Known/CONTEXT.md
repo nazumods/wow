@@ -8,8 +8,8 @@ data (`professions.details[skillLineID].recipes[bucket].learned[] = { id, name }
 1. **"Learnable by:"** on **recipe items** (the patterns/scrolls) — characters that have the
    recipe's profession but haven't learned it, plus a **"Known by:"** line naming those who
    already know it (matched by recipe name).
-2. **"Known by:" / "Not Known"** on the **Place Crafting Order** browse list — which characters
-   already know the hovered recipe (matched by exact recipe id; red "Not Known" when none do),
+2. **"Known by:" / "Not Known"** (the "Not Known" part only where recipe data exists) on the **Place Crafting Order** browse list — which characters
+   already know the hovered recipe (matched by exact recipe id; red "Not Known" when none do -- and some character has captured recipes at all),
    then a **"Guild crafters:"** line — guild members who can craft it — from a separate, **live
    native** guild query (not the captured data); see below.
 
@@ -19,10 +19,10 @@ Assignment-form init (`local ns = LibNAddOn(...)`); no LibNUI.
 
 | File | Purpose |
 |---|---|
-| `core.lua` | Bootstrap + logic. `RECIPE_SUBCLASS_TO_SKILL` (recipe item subclass → parent skillLineID), `ns.BuildLearnable(itemID, reqSkill, itemName)` → sorted `KnownEntry[]` learnable list **and** a `CrafterEntry[]` known-by list (or nil if not a craftable recipe), and `ns.BuildKnownBy(recipeID)` → sorted `CrafterEntry[]` of characters that have **learned** that recipe (matched by the captured `learned[].id` — exact, no name ambiguity; ordered main-intent → secondary → other, then level desc, name). |
+| `core.lua` | Bootstrap + logic. `ns.HasRecipeData()` — whether ANY character has a captured `recipes` bucket (account-wide: once one profession on one alt is captured it is true for every recipe; a recipe from a profession never captured still reads "Not Known", as on Retail). `BuildKnownBy` does not cache an empty answer while it is false, so the first capture landing mid-session is picked up. `RECIPE_SUBCLASS_TO_SKILL` (recipe item subclass → parent skillLineID), `ns.BuildLearnable(itemID, reqSkill, itemName)` → sorted `KnownEntry[]` learnable list **and** a `CrafterEntry[]` known-by list (or nil if not a craftable recipe), and `ns.BuildKnownBy(recipeID)` → sorted `CrafterEntry[]` of characters that have **learned** that recipe (matched by the captured `learned[].id` — exact, no name ambiguity; ordered main-intent → secondary → other, then level desc, name). |
 | `changelog.lua` | `ns.changelog` — newest-first `{version, notes}` release history for the in-game **Changelog** viewer (LibNAddOn). **Generated** — `release.sh` prepends each release; not hand-edited |
 | `guild.lua` | `ns.GuildCrafters(recipeID, tooltip?, recipeLevel?)` → cached `GuildCrafterEntry[]` **and** a `"ready"`/`"pending"`/`nil` state of guild members who can craft the recipe, via Blizzard's **native async** guild query (`C_GuildInfo.QueryGuildMembersForRecipe` → `GUILD_RECIPE_KNOWN_BY_MEMBERS` → `GetGuildRecipeInfoPostQuery`/`GetGuildRecipeMember`) — no SavedVars, no comms. Resolves the skill line via `C_TradeSkillUI.GetProfessionInfoByRecipeID` and tries the **parent (base) profession first**, then the recipe's own expansion-specific one — matching Blizzard's `parentProfessionID or professionID` resolution, with the second as a fallback its single-shot form has no recovery for. A query the client declines (`QueryGuildMembersForRecipe` is `MayReturnNothing`) advances to the next candidate **immediately**; the per-attempt 3s timeout is left to cover only the genuine "data hole" case where the query was accepted but no event ever arrives. `recipeLevel` is passed through (nil = no particular level, the documented `Nilable` default) — a caller that ever supplies one must also key the cache on it. Guards *secret values* on every `GetGuildRecipeInfoPostQuery` and `GetGuildRecipeMember` return, including the `numMembers` used as a loop bound. Bounded (30) per-recipe cache wiped on `CRAFTINGORDERS_SHOW_CUSTOMER`, which also re-runs `QueryGuildRecipes()` **every session** so the wipe actually yields fresh online/offline state (loading `Blizzard_Communities` is the one-shot half). Schedules `tooltip:RefreshData()` when the async result lands. `ns.SortGuildCrafters(list)` (online-first, then name) is pure — unit-tested in `spec/`. |
-| `tooltip.lua` | Two `ns:OnItemTooltip` (LibNAddOn item-tooltip hook) registrations: the **Learnable** block (reads the skill threshold off the tooltip lines, renders names, then appends a **Known by** line for alts who already know it via the shared forward-declared `renderKnownBy`) and the **Known by** line on crafting-order rows (`customerOrderRecipeID` gates on `ProfessionsCustomerOrdersFrame` being shown + the tooltip owner's `option.spellID` — which C_TradeSkillUI treats as a recipeID — so it's both the gate and the exact identity; `renderKnownBy` → `Known by: <names>` or red `Not Known: <Profession>` — the profession comes from the row's `option.skillLineAbilityID` via `C_TradeSkillUI.GetProfessionNameForSkillLineAbility`, so it shows even when **nobody** knows the recipe). On a crafting-order row it also appends the **guild** crafter block (`renderGuildCrafters` → `ns.GuildCrafters`), which renders "pending" until the async query lands and then refreshes the live tooltip in place. `/sknown <itemID>` + `/sknown knownby <recipeID>` dev commands. Exposes the pure `ns.ReqSkill(data)` tooltip parser. |
+| `tooltip.lua` | (The "Not Known" line below is omitted while `ns.HasRecipeData()` is false.) Two `ns:OnItemTooltip` (LibNAddOn item-tooltip hook) registrations: the **Learnable** block (reads the skill threshold off the tooltip lines, renders names, then appends a **Known by** line for alts who already know it via the shared forward-declared `renderKnownBy`) and the **Known by** line on crafting-order rows (`customerOrderRecipeID` gates on `ProfessionsCustomerOrdersFrame` being shown + the tooltip owner's `option.spellID` — which C_TradeSkillUI treats as a recipeID — so it's both the gate and the exact identity; `renderKnownBy` → `Known by: <names>` or red `Not Known: <Profession>` — the profession comes from the row's `option.skillLineAbilityID` via `C_TradeSkillUI.GetProfessionNameForSkillLineAbility`, so it shows even when **nobody** knows the recipe). On a crafting-order row it also appends the **guild** crafter block (`renderGuildCrafters` → `ns.GuildCrafters`), which renders "pending" until the async query lands and then refreshes the live tooltip in place. `/sknown <itemID>` + `/sknown knownby <recipeID>` dev commands. Exposes the pure `ns.ReqSkill(data)` tooltip parser. |
 | `spec/` | busted unit tests for the pure helpers — `ns.ReqSkill` (tooltip parser) and `ns.SortGuildCrafters` (online-first comparator, `guildsort_spec.lua`); excluded from zip + release detection. |
 
 ## `ns.BuildLearnable(itemID, reqSkill, itemName)`
@@ -66,8 +66,7 @@ character whose captured `learned[]` contains that **recipe id** (`knowsRecipeID
 professions — recipe ids are globally unique). Each `CrafterEntry { name, classKey, rank,
 level }`; sorted by `rank ↑` (intent: main → secondary → other), `level ↓`, `name ↑`. The result
 is **cached per recipeID** (the crafting-order list hovers this on every row, and the scan is
-heavy) and wiped on `NEW_RECIPE_LEARNED` — cross-alt data is static within a session, and only the
-current character's own learns change it.
+heavy) and wiped on `NEW_RECIPE_LEARNED`. Cross-alt data comes from SavedVariables and mostly only the current character's own learns change it -- but a profession-window capture by Warbandeer_Characters (`TRADE_SKILL_SHOW`) fires no such event, so: an EMPTY answer is not cached while `ns.HasRecipeData()` is false (the first capture is picked up), yet once any alt has recipe data an empty answer IS cached, and a recipe hovered before ANOTHER alt's first capture reads "Not Known" until `/reload` (pre-existing behaviour, not widened by the Forever work).
 
 `tooltip.lua`'s second hook fires only when `customerOrderRecipeID(tooltip)` resolves — i.e.
 `ProfessionsCustomerOrdersFrame` is shown and the tooltip's owner (the hovered browse row)
@@ -77,7 +76,7 @@ takes it), so it serves as both the UI gate and the exact recipe identity. Rende
 `and N more.` past 5); 0 → a red `Not Known: <Profession>` (the profession is resolved from the
 row's `option.skillLineAbilityID` via `C_TradeSkillUI.GetProfessionNameForSkillLineAbility` —
 available even though no captured-data path exists when nobody knows the recipe; falls back to a
-bare `Not Known` if the name can't be resolved).
+bare `Not Known` if the name can't be resolved). **Omitted entirely when no character has any captured recipes** (`ns.HasRecipeData()` false): with no data "nobody knows it" is not a finding -- on Forever, until Warbandeer_Characters captures recipes there (#961; inferred from the beta data, not proven), the line would be a false claim on every row. The guild section is independent and still shows.
 
 ## "Guild crafters" (Place Crafting Order)
 
@@ -114,7 +113,7 @@ them apart.
   exact — no name/locale ambiguity.
 - **Known by needs the profession opened once per crafter.** A character whose profession was
   never opened (while its trade-skill window was up) has no `learned` capture, so a recipe they
-  actually know reads as "Not Known" until they've opened that profession once.
+  actually know reads as "Not Known" until they've opened that profession once (and with no character captured at all, no Known by / Not Known line is said -- see above; the guild section is unaffected).
 - **`ns.ReqSkill` parsing is locale-derived.** The requirement line is located via the
   `ITEM_MIN_SKILL` ("Requires %s (%d)") prefix, so it tracks the client locale; recipes with no
   numeric threshold (most modern ones) yield 0, so nobody is shown red.

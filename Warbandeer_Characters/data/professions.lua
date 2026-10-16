@@ -8,12 +8,29 @@ local insert = table.insert
 -- data/professions_gear.lua adds the `gear` (profession-equipment) field.
 
 -- Expansion display name -> short bucket key for per-expansion recipe capture.
--- Only expansions listed here are captured; add more keys to track DF, etc.
+-- On Retail only expansions listed here are captured (Forever also buckets an unmapped child, below).
 local RECIPE_EXP_KEYS = {
   ["Midnight"]     = "midnight",
   ["Khaz Algar"]   = "tww",
   ["Dragon Isles"] = "df",
 }
+
+-- Forever uses the classic skill-line model: a profession has ONE child skill line, named after the
+-- profession itself (probed on the beta for Tailoring only: id 2948, `expansionName` "Tailoring"), so no
+-- RECIPE_EXP_KEYS name ever matches it. On Forever such a child is bucketed under this key instead
+-- (ShadowsOfUI-Known reads every bucket, so the key name is free). Retail still skips an unmapped child.
+local FOREVER_RECIPE_KEY = "forever"
+
+-- The recipe bucket key for a child skill line: its mapped expansion key, or on Forever (a data-model
+-- difference of the client, so the flavor, not a feature) the Forever key; nil = skip the child.
+---@param child table  a ProfessionInfo from C_TradeSkillUI.GetChildProfessionInfos
+---@return string?
+local function recipeBucketKey(child)
+  local key = RECIPE_EXP_KEYS[child.expansionName]
+  if key then return key end
+  if ns.flavor and ns.flavor.isForever then return FOREVER_RECIPE_KEY end
+  return nil
+end
 
 -- Profession display name of the current expansion.  A character that has trained
 -- this expansion's skill line is expected to have recipe data captured; missing.lua
@@ -33,7 +50,7 @@ ns.CURRENT_RECIPE_EXP = "Midnight"
 ---@class ProfDetail
 ---@field expansions {name:string, skillLevel:integer, maxSkillLevel:integer}[]?
 ---@field specPoints integer?
----@field recipes table<string, ProfRecipeBucket>? -- keyed by expansion (midnight/tww/df)
+---@field recipes table<string, ProfRecipeBucket>? -- keyed by expansion (midnight/tww/df); on Forever the one classic child: "forever"
 
 ---@class ProfGearSlot
 ---@field name string?
@@ -52,6 +69,66 @@ ns.CURRENT_RECIPE_EXP = "Midnight"
 ---@class ProfessionsBroker: Broker
 ---@field details table<integer, ProfDetail>?
 ---@field gear table<integer, ProfGear>? keyed by parent skillLineID
+
+-- Per-child learned-recipe capture (pure; the trade-skill queries are injected): for each child skill
+-- line with a bucket key, count the recipes in it and keep the learned ones. Returns nil when no child
+-- has a key (so the caller leaves `recipes` unset and the previous capture survives).
+---@param children table[]  ProfessionInfo[] (C_TradeSkillUI.GetChildProfessionInfos)
+---@param recipeIDs integer[]  C_TradeSkillUI.GetAllRecipeIDs
+---@param ts { IsRecipeInSkillLine: fun(id: integer, skillLineID: integer): boolean, GetRecipeInfo: fun(id: integer): table? }
+---@return table<string, ProfRecipeBucket>?
+function ns.CaptureRecipes(children, recipeIDs, ts)
+  local recipes
+  local seenForever = {}  -- recipe ids already counted into the shared Forever bucket
+  for _, child in ipairs(children) do
+    local key = recipeBucketKey(child)
+    if key and child.professionID then
+      local learned, total = {}, 0
+      for _, id in ipairs(recipeIDs) do
+        -- (a recipe two Forever children both claim is counted once, defensively: the beta probe showed one child;
+        -- Retail keys are separate buckets)
+        local dup = key == FOREVER_RECIPE_KEY and seenForever[id]
+        if not dup and ts.IsRecipeInSkillLine(id, child.professionID) then
+          if key == FOREVER_RECIPE_KEY then seenForever[id] = true end
+          total = total + 1
+          local info = ts.GetRecipeInfo(id)
+          if info and info.learned then
+            insert(learned, { id = id, name = info.name })
+          end
+        end
+      end
+      recipes = recipes or {}
+      local bucket = recipes[key]
+      if bucket and key == FOREVER_RECIPE_KEY then
+        -- several unmapped children share the one Forever bucket: add to it, never replace it
+        -- (Retail keys are one per expansion; a repeat there keeps replacing, as it always did)
+        bucket.total = bucket.total + total
+        for _, r in ipairs(learned) do insert(bucket.learned, r) end
+      else
+        recipes[key] = { learned = learned, total = total }
+      end
+    end
+  end
+  return recipes
+end
+
+-- Crafting quality for the current expansion's learned recipes that craft profession gear: the tier
+-- reachable with base reagents and with concentration, stamped onto each recipe record. It reads only
+-- the CURRENT_RECIPE_EXP bucket ("midnight"); while Forever has just its "forever" bucket (assumed: no child there
+-- is named "Midnight") it finds nothing and makes no query.
+---@param recipes table<string, ProfRecipeBucket>?
+---@param ts { GetCraftingOperationInfo: function? }
+function ns.CaptureRecipeQuality(recipes, ts)
+  local current = recipes and recipes[RECIPE_EXP_KEYS[ns.CURRENT_RECIPE_EXP]]
+  for _, r in ipairs(current and current.learned or {}) do
+    if API:ResolveRecipeOutput(r.id) and ts.GetCraftingOperationInfo then
+      local base = ts.GetCraftingOperationInfo(r.id, {}, nil, false)
+      local conc = ts.GetCraftingOperationInfo(r.id, {}, nil, true)
+      r.quality     = base and base.craftingQuality
+      r.qualityConc = conc and conc.craftingQuality
+    end
+  end
+end
 
 -- True when the stored profession detail shows the character has trained the current
 -- expansion's skill line. Only then is recipe capture expected, so only then does a nil
@@ -160,28 +237,13 @@ ns.Professions.fields = {
         -- while the trade-skill window is open.  Every profession (including Fishing
         -- and Cooking) exposes per-expansion child skill lines; we bucket each recipe
         -- by the child it belongs to so future expansions can be added without reshape.
+        -- (Forever: one child per profession named after it -- inferred from the Tailoring probe --
+        -- bucketed as "forever", see recipeBucketKey; GetAllRecipeIDs is assumed to list the whole classic profession -- unprobed beyond Tailoring.)
         if C_TradeSkillUI.GetChildProfessionInfos and C_TradeSkillUI.GetAllRecipeIDs then
           local children  = C_TradeSkillUI.GetChildProfessionInfos()
           local recipeIDs = C_TradeSkillUI.GetAllRecipeIDs()
           if children and recipeIDs and #recipeIDs > 0 then
-            local recipes
-            for _, child in ipairs(children) do
-              local key = RECIPE_EXP_KEYS[child.expansionName]
-              if key and child.professionID then
-                local learned, total = {}, 0
-                for _, id in ipairs(recipeIDs) do
-                  if C_TradeSkillUI.IsRecipeInSkillLine(id, child.professionID) then
-                    total = total + 1
-                    local info = C_TradeSkillUI.GetRecipeInfo(id)
-                    if info and info.learned then
-                      insert(learned, { id = id, name = info.name })
-                    end
-                  end
-                end
-                recipes = recipes or {}
-                recipes[key] = { learned = learned, total = total }
-              end
-            end
+            local recipes = ns.CaptureRecipes(children, recipeIDs, C_TradeSkillUI)
             profData.recipes = recipes
             -- Pre-resolve this profession's current-expansion recipes into the
             -- account-wide prof-gear cache while trade-skill data is hot (see
@@ -192,15 +254,7 @@ ns.Professions.fields = {
             -- actually produce an upgrade (knowing the recipe ≠ having the skill).
             -- Empty reagents ⇒ skill-floor quality, a deliberately conservative
             -- estimate (better mats only ever improve on it).
-            local current = recipes and recipes[RECIPE_EXP_KEYS[ns.CURRENT_RECIPE_EXP]]
-            for _, r in ipairs(current and current.learned or {}) do
-              if API:ResolveRecipeOutput(r.id) and C_TradeSkillUI.GetCraftingOperationInfo then
-                local base = C_TradeSkillUI.GetCraftingOperationInfo(r.id, {}, nil, false)
-                local conc = C_TradeSkillUI.GetCraftingOperationInfo(r.id, {}, nil, true)
-                r.quality     = base and base.craftingQuality
-                r.qualityConc = conc and conc.craftingQuality
-              end
-            end
+            ns.CaptureRecipeQuality(recipes, C_TradeSkillUI)
           end
         end
 

@@ -84,6 +84,23 @@ local function knowsRecipeID(toon, recipeID)
   return nil
 end
 
+-- Whether ANY character has a captured recipes bucket. Learned recipes are captured when a
+-- profession window opens (Warbandeer_Characters data/professions.lua), so before that -- and on
+-- a client where that capture produced nothing -- "no character knows this recipe" is the
+-- absence of data, not a finding, and a tooltip must not state it as one.
+---@return boolean
+function ns.HasRecipeData()
+  local api = ns.api
+  if not (api and api.GetAllCharacters) then return false end
+  for _, toon in ipairs(api:GetAllCharacters()) do
+    local details = toon.professions and toon.professions.details
+    for _, det in pairs(details or {}) do
+      if det.recipes and next(det.recipes) then return true end
+    end
+  end
+  return false
+end
+
 ---@class CrafterEntry
 ---@field name string
 ---@field classKey string
@@ -92,7 +109,8 @@ end
 
 -- Characters that have learned the recipe `recipeID` (any profession), ordered main-intent
 -- crafters first, then level desc, name. Drives the "Place Crafting Order" tooltip's "Known by"
--- line; an empty list means no character knows it (→ "Not Known"). Matches by the captured
+-- line; an empty list means no character knows it (→ "Not Known" where recipes were captured,
+-- nothing at all where none were: see ns.HasRecipeData). Matches by the captured
 -- recipe id (Warbandeer_Characters stores `{ id, name }` per learned recipe), so it's exact —
 -- no name/locale ambiguity.
 -- The crafting-orders browse list hovers BuildKnownBy on every row, and the scan is
@@ -126,6 +144,10 @@ function ns.BuildKnownBy(recipeID)
     if a.level ~= b.level then return a.level > b.level end
     return a.name < b.name
   end)
+  -- An empty answer is a finding only where recipes were captured. With no capture anywhere it
+  -- is the absence of data, and caching it would keep this recipe empty after the first capture
+  -- lands mid-session (capture fires no NEW_RECIPE_LEARNED to wipe the cache).
+  if #list == 0 and not ns.HasRecipeData() then return list end
   knownByCache[recipeID] = list
   return list
 end

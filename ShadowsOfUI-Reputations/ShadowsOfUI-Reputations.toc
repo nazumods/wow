@@ -1,4 +1,4 @@
-## Interface: 120105
+## Interface: 120105, 16001
 ## Category: Shadows of UI
 ## Title: Reputations
 ## Author: Nazuraki
