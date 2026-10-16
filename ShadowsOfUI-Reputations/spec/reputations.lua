@@ -22,6 +22,7 @@ function M.load(opts)
   function tip:GetOwner() return self.owner end
   function tip:SetText(text) self.lines[#self.lines + 1] = text end
   function tip:Show() self.shown = true end
+  function tip:IsShown() return self.shown end
   function tip:Hide() self.shown, self.hides = false, self.hides + 1 end
 
   local Mixin = {}

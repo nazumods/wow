@@ -19,14 +19,18 @@ local function onRepEnter(self)
   -- tooltip on EmbeddedItemTooltip, and a selected row shows none (OnEnter skips it when
   -- IsSelected) — appending + Show()ing GameTooltip there floats a detached, mis-anchored
   -- tooltip with only our block. Guard on ownership so we only extend the row's own tooltip.
-  if GameTooltip:GetOwner() == self then
+  local forever = ns.flavor and ns.flavor.isForever
+  -- On Forever, Blizzard's row opens no tooltip, so a row that still "owns" GameTooltip while
+  -- it is hidden is only the owner our own OnLeave hide left behind (Hide keeps the owner):
+  -- treat that as unowned and open a fresh tooltip, never append to the stale lines.
+  if GameTooltip:GetOwner() == self and (not forever or GameTooltip:IsShown()) then
     if ns.AppendStandings(GameTooltip, fid) then GameTooltip:Show() end
     return
   end
 
   -- Not owned by the row. Retail: nothing to extend. Forever: no row ever owns it, so the
   -- addon opens its own tooltip, except on the selected row (Retail shows none there either).
-  if not (ns.flavor and ns.flavor.isForever) then return end
+  if not forever then return end
   if self.IsSelected and self:IsSelected() then return end
 
   GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
