@@ -1,5 +1,6 @@
 ---@type Warbandeer
 local ns = select(2, ...)
+if not ns:Supports("midnight") then return end -- Midnight currency: no column on Forever (never registered)
 ---@type LibNUI
 local ui = ns.ui
 
