@@ -8,7 +8,7 @@ local insert = table.insert
 -- data/professions_gear.lua adds the `gear` (profession-equipment) field.
 
 -- Expansion display name -> short bucket key for per-expansion recipe capture.
--- Only expansions listed here are captured; add more keys to track DF, etc.
+-- On Retail only expansions listed here are captured (Forever also buckets an unmapped child, below).
 local RECIPE_EXP_KEYS = {
   ["Midnight"]     = "midnight",
   ["Khaz Algar"]   = "tww",
@@ -79,12 +79,17 @@ ns.CURRENT_RECIPE_EXP = "Midnight"
 ---@return table<string, ProfRecipeBucket>?
 function ns.CaptureRecipes(children, recipeIDs, ts)
   local recipes
+  local seenForever = {}  -- recipe ids already counted into the shared Forever bucket
   for _, child in ipairs(children) do
     local key = recipeBucketKey(child)
     if key and child.professionID then
       local learned, total = {}, 0
       for _, id in ipairs(recipeIDs) do
-        if ts.IsRecipeInSkillLine(id, child.professionID) then
+        -- (a recipe two Forever children both claim is counted once, defensively: the beta probe showed one child;
+        -- Retail keys are separate buckets)
+        local dup = key == FOREVER_RECIPE_KEY and seenForever[id]
+        if not dup and ts.IsRecipeInSkillLine(id, child.professionID) then
+          if key == FOREVER_RECIPE_KEY then seenForever[id] = true end
           total = total + 1
           local info = ts.GetRecipeInfo(id)
           if info and info.learned then
@@ -109,7 +114,7 @@ end
 
 -- Crafting quality for the current expansion's learned recipes that craft profession gear: the tier
 -- reachable with base reagents and with concentration, stamped onto each recipe record. It reads only
--- the CURRENT_RECIPE_EXP bucket ("midnight"); while Forever has just its "forever" bucket (no child there
+-- the CURRENT_RECIPE_EXP bucket ("midnight"); while Forever has just its "forever" bucket (assumed: no child there
 -- is named "Midnight") it finds nothing and makes no query.
 ---@param recipes table<string, ProfRecipeBucket>?
 ---@param ts { GetCraftingOperationInfo: function? }
@@ -233,7 +238,7 @@ ns.Professions.fields = {
         -- and Cooking) exposes per-expansion child skill lines; we bucket each recipe
         -- by the child it belongs to so future expansions can be added without reshape.
         -- (Forever: one child per profession named after it -- inferred from the Tailoring probe --
-        -- bucketed as "forever", see recipeBucketKey; GetAllRecipeIDs lists the whole classic profession.)
+        -- bucketed as "forever", see recipeBucketKey; GetAllRecipeIDs is assumed to list the whole classic profession -- unprobed beyond Tailoring.)
         if C_TradeSkillUI.GetChildProfessionInfos and C_TradeSkillUI.GetAllRecipeIDs then
           local children  = C_TradeSkillUI.GetChildProfessionInfos()
           local recipeIDs = C_TradeSkillUI.GetAllRecipeIDs()

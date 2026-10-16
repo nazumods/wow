@@ -26,9 +26,10 @@ local function tradeSkill(known)
       if recipes[id] ~= nil then return { learned = recipes[id], name = "Recipe " .. id } end
     end
   end
-  function ts.GetCraftingOperationInfo()
+  -- (a, b, c, concentration): tier 3 with base reagents, tier 5 with concentration
+  function ts.GetCraftingOperationInfo(_, _, _, concentration)
     ts.qualityCalls = ts.qualityCalls + 1
-    return { craftingQuality = 3 }
+    return { craftingQuality = concentration and 5 or 3 }
   end
   return ts
 end
@@ -94,6 +95,28 @@ describe("Warbandeer_Characters recipe capture (#988)", function()
       }, { 10, 11, 20 }, ts)
       assert.equals(3, recipes.forever.total)
       assert.same({ { id = 10, name = "Recipe 10" }, { id = 20, name = "Recipe 20" } }, recipes.forever.learned)
+    end)
+
+    it("Forever: a recipe two children both claim is counted once in the shared bucket", function()
+      local ns = load("forever")
+      local ts = tradeSkill({ [2948] = { [10] = true, [11] = false }, [2949] = { [10] = true, [20] = true } })
+      local recipes = ns.CaptureRecipes({
+        { professionID = 2948, expansionName = "Tailoring" },
+        { professionID = 2949, expansionName = "Unknown" },
+      }, { 10, 11, 20 }, ts)
+      assert.equals(3, recipes.forever.total)
+      assert.same({ { id = 10, name = "Recipe 10" }, { id = 20, name = "Recipe 20" } }, recipes.forever.learned)
+    end)
+
+    it("Retail: two children of the same mapped key still replace each other, as they always did", function()
+      local ns = load("retail")
+      local ts = tradeSkill({ [3000] = { [1] = true }, [3001] = { [2] = true } })
+      local recipes = ns.CaptureRecipes({
+        { professionID = 3000, expansionName = "Midnight" },
+        { professionID = 3001, expansionName = "Midnight" },
+      }, { 1, 2 }, ts)
+      assert.equals(1, recipes.midnight.total)
+      assert.same({ { id = 2, name = "Recipe 2" } }, recipes.midnight.learned)
     end)
 
     it("a child with no professionID is skipped on both clients", function()
@@ -197,7 +220,17 @@ describe("Warbandeer_Characters recipe capture (#988)", function()
       ns.CaptureRecipeQuality(recipes, ts)
       assert.equals(2, ts.qualityCalls)                 -- base + concentration
       assert.equals(3, recipes.midnight.learned[1].quality)
-      assert.equals(3, recipes.midnight.learned[1].qualityConc)
+      assert.equals(5, recipes.midnight.learned[1].qualityConc)
+    end)
+
+    it("Retail: a recipe that does not craft profession gear (ResolveRecipeOutput false) is not stamped", function()
+      local ns = load("retail")
+      ns.api.ResolveRecipeOutput = function() return false end
+      local ts = tradeSkill({ [3000] = { [10] = true } })
+      local recipes = ns.CaptureRecipes({ { professionID = 3000, expansionName = "Midnight" } }, { 10 }, ts)
+      ns.CaptureRecipeQuality(recipes, ts)
+      assert.equals(0, ts.qualityCalls)
+      assert.is_nil(recipes.midnight.learned[1].quality)
     end)
 
     it("a trade-skill API without GetCraftingOperationInfo stamps nothing and does not error", function()
