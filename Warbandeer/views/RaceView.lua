@@ -58,7 +58,9 @@ for i, c in ipairs(Classes) do classColIdx[classKeyOf(c)] = i end
 -- client's localized race name when it has one, else the raw name the character was saved with.
 local function unknownRaceName(t)
   local info = t.raceId and C_CreatureInfo and C_CreatureInfo.GetRaceInfo and C_CreatureInfo.GetRaceInfo(t.raceId)
-  return (info and info.raceName) or t.race or "Unknown"
+  local name = info and info.raceName
+  if name and name ~= "" then return name end
+  return t.race or "Unknown"
 end
 
 ---@class RaceView: TableFrame

@@ -49,7 +49,7 @@ describe("Warbandeer RaceView", function()
       local cells = {}
       for col, cell in pairs(self.data[i] or {}) do cells[#cells + 1] = col .. ":" .. cell.text end
       table.sort(cells)
-      rows[i] = { label = r.name, color = r.color, cells = cells }
+      rows[i] = { label = r.name, color = r.color, cells = cells, zebra = r.backdrop.color[4] }
     end
     -- the physical row the Alliance/Horde divider is drawn under
     for i, r in ipairs(added) do
@@ -160,5 +160,17 @@ describe("Warbandeer RaceView", function()
     assert.same({ "1:O" }, rows[4].cells)
     assert.same({ "2:HU" }, rows[6].cells)   -- the HORDE Haranir row, not the Alliance one
     assert.same({}, rows[3].cells)
+    -- Alliance rows are Alliance-coloured, Horde rows Horde-coloured; the zebra alternates by row group
+    for i = 1, 6 do
+      assert.equals(i <= 3 and A_COLOR or H_COLOR, rows[i].color, "row " .. i)
+      assert.equals(i % 2 == 0 and 0.2 or 0, rows[i].zebra, "row " .. i)
+    end
+  end)
+
+  it("an empty client race name falls back to the saved one", function()
+    local rows = build({ toon("Sky", "Priest", "Skyborne", true, 0, 95) }, {
+      getRaceInfo = function() return { raceName = "" } end,
+    })
+    assert.is_not_nil(rowOf(rows, "Skyborne"))
   end)
 end)
