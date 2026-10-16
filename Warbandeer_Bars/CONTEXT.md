@@ -12,9 +12,9 @@ character/spec's setup and import it onto the current character. Profiles are st
 | File | Purpose |
 |---|---|
 | `init.lua` | Assignment-form bootstrap; `MigrateDB` (v1 seeds `profiles={}`; v2 adds `layouts={}`), `DefaultSettings`, `onLoad` per-char settings init |
-| `capture.lua` | `ns.Capture(include, accountMacros, charMacros, noCursor?)` → profile table; per-section capture + spell/flyout override resolution |
+| `capture.lua` | `ns.Capture(include, accountMacros, charMacros, atLogout?)` → profile table; per-section capture + spell/flyout override resolution |
 | `restore.lua` | `ns.Restore(profile, include, silent?, barFilter?)` — applies a profile, recreating macros on import; flyouts-first pre-pass, spellbook fallbacks, per-bar filter |
-| `tracker.lua` | `ns.Snapshot(guardSparse?, noCursor?)` + `ns.shouldStore` + auto-capture triggers (login / spec change / logout); combat- & cursor-guarded |
+| `tracker.lua` | `ns.Snapshot(guardSparse?, atLogout?)` + `ns.shouldStore` + auto-capture triggers (login / spec change / logout); combat- & cursor-guarded |
 | `api.lua` | `WarbandeerBarsApi` methods |
 | `commands.lua` | `/wbb` inspection sub-commands (no window — data layer only) |
 | `spec/` | busted unit tests (`ns.shouldStore` sparse-capture guard, the WoW-API-free `api.lua` DB methods, the `ns.Capture` slot schema via `bars.loadCapture`'s `setfenv` global stubs, and `ns.Restore`'s petaction/futurespell clear via `bars.loadRestore` + the `bars.actionbars` fake bar, whose `PickupAction`/`PlaceAction` **swap** slot and cursor as they do in game — that swap is what made the clear a round-trip, so a harness modelling pickup as a plain removal wouldn't reproduce it); excluded from zip + release detection |
@@ -122,12 +122,12 @@ missing `WarbandeerBarsSettings` keys from `ns.DefaultSettings`.
 | `PLAYER_LOGOUT` (also fires on `/reload`) | none |
 | `EDIT_MODE_LAYOUTS_UPDATED` (→ `ns.CaptureLayouts()`) | none |
 
-The logout snapshot passes `noCursor` (`ns.Snapshot(guardSparse, noCursor)` → `ns.Capture(..., noCursor)`), so it never calls
+`atLogout` marks the logout snapshot (`ns.Snapshot(guardSparse, atLogout)` → `ns.Capture(..., atLogout)`); `ns.PLAYER_LOGOUT` is the only caller that sets it, and it changes two things. First, it never calls
 `PickupAction`/`PlaceAction`/`ClearCursor`: picking an action up shows the empty-slot grid, which runs other addons'
 action-bar hooks at logout (Bartender4 threw there, #984). A temp macro's index is then the first macro whose name equals
 `C_ActionBar.GetActionText(slot)` (`GetMacroIndexByName`; two macros with the same name resolve to the first -- inferred from the API's documented behaviour, not readable in the Blizzard UI source), else the
 index the stored profile for this character and spec had at the same slot when it was a macro (which can be stale if macros were deleted or reordered since that snapshot), else nil (restore skips a
-macro slot with no index). Every other snapshot (login, spec change, the `snapshot` command, `API:Snapshot`) keeps the cursor round-trip.
+macro slot with no index). Second, the spec: `ProfileMeta` remembers the last non-zero spec any capture resolved (`lastSpec`: character, id, name, icon). If the spec reads empty at logout (seen on Retail 2026-10-15: spec index 1 and no profile stored at logout, so the id presumably read 0 and `store()` refused the `specID == 0` profile -- the cause is inferred, not read from the client), the logout capture uses `lastSpec` when it belongs to the same character; a capture outside logout that resolves no spec still has `specID == 0` and is never stored. Every other snapshot (login, spec change, the `snapshot` command, `API:Snapshot`) keeps the cursor round-trip and has no spec fallback.
 
 ## Gotchas
 

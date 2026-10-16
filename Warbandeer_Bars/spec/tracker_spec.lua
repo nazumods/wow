@@ -49,27 +49,27 @@ describe("Warbandeer_Bars tracker", function()
         GetCursorInfo = function() return nil end,
       }, { __index = _G }))
       local t = { registerEvent = function() end, db = { profiles = {} } }
-      t.Capture = function(_, _, _, noCursor)
-        seen[#seen + 1] = { noCursor = noCursor }
+      t.Capture = function(_, _, _, atLogout)
+        seen[#seen + 1] = { atLogout = atLogout }
         return { char = "Lurias", specID = 62, slots = {} }
       end
       chunk("Warbandeer_Bars", t)
       return t
     end
 
-    it("PLAYER_LOGOUT captures with noCursor set", function()
+    it("PLAYER_LOGOUT captures with atLogout set", function()
       local t = load_tracker()
       t.PLAYER_LOGOUT()
-      assert.same({ { noCursor = true } }, seen)
+      assert.same({ { atLogout = true } }, seen)
     end)
 
-    it("an in-session snapshot (login, spec change, snapshot command) does not set noCursor", function()
+    it("an in-session snapshot (login, spec change, snapshot command) does not set atLogout", function()
       local t = load_tracker()
       t.Snapshot(true)
       t.Snapshot()
       assert.equal(2, #seen)
-      assert.is_falsy(seen[1].noCursor)
-      assert.is_falsy(seen[2].noCursor)
+      assert.is_falsy(seen[1].atLogout)
+      assert.is_falsy(seen[2].atLogout)
     end)
   end)
 end)

@@ -61,9 +61,9 @@ local function MacroIndexNoCursor(i, stored)
   return nil
 end
 
--- Capture all non-empty action bar slots. `noCursor` (logout) resolves a temp macro's index without the cursor;
+-- Capture all non-empty action bar slots. `atLogout` resolves a temp macro's index without the cursor;
 -- `stored` is the profile already stored for this character and spec (the fallback for that path).
-local function CaptureSlots(overrides, noCursor, stored)
+local function CaptureSlots(overrides, atLogout, stored)
   local slots = {}
   for i = 1, MAX_BARS do
     local slotType, index, subType = GetActionInfo(i)
@@ -83,7 +83,7 @@ local function CaptureSlots(overrides, noCursor, stored)
         end
       elseif slotType == "macro" then
         -- subType means it's a temp macro; resolve real index via cursor
-        if subType and noCursor then
+        if subType and atLogout then
           index = MacroIndexNoCursor(i, stored)
         elseif subType then
           PickupAction(i)
@@ -206,8 +206,14 @@ local function CaptureOutfits()
   return outfits
 end
 
--- Build profile metadata from current character
-local function ProfileMeta()
+-- The last non-zero spec any capture in this session resolved ({ char, id, name, icon }). At PLAYER_LOGOUT the spec
+-- info can read empty while the UI tears down (inferred from a Retail logout, 2026-10-15: spec index 1 and nothing stored, so the id
+-- presumably read 0 and store() refused the profile, #984); the logout snapshot then borrows this instead of storing nothing.
+local lastSpec
+
+-- Build profile metadata from current character. `atLogout` permits the lastSpec fallback for the SAME character;
+-- every in-session capture that resolves no spec keeps specID 0 and is never stored (the login-race guard).
+local function ProfileMeta(atLogout)
   local specIndex = GetSpec and GetSpec()
   local specID, specName, specIcon
   if specIndex then
@@ -215,8 +221,14 @@ local function ProfileMeta()
     specID, specName, specIcon = id, name, icon
   end
   local _, class, classID = UnitClass("player")
+  local char = UnitName("player")
+  if specID and specID ~= 0 then
+    lastSpec = { char = char, id = specID, name = specName, icon = specIcon }
+  elseif atLogout and lastSpec and lastSpec.char == char then
+    specID, specName, specIcon = lastSpec.id, lastSpec.name, lastSpec.icon
+  end
   return {
-    char       = UnitName("player"),
+    char       = char,
     realm      = GetRealmName(),
     class      = class,                 -- class file token, e.g. "MAGE"
     classID    = classID,
@@ -274,16 +286,16 @@ end
 ---@param include table  keys: bars, bindings, macros, petbar, outfits
 ---@param accountMacros boolean
 ---@param charMacros boolean
----@param noCursor boolean? resolve temp macros without the cursor (the logout snapshot)
+---@param atLogout boolean? this is the logout snapshot: no cursor calls, and the last known spec if none resolves
 ---@return table profile
-function ns.Capture(include, accountMacros, charMacros, noCursor)
+function ns.Capture(include, accountMacros, charMacros, atLogout)
   local overrides = BuildSpellOverrides()
-  local profile = ProfileMeta()
-  local byChar = noCursor and ns.db and ns.db.profiles and ns.db.profiles[profile.char]
+  local profile = ProfileMeta(atLogout)
+  local byChar = atLogout and ns.db and ns.db.profiles and ns.db.profiles[profile.char]
   local stored = byChar and byChar[profile.specID]
   profile.version  = 3   -- v2 adds barLayout; v3 adds summonpet species/custom names
   profile.captured = time()
-  profile.slots    = include.bars     and CaptureSlots(overrides, noCursor, stored) or {}
+  profile.slots    = include.bars     and CaptureSlots(overrides, atLogout, stored) or {}
   profile.binds    = include.bindings and CaptureBindings()                        or {}
   profile.macros   = include.macros   and CaptureMacros(accountMacros, charMacros) or {}
   profile.petslots = include.petbar   and CapturePetBar()                          or {}

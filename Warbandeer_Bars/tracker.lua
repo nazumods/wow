@@ -41,11 +41,11 @@ end
 ---cursor drag is in progress (would clobber it).
 ---@param guardSparse boolean? skip the store when the capture is sparser than the
 ---  stored profile (used by the login/spec timers, which can race bar population)
----@param noCursor boolean? resolve temp macros without the cursor (logout; see capture.lua)
+---@param atLogout boolean? the logout snapshot: no cursor calls, and the last known spec if none resolves (capture.lua)
 ---@return table|nil profile  the stored profile, or nil if the snapshot was skipped
-function ns.Snapshot(guardSparse, noCursor)
+function ns.Snapshot(guardSparse, atLogout)
   if InCombatLockdown() or GetCursorInfo() then return end
-  return store(ns.Capture(CAPTURE_ALL, true, true, noCursor), guardSparse)
+  return store(ns.Capture(CAPTURE_ALL, true, true, atLogout), guardSparse)
 end
 
 -- Capture at session boundaries: entering world, spec change, and logout/reload.
