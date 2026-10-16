@@ -8,7 +8,7 @@
 
 The cross-alt standings appear in two places:
 
-- **On the Reputation tab** — hover any faction for a "Standing across your warband" block, one line per character, highest first, green when maxed and marked Paragon when earning paragon rewards.
+- **On the Reputation tab** — hover any faction for a "Standing across your warband" block, one line per character, highest first, green when maxed and marked Paragon when earning paragon rewards. On Retail it is added to Blizzard's own faction tooltip; on WoW Forever, whose Reputation tab shows no tooltip, the addon shows its own (the faction name and the same block).
 - **On faction-tied item tooltips** — hover a commendation, rep token, tabard or paragon cache to see **which alt to mail that token to** (one that isn't Exalted yet).
 
 `/sreps <factionID or name>` prints the same breakdown to chat.
