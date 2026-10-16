@@ -6,6 +6,11 @@ local ns = select(2, ...)
 -- conventional-commit grouping used for the GitHub/CurseForge release notes.
 ---@type { version: string, notes: string }[]
 ns.changelog = {
+  { version = "12.1.5-r2", notes = [==[
+### Features
+- ShadowsOfUI-Inventory, -Quests and -Reputations load on Forever (16001) (#960; merge after the core-TOCs PR) (#981)
+
+]==] },
   { version = "12.1.5-r1", notes = [==[
 ### Bug Fixes
 - replace item/coin globals removed in WoW 12.1.5 (#946)
