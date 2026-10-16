@@ -43,13 +43,16 @@ describe("Warbandeer_Bars tracker", function()
     -- is not needed: the ticker is a plain recorded callback that each test fires by hand (one call = one 10 s check).
     local t, env, captures, after_fns, delayed, tickers
 
+    local specID = 62   -- 0 models a character with no active spec: store() refuses it
+
     local function profile(nSlots)
       local slots = {}
       for i = 1, nSlots do slots[i] = { id = i } end
-      return { char = "Lurias", specID = 62, slots = slots }
+      return { char = "Lurias", specID = specID, slots = slots }
     end
 
     before_each(function()
+      specID = 62
       env = { combat = false, cursor = false, print = "A", C_Timer = nil }
       captures, after_fns, delayed, tickers = {}, {}, {}, {}
       env.C_Timer = {
@@ -65,6 +68,13 @@ describe("Warbandeer_Bars tracker", function()
         InCombatLockdown = function() return env.combat end,
         GetCursorInfo = function() return env.cursor and "item" or nil end,
         C_Timer = env.C_Timer,
+        -- env.special names the special bar that is up, if any ("override", "vehicle", "shapeshift", "possess")
+        C_ActionBar = {
+          HasOverrideActionBar = function() return env.special == "override" end,
+          HasVehicleActionBar = function() return env.special == "vehicle" end,
+          HasTempShapeshiftActionBar = function() return env.special == "shapeshift" end,
+          IsPossessBarVisible = function() return env.special == "possess" end,
+        },
       }, { __index = _G }))
       t = {
         db = { profiles = {} },
@@ -120,6 +130,17 @@ describe("Warbandeer_Bars tracker", function()
       assert.equal(2, #captures)
     end)
 
+    it("a snapshot that stored nothing (no spec yet) is not retried every tick", function()
+      login()
+      specID = 0                         -- store() refuses a profile without a spec
+      env.print = "B"
+      tick(); tick()
+      assert.equal(2, #captures)         -- one attempt (login + this one) ...
+      assert.is_nil(t.db.profiles.Lurias and t.db.profiles.Lurias[0])
+      tick(); tick(); tick()
+      assert.equal(2, #captures)         -- ... and no more while the fingerprint stays "B"
+    end)
+
     it("a change that is reverted before it holds snapshots nothing", function()
       login()
       env.print = "B"; tick()
@@ -164,6 +185,37 @@ describe("Warbandeer_Bars tracker", function()
       assert.equal(1, #captures)
       tick()
       assert.equal(2, #captures)
+    end)
+
+    it("a vehicle / override / possess / temp-shapeshift bar skips the tick without advancing it", function()
+      for _, special in ipairs({ "override", "vehicle", "shapeshift", "possess" }) do
+        captures = {}
+        after_fns, tickers = {}, {}
+        env.special, env.print = nil, "A"
+        login()
+        captures = {}                     -- count only what the ticks take
+        env.print = "B"
+        tick()                            -- changed: remembered as the last tick's print
+        env.special = special
+        env.print = "C"                   -- the main bar now shows the special bar's buttons
+        tick(); tick(); tick()
+        assert.equal(0, #captures, special)
+        env.special = nil
+        env.print = "B"                   -- the special bar went away: back to the stored-vs-last-tick state
+        tick()
+        assert.equal(1, #captures, special)   -- "B" held across the skipped ticks: one snapshot
+      end
+    end)
+
+    it("a login snapshot that stored nothing (skipped in combat) is followed by one change snapshot", function()
+      env.combat = true
+      login()                           -- Snapshot returns nil in combat
+      assert.equal(0, #captures)
+      env.combat = false
+      tick()                            -- the fingerprint never matched a stored profile and is steady
+      assert.equal(1, #captures)
+      tick(); tick()
+      assert.equal(1, #captures)
     end)
 
     it("nothing before the login snapshot has armed it, and nothing after PLAYER_LOGOUT", function()

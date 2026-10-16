@@ -66,9 +66,23 @@ local function fingerprint()
   if ok then return fp end
 end
 
+-- A vehicle, quest-override, possess or temporary-shapeshift bar replaces the main bar's page, which is inside the slot range the
+-- fingerprint (and a capture) reads: its buttons would read as a change and be stored as the player's bars. Skip the tick
+-- while one is up (guarded: older/other clients may lack a call). A skyriding mount's bonus bar is NOT recognised by these
+-- calls (inferred), so it can still cost one extra snapshot, which the dismount reverts.
+local function specialBarActive()
+  local ab = C_ActionBar
+  if not ab then return false end
+  return (ab.HasOverrideActionBar and ab.HasOverrideActionBar())
+    or (ab.HasVehicleActionBar and ab.HasVehicleActionBar())
+    or (ab.HasTempShapeshiftActionBar and ab.HasTempShapeshiftActionBar())
+    or (ab.IsPossessBarVisible and ab.IsPossessBarVisible())
+    or false
+end
+
 local function tick()
   if not ready then return end                          -- disarmed by logout (or not armed yet)
-  if InCombatLockdown() or GetCursorInfo() then return end  -- skipped entirely: lastTickPrint does not advance
+  if InCombatLockdown() or GetCursorInfo() or specialBarActive() then return end  -- skipped entirely: lastTickPrint does not advance
   local fp = fingerprint()
   if not fp then return end                             -- unreadable this tick: say nothing, try again next time
   if fp ~= lastStoredPrint and fp == lastTickPrint then
@@ -93,12 +107,16 @@ function ns:onLogin()
   self:after(LOGIN_SETTLE_MS, function()
     -- Armed AFTER the login snapshot, and armed even if the login work throws, so one login-time error cannot switch
     -- change checking off for the session.
+    local stored
     local ok, err = pcall(function()
       ns.CaptureLayouts()
-      ns.Snapshot(true)
+      stored = ns.Snapshot(true)
     end)
-    lastStoredPrint = fingerprint()
-    lastTickPrint = lastStoredPrint
+    -- The fingerprint counts as stored only if the login snapshot really stored (not skipped in combat or refused as sparse):
+    -- otherwise the first steady tick takes one change snapshot, which saves what the login snapshot could not.
+    local fp = fingerprint()
+    lastStoredPrint = stored and fp or nil
+    lastTickPrint = fp
     ready = true
     -- exactly one ticker, even if login runs again
     if ticker then ticker:Cancel() end

@@ -219,6 +219,13 @@ describe("Warbandeer_Bars capture", function()
       assert.equal(before, c.ns.Fingerprint())
     end)
 
+    it("a macro slot's resolved spell id (it follows form, target and modifier) does not change it", function()
+      local c = client()
+      local before = c.ns.Fingerprint()
+      c.slots[7] = { "macro", 5555, "spell" }   -- the same macro, now resolving to another spell
+      assert.equal(before, c.ns.Fingerprint())
+    end)
+
     it("a macro rename changes it, and so does an icon change", function()
       local c = client()
       local before = c.ns.Fingerprint()

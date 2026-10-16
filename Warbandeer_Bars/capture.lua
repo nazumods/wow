@@ -129,10 +129,12 @@ local function CaptureSlots(overrides, cursorFree, stored)
 end
 
 ---A cheap fingerprint of what the player sets up on the bars, compared by the change-checking ticker in tracker.lua (#984):
----every action slot's type and id (a macro slot also carries its macro NAME via the action text, never the cursor), every
----macro's name and icon, and every bound command's keys. Deliberately NOT macro bodies: another addon can rewrite one every few
----seconds (observed on Retail: ~800 UPDATE_MACROS in two minutes), which would read as a change forever. Absolute slot ids
----are read, so a shapeshift page change does not alter slots 1-120.
+---every action slot's type and id, except a macro slot, which carries only its macro NAME via the action text (never the
+---cursor): for a macro that currently resolves to a spell GetActionInfo's id is that SPELL id, which follows form, target and
+---modifier, so it is not read), every macro's name and icon, and every bound command's keys. Deliberately NOT macro bodies:
+---another addon can rewrite one every few seconds (observed on Retail: ~800 UPDATE_MACROS in two minutes), which would read as a
+---change forever. Absolute slot ids are read, so a shapeshift page change does not alter the contents of slots 1-72 (inferred
+---from Blizzard's source: a form swap sets the main bar's action PAGE); the caller skips vehicle/override pages (tracker.lua).
 ---@return string
 function ns.Fingerprint()
   local parts = {}
@@ -141,7 +143,7 @@ function ns.Fingerprint()
     if slotType and slotType ~= "" then
       if slotType == "macro" then
         local name = C_ActionBar and C_ActionBar.GetActionText and C_ActionBar.GetActionText(i)
-        parts[#parts + 1] = i .. ":macro:" .. tostring(id) .. ":" .. tostring(name)
+        parts[#parts + 1] = i .. ":macro:" .. tostring(name)
       else
         parts[#parts + 1] = i .. ":" .. slotType .. ":" .. tostring(id)
       end

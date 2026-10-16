@@ -29,8 +29,8 @@ two minutes: `UPDATE_MACROS` 798 times, `ACTIONBAR_SLOT_CHANGED` 535, `UPDATE_BI
 constantly, inferred). Macro **bodies** are deliberately not part of the fingerprint, so a macro edited only in its body is saved
 at your next slot, macro-name, icon or keybinding change, or at the next login.
 
-A check is skipped while a cursor drag is in progress (it would clobber the held action) and
-during combat. The change snapshot resolves a temporary macro's index without touching the cursor (see
+A check is skipped while a cursor drag is in progress (it would clobber the held action), during
+combat, and while a vehicle, quest-override, possess or temporary-shapeshift bar is up (its buttons are not your bars). The change snapshot resolves a temporary macro's index without touching the cursor (see
 `CONTEXT.md`), so it fires no action-bar events itself.
 
 Captures are always **full fidelity** (bars + binds + macros + pet bar + outfits). What a

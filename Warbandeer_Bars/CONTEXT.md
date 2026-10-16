@@ -133,19 +133,31 @@ Bar changes are saved by comparing the bars, not by listening to events (`tracke
   `ACTIONBAR_SLOT_CHANGED` 535, `UPDATE_BINDINGS` 4; a "10 s after the last event" debounce was rescheduled 1,247 times and
   never fired. Something rewrites a macro constantly (RareScanner's `RS_MACRO`, inferred) and buttons redraw constantly (procs,
   forms, the assisted-combat button), so bar events cannot mean "the player changed something". The tracker registers none of them.
-- **`ns.Fingerprint()` (`capture.lua`):** a string of every action slot 1..`MAX_BARS` (`GetActionInfo` type and id; a macro slot
-  also carries its macro NAME via `C_ActionBar.GetActionText`, never the cursor), every macro's name and icon
-  (`GetMacroInfo`, **not its body**), and every bound command's `key1`/`key2`. Absolute slot ids are read, so a shapeshift page
-  change does not alter slots 1-120.
+- **`ns.Fingerprint()` (`capture.lua`):** a string of every action slot 1..`MAX_BARS` (`GetActionInfo` type and id, except a
+  **macro slot, which carries only its macro NAME** via `C_ActionBar.GetActionText`, never the cursor: for a macro that
+  currently resolves to a spell, `GetActionInfo`'s id is that SPELL id, which follows form, target and modifier, so reading it
+  would read every such change as an edit; found in review from Blizzard's `ActionButton.lua`), every macro's name and icon
+  (`GetMacroInfo`, **not its body**), and every bound command's `key1`/`key2`. Absolute slot ids are read, so a shapeshift
+  page change does not alter the slots' own contents (inferred from Blizzard's source: a form swap or vehicle sets the main
+  bar's action *page* attribute). A plain spell slot's id is read as `GetActionInfo` returns it (base vs override spell id
+  not verified).
 - **Macro bodies are deliberately not fingerprinted:** a body rewritten every few seconds by another addon would mean a snapshot
   every 10 s. So a body-only macro edit is saved at the next slot / macro-name / icon / binding change or the next login.
-- **Store when changed AND steady (`tick`):** `lastStoredPrint` (set at arming from the login snapshot's fingerprint, and at every
-  change snapshot) and `lastTickPrint`. On a tick: differs from `lastStoredPrint` AND equals `lastTickPrint` -> a cursor-free,
+- **Store when changed AND steady (`tick`):** `lastStoredPrint` (set at arming from the fingerprint taken after the login
+  snapshot, but only if that snapshot actually stored: one skipped in combat or refused as sparse leaves it nil, so the first
+  steady tick saves what it could not; and at every change snapshot) and `lastTickPrint`. On a tick: differs from `lastStoredPrint` AND equals `lastTickPrint` -> a cursor-free,
   unguarded `Snapshot(false, true)`; `lastTickPrint` is always updated. A snapshot attempt counts as stored even when it stored
   nothing (no spec yet), so an unwritable profile is not re-captured every 10 s.
-- **Skips:** a tick in combat or with a cursor held is skipped entirely (it does not advance `lastTickPrint`, so changes made
-  during it still need one steady tick after it); nothing before the login snapshot has armed it (`ready`); nothing after
-  `PLAYER_LOGOUT`. A fingerprint that cannot be read (an error) skips the tick quietly.
+- **Skips:** a tick in combat, with a cursor held, or while a vehicle / quest-override / possess / temporary-shapeshift bar is up
+  (`C_ActionBar.HasOverrideActionBar`, `HasVehicleActionBar`, `HasTempShapeshiftActionBar`, `IsPossessBarVisible`, each
+  guarded) is skipped entirely (it does not advance `lastTickPrint`, so changes made during it still need one steady tick
+  after it); nothing before the login snapshot has armed it (`ready`); nothing after `PLAYER_LOGOUT`. A fingerprint that
+  cannot be read (an error) skips the tick quietly. Those special bars replace the main bar's page, which lies inside the slot
+  range read (pages up to 15 fit in 180 slots; which page each special bar uses is inferred), so without the skip their
+  buttons would be stored as the player's bars. A **skyriding mount's** bonus bar is not recognised by those calls (inferred), so
+  it can still cost one extra snapshot while mounted that the dismount reverts. The login and spec snapshots had the same
+  exposure before this change.
+- **A snapshot that throws is not retried** until the bars change again (`lastStoredPrint` is set before the attempt).
 - **Cost:** the fingerprint is a few hundred API reads (180 slots, up to 150 macros, every binding) per 10 s, plus a
   snapshot only when something changed. One ticker only (`C_Timer.NewTicker`); a second login cancels the first.
 - **Unguarded** (`Snapshot(false, true)`): it records a legitimate reduction, the role the logout snapshot used to have.
