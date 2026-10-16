@@ -25,6 +25,60 @@ function M.load()
   return ns
 end
 
+local MAIL_INFO = 17 -- stand-in for Enum.PlayerInteractionType.MailInfo
+
+-- Remove every global the core/express specs install, so one test cannot see another's.
+function M.resetMail()
+  for _, k in ipairs({ "InboxFrame_Update", "OpenMail_Update", "InboxFrame", "OpenMailFrame",
+    "InboxFrame_OnClick", "InboxFrameItem_OnEnter", "HandleModifiedItemClick", "GetInboxNumItems",
+    "GetInboxHeaderInfo", "ReturnInboxItem", "IsControlKeyDown", "IsShiftKeyDown", "IsAltKeyDown",
+    "hooksecurefunc", "LibNAddOn", "Enum", "SlashCmdList" }) do
+    _G[k] = nil
+  end
+  for i = 1, 7 do _G["MailItem" .. i] = nil; _G["MailItem" .. i .. "ExpireTime"] = nil end
+end
+
+-- A faithful-enough hooksecurefunc: hooksecurefunc("Name", fn) wraps the global,
+-- hooksecurefunc(table, "Name", fn) wraps the field; the original runs first, then fn.
+function M.installHooksecurefunc()
+  _G.hooksecurefunc = function(a, b, c)
+    local target, name, fn
+    if type(a) == "string" then target, name, fn = _G, a, b else target, name, fn = a, b, c end
+    local orig = target[name]
+    target[name] = function(...)
+      local r = orig(...)
+      fn(...)
+      return r
+    end
+  end
+end
+
+-- Load core.lua (and, with `withExpress`, express.lua) against a fake LibNAddOn namespace.
+-- Returns the ns the files populate. Nothing is hooked until a test "opens the mailbox".
+---@param withExpress boolean?
+---@return table ns
+function M.loadCore(withExpress)
+  M.resetMail()
+  M.installHooksecurefunc()
+  local ns = {
+    _TITLE = "Post Office",
+    registerEvent = function() end,
+    RegisterSettings = function() end,
+    RegisterChangelog = function() end,
+    OnItemTooltip = function() end,
+    db = { express = true },
+  }
+  _G.LibNAddOn = function() return ns end
+  _G.Enum = { PlayerInteractionType = { MailInfo = MAIL_INFO } }
+  _G.SlashCmdList = {}
+  assert(loadfile("ShadowsOfUI-PostOffice/core.lua"))("ShadowsOfUI-PostOffice", ns)
+  if withExpress then assert(loadfile("ShadowsOfUI-PostOffice/express.lua"))("ShadowsOfUI-PostOffice", ns) end
+  return ns
+end
+
+-- Fire the mailbox-open interaction event the way LibNAddOn's listener does.
+function M.openMailbox(ns) ns.PLAYER_INTERACTION_MANAGER_FRAME_SHOW(ns, MAIL_INFO) end
+
 -- Install a fake inbox over the header/count/delete API the confirm handlers call. `letters`
 -- is an array of { sender, subject, money, cod, hasItem } tables held by reference, so a test
 -- can insert or remove entries mid-confirm to model mail arriving or a sibling delete landing.
