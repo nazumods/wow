@@ -180,9 +180,8 @@ feature table live in LibNAddOn (`LibNAddOn/flavor.lua`); every addon gets them 
 - **One TOC, comma-delimited Interface**: `## Interface: 120105, 16001`. An addon that is ported to
   Forever also carries `## X-Game: [Game]` and `## X-Family: [Family]`, added in the same commit as
   `16001` (that commit releases the addon anyway). The helper reads LibNAddOn's own `X-Game`, so the
-  lines in another addon's TOC are not what it reads. Note that `.github/workflows/publish.yml` reads
-  a five-digit Interface value as `16.0.1` rather than 1.60.1 until the Forever CI work (#954) fixes
-  its conversion.
+  lines in another addon's TOC are not what it reads. `.github/workflows/publish.yml` reads
+  a five-digit Interface value as 1.60.1 since #954 (see **Versioning & releases** above).
 - **Detect with the helper, never with `GetBuildInfo()`**: `ns.flavor.isForever` /
   `ns.flavor.isRetail`, and `ns:Supports("housing")` for a feature. Build-number ranges drift;
   the helper checks `WOW_PROJECT_ID == WOW_PROJECT_CAMELOT`, then LibNAddOn's `X-Game` metadata
@@ -199,11 +198,16 @@ feature table live in LibNAddOn (`LibNAddOn/flavor.lua`); every addon gets them 
 - **Gate at registration.** A file for a missing system returns at its top
   (`if not ns:Supports("housing") then return end`), so its broker, view, command and events never
   register, rather than every call site checking.
-- **Guard a genuinely missing global function by existence** (`if not GetSpecialization then return end`):
-  `GetSpecialization` and `GetSpecializationInfo` are not defined on Forever according to Blizzard's
-  source (it defines them only in `Blizzard_DeprecatedSpecialization`, which loads for `classic,
-  standard`; confirm in-game with `/dump GetSpecialization`), unlike the systems above, whose APIs
-  exist. Return nothing, or a "no data" value the caller already handles.
+- **Guard a genuinely missing global function by existence**
+  (`if not (GetSpecializationInfoByID and GetLootSpecialization) then return end`, as
+  `GetPrimarySpecialization` does): whether Forever defines `GetSpecializationInfoByID` is unverified,
+  and unlike the systems above, whose APIs exist, a missing global is a nil call. Return nothing, or a
+  "no data" value the caller already handles. This is for a global that really can be absent, not for a
+  Blizzard deprecation shim: `GetSpecialization`, `GetSpecializationInfo` and `IsSpellKnown` are only
+  shims over `C_SpecializationInfo` / `C_SpellBook` (gated by `loadDeprecationFallbacks`), so call the
+  `C_` functions, which luacheck enforces. A spec is asked through the feature table (`ns.Supports("specializations")` inside
+  LibNAddOn, `addOn:Supports("specializations")` from an addon), not through a global's absence:
+  Forever's `C_SpecializationInfo` exists but, as seen on the beta, reports one class-wide spec.
 - **Forever-only files** go in the TOC file list with inline directives:
   `ForeverOnly.lua [AllowLoadGameType camelot] [ExcludeLoadGameType standard, classic]`. The paired
   exclude is there because, per the wiki's TOC format page, an allow list none of whose names the
