@@ -39,7 +39,7 @@ API paths (battlepet/toy/mount/container and quest/special) never negative-cache
 are cached (both states are monotonic).
 
 - **`ns.IsKnown(link)`** — owned/known by this account:
-  - caged battlepet link → `C_PetJournal.GetNumCollectedInfo(species) > 0`.
+  - caged battlepet link → `C_PetJournal.GetNumCollectedInfo(species) > 0` (not known, uncached, if that function is absent — see Forever).
   - `ns.QuestItems` → `C_QuestLog.IsQuestFlaggedCompleted`; `ns.SpecialItems` → source item's link
     field == expected; `ns.ContainerItems` → **all** contents known (recursive `IsKnown`).
   - toy → `PlayerHasToy(itemID)`.
@@ -80,7 +80,31 @@ change re-tints what's on screen (pattern from `ShadowsOfUI-Ilvl/surfaces.lua`).
   and hooking the new visible guild-bank frame. (`ShadowsOfUI-Ilvl`'s guild-bank overlay is likely
   stale for the same reason.)
 - **Login** — `ns:onLogin` calls `C_HousingCatalog.CreateCatalogSearcher()` to prime decor
-  owned-state (unavailable immediately after login).
+  owned-state (unavailable immediately after login), only when `ns:Supports("housing")`
+  (see Forever). `HOUSING_STORAGE_UPDATED` is likewise registered only then.
+
+## WoW: Forever
+
+TOC `## Interface: 120105, 16001`. Facts are from Blizzard's Forever UI source (build 1.60.1.70425,
+branch `origin/forever` of `wow-ui-source`) unless marked otherwise; nothing here has been run on the beta yet.
+
+- **Hook targets exist.** Merchant: `[Family]\MerchantFrame.lua` loads (`Blizzard_UIPanels_Game.toc:110`) and defines
+  `MerchantFrame_UpdateMerchantInfo` (`Mainline/MerchantFrame.lua:274`) and `MerchantFrame_UpdateBuybackInfo` (`:532`).
+  Auction house: `Blizzard_AuctionHouseUI.toc:9` allows `mainline, cata, mists`; `AuctionHouseFrame.BrowseResultsFrame`
+  (`Shared/Blizzard_AuctionHouseFrame.xml:82`) holds `ItemList` (`Shared/Blizzard_AuctionHouseBrowseResultsFrame.xml:6`).
+- **Housing is gated by the feature table, not by the API.** `C_HousingCatalog.CreateCatalogSearcher` and
+  `HOUSING_STORAGE_UPDATED` are documented on Forever (`HousingCatalogUIDocumentation.lua:11`, `:494`) but Forever has no
+  housing (`LibNAddOn/flavor.lua`: `housing` is unsupported on Forever). So `ns:onLogin` skips the searcher and
+  `detect.lua` does not register `HOUSING_STORAGE_UPDATED` there. The decor branches in `IsKnown`/`IsCollectible` are
+  unchanged: no Housing-class item is expected to reach them on Forever. `core.lua` has no housing/decor setting.
+- **Pet and toy calls.** `C_PetJournal.GetNumPets` / `GetPetInfoByIndex` and `PlayerHasToy` / `C_ToyBox.GetToyInfo` are
+  absent from the generated API docs, but Blizzard's own Forever-loaded files call them (`Classic/Blizzard_PetCollection.lua:240,257`,
+  loaded for camelot per `Blizzard_Collections.toc:28`; `Classic/Blizzard_ToyBox.lua:169,242`, via `[Family]\Blizzard_ToyBox.lua`,
+  `toc:34`). Their existence on Forever is inferred from those load lists, not checked in game, and the addon calls them unguarded.
+- **`C_PetJournal.GetNumCollectedInfo` is guarded.** Blizzard calls it only from `Shared/Blizzard_PetBattleUI.lua:1272`;
+  whether it exists on Forever is unknown. `ns.IsKnown` treats a `battlepet:` link as not known, and does not cache that,
+  while the function is missing (so the link reads as known once it appears).
+- Beta probe (2026-10-15): Shift+P opened "Appearances" with only an Items tab; 0 pets.
 
 ## Gotchas
 
