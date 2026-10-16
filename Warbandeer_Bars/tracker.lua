@@ -14,6 +14,7 @@ local ready = false          -- armed once the login snapshot has run (no change
 local ticker = nil           -- the ONE change-checking ticker (cancelled and replaced if login runs again)
 local lastStoredPrint = nil  -- fingerprint when the stored profile was last written (login snapshot / change snapshot)
 local lastTickPrint = nil    -- fingerprint at the previous (non-skipped) tick
+local guardFirstChange = false  -- the login snapshot stored nothing: the first change snapshot is sparse-guarded
 
 -- Decide whether a freshly captured profile should replace the stored one.
 -- `guardSparse` (set by the login / spec-change timers) refuses a capture with
@@ -89,7 +90,11 @@ local function tick()
     -- Changed since the last stored profile and unchanged for a full check. The attempt counts as "stored" even if
     -- it stored nothing (no spec yet), so a profile that cannot be written is not re-captured every 10 s.
     lastStoredPrint = fp
-    ns.Snapshot(false, true)
+    -- The first snapshot after a login snapshot that stored nothing stays sparse-guarded: if the login one was refused
+    -- because the bars were still unpopulated, this must not store that same sparse capture over the good profile.
+    local guard = guardFirstChange
+    guardFirstChange = false
+    ns.Snapshot(guard, true)
   end
   lastTickPrint = fp
 end
@@ -116,6 +121,7 @@ function ns:onLogin()
     -- otherwise the first steady tick takes one change snapshot, which saves what the login snapshot could not.
     local fp = fingerprint()
     lastStoredPrint = stored and fp or nil
+    guardFirstChange = not stored
     lastTickPrint = fp
     ready = true
     -- exactly one ticker, even if login runs again

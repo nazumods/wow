@@ -265,6 +265,18 @@ describe("Warbandeer_Bars capture", function()
       assert.are_not.equal(base, c.ns.Fingerprint())
     end)
 
+    it("a client without C_ActionBar still fingerprints (a macro slot then reads as nameless)", function()
+      local c = client()
+      local ns = bars.loadCapture{
+        GetActionInfo = function(i) local s = c.slots[i]; if s then return s[1], s[2], s[3] end end,
+        C_ActionBar = false,
+        GetMacroInfo = function(i) local m = c.macros[i]; if m then return m[1], m[2], m[3] end end,
+        GetNumBindings = function() return 0 end,
+        GetBinding = function() end,
+      }
+      assert.has_no.errors(function() ns.Fingerprint() end)
+    end)
+
     it("an unbound command is ignored; the macro slot is read by action text, never the cursor", function()
       local c = client()
       local base = c.ns.Fingerprint()

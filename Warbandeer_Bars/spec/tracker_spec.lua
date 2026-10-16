@@ -41,7 +41,7 @@ describe("Warbandeer_Bars tracker", function()
   describe("change checking by fingerprint (#984)", function()
     -- tracker.lua loaded with its call-time globals stubbed through the environment and a recording ns. A fake clock
     -- is not needed: the ticker is a plain recorded callback that each test fires by hand (one call = one 10 s check).
-    local t, env, captures, after_fns, delayed, tickers
+    local t, env, captures, after_fns, delayed, tickers, chunkEnv
 
     local specID = 62   -- 0 models a character with no active spec: store() refuses it
 
@@ -64,7 +64,7 @@ describe("Warbandeer_Bars tracker", function()
         end,
       }
       local chunk = assert(loadfile("Warbandeer_Bars/tracker.lua"))
-      setfenv(chunk, setmetatable({
+      chunkEnv = setmetatable({
         InCombatLockdown = function() return env.combat end,
         GetCursorInfo = function() return env.cursor and "item" or nil end,
         C_Timer = env.C_Timer,
@@ -75,7 +75,8 @@ describe("Warbandeer_Bars tracker", function()
           HasTempShapeshiftActionBar = function() return env.special == "shapeshift" end,
           IsPossessBarVisible = function() return env.special == "possess" end,
         },
-      }, { __index = _G }))
+      }, { __index = _G })
+      setfenv(chunk, chunkEnv)
       t = {
         db = { profiles = {} },
         registerEvent = function() end,
@@ -207,6 +208,28 @@ describe("Warbandeer_Bars tracker", function()
       end
     end)
 
+    it("a client without C_ActionBar, or with only some of the special-bar calls, still saves changes", function()
+      -- every call is guarded: a missing one must read as "no special bar", never raise and starve the ticks
+      for _, shape in ipairs({ "none", "partial", "empty" }) do
+        captures = {}
+        after_fns, tickers = {}, {}
+        if shape == "none" then
+          chunkEnv.C_ActionBar = nil
+        elseif shape == "partial" then
+          chunkEnv.C_ActionBar = { HasVehicleActionBar = function() return false end }
+        else
+          chunkEnv.C_ActionBar = {}
+        end
+        env.print = "A"
+        login()
+        captures = {}
+        env.print = "B"
+        assert.has_no.errors(tick, shape)
+        tick()
+        assert.equal(1, #captures, shape)
+      end
+    end)
+
     it("a login snapshot that stored nothing (skipped in combat) is followed by one change snapshot", function()
       env.combat = true
       login()                           -- Snapshot returns nil in combat
@@ -216,6 +239,21 @@ describe("Warbandeer_Bars tracker", function()
       assert.equal(1, #captures)
       tick(); tick()
       assert.equal(1, #captures)
+    end)
+
+    it("a login snapshot refused as sparse is not stored by the first change snapshot either", function()
+      t.nSlots = 40
+      login()                           -- stores 40 slots
+      assert.equal(40, #t.db.profiles.Lurias[62].slots)
+      -- a second login in the same state: the bars are still unpopulated, so the guarded login snapshot is refused
+      t.nSlots = 5
+      login()
+      assert.equal(40, #t.db.profiles.Lurias[62].slots)
+      tick()                            -- steady: the first change snapshot is still sparse-guarded
+      assert.equal(40, #t.db.profiles.Lurias[62].slots)
+      env.print = "B"                   -- a real change afterwards is unguarded and records the reduction
+      tick(); tick()
+      assert.equal(5, #t.db.profiles.Lurias[62].slots)
     end)
 
     it("nothing before the login snapshot has armed it, and nothing after PLAYER_LOGOUT", function()
@@ -249,7 +287,7 @@ describe("Warbandeer_Bars tracker", function()
       assert.equal(10, tickers[#tickers].seconds)
     end)
 
-    it("an unreadable fingerprint is skipped quietly and does not advance the comparison", function()
+    it("an unreadable fingerprint is skipped quietly", function()
       login()
       t.Fingerprint = function() error("api down") end
       assert.has_no.errors(tick)

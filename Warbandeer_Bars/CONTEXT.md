@@ -145,7 +145,9 @@ Bar changes are saved by comparing the bars, not by listening to events (`tracke
   every 10 s. So a body-only macro edit is saved at the next slot / macro-name / icon / binding change or the next login.
 - **Store when changed AND steady (`tick`):** `lastStoredPrint` (set at arming from the fingerprint taken after the login
   snapshot, but only if that snapshot actually stored: one skipped in combat or refused as sparse leaves it nil, so the first
-  steady tick saves what it could not; and at every change snapshot) and `lastTickPrint`. On a tick: differs from `lastStoredPrint` AND equals `lastTickPrint` -> a cursor-free,
+  steady tick takes a snapshot, and that first one stays **sparse-guarded** (`guardFirstChange`) so a login capture refused
+  because the bars were still unpopulated cannot be stored over the good profile 10 s later; and at every change snapshot)
+  and `lastTickPrint`. On a tick: differs from `lastStoredPrint` AND equals `lastTickPrint` -> a cursor-free,
   unguarded `Snapshot(false, true)`; `lastTickPrint` is always updated. A snapshot attempt counts as stored even when it stored
   nothing (no spec yet), so an unwritable profile is not re-captured every 10 s.
 - **Skips:** a tick in combat, with a cursor held, or while a vehicle / quest-override / possess / temporary-shapeshift bar is up
@@ -158,12 +160,16 @@ Bar changes are saved by comparing the bars, not by listening to events (`tracke
   it can still cost one extra snapshot while mounted that the dismount reverts. The login and spec snapshots had the same
   exposure before this change.
 - **A snapshot that throws is not retried** until the bars change again (`lastStoredPrint` is set before the attempt).
-- **Cost:** the fingerprint is a few hundred API reads (180 slots, up to 150 macros, every binding) per 10 s, plus a
-  snapshot only when something changed. One ticker only (`C_Timer.NewTicker`); a second login cancels the first.
-- **Unguarded** (`Snapshot(false, true)`): it records a legitimate reduction, the role the logout snapshot used to have.
+- **Cost (not measured; inferred from the loop bounds):** the fingerprint reads 180 slots, up to 150 macros and every binding
+  (`GetNumBindings()`, possibly around a thousand on a heavily modded client) per 10 s, plus a snapshot only when something
+  changed. One ticker only (`C_Timer.NewTicker`); a second login cancels the first.
+- **Unguarded** (`Snapshot(false, true)`): it records a legitimate reduction, the role the logout snapshot used to have. The one
+  exception is the first change snapshot after a login snapshot that stored nothing (`guardFirstChange`, above).
 - **Cost of having no logout snapshot:** a change made in the last 10-20 s before logout or `/reload` is not saved, and if it was a *reduction*
-  (buttons removed) the next login snapshot, being sparse-guarded, refuses the smaller capture, so the removal is saved only at
-  the next change. Additions are accepted by that guard.
+  (buttons removed) the next login snapshot, being sparse-guarded, refuses the smaller capture, and so does the first change
+  snapshot after it (also guarded), so the removal is saved only at the next real change. Additions are accepted by the guard.
+- **Pet bar, equipment-set outfits and Edit Mode layouts are captured but are not fingerprint inputs:** they are saved when a
+  fingerprinted input changes, or at login or spec change, not on their own.
 - **Armed even if the login work throws** (the login timer arms `ready` and the ticker after a `pcall`, then rethrows).
 - **Spec change** keeps its own `ns:delay` timer; the ticker is independent of it. A spec swap changes the fingerprint too, so a
   change snapshot follows 10-20 s later (redundant, harmless).
