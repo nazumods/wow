@@ -21,8 +21,8 @@ local guardFirstChange = false  -- the login snapshot stored nothing: the first 
 -- fewer action-bar slots than the stored profile: those timers fire on a delay
 -- after entering the world / swapping spec and can run before the bars finish
 -- populating, so an unguarded store would clobber a good profile with a sparse
--- race artifact. The change-driven snapshot is never guarded, so a legitimate reduction
--- (the user genuinely cleared buttons) is still recorded.
+-- race artifact. The change-driven snapshot is not guarded (so a legitimate reduction, the user genuinely cleared
+-- buttons, is still recorded), except the first one after a login snapshot that stored nothing (see tick).
 ---@param existing table|nil  the currently stored profile for this [char][specID]
 ---@param fresh table  the freshly captured profile
 ---@param guardSparse boolean|nil

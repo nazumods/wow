@@ -21,7 +21,7 @@ Profiles are captured at session boundaries and, after that, whenever a check sh
 |---|---|
 | `onLogin` | 2 s after entering the world (lets the bars finish loading); skipped if sparser than the stored profile |
 | `ACTIVE_TALENT_GROUP_CHANGED` | 500 ms after a spec change (lets the new spec settle); skipped if sparser than the stored profile |
-| a change to the bars | every 10 s the addon compares a fingerprint of your action slots, macro names and icons, and keybindings with the last saved one, and saves when it differs **and** has stayed the same for a full check, so a run of changes is one snapshot 10-20 s after the last of them; only after the login snapshot has run; always stored, so a removed button is recorded |
+| a change to the bars | every 10 s the addon compares a fingerprint of your action slots, macro names and icons, and keybindings with the last saved one, and saves when it differs **and** has stayed the same for a full check, so a run of changes is one snapshot 10-20 s after the last of them; only after the login snapshot has run; not sparse-guarded, so a removed button is recorded (except the first such snapshot after a login snapshot that stored nothing, which is guarded) |
 | logout / `/reload` | **never** — by `PLAYER_LOGOUT` the client has already emptied the action bars (a logout snapshot stored 0 slots on Retail, 2026-10-15; the spec presumably reads empty too, inferred), so there is nothing real left to capture. A change made in the last 10-20 s before logout or `/reload` is not saved (a removal is then only recorded at the next change, because the login snapshot refuses a sparser capture) |
 
 The checks use no bar events because they cannot tell a change from noise on a live client (observed on Retail in about

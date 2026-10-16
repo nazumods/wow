@@ -192,14 +192,15 @@ that snapshot), else nil (restore skips a macro slot with no index). Every other
 
 - **`ns.Snapshot()` is a no-op during combat or mid-drag.** Macro temp-index resolution in capture
   touches protected APIs, and an in-progress cursor drag would be clobbered. Guarded by
-  `InCombatLockdown()` / `GetCursorInfo()`. The login and spec timers don't fire in combat; the change-check ticker skips a tick in combat or with a cursor held
+  `InCombatLockdown()` / `GetCursorInfo()`. The login and spec timers can fire in combat, and then take no snapshot (the first steady change check makes up for a skipped login snapshot); the change-check ticker skips a tick in combat or with a cursor held
   (it does not advance its remembered fingerprint), so a change is saved on a later steady tick.
 - **Sparse-capture guard (`Snapshot(true)` on the login/spec timers).** The login (`onLogin`, 2 s
   after entering the world) and spec-change (500 ms) snapshots run on a delay and can fire before
   the action bars finish populating — an unguarded store would then overwrite a good profile with a
   half-empty capture. `ns.shouldStore` refuses a *guarded* capture whose `slots` count is below the
-  stored profile's. The **change-driven** snapshot is unguarded (it only runs after the login snapshot, so the bars are populated; a
-  legitimate button removal is still recorded). Same for the public `API:Snapshot()` / `/wbb` snapshot. Covered by `spec/tracker_spec.lua`.
+  stored profile's. The **change-driven** snapshot is unguarded (a legitimate button removal is still recorded), except the first one
+  after a login snapshot that stored nothing (`guardFirstChange`: skipped in combat, or refused because the bars were still
+  unpopulated), which stays guarded; the guard is consumed by that first attempt even if it is refused. Same for the public `API:Snapshot()` / `/wbb` snapshot. Covered by `spec/tracker_spec.lua`.
 - **`ns.Restore` bails in combat** (taint) — it prints a notice and returns.
 - **Flyouts restore FIRST** (`RestoreFlyouts` pre-pass): `PickupSpellBookItem` for flyout-type
   spellbook items (e.g. the warlock Summon Demon drawer) silently fails after any other protected
