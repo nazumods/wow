@@ -4,7 +4,7 @@
 
 - WoW addon library — no build step, no test runner, no package manager
 - Changes cannot be verified from the CLI; they must be loaded in-game (`/reload`)
-- Target: WoW Retail (Interface version in `LibNUI.toc`)
+- Target: WoW Retail; also listed for Forever (`## Interface: 120105, 16001` in `LibNUI.toc`, #955 -- the in-game run on Forever is still pending)
 - Depends on `LibNAddOn` (`ns.lua.Class`, `ns.lua.maps`, etc.)
 
 ## Adding a New Class

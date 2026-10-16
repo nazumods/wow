@@ -15,6 +15,7 @@ return {
       "ShadowsOfUI-Known/spec",
       "Warbandeer_Decor/spec",
       "Warbandeer_Collected/spec",
+      "HideBagBar/spec",
     },
     lpath = "?.lua",
     verbose = true,
