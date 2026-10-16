@@ -16,7 +16,7 @@ local RECIPE_EXP_KEYS = {
 }
 
 -- Forever uses the classic skill-line model: a profession has ONE child skill line, named after the
--- profession itself ("Tailoring", id 2948 on the beta, `expansionName` "Tailoring"), so no
+-- profession itself (probed on the beta for Tailoring only: id 2948, `expansionName` "Tailoring"), so no
 -- RECIPE_EXP_KEYS name ever matches it. On Forever such a child is bucketed under this key instead
 -- (ShadowsOfUI-Known reads every bucket, so the key name is free). Retail still skips an unmapped child.
 local FOREVER_RECIPE_KEY = "forever"
@@ -93,16 +93,24 @@ function ns.CaptureRecipes(children, recipeIDs, ts)
         end
       end
       recipes = recipes or {}
-      recipes[key] = { learned = learned, total = total }
+      local bucket = recipes[key]
+      if bucket and key == FOREVER_RECIPE_KEY then
+        -- several unmapped children share the one Forever bucket: add to it, never replace it
+        -- (Retail keys are one per expansion; a repeat there keeps replacing, as it always did)
+        bucket.total = bucket.total + total
+        for _, r in ipairs(learned) do insert(bucket.learned, r) end
+      else
+        recipes[key] = { learned = learned, total = total }
+      end
     end
   end
   return recipes
 end
 
 -- Crafting quality for the current expansion's learned recipes that craft profession gear: the tier
--- reachable with base reagents and with concentration, stamped onto each recipe record. Retail-only by
--- construction: it reads the CURRENT_RECIPE_EXP bucket ("midnight"), which Forever never has (its
--- bucket is "forever"), so there it finds nothing and makes no query.
+-- reachable with base reagents and with concentration, stamped onto each recipe record. It reads only
+-- the CURRENT_RECIPE_EXP bucket ("midnight"); while Forever has just its "forever" bucket (no child there
+-- is named "Midnight") it finds nothing and makes no query.
 ---@param recipes table<string, ProfRecipeBucket>?
 ---@param ts { GetCraftingOperationInfo: function? }
 function ns.CaptureRecipeQuality(recipes, ts)
@@ -224,8 +232,8 @@ ns.Professions.fields = {
         -- while the trade-skill window is open.  Every profession (including Fishing
         -- and Cooking) exposes per-expansion child skill lines; we bucket each recipe
         -- by the child it belongs to so future expansions can be added without reshape.
-        -- (Forever: ONE child per profession, named after it -- bucketed as "forever", see
-        -- recipeBucketKey; GetAllRecipeIDs lists the whole classic profession.)
+        -- (Forever: one child per profession named after it -- inferred from the Tailoring probe --
+        -- bucketed as "forever", see recipeBucketKey; GetAllRecipeIDs lists the whole classic profession.)
         if C_TradeSkillUI.GetChildProfessionInfos and C_TradeSkillUI.GetAllRecipeIDs then
           local children  = C_TradeSkillUI.GetChildProfessionInfos()
           local recipeIDs = C_TradeSkillUI.GetAllRecipeIDs()

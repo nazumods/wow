@@ -85,6 +85,17 @@ describe("Warbandeer_Characters recipe capture (#988)", function()
       assert.is_nil(recipes.forever)
     end)
 
+    it("Forever: several unmapped children share the one bucket (added up, never replaced)", function()
+      local ns = load("forever")
+      local ts = tradeSkill({ [2948] = { [10] = true, [11] = false }, [2949] = { [20] = true } })
+      local recipes = ns.CaptureRecipes({
+        { professionID = 2948, expansionName = "Tailoring" },
+        { professionID = 2949, expansionName = "Unknown" },
+      }, { 10, 11, 20 }, ts)
+      assert.equals(3, recipes.forever.total)
+      assert.same({ { id = 10, name = "Recipe 10" }, { id = 20, name = "Recipe 20" } }, recipes.forever.learned)
+    end)
+
     it("a child with no professionID is skipped on both clients", function()
       for _, flavor in ipairs({ "forever", "retail" }) do
         local ns = load(flavor)
@@ -98,6 +109,54 @@ describe("Warbandeer_Characters recipe capture (#988)", function()
       local recipes = ns.CaptureRecipes(foreverChildren, { 10, 11 }, ts)
       assert.equals(2, recipes.forever.total)
       assert.same({}, recipes.forever.learned)
+    end)
+  end)
+
+  -- The TRADE_SKILL_SHOW handler itself (the consumer of CaptureRecipes / CaptureRecipeQuality):
+  -- driven with a synchronous C_Timer and a stubbed C_TradeSkillUI, as the client calls it.
+  describe("the TRADE_SKILL_SHOW handler", function()
+    local savedTimer, savedTS
+    before_each(function() savedTimer, savedTS = _G.C_Timer, _G.C_TradeSkillUI end)
+    after_each(function() _G.C_Timer, _G.C_TradeSkillUI = savedTimer, savedTS end)
+
+    -- Run the handler once on `flavor` with the given stub trade-skill API; returns what it wrote
+    -- via self:set and the ts stub. `prev` is the stored value the handler merges into.
+    local function open(flavor, tsOpts, prev)
+      local ns = load(flavor)
+      local ts = tradeSkill(tsOpts.known or {})
+      ts.GetBaseProfessionInfo = function() return { professionID = 197 } end
+      ts.GetChildProfessionInfos = function() return tsOpts.children end
+      ts.GetAllRecipeIDs = function() return tsOpts.recipeIDs end
+      _G.C_TradeSkillUI = ts
+      _G.C_Timer = { After = function(_, fn) fn() end }
+      local written
+      local self = { set = function(_, data) written = data end }
+      -- RegisterBroker's stub returned a bare table; the file assigned .fields onto ns.Professions
+      ns.Professions.fields.details.eventHandler(self, prev)
+      return written, ns, ts
+    end
+
+    it("Forever: opening the Tailoring window stores details[197].recipes.forever (and the unchanged expansions)", function()
+      local written = open("forever", {
+        children = foreverChildren, recipeIDs = { 10, 11 },
+        known = { [2948] = { [10] = true, [11] = false } },
+      })
+      assert.equals(2, written[197].recipes.forever.total)
+      assert.same({ { id = 10, name = "Recipe 10" } }, written[197].recipes.forever.learned)
+      assert.equals("Tailoring", written[197].expansions[1].name)   -- D3: the expansions capture is untouched
+    end)
+
+    it("Forever: no recipe ids yet keeps the previously stored recipes (the per-field fallback)", function()
+      local prev = { [197] = { recipes = { forever = { learned = { { id = 1, name = "Old" } }, total = 1 } } } }
+      local written = open("forever", { children = foreverChildren, recipeIDs = {} }, prev)
+      assert.equals("Old", written[197].recipes.forever.learned[1].name)
+    end)
+
+    it("Retail: an unmapped child leaves recipes unset (nothing stored)", function()
+      local written = open("retail", {
+        children = foreverChildren, recipeIDs = { 10 }, known = { [2948] = { [10] = true } },
+      })
+      assert.is_nil(written[197].recipes)
     end)
   end)
 
@@ -121,6 +180,16 @@ describe("Warbandeer_Characters recipe capture (#988)", function()
       assert.equals(2, ts.qualityCalls)                 -- base + concentration
       assert.equals(3, recipes.midnight.learned[1].quality)
       assert.equals(3, recipes.midnight.learned[1].qualityConc)
+    end)
+
+    it("a trade-skill API without GetCraftingOperationInfo stamps nothing and does not error", function()
+      local ns = load("retail")
+      ns.api.ResolveRecipeOutput = function() return true end
+      local ts = tradeSkill({ [3000] = { [10] = true } })
+      local recipes = ns.CaptureRecipes({ { professionID = 3000, expansionName = "Midnight" } }, { 10 }, ts)
+      ts.GetCraftingOperationInfo = nil
+      assert.has_no.errors(function() ns.CaptureRecipeQuality(recipes, ts) end)
+      assert.is_nil(recipes.midnight.learned[1].quality)
     end)
 
     it("nil recipes (nothing captured) is harmless", function()
