@@ -123,6 +123,7 @@ describe("Warbandeer_Characters recipe capture (#988)", function()
     -- via self:set and the ts stub. `prev` is the stored value the handler merges into.
     local function open(flavor, tsOpts, prev)
       local ns = load(flavor)
+      if tsOpts.resolve then ns.api.ResolveRecipeOutput = function() return true end end
       local ts = tradeSkill(tsOpts.known or {})
       ts.GetBaseProfessionInfo = function() return { professionID = 197 } end
       ts.GetChildProfessionInfos = function() return tsOpts.children end
@@ -150,6 +151,23 @@ describe("Warbandeer_Characters recipe capture (#988)", function()
       local prev = { [197] = { recipes = { forever = { learned = { { id = 1, name = "Old" } }, total = 1 } } } }
       local written = open("forever", { children = foreverChildren, recipeIDs = {} }, prev)
       assert.equals("Old", written[197].recipes.forever.learned[1].name)
+    end)
+
+    it("Retail: the handler stamps crafting quality on the current expansion's gear recipes (unchanged)", function()
+      local written, _, ts = open("retail", {
+        children = { { professionID = 3000, expansionName = "Midnight" } }, recipeIDs = { 10 },
+        known = { [3000] = { [10] = true } }, resolve = true,
+      })
+      assert.equals(3, written[197].recipes.midnight.learned[1].quality)
+      assert.equals(2, ts.qualityCalls)
+    end)
+
+    it("Forever: the handler makes no quality query", function()
+      local written, _, ts = open("forever", {
+        children = foreverChildren, recipeIDs = { 10 }, known = { [2948] = { [10] = true } }, resolve = true,
+      })
+      assert.equals(0, ts.qualityCalls)
+      assert.is_nil(written[197].recipes.forever.learned[1].quality)
     end)
 
     it("Retail: an unmapped child leaves recipes unset (nothing stored)", function()
