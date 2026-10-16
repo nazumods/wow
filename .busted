@@ -13,6 +13,7 @@ return {
       "ShadowsOfUI-HousingVendor/spec",
       "ShadowsOfUI-PostOffice/spec",
       "ShadowsOfUI-Known/spec",
+      "ShadowsOfUI-Reputations/spec",
       "Warbandeer_Decor/spec",
       "Warbandeer_Collected/spec",
       "HideBagBar/spec",

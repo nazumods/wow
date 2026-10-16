@@ -9,7 +9,8 @@ The cross-alt standings appear in two places:
   gains a "Standing across your warband:" block — one line per character, highest standing
   first, the value **green when maxed** and marked **Paragon** when earning paragon rewards.
   Account-wide factions (shared across your whole warband) show a single **Warband Wide** line
-  instead of repeating the same standing for every character.
+  instead of repeating the same standing for every character. On WoW Forever, whose Reputation
+  tab shows no tooltip of its own, the addon shows one: the faction name and the same block.
 - **On faction-tied item tooltips**: hover a commendation, reputation token, tabard or
   paragon cache and the same block appears — so you can tell at a glance **which alt to mail
   that rep token to** (one that isn't Exalted yet).

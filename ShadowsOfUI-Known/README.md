@@ -39,9 +39,11 @@ list). It shows in two places:
   thrown off by similarly named items. Here, if **none** of your characters know it, the line
   instead reads **"Not Known: \<Profession\>"** in red (e.g. "Not Known: Jewelcrafting") — so
   you can tell at a glance whether you can craft it yourself, and which profession you'd need.
+  (Only once recipes have been captured: before any character has opened a profession window
+  there is nothing to compare against, so the line is left out rather than guess.)
 
 `/sknown <itemID>` prints the Learnable list to chat for a given recipe item, and `/sknown
-knownby <recipeID>` prints the Known-by list for a recipe — debugging aids; you won't
+knownby <recipeID>` prints the Known-by list for a recipe (or says no recipe data has been captured yet) — debugging aids; you won't
 normally need them.
 
 ## Guild crafters
