@@ -9,6 +9,8 @@ local GLOBALS = {
   "GetServerTime", "GetTime", "C_QuestLog", "C_WeeklyRewards", "C_MythicPlus", "C_Item", "C_Bank", "C_Container",
   "C_SpellBook", "C_Spell", "C_SpecializationInfo", "C_Reputation", "C_MajorFactions", "C_GossipInfo", "Enum",
   "GetFlyoutInfo", "GetFlyoutSlotInfo", "ItemLocation", "strtrim", "geterrorhandler",
+  "C_CurrencyInfo", "GetMoney", "tInvert",
+  "WOW_PROJECT_ID", "WOW_PROJECT_CAMELOT", "C_AddOns",   -- read by the real flavor.lua in the "real feature table" block
 }
 
 describe("Warbandeer_Characters on Forever", function()
@@ -24,7 +26,11 @@ describe("Warbandeer_Characters on Forever", function()
     _G.GetTime = function() return clock end
     _G.strtrim = function(s) return (s:gsub("^%s+", ""):gsub("%s+$", "")) end
     _G.C_QuestLog = { IsQuestFlaggedCompleted = function() return false end,
-                      IsQuestFlaggedCompletedOnAccount = function() return false end }
+                      IsQuestFlaggedCompletedOnAccount = function() return false end,
+                      ReadyForTurnIn = function() return false end }
+    _G.C_CurrencyInfo = { GetCurrencyInfo = noop }
+    _G.GetMoney = function() return 0 end
+    _G.tInvert = function(map) local out = {}; for k, v in pairs(map) do out[v] = k end return out end
     _G.C_WeeklyRewards = { GetActivities = function() return {} end, HasAvailableRewards = function() return false end }
     _G.C_MythicPlus = { GetOwnedKeystoneLevel = noop, GetOwnedKeystoneChallengeMapID = noop }
     _G.C_Item = { GetCurrentItemLevel = noop, GetDetailedItemLevelInfo = noop, GetItemInfo = noop,
@@ -65,7 +71,8 @@ describe("Warbandeer_Characters on Forever", function()
       wow = { maxLevel = 80, Player = { GetMaxXP = function() return 0 end } },
       api = { ClassifyGearItem = noop, ClassifyProfGearItem = noop },
       lua = {
-        sets = { Set = function(list) local s = {}; for _, v in ipairs(list) do s[v] = true end; return s end },
+        sets = { Set = function(list) local s = {}; for _, v in ipairs(list) do s[v] = true end; return s end,
+                 values = function(map) local out = {}; for _, v in pairs(map) do out[#out + 1] = v end return out end },
         lists = { values = function(map) local s = {}; for _, v in pairs(map) do s[v] = true end; return s end },
         maps = { any = function(map, fn) for _, v in pairs(map) do if fn(v) then return true end end return false end,
                  map = function(map, fn) local out = {}; for k, v in pairs(map) do out[k] = fn(v) end return out end },
@@ -201,7 +208,7 @@ describe("Warbandeer_Characters on Forever", function()
       return names
     end
 
-    it("Forever (all unsupported): vault, delves and Mythic+ fields are absent, quest-flag fields stay", function()
+    it("Forever (these three unsupported): vault, delves and Mythic+ fields are absent, the Midnight and quest flags stay", function()
       unsupported.greatVault, unsupported.delves, unsupported.mythicPlus = true, true, true
       local f = fieldNames()
       for _, gone in ipairs({ "vault", "vaultSlots", "hasUnclaimedVault", "delversBounty", "keystone", "keystoneMap", "dungeons" }) do
@@ -334,6 +341,127 @@ describe("Warbandeer_Characters on Forever", function()
       assert.is_table(ns.db.bank.characters.Tester)
       assert.is_table(ns.db.bank.warband)
       assert.same({ 1, 2 }, viewed)
+    end)
+  end)
+
+  -- Midnight-only content (nazumods/wow#987): the REAL LibNAddOn/flavor.lua feature table decides, not a stub, so
+  -- deleting the `midnight` table entry fails these exactly as deleting a gate does.
+  describe("D7 Midnight-only data (real feature table)", function()
+    local function useRealFlavor(flavor)
+      _G.WOW_PROJECT_CAMELOT, _G.WOW_PROJECT_ID = 18, (flavor == "forever") and 18 or 1
+      _G.C_AddOns = nil
+      local lib = {}
+      assert(loadfile("LibNAddOn/flavor.lua"))("LibNAddOn", lib)
+      assert.equals(flavor, lib.flavor.id)
+      function ns.Supports(_, feature) ns.asked[#ns.asked + 1] = feature; return lib.Supports(feature) end
+    end
+
+    local function weeklyFields()
+      load("data/weekly.lua")
+      local names = {}
+      for name in pairs(ns.brokers.weeklies.fields) do names[name] = true end
+      return names
+    end
+
+    for _, file in ipairs({ "data/concentration.lua", "data/artisancurrency.lua" }) do
+      it("Forever: " .. file .. " registers nothing", function()
+        useRealFlavor("forever")
+        load(file)
+        assert.is_true(noBrokers())
+        assert.same({}, ns.events)
+        assert.same({}, ns.dumps)
+        assert.same({ "midnight" }, ns.asked)
+      end)
+    end
+
+    it("Retail: concentration and artisanCurrency register their brokers", function()
+      useRealFlavor("retail")
+      load("data/concentration.lua")
+      load("data/artisancurrency.lua")
+      assert.is_not_nil(ns.brokers.concentration)
+      assert.is_not_nil(ns.brokers.artisanCurrency)
+    end)
+
+    it("Forever: professionknowledge.lua keeps its pure catalog and helpers but registers no broker or dump", function()
+      useRealFlavor("forever")
+      load("data/professionknowledge.lua")
+      assert.is_true(noBrokers())
+      assert.same({}, ns.dumps)
+      assert.is_function(ns.SummarizeProfessionKnowledge)
+      assert.is_function(ns.MergeProfessionKnowledge)
+      assert.is_table(ns.ProfessionKnowledge)
+      assert.is_table(ns.ProfessionKnowledgeSources)
+    end)
+
+    it("Retail: professionknowledge.lua registers the professionKnowledge broker and its dump", function()
+      useRealFlavor("retail")
+      load("data/professionknowledge.lua")
+      assert.is_not_nil(ns.brokers.professionKnowledge)
+      assert.same({ "knowledge" }, ns.dumps)
+    end)
+
+    it("Forever: the weekly Midnight fields (preMidnight, caches) are dropped, the Forever-neutral quest flag stays", function()
+      useRealFlavor("forever")
+      local f = weeklyFields()
+      assert.is_nil(f.preMidnight)
+      assert.is_nil(f.caches)
+      assert.is_true(f.DMF)
+    end)
+
+    it("Retail: preMidnight and caches are present", function()
+      useRealFlavor("retail")
+      local f = weeklyFields()
+      assert.is_true(f.preMidnight)
+      assert.is_true(f.caches)
+    end)
+
+    local MIDNIGHT_CURRENCIES = { "Catalyst", "HeroDawncrest", "MythDawncrest", "NebulousVoidcore", "FieldAccolade",
+                                  "UnalloyedAbundance", "UntaintedManaCrystal", "ShardOfDundun" }
+
+    local function currencyFields()
+      load("data/currency.lua")
+      local names = {}
+      for name in pairs(ns.brokers.currency.fields) do names[name] = true end
+      return names
+    end
+
+    it("Forever: the Midnight currency fields are dropped, gold and the Delve keys stay", function()
+      useRealFlavor("forever")
+      local f = currencyFields()
+      for _, name in ipairs(MIDNIGHT_CURRENCIES) do assert.is_nil(f[name], name) end
+      for _, kept in ipairs({ "gold", "RestoredCofferKey", "CofferKeyShard" }) do assert.is_true(f[kept], kept) end
+    end)
+
+    it("Retail: every currency field is present", function()
+      useRealFlavor("retail")
+      local f = currencyFields()
+      for _, name in ipairs(MIDNIGHT_CURRENCIES) do assert.is_true(f[name], name) end
+      assert.is_true(f.gold)
+    end)
+
+    it("Forever: the CatalystUnbound achievement flag is dropped, other quest fields stay; Retail keeps it", function()
+      useRealFlavor("forever")
+      load("data/quests.lua")
+      assert.is_nil(ns.brokers.quests.fields.CatalystUnbound)
+      assert.is_not_nil(ns.brokers.quests.fields.UndermineStoryMode)
+      ns.brokers = {}
+      useRealFlavor("retail")
+      load("data/quests.lua")
+      assert.is_not_nil(ns.brokers.quests.fields.CatalystUnbound)
+    end)
+
+    it("midnight alone unsupported drops the Midnight currencies and flag, nothing else", function()
+      unsupported.midnight = true
+      local f = currencyFields()
+      for _, name in ipairs(MIDNIGHT_CURRENCIES) do assert.is_nil(f[name], name) end
+      assert.is_true(f.gold); assert.is_true(f.CofferKeyShard)
+    end)
+
+    it("midnight alone unsupported drops only preMidnight and caches", function()
+      unsupported.midnight = true
+      local f = weeklyFields()
+      assert.is_nil(f.preMidnight); assert.is_nil(f.caches)
+      for _, kept in ipairs({ "DMF", "delversBounty", "vault", "keystone", "dungeons" }) do assert.is_true(f[kept], kept) end
     end)
   end)
 end)

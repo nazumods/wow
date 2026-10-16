@@ -194,7 +194,7 @@ feature table live in LibNAddOn (`LibNAddOn/flavor.lua`); every addon gets them 
   `standard` only. So `if C_Housing then` is true there and says nothing about the game. A game system
   Forever lacks goes in the `UNSUPPORTED` feature table in `LibNAddOn/flavor.lua` (anything not listed
   exists everywhere), and addon code asks `ns:Supports(feature)`. The table is the one place a gap is
-  recorded; `greatVault` and `warbandBank` are in it only because they are unverified on the beta.
+  recorded; `midnight` stands for Midnight-expansion content rather than a system, and `greatVault` and `warbandBank` are in it only because they are unverified on the beta.
 - **Gate at registration.** A file for a missing system returns at its top
   (`if not ns:Supports("housing") then return end`), so its broker, view, command and events never
   register, rather than every call site checking.
