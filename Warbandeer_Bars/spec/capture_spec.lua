@@ -93,6 +93,101 @@ describe("Warbandeer_Bars capture", function()
     end)
   end)
 
+  describe("temp macros: cursor vs no-cursor resolution (#984)", function()
+    -- A temp macro slot reports subType; its real index is only known via the cursor round-trip, or (logout)
+    -- via its action text / the stored profile.
+    local calls, cursorIndex
+
+    local function run(opts)
+      calls = {}
+      local actions = opts.actions or { [7] = { type = "macro", index = 0, subType = "x" } }
+      local function trace(name, fn)
+        return function(...) calls[#calls + 1] = name; if fn then return fn(...) end end
+      end
+      local ns = bars.loadCapture{
+        GetActionInfo = function(i)
+          local a = actions[i]
+          if not a then return nil end
+          return a.type, a.index, a.subType
+        end,
+        PickupAction  = trace("PickupAction"),
+        PlaceAction   = trace("PlaceAction"),
+        ClearCursor   = trace("ClearCursor"),
+        GetCursorInfo = function() return "macro", cursorIndex end,
+        C_ActionBar   = { GetActionText = function() return opts.text end },
+        GetMacroIndexByName = function(name) return (opts.byName or {})[name] or 0 end,
+        UnitName = function() return "Lurias" end,
+        UnitClass = function() return "Mage", "MAGE", 8 end,
+        GetRealmName = function() return "Draenor" end,
+        -- capture.lua upvalues these from C_SpecializationInfo at load (its `_G.` fallback bypasses `env`).
+        C_SpecializationInfo = {
+          GetSpecialization = function() return 1 end,
+          GetSpecializationInfo = function() return 62, "Arcane", "", 1 end,
+        },
+        GetCurrentBindingSet = function() return 1 end,
+        UnitLevel = function() return 80 end,
+        time = function() return 1700000000 end,
+      }
+      ns.db = { profiles = { Lurias = { [62] = opts.stored } } }
+      return slotsById(ns.Capture({ bars = true }, false, false, opts.noCursor))
+    end
+
+    before_each(function() cursorIndex = 42 end)
+
+    it("an in-session snapshot still resolves via the cursor", function()
+      local slots = run{ noCursor = false, text = "Mine", byName = { Mine = 9 } }
+      assert.equal(42, slots[7].index)
+      assert.same({ "PickupAction", "PlaceAction", "ClearCursor" }, calls)
+    end)
+
+    it("logout never touches the cursor", function()
+      run{ noCursor = true, text = "Mine", byName = { Mine = 9 } }
+      assert.same({}, calls)
+    end)
+
+    it("logout resolves a temp macro by its action text", function()
+      local slots = run{ noCursor = true, text = "Mine", byName = { Mine = 9 } }
+      assert.equal(9, slots[7].index)
+    end)
+
+    it("logout falls back to the stored profile's index at the same slot", function()
+      local slots = run{ noCursor = true, text = "Gone",
+        stored = { slots = { { id = 7, type = "macro", index = 31 } } } }
+      assert.equal(31, slots[7].index)
+    end)
+
+    it("logout does not take a stored index from a slot that was not a macro", function()
+      local slots = run{ noCursor = true, text = "Gone",
+        stored = { slots = { { id = 7, type = "spell", index = 31 } } } }
+      assert.is_nil(slots[7].index)
+    end)
+
+    it("logout matches the stored profile by slot id, not by taking any macro entry", function()
+      local slots = run{ noCursor = true, text = "Gone",
+        stored = { slots = { { id = 9, type = "macro", index = 77 }, { id = 7, type = "macro", index = 31 } } } }
+      assert.equal(31, slots[7].index)
+      local other = run{ noCursor = true, text = "Gone",
+        stored = { slots = { { id = 9, type = "macro", index = 77 } } } }
+      assert.is_nil(other[7].index)
+    end)
+
+    it("logout ignores an empty action text rather than looking up the empty name", function()
+      local slots = run{ noCursor = true, text = "", byName = { [""] = 5 } }
+      assert.is_nil(slots[7].index)
+    end)
+
+    it("logout leaves index nil when neither works", function()
+      local slots = run{ noCursor = true, text = "Gone" }
+      assert.is_nil(slots[7].index)
+      assert.equal("macro", slots[7].type)
+    end)
+
+    it("logout keeps a non-temp macro's own index", function()
+      local slots = run{ noCursor = true, actions = { [7] = { type = "macro", index = 12 } } }
+      assert.equal(12, slots[7].index)
+    end)
+  end)
+
   it("stamps the profile as schema v3", function()
     assert.equal(3, capture({}).version)
   end)

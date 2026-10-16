@@ -157,6 +157,7 @@ std = {
     "ShowUIPanel",
     "hooksecurefunc",
 
+    "C_ActionBar",
     "C_AddOns",
     "C_AreaPoiInfo",
     "C_AssistedCombat",
@@ -362,6 +363,7 @@ std = {
     "GetLocale",
     "GetLootSlotLink",
     "GetLootSpecialization",
+    "GetMacroIndexByName",
     "GetMacroInfo",
     "GetMaxLevelForPlayerExpansion",
     "GetMerchantItemID",

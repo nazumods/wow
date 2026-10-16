@@ -42,8 +42,28 @@ local function BuildSpellOverrides()
   return map
 end
 
--- Capture all non-empty action bar slots
-local function CaptureSlots(overrides)
+-- Real macro index of a temp macro on action slot `i`, without touching the cursor (logout: PickupAction shows the
+-- empty-slot grid, which runs other addons' action-bar hooks while the UI is tearing down, #984). By the slot's
+-- action text (a macro's name; the first macro of that name wins, inferred), else the index the stored profile had at the
+-- same slot, else nil (restore skips a slot with no index).
+local function MacroIndexNoCursor(i, stored)
+  local name = C_ActionBar and C_ActionBar.GetActionText and C_ActionBar.GetActionText(i)
+  if name and name ~= "" and GetMacroIndexByName then
+    local found = GetMacroIndexByName(name)
+    if found and found > 0 then return found end
+  end
+  for _, s in ipairs(stored and stored.slots or {}) do
+    if s.id == i then
+      if s.type == "macro" then return s.index end
+      break
+    end
+  end
+  return nil
+end
+
+-- Capture all non-empty action bar slots. `noCursor` (logout) resolves a temp macro's index without the cursor;
+-- `stored` is the profile already stored for this character and spec (the fallback for that path).
+local function CaptureSlots(overrides, noCursor, stored)
   local slots = {}
   for i = 1, MAX_BARS do
     local slotType, index, subType = GetActionInfo(i)
@@ -63,7 +83,9 @@ local function CaptureSlots(overrides)
         end
       elseif slotType == "macro" then
         -- subType means it's a temp macro; resolve real index via cursor
-        if subType then
+        if subType and noCursor then
+          index = MacroIndexNoCursor(i, stored)
+        elseif subType then
           PickupAction(i)
           index = select(2, GetCursorInfo())
           PlaceAction(i)
@@ -252,13 +274,16 @@ end
 ---@param include table  keys: bars, bindings, macros, petbar, outfits
 ---@param accountMacros boolean
 ---@param charMacros boolean
+---@param noCursor boolean? resolve temp macros without the cursor (the logout snapshot)
 ---@return table profile
-function ns.Capture(include, accountMacros, charMacros)
+function ns.Capture(include, accountMacros, charMacros, noCursor)
   local overrides = BuildSpellOverrides()
   local profile = ProfileMeta()
+  local byChar = noCursor and ns.db and ns.db.profiles and ns.db.profiles[profile.char]
+  local stored = byChar and byChar[profile.specID]
   profile.version  = 3   -- v2 adds barLayout; v3 adds summonpet species/custom names
   profile.captured = time()
-  profile.slots    = include.bars     and CaptureSlots(overrides)                  or {}
+  profile.slots    = include.bars     and CaptureSlots(overrides, noCursor, stored) or {}
   profile.binds    = include.bindings and CaptureBindings()                        or {}
   profile.macros   = include.macros   and CaptureMacros(accountMacros, charMacros) or {}
   profile.petslots = include.petbar   and CapturePetBar()                          or {}
