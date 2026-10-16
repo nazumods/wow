@@ -1,4 +1,4 @@
-## Interface: 120105
+## Interface: 120105, 16001
 ## Category: Shadows of UI
 ## Title: Hide Stance Bar
 ## Version: 12.1.5-r1
