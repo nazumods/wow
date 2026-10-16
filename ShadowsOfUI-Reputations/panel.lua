@@ -30,8 +30,9 @@ local function onRepEnter(self)
     return
   end
 
-  -- Not owned by the row. Retail: nothing to extend. Forever: no row ever owns it, so the
-  -- addon opens its own tooltip, except on the selected row (Retail shows none there either).
+  -- Retail and the row does not own GameTooltip: nothing to extend. Forever (any ownership,
+  -- see above): the addon opens its own tooltip, except on the selected row (Retail shows
+  -- none there either).
   if not forever then return end
   if self.IsSelected and self:IsSelected() then return end
 
