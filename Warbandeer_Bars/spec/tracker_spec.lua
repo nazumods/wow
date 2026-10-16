@@ -19,8 +19,8 @@ describe("Warbandeer_Bars tracker", function()
       assert.is_true(ns.shouldStore(nil, profile(0), true))
     end)
 
-    it("stores an unguarded capture even when it is sparser (logout path)", function()
-      -- The logout snapshot must record a legitimate reduction.
+    it("stores an unguarded capture even when it is sparser (the change-driven path)", function()
+      -- The change-driven snapshot must record a legitimate reduction.
       assert.is_true(ns.shouldStore(profile(40), profile(5), false))
     end)
 
@@ -40,7 +40,16 @@ describe("Warbandeer_Bars tracker", function()
 
   describe("change-driven snapshots (#984)", function()
     -- tracker.lua loaded with its call-time globals stubbed through the environment and a recording ns.
-    local t, env, debounced, captures, registered, after_fns, delayed
+    local t, env, debounced, captures, registered, after_fns, delayed, pending, now
+
+    local function advance(ms)  -- move the simulated clock; fire the pending debounces that fall due
+      now = now + ms
+      local due = {}
+      for key, p in pairs(pending) do
+        if p.due <= now then pending[key] = nil; due[#due + 1] = p.fn end
+      end
+      for _, fn in ipairs(due) do fn() end
+    end
 
     local function profile(nSlots)
       local slots = {}
@@ -51,6 +60,7 @@ describe("Warbandeer_Bars tracker", function()
     before_each(function()
       env = { combat = false, cursor = false }
       debounced, captures, registered, after_fns, delayed = {}, {}, {}, {}, {}
+      pending, now = {}, 0
       local chunk = assert(loadfile("Warbandeer_Bars/tracker.lua"))
       setfenv(chunk, setmetatable({
         InCombatLockdown = function() return env.combat end,
@@ -59,7 +69,11 @@ describe("Warbandeer_Bars tracker", function()
       t = {
         db = { profiles = {} },
         registerEvent = function(_, name) registered[#registered + 1] = name end,
-        debounce = function(_, key, ms, fn) debounced[#debounced + 1] = { key = key, ms = ms, fn = fn } end,
+        -- records every call; `pending[key]` models the real reset-trailing debounce on a simulated clock (`now`, in ms)
+        debounce = function(_, key, ms, fn)
+          debounced[#debounced + 1] = { key = key, ms = ms, fn = fn }
+          pending[key] = { due = now + ms, fn = fn }
+        end,
         after = function(_, ms, fn) after_fns[#after_fns + 1] = { ms = ms, fn = fn } end,
         delay = function(_, ms, fn) delayed[#delayed + 1] = { ms = ms, fn = fn } end,
         CaptureLayouts = function() end,
@@ -80,21 +94,63 @@ describe("Warbandeer_Bars tracker", function()
     end
 
     it("nothing snapshots at PLAYER_LOGOUT", function()
-      assert.is_nil(t.PLAYER_LOGOUT)
-      for _, name in ipairs(registered) do assert.not_equal("PLAYER_LOGOUT", name) end
+      login()
+      t.PLAYER_LOGOUT()
+      assert.equal(1, #captures)       -- only the login snapshot
     end)
 
-    it("a burst of slot changes schedules one snapshot, 2 s after the last", function()
+    it("a change timer still pending at logout captures nothing", function()
+      login()
+      t.ACTIONBAR_SLOT_CHANGED()
+      t.PLAYER_LOGOUT()
+      advance(10000)
+      assert.equal(1, #captures)
+    end)
+
+    it("a burst of slot changes schedules one snapshot, 10 s after the last", function()
       login()
       t.ACTIONBAR_SLOT_CHANGED(); t.ACTIONBAR_SLOT_CHANGED(); t.ACTIONBAR_SLOT_CHANGED()
       -- every event restarts the wait on the SAME keyed timer (the debounce replaces the pending call)
       assert.equal(3, #debounced)
       for _, d in ipairs(debounced) do
         assert.equal("change", d.key)
-        assert.equal(2000, d.ms)
+        assert.equal(10000, d.ms)
       end
       assert.equal(1, #captures)       -- only the login snapshot so far
-      debounced[3].fn()
+      advance(10000)
+      assert.equal(2, #captures)
+      advance(10000)
+      assert.equal(2, #captures)       -- one snapshot, not one per event
+    end)
+
+    it("a change 9 s after the previous one pushes the snapshot back again", function()
+      login()
+      t.ACTIONBAR_SLOT_CHANGED()
+      advance(9000)
+      assert.equal(1, #captures)
+      t.ACTIONBAR_SLOT_CHANGED()       -- restarts the wait
+      advance(9000)                    -- 18 s after the first change, 9 s after the second
+      assert.equal(1, #captures)
+      advance(1000)                    -- 10 s after the second
+      assert.equal(2, #captures)
+    end)
+
+    it("a login-time error does not leave change tracking switched off", function()
+      t.CaptureLayouts = function() error("boom") end
+      t:onLogin()
+      assert.has_error(function() after_fns[1].fn() end)
+      t.ACTIONBAR_SLOT_CHANGED()
+      assert.equal(1, #debounced)
+    end)
+
+    it("a change due while the cursor holds something is tried again after another quiet period", function()
+      login()
+      t.ACTIONBAR_SLOT_CHANGED()
+      env.cursor = true
+      advance(10000)
+      assert.equal(1, #captures)       -- skipped: the cursor is held
+      env.cursor = false
+      advance(10000)
       assert.equal(2, #captures)
     end)
 

@@ -94,7 +94,7 @@ describe("Warbandeer_Bars capture", function()
   end)
 
   describe("temp macros: cursor vs no-cursor resolution (#984)", function()
-    -- A temp macro slot reports subType; its real index is only known via the cursor round-trip, or (logout)
+    -- A temp macro slot reports subType; its real index is only known via the cursor round-trip, or (the change snapshot)
     -- via its action text / the stored profile.
     local calls, cursorIndex
 

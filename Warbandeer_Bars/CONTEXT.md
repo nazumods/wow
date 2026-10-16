@@ -119,12 +119,14 @@ missing `WarbandeerBarsSettings` keys from `ns.DefaultSettings`.
 |---|---|
 | `onLogin` (entering world) | 2000 ms |
 | `ACTIVE_TALENT_GROUP_CHANGED` (spec swap) | 500 ms |
-| `ACTIONBAR_SLOT_CHANGED`, `UPDATE_MACROS`, `UPDATE_BINDINGS` | 2000 ms after the **last** event (`ns:debounce("change", ...)`, its own keyed timer) |
+| `ACTIONBAR_SLOT_CHANGED`, `UPDATE_MACROS`, `UPDATE_BINDINGS` | 10000 ms after the **last** event (`CHANGE_SETTLE_MS`; `ns:debounce("change", ...)`, its own keyed timer; every event restarts the wait) |
 | `EDIT_MODE_LAYOUTS_UPDATED` (→ `ns.CaptureLayouts()`) | none |
 
-There is **no logout snapshot**. By `PLAYER_LOGOUT` the client has already emptied the action bars and the spec: on Retail
-on 2026-10-15 a logout snapshot that was made to store (using the last known spec) wrote a profile with 0 action slots over
-a 101-slot one, and before that the spec id presumably read 0 so `store()` refused it (inferred, not read from the client).
+There is **no logout snapshot**. By `PLAYER_LOGOUT` the client has already emptied the action bars: on Retail on
+2026-10-15 a logout snapshot that was made to store (using the last known spec) wrote a profile with 0 action slots over a
+101-slot one (observed). Before that it stored nothing because the spec id presumably read 0 and `store()` refuses
+`specID == 0` (inferred, not read from the client). `ns.PLAYER_LOGOUT` takes no snapshot; it only disarms `ready`, so a change
+timer still pending when the UI starts tearing down captures nothing.
 Bar changes are saved as they happen instead (`tracker.lua`):
 
 - **Armed only after the login snapshot** has run (`ready`): before it the bars are still populating, which is why the login
@@ -134,7 +136,12 @@ Bar changes are saved as they happen instead (`tracker.lua`):
   action-bar event and cannot loop. (If the client delivers a cursor-path capture's events after it returns, one extra
   cursor-free snapshot results; it cannot loop.)
 - **Unguarded** (`Snapshot(false, true)`): it records a legitimate reduction, the role the logout snapshot used to have.
-- **Combat:** a snapshot that comes due in combat sets `pendingChange` and runs on `PLAYER_REGEN_ENABLED`.
+- **Combat:** a snapshot that comes due in combat sets `pendingChange` and runs on `PLAYER_REGEN_ENABLED`. One that comes due
+  while the cursor holds something (`Snapshot` skips then) is re-armed for another quiet period.
+- **Cost of having no logout snapshot:** a change made in the last 10 s before logout or `/reload` is not saved (the pending timer is
+  dropped), and if it was a *reduction* (buttons removed) the next login snapshot, being sparse-guarded, refuses the smaller
+  capture, so the removal is saved only at the next change event. Additions are accepted by that guard.
+- **Armed even if the login work throws** (the login timer arms `ready` after a `pcall`, then rethrows).
 - **Spec change** keeps its own `ns:delay` timer; a bar change uses `ns:debounce`'s keyed timer, so neither cancels the other.
 
 `cursorFree` (`ns.Snapshot(guardSparse, cursorFree)` → `ns.Capture(..., cursorFree)`) never calls
