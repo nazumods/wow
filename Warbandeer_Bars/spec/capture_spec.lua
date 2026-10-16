@@ -237,6 +237,13 @@ describe("Warbandeer_Bars capture", function()
       assert.are_not.equal(before, c.ns.Fingerprint())
     end)
 
+    it("a different action on the same slot changes it (same type, new id)", function()
+      local c = client()
+      local before = c.ns.Fingerprint()
+      c.slots[1] = { "spell", 101 }
+      assert.are_not.equal(before, c.ns.Fingerprint())
+    end)
+
     it("a slot change, a binding change and a removed slot all change it", function()
       local c = client()
       local base = c.ns.Fingerprint()
