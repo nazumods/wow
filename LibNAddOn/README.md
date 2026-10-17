@@ -239,6 +239,7 @@ once, in `UNSUPPORTED` in `flavor.lua`; anything not listed is supported everywh
 | Feature | Forever |
 |---|---|
 | `specializations`, `housing`, `delves`, `mythicPlus`, `encounterJournal`, `travelersLog`, `garrison`, `legion` | not supported |
+| `midnight` | not supported: Midnight-expansion content (profession knowledge, concentration, artisan currencies, Midnight weeklies, caches and currencies) rather than a game system |
 | `greatVault`, `warbandBank` | not supported *for now* — unverified on the beta, so off until it is shown to work |
 | anything else | supported |
 
