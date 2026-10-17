@@ -8,7 +8,7 @@
 
 It's the backbone that powers **Warbandeer**'s Bars view: preview any character/spec's setup and copy it onto the character you're playing, with per-bar toggles and macro re-creation so a cross-character import actually works. On its own it just collects and stores; install [Warbandeer](https://github.com/nazumods/wow/tree/main/Warbandeer) to browse and apply the profiles.
 
-Profiles are captured at natural session boundaries (login, spec change, logout/reload) — never on a per-click basis — so it stays completely out of your way.
+Profiles are captured at login and spec change, and again 10-20 seconds after you change buttons, macro names or icons, or keybindings (an edit to only a macro's text is picked up at your next such change or the next login) — so your setup is saved as you go and it stays out of your way (a change in the last 10-20 seconds before you log out is not saved).
 
 ## Dependencies
 

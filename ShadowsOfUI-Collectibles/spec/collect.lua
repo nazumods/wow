@@ -18,8 +18,10 @@ local function strsplit(sep, s)
   return unpack(out)
 end
 
+---@param opts table? { unsupported = { [feature] = true } } features the fake client lacks (Forever: housing)
 ---@return table ns, table state
-function M.load()
+function M.load(opts)
+  local unsupported = opts and opts.unsupported or {}
   -- Distinct sentinel class ids; the real Enum values are opaque, we only need
   -- detect.lua's equality checks to line up with what the fake item info reports.
   _G.Enum = {
@@ -93,7 +95,9 @@ function M.load()
   _G.HOUSING_DECOR_OWNED_COUNT_FORMAT = nil
 
   local ns = {
-    registerEvent = function() end,
+    events = {},         -- [event] = true for every event detect.lua registered
+    registerEvent = function(self, e) self.events[e] = true end,
+    Supports = function(_, feature) return not unsupported[feature] end,
     Refresh = function() end,
     QuestItems = {},
     SpecialItems = {},
@@ -101,6 +105,19 @@ function M.load()
   }
   assert(loadfile("ShadowsOfUI-Collectibles/detect.lua"))("ShadowsOfUI-Collectibles", ns)
   return ns, state
+end
+
+-- Loads surfaces.lua into `ns` (from M.load) with its Blizzard hooks stubbed out, so
+-- ns:onLogin can be driven. `calls.searcher` counts C_HousingCatalog.CreateCatalogSearcher.
+---@return table calls
+function M.loadSurfaces(ns)
+  local calls = { searcher = 0 }
+  _G.hooksecurefunc = function() end
+  _G.EventUtil = { ContinueOnAddOnLoaded = function() end }
+  _G.C_HousingCatalog = { CreateCatalogSearcher = function() calls.searcher = calls.searcher + 1 end }
+  ns.AddRefresher = function() end
+  assert(loadfile("ShadowsOfUI-Collectibles/surfaces.lua"))("ShadowsOfUI-Collectibles", ns)
+  return calls
 end
 
 return M
