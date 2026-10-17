@@ -1,8 +1,9 @@
 -- Warbandeer_Characters on Forever: the data files for systems Forever lacks gate themselves off, behind the
 -- feature table (`ns:Supports`), not behind an API-existence probe (Forever has the C_* tables, empty). Each
--- file is loaded against a stub namespace whose `Supports` answers per feature: the Forever case must register
--- nothing (no broker, event, dump or command); the Retail case must register as before. Deleting a gate, or
--- inverting it, fails the case named for it (nazumods/wow#957).
+-- file is loaded against a stub namespace whose `Supports` answers per feature (D7's and D8's Forever and Retail
+-- cases answer from the real LibNAddOn/flavor.lua table instead): the Forever case must register nothing (no
+-- broker, event, dump or command) or drop the gated fields; the Retail case must register as before. Deleting a
+-- gate, or inverting it, fails the case named for it (nazumods/wow#957).
 -- luacheck: globals describe it before_each after_each
 
 local GLOBALS = {
@@ -370,8 +371,20 @@ describe("Warbandeer_Characters on Forever", function()
     return names
   end
 
+  -- Every field data/currency.lua and data/quests.lua define, so a case can pin the exact set a gate leaves.
+  local ALL_CURRENCIES = { "RestoredCofferKey", "gold", "CofferKeyShard", "Catalyst", "HeroDawncrest", "MythDawncrest",
+                           "NebulousVoidcore", "FieldAccolade", "UnalloyedAbundance", "UntaintedManaCrystal",
+                           "ShardOfDundun" }
+  local ALL_QUESTS = { "UndermineStoryMode", "WWIRep", "LumberAxe", "delves", "CatalystUnbound" }
+  local function set(list) local s = {}; for _, v in ipairs(list) do s[v] = true end return s end
+  local function without(list, gone)
+    local out = {}
+    for _, v in ipairs(list) do if not gone[v] then out[#out + 1] = v end end
+    return set(out)
+  end
+
   -- Midnight-only content (nazumods/wow#987).
-  describe("D7 Midnight-only data (real feature table)", function()
+  describe("D7 Midnight-only data", function()
     local function weeklyFields()
       load("data/weekly.lua")
       local names = {}
@@ -443,12 +456,10 @@ describe("Warbandeer_Characters on Forever", function()
 
     it("Retail: every currency field is present", function()
       useRealFlavor("retail")
-      local f = currencyFields()
-      for _, name in ipairs(MIDNIGHT_CURRENCIES) do assert.is_true(f[name], name) end
-      assert.is_true(f.gold)
+      assert.same(set(ALL_CURRENCIES), currencyFields())
     end)
 
-    it("Forever: the CatalystUnbound achievement flag is dropped, other quest fields stay; Retail keeps it", function()
+    it("Forever: the CatalystUnbound achievement flag is dropped and UndermineStoryMode stays; Retail keeps it", function()
       useRealFlavor("forever")
       load("data/quests.lua")
       assert.is_nil(ns.brokers.quests.fields.CatalystUnbound)
@@ -459,11 +470,10 @@ describe("Warbandeer_Characters on Forever", function()
       assert.is_not_nil(ns.brokers.quests.fields.CatalystUnbound)
     end)
 
-    it("midnight alone unsupported drops the Midnight currencies and flag, nothing else", function()
+    it("midnight alone unsupported drops the Midnight currencies and CatalystUnbound, and no other currency or quest field", function()
       unsupported.midnight = true
-      local f = currencyFields()
-      for _, name in ipairs(MIDNIGHT_CURRENCIES) do assert.is_nil(f[name], name) end
-      assert.is_true(f.gold); assert.is_true(f.CofferKeyShard)
+      assert.same(without(ALL_CURRENCIES, set(MIDNIGHT_CURRENCIES)), currencyFields())
+      assert.same(without(ALL_QUESTS, set({ "CatalystUnbound" })), questFields())
     end)
 
     it("midnight alone unsupported drops only preMidnight and caches", function()
@@ -478,16 +488,6 @@ describe("Warbandeer_Characters on Forever", function()
   -- Delve keys and the Find Lumber flag (a housing resource) go.
   describe("D8 Delves and Housing records", function()
     local DELVE_KEYS = { "RestoredCofferKey", "CofferKeyShard" }
-    local function set(list) local s = {}; for _, v in ipairs(list) do s[v] = true end return s end
-    local ALL_CURRENCIES = { "RestoredCofferKey", "gold", "CofferKeyShard", "Catalyst", "HeroDawncrest", "MythDawncrest",
-                             "NebulousVoidcore", "FieldAccolade", "UnalloyedAbundance", "UntaintedManaCrystal",
-                             "ShardOfDundun" }
-    local ALL_QUESTS = { "UndermineStoryMode", "WWIRep", "LumberAxe", "delves", "CatalystUnbound" }
-    local function without(list, gone)
-      local out = {}
-      for _, v in ipairs(list) do if not gone[v] then out[#out + 1] = v end end
-      return set(out)
-    end
 
     it("Forever: the Delve keys are dropped from the currency fields, gold stays", function()
       useRealFlavor("forever")
@@ -521,9 +521,10 @@ describe("Warbandeer_Characters on Forever", function()
       assert.same(without(ALL_QUESTS, set({ "delves" })), questFields())
     end)
 
-    it("housing alone unsupported drops LumberAxe, and no other quest field", function()
+    it("housing alone unsupported drops LumberAxe, and no other quest or currency field", function()
       unsupported.housing = true
       assert.same(without(ALL_QUESTS, set({ "LumberAxe" })), questFields())
+      assert.same(set(ALL_CURRENCIES), currencyFields())
     end)
   end)
 end)
