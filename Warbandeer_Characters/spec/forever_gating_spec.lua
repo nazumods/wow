@@ -344,18 +344,33 @@ describe("Warbandeer_Characters on Forever", function()
     end)
   end)
 
-  -- Midnight-only content (nazumods/wow#987): the REAL LibNAddOn/flavor.lua feature table decides, not a stub, so
-  -- deleting the `midnight` table entry fails these exactly as deleting a gate does.
-  describe("D7 Midnight-only data (real feature table)", function()
-    local function useRealFlavor(flavor)
-      _G.WOW_PROJECT_CAMELOT, _G.WOW_PROJECT_ID = 18, (flavor == "forever") and 18 or 1
-      _G.C_AddOns = nil
-      local lib = {}
-      assert(loadfile("LibNAddOn/flavor.lua"))("LibNAddOn", lib)
-      assert.equals(flavor, lib.flavor.id)
-      function ns.Supports(_, feature) ns.asked[#ns.asked + 1] = feature; return lib.Supports(feature) end
-    end
+  -- The REAL LibNAddOn/flavor.lua feature table decides in D7 and D8, not a stub, so deleting a feature's table
+  -- entry fails those cases exactly as deleting a gate does.
+  local function useRealFlavor(flavor)
+    _G.WOW_PROJECT_CAMELOT, _G.WOW_PROJECT_ID = 18, (flavor == "forever") and 18 or 1
+    _G.C_AddOns = nil
+    local lib = {}
+    assert(loadfile("LibNAddOn/flavor.lua"))("LibNAddOn", lib)
+    assert.equals(flavor, lib.flavor.id)
+    function ns.Supports(_, feature) ns.asked[#ns.asked + 1] = feature; return lib.Supports(feature) end
+  end
 
+  local function currencyFields()
+    load("data/currency.lua")
+    local names = {}
+    for name in pairs(ns.brokers.currency.fields) do names[name] = true end
+    return names
+  end
+
+  local function questFields()
+    load("data/quests.lua")
+    local names = {}
+    for name in pairs(ns.brokers.quests.fields) do names[name] = true end
+    return names
+  end
+
+  -- Midnight-only content (nazumods/wow#987).
+  describe("D7 Midnight-only data (real feature table)", function()
     local function weeklyFields()
       load("data/weekly.lua")
       local names = {}
@@ -418,18 +433,11 @@ describe("Warbandeer_Characters on Forever", function()
     local MIDNIGHT_CURRENCIES = { "Catalyst", "HeroDawncrest", "MythDawncrest", "NebulousVoidcore", "FieldAccolade",
                                   "UnalloyedAbundance", "UntaintedManaCrystal", "ShardOfDundun" }
 
-    local function currencyFields()
-      load("data/currency.lua")
-      local names = {}
-      for name in pairs(ns.brokers.currency.fields) do names[name] = true end
-      return names
-    end
-
-    it("Forever: the Midnight currency fields are dropped, gold and the Delve keys stay", function()
+    it("Forever: the Midnight currency fields are dropped, gold stays", function()
       useRealFlavor("forever")
       local f = currencyFields()
       for _, name in ipairs(MIDNIGHT_CURRENCIES) do assert.is_nil(f[name], name) end
-      for _, kept in ipairs({ "gold", "RestoredCofferKey", "CofferKeyShard" }) do assert.is_true(f[kept], kept) end
+      assert.is_true(f.gold)
     end)
 
     it("Retail: every currency field is present", function()
@@ -462,6 +470,46 @@ describe("Warbandeer_Characters on Forever", function()
       local f = weeklyFields()
       assert.is_nil(f.preMidnight); assert.is_nil(f.caches)
       for _, kept in ipairs({ "DMF", "delversBounty", "vault", "keystone", "dungeons" }) do assert.is_true(f[kept], kept) end
+    end)
+  end)
+
+  -- Delves records (nazumods/wow#957): Forever has no Delves, so the Delve intro-quest flags and the Delve keys go.
+  describe("D8 Delves records (real feature table)", function()
+    local DELVE_KEYS = { "RestoredCofferKey", "CofferKeyShard" }
+
+    it("Forever: the Delve keys are dropped from the currency fields, gold stays", function()
+      useRealFlavor("forever")
+      local f = currencyFields()
+      for _, name in ipairs(DELVE_KEYS) do assert.is_nil(f[name], name) end
+      assert.is_true(f.gold)
+    end)
+
+    it("Retail: the Delve keys are present", function()
+      useRealFlavor("retail")
+      local f = currencyFields()
+      for _, name in ipairs(DELVE_KEYS) do assert.is_true(f[name], name) end
+    end)
+
+    it("Forever: the delves quest field is dropped, the other quest fields stay", function()
+      useRealFlavor("forever")
+      local f = questFields()
+      assert.is_nil(f.delves)
+      for _, kept in ipairs({ "UndermineStoryMode", "WWIRep", "LumberAxe" }) do assert.is_true(f[kept], kept) end
+    end)
+
+    it("Retail: the delves quest field is present", function()
+      useRealFlavor("retail")
+      assert.is_true(questFields().delves)
+    end)
+
+    it("delves alone unsupported drops the Delve keys and the delves quest field, nothing else", function()
+      unsupported.delves = true
+      local c = currencyFields()
+      for _, name in ipairs(DELVE_KEYS) do assert.is_nil(c[name], name) end
+      for _, kept in ipairs({ "gold", "Catalyst", "ShardOfDundun" }) do assert.is_true(c[kept], kept) end
+      local q = questFields()
+      assert.is_nil(q.delves)
+      assert.is_true(q.CatalystUnbound)
     end)
   end)
 end)
