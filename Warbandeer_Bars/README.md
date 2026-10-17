@@ -142,6 +142,10 @@ Inspection/testing only (the data layer has no window):
 
 `/wbbars` is an alias for `/wbb`.
 
+## WoW: Forever
+
+Loads on **WoW: Forever** (Interface 16001) as well as Retail.
+
 ## Dependencies
 
 - **LibNAddOn** — the only dependency. No LibNUI, no Warbandeer_Characters; truly headless.

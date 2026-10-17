@@ -14,6 +14,10 @@ No settings, no commands, no saved data — install it and level.
 
 A **Changelog** button in this addon's settings (Options → AddOns → Shadows of UI → XP Bar) opens its release history in a scrollable, copyable window.
 
+## WoW: Forever
+
+Loads on **WoW: Forever** (Interface 16001) as well as Retail.
+
 ## Dependencies
 
 - **LibNAddOn**

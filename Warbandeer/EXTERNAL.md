@@ -23,6 +23,10 @@ Open it with `/warband` or `/wb`, the minimap button, or the addon-compartment m
 - **LibNAddOn**, **LibNUI**, and **Warbandeer_Characters** (the data layer that does the collecting) — all install automatically.
 - Optional: **Warbandeer_Bars** (Bars view), **Warbandeer_Collected** (Collected view), **Warbandeer_Decor** (Housing Decor view), **ShadowsOfUI-Upgrade** (gear-upgrade markers), and **ClassCodex** (stat targets + consumables).
 
+## Game versions
+
+Works on both game versions: **Retail** and **WoW: Forever**.
+
 ## Found a bug / Have a suggestion?
 
 Warbandeer is developed in the open as part of **[Nazuraki's WoW AddOn Suite](https://github.com/nazumods/wow)**. Please report bugs and request features on the **[GitHub issue tracker](https://github.com/nazumods/wow/issues)**.

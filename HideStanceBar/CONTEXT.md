@@ -1,6 +1,6 @@
 # HideStanceBar
 
-**Deps:** LibNAddOn, LibNUI · **SavedVars:** `HideStanceBarDB` (v1) · **UI:** LibNUI · **Settings:** subcategory under the shared "Shadows of UI" parent
+**Deps:** LibNAddOn, LibNUI · **SavedVars:** `HideStanceBarDB` (v1) · **UI:** LibNUI · **Settings:** subcategory under the shared "Shadows of UI" parent · **Clients:** Retail + Forever
 
 Hides the Blizzard `StanceBar` per class by reparenting it onto a hidden frame. Toggled from an in-game settings panel.
 

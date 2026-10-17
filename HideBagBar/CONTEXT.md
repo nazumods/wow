@@ -1,6 +1,6 @@
 # HideBagBar
 
-**Deps:** none (raw WoW API) · **SavedVars:** none · **Category:** Shadows of UI
+**Deps:** none (raw WoW API) · **SavedVars:** none · **Category:** Shadows of UI · **Clients:** Retail + Forever
 
 Hides Blizzard's bag bar buttons on load. No LibNAddOn, no DB, no LibNUI.
 

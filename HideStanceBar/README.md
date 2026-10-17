@@ -13,6 +13,10 @@ no reload needed.
 Settings are account-wide and keyed by class, so hiding the bar for Druids hides it on
 all your Druids.
 
+## WoW: Forever
+
+Loads on **WoW: Forever** (Interface 16001) as well as Retail.
+
 ## Dependencies
 
 - **LibNAddOn**

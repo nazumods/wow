@@ -1,6 +1,6 @@
 # LibNUI ModelViewer
 
-**Deps:** LibNAddOn, LibNUI · **Global:** registers `ui.Model` (`LibNUI.Model`) on the shared LibNUI widget table · **Commands:** none · **DB:** none
+**Deps:** LibNAddOn, LibNUI · **Global:** registers `ui.Model` (`LibNUI.Model`) on the shared LibNUI widget table · **Commands:** none · **DB:** none · **Clients:** Retail + Forever
 
 Single-widget companion addon: the `ModelScene`-backed 3D model viewer, extracted from core LibNUI (issue #591) so only addons that present a 3D character / transmog viewer carry it. `Model.lua` is the setup file (`local ns = LibNAddOn(...)`); the addon declares `## X-NUI-UI: LibNUI` so `ns.ui` resolves to the shared LibNUI table, then registers `Model` back onto it. Consumers reach it as `ui.Model` / `LibNUI.Model` exactly as before, provided they add `LibNUI-ModelViewer` to their `## Dependencies` so the widget exists at file-load time.
 

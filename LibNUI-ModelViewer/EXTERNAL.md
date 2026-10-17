@@ -12,6 +12,10 @@ It adds a `ModelScene`-backed 3D model-viewer widget (`ui.Model`) to LibNUI: lef
 
 Full API documentation lives in the [README on GitHub](https://github.com/nazumods/wow/tree/main/LibNUI-ModelViewer). The whole suite is open source — issues and pull requests welcome.
 
+## Game versions
+
+Works on both game versions: **Retail** and **WoW: Forever**.
+
 ## Found a bug / Have a suggestion?
 
 LibNUI-ModelViewer is developed in the open as part of **[Nazuraki's WoW AddOn Suite](https://github.com/nazumods/wow)**. Please report bugs and request features on the **[GitHub issue tracker](https://github.com/nazumods/wow/issues)**.

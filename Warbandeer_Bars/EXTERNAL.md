@@ -18,6 +18,10 @@ Profiles are captured at natural session boundaries (login, spec change, logout/
 
 Warbandeer_Bars exposes a `WarbandeerBarsApi` for any addon to build on. See the [README on GitHub](https://github.com/nazumods/wow/tree/main/Warbandeer_Bars).
 
+## Game versions
+
+Works on both game versions: **Retail** and **WoW: Forever**.
+
 ## Found a bug / Have a suggestion?
 
 Warbandeer_Bars is developed in the open as part of **[Nazuraki's WoW AddOn Suite](https://github.com/nazumods/wow)**. Please report bugs and request features on the **[GitHub issue tracker](https://github.com/nazumods/wow/issues)**.

@@ -17,6 +17,10 @@ installed):
   already *starts with* the alias (e.g. alias `Naz` on `Nazuraki`); when disabled, the
   prefix applies on any name that isn't exactly the alias.
 
+## WoW: Forever
+
+Loads on **WoW: Forever** (Interface 16001) as well as Retail.
+
 ## Dependencies
 
 - **LibNAddOn**
