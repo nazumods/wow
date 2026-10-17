@@ -2,7 +2,7 @@
 ## Category: Lib
 ## Title: LibNAddOn
 ## Author: Nazuraki
-## Version: 12.1.5-r2
+## Version: 12.1.5-r3
 ## X-Game: [Game]
 ## X-Family: [Family]
 ## IconTexture: Interface\Icons\achievement_guildperk_bountifulbags

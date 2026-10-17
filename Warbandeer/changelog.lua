@@ -6,6 +6,15 @@ local ns = select(2, ...)
 -- same conventional-commit grouping used for the GitHub/CurseForge release notes.
 ---@type { version: string, notes: string }[]
 ns.changelog = {
+  { version = "12.1.5-r3", notes = [==[
+### Features
+- Warbandeer_Characters, Warbandeer and Warbandeer_Bars load on Forever (16001) (Epic #951) (#980)
+- views and columns Forever lacks never register; class-id gaps skipped (Part of #958; merge after #978) (#979)
+
+### Bug Fixes
+- the Races tab handles races the race tables don't know (#958; merge before #980) (#990)
+
+]==] },
   { version = "12.1.5-r2", notes = [==[
 ### Bug Fixes
 - call the C_ APIs behind the deprecated shims, drop dead _G fallbacks (#949, PR 1 of 2) (#970)
