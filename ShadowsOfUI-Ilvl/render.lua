@@ -13,27 +13,40 @@ local TRACK_RGB   = { 1, 0.82, 0 } -- gold (overlay track text)
 -- slots get their label to the RIGHT of the icon, right-column slots to the
 -- LEFT — i.e. always toward the centre of the panel, where it's easy to scan.
 -- { point, relativePoint, x, y, justifyH }
-local InsetPositions = {}
-ns.InsetPositions = InsetPositions
-do
+-- Built by a pure function so a spec can drive both flavors; render.lua assigns the
+-- live table for the detected flavor just below.
+---@param isForever boolean? WoW: Forever client
+---@return table<string, table> positions
+function ns.BuildInsetPositions(isForever)
+    local positions = {}
     local ONRIGHT = { "LEFT", "RIGHT", 6, 0, "LEFT" }
     local ONLEFT  = { "RIGHT", "LEFT", -6, 0, "RIGHT" }
+    -- Forever's bottom row is MainHand -> SecondaryHand -> Ranged, 6 px apart (5 px on
+    -- inspect), so a beside-the-icon label would sit on the neighbouring icon: the
+    -- off hand's on the Ranged icon. Label that row above its icons instead.
+    local ABOVE   = { "BOTTOM", "TOP", 0, 3, "CENTER" }
     for _, slot in ipairs({ "Head", "Neck", "Shoulder", "Back", "Chest", "Shirt", "Tabard", "Wrist" }) do
-        InsetPositions["Character" .. slot .. "Slot"] = ONRIGHT
-        InsetPositions["Inspect" .. slot .. "Slot"]   = ONRIGHT
+        positions["Character" .. slot .. "Slot"] = ONRIGHT
+        positions["Inspect" .. slot .. "Slot"]   = ONRIGHT
     end
     for _, slot in ipairs({ "Hands", "Waist", "Legs", "Feet", "Finger0", "Finger1", "Trinket0", "Trinket1" }) do
-        InsetPositions["Character" .. slot .. "Slot"] = ONLEFT
-        InsetPositions["Inspect" .. slot .. "Slot"]   = ONLEFT
+        positions["Character" .. slot .. "Slot"] = ONLEFT
+        positions["Inspect" .. slot .. "Slot"]   = ONLEFT
     end
     -- Weapons sit at the bottom centre; label them like the columns (main hand to
     -- its left, off hand to its right) but vertically centred so they drop below
     -- the wrist / trinket-2 labels at the column bottoms instead of overlapping.
-    InsetPositions["CharacterMainHandSlot"]      = ONLEFT
-    InsetPositions["InspectMainHandSlot"]        = ONLEFT
-    InsetPositions["CharacterSecondaryHandSlot"] = ONRIGHT
-    InsetPositions["InspectSecondaryHandSlot"]   = ONRIGHT
+    -- The Ranged buttons exist only on Forever (no ammo: it is not weapon/armor).
+    for _, prefix in ipairs({ "Character", "Inspect" }) do
+        positions[prefix .. "MainHandSlot"]      = isForever and ABOVE or ONLEFT
+        positions[prefix .. "SecondaryHandSlot"] = isForever and ABOVE or ONRIGHT
+        positions[prefix .. "RangedSlot"]        = isForever and ABOVE or ONRIGHT
+    end
+    return positions
 end
+
+local InsetPositions = ns.BuildInsetPositions(ns.flavor and ns.flavor.isForever)
+ns.InsetPositions = InsetPositions
 
 -- Compact upgrade-track code (e.g. "C2" = Champion 2, "H6" = Hero 6) from a full
 -- item hyperlink, or nil for non-upgradeable gear. GetItemUpgradeInfo accepts

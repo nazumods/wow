@@ -116,7 +116,7 @@ describe("LibNAddOn flavor", function()
       local ns = forever()
       for _, feature in ipairs({
         "specializations", "housing", "delves", "mythicPlus", "encounterJournal",
-        "travelersLog", "garrison", "legion", "greatVault", "warbandBank",
+        "travelersLog", "garrison", "legion", "greatVault", "warbandBank", "midnight",
       }) do
         assert.is_false(ns.Supports(feature), feature)
       end
@@ -126,7 +126,7 @@ describe("LibNAddOn flavor", function()
       local ns = retail()
       for _, feature in ipairs({
         "specializations", "housing", "delves", "mythicPlus", "encounterJournal",
-        "travelersLog", "garrison", "legion", "greatVault", "warbandBank",
+        "travelersLog", "garrison", "legion", "greatVault", "warbandBank", "midnight",
       }) do
         assert.is_true(ns.Supports(feature), feature)
       end

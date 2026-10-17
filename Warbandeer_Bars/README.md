@@ -15,17 +15,23 @@ setup is captured on its own, in the background, with nothing to remember.
 
 ## How it tracks
 
-Profiles are captured at session boundaries — never on a churning per-click basis:
+Profiles are captured at session boundaries and, after that, whenever a check shows your bars have changed:
 
 | Trigger | When |
 |---|---|
-| `onLogin` | 2 s after entering the world (lets the bars finish loading) |
-| `ACTIVE_TALENT_GROUP_CHANGED` | 500 ms after a spec change (lets the new spec settle) |
-| `PLAYER_LOGOUT` | on logout **and** on `/reload` |
+| `onLogin` | 2 s after entering the world (lets the bars finish loading); skipped if sparser than the stored profile |
+| `ACTIVE_TALENT_GROUP_CHANGED` | 500 ms after a spec change (lets the new spec settle); skipped if sparser than the stored profile |
+| a change to the bars | every 10 s the addon compares a fingerprint of your action slots, macro names and icons, and keybindings with the last saved one, and saves when it differs **and** has stayed the same for a full check, so a run of changes is one snapshot 10-20 s after the last of them; only after the login snapshot has run; not sparse-guarded, so a removed button is recorded (except the first such snapshot after a login snapshot that stored nothing, which is guarded) |
+| logout / `/reload` | **never** — by `PLAYER_LOGOUT` the client has already emptied the action bars (a logout snapshot stored 0 slots on Retail, 2026-10-15; the spec presumably reads empty too, inferred), so there is nothing real left to capture. A change made in the last 10-20 s before logout or `/reload` is not saved (a removal is then only recorded at the next change, because the login snapshot refuses a sparser capture) |
 
-A capture is skipped during combat (the macro temp-index resolution touches protected APIs)
-and while a cursor drag is in progress (it would clobber the held action). None of the triggers
-above fire in combat, so in practice this is just insurance.
+The checks use no bar events because they cannot tell a change from noise on a live client (observed on Retail in about
+two minutes: `UPDATE_MACROS` 798 times, `ACTIONBAR_SLOT_CHANGED` 535, `UPDATE_BINDINGS` 4; something rewrites a macro
+constantly, inferred). Macro **bodies** are deliberately not part of the fingerprint, so a macro edited only in its body is saved
+at your next slot, macro-name, icon or keybinding change, or at the next login.
+
+A check is skipped while a cursor drag is in progress (it would clobber the held action), during
+combat, and while a vehicle, quest-override, possess or temporary-shapeshift bar is up (its buttons are not your bars). The change snapshot resolves a temporary macro's index without touching the cursor (see
+`CONTEXT.md`), so it fires no action-bar events itself.
 
 Captures are always **full fidelity** (bars + binds + macros + pet bar + outfits). What a
 *restore* applies is filtered separately — see the include settings below.

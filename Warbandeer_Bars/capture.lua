@@ -42,8 +42,28 @@ local function BuildSpellOverrides()
   return map
 end
 
--- Capture all non-empty action bar slots
-local function CaptureSlots(overrides)
+-- Real macro index of a temp macro on action slot `i`, without touching the cursor (PickupAction shows the empty-slot
+-- grid, which runs other addons' action-bar hooks -- Bartender4 threw there at logout, #984). By the slot's
+-- action text (a macro's name; the first macro of that name wins, inferred), else the index the stored profile had at the
+-- same slot, else nil (restore skips a slot with no index).
+local function MacroIndexNoCursor(i, stored)
+  local name = C_ActionBar and C_ActionBar.GetActionText and C_ActionBar.GetActionText(i)
+  if name and name ~= "" and GetMacroIndexByName then
+    local found = GetMacroIndexByName(name)
+    if found and found > 0 then return found end
+  end
+  for _, s in ipairs(stored and stored.slots or {}) do
+    if s.id == i then
+      if s.type == "macro" then return s.index end
+      break
+    end
+  end
+  return nil
+end
+
+-- Capture all non-empty action bar slots. `cursorFree` (the change-driven snapshot) resolves a temp macro's index without the cursor;
+-- `stored` is the profile already stored for this character and spec (the fallback for that path).
+local function CaptureSlots(overrides, cursorFree, stored)
   local slots = {}
   for i = 1, MAX_BARS do
     local slotType, index, subType = GetActionInfo(i)
@@ -63,7 +83,9 @@ local function CaptureSlots(overrides)
         end
       elseif slotType == "macro" then
         -- subType means it's a temp macro; resolve real index via cursor
-        if subType then
+        if subType and cursorFree then
+          index = MacroIndexNoCursor(i, stored)
+        elseif subType then
           PickupAction(i)
           index = select(2, GetCursorInfo())
           PlaceAction(i)
@@ -104,6 +126,42 @@ local function CaptureSlots(overrides)
     end
   end
   return slots
+end
+
+---A cheap fingerprint of what the player sets up on the bars, compared by the change-checking ticker in tracker.lua (#984):
+---every action slot's type and id, except a macro slot, which carries only its macro NAME via the action text (never the
+---cursor): for a macro that currently resolves to a spell GetActionInfo's id is that SPELL id, which follows form, target and
+---modifier, so it is not read), every macro's name and icon, and every bound command's keys. Deliberately NOT macro bodies:
+---another addon can rewrite one every few seconds (observed on Retail: ~800 UPDATE_MACROS in two minutes), which would read as a
+---change forever. Absolute slot ids are read, so a shapeshift page change does not alter the contents of slots 1-72 (inferred
+---from Blizzard's source: a form swap sets the main bar's action PAGE); the caller skips vehicle/override pages (tracker.lua).
+---@return string
+function ns.Fingerprint()
+  local parts = {}
+  for i = 1, MAX_BARS do
+    local slotType, id = GetActionInfo(i)
+    if slotType and slotType ~= "" then
+      if slotType == "macro" then
+        local name = C_ActionBar and C_ActionBar.GetActionText and C_ActionBar.GetActionText(i)
+        parts[#parts + 1] = i .. ":macro:" .. tostring(name)
+      else
+        parts[#parts + 1] = i .. ":" .. slotType .. ":" .. tostring(id)
+      end
+    end
+  end
+  parts[#parts + 1] = "|macros"
+  for i = 1, MAX_MACROS do
+    local name, icon = GetMacroInfo(i)
+    if name then parts[#parts + 1] = i .. ":" .. name .. ":" .. tostring(icon) end
+  end
+  parts[#parts + 1] = "|binds"
+  for i = 1, GetNumBindings() do
+    local command, _, key1, key2 = GetBinding(i)
+    if command and (key1 or key2) then
+      parts[#parts + 1] = command .. "=" .. tostring(key1) .. "," .. tostring(key2)
+    end
+  end
+  return table.concat(parts, "\n")
 end
 
 -- Capture key bindings (skip unbound)
@@ -252,13 +310,16 @@ end
 ---@param include table  keys: bars, bindings, macros, petbar, outfits
 ---@param accountMacros boolean
 ---@param charMacros boolean
+---@param cursorFree boolean? resolve temp macros without the cursor (the change-driven snapshot, #984)
 ---@return table profile
-function ns.Capture(include, accountMacros, charMacros)
+function ns.Capture(include, accountMacros, charMacros, cursorFree)
   local overrides = BuildSpellOverrides()
   local profile = ProfileMeta()
+  local byChar = cursorFree and ns.db and ns.db.profiles and ns.db.profiles[profile.char]
+  local stored = byChar and byChar[profile.specID]
   profile.version  = 3   -- v2 adds barLayout; v3 adds summonpet species/custom names
   profile.captured = time()
-  profile.slots    = include.bars     and CaptureSlots(overrides)                  or {}
+  profile.slots    = include.bars     and CaptureSlots(overrides, cursorFree, stored) or {}
   profile.binds    = include.bindings and CaptureBindings()                        or {}
   profile.macros   = include.macros   and CaptureMacros(accountMacros, charMacros) or {}
   profile.petslots = include.petbar   and CapturePetBar()                          or {}

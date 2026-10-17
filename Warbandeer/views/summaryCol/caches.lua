@@ -1,5 +1,6 @@
 ---@type Warbandeer
 local ns = select(2, ...)
+if not ns:Supports("midnight") then return end -- the weekly caches it counts are Midnight quests (never registered on Forever)
 ---@type LibNUI
 local ui = ns.ui
 

@@ -12,9 +12,9 @@ character/spec's setup and import it onto the current character. Profiles are st
 | File | Purpose |
 |---|---|
 | `init.lua` | Assignment-form bootstrap; `MigrateDB` (v1 seeds `profiles={}`; v2 adds `layouts={}`), `DefaultSettings`, `onLoad` per-char settings init |
-| `capture.lua` | `ns.Capture(include, accountMacros, charMacros)` → profile table; per-section capture + spell/flyout override resolution |
+| `capture.lua` | `ns.Capture(include, accountMacros, charMacros, cursorFree?)` → profile table; per-section capture + spell/flyout override resolution |
 | `restore.lua` | `ns.Restore(profile, include, silent?, barFilter?)` — applies a profile, recreating macros on import; flyouts-first pre-pass, spellbook fallbacks, per-bar filter |
-| `tracker.lua` | `ns.Snapshot(guardSparse?)` + `ns.shouldStore` + auto-capture triggers (login / spec change / logout); combat- & cursor-guarded |
+| `tracker.lua` | `ns.Snapshot(guardSparse?, cursorFree?)` + `ns.shouldStore` + auto-capture triggers (login / spec change / a 10 s fingerprint check of bars, macro names and icons, and bindings, saving on a change that held for a full check; none at logout); combat- & cursor-guarded. `capture.lua` holds `ns.Fingerprint()` |
 | `api.lua` | `WarbandeerBarsApi` methods |
 | `commands.lua` | `/wbb` inspection sub-commands (no window — data layer only) |
 | `spec/` | busted unit tests (`ns.shouldStore` sparse-capture guard, the WoW-API-free `api.lua` DB methods, the `ns.Capture` slot schema via `bars.loadCapture`'s `setfenv` global stubs, and `ns.Restore`'s petaction/futurespell clear via `bars.loadRestore` + the `bars.actionbars` fake bar, whose `PickupAction`/`PlaceAction` **swap** slot and cursor as they do in game — that swap is what made the clear a round-trip, so a harness modelling pickup as a plain removal wouldn't reproduce it); excluded from zip + release detection |
@@ -119,8 +119,69 @@ missing `WarbandeerBarsSettings` keys from `ns.DefaultSettings`.
 |---|---|
 | `onLogin` (entering world) | 2000 ms |
 | `ACTIVE_TALENT_GROUP_CHANGED` (spec swap) | 500 ms |
-| `PLAYER_LOGOUT` (also fires on `/reload`) | none |
+| a change to the bars | a ticker every `CHANGE_CHECK_SECONDS = 10` s compares `ns.Fingerprint()` (see below); a snapshot when it differs from the last stored one AND equals the previous tick's, i.e. 10-20 s after the last change |
 | `EDIT_MODE_LAYOUTS_UPDATED` (→ `ns.CaptureLayouts()`) | none |
+
+There is **no logout snapshot**. By `PLAYER_LOGOUT` the client has already emptied the action bars: on Retail on
+2026-10-15 a logout snapshot that was made to store (using the last known spec) wrote a profile with 0 action slots over a
+101-slot one (observed). Before that it stored nothing because the spec id presumably read 0 and `store()` refuses
+`specID == 0` (inferred, not read from the client). `ns.PLAYER_LOGOUT` takes no snapshot; it only disarms `ready`, so a tick
+that is still due when the UI starts tearing down captures nothing.
+Bar changes are saved by comparing the bars, not by listening to events (`tracker.lua`, `capture.lua`):
+
+- **Why not events (observed, Retail, 2026-10-15, about two minutes, a local test build):** `UPDATE_MACROS` fired 798 times,
+  `ACTIONBAR_SLOT_CHANGED` 535, `UPDATE_BINDINGS` 4; a "10 s after the last event" debounce was rescheduled 1,247 times and
+  never fired. Something rewrites a macro constantly (RareScanner's `RS_MACRO`, inferred) and buttons redraw constantly (procs,
+  forms, the assisted-combat button), so bar events cannot mean "the player changed something". The tracker registers none of them.
+- **`ns.Fingerprint()` (`capture.lua`):** a string of every action slot 1..`MAX_BARS` (`GetActionInfo` type and id, except a
+  **macro slot, which carries only its macro NAME** via `C_ActionBar.GetActionText`, never the cursor: for a macro that
+  currently resolves to a spell, `GetActionInfo`'s id is that SPELL id, which follows form, target and modifier, so reading it
+  would read every such change as an edit; found in review from Blizzard's `ActionButton.lua`), every macro's name and icon
+  (`GetMacroInfo`, **not its body**), and every bound command's `key1`/`key2`. Absolute slot ids are read, so a shapeshift
+  page change does not alter the slots' own contents (inferred from Blizzard's source: a form swap or vehicle sets the main
+  bar's action *page* attribute). A plain spell slot's id is read as `GetActionInfo` returns it (base vs override spell id
+  not verified).
+- **Macro bodies are deliberately not fingerprinted:** a body rewritten every few seconds by another addon would mean a snapshot
+  every 10 s. So a body-only macro edit is saved at the next slot / macro-name / icon / binding change or the next login.
+- **Store when changed AND steady (`tick`):** `lastStoredPrint` (set at arming from the fingerprint taken after the login
+  snapshot, but only if that snapshot actually stored: one skipped in combat or refused as sparse leaves it nil, so the first
+  steady tick takes a snapshot, and that first one stays **sparse-guarded** (`guardFirstChange`) so a login capture refused
+  because the bars were still unpopulated cannot be stored over the good profile 10 s later; and at every change snapshot)
+  and `lastTickPrint`. On a tick: differs from `lastStoredPrint` AND equals `lastTickPrint` -> a cursor-free,
+  unguarded `Snapshot(false, true)`; `lastTickPrint` is always updated. A snapshot attempt counts as stored even when it stored
+  nothing (no spec yet), so an unwritable profile is not re-captured every 10 s.
+- **Skips:** a tick in combat, with a cursor held, or while a vehicle / quest-override / possess / temporary-shapeshift bar is up
+  (`C_ActionBar.HasOverrideActionBar`, `HasVehicleActionBar`, `HasTempShapeshiftActionBar`, `IsPossessBarVisible`, each
+  guarded) is skipped entirely (it does not advance `lastTickPrint`, so changes made during it still need one steady tick
+  after it); nothing before the login snapshot has armed it (`ready`); nothing after `PLAYER_LOGOUT`. A fingerprint that
+  cannot be read (an error) skips the tick quietly. Those special bars replace the main bar's page, which lies inside the slot
+  range read (pages up to 15 fit in 180 slots; which page each special bar uses is inferred), so without the skip their
+  buttons would be stored as the player's bars. A **skyriding mount's** bonus bar is not recognised by those calls (inferred), so
+  it can still cost one extra snapshot while mounted that the dismount reverts. The login and spec snapshots had the same
+  exposure before this change.
+- **A snapshot that throws is not retried** until the bars change again (`lastStoredPrint` is set before the attempt).
+- **Cost (not measured; inferred from the loop bounds):** the fingerprint reads 180 slots, up to 150 macros and every binding
+  (`GetNumBindings()`, possibly around a thousand on a heavily modded client) per 10 s, plus a snapshot only when something
+  changed. One ticker only (`C_Timer.NewTicker`); a second login cancels the first.
+- **Unguarded** (`Snapshot(false, true)`): it records a legitimate reduction, the role the logout snapshot used to have. The one
+  exception is the first change snapshot after a login snapshot that stored nothing (`guardFirstChange`, above).
+- **Cost of having no logout snapshot:** a change made in the last 10-20 s before logout or `/reload` is not saved, and if it was a *reduction*
+  (buttons removed) the next login snapshot, being sparse-guarded, refuses the smaller capture, and so does the first change
+  snapshot after it (also guarded), so the removal is saved only at the next real change. Additions are accepted by the guard.
+- **Pet bar, equipment-set outfits and Edit Mode layouts are captured but are not fingerprint inputs:** they are saved when a
+  fingerprinted input changes, or at login or spec change, not on their own.
+- **Armed even if the login work throws** (the login timer arms `ready` and the ticker after a `pcall`, then rethrows).
+- **Spec change** keeps its own `ns:delay` timer; the ticker is independent of it. A spec swap changes the fingerprint too, so a
+  change snapshot follows 10-20 s later (redundant, harmless).
+
+`cursorFree` (`ns.Snapshot(guardSparse, cursorFree)` → `ns.Capture(..., cursorFree)`) never calls
+`PickupAction`/`PlaceAction`/`ClearCursor`: picking an action up shows the empty-slot grid, which runs other addons'
+action-bar hooks (Bartender4 threw there at logout, #984). A temp macro's index is then the first macro whose name equals
+`C_ActionBar.GetActionText(slot)` (`GetMacroIndexByName`; two macros with the same name resolve to the first -- inferred from
+the API's documented behaviour, not readable in the Blizzard UI source), else the index the stored profile for this
+character and spec had at the same slot when it was a macro (which can be stale if macros were deleted or reordered since
+that snapshot), else nil (restore skips a macro slot with no index). Every other snapshot (login, spec change, the
+`snapshot` command, `API:Snapshot`) keeps the cursor round-trip.
 
 ## Gotchas
 
@@ -131,14 +192,15 @@ missing `WarbandeerBarsSettings` keys from `ns.DefaultSettings`.
 
 - **`ns.Snapshot()` is a no-op during combat or mid-drag.** Macro temp-index resolution in capture
   touches protected APIs, and an in-progress cursor drag would be clobbered. Guarded by
-  `InCombatLockdown()` / `GetCursorInfo()`. None of the triggers fire in combat anyway.
+  `InCombatLockdown()` / `GetCursorInfo()`. The login and spec timers can fire in combat, and then take no snapshot (the first steady change check makes up for a skipped login snapshot); the change-check ticker skips a tick in combat or with a cursor held
+  (it does not advance its remembered fingerprint), so a change is saved on a later steady tick.
 - **Sparse-capture guard (`Snapshot(true)` on the login/spec timers).** The login (`onLogin`, 2 s
   after entering the world) and spec-change (500 ms) snapshots run on a delay and can fire before
   the action bars finish populating — an unguarded store would then overwrite a good profile with a
   half-empty capture. `ns.shouldStore` refuses a *guarded* capture whose `slots` count is below the
-  stored profile's. The **logout** snapshot is unguarded (bars are fully loaded — it's authoritative,
-  so a legitimate button removal is still recorded). Same for the public `API:Snapshot()` / `/wbb`
-  snapshot. Covered by `spec/tracker_spec.lua`.
+  stored profile's. The **change-driven** snapshot is unguarded (a legitimate button removal is still recorded), except the first one
+  after a login snapshot that stored nothing (`guardFirstChange`: skipped in combat, or refused because the bars were still
+  unpopulated), which stays guarded; the guard is consumed by that first attempt even if it is refused. Same for the public `API:Snapshot()` / `/wbb` snapshot. Covered by `spec/tracker_spec.lua`.
 - **`ns.Restore` bails in combat** (taint) — it prints a notice and returns.
 - **Flyouts restore FIRST** (`RestoreFlyouts` pre-pass): `PickupSpellBookItem` for flyout-type
   spellbook items (e.g. the warlock Summon Demon drawer) silently fails after any other protected

@@ -17,6 +17,7 @@ return {
       "Warbandeer_Decor/spec",
       "Warbandeer_Collected/spec",
       "HideBagBar/spec",
+      "ShadowsOfUI-Ilvl/spec",
     },
     lpath = "?.lua",
     verbose = true,
