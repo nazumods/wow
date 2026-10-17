@@ -221,9 +221,13 @@ Currency.fields = {
 
 -- Midnight-only currencies (nazumods/wow#987): Forever has no Midnight content, so these fields are dropped there -- never
 -- scanned, never reset, never listed by /wbc missing. Their Warbandeer summary columns are gated by the same feature.
--- RestoredCofferKey and CofferKeyShard are Delve keys (gated by the Warbandeer columns' own `delves` check) and stay.
 if not ns:Supports("midnight") then
   local fields = Currency.fields
   fields.Catalyst, fields.HeroDawncrest, fields.MythDawncrest, fields.NebulousVoidcore = nil, nil, nil, nil
   fields.FieldAccolade, fields.UnalloyedAbundance, fields.UntaintedManaCrystal, fields.ShardOfDundun = nil, nil, nil, nil
+end
+-- RestoredCofferKey and CofferKeyShard are Delve keys (#957): dropped where Delves are unsupported, like their
+-- `cofferKey` summary column. The feature table decides, not whether GetCurrencyInfo happens to return nil there.
+if not ns:Supports("delves") then
+  Currency.fields.RestoredCofferKey, Currency.fields.CofferKeyShard = nil, nil
 end
