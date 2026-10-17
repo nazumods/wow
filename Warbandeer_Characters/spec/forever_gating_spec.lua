@@ -344,8 +344,9 @@ describe("Warbandeer_Characters on Forever", function()
     end)
   end)
 
-  -- The REAL LibNAddOn/flavor.lua feature table decides in D7 and D8, not a stub, so deleting a feature's table
-  -- entry fails those cases exactly as deleting a gate does.
+  -- D7's and D8's "Forever:" and "Retail:" cases load the REAL LibNAddOn/flavor.lua feature table, not a stub, so
+  -- deleting a feature's table entry fails them exactly as deleting a gate does. Their "... alone unsupported" cases
+  -- use the stub table instead, to turn off one feature at a time.
   local function useRealFlavor(flavor)
     _G.WOW_PROJECT_CAMELOT, _G.WOW_PROJECT_ID = 18, (flavor == "forever") and 18 or 1
     _G.C_AddOns = nil
@@ -473,9 +474,20 @@ describe("Warbandeer_Characters on Forever", function()
     end)
   end)
 
-  -- Delves records (nazumods/wow#957): Forever has no Delves, so the Delve intro-quest flags and the Delve keys go.
-  describe("D8 Delves records (real feature table)", function()
+  -- Delves and Housing records (nazumods/wow#957): Forever has neither system, so the Delve intro-quest flags, the
+  -- Delve keys and the Find Lumber flag (a housing resource) go.
+  describe("D8 Delves and Housing records", function()
     local DELVE_KEYS = { "RestoredCofferKey", "CofferKeyShard" }
+    local function set(list) local s = {}; for _, v in ipairs(list) do s[v] = true end return s end
+    local ALL_CURRENCIES = { "RestoredCofferKey", "gold", "CofferKeyShard", "Catalyst", "HeroDawncrest", "MythDawncrest",
+                             "NebulousVoidcore", "FieldAccolade", "UnalloyedAbundance", "UntaintedManaCrystal",
+                             "ShardOfDundun" }
+    local ALL_QUESTS = { "UndermineStoryMode", "WWIRep", "LumberAxe", "delves", "CatalystUnbound" }
+    local function without(list, gone)
+      local out = {}
+      for _, v in ipairs(list) do if not gone[v] then out[#out + 1] = v end end
+      return set(out)
+    end
 
     it("Forever: the Delve keys are dropped from the currency fields, gold stays", function()
       useRealFlavor("forever")
@@ -490,26 +502,28 @@ describe("Warbandeer_Characters on Forever", function()
       for _, name in ipairs(DELVE_KEYS) do assert.is_true(f[name], name) end
     end)
 
-    it("Forever: the delves quest field is dropped, the other quest fields stay", function()
+    it("Forever: the delves and LumberAxe quest fields are dropped; UndermineStoryMode and WWIRep stay", function()
       useRealFlavor("forever")
       local f = questFields()
       assert.is_nil(f.delves)
-      for _, kept in ipairs({ "UndermineStoryMode", "WWIRep", "LumberAxe" }) do assert.is_true(f[kept], kept) end
+      assert.is_nil(f.LumberAxe)
+      for _, kept in ipairs({ "UndermineStoryMode", "WWIRep" }) do assert.is_true(f[kept], kept) end
     end)
 
-    it("Retail: the delves quest field is present", function()
+    it("Retail: every quest field is present", function()
       useRealFlavor("retail")
-      assert.is_true(questFields().delves)
+      assert.same(set(ALL_QUESTS), questFields())
     end)
 
-    it("delves alone unsupported drops the Delve keys and the delves quest field, nothing else", function()
+    it("delves alone unsupported drops the Delve keys and the delves quest field, and no other currency or quest field", function()
       unsupported.delves = true
-      local c = currencyFields()
-      for _, name in ipairs(DELVE_KEYS) do assert.is_nil(c[name], name) end
-      for _, kept in ipairs({ "gold", "Catalyst", "ShardOfDundun" }) do assert.is_true(c[kept], kept) end
-      local q = questFields()
-      assert.is_nil(q.delves)
-      assert.is_true(q.CatalystUnbound)
+      assert.same(without(ALL_CURRENCIES, set(DELVE_KEYS)), currencyFields())
+      assert.same(without(ALL_QUESTS, set({ "delves" })), questFields())
+    end)
+
+    it("housing alone unsupported drops LumberAxe, and no other quest field", function()
+      unsupported.housing = true
+      assert.same(without(ALL_QUESTS, set({ "LumberAxe" })), questFields())
     end)
   end)
 end)

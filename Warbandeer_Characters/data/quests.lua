@@ -132,6 +132,8 @@ ns.Quests.fields = {
 
 -- "Midnight Season 1: Catalyst Unbound" is Midnight content: no such achievement flag is tracked on Forever (#987).
 if not ns:Supports("midnight") then ns.Quests.fields.CatalystUnbound = nil end
--- Forever has no Delves (#957): the intro quests are never flagged there, so `delves` would only record a list of
--- falses. Dropped before Broker:Init, it is never scanned; its summary column is gated by the same feature.
+-- Forever has no Delves (#957): the intro quests don't exist there, and both beta records held ten `false` flags.
+-- Dropped before Broker:Init, the field is never scanned; its summary column is gated by the same feature.
 if not ns:Supports("delves") then ns.Quests.fields.delves = nil end
+-- Find Lumber is a housing resource (the `lumber` summary column is gated on `housing`): no housing, no flag (#957).
+if not ns:Supports("housing") then ns.Quests.fields.LumberAxe = nil end
