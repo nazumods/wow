@@ -32,9 +32,14 @@ local function forgetKnownNegatives()
 end
 for _, e in ipairs({
   "NEW_RECIPE_LEARNED", "NEW_MOUNT_ADDED", "NEW_PET_ADDED", "TOYS_UPDATED",
-  "TRANSMOG_COLLECTION_SOURCE_ADDED", "QUEST_TURNED_IN", "HOUSING_STORAGE_UPDATED",
+  "TRANSMOG_COLLECTION_SOURCE_ADDED", "QUEST_TURNED_IN",
 }) do
   ns:registerEvent(e, forgetKnownNegatives)
+end
+-- The event is documented on Forever too, but Forever has no housing: gate on the feature
+-- table, not on the API existing.
+if ns:Supports("housing") then
+  ns:registerEvent("HOUSING_STORAGE_UPDATED", forgetKnownNegatives)
 end
 
 local function itemIDFromLink(link)
@@ -141,7 +146,11 @@ function ns.IsKnown(link)
 
   local species = speciesFromLink(link)
   if species then
-    local known = C_PetJournal.GetNumCollectedInfo(species) > 0
+    -- Not in the generated API docs, and Blizzard calls it only from the pet-battle UI;
+    -- whether Forever's Classic pet journal has it is unconfirmed, so tolerate its absence
+    -- (not known, nothing cached, so it is asked again once it exists).
+    local getNumCollected = C_PetJournal.GetNumCollectedInfo
+    local known = getNumCollected and getNumCollected(species) > 0 or false
     if known then knownCache[link] = true end
     return known
   end

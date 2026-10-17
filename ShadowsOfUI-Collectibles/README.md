@@ -26,6 +26,8 @@ them at least once. If Warbandeer isn't installed, recipes fall back to a curren
 Everything else (toys, mounts, pets, decor) is account-wide in the game already, so it's marked
 from your live collection regardless of which character you're on.
 
+Also loads on **WoW: Forever**, which has no housing, so the housing-decor catalog is skipped there.
+
 ## Settings
 
 Open the game's **Settings → AddOns → Shadows of UI → Collectible Tints** panel:
