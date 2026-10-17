@@ -526,5 +526,16 @@ describe("Warbandeer_Characters on Forever", function()
       assert.same(without(ALL_QUESTS, set({ "LumberAxe" })), questFields())
       assert.same(set(ALL_CURRENCIES), currencyFields())
     end)
+
+    -- Every other feature Forever lacks, turned off alone, leaves both brokers whole: a gate that also asks about one
+    -- of these fails here.
+    for _, feature in ipairs({ "specializations", "mythicPlus", "encounterJournal", "travelersLog", "garrison", "legion",
+                               "greatVault", "warbandBank" }) do
+      it(feature .. " alone unsupported drops no quest or currency field", function()
+        unsupported[feature] = true
+        assert.same(set(ALL_QUESTS), questFields())
+        assert.same(set(ALL_CURRENCIES), currencyFields())
+      end)
+    end
   end)
 end)
