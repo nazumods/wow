@@ -61,6 +61,7 @@ describe("Warbandeer on Forever", function()
     local CASES = {
       { file = "views/VaultView.lua", key = "VaultView", feature = "Great Vault" },
       { file = "views/Legion.lua", key = "Legion", feature = "Legion" },
+      { file = "views/MidnightProfs.lua", key = "MidnightProfs", feature = "Midnight Professions" },
       { file = "views/HousingDecorView.lua", key = "HousingDecorView", feature = "Housing Decor",
         globals = { WarbandeerHousingDecorApi = { List = {} } } },
     }
@@ -108,17 +109,18 @@ describe("Warbandeer on Forever", function()
 
   -- ------------------------------------------------------------------ the rail / minimap list
   describe("NavViews", function()
-    -- Every view init.lua orders, registered by a stand-in except the three that gate themselves:
+    -- Every view init.lua orders, registered by a stand-in except the four that gate themselves:
     -- those are registered (or not) by loading the REAL files, so the list is the gates' output.
     local function navNames(flavor)
       local ns = wb.loadFlavored(flavor, {
-        "init.lua", "views/VaultView.lua", "views/Legion.lua", "views/HousingDecorView.lua", "window.lua",
+        "init.lua", "views/VaultView.lua", "views/Legion.lua", "views/MidnightProfs.lua", "views/HousingDecorView.lua",
+        "window.lua",
       }, { globals = {
         GetNumClasses = function() return 0 end,
         GetClassInfo = function() return nil end,
         WarbandeerHousingDecorApi = { List = {} },
       } })
-      local gated = { vault = true, legion = true, decor = true }
+      local gated = { vault = true, legion = true, midnightprofs = true, decor = true }
       for _, name in ipairs(ns.viewOrder) do
         if not gated[name] then ns.views["Stand" .. name] = { name = name, _title = name } end
       end
@@ -127,12 +129,14 @@ describe("Warbandeer on Forever", function()
       return names, ns
     end
 
-    it("NavViews on Forever has no vault/legion/decor entries; Retail's list is unchanged", function()
+    it("NavViews on Forever has no vault/legion/midnightprofs/decor entries; Retail's list is unchanged", function()
       local forever, fns = navNames("forever")
       local retail = navNames("retail")
       local expectedForever = {}
       for _, name in ipairs(fns.viewOrder) do
-        if name ~= "vault" and name ~= "legion" and name ~= "decor" then expectedForever[#expectedForever + 1] = name end
+        if name ~= "vault" and name ~= "legion" and name ~= "midnightprofs" and name ~= "decor" then
+          expectedForever[#expectedForever + 1] = name
+        end
       end
       assert.same(expectedForever, forever)
       assert.same(fns.viewOrder, retail)  -- every ordered view, in order, on Retail
@@ -159,10 +163,20 @@ describe("Warbandeer on Forever", function()
 
   -- ------------------------------------------------------------------ D3: summary columns
   describe("Summary columns of systems Forever lacks", function()
-    local GATED = { "vault", "keystone", "delversBounty", "delves", "cofferKey", "endeavors", "lumber" }
-    local FILES = { "views/SummaryColumns.lua" }
-    for _, f in ipairs({ "vault", "keystone", "delversBounty", "delves", "cofferKey", "endeavors", "lumber", "caches" }) do
-      FILES[#FILES + 1] = "views/summaryCol/" .. f .. ".lua"
+    -- `caches` counts Midnight weekly cache quests: gated by the `midnight` feature (#987), the rest by the system they need.
+    local GATED = { "vault", "keystone", "delversBounty", "delves", "cofferKey", "endeavors", "lumber", "caches",
+                    "catalyst", "heroCrest", "mythCrest", "voidcore", "fieldAccolade", "unalloyedAbundance",
+                    "manaCrystal", "shardOfDundun" }
+    -- a column key whose file name differs from it (crests.lua holds two columns)
+    local FILES_OF = { heroCrest = "crests", mythCrest = "crests", fieldAccolade = "fieldaccolade",
+                       unalloyedAbundance = "unalloyedabundance", manaCrystal = "manacrystal", shardOfDundun = "dundun" }
+    -- catalyst.lua formats these into an atlas string at load; the harness's `anything()` stub cannot be a %s argument
+    local ICONS = { ns = { icons = { CheckGreen = "check", RedX = "x" } } }
+    local FILES = { "views/SummaryColumns.lua", "views/summaryCol/level.lua" }  -- level: an ungated column (no setting key)
+    local seen = {}
+    for _, f in ipairs(GATED) do
+      local file = FILES_OF[f] or f
+      if not seen[file] then seen[file] = true; FILES[#FILES + 1] = "views/summaryCol/" .. file .. ".lua" end
     end
 
     local function keys(ns)
@@ -172,24 +186,27 @@ describe("Warbandeer on Forever", function()
     end
 
     it("D3: gated columns are absent on Forever, present on Retail", function()
-      local forever = keys(wb.loadFlavored("forever", FILES))
-      local retail = keys(wb.loadFlavored("retail", FILES))
+      local forever = keys(wb.loadFlavored("forever", FILES, ICONS))
+      local retail = keys(wb.loadFlavored("retail", FILES, ICONS))
       for _, k in ipairs(GATED) do
         assert.is_nil(forever[k], k .. " must not register on Forever")
         assert.is_true(retail[k], k .. " must register on Retail")
       end
-      assert.is_true(forever.caches)   -- an ungated column is untouched
-      assert.is_true(retail.caches)
+    end)
+
+    it("D3: an ungated column is untouched on both clients", function()
+      assert.equals(1, #wb.loadFlavored("forever", FILES, ICONS).SummaryColumns)   -- level only
+      assert.equals(1 + #GATED, #wb.loadFlavored("retail", FILES, ICONS).SummaryColumns)
     end)
 
     it("D3: a saved setting naming a gated column is skipped, never an error", function()
-      local ns = wb.loadFlavored("forever", FILES)
+      local ns = wb.loadFlavored("forever", FILES, ICONS)
       ns.db = { settings = { summaryColumns = { vault = false, keystone = false, caches = false, delves = true } } }
       local visible
       assert.has_no.errors(function() visible = ns.VisibleSummaryColumns() end)
-      assert.equals(0, #visible)                        -- caches hidden, the rest never registered
+      assert.equals(1, #visible)                        -- only the ungated level column: every named one is gated
       ns.db.settings.summaryColumns.caches = nil
-      assert.equals(1, #ns.VisibleSummaryColumns())
+      assert.equals(1, #ns.VisibleSummaryColumns())     -- caches is not registered on Forever, setting or no setting
     end)
 
     it("D3: the Summary Columns settings panel lists no gated column on Forever", function()
@@ -200,9 +217,10 @@ describe("Warbandeer on Forever", function()
           for _, x in ipairs(FILES) do f[#f + 1] = x end
           f[#f + 1] = "views/summaryColumnsSettings.lua"
           return f
-        end)(), { ns = { RegisterSettings = function(_, s) spec = s end } })
+        end)(), { ns = { icons = ICONS.ns.icons, RegisterSettings = function(_, s) spec = s end } })
         local out = {}
-        for _, field in ipairs(spec[1].fields) do out[field.key] = true end
+        -- with every named column gated there is nothing to list: the panel then registers nothing at all
+        for _, field in ipairs(spec and spec[1].fields or {}) do out[field.key] = true end
         return out
       end
       local forever, retail = labels("forever"), labels("retail")

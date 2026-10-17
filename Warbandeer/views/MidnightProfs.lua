@@ -1,5 +1,8 @@
 ---@type Warbandeer
 local ns = select(2, ...)
+-- Midnight profession data (skill, concentration, weekly knowledge) does not exist on Forever: the view is never
+-- registered there (its Characters brokers are gated by the same feature).
+if not ns:Supports("midnight") then return end
 local ui = ns.ui
 local insert, sort, concat, floor = table.insert, table.sort, table.concat, math.floor
 local Class, Frame, TableFrame, Button, Texture = ns.lua.Class, ui.Frame, ui.TableFrame, ui.Button, ui.Texture

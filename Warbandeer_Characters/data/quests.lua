@@ -129,3 +129,6 @@ ns.Quests.fields = {
     end,
   },
 }
+
+-- "Midnight Season 1: Catalyst Unbound" is Midnight content: no such achievement flag is tracked on Forever (#987).
+if not ns:Supports("midnight") then ns.Quests.fields.CatalystUnbound = nil end

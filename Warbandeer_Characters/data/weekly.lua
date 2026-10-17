@@ -239,8 +239,9 @@ Weekly.fields = {
 
 -- Drop the fields of a system this client lacks (Forever): they are then never scanned, never reset and never listed by
 -- /wbc missing. The C_WeeklyRewards / C_MythicPlus / C_DelvesUI tables exist there but are empty (beta probe 2026-10-15),
--- so an existence test would keep them; the feature table is the one authority. preMidnight, DMF and caches are quest
--- flags and stay. `dungeons` reads the vault's M+ activities, so it needs both systems.
+-- so an existence test would keep them; the feature table is the one authority. DMF is a quest flag and stays.
+-- `dungeons` reads the vault's M+ activities, so it needs both systems. `preMidnight` and `caches` are Midnight quest
+-- flags (nazumods/wow#987): without `midnight` they are dropped too.
 local fields = Weekly.fields
 if not ns:Supports("greatVault") then
   fields.vault, fields.vaultSlots, fields.hasUnclaimedVault = nil, nil, nil
@@ -253,6 +254,9 @@ if not ns:Supports("mythicPlus") then
 end
 if not (ns:Supports("mythicPlus") and ns:Supports("greatVault")) then
   fields.dungeons = nil
+end
+if not ns:Supports("midnight") then
+  fields.preMidnight, fields.caches = nil, nil
 end
 
 ns:registerDump("m+", "Keystone", "dump keystone data", function(self, out)

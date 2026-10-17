@@ -28,6 +28,8 @@ local UNSUPPORTED = {
     legion = true,           -- artifacts, class halls, order-hall mounts, Legion achievements
     greatVault = true,       -- UNVERIFIED: off until the beta probes (#952) show it works
     warbandBank = true,      -- UNVERIFIED: same
+    midnight = true,         -- Midnight expansion content: profession knowledge and specializations, concentration,
+                             -- artisan currencies, Midnight weeklies and caches (Forever has no Midnight content)
   },
 }
 
