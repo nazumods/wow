@@ -160,7 +160,8 @@ jobs:
 
   # Validate the hand-authored WoW id literals in the static data files against the live client
   # DB2 (wago.tools). Gated on the linted files so a PR that touches no id-bearing data never
-  # depends on wago being up; when it does run, a stale/typo'd id fails the build.
+  # depends on wago being up; when it does run, a stale/typo'd id, or a rule whose DB2 table the
+  # build lacks, fails the build.
   stale-ids:
     runs-on: ubuntu-latest
     env:

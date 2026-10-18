@@ -81,7 +81,7 @@ jobs:
         shell: pwsh
         run: ./Tooling/lint-stale-ids.ps1 -Product $env:WAGO_PRODUCT -Build "${{ steps.build.outputs.version }}" -CacheDir .wago-cache
 
-  # Two consecutive failures (a stale id that persists across days, not a one-off wago blip)
+  # Two consecutive failures (a stale id, or a DB2 table gone from the build, that persists across days, not a one-off wago blip)
   # open or comment on a tracking issue; a successful run closes it. This job runs for the daily
   # default (wow, latest build): the schedule, and a manual run left on the default inputs, as before.
   # A manual run against another product or version family (a Forever run fails on Retail ids and
@@ -119,11 +119,11 @@ jobs:
           gh issue create -R "$REPO" --label "$LABEL" \
             --title "A hand-authored id has gone stale (drift detected)" \
             --body "$(printf '%s\n' \
-              'The scheduled "Lint stale ids" workflow failed two consecutive runs: a hand-authored id literal in a static data file no longer resolves against the live client DB2 (wago.tools).' \
+              'The scheduled "Lint stale ids" workflow failed two consecutive runs: a hand-authored id literal in a static data file no longer resolves against the live client DB2 (wago.tools), or the DB2 table a rule reads is gone from the build.' \
               '' \
-              'A Blizzard build most likely removed or renamed the id, so the addon now renders a blank or mismatched row for it until the data file is corrected.' \
+              'A Blizzard build most likely removed or renamed the id (or the table), so the addon now renders a blank or mismatched row for it until the data file or the rule is corrected.' \
               '' \
-              "Latest failed run (names the failing rule + id): $RUN_URL" \
+              "Latest failed run (names the failing rule, and the stale ids or the missing table): $RUN_URL" \
               '' \
               'Reproduce locally with `pwsh Tooling/lint-stale-ids.ps1`; the offending rule points at the file + DB2 column to fix. See Tooling/README.md.' \
               '' \

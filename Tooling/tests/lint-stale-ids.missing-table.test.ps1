@@ -6,7 +6,7 @@
 .DESCRIPTION
   Runs the REAL script with Invoke-WebRequest replaced by a function (functions outrank cmdlets, and a
   function defined here is visible to the script it calls). The stand-in serves every DB2 table as one CSV
-  that holds every number found in every data file the script lints (the files are read from the script's
+  that holds every number (of up to 9 digits) found in every data file the script lints (the files are read from the script's
   own `file='...'` rules), under every column the rules key on, so with all tables present every rule
   resolves and the run exits 0. Tables named in a case answer the way wago answers for a table the build
   lacks: an HttpResponseException with status 400 and the body {"errors": "Table not found."}, the shape
@@ -157,6 +157,10 @@ Test-NoMatch 'a 500: nothing is reported as skipped' $r.Text 'skipped'
 $r = Invoke-Lint -Broken @{ TransmogIllusion = @{ Status = 400; Body = '{"errors": "Invalid build."}' } }
 Test-Match 'a 400 with another body: the run stops with the error' $r.Error '400'
 Test-NoMatch 'a 400 with another body: no later rule runs' $r.Text 'arsenals\.visualID'
+
+$r = Invoke-Lint -Broken @{ TransmogIllusion = @{ Status = 400; Body = '{"errors": "Build not found."}' } }
+Test-Match 'a 400 saying Build not found: the run stops with the error' $r.Error '400'
+Test-NoMatch 'a 400 saying Build not found: no later rule runs' $r.Text 'arsenals\.visualID'
 
 $r = Invoke-Lint -Broken @{ TransmogIllusion = @{ Status = 503; Body = '{"errors": "Table not found."}' } }
 Test-Match 'a 503 whose body says Table not found: the run stops with the error' $r.Error '503'

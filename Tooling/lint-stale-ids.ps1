@@ -33,7 +33,7 @@
       so glyph->GlyphProperties.ID, spell->SpellName.ID, quest/startQuest->QuestV2.ID all hard-check.
 
   Usage:
-    pwsh Tooling/lint-stale-ids.ps1              # full (pulls Item, the one big table)
+    pwsh Tooling/lint-stale-ids.ps1              # full (also pulls the big tables: Item, SpellName, QuestV2)
     pwsh Tooling/lint-stale-ids.ps1 -SkipBig     # skip the big-table rules (Item, SpellName, QuestV2): fast
     pwsh Tooling/lint-stale-ids.ps1 -Build 12.0.7.68453 -CacheDir .wago-cache
     pwsh Tooling/lint-stale-ids.ps1 -Product wow_classic_beta -VersionPrefix 1.60.   # WoW: Forever beta
