@@ -114,8 +114,9 @@ jobs:
   # Which wago build the lint tooling resolves, and for which product (#954): wow_classic_beta is a shared
   # bucket of several Classic betas whose "latest" is Forever only while Forever is the newest, so Forever
   # runs select a version family. Covers the lint-stale-ids.yml resolve step and its gating (a stub curl
-  # over a fixture shaped like wago's /api/builds), the stale-ids job's wiring in this file, and
-  # lint-stale-ids.ps1's own resolution (a stub Invoke-WebRequest). It also covers which PTR build the
+  # over a fixture shaped like wago's /api/builds), the stale-ids job's wiring in this file,
+  # lint-stale-ids.ps1's own resolution (a stub Invoke-WebRequest), and what it does when the build has
+  # no table for a rule (the same kind of stub: skipped and reported, not aborted). It also covers which PTR build the
   # Collected preview reads (#945): update-sets.ps1 -PtrDelta, armor and weapons, picks the newest patch
   # above live across wago's two PTR products (wowt, wowxptr) and says plainly when none is ahead (the
   # same stub). Offline and fast, so no path filter.
@@ -131,6 +132,10 @@ jobs:
       - name: lint-stale-ids.ps1 build resolution
         shell: pwsh
         run: ./Tooling/tests/lint-stale-ids.build.test.ps1
+
+      - name: lint-stale-ids.ps1 missing tables
+        shell: pwsh
+        run: ./Tooling/tests/lint-stale-ids.missing-table.test.ps1
 
       - name: update-sets.ps1 PTR build resolution
         shell: pwsh
