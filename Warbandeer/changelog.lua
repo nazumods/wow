@@ -6,6 +6,14 @@ local ns = select(2, ...)
 -- same conventional-commit grouping used for the GitHub/CurseForge release notes.
 ---@type { version: string, notes: string }[]
 ns.changelog = {
+  { version = "12.1.5-r4", notes = [==[
+### Features
+- gate Midnight-only views and data behind a midnight feature on Forever (#987) (#992)
+
+### Bug Fixes
+- the Races tab lists Forever's races and classes on Forever (#958) (#1000)
+
+]==] },
   { version = "12.1.5-r3", notes = [==[
 ### Features
 - Warbandeer_Characters, Warbandeer and Warbandeer_Bars load on Forever (16001) (Epic #951) (#980)
