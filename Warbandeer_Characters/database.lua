@@ -446,23 +446,23 @@ function ns:initialize()
     -- initialize new character
     local _, classToken = UnitClassBase("player")
     local className = Player:GetClassName()
+    local raceFile, raceId = Player:GetRace()
+    local raceIndex, isAlliance = ns.NormalizeRaceId(raceId)
     c = {
       name = self.currentPlayer,
       classId = Player:GetClassId(),
       className = className,
       classKey = ns.wow.ClassKeyByToken[classToken] or gsub(className, " ", ""),
+      isAlliance = isAlliance,
+      race = raceFile,
+      raceId = raceId,
+      raceIdx = raceIndex,
       realm = GetRealmName()
     }
     self.db.characters[self.currentPlayer] = c
     self.db.numCharacters = self.db.numCharacters + 1
   end
   self.currentData = c
-  -- Race and faction are refreshed each login too: the race tables can learn a race after a record was made
-  -- (Forever's Skyborne, #958, were raceIdx 0 until data/races.lua listed them), and a faction change moves a
-  -- character to the other side's index.
-  local raceFile, raceId = Player:GetRace()
-  c.race, c.raceId = raceFile, raceId
-  c.raceIdx, c.isAlliance = ns.NormalizeRaceId(raceId)
   -- Refresh each login so characters created before `sex`/`guid` existed are backfilled
   -- the next time they log in (alts not yet seen default to male at render time).
   c.sex = UnitSex("player")

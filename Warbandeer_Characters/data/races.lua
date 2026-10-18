@@ -76,17 +76,17 @@ raceIdToFactionIndex[91] = {15, false} -- Haranir (Horde); 87 is a non-race crea
 -- Forever's playable races (#958): the eight original races and the Skyborne, one per faction. Its client
 -- data names them: the Camelot glue-screen race tags and new-player starting quests (wow-ui-source `forever`
 -- branch, Blizzard_GlueParent/Camelot/GlueScreenTags.lua, Blizzard_NewPlayerExperience/Camelot/
--- Blizzard_TutorialData.lua) and ChrRaces (1.60.1.70374: 95 "High Order Skyborne", Alliance; 96 "Windshaper
--- Skyborne", Horde). The original eight keep their Retail indexes, so a record made before this table existed
--- still points at the right race.
+-- Blizzard_TutorialData.lua), and CharBaseInfo (1.60.1.70374) lists exactly these ten race ids: 1-8, 95 "High
+-- Order Skyborne" (Alliance) and 96 "Windshaper Skyborne" (Horde) in ChrRaces. The original eight keep their
+-- Retail indexes. The Skyborne ids are deliberately left out of the id map: they keep raceIdx 0, the value every
+-- earlier revision stored for them, so rolling back reads the same data; the Races tab puts a character with no
+-- index on its side's row named by its race token ("Skyborne"). Any other id (a Retail-only race) is 0 too.
 if ns.flavor and ns.flavor.isForever then
   API.ALLIANCE_RACES = { "Human", "Dwarf", "Night Elf", "Gnome", "Skyborne" }
   API.HORDE_RACES = { "Orc", "Undead", "Tauren", "Troll", "Skyborne" }
   raceIdToFactionIndex = {
     {1, true}, {1, false}, {2, true}, {3, true}, {2, false}, {3, false}, {4, true}, {4, false},
   }
-  raceIdToFactionIndex[95] = {5, true}  -- High Order Skyborne (Alliance)
-  raceIdToFactionIndex[96] = {5, false} -- Windshaper Skyborne (Horde)
 end
 
 ---Map a WoW raceId to its compact per-faction race index and faction.

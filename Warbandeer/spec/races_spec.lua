@@ -35,11 +35,11 @@ describe("Warbandeer RaceView", function()
         GetAllCharacters = function() return toons end,
       } },
     })
-    local added = {}
+    local added, cols = {}, {}
     local self = {
       headerWidth = 135, headerHeight = 20, data = {}, rows = added,
       rowArea = { TopLeft = function() end, Width = function() end, Height = function() return 0 end },
-      addCol = function() end,
+      addCol = function(_, col) cols[#cols + 1] = col.name end,
       addRow = function(s, row) added[#added + 1] = row; return s end,
       Width = function() end, Height = function() end, update = function() end,
     }
@@ -56,6 +56,7 @@ describe("Warbandeer RaceView", function()
     for i, r in ipairs(added) do
       if r == dividerParents[1] then rows.dividerRow = i end
     end
+    rows.cols = cols
     return rows
   end
 
@@ -176,8 +177,10 @@ describe("Warbandeer RaceView", function()
     return cns.api
   end
 
-  it("Forever: the tab lists Forever's races only, with a Skyborne row on each side, empty ones included", function()
-    local rows = build({ toon("Sky", "Priest", "Skyborne", true, 5, 95) }, { races = realRaces("forever") })
+  -- Forever's Skyborne keep raceIdx 0 (Warbandeer_Characters/spec/forever_races_spec.lua pins that), with the
+  -- race token "Skyborne" and the client's faction.
+  it("Forever: the tab lists Forever's races only, an Alliance Skyborne on its row, the Horde Skyborne row empty", function()
+    local rows = build({ toon("Sky", "Priest", "Skyborne", true, 0, 95) }, { races = realRaces("forever") })
     assert.same({ "Human", "Dwarf", "Night Elf", "Gnome", "Skyborne", "Orc", "Undead", "Tauren", "Troll", "Skyborne" },
       labels(rows))
     assert.same({ "1:Sky" }, rows[5].cells)
@@ -188,18 +191,55 @@ describe("Warbandeer RaceView", function()
   end)
 
   it("Forever: a Horde Skyborne character lands on the Horde Skyborne row", function()
-    local rows = build({ toon("Windy", "Mage", "Skyborne", false, 5, 96) }, { races = realRaces("forever") })
+    local rows = build({ toon("Windy", "Mage", "Skyborne", false, 0, 96) }, { races = realRaces("forever") })
+    assert.equals(10, #rows)
     assert.same({ "2:Windy" }, rows[10].cells)
     assert.same({}, rows[5].cells)
   end)
 
-  it("Retail: the tab still lists every Retail race", function()
+  it("Forever: several Skyborne on one side share its Skyborne row, with no second Skyborne row", function()
+    local rows = build({
+      toon("A", "Priest", "Skyborne", true, 0, 95),
+      toon("B", "Mage", "Skyborne", true, 0, 95),
+      toon("C", "Priest", "Skyborne", true, 0, 95),
+    }, { races = realRaces("forever"), getRaceInfo = function() return { raceName = "High Order Skyborne" } end })
+    assert.equals(11, #rows)                 -- the second Priest stacks beneath the Alliance Skyborne label
+    assert.same({ "1:A", "2:B" }, rows[5].cells)
+    assert.same({ "1:C" }, rows[6].cells)
+    assert.equals("", rows[6].label)
+    assert.is_nil(rowOf(rows, "High Order Skyborne"))
+  end)
+
+  it("Forever: the grid has columns for the original nine classes only", function()
+    local rows = build({}, { races = realRaces("forever") })
+    assert.same({ "Priest", "Mage", "Warlock", "Druid", "Rogue", "Hunter", "Shaman", "Paladin", "Warrior" }, rows.cols)
+  end)
+
+  it("Retail: the tab still lists every Retail race and all 13 class columns", function()
     local rows = build({}, { flavor = "retail", races = realRaces("retail") })
     assert.equals(30, #rows)
     assert.equals("Human", rows[1].label)
     assert.equals("Haranir", rows[15].label)
     assert.equals("Orc", rows[16].label)
     assert.is_nil(rowOf(rows, "Skyborne"))
+    assert.equals(13, #rows.cols)
+    assert.equals("Demon Hunter", rows.cols[4])
+  end)
+
+  it("a character with no index joins its own side's row named by its race token (a neutral Pandaren)", function()
+    local rows = build({ toon("P", "Monk", "Pandaren", false, 0, 24) }, { flavor = "retail", races = realRaces("retail") })
+    assert.equals(30, #rows)                 -- no row of its own
+    assert.same({ "6:P" }, rows[22].cells)   -- the Horde Pandaren row (15 Alliance + 7)
+    assert.same({}, rows[7].cells)           -- not the Alliance one
+  end)
+
+  it("the race-token match stays on the character's own side", function()
+    local rows = build({ toon("X", "Priest", "Orc", true, 0, 999) }, { flavor = "retail", races = realRaces("retail") })
+    assert.equals(31, #rows)                 -- an Alliance group of its own, after the Alliance races
+    assert.same({ "1:X" }, rows[16].cells)
+    assert.equals("Orc", rows[16].label)
+    assert.equals(A_COLOR, rows[16].color)
+    assert.same({}, rows[17].cells)          -- the Horde Orc row
   end)
 
   it("an empty client race name falls back to the saved one", function()
