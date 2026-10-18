@@ -11,7 +11,8 @@
   resolves and the run exits 0. Tables named in a case answer the way wago answers for a table the build
   lacks: an HttpResponseException with status 400 and the body {"errors": "Table not found."}, the shape
   observed for TransmogIllusion on Forever's 1.60.1.70338. Other named tables answer with a different
-  failure (a 500, or a 400 with another body), which must still stop the run.
+  failure (a 5xx, another 4xx, a 400 with another body, or no HTTP answer at all), which must still stop
+  the run; "empty" tables answer with just the CSV header, so their rule reports every id as stale.
 
   Plain PowerShell, not Pester, so it runs wherever pwsh does; it is a step of the test.yml
   `wago-build-resolution` job. Exit 0 = every case passed; 1 = a case failed.
@@ -45,6 +46,8 @@ $global:Lint954Csv = $csv.ToString()
 
 $global:Lint954Missing = @()
 $global:Lint954Broken = @{}
+$global:Lint954Empty = @()
+$global:Lint954Header = ($cols -join ',') + "`n"
 $global:Lint954Requested = [System.Collections.Generic.List[string]]::new()
 
 # The error Invoke-WebRequest raises for an HTTP failure: an HttpResponseException carrying the status, with
@@ -63,14 +66,20 @@ function Invoke-WebRequest {
   $table = $Matches[1]
   $global:Lint954Requested.Add($table)
   if ($global:Lint954Missing -contains $table) { throw (New-WagoError 400 "{`n  `"errors`": `"Table not found.`"`n}") }
-  if ($global:Lint954Broken.ContainsKey($table)) { throw (New-WagoError $global:Lint954Broken[$table].Status $global:Lint954Broken[$table].Body) }
+  if ($global:Lint954Broken.ContainsKey($table)) {
+    $b = $global:Lint954Broken[$table]
+    if ($b.Status -eq 0) { throw [System.Net.Http.HttpRequestException]::new($b.Body) }   # no HTTP answer at all
+    throw (New-WagoError $b.Status $b.Body)
+  }
+  if ($global:Lint954Empty -contains $table) { return [pscustomobject]@{ Content = $global:Lint954Header } }
   [pscustomobject]@{ Content = $global:Lint954Csv }
 }
 
-# Runs the script against $build with the given tables missing or broken -> @{ Text; Exit; Error }.
-function Invoke-Lint([string[]]$Missing = @(), [hashtable]$Broken = @{}, [string]$CacheDir) {
+# Runs the script against $build with the given tables missing, broken or empty -> @{ Text; Exit; Error }.
+function Invoke-Lint([string[]]$Missing = @(), [hashtable]$Broken = @{}, [string[]]$Empty = @(), [string]$CacheDir) {
   $global:Lint954Missing = $Missing
   $global:Lint954Broken = $Broken
+  $global:Lint954Empty = $Empty
   $global:Lint954Requested.Clear()
   $lines = [System.Collections.Generic.List[string]]::new()
   $lintArgs = @{ Product = 'wow_classic_beta'; Build = $build }
@@ -108,28 +117,36 @@ Test-NoMatch 'all tables: nothing skipped' $r.Text 'skipped'
 # The Forever case: TransmogIllusion is missing. That rule is reported and skipped, the next rule still runs.
 $r = Invoke-Lint -Missing 'TransmogIllusion'
 Test-Case 'missing TransmogIllusion: the run does not abort' '' $r.Error
-Test-Match 'missing TransmogIllusion: the rule is reported as skipped' $r.Text 'illusions\.sourceID\s+! skipped: build 1\.60\.1\.70338 has no TransmogIllusion table, so \d+ ids are unchecked'
+Test-Match 'missing TransmogIllusion: the rule is reported as skipped, with its id count' $r.Text 'illusions\.sourceID\s+! skipped: build 1\.60\.1\.70338 has no TransmogIllusion table, so [1-9]\d* ids are unchecked'
 Test-Match 'missing TransmogIllusion: the next rule still runs' $r.Text 'arsenals\.visualID\s+\+\s+\d+ ids OK'
 Test-Match 'missing TransmogIllusion: the last rule still runs' $r.Text 'currency\.id\s+\+\s+\d+ ids OK'
-Test-Case 'missing TransmogIllusion: a skipped fail-rule still exits 1' '1' $r.Exit
-Test-Match 'missing TransmogIllusion: the summary counts it' $r.Text '1 fail-severity rule\(s\) skipped -- build 1\.60\.1\.70338 has no table for them'
+Test-Case 'missing TransmogIllusion: a skipped rule still exits 1' '1' $r.Exit
+Test-Match 'missing TransmogIllusion: the summary counts it' $r.Text '1 rule\(s\) skipped -- build 1\.60\.1\.70338 has no table for them'
 Test-NoMatch 'missing TransmogIllusion: no id is reported stale' $r.Text 'unresolved'
 
 $r = Invoke-Lint -Missing 'TransmogIllusion', 'GlyphProperties'
 Test-Match 'two missing tables: both rules are reported' $r.Text 'glyphinfo\.glyph\s+! skipped: build \S+ has no GlyphProperties table'
-Test-Match 'two missing tables: the summary counts both' $r.Text '2 fail-severity rule\(s\) skipped'
+Test-Match 'two missing tables: the summary counts both' $r.Text '2 rule\(s\) skipped'
 Test-Case 'two missing tables: exit 1' '1' $r.Exit
 
 # A missing table behind several rules (Item: four fail-rules) is asked for once and skips all four.
 $r = Invoke-Lint -Missing 'Item'
-Test-Match 'missing Item: the summary counts every rule on it' $r.Text '4 fail-severity rule\(s\) skipped'
+Test-Match 'missing Item: the summary counts every rule on it' $r.Text '4 rule\(s\) skipped'
 Test-Case 'missing Item: wago is asked for it once' '1' @($global:Lint954Requested | Where-Object { $_ -eq 'Item' }).Count
 
-# A warn-rule's missing table is reported but not counted.
+# A warn-rule's missing table fails the run too: none of its ids were checked (a renamed or misspelt table
+# would otherwise pass every run with one line of output).
 $r = Invoke-Lint -Missing 'Mount'
-Test-Match 'missing Mount (warn rule): reported as skipped' $r.Text 'classmounts\.spellID\s+~ skipped: build \S+ has no Mount table \(best-effort rule, not counted\)'
-Test-Case 'missing Mount (warn rule): exit 0' '0' $r.Exit
-Test-NoMatch 'missing Mount (warn rule): no skipped count in the summary' $r.Text 'rule\(s\) skipped'
+Test-Match 'missing Mount (warn rule): reported as skipped' $r.Text 'classmounts\.spellID\s+! skipped: build \S+ has no Mount table, so [1-9]\d* ids are unchecked'
+Test-Case 'missing Mount (warn rule): exit 1' '1' $r.Exit
+Test-Match 'missing Mount (warn rule): the summary counts it' $r.Text '1 rule\(s\) skipped'
+
+# Stale ids with nothing skipped: the summary names the stale ids and says nothing about skipped rules.
+$r = Invoke-Lint -Empty 'ChrRaces'
+Test-Match 'empty ChrRaces: its ids are reported stale' $r.Text 'races\.raceId\s+! \d+ of \d+ MISSING from ChrRaces\.ID'
+Test-Case 'empty ChrRaces: exit 1' '1' $r.Exit
+Test-Match 'empty ChrRaces: the summary names the stale ids' $r.Text 'id\(s\) unresolved'
+Test-NoMatch 'empty ChrRaces: the summary mentions no skipped rule' $r.Text 'skipped'
 
 # Any other failure still stops the run: a 500, and a 400 whose body is not "Table not found."
 $r = Invoke-Lint -Broken @{ TransmogIllusion = @{ Status = 500; Body = '<html>Internal Server Error</html>' } }
@@ -145,12 +162,27 @@ $r = Invoke-Lint -Broken @{ TransmogIllusion = @{ Status = 503; Body = '{"errors
 Test-Match 'a 503 whose body says Table not found: the run stops with the error' $r.Error '503'
 Test-NoMatch 'a 503 whose body says Table not found: no later rule runs' $r.Text 'arsenals\.visualID'
 
+$r = Invoke-Lint -Broken @{ TransmogIllusion = @{ Status = 404; Body = '{"errors": "Table not found."}' } }
+Test-Match 'a 404 whose body says Table not found: the run stops with the error' $r.Error '404'
+Test-NoMatch 'a 404 whose body says Table not found: no later rule runs' $r.Text 'arsenals\.visualID'
+
+# No HTTP answer at all (DNS, a refused connection): the run stops with that error.
+$r = Invoke-Lint -Broken @{ TransmogIllusion = @{ Status = 0; Body = 'stub: connection refused' } }
+Test-Match 'no HTTP answer: the run stops with the real error' $r.Error 'stub: connection refused'
+Test-NoMatch 'no HTTP answer: no later rule runs' $r.Text 'arsenals\.visualID'
+
 # -CacheDir: a missing table writes no cache file; the tables that exist are cached as before.
 $cache = Join-Path ([System.IO.Path]::GetTempPath()) ("lint954-" + [guid]::NewGuid().ToString('N'))
 try {
   $r = Invoke-Lint -Missing 'TransmogIllusion' -CacheDir $cache
   Test-Case 'cache: no file for the missing table' 'False' (Test-Path (Join-Path $cache 'TransmogIllusion.csv'))
   Test-Case 'cache: a present table is cached' 'True' (Test-Path (Join-Path $cache 'ChrRaces.csv'))
+
+  # An empty cached CSV is an empty table (every id stale), not a table the build lacks.
+  Set-Content -Path (Join-Path $cache 'ChrRaces.csv') -Value '' -NoNewline
+  $r = Invoke-Lint -CacheDir $cache
+  Test-Match 'cache: an empty cached CSV reports its ids stale' $r.Text 'races\.raceId\s+! \d+ of \d+ MISSING from ChrRaces\.ID'
+  Test-NoMatch 'cache: an empty cached CSV is not called a missing table' $r.Text 'no ChrRaces table'
 } finally {
   if (Test-Path $cache) { Remove-Item -Recurse -Force $cache }
 }

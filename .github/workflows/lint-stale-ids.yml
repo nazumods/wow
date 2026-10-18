@@ -75,7 +75,8 @@ jobs:
           key: wago-csv-${{ env.WAGO_PRODUCT }}-${{ steps.build.outputs.version }}
 
       # Full check against that build (no -SkipBig: drift can hit the Item-backed rules too).
-      # pwsh is preinstalled on ubuntu runners. Exit 1 on any stale fail-rule id.
+      # pwsh is preinstalled on ubuntu runners. Exit 1 on any stale fail-rule id, or a rule whose DB2
+      # table the build lacks (reported as skipped; the other rules still run).
       - name: Validate hand-authored ids against live client DB2
         shell: pwsh
         run: ./Tooling/lint-stale-ids.ps1 -Product $env:WAGO_PRODUCT -Build "${{ steps.build.outputs.version }}" -CacheDir .wago-cache
@@ -84,7 +85,7 @@ jobs:
   # open or comment on a tracking issue; a successful run closes it. This job runs for the daily
   # default (wow, latest build): the schedule, and a manual run left on the default inputs, as before.
   # A manual run against another product or version family (a Forever run fails on Retail ids and
-  # stops at a DB2 table Forever lacks) is skipped by the `if:` below, so it can neither raise that
+  # on the two DB2 tables Forever lacks) is skipped by the `if:` below, so it can neither raise that
   # issue nor close the real one. The "previous run" a failure is compared with is the last SCHEDULED
   # run on main (`--event schedule` below): a manual run of any kind never serves as that comparison.
   notify:

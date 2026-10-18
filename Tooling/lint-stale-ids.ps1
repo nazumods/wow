@@ -14,8 +14,8 @@
     warn  the DB2 column is an INCOMPLETE mirror of the runtime lookup, so a miss is reported but
           not failed (see classmounts.spellID below).
   A rule whose DB2 table the build does not have (wago: HTTP 400 "Table not found.") is reported as
-  skipped and the run goes on to the next rule. A skipped fail-rule still makes the run exit 1, since
-  its ids went unchecked; a skipped warn-rule is not counted. Any other wago failure stops the run.
+  skipped and the run goes on to the next rule. A skipped rule, warn or fail, still makes the run exit
+  1, since none of its ids were checked. Any other wago failure stops the run.
 
   Coverage notes learned building this tier:
     * challengetames.lua is deliberately NOT linted: its creatureIDs are old-content npcs that the
@@ -34,11 +34,11 @@
 
   Usage:
     pwsh Tooling/lint-stale-ids.ps1              # full (pulls Item, the one big table)
-    pwsh Tooling/lint-stale-ids.ps1 -SkipBig     # skip big-table rules (fast; races/prof/mount-spell)
+    pwsh Tooling/lint-stale-ids.ps1 -SkipBig     # skip the big-table rules (Item, SpellName, QuestV2): fast
     pwsh Tooling/lint-stale-ids.ps1 -Build 12.0.7.68453 -CacheDir .wago-cache
     pwsh Tooling/lint-stale-ids.ps1 -Product wow_classic_beta -VersionPrefix 1.60.   # WoW: Forever beta
     pwsh Tooling/lint-stale-ids.ps1 -Product wow_classic_beta -Build 1.60.1.70338    # ... or pinned
-  Exit 0 = every fail-rule id resolves; 1 = one or more stale, or a fail-rule's table is missing.
+  Exit 0 = every fail-rule id resolves; 1 = one or more stale, or a rule's table is missing.
 
   -Product picks the wago product whose latest build is linted (default 'wow' = live retail).
   Forever must not use the bare "latest" of wow_classic_beta: that product is a shared bucket of
@@ -174,6 +174,7 @@ function Get-Csv([string]$table) {
   $file = if ($CacheDir) { Join-Path $CacheDir "$table.csv" } else { $null }
   if ($file -and (Test-Path $file)) {
     $text = Get-Content -Raw $file
+    if ($null -eq $text) { $text = '' }   # an empty cached file is an empty table, not a missing one
   } else {
     try {
       $text = (Invoke-WebRequest -Uri "https://wago.tools/db2/$table/csv?build=$Build" -Headers $wagoHeaders -UseBasicParsing).Content
@@ -236,14 +237,11 @@ foreach ($r in $rules) {
   $ids = @($ids | Sort-Object -Unique)
   $set = Get-IdSet $r.table $r.col $r.big
   if ($null -eq $set) {
-    # The build has no such table: report the rule and go on to the next. A skipped fail-rule still fails the
-    # run (its ids went unchecked), so a table vanishing from Retail is never quiet; a warn-rule's is not counted.
-    if ($r.sev -eq 'warn') {
-      Write-Host ("{0,-34} ~ skipped: build {1} has no {2} table (best-effort rule, not counted)" -f $r.label, $Build, $r.table) -ForegroundColor Yellow
-    } else {
-      Write-Host ("{0,-34} ! skipped: build {1} has no {2} table, so {3} ids are unchecked" -f $r.label, $Build, $r.table, $ids.Count) -ForegroundColor Red
-      $skipped++
-    }
+    # The build has no such table: report the rule and go on to the next. A skipped rule still fails the run,
+    # warn-rules included: none of its ids were checked, so a table vanishing from Retail (or a misspelt table
+    # name, which wago answers the same way) is never quiet.
+    Write-Host ("{0,-34} ! skipped: build {1} has no {2} table, so {3} ids are unchecked" -f $r.label, $Build, $r.table, $ids.Count) -ForegroundColor Red
+    $skipped++
     continue
   }
   $miss = @($ids | Where-Object { -not $set.ContainsKey($_) })
@@ -261,7 +259,7 @@ foreach ($r in $rules) {
 if ($fail -or $skipped) {
   Write-Host ""
   if ($fail) { Write-Host "$fail id(s) unresolved -- a data file is stale for build $Build." -ForegroundColor Red }
-  if ($skipped) { Write-Host "$skipped fail-severity rule(s) skipped -- build $Build has no table for them, so their ids are unchecked." -ForegroundColor Red }
+  if ($skipped) { Write-Host "$skipped rule(s) skipped -- build $Build has no table for them, so their ids are unchecked." -ForegroundColor Red }
   exit 1
 }
 Write-Host "`nAll fail-severity ids resolve against build $Build." -ForegroundColor Green
