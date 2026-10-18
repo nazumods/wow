@@ -49,13 +49,21 @@ local Classes = {
   "Evoker", "Hunter", "Shaman",
   "Death Knight", "Paladin", "Warrior"
 }
+-- Forever's playable classes are the original nine (CharBaseInfo 1.60.1.70374), so its grid has no columns
+-- for the four later ones (#958).
+if ns.flavor and ns.flavor.isForever then
+  local later = { ["Demon Hunter"] = true, ["Monk"] = true, ["Evoker"] = true, ["Death Knight"] = true }
+  local kept = {}
+  for _, c in ipairs(Classes) do if not later[c] then kept[#kept + 1] = c end end
+  Classes = kept
+end
 local classKeyOf = function(c) return gsub(c, " ", "") end
 local classColIdx = {}
 for i, c in ipairs(Classes) do classColIdx[classKeyOf(c)] = i end
 
 -- The race a character belongs to when the race tables do not know it (a race added after
--- the tables were written, e.g. Forever's sky elves: NormalizeRaceId gives raceIdx 0): the
--- client's localized race name when it has one, else the raw name the character was saved with.
+-- the tables were written: NormalizeRaceId gives raceIdx 0): the client's localized race name
+-- when it has one, else the raw name the character was saved with.
 local function unknownRaceName(t)
   local info = t.raceId and C_CreatureInfo and C_CreatureInfo.GetRaceInfo and C_CreatureInfo.GetRaceInfo(t.raceId)
   local name = info and info.raceName
@@ -65,11 +73,13 @@ end
 
 ---@class RaceView: TableFrame
 ---@field headerWidth number  width of the race-name header column
--- 13-class × 29-race grid, built dynamically (like RoleView): the base
+-- Class × race grid (the races are ns.api's per-faction tables, which on Forever list only
+-- Forever's races, and Forever has only the original nine classes), built dynamically (like RoleView): the base
 -- TableFrame builds no rows/cols, so we set the header offsets ourselves and
 -- addCol/addRow as we go. One character per cell — a race with several of a
--- class spills into extra physical rows beneath its label. A race the tables do not know
--- gets its own row group under its own faction, after that faction's known races.
+-- class spills into extra physical rows beneath its label. A character with no usable raceIdx
+-- joins its own side's row named by its race token; failing that, its race gets its own row
+-- group under its own faction, after that faction's known races.
 local RaceView = Class(TableFrame, function(self)
   self.offsetX = self.headerWidth
   self.offsetY = self.headerHeight
@@ -92,8 +102,13 @@ local RaceView = Class(TableFrame, function(self)
     { isAlliance = true, groups = {} },
     { isAlliance = false, groups = {} },
   }
-  for i, name in ipairs(ns.api.ALLIANCE_RACES) do sides[1].groups[i] = { name = name, buckets = {} } end
-  for i, name in ipairs(ns.api.HORDE_RACES) do sides[2].groups[i] = { name = name, buckets = {} } end
+  local known = { {}, {} }    -- per side: row name -> known group
+  for s, list in ipairs({ ns.api.ALLIANCE_RACES, ns.api.HORDE_RACES }) do
+    for i, name in ipairs(list) do
+      sides[s].groups[i] = { name = name, buckets = {} }
+      known[s][name] = sides[s].groups[i]
+    end
+  end
   local unknown = { {}, {} }  -- per side: race name -> group
 
   -- bucket characters by race group + class column
@@ -101,8 +116,11 @@ local RaceView = Class(TableFrame, function(self)
     local colIdx = classColIdx[t.classKey]
     if colIdx then
       local s = t.isAlliance and 1 or 2
-      -- raceIdx indexes the per-faction race array; 0 (or nothing there) is a race we do not know
+      -- raceIdx indexes the per-faction race array; 0 (or nothing there) is a race the id table does not map.
+      -- Such a character still joins one of its side's rows when its race token names it (Forever's Skyborne
+      -- keep raceIdx 0 and land on the Skyborne row, #958); otherwise its race gets a group of its own.
       local g = t.raceIdx and sides[s].groups[t.raceIdx]
+      if not g and t.race then g = known[s][t.race] end
       if not g then
         local name = unknownRaceName(t)
         g = unknown[s][name]
