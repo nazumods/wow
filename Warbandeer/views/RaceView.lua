@@ -77,8 +77,9 @@ end
 -- Forever's races, and Forever has only the original nine classes), built dynamically (like RoleView): the base
 -- TableFrame builds no rows/cols, so we set the header offsets ourselves and
 -- addCol/addRow as we go. One character per cell — a race with several of a
--- class spills into extra physical rows beneath its label. A race the tables do not know
--- gets its own row group under its own faction, after that faction's known races.
+-- class spills into extra physical rows beneath its label. A character with no usable raceIdx
+-- joins its own side's row named by its race token; failing that, its race gets its own row
+-- group under its own faction, after that faction's known races.
 local RaceView = Class(TableFrame, function(self)
   self.offsetX = self.headerWidth
   self.offsetY = self.headerHeight

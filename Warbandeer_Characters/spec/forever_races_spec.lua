@@ -63,12 +63,19 @@ describe("Warbandeer_Characters races on Forever (#958)", function()
     assert.same({ 0, true }, { ns.NormalizeRaceId(11) })    -- Draenei
   end)
 
-  it("Retail: the tables and id map are unchanged", function()
+  it("Retail: the tables and the whole id map are unchanged", function()
     local ns = races("retail")
     assert.same(RETAIL_ALLIANCE, ns.api.ALLIANCE_RACES)
     assert.same(RETAIL_HORDE, ns.api.HORDE_RACES)
-    assert.same({ 5, false }, { ns.NormalizeRaceId(10) })   -- Blood Elf
-    assert.same({ 5, true }, { ns.NormalizeRaceId(11) })    -- Draenei
-    assert.same({ 0, true }, { ns.NormalizeRaceId(95) })
+    local RETAIL_MAP = {
+      [1] = { 1, true }, [2] = { 1, false }, [3] = { 2, true }, [4] = { 3, true }, [5] = { 2, false },
+      [6] = { 3, false }, [7] = { 4, true }, [8] = { 4, false }, [9] = { 6, false }, [10] = { 5, false },
+      [11] = { 5, true }, [22] = { 6, true }, [25] = { 7, true }, [26] = { 7, false }, [27] = { 8, false },
+      [28] = { 9, false }, [29] = { 8, true }, [30] = { 9, true }, [31] = { 11, false }, [32] = { 11, true },
+      [34] = { 10, true }, [35] = { 12, false }, [36] = { 10, false }, [37] = { 12, true }, [52] = { 13, true },
+      [70] = { 13, false }, [84] = { 14, false }, [85] = { 14, true }, [86] = { 15, true }, [91] = { 15, false },
+    }
+    for id, want in pairs(RETAIL_MAP) do assert.same(want, { ns.NormalizeRaceId(id) }, "race id " .. id) end
+    assert.same({ 0, true }, { ns.NormalizeRaceId(95) })    -- unmapped on Retail
   end)
 end)

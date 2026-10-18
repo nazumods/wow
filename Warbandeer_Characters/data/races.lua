@@ -79,7 +79,7 @@ raceIdToFactionIndex[91] = {15, false} -- Haranir (Horde); 87 is a non-race crea
 -- Blizzard_TutorialData.lua), and CharBaseInfo (1.60.1.70374) lists exactly these ten race ids: 1-8, 95 "High
 -- Order Skyborne" (Alliance) and 96 "Windshaper Skyborne" (Horde) in ChrRaces. The original eight keep their
 -- Retail indexes. The Skyborne ids are deliberately left out of the id map: they keep raceIdx 0, the value every
--- earlier revision stored for them, so rolling back reads the same data; the Races tab puts a character with no
+-- revision that loads on Forever stored for them, so rolling back reads the same data; the Races tab puts a character with no
 -- index on its side's row named by its race token ("Skyborne"). Any other id (a Retail-only race) is 0 too.
 if ns.flavor and ns.flavor.isForever then
   API.ALLIANCE_RACES = { "Human", "Dwarf", "Night Elf", "Gnome", "Skyborne" }

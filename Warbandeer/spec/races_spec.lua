@@ -215,6 +215,19 @@ describe("Warbandeer RaceView", function()
     assert.same({ "Priest", "Mage", "Warlock", "Druid", "Rogue", "Hunter", "Shaman", "Paladin", "Warrior" }, rows.cols)
   end)
 
+  -- The beta save's Night Elf Druid: a usable raceIdx wins over a race token that differs from the row name
+  -- ("NightElf" vs "Night Elf"), and her cell sits under Forever's Druid column, not Retail's.
+  it("Forever: a Night Elf Druid sits on the Night Elf row under the Druid column; a Warrior under Warrior", function()
+    local rows = build({
+      toon("Vaelyra", "Druid", "NightElf", true, 3, 4),
+      toon("W", "Warrior", "Human", true, 1, 1),
+    }, { races = realRaces("forever") })
+    assert.equals(10, #rows)                 -- no second Night Elf row
+    assert.equals("Night Elf", rows[3].label)
+    assert.same({ "4:Vaelyra" }, rows[3].cells)
+    assert.same({ "9:W" }, rows[1].cells)
+  end)
+
   it("Retail: the tab still lists every Retail race and all 13 class columns", function()
     local rows = build({}, { flavor = "retail", races = realRaces("retail") })
     assert.equals(30, #rows)
