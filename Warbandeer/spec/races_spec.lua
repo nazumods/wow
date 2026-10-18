@@ -30,7 +30,8 @@ describe("Warbandeer RaceView", function()
         C_CreatureInfo = { GetRaceInfo = opts.getRaceInfo or function() return nil end },
       },
       ns = { ui = ui, api = {
-        ALLIANCE_RACES = ALLIANCE, HORDE_RACES = HORDE,
+        ALLIANCE_RACES = opts.races and opts.races.ALLIANCE_RACES or ALLIANCE,
+        HORDE_RACES = opts.races and opts.races.HORDE_RACES or HORDE,
         GetAllCharacters = function() return toons end,
       } },
     })
@@ -165,6 +166,40 @@ describe("Warbandeer RaceView", function()
       assert.equals(i <= 3 and A_COLOR or H_COLOR, rows[i].color, "row " .. i)
       assert.equals(i % 2 == 0 and 0.2 or 0, rows[i].zebra, "row " .. i)
     end
+  end)
+
+  -- #958: the REAL race tables (Warbandeer_Characters/data/races.lua against the real flavor.lua), read by the tab.
+  local function realRaces(flavor)
+    local cns = { api = {} }
+    require("LibNAddOn.spec.libn").load({ flavor = flavor }).linkFlavor(cns)
+    assert(loadfile("Warbandeer_Characters/data/races.lua"))("Warbandeer_Characters", cns)
+    return cns.api
+  end
+
+  it("Forever: the tab lists Forever's races only, with a Skyborne row on each side, empty ones included", function()
+    local rows = build({ toon("Sky", "Priest", "Skyborne", true, 5, 95) }, { races = realRaces("forever") })
+    assert.same({ "Human", "Dwarf", "Night Elf", "Gnome", "Skyborne", "Orc", "Undead", "Tauren", "Troll", "Skyborne" },
+      labels(rows))
+    assert.same({ "1:Sky" }, rows[5].cells)
+    assert.equals(A_COLOR, rows[5].color)
+    assert.same({}, rows[10].cells)          -- the Horde Skyborne row shows with no character on it
+    assert.equals(H_COLOR, rows[10].color)
+    assert.equals(5, rows.dividerRow)
+  end)
+
+  it("Forever: a Horde Skyborne character lands on the Horde Skyborne row", function()
+    local rows = build({ toon("Windy", "Mage", "Skyborne", false, 5, 96) }, { races = realRaces("forever") })
+    assert.same({ "2:Windy" }, rows[10].cells)
+    assert.same({}, rows[5].cells)
+  end)
+
+  it("Retail: the tab still lists every Retail race", function()
+    local rows = build({}, { flavor = "retail", races = realRaces("retail") })
+    assert.equals(30, #rows)
+    assert.equals("Human", rows[1].label)
+    assert.equals("Haranir", rows[15].label)
+    assert.equals("Orc", rows[16].label)
+    assert.is_nil(rowOf(rows, "Skyborne"))
   end)
 
   it("an empty client race name falls back to the saved one", function()

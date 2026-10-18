@@ -54,8 +54,8 @@ local classColIdx = {}
 for i, c in ipairs(Classes) do classColIdx[classKeyOf(c)] = i end
 
 -- The race a character belongs to when the race tables do not know it (a race added after
--- the tables were written, e.g. Forever's sky elves: NormalizeRaceId gives raceIdx 0): the
--- client's localized race name when it has one, else the raw name the character was saved with.
+-- the tables were written: NormalizeRaceId gives raceIdx 0): the client's localized race name
+-- when it has one, else the raw name the character was saved with.
 local function unknownRaceName(t)
   local info = t.raceId and C_CreatureInfo and C_CreatureInfo.GetRaceInfo and C_CreatureInfo.GetRaceInfo(t.raceId)
   local name = info and info.raceName
@@ -65,7 +65,8 @@ end
 
 ---@class RaceView: TableFrame
 ---@field headerWidth number  width of the race-name header column
--- 13-class × 29-race grid, built dynamically (like RoleView): the base
+-- Class × race grid (the races are ns.api's per-faction tables, which on Forever list only
+-- Forever's races), built dynamically (like RoleView): the base
 -- TableFrame builds no rows/cols, so we set the header offsets ourselves and
 -- addCol/addRow as we go. One character per cell — a race with several of a
 -- class spills into extra physical rows beneath its label. A race the tables do not know

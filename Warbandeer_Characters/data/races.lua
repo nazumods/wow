@@ -73,6 +73,22 @@ raceIdToFactionIndex[85] = {14, true}
 raceIdToFactionIndex[86] = {15, true} -- Haranir (Alliance)
 raceIdToFactionIndex[91] = {15, false} -- Haranir (Horde); 87 is a non-race creature ("Delver's Dirigible")
 
+-- Forever's playable races (#958): the eight original races and the Skyborne, one per faction. Its client
+-- data names them: the Camelot glue-screen race tags and new-player starting quests (wow-ui-source `forever`
+-- branch, Blizzard_GlueParent/Camelot/GlueScreenTags.lua, Blizzard_NewPlayerExperience/Camelot/
+-- Blizzard_TutorialData.lua) and ChrRaces (1.60.1.70374: 95 "High Order Skyborne", Alliance; 96 "Windshaper
+-- Skyborne", Horde). The original eight keep their Retail indexes, so a record made before this table existed
+-- still points at the right race.
+if ns.flavor and ns.flavor.isForever then
+  API.ALLIANCE_RACES = { "Human", "Dwarf", "Night Elf", "Gnome", "Skyborne" }
+  API.HORDE_RACES = { "Orc", "Undead", "Tauren", "Troll", "Skyborne" }
+  raceIdToFactionIndex = {
+    {1, true}, {1, false}, {2, true}, {3, true}, {2, false}, {3, false}, {4, true}, {4, false},
+  }
+  raceIdToFactionIndex[95] = {5, true}  -- High Order Skyborne (Alliance)
+  raceIdToFactionIndex[96] = {5, false} -- Windshaper Skyborne (Horde)
+end
+
 ---Map a WoW raceId to its compact per-faction race index and faction.
 ---@class Warbandeer_Characters
 ---@field NormalizeRaceId fun(raceId: integer): integer, boolean raceIdx (index into API.ALLIANCE_RACES/HORDE_RACES), isAlliance
