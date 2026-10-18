@@ -196,3 +196,6 @@ if ($script:Failures -gt 0) {
   exit 1
 }
 Write-Output 'OK: all cases passed'
+# Explicit: the cases leave $LASTEXITCODE at 1 (the lint runs under test exit 1 on purpose), and GitHub's
+# `shell: pwsh` ends the step with `exit $LASTEXITCODE` when the script does not exit itself.
+exit 0
