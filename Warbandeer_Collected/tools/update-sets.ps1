@@ -1209,7 +1209,7 @@ if ($Expand) {
 # one ns.Sets row per SET into data/sets_forever.lua, which REPLACES the Retail tables on Forever only (see the
 # generated header). Owned wholesale by this mode. Reads only /api/builds and the TransmogSet table.
 #   * A ClassMask-0 set fills every class column (classId 1..13) with itself and its row carries allClasses = true.
-#   * A set with class bits fills only those classes, the way -Expand decomposes ClassMask (bit b -> classId b+1).
+#   * A set with class bits fills only those classes, bit b -> classId b+1, ending at its highest bit.
 #   * release = ExpansionID + 1; category = "World" (Forever's sources are unknown; revisit when launch adds sets).
 # -Check: don't write; exit 1 if the file would change. Don't combine -Forever with another mode switch (the first mode
 # in the script wins). See UPDATING.md ("Forever").

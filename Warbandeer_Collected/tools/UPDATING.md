@@ -470,7 +470,8 @@ pwsh ./update-sets.ps1 -Forever                        # the newest 1.60 build (
   `"World"` (an assumption: Forever's sources are unknown; revisit when launch adds sets).
 - **Every class column holds the set.** A `ClassMask` 0 set gets cells for `classId` 1..13, each
   `{ id = <setID>, name = <name>, classId = c }`, and the row carries `allClasses = true`. A set with class bits (none today)
-  gets cells only for its bits, as `-Expand` decomposes the mask (bit b -> classId b+1, gaps as `{}`), and no flag.
+  gets cells only for its bits (bit b -> classId b+1, gaps as `{}`, ending at its highest bit -- unlike `-Expand`, which always
+  writes 13 slots), and no flag.
 - **The file replaces the Retail tables on Forever only.** It returns at the top unless `ns.flavor.isForever`, then assigns
   `ns.Sets`, `ns.PtrSets = {}` and `ns.PtrBuild = nil`. It is the last `data\` file that writes them in the toc
   (after `sets_review.lua`).
@@ -481,7 +482,7 @@ pwsh ./update-sets.ps1 -Forever                        # the newest 1.60 build (
   disk instead. `-MinRows` and the raid difficulty labels do not apply.
 - **No churn:** the file is rewritten only when the body changes (the header's product/build/date line is ignored in the
   comparison), so a rerun on a newer build with the same sets leaves it byte-identical.
-- **Not scheduled.** No workflow runs `-Forever` (#989 PR A); launch day (#966) decides whether the daily watcher does, and
+- **Not scheduled.** No workflow runs `-Forever` (#989's generator PR); launch day (#966) decides whether the daily watcher does, and
   moves `-Product` if Forever leaves the beta bucket. Tested offline by `Tooling/tests/update-sets-forever.test.ps1`.
 
 ## Regenerating the weapon sources (`-Weapons`)

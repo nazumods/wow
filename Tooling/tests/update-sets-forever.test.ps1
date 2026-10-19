@@ -7,7 +7,7 @@
 .DESCRIPTION
   Runs the REAL script with Invoke-WebRequest replaced by a function (functions outrank cmdlets, and a
   function defined here is visible to the script it calls) that serves wago's /api/builds and the
-  CSV URLs of the three tables the suite's generators read from per-case fixtures -- the TransmogSet rows are build 1.60.1.70425's real seven -- and THROWS
+  TransmogSet CSV from per-case fixtures (the rows are build 1.60.1.70425's real seven), and THROWS
   on any other URL. Every case writes a temp -ForeverFile (the real data/sets_forever.lua is never
   touched) and reads the file, the output and the exit code.
 
@@ -87,6 +87,8 @@ function Invoke-Forever([hashtable]$ScriptArgs = @{}, $Pre = $null) {
     @{
       Exit = $code; Out = ($lines -join "`n"); Path = $tmp
       Text = $(if (Test-Path -LiteralPath $tmp) { [System.IO.File]::ReadAllText($tmp) } else { $null })
+      # ReadAllText strips a BOM, so look at the raw bytes: Lua 5.1's loadfile (busted) rejects one.
+      Bom = $(if (Test-Path -LiteralPath $tmp) { $b = [System.IO.File]::ReadAllBytes($tmp); $b.Length -ge 3 -and $b[0] -eq 0xEF -and $b[1] -eq 0xBB -and $b[2] -eq 0xBF } else { $null })
       Requested = @($global:Wago989Requested)
       Agent = $(if ($global:Wago989Agents.Count) { $global:Wago989Agents[0] } else { '' })
     }
@@ -149,6 +151,7 @@ Test-Contains 'writes the gate: ns.PtrSets is emptied' $r.Text "`nns.PtrSets = {
 Test-Contains 'writes the gate: ns.PtrBuild is cleared' $r.Text "`nns.PtrBuild = nil`n"
 $ids = @([regex]::Matches($r.Text, '(?m)^  \{ id = (\d+),') | ForEach-Object { [int]$_.Groups[1].Value })
 Test-Case 'writes 7 rows sorted by id' '3634,4397,5700,5701,5702,5703,5914' ($ids -join ',')
+Test-Case 'writes the file without a UTF-8 BOM' $false $r.Bom
 
 # 5. a ClassMask-0 set fills classId 1..13 with itself and is flagged allClasses -------------------------------
 $row = [regex]::Match($r.Text, '(?s)  \{ id = 3634,.*?\n  \} \},').Value
@@ -163,6 +166,13 @@ $row = [regex]::Match($r.Text, '(?s)  \{ id = 6000,.*?\n  \} \},').Value
 Test-Lacks 'a set with class bits has no allClasses flag' $row 'allClasses'
 $cellLines = @($row -split "`n" | Where-Object { $_.StartsWith('    ') })
 Test-Case 'a set with class bits: mask 5 = bits 0 and 2 -> classId 1, a gap, classId 3' '{ id = 6000, name = "Test Tier", classId = 1 },|{},|{ id = 6000, name = "Test Tier", classId = 3 },' (($cellLines | ForEach-Object { $_.Trim() }) -join '|')
+
+# The top class bit (bit 12, Evoker = classId 13) is decomposed too: twelve gaps, then classId 13.
+Set-Ts ($realRows + '"Top Bit",6006,4096,1,1,0,13968,0,1,3,1,1,0')
+$r = Invoke-Forever
+$row = [regex]::Match($r.Text, '(?s)  \{ id = 6006,.*?\n  \} \},').Value
+$cellLines = @($row -split "`n" | Where-Object { $_.StartsWith('    ') })
+Test-Case 'a set with class bits: mask 4096 = bit 12 -> twelve gaps then classId 13' ((@('{},') * 12) + '{ id = 6006, name = "Top Bit", classId = 13 },' -join '|') (($cellLines | ForEach-Object { $_.Trim() }) -join '|')
 
 # 7. release is ExpansionID + 1 --------------------------------------------------------------------------------
 Set-Ts $realRows
