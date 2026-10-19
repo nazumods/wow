@@ -83,7 +83,7 @@ Transmog set collection tracker. Renders a class × instance-set grid showing, p
 { id, name, release, instance, difficulty, minLevel?, allClasses?,
   sets = { { id, name, classId }, ... } }  -- one entry per class set; id is the base set id
 ```
-`allClasses` is set only on Forever's rows (`data/sets_forever.lua`) for a set any class can wear: every class column then holds the same set, so a consumer counting sets counts the row once rather than once per cell. `release` indexes `ns.Releases`; `instance`/`difficulty` key into a character's `instances.locks` (from the data layer) for lockout display. Set blocks are regenerated from wago.tools — see `tools/UPDATING.md`.
+`allClasses` is set only on Forever's rows (`data/sets_forever.lua`) for a set any class can wear: every class column then holds the same set. **Nothing reads the flag yet:** `ns:Scan` still adds to `db.total`/`db.collected` once per cell, so on Forever each such set would count 13 times; counting the row once is the contract the Forever load/views change (#989) has to implement before `16001` is added. `release` indexes `ns.Releases`; `instance`/`difficulty` key into a character's `instances.locks` (from the data layer) for lockout display. Set blocks are regenerated from wago.tools — see `tools/UPDATING.md`.
 
 ## SavedVariables (`WarbandeerCollectedDB`)
 
