@@ -39,6 +39,10 @@ checkbox per feature, plus a **Changelog** button.
 `ShadowsOfUI_PostOfficeDB` — your feature toggles and the recently-mailed name list
 (up to 15 names). Nothing else is stored.
 
+## WoW: Forever
+
+Loads on **WoW: Forever** (Interface 16001) as well as Retail.
+
 ## Dependencies
 
 - **LibNAddOn**

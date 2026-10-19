@@ -16,6 +16,10 @@
 - **LibNAddOn** — installs automatically.
 - Optional: **Warbandeer_Characters** (cross-alt recipe check) and **ShadowsOfUI-HousingVendor** (shared decor owned-state).
 
+## Game versions
+
+Works on both game versions: **Retail** and **WoW: Forever**.
+
 ## Found a bug / Have a suggestion?
 
 Shadows of UI: Collectible Tints is developed in the open as part of **[Nazuraki's WoW AddOn Suite](https://github.com/nazumods/wow)**. Please report bugs and request features on the **[GitHub issue tracker](https://github.com/nazumods/wow/issues)**.

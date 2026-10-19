@@ -1,6 +1,6 @@
 # ShadowsOfUI-Known
 
-**Deps:** LibNAddOn, Warbandeer_Characters · **OptionalDeps:** Warbandeer · **SavedVars:** none · **Commands:** `/sknown <itemID>`, `/sknown knownby <recipeID>`, `/sknown guildcrafters <recipeID>` (dev dumps) · **API:** reads `WarbandeerApi` + `WarbandeerDB`; guild lookup via native `C_GuildInfo`
+**Deps:** LibNAddOn, Warbandeer_Characters · **OptionalDeps:** Warbandeer · **SavedVars:** none · **Commands:** `/sknown <itemID>`, `/sknown knownby <recipeID>`, `/sknown guildcrafters <recipeID>` (dev dumps) · **API:** reads `WarbandeerApi` + `WarbandeerDB`; guild lookup via native `C_GuildInfo` · **Clients:** Retail + Forever
 
 Headless tooltip addon with two surfaces, both driven by the captured per-character learned-recipe
 data (`professions.details[skillLineID].recipes[bucket].learned[] = { id, name }`):

@@ -54,6 +54,10 @@ Found under **Options → AddOns → Shadows of UI → Cast Bars**:
 - **Bar text size** — 8–22px (default 12).
 - **Changelog** — a button that opens this addon's release history (newest first) in a scrollable, copyable window.
 
+## WoW: Forever
+
+Loads on **WoW: Forever** (Interface 16001) as well as Retail.
+
 ## Dependencies
 
 - **LibNAddOn**
