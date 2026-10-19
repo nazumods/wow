@@ -17,7 +17,14 @@ describe("Warbandeer_Collected data/setpieces.lua", function()
   for _, it in pairs(ITEMS) do LOC_BY_ITEM[it.itemID] = it.loc end
 
   before_each(function()
-    _G.C_TransmogSets = { GetAllSourceIDs = function(setID) return SOURCES[setID] end }
+    _G.C_TransmogSets = {
+      GetAllSourceIDs = function(setID) return SOURCES[setID] end,
+      -- Set 100 has per-slot sources for its head only; an unknown set answers nil, like GetAllSourceIDs.
+      GetSourcesForSlot = function(setID, slot)
+        if setID ~= 100 then return nil end
+        return slot == 1 and { { sourceID = 1 } } or {}
+      end,
+    }
     _G.C_TransmogCollection = {
       GetSourceInfo = function(sourceID)
         local it = ITEMS[sourceID]
@@ -41,6 +48,10 @@ describe("Warbandeer_Collected data/setpieces.lua", function()
     it("has no slot pieces, rather than raising", function()
       assert.same({}, ns.SetSlotPieces(853))
     end)
+
+    it("has no per-slot sources, as an empty table rather than nil", function()
+      assert.same({}, ns.SetSlotSources(853, 1))
+    end)
   end)
 
   describe("a set the client has", function()
@@ -53,6 +64,11 @@ describe("Warbandeer_Collected data/setpieces.lua", function()
         [1] = { itemID = 11, isCollected = true },
         [5] = { itemID = 12, isCollected = false },
       }, ns.SetSlotPieces(100))
+    end)
+
+    it("returns one slot's sources as the client gave them", function()
+      assert.same({ { sourceID = 1 } }, ns.SetSlotSources(100, 1))
+      assert.same({}, ns.SetSlotSources(100, 3))
     end)
 
     it("maps a single source to its slot, and a weapon to none", function()
@@ -101,6 +117,19 @@ describe("Warbandeer_Collected data/setpieces.lua", function()
       ns:Scan()
       assert.equals(0, ns.db.total)
       assert.same({}, ns.db.sets)
+    end)
+  end)
+
+  -- A second consumer: ns.SetPieceCount (DataViewData.lua), the PTR-preview cell text. Loaded for real
+  -- over the spec harness; it counts the slots ns.SetSlotSources reports.
+  describe("ns.SetPieceCount", function()
+    it("counts a known set's slots and gives 0 for an unknown one", function()
+      local collected = require("Warbandeer_Collected.spec.collected")
+      local full = collected.load()
+      full.SetSlotSources = ns.SetSlotSources
+      collected.loadDataViewData(full)
+      assert.equals(1, full.SetPieceCount(100))
+      assert.equals(0, full.SetPieceCount(853))
     end)
   end)
 end)

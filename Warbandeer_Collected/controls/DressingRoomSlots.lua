@@ -3,7 +3,6 @@ local ns = select(2, ...)
 ---@type LibNUI
 local ui = ns.ui
 local Frame, Texture = ui.Frame, ui.Texture
-local GetSourcesForSlot = C_TransmogSets.GetSourcesForSlot
 local getParts = C_TransmogSets.GetSetPrimaryAppearances
 local GetSourceInfo = C_TransmogCollection.GetSourceInfo
 local find, any = ns.lua.lists.find, ns.lua.maps.any
@@ -18,7 +17,7 @@ local selBox = DressingRoom._selBox
 local PAD, MODELH = DressingRoom._PAD, DressingRoom._MODELH
 
 -- Equipment-slot columns flanking the model (paper-doll style), in Blizzard's own paper-doll
--- order. Slot ids are inventory slots, also the GetSourcesForSlot key. Six left / five right.
+-- order. Slot ids are inventory slots, also the ns.SetSlotSources key. Six left / five right.
 --
 -- The two `target`-bearing entries are the COSMETIC slots (#641): shirt and tabard are never set
 -- pieces, so they're built and refreshed by controls/DressingRoomCosmeticSlots.lua off the composed
@@ -147,7 +146,7 @@ function DressingRoom:UpdateSlots()
     -- Cosmetic slots (shirt/tabard) are picker-driven, not set pieces — a set never carries one,
     -- so there is nothing to look up here. UpdateLookSlots owns them. #641.
     if not e.cosmetic then
-      local sources = GetSourcesForSlot(set.id, e.slotID)
+      local sources = ns.SetSlotSources(set.id, e.slotID)
       local _, p = find(sources, function(s) return primary[s.sourceID] end)
       local itemID, collected
       if p then
