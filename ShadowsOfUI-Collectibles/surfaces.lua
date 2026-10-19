@@ -125,8 +125,9 @@ end)
 
 -- Decor owned-state isn't available from the API immediately after login; kicking
 -- off a catalog search primes it (fires HOUSING_STORAGE_UPDATED once ready).
+-- Forever documents C_HousingCatalog but has no housing, so the feature table decides.
 function ns:onLogin()
-  if C_HousingCatalog and C_HousingCatalog.CreateCatalogSearcher then
+  if ns:Supports("housing") and C_HousingCatalog and C_HousingCatalog.CreateCatalogSearcher then
     C_HousingCatalog.CreateCatalogSearcher()
   end
 end

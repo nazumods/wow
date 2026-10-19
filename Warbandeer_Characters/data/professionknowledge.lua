@@ -119,6 +119,11 @@ end
 ---@class ProfessionKnowledgeBroker: Broker
 ---@field data table<integer, ProfessionKnowledgeEntry>?  keyed by PARENT skill line ID
 
+-- The catalog and the two pure helpers above stay defined on every client (spec/professionknowledge_spec.lua loads them
+-- bare); the broker, its event and its dump are Midnight-only, so they never register on Forever (nazumods/wow#987).
+-- Gate at registration (CONTRIBUTING, "Writing for several clients").
+if not ns:Supports("midnight") then return end
+
 local ProfKnowledge = ns:RegisterBroker("professionKnowledge")
 ProfKnowledge.fields = {
   data = {

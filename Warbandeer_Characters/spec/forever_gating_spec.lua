@@ -1,14 +1,17 @@
 -- Warbandeer_Characters on Forever: the data files for systems Forever lacks gate themselves off, behind the
 -- feature table (`ns:Supports`), not behind an API-existence probe (Forever has the C_* tables, empty). Each
--- file is loaded against a stub namespace whose `Supports` answers per feature: the Forever case must register
--- nothing (no broker, event, dump or command); the Retail case must register as before. Deleting a gate, or
--- inverting it, fails the case named for it (nazumods/wow#957).
+-- file is loaded against a stub namespace whose `Supports` answers per feature (D7's and D8's Forever and Retail
+-- cases answer from the real LibNAddOn/flavor.lua table instead): the Forever case must register nothing (no
+-- broker, event, dump or command) or drop the gated fields; the Retail case must register as before. Deleting a
+-- gate, or inverting it, fails the case named for it (nazumods/wow#957).
 -- luacheck: globals describe it before_each after_each
 
 local GLOBALS = {
   "GetServerTime", "GetTime", "C_QuestLog", "C_WeeklyRewards", "C_MythicPlus", "C_Item", "C_Bank", "C_Container",
   "C_SpellBook", "C_Spell", "C_SpecializationInfo", "C_Reputation", "C_MajorFactions", "C_GossipInfo", "Enum",
   "GetFlyoutInfo", "GetFlyoutSlotInfo", "ItemLocation", "strtrim", "geterrorhandler",
+  "C_CurrencyInfo", "GetMoney", "tInvert",
+  "WOW_PROJECT_ID", "WOW_PROJECT_CAMELOT", "C_AddOns",   -- read by the real flavor.lua in the "real feature table" block
 }
 
 describe("Warbandeer_Characters on Forever", function()
@@ -24,7 +27,11 @@ describe("Warbandeer_Characters on Forever", function()
     _G.GetTime = function() return clock end
     _G.strtrim = function(s) return (s:gsub("^%s+", ""):gsub("%s+$", "")) end
     _G.C_QuestLog = { IsQuestFlaggedCompleted = function() return false end,
-                      IsQuestFlaggedCompletedOnAccount = function() return false end }
+                      IsQuestFlaggedCompletedOnAccount = function() return false end,
+                      ReadyForTurnIn = function() return false end }
+    _G.C_CurrencyInfo = { GetCurrencyInfo = noop }
+    _G.GetMoney = function() return 0 end
+    _G.tInvert = function(map) local out = {}; for k, v in pairs(map) do out[v] = k end return out end
     _G.C_WeeklyRewards = { GetActivities = function() return {} end, HasAvailableRewards = function() return false end }
     _G.C_MythicPlus = { GetOwnedKeystoneLevel = noop, GetOwnedKeystoneChallengeMapID = noop }
     _G.C_Item = { GetCurrentItemLevel = noop, GetDetailedItemLevelInfo = noop, GetItemInfo = noop,
@@ -65,7 +72,8 @@ describe("Warbandeer_Characters on Forever", function()
       wow = { maxLevel = 80, Player = { GetMaxXP = function() return 0 end } },
       api = { ClassifyGearItem = noop, ClassifyProfGearItem = noop },
       lua = {
-        sets = { Set = function(list) local s = {}; for _, v in ipairs(list) do s[v] = true end; return s end },
+        sets = { Set = function(list) local s = {}; for _, v in ipairs(list) do s[v] = true end; return s end,
+                 values = function(map) local out = {}; for _, v in pairs(map) do out[#out + 1] = v end return out end },
         lists = { values = function(map) local s = {}; for _, v in pairs(map) do s[v] = true end; return s end },
         maps = { any = function(map, fn) for _, v in pairs(map) do if fn(v) then return true end end return false end,
                  map = function(map, fn) local out = {}; for k, v in pairs(map) do out[k] = fn(v) end return out end },
@@ -201,7 +209,7 @@ describe("Warbandeer_Characters on Forever", function()
       return names
     end
 
-    it("Forever (all unsupported): vault, delves and Mythic+ fields are absent, quest-flag fields stay", function()
+    it("Forever (these three unsupported): vault, delves and Mythic+ fields are absent, the Midnight and quest flags stay", function()
       unsupported.greatVault, unsupported.delves, unsupported.mythicPlus = true, true, true
       local f = fieldNames()
       for _, gone in ipairs({ "vault", "vaultSlots", "hasUnclaimedVault", "delversBounty", "keystone", "keystoneMap", "dungeons" }) do
@@ -335,5 +343,199 @@ describe("Warbandeer_Characters on Forever", function()
       assert.is_table(ns.db.bank.warband)
       assert.same({ 1, 2 }, viewed)
     end)
+  end)
+
+  -- D7's and D8's "Forever:" and "Retail:" cases load the REAL LibNAddOn/flavor.lua feature table, not a stub, so
+  -- deleting a feature's table entry fails them exactly as deleting a gate does. Their "... alone unsupported" cases
+  -- use the stub table instead, to turn off one feature at a time.
+  local function useRealFlavor(flavor)
+    _G.WOW_PROJECT_CAMELOT, _G.WOW_PROJECT_ID = 18, (flavor == "forever") and 18 or 1
+    _G.C_AddOns = nil
+    local lib = {}
+    assert(loadfile("LibNAddOn/flavor.lua"))("LibNAddOn", lib)
+    assert.equals(flavor, lib.flavor.id)
+    function ns.Supports(_, feature) ns.asked[#ns.asked + 1] = feature; return lib.Supports(feature) end
+  end
+
+  local function currencyFields()
+    load("data/currency.lua")
+    local names = {}
+    for name in pairs(ns.brokers.currency.fields) do names[name] = true end
+    return names
+  end
+
+  local function questFields()
+    load("data/quests.lua")
+    local names = {}
+    for name in pairs(ns.brokers.quests.fields) do names[name] = true end
+    return names
+  end
+
+  -- Every field data/currency.lua and data/quests.lua define, so a case can pin the exact set a gate leaves.
+  local ALL_CURRENCIES = { "RestoredCofferKey", "gold", "CofferKeyShard", "Catalyst", "HeroDawncrest", "MythDawncrest",
+                           "NebulousVoidcore", "FieldAccolade", "UnalloyedAbundance", "UntaintedManaCrystal",
+                           "ShardOfDundun" }
+  local ALL_QUESTS = { "UndermineStoryMode", "WWIRep", "LumberAxe", "delves", "CatalystUnbound" }
+  local function set(list) local s = {}; for _, v in ipairs(list) do s[v] = true end return s end
+  local function without(list, gone)
+    local out = {}
+    for _, v in ipairs(list) do if not gone[v] then out[#out + 1] = v end end
+    return set(out)
+  end
+
+  -- Midnight-only content (nazumods/wow#987).
+  describe("D7 Midnight-only data", function()
+    local function weeklyFields()
+      load("data/weekly.lua")
+      local names = {}
+      for name in pairs(ns.brokers.weeklies.fields) do names[name] = true end
+      return names
+    end
+
+    for _, file in ipairs({ "data/concentration.lua", "data/artisancurrency.lua" }) do
+      it("Forever: " .. file .. " registers nothing", function()
+        useRealFlavor("forever")
+        load(file)
+        assert.is_true(noBrokers())
+        assert.same({}, ns.events)
+        assert.same({}, ns.dumps)
+        assert.same({ "midnight" }, ns.asked)
+      end)
+    end
+
+    it("Retail: concentration and artisanCurrency register their brokers", function()
+      useRealFlavor("retail")
+      load("data/concentration.lua")
+      load("data/artisancurrency.lua")
+      assert.is_not_nil(ns.brokers.concentration)
+      assert.is_not_nil(ns.brokers.artisanCurrency)
+    end)
+
+    it("Forever: professionknowledge.lua keeps its pure catalog and helpers but registers no broker or dump", function()
+      useRealFlavor("forever")
+      load("data/professionknowledge.lua")
+      assert.is_true(noBrokers())
+      assert.same({}, ns.dumps)
+      assert.is_function(ns.SummarizeProfessionKnowledge)
+      assert.is_function(ns.MergeProfessionKnowledge)
+      assert.is_table(ns.ProfessionKnowledge)
+      assert.is_table(ns.ProfessionKnowledgeSources)
+    end)
+
+    it("Retail: professionknowledge.lua registers the professionKnowledge broker and its dump", function()
+      useRealFlavor("retail")
+      load("data/professionknowledge.lua")
+      assert.is_not_nil(ns.brokers.professionKnowledge)
+      assert.same({ "knowledge" }, ns.dumps)
+    end)
+
+    it("Forever: the weekly Midnight fields (preMidnight, caches) are dropped, the Forever-neutral quest flag stays", function()
+      useRealFlavor("forever")
+      local f = weeklyFields()
+      assert.is_nil(f.preMidnight)
+      assert.is_nil(f.caches)
+      assert.is_true(f.DMF)
+    end)
+
+    it("Retail: preMidnight and caches are present", function()
+      useRealFlavor("retail")
+      local f = weeklyFields()
+      assert.is_true(f.preMidnight)
+      assert.is_true(f.caches)
+    end)
+
+    local MIDNIGHT_CURRENCIES = { "Catalyst", "HeroDawncrest", "MythDawncrest", "NebulousVoidcore", "FieldAccolade",
+                                  "UnalloyedAbundance", "UntaintedManaCrystal", "ShardOfDundun" }
+
+    it("Forever: the Midnight currency fields are dropped, gold stays", function()
+      useRealFlavor("forever")
+      local f = currencyFields()
+      for _, name in ipairs(MIDNIGHT_CURRENCIES) do assert.is_nil(f[name], name) end
+      assert.is_true(f.gold)
+    end)
+
+    it("Retail: every currency field is present", function()
+      useRealFlavor("retail")
+      assert.same(set(ALL_CURRENCIES), currencyFields())
+    end)
+
+    it("Forever: the CatalystUnbound achievement flag is dropped and UndermineStoryMode stays; Retail keeps it", function()
+      useRealFlavor("forever")
+      load("data/quests.lua")
+      assert.is_nil(ns.brokers.quests.fields.CatalystUnbound)
+      assert.is_not_nil(ns.brokers.quests.fields.UndermineStoryMode)
+      ns.brokers = {}
+      useRealFlavor("retail")
+      load("data/quests.lua")
+      assert.is_not_nil(ns.brokers.quests.fields.CatalystUnbound)
+    end)
+
+    it("midnight alone unsupported drops the Midnight currencies and CatalystUnbound, and no other currency or quest field", function()
+      unsupported.midnight = true
+      assert.same(without(ALL_CURRENCIES, set(MIDNIGHT_CURRENCIES)), currencyFields())
+      assert.same(without(ALL_QUESTS, set({ "CatalystUnbound" })), questFields())
+    end)
+
+    it("midnight alone unsupported drops only preMidnight and caches", function()
+      unsupported.midnight = true
+      local f = weeklyFields()
+      assert.is_nil(f.preMidnight); assert.is_nil(f.caches)
+      for _, kept in ipairs({ "DMF", "delversBounty", "vault", "keystone", "dungeons" }) do assert.is_true(f[kept], kept) end
+    end)
+  end)
+
+  -- Delves and Housing records (nazumods/wow#957): Forever has neither system, so the Delve intro-quest flags, the
+  -- Delve keys and the Find Lumber flag (a housing resource) go.
+  describe("D8 Delves and Housing records", function()
+    local DELVE_KEYS = { "RestoredCofferKey", "CofferKeyShard" }
+
+    it("Forever: the Delve keys are dropped from the currency fields, gold stays", function()
+      useRealFlavor("forever")
+      local f = currencyFields()
+      for _, name in ipairs(DELVE_KEYS) do assert.is_nil(f[name], name) end
+      assert.is_true(f.gold)
+    end)
+
+    it("Retail: the Delve keys are present", function()
+      useRealFlavor("retail")
+      local f = currencyFields()
+      for _, name in ipairs(DELVE_KEYS) do assert.is_true(f[name], name) end
+    end)
+
+    it("Forever: the delves and LumberAxe quest fields are dropped; UndermineStoryMode and WWIRep stay", function()
+      useRealFlavor("forever")
+      local f = questFields()
+      assert.is_nil(f.delves)
+      assert.is_nil(f.LumberAxe)
+      for _, kept in ipairs({ "UndermineStoryMode", "WWIRep" }) do assert.is_true(f[kept], kept) end
+    end)
+
+    it("Retail: every quest field is present", function()
+      useRealFlavor("retail")
+      assert.same(set(ALL_QUESTS), questFields())
+    end)
+
+    it("delves alone unsupported drops the Delve keys and the delves quest field, and no other currency or quest field", function()
+      unsupported.delves = true
+      assert.same(without(ALL_CURRENCIES, set(DELVE_KEYS)), currencyFields())
+      assert.same(without(ALL_QUESTS, set({ "delves" })), questFields())
+    end)
+
+    it("housing alone unsupported drops LumberAxe, and no other quest or currency field", function()
+      unsupported.housing = true
+      assert.same(without(ALL_QUESTS, set({ "LumberAxe" })), questFields())
+      assert.same(set(ALL_CURRENCIES), currencyFields())
+    end)
+
+    -- Every other feature Forever lacks, turned off alone, leaves both brokers whole: a gate that also asks about one
+    -- of these fails here.
+    for _, feature in ipairs({ "specializations", "mythicPlus", "encounterJournal", "travelersLog", "garrison", "legion",
+                               "greatVault", "warbandBank" }) do
+      it(feature .. " alone unsupported drops no quest or currency field", function()
+        unsupported[feature] = true
+        assert.same(set(ALL_QUESTS), questFields())
+        assert.same(set(ALL_CURRENCIES), currencyFields())
+      end)
+    end
   end)
 end)

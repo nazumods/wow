@@ -31,7 +31,18 @@ Flat keys, all defaulting on: `bags`, `bank`, `loot`, `guildbank`, `baganator`, 
 
 | Table | Key → Value | Notes |
 |---|---|---|
-| `ns.InsetPositions` | slot button name → `{point, relativePoint, x, y, justifyH}` | Character*/Inspect* slots; left column anchors label to the icon's RIGHT, right column to the LEFT. Weapons (bottom centre) follow the same convention vertically centred — main hand left, off hand right — so they drop below the wrist / trinket-2 labels instead of overlapping. Also the "is this a gear slot" gate for the paperdoll hooks |
+| `ns.InsetPositions` | slot button name → `{point, relativePoint, x, y, justifyH}` | Character*/Inspect* slots; left column anchors label to the icon's RIGHT, right column to the LEFT. Weapons (bottom centre) follow the same convention vertically centred — main hand left, off hand right — so they drop below the wrist / trinket-2 labels instead of overlapping. On Forever the whole weapon row (`MainHand`/`SecondaryHand`/`Ranged`, Character and Inspect) is labelled ABOVE its icon instead (see Forever). Built by `ns.BuildInsetPositions(isForever)` (pure; `render.lua` calls it with `ns.flavor.isForever`). Also the "is this a gear slot" gate for the paperdoll hooks |
+
+## WoW: Forever
+
+TOC `## Interface: 120105, 16001`. Facts below are from Blizzard's Forever UI source (build 1.60.1.70425, branch `origin/forever` of `wow-ui-source`); in-game results are in the PR's UNVERIFIED list.
+
+- **Bank** — `BankPanelMixin:GenerateItemSlotsForSelectedTab` / `:RefreshAllItemsForSelectedTab` are defined in `Blizzard_UIPanels_Game/Mainline/BankFrameTemplates.lua:1076` / `:1144`, and `Camelot/BankFrame.xml:86` defines `BankPanel` inheriting `BankPanelTemplate`, so the `surfaces.lua` bank hooks target methods that exist there. That the bank opens and shows badges is not verified (needs a character at a banker).
+- **Character panel** — `Camelot/PaperDollFrame.lua:2177` defines `PaperDollItemSlotButton_Update` (the hooked function). The slot names are Retail's plus `CharacterRangedSlot` and `CharacterAmmoSlot` (`Camelot/PaperDollFrame.xml:863,868`). Inspect: `Mainline/InspectPaperDollFrame.lua:239` defines `InspectPaperDollItemSlotButton_Update`; `Camelot/InspectPaperDollFrame.xml:310` adds `InspectRangedSlot`.
+- **Ranged slot** — labelled (`CharacterRangedSlot`, `InspectRangedSlot` are in `InsetPositions` on both flavors; on Retail those buttons do not exist and `refreshPaperdoll` skips a name with no `_G` button). `CharacterAmmoSlot` is not listed: ammo is not Weapon/Armor, so `WantGear` would reject it.
+- **Weapon-row labels sit above the icons on Forever** — the bottom row is MainHand → SecondaryHand → Ranged anchored 6 px apart (5 px on inspect), so Retail's beside-the-icon label of the off hand would land on the Ranged icon. This is a client-layout difference, hence the `ns.flavor.isForever` check rather than `ns:Supports`.
+- **Upgrade tracks** — `C_Item.GetItemUpgradeInfo` exists on Forever (`ItemDocumentation.lua:1074`), but `C_ItemUpgrade` was present and empty on the 2026-10-15 beta probe, so no item reported a track there. `ns.TrackFromLink` returns nil unless `trackString` is set and `currentLevel > 0`; the track badge therefore does not show on Forever as far as that probe goes (pinned by `spec/render_spec.lua`).
+- **Specs** — `spec/render_spec.lua` loads the real `render.lua` with `C_Item` stubbed; it covers `TrackFromLink` and both flavors' `InsetPositions`. It does not exercise `surfaces.lua`.
 
 ## Gotchas
 

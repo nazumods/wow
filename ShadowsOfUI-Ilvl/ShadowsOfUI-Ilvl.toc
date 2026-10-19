@@ -1,8 +1,8 @@
-## Interface: 120105
+## Interface: 120105, 16001
 ## Category: Shadows of UI
 ## Title: Item Level
 ## Author: Nazuraki
-## Version: 12.1.5-r1
+## Version: 12.1.5-r2
 ## IconTexture: Interface\Icons\inv_misc_armorkit_17
 ## SavedVariables: ShadowsOfUI_IlvlDB
 ## Dependencies: LibNAddOn

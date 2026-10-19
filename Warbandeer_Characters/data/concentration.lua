@@ -1,5 +1,8 @@
 ---@type Warbandeer_Characters
 local ns = select(2, ...)
+-- Midnight expansion content: Forever has none, so this broker never registers there (nazumods/wow#987).
+-- Gate at registration (CONTRIBUTING, "Writing for several clients"): nothing below registers.
+if not ns:Supports("midnight") then return end
 local GetServerTime = GetServerTime
 
 ---@class ConcentrationEntry
