@@ -1,6 +1,6 @@
 # LibNUI
 
-**Deps:** LibNAddOn · **Commands:** `/nui version`, `/nui test [key]`, `/wdebug <lua>` · **Global:** `LibNUI` (= `ns.ui` in consuming addons) · **DB:** `LibNUIDB` (v1; `copyFontSize`)
+**Deps:** LibNAddOn · **Commands:** `/nui version`, `/nui test [key]`, `/wdebug <lua>` · **Global:** `LibNUI` (= `ns.ui` in consuming addons) · **DB:** `LibNUIDB` (v1; `copyFontSize`) · **Clients:** Retail + Forever
 
 OOP UI widget library. Every widget wraps a backing WoW object (`self._widget`) and is built via `Widget:new{ ...options }`. Widgets register themselves on `ui` (e.g. `ui.Frame`, `LibNUI.Frame`). Files live at the addon root; `settings/` holds the WoW Settings-panel controls.
 

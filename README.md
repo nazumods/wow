@@ -1,6 +1,6 @@
 # Nazuraki's WoW AddOn Suite
 
-A monorepo of World of Warcraft (Retail) addons by Nazuraki. The suite is built on two
+A monorepo of World of Warcraft (Retail and WoW: Forever) addons by Nazuraki. The suite is built on two
 shared libraries — **LibNAddOn** (addon bootstrapping) and **LibNUI** (OOP UI widgets) —
 with the **Warbandeer** family providing warband-wide character tracking, plus the
 **Shadows of UI** custom-UI tweaks and a handful of small quality-of-life addons.
@@ -75,6 +75,19 @@ Released addons are published to CurseForge (per-addon — see each README). To 
 from source, copy (or symlink) the addon folder into your
 `World of Warcraft/_retail_/Interface/AddOns/` directory. Mind the dependencies listed
 in each addon's README/.toc — most addons need LibNAddOn, and UI addons also need LibNUI.
+
+### WoW: Forever
+
+Most of the suite also loads on **WoW: Forever** (Interface 16001), from the same addon folders.
+Install into the Forever client's own folder: during the beta that is
+`World of Warcraft/_classic_beta_/Interface/AddOns/` (the folder for the launched client isn't
+known yet). A ported addon's README usually has a **WoW: Forever** section. Systems Forever lacks
+or that are unverified there (housing, delves, Mythic+, the Great Vault) are skipped rather than
+erroring.
+
+Retail only, for now: ShadowsOfUI-Artisan, ShadowsOfUI-DMF, ShadowsOfUI-Delves, ShadowsOfUI-HousingVendor, ShadowsOfUI-Ilvl, ShadowsOfUI-ProfCommissions, ShadowsOfUI-Upgrade, Warbandeer_Collected, Warbandeer_Decor.
+
+How one addon serves both clients: [Writing for several clients](CONTRIBUTING.md#writing-for-several-clients-retail--forever).
 
 ## Contributing
 

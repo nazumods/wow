@@ -97,6 +97,10 @@ Found under **Game Menu → Options → AddOns → Warbandeer → Logging**:
   Combat logging always starts off when the game launches, so this option re-enables it
   automatically each login. Turn it off to stop logging.
 
+## WoW: Forever
+
+Loads on **WoW: Forever** (Interface 16001) as well as Retail. Data for systems Forever lacks or that are unverified there (Great Vault, Mythic+, Delves, housing, Traveler's Log, Legion artifacts and class mounts, the active specialization and glyphs) is not collected there, so those fields are absent from a Forever character's record.
+
 ## Dependencies
 
 - **LibNAddOn**

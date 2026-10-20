@@ -9,6 +9,10 @@ level that reward is worth.
 
 `/squestxp` prints the computed percentage for the currently selected quest — a testing/debug aid.
 
+## WoW: Forever
+
+Loads on **WoW: Forever** (Interface 16001) as well as Retail.
+
 ## Dependencies
 
 - **LibNAddOn**

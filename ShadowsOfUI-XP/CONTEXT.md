@@ -1,6 +1,6 @@
 # ShadowsOfUI-XP
 
-**Deps:** LibNAddOn, LibNUI · **SavedVars:** none · **Commands:** none · **UI:** LibNUI
+**Deps:** LibNAddOn, LibNUI · **SavedVars:** none · **Commands:** none · **UI:** LibNUI · **Clients:** Retail + Forever
 
 Minimal full-width XP bar pinned to the screen bottom. Hides Blizzard's `StatusTrackingBarManager` **unconditionally and permanently** (by design — see Gotchas); the custom bar is only created while the player is below max level, so at max level the screen is clean (no XP bar, no rep/honor/azerite tracking bars).
 

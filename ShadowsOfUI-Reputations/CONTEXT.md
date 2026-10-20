@@ -1,6 +1,6 @@
 # ShadowsOfUI-Reputations
 
-**Deps:** LibNAddOn, Warbandeer_Characters · **OptionalDeps:** none · **SavedVars:** none · **Commands:** `/sreps <factionID|name>` (dev/lookup) · **API:** reads `WarbandeerApi`
+**Deps:** LibNAddOn, Warbandeer_Characters · **OptionalDeps:** none · **SavedVars:** none · **Commands:** `/sreps <factionID|name>` (dev/lookup) · **API:** reads `WarbandeerApi` · **Clients:** Retail + Forever
 
 Headless addon. Surfaces each character's faction standings warband-wide, in two places: the
 in-game Reputation tab (hover a faction) and faction-tied item tooltips. Assignment-form init

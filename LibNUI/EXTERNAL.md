@@ -12,6 +12,10 @@ It wraps Blizzard's frames in a clean, object-oriented set of UI classes — win
 
 Full class reference and API documentation live in the [README on GitHub](https://github.com/nazumods/wow/tree/main/LibNUI). The whole suite is open source — issues and pull requests welcome.
 
+## Game versions
+
+Works on both game versions: **Retail** and **WoW: Forever**.
+
 ## Found a bug / Have a suggestion?
 
 LibNUI is developed in the open as part of **[Nazuraki's WoW AddOn Suite](https://github.com/nazumods/wow)**. Please report bugs and request features on the **[GitHub issue tracker](https://github.com/nazumods/wow/issues)**.

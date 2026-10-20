@@ -49,6 +49,10 @@ Found in the Blizzard settings panel:
 - **Bar Apply Defaults** — a subpanel of checkboxes setting which bars are pre-checked when the Bars view's Apply panel opens (Action Bars 1-8, Class Pages 1-5, and the Bonus / Skyriding / Pet bars). By default every bar is included except Bonus, Skyriding, and Pet. Changes take effect the next time you open the game.
 - **Changelog** — a button that opens Warbandeer's release history (newest first) in a scrollable, copyable window, so you can read what changed without leaving the game.
 
+## WoW: Forever
+
+Loads on **WoW: Forever** (Interface 16001) as well as Retail. Views and Summary columns for systems Forever lacks or that are unverified there (Great Vault, Legion, Housing Decor, Mythic+, Delves, housing) are never registered there, and a saved default view naming one is ignored.
+
 ## Dependencies
 
 - **LibNAddOn**

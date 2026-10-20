@@ -2,6 +2,10 @@
 
 A library of OOP UI classes wrapping Blizzard's frames and adding convenience and quality of life features.
 
+## WoW: Forever
+
+Loads on **WoW: Forever** (Interface 16001) as well as Retail.
+
 ## Dependencies
 
 - **LibNAddOn**

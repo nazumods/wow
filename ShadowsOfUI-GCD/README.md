@@ -14,6 +14,10 @@ sweeps.
 
 A **Changelog** button in this addon's settings (Options → AddOns → Shadows of UI → GCD Bar) opens its release history in a scrollable, copyable window.
 
+## WoW: Forever
+
+Loads on **WoW: Forever** (Interface 16001) as well as Retail.
+
 ## Dependencies
 
 - **LibNAddOn**

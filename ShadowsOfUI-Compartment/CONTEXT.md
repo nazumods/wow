@@ -1,6 +1,6 @@
 # ShadowsOfUI-Compartment
 
-**Deps:** LibNAddOn, LibNUI · **SavedVars:** `ShadowsOfUI_CompartmentDB` (v1) · **UI:** LibNUI · **Settings:** subcategory under the shared "Shadows of UI" parent · **Slash:** `/scompartment`
+**Deps:** LibNAddOn, LibNUI · **SavedVars:** `ShadowsOfUI_CompartmentDB` (v1) · **UI:** LibNUI · **Settings:** subcategory under the shared "Shadows of UI" parent · **Slash:** `/scompartment` · **Clients:** Retail + Forever
 
 Makes Blizzard's built-in `AddonCompartmentFrame` (the minimap addon-count button) movable via ALT+left-drag and replaces its count number with a custom icon.
 

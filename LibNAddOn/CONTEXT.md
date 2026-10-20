@@ -1,6 +1,6 @@
 # LibNAddOn
 
-**Deps:** none (base library) · **Commands:** `/lib`, `/rl`, `/fs`, `/etc` · **Exposes:** `LibNAddOn(features, o)` factory + `ns.lua`, `ns.wow`, `ns.icons`, `ns.Colors`
+**Deps:** none (base library) · **Commands:** `/lib`, `/rl`, `/fs`, `/etc` · **Exposes:** `LibNAddOn(features, o)` factory + `ns.lua`, `ns.wow`, `ns.icons`, `ns.Colors` · **Clients:** Retail + Forever
 
 Bootstrapping factory every other addon depends on. `LibNAddOn(features)` wires an addon namespace with common functions, globals, an event listener, DB linkage, settings, and slash commands. Also ships the shared `lua`/`wow`/`icons`/`Colors` utility tables.
 
