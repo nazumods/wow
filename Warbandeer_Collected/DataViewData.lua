@@ -71,7 +71,7 @@ end
 function ns.SetGroupInfo(grp)
   local gsets = ns.db.sets[grp.id]
   local classes, complete, coll, total, wanted = 0, 0, 0, 0, 0
-  for _, set in ipairs(grp.sets) do
+  for _, set in ipairs(ns.DistinctSets(grp)) do
     if set.id then
       if ns:IsWanted(set.id) then wanted = wanted + 1 end
       local status = gsets and gsets[set.id]
@@ -91,7 +91,8 @@ function ns.SetGroupInfo(grp)
   end
   local out = {}
   if classes > 0 then
-    out[#out + 1] = ("%d/%d class sets complete"):format(complete, classes)
+    -- An `allClasses` row (Forever) is one set any class wears, counted once: "1/1 sets", not "class sets".
+    out[#out + 1] = ("%d/%d %s complete"):format(complete, classes, grp.allClasses and "sets" or "class sets")
     out[#out + 1] = ("%d/%d appearances collected"):format(coll, total)
   end
   if wanted > 0 then
@@ -287,7 +288,7 @@ function DataView:VisibleCounts()
     if matches(self, grp) and (not wantedOnly or groupWanted(grp)) then
       sets = sets + 1
       local gsets = ns.db.sets[grp.id]
-      for _, set in ipairs(grp.sets) do
+      for _, set in ipairs(ns.DistinctSets(grp)) do   -- an allClasses (Forever) row counts its set once
         if set.id and (not wantedOnly or ns:IsWanted(set.id)) then
           local s = gsets and gsets[set.id]
           if isPtr then

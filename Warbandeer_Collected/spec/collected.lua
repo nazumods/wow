@@ -215,6 +215,17 @@ function M.loadDataViewData(ns)
   -- fails loudly as a nil-call rather than silently resolving to a global.
   ns.SavedCharacters = ns.SavedCharacters or function() return nil end
   ns.WantedOnlyActive = ns.WantedOnlyActive or function(view) return view._wantedOnly and not view._ptr end
+  -- The tallies walk `ns.DistinctSets` (data/setpieces.lua), so load the real one. The file captures
+  -- three C_ functions at load; a spec that already installed stubs keeps them, otherwise empty
+  -- namespaces stand in (nothing here calls them) and are removed again so no global leaks.
+  if not ns.DistinctSets then
+    local stubbed = {}
+    for _, name in ipairs({ "C_TransmogSets", "C_TransmogCollection", "C_Item" }) do
+      if _G[name] == nil then _G[name] = {}; stubbed[#stubbed + 1] = name end
+    end
+    loadInto(ns, "data/setpieces.lua")
+    for _, name in ipairs(stubbed) do _G[name] = nil end
+  end
   loadInto(ns, "DataViewData.lua")
   return ns
 end

@@ -41,7 +41,7 @@ ns.InfoTipBodies.armor = function(tip, desc)
   -- (a PTR-only set on a live client). A set with sources but no primary appearances
   -- (a PvP set) is NOT upcoming — it renders via the GetAllSourceIDs slot fallback below.
   local upcoming = not scanned and #allSources == 0
-  if upcoming then bits[#bits + 1] = "|cff8cc8ffNot yet on live (PTR)|r" end
+  if upcoming then bits[#bits + 1] = ns.NoSourcesStatus() end
   tip.status:Text(#bits > 0 and table.concat(bits, "   ") or "|cff808080Shift-click to mark wanted|r")
 
   local incomplete = false

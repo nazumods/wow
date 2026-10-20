@@ -34,10 +34,10 @@ describe("Warbandeer_Collected data/sets_forever.lua", function()
     assert.not_equals(ptr, ns.PtrSets)
     assert.same({}, ns.PtrSets)
     assert.is_nil(ns.PtrBuild)
-    assert.equals(7, #ns.Sets)
+    assert.equals(9, #ns.Sets)
     local ids = {}
     for _, row in ipairs(ns.Sets) do ids[#ids + 1] = row.id end
-    assert.same({ 3634, 4397, 5700, 5701, 5702, 5703, 5914 }, ids)
+    assert.same({ 3634, 4397, 4558, 5700, 5701, 5702, 5703, 5914, 6267 }, ids)
   end)
 
   it("Forever: every row is well formed", function()

@@ -202,7 +202,8 @@ function ns:Scan()
     -- Difficulty rows of one raid share a grp.id, each contributing its own
     -- set ids to the shared table — so merge, don't reset, per group.
     self.db.sets[grp.id] = self.db.sets[grp.id] or {}
-    for _, set in ipairs(grp.sets) do
+    -- DistinctSets: a Forever `allClasses` row holds its one set in all 13 class columns; count it once.
+    for _, set in ipairs(ns.DistinctSets(grp)) do
       if set.id then
         if isCollected(set.id) then
           self.db.total = self.db.total + 1

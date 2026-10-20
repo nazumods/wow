@@ -1,6 +1,6 @@
 ---@type Warbandeer_Collected
 local ns = select(2, ...)
--- Generated from wago.tools TransmogSet (product wow_classic_beta, build 1.60.1.70425, 2026-10-16) by tools/update-sets.ps1 -Forever; do not hand-edit.
+-- Generated from wago.tools TransmogSet (product wow_classic_beta, build 1.60.1.70450, 2026-10-16) by tools/update-sets.ps1 -Forever; do not hand-edit.
 -- On Forever the Retail tables loaded before this file describe sets that client doesn't have: replace them.
 -- A set any class can wear (wago ClassMask 0) fills every class column and is flagged allClasses = true.
 if not (ns.flavor and ns.flavor.isForever) then return end
@@ -34,6 +34,21 @@ ns.Sets = {
     { id = 4397, name = "Spiritplume Celestial Collection", classId = 11 },
     { id = 4397, name = "Spiritplume Celestial Collection", classId = 12 },
     { id = 4397, name = "Spiritplume Celestial Collection", classId = 13 },
+  } },
+  { id = 4558, name = "Stillwater Fisher Attire", release = 1, category = "World", allClasses = true, sets = {
+    { id = 4558, name = "Stillwater Fisher Attire", classId = 1 },
+    { id = 4558, name = "Stillwater Fisher Attire", classId = 2 },
+    { id = 4558, name = "Stillwater Fisher Attire", classId = 3 },
+    { id = 4558, name = "Stillwater Fisher Attire", classId = 4 },
+    { id = 4558, name = "Stillwater Fisher Attire", classId = 5 },
+    { id = 4558, name = "Stillwater Fisher Attire", classId = 6 },
+    { id = 4558, name = "Stillwater Fisher Attire", classId = 7 },
+    { id = 4558, name = "Stillwater Fisher Attire", classId = 8 },
+    { id = 4558, name = "Stillwater Fisher Attire", classId = 9 },
+    { id = 4558, name = "Stillwater Fisher Attire", classId = 10 },
+    { id = 4558, name = "Stillwater Fisher Attire", classId = 11 },
+    { id = 4558, name = "Stillwater Fisher Attire", classId = 12 },
+    { id = 4558, name = "Stillwater Fisher Attire", classId = 13 },
   } },
   { id = 5700, name = "Shen'dorei Magister's Garb", release = 1, category = "World", allClasses = true, sets = {
     { id = 5700, name = "Shen'dorei Magister's Garb", classId = 1 },
@@ -109,6 +124,21 @@ ns.Sets = {
     { id = 5914, name = "Veteran Adventurer's Outdoor Wear", classId = 11 },
     { id = 5914, name = "Veteran Adventurer's Outdoor Wear", classId = 12 },
     { id = 5914, name = "Veteran Adventurer's Outdoor Wear", classId = 13 },
+  } },
+  { id = 6267, name = "Gilded Blademaster's Armor", release = 1, category = "World", allClasses = true, sets = {
+    { id = 6267, name = "Gilded Blademaster's Armor", classId = 1 },
+    { id = 6267, name = "Gilded Blademaster's Armor", classId = 2 },
+    { id = 6267, name = "Gilded Blademaster's Armor", classId = 3 },
+    { id = 6267, name = "Gilded Blademaster's Armor", classId = 4 },
+    { id = 6267, name = "Gilded Blademaster's Armor", classId = 5 },
+    { id = 6267, name = "Gilded Blademaster's Armor", classId = 6 },
+    { id = 6267, name = "Gilded Blademaster's Armor", classId = 7 },
+    { id = 6267, name = "Gilded Blademaster's Armor", classId = 8 },
+    { id = 6267, name = "Gilded Blademaster's Armor", classId = 9 },
+    { id = 6267, name = "Gilded Blademaster's Armor", classId = 10 },
+    { id = 6267, name = "Gilded Blademaster's Armor", classId = 11 },
+    { id = 6267, name = "Gilded Blademaster's Armor", classId = 12 },
+    { id = 6267, name = "Gilded Blademaster's Armor", classId = 13 },
   } },
 }
 ns.PtrSets = {}

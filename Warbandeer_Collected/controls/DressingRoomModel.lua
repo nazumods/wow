@@ -183,7 +183,8 @@ local _room
 ns.ShowDressingRoom = function(group, set, host)
   -- A set the local client has no appearance data for — a PTR-only "upcoming" set on a
   -- live client: there's nothing for the 3D model to render, so don't open an empty
-  -- viewer; point the user to the PTR instead. On a PTR client these resolve and the
+  -- viewer; point the user to the PTR instead (`ns.NoSourcesMessage`, which on WoW: Forever says only
+  -- that the client has no data — there is no PTR preview there). On a PTR client these resolve and the
   -- preview opens normally. (Live sets, incl. Trading Post variants, always return pieces
   -- here.) A weapon cell carries a synthetic set with no C_TransmogSets sources, so skip
   -- this gate — it stages onto the doll rather than being worn as a set (see
@@ -191,7 +192,7 @@ ns.ShowDressingRoom = function(group, set, host)
   if not (group and group.weaponCell) and set and set.id then
     local src = GetAllSourceIDs(set.id)
     if not src or #src == 0 then
-      ns.Print(('"%s" is upcoming on the PTR — log into the PTR to preview it in 3D.'):format(set.name or ("set " .. tostring(set.id))))
+      ns.Print(ns.NoSourcesMessage(set.name or ("set " .. tostring(set.id))))
       return
     end
   end

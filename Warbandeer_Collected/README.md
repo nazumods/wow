@@ -9,6 +9,14 @@ know who to run it on next. An **Armor / Weapons** toggle at the top of the wind
 switches the grid between your armor sets and your weapon collection (see **Weapons
 view** below).
 
+## WoW: Forever
+
+Loads on **WoW: Forever** (Interface 16001) as well as Retail. On Forever the set grid lists
+**Forever's own transmog sets** rather than Retail's raid and dungeon tiers. Forever's sets can be
+worn by any class, so each one fills every class column and is counted once in the totals, the
+row tooltip and the counter. There is no PTR preview data on Forever, so a set with nothing to
+preview says the client has no data for it rather than pointing you at the PTR.
+
 ## PTR preview
 
 The **PTR PREVIEW** title-bar button switches the grid to show just the **upcoming**
