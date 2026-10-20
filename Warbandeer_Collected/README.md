@@ -16,7 +16,9 @@ Loads on **WoW: Forever** (Interface 16001) as well as Retail. On Forever the se
 worn by any class, so each one fills every class column and is counted once in the totals, the
 row tooltip and the counter. Forever has no PTR, so the **PTR** toggle shows no upcoming sets or
 weapons there, and a set with nothing to preview says the client has no data for it rather than
-pointing you at the PTR. The **Weapons** view still lists Retail's weapon sources on Forever.
+pointing you at the PTR. The **Weapons** view lists **Forever's own weapon and off-hand
+appearances**, grouped by how they're obtained (Quest, Vendor, World Drop, Crafted, Other).
+Forever's game data names no dungeon or raid for its drops, so there are no per-instance rows there.
 
 ## PTR preview
 

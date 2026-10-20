@@ -478,12 +478,47 @@ pwsh ./update-sets.ps1 -Forever                        # the newest 1.60 build (
 - **Safety:** 0 `TransmogSet` rows, a CSV missing `ID`/`Name_lang`/`ClassMask`/`ExpansionID`, a non-numeric value, a duplicate
   set id, a `ClassMask` outside 0..8191, a negative `ExpansionID` or an empty/control-character name aborts with the existing
   file untouched. `-Check` writes nothing and exits 1 when the file would change. Don't combine `-Forever` with another mode
-  switch (the first mode in the script wins). There is no percentage guard (7 rows); the run prints the set ids added and removed against the file on
+  switch except `-Weapons` (that pair is the weapon mode below); otherwise the first mode in the script wins. There is no percentage guard (9 rows); the run prints the set ids added and removed against the file on
   disk instead. `-MinRows` and the raid difficulty labels do not apply.
 - **No churn:** the file is rewritten only when the body changes (the header's product/build/date line is ignored in the
   comparison), so a rerun on a newer build with the same sets leaves it byte-identical.
 - **Not scheduled.** No workflow runs `-Forever` (#989's generator PR); launch day (#966) decides whether the daily watcher does, and
   moves `-Product` if Forever leaves the beta bucket. Tested offline by `Tooling/tests/update-sets-forever.test.ps1`.
+
+## Forever weapons (`-Weapons -Forever`)
+
+Forever's weapon appearances are **its own id space**: on build `1.60.1.70450` not one of the 996 weapon visuals it places is in
+[`../data/weaponsources.lua`](../data/weaponsources.lua) (its Worn Shortsword, item 25, is appearance 63223), so the
+Retail table means nothing there. `-Weapons -Forever` writes
+[`../data/weaponsources_forever.lua`](../data/weaponsources_forever.lua), **owned wholesale by this mode** (never hand-edit):
+
+```
+pwsh ./update-sets.ps1 -Weapons -Forever -Build 1.60.1.70450    # the committed file: pinned to the build named in its header
+pwsh ./update-sets.ps1 -Weapons -Forever -Check                 # staleness against the newest 1.60 build, writes nothing
+```
+
+- **Same pipeline as `-Weapons`** (`Get-WeaponRows`, see the next section), with three Forever rules:
+  - **Missing tables are skipped.** Forever's build has no `JournalEncounter`, `JournalInstance`, `JournalTier`,
+    `JournalTierXInstance`, `CollectableSourceEncounterSparse` or `CollectableSourceQuestSparse` (wago answers HTTP 400
+    "Table not found"); each is skipped and named in the output. Without them a boss drop can't be tied to an instance, so
+    there are **no per-instance rows**, only the per-expansion aggregates. Any other failure still aborts. On Retail
+    every table stays required.
+  - **Only items with an `ItemSparse` row count.** Forever's `Item` table lists about 31,900 items but `ItemSparse` only
+    about 19,300; an item without one has no name in that client. Of 2,443 weapon visuals, 996 have such an item and an
+    obtainable source.
+  - **Lower incomplete-download floors:** `Item` 10,000 rows, `ItemModifiedAppearance` 5,000, placed 500 (Retail keeps
+    50,000 / 50,000 / 3,000).
+- **What `1.60.1.70450` gives:** 5 rows, all `release = 1` (every placed item's `ExpansionID` is 0): Quest 491, Vendor 219,
+  World Drop 151, Crafted 89, Other 46 (HiddenUntilCollected, e.g. the starter weapons).
+- **The build pick** is `-Forever`'s: `-Product` `wow_classic_beta`, newest by date within `-VersionPrefix` `1.60.`,
+  `-Build` pins. **No `-PtrDelta`** (refused): Forever has no PTR, and `data/forever.lua` empties the weapon PTR delta there.
+- **The file replaces `ns.WeaponSources` on Forever only.** It returns at the top unless `ns.flavor.isForever`. It loads
+  after `data/arsenals.lua`, so the Retail arsenal fold never runs over Forever's ids.
+- **No churn:** rewritten only when the body changes (the header line is ignored). `-Check` exits 1 when it would change.
+- **Not scheduled**, like `-Forever`; revisit at launch (#966). Tested offline by
+  `Tooling/tests/update-sets-forever-weapons.test.ps1`.
+- **Illusions are not generated.** wago has no `TransmogIllusion` table for Forever, so `data/illusions.lua` keeps its
+  Retail ids; whether they mean anything on Forever is an in-game check (see its CONTEXT.md row).
 
 ## Regenerating the weapon sources (`-Weapons`)
 

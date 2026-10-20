@@ -40,6 +40,8 @@
 .PARAMETER Forever   Generate data/sets_forever.lua (Forever's own transmog sets) from the newest wago build of
                      -Product (default wow_classic_beta) whose version starts with -VersionPrefix (default 1.60.).
                      -Build pins one. Exits when done. See UPDATING.md ("Forever").
+                     With -Weapons: generate data/weaponsources_forever.lua (Forever's own weapon appearances)
+                     from the same build pick instead. See UPDATING.md ("Forever weapons").
 
 .EXAMPLE
   pwsh ./update-sets.ps1
@@ -47,6 +49,8 @@
   pwsh ./update-sets.ps1 -Check
 .EXAMPLE
   pwsh ./update-sets.ps1 -Forever -Build 1.60.1.70450
+.EXAMPLE
+  pwsh ./update-sets.ps1 -Weapons -Forever -Build 1.60.1.70450
 #>
 [CmdletBinding()]
 param(
@@ -110,6 +114,8 @@ param(
   # defaults to wow_classic_beta and -VersionPrefix to 1.60. when -Forever is given without them; -Build pins.
   [switch]$Forever,
   [string]$ForeverFile = (Join-Path $PSScriptRoot '..' 'data' 'sets_forever.lua'),
+  # -Weapons -Forever: Forever's own weapon appearances (ns.WeaponSources on that client) into this file.
+  [string]$WeaponsForeverFile = (Join-Path $PSScriptRoot '..' 'data' 'weaponsources_forever.lua'),
   [string]$VersionPrefix = ''  # -Forever: only builds whose version starts with this (keeps its trailing dot: '1.60.')
 )
 
@@ -1211,9 +1217,9 @@ if ($Expand) {
 #   * A ClassMask-0 set fills every class column (classId 1..13) with itself and its row carries allClasses = true.
 #   * A set with class bits fills only those classes, bit b -> classId b+1, ending at its highest bit.
 #   * release = ExpansionID + 1; category = "World" (Forever's sources are unknown; revisit when launch adds sets).
-# -Check: don't write; exit 1 if the file would change. Don't combine -Forever with another mode switch (the first mode
-# in the script wins). See UPDATING.md ("Forever").
-if ($Forever) {
+# -Check: don't write; exit 1 if the file would change. Don't combine -Forever with another mode switch except -Weapons
+# (that pair is the Forever weapons mode below); otherwise the first mode in the script wins. See UPDATING.md ("Forever").
+if ($Forever -and -not $Weapons) {   # -Weapons -Forever is the weapon mode further down
   if (-not $PSBoundParameters.ContainsKey('Product')) { $Product = 'wow_classic_beta' }
   if (-not $PSBoundParameters.ContainsKey('VersionPrefix')) { $VersionPrefix = '1.60.' }
   function ForeverCsv([string]$table, [string]$build) {
@@ -1317,6 +1323,17 @@ function WFetchBuild([string]$table, [string]$build) {
   Invoke-WebRequest -Uri "https://wago.tools/db2/$table/csv?build=$build" -UseBasicParsing -OutFile $out -ErrorAction Stop
   return $out
 }
+# Import one table's rows. $optional (-Weapons -Forever only): a table wago doesn't have for this build
+# (it answers 400/404 "Table not found" -- Forever ships no Journal* or encounter/quest source tables)
+# yields no rows instead of aborting. Any other failure still throws.
+function WImport([string]$table, [string]$build, [bool]$optional = $false) {
+  try { return Import-Csv (WFetchBuild $table $build) }
+  catch {
+    $code = 0; if ($_.Exception.Response) { $code = [int]$_.Exception.Response.StatusCode }
+    if ($optional -and ($code -eq 400 -or $code -eq 404)) { Write-Host "  [$build] no $table table (HTTP $code) -- skipped." -ForegroundColor DarkYellow; return @() }
+    throw
+  }
+}
 # Item.ClassID/SubclassID/InventoryType -> Enum.TransmogCollectionType id (null = not a weapon/off-hand).
 function WType($it) {
   if (-not $it) { return $null }
@@ -1334,14 +1351,23 @@ function WCols($rows, [string]$table, [string[]]$cols) {
 
 # Full pipeline for $build → the { key -> @{ name; cat; rel; minInst; types } } row map (types keyed by
 # TransmogCollectionType → HashSet[int] of visual ids). Returns @{ rows; placed; otherPlaced }.
-function Get-WeaponRows([string]$build) {
+# -ForeverRules (-Weapons -Forever): Forever's client is a fraction of Retail's, so the incomplete-download
+# floors drop (Item 10000 / ItemModifiedAppearance 5000 / placed 500, against Retail's 50000/50000/3000); the
+# Journal* and encounter/quest source tables it doesn't ship are skipped rather than fatal (no boss-drop rows,
+# so a drop falls through to its next source type); and an appearance counts only through items that have an
+# ItemSparse row -- Forever's Item table lists thousands of items with none (no name, not in that client).
+function Get-WeaponRows([string]$build, [switch]$ForeverRules) {
+  $minItem = if ($ForeverRules) { 10000 } else { 50000 }
+  $minIma = if ($ForeverRules) { 5000 } else { 50000 }
+  $minPlaced = if ($ForeverRules) { 500 } else { 3000 }
+  $opt = [bool]$ForeverRules
   # --- item + appearance tables ---
   $item = @{}
   Import-Csv (WFetchBuild 'Item' $build) | ForEach-Object { $item[$_.ID] = $_ }
-  if ($item.Count -lt 50000) { throw "Item under 50000 rows ($($item.Count)) — incomplete download, aborting." }
+  if ($item.Count -lt $minItem) { throw "Item under $minItem rows ($($item.Count)) — incomplete download, aborting." }
   $ima = Import-Csv (WFetchBuild 'ItemModifiedAppearance' $build)
   WCols $ima 'ItemModifiedAppearance' @('ItemID', 'ItemAppearanceID', 'TransmogSourceTypeEnum')
-  if ($ima.Count -lt 50000) { throw "ItemModifiedAppearance under 50000 rows ($($ima.Count)) — incomplete download, aborting." }
+  if ($ima.Count -lt $minIma) { throw "ItemModifiedAppearance under $minIma rows ($($ima.Count)) — incomplete download, aborting." }
 
   # ItemSparse -> ExpansionID (0-based). ~50 MB; stream just ID + ExpansionID (quoted-CSV-safe).
   Add-Type -AssemblyName Microsoft.VisualBasic
@@ -1358,18 +1384,18 @@ function Get-WeaponRows([string]$build) {
   foreach ($r in (Import-Csv (WFetchBuild 'CollectableSourceInfo' $build))) {
     if ($r.HouseDecorID -eq '0' -and $r.ItemModifiedAppearanceID -ne '0' -and -not $imaToCs.ContainsKey($r.ItemModifiedAppearanceID)) {
       $imaToCs[$r.ItemModifiedAppearanceID] = $r.ID } }
-  $csToEnc = @{}; foreach ($r in (Import-Csv (WFetchBuild 'CollectableSourceEncounterSparse' $build))) { if (-not $csToEnc.ContainsKey($r.CollectableSourceInfoID)) { $csToEnc[$r.CollectableSourceInfoID] = $r.JournalEncounterID } }
-  $csToQMap = @{}; foreach ($r in (Import-Csv (WFetchBuild 'CollectableSourceQuestSparse' $build))) { if (-not $csToQMap.ContainsKey($r.CollectableSourceInfoID)) { $csToQMap[$r.CollectableSourceInfoID] = $r.QuestMapID } }
-  $csToVMap = @{}; foreach ($r in (Import-Csv (WFetchBuild 'CollectableSourceVendorSparse' $build))) { if (-not $csToVMap.ContainsKey($r.CollectableSourceInfoID)) { $csToVMap[$r.CollectableSourceInfoID] = $r.VendorMapID } }
+  $csToEnc = @{}; foreach ($r in (WImport 'CollectableSourceEncounterSparse' $build $opt)) { if (-not $csToEnc.ContainsKey($r.CollectableSourceInfoID)) { $csToEnc[$r.CollectableSourceInfoID] = $r.JournalEncounterID } }
+  $csToQMap = @{}; foreach ($r in (WImport 'CollectableSourceQuestSparse' $build $opt)) { if (-not $csToQMap.ContainsKey($r.CollectableSourceInfoID)) { $csToQMap[$r.CollectableSourceInfoID] = $r.QuestMapID } }
+  $csToVMap = @{}; foreach ($r in (WImport 'CollectableSourceVendorSparse' $build $opt)) { if (-not $csToVMap.ContainsKey($r.CollectableSourceInfoID)) { $csToVMap[$r.CollectableSourceInfoID] = $r.VendorMapID } }
 
   # --- journal + map lookups ---
-  $encToInst = @{}; foreach ($r in (Import-Csv (WFetchBuild 'JournalEncounter' $build))) { $encToInst[$r.ID] = $r.JournalInstanceID }
-  $jInst = @{}; foreach ($r in (Import-Csv (WFetchBuild 'JournalInstance' $build))) { $jInst[$r.ID] = $r }
+  $encToInst = @{}; foreach ($r in (WImport 'JournalEncounter' $build $opt)) { $encToInst[$r.ID] = $r.JournalInstanceID }
+  $jInst = @{}; foreach ($r in (WImport 'JournalInstance' $build $opt)) { $jInst[$r.ID] = $r }
   $jMap  = @{}; foreach ($r in (Import-Csv (WFetchBuild 'Map' $build))) { $jMap[$r.ID] = $r }
   # Instance expansion via its real Journal tier (Map.ExpansionID is 0 for brand-new maps).
-  $tierExp = @{}; foreach ($r in (Import-Csv (WFetchBuild 'JournalTier' $build))) { $tierExp[$r.ID] = [int]$r.Expansion }
+  $tierExp = @{}; foreach ($r in (WImport 'JournalTier' $build $opt)) { $tierExp[$r.ID] = [int]$r.Expansion }
   $instTiers = @{}
-  foreach ($r in (Import-Csv (WFetchBuild 'JournalTierXInstance' $build))) {
+  foreach ($r in (WImport 'JournalTierXInstance' $build $opt)) {
     $e = $tierExp[$r.JournalTierID]
     if ($e) { if (-not $instTiers.ContainsKey($r.JournalInstanceID)) { $instTiers[$r.JournalInstanceID] = New-Object System.Collections.ArrayList }
               [void]$instTiers[$r.JournalInstanceID].Add($e) } }
@@ -1389,6 +1415,7 @@ function Get-WeaponRows([string]$build) {
   foreach ($m in $ima) {
     $wt = WType $item[$m.ItemID]
     if (-not $wt) { continue }
+    if ($ForeverRules -and -not $itemExp.ContainsKey($m.ItemID)) { continue }   # no ItemSparse row: not in that client
     $aid = $m.ItemAppearanceID
     if (-not $visType.ContainsKey($aid)) { $visType[$aid] = $wt; $visImas[$aid] = New-Object System.Collections.ArrayList }
     [void]$visImas[$aid].Add(@{ ima = $m.ID; src = [int]$m.TransmogSourceTypeEnum; item = $m.ItemID })
@@ -1451,7 +1478,7 @@ function Get-WeaponRows([string]$build) {
     }
     if ($done) { $placed++ }
   }
-  if ($placed -lt 3000) { throw "Only $placed weapon appearances placed (<3000) — incomplete data, aborting." }
+  if ($placed -lt $minPlaced) { throw "Only $placed weapon appearances placed (<$minPlaced) — incomplete data, aborting." }
   Write-Host "  [$build] placed $placed weapon appearances into $($wRows.Count) source rows ($otherPlaced via the HiddenUntilCollected 'Other' fallback)." -ForegroundColor Cyan
   return @{ rows = $wRows; placed = $placed; otherPlaced = $otherPlaced }
 }
@@ -1499,6 +1526,58 @@ function Write-WeaponRowLiterals($rows, [string]$tableVar) {
     $out.Add('')
   }
   return @{ lines = $out; count = @($ordered).Count }
+}
+
+# ── Forever weapons mode (-Weapons -Forever) ──────────────────────────────────
+# Emit data/weaponsources_forever.lua: WoW: Forever's OWN weapon/off-hand appearances, bucketed by the same
+# pipeline as -Weapons (Get-WeaponRows -ForeverRules, see there for what differs). Forever's ItemAppearanceIDs
+# are its own id space (measured on 1.60.1.70450: not one of the 996 visuals it places is in the Retail file), so the
+# Retail ns.WeaponSources is wrong there, not just too big. The file returns unless ns.flavor.isForever and then
+# REPLACES ns.WeaponSources; it loads after data/arsenals.lua, so the Retail arsenal fold never runs over
+# Forever's ids. Same build pick as -Forever (-Product wow_classic_beta, -VersionPrefix 1.60., -Build pins).
+# Rewritten only when the body changes; -Check writes nothing and exits 1 when it would. No -PtrDelta: Forever
+# has no PTR (data/forever.lua empties the weapon PTR delta there). See UPDATING.md ("Forever weapons").
+if ($Weapons -and $Forever) {
+  if ($PtrDelta) { throw '-Weapons -Forever has no -PtrDelta: Forever has no PTR.' }
+  if (-not $PSBoundParameters.ContainsKey('Product')) { $Product = 'wow_classic_beta' }
+  if (-not $PSBoundParameters.ContainsKey('VersionPrefix')) { $VersionPrefix = '1.60.' }
+  $fBuilds = (Invoke-WebRequest -Uri 'https://wago.tools/api/builds' -UseBasicParsing -ErrorAction Stop).Content | ConvertFrom-Json
+  $fList = @($fBuilds.$Product | Where-Object { $_ -and $_.version })
+  if ($fList.Count -eq 0) { throw "wago.tools has no builds for product '$Product'." }
+  $fMatch = Select-WagoBuild $fList $Build $VersionPrefix $Product
+  $Build = [string]$fMatch.version
+  $fDate = ([string]$fMatch.created_at -split ' ')[0]
+  Write-Host "Forever weapon sources against $Product build $Build $fDate" -ForegroundColor Cyan
+
+  $wr = Get-WeaponRows $Build -ForeverRules
+  $body = Write-WeaponRowLiterals $wr.rows 'ns.WeaponSources'
+  $headerPrefix = '-- Generated from wago.tools weapon appearances (product '
+  $L = [System.Collections.Generic.List[string]]::new()
+  $L.Add('---@type Warbandeer_Collected')
+  $L.Add('local ns = select(2, ...)')
+  $L.Add('local tinsert = tinsert')
+  $L.Add('-- luacheck: no max line length')
+  $L.Add("$headerPrefix$Product, build $Build, $fDate) by tools/update-sets.ps1 -Weapons -Forever; do not hand-edit.")
+  $L.Add("-- WoW: Forever's own weapon/off-hand appearances, bucketed like weaponsources.lua. Its ItemAppearanceIDs are not")
+  $L.Add("-- Retail's, so on Forever the Retail table loaded before this file is replaced. Inert on Retail. See UPDATING.md.")
+  $L.Add('if not (ns.flavor and ns.flavor.isForever) then return end')
+  $L.Add('ns.WeaponSources = {}')
+  $L.Add('')
+  foreach ($ln in $body.lines) { $L.Add($ln) }
+  $newText = ($L -join "`n").TrimEnd() + "`n"
+
+  $exists = Test-Path -LiteralPath $WeaponsForeverFile
+  $oldText = if ($exists) { [System.IO.File]::ReadAllText($WeaponsForeverFile) } else { '' }
+  $neutral = { param($t) [regex]::Replace($t, '(?m)^' + [regex]::Escape($headerPrefix) + '.*$', '-- header') }
+  Write-Host "Forever weapons: $($body.count) source row(s), $($wr.placed) appearance(s)." -ForegroundColor Cyan
+  if ($exists -and ((& $neutral $oldText) -eq (& $neutral $newText))) {
+    Write-Host "Forever weapons: no change -- $WeaponsForeverFile already current." -ForegroundColor Green
+    exit 0
+  }
+  if ($Check) { Write-Host "Forever weapons: $WeaponsForeverFile is OUT OF DATE (run -Weapons -Forever to regenerate)." -ForegroundColor Yellow; exit 1 }
+  [System.IO.File]::WriteAllText($WeaponsForeverFile, $newText, [System.Text.UTF8Encoding]::new($false))
+  Write-Host "Forever weapons: wrote $WeaponsForeverFile." -ForegroundColor Green
+  exit 0
 }
 
 # ── Weapon PTR-delta mode ────────────────────────────────────────────────────
