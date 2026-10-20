@@ -47,9 +47,9 @@ function ns.DistinctSets(grp)
 end
 
 -- The tooltip status and the chat line for a set with no appearance sources on this client. On
--- Retail that is a PTR-only set on a live client; on WoW: Forever, which has no PTR preview data
--- (`data/sets_forever.lua` empties it), it can only mean the client lacks the set's data, so
--- the PTR advice would be wrong there.
+-- Retail that is a PTR-only set on a live client; on WoW: Forever, which has no PTR (its armour and
+-- weapon preview data are emptied by `data/sets_forever.lua` and `data/forever.lua`), it can only
+-- mean the client lacks the set's data, so the PTR advice would be wrong there.
 
 ---@return string
 function ns.NoSourcesStatus()

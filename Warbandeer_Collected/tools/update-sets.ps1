@@ -46,7 +46,7 @@
 .EXAMPLE
   pwsh ./update-sets.ps1 -Check
 .EXAMPLE
-  pwsh ./update-sets.ps1 -Forever -Build 1.60.1.70425
+  pwsh ./update-sets.ps1 -Forever -Build 1.60.1.70450
 #>
 [CmdletBinding()]
 param(

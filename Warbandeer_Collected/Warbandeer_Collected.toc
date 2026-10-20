@@ -27,6 +27,7 @@ data\sets_forever.lua
 data\weaponbrowser.lua
 data\weaponsources.lua
 data\weaponsources_ptr.lua
+data\forever.lua
 data\arsenals.lua
 data\cosmeticbrowser.lua
 data\illusions.lua

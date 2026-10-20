@@ -269,6 +269,10 @@ end
 ---When "wanted only" is active it mirrors the grid: whole rows with no wanted set are
 ---skipped, and within a shown row only the wanted class cells count.
 ---
+---**Except an `allClasses` row (WoW: Forever):** the grid draws its one set in all 13 class columns,
+---but it is one set, so it counts as one cell (`ns.DistinctSets`) — a Forever row with the set
+---collected draws 13 checks and counts 1.
+---
 ---Counts what the grid SHOWS in either mode, PTR preview included (#769 L-10) — it reads the same
 ---`_ptr and ns.PtrSets or ns.Sets` source the row builder does. It used to walk `ns.Sets`
 ---unconditionally while `matches` returns true for everything under `_ptr`, so a PTR-mode caller got

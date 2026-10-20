@@ -216,7 +216,7 @@ function M.loadDataViewData(ns)
   ns.SavedCharacters = ns.SavedCharacters or function() return nil end
   ns.WantedOnlyActive = ns.WantedOnlyActive or function(view) return view._wantedOnly and not view._ptr end
   -- The tallies walk `ns.DistinctSets` (data/setpieces.lua), so load the real one. The file captures
-  -- three C_ functions at load; a spec that already installed stubs keeps them, otherwise empty
+  -- four functions from three C_ namespaces at load; a spec that already installed stubs keeps them, otherwise empty
   -- namespaces stand in (nothing here calls them) and are removed again so no global leaks.
   if not ns.DistinctSets then
     local stubbed = {}

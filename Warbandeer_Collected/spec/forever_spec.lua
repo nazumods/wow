@@ -91,4 +91,51 @@ describe("Warbandeer_Collected on Forever", function()
       assert.is_not_nil(ns.NoSourcesMessage("Tier"):find('"Tier" has no appearance data', 1, true))
     end)
   end)
+
+  -- data/forever.lua: the Retail weapon PTR delta means nothing on Forever (it has no PTR), so it is
+  -- emptied there, the way data/sets_forever.lua empties the armour delta. Loaded for real.
+  describe("data/forever.lua", function()
+    local function loadAs(flavor)
+      local sources, build = { { id = 1 } }, { live = "12.1.5.70391", ptr = "12.1.7.70424" }
+      local env = { flavor = flavor, WeaponPtrSources = sources, WeaponPtrBuild = build }
+      assert(loadfile("Warbandeer_Collected/data/forever.lua"))("Warbandeer_Collected", env)
+      return env, sources, build
+    end
+
+    it("leaves the weapon PTR delta alone on Retail", function()
+      local env, sources, build = loadAs({ isRetail = true })
+      assert.equals(sources, env.WeaponPtrSources)
+      assert.equals(build, env.WeaponPtrBuild)
+    end)
+
+    it("empties the weapon PTR delta and its build on Forever", function()
+      local env = loadAs({ isForever = true })
+      assert.same({}, env.WeaponPtrSources)
+      assert.is_nil(env.WeaponPtrBuild)
+    end)
+  end)
+
+  -- The two call sites are frame-bound (no spec loads them), so they are pinned by their source text:
+  -- each goes through the flavor-aware helper, and the Retail PTR literals now live only in
+  -- data/setpieces.lua. Reverting either call site to its old literal fails here.
+  describe("the no-sources call sites", function()
+    local function source(file)
+      local f = assert(io.open("Warbandeer_Collected/" .. file, "r"))
+      local text = f:read("*a")
+      f:close()
+      return text
+    end
+
+    it("the armour tooltip uses ns.NoSourcesStatus, not the PTR literal", function()
+      local text = source("controls/InfoTipArmor.lua")
+      assert.is_not_nil(text:find("ns.NoSourcesStatus()", 1, true))
+      assert.is_nil(text:find("Not yet on live (PTR)", 1, true))
+    end)
+
+    it("the dressing room uses ns.NoSourcesMessage, not the PTR literal", function()
+      local text = source("controls/DressingRoomModel.lua")
+      assert.is_not_nil(text:find("ns.Print(ns.NoSourcesMessage(", 1, true))
+      assert.is_nil(text:find("is upcoming on the PTR", 1, true))
+    end)
+  end)
 end)
