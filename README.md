@@ -85,7 +85,7 @@ known yet). A ported addon's README usually has a **WoW: Forever** section. Syst
 or that are unverified there (housing, delves, Mythic+, the Great Vault) are skipped rather than
 erroring.
 
-Retail only, for now: ShadowsOfUI-Artisan, ShadowsOfUI-DMF, ShadowsOfUI-Delves, ShadowsOfUI-HousingVendor, ShadowsOfUI-Ilvl, ShadowsOfUI-ProfCommissions, ShadowsOfUI-Upgrade, Warbandeer_Collected, Warbandeer_Decor.
+Retail only, for now: ShadowsOfUI-Artisan, ShadowsOfUI-DMF, ShadowsOfUI-Delves, ShadowsOfUI-HousingVendor, ShadowsOfUI-Ilvl, ShadowsOfUI-ProfCommissions, ShadowsOfUI-Upgrade, Warbandeer_Decor.
 
 How one addon serves both clients: [Writing for several clients](CONTRIBUTING.md#writing-for-several-clients-retail--forever).
 

@@ -71,7 +71,7 @@ end
 function ns.SetGroupInfo(grp)
   local gsets = ns.db.sets[grp.id]
   local classes, complete, coll, total, wanted = 0, 0, 0, 0, 0
-  for _, set in ipairs(grp.sets) do
+  for _, set in ipairs(ns.DistinctSets(grp)) do
     if set.id then
       if ns:IsWanted(set.id) then wanted = wanted + 1 end
       local status = gsets and gsets[set.id]
@@ -91,7 +91,8 @@ function ns.SetGroupInfo(grp)
   end
   local out = {}
   if classes > 0 then
-    out[#out + 1] = ("%d/%d class sets complete"):format(complete, classes)
+    -- An `allClasses` row (Forever) is one set any class wears, counted once: "1/1 sets", not "class sets".
+    out[#out + 1] = ("%d/%d %s complete"):format(complete, classes, grp.allClasses and "sets" or "class sets")
     out[#out + 1] = ("%d/%d appearances collected"):format(coll, total)
   end
   if wanted > 0 then
@@ -268,6 +269,10 @@ end
 ---When "wanted only" is active it mirrors the grid: whole rows with no wanted set are
 ---skipped, and within a shown row only the wanted class cells count.
 ---
+---**Except an `allClasses` row (WoW: Forever):** the grid draws its one set in all 13 class columns,
+---but it is one set, so it counts as one cell (`ns.DistinctSets`) — a Forever row with the set
+---collected draws 13 checks and counts 1.
+---
 ---Counts what the grid SHOWS in either mode, PTR preview included (#769 L-10) — it reads the same
 ---`_ptr and ns.PtrSets or ns.Sets` source the row builder does. It used to walk `ns.Sets`
 ---unconditionally while `matches` returns true for everything under `_ptr`, so a PTR-mode caller got
@@ -287,7 +292,7 @@ function DataView:VisibleCounts()
     if matches(self, grp) and (not wantedOnly or groupWanted(grp)) then
       sets = sets + 1
       local gsets = ns.db.sets[grp.id]
-      for _, set in ipairs(grp.sets) do
+      for _, set in ipairs(ns.DistinctSets(grp)) do   -- an allClasses (Forever) row counts its set once
         if set.id and (not wantedOnly or ns:IsWanted(set.id)) then
           local s = gsets and gsets[set.id]
           if isPtr then

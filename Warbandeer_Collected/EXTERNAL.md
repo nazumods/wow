@@ -20,6 +20,10 @@ Open it with `/collected`.
 
 - **LibNAddOn**, **LibNUI**, **LibNUI-ModelViewer** (the 3D viewer), and **Warbandeer_Characters** (character + lockout data) — all install automatically.
 
+## Game versions
+
+Works on both game versions: **Retail** and **WoW: Forever**. On Forever the set grid lists Forever's own transmog sets.
+
 ## Found a bug / Have a suggestion?
 
 Warbandeer_Collected is developed in the open as part of **[Nazuraki's WoW AddOn Suite](https://github.com/nazumods/wow)**. Please report bugs and request features on the **[GitHub issue tracker](https://github.com/nazumods/wow/issues)**.

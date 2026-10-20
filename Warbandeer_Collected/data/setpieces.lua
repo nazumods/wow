@@ -28,6 +28,43 @@ local EQUIP_SLOT = {
 ---@field SetSlotSources fun(setID: number, slot: number): table[]
 ---@field SetSlotPieces fun(setID: number): table<number, { itemID: number, isCollected: boolean }>
 ---@field SourceSlot fun(sourceID: number): number?
+---@field DistinctSets fun(grp: table): table[]
+---@field NoSourcesStatus fun(): string
+---@field NoSourcesMessage fun(name: string): string
+
+---The class sets of a group that COUNT: every cell, except on an `allClasses` row (WoW: Forever's
+---sets, `data/sets_forever.lua`), where all thirteen class columns hold the one set any class can
+---wear — there it is the first cell only, so a tally counts the set once rather than thirteen
+---times. Retail rows never carry the flag, so they get `grp.sets` itself.
+---@param grp table  an ns.Sets row
+---@return table[]
+function ns.DistinctSets(grp)
+  if not grp.allClasses then return grp.sets end
+  for _, set in ipairs(grp.sets) do
+    if set.id then return { set } end
+  end
+  return {}
+end
+
+-- The tooltip status and the chat line for a set with no appearance sources on this client. On
+-- Retail that is a PTR-only set on a live client; on WoW: Forever, which has no PTR (its armour and
+-- weapon preview data are emptied by `data/sets_forever.lua` and `data/forever.lua`), it can only
+-- mean the client lacks the set's data, so the PTR advice would be wrong there.
+
+---@return string
+function ns.NoSourcesStatus()
+  if ns.flavor and ns.flavor.isForever then return "|cff8cc8ffNo appearance data on this client|r" end
+  return "|cff8cc8ffNot yet on live (PTR)|r"
+end
+
+---@param name string  the set's name
+---@return string
+function ns.NoSourcesMessage(name)
+  if ns.flavor and ns.flavor.isForever then
+    return ('"%s" has no appearance data on this client, so there is nothing to preview.'):format(name)
+  end
+  return ('"%s" is upcoming on the PTR — log into the PTR to preview it in 3D.'):format(name)
+end
 
 ---A set's appearance source ids; empty (never nil) for a set id this client doesn't have.
 ---@param setID number

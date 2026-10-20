@@ -451,13 +451,13 @@ groups from the audit.
 
 ## Forever (`-Forever`)
 
-WoW: Forever (the 1.x "Camelot" client, Interface 16001) has its **own, tiny `TransmogSet` table**: 7 sets in build
-`1.60.1.70425`, all with `ClassMask` 0 (any class can wear them). Every mode that reads sets skips a set with no class bits and the
+WoW: Forever (the 1.x "Camelot" client, Interface 16001) has its **own, tiny `TransmogSet` table**: 9 sets in build
+`1.60.1.70450` (7 in `1.60.1.70425`), all with `ClassMask` 0 (any class can wear them). Every mode that reads sets skips a set with no class bits and the
 normal pass rejects fewer than `-MinRows` rows, so Forever has a mode of its own. It writes
 [`../data/sets_forever.lua`](../data/sets_forever.lua), **owned wholesale by `-Forever`** (never hand-edit):
 
 ```
-pwsh ./update-sets.ps1 -Forever -Build 1.60.1.70425    # the committed file: pinned to the build named in its header
+pwsh ./update-sets.ps1 -Forever -Build 1.60.1.70450    # the committed file: pinned to the build named in its header
 pwsh ./update-sets.ps1 -Forever                        # the newest 1.60 build (what a refresh would use)
 ```
 

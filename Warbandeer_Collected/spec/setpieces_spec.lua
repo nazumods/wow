@@ -112,6 +112,17 @@ describe("Warbandeer_Collected data/setpieces.lua", function()
       assert.same({ [1] = {} }, ns.db.sets)
     end)
 
+    -- A Forever row (data/sets_forever.lua) holds its one set in all 13 class columns; the scan counts
+    -- it once, so /collected's totals and the API's collected/total don't read 13x.
+    it("counts an allClasses row's set once", function()
+      local sets = {}
+      for c = 1, 13 do sets[c] = { id = 100, classId = c } end
+      ns.Sets = { { id = 100, name = "Forever", allClasses = true, sets = sets } }
+      ns:Scan()
+      assert.equals(1, ns.db.total)
+      assert.same({ [100] = { collected = 1, total = 2 } }, ns.db.sets[100])
+    end)
+
     it("finishes with an empty set list", function()
       ns.Sets = {}
       ns:Scan()
