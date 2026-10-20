@@ -13,6 +13,9 @@
     fail  a miss means the id is stale/typo'd -> non-zero exit (CI gate).
     warn  the DB2 column is an INCOMPLETE mirror of the runtime lookup, so a miss is reported but
           not failed (see classmounts.spellID below).
+  A rule whose DB2 table the build does not have (wago: HTTP 400 "Table not found.") is reported as
+  skipped and the run goes on to the next rule. A skipped rule, warn or fail, still makes the run exit
+  1, since none of its ids were checked. Any other wago failure stops the run.
 
   Coverage notes learned building this tier:
     * challengetames.lua is deliberately NOT linted: its creatureIDs are old-content npcs that the
@@ -30,12 +33,12 @@
       so glyph->GlyphProperties.ID, spell->SpellName.ID, quest/startQuest->QuestV2.ID all hard-check.
 
   Usage:
-    pwsh Tooling/lint-stale-ids.ps1              # full (pulls Item, the one big table)
-    pwsh Tooling/lint-stale-ids.ps1 -SkipBig     # skip big-table rules (fast; races/prof/mount-spell)
+    pwsh Tooling/lint-stale-ids.ps1              # full (also pulls the big tables: Item, SpellName, QuestV2)
+    pwsh Tooling/lint-stale-ids.ps1 -SkipBig     # skip the big-table rules (Item, SpellName, QuestV2): fast
     pwsh Tooling/lint-stale-ids.ps1 -Build 12.0.7.68453 -CacheDir .wago-cache
     pwsh Tooling/lint-stale-ids.ps1 -Product wow_classic_beta -VersionPrefix 1.60.   # WoW: Forever beta
     pwsh Tooling/lint-stale-ids.ps1 -Product wow_classic_beta -Build 1.60.1.70338    # ... or pinned
-  Exit 0 = every fail-rule id resolves; 1 = one or more stale.
+  Exit 0 = every fail-rule id resolves; 1 = one or more stale, or a rule's table is missing.
 
   -Product picks the wago product whose latest build is linted (default 'wow' = live retail).
   Forever must not use the bare "latest" of wow_classic_beta: that product is a shared bucket of
@@ -45,11 +48,10 @@
   wins over both. wow_classic_beta is where Forever's pre-launch beta builds are listed (2026-10-14);
   wago also lists the 1.60.1 family under a 'wowf' product (one build then) and under 'wow_cn_beta'
   (eight), and which product Forever uses after launch is unconfirmed. A Forever run does not lint
-  yet: the data files are Retail ids, so the early rules report ids as missing, and the run then
-  stops at the first DB2 table the Forever build lacks (TransmogIllusion: wago answers HTTP 400
-  "Table not found.", exit 1, as of 2026-10-14). What it shows today is the resolved build in the
-  first line. Cached CSVs are named by table only, so give each product/build its own -CacheDir (CI
-  keys the whole directory on product + build).
+  clean yet: the data files are Retail ids, so rules report ids as missing, and the rules whose table
+  the Forever build lacks are reported as skipped (TransmogIllusion and GlyphProperties in
+  1.60.1.70338); it exits 1, but every rule is reported. Cached CSVs are named by table only, so give
+  each product/build its own -CacheDir (CI keys the whole directory on product + build).
 
   wago politeness: -CacheDir <dir> reads/writes each table's CSV under <dir> instead of re-pulling,
   and both CI workflows wrap it in an actions/cache keyed on the resolved build -- so wago's heavy
@@ -172,8 +174,21 @@ function Get-Csv([string]$table) {
   $file = if ($CacheDir) { Join-Path $CacheDir "$table.csv" } else { $null }
   if ($file -and (Test-Path $file)) {
     $text = Get-Content -Raw $file
+    if ($null -eq $text) { $text = '' }   # an empty cached file is an empty table, not a missing one
   } else {
-    $text = (Invoke-WebRequest -Uri "https://wago.tools/db2/$table/csv?build=$Build" -Headers $wagoHeaders -UseBasicParsing).Content
+    try {
+      $text = (Invoke-WebRequest -Uri "https://wago.tools/db2/$table/csv?build=$Build" -Headers $wagoHeaders -UseBasicParsing).Content
+    } catch {
+      # wago answers a table this build does not have with HTTP 400 {"errors":"Table not found."} (Forever's
+      # 1.60.1 builds lack TransmogIllusion and GlyphProperties, #954): $null tells the caller to skip the rule.
+      # Any other failure (a 5xx, a timeout, no network) still stops the run.
+      $status = if ($_.Exception.Response) { [int]$_.Exception.Response.StatusCode } else { 0 }
+      if ($status -eq 400 -and "$($_.ErrorDetails.Message)" -match '"errors"\s*:\s*"Table not found') {
+        $csvCache[$table] = $null
+        return $null
+      }
+      throw
+    }
     if ($file) { Set-Content -Path $file -Value $text -NoNewline }
   }
   $csvCache[$table] = $text
@@ -186,6 +201,7 @@ function Get-IdSet($table, $col, $big) {
   $key = "$table|$col"
   if ($setCache.ContainsKey($key)) { return $setCache[$key] }
   $text = Get-Csv $table
+  if ($null -eq $text) { return $null }   # the build has no such table (Get-Csv remembers that per table)
   $set = @{}
   if ($big) {
     # Huge table: ID is column 1, so hash the first field of each raw line (ConvertFrom-Csv is
@@ -208,6 +224,7 @@ function Get-IdSet($table, $col, $big) {
 # ── run each rule ──
 $srcCache = @{}
 $fail = 0
+$skipped = 0
 foreach ($r in $rules) {
   if ($r.big -and $SkipBig) { Write-Host ("{0,-34} skipped (-SkipBig)" -f $r.label) -ForegroundColor DarkGray; continue }
 
@@ -219,6 +236,14 @@ foreach ($r in $rules) {
          else { [regex]::Matches($srcCache[$r.file], $r.rx) | ForEach-Object { [int]$_.Groups[1].Value } }
   $ids = @($ids | Sort-Object -Unique)
   $set = Get-IdSet $r.table $r.col $r.big
+  if ($null -eq $set) {
+    # The build has no such table: report the rule and go on to the next. A skipped rule still fails the run,
+    # warn-rules included: none of its ids were checked, so a table vanishing from Retail (or a misspelt table
+    # name, which wago answers the same way) is never quiet.
+    Write-Host ("{0,-34} ! skipped: build {1} has no {2} table, so {3} ids are unchecked" -f $r.label, $Build, $r.table, $ids.Count) -ForegroundColor Red
+    $skipped++
+    continue
+  }
   $miss = @($ids | Where-Object { -not $set.ContainsKey($_) })
 
   if ($miss.Count -eq 0) {
@@ -231,6 +256,11 @@ foreach ($r in $rules) {
   }
 }
 
-if ($fail) { Write-Host "`n$fail id(s) unresolved -- a data file is stale for build $Build." -ForegroundColor Red; exit 1 }
+if ($fail -or $skipped) {
+  Write-Host ""
+  if ($fail) { Write-Host "$fail id(s) unresolved -- a data file is stale for build $Build." -ForegroundColor Red }
+  if ($skipped) { Write-Host "$skipped rule(s) skipped -- build $Build has no table for them, so their ids are unchecked." -ForegroundColor Red }
+  exit 1
+}
 Write-Host "`nAll fail-severity ids resolve against build $Build." -ForegroundColor Green
 exit 0
