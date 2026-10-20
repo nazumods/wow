@@ -27,6 +27,10 @@ Found under **Options → AddOns → Shadows of UI → Addon Compartment**:
 - **Use a custom icon (hides the addon count)** — on by default.
 - **Changelog** — a button that opens this addon's release history (newest first) in a scrollable, copyable window.
 
+## WoW: Forever
+
+Loads on **WoW: Forever** (Interface 16001) as well as Retail.
+
 ## Dependencies
 
 - **LibNAddOn**

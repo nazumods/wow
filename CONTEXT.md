@@ -7,6 +7,15 @@
 
 ---
 
+## Clients (Retail + Forever)
+
+A ported addon lists both clients in one TOC, `## Interface: 120105, 16001`, and its
+`<addon>/CONTEXT.md` header carries `**Clients:** Retail + Forever`. No `**Clients:**` field
+means Retail only. Detection lives in LibNAddOn `flavor.lua` (`ns.flavor`, `ns:Supports(feature)`);
+the rules are in [CONTRIBUTING.md — Writing for several clients](CONTRIBUTING.md#writing-for-several-clients-retail--forever).
+
+---
+
 ## Runtime Environment
 
 WoW runs **Lua 5.1**. All addon code must be compatible with Lua 5.1 — in particular:

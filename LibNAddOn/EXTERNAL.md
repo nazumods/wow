@@ -14,6 +14,10 @@ It also registers a few suite-wide convenience commands that are always availabl
 
 Full API documentation lives in the [README on GitHub](https://github.com/nazumods/wow/tree/main/LibNAddOn). The whole suite is open source — issues and pull requests welcome.
 
+## Game versions
+
+Works on both game versions: **Retail** and **WoW: Forever**.
+
 ## Found a bug / Have a suggestion?
 
 LibNAddOn is developed in the open as part of **[Nazuraki's WoW AddOn Suite](https://github.com/nazumods/wow)**. Please report bugs and request features on the **[GitHub issue tracker](https://github.com/nazumods/wow/issues)**.

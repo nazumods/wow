@@ -1,6 +1,6 @@
 # ShadowsOfUI-Quests
 
-**Deps:** LibNAddOn, Warbandeer_Characters · **OptionalDeps:** none · **SavedVars:** none · **Commands:** `/squests <questID>` (dev/lookup) · **API:** reads `WarbandeerApi`
+**Deps:** LibNAddOn, Warbandeer_Characters · **OptionalDeps:** none · **SavedVars:** none · **Commands:** `/squests <questID>` (dev/lookup) · **API:** reads `WarbandeerApi` · **Clients:** Retail + Forever
 
 Headless addon. Adds a cross-alt "Also on this quest / Completed by" block to the world-map
 quest-log tooltip. Assignment-form init (`local ns = LibNAddOn(...)`); no LibNUI, no DB. All

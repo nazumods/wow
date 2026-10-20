@@ -1,6 +1,6 @@
 # ShadowsOfUI-Inventory
 
-**Deps:** LibNAddOn, Warbandeer_Characters · **OptionalDeps:** none · **SavedVars:** none · **Commands:** `/swinv <itemID|link>` (dev/find dump) · **API:** reads `WarbandeerApi`
+**Deps:** LibNAddOn, Warbandeer_Characters · **OptionalDeps:** none · **SavedVars:** none · **Commands:** `/swinv <itemID|link>` (dev/find dump) · **API:** reads `WarbandeerApi` · **Clients:** Retail + Forever
 
 Headless tooltip addon. Adds a "Warband Inventory" block to item tooltips listing how many of
 the item each character holds (bags + personal bank), the shared warband bank, and each

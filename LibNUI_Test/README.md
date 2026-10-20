@@ -13,6 +13,10 @@ tooltips, themes, …) so rendering and behavior can be verified in-game.
 
 See `LibNUI/CLAUDE.md` for how to add a test for a new widget.
 
+## WoW: Forever
+
+Listed for **WoW: Forever** (Interface 16001) as well as Retail.
+
 ## Dependencies
 
 - **LibNUI** (pulls in LibNAddOn transitively)

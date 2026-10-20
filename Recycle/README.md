@@ -28,6 +28,10 @@ Found in the Blizzard settings panel:
 - **Silent** — suppress the gold summary printed after selling.
 - **Modifier Key** — Ctrl / Shift / Alt for the mark gesture.
 
+## WoW: Forever
+
+Loads on **WoW: Forever** (Interface 16001) as well as Retail.
+
 ## Dependencies
 
 - **LibNAddOn**

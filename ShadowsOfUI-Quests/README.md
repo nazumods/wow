@@ -13,6 +13,10 @@ when another character is actually on or has completed the quest.
 
 `/squests <questID>` prints the same status to chat — a testing aid and a quick lookup.
 
+## WoW: Forever
+
+Loads on **WoW: Forever** (Interface 16001) as well as Retail.
+
 ## Dependencies
 
 - **LibNAddOn**
