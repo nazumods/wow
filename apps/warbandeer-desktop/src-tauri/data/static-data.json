@@ -2,8 +2,8 @@
   "source": "wago.tools",
   "generator": "Tooling/update-static-data.ps1",
   "product": "wow",
-  "build": "12.1.0.69875",
-  "buildDate": "2026-09-18",
+  "build": "12.1.5.70448",
+  "buildDate": "2026-10-16",
   "currencies": {
     "42": {
       "name": "Badge of Justice",
@@ -9077,6 +9077,18 @@
       "maxQty": 99,
       "quality": 0
     },
+    "3536": {
+      "name": "Renown - Season 2 Labyrinth",
+      "icon": null,
+      "maxQty": 9,
+      "quality": 6
+    },
+    "3537": {
+      "name": "Kindo'jan's Labyrinth Journey",
+      "icon": "inv_misc_platnumdisks",
+      "maxQty": 0,
+      "quality": 1
+    },
     "3540": {
       "name": "Captain Tokka",
       "icon": "inv_faction_tortollanseekers",
@@ -9088,6 +9100,12 @@
       "icon": "inv_120_crest_myth",
       "maxQty": 100,
       "quality": 4
+    },
+    "3544": {
+      "name": "Aqir Research Enclave",
+      "icon": "misc_arrowlup",
+      "maxQty": 0,
+      "quality": 1
     },
     "3545": {
       "name": "Renown - Season 3 Delves",
@@ -9142,6 +9160,18 @@
       "icon": null,
       "maxQty": 0,
       "quality": 0
+    },
+    "3592": {
+      "name": "12.1.5 Labyrinth - Personal Tracker - S2 Weekly Turn-In (Hidden)",
+      "icon": null,
+      "maxQty": 99,
+      "quality": 0
+    },
+    "3606": {
+      "name": "Soul",
+      "icon": "spell_warlock_demonsoul",
+      "maxQty": 0,
+      "quality": 3
     }
   },
   "currencyFields": {
