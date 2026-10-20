@@ -22,7 +22,7 @@ local UPCOMING_GLYPH = "•"
 function ns.SetPieceCount(setId)
   local n = 0
   for _, slot in ipairs({1, 3, 15, 5, 6, 7, 8, 9, 10}) do
-    if #(C_TransmogSets.GetSourcesForSlot(setId, slot) or {}) > 0 then n = n + 1 end
+    if #ns.SetSlotSources(setId, slot) > 0 then n = n + 1 end
   end
   return n
 end
