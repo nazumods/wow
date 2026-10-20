@@ -1,6 +1,6 @@
 # MouselookToggle
 
-**Deps:** LibNAddOn (no LibNUI) · **Commands:** none · **DB:** `MouselookToggleDB` (v1)
+**Deps:** LibNAddOn (no LibNUI) · **Commands:** none · **DB:** `MouselookToggleDB` (v1) · **Clients:** Retail + Forever
 
 Keybind-toggled mouselook with a cursor-centering reticle. While toggled, the
 `CursorFreelookCentering` + `CursorCenteredYPos` CVars snap the hidden cursor (and

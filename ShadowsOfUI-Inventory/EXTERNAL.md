@@ -19,6 +19,10 @@ Hover any item — in your bags, at a vendor, in the Auction House, or a chat li
 
 - **LibNAddOn**, **Warbandeer_Characters** (provides the per-character bag/bank counts) — install automatically.
 
+## Game versions
+
+Works on both game versions: **Retail** and **WoW: Forever**.
+
 ## Found a bug / Have a suggestion?
 
 Shadows of UI: Warband Inventory is developed in the open as part of **[Nazuraki's WoW AddOn Suite](https://github.com/nazumods/wow)**. Please report bugs and request features on the **[GitHub issue tracker](https://github.com/nazumods/wow/issues)**.

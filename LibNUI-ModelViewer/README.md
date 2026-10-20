@@ -7,6 +7,10 @@ present a 3D character / transmog viewer need to depend on it.
 It registers itself as `ui.Model` (a.k.a. the `LibNUI.Model` global) on the shared LibNUI
 widget table, so consumers use it exactly like any other LibNUI widget.
 
+## WoW: Forever
+
+Loads on **WoW: Forever** (Interface 16001) as well as Retail.
+
 ## Dependencies
 
 - **LibNAddOn**

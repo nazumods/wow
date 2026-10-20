@@ -22,6 +22,10 @@ gear, which Shift already does).
 `/swinv <itemID or item link>` prints the same breakdown to chat for a given item — both a
 debugging aid and a quick "where is my…?" lookup you can run without finding the item first.
 
+## WoW: Forever
+
+Loads on **WoW: Forever** (Interface 16001) as well as Retail.
+
 ## Dependencies
 
 - **LibNAddOn**

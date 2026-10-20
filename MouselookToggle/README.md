@@ -31,6 +31,10 @@ Under **Options → AddOns → Shadows of UI → Mouselook Toggle**:
 
 `MouselookToggleDB` (account-wide): the two settings above.
 
+## WoW: Forever
+
+Loads on **WoW: Forever** (Interface 16001) as well as Retail.
+
 ## Dependencies
 
 - **LibNAddOn**

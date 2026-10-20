@@ -1,6 +1,6 @@
 # Warbandeer_Bars (Headless data layer)
 
-**Deps:** LibNAddOn (no LibNUI — headless) · **SavedVars:** `WarbandeerBarsDB` (v2) · **PerChar:** `WarbandeerBarsSettings` · **Commands:** `/wbbars`, `/wbb` · **API:** `WarbandeerBarsApi`
+**Deps:** LibNAddOn (no LibNUI — headless) · **SavedVars:** `WarbandeerBarsDB` (v2) · **PerChar:** `WarbandeerBarsSettings` · **Commands:** `/wbbars`, `/wbb` · **API:** `WarbandeerBarsApi` · **Clients:** Retail + Forever
 
 Headless tracker for action bar / keybind / macro / pet bar / outfit layouts, auto-snapshotted per
 character + spec. No UI — exposes `WarbandeerBarsApi` for a consuming UI to preview any

@@ -1,6 +1,6 @@
 # ShadowsOfUI-Collectibles
 
-**Deps:** LibNAddOn · **OptionalDeps:** Warbandeer_Characters, ShadowsOfUI-HousingVendor · **SavedVars:** `ShadowsOfUI_CollectiblesDB` (v2) · **Commands:** `/scollect` (`custom`, `itemtest`) · **API:** reads `WarbandeerApi` (`X-NUI-API`) + optional `WarbandeerDB` + optional `HousingDecorApi` (decor owned-state) · **UI:** none (no LibNUI)
+**Deps:** LibNAddOn · **OptionalDeps:** Warbandeer_Characters, ShadowsOfUI-HousingVendor · **SavedVars:** `ShadowsOfUI_CollectiblesDB` (v2) · **Commands:** `/scollect` (`custom`, `itemtest`) · **API:** reads `WarbandeerApi` (`X-NUI-API`) + optional `WarbandeerDB` + optional `HousingDecorApi` (decor owned-state) · **UI:** none (no LibNUI) · **Clients:** Retail + Forever
 
 Icon-tinting addon: colours already-known / still-collectible items on the **Merchant** and
 **Auction House** browse list. Replaces the standalone AlreadyKnown addon (re-derived in suite
