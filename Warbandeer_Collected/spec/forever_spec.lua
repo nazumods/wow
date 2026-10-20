@@ -138,4 +138,36 @@ describe("Warbandeer_Collected on Forever", function()
       assert.is_nil(text:find("is upcoming on the PTR", 1, true))
     end)
   end)
+
+  -- The toc is what makes the Forever files take effect: the client list, and each Forever file loading
+  -- after the Retail data it replaces and before api.lua, which copies those tables into the API.
+  describe("the toc", function()
+    local lines, interface = {}, nil
+    setup(function()
+      for line in io.lines("Warbandeer_Collected/Warbandeer_Collected.toc") do
+        line = line:gsub("\r$", "")
+        interface = interface or line:match("^## Interface:%s*(.+)$")
+        if not line:find("^#") and line ~= "" then lines[#lines + 1] = line end
+      end
+    end)
+    local function index(file)
+      for i, l in ipairs(lines) do if l == file then return i end end
+    end
+
+    it("lists Retail and Forever", function()
+      assert.equals("120105, 16001", interface)
+    end)
+
+    it("loads sets_forever.lua after every Retail set file and before api.lua", function()
+      for _, f in ipairs({ [[data\sets.lua]], [[data\sets_expand.lua]], [[data\sets_ptr.lua]], [[data\sets_review.lua]] }) do
+        assert.is_true(index(f) < index([[data\sets_forever.lua]]), f)
+      end
+      assert.is_true(index([[data\sets_forever.lua]]) < index("api.lua"))
+    end)
+
+    it("loads forever.lua after the weapon PTR delta and before api.lua", function()
+      assert.is_true(index([[data\weaponsources_ptr.lua]]) < index([[data\forever.lua]]))
+      assert.is_true(index([[data\forever.lua]]) < index("api.lua"))
+    end)
+  end)
 end)
