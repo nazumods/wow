@@ -172,15 +172,17 @@ cd _classic_beta_\Interface\Addons
 mklink /D HideBagBar ..\..\..\_retail_\Interface\AddOns\HideBagBar
 ```
 
+For what to write once an addon runs there, see
+[Writing for several clients](#writing-for-several-clients-retail--forever).
+
 ## Writing for several clients (Retail + Forever)
 
 The suite is being ported so one addon folder serves both clients. The detection helper and the
 feature table live in LibNAddOn (`LibNAddOn/flavor.lua`); every addon gets them from `LibNAddOn(...)`.
 
-- **One TOC, comma-delimited Interface**: `## Interface: 120105, 16001`. An addon that is ported to
-  Forever also carries `## X-Game: [Game]` and `## X-Family: [Family]`, added in the same commit as
-  `16001` (that commit releases the addon anyway). The helper reads LibNAddOn's own `X-Game`, so the
-  lines in another addon's TOC are not what it reads. `.github/workflows/publish.yml` reads
+- **One TOC, comma-delimited Interface**: `## Interface: 120105, 16001`. Only LibNAddOn's TOC
+  carries `## X-Game: [Game]` and `## X-Family: [Family]`; the helper reads LibNAddOn's own `X-Game`,
+  so a ported addon adds just `16001` to its `## Interface:` line. `.github/workflows/publish.yml` reads
   a five-digit Interface value as 1.60.1 since #954 (see **Versioning & releases** above).
 - **Detect with the helper, never with `GetBuildInfo()`**: `ns.flavor.isForever` /
   `ns.flavor.isRetail`, and `ns:Supports("housing")` for a feature. Build-number ranges drift;

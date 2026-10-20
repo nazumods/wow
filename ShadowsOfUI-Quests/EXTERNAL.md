@@ -17,6 +17,10 @@ Your own character is left off, and the block only appears when another characte
 
 - **LibNAddOn**, **Warbandeer_Characters** (per-character quest data, captured automatically each login) — install automatically.
 
+## Game versions
+
+Works on both game versions: **Retail** and **WoW: Forever**.
+
 ## Found a bug / Have a suggestion?
 
 Shadows of UI: Quests is developed in the open as part of **[Nazuraki's WoW AddOn Suite](https://github.com/nazumods/wow)**. Please report bugs and request features on the **[GitHub issue tracker](https://github.com/nazumods/wow/issues)**.

@@ -1,6 +1,6 @@
 # Recycle
 
-**Deps:** LibNAddOn, LibNUI · **SavedVars:** `RecycleDB` (v1, per-character) · **Commands:** `/recycle` (`clear`, `key CTRL|SHIFT|ALT`) · **UI:** LibNUI
+**Deps:** LibNAddOn, LibNUI · **SavedVars:** `RecycleDB` (v1, per-character) · **Commands:** `/recycle` (`clear`, `key CTRL|SHIFT|ALT`) · **UI:** LibNUI · **Clients:** Retail + Forever
 
 Auto-sells grey (Poor) items plus manually-marked items whenever a merchant window opens. Single file, assignment form (`local ns = LibNAddOn(...)`).
 

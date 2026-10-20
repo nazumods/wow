@@ -1,6 +1,6 @@
 # CombatOutline
 
-**Deps:** LibNAddOn · **SavedVars:** none · **Commands:** none
+**Deps:** LibNAddOn · **SavedVars:** none · **Commands:** none · **Clients:** Retail + Forever
 
 Forces the `OutlineEngineMode` CVar on while in combat and restores the user's setting when leaving it, driven by the regen events.
 

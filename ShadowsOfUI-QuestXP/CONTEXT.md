@@ -1,6 +1,6 @@
 # ShadowsOfUI-QuestXP
 
-**Deps:** LibNAddOn · **SavedVars:** none · **Commands:** `/squestxp` (dev/lookup) · **API:** none
+**Deps:** LibNAddOn · **SavedVars:** none · **Commands:** `/squestxp` (dev/lookup) · **API:** none · **Clients:** Retail + Forever
 
 Headless addon, single file, no DB. Assignment-form init (`local ns = LibNAddOn(...)`); no
 LibNUI. Appends a `(X%)` tag to the XP reward shown in the map quest log's Details pane —

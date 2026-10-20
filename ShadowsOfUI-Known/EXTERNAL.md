@@ -19,6 +19,10 @@ Lists are ordered main-crafter-first (via Warbandeer) and capped so the tooltip 
 - **LibNAddOn**, **Warbandeer_Characters** (per-character profession + recipe data) — install automatically.
 - Optional: **Warbandeer** (main/secondary crafter ordering).
 
+## Game versions
+
+Works on both game versions: **Retail** and **WoW: Forever**.
+
 ## Found a bug / Have a suggestion?
 
 Shadows of UI: Recipe Learners is developed in the open as part of **[Nazuraki's WoW AddOn Suite](https://github.com/nazumods/wow)**. Please report bugs and request features on the **[GitHub issue tracker](https://github.com/nazumods/wow/issues)**.

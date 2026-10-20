@@ -1,6 +1,6 @@
 # Warbandeer_Alias
 
-**Deps:** LibNAddOn, LibNUI · **SavedVars:** `Warbandeer_AliasDB` (v1) · **Reads:** `WarbandeerApi` · **UI:** LibNUI
+**Deps:** LibNAddOn, LibNUI · **SavedVars:** `Warbandeer_AliasDB` (v1) · **Reads:** `WarbandeerApi` · **UI:** LibNUI · **Clients:** Retail + Forever
 
 Prepends an `(alias)` prefix to your outgoing **guild** chat when your real character name differs from a configured alias, so guildmates see a consistent name.
 
