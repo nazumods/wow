@@ -449,6 +449,42 @@ groups from the audit.
 > *appearances* per mega-set can't be shown in a per-class grid — this captures every
 > **group**, not literally every appearance. Validate in-game with `/collected coverage`.
 
+## Forever (`-Forever`)
+
+WoW: Forever (the 1.x "Camelot" client, Interface 16001) has its **own, tiny `TransmogSet` table**: 7 sets in build
+`1.60.1.70425`, all with `ClassMask` 0 (any class can wear them). Every mode that reads sets skips a set with no class bits and the
+normal pass rejects fewer than `-MinRows` rows, so Forever has a mode of its own. It writes
+[`../data/sets_forever.lua`](../data/sets_forever.lua), **owned wholesale by `-Forever`** (never hand-edit):
+
+```
+pwsh ./update-sets.ps1 -Forever -Build 1.60.1.70425    # the committed file: pinned to the build named in its header
+pwsh ./update-sets.ps1 -Forever                        # the newest 1.60 build (what a refresh would use)
+```
+
+- **What it reads:** wago's `/api/builds` and the `TransmogSet` table of one build. Nothing else is fetched.
+- **The build pick:** `-Product` defaults to `wow_classic_beta` and `-VersionPrefix` to `1.60.` when `-Forever` is given
+  without them. `wow_classic_beta` is a shared bucket of several Classic betas, so the build is the **newest by date** whose
+  version starts with `1.60.`, never the first listed. `-Build` pins one (it must be listed, else the run throws).
+- **One row per set**, sorted by set id (`id` is the wago set id: Forever sets can have group 0, and the four Shen'dorei
+  sets share group 393 but are different looks). `name` is the set's name, `release` is `ExpansionID + 1`, `category` is
+  `"World"` (an assumption: Forever's sources are unknown; revisit when launch adds sets).
+- **Every class column holds the set.** A `ClassMask` 0 set gets cells for `classId` 1..13, each
+  `{ id = <setID>, name = <name>, classId = c }`, and the row carries `allClasses = true`. A set with class bits (none today)
+  gets cells only for its bits (bit b -> classId b+1, gaps as `{}`, ending at its highest bit -- unlike `-Expand`, which always
+  writes 13 slots), and no flag.
+- **The file replaces the Retail tables on Forever only.** It returns at the top unless `ns.flavor.isForever`, then assigns
+  `ns.Sets`, `ns.PtrSets = {}` and `ns.PtrBuild = nil`. It is the last `data\` file that writes them in the toc
+  (after `sets_review.lua`).
+- **Safety:** 0 `TransmogSet` rows, a CSV missing `ID`/`Name_lang`/`ClassMask`/`ExpansionID`, a non-numeric value, a duplicate
+  set id, a `ClassMask` outside 0..8191, a negative `ExpansionID` or an empty/control-character name aborts with the existing
+  file untouched. `-Check` writes nothing and exits 1 when the file would change. Don't combine `-Forever` with another mode
+  switch (the first mode in the script wins). There is no percentage guard (7 rows); the run prints the set ids added and removed against the file on
+  disk instead. `-MinRows` and the raid difficulty labels do not apply.
+- **No churn:** the file is rewritten only when the body changes (the header's product/build/date line is ignored in the
+  comparison), so a rerun on a newer build with the same sets leaves it byte-identical.
+- **Not scheduled.** No workflow runs `-Forever` (#989's generator PR); launch day (#966) decides whether the daily watcher does, and
+  moves `-Product` if Forever leaves the beta bucket. Tested offline by `Tooling/tests/update-sets-forever.test.ps1`.
+
 ## Regenerating the weapon sources (`-Weapons`)
 
 The **Weapons view** (the `Armor / Weapons` grid toggle) is backed by

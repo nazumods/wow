@@ -37,11 +37,16 @@
 .PARAMETER SetsFile  Path to data/sets.lua. Defaults to ../data/sets.lua.
 .PARAMETER Build     Optional client build (e.g. 11.2.0.61871). Omit for current.
 .PARAMETER Check     Don't write; exit 1 if the file would change (CI staleness).
+.PARAMETER Forever   Generate data/sets_forever.lua (Forever's own transmog sets) from the newest wago build of
+                     -Product (default wow_classic_beta) whose version starts with -VersionPrefix (default 1.60.).
+                     -Build pins one. Exits when done. See UPDATING.md ("Forever").
 
 .EXAMPLE
   pwsh ./update-sets.ps1
 .EXAMPLE
   pwsh ./update-sets.ps1 -Check
+.EXAMPLE
+  pwsh ./update-sets.ps1 -Forever -Build 1.60.1.70425
 #>
 [CmdletBinding()]
 param(
@@ -99,7 +104,13 @@ param(
   [switch]$SeedShells,
   [string]$SeedFile = (Join-Path $PSScriptRoot 'seed-shells.txt'),
   [string]$Groups,            # -SeedShells: explicit wago group ids to seed, comma-separated e.g. 404,401 (default: every uncaptured live group)
-  [int]$MinLevel = 80         # -SeedShells: minLevel stamped on raid shells (current-expansion cap; maintainer verifies)
+  [int]$MinLevel = 80,        # -SeedShells: minLevel stamped on raid shells (current-expansion cap; maintainer verifies)
+  # Forever mode: generate data/sets_forever.lua (ns.Sets for WoW: Forever, one row per set) from Forever's own
+  # build. Its sets all have ClassMask 0, which every other mode skips, so it has a mode of its own. -Product
+  # defaults to wow_classic_beta and -VersionPrefix to 1.60. when -Forever is given without them; -Build pins.
+  [switch]$Forever,
+  [string]$ForeverFile = (Join-Path $PSScriptRoot '..' 'data' 'sets_forever.lua'),
+  [string]$VersionPrefix = ''  # -Forever: only builds whose version starts with this (keeps its trailing dot: '1.60.')
 )
 
 $ErrorActionPreference = 'Stop'
@@ -150,6 +161,29 @@ function Get-ExpandIds([string]$file) {
     }
   }
   return $ids
+}
+
+# The wago /api/builds entry -Forever pulls (same logic as Tooling/update-static-data.ps1 Select-WagoBuild; this script is
+# standalone, so it is copied, not imported). An explicit -Build is pinned outright and must be listed. Otherwise the
+# NEWEST BY DATE within -VersionPrefix -- never the first listed: wow_classic_beta is a shared bucket of several Classic
+# betas whose first entry is another family's build. Compared as dates, not text. $VersionPrefix keeps its trailing dot
+# ('1.60.' does not match '1.600.').
+function Select-WagoBuild($List, [string]$Build, [string]$VersionPrefix, [string]$Product = '') {
+  if ($Build) {
+    $pinned = $List | Where-Object { $_.version -eq $Build } | Select-Object -First 1
+    if (-not $pinned) { throw "wago.tools has no build '$Build' for product '$Product'." }
+    return $pinned
+  }
+  $found = $List
+  if ($VersionPrefix) {
+    $found = $found | Where-Object { $_.version.StartsWith($VersionPrefix, [System.StringComparison]::Ordinal) }
+  }
+  $newest = $found | Sort-Object { [datetime]$_.created_at } -Descending | Select-Object -First 1
+  if (-not $newest) {
+    $family = if ($VersionPrefix) { " whose version starts with '$VersionPrefix'" } else { '' }
+    throw "wago.tools has no '$Product' build$family."
+  }
+  return $newest
 }
 
 # Which wago PTR build a -PtrDelta preview should read (nazumods/wow#945). wago keeps Blizzard's PTRs
@@ -1165,6 +1199,108 @@ if ($Expand) {
   $newText = (($L -join "`n") -replace "`n", $eol) + $eol
   [System.IO.File]::WriteAllText($ExpandSetsFile, $newText, [System.Text.UTF8Encoding]::new($false))
   Write-Host "Expand: wrote $emitted row(s) across $($jobIds.Count) group(s) into $ExpandSetsFile." -ForegroundColor Green
+  exit 0
+}
+
+# ── Forever mode (-Forever) ───────────────────────────────────────────────────
+# WoW: Forever (the 1.x "Camelot" client, Interface 16001) has its OWN, tiny TransmogSet table (7 sets in build
+# 1.60.1.70425), and every set there has ClassMask 0 (any class can wear it) -- which every mode that reads sets skips as
+# "no class bits" and the normal pass rejects as an incomplete download (< $MinRows). So Forever gets its own mode:
+# one ns.Sets row per SET into data/sets_forever.lua, which REPLACES the Retail tables on Forever only (see the
+# generated header). Owned wholesale by this mode. Reads only /api/builds and the TransmogSet table.
+#   * A ClassMask-0 set fills every class column (classId 1..13) with itself and its row carries allClasses = true.
+#   * A set with class bits fills only those classes, bit b -> classId b+1, ending at its highest bit.
+#   * release = ExpansionID + 1; category = "World" (Forever's sources are unknown; revisit when launch adds sets).
+# -Check: don't write; exit 1 if the file would change. Don't combine -Forever with another mode switch (the first mode
+# in the script wins). See UPDATING.md ("Forever").
+if ($Forever) {
+  if (-not $PSBoundParameters.ContainsKey('Product')) { $Product = 'wow_classic_beta' }
+  if (-not $PSBoundParameters.ContainsKey('VersionPrefix')) { $VersionPrefix = '1.60.' }
+  function ForeverCsv([string]$table, [string]$build) {
+    $url = "https://wago.tools/db2/$table/csv?build=$build"
+    Write-Host "Fetching $url" -ForegroundColor Cyan
+    (Invoke-WebRequest -Uri $url -UseBasicParsing -ErrorAction Stop).Content | ConvertFrom-Csv
+  }
+  function LuaEsc([string]$s) { $s.Replace('\', '\\').Replace('"', '\"') }
+  function ForeverInt([string]$what, $value) {
+    $n = 0
+    if (-not [int]::TryParse(([string]$value).Trim(), [ref]$n)) { throw "Forever: TransmogSet $what '$value' is not a number -- aborting." }
+    return $n
+  }
+
+  $builds = (Invoke-WebRequest -Uri 'https://wago.tools/api/builds' -UseBasicParsing -ErrorAction Stop).Content | ConvertFrom-Json
+  $list = @($builds.$Product | Where-Object { $_ -and $_.version })
+  if ($list.Count -eq 0) { throw "wago.tools has no builds for product '$Product'." }
+  $match = Select-WagoBuild $list $Build $VersionPrefix $Product
+  $Build = [string]$match.version
+  $buildDate = ([string]$match.created_at -split ' ')[0]
+  Write-Host "Forever against $Product build $Build $buildDate" -ForegroundColor Cyan
+
+  $tsRows = @(ForeverCsv 'TransmogSet' $Build)
+  if ($tsRows.Count -eq 0) { throw "TransmogSet returned 0 rows for build $Build -- aborting; $ForeverFile left untouched." }
+  foreach ($col in @('ID', 'Name_lang', 'ClassMask', 'ExpansionID')) {
+    if ($col -notin $tsRows[0].PSObject.Properties.Name) { throw "TransmogSet CSV missing '$col' -- aborting; $ForeverFile left untouched." }
+  }
+
+  $L = [System.Collections.Generic.List[string]]::new()
+  $headerPrefix = '-- Generated from wago.tools TransmogSet (product '
+  $L.Add('---@type Warbandeer_Collected')
+  $L.Add('local ns = select(2, ...)')
+  $L.Add("$headerPrefix$Product, build $Build, $buildDate) by tools/update-sets.ps1 -Forever; do not hand-edit.")
+  $L.Add("-- On Forever the Retail tables loaded before this file describe sets that client doesn't have: replace them.")
+  $L.Add('-- A set any class can wear (wago ClassMask 0) fills every class column and is flagged allClasses = true.')
+  $L.Add('if not (ns.flavor and ns.flavor.isForever) then return end')
+  $L.Add('ns.Sets = {')
+  $ids = [System.Collections.Generic.List[int]]::new()
+  foreach ($r in ($tsRows | Sort-Object { ForeverInt 'ID' $_.ID })) {
+    $id = ForeverInt 'ID' $r.ID
+    $mask = ForeverInt 'ClassMask' $r.ClassMask
+    $exp = ForeverInt 'ExpansionID' $r.ExpansionID
+    # Refuse rows that would write a wrong or unloadable file (the file is left untouched).
+    if ($id -in $ids) { throw "Forever: TransmogSet has two rows with ID $id -- aborting." }
+    if ($mask -lt 0 -or $mask -gt 8191) { throw "Forever: set $id has ClassMask $mask (outside 0..8191, the 13 class bits) -- aborting." }
+    if ($exp -lt 0) { throw "Forever: set $id has ExpansionID $exp -- aborting." }
+    $rawName = ([string]$r.Name_lang).Trim()
+    if (-not $rawName -or $rawName -match '[\x00-\x1f]') { throw "Forever: set $id has an empty or control-character name -- aborting." }
+    $name = LuaEsc $rawName
+    $cells = @{}
+    if ($mask -eq 0) { foreach ($c in 1..13) { $cells[$c] = $true } }
+    else { for ($b = 0; $b -lt 13; $b++) { if ($mask -band (1 -shl $b)) { $cells[$b + 1] = $true } } }
+    $flag = if ($mask -eq 0) { ' allClasses = true,' } else { '' }
+    $L.Add("  { id = $id, name = `"$name`", release = $($exp + 1), category = `"World`",$flag sets = {")
+    $max = if ($cells.Count) { ($cells.Keys | Measure-Object -Maximum).Maximum } else { 0 }
+    for ($c = 1; $c -le $max; $c++) {
+      if ($cells.ContainsKey($c)) { $L.Add("    { id = $id, name = `"$name`", classId = $c },") }
+      else { $L.Add('    {},') }
+    }
+    $L.Add('  } },')
+    $ids.Add($id)
+  }
+  $L.Add('}')
+  $L.Add('ns.PtrSets = {}')
+  $L.Add('ns.PtrBuild = nil')
+
+  $exists = Test-Path -LiteralPath $ForeverFile
+  $oldText = if ($exists) { [System.IO.File]::ReadAllText($ForeverFile) } else { '' }
+  $eol = if ($oldText.Contains("`r`n")) { "`r`n" } else { "`n" }
+  $newText = (($L -join "`n") -replace "`n", $eol) + $eol
+
+  # Which set ids come and go, against the file on disk (7 rows: a count guard would be noise).
+  $oldIds = @([regex]::Matches($oldText, '(?m)^  \{ id = (\d+),') | ForEach-Object { [int]$_.Groups[1].Value })
+  $added = @($ids | Where-Object { $_ -notin $oldIds })
+  $removed = @($oldIds | Where-Object { $_ -notin $ids })
+  Write-Host "Forever: $($ids.Count) set(s); added [$($added -join ', ')], removed [$($removed -join ', ')]." -ForegroundColor Cyan
+
+  # Rewrite only when the BODY changes, so a rerun on a newer build with identical data leaves the file (and
+  # its date line) alone: compare with the header line neutralised, as the normal pass stamps sets.lua.
+  $neutral = { param($t) [regex]::Replace($t, '(?m)^' + [regex]::Escape($headerPrefix) + '.*$', '-- header') }
+  if ($exists -and ((& $neutral $oldText) -eq (& $neutral $newText))) {
+    Write-Host "Forever: no change -- $ForeverFile already current." -ForegroundColor Green
+    exit 0
+  }
+  if ($Check) { Write-Host "Forever: $ForeverFile is OUT OF DATE (run -Forever to regenerate)." -ForegroundColor Yellow; exit 1 }
+  [System.IO.File]::WriteAllText($ForeverFile, $newText, [System.Text.UTF8Encoding]::new($false))
+  Write-Host "Forever: wrote $($ids.Count) row(s) into $ForeverFile." -ForegroundColor Green
   exit 0
 }
 
