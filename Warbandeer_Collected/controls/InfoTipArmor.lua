@@ -53,7 +53,7 @@ ns.InfoTipBodies.armor = function(tip, desc)
 
     local fallback   -- built lazily when a slot's per-slot source lookup is empty
     for i,slot in ipairs({1,3,15,5,6,7,8,9,10}) do
-      local sources = C_TransmogSets.GetSourcesForSlot(set.id, slot)
+      local sources = ns.SetSlotSources(set.id, slot)
       local _, p = find(sources, function(s) return primary[s.sourceID] end)
       local name, isCollected
       if p then

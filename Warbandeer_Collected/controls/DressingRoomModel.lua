@@ -20,7 +20,7 @@ local SELECTED, IDLE, tierBar = k.SELECTED, k.IDLE, k.tierBar
 function DressingRoom:_currentSources()
   local sources = {}
   if not self._set then return sources end   -- a weapon browsed before any set: nothing to wear
-  for _, src in ipairs(GetAllSourceIDs(self._set.id)) do
+  for _, src in ipairs(ns.SetSourceIDs(self._set.id)) do
     local slot = ns.SourceSlot(src)
     if not (slot and self._hiddenSlots[slot]) then sources[#sources + 1] = src end
   end
