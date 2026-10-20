@@ -169,5 +169,15 @@ describe("Warbandeer_Collected on Forever", function()
       assert.is_true(index([[data\weaponsources_ptr.lua]]) < index([[data\forever.lua]]))
       assert.is_true(index([[data\forever.lua]]) < index("api.lua"))
     end)
+
+    -- After arsenals.lua too: the Retail arsenal fold must never run over Forever's appearance ids, which
+    -- are a different id space where a Retail arsenal visual id can name an unrelated appearance (#994).
+    it("loads weaponsources_forever.lua after the Retail weapon data and the arsenal fold, before api.lua", function()
+      local forever = index([[data\weaponsources_forever.lua]])
+      assert.is_not_nil(forever)
+      assert.is_true(index([[data\weaponsources.lua]]) < forever)
+      assert.is_true(index([[data\arsenals.lua]]) < forever)
+      assert.is_true(forever < index("api.lua"))
+    end)
   end)
 end)

@@ -22,7 +22,7 @@ Open it with `/collected`.
 
 ## Game versions
 
-Works on both game versions: **Retail** and **WoW: Forever**. On Forever the set grid lists Forever's own transmog sets.
+Works on both game versions: **Retail** and **WoW: Forever**. On Forever the set grid lists Forever's own transmog sets, and the Weapons view lists Forever's own weapon appearances.
 
 ## Found a bug / Have a suggestion?
 

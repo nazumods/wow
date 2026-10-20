@@ -119,7 +119,8 @@ jobs:
   # no table for a rule (the same kind of stub: skipped and reported, not aborted). It also covers which PTR build the
   # Collected preview reads (#945): update-sets.ps1 -PtrDelta, armor and weapons, picks the newest patch
   # above live across wago's two PTR products (wowt, wowxptr) and says plainly when none is ahead (the
-  # same stub). Offline and fast, so no path filter.
+  # same stub). It also runs update-sets.ps1's two Forever generators, -Forever (sets) and -Weapons -Forever
+  # (weapon appearances, #994), against stubbed wago tables. Offline and fast, so no path filter.
   wago-build-resolution:
     runs-on: ubuntu-latest
 
@@ -144,6 +145,10 @@ jobs:
       - name: update-sets.ps1 -Forever generation
         shell: pwsh
         run: ./Tooling/tests/update-sets-forever.test.ps1
+
+      - name: update-sets.ps1 -Weapons -Forever generation
+        shell: pwsh
+        run: ./Tooling/tests/update-sets-forever-weapons.test.ps1
 
   # Check each addon's EXTERNAL.md (the CurseForge/Wago page copy, #911) against the two invariants
   # that spec states -- the GitHub URL on the first line and a bug/suggestion section -- and unit-test
