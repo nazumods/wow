@@ -3,7 +3,7 @@ import { config } from "./config";
 import { state, saveState } from "./state";
 import { currentOrNextDmf } from "./wow/dmf";
 import { lastWeeklyReset } from "./wow/reset";
-import { realmStatus, realmWatchConfigured, decideRealmTransition, type RealmStatus } from "./wow/realm";
+import { realmStatus, realmWatchConfigured, decideRealmTransition, settleRealmReading, type RealmStatus } from "./wow/realm";
 import { fetchReleases, decideReleaseAnnouncements, createReachabilityLog } from "./github";
 import { checkForUpdate } from "./update";
 import { restartPending, withCritical } from "./restart";
@@ -27,6 +27,7 @@ const UPDATE_POLL_GAP_MS = 15 * 60 * 1000;
 let lastReleasePollAt = 0;
 let lastUpdatePollAt = 0;
 let lastRealmPollAt = 0;
+let realmDownStreak = 0;
 
 export function startScheduler(client: Client): void {
   const tick = () => onTick(client).catch((err) => console.error("[tick]", err));
@@ -112,13 +113,17 @@ async function checkRealm(client: Client): Promise<void> {
   if (!realmWatchConfigured()) return;
   if (Date.now() - lastRealmPollAt < REALM_POLL_GAP_MS) return;
   lastRealmPollAt = Date.now();
-  let status: RealmStatus;
+  let reading: RealmStatus;
   try {
-    status = await realmStatus();
+    reading = await realmStatus();
   } catch (err) {
     console.error("[realm]", err);
     return;
   }
+  // One bad DOWN reading must not post a down/up pair: DOWN needs consecutive confirmation.
+  const settled = settleRealmReading(state.realmStatus, reading, realmDownStreak);
+  realmDownStreak = settled.downStreak;
+  const status = settled.status!;
   const transition = decideRealmTransition(state.realmStatus, status);
   if (transition === "down") {
     await announce(client, "serverDown", `🔴 **${config.realmSlug}** is down — servers are offline.`);

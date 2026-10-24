@@ -55,8 +55,8 @@ export function replacementName(inspectedName: string): string {
 }
 
 /** A git URL the daemon can fetch a build context from, with the bot's own subdir as root. */
-export function buildRemote(repo: string, branch: string): string {
-  return `https://github.com/${repo}.git#${branch}:${BOT_PATH}`;
+export function buildRemote(repo: string, ref: string): string {
+  return `https://github.com/${repo}.git#${ref}:${BOT_PATH}`;
 }
 
 /** The compose-built image tag, plus a per-sha tag that keeps an older build addressable. */
@@ -158,7 +158,7 @@ export async function redeploy(latestSha: string): Promise<RedeployResult> {
   const tags = imageTags(self.Config.Image, latestSha);
   console.log(`[redeploy] building ${tags.join(", ")} from ${config.botBranch}`);
   const built = await buildImage({
-    remote: buildRemote(config.githubRepo, config.botBranch),
+    remote: buildRemote(config.githubRepo, latestSha),
     tags,
     buildArgs: { GIT_SHA: latestSha },
   }).catch((err) => ({ ok: false, error: (err as Error).message }));

@@ -166,7 +166,9 @@ cmd_env_set() {
   # append any changed key that wasn't already present.
   declare -A APPLIED
   local tmp k
-  tmp="$(mktemp)"
+  # Same directory as .env so the final `mv` is an atomic rename, not a cross-filesystem copy that
+  # can leave .env truncated if interrupted mid-write.
+  tmp="$(mktemp "$ENV_FILE.XXXXXX")"
   while IFS= read -r line || [ -n "$line" ]; do
     if [[ "$line" =~ ^([A-Za-z_][A-Za-z0-9_]*)= ]]; then
       k="${BASH_REMATCH[1]}"
