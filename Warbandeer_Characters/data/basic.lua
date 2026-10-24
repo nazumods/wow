@@ -29,17 +29,18 @@ Basic.fields = {
   -- prefers `active` over the loot spec. Refreshes when the player swaps spec.
   specialization = {
     missing = false,
-    get = function()
-      local pid, primarySpec = Player:GetPrimarySpecialization()
+    get = function(_, _, current)
+      local _, primarySpec = Player:GetPrimarySpecialization()
       local aid, activeSpec = Player:GetActiveSpecialization()
-      local specId = aid or pid
+      -- No played spec yet (early login): keep what's stored rather than store the loot spec.
+      if not aid then return current end
       return {
         primary = primarySpec,
         active = activeSpec,
-        role = specId and GetSpecializationRoleByID(specId),
-        key = specId and gsub(activeSpec or primarySpec, " ", ""),
+        role = GetSpecializationRoleByID(aid),
+        key = gsub(activeSpec, " ", ""),
         -- Numeric global spec ID: locale-independent, persisted so consumers can resolve stat priorities for alts.
-        id = specId,
+        id = aid,
       }
     end,
     event = "PLAYER_SPECIALIZATION_CHANGED",
