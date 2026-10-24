@@ -111,6 +111,9 @@ jobs:
       - name: publish.yml game-version helpers
         run: bash Tooling/tests/game-versions.test.sh
 
+      - name: app-release.sh release detection
+        run: bash Tooling/tests/app-release.test.sh
+
   # Which wago build the lint tooling resolves, and for which product (#954): wow_classic_beta is a shared
   # bucket of several Classic betas whose "latest" is Forever only while Forever is the newest, so Forever
   # runs select a version family. Covers the lint-stale-ids.yml resolve step and its gating (a stub curl
@@ -191,7 +194,10 @@ jobs:
               - 'Warbandeer_Characters/data/races.lua'
               - 'Warbandeer_Characters/data/professioninfo.lua'
               - 'Warbandeer_Characters/data/classmounts.lua'
-              - 'Warbandeer_Collected/data/weapons.lua'
+              - 'Warbandeer_Collected/data/illusions.lua'
+              - 'Warbandeer_Collected/data/arsenals.lua'
+              - 'Warbandeer_Characters/data/achievementcatalog.lua'
+              - 'Warbandeer_Characters/data/currency.lua'
               - 'Warbandeer_Characters/data/glyphinfo.lua'
               - 'Warbandeer_Characters/data/learnedunlocks.lua'
               - 'Warbandeer_Characters/data/collectiblesources.lua'
