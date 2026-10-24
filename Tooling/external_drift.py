@@ -65,6 +65,7 @@ HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
 BUG_KEYWORD_RE = re.compile(r"\b(bug|suggestion)s?\b", re.IGNORECASE)
 ATX_HEADER_RE = re.compile(r"#{1,6}\s")
 SETEXT_UNDERLINE_RE = re.compile(r"^\s{0,3}[=-]{2,}\s*$")
+BOLD_LEAD_RE = re.compile(r"\*\*(.+?)\*\*")
 
 TOC_FIELD_RE = re.compile(r"^##\s*([^:]+):\s*(.*?)\s*$")
 PARENS_RE = re.compile(r"\([^()]*\)")
@@ -113,7 +114,7 @@ def has_bug_section(text: str) -> bool:
     """True if a "Found a bug / Have a suggestion?" section header is present.
 
     A header carrying "bug"/"suggestion" as an ATX heading (`## ...`), a bold lead-in
-    (`**...**`), or a setext heading (the keyword line underlined by `===`/`---`). Plain
+    (`**...**`, keyword inside the bold span), or a setext heading (the keyword line underlined by `===`/`---`). Plain
     prose that merely mentions a bug is intentionally NOT a section -- #911 asks for one.
     """
     lines = text.splitlines()
@@ -121,7 +122,12 @@ def has_bug_section(text: str) -> bool:
         if not BUG_KEYWORD_RE.search(line):
             continue
         stripped = line.lstrip()
-        if ATX_HEADER_RE.match(stripped) or stripped.startswith("**"):
+        if ATX_HEADER_RE.match(stripped):
+            return True
+        # Bold lead-in: the keyword must sit INSIDE the leading bold span, so
+        # `**Note:** fixes a bug.` (bold-led prose) is not mistaken for a section.
+        bold = BOLD_LEAD_RE.match(stripped)
+        if bold and BUG_KEYWORD_RE.search(bold.group(1)):
             return True
         if i + 1 < len(lines) and SETEXT_UNDERLINE_RE.match(lines[i + 1]):
             return True
