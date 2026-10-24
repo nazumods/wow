@@ -218,6 +218,23 @@ assert_has "wiring: test.yml resolves that product's latest" "$(step_block "$TES
 assert_has "wiring: test.yml lint call passes the product" "$(step_block "$TEST_YML" "Lint hand-authored ids")" \
   '-Product "$WAGO_PRODUCT"'
 
+# --- 3. the PR path filter covers every file a lint rule reads (#1023) -----------------------------
+# A rule whose file is missing from the filter lets a stale id through the PR and fail only in the daily
+# lint after merge; a filter entry with no rule is dead. Both sets are read from the shipped text.
+
+LINT_PS1="${LINT_PS1:-$REPO_ROOT/Tooling/lint-stale-ids.ps1}"
+[[ -f "$LINT_PS1" ]] || { echo "FAIL: $LINT_PS1 does not exist"; exit 1; }
+rule_files=$(tr -d '\r' < "$LINT_PS1" | grep -oE "^[[:space:]]*@\{ file='[^']+'" | sed -E "s/.*file='([^']+)'/\1/" | sort -u)
+filter_files=$(tr -d '\r' < "$TEST_YML" | awk '
+  /^      - uses: dorny\/paths-filter/ { inpf = 1 }
+  inpf && /^              - / { sub(/^              - /, ""); gsub(/\047/, ""); print }
+  inpf && /^      - name:/ { inpf = 0 }' | grep -vxF 'Tooling/lint-stale-ids.ps1' | sort -u)
+[[ -n "$rule_files" ]] || { echo "FAIL: no rule files found in $LINT_PS1"; exit 1; }
+check "path filter: has entries" "yes" "$([[ -n "$filter_files" ]] && echo yes || echo no)"
+check "path filter: no rule file is missing from the filter" "" "$(comm -23 <(echo "$rule_files") <(echo "$filter_files") | paste -sd' ')"
+check "path filter: no filter entry lacks a rule" "" "$(comm -13 <(echo "$rule_files") <(echo "$filter_files") | paste -sd' ')"
+assert_has "path filter: lists the lint script itself" "$(tr -d '\r' < "$TEST_YML")" "- 'Tooling/lint-stale-ids.ps1'"
+
 if [[ "$failures" != 0 ]]; then
   echo "FAILED: $failures case(s)"
   exit 1
