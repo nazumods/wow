@@ -46,6 +46,14 @@ function ns.DefaultViewName()
   return nil
 end
 
+-- The view the window opens on: the saved default, else the first navigation view, so a
+-- saved default this client does not register still leaves a view to show.
+---@class Warbandeer
+---@field InitialViewName fun(): string
+function ns.InitialViewName()
+  return ns.DefaultViewName() or ns.NavViews()[1].name
+end
+
 ---@class MainWindow: TitleFrame
 ---@field views table<string, Frame>         constructed view instances, by view name
 ---@field _viewClasses table<string, table>  registered view classes, by view name
@@ -79,8 +87,7 @@ local MainWindow = Class(TitleFrame, function(self)
     position = { TopRight = {self, ui.edge.TopLeft, -8, 0} },
   }
 
-  local defaultName = ns.DefaultViewName()
-  if defaultName then self:view(defaultName) end
+  self:view(ns.InitialViewName())
 
   -- Persist position when the user finishes dragging the titlebar. The base
   -- TitleFrame wires the titlebar OnMouseUp to StopMovingOrSizing; wrap it so we

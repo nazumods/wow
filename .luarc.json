@@ -104,6 +104,7 @@
     "ReloadUI",
     "ShowUIPanel",
     "hooksecurefunc",
+    "MainMenuBarBagManager",
 
     "C_AddOns",
     "C_AreaPoiInfo",

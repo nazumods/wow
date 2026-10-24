@@ -154,6 +154,15 @@ describe("Warbandeer on Forever", function()
       assert.is_nil(ns.DefaultViewName())
     end)
 
+    it("InitialViewName falls back to the first nav view when the saved default is unregistered", function()
+      local _, ns = navNames("forever")
+      ns.db = { settings = { defaultView = 8 } }       -- a Retail-saved "Great Vault" index
+      assert.is_nil(ns.DefaultViewName())
+      assert.equals(ns.NavViews()[1].name, ns.InitialViewName())
+      ns.db.settings.defaultView = 3                   -- "summary": registered, so it wins
+      assert.equals("summary", ns.InitialViewName())
+    end)
+
     it("Retail keeps a saved Great Vault default", function()
       local _, ns = navNames("retail")
       ns.db = { settings = { defaultView = 8 } }
