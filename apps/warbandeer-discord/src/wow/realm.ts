@@ -21,18 +21,6 @@ export function decideRealmTransition(
   return next === "DOWN" ? "down" : "up";
 }
 
-/**
- * Whether `slug` names a realm in the configured region.
- *
- * Exists to separate two causes the character endpoint can't: Blizzard returns the *same* 404 for
- * a character that doesn't exist and a realm that doesn't exist, so the only way to tell them
- * apart is to ask about the realm on its own. Called only on the failure path, so a successful
- * lookup never pays for it.
- *
- * **Fails open.** If this check can't complete, it reports `true` — an outage or a rate limit must
- * not turn "we couldn't ask" into "your realm is wrong", which would send someone chasing a typo
- * that isn't there.
- */
 /** Consecutive DOWN readings required before a DOWN is believed (one bad reading is noise). */
 export const DOWN_CONFIRMATIONS = 2;
 
@@ -46,7 +34,7 @@ export function settleRealmReading(
   prev: RealmStatus | undefined,
   reading: RealmStatus,
   downStreak: number,
-): { status: RealmStatus | undefined; downStreak: number } {
+): { status: RealmStatus; downStreak: number } {
   if (reading === "UP") return { status: "UP", downStreak: 0 };
   const streak = downStreak + 1;
   if (prev === undefined || streak >= DOWN_CONFIRMATIONS) {
@@ -55,6 +43,18 @@ export function settleRealmReading(
   return { status: prev, downStreak: streak };
 }
 
+/**
+ * Whether `slug` names a realm in the configured region.
+ *
+ * Exists to separate two causes the character endpoint can't: Blizzard returns the *same* 404 for
+ * a character that doesn't exist and a realm that doesn't exist, so the only way to tell them
+ * apart is to ask about the realm on its own. Called only on the failure path, so a successful
+ * lookup never pays for it.
+ *
+ * **Fails open.** If this check can't complete, it reports `true` — an outage or a rate limit must
+ * not turn "we couldn't ask" into "your realm is wrong", which would send someone chasing a typo
+ * that isn't there.
+ */
 export async function realmExists(slug: string): Promise<boolean> {
   const url =
     `https://${config.region}.api.blizzard.com/data/wow/search/connected-realm` +

@@ -123,7 +123,7 @@ async function checkRealm(client: Client): Promise<void> {
   // One bad DOWN reading must not post a down/up pair: DOWN needs consecutive confirmation.
   const settled = settleRealmReading(state.realmStatus, reading, realmDownStreak);
   realmDownStreak = settled.downStreak;
-  const status = settled.status!;
+  const status = settled.status;
   const transition = decideRealmTransition(state.realmStatus, status);
   if (transition === "down") {
     await announce(client, "serverDown", `🔴 **${config.realmSlug}** is down — servers are offline.`);

@@ -156,7 +156,7 @@ export async function redeploy(latestSha: string): Promise<RedeployResult> {
   }
 
   const tags = imageTags(self.Config.Image, latestSha);
-  console.log(`[redeploy] building ${tags.join(", ")} from ${config.botBranch}`);
+  console.log(`[redeploy] building ${tags.join(", ")} at ${latestSha.slice(0, 7)} (${config.botBranch})`);
   const built = await buildImage({
     remote: buildRemote(config.githubRepo, latestSha),
     tags,
