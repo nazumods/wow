@@ -1,5 +1,5 @@
 import { mkdirSync, renameSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { config } from "./config";
 import type { RealmStatus } from "./wow/realm";
 
@@ -90,25 +90,31 @@ export function normalizeSeenReleaseIds(
   return out;
 }
 
-// Writes are chained so they never overlap: they share one tmp path, and the scheduler tick,
-// /update and the update-report path can all save concurrently. Last writer wins.
-let saveChain: Promise<void> = Promise.resolve();
-
-export function saveState(): Promise<void> {
-  const run = saveChain.then(writeState);
-  saveChain = run.catch(() => {}); // a failed write must not wedge later ones
-  return run;
+/**
+ * Writes are chained so they never overlap: they share one tmp path, and the scheduler tick,
+ * /update and the update-report path can all save concurrently. Last writer wins. Takes the
+ * file and the state to snapshot so tests can drive it without the process-wide singleton.
+ */
+export function createStateWriter(file: string, current: () => BotState): () => Promise<void> {
+  let chain: Promise<void> = Promise.resolve();
+  const write = () => {
+    mkdirSync(dirname(file), { recursive: true });
+    const snapshot = current();
+    // Cap each repo's release-id history so the file never grows unbounded.
+    for (const [repo, ids] of Object.entries(snapshot.seenReleaseIds)) {
+      snapshot.seenReleaseIds[repo] = ids.slice(-RELEASE_ID_CAP);
+    }
+    // Write beside the target then rename over it: a crash mid-write leaves the old file
+    // intact instead of a truncated one. Synchronous, so the snapshot is taken at write time.
+    const tmp = `${file}.tmp`;
+    writeFileSync(tmp, JSON.stringify(snapshot, null, 2));
+    renameSync(tmp, file);
+  };
+  return () => {
+    const run = chain.then(write);
+    chain = run.catch(() => {}); // a failed write must not wedge later ones
+    return run;
+  };
 }
 
-function writeState(): void {
-  mkdirSync(DATA_DIR, { recursive: true });
-  // Cap each repo's release-id history so the file never grows unbounded.
-  for (const [repo, ids] of Object.entries(state.seenReleaseIds)) {
-    state.seenReleaseIds[repo] = ids.slice(-RELEASE_ID_CAP);
-  }
-  // Write beside the target then rename over it: a crash mid-write leaves the old file intact
-  // instead of a truncated one. Synchronous, so the snapshot is taken at write time.
-  const tmp = `${STATE_FILE}.tmp`;
-  writeFileSync(tmp, JSON.stringify(state, null, 2));
-  renameSync(tmp, STATE_FILE);
-}
+export const saveState = createStateWriter(STATE_FILE, () => state);

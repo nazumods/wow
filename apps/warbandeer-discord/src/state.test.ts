@@ -8,7 +8,7 @@ import { dirname, join } from "node:path";
 process.env.DISCORD_TOKEN ??= "test-token";
 process.env.ANNOUNCE_CHANNEL_ID ??= "100";
 process.env.STATE_DIR = mkdtempSync(join(tmpdir(), "bot-state-"));
-const { normalizeSeenReleaseIds, loadState, saveState, state } = await import("./state");
+const { normalizeSeenReleaseIds, loadState, createStateWriter } = await import("./state");
 
 describe("normalizeSeenReleaseIds", () => {
   test("migrates a legacy global array under the default repo", () => {
@@ -54,10 +54,10 @@ describe("loadState", () => {
   });
 
   test("concurrent saves all settle and leave a valid file", async () => {
-    state.seenReleaseIds = { "a/b": [1] };
-    await Promise.all([saveState(), saveState(), saveState(), saveState()]);
-    const loaded = await loadState(join(process.env.STATE_DIR!, "state.json"));
-    expect(loaded.seenReleaseIds).toEqual({ "a/b": [1] });
+    const path = join(mkdtempSync(join(tmpdir(), "bot-save-")), "state.json");
+    const save = createStateWriter(path, () => ({ seenReleaseIds: { "a/b": [1] } }));
+    await Promise.all([save(), save(), save(), save()]);
+    expect((await loadState(path)).seenReleaseIds).toEqual({ "a/b": [1] });
   });
 
   test("an unreadable file is kept aside, not overwritten", async () => {
@@ -69,12 +69,12 @@ describe("loadState", () => {
     warn.mockRestore();
   });
 
-  test("a good file round-trips through the atomic save", async () => {
-    state.seenReleaseIds = { "a/b": [1, 2] };
-    await saveState();
-    const loaded = await loadState(join(process.env.STATE_DIR!, "state.json"));
-    expect(loaded.seenReleaseIds).toEqual({ "a/b": [1, 2] });
-    expect(await Bun.file(join(process.env.STATE_DIR!, "state.json.tmp")).exists()).toBe(false);
+  test("a save leaves no tmp file behind and caps each repo's id history", async () => {
+    const path = join(mkdtempSync(join(tmpdir(), "bot-save-")), "state.json");
+    const ids = Array.from({ length: 150 }, (_, i) => i);
+    await createStateWriter(path, () => ({ seenReleaseIds: { "a/b": ids } }))();
+    expect((await loadState(path)).seenReleaseIds["a/b"]).toEqual(ids.slice(-100));
+    expect(await Bun.file(`${path}.tmp`).exists()).toBe(false);
   });
 });
 
