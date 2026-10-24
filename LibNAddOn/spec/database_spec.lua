@@ -54,6 +54,10 @@ describe("setupDB migration gate", function()
     assert.equals(0, (load("9", "10")))
   end)
 
+  it("does not error or migrate on a non-numeric toc version", function()
+    assert.equals(0, (load("1.x", 1)))
+  end)
+
   it("reads the version from ops.defaults when ops.version is unset", function()
     assert.equals(1, (load(nil, 1, { name = "TestDB", defaults = { version = 2 } })))
   end)

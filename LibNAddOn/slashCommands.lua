@@ -74,24 +74,22 @@ local registerSlashCommands = function(addOn, slashCommands)
       if command.subcommands then
         _, _, target, options = string.find(args, "(%S+) ?(.*)")
       end
-      if target then
-        -- A subcommand was typed: run it, or print usage if it doesn't match. Never fall back
-        -- to the base handler, which would run an unrelated command on a typo.
-        local sub = command.subcommands[target]
-        if sub then
-          sub.handler(self, options)
-          return
-        end
-      else
-        -- No subcommand typed: the "" subcommand, else the base handler.
-        local sub = command.subcommands and command.subcommands[""]
-        if sub then
-          sub.handler(self, args)
-          return
-        elseif command.handler then
-          command.handler(self, args)
-          return
-        end
+      local sub = target and command.subcommands[target]
+      if sub then
+        sub.handler(self, options)
+        return
+      end
+      -- No (or an unknown) subcommand. The "" subcommand is the command's default handler and
+      -- gets the full arguments (e.g. `delete <name>`). Otherwise only a bare command reaches
+      -- the base handler; an unknown subcommand prints usage rather than running an unrelated
+      -- command on a typo.
+      local default = command.subcommands and command.subcommands[""]
+      if default then
+        default.handler(self, args)
+        return
+      elseif not target and command.handler then
+        command.handler(self, args)
+        return
       end
     end
     addOn:usage()
