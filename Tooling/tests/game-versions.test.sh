@@ -335,6 +335,19 @@ else
   failures=$((failures + 1))
 fi
 
+# --- 2c. the "Validate ref is a release tag" step (manual runs), against addon tag shapes ----------
+
+REF_SCRIPT="$WORK/ref-step.sh"
+step_script "Validate ref is a release tag" > "$REF_SCRIPT"
+ref_rc() { REF_NAME="$1" bash -e "$REF_SCRIPT" > /dev/null 2>&1 && echo 0 || echo 1; }
+check "ref: LibNAddOn-v12.0.5-r1 accepted" "0" "$(ref_rc LibNAddOn-v12.0.5-r1)"
+check "ref: ShadowsOfUI-Upgrade-v12.1.5-r3 accepted (hyphenated, #1022)" "0" "$(ref_rc ShadowsOfUI-Upgrade-v12.1.5-r3)"
+check "ref: ShadowsOfUI-XP-v12.1.5-r3 accepted (hyphenated, #1022)" "0" "$(ref_rc ShadowsOfUI-XP-v12.1.5-r3)"
+check "ref: LibNUI-ModelViewer-v12.1.5-r0 accepted (hyphenated, #1022)" "0" "$(ref_rc LibNUI-ModelViewer-v12.1.5-r0)"
+check "ref: main rejected" "1" "$(ref_rc main)"
+check "ref: tag without revision rejected" "1" "$(ref_rc LibNAddOn-v12.0.5)"
+check "ref: bare version rejected" "1" "$(ref_rc v12.0.5-r1)"
+
 if [[ "$failures" != 0 ]]; then
   echo "FAILED: $failures case(s)"
   exit 1
