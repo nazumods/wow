@@ -47,6 +47,15 @@ describe("ShadowsOfUI-Ilvl TrackFromLink", function()
     assert.is_nil(ns.TrackFromLink("|Hitem:1|h[x]|h"))
   end)
 
+  -- #1082: the letter is the first CHARACTER, not the first byte — a one-byte slice of a
+  -- Cyrillic/CJK track name is invalid UTF-8.
+  it("TrackFromLink: takes the first character of a multi-byte track name", function()
+    local ns = load(false, { trackString = "Герой", currentLevel = 3 })
+    assert.equal("Г3", ns.TrackFromLink("|Hitem:1|h[x]|h"))
+    ns = load(false, { trackString = "英雄", currentLevel = 6 })
+    assert.equal("英6", ns.TrackFromLink("|Hitem:1|h[x]|h"))
+  end)
+
   it("TrackFromLink: Champion level 2 -> \"C2\"", function()
     local ns = load(false, { trackString = "Champion", currentLevel = 2 })
     assert.equals("C2", ns.TrackFromLink("|Hitem:1|h[x]|h"))
