@@ -1,10 +1,14 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, spyOn, test } from "bun:test";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 // state.ts imports the `config` singleton (resolved from process.env at import time), so
 // prime the required vars before pulling the module in — see config.test.ts.
 process.env.DISCORD_TOKEN ??= "test-token";
 process.env.ANNOUNCE_CHANNEL_ID ??= "100";
-const { normalizeSeenReleaseIds } = await import("./state");
+process.env.STATE_DIR = mkdtempSync(join(tmpdir(), "bot-state-"));
+const { normalizeSeenReleaseIds, loadState, saveState, state } = await import("./state");
 
 describe("normalizeSeenReleaseIds", () => {
   test("migrates a legacy global array under the default repo", () => {
@@ -24,5 +28,36 @@ describe("normalizeSeenReleaseIds", () => {
 
   test("undefined (fresh install) yields an empty map", () => {
     expect(normalizeSeenReleaseIds(undefined, "nazumods/wow")).toEqual({});
+  });
+});
+
+describe("loadState", () => {
+  const fileWith = (text: string) => {
+    const path = join(mkdtempSync(join(tmpdir(), "bot-load-")), "state.json");
+    writeFileSync(path, text);
+    return path;
+  };
+
+  test("a truncated file loads as defaults and logs a warning", async () => {
+    const warn = spyOn(console, "warn").mockImplementation(() => {});
+    const loaded = await loadState(fileWith('{\n  "seenReleaseIds": {\n    "nazumods/wo'));
+    expect(loaded).toEqual({ seenReleaseIds: {} });
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
+  });
+
+  test("valid JSON that is not an object loads as defaults", async () => {
+    const warn = spyOn(console, "warn").mockImplementation(() => {});
+    expect(await loadState(fileWith("null"))).toEqual({ seenReleaseIds: {} });
+    expect(await loadState(fileWith("[1]"))).toEqual({ seenReleaseIds: {} });
+    warn.mockRestore();
+  });
+
+  test("a good file round-trips through the atomic save", async () => {
+    state.seenReleaseIds = { "a/b": [1, 2] };
+    await saveState();
+    const loaded = await loadState(join(process.env.STATE_DIR!, "state.json"));
+    expect(loaded.seenReleaseIds).toEqual({ "a/b": [1, 2] });
+    expect(await Bun.file(join(process.env.STATE_DIR!, "state.json.tmp")).exists()).toBe(false);
   });
 });

@@ -1,4 +1,4 @@
-import { mkdirSync } from "node:fs";
+import { mkdirSync, renameSync } from "node:fs";
 import { join } from "node:path";
 import { config } from "./config";
 import type { RealmStatus } from "./wow/realm";
@@ -32,17 +32,31 @@ export interface BotState {
 
 const RELEASE_ID_CAP = 100;
 
-const DATA_DIR = join(import.meta.dir, "..", "data");
+// STATE_DIR is only for tests, so they never touch the real state file.
+const DATA_DIR = process.env.STATE_DIR ?? join(import.meta.dir, "..", "data");
 const STATE_FILE = join(DATA_DIR, "state.json");
 
 export const state: BotState = await loadState();
 
-async function loadState(): Promise<BotState> {
-  const file = Bun.file(STATE_FILE);
+/**
+ * A state file that is unreadable (truncated by a crash mid-write, or hand-edited badly) loads
+ * as defaults rather than throwing: `state` is built by a top-level await, so a throw here
+ * crash-loops the bot under `restart: unless-stopped`. The cost is a silent re-seed of the
+ * release backlog, which beats never booting.
+ */
+export async function loadState(path = STATE_FILE): Promise<BotState> {
+  const file = Bun.file(path);
   if (!(await file.exists())) return { seenReleaseIds: {} };
-  const raw = (await file.json()) as Omit<BotState, "seenReleaseIds"> & {
-    seenReleaseIds?: number[] | Record<string, number[]>;
-  };
+  let raw: (Omit<BotState, "seenReleaseIds"> & { seenReleaseIds?: number[] | Record<string, number[]> }) | null;
+  try {
+    raw = JSON.parse(await file.text());
+    if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+      throw new Error("not a JSON object");
+    }
+  } catch (err) {
+    console.warn(`[state] ${path} is unreadable (${err}) — starting from defaults`);
+    return { seenReleaseIds: {} };
+  }
   return { ...raw, seenReleaseIds: normalizeSeenReleaseIds(raw.seenReleaseIds, config.githubRepo) };
 }
 
@@ -65,5 +79,9 @@ export async function saveState(): Promise<void> {
   for (const [repo, ids] of Object.entries(state.seenReleaseIds)) {
     state.seenReleaseIds[repo] = ids.slice(-RELEASE_ID_CAP);
   }
-  await Bun.write(STATE_FILE, JSON.stringify(state, null, 2));
+  // Write beside the target then rename over it: a crash mid-write leaves the old file intact
+  // instead of a truncated one.
+  const tmp = `${STATE_FILE}.tmp`;
+  await Bun.write(tmp, JSON.stringify(state, null, 2));
+  renameSync(tmp, STATE_FILE);
 }
