@@ -56,6 +56,11 @@ describe("ShadowsOfUI-Ilvl TrackFromLink", function()
     assert.equal("英6", ns.TrackFromLink("|Hitem:1|h[x]|h"))
   end)
 
+  it("TrackFromLink: an empty track name still yields the level, not an error", function()
+    local ns = load(false, { trackString = "", currentLevel = 2 })
+    assert.equal("2", ns.TrackFromLink("|Hitem:1|h[x]|h"))
+  end)
+
   it("TrackFromLink: Champion level 2 -> \"C2\"", function()
     local ns = load(false, { trackString = "Champion", currentLevel = 2 })
     assert.equals("C2", ns.TrackFromLink("|Hitem:1|h[x]|h"))
