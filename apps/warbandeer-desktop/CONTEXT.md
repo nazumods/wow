@@ -103,7 +103,7 @@ see `../warbandeer-discord/ops/README.md`):
 
 ## Release & versioning
 
-Version lives in **three places kept in sync** (by hand, or by `app-release.sh`'s auto-bump): `src-tauri/tauri.conf.json` (what CI reads and `getVersion()` shows), `package.json`, `src-tauri/Cargo.toml`. The daily `app-release.yml` cron runs `app-release.sh`, which **auto-bumps** the version (and commits it) when there are unreleased app commits, so a change needs no hand-written bump. Tags are `app-*`-prefixed so the addon CurseForge publisher (`publish.yml`) skips them.
+Version lives in **three files kept in sync** (by hand, or by `app-release.sh`'s auto-bump): `src-tauri/tauri.conf.json` (what CI reads and `getVersion()` shows), `package.json`, `src-tauri/Cargo.toml` (plus the matching entry in `Cargo.lock`, which the auto-bump also rewrites). The daily `app-release.yml` cron runs `app-release.sh`, which **auto-bumps** the version (and commits it) when there are unreleased app commits, so a change needs no hand-written bump. Tags are `app-*`-prefixed so the addon CurseForge publisher (`publish.yml`) skips them.
 
 ## Gotchas
 
