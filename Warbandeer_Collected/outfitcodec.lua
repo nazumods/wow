@@ -119,8 +119,8 @@ end
 -- issues later would be a worse failure than accepting a finite absurd one.
 --
 -- **Negatives are deliberately NOT bounded at -1.** A main-hand secondary of `-1` is an ordinary
--- weapon rather than a paired artifact, and `ns.DecodeOutfit` clamps other negatives to 0 further
--- down — both pinned by spec. Refusing them here would move a normalisation the format relies on
+-- weapon rather than a paired artifact, and `ns.DecodeOutfit` clamps every other negative to 0 as
+-- it reads the values — both pinned by spec. Refusing them here would move a normalisation the format relies on
 -- into a parse failure.
 local MAX_ID = 2147483647
 ---@param body string
@@ -167,6 +167,13 @@ function ns.OutfitInputKind(str)
   return nil
 end
 
+---A decoded id with any negative raised to 0 (pasted strings are untrusted).
+---@param v number
+---@return number
+local function clamp(v)
+  return v > 0 and v or 0
+end
+
 ---Decode a `/customset v1 …` string into an outfit list.
 ---
 ---Accepts the full slash command, a bare `v1 …` payload, and surrounding whitespace — the three
@@ -196,16 +203,18 @@ function ns.DecodeOutfit(str)
   local list = ns.EmptyOutfitList()
   for _, slotID in ipairs(SLOT_ORDER) do
     local info = list[slotID]
-    info.appearanceID = next_()
-    if slotID == INVSLOT_SHOULDER or slotID == INVSLOT_MAINHAND then
+    info.appearanceID = clamp(next_())
+    if slotID == INVSLOT_SHOULDER then
+      info.secondaryAppearanceID = clamp(next_())
+    elseif slotID == INVSLOT_MAINHAND then
+      -- The main-hand secondary legitimately carries -1 ("an ordinary weapon, not a paired
+      -- artifact"), so it is the one field a negative survives in.
       info.secondaryAppearanceID = next_()
     end
-    -- An illusion id is clamped at 0: the main-hand secondary legitimately carries -1
-    -- ("an ordinary weapon, not a paired artifact"), but there is no negative illusion, and a
+    -- An illusion id is clamped like every other id: there is no negative illusion, and a
     -- stray negative would otherwise be handed to the model as a real id.
     if slotID == INVSLOT_MAINHAND or slotID == INVSLOT_OFFHAND then
-      local v = next_()
-      info.illusionID = v > 0 and v or 0
+      info.illusionID = clamp(next_())
     end
   end
   return list

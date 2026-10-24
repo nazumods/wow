@@ -17,6 +17,14 @@ local function safe(v)
   return v
 end
 
+-- `safe`, falling back to the previously stored value: a COMBAT_RATING_UPDATE read while the
+-- values are secret must not blank a good snapshot the Detail view's deltas and radar rely on.
+local function kept(v, prev)
+  v = safe(v)
+  if v == nil then return prev end
+  return v
+end
+
 -- The active spec's mastery passive spell, so the Detail view can name the mastery
 -- ("Mastery: Razor Claws") and describe its spec-specific effect. Captured here (the
 -- only place we have the logged-in character's spec context); nil before a spec is chosen.
@@ -68,11 +76,18 @@ Stats.fields = {
     missing = { label = "secondary stats", maxLevel = true, order = 260 },
     get = function(_, _, current)
       local masterySpell, masteryDesc = masteryInfo(current and current.mastery)
+      -- A secret read keeps the last good value instead of blanking it (see `kept`).
+      local function stat(key, pct, rating)
+        local prev = current and current[key]
+        return { pct = kept(pct, prev and prev.pct), rating = kept(rating, prev and prev.rating) }
+      end
+      local mastery = stat("mastery", GetMasteryEffect(), GetCombatRating(CR_MASTERY_))
+      mastery.spell, mastery.description = masterySpell, masteryDesc
       return {
-        crit        = { pct = safe(GetCritChance()),    rating = safe(GetCombatRating(CR_CRIT)) },
-        haste       = { pct = safe(GetHaste()),         rating = safe(GetCombatRating(CR_HASTE)) },
-        mastery     = { pct = safe(GetMasteryEffect()), rating = safe(GetCombatRating(CR_MASTERY_)), spell = masterySpell, description = masteryDesc },
-        versatility = { pct = safe(GetCombatRatingBonus(CR_VERS)), rating = safe(GetCombatRating(CR_VERS)) },
+        crit        = stat("crit", GetCritChance(), GetCombatRating(CR_CRIT)),
+        haste       = stat("haste", GetHaste(), GetCombatRating(CR_HASTE)),
+        mastery     = mastery,
+        versatility = stat("versatility", GetCombatRatingBonus(CR_VERS), GetCombatRating(CR_VERS)),
       }
     end,
     event = "COMBAT_RATING_UPDATE",
