@@ -45,6 +45,7 @@ git add -A
 git commit -q -m "chore: seed"
 git tag "$TAG"
 git push -q -u origin main
+seed_sha=$(git rev-parse HEAD)
 
 commit_file() { # path content subject
   mkdir -p "$(dirname "$1")"
@@ -70,7 +71,7 @@ commit_file apps/bot-ops/src/index.ts "export const x = 1" "fix(bot-ops): behavi
 check "bot-ops code change after the tag (#1024)" "changed=true" "$(run)"
 check "release bumped the app version" "0.1.1" "$(node -p "require('./$APP/src-tauri/tauri.conf.json').version")"
 # #1035: the bump is committed locally only (the workflow pushes it after the build) and `sha` names it.
-check "bump not pushed by the script" "$(git rev-parse origin/main)" "$(git ls-remote origin refs/heads/main | cut -f1)"
+check "bump not pushed by the script" "$seed_sha" "$(git ls-remote origin refs/heads/main | cut -f1)"
 check "bump committed locally" "chore(release): bump warbandeer-desktop to 0.1.1" "$(git log -1 --pretty=%s)"
 check "sha output is the bump commit" "sha=$(git rev-parse HEAD)" "$(grep '^sha=' "$WORK/gh-output")"
 
