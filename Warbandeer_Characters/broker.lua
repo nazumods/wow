@@ -5,7 +5,9 @@ local Class = ns.lua.Class
 local GetServerTime = GetServerTime
 local DateAndTime = C_DateAndTime
 local LAST_DAILY_RESET = GetServerTime() + DateAndTime.GetSecondsUntilDailyReset() - (60*60*24)
-local LAST_RESET = GetServerTime() + DateAndTime.GetSecondsUntilWeeklyReset() - (60*60*24)
+-- The weekly reset that most recently happened (next reset minus a full week). This is a
+-- real boundary and a valid timestamp: <= now, within the last 7 days.
+local LAST_RESET = GetServerTime() + DateAndTime.GetSecondsUntilWeeklyReset() - (60*60*24*7)
 -- Most recent Sunday 00:00 UTC, derived from the epoch ALONE — never from
 -- GetCurrentCalendarTime(). That call is unreliable at addon-load time (the
 -- calendar system isn't warm yet — see Warbandeer's init.lua, which pre-warms it),
@@ -39,12 +41,14 @@ end
 -- at least a day, so only treat an anchor as "new" when it moved by more than this
 -- slack. (The Sunday anchor above is now jitter-free, but the same guard applies.)
 local RESET_SLACK = 12 * 60 * 60
+ns.RESET_SLACK = RESET_SLACK
 
 -- expose reset boundaries for non-broker (account-wide) data that resets on the same cadence
 ---@class Warbandeer_Characters
 ---@field LAST_DAILY_RESET integer
 ---@field LAST_RESET integer
 ---@field LAST_SUNDAY_RESET integer
+---@field RESET_SLACK integer seconds an anchor must move by to count as a new boundary (absorbs clock skew)
 ns.LAST_DAILY_RESET = LAST_DAILY_RESET
 ns.LAST_RESET = LAST_RESET
 ns.LAST_SUNDAY_RESET = LAST_SUNDAY_RESET
