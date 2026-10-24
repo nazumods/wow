@@ -391,8 +391,9 @@ end
 local function nameError(name, exceptID)
   if not name or name == "" then return "a name is required" end
   if not IsValidCustomSetName(name) then return ("\"%s\" isn't an allowed name"):format(name) end
+  local wanted = name:lower()
   for _, s in ipairs(ns.CustomSets()) do
-    if s.name == name and s.id ~= exceptID then
+    if s.name:lower() == wanted and s.id ~= exceptID then
       return ("a set named \"%s\" already exists"):format(name)
     end
   end
