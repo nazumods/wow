@@ -801,11 +801,13 @@ function ns.filterToggle(strip, theme, spec)
   Texture:new{ parent = b, layer = ui.layer.Border, color = {0.05, 0.05, 0.06, 0.92},
     position = { TopLeft = {1, -1}, BottomRight = {-1, 1} } }
   local btn = Button:new{ parent = b, position = { All = true }, OnClick = spec.onClick,
+    -- these replace Button's own OnEnter/OnLeave (the hover glow), so chain to them
     OnEnter = spec.tip and function(s)
+      Button.OnEnter(s)
       GameTooltip:SetOwner(s._widget, "ANCHOR_BOTTOMRIGHT")
       GameTooltip:SetText(spec.tip()); GameTooltip:Show()
     end or nil,
-    OnLeave = spec.tip and function() GameTooltip:Hide() end or nil,
+    OnLeave = spec.tip and function(s) Button.OnLeave(s); GameTooltip:Hide() end or nil,
   }
   if isIcon then
     -- tint=false keeps an already-colored atlas (the gold star) at native color; an explicit color

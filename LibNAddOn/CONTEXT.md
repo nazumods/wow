@@ -88,7 +88,7 @@ local MyClass = Class(Parent, function(self) ... end, { defaults })
 local instance = MyClass:new{ field = value }
 ```
 
-Construction order: copy defaults into `o` (missing keys only; plain-table defaults are deep-copied per instance, metatabled values shared by reference) → `parent:new(o)` → `Mixin(o, parent, class)` → `setmetatable` → `fn(o)` → `parent.onLoad(o)` → `class.onLoad(o)` → `defaults.onLoad(o)`.
+Construction order: copy defaults into `o` (missing keys only; plain-table defaults are deep-copied per instance, metatabled values shared by reference) → `parent:new(o)` → `Mixin(o, parent, class)` (then the caller's own function-valued options are restored, so `Button:new{ OnEnter = fn }` beats `Button:OnEnter`) → `setmetatable` → `fn(o)` → `parent.onLoad(o)` → `class.onLoad(o)` → `defaults.onLoad(o)`.
 
 ## Lua utilities
 

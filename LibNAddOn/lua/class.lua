@@ -21,6 +21,16 @@ function ns.lua.Class(parent, fn, defaults, ...)
 
   -- define the constructor
   function c:new(o)
+    -- Mixin below copies class methods over `o`, which would silently discard a caller's
+    -- function option named like a method (`Button:new{ OnEnter = fn }`). Remember them now,
+    -- before defaults or the parent constructor touch `o`, and restore them after the Mixin.
+    local supplied
+    for k, v in pairs(o) do
+      if type(v) == "function" then
+        supplied = supplied or {}
+        supplied[k] = v
+      end
+    end
     if defaults then
       for k, v in pairs(defaults) do
         if o[k] == nil then
@@ -33,6 +43,7 @@ function ns.lua.Class(parent, fn, defaults, ...)
     end
     o = parent and parent:new(o) or o
     Mixin(o, parent or {}, c)
+    if supplied then Mixin(o, supplied) end
     setmetatable(o, self)
     self.__index = self
     fn(o)

@@ -102,6 +102,39 @@ describe("ns.lua.Class", function()
     assert.not_equal(a.plist, b.plist)
   end)
 
+  it("lets a caller-supplied function option beat a same-named class method", function()
+    local C = Class(nil, function() end)
+    function C:OnEnter() return "class" end
+    local mine = function() return "option" end
+    local o = C:new{OnEnter = mine}
+    assert.equal(mine, o.OnEnter)
+    assert.equal("option", o:OnEnter())
+    assert.equal("class", C:new{}:OnEnter())
+  end)
+
+  it("keeps the caller's function option over parent and child methods alike", function()
+    local P = Class(nil, function() end)
+    function P:OnLeave() return "parent" end
+    local C = Class(P, function() end)
+    function C:OnEnter() return "child" end
+    local enter, leave = function() return "e" end, function() return "l" end
+    local o = C:new{OnEnter = enter, OnLeave = leave}
+    assert.equal("e", o:OnEnter())
+    assert.equal("l", o:OnLeave())
+    local plain = C:new{}
+    assert.equal("child", plain:OnEnter())
+    assert.equal("parent", plain:OnLeave())
+  end)
+
+  it("still lets the class methods fill keys the caller did not supply", function()
+    local C = Class(nil, function() end)
+    function C:A() return "a" end
+    function C:B() return "b" end
+    local o = C:new{A = function() return "mine" end}
+    assert.equal("mine", o:A())
+    assert.equal("b", o:B())
+  end)
+
   it("calls parent class-level onLoad exactly once when constructing a subclass", function()
     local calls = 0
     local P = Class(nil, function() end)
