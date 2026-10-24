@@ -96,6 +96,9 @@ jobs:
       - name: .toc metadata matches the CONTEXT.md headers
         run: python Tooling/doc_drift.py
 
+      - name: doc_drift.py unit tests
+        run: python Tooling/test_doc_drift.py
+
   # publish.yml turns each .toc `## Interface:` value into a CurseForge game version, and checks that
   # CurseForge knows it. Reading `16001` (Forever) from the left once gave `16.0.1` (#954), and the upload
   # action drops an unknown version silently -- so the release would have shipped unlabelled. The functions
