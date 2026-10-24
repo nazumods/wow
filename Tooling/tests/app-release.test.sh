@@ -53,7 +53,7 @@ commit_file() { # path content subject
   git commit -q -m "$3"
 }
 
-# run -> prints the changed= line the script wrote to GITHUB_OUTPUT
+# run -> prints the changed= line the script wrote to GITHUB_OUTPUT (the full output stays in gh-output)
 run() {
   : > "$WORK/gh-output"
   GITHUB_OUTPUT="$WORK/gh-output" bash "$SCRIPT" > "$WORK/log" 2>&1 || { cat "$WORK/log"; echo "changed=error"; return; }
@@ -69,12 +69,23 @@ check "doc-only changes in app and bot-ops" "changed=false" "$(run)"
 commit_file apps/bot-ops/src/index.ts "export const x = 1" "fix(bot-ops): behaviour change"
 check "bot-ops code change after the tag (#1024)" "changed=true" "$(run)"
 check "release bumped the app version" "0.1.1" "$(node -p "require('./$APP/src-tauri/tauri.conf.json').version")"
+# #1035: the bump is committed locally only (the workflow pushes it after the build) and `sha` names it.
+check "bump not pushed by the script" "$(git rev-parse origin/main)" "$(git ls-remote origin refs/heads/main | cut -f1)"
+check "bump committed locally" "chore(release): bump warbandeer-desktop to 0.1.1" "$(git log -1 --pretty=%s)"
+check "sha output is the bump commit" "sha=$(git rev-parse HEAD)" "$(grep '^sha=' "$WORK/gh-output")"
 
 git tag "app-warbandeer-desktop-v0.1.1"
 check "bot-ops change already released" "changed=false" "$(run)"
 
 commit_file "$APP/src/main.ts" "x" "feat(desktop): code change"
 check "desktop code change after the tag" "changed=true" "$(run)"
+
+# #1035: a bump that was pushed but never released (no tag for the current version) is reused, not skipped past.
+head_before=$(git rev-parse HEAD)
+check "unreleased version still pending" "changed=true" "$(run)"
+check "pending version reused, not re-bumped" "0.1.2" "$(node -p "require('./$APP/src-tauri/tauri.conf.json').version")"
+check "no extra commit when reusing" "$head_before" "$(git rev-parse HEAD)"
+check "sha output when reusing" "sha=$head_before" "$(grep '^sha=' "$WORK/gh-output")"
 
 if [[ "$failures" != 0 ]]; then
   echo "FAILED: $failures case(s)"
