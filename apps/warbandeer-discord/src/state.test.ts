@@ -1,7 +1,7 @@
 import { describe, expect, spyOn, test } from "bun:test";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 // state.ts imports the `config` singleton (resolved from process.env at import time), so
 // prime the required vars before pulling the module in — see config.test.ts.
@@ -53,11 +53,38 @@ describe("loadState", () => {
     warn.mockRestore();
   });
 
+  test("concurrent saves all settle and leave a valid file", async () => {
+    state.seenReleaseIds = { "a/b": [1] };
+    await Promise.all([saveState(), saveState(), saveState(), saveState()]);
+    const loaded = await loadState(join(process.env.STATE_DIR!, "state.json"));
+    expect(loaded.seenReleaseIds).toEqual({ "a/b": [1] });
+  });
+
+  test("an unreadable file is kept aside, not overwritten", async () => {
+    const warn = spyOn(console, "warn").mockImplementation(() => {});
+    const path = fileWith("{ truncated");
+    await loadState(path);
+    expect(await Bun.file(path).exists()).toBe(false);
+    expect(readdirSync(dirname(path)).some((f) => f.startsWith("state.json.corrupt-"))).toBe(true);
+    warn.mockRestore();
+  });
+
   test("a good file round-trips through the atomic save", async () => {
     state.seenReleaseIds = { "a/b": [1, 2] };
     await saveState();
     const loaded = await loadState(join(process.env.STATE_DIR!, "state.json"));
     expect(loaded.seenReleaseIds).toEqual({ "a/b": [1, 2] });
     expect(await Bun.file(join(process.env.STATE_DIR!, "state.json.tmp")).exists()).toBe(false);
+  });
+});
+
+describe("normalizeSeenReleaseIds with wrong-typed data", () => {
+  test("non-object values yield an empty map", () => {
+    expect(normalizeSeenReleaseIds("x", "r")).toEqual({});
+    expect(normalizeSeenReleaseIds(5, "r")).toEqual({});
+  });
+
+  test("drops non-array entries and non-numeric ids", () => {
+    expect(normalizeSeenReleaseIds({ a: 5, b: "x", c: [1, "2", 3] }, "r")).toEqual({ c: [1, 3] });
   });
 });

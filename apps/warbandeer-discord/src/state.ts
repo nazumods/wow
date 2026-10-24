@@ -1,4 +1,4 @@
-import { mkdirSync, renameSync } from "node:fs";
+import { mkdirSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { config } from "./config";
 import type { RealmStatus } from "./wow/realm";
@@ -54,7 +54,14 @@ export async function loadState(path = STATE_FILE): Promise<BotState> {
       throw new Error("not a JSON object");
     }
   } catch (err) {
-    console.warn(`[state] ${path} is unreadable (${err}) — starting from defaults`);
+    // Keep the bad file for inspection; the next save would otherwise overwrite it.
+    const kept = `${path}.corrupt-${Date.now()}`;
+    try {
+      renameSync(path, kept);
+    } catch {
+      // best effort — still boot
+    }
+    console.warn(`[state] ${path} is unreadable (${err}) — kept as ${kept}, starting from defaults`);
     return { seenReleaseIds: {} };
   }
   return { ...raw, seenReleaseIds: normalizeSeenReleaseIds(raw.seenReleaseIds, config.githubRepo) };
@@ -66,22 +73,42 @@ export async function loadState(path = STATE_FILE): Promise<BotState> {
  * an already-keyed map (or a fresh install's `undefined`) passes through as-is.
  */
 export function normalizeSeenReleaseIds(
-  raw: number[] | Record<string, number[]> | undefined,
+  raw: unknown,
   defaultRepo: string,
 ): Record<string, number[]> {
-  if (Array.isArray(raw)) return raw.length ? { [defaultRepo]: raw } : {};
-  return raw ?? {};
+  const ids = (v: unknown): number[] | null =>
+    Array.isArray(v) ? v.filter((n): n is number => Number.isFinite(n)) : null;
+  if (Array.isArray(raw)) return raw.length ? { [defaultRepo]: ids(raw)! } : {};
+  if (raw === null || typeof raw !== "object") return {};
+  // Drop wrong-typed entries rather than carry them: a non-array value would make every later
+  // saveState (`slice`) and poll (`new Set`) throw.
+  const out: Record<string, number[]> = {};
+  for (const [repo, v] of Object.entries(raw)) {
+    const list = ids(v);
+    if (list) out[repo] = list;
+  }
+  return out;
 }
 
-export async function saveState(): Promise<void> {
+// Writes are chained so they never overlap: they share one tmp path, and the scheduler tick,
+// /update and the update-report path can all save concurrently. Last writer wins.
+let saveChain: Promise<void> = Promise.resolve();
+
+export function saveState(): Promise<void> {
+  const run = saveChain.then(writeState);
+  saveChain = run.catch(() => {}); // a failed write must not wedge later ones
+  return run;
+}
+
+function writeState(): void {
   mkdirSync(DATA_DIR, { recursive: true });
   // Cap each repo's release-id history so the file never grows unbounded.
   for (const [repo, ids] of Object.entries(state.seenReleaseIds)) {
     state.seenReleaseIds[repo] = ids.slice(-RELEASE_ID_CAP);
   }
   // Write beside the target then rename over it: a crash mid-write leaves the old file intact
-  // instead of a truncated one.
+  // instead of a truncated one. Synchronous, so the snapshot is taken at write time.
   const tmp = `${STATE_FILE}.tmp`;
-  await Bun.write(tmp, JSON.stringify(state, null, 2));
+  writeFileSync(tmp, JSON.stringify(state, null, 2));
   renameSync(tmp, STATE_FILE);
 }
