@@ -74,7 +74,10 @@ local function computeUpgrades(charData)
     if twoHander and (slot == "MainHand" or slot == "OffHand") then return end
     if #slots == 2 then
       local g = pairs_[slots[1]]
-      if not g then g = { slots = slots, cands = {} } ; pairs_[slots[1]] = g end
+      if not g then
+        g = { slots = slots, cands = {} }
+        pairs_[slots[1]] = g
+      end
       insert(g.cands, { link = cand.link, ilvl = ilvl, reqLevel = cand.reqLevel, where = where })
       return
     end

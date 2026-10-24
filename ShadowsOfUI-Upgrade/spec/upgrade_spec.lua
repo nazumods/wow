@@ -164,7 +164,35 @@ describe("ShadowsOfUI-Upgrade upgrade calc", function()
         h.defItem{ link = "trk:1", itemID = 11, equipLoc = "INVTYPE_TRINKET", classID = ARMOR, subClassID = MISC, ilvl = 620 },
         h.defItem{ link = "trk:2", itemID = 12, equipLoc = "INVTYPE_TRINKET", classID = ARMOR, subClassID = MISC, ilvl = 610 },
       }, bank = {} }
-      assert.equals(2, h.Api:CharacterUpgradeCount("Conan"))
+      assert.equals("trk:1", h.Api:SlotUpgrade("Conan", "Trinket1").link)
+      assert.equals(20, h.Api:SlotUpgrade("Conan", "Trinket1").ilvlGain)
+      assert.equals("trk:2", h.Api:SlotUpgrade("Conan", "Trinket2").link)
+      assert.equals(10, h.Api:SlotUpgrade("Conan", "Trinket2").ilvlGain)
+    end)
+
+    it("fills an empty ring slot first and gives the other ring the runner-up", function()
+      h.addChar(warrior("Conan", { Finger1 = { ilvl = 600 } }))
+      h.pools.Conan = { bags = { ring(1, 640), ring(2, 639) }, bank = {} }
+      assert.equals("ring:1", h.Api:SlotUpgrade("Conan", "Finger2").link)
+      assert.equals(640, h.Api:SlotUpgrade("Conan", "Finger2").ilvlGain)  -- empty slot = ilvl 0
+      assert.equals("ring:2", h.Api:SlotUpgrade("Conan", "Finger1").link)
+    end)
+
+    it("handles equal equipped ilvls and prefers held on an ilvl tie", function()
+      h.addChar(warrior("Conan", { Finger1 = { ilvl = 600 }, Finger2 = { ilvl = 600 } }))
+      h.pools.Conan = { bags = { ring(1, 620) }, bank = {} }
+      h.warband = { ring(2, 620) }
+      local a, b = h.Api:SlotUpgrade("Conan", "Finger1"), h.Api:SlotUpgrade("Conan", "Finger2")
+      assert.equals("held", a.where)
+      assert.equals("warband", b.where)
+      assert.is_false(a.betterElsewhere)
+    end)
+
+    it("flags betterElsewhere on both slots when a held ring is left unplaced", function()
+      h.addChar(warrior("Conan", { Finger1 = { ilvl = 600 }, Finger2 = { ilvl = 610 } }))
+      h.pools.Conan = { bags = { ring(1, 615) }, bank = {} }
+      h.warband = { ring(2, 640), ring(3, 630) }
+      assert.is_true(h.Api:SlotUpgrade("Conan", "Finger2").betterElsewhere)
     end)
   end)
 
