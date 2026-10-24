@@ -153,7 +153,7 @@ jobs:
   # Check each addon's EXTERNAL.md (the CurseForge/Wago page copy, #911) against the two invariants
   # that spec states -- the GitHub URL on the first line and a bug/suggestion section -- and unit-test
   # the checker. Fully offline (no API key, no network), so like doc-drift it is a PR gate with no
-  # daily run. Inert until #911 lands the EXTERNAL.md files; the module docstring records why detection
+  # daily run. Live: every addon carrying an X-Curse-Project-ID is gated; the module docstring records why detection
   # is the ceiling -- no public API writes a CurseForge or Wago description (#912 SPIKE).
   external-drift:
     runs-on: ubuntu-latest

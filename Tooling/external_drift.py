@@ -16,8 +16,8 @@ external project, and ideally update the external resource too? The research ans
     first. Wago exposes no relations API at all.
 
 This module is the offline half of that finding: no API key, no network, so it runs as
-a PR gate in .github/workflows/test.yml the same way doc_drift.py does. It stays inert
-until #911 lands EXTERNAL.md files -- an addon without one is skipped, not failed,
+a PR gate in .github/workflows/test.yml the same way doc_drift.py does. The gate is
+live (every addon with an X-Curse-Project-ID is gated); an addon without an EXTERNAL.md is skipped, not failed,
 because missing page copy is a content gap, not drift.
 
 Checks per EXTERNAL.md (#911's two stated, offline-verifiable invariants; HTML comments
@@ -31,8 +31,8 @@ are stripped first, so copy hidden in a `<!-- ... -->` never satisfies a check):
                   reader always has a reporting path.
 
 An addon folder is one containing <folder>/<folder>.toc -- the same rule doc_drift.py
-uses. (release.sh and the toc-name gate deliberately accept any *.toc, and release.sh
-additionally carries a NON_ADDON_DIRS skip list; the folder-named-.toc rule needs no skip
+uses. (release.sh and the toc-name gate require <folder>/<folder>.toc or
+<folder>/<folder>_Mainline.toc, and release.sh additionally carries a NON_ADDON_DIRS skip list; the folder-named-.toc rule needs no skip
 list because Tooling/, apps/, docs/ and .github/ have no such file.)
 
 Usage:

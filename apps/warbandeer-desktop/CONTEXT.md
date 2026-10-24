@@ -7,7 +7,7 @@
 | File | Purpose |
 |---|---|
 | **Rust backend (`src-tauri/`)** | |
-| `src/lib.rs` | Tauri builder — registers the 14 commands (see command surface) and the `wbicon` URI scheme (`icons.rs`) |
+| `src/lib.rs` | Tauri builder — registers the 17 commands (see command surface) and the `wbicon` URI scheme (`icons.rs`) |
 | `src/main.rs` | Thin entry point calling `lib.rs::run()` |
 | `src/wow.rs` | Locate `_retail_` (override/`WOW_DIR` → exe/cwd ancestor with `WTF/Account` → default install path); find SavedVariables per account; list accounts with an order file |
 | `src/savedvars.rs` | `load_char_db(path)` — exec the file in a fresh `mlua` Lua 5.1 VM, deserialize global `WarbandeerCharDB` via `LuaSerdeExt` |
@@ -50,7 +50,7 @@
 | `src-tauri/Cargo.toml` | mlua `lua51`+`vendored`+`serialize`; size-optimized release profile |
 | `scripts/gen-icon.mjs` | Regenerates the placeholder `icons/source.png` (`npm run icon:source`); `npm run icon` derives `src-tauri/icons/` from it |
 | `../../.github/workflows/app-test.yml` | PR/push gate: `svelte-check`, frontend build, `cargo test`, `cargo check`, clippy (`-D warnings`) — windows-latest |
-| `../../.github/workflows/app-release.yml` | Release on push to `main` touching the app (md-only ignored): builds portable exe, GitHub release tagged `app-warbandeer-desktop-v<version>` with asset `Warbandeer-v<version>-portable.exe` |
+| `../../.github/workflows/app-release.yml` | Daily release cron (14:30 UTC; also `workflow_dispatch`) that releases only when the app changed since the last release (md-only ignored): auto-bumps the version, builds portable exe, GitHub release tagged `app-warbandeer-desktop-v<version>` with asset `Warbandeer-v<version>-portable.exe` |
 
 ## Data flow
 
@@ -103,7 +103,7 @@ see `../warbandeer-discord/ops/README.md`):
 
 ## Release & versioning
 
-Version lives in **three places kept in sync by hand**: `src-tauri/tauri.conf.json` (what CI reads and `getVersion()` shows), `package.json`, `src-tauri/Cargo.toml`. There is **no auto-bump** (unlike addon `.toc` revisions) — bumping the version is part of the change; a push without a bump refreshes the existing release's exe. Tags are `app-*`-prefixed so the addon CurseForge publisher (`publish.yml`) skips them.
+Version lives in **three places kept in sync** (by hand, or by `app-release.sh`'s auto-bump): `src-tauri/tauri.conf.json` (what CI reads and `getVersion()` shows), `package.json`, `src-tauri/Cargo.toml`. The daily `app-release.yml` cron runs `app-release.sh`, which **auto-bumps** the version (and commits it) when there are unreleased app commits, so a change needs no hand-written bump. Tags are `app-*`-prefixed so the addon CurseForge publisher (`publish.yml`) skips them.
 
 ## Gotchas
 
