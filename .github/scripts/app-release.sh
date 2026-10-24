@@ -27,7 +27,11 @@ CARGO_LOCK="${APP_DIR}/src-tauri/Cargo.lock"
 # change shouldn't cut a release.
 last_tag=$(git tag -l "${TAG_PREFIX}*" | sort -V | tail -1 || true)
 
-pathspec=("${APP_DIR}/" ":(exclude,glob)${APP_DIR}/**/*.md")
+# apps/bot-ops is compiled into the exe (cargo path dep + the @bot-ops vite alias; app-test.yml treats
+# it as part of the app), so a bot-ops change is an app change.
+SHARED_DIR="apps/bot-ops"
+
+pathspec=("${APP_DIR}/" ":(exclude,glob)${APP_DIR}/**/*.md" "${SHARED_DIR}/" ":(exclude,glob)${SHARED_DIR}/**/*.md")
 if [[ -n "$last_tag" ]]; then
   commit_log=$(git log "${last_tag}..HEAD" --pretty=format:"%s" -- "${pathspec[@]}" || true)
 else

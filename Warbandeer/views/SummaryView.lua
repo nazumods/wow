@@ -276,6 +276,11 @@ function ClassSummary:OnBeforeShow()
   end
   self:update()
   self:setFooter(self:GetFooterData(toons))
+  -- Re-fit opted-in columns (Gold, Titles) to the refreshed cells: a gold total that gained a
+  -- digit since the build would otherwise overflow its column until /reload.
+  for i, info in ipairs(self.colInfo) do
+    if info.autosize then self:AutosizeColumn(i) end
+  end
   -- Re-sorting can move characters between rows, so refresh resting backdrops.
   for i in ipairs(self.rows) do self:restRow(i) end
 end

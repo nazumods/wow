@@ -315,52 +315,15 @@ local Overview = Class(Frame, function(self)
   -- Stat strip — one card per content column, each overlaying its column's box.
   local cardX = {col0, col1, col2}
 
-  -- this-patch played time = each char's total minus its /played snapshot taken at
-  -- first login on the current patch (PlaytimeBroker.byPatch); chars that never logged
-  -- in this patch have no snapshot and contribute nothing.
-  local patch = GetBuildInfo()
-  local playSecs, patchSecs, topIlvl, count = 0, 0, 0, 0
-  for _, toon in ipairs(ns.api.GetAllCharacters()) do
-    count = count + 1
-    local pt = toon.playtime
-    if pt and pt.total then
-      playSecs = playSecs + pt.total
-      local snap = pt.byPatch and pt.byPatch[patch]
-      if snap then patchSecs = patchSecs + (pt.total - snap) end
-    end
-    if toon.equipment and toon.equipment.ilvl and toon.equipment.ilvl > topIlvl then
-      topIlvl = toon.equipment.ilvl
-    end
-  end
-
-  local function card(i, caption, amount, amountColor, sub, subIcon, subColor)
+  local function card(i)
     return StatCard:new{
       parent = self,
-      caption = caption,
-      amount = amount,
-      amountColor = amountColor,
-      sub = sub,
-      subIcon = subIcon,
-      subColor = subColor,
-      subIconColor = subColor,
+      caption = ({ "Total Warband Wealth", "Total Playtime", "Top Item Level" })[i],
       position = { TopLeft = {cardX[i] - BLEED, -BLEED}, Width = colW + BLEED * 2, Height = STRIP_H },
     }
   end
-  -- wealth includes the warband (account) bank, not just per-character gold
-  local wealth = ns.api.GetWarbandWealth()
-  local madeCopper = ns.api.GetWeeklyGoldMade()
-  local madeGold = math.floor(madeCopper / 10000)
-  local madeSub, trendIcon, trendColor
-  if madeGold ~= 0 then
-    madeSub = (madeGold > 0 and "+" or "") .. ns.wow.GoldString(madeCopper) .. "g this week"
-    trendIcon = TREND_ICON .. (madeGold > 0 and "trending_up.tga" or "trending_down.tga")
-    trendColor = madeGold > 0 and c.green or c.red
-  end
-  card(1, "Total Warband Wealth", ns.wow.CoinString(wealth), c.gold,
-       madeSub, trendIcon, trendColor)
-  card(2, "Total Playtime", BreakUpLargeNumbers(math.floor(playSecs / 3600)) .. " hrs", c.text,
-       BreakUpLargeNumbers(math.floor(patchSecs / 3600)) .. " hrs this patch · " .. count .. " chars")
-  card(3, "Top Item Level", tostring(topIlvl), ns.IlvlColorObj(topIlvl))
+  self._cards = { card(1), card(2), card(3) }
+  self:_refreshCards()
 
   self:selectExpansion(EXPANSIONS[1].key)
 
@@ -409,14 +372,64 @@ function Overview:selectExpansion(key)
   if self.parent and self.parent.Fit then self.parent:Fit() end
 end
 
--- Refresh the Top Characters gear columns each time the view shows, so a
--- /collected scan run after the view was built is reflected on next open.
+-- Re-read the live data each time the view shows, so a change made after it was built
+-- (a /collected scan, gold earned, a claimed paragon chest, an earned achievement) is
+-- reflected on the next open instead of waiting for a /reload.
 function Overview:OnBeforeShow()
+  self:_refreshCards()
   if self.topAlts then self.topAlts:Refresh() end
-  -- Recolour achievement checklists so a mid-session earn shows without a /reload.
-  for _, panel in pairs(self._panels) do
+  local resized
+  for key, panel in pairs(self._panels) do
+    -- Recolour achievement checklists so a mid-session earn shows without a /reload.
     if panel._ach then panel._ach:Refresh() end
+    if panel._bars:Refresh() then
+      self._repsH[key] = HEAD_H + panel._bars:Height()
+      panel:Height(HEAD_H + math.max(panel._bars:Height(), panel._ach:Height()))
+      resized = true
+    end
   end
+  if resized and self._expansion then self:selectExpansion(self._expansion) end
+  self:_refreshClaims()
+end
+
+-- Fill the three stat-strip cards from the live data. Run at build and again on every show, so
+-- gold earned, hours played or a new top item level appear without a /reload.
+function Overview:_refreshCards()
+  local c = theme.colors
+  -- this-patch played time = each char's total minus its /played snapshot taken at
+  -- first login on the current patch (PlaytimeBroker.byPatch); chars that never logged
+  -- in this patch have no snapshot and contribute nothing.
+  local patch = GetBuildInfo()
+  local playSecs, patchSecs, topIlvl, count = 0, 0, 0, 0
+  for _, toon in ipairs(ns.api.GetAllCharacters()) do
+    count = count + 1
+    local pt = toon.playtime
+    if pt and pt.total then
+      playSecs = playSecs + pt.total
+      local snap = pt.byPatch and pt.byPatch[patch]
+      if snap then patchSecs = patchSecs + (pt.total - snap) end
+    end
+    if toon.equipment and toon.equipment.ilvl and toon.equipment.ilvl > topIlvl then
+      topIlvl = toon.equipment.ilvl
+    end
+  end
+
+  -- wealth includes the warband (account) bank, not just per-character gold
+  local wealth = ns.api.GetWarbandWealth()
+  local madeCopper = ns.api.GetWeeklyGoldMade()
+  local madeGold = math.floor(madeCopper / 10000)
+  local madeSub, trendIcon, trendColor
+  if madeGold ~= 0 then
+    madeSub = (madeGold > 0 and "+" or "") .. ns.wow.GoldString(madeCopper) .. "g this week"
+    trendIcon = TREND_ICON .. (madeGold > 0 and "trending_up.tga" or "trending_down.tga")
+    trendColor = madeGold > 0 and c.green or c.red
+  end
+  local wealthCard, playCard, ilvlCard = self._cards[1], self._cards[2], self._cards[3]
+  wealthCard:Amount(ns.wow.CoinString(wealth), c.gold)
+  wealthCard:Sub(madeSub, trendIcon, trendColor)
+  playCard:Amount(BreakUpLargeNumbers(math.floor(playSecs / 3600)) .. " hrs", c.text)
+  playCard:Sub(BreakUpLargeNumbers(math.floor(patchSecs / 3600)) .. " hrs this patch · " .. count .. " chars")
+  ilvlCard:Amount(tostring(topIlvl), ns.IlvlColorObj(topIlvl))
 end
 
 -- Titlebar pickers (shown only while the Overview is active): a raid picker for the
@@ -427,43 +440,21 @@ end
 function Overview:BuildFilter(parent)
   local box = Frame:new{ parent = parent, position = { Height = 20 } }
 
-  -- Pending paragon claims per expansion (tallied when the panels were built; a claim
-  -- turned in mid-session clears on the next open, like the row indicators themselves).
-  local counts, total = {}, 0
-  for _, e in ipairs(EXPANSIONS) do
-    local n = self._panels[e.key]._bars.rewardCount or 0
-    counts[e.key] = n
-    total = total + n
-  end
+  -- Titlebar "N to claim" badge — an at-a-glance signal visible on any expansion tab, shown
+  -- only while at least one paragon reward is waiting (_refreshClaims sizes and shows it).
+  local badge = Frame:new{ parent = box, position = { TopLeft = {0, 0}, Height = 20 } }
+  local bg = Texture:new{ parent = badge, layer = ui.layer.Background, position = { All = true } }
+  bg:Texture(BAR_TEX); bg:SliceMargins(6, 6, 6, 6); bg:SliceMode(0)
+  bg:SetVertexColor(0.95, 0.75, 0.1, 0.16)
+  local icon = ns.overview.ParagonBag(badge, 14)
+  icon:Left(badge, ui.edge.Left, 7, 0)
+  badge.text = Label:new{
+    parent = badge, fontInfo = theme.fonts.stat, color = theme.colors.gold,
+    position = { Left = {icon, ui.edge.Right, 5, 0} },
+  }
 
-  -- Expansion options carry a leading reward-bag glyph when that expansion holds a claim.
-  local expOptions = {}
-  for _, e in ipairs(EXPANSIONS) do
-    expOptions[#expOptions + 1] = {
-      key = e.key,
-      label = (counts[e.key] > 0 and PARAGON_MARK .. " " or "") .. e.label,
-    }
-  end
-
-  -- Titlebar "N to claim" badge — an at-a-glance signal visible on any expansion tab,
-  -- shown only when at least one paragon reward is waiting.
-  local badge
-  if total > 0 then
-    badge = Frame:new{ parent = box, position = { TopLeft = {0, 0}, Height = 20 } }
-    local bg = Texture:new{ parent = badge, layer = ui.layer.Background, position = { All = true } }
-    bg:Texture(BAR_TEX); bg:SliceMargins(6, 6, 6, 6); bg:SliceMode(0)
-    bg:SetVertexColor(0.95, 0.75, 0.1, 0.16)
-    local icon = ns.overview.ParagonBag(badge, 14)
-    icon:Left(badge, ui.edge.Left, 7, 0)
-    local text = total .. " to claim"
-    Label:new{
-      parent = badge, fontInfo = theme.fonts.stat, color = theme.colors.gold,
-      text = text, position = { Left = {icon, ui.edge.Right, 5, 0} },
-    }
-    badge:Width(7 + 14 + 5 + #text * 6.2 + 8)
-  end
-
-  local raid = ui.FilterDropdown:new{
+  self._badge = badge
+  self._raid = ui.FilterDropdown:new{
     parent    = box,
     bordered  = true,
     options   = ns.overview.RAIDS,
@@ -471,22 +462,59 @@ function Overview:BuildFilter(parent)
     width     = 110,
     menuWidth = 120,
     onSelect  = function(_, key) self.topAlts:SetRaid(key) end,
-    position  = badge and { TopLeft = {badge, ui.edge.TopRight, GAP, 0} } or { TopLeft = {0, 0} },
+    position  = { TopLeft = {0, 0} },
   }
-  local exp = ui.FilterDropdown:new{
+  self._exp = ui.FilterDropdown:new{
     parent    = box,
     bordered  = true,
-    options   = expOptions,
+    options   = (self:_claimTally()),
     selected  = self._expansion,
     width     = 112,
     menuWidth = 130,
     onSelect  = function(_, key) self:selectExpansion(key) end,
-    position  = { TopLeft = {raid, ui.edge.TopRight, GAP, 0} },
+    position  = { TopLeft = {self._raid, ui.edge.TopRight, GAP, 0} },
   }
-
-  local w = raid:Width() + GAP + exp:Width()
-  if badge then w = badge:Width() + GAP + w end
-  box:Width(w)
   self._filter = box
+  self:_refreshClaims()
   return box
+end
+
+-- Expansion picker options (carrying a leading reward-bag glyph when that expansion holds a
+-- claim) and the total pending paragon claims, from the live bars.
+---@return table[] options
+---@return integer total
+function Overview:_claimTally()
+  local options, total = {}, 0
+  for _, e in ipairs(EXPANSIONS) do
+    local n = self._panels[e.key]._bars.rewardCount or 0
+    total = total + n
+    options[#options + 1] = { key = e.key, label = (n > 0 and PARAGON_MARK .. " " or "") .. e.label }
+  end
+  return options, total
+end
+
+-- Bring the titlebar to match the live claim tally: the "N to claim" badge (shown only when
+-- something is waiting, with the raid picker shifted to make room) and the expansion options.
+-- Runs when the picker is built and on every show, so a chest claimed mid-session clears its
+-- bag and badge on the next open.
+function Overview:_refreshClaims()
+  if not self._filter then return end
+  local expOptions, total = self:_claimTally()
+  self._exp:SetOptions(expOptions, self._expansion)
+
+  local badge, raid = self._badge, self._raid
+  local w = raid:Width() + GAP + self._exp:Width()
+  raid:ClearAllPoints()
+  if total > 0 then
+    local text = total .. " to claim"
+    badge.text:Text(text)
+    badge:Width(7 + 14 + 5 + #text * 6.2 + 8)
+    badge:Show()
+    raid:TopLeft(badge, ui.edge.TopRight, GAP, 0)
+    w = badge:Width() + GAP + w
+  else
+    badge:Hide()
+    raid:TopLeft(0, 0)
+  end
+  self._filter:Width(w)
 end
