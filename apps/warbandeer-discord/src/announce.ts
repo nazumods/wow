@@ -1,11 +1,12 @@
 import type { Client } from "discord.js";
 import { config } from "./config";
 import { state, saveState } from "./state";
-import { currentOrNextDmf } from "./wow/dmf";
+import { currentOrNextDmf, dmfKey } from "./wow/dmf";
 import { lastWeeklyReset } from "./wow/reset";
 import { realmStatus, realmWatchConfigured, decideRealmTransition, type RealmStatus } from "./wow/realm";
 import { fetchReleases, decideReleaseAnnouncements, createReachabilityLog } from "./github";
 import { checkForUpdate } from "./update";
+import { runIsolated } from "./isolate";
 import { restartPending, withCritical } from "./restart";
 
 const TICK_MS = 60 * 1000;
@@ -54,11 +55,18 @@ async function onTick(client: Client): Promise<void> {
   // The whole tick is one critical section: a restart requested by the update check
   // below lands only once every announcement and state write has settled.
   await withCritical(async () => {
-    await checkDmf(client);
-    await checkWeeklyReset(client);
-    await checkRealm(client);
-    if (shouldPollReleases(new Date())) await checkReleases(client);
-    if (config.autoUpdate && shouldPollUpdate()) await checkAutoUpdate();
+    // Each check is isolated: one throwing must not starve the rest of the tick.
+    await runIsolated([
+      ["dmf", () => checkDmf(client)],
+      ["weeklyReset", () => checkWeeklyReset(client)],
+      ["realm", () => checkRealm(client)],
+      ["releases", async () => {
+        if (shouldPollReleases(new Date())) await checkReleases(client);
+      }],
+      ["autoUpdate", async () => {
+        if (config.autoUpdate && shouldPollUpdate()) await checkAutoUpdate();
+      }],
+    ]);
   });
 }
 
@@ -86,7 +94,7 @@ function shouldPollReleases(now: Date): boolean {
 async function checkDmf(client: Client): Promise<void> {
   const { active, window } = currentOrNextDmf();
   if (!active) return;
-  const key = `${window.start.getUTCFullYear()}-${window.start.getUTCMonth() + 1}`;
+  const key = dmfKey(window);
   if (state.dmfAnnouncedFor === key) return;
   const closes = Math.floor(window.end.getTime() / 1000);
   await announce(client, "dmf", `🎪 The **Darkmoon Faire** is open! It runs until <t:${closes}:F>.`);
