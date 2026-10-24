@@ -186,3 +186,21 @@ function LabeledBar:BarColor(color)
   self.bar.fill:SetVertexColor(unpack(color))
   return self
 end
+
+-- Re-point a built bar at fresh row data (same fields the constructor takes), so a pooled
+-- bar can be refilled instead of rebuilt. Resets every colour and the hover text from `o`,
+-- not just the ones it names, so a stale paragon track or hover value never carries over.
+---@param o { label: string, value: string, pct: number, nameColor: number[]?, valueColor: number[]?, barColor: number[]?, trackColor: number[]?, hoverValue: string? }
+---@return LabeledBar
+function LabeledBar:Update(o)
+  local c = theme.colors
+  self.nameColor, self.valueColor = o.nameColor, o.valueColor
+  self.barColor, self.trackColor = o.barColor, o.trackColor
+  self.hoverValue = o.hoverValue
+  self.value = o.value
+  self.nameLabel:Text(o.label):Color(self.nameColor or c.text)
+  self.valueLabel:Text(o.value):Color(self.valueColor or c.muted)
+  self.bar.backdrop:SetVertexColor(unpack(self.trackColor or c.track))
+  self.bar.fill:SetVertexColor(unpack(self.barColor or c.gold))
+  return self:Fill(o.pct)
+end
