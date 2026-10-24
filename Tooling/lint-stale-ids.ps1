@@ -235,6 +235,13 @@ foreach ($r in $rules) {
   $ids = if ($r.extract) { & $r.extract $srcCache[$r.file] }
          else { [regex]::Matches($srcCache[$r.file], $r.rx) | ForEach-Object { [int]$_.Groups[1].Value } }
   $ids = @($ids | Sort-Object -Unique)
+  if ($ids.Count -eq 0) {
+    # An extractor that matches nothing (a renamed table or key in the data file) would otherwise pass as
+    # "0 ids OK" and leave the rule silently unchecked. Fails the run like a skipped rule, warn-rules included.
+    Write-Host ("{0,-34} ! skipped: extracted 0 ids from {1}, so the rule checks nothing" -f $r.label, $r.file) -ForegroundColor Red
+    $skipped++
+    continue
+  }
   $set = Get-IdSet $r.table $r.col $r.big
   if ($null -eq $set) {
     # The build has no such table: report the rule and go on to the next. A skipped rule still fails the run,

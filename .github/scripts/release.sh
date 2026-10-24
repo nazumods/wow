@@ -79,10 +79,15 @@ prepend_changelog() {
   [[ -f "$changelog" ]] || return 0
   local entry_file
   entry_file=$(mktemp)
+  # Lua long-string level: pick enough `=` that no `]=...=]` inside the notes (e.g. a commit subject
+  # containing `]==]`) can close it early.
+  local eq="==" notes_text
+  notes_text=$(cat "$notes_file")
+  while [[ "$notes_text" == *"]${eq}]"* ]]; do eq+="="; done
   {
-    printf '  { version = "%s", notes = [==[\n' "$version"
+    printf '  { version = "%s", notes = [%s[\n' "$version" "$eq"
     sed -e 's/[[:space:]]*$//' "$notes_file"
-    printf ']==] },\n'
+    printf ']%s] },\n' "$eq"
   } > "$entry_file"
   # Insert the new entry immediately after the `ns.changelog = {` opening line.
   awk -v ef="$entry_file" '
