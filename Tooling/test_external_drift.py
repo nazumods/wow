@@ -111,6 +111,12 @@ class CheckExternalTests(_TmpRootTest):
         )
         self.assertEqual(ed.check_external("A", self._external(text)), [])
 
+    def test_bold_led_prose_mentioning_bug_fails(self) -> None:
+        # Bold lead-in whose span lacks the keyword; "bug" is only in the trailing prose.
+        text = "https://github.com/nazumods/wow\n\n**Note:** fixes a bug.\n"
+        problems = ed.check_external("A", self._external(text))
+        self.assertTrue(any("bug" in p.lower() for p in problems), problems)
+
     def test_setext_bug_section_passes(self) -> None:
         text = "https://github.com/nazumods/wow\n\nFound a bug? Have a suggestion?\n------------\n"
         self.assertEqual(ed.check_external("A", self._external(text)), [])

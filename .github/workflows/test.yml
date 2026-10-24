@@ -96,6 +96,9 @@ jobs:
       - name: .toc metadata matches the CONTEXT.md headers
         run: python Tooling/doc_drift.py
 
+      - name: doc_drift.py unit tests
+        run: python Tooling/test_doc_drift.py
+
   # publish.yml turns each .toc `## Interface:` value into a CurseForge game version, and checks that
   # CurseForge knows it. Reading `16001` (Forever) from the left once gave `16.0.1` (#954), and the upload
   # action drops an unknown version silently -- so the release would have shipped unlabelled. The functions
@@ -110,6 +113,9 @@ jobs:
 
       - name: publish.yml game-version helpers
         run: bash Tooling/tests/game-versions.test.sh
+
+      - name: app-release.sh release detection
+        run: bash Tooling/tests/app-release.test.sh
 
   # Which wago build the lint tooling resolves, and for which product (#954): wow_classic_beta is a shared
   # bucket of several Classic betas whose "latest" is Forever only while Forever is the newest, so Forever
@@ -191,7 +197,10 @@ jobs:
               - 'Warbandeer_Characters/data/races.lua'
               - 'Warbandeer_Characters/data/professioninfo.lua'
               - 'Warbandeer_Characters/data/classmounts.lua'
-              - 'Warbandeer_Collected/data/weapons.lua'
+              - 'Warbandeer_Collected/data/illusions.lua'
+              - 'Warbandeer_Collected/data/arsenals.lua'
+              - 'Warbandeer_Characters/data/achievementcatalog.lua'
+              - 'Warbandeer_Characters/data/currency.lua'
               - 'Warbandeer_Characters/data/glyphinfo.lua'
               - 'Warbandeer_Characters/data/learnedunlocks.lua'
               - 'Warbandeer_Characters/data/collectiblesources.lua'

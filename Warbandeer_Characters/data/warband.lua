@@ -9,7 +9,7 @@ local ACCOUNT = Enum.BankType.Account
 -- (`db.warband`) rather than being duplicated into every character.
 
 ---@class WarbandWeek
----@field start integer server-time of the weekly reset this week began at
+---@field start integer server-time of the weekly reset (`ns.LAST_RESET`) this week began at
 ---@field baseline integer total warband wealth (copper) at the start of the week
 
 ---@class WarbandWeekRecord: WarbandWeek
@@ -50,7 +50,9 @@ function ns:RolloverWarbandWeek()
     w.week = { start = ns.LAST_RESET, baseline = self:GetWarbandWealth() }
     return
   end
-  if w.week.start < ns.LAST_RESET then
+  -- LAST_RESET can skew by a second between sessions; only a boundary that advanced past
+  -- the slack is a new week (same guard InitBrokers applies to db.lastReset).
+  if ns.LAST_RESET - w.week.start > ns.RESET_SLACK then
     local ending = self:GetWarbandWealth()
     insert(w.history, {
       start    = w.week.start,
