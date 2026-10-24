@@ -25,7 +25,7 @@ frame:SetScript("OnEvent", function(self, event, arg1)
   if event == "ADDON_LOADED" and arg1 == ADDON_NAME then
     hideAll()
     -- Blizzard re-shows the slots on every CURSOR_CHANGED and expandBagBar change.
-    if MainMenuBarBagManager then
+    if MainMenuBarBagManager and MainMenuBarBagManager.OnExpandBarChanged then
       hooksecurefunc(MainMenuBarBagManager, "OnExpandBarChanged", hideAll)
     end
   end

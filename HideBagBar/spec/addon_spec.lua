@@ -95,6 +95,17 @@ describe("HideBagBar", function()
     assert.has_no.errors(function() env.onEvent({}, "ADDON_LOADED", "HideBagBar") end)
   end)
 
+  it("loads without error when the manager lacks OnExpandBarChanged", function()
+    local env = load(HIDDEN, {})
+    env.hooksecurefunc = function(tbl, name)
+      assert(tbl[name], "Attempt to hook a non-existent function")
+    end
+    assert.has_no.errors(function() env.onEvent({}, "ADDON_LOADED", "HideBagBar") end)
+    for _, name in ipairs(HIDDEN) do
+      assert.is_false(env.frames[name].shown, name)
+    end
+  end)
+
   it("does nothing for another addon's ADDON_LOADED", function()
     local env = load(with_key_ring())
     env.onEvent({}, "ADDON_LOADED", "SomeOtherAddon")
