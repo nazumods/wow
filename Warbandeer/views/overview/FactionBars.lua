@@ -238,13 +238,25 @@ end
 ---@field width number             bar/row width
 ---@field rewardCount number        factions with a claimable paragon reward (for the picker badge)
 local FactionBars = Class(Frame, function(self)
+  self._bars, self._bags = {}, {}
+  self:Refresh()
+end, {
+  expansionLevel = 10, -- LE_EXPANSION_THE_WAR_WITHIN
+  extraFactionIDs = {},
+  width = 230,
+})
+
+-- Re-read every faction and refill the bars in place: rep progress, colours and the paragon
+-- reward bag all follow the live data. Bars and bags are pooled (WoW frames are never freed),
+-- so a faction appearing grows the pool and one vanishing just hides the surplus. Recomputes
+-- `rewardCount` and the frame height.
+---@return boolean changed  true when the stack height changed (caller should re-fit its layout)
+function FactionBars:Refresh()
   local c = theme.colors
   local rows = gatherFactions(self.expansionLevel, self.extraFactionIDs)
   local totalH, prev, rewardCount = 0, nil, 0
   for i, r in ipairs(rows) do
-    local bar = LabeledBar:new{
-      parent = self,
-      width = self.width,
+    local o = {
       label = (r.indent and "  " or "") .. r.name,
       value = r.value,
       hoverValue = r.hoverValue,
@@ -253,24 +265,42 @@ local FactionBars = Class(Frame, function(self)
       barColor = r.fillColor or c.gold,
       trackColor = r.trackColor,
       valueColor = r.reward and c.gold or (r.done or r.paragon) and c.green or c.muted,
-      hoverColor = c.muted,
-      position = prev and { TopLeft = {prev, BottomLeft, 0, -7} } or { TopLeft = {0, 0} },
     }
+    local bar = self._bars[i]
+    if bar then
+      bar:Update(o)
+      bar:Show()
+    else
+      o.parent, o.width, o.hoverColor = self, self.width, c.muted
+      o.position = prev and { TopLeft = {prev, BottomLeft, 0, -7} } or { TopLeft = {0, 0} }
+      bar = LabeledBar:new(o)
+      self._bars[i] = bar
+    end
     -- a claimable paragon chest gets the animated reward bag left of its "claim" value
+    local bag = self._bags[i]
     if r.reward then
       rewardCount = rewardCount + 1
-      ns.overview.ParagonBag(bar):Right(bar.valueLabel, ui.edge.Left, -3, 0)
+      if not bag then
+        bag = ns.overview.ParagonBag(bar)
+        bag:Right(bar.valueLabel, ui.edge.Left, -3, 0)
+        self._bags[i] = bag
+      end
+      bag:Show()
+    elseif bag then
+      bag:Hide()
     end
     if i > 1 then totalH = totalH + 7 end
     totalH = totalH + bar:Height()
     prev = bar
   end
+  for i = #rows + 1, #self._bars do
+    self._bars[i]:Hide()
+    if self._bags[i] then self._bags[i]:Hide() end
+  end
+  local changed = totalH ~= self:Height()
   self.rewardCount = rewardCount
   self:Width(self.width)
   self:Height(totalH)
-end, {
-  expansionLevel = 10, -- LE_EXPANSION_THE_WAR_WITHIN
-  extraFactionIDs = {},
-  width = 230,
-})
+  return changed
+end
 ns.overview.FactionBars = FactionBars

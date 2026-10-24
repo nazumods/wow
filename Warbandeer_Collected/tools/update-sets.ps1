@@ -126,6 +126,16 @@ $ErrorActionPreference = 'Stop'
 $PSDefaultParameterValues['Invoke-WebRequest:UserAgent'] = 'Warbandeer-suite-ci (github.com/nazumods/wow)'
 $SetsFile = (Resolve-Path -LiteralPath $SetsFile).Path
 
+# Shared by every mode below (each used to define its own identical copy).
+# One wago.tools DB2 table as CSV rows, pinned to a build (the bare endpoint serves PTR too).
+function Get-WagoCsv([string]$table, [string]$build) {
+  $url = "https://wago.tools/db2/$table/csv?build=$build"
+  Write-Host "Fetching $url" -ForegroundColor Cyan
+  (Invoke-WebRequest -Uri $url -UseBasicParsing -ErrorAction Stop).Content | ConvertFrom-Csv
+}
+# Escape a value for a double-quoted Lua string literal.
+function LuaEsc([string]$s) { $s.Replace('\', '\\').Replace('"', '\"') }
+
 # Single source of truth for deliberately-excluded wago groups/rows (tools/excludes.txt),
 # read by both -AuditCoverage and -Expand. Two granularities:
 #   <id>          — whole group: the audit won't list it as uncaptured, and -Expand skips
@@ -158,7 +168,7 @@ function Get-ExpandIds([string]$file) {
   $ids = @{}
   if (Test-Path -LiteralPath $file) {
     foreach ($ln in (Get-Content -LiteralPath $file)) {
-      $t = ($ln -split '#', 2)[0].Trim()
+      $t = ($ln -split '(?:^|\s)#', 2)[0].Trim()
       if (-not $t) { continue }
       if ($t -match '^mergelabels\s+(\S+)') { foreach ($x in ($Matches[1] -split '\+')) { $ids[[int]$x] = $true } }
       elseif ($t -match '^merge\s+(\S+)') { foreach ($x in ($Matches[1] -split '\+')) { $ids[[int]$x] = $true } }
@@ -334,11 +344,6 @@ function Get-CuratedGroupIds([string]$setsFile, [string]$expandFile) {
 # and exits before the normal refresh below. Categories are heuristic — derived from
 # each group's labels + name — so a human can scan, not a source of truth.
 if ($AuditCoverage) {
-  function AuditCsv([string]$table, [string]$build) {
-    $url = "https://wago.tools/db2/$table/csv?build=$build"
-    Write-Host "Fetching $url" -ForegroundColor Cyan
-    (Invoke-WebRequest -Uri $url -UseBasicParsing -ErrorAction Stop).Content | ConvertFrom-Csv
-  }
 
   # Resolve the live build (pin it — the bare endpoint serves PTR too).
   $builds = (Invoke-WebRequest -Uri 'https://wago.tools/api/builds' -UseBasicParsing -ErrorAction Stop).Content | ConvertFrom-Json
@@ -347,9 +352,9 @@ if ($AuditCoverage) {
   $bDate  = if ($bMatch) { ($bMatch.created_at -split ' ')[0] } else { '' }
   Write-Host "Coverage audit against wow build $Build $bDate" -ForegroundColor Cyan
 
-  $tsRows  = AuditCsv 'TransmogSet' $Build
-  $grpRows = AuditCsv 'TransmogSetGroup' $Build
-  $indRows = AuditCsv 'ItemNameDescription' $Build
+  $tsRows  = Get-WagoCsv 'TransmogSet' $Build
+  $grpRows = Get-WagoCsv 'TransmogSetGroup' $Build
+  $indRows = Get-WagoCsv 'ItemNameDescription' $Build
   foreach ($col in @('ID', 'ClassMask', 'TransmogSetGroupID', 'ItemNameDescriptionID', 'ExpansionID')) {
     if ($col -notin $tsRows[0].PSObject.Properties.Name) { throw "TransmogSet CSV missing '$col' — aborting." }
   }
@@ -456,12 +461,6 @@ if ($AuditCoverage) {
 # into data/sets_late.lua and the merge lines into expand-groups.txt, and runs `update-sets.ps1`
 # (+ `-Expand`) to fill. Self-contained (own single-build download); see UPDATING.md.
 if ($SeedShells) {
-  function SeedCsv([string]$table, [string]$build) {
-    $url = "https://wago.tools/db2/$table/csv?build=$build"
-    Write-Host "Fetching $url" -ForegroundColor Cyan
-    (Invoke-WebRequest -Uri $url -UseBasicParsing -ErrorAction Stop).Content | ConvertFrom-Csv
-  }
-  function LuaEsc([string]$s) { $s.Replace('\', '\\').Replace('"', '\"') }
 
   # Resolve the live build (pin it — the bare endpoint serves PTR too).
   $builds = (Invoke-WebRequest -Uri 'https://wago.tools/api/builds' -UseBasicParsing -ErrorAction Stop).Content | ConvertFrom-Json
@@ -470,9 +469,9 @@ if ($SeedShells) {
   $bDate  = if ($bMatch) { ($bMatch.created_at -split ' ')[0] } else { '' }
   Write-Host "Seed shells against wow build $Build $bDate" -ForegroundColor Cyan
 
-  $tsRows  = SeedCsv 'TransmogSet' $Build
-  $grpRows = SeedCsv 'TransmogSetGroup' $Build
-  $indRows = SeedCsv 'ItemNameDescription' $Build
+  $tsRows  = Get-WagoCsv 'TransmogSet' $Build
+  $grpRows = Get-WagoCsv 'TransmogSetGroup' $Build
+  $indRows = Get-WagoCsv 'ItemNameDescription' $Build
   foreach ($col in @('ID', 'ClassMask', 'TransmogSetGroupID', 'ItemNameDescriptionID', 'ExpansionID')) {
     if ($col -notin $tsRows[0].PSObject.Properties.Name) { throw "TransmogSet CSV missing '$col' — aborting." }
   }
@@ -680,20 +679,14 @@ if ($SeedShells) {
 # be browsed in-game and triaged. The committed sets_review.lua is an empty stub; this
 # populates it locally. Self-contained download; exits before the normal refresh.
 if ($AuditSets) {
-  function ASCsv([string]$table, [string]$build) {
-    $url = "https://wago.tools/db2/$table/csv?build=$build"
-    Write-Host "Fetching $url" -ForegroundColor Cyan
-    (Invoke-WebRequest -Uri $url -UseBasicParsing -ErrorAction Stop).Content | ConvertFrom-Csv
-  }
   $builds = (Invoke-WebRequest -Uri 'https://wago.tools/api/builds' -UseBasicParsing -ErrorAction Stop).Content | ConvertFrom-Json
   if (-not $Build) { $Build = $builds.wow[0].version }
   Write-Host "Set-level audit against wow build $Build" -ForegroundColor Cyan
-  $tsRows  = ASCsv 'TransmogSet' $Build
-  $grpRows = ASCsv 'TransmogSetGroup' $Build
-  $tsiRows = ASCsv 'TransmogSetItem' $Build
+  $tsRows  = Get-WagoCsv 'TransmogSet' $Build
+  $grpRows = Get-WagoCsv 'TransmogSetGroup' $Build
+  $tsiRows = Get-WagoCsv 'TransmogSetItem' $Build
   if ($tsRows.Count -lt $MinRows) { throw "TransmogSet returned $($tsRows.Count) rows (< $MinRows) — incomplete download, aborting." }
   $grpName = @{}; foreach ($g in $grpRows) { $grpName[[int]$g.ID] = ([string]$g.Name_lang).Trim() }
-  function LuaEsc([string]$s) { $s.Replace('\', '\\').Replace('"', '\"') }
 
   # Appearance identity = the set's exact list of ItemModifiedAppearanceIDs (its source items).
   # Name / bracket-label / ClassMask do NOT identify a look — the Alliance and Horde recolors of
@@ -781,11 +774,6 @@ if ($AuditSets) {
 # skipped; overlap labels (recolors collapsing to one slot per class) are kept + logged.
 # Self-contained download; exits before the normal refresh. See UPDATING.md.
 if ($Expand) {
-  function ExpCsv([string]$table, [string]$build) {
-    $url = "https://wago.tools/db2/$table/csv?build=$build"
-    Write-Host "Fetching $url" -ForegroundColor Cyan
-    (Invoke-WebRequest -Uri $url -UseBasicParsing -ErrorAction Stop).Content | ConvertFrom-Csv
-  }
   # Canonical group list lives in expand-groups.txt ("id:Category[:byset]" per line, '#'
   # comments). Default mode emits one row per ItemNameDescription label; the optional
   # `byset` mode emits one row per SET (named by the set's own name) — for label-less
@@ -793,12 +781,12 @@ if ($Expand) {
   if (-not (Test-Path -LiteralPath $ExpandFile)) { throw "Expand group list not found: $ExpandFile" }
   $jobIds = @(); $jobCat = @{}; $jobMode = @{}; $merges = @(); $setMerges = @(); $mergedSetIds = @{}; $labelMerges = @(); $assembles = @(); $seasonMerges = @(); $eachSets = @()
   foreach ($ln in (Get-Content -LiteralPath $ExpandFile)) {
-    $t = ($ln -split '#', 2)[0].Trim()
+    $t = ($ln -split '(?:^|\s)#', 2)[0].Trim()
     if (-not $t) { continue }
     # `mergeseason <groupId> | <Category> [| <release>]` — own a whole PvP-style group: bucket
     # ALL its placeable sets by ItemNameDescription label, then greedy class-disjoint-tile each
     # label into one row per faction recolor (Alliance/Horde share name+label+mask but are
-    # distinct looks). Names "<group> (<label>)", "<group> (<label> · 2)" for the 2nd+ tile.
+    # distinct looks). Names "<group> (<label>)", "<group> (<label> II)" (Roman numeral) for the 2nd+ tile.
     # The group's hand-curated body rows must be REMOVED (this regenerates them all uniformly).
     if ($t -match '^mergeseason\s+(.+)$') {
       $p = $Matches[1] -split '\s*\|\s*'
@@ -868,7 +856,8 @@ if ($Expand) {
     $jid = [int]$kv[0].Trim(); $jobIds += $jid; $jobCat[$jid] = $kv[1].Trim()
     $jobMode[$jid] = if ($kv.Count -ge 3) { $kv[2].Trim() } else { '' }
   }
-  if ($jobIds.Count -eq 0 -and $merges.Count -eq 0) { throw 'expand-groups.txt has no entries.' }
+  $entryCount = $jobIds.Count + $merges.Count + $setMerges.Count + $labelMerges.Count + $assembles.Count + $seasonMerges.Count + $eachSets.Count
+  if ($entryCount -eq 0) { throw 'expand-groups.txt has no entries.' }
 
   $excl = Get-Excludes   # tools/excludes.txt — whole groups + "id:label" dead rows
 
@@ -876,9 +865,9 @@ if ($Expand) {
   if (-not $Build) { $Build = $builds.wow[0].version }
   Write-Host "Expand against wow build $Build" -ForegroundColor Cyan
 
-  $tsRows  = ExpCsv 'TransmogSet' $Build
-  $grpRows = ExpCsv 'TransmogSetGroup' $Build
-  $indRows = ExpCsv 'ItemNameDescription' $Build
+  $tsRows  = Get-WagoCsv 'TransmogSet' $Build
+  $grpRows = Get-WagoCsv 'TransmogSetGroup' $Build
+  $indRows = Get-WagoCsv 'ItemNameDescription' $Build
   foreach ($col in @('ID', 'Name_lang', 'ClassMask', 'TransmogSetGroupID', 'ItemNameDescriptionID', 'ExpansionID')) {
     if ($col -notin $tsRows[0].PSObject.Properties.Name) { throw "TransmogSet CSV missing '$col' — aborting." }
   }
@@ -886,7 +875,6 @@ if ($Expand) {
 
   $grpName = @{}; foreach ($g in $grpRows) { $grpName[[int]$g.ID] = ([string]$g.Name_lang).Trim() }
   $indLabel = @{}; foreach ($d in $indRows) { $id = 0; [void][int]::TryParse($d.ID, [ref]$id); if ($id -gt 0) { $indLabel[$id] = ([string]$d.Description_lang).Trim() } }
-  function LuaEsc([string]$s) { $s.Replace('\', '\\').Replace('"', '\"') }
 
   $L = [System.Collections.Generic.List[string]]::new()
   $L.Add('---@type Warbandeer_Collected')
@@ -1144,7 +1132,7 @@ if ($Expand) {
   # ── mergeseason directives: own a whole group — bucket its placeable sets by label, then
   # greedy class-disjoint-tile each label into one row per faction recolor (Alliance/Horde &
   # season variants share name+label+mask but are distinct looks). Lowest-id faction tiles
-  # first → "<group> (<label>)"; later tiles get "· 2", "· 3". The group's body rows must be
+  # first → "<group> (<label>)"; later tiles get a Roman-numeral suffix ("II", "III", ...). The group's body rows must be
   # removed from sets.lua (this regenerates every bracket/faction uniformly). Row id = group id.
   foreach ($ms in $seasonMerges) {
     $rows = $tsRows | Where-Object { [int]$_.TransmogSetGroupID -eq $ms.gid -and [int]$_.ClassMask -gt 0 -and -not $mergedSetIds.ContainsKey([int]$_.ID) }
@@ -1174,7 +1162,7 @@ if ($Expand) {
       $n = 0
       foreach ($tile in $tiles) {
         $n++
-        $roman = @('', '', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX')[$n]
+        $roman = if ($n -le 9) { @('', '', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX')[$n] } else { "$n" }   # past IX fall back to the number, never $null (would collide)
         $suffix = if ($lab) { if ($n -eq 1) { " ($lab)" } else { " ($lab $roman)" } } elseif ($n -eq 1) { '' } else { " ($roman)" }
         $disp = LuaEsc "$gname$suffix"
         $rel = if ($ms.release) { $ms.release } else { $tile.exp + 1 }
@@ -1204,7 +1192,7 @@ if ($Expand) {
   $eol = if ([System.IO.File]::ReadAllText($eolSrc).Contains("`r`n")) { "`r`n" } else { "`n" }
   $newText = (($L -join "`n") -replace "`n", $eol) + $eol
   [System.IO.File]::WriteAllText($ExpandSetsFile, $newText, [System.Text.UTF8Encoding]::new($false))
-  Write-Host "Expand: wrote $emitted row(s) across $($jobIds.Count) group(s) into $ExpandSetsFile." -ForegroundColor Green
+  Write-Host "Expand: wrote $emitted row(s) across $entryCount directive(s) into $ExpandSetsFile." -ForegroundColor Green
   exit 0
 }
 
@@ -1222,12 +1210,6 @@ if ($Expand) {
 if ($Forever -and -not $Weapons) {   # -Weapons -Forever is the weapon mode further down
   if (-not $PSBoundParameters.ContainsKey('Product')) { $Product = 'wow_classic_beta' }
   if (-not $PSBoundParameters.ContainsKey('VersionPrefix')) { $VersionPrefix = '1.60.' }
-  function ForeverCsv([string]$table, [string]$build) {
-    $url = "https://wago.tools/db2/$table/csv?build=$build"
-    Write-Host "Fetching $url" -ForegroundColor Cyan
-    (Invoke-WebRequest -Uri $url -UseBasicParsing -ErrorAction Stop).Content | ConvertFrom-Csv
-  }
-  function LuaEsc([string]$s) { $s.Replace('\', '\\').Replace('"', '\"') }
   function ForeverInt([string]$what, $value) {
     $n = 0
     if (-not [int]::TryParse(([string]$value).Trim(), [ref]$n)) { throw "Forever: TransmogSet $what '$value' is not a number -- aborting." }
@@ -1242,7 +1224,7 @@ if ($Forever -and -not $Weapons) {   # -Weapons -Forever is the weapon mode furt
   $buildDate = ([string]$match.created_at -split ' ')[0]
   Write-Host "Forever against $Product build $Build $buildDate" -ForegroundColor Cyan
 
-  $tsRows = @(ForeverCsv 'TransmogSet' $Build)
+  $tsRows = @(Get-WagoCsv 'TransmogSet' $Build)
   if ($tsRows.Count -eq 0) { throw "TransmogSet returned 0 rows for build $Build -- aborting; $ForeverFile left untouched." }
   foreach ($col in @('ID', 'Name_lang', 'ClassMask', 'ExpansionID')) {
     if ($col -notin $tsRows[0].PSObject.Properties.Name) { throw "TransmogSet CSV missing '$col' -- aborting; $ForeverFile left untouched." }
@@ -1686,11 +1668,6 @@ if ($Weapons -and $PtrDelta) {
 # diff. Self-contained (its own two-build downloads) and exits before the normal
 # single-build live refresh below.
 if ($PtrDelta) {
-  function PtrCsv([string]$table, [string]$build) {
-    $url = "https://wago.tools/db2/$table/csv?build=$build"
-    Write-Host "Fetching $url" -ForegroundColor Cyan
-    (Invoke-WebRequest -Uri $url -UseBasicParsing -ErrorAction Stop).Content | ConvertFrom-Csv
-  }
   function PtrTrim($s) { if ($null -eq $s) { '' } else { ([string]$s).Trim() } }
   function PtrEsc([string]$s) { $s.Replace('\', '\\').Replace('"', '\"') }
   # The patch a build belongs to = its first three version components (12.1.0.68301
@@ -1768,10 +1745,10 @@ if ($PtrDelta) {
     exit 0
   }
 
-  $liveRows = PtrCsv 'TransmogSet' $LiveBuild
-  $ptrRows  = PtrCsv 'TransmogSet' $PtrBuild
-  $grpRows  = PtrCsv 'TransmogSetGroup' $PtrBuild
-  $indRows  = PtrCsv 'ItemNameDescription' $PtrBuild   # difficulty/variant labels per set
+  $liveRows = Get-WagoCsv 'TransmogSet' $LiveBuild
+  $ptrRows  = Get-WagoCsv 'TransmogSet' $PtrBuild
+  $grpRows  = Get-WagoCsv 'TransmogSetGroup' $PtrBuild
+  $indRows  = Get-WagoCsv 'ItemNameDescription' $PtrBuild   # difficulty/variant labels per set
   # Same integrity guards as the live path: expected schema + a row floor catch a
   # truncated/error response (HTML parsed as CSV, half-finished download).
   foreach ($col in @('ID', 'Name_lang', 'ClassMask', 'TransmogSetGroupID', 'ItemNameDescriptionID')) {

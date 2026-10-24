@@ -109,8 +109,9 @@ local function candInfo(cand)
 end
 
 -- Evaluate one candidate against a character: returns (slot, ilvlGain, candIlvl)
--- when it's an ilvl upgrade for a usable slot, else nil.  For multi-slot items
--- (rings/trinkets) it targets the WEAKER equipped slot — the one you'd replace.
+-- (plus the competing slot list) when it's an ilvl upgrade for a usable slot, else
+-- nil.  For multi-slot items (rings/trinkets) it targets the WEAKER equipped slot —
+-- the one you'd replace; upgrade.lua uses the slot list to place a runner-up.
 local function evaluate(charData, cand)
   -- Without a scanned equipment set we can't tell an upgrade from a naked slot,
   -- so don't guess (else every warband item "upgrades" a barely-logged alt).
@@ -148,7 +149,7 @@ local function evaluate(charData, cand)
     if not worstIlvl or ilvl < worstIlvl then worstSlot, worstIlvl = slot, ilvl end
   end
   if candIlvl <= worstIlvl then return nil end
-  return worstSlot, candIlvl - worstIlvl, candIlvl
+  return worstSlot, candIlvl - worstIlvl, candIlvl, slots
 end
 ns.Evaluate = evaluate
 

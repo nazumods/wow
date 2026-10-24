@@ -234,3 +234,4 @@ if ($script:Failures -gt 0) {
   exit 1
 }
 Write-Output 'OK: all cases passed'
+exit 0
