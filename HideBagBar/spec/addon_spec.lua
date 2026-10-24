@@ -22,8 +22,13 @@ end
 
 -- `present`: the frame names that exist on this client; the rest are nil, as on a client
 -- whose bag bar lacks them. Returns the loaded OnEvent handler and the frames by name.
-local function load(present)
+local function load(present, manager)
   local env = { frames = {} }
+  env.MainMenuBarBagManager = manager
+  env.hooksecurefunc = function(tbl, name, hook)
+    local orig = tbl[name]
+    tbl[name] = function(...) orig(...); hook(...) end
+  end
   env._G = env
   for _, name in ipairs(present) do
     env.frames[name] = stub()
@@ -69,6 +74,25 @@ describe("HideBagBar", function()
     for _, name in ipairs(HIDDEN) do
       assert.is_false(env.frames[name].shown, name)
     end
+  end)
+
+  it("re-hides the slots when Blizzard re-shows them via OnExpandBarChanged", function()
+    local manager = {}
+    local env
+    function manager.OnExpandBarChanged()
+      for _, f in pairs(env.frames) do f:SetShown(true) end
+    end
+    env = load(HIDDEN, manager)
+    env.onEvent({}, "ADDON_LOADED", "HideBagBar")
+    manager.OnExpandBarChanged()
+    for _, name in ipairs(HIDDEN) do
+      assert.is_false(env.frames[name].shown, name)
+    end
+  end)
+
+  it("loads without error when MainMenuBarBagManager is absent", function()
+    local env = load(HIDDEN)
+    assert.has_no.errors(function() env.onEvent({}, "ADDON_LOADED", "HideBagBar") end)
   end)
 
   it("does nothing for another addon's ADDON_LOADED", function()
