@@ -68,11 +68,12 @@ function ns.SaveLookToBoth(name, list, meta)
 
   local why = customSetErr or "the game refused it"
   if replaced then
-    -- The library entry is the new look, but a same-named custom set still holds the old one.
+    -- The library entry is the new look; the game set was not written (a collision with a
+    -- same-named set, the cap, the name filter), so whatever set exists there is untouched.
     return {
       saved = true, replaced = replaced, customSetErr = why,
-      message = ("%s. This character's transmog set of that name was left unchanged (%s); "
-        .. "Push the look to update it."):format(lead, why),
+      message = ("%s. This character's transmog sets were left unchanged (%s); "
+        .. "Push the look to update them."):format(lead, why),
     }
   end
   return {

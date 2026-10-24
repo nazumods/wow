@@ -70,7 +70,7 @@ end
 
 ---Scan table for one group, or nil if the group was never scanned.
 ---@param groupId number
----@return table? map of setId -> (true | { collected, parts, total })
+---@return table? map of setId -> (true | { collected, total })
 function API:GroupStatus(groupId)
   return ns.db.sets and ns.db.sets[groupId]
 end
