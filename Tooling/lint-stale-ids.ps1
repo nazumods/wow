@@ -15,7 +15,8 @@
           not failed (see classmounts.spellID below).
   A rule whose DB2 table the build does not have (wago: HTTP 400 "Table not found.") is reported as
   skipped and the run goes on to the next rule. A skipped rule, warn or fail, still makes the run exit
-  1, since none of its ids were checked. Any other wago failure stops the run.
+  1, since none of its ids were checked. A rule whose extractor matches no ids (the data file renamed
+  what it reads) is reported as skipped the same way, never as "0 ids OK". Any other wago failure stops the run.
 
   Coverage notes learned building this tier:
     * challengetames.lua is deliberately NOT linted: its creatureIDs are old-content npcs that the
@@ -235,6 +236,13 @@ foreach ($r in $rules) {
   $ids = if ($r.extract) { & $r.extract $srcCache[$r.file] }
          else { [regex]::Matches($srcCache[$r.file], $r.rx) | ForEach-Object { [int]$_.Groups[1].Value } }
   $ids = @($ids | Sort-Object -Unique)
+  if ($ids.Count -eq 0) {
+    # An extractor that matches nothing (a renamed table or key in the data file) would otherwise pass as
+    # "0 ids OK" and leave the rule silently unchecked. Fails the run like a skipped rule, warn-rules included.
+    Write-Host ("{0,-34} ! skipped: extracted 0 ids from {1}, so the rule checks nothing" -f $r.label, $r.file) -ForegroundColor Red
+    $skipped++
+    continue
+  }
   $set = Get-IdSet $r.table $r.col $r.big
   if ($null -eq $set) {
     # The build has no such table: report the rule and go on to the next. A skipped rule still fails the run,
@@ -259,7 +267,7 @@ foreach ($r in $rules) {
 if ($fail -or $skipped) {
   Write-Host ""
   if ($fail) { Write-Host "$fail id(s) unresolved -- a data file is stale for build $Build." -ForegroundColor Red }
-  if ($skipped) { Write-Host "$skipped rule(s) skipped -- build $Build has no table for them, so their ids are unchecked." -ForegroundColor Red }
+  if ($skipped) { Write-Host "$skipped rule(s) skipped -- build $Build has no table for them (or the rule extracted no ids), so their ids are unchecked." -ForegroundColor Red }
   exit 1
 }
 Write-Host "`nAll fail-severity ids resolve against build $Build." -ForegroundColor Green

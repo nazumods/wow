@@ -54,10 +54,11 @@ jobs:
           echo "prerelease=$PRERELEASE" >> "$GITHUB_OUTPUT"
 
           # Multiline body needs a heredoc-style output
+          delim="BODY_$(openssl rand -hex 8)"
           {
-            echo "body<<EOF"
+            echo "body<<$delim"
             echo "$BODY"
-            echo "EOF"
+            echo "$delim"
           } >> "$GITHUB_OUTPUT"
 
       - uses: actions/checkout@v7

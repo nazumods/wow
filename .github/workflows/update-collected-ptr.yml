@@ -65,12 +65,19 @@ jobs:
           luaVersion: "5.1.5"
       - uses: leafo/gh-actions-luarocks@v6
         if: steps.check.outputs.regen == 'true'
-      - name: Install luacheck
+      - name: Install luacheck and busted
         if: steps.check.outputs.regen == 'true'
-        run: luarocks install luacheck
+        run: |
+          luarocks install luacheck
+          luarocks install busted
       - name: Lint regenerated file
         if: steps.check.outputs.regen == 'true'
         run: luacheck Warbandeer_Collected/data/sets_ptr.lua --codes
+      # busted too: GITHUB_TOKEN PRs don't trigger test.yml, so the specs that read the regenerated
+      # data would otherwise never run before merge.
+      - name: Run unit tests against the regenerated data
+        if: steps.check.outputs.regen == 'true'
+        run: busted --output=utfTerminal
 
       - name: Open PR replacing the PTR preview list
         if: steps.check.outputs.regen == 'true'
@@ -150,7 +157,7 @@ jobs:
         if: needs.refresh.result == 'failure'
         run: |
           prev=$(gh run list -R "$REPO" --workflow update-collected-ptr.yml --branch main \
-                   --status completed --limit 1 --json conclusion --jq '.[0].conclusion // ""')
+                   --event schedule --status completed --limit 1 --json conclusion --jq '.[0].conclusion // ""')
           echo "Previous completed run conclusion: ${prev:-none}"
           if [ "$prev" != "failure" ]; then
             echo "First failure — the daily schedule will retry tomorrow. No issue yet."
