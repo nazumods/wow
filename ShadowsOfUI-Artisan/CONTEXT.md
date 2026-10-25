@@ -100,3 +100,5 @@ known yet; `onEnter` renders the breakdown tooltip (header = currency icon + nam
 - **Badge positions are first cuts** — crafting window: `LEFT` of ConcentrationDisplay +18 (move
   below it if it collides with the skill/rank bar); spellbook page: under the lowest spell-button
   `spellString` (offset 0,-3). Tune against the live frames.
+
+**Specs:** `spec/breakdown_spec.lua` (loader `spec/artisan.lua`) covers `ns.BuildBreakdown`: the profession filter across all four slots, live vs cached quantity (nil cache -> 0), and main -> secondary -> other / quantity desc / name ordering.

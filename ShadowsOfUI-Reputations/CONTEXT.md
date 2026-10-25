@@ -47,3 +47,5 @@ in-game Reputation tab (hover a faction) and faction-tied item tooltips. Assignm
 - **`GetFactionStandings` is account-wide and sorted** (highest `rank` first) in the data layer,
   so the renderer just walks the list.
 - **`X-Curse-Project-ID`** — `1614342`.
+
+**Faction-lookup spec:** `spec/factionid_spec.lua` (loader `reputations.loadCore`) loads the real `core.lua` against a fake warband and covers `FactionIDByName` (longest match, `MIN_NAME` guard, plain-text match), `FactionIDByQuery` (exact, shortest-containing, superset fallback) and `RebuildFactionIndex` (generation bump).

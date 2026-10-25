@@ -32,3 +32,5 @@ and re-`Show` (the row already showed its tooltip, so the added lines need a res
 - **Own character excluded.** You're looking at your own quest log, so `AppendQuestStatus` lists
   only *other* characters; the block is suppressed entirely when none apply.
 - **`X-Curse-Project-ID`** — `1615353`.
+
+**Specs:** `spec/status_spec.lua` (loader `spec/quests.lua`) covers `ns.AppendQuestStatus` and its `names()` helper: current-character self-exclusion, the 6-name cap with `+N more`, and the empty-after-exclusion case.
