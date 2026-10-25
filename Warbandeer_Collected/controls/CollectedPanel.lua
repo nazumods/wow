@@ -512,9 +512,9 @@ function CollectedPanel:_counterText(weapons)
 end
 
 ---Width the counter label would need for `text`, measured on a hidden twin rather than by writing
----the live label and putting it back. `Label:Text("")` is the GETTER (an empty string is falsy to
----that method), so a restore of the pre-scan empty counter would silently leave the probe's string
----on screen — and mutating a visible widget to measure it is the kind of thing that works until it
+---the live label and putting it back. `Label:Text(nil)` is the GETTER (LibNUI/Label.lua treats only nil as
+---a read; `""` writes), so the live label would have to be saved, overwritten and restored, and a
+---missed restore would silently leave the probe's string on screen — and mutating a visible widget to measure it is the kind of thing that works until it
 ---doesn't.
 ---@param text string
 ---@return number
