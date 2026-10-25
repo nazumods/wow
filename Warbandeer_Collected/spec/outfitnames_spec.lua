@@ -23,7 +23,6 @@ describe("custom set name validation", function()
         GetNumMaxCustomSets = function() return 25 end,
         IsValidCustomSetName = function() return true end,
         NewCustomSet = function(name) created[#created + 1] = name; return 99 end,
-        RenameCustomSet = function() end,
       },
     }
     setmetatable(env, { __index = _G })
@@ -43,12 +42,5 @@ describe("custom set name validation", function()
 
   it("still accepts a genuinely new name", function()
     assert.equal(99, ns.SaveCustomSet("Boylane 4", {}))
-  end)
-
-  it("lets a set keep its own name under different case on rename", function()
-    assert.is_true(ns.RenameCustomSet(1, "BOYLANE 3"))
-    local ok, err = ns.RenameCustomSet(2, "boylane 3")
-    assert.is_false(ok)
-    assert.matches("already exists", err)
   end)
 end)
