@@ -6,6 +6,11 @@ local ns = select(2, ...)
 -- conventional-commit grouping used for the GitHub/CurseForge release notes.
 ---@type { version: string, notes: string }[]
 ns.changelog = {
+  { version = "12.1.5-r3", notes = [==[
+### Bug Fixes
+- batch of XS audit fixes (#1089, #1098, #1082, #1074, #1030, #1047, #1032) (#1132)
+
+]==] },
   { version = "12.1.5-r2", notes = [==[
 ### Features
 - load on Forever; label the ranged slot and keep weapon labels off the neighbouring icon (#962) (#993)
