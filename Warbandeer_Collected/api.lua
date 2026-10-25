@@ -39,12 +39,6 @@ API.Ranks = ns.Ranks
 API.RankColors = ns.RankColors
 API.WantedIcon = ns.WantedIcon
 
----Account-wide collected/total counts from the last scan.
----@return number collected, number total
-function API:Counts()
-  return ns.db.collected or 0, ns.db.total or 0
-end
-
 ---True once `/collected scan` has populated data at least once.
 ---@return boolean
 function API:IsScanned()
@@ -76,7 +70,7 @@ end
 
 ---Scan table for one group, or nil if the group was never scanned.
 ---@param groupId number
----@return table? map of setId -> (true | { collected, parts, total })
+---@return table? map of setId -> (true | { collected, total })
 function API:GroupStatus(groupId)
   return ns.db.sets and ns.db.sets[groupId]
 end
