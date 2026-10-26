@@ -53,3 +53,5 @@ threaded through.
   (selecting/reselecting a quest) — matching Blizzard's own staleness if you level up while the
   pane happens to be open.
 - **`X-Curse-Project-ID`** — `1615396`.
+
+**Specs:** `spec/rewardpercent_spec.lua` (loader `spec/questxp.lua`) covers `ns.GetRewardPercent` (max level, no reward, zero level XP, rounding, the `0` for a sub-half-percent reward) and the `SetText` hook that appends it once.
