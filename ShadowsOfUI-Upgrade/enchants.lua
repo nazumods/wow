@@ -12,6 +12,7 @@ local GetSpellName = C_Spell and C_Spell.GetSpellName
 -- in the off-hand can't be enchanted, so it must never be flagged as "missing one".
 local WEAPON_EQUIPLOC = {
   INVTYPE_WEAPON = true, INVTYPE_WEAPONOFFHAND = true, INVTYPE_WEAPONMAINHAND = true,
+  INVTYPE_2HWEAPON = true,   -- a Titan's Grip warrior's off-hand
 }
 
 -- Equipped slots checked for a missing permanent enchant, in a stable (top-down) order

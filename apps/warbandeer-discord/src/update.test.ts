@@ -35,6 +35,17 @@ describe("sameSha", () => {
   });
 });
 
+describe("checkForUpdate overlap", () => {
+  test("a second call made while the first is in flight returns busy", async () => {
+    const first = checkForUpdate();
+    const second = checkForUpdate();
+    expect((await second).decision).toBe("busy");
+    expect((await first).decision).not.toBe("busy");
+    // The flag clears afterwards, so a later call runs normally.
+    expect((await checkForUpdate()).decision).not.toBe("busy");
+  });
+});
+
 describe("decideUpdate", () => {
   test("disabled without a baked-in GIT_SHA", () => {
     expect(decideUpdate({ latestSha: NEW })).toBe("disabled");

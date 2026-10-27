@@ -76,7 +76,7 @@ function Invoke-WebRequest {
 }
 
 # Runs the script against $build with the given tables missing, broken or empty -> @{ Text; Exit; Error }.
-function Invoke-Lint([string[]]$Missing = @(), [hashtable]$Broken = @{}, [string[]]$Empty = @(), [string]$CacheDir) {
+function Invoke-Lint([string[]]$Missing = @(), [hashtable]$Broken = @{}, [string[]]$Empty = @(), [string]$CacheDir, [string]$LintPath = $lint) {
   $global:Lint954Missing = $Missing
   $global:Lint954Broken = $Broken
   $global:Lint954Empty = $Empty
@@ -88,7 +88,7 @@ function Invoke-Lint([string[]]$Missing = @(), [hashtable]$Broken = @{}, [string
   $global:LASTEXITCODE = $null
   try {
     # Strict mode is inherited by child scopes, and the script under test is not written for it.
-    & { Set-StrictMode -Off; & $lint @lintArgs } *>&1 | ForEach-Object { $null = $lines.Add([string]$_) }
+    & { Set-StrictMode -Off; & $LintPath @lintArgs } *>&1 | ForEach-Object { $null = $lines.Add([string]$_) }
   } catch {
     $err = $_.Exception.Message
   }
@@ -147,6 +147,30 @@ Test-Match 'empty ChrRaces: its ids are reported stale' $r.Text 'races\.raceId\s
 Test-Case 'empty ChrRaces: exit 1' '1' $r.Exit
 Test-Match 'empty ChrRaces: the summary names the stale ids' $r.Text 'id\(s\) unresolved'
 Test-NoMatch 'empty ChrRaces: the summary mentions no skipped rule' $r.Text 'skipped'
+
+# A rule whose extractor matches nothing (the data file renamed what it reads) must fail, not pass as "0 ids OK".
+# Runs a copy of the script and its data files in a scratch repo where races.lua no longer holds raceIdToFactionIndex.
+$scratch = Join-Path ([System.IO.Path]::GetTempPath()) ("lint1071-" + [guid]::NewGuid().ToString('N'))
+try {
+  New-Item -ItemType Directory -Path (Join-Path $scratch 'Tooling') | Out-Null
+  Copy-Item $lint (Join-Path $scratch 'Tooling' 'lint-stale-ids.ps1')
+  foreach ($f in $files) {
+    $dest = Join-Path $scratch $f
+    New-Item -ItemType Directory -Path (Split-Path $dest -Parent) -Force | Out-Null
+    Copy-Item (Join-Path $repo $f) $dest
+  }
+  $races = Join-Path $scratch 'Warbandeer_Characters' 'data' 'races.lua'
+  $raceText = Get-Content -Raw $races
+  if ($raceText -notmatch 'raceIdToFactionIndex') { Write-Output 'FAIL: races.lua no longer mentions raceIdToFactionIndex, so the 0-id case tests nothing'; $script:Failures++ }
+  Set-Content -Path $races -Value ($raceText -replace 'raceIdToFactionIndex', 'renamedRaceTable') -NoNewline
+  $r = Invoke-Lint -LintPath (Join-Path $scratch 'Tooling' 'lint-stale-ids.ps1')
+  Test-Match '0 ids extracted: the rule is reported as skipped' $r.Text 'races\.raceId\s+! skipped: extracted 0 ids from Warbandeer_Characters/data/races\.lua'
+  Test-NoMatch '0 ids extracted: the rule is not reported OK' $r.Text 'races\.raceId\s+\+'
+  Test-Case '0 ids extracted: exit 1' '1' $r.Exit
+  Test-Match '0 ids extracted: the other rules still run' $r.Text 'currency\.id\s+\+\s+\d+ ids OK'
+} finally {
+  if (Test-Path $scratch) { Remove-Item -Recurse -Force $scratch }
+}
 
 # Any other failure still stops the run: a 500, and a 400 whose body is not "Table not found."
 $r = Invoke-Lint -Broken @{ TransmogIllusion = @{ Status = 500; Body = '<html>Internal Server Error</html>' } }

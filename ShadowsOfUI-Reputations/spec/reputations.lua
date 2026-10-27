@@ -69,4 +69,31 @@ function M.load(opts)
   }
 end
 
+---Load the REAL core.lua against a fake warband so the faction-name lookups (`FactionIDByName`,
+---`FactionIDByQuery`) can be driven out of game. `reps` is `{ [characterName] = { [factionID] = { name = } } }`
+---as ns.api:GetReputations returns it; the faction index is built (lazily, or by RebuildFactionIndex)
+---from that. Returns the namespace.
+---@param reps table<string, table<integer, { name: string? }>>
+---@return table ns
+function M.loadCore(reps)
+  local color = { WrapTextInColorCode = function(_, t) return t end }
+  _G.NORMAL_FONT_COLOR, _G.GRAY_FONT_COLOR, _G.GREEN_FONT_COLOR, _G.WHITE_FONT_COLOR = color, color, color, color
+  local ns = {
+    RegisterChangelog = function() end,
+    Colors = { className = function(name) return name end },
+    api = {
+      GetAllCharacters = function()
+        local out = {}
+        for name in pairs(reps) do out[#out + 1] = { name = name } end
+        table.sort(out, function(a, b) return a.name < b.name end)
+        return out
+      end,
+      GetReputations = function(_, name) return reps[name] end,
+    },
+  }
+  _G.LibNAddOn = function() return ns end
+  assert(loadfile("ShadowsOfUI-Reputations/core.lua"))("ShadowsOfUI-Reputations", ns)
+  return ns
+end
+
 return M

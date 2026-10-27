@@ -96,6 +96,9 @@ jobs:
       - name: .toc metadata matches the CONTEXT.md headers
         run: python Tooling/doc_drift.py
 
+      - name: doc_drift.py unit tests
+        run: python Tooling/test_doc_drift.py
+
   # publish.yml turns each .toc `## Interface:` value into a CurseForge game version, and checks that
   # CurseForge knows it. Reading `16001` (Forever) from the left once gave `16.0.1` (#954), and the upload
   # action drops an unknown version silently -- so the release would have shipped unlabelled. The functions
@@ -110,6 +113,9 @@ jobs:
 
       - name: publish.yml game-version helpers
         run: bash Tooling/tests/game-versions.test.sh
+
+      - name: app-release.sh release detection
+        run: bash Tooling/tests/app-release.test.sh
 
   # Which wago build the lint tooling resolves, and for which product (#954): wow_classic_beta is a shared
   # bucket of several Classic betas whose "latest" is Forever only while Forever is the newest, so Forever
@@ -133,6 +139,12 @@ jobs:
       - name: lint-stale-ids.ps1 build resolution
         shell: pwsh
         run: ./Tooling/tests/lint-stale-ids.build.test.ps1
+
+      # Pester 5 is preinstalled on the GitHub-hosted ubuntu image. Offline: it lifts two functions out of
+      # update-static-data.ps1 by AST and never touches wago.
+      - name: update-static-data.ps1 Pester spec
+        shell: pwsh
+        run: Invoke-Pester -Path Tooling/tests/update-static-data.Tests.ps1 -CI
 
       - name: lint-stale-ids.ps1 missing tables
         shell: pwsh
@@ -191,7 +203,10 @@ jobs:
               - 'Warbandeer_Characters/data/races.lua'
               - 'Warbandeer_Characters/data/professioninfo.lua'
               - 'Warbandeer_Characters/data/classmounts.lua'
-              - 'Warbandeer_Collected/data/weapons.lua'
+              - 'Warbandeer_Collected/data/illusions.lua'
+              - 'Warbandeer_Collected/data/arsenals.lua'
+              - 'Warbandeer_Characters/data/achievementcatalog.lua'
+              - 'Warbandeer_Characters/data/currency.lua'
               - 'Warbandeer_Characters/data/glyphinfo.lua'
               - 'Warbandeer_Characters/data/learnedunlocks.lua'
               - 'Warbandeer_Characters/data/collectiblesources.lua'
@@ -203,7 +218,13 @@ jobs:
       - name: Resolve wago build
         if: success() && steps.changed.outputs.data == 'true'
         id: build
-        run: echo "version=$(curl -sf -A 'Warbandeer-suite-ci (github.com/nazumods/wow)' "https://wago.tools/api/builds/${WAGO_PRODUCT}/latest" | jq -r .version)" >> "$GITHUB_OUTPUT"
+        run: |
+          # jq -e: an unreachable wago.tools fails the step instead of keying the cache on a blank build.
+          if ! version=$(curl -sf -A 'Warbandeer-suite-ci (github.com/nazumods/wow)' "https://wago.tools/api/builds/${WAGO_PRODUCT}/latest" | jq -er .version); then
+            echo "::error::wago.tools is unreachable or has no latest '$WAGO_PRODUCT' build"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: Restore wago CSV cache for this build
         if: success() && steps.changed.outputs.data == 'true'
         uses: actions/cache@v6

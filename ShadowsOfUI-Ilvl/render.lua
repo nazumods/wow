@@ -56,7 +56,7 @@ ns.InsetPositions = InsetPositions
 function ns.TrackFromLink(link)
     local up = link and GetItemUpgradeInfo(link)
     if up and up.trackString and up.currentLevel and up.currentLevel > 0 then
-        return up.trackString:sub(1, 1) .. up.currentLevel
+        return (up.trackString:match("^[%z\1-\127\194-\244][\128-\191]*") or "") .. up.currentLevel
     end
 end
 

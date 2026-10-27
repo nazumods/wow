@@ -66,7 +66,10 @@ jobs:
               exit 1
             fi
           else
-            version=$(curl -sf -A "$ua" "https://wago.tools/api/builds/${WAGO_PRODUCT}/latest" | jq -r .version)
+            if ! version=$(curl -sf -A "$ua" "https://wago.tools/api/builds/${WAGO_PRODUCT}/latest" | jq -er .version); then
+              echo "::error::wago.tools is unreachable or has no latest '$WAGO_PRODUCT' build"
+              exit 1
+            fi
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@v6
