@@ -47,6 +47,11 @@ local frame = LibNUI.Frame:new{
 }
 ```
 
+`:new` stays lean: a function passed as an option does **not** override a class method of the same
+name (`OnEnter`, `OnLeave`, ...), because the class methods are mixed over the options. To replace or
+extend a handler, assign it after construction (`btn.OnEnter = fn`, chaining `Button.OnEnter(self)` to
+keep the built-in behaviour).
+
 ### `_widget`
 
 Every object wraps a WoW UI object exposed as `._widget`. Use it for anything LibNUI doesn't expose directly.
