@@ -1,8 +1,8 @@
 """Procedural flag logo — draws the suite flag scene from scratch in PIL.
 
-SUPERSEDED by make_addon_logo.py, which reuses the original photo flag and
-matches the sibling logos far more closely. Kept as a reference for the
-palette/geometry and as a fallback if a non-photo variant is ever wanted.
+SUPERSEDED by make_addon_logo.py, which reuses the stag crest
+(Tooling/assets/warbandeer_base.png) and matches the sibling logos far more closely. Kept as a reference for the
+palette/geometry and as a fallback if a non-crest variant is ever wanted.
 
 Usage: python Tooling/procedural_flag_logo.py <Text> <out.png>
 """

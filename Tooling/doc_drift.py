@@ -33,8 +33,8 @@ Deliberately tolerant of the legitimate cases, or it would cry wolf:
     because they read `WarbandeerDB` directly
 
 An addon folder is one containing a `<folder>/<folder>.toc` — this check's own
-rule. release.sh and the toc-name CI gate deliberately accept any `*.toc`
-instead, and release.sh additionally carries a NON_ADDON_DIRS skip list. The
+rule. release.sh and the toc-name CI gate (#742) require `<folder>/<folder>.toc`
+(or `<folder>_Mainline.toc`) too, and release.sh additionally carries a NON_ADDON_DIRS skip list. The
 folder-named-.toc rule needs none because Tooling/, apps/, docs/ and .github/
 have no such file.
 
