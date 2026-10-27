@@ -3,7 +3,7 @@ local ns = select(2, ...)
 local G, SlashCmdList, insert = _G, SlashCmdList, table.insert
 local split = ns.lua.strings.split
 
----@alias Command { handler: fun(self, args: string), description: string, subcommands?: table<string, Command> }
+---@alias Command { handler?: fun(self, args: string), description: string, subcommands?: table<string, Command> }
 
 local registerSlashCommands = function(addOn, slashCommands)
   local bases = {}
@@ -26,19 +26,20 @@ local registerSlashCommands = function(addOn, slashCommands)
   ---@field registerCommand fun(self, cmd: string, subcmd: string?, handler: fun(self, args: string), description: string) register a slash command; omit `subcmd` for a command that takes no argument (usage then shows no `<target>`)
   function addOn:registerCommand(cmd, subcmd, handler, description)
     if not self.commands[cmd] then
-      -- First registration for this cmd sets the base handler, which fires
-      -- as the fallback when no subcommand matches in SlashCmd.
-      self.commands[cmd] = {
-        handler = handler,
-        description = description,
-      }
+      self.commands[cmd] = { description = description }
     end
+    local command = self.commands[cmd]
     if subcmd then
-      if not self.commands[cmd].subcommands then self.commands[cmd].subcommands = {} end
-      self.commands[cmd].subcommands[subcmd] = {
+      if not command.subcommands then command.subcommands = {} end
+      command.subcommands[subcmd] = {
         handler = handler,
         description = description,
       }
+    elseif not command.handler then
+      -- Only a registration without a subcommand sets the base handler, which fires when the
+      -- command is typed with no subcommand (or has no subcommands at all). A subcommand
+      -- handler is never promoted to base, or an unrelated subcommand would run for it.
+      command.handler = handler
     end
   end
 
@@ -67,16 +68,27 @@ local registerSlashCommands = function(addOn, slashCommands)
   function addOn:SlashCmd(_, msg) -- slashCmd
     local _, _, cmd, args = string.find(msg, "(%S+) ?(.*)")
     if cmd == nil then cmd = "" end
-    if self.commands[cmd] then
-      if self.commands[cmd].subcommands then
-        local _, _, target, options = string.find(args, "(%S+) ?(.*)")
-        if self.commands[cmd].subcommands[target] then
-          self.commands[cmd].subcommands[target].handler(self, options)
-          return
-        end
+    local command = self.commands[cmd]
+    if command then
+      local target, options = nil, args
+      if command.subcommands then
+        _, _, target, options = string.find(args, "(%S+) ?(.*)")
       end
-      if self.commands[cmd].handler then
-        self.commands[cmd].handler(self, args)
+      local sub = target and command.subcommands[target]
+      if sub then
+        sub.handler(self, options)
+        return
+      end
+      -- No (or an unknown) subcommand. The "" subcommand is the command's default handler and
+      -- gets the full arguments (e.g. `delete <name>`). Otherwise only a bare command reaches
+      -- the base handler; an unknown subcommand prints usage rather than running an unrelated
+      -- command on a typo.
+      local default = command.subcommands and command.subcommands[""]
+      if default then
+        default.handler(self, args)
+        return
+      elseif not target and command.handler then
+        command.handler(self, args)
         return
       end
     end
