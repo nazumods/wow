@@ -4,7 +4,12 @@ import { state, saveState } from "./state";
 import { currentOrNextDmf, dmfKey } from "./wow/dmf";
 import { lastWeeklyReset } from "./wow/reset";
 import { realmStatus, realmWatchConfigured, decideRealmTransition, type RealmStatus } from "./wow/realm";
-import { fetchReleases, decideReleaseAnnouncements, createReachabilityLog } from "./github";
+import {
+  fetchReleases,
+  decideReleaseAnnouncements,
+  createReachabilityLog,
+  type Release,
+} from "./github";
 import { checkForUpdate } from "./update";
 import { runIsolated } from "./isolate";
 import { restartPending, withCritical } from "./restart";
@@ -42,11 +47,12 @@ function channelFor(kind: AnnounceKind): string {
   return kind === "release" ? config.releaseAnnounceChannelId : config.announceChannelId;
 }
 
-async function announce(client: Client, kind: AnnounceKind, message: string): Promise<void> {
+export async function announce(client: Client, kind: AnnounceKind, message: string): Promise<void> {
   const channelId = channelFor(kind);
   const channel = await client.channels.fetch(channelId);
   if (!channel?.isSendable()) throw new Error(`Announce channel ${channelId} is not sendable`);
-  await channel.send(message);
+  // Release names come from any watched repo, so never let one ping @everyone or a role.
+  await channel.send({ content: message, allowedMentions: { parse: [] } });
   console.log("[announce]", message);
 }
 
@@ -173,10 +179,27 @@ async function checkRepoReleases(client: Client, repo: string): Promise<void> {
   if (releaseReachability.observe(repo, true) === "recovered") {
     console.log(`[release] ${repo} is reachable again`);
   }
+  await announceNewReleases(client, repo, releases);
+}
+
+/**
+ * Mark each release seen as soon as it is posted, so a send that fails partway (Discord 5xx or
+ * rate limit) leaves the earlier ones recorded and they are not re-announced on the next poll.
+ */
+export async function announceNewReleases(
+  client: Client,
+  repo: string,
+  releases: Release[],
+): Promise<void> {
   const { toAnnounce, nextSeen } = decideReleaseAnnouncements(releases, state.seenReleaseIds[repo]);
+  if (toAnnounce.length === 0) {
+    state.seenReleaseIds[repo] = nextSeen; // first-poll seed, or unchanged
+    await saveState();
+    return;
+  }
   for (const release of toAnnounce) {
     await announce(client, "release", `📦 New release: **${release.name}**\n${release.url}`);
+    state.seenReleaseIds[repo] = [...(state.seenReleaseIds[repo] ?? []), release.id];
+    await saveState();
   }
-  state.seenReleaseIds[repo] = nextSeen;
-  await saveState();
 }
