@@ -63,3 +63,5 @@ Every surface cleans then repaints its buttons, calling `ns.DecorEntryFor(link)`
 - **Owned but `stored == 0`** is a real state (every copy placed) — the count badge shows a dimmed `0`, not nothing, so "owned, none to place" stays legible.
 - **Catalog primes late.** Owned counts are empty for a moment after login; the login searcher + `HOUSING_STORAGE_UPDATED` refresh cover it, and unresolved decor is left uncached so it fills in rather than sticking blank.
 - **Shared cache, one wipe.** `DecorEntryFor`'s cache is the single copy the merchant, bag, bank, Bagnon surfaces *and* Collectibles (via `HousingDecorApi`) all read; the `core.lua` decor-change handlers (`HOUSING_STORAGE_UPDATED` / `HOUSING_STORAGE_ENTRY_UPDATED` / `NEW_HOUSING_ITEM_ACQUIRED`) wipe it and `ns.Refresh()` everything.
+
+**Merchant surfaces spec:** `spec/surfaces_spec.lua` (loader `hvendor.loadSurfaces`) loads the real `overlay.lua` + `surfaces.lua` against fake merchant buttons and covers the Buy-tab paint, the Buyback-tab strip (the two tabs share `MerchantItemNItemButton`), and the refresher's Buy-tab-only gate.

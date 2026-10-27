@@ -74,8 +74,9 @@ jobs:
       # Reading from the left turned the five-digit 16001 into 16.0.1.
       - name: Read .toc metadata
         id: toc
+        env:
+          ADDON: ${{ steps.info.outputs.addon }}
         run: |
-          ADDON="${{ steps.info.outputs.addon }}"
           # The folder-named .toc, with NO fallback to "any .toc in the folder" (#742). That
           # fallback is how a folder rename that missed its .toc got metadata read, zipped and
           # uploaded as an addon WoW cannot load. Fail loudly instead — this is the last gate
@@ -185,8 +186,9 @@ jobs:
       # never ship either.
       - name: Package addon zip
         if: steps.toc.outputs.skip != 'true'
+        env:
+          ADDON: ${{ steps.info.outputs.addon }}
         run: |
-          ADDON="${{ steps.info.outputs.addon }}"
           zip -r "${ADDON}.zip" "${ADDON}/" --exclude "*.git*" "${ADDON}/spec/*" "${ADDON}/tools/*"
 
       - name: Upload to CurseForge

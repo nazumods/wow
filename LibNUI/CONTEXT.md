@@ -16,13 +16,11 @@ OOP UI widget library. Every widget wraps a backing WoW object (`self._widget`) 
 | `Label.lua` | `Label` — wraps FontString; `Text`, `Color`, `JustifyH`, `JustifyV`, `WordWrap`, `StringWidth`, `UnboundedWidth`. `tooltip` option (string\|string[]) overlays an invisible hit-rect frame (FontStrings can't take mouse) showing the lines via `ui.tip:Lines` + `AnchorBeside`. `DrawLayer(layer, sublevel?)` for sub-layer stacking |
 | `Frame.lua` | `Frame` — core frame wrapper: events, dragging, per-frame `onUpdate`, `delay`; `SetScript`/`RemoveScript`, `EnableKeyboard`/`SetPropagateKeyboardInput` (receive keys + consume vs pass through — e.g. trap Esc; `SetPropagateKeyboardInput` no-ops in combat lockdown, taint-safe since 10.1.5) |
 | `BgFrame.lua` | `BgFrame` — Frame with auto-created backdrop Texture; `backdropColor`/`backdropTexture` |
-| `Dialog.lua` | `Dialog` — DIALOG-strata frame with Blizzard title bar, Escape-to-close; `makeTitlebarDraggable` |
 | `StatusBar.lua` | `StatusBar` — fill bar with backdrop/texture/orientation; `Color`, `Texture`, `SetValue` |
 | `Slider.lua` | `Slider` — value slider: themed track + draggable gold thumb, `min`/`max`/`step`/`orientation`, `OnChange(value, userInput)`; `Value` getter/setter, `MinMax`. Optional `label` (muted caption above the left end) + `valueFormat(v)→string` (live accent readout above the right end) — both float above the track, adding no layout height |
 | `RingSelector.lua` | `RingSelector` — OPie-style radial selector. Lays `items` (`{name, path/atlas, rotation?, title?}`) out as glyphs clockwise from the top; an `OnUpdate` reads `GetCursorPosition()` (scaled, vs the frame's `GetCenter`) and highlights the slice the cursor *aims toward* (`hiColor`, others `restColor`), showing its `title` in the center; inside `deadZone` nothing is aimed. `Selected()` → aimed name; `Commit()` fires `onSelect(name)` (called on key-release by a consumer, or on click in the test). Pure insecure UI, taint-free. Reuses the IconStrip glyph pattern; consumer feeds it the view metadata |
-| `Button.lua` | `Button` — interactive button: glow, keybind label, item/spell/toy tooltip, `onClick`. `ConfirmFlash(text?, ms?)` — transient feedback: swaps the text (default "Done!") and restores after `ms` (1500); re-flashing keeps the first-captured original |
+| `Button.lua` | `Button` — interactive button: hover glow, `onClick`. `ConfirmFlash(text?, ms?)` — transient feedback: swaps the text (default "Done!") and restores after `ms` (1500); re-flashing keeps the first-captured original |
 | `MinimapButton.lua` | `MinimapButton` — draggable minimap-edge button: shape-aware positioning (`GetMinimapShape`), drag-to-move with persisted angle, ADD-blend highlight, optional Blizzard ring/background, `ShowContextMenu`; `Shown`/`Angle`/`Icon`. (Addon-compartment entries stay declarative via the `.toc`, not here) |
-| `SecureButton.lua` | `SecureButton` — `SecureActionButtonTemplate` for casting spells/toys in combat |
 | `CheckButton.lua` | `CheckButton` — toggle checkbox; `Checked`, `OnToggle` |
 | `RadioGroup.lua` | `RadioGroup` — vertical stack of mutually-exclusive `CheckButton` rows (single-select companion to CheckButton). `{ key, label }` options; picking one checks it and clears the rest (re-clicking the selected keeps it); `Select(key)` re-points without firing, `onSelect(self, key)` fires only on a *changed* user pick. Mirrors FilterDropdown's key/label + Select/onSelect contract |
 | `AutoWidget.lua` | `AutoWidget` — standalone factory that builds a Button, Texture, or Label from options |
@@ -67,12 +65,10 @@ Region
      ├─ BgFrame
      │   ├─ TableCol
      │   └─ TableRow
-     ├─ Dialog
      ├─ StatusBar
      ├─ Slider
      ├─ RingSelector
      ├─ Button
-     │   ├─ SecureButton
      │   └─ CheckButton
      ├─ RadioGroup
      ├─ MinimapButton
@@ -176,12 +172,10 @@ Any key matching a method on the instance is valid; tables are unpacked, scalars
 | `Label` | `parent`, `name`, `layer` (`Artwork`), `font` (`GameFontHighlight`), `fontObj`, `fontInfo`, `text`, `color`, `justifyH`, `justifyV`, `wordWrap`, `tooltip` (hover lines via hit-rect) |
 | `Frame` | `type` (`"Frame"`), `name`, `parent`, `template`, `strata`, `clamped`, `scale`, `level`, `special`, `background`, `drag`, `dragTarget`, `scripts`, `events`, `unitEvents` |
 | `BgFrame` | inherits Frame; default backdrop `{color={0,0,0,0.8}}` |
-| `Dialog` | inherits Frame; `title`, `titleColor` |
-| `StatusBar` | `backdrop`, `fill` (`{color,gradient,blend}`), `color`, `texture` (string or `{...,coords}`), `orientation`, `min`, `max` |
+| `StatusBar` | `backdrop`, `fill` (`{color,gradient,blend}`), `color`, `texture` (path or fileID), `orientation`, `min`, `max` |
 | `Slider` | inherits Frame (`type = "Slider"`); `min` (0), `max` (1), `step`, `value`, `orientation` (`"HORIZONTAL"`), `thickness` (4), `OnChange(value, userInput)`, `label` (caption), `valueFormat(v)→string` (live readout) |
-| `Button` | `normal` (`{texture,coords}`), `onClick`, `bindLeftClick`, `kbLabel`, `glow` (true), `glowAlpha` (1 — softens the hover glow without removing it; `glow = false` remains the only way to suppress it outright, and a button with no glow reads as disabled), `itemID`, `tooltip`, `OnChange`, `OnClick` |
+| `Button` | `normal` (`{texture,coords}`), `onClick`, `glow` (true), `glowAlpha` (1 — softens the hover glow without removing it; `glow = false` remains the only way to suppress it outright, and a button with no glow reads as disabled), `OnClick` |
 | `MinimapButton` | inherits Frame (`type="Button"`, parents to `Minimap`); `icon`, `iconFillsButton`, `db` (`{angle,hide}` store), `defaultAngle` (225), `radius` (8), `tooltip` (string[] or fn), `onClick(self, mouseButton)`. Methods: `Shown`, `Angle`, `Icon`, `ShowContextMenu(generator)`. Build it at/after `PLAYER_LOGIN` |
-| `SecureButton` | `actions` — list of `{type, target, spell, toy}` |
 | `CheckButton` | `text`, `OnToggle` |
 | `RadioGroup` | inherits Frame; `options` (`{key,label}[]`), `selected` (initial key), `header` (optional heading), `spacing` (32), `width` (180), `onSelect(self, key)`. Methods: `Select(key)` (get/set, no fire) |
 | `Timer` | inherits Frame; `format` (`ns.lua.strings.duration` style `"m:ss"`\|`"h:mm:ss"`\|`"auto"`, or a `fun(sec)->string`), `countdown` (false), `duration` (0), `autoStart` (false), `overtime` (false; countdown runs past 0 into negative + `overtimeColor` red), `color`, `onFinish(self)` (fires once at the 0 crossing). Methods: `Start`/`Stop`/`Reset`, `Value(sec?)` (get displayed secs / seed), `Color(...)` |
@@ -207,11 +201,8 @@ Any key matching a method on the instance is valid; tables are unpacked, scalars
 | `SettingsFrame` | `heading` (`{text,fontObj,color}`), `headingText` |
 | `TextSetting` / `ToggleSetting` | `label`, `table`, `field`, (`editor`), `SettingChanged` |
 
-### `Button` tooltip / `AutoWidget` dispatch
+### `AutoWidget` dispatch
 
-```lua
-tooltip = { _widget, owner, point, itemId, toyId, spellId, mountSpellId }
-```
 `AutoWidget`: `onClick` set → Button; `path`/`atlas` set → Texture; otherwise → Label.
 
 ## TableFrame
@@ -245,8 +236,7 @@ Singleton `ui.tip`. Helpers: `ui.ShowCharacterTooltip(toon, frame, position)`, `
 - **TableFrame `offsetX`/`offsetY` are baked in at construction** from whether `rowNames`/`colNames` are non-nil (`offsetX = rowNames ~= nil and headerWidth or 0`). For dynamic tables built with `addRow`/`addCol`, pass `rowNames = {}` / `colNames = {}` or row data overlaps the headers.
 - **`Region:Position` ACCUMULATES anchors — it never clears.** It just dispatches each key to the matching `Region` method (`TopLeft` → `SetPoint`), and `SetPoint` is additive. So a *second* `Position` call re-anchoring with a **different** point leaves the previous anchor in force and the widget lands where neither call asked; re-anchoring with the **same** point replaces that anchor, which is why the bug hides until someone switches `TopLeft` → `Left`. Call `ClearAllPoints()` before re-positioning (`FilterDropdown:_row` does this for its pooled rows). Only affects re-positioning — the constructor's `position` runs once on a fresh widget.
 - **`Frame:onUpdate(elapsed)` receives milliseconds**, not seconds (Frame multiplies WoW's seconds by 1000). `Frame:delay(ms, fn)` likewise takes ms.
-- **`special = true`** registers the frame in `_G` and `UISpecialFrames` (Escape closes it) — only for top-level windows. `Dialog` does this unconditionally.
-- **`SecureButton`**: never call `SetAttribute` during combat (taint).
+- **`special = true`** registers the frame in `_G` and `UISpecialFrames` (Escape closes it) — only for top-level windows.
 - **`Cell` is reused across re-sorts** — `Cell:Label()`/`update` re-applies `justifyH` every time, because a cell that previously held left-aligned data must reset when new data is right-aligned. When a `getData` returns a *shared* table, decorate a shallow copy before adding hover/click handlers, or wrappers chain across every row sharing the object.
 - **Sortable TableFrame never permutes `self.data` itself** — it fires `onSort(self, key, desc)` and lets the consumer sort. This is deliberate: a consumer that holds **index-parallel state** (row → object maps, per-row closures capturing the row index) must re-sort its source array and rebuild those rows *together*, or clicks desync. Don't reach for a hypothetical "TableFrame sorts its own rows" mode when index-parallel state exists — use `onSort`.
 - **`events` option** is a list of event names; the Frame's `OnEvent` dispatches to `self[eventName](self, ...)`.

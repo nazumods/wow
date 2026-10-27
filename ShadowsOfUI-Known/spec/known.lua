@@ -113,4 +113,58 @@ function M.restore()
   saved = nil
 end
 
+-- ---------------------------------------------------------------------------------------------
+-- Loads the REAL guild.lua against a scriptable fake guild client so the async query state machine
+-- (candidate skill lines, response correlation, timeout vs supersession, nil queryID, the bounded
+-- cache) can be driven out of game (spec/guildquery_spec.lua).
+--
+-- `state` is the fake client: `queries` logs every QueryGuildMembersForRecipe call; `timers` holds
+-- the pending C_Timer.After callbacks (`state.fire(i)` runs one, `state.fireAll()` all in order);
+-- `state.profInfo[recipeID]` is what GetProfessionInfoByRecipeID returns; `state.post` is what
+-- GetGuildRecipeInfoPostQuery returns ({ skillLineID, recipeID, numMembers }) and `state.members`
+-- the GetGuildRecipeMember rows; `state.nilQuery` makes QueryGuildMembersForRecipe return nil;
+-- `state.secret[value]` marks a value issecretvalue() reports as secret. `state.respond(post, members)`
+-- sets both and fires GUILD_RECIPE_KNOWN_BY_MEMBERS.
+-- ---------------------------------------------------------------------------------------------
+---@param opts { inGuild: boolean? }?
+---@return table ns, table state
+function M.loadGuildQuery(opts)
+  opts = opts or {}
+  local state = {
+    inGuild = opts.inGuild ~= false, queries = {}, timers = {}, profInfo = {}, secret = {},
+    members = {}, primed = 0, events = {},
+  }
+  function state.fire(i) local t = state.timers[i]; state.timers[i] = false; t() end
+  function state.fireAll() for i = 1, #state.timers do if state.timers[i] then state.fire(i) end end end
+  function state.pendingTimers() local n = 0 for _, t in ipairs(state.timers) do if t then n = n + 1 end end return n end
+
+  _G.IsInGuild = function() return state.inGuild end
+  _G.QueryGuildRecipes = function() state.primed = state.primed + 1 end
+  _G.wipe = function(t) for k in pairs(t) do t[k] = nil end return t end
+  _G.issecretvalue = function(v) return state.secret[v] == true end
+  _G.C_AddOns = { IsAddOnLoaded = function() return true end, LoadAddOn = function() end }
+  _G.C_Timer = { After = function(_, fn) state.timers[#state.timers + 1] = fn end }
+  _G.C_TradeSkillUI = { GetProfessionInfoByRecipeID = function(id) return state.profInfo[id] end }
+  _G.C_GuildInfo = {
+    QueryGuildMembersForRecipe = function(skillLineID, recipeID, recipeLevel)
+      state.queries[#state.queries + 1] = { skillLineID, recipeID, recipeLevel }
+      if state.nilQuery then return nil end
+      return 1000 + #state.queries
+    end,
+  }
+  _G.GetGuildRecipeInfoPostQuery = function() return unpack(state.post or {}) end
+  _G.GetGuildRecipeMember = function(i) local m = state.members[i] or {}; return m[1], nil, m[2], m[3] end
+
+  local ns = {
+    wow = { ClassKeyByToken = { MAGE = "Mage", WARRIOR = "Warrior" } },
+    registerEvent = function(_, event, fn) state.events[event] = fn end,
+  }
+  assert(loadfile("ShadowsOfUI-Known/guild.lua"))("ShadowsOfUI-Known", ns)
+  function state.respond(post, members)
+    state.post, state.members = post, members or {}
+    state.events.GUILD_RECIPE_KNOWN_BY_MEMBERS()
+  end
+  return ns, state
+end
+
 return M

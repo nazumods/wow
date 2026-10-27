@@ -108,10 +108,20 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "asset=apps/warbandeer-desktop/$out" >> "$GITHUB_OUTPUT"
 
+      # The bump commit is only committed locally by app-release.sh; pushing it here, after the build
+      # passed, means a failed build burns no version (#1035). A push rejected because main moved
+      # during the build fails the run: nothing was released, and tomorrow's cron retries.
+      - name: Push version bump
+        if: steps.bump.outputs.changed == 'true'
+        working-directory: ${{ github.workspace }}
+        run: git push
+
       - name: Publish release
         if: steps.bump.outputs.changed == 'true'
         uses: softprops/action-gh-release@v3
         with:
+          # Tag the commit that was built, not main's tip at publish time (#1035).
+          target_commitish: ${{ steps.bump.outputs.sha }}
           tag_name: app-warbandeer-desktop-v${{ steps.stage.outputs.version }}
           name: Warbandeer Desktop v${{ steps.stage.outputs.version }}
           body: >

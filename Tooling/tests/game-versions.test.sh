@@ -162,8 +162,9 @@ check "missing: '.' is not a wildcard  -> 1.60.1" "1.60.1" "$(missing_versions $
 # --- 2a. the "Read .toc metadata" step, run against fake .toc files ------------------------------
 
 TOC_SCRIPT="$WORK/toc-step.sh"
-# The only GitHub expression in that script is the addon folder name.
-step_script "Read .toc metadata" | sed 's/\${{ steps.info.outputs.addon }}/Foo/g' > "$TOC_SCRIPT"
+# The addon folder name arrives as the step's ADDON env var (run_toc sets it); the script itself has
+# no GitHub expression.
+step_script "Read .toc metadata" > "$TOC_SCRIPT"
 grep -q '\${{' "$TOC_SCRIPT" && { echo "FAIL: 'Read .toc metadata' has a GitHub expression this test does not substitute"; exit 1; }
 
 # run_toc <interface-value-or-empty> <project-id-or-empty> [extra-raw-line] -> TOC_RC, TOC_OUT
@@ -180,7 +181,7 @@ run_toc() {
   } > "$WORK/addon/Foo/Foo.toc"
   : > "$WORK/gh-output"
   TOC_RC=0
-  TOC_LOG=$(cd "$WORK/addon" && GITHUB_OUTPUT="$WORK/gh-output" bash "$TOC_SHELL_FLAGS" "$TOC_SCRIPT" 2>&1) || TOC_RC=$?
+  TOC_LOG=$(cd "$WORK/addon" && ADDON=Foo GITHUB_OUTPUT="$WORK/gh-output" bash "$TOC_SHELL_FLAGS" "$TOC_SCRIPT" 2>&1) || TOC_RC=$?
   TOC_OUT=$(cat "$WORK/gh-output")
 }
 

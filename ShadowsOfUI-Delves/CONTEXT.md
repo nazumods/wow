@@ -45,3 +45,5 @@ our line and re-`Show` so `GameTooltip` resizes around it — same append idiom 
 - **No data ≠ broken.** A delve with no completed runs shows `No timed runs yet`; the average
   only appears after the current character finishes that delve at least once.
 - **No `X-Curse-Project-ID` yet** — added when the CurseForge project is created.
+
+**Specs:** `spec/tooltip_spec.lua` (loader `spec/delves.lua`, which fires the hooked `DelveEntrancePinMixin.OnMouseEnter`) covers the entrance-pin tooltip: completion time and scope labels, the leveling-only XP / level-share / XP-per-hour line and its guards, Shift and non-delve gating, and `AssumedTier`.

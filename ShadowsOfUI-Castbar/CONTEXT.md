@@ -47,3 +47,5 @@ so it's purely cosmetic and combat-safe (insecure frames, no `SetAttribute`).
 }
 ```
 `MigrateDB` seeds missing keys; at **v2** it converts a pre-v2 centre-anchored `*Pos` to the top-left-anchored equivalent (using the bar size at the current text size) so the dragged placement carries over; **v3** adds the player bar's `playerEnabled`/`playerPos` (seeded, no conversion).
+
+**Specs:** `spec/refresh_spec.lua` (loader `spec/castbar.lua`: `ns.lua.Class` stubbed to the bare class table, a bare fake bar) covers `Refresh` (sample/disabled/idle early-outs, cast vs channel, the secret-timing path using a value that errors on arithmetic), `applyColor`, `onUpdate` and `dims`.

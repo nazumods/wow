@@ -208,6 +208,24 @@ export interface UpdateCheck {
 export async function checkForUpdate(
   o: { force?: boolean; requester?: UpdateRequester } = {},
 ): Promise<UpdateCheck> {
+  // `handoffActive()` below only flips after several awaits, so two overlapping calls (two
+  // /update a second apart, or one plus an AUTO_UPDATE tick) would both pass it. This flag is
+  // set synchronously, before the first await.
+  if (inFlight) return { decision: "busy", latestSha: "" };
+  inFlight = true;
+  try {
+    return await runUpdateCheck(o);
+  } finally {
+    inFlight = false;
+  }
+}
+
+let inFlight = false;
+
+async function runUpdateCheck(o: {
+  force?: boolean;
+  requester?: UpdateRequester;
+}): Promise<UpdateCheck> {
   // Refused before anything else — even reading the shas. A second /update mid-swap would
   // otherwise overwrite the in-flight attempt's pendingUpdateReport, then force-remove its
   // replacement (`force: true` bypasses the anti-loop suppression, and interaction handling
