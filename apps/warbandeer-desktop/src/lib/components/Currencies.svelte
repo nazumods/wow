@@ -36,13 +36,11 @@
   // alt (Nebulous Voidcore's season cap grows every weekly reset).
   function cellTitle(col: CurrencyColumn, c: CurrencyCell): string {
     if (c.quantity === null) return `${col.name} — never captured for this character`;
-    const parts = [`${col.name}: ${breakUpLargeNumbers(c.quantity)} held`];
-    if (c.max > 0) parts.push(`cap ${breakUpLargeNumbers(c.max)}`);
-    if (c.weeklyMax > 0)
-      parts.push(
-        `earned ${breakUpLargeNumbers(c.earned)}/${breakUpLargeNumbers(c.weeklyMax)} this week`,
-      );
-    else if (c.earned > 0) parts.push(`earned ${breakUpLargeNumbers(c.earned)}`);
+    const fmt = (n: number) => (col.format === "money" ? goldText(n) : breakUpLargeNumbers(n));
+    const parts = [`${col.name}: ${fmt(c.quantity)} held`];
+    if (c.max > 0) parts.push(`cap ${fmt(c.max)}`);
+    if (c.weeklyMax > 0) parts.push(`earned ${fmt(c.earned)}/${fmt(c.weeklyMax)} this week`);
+    else if (c.earned > 0) parts.push(`earned ${fmt(c.earned)}`);
     if (c.capped) parts.push("capped");
     return parts.join(" · ");
   }
