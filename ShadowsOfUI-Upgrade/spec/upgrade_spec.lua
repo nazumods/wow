@@ -113,6 +113,89 @@ describe("ShadowsOfUI-Upgrade upgrade calc", function()
     end)
   end)
 
+  describe("SlotUpgrade — paired slots hold two upgrades", function()
+    local function ring(id, ilvl)
+      return h.defItem{ link = "ring:" .. id, itemID = id, equipLoc = "INVTYPE_FINGER",
+        classID = ARMOR, subClassID = MISC, ilvl = ilvl }
+    end
+
+    it("shows both rings when two bag rings each beat an equipped ring", function()
+      h.addChar(warrior("Conan", { Finger1 = { ilvl = 600 }, Finger2 = { ilvl = 610 } }))
+      h.pools.Conan = { bags = { ring(1, 640), ring(2, 639) }, bank = {} }
+      local weak, strong = h.Api:SlotUpgrade("Conan", "Finger1"), h.Api:SlotUpgrade("Conan", "Finger2")
+      assert.equals("ring:1", weak.link)
+      assert.equals(40, weak.ilvlGain)      -- 640 − 600 (the weaker ring)
+      assert.equals("ring:2", strong.link)
+      assert.equals(29, strong.ilvlGain)    -- 639 − 610
+      assert.equals(2, h.Api:CharacterUpgradeCount("Conan"))
+    end)
+
+    it("drops a runner-up that only beats the weaker slot", function()
+      h.addChar(warrior("Conan", { Finger1 = { ilvl = 600 }, Finger2 = { ilvl = 610 } }))
+      h.pools.Conan = { bags = { ring(1, 640), ring(2, 605) }, bank = {} }
+      assert.equals("ring:1", h.Api:SlotUpgrade("Conan", "Finger1").link)
+      assert.is_nil(h.Api:SlotUpgrade("Conan", "Finger2"))
+      assert.equals(1, h.Api:CharacterUpgradeCount("Conan"))
+    end)
+
+    it("places a held and a warband ring in separate slots", function()
+      h.addChar(warrior("Conan", { Finger1 = { ilvl = 600 }, Finger2 = { ilvl = 610 } }))
+      h.pools.Conan = { bags = { ring(1, 620) }, bank = {} }
+      h.warband = { ring(2, 630) }
+      local weak, strong = h.Api:SlotUpgrade("Conan", "Finger1"), h.Api:SlotUpgrade("Conan", "Finger2")
+      assert.equals("warband", weak.where)
+      assert.is_false(weak.betterElsewhere)
+      assert.equals("held", strong.where)
+    end)
+
+    it("flags betterElsewhere when a warband ring displaces a held one", function()
+      h.addChar(warrior("Conan", { Finger1 = { ilvl = 600 }, Finger2 = { ilvl = 610 } }))
+      h.pools.Conan = { bags = { ring(1, 615) }, bank = {} }
+      h.warband = { ring(2, 640), ring(3, 630) }
+      local weak = h.Api:SlotUpgrade("Conan", "Finger1")
+      assert.equals("ring:2", weak.link)
+      assert.is_true(weak.betterElsewhere)
+      assert.equals("ring:3", h.Api:SlotUpgrade("Conan", "Finger2").link)
+    end)
+
+    it("pairs trinkets the same way", function()
+      h.addChar(warrior("Conan", { Trinket1 = { ilvl = 600 }, Trinket2 = { ilvl = 600 } }))
+      h.pools.Conan = { bags = {
+        h.defItem{ link = "trk:1", itemID = 11, equipLoc = "INVTYPE_TRINKET", classID = ARMOR, subClassID = MISC, ilvl = 620 },
+        h.defItem{ link = "trk:2", itemID = 12, equipLoc = "INVTYPE_TRINKET", classID = ARMOR, subClassID = MISC, ilvl = 610 },
+      }, bank = {} }
+      assert.equals("trk:1", h.Api:SlotUpgrade("Conan", "Trinket1").link)
+      assert.equals(20, h.Api:SlotUpgrade("Conan", "Trinket1").ilvlGain)
+      assert.equals("trk:2", h.Api:SlotUpgrade("Conan", "Trinket2").link)
+      assert.equals(10, h.Api:SlotUpgrade("Conan", "Trinket2").ilvlGain)
+    end)
+
+    it("fills an empty ring slot first and gives the other ring the runner-up", function()
+      h.addChar(warrior("Conan", { Finger1 = { ilvl = 600 } }))
+      h.pools.Conan = { bags = { ring(1, 640), ring(2, 639) }, bank = {} }
+      assert.equals("ring:1", h.Api:SlotUpgrade("Conan", "Finger2").link)
+      assert.equals(640, h.Api:SlotUpgrade("Conan", "Finger2").ilvlGain)  -- empty slot = ilvl 0
+      assert.equals("ring:2", h.Api:SlotUpgrade("Conan", "Finger1").link)
+    end)
+
+    it("handles equal equipped ilvls and prefers held on an ilvl tie", function()
+      h.addChar(warrior("Conan", { Finger1 = { ilvl = 600 }, Finger2 = { ilvl = 600 } }))
+      h.pools.Conan = { bags = { ring(1, 620) }, bank = {} }
+      h.warband = { ring(2, 620) }
+      local a, b = h.Api:SlotUpgrade("Conan", "Finger1"), h.Api:SlotUpgrade("Conan", "Finger2")
+      assert.equals("held", a.where)
+      assert.equals("warband", b.where)
+      assert.is_false(a.betterElsewhere)
+    end)
+
+    it("flags betterElsewhere on both slots when a held ring is left unplaced", function()
+      h.addChar(warrior("Conan", { Finger1 = { ilvl = 600 }, Finger2 = { ilvl = 610 } }))
+      h.pools.Conan = { bags = { ring(1, 615) }, bank = {} }
+      h.warband = { ring(2, 640), ring(3, 630) }
+      assert.is_true(h.Api:SlotUpgrade("Conan", "Finger2").betterElsewhere)
+    end)
+  end)
+
   describe("SlotUpgrade — held vs warband source", function()
     it("flags betterElsewhere when a warband copy out-levels the best held one", function()
       h.addChar(warrior("Conan", { Chest = { ilvl = 580 } }))

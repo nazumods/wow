@@ -38,27 +38,7 @@ local StatCard = Class(Frame, function(self)
     text = self.amount or "",
     position = { TopLeft = {self.captionLabel, BottomLeft, 0, -5} },
   }
-  if self.sub then
-    -- optional leading trend glyph (e.g. an up/down arrow for weekly change)
-    if self.subIcon then
-      self.subIconTex = Texture:new{
-        parent = self,
-        layer = ui.layer.Artwork,
-        path = self.subIcon,
-        position = { TopLeft = {self.amountLabel, BottomLeft, 0, -3}, Size = {11, 11} },
-      }
-      self.subIconTex:SetVertexColor(self.subIconColor or c.muted)
-    end
-    self.subLabel = Label:new{
-      parent = self,
-      fontInfo = f.subcaps,
-      color = self.subColor or c.muted,
-      text = self.sub,
-      position = self.subIcon
-        and { Left = {self.subIconTex, Right, 3, 0} }
-        or  { TopLeft = {self.amountLabel, BottomLeft, 0, -4} },
-    }
-  end
+  self:Sub(self.sub, self.subIcon, self.subColor, self.subIconColor)
 end, {
   background = theme.colors.module,
   pad = 10,
@@ -75,5 +55,46 @@ function StatCard:Amount(text, color)
   if text == nil then return self.amountLabel:Text() end
   self.amountLabel:Text(text)
   if color then self.amountLabel:Color(color) end
+  return self
+end
+
+-- Set (or clear, with nil text) the muted sub-line and its optional leading glyph. The label and
+-- glyph are created on first use and then reused, so a card can gain, change or lose its sub-line
+-- as its data refreshes.
+---@param text string?  sub-line text; nil hides the sub-line and its glyph
+---@param icon string?  texture path drawn before the text (e.g. a trend arrow)
+---@param color number[]?  text colour (defaults to muted)
+---@param iconColor number[]?  glyph tint (defaults to `color`, then muted)
+---@return StatCard
+function StatCard:Sub(text, icon, color, iconColor)
+  local c = theme.colors
+  self.sub, self.subIcon, self.subColor, self.subIconColor = text, icon, color, iconColor
+  if self.subIconTex then self.subIconTex:SetShown(text ~= nil and icon ~= nil) end
+  if not text then
+    if self.subLabel then self.subLabel:Hide() end
+    return self
+  end
+  if icon then
+    if not self.subIconTex then
+      self.subIconTex = Texture:new{
+        parent = self,
+        layer = ui.layer.Artwork,
+        position = { TopLeft = {self.amountLabel, BottomLeft, 0, -3}, Size = {11, 11} },
+      }
+    end
+    self.subIconTex:Texture(icon)
+    self.subIconTex:SetVertexColor(iconColor or color or c.muted)
+  end
+  if not self.subLabel then
+    self.subLabel = Label:new{ parent = self, fontInfo = theme.fonts.subcaps }
+  end
+  self.subLabel:ClearAllPoints()
+  if icon then
+    self.subLabel:Left(self.subIconTex, Right, 3, 0)
+  else
+    self.subLabel:TopLeft(self.amountLabel, BottomLeft, 0, -4)
+  end
+  self.subLabel:Text(text):Color(color or c.muted)
+  self.subLabel:Show()
   return self
 end

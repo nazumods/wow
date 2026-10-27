@@ -8,7 +8,7 @@
   the test exercises the shipped code verbatim while the production script stays free of any
   test-only scaffolding.
 
-  Not wired into CI (no workflow runs Pester); run locally with:
+  Runs in CI as a step of the test.yml `wago-build-resolution` job; run locally with:
     pwsh -NoProfile -Command "Invoke-Pester -Path Tooling/tests/update-static-data.Tests.ps1"
 #>
 

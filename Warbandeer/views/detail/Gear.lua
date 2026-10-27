@@ -194,7 +194,7 @@ function DetailView:_showGear(i, item, slotKey)
   if mis and not ns.IsEnchantIgnored(mis.itemID, mis.enchantID) then
     lines[#lines + 1] = WRONG_ENCHANT
       .. ("  |cff808080(%s)|r"):format(shortEnchant(mis.applied))
-      .. "  " .. NOTE_ARROW:format(shortEnchant(mis.recommended))
+      .. (mis.recommended and "  " .. NOTE_ARROW:format(shortEnchant(mis.recommended)) or "")
   end
   local gemSub, gemInfo
   local sockets = self._emptySockets[slotKey]

@@ -42,6 +42,62 @@ function M.loadScan(db)
   return ns, records
 end
 
+---Load list.lua against a recording widget fake, so the windowed-row maths (`_window`) and the
+---filters (`GetItems`) can be driven without LibNUI. `ns.lua.Class` is stubbed to return the bare
+---class table (methods land on it; the constructor never runs), and the LibNUI widget classes to
+---a `:new{}` that returns a recording frame: `shown`, `points`, `height` and the text/colour
+---setters are no-ops. Returns the class, the namespace, and a `newList(opts)` factory that builds
+---a bare instance carrying only the fields `_window` / `GetItems` read.
+---@return table List, table ns, fun(opts: table): table newList
+function M.loadList()
+  _G.ITEM_QUALITY_COLORS = {}
+  _G.IsShiftKeyDown = function() return false end
+  _G.WarbandeerHousingDecorApi = {}
+
+  local function widget()
+    local w = { points = {}, shown = false }
+    w._widget = setmetatable({}, { __index = function() return function() end end })
+    return setmetatable(w, { __index = function(t, k)
+      if k == "Show" then return function(self) self.shown = true end end
+      if k == "Hide" then return function(self) self.shown = false end end
+      if k == "ClearAllPoints" then return function(self) self.points = {} end end
+      if k == "SetPoint" then return function(self, ...) self.points[#self.points + 1] = { ... } end end
+      if k == "Height" then return function(self, h) if h then self.height = h end return self.height end end
+      return function() end
+    end })
+  end
+  local function widgetClass() return { new = function() return widget() end } end
+
+  local wanted = {}
+  local ns = {
+    ui = {
+      Frame = widgetClass(), Label = widgetClass(), Texture = widgetClass(), ScrollFrame = widgetClass(),
+      layer = {}, edge = {}, justify = {},
+    },
+    lua = { Class = function() return {} end },
+    _entries = {},
+    wanted = wanted,
+  }
+  function ns:IsWanted(id) return wanted[id] == true end
+  assert(loadfile("Warbandeer_Decor/list.lua"))("Warbandeer_Decor", ns)
+  local List = ns.List
+
+  local function newList(opts)
+    local self = {
+      _rows = {}, _shown = opts.shown or {}, _content = widget(),
+      _category = "all", _subcategory = "all", _uncollected = false, _wantedOnly = false, _search = "",
+      scroll = {
+        Height = function() return opts.viewH end,
+        VerticalScroll = function() return opts.offset end,
+      },
+      Height = function() return opts.selfH end,
+    }
+    for k, v in pairs(opts.filters or {}) do self[k] = v end
+    return self
+  end
+  return List, ns, newList
+end
+
 ---Give `ns` a searcher returning `variants`, so the next `ns:Scan()` sees a primed catalog.
 ---@param ns table
 ---@param variants table[]  `{ entryType, recordID }` descriptors, as the real searcher returns

@@ -76,6 +76,12 @@ describe("ShadowsOfUI-Upgrade enhance", function()
       assert.equals("OffHand", res[1].slot)
     end)
 
+    it("flags an unenchanted Titan's Grip off-hand two-hander (#1089)", function()
+      local res = ns.MissingEnchants(char({ OffHand = slot(1, nil, "INVTYPE_2HWEAPON") }))
+      assert.equals(1, #res)
+      assert.equals("OffHand", res[1].slot)
+    end)
+
     it("does not flag an off-hand shield or holdable (can't be enchanted)", function()
       assert.same({}, ns.MissingEnchants(char({ OffHand = slot(1, nil, "INVTYPE_SHIELD") })))
       assert.same({}, ns.MissingEnchants(char({ OffHand = slot(2, nil, "INVTYPE_HOLDABLE") })))

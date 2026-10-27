@@ -6,6 +6,11 @@ local ns = select(2, ...)
 -- conventional-commit grouping used for the GitHub/CurseForge release notes.
 ---@type { version: string, notes: string }[]
 ns.changelog = {
+  { version = "12.1.5-r3", notes = [==[
+### Tests
+- specs for Decor, HousingVendor, Castbar, Mouselook and the tooltip addons (#1068, #1085) (#1137)
+
+]==] },
   { version = "12.1.5-r2", notes = [==[
 ### Features
 - load on Forever; omit a tooltip block instead of showing it empty (Part of #961; merge after the core-TOCs PR) (#982)

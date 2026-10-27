@@ -11,16 +11,10 @@ local Frame, Texture = ui.Frame, ui.Texture
 ---@field backdrop table|Texture?  backdrop options at construction; the built Texture afterwards
 ---@field fill table|Texture?  fill texture options ({color, gradient, blend}) at construction; the built Texture afterwards
 ---@field color number[]?  initial fill color (rgba, 0–1 channels)
----@field texture string|table|Texture?  bar texture: a path, or an options table (with optional coords) cropped by SetValue
+---@field texture string|number?  bar texture path or fileID (consumed at construction)
 ---@field orientation string?  "HORIZONTAL"|"VERTICAL"
 ---@field min number?  minimum value
 ---@field max number?  maximum value
----@field X1 number  left tex coord of the full texture (internal)
----@field X2 number  right tex coord (internal)
----@field Xd number  horizontal coord span (internal)
----@field Y1 number  top tex coord (internal)
----@field Y2 number  bottom tex coord (internal)
----@field Yd number  vertical coord span (internal)
 local StatusBar = Class(Frame, function(self)
   if self.backdrop then
     self.backdrop = Texture:new(Mixin({
@@ -46,29 +40,8 @@ local StatusBar = Class(Frame, function(self)
   if self.color then self._widget:SetColorFill(unpack(self.color)) end
 
   if self.texture then
-    if type(self.texture) == "table" then
-      local tOps = self.texture
-      local tex = Texture:new(Mixin({
-        parent = self,
-      }, tOps))
-      self._widget:SetStatusBarTexture(tex._widget)
-      tex._widget:ClearAllPoints()
-      tex:Top(self)
-      tex:Left(self)
-      tex:Right(self)
-      tex:Bottom(self)
-      local l, r, t, b = unpack(tOps.coords or {0, 1, 0, 1})
-      self.X1 = l
-      self.X2 = r
-      self.Xd = r - l
-      self.Y1 = t
-      self.Y2 = b
-      self.Yd = b - t
-      self.texture = tex
-    else
-      self._widget:SetStatusBarTexture(self.texture)
-      self.texture = nil
-    end
+    self._widget:SetStatusBarTexture(self.texture)
+    self.texture = nil
   end
 
   if self.orientation then self._widget:SetOrientation(self.orientation) end
@@ -90,25 +63,5 @@ function StatusBar:Color(c) self._widget:SetColorFill(unpack(c)) end
 ---@param t string|number  texture path or fileID
 function StatusBar:Texture(t) self._widget:SetStatusBarTexture(t) end
 
--- Set the bar value. With a coords-aware `texture`, the texture is cropped so
--- the visible portion matches the filled fraction instead of squashing.
 ---@param v number
-function StatusBar:SetValue(v)
-  if not self.texture then self._widget:SetValue(v); return end
-  local n, m = self._widget:GetMinMaxValues()
-  local p = 1 - ((v - n) / (m - n))
-  local dx, dy = self.Xd * p, self.Yd * p
-  local l, r, t, b = self.X1, self.X2, self.Y1, self.Y2
-  local tex = self.texture
-  ---@cast tex Texture
-  if self._widget:GetOrientation() == "HORIZONTAL" then
-    -- crop from the right: advance the right coord inward by the empty fraction
-    r = r - dx
-    tex:Right(self, ui.edge.Right, self:Width() * -dx, 0)
-  else -- vertical
-    -- crop from the top: advance the top coord downward by the empty fraction
-    t = t + dy
-    tex:Top(self, ui.edge.Top, 0, self:Height() * -dy)
-  end
-  tex:Coords(l, r, t, b)
-end
+function StatusBar:SetValue(v) self._widget:SetValue(v) end

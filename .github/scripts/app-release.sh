@@ -9,6 +9,12 @@
 # default GITHUB_TOKEN) does trigger workflows, so a push-triggered flow would
 # re-release itself in a loop. The calling workflow only builds + publishes
 # when this script reports changed=true.
+#
+# The bump is committed LOCALLY and NOT pushed here (#1035): the workflow pushes it only after the
+# build succeeds, so a failed build burns no version. It also tags exactly the commit it built (the
+# `sha` output -> the release's target_commitish) rather than whatever main's tip is at publish time.
+# If a bump was pushed but its release never published (version has no tag yet), the next run reuses
+# that version instead of bumping past it.
 
 set -euo pipefail
 
@@ -27,7 +33,11 @@ CARGO_LOCK="${APP_DIR}/src-tauri/Cargo.lock"
 # change shouldn't cut a release.
 last_tag=$(git tag -l "${TAG_PREFIX}*" | sort -V | tail -1 || true)
 
-pathspec=("${APP_DIR}/" ":(exclude,glob)${APP_DIR}/**/*.md")
+# apps/bot-ops is compiled into the exe (cargo path dep + the @bot-ops vite alias; app-test.yml treats
+# it as part of the app), so a bot-ops change is an app change.
+SHARED_DIR="apps/bot-ops"
+
+pathspec=("${APP_DIR}/" ":(exclude,glob)${APP_DIR}/**/*.md" "${SHARED_DIR}/" ":(exclude,glob)${SHARED_DIR}/**/*.md")
 if [[ -n "$last_tag" ]]; then
   commit_log=$(git log "${last_tag}..HEAD" --pretty=format:"%s" -- "${pathspec[@]}" || true)
 else
@@ -45,28 +55,36 @@ fi
 #   0.2.3 -> 0.2.4
 current_version=$(node -p "require('./${TAURI_CONF}').version")
 
-if [[ "$current_version" =~ ^(.*[^0-9])([0-9]+)([^0-9]*)$ ]]; then
-  new_version="${BASH_REMATCH[1]}$(( BASH_REMATCH[2] + 1 ))${BASH_REMATCH[3]}"
+if [[ -z "$(git tag -l "${TAG_PREFIX}${current_version}")" ]]; then
+  # The current version was bumped (and pushed) by an earlier run whose release never published.
+  echo "warbandeer-desktop: ${current_version} is unreleased, reusing it"
+  new_version="$current_version"
 else
-  new_version="$(( current_version + 1 ))"
+  if [[ "$current_version" =~ ^(.*[^0-9])([0-9]+)([^0-9]*)$ ]]; then
+    new_version="${BASH_REMATCH[1]}$(( BASH_REMATCH[2] + 1 ))${BASH_REMATCH[3]}"
+  else
+    new_version="$(( current_version + 1 ))"
+  fi
+
+  echo "warbandeer-desktop: ${current_version} -> ${new_version}"
+
+  sed -i "s/\"version\": \"${current_version}\"/\"version\": \"${new_version}\"/" "$TAURI_CONF" "$PACKAGE_JSON"
+  sed -i "s/^version = \"${current_version}\"/version = \"${new_version}\"/" "$CARGO_TOML"
+
+  # Cargo.lock lists many packages' `version = "..."` lines — only bump the one
+  # immediately following this app's own `name = "warbandeer-desktop"` entry.
+  awk -v new="$new_version" '
+    found && /^version = / { sub(/"[^"]*"/, "\"" new "\""); found = 0 }
+    /^name = "warbandeer-desktop"$/ { found = 1 }
+    { print }
+  ' "$CARGO_LOCK" > "${CARGO_LOCK}.tmp" && mv "${CARGO_LOCK}.tmp" "$CARGO_LOCK"
+
+  git add "$TAURI_CONF" "$PACKAGE_JSON" "$CARGO_TOML" "$CARGO_LOCK"
+  git commit -m "chore(release): bump warbandeer-desktop to ${new_version}"
 fi
 
-echo "warbandeer-desktop: ${current_version} -> ${new_version}"
-
-sed -i "s/\"version\": \"${current_version}\"/\"version\": \"${new_version}\"/" "$TAURI_CONF" "$PACKAGE_JSON"
-sed -i "s/^version = \"${current_version}\"/version = \"${new_version}\"/" "$CARGO_TOML"
-
-# Cargo.lock lists many packages' `version = "..."` lines — only bump the one
-# immediately following this app's own `name = "warbandeer-desktop"` entry.
-awk -v new="$new_version" '
-  found && /^version = / { sub(/"[^"]*"/, "\"" new "\""); found = 0 }
-  /^name = "warbandeer-desktop"$/ { found = 1 }
-  { print }
-' "$CARGO_LOCK" > "${CARGO_LOCK}.tmp" && mv "${CARGO_LOCK}.tmp" "$CARGO_LOCK"
-
-git add "$TAURI_CONF" "$PACKAGE_JSON" "$CARGO_TOML" "$CARGO_LOCK"
-git commit -m "chore(release): bump warbandeer-desktop to ${new_version}"
-git push
-
-echo "version=${new_version}" >> "$GITHUB_OUTPUT"
-echo "changed=true" >> "$GITHUB_OUTPUT"
+{
+  echo "version=${new_version}"
+  echo "sha=$(git rev-parse HEAD)"
+  echo "changed=true"
+} >> "$GITHUB_OUTPUT"

@@ -92,4 +92,35 @@ describe("Warbandeer_Bars restore", function()
       assert.is_nil(bar.slots[SLOT + 1])
     end)
   end)
+
+  -- #1032: restoring macros alone creates/finds the macros but must not touch the bars.
+  describe("macro slots", function()
+    local macro = { id = 1, name = "Pull", body = "/cast Foo", icon = "icon" }
+    local MACRO_ID = 7
+
+    local function restoreMacros(include)
+      setup({ [SLOT] = { "spell", 42 } })
+      bar.env.GetMacroInfo = function(i)
+        if i == MACRO_ID then return macro.name, "icon", macro.body end
+      end
+      bar.env.GetNumMacros = function() return 0, 0 end
+      bar.env.strtrim = function(str) return (str:gsub("^%s+", ""):gsub("%s+$", "")) end
+      bar.env.strsub = string.sub
+      bar.env.PickupMacro = function(id) bar.cursor = { "macro", id } end
+      ns.Restore({
+        macros = { macro },
+        slots = { { id = SLOT, type = "macro", index = macro.id } },
+      }, include, true)
+    end
+
+    it("places no actions on a macros-only restore", function()
+      restoreMacros({ macros = true })
+      assert.are.same({ "spell", 42 }, bar.slots[SLOT])
+    end)
+
+    it("still places the macro when bars are restored too", function()
+      restoreMacros({ macros = true, bars = true })
+      assert.are.same({ "macro", MACRO_ID }, bar.slots[SLOT])
+    end)
+  end)
 end)
