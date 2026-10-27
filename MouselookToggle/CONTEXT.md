@@ -36,3 +36,5 @@ right-click freelook (optional).
 - The keybind is ignored while a mouse button is held: `MouselookStop()` mid-click leaves the character auto-running.
 - The reticle container frame is always shown — a hidden frame's OnUpdate never fires, so it could never notice mouselook starting again; the OnUpdate shows/hides the texture instead.
 - `GetCursorPosition` during mouselook returns the frozen (or centered) cursor position — exactly what `@cursor` macros target — so the reticle just tracks it in both modes.
+
+**Specs:** `spec/toggle_spec.lua` (loader `spec/mouselook.lua`, a scriptable fake client; `ns:after` queues until `state.flush()`) covers the keybind (mid-click guard, deferred CVar arming, toggle off), the reticle `OnUpdate` (toggled vs held debounce, fade-in, `showHeld`) and the right-click-release cancel (not while held, not with Left also down).

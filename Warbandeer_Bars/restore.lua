@@ -275,14 +275,15 @@ local function FindOrCreateMacro(m)
   return CreateMacro(m.name, icon, m.body, perchar)
 end
 
-local function RestoreMacrosAndSlots(macros, slots)
+local function RestoreMacrosAndSlots(macros, slots, placeSlots)
   -- build id->newId map
   local idMap = {}
   for _, m in ipairs(macros) do
     local newId = FindOrCreateMacro(m)
     if newId then idMap[m.id] = newId end
   end
-  -- place macro slots
+  -- place macro slots; a macros-only restore creates the macros but leaves the bars alone
+  if not placeSlots then return end
   for _, s in ipairs(slots) do
     if s.type == "macro" and s.index then
       local newId = idMap[s.index]
@@ -407,7 +408,7 @@ function ns.Restore(profile, include, silent, barFilter)
   -- Flyouts FIRST (see RestoreFlyouts), then macros so macro slots resolve,
   -- then the remaining slots; never reorder these passes.
   if include.bars    then RestoreFlyouts(slots, flyouts) end
-  if include.macros  then RestoreMacrosAndSlots(profile.macros or {}, slots) end
+  if include.macros  then RestoreMacrosAndSlots(profile.macros or {}, slots, include.bars) end
   if include.bars    then
     RestoreSlots(slots, overrides)
     ClearUnusedSlots(slots, barFilter)

@@ -253,7 +253,11 @@ end
 
 function ReputationsView:OnBeforeShow()
   self:_refreshData()
-  if self._filter then self._filter:Select(self._pages[self._pageIdx] and self._pages[self._pageIdx].key) end
+  -- Rebuild the options too: a refresh can add or drop pages, and selecting a key the
+  -- dropdown was built without leaves it blank.
+  if self._filter then
+    self._filter:SetOptions(self:_pageOptions(), self._pages[self._pageIdx] and self._pages[self._pageIdx].key)
+  end
   self:_renderPage()
 end
 

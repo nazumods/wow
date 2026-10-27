@@ -45,10 +45,16 @@ jobs:
         with:
           luaVersion: "5.1.5"
       - uses: leafo/gh-actions-luarocks@v6
-      - name: Install luacheck
-        run: luarocks install luacheck
+      - name: Install luacheck and busted
+        run: |
+          luarocks install luacheck
+          luarocks install busted
       - name: Lint regenerated files
         run: luacheck Warbandeer_Collected/data/sets.lua Warbandeer_Collected/data/sets_late.lua Warbandeer_Collected/data/sets_expand.lua --codes
+      # busted too: the specs that read sets*.lua (collectedrows, setpieces, sets_forever,
+      # dataviewmarks) never run on a GITHUB_TOKEN PR, so run them against the regenerated data here.
+      - name: Run unit tests against the regenerated data
+        run: busted --output=utfTerminal
 
       - name: Open PR if changed
         uses: peter-evans/create-pull-request@v8
@@ -95,7 +101,7 @@ jobs:
         if: needs.refresh.result == 'failure'
         run: |
           prev=$(gh run list -R "$REPO" --workflow update-collected-sets.yml --branch main \
-                   --status completed --limit 1 --json conclusion --jq '.[0].conclusion // ""')
+                   --event schedule --status completed --limit 1 --json conclusion --jq '.[0].conclusion // ""')
           echo "Previous completed run conclusion: ${prev:-none}"
           if [ "$prev" != "failure" ]; then
             echo "First failure — the daily schedule will retry tomorrow. No issue yet."

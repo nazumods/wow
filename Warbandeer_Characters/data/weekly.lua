@@ -1,6 +1,6 @@
 ---@type Warbandeer_Characters
 local ns = select(2, ...)
-local Set, ValueList, any = ns.lua.sets.Set, ns.lua.lists.values, ns.lua.maps.any
+local Set, SetOfValues, any = ns.lua.sets.Set, ns.lua.sets.values, ns.lua.maps.any
 local Player = ns.wow.Player
 local IsQuestFlaggedCompleted = C_QuestLog.IsQuestFlaggedCompleted
 local GetActivities = C_WeeklyRewards.GetActivities
@@ -30,7 +30,7 @@ Weekly.fields = {
   ---@field DMF boolean
   DMF = {
     missing = false,
-    ids = ValueList(DMFQuests),
+    ids = SetOfValues(DMFQuests),
     resetOn = ns.RESET_SUNDAY,
     get = function(_, _, current)
       -- Once completed, stay completed until the Sunday reset clears it.

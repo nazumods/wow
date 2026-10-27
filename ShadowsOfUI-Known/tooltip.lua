@@ -16,23 +16,31 @@ local function colorName(e)
   return ns.Colors.className(e.name, e.classKey)
 end
 
--- Append the "Learnable by:" block. A single alt is one inline line; multiple alts get a
--- header plus up to 5 names, or the first 4 then "and N more." once past 5.
----@param list KnownEntry[]
-local function render(tooltip, list)
+-- Append a labelled name list: a single entry is one inline line; several get a header plus up to
+-- 5 names, or the first 4 then "and N more." once past 5. `nameOf` renders one entry's name.
+---@param label string  e.g. "Known by:"
+---@param list table[]  non-empty
+---@param nameOf fun(entry: table): string
+local function renderList(tooltip, label, list, nameOf)
   local n = #list
   if n == 1 then
-    tooltip:AddLine(LABEL:WrapTextInColorCode("Learnable by:") .. " " .. colorName(list[1]))
+    tooltip:AddLine(LABEL:WrapTextInColorCode(label) .. " " .. nameOf(list[1]))
     return
   end
-  tooltip:AddLine(LABEL:WrapTextInColorCode("Learnable by:"))
+  tooltip:AddLine(LABEL:WrapTextInColorCode(label))
   local shown = n > 5 and 4 or n
   for i = 1, shown do
-    tooltip:AddLine("  " .. colorName(list[i]))
+    tooltip:AddLine("  " .. nameOf(list[i]))
   end
   if n > shown then
     tooltip:AddLine(GRAY_FONT_COLOR:WrapTextInColorCode(("  and %d more."):format(n - shown)))
   end
+end
+
+-- Append the "Learnable by:" block.
+---@param list KnownEntry[]
+local function render(tooltip, list)
+  renderList(tooltip, "Learnable by:", list, colorName)
 end
 
 -- The localized "Requires " prefix of the skill line, taken from ITEM_MIN_SKILL
@@ -87,6 +95,10 @@ local function customerOrderRecipe(tooltip)
   return opt.spellID, opt.skillLineAbilityID
 end
 
+-- Class-coloured name of a character that knows the recipe.
+---@param e CrafterEntry
+local function colorKnower(e) return ns.Colors.className(e.name, e.classKey) end
+
 -- "Known by:" — a single crafter inline, multiple as a header + up to 5 class-coloured names,
 -- or a red "Not Known: <Profession>" when no character has learned the recipe (the profession
 -- comes from the row's skillLineAbilityID, so it shows even though nobody knows the recipe) --
@@ -104,18 +116,7 @@ renderKnownBy = function(tooltip, list, skillLineAbilityID)
     tooltip:AddLine(RED_FONT_COLOR:WrapTextInColorCode(text))
     return
   end
-  if n == 1 then
-    tooltip:AddLine(LABEL:WrapTextInColorCode("Known by:") .. " " .. ns.Colors.className(list[1].name, list[1].classKey))
-    return
-  end
-  tooltip:AddLine(LABEL:WrapTextInColorCode("Known by:"))
-  local shown = n > 5 and 4 or n
-  for i = 1, shown do
-    tooltip:AddLine("  " .. ns.Colors.className(list[i].name, list[i].classKey))
-  end
-  if n > shown then
-    tooltip:AddLine(GRAY_FONT_COLOR:WrapTextInColorCode(("  and %d more."):format(n - shown)))
-  end
+  renderList(tooltip, "Known by:", list, colorKnower)
 end
 
 -- Class-colour an online crafter; grey out an offline one (they can't craft for you now).
@@ -137,19 +138,7 @@ local function renderGuildCrafters(tooltip, recipeID)
     return
   end
   if not list or #list == 0 then return end
-  local n = #list
-  if n == 1 then
-    tooltip:AddLine(LABEL:WrapTextInColorCode("Guild crafters:") .. " " .. colorCrafter(list[1]))
-    return
-  end
-  tooltip:AddLine(LABEL:WrapTextInColorCode("Guild crafters:"))
-  local shown = n > 5 and 4 or n
-  for i = 1, shown do
-    tooltip:AddLine("  " .. colorCrafter(list[i]))
-  end
-  if n > shown then
-    tooltip:AddLine(GRAY_FONT_COLOR:WrapTextInColorCode(("  and %d more."):format(n - shown)))
-  end
+  renderList(tooltip, "Guild crafters:", list, colorCrafter)
 end
 
 ns:OnItemTooltip(function(tooltip)

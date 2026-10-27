@@ -156,6 +156,7 @@ std = {
     "ReloadUI",
     "ShowUIPanel",
     "hooksecurefunc",
+    "MainMenuBarBagManager",
 
     "C_ActionBar",
     "C_AddOns",

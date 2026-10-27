@@ -24,12 +24,10 @@ Texture.lua
 Label.lua
 Frame.lua
 BgFrame.lua
-Dialog.lua
 StatusBar.lua
 Slider.lua
 RingSelector.lua
 Button.lua
-SecureButton.lua
 CheckButton.lua
 RadioGroup.lua
 MinimapButton.lua

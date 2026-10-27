@@ -55,8 +55,8 @@ function ns:MigrateDB()
   -- …and the illusion list's, keyed by illusion sourceID instead: illusions have no visualID, and
   -- the two id spaces overlap numerically, so they can't share a table.
   if not db.illusionWanted then db.illusionWanted = {} end   -- [sourceID] = true
-  -- v7: the custom set the outfit row last loaded, so the dropdown reopens where it left off.
-  -- A plain id (not a table) — the set itself lives in the game's own store, not ours.
+  -- v7: seeded for DB compatibility but no longer read or written (the outfit row doesn't remember
+  -- a selection). Left in place: old keys are never removed or repurposed.
   if db.lastOutfit == nil then db.lastOutfit = false end   -- customSetID | false
   -- v8: the account-wide outfit library (#655). The game's own custom sets are PER-CHARACTER
   -- (measured — a set saved on one alt is invisible on another), so a look can only follow you

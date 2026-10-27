@@ -19,7 +19,7 @@ jobs:
         env:
           REF_NAME: ${{ github.ref_name }}
         run: |
-          if [[ ! "$REF_NAME" =~ ^[A-Za-z_]+-v[0-9]+\.[0-9]+\.[0-9]+-r[0-9]+$ ]]; then
+          if [[ ! "$REF_NAME" =~ ^[A-Za-z_-]+-v[0-9]+\.[0-9]+\.[0-9]+-r[0-9]+$ ]]; then
             echo "Error: must be run from a release tag (e.g. LibNAddOn-v12.0.5-r1), got: $REF_NAME"
             exit 1
           fi
@@ -54,10 +54,11 @@ jobs:
           echo "prerelease=$PRERELEASE" >> "$GITHUB_OUTPUT"
 
           # Multiline body needs a heredoc-style output
+          delim="BODY_$(openssl rand -hex 8)"
           {
-            echo "body<<EOF"
+            echo "body<<$delim"
             echo "$BODY"
-            echo "EOF"
+            echo "$delim"
           } >> "$GITHUB_OUTPUT"
 
       - uses: actions/checkout@v7
@@ -73,8 +74,9 @@ jobs:
       # Reading from the left turned the five-digit 16001 into 16.0.1.
       - name: Read .toc metadata
         id: toc
+        env:
+          ADDON: ${{ steps.info.outputs.addon }}
         run: |
-          ADDON="${{ steps.info.outputs.addon }}"
           # The folder-named .toc, with NO fallback to "any .toc in the folder" (#742). That
           # fallback is how a folder rename that missed its .toc got metadata read, zipped and
           # uploaded as an addon WoW cannot load. Fail loudly instead — this is the last gate
@@ -184,8 +186,9 @@ jobs:
       # never ship either.
       - name: Package addon zip
         if: steps.toc.outputs.skip != 'true'
+        env:
+          ADDON: ${{ steps.info.outputs.addon }}
         run: |
-          ADDON="${{ steps.info.outputs.addon }}"
           zip -r "${ADDON}.zip" "${ADDON}/" --exclude "*.git*" "${ADDON}/spec/*" "${ADDON}/tools/*"
 
       - name: Upload to CurseForge

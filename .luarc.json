@@ -104,7 +104,9 @@
     "ReloadUI",
     "ShowUIPanel",
     "hooksecurefunc",
+    "MainMenuBarBagManager",
 
+    "C_ActionBar",
     "C_AddOns",
     "C_AreaPoiInfo",
     "C_AssistedCombat",
@@ -306,6 +308,7 @@
     "GetLocale",
     "GetLootSlotLink",
     "GetLootSpecialization",
+    "GetMacroIndexByName",
     "GetMacroInfo",
     "GetMaxLevelForPlayerExpansion",
     "GetMerchantItemID",

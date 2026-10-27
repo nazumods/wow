@@ -12,6 +12,41 @@ local GetTime = GetTime
 -- two-hand logic.  Single-candidate evaluation lives in evaluate.lua; the external
 -- sources (world quest / vendor / arbitrary item) in upgradesources.lua.
 
+-- Place a paired slot's candidates: the best onto the weaker equipped slot, the runner-up
+-- onto the other if it also beats that slot.  Held beats warband on an ilvl tie; a warband
+-- pick is flagged betterElsewhere when it left a lower held candidate unplaced.
+local function resolvePair(g, equipped, ranks, out)
+  local cands = g.cands
+  for i, c in ipairs(cands) do c.i = i end
+  sort(cands, function(a, b)
+    if a.ilvl ~= b.ilvl then return a.ilvl > b.ilvl end
+    if a.where ~= b.where then return a.where == "held" end
+    return a.i < b.i
+  end)
+  local function cur(slot) return equipped[slot] and equipped[slot].ilvl or 0 end
+  local weak, strong = g.slots[1], g.slots[2]
+  if cur(strong) < cur(weak) then weak, strong = strong, weak end
+  local placed = {}
+  for i, slot in ipairs({ weak, strong }) do
+    local c = cands[i]
+    if c and c.ilvl > cur(slot) then
+      placed[i] = true
+      out[slot] = {
+        slot = slot, link = c.link, ilvl = c.ilvl, ilvlGain = c.ilvl - cur(slot),
+        where = c.where, statTag = ns.StatTag(c.link, ranks), reqLevel = c.reqLevel,
+      }
+    end
+  end
+  local heldLeft = false
+  for j, c in ipairs(cands) do
+    if not placed[j] and c.where == "held" then heldLeft = true end
+  end
+  for _, slot in ipairs({ weak, strong }) do
+    local r = out[slot]
+    if r then r.betterElsewhere = r.where == "warband" and heldLeft end
+  end
+end
+
 -- Best upgrade per slot for a character across its held + warband pools.
 ---@param charData Character
 ---@return table<string, UpgradeResult>
@@ -28,11 +63,24 @@ local function computeUpgrades(charData)
   -- masquerade as an upgrade against the empty slot.
   local twoHander = ns.EquippedTwoHand(charData)
 
+  -- Candidates for a paired slot (rings, trinkets), grouped by the pair's first slot and
+  -- placed together below: the best goes to the weaker slot, the runner-up to the other.
+  local pairs_ = {}
+
   -- Record the best (highest ilvl) candidate for each slot, per source.
   local function consider(cand, where)
-    local slot, gain, ilvl = ns.Evaluate(charData, cand)
+    local slot, gain, ilvl, slots = ns.Evaluate(charData, cand)
     if not slot then return end
     if twoHander and (slot == "MainHand" or slot == "OffHand") then return end
+    if #slots == 2 then
+      local g = pairs_[slots[1]]
+      if not g then
+        g = { slots = slots, cands = {} }
+        pairs_[slots[1]] = g
+      end
+      insert(g.cands, { link = cand.link, ilvl = ilvl, reqLevel = cand.reqLevel, where = where })
+      return
+    end
     local r = out[slot]
     if not r then r = {} ; out[slot] = r end
     local k = where == "warband" and "wb" or "held"
@@ -54,6 +102,8 @@ local function computeUpgrades(charData)
       reqLevel = pick.reqLevel,
     }
   end
+
+  for _, g in pairs(pairs_) do resolvePair(g, equipped, ranks, out) end
 
   if twoHander then ns.ResolveTwoHand(charData, pools, warband, equipped, ranks, out) end
   return out

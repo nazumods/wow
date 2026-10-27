@@ -110,9 +110,9 @@ TableFrame:new{
 }
 ```
 
-## Secure frames
+## Special frames
 
-`SecureButton` uses `SecureActionButtonTemplate`. Never call `SetAttribute` on it during combat (taint). `special = true` on `Frame` registers it as a `UISpecialFrame` (Escape key closes it) and puts the widget in `_G` — only use for top-level addon windows.
+`special = true` on `Frame` registers it as a `UISpecialFrame` (Escape key closes it) and puts the widget in `_G` — only use for top-level addon windows.
 
 ## Testing
 
