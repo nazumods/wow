@@ -47,8 +47,6 @@ local SLOT_LABEL = {
 ---@field OutfitArmorType fun(list: table[]): string
 ---@field OutfitOrigin fun(entry: LibraryOutfit): string
 ---@field SaveCustomSet fun(name: string, list: table[], customSetID: number?): number?, string?
----@field RenameCustomSet fun(customSetID: number, name: string): boolean, string?
----@field DeleteCustomSet fun(customSetID: number)
 
 ---Localized name for an equipment slot ("Head", "Shirt", "Tabard", …).
 ---@param slotID number
@@ -381,19 +379,17 @@ function ns.CustomSetOutfit(customSetID)
 end
 
 -- Shared name validation for the write paths: non-empty, allowed by the game's own filter, and
--- not already taken by a DIFFERENT set (`exceptID` lets a rename keep its own name). Checked up
--- front because the C calls fail SILENTLY — `NewCustomSet` returns nil, `RenameCustomSet` simply
--- doesn't rename — which reads as "the button did nothing". Returns nil when the name is fine,
--- else the message to show.
+-- not already taken by another set. Checked up front because the C call fails SILENTLY —
+-- `NewCustomSet` returns nil — which reads as "the button did nothing". Returns nil when the name
+-- is fine, else the message to show.
 ---@param name string
----@param exceptID number?  a set id allowed to already hold this name
 ---@return string?
-local function nameError(name, exceptID)
+local function nameError(name)
   if not name or name == "" then return "a name is required" end
   if not IsValidCustomSetName(name) then return ("\"%s\" isn't an allowed name"):format(name) end
   local wanted = name:lower()
   for _, s in ipairs(ns.CustomSets()) do
-    if s.name:lower() == wanted and s.id ~= exceptID then
+    if s.name:lower() == wanted then
       return ("a set named \"%s\" already exists"):format(name)
     end
   end
@@ -426,22 +422,4 @@ function ns.SaveCustomSet(name, list, customSetID)
   local id = C_TransmogCollection.NewCustomSet(name, ns.OutfitIcon(list), list)
   if not id then return nil, "the game refused to save the set" end
   return id
-end
-
----Rename a saved custom set. Same up-front validation as the save path, except the set is allowed
----to keep its own name (so re-clicking Rename with the field untouched isn't an error).
----@param customSetID number
----@param name string
----@return boolean ok, string? err
-function ns.RenameCustomSet(customSetID, name)
-  local err = nameError(name, customSetID)
-  if err then return false, err end
-  C_TransmogCollection.RenameCustomSet(customSetID, name)
-  return true
-end
-
----Delete a saved custom set.
----@param customSetID number
-function ns.DeleteCustomSet(customSetID)
-  C_TransmogCollection.DeleteCustomSet(customSetID)
 end

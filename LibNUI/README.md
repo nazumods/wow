@@ -193,8 +193,7 @@ Region
     │   │   └── Notification
     │   └── Tooltip
     ├── Button
-    │   ├── CheckButton
-    │   └── SecureButton
+    │   └── CheckButton
     ├── RadioGroup
     ├── SectionHeader
     ├── Timer
@@ -210,7 +209,6 @@ Region
     ├── BorderBox
     ├── MinimapButton
     ├── Cell
-    ├── Dialog
     ├── EditBox
     ├── FilterDropdown
     ├── ScrollFrame
@@ -724,7 +722,7 @@ ui.FilterDropdown:new{
 
 ## Button
 
-Inherits `Frame`. Interactive button with optional keybind label, glow border, tooltip, and cooldown.
+Inherits `Frame`. Interactive button with a hover glow border.
 
 ### Constructor options
 
@@ -736,10 +734,6 @@ Includes all `Frame` options, plus:
 | `normal`        | table   | `{texture, coords}` for normal state texture                 |
 | `glow`          | bool    | Show border glow on hover (default `true`)                   |
 | `glowAlpha`     | number  | Glow opacity 0–1 (default `1`). Softens the hover glow without removing it — `glow = false` is the only other lever, and a button with no glow at all reads as disabled |
-| `bindLeftClick` | string  | Keybind string — wires `SetOverrideBindingClick`             |
-| `kbLabel`       | bool    | Show keybind label (default `true` when `bindLeftClick` set) |
-| `tooltip`       | table   | Tooltip content: `{itemId, spellId, toyId, mountSpellId, owner, point}` |
-| `itemID`        | number  | Enables cooldown tracking                                    |
 
 ### Methods
 
@@ -753,7 +747,6 @@ Includes all `Frame` options, plus:
 | Callback     | Description                                               |
 |--------------|-----------------------------------------------------------|
 | `OnClick`    | Called on mouse up                                        |
-| `OnChange`   | Called on drag-receive for matching item/spell/mount type |
 
 ---
 
@@ -1169,18 +1162,6 @@ programmatically (no `onSort`). Callback: `onSort(key, descending)` on user clic
 
 ---
 
-## SecureButton
-
-Inherits `Button`. Uses `SecureActionButtonTemplate` for protected actions (spells, toys).
-
-### Constructor options
-
-| Option    | Type  | Description                                                  |
-|-----------|-------|--------------------------------------------------------------|
-| `actions` | table | List of `{type, target, spell, toy}` action definitions      |
-
----
-
 ## EditBox
 
 Inherits `Frame`. Uses `InputBoxTemplate`. Auto-focus is off by default.
@@ -1262,7 +1243,7 @@ Inherits `Frame`.
 | `backdrop`    | table   | Mixin with backdrop texture config                        |
 | `fill`        | table   | `{color, gradient, blend}` for a fill overlay texture     |
 | `color`       | table   | Color fill `{r,g,b,a}`                                    |
-| `texture`     | table/str | Bar texture — table for advanced coords-based texture   |
+| `texture`     | string/number | Bar texture path or fileID                          |
 | `orientation` | string  | `"HORIZONTAL"` or `"VERTICAL"`                            |
 | `min`/`max`   | number  | Min/max range                                             |
 
@@ -1272,7 +1253,7 @@ Inherits `Frame`.
 |------------------|------------------------------------|
 | `Color(c)`       | Set color fill                     |
 | `Texture(t)`     | Set bar texture                    |
-| `SetValue(v)`    | Set current value (handles custom texture coords) |
+| `SetValue(v)`    | Set current value                  |
 
 ---
 
@@ -1302,25 +1283,6 @@ whether it came from user input. Set `step` to snap to increments.
 |-------------------|--------------------------------------------------------|
 | `Value(v)`        | Get (no arg) or set the value; setting fires `OnChange` |
 | `MinMax(min,max)` | Set the value range                                     |
-
----
-
-## Dialog
-
-Inherits `Frame`. Uses Blizzard's `DialogButtonFrame` with title bar. DIALOG strata, Escape closes it.
-
-### Constructor options
-
-| Option       | Type  | Description          |
-|--------------|-------|----------------------|
-| `title`      | string | Title bar text      |
-| `titleColor` | table  | `{r,g,b}` for title |
-
-### Methods
-
-| Method                    | Description               |
-|---------------------------|---------------------------|
-| `makeTitlebarDraggable()` | Wire title bar drag       |
 
 ---
 
@@ -1658,7 +1620,7 @@ t:TopLeft(myFrame, "TOPLEFT", 10, -10)
 t:onLoad()
 ```
 
-## Example: Button with tooltip
+## Example: Button with an icon
 
 ```lua
 local Button = LibNUI.Button
@@ -1666,7 +1628,6 @@ local Button = LibNUI.Button
 local btn = Button:new{
   parent  = myFrame,
   normal  = {texture = "Interface/Icons/inv_misc_gem_pearl_06"},
-  tooltip = {itemId = 123456},
   onClick = function(self) print("clicked") end,
 }
 btn:Size(36, 36)

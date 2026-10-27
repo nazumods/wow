@@ -219,7 +219,6 @@ function ns:Scan()
             end
             self.db.sets[grp.id][set.id] = {
               collected = n,
-              parts = parts,
               total = #parts,
             }
           else

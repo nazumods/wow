@@ -24,8 +24,10 @@ function ns.setupDB(addOnName, addOn, ops)
 
     -- link to addOn
     self.db = _G[dbName]
-    -- migrate if needed
-    if version and self.MigrateDB and tonumber(version) ~= tonumber(self.db.version) then
+    -- migrate only on upgrade; a rollback (stored version newer than the toc's) must not
+    -- run MigrateDB, which would rewrite db.version down and replay every migration later
+    local target = tonumber(version)
+    if target and self.MigrateDB and (tonumber(self.db.version) or 0) < target then
       self:MigrateDB()
     end
   end, 1) -- run before addOn.onLoad

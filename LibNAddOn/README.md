@@ -124,7 +124,7 @@ myAddOn:RegisterSettings{
 ```
 
 You can't set database defaults this way, but since it calls `MigrateDB` on load of your addon
-when the database doesn't exist (as the versions don't match), you can initialize your db then:
+when the database doesn't exist or is older than the toc's `version` (never when it is newer, so a rollback doesn't replay migrations), you can initialize your db then:
 
 ```lua
 local myAddOn = LibNAddOn(...)
