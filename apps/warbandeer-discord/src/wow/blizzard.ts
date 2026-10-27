@@ -29,7 +29,21 @@ export async function blizzardToken(): Promise<string> {
   return token.value;
 }
 
-/** Reset the cached token. Tests only — production has no reason to drop a valid token. */
+/**
+ * GET `url` with the cached bearer token. A 401 means Blizzard rejected the token we hold — it can
+ * be revoked or rotated well before the `expires_in` we cached — so drop it and retry once with a
+ * fresh one, instead of failing every call until the cache lapses (~24h).
+ */
+export async function blizzardFetch(url: string): Promise<Response> {
+  const get = async () =>
+    fetch(url, { headers: { Authorization: `Bearer ${await blizzardToken()}` } });
+  const res = await get();
+  if (res.status !== 401) return res;
+  _resetBlizzardToken();
+  return get();
+}
+
+/** Drop the cached token: used on a 401 (see `blizzardFetch`) and by tests. */
 export function _resetBlizzardToken(): void {
   token = undefined;
 }

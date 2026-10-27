@@ -54,3 +54,40 @@ describe("dmf west of UTC (America/Los_Angeles)", () => {
     expect(dmfKey(window)).toBe("2026-11"); // Oct faire ended; next is November
   });
 });
+
+describe("dmfWindow (America/Los_Angeles)", () => {
+  test("opens 00:01 realm time on the first Sunday (PDT, UTC-7)", () => {
+    // First Sunday of Oct 2026 is the 4th.
+    const w = dmfWindow(2026, 9, LA);
+    expect(w.start.toISOString()).toBe("2026-10-04T07:01:00.000Z");
+    expect(w.end.toISOString()).toBe("2026-10-11T07:01:00.000Z");
+  });
+
+  test("uses the winter offset in PST (UTC-8)", () => {
+    // First Sunday of Dec 2026 is the 6th.
+    expect(dmfWindow(2026, 11, LA).start.toISOString()).toBe("2026-12-06T08:01:00.000Z");
+  });
+
+  test("a month starting on a Sunday opens on the 1st", () => {
+    // 2026-02-01 is a Sunday.
+    expect(dmfWindow(2026, 1, LA).start.toISOString()).toBe("2026-02-01T08:01:00.000Z");
+  });
+});
+
+describe("currentOrNextDmf (America/Los_Angeles)", () => {
+  test("before the month's fair: inactive, this month's window", () => {
+    const r = currentOrNextDmf(new Date("2026-10-02T00:00:00Z"), LA);
+    expect(r.active).toBe(false);
+    expect(r.window.start.toISOString()).toBe("2026-10-04T07:01:00.000Z");
+  });
+
+  test("inside the week: active", () => {
+    expect(currentOrNextDmf(new Date("2026-10-06T00:00:00Z"), LA).active).toBe(true);
+  });
+
+  test("after the week: inactive, next month's window", () => {
+    const r = currentOrNextDmf(new Date("2026-10-20T00:00:00Z"), LA);
+    expect(r.active).toBe(false);
+    expect(r.window.start.toISOString()).toBe("2026-11-01T07:01:00.000Z");
+  });
+});
