@@ -57,6 +57,12 @@ describe("buildRemote", () => {
     );
   });
 
+  test("pins the build to the sha being labelled, not the moving branch tip", () => {
+    expect(buildRemote("nazumods/wow", "a1b2c3d4e5f6")).toBe(
+      "https://github.com/nazumods/wow.git#a1b2c3d4e5f6:apps/warbandeer-discord",
+    );
+  });
+
   test("carries a branch with slashes through intact", () => {
     expect(buildRemote("nazumods/wow", "feat/x")).toContain("#feat/x:");
   });

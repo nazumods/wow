@@ -5,3 +5,5 @@ data/
 # That copy holds the live DISCORD_TOKEN and BLIZZARD_CLIENT_SECRET, and this is a public repo:
 # untracked, it sits one `git add -A` from being published, and `git reset --hard` won't clear it.
 .env.bak.*
+# env-set's in-flight temp file (mktemp "$ENV_FILE.XXXXXX") holds the same secrets.
+.env.[A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9]
