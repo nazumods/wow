@@ -83,6 +83,14 @@ export function resolveConfig(env: Env): Config {
     );
   }
 
+  const dmfTimezone =
+    optional("DMF_TIMEZONE") ?? (region === "us" ? "America/Los_Angeles" : "Europe/Paris");
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: dmfTimezone });
+  } catch {
+    throw new Error(`DMF_TIMEZONE must be a valid IANA timezone (e.g. Europe/Paris), got "${dmfTimezone}"`);
+  }
+
   return {
     discordToken: required("DISCORD_TOKEN"),
     announceChannelId,
@@ -95,8 +103,7 @@ export function resolveConfig(env: Env): Config {
     githubRepo,
     watchedRepos: watchedRepos.length ? watchedRepos : [githubRepo],
     githubToken: optional("GITHUB_TOKEN"),
-    dmfTimezone:
-      optional("DMF_TIMEZONE") ?? (region === "us" ? "America/Los_Angeles" : "Europe/Paris"),
+    dmfTimezone,
     gitSha: optional("GIT_SHA"),
     botBranch: optional("BOT_BRANCH") ?? "main",
     autoUpdate: optional("AUTO_UPDATE") === "true",

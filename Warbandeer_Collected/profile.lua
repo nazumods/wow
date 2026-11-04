@@ -263,7 +263,7 @@ function Prof:Report()
 end
 
 -- dev: the build profiler's controls. **Off by default since #843 landed** (see Prof:Armed), so a bare
--- call is the ON switch — and it opens the window in the same step, because the first open is the run
+-- call toggles it (the first call is the ON switch) — and it opens the window in the same step, because the first open is the run
 -- that can only be taken once per session.
 --
 -- Recording and printing stay separate switches: armed, it records **quietly**, and `show` turns the
@@ -300,4 +300,4 @@ ns:registerCommand("profile", nil, function(self, args)
   -- Opening from here only matters when there's no window yet: the first open is the run that can
   -- only be taken once per session, so don't make the user issue a second command to get it.
   if not ns.window then self:Open() end
-end, "dev: build profiling, off by default — bare call arms it (`report` aggregates, `show` prints live, `clear` wipes)")
+end, "dev: build profiling, off by default — bare call toggles it (`report` aggregates, `show` prints live, `clear` wipes)")

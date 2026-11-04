@@ -187,3 +187,16 @@ describe("resolveConfig — self-update", () => {
     expect(resolveConfig({ ...base, ADMIN_USER_IDS: " , " }).adminUserIds).toEqual([]);
   });
 });
+
+describe("DMF_TIMEZONE", () => {
+  test("rejects an unknown zone with a clear message", () => {
+    expect(() => resolveConfig({ ...base, DMF_TIMEZONE: "Foo/Bar" })).toThrow(/DMF_TIMEZONE/);
+  });
+
+  test("accepts UTC and a three-part zone", () => {
+    expect(resolveConfig({ ...base, DMF_TIMEZONE: "UTC" }).dmfTimezone).toBe("UTC");
+    expect(
+      resolveConfig({ ...base, DMF_TIMEZONE: "America/Argentina/Buenos_Aires" }).dmfTimezone,
+    ).toBe("America/Argentina/Buenos_Aires");
+  });
+});

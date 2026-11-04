@@ -1,11 +1,17 @@
 import type { Client } from "discord.js";
 import { config } from "./config";
 import { state, saveState } from "./state";
-import { currentOrNextDmf } from "./wow/dmf";
+import { currentOrNextDmf, dmfKey } from "./wow/dmf";
 import { lastWeeklyReset } from "./wow/reset";
 import { realmStatus, realmWatchConfigured, decideRealmTransition, type RealmStatus } from "./wow/realm";
-import { fetchReleases, decideReleaseAnnouncements, createReachabilityLog } from "./github";
+import {
+  fetchReleases,
+  decideReleaseAnnouncements,
+  createReachabilityLog,
+  type Release,
+} from "./github";
 import { checkForUpdate } from "./update";
+import { runIsolated } from "./isolate";
 import { restartPending, withCritical } from "./restart";
 
 const TICK_MS = 60 * 1000;
@@ -41,11 +47,12 @@ function channelFor(kind: AnnounceKind): string {
   return kind === "release" ? config.releaseAnnounceChannelId : config.announceChannelId;
 }
 
-async function announce(client: Client, kind: AnnounceKind, message: string): Promise<void> {
+export async function announce(client: Client, kind: AnnounceKind, message: string): Promise<void> {
   const channelId = channelFor(kind);
   const channel = await client.channels.fetch(channelId);
   if (!channel?.isSendable()) throw new Error(`Announce channel ${channelId} is not sendable`);
-  await channel.send(message);
+  // Release names come from any watched repo, so never let one ping @everyone or a role.
+  await channel.send({ content: message, allowedMentions: { parse: [] } });
   console.log("[announce]", message);
 }
 
@@ -54,11 +61,18 @@ async function onTick(client: Client): Promise<void> {
   // The whole tick is one critical section: a restart requested by the update check
   // below lands only once every announcement and state write has settled.
   await withCritical(async () => {
-    await checkDmf(client);
-    await checkWeeklyReset(client);
-    await checkRealm(client);
-    if (shouldPollReleases(new Date())) await checkReleases(client);
-    if (config.autoUpdate && shouldPollUpdate()) await checkAutoUpdate();
+    // Each check is isolated: one throwing must not starve the rest of the tick.
+    await runIsolated([
+      ["dmf", () => checkDmf(client)],
+      ["weeklyReset", () => checkWeeklyReset(client)],
+      ["realm", () => checkRealm(client)],
+      ["releases", async () => {
+        if (shouldPollReleases(new Date())) await checkReleases(client);
+      }],
+      ["autoUpdate", async () => {
+        if (config.autoUpdate && shouldPollUpdate()) await checkAutoUpdate();
+      }],
+    ]);
   });
 }
 
@@ -86,7 +100,7 @@ function shouldPollReleases(now: Date): boolean {
 async function checkDmf(client: Client): Promise<void> {
   const { active, window } = currentOrNextDmf();
   if (!active) return;
-  const key = `${window.start.getUTCFullYear()}-${window.start.getUTCMonth() + 1}`;
+  const key = dmfKey(window);
   if (state.dmfAnnouncedFor === key) return;
   const closes = Math.floor(window.end.getTime() / 1000);
   await announce(client, "dmf", `🎪 The **Darkmoon Faire** is open! It runs until <t:${closes}:F>.`);
@@ -165,10 +179,27 @@ async function checkRepoReleases(client: Client, repo: string): Promise<void> {
   if (releaseReachability.observe(repo, true) === "recovered") {
     console.log(`[release] ${repo} is reachable again`);
   }
+  await announceNewReleases(client, repo, releases);
+}
+
+/**
+ * Mark each release seen as soon as it is posted, so a send that fails partway (Discord 5xx or
+ * rate limit) leaves the earlier ones recorded and they are not re-announced on the next poll.
+ */
+export async function announceNewReleases(
+  client: Client,
+  repo: string,
+  releases: Release[],
+): Promise<void> {
   const { toAnnounce, nextSeen } = decideReleaseAnnouncements(releases, state.seenReleaseIds[repo]);
+  if (toAnnounce.length === 0) {
+    state.seenReleaseIds[repo] = nextSeen; // first-poll seed, or unchanged
+    await saveState();
+    return;
+  }
   for (const release of toAnnounce) {
     await announce(client, "release", `📦 New release: **${release.name}**\n${release.url}`);
+    state.seenReleaseIds[repo] = [...(state.seenReleaseIds[repo] ?? []), release.id];
+    await saveState();
   }
-  state.seenReleaseIds[repo] = nextSeen;
-  await saveState();
 }

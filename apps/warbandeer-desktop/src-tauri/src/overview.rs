@@ -484,7 +484,7 @@ mod tests {
     }
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn get_overview(wow_dir: Option<String>) -> Result<Overview, String> {
     let retail = wow::find_retail_dir(wow_dir.as_deref())
         .ok_or("Couldn't find a WoW _retail_ folder (no WTF/Account). Set WOW_DIR.")?;

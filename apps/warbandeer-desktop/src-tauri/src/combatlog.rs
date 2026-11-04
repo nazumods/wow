@@ -31,7 +31,7 @@ pub struct CombatLogSummary {
     pub top_damage: Vec<DamageRow>,
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn list_combat_logs(wow_dir: Option<String>) -> Result<Vec<CombatLogFile>, String> {
     let retail = wow::find_retail_dir(wow_dir.as_deref())
         .ok_or("Couldn't find a WoW _retail_ folder. Set WOW_DIR.")?;
@@ -88,17 +88,28 @@ fn is_damage_event(event: &str) -> bool {
         || event.ends_with("_DAMAGE_LANDED")
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn summarize_combat_log(path: String) -> Result<CombatLogSummary, String> {
     let file = std::fs::File::open(&path).map_err(|e| format!("open: {e}"))?;
-    let reader = BufReader::new(file);
+    summarize_reader(BufReader::new(file), path)
+}
 
+fn summarize_reader<R: BufRead>(mut reader: R, path: String) -> Result<CombatLogSummary, String> {
     let mut lines = 0u64;
     let mut encounters: Vec<String> = Vec::new();
     let mut damage: HashMap<String, i64> = HashMap::new();
 
-    for line in reader.lines() {
-        let Ok(line) = line else { break };
+    let mut buf = Vec::new();
+    loop {
+        buf.clear();
+        // Read raw bytes so a stray invalid-UTF-8 line is lossily decoded instead of ending the parse.
+        match reader.read_until(b'\n', &mut buf) {
+            Ok(0) => break,
+            Ok(_) => {}
+            Err(e) => return Err(format!("read: {e}")),
+        }
+        let line = String::from_utf8_lossy(&buf);
+        let line = line.trim_end_matches(['\n', '\r']);
         lines += 1;
 
         // timestamp and payload are separated by two spaces.
@@ -138,19 +149,48 @@ pub fn summarize_combat_log(path: String) -> Result<CombatLogSummary, String> {
         }
     }
 
-    let mut rows: Vec<DamageRow> = damage
-        .into_iter()
-        .map(|(name, amount)| DamageRow { name, amount })
-        .collect();
+    let mut rows: Vec<DamageRow> =
+        damage.into_iter().map(|(name, amount)| DamageRow { name, amount }).collect();
     rows.sort_by_key(|r| std::cmp::Reverse(r.amount));
     rows.truncate(10);
 
     encounters.truncate(20);
 
-    Ok(CombatLogSummary {
-        path,
-        lines,
-        encounters,
-        top_damage: rows,
-    })
+    Ok(CombatLogSummary { path, lines, encounters, top_damage: rows })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn run(bytes: &[u8]) -> CombatLogSummary {
+        summarize_reader(bytes, "t".into()).unwrap()
+    }
+
+    const SWING: &str = "10/24 20:00:01.000  SWING_DAMAGE,Player-1-A,\"Thrall,Of-Realm\",0x511,0x0,Creature-0-B,\"Boss\",0x10a48,0x0,100,0,1,0,0,0,0,0,0,0";
+    const SPELL: &str = "10/24 20:00:02.000  SPELL_DAMAGE,Player-1-B,\"Jaina-Realm\",0x511,0x0,Creature-0-B,\"Boss\",0x10a48,0x0,116,Fireball,0x4,50,0,4,0,0,0,0,0,0,0";
+
+    #[test]
+    fn counts_encounter_swing_and_spell_with_quoted_comma() {
+        let log = format!(
+            "10/24 20:00:00.000  ENCOUNTER_START,2902,\"Ulgrax, the Devourer\",15,20,2657\n{SWING}\n{SPELL}\n"
+        );
+        let s = run(log.as_bytes());
+        assert_eq!(s.lines, 3);
+        assert_eq!(s.encounters, vec!["Ulgrax, the Devourer"]);
+        assert_eq!(s.top_damage[0].name, "Thrall,Of-Realm");
+        assert_eq!(s.top_damage[0].amount, 100);
+        assert_eq!(s.top_damage[1].name, "Jaina-Realm");
+        assert_eq!(s.top_damage[1].amount, 50);
+    }
+
+    #[test]
+    fn invalid_utf8_line_does_not_stop_the_parse() {
+        let mut log = b"10/24 20:00:00.000  COMBAT_LOG_VERSION,\xff\xfe\n".to_vec();
+        log.extend_from_slice(SWING.as_bytes());
+        log.push(b'\n');
+        let s = run(&log);
+        assert_eq!(s.lines, 2);
+        assert_eq!(s.top_damage[0].amount, 100);
+    }
 }

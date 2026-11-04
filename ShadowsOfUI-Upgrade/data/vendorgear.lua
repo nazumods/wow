@@ -11,7 +11,7 @@ local ns = select(2, ...)
 -- Each entry is one slot at one quartermaster.  `options` lists the purchasable
 -- items for that slot: the four armour-type variants (cloth/leather/mail/plate)
 -- for body armour, or the genuine alternatives for an armour-type-less slot (a
--- neck has two stat variants).  The evaluator (upgrade.lua VendorUpgrades) keeps
+-- neck has two stat variants).  The evaluator (upgradesources.lua VendorUpgrades) keeps
 -- only the options the viewing character can equip — `CanEquip` selects the right
 -- armour type for body slots and passes every option for necks/rings — then picks
 -- the best-fitting one by stat tag, so one row surfaces per slot.

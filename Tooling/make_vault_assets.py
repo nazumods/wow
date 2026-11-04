@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Warbandeer Great Vault view assets.
 
-Generates the three white TGA textures the Great Vault view (`/wb vault`) needs, all in the same
+Generates the three TGA textures (two baked-colour pips, one white nav glyph) the Great Vault view (`/wb vault`) needs, all in the same
 house TGA format as the other Warbandeer icons (18-byte header, type-2 uncompressed, 32bpp,
 descriptor 0x08, BGRA bottom-up — see make_summary_icon.py):
 
