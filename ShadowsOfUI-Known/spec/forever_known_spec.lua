@@ -66,6 +66,53 @@ describe("ShadowsOfUI-Known tooltips", function()
     end)
   end)
 
+  -- #1083: the recipe name after the "Pattern:" prefix is matched against captured learned names; the
+  -- CJK locales write the prefix with a full-width colon.
+  describe("recipe item name prefix", function()
+    it("strips a full-width colon (zhCN/zhTW) as well as the ASCII one", function()
+      local d = known.loadTooltips({ toons = { toon("Knower", { { id = 1, name = "Bolt of Linen" } }) } })
+      assert.is_true(has(d.hoverRecipeItem("配方：Bolt of Linen"), "Known by:"))
+      assert.is_true(has(d.hoverRecipeItem("Pattern: Bolt of Linen"), "Known by:"))
+    end)
+
+    it("splits at whichever separator comes first", function()
+      local d = known.loadTooltips({ toons = { toon("Knower", { { id = 1, name = "Linen: Bolt" } }) } })
+      assert.is_true(has(d.hoverRecipeItem("配方：Linen: Bolt"), "Known by:"))
+    end)
+  end)
+
+  -- #1084 / #1083: the per-item answer is cached, and the cache is dropped on the events that change it.
+  describe("learnable cache", function()
+    it("serves a repeat hover from the cache within the TTL, then recomputes", function()
+      local toons = { toon("Knower", { { id = 1, name = "Bolt of Linen" } }) }
+      local d = known.loadTooltips({ toons = toons })
+      assert.is_false(has(d.hoverRecipeItem("Pattern: Bolt of Linen"), "Late"))
+      toons[#toons + 1] = toon("Late")
+      assert.is_false(has(d.hoverRecipeItem("Pattern: Bolt of Linen"), "Late"))   -- cached
+      d.advance(11)
+      assert.is_true(has(d.hoverRecipeItem("Pattern: Bolt of Linen"), "Late"))
+    end)
+
+    it("CRAFTINGORDERS_SHOW_CUSTOMER and NEW_RECIPE_LEARNED both drop it", function()
+      for _, event in ipairs({ "CRAFTINGORDERS_SHOW_CUSTOMER", "NEW_RECIPE_LEARNED" }) do
+        local toons = { toon("Knower", { { id = 1, name = "Bolt of Linen" } }) }
+        local d = known.loadTooltips({ toons = toons })
+        d.hoverRecipeItem("Pattern: Bolt of Linen")
+        toons[#toons + 1] = toon("Late")
+        d.fire(event)
+        assert.is_true(has(d.hoverRecipeItem("Pattern: Bolt of Linen"), "Late"), event)
+      end
+    end)
+
+    it("is not cached for a different item name or skill requirement", function()
+      local toons = { toon("Knower", { { id = 1, name = "Bolt of Linen" } }) }
+      local d = known.loadTooltips({ toons = toons })
+      d.hoverRecipeItem("Pattern: Bolt of Linen", 50)
+      toons[#toons + 1] = toon("Late")
+      assert.is_true(has(d.hoverRecipeItem("Pattern: Bolt of Linen", 75), "Late"))
+    end)
+  end)
+
   describe("Place Crafting Order tooltip (Known by / Not Known / Guild crafters)", function()
     it("Retail-shaped data: a recipe nobody knows reads 'Not Known: <profession>'", function()
       local d = known.loadTooltips({ profName = "Tailoring", toons = { toon("Alt", { { id = 1, name = "Other" } }) } })

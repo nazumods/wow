@@ -101,7 +101,15 @@ function MainWindow:RefreshWanted()
   self.wantedCount:Text(("|A:%s:14:14|a %d"):format(ns.WantedIcon, ns:WantedCount()))
 end
 
----Re-render the grid + header after a scan rebuilds the snapshot (called by ns:Scan).
+---Whether the window is currently shown. The window's own shown flag (not visibility under a hidden
+---parent), for callers that would otherwise repaint a closed window.
+---@return boolean
+function MainWindow:IsOpen()
+  return self._widget:IsShown()
+end
+
+---Re-render the grid + header after a scan rebuilds the snapshot (called by ns:Scan, and by Open
+---when it re-shows the window, since scans skip a closed one).
 function MainWindow:Refresh()
   self.list:RefreshCategoryFilter()   -- rebuild the Category options if this scan first populated them
   self.list:Render()   -- fires onFilterChanged → RefreshCounter
@@ -127,6 +135,7 @@ function ns:Open()
     ns.window:RememberPosition(ns.db.windowPos)   -- restore + persist the dragged position
   else
     ns.window:Show()
+    ns.window:Refresh()   -- scans don't repaint a closed window (#1064), so catch up now
   end
 end
 

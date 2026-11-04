@@ -55,6 +55,22 @@ end
 -- deferred — NOT the AreaPOIPinMixin base; see the block comment on the hook); gate to delve
 -- pins via C_AreaPoiInfo.GetDelvesForMap, append our line, and re-Show so the tooltip resizes
 -- around it (mirrors ShadowsOfUI-Quests).  Shift hides the block (suite convention).
+-- The delve entrances on a map don't change within a session, but the pin tooltip re-runs this about
+-- every 0.2s while hovered (#1084): remember each map's entrance ids as a set. Only a non-empty answer is
+-- kept, since an empty one can just mean the map's POI data hasn't loaded yet.
+local delveIdsByMap = {}
+local function isDelveEntrance(mapID, areaPoiID)
+  local set = delveIdsByMap[mapID]
+  if not set then
+    local delves = C_AreaPoiInfo.GetDelvesForMap(mapID)
+    if not (delves and #delves > 0) then return false end
+    set = {}
+    for _, id in ipairs(delves) do set[id] = true end
+    delveIdsByMap[mapID] = set
+  end
+  return set[areaPoiID] == true
+end
+
 local function onPinEnter(pin)
   if IsShiftKeyDown() then return end
   local poiInfo = pin.poiInfo
@@ -63,14 +79,7 @@ local function onPinEnter(pin)
   local map = pin.GetMap and pin:GetMap()
   local mapID = map and map.GetMapID and map:GetMapID()
   if not mapID then return end
-  local delves = C_AreaPoiInfo.GetDelvesForMap(mapID)
-  local isDelve = false
-  if delves then
-    for _, id in ipairs(delves) do
-      if id == areaPoiID then isDelve = true; break end
-    end
-  end
-  if not isDelve then return end
+  if not isDelveEntrance(mapID, areaPoiID) then return end
   local name = poiInfo and poiInfo.name
   if not name then
     local info = C_AreaPoiInfo.GetAreaPOIInfo(mapID, areaPoiID)

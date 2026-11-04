@@ -51,6 +51,8 @@ function M.loadTooltips(opts)
   end
   setGlobal("NORMAL_FONT_COLOR", wrapColor())
   setGlobal("RED_FONT_COLOR", wrapColor())
+  local now = 0
+  setGlobal("GetTime", function() return now end)
   setGlobal("GRAY_FONT_COLOR", wrapColor())
   setGlobal("ITEM_MIN_SKILL", "Requires %s (%d)")
   setGlobal("SlashCmdList", {})
@@ -61,10 +63,10 @@ function M.loadTooltips(opts)
   setGlobal("C_TradeSkillUI", { GetProfessionNameForSkillLineAbility = function() return opts.profName end })
   setGlobal("ProfessionsCustomerOrdersFrame", { IsShown = function() return true end })
 
-  local callbacks, printed = {}, {}
+  local callbacks, printed, events = {}, {}, {}
   local ns = {
     RegisterChangelog = function() end,
-    registerEvent = function() end,
+    registerEvent = function(_, name, fn) events[name] = fn end,
     OnItemTooltip = function(_, fn) callbacks[#callbacks + 1] = fn end,
     Print = function(...)
       local parts = {}
@@ -88,6 +90,9 @@ function M.loadTooltips(opts)
     return t
   end
   local d = { ns = ns, printed = printed }
+  -- Fire a registered ns:registerEvent handler, and move the fake GetTime clock.
+  function d.fire(name, ...) events[name](...) end
+  function d.advance(seconds) now = now + seconds end
   -- Run the /sknown slash handler (messages land in d.printed).
   function d.slash(msg) _G.SlashCmdList["SUI_KNOWN"](msg) end
   -- Hover a recipe ITEM (name-matched "Learnable by / Known by" surface).
