@@ -127,6 +127,7 @@ function BarsView:_buildSpecDD()
   -- Build once and repoint: WoW frames are never freed, and this runs on every show and class change.
   if self._specDD then
     self._specDD:SetOptions(opts, self._specID)
+    self._specDD:Select(self._specID)   -- SetOptions keeps a still-valid selection when _specID is nil
     return
   end
   self._specDD = FilterDropdown:new{

@@ -215,8 +215,8 @@ end
 
 -- Make every cell in row `i` drive the row's hover highlight, chaining onto any
 -- existing cell onEnter/onLeave (so the per-column tooltips keep working). On
--- click, a cell that carries its own onClick (e.g. iLvl/Upgrades/Catch-up → Gear,
--- enchants/gems → Detail) keeps it; cells with none open the row's character in
+-- click, a cell that carries its own onClick (e.g. iLvl/Upgrades/Catch-up → Gear)
+-- keeps it; cells with none open the row's character in
 -- the Detail view as a fallback (mirrors Overview's TopAlts). Each cell is
 -- a shallow COPY of the source data — several getData functions return shared
 -- table objects (e.g. ns.factionIcon[...] for the faction icon), so mutating

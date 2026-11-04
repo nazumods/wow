@@ -104,7 +104,7 @@ end
 -- in the bags left the other copy's overlay stale until a /reload. On any of them,
 -- drop the shared decor cache so the next paint re-queries the catalog, then repaint
 -- every visible surface (each refresher no-ops when its own frame is hidden). The events are
--- coalesced (below), so the cache wipe + repaint run once per burst, 100ms after the last event.
+-- coalesced (below), so the cache wipe + repaint run once per burst, 100ms after the burst's first event.
 local function refreshDecor()
   ns.WipeDecorCache()
   ns.Refresh()
@@ -115,7 +115,7 @@ for _, event in ipairs({
   "NEW_HOUSING_ITEM_ACQUIRED",
 }) do
   -- A placement / bulk-redeem burst fires these dozens of times in a few frames; each repaint
-  -- re-queries the catalog for every surface, so collapse the burst into one trailing repaint (#1065).
+  -- re-queries the catalog for every surface, so collapse the burst into one repaint, fired 100ms after its first event (#1065).
   ns:registerEvent(event, function() ns:coalesce("decor", 100, refreshDecor) end)
 end
 
