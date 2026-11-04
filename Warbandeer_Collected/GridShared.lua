@@ -800,13 +800,17 @@ function ns.filterToggle(strip, theme, spec)
     color = spec.active and gold or divider }
   Texture:new{ parent = b, layer = ui.layer.Border, color = {0.05, 0.05, 0.06, 0.92},
     position = { TopLeft = {1, -1}, BottomRight = {-1, 1} } }
-  local btn = Button:new{ parent = b, position = { All = true }, OnClick = spec.onClick,
-    OnEnter = spec.tip and function(s)
+  local btn = Button:new{ parent = b, position = { All = true }, OnClick = spec.onClick }
+  -- Assigned after construction: :new options never override same-named class methods. Chain the
+  -- Button handlers so the hover border still lights.
+  if spec.tip then
+    btn.OnEnter = function(s)
+      Button.OnEnter(s)
       GameTooltip:SetOwner(s._widget, "ANCHOR_BOTTOMRIGHT")
       GameTooltip:SetText(spec.tip()); GameTooltip:Show()
-    end or nil,
-    OnLeave = spec.tip and function() GameTooltip:Hide() end or nil,
-  }
+    end
+    btn.OnLeave = function(s) Button.OnLeave(s); GameTooltip:Hide() end
+  end
   if isIcon then
     -- tint=false keeps an already-colored atlas (the gold star) at native color; an explicit color
     -- tints a white silhouette independent of the border; else the glyph tracks the active/off border.
