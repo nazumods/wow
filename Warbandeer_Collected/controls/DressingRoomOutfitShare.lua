@@ -74,7 +74,7 @@ end
 ---The paste field's contents, trimmed. "" when empty.
 ---@return string
 function DressingRoom:_pastedOutfit()
-  return (self._shareField:Text() or ""):match("^%s*(.-)%s*$")
+  return ns.Trim(self._shareField:Text())
 end
 
 -- Show the prompt only over an empty field, and grey Import while there is nothing to import —

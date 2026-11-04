@@ -37,6 +37,7 @@
 .PARAMETER SetsFile  Path to data/sets.lua. Defaults to ../data/sets.lua.
 .PARAMETER Build     Optional client build (e.g. 11.2.0.61871). Omit for current.
 .PARAMETER Check     Don't write; exit 1 if the file would change (CI staleness).
+.PARAMETER AllowSkips  With -Expand: write sets_expand.lua even when a group or set was skipped (default: refuse, #1069).
 .PARAMETER Forever   Generate data/sets_forever.lua (Forever's own transmog sets) from the newest wago build of
                      -Product (default wow_classic_beta) whose version starts with -VersionPrefix (default 1.60.).
                      -Build pins one. Exits when done. See UPDATING.md ("Forever").
@@ -60,6 +61,7 @@ param(
   [int]$MinRows = 1000,       # abort if TransmogSet returns fewer (incomplete download)
   [int]$MaxDeletePct = 5,     # abort if regeneration would drop more than this % of sets
   [switch]$Check,
+  [switch]$AllowSkips,        # -Expand: write sets_expand.lua even if a group/set was skipped (default: refuse, #1069)
   # PTR-delta mode: regenerate data/sets_ptr.lua (ns.PtrSets) from the diff between
   # the latest live (wow) and PTR TransmogSet tables — sets on the PTR but not yet on
   # live ("upcoming"). The PTR is the newest patch above live across wago's two PTR
@@ -859,6 +861,11 @@ if ($Expand) {
   $entryCount = $jobIds.Count + $merges.Count + $setMerges.Count + $labelMerges.Count + $assembles.Count + $seasonMerges.Count + $eachSets.Count
   if ($entryCount -eq 0) { throw 'expand-groups.txt has no entries.' }
 
+  # Every `skipped` path below goes through this so the run can refuse to write a file that silently
+  # lost rows (#1069): a partial wago response or a renumbered group used to skip, warn, rewrite
+  # sets_expand.lua in full and exit 0 — and the daily workflow opened a green PR deleting those rows.
+  $expandSkips = [System.Collections.Generic.List[string]]::new()
+  function Skip-Expand([string]$msg) { Write-Warning $msg; $script:expandSkips.Add($msg) }
   $excl = Get-Excludes   # tools/excludes.txt — whole groups + "id:label" dead rows
 
   $builds = (Invoke-WebRequest -Uri 'https://wago.tools/api/builds' -UseBasicParsing -ErrorAction Stop).Content | ConvertFrom-Json
@@ -871,6 +878,10 @@ if ($Expand) {
   foreach ($col in @('ID', 'Name_lang', 'ClassMask', 'TransmogSetGroupID', 'ItemNameDescriptionID', 'ExpansionID')) {
     if ($col -notin $tsRows[0].PSObject.Properties.Name) { throw "TransmogSet CSV missing '$col' — aborting." }
   }
+  # The label columns too: a renamed `Description_lang` / `Name_lang` would otherwise blank every
+  # label (collapsing variants, dropping labelled rows) or name rows " (Dungeon)" and still exit 0.
+  if (-not $indRows -or 'Description_lang' -notin $indRows[0].PSObject.Properties.Name) { throw "ItemNameDescription CSV missing 'Description_lang' — aborting." }
+  if (-not $grpRows -or 'Name_lang' -notin $grpRows[0].PSObject.Properties.Name) { throw "TransmogSetGroup CSV missing 'Name_lang' — aborting." }
   if ($tsRows.Count -lt $MinRows) { throw "TransmogSet returned $($tsRows.Count) rows (< $MinRows) — incomplete download, aborting." }
 
   $grpName = @{}; foreach ($g in $grpRows) { $grpName[[int]$g.ID] = ([string]$g.Name_lang).Trim() }
@@ -887,7 +898,7 @@ if ($Expand) {
   foreach ($gid in $jobIds) {
     $cat = $jobCat[$gid]
     $rows = $tsRows | Where-Object { [int]$_.TransmogSetGroupID -eq $gid }
-    if (-not $rows) { Write-Warning "Expand $gid — no rows; skipped."; continue }
+    if (-not $rows) { Skip-Expand "Expand $gid — no rows; skipped."; continue }
     $exp = 0; foreach ($r in $rows) { $e = 0; [void][int]::TryParse($r.ExpansionID, [ref]$e); if ($e -gt $exp) { $exp = $e } }
     $release = $exp + 1
     $base = $grpName[$gid]
@@ -955,7 +966,7 @@ if ($Expand) {
   # takes the lowest group id (so its cells key into db.sets consistently on scan).
   foreach ($mg in $merges) {
     $rows = $tsRows | Where-Object { [int]$_.TransmogSetGroupID -in $mg.ids }
-    if (-not $rows) { Write-Warning "merge [$($mg.ids -join '+')] '$($mg.name)' — no rows; skipped."; continue }
+    if (-not $rows) { Skip-Expand "merge [$($mg.ids -join '+')] '$($mg.name)' — no rows; skipped."; continue }
     $slot = @{}; $union = 0; $exp = 0
     foreach ($r in ($rows | Sort-Object { [int]$_.ID })) {
       $e = 0; [void][int]::TryParse($r.ExpansionID, [ref]$e); if ($e -gt $exp) { $exp = $e }
@@ -991,7 +1002,7 @@ if ($Expand) {
   # takes that group's id so its cells key into db.sets on scan, like its sibling rows) ──
   foreach ($sm in $setMerges) {
     $rows = $tsRows | Where-Object { [int]$_.ID -in $sm.sids }
-    if (-not $rows) { Write-Warning "mergeset [$($sm.sids -join '+')] '$($sm.name)' — no rows; skipped."; continue }
+    if (-not $rows) { Skip-Expand "mergeset [$($sm.sids -join '+')] '$($sm.name)' — no rows; skipped."; continue }
     $slot = @{}; $union = 0; $exp = 0; $gid = [int]($rows | Select-Object -First 1).TransmogSetGroupID
     foreach ($r in ($rows | Sort-Object { [int]$_.ID })) {
       $e = 0; [void][int]::TryParse($r.ExpansionID, [ref]$e); if ($e -gt $exp) { $exp = $e }
@@ -1028,7 +1039,7 @@ if ($Expand) {
   foreach ($es in $eachSets) {
     foreach ($sid in $es.sids) {
       $r = $tsRows | Where-Object { [int]$_.ID -eq $sid } | Select-Object -First 1
-      if (-not $r) { Write-Warning "eachset $sid — not found; skipped."; continue }
+      if (-not $r) { Skip-Expand "eachset $sid — not found; skipped."; continue }
       $m = 0; [void][int]::TryParse($r.ClassMask, [ref]$m)
       if ($m -le 0) { Write-Host "  skip eachset $sid — no class bits" -ForegroundColor DarkYellow; continue }
       $gid = [int]$r.TransmogSetGroupID; $e = 0; [void][int]::TryParse($r.ExpansionID, [ref]$e)
@@ -1059,7 +1070,7 @@ if ($Expand) {
     $slot = @{}; $exp = 0; $gid = 0
     foreach ($c in ($as.slots.Keys | Sort-Object)) {
       $r = $tsRows | Where-Object { [int]$_.ID -eq $as.slots[$c] } | Select-Object -First 1
-      if (-not $r) { Write-Warning "assemble '$($as.name)' — set $($as.slots[$c]) not found; skipped slot."; continue }
+      if (-not $r) { Skip-Expand "assemble '$($as.name)' — set $($as.slots[$c]) not found; skipped slot."; continue }
       if ($gid -eq 0) { $gid = [int]$r.TransmogSetGroupID }
       $e = 0; [void][int]::TryParse($r.ExpansionID, [ref]$e); if ($e -gt $exp) { $exp = $e }
       $slot[$c] = @{ id = $as.slots[$c]; name = (LuaEsc ([string]$r.Name_lang)) }
@@ -1088,7 +1099,7 @@ if ($Expand) {
   # "<NamePrefix> (<label>)" rows that tile armor types). Row id = lowest group id.
   foreach ($lm in $labelMerges) {
     $rows = $tsRows | Where-Object { [int]$_.TransmogSetGroupID -in $lm.ids }
-    if (-not $rows) { Write-Warning "mergelabels [$($lm.ids -join '+')] '$($lm.name)' — no rows; skipped."; continue }
+    if (-not $rows) { Skip-Expand "mergelabels [$($lm.ids -join '+')] '$($lm.name)' — no rows; skipped."; continue }
     $gid = ($lm.ids | Measure-Object -Minimum).Minimum
     $byl = [ordered]@{}
     foreach ($r in ($rows | Sort-Object { [int]$_.ID })) {
@@ -1136,7 +1147,7 @@ if ($Expand) {
   # removed from sets.lua (this regenerates every bracket/faction uniformly). Row id = group id.
   foreach ($ms in $seasonMerges) {
     $rows = $tsRows | Where-Object { [int]$_.TransmogSetGroupID -eq $ms.gid -and [int]$_.ClassMask -gt 0 -and -not $mergedSetIds.ContainsKey([int]$_.ID) }
-    if (-not $rows) { Write-Warning "mergeseason $($ms.gid) — no rows; skipped."; continue }
+    if (-not $rows) { Write-Warning "mergeseason $($ms.gid) — no rows (already consumed by an earlier merge, or absent); skipped."; continue }
     $gname = $grpName[$ms.gid]
     $byl = [ordered]@{}
     foreach ($r in ($rows | Sort-Object { [int]$_.ID })) {
@@ -1185,6 +1196,20 @@ if ($Expand) {
     }
   }
   $L.Add('-- <<< AUTO-EXPAND')
+
+  # Refuse to write a file that lost rows (#1069), the same two guards the main pass has: no group
+  # may have been skipped, and the row count may not shrink by more than -MaxDeletePct against the
+  # file on disk. A zero-row run and a control character in a name (which would write a Lua file that
+  # won't load; the Forever generator rejects them too) are refused outright.
+  if ($emitted -eq 0) { throw "Expand emitted 0 rows — refusing to overwrite $ExpandSetsFile." }
+  if ($expandSkips.Count -gt 0 -and $AllowSkips) { Write-Warning "Expand skipped $($expandSkips.Count) group(s); writing anyway (-AllowSkips)." }
+  elseif ($expandSkips.Count -gt 0) { throw "Expand skipped $($expandSkips.Count) group(s) — refusing to write a partial ${ExpandSetsFile}:`n  $($expandSkips -join "`n  ")" }
+  foreach ($ln in $L) { if ($ln -match '[\x00-\x1f\x7f]') { throw "Expand: control character in generated line '$($ln -replace '[\x00-\x1f\x7f]', '?')' — refusing to write." } }
+  if (Test-Path -LiteralPath $ExpandSetsFile) {
+    $origRows = ([regex]::Matches([System.IO.File]::ReadAllText($ExpandSetsFile), 'tinsert\(ns\.Sets,')).Count
+    $rowFloor = [math]::Floor($origRows * (1 - $MaxDeletePct / 100))
+    if ($emitted -lt $rowFloor) { throw "Refusing to write: expand rows would drop $origRows -> $emitted (more than $MaxDeletePct%). Likely incomplete wago data — aborting." }
+  }
 
   # sets_expand.lua is wholly generated, so write it in full (EOL matched to the existing
   # file, falling back to sets.lua's convention on first generation).

@@ -25,6 +25,19 @@ local concat = table.concat
 -- that a decoded shoulder secondary really is a shoulder appearance, and checking whether the
 -- player has collected each source.
 
+---Trim surrounding whitespace in linear time. The usual `^%s*(.-)%s*$` is quadratic on a long run of
+---whitespace (the lazy `.-` retries the trailing `%s*` at every position), and it ran on every keystroke
+---in the share and rename boxes (#1039).
+---@param s string?
+---@return string
+function ns.Trim(s)
+  s = s or ""
+  local first = s:find("%S")
+  if not first then return "" end
+  local last = #s - (s:reverse():find("%S") - 1)
+  return s:sub(first, last)
+end
+
 -- The slots the format carries, in emission order. Mirrors Blizzard's `TransmogSlotOrder`;
 -- note it omits the non-transmoggable slots (neck, rings, trinkets, ranged), so the encoded
 -- string is 13 slots wide, not 19.
@@ -137,6 +150,11 @@ local function splitIDs(body)
       return nil, "contains a value too large to be an appearance id"
     end
     out[#out + 1] = n
+    -- Bail as soon as the count is wrong instead of building the whole table first: a pasted
+    -- megabyte of commas is refused after VALUE_COUNT + 1 fields, not after all of them (#1039).
+    if #out > VALUE_COUNT then
+      return nil, ("expected %d values, got more"):format(VALUE_COUNT)
+    end
   end
   return out
 end

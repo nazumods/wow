@@ -64,7 +64,7 @@ local META = { "char", "class", "forClass", "armor" }
 ---@param name string?
 ---@return string
 local function clean(name)
-  return (name or ""):match("^%s*(.-)%s*$")
+  return ns.Trim(name)
 end
 
 -- Non-empty and not already taken by a DIFFERENT entry (`except` lets a rename keep its own name).
