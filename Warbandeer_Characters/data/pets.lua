@@ -53,21 +53,30 @@ local function records(list)
   return out
 end
 
+-- True between PET_STABLE_SHOW and PET_STABLE_CLOSED. PET_STABLE_UPDATE also fires out in the world
+-- (taming a pet), where both lists read empty -- scanning then would wipe the stored stable (#1043).
+local atStable = false
+
 local function scan()
+  if not atStable then return end
   local toon = ns.currentData
   if not toon or toon.classId ~= HUNTER then return end
+  local active, stable = records(C_StableInfo.GetActivePetList()), records(C_StableInfo.GetStabledPetList())
+  -- Both lists empty is indistinguishable from a not-yet-populated read; keep the last-seen cache.
+  if #active == 0 and #stable == 0 then return end
   toon.pets = {
     scannedAt = GetServerTime(),
-    active = records(C_StableInfo.GetActivePetList()),
-    stable = records(C_StableInfo.GetStabledPetList()),
+    active = active,
+    stable = stable,
   }
 end
 
--- The stable frame opens (SHOW) then streams its contents in (UPDATE); scan on both so the cache
--- reflects the fully-populated lists. Cheap enough to run per event — a Hunter has at most a few
--- hundred pets — so no debounce (mirrors the auction scanner).
-ns:registerEvent("PET_STABLE_SHOW", scan)
+-- The stable frame opens (SHOW) then streams its contents in (UPDATE); scan on both while it is open so
+-- the cache reflects the fully-populated lists. Cheap enough to run per event -- a Hunter has at most a few
+-- hundred pets -- so no debounce (mirrors the auction scanner).
+ns:registerEvent("PET_STABLE_SHOW", function() atStable = true; scan() end)
 ns:registerEvent("PET_STABLE_UPDATE", scan)
+ns:registerEvent("PET_STABLE_CLOSED", function() atStable = false end)
 
 -- A Hunter's active (Call Pet) roster is configured at a stable, but its pets keep LEVELING — and can
 -- be renamed — out in the world, where PET_INFO_UPDATE fires. Refresh just the active list from it so
