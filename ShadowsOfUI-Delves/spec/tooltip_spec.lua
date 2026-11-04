@@ -114,6 +114,18 @@ describe("ShadowsOfUI-Delves entrance tooltip", function()
       assert.same({}, st.hover("X", 9999))
     end)
 
+    -- #1084: the pin tooltip re-runs about every 0.2s while hovered; the map's entrance list is asked for once.
+    it("looks a map's delve entrances up once, not on every hover", function()
+      local _, st = delves.load({ maxLevel = true, stats = { mine() } })
+      local calls = 0
+      local real = _G.C_AreaPoiInfo.GetDelvesForMap
+      _G.C_AreaPoiInfo.GetDelvesForMap = function(...) calls = calls + 1; return real(...) end
+      assert.equals(1, #st.hover("The Dread Pit"))
+      assert.equals(1, #st.hover("The Dread Pit"))
+      assert.equals(0, #st.hover("Not a delve", 9999))
+      assert.equals(1, calls)
+    end)
+
     it("ignores a pin with no POI id", function()
       local _, st = delves.load({ maxLevel = true, stats = { mine() } })
       _G.DelveEntrancePinMixin.OnMouseEnter({ poiInfo = {}, GetMap = function() end })

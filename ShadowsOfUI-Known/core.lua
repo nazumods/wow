@@ -37,9 +37,18 @@ end
 
 -- Strip the "Recipe:/Pattern:/Plans:/Schematic:/Formula:/Technique:/Design:" prefix from
 -- a recipe item's name, yielding the crafted recipe name as captured in learned data.
+-- The separator is ASCII ":" or, in the CJK locales, the full-width "：" (U+FF1A, three bytes) —
+-- whichever comes first (#1083).
+local FULLWIDTH_COLON = "\239\188\154"
 local function craftedName(itemName)
   if not itemName then return nil end
-  return itemName:match("^[^:]+:%s*(.+)$") or itemName
+  local a = itemName:find(":", 1, true)
+  local b = itemName:find(FULLWIDTH_COLON, 1, true)
+  local rest
+  if a and (not b or a < b) then rest = itemName:sub(a + 1)
+  elseif b then rest = itemName:sub(b + #FULLWIDTH_COLON) end
+  rest = rest and rest:match("^%s*(.+)$")
+  return rest or itemName
 end
 
 -- Whether the alt's captured data already lists this recipe as learned. Learned names are
@@ -118,7 +127,15 @@ end
 -- static within a session (it comes from SavedVariables); only the current character's
 -- own learns change it, so cache per recipeID and wipe on NEW_RECIPE_LEARNED.
 local knownByCache = {}
-ns:registerEvent("NEW_RECIPE_LEARNED", function() wipe(knownByCache) end)
+-- BuildLearnable's per-item answers (#1084), wiped together with knownByCache. Short-lived entries
+-- (LEARNABLE_TTL) because the answer also reads each alt's skill level, which can move in a session.
+local learnableCache = {}
+local LEARNABLE_TTL = 10
+local function wipeCaches() wipe(knownByCache); wipe(learnableCache) end
+ns:registerEvent("NEW_RECIPE_LEARNED", wipeCaches)
+-- A capture lands without NEW_RECIPE_LEARNED, so a profession scanned after the first order-row hover
+-- left "Not Known" cached until reload; opening the customer orders view starts fresh (#1083).
+ns:registerEvent("CRAFTINGORDERS_SHOW_CUSTOMER", wipeCaches)
 
 ---@param recipeID integer
 ---@return CrafterEntry[]
@@ -179,6 +196,14 @@ function ns.BuildLearnable(itemID, reqSkill, itemName)
   local api = ns.api
   if not api or not api.GetAllCharacters then return nil end
 
+  -- Hovering a recipe item runs this on every tooltip: cache per item (#1084), keyed by what the answer
+  -- depends on besides the character data (the skill threshold and the name), and never while no recipe
+  -- data has been captured, since a capture mid-session changes the answer without an event.
+  local cached = learnableCache[itemID]
+  if cached and cached.reqSkill == reqSkill and cached.name == itemName and GetTime() - cached.t < LEARNABLE_TTL then
+    return cached.list, cached.knownList
+  end
+
   local recipe = craftedName(itemName)
   local list, knownList = {}, {}
   for _, toon in ipairs(api:GetAllCharacters()) do
@@ -215,5 +240,8 @@ function ns.BuildLearnable(itemID, reqSkill, itemName)
     if a.level ~= b.level then return a.level > b.level end
     return a.name < b.name
   end)
+  if ns.HasRecipeData() then
+    learnableCache[itemID] = { reqSkill = reqSkill, name = itemName, t = GetTime(), list = list, knownList = knownList }
+  end
   return list, knownList
 end

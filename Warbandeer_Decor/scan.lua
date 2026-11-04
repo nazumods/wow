@@ -93,7 +93,9 @@ function ns:Scan()
     self.db.total = #entries
   end
 
-  if ns.window then ns.window:Refresh() end
+  -- Not while the window is closed (#1064): the repaint re-filters and re-sorts ~1800 entries for a
+  -- hidden frame. ns:Open() repaints when it re-shows the window.
+  if ns.window and ns.window:IsOpen() then ns.window:Refresh() end
   -- Notify consumers (Warbandeer's embedded decor view) now the snapshot is fresh, so
   -- both grids stay in sync (see api.lua OnScanned).
   if ns._scanned then
@@ -131,9 +133,16 @@ end
 -- re-scan (owned counts are re-queried per recordID, so they refresh even when the entry
 -- set is unchanged): buying / placing / redeeming decor (HOUSING_STORAGE_UPDATED + its
 -- per-entry sibling) and learning a brand-new decor (NEW_HOUSING_ITEM_ACQUIRED).
+--
+-- Collapsed into ONE search + scan per burst (#1064): placing items in house-edit mode fires one
+-- event per item, and each used to start its own search whose results callback re-armed the scan.
+-- `debounce` waits for the burst to go quiet, then runs the search once; its results callback and
+-- the direct `scanSoon` below produce the single scan.
 local function refresh()
-  runSearch()
-  scanSoon()
+  ns:debounce("decorRefresh", 300, function()
+    runSearch()
+    scanSoon()
+  end)
 end
 for _, event in ipairs({
   "HOUSING_STORAGE_UPDATED",
