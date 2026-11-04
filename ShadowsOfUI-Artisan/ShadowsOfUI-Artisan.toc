@@ -6,7 +6,6 @@
 ## Dependencies: LibNAddOn, Warbandeer_Characters
 ## OptionalDeps: Warbandeer
 ## X-NUI-API: WarbandeerApi
-## X-NUI-COMMANDS: /sartisan
 ## X-Curse-Project-ID: 1617361
 
 core.lua
