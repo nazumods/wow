@@ -3,7 +3,8 @@ local ns = select(2, ...)
 local Set, SetOfValues, any = ns.lua.sets.Set, ns.lua.sets.values, ns.lua.maps.any
 local Player = ns.wow.Player
 local IsQuestFlaggedCompleted = C_QuestLog.IsQuestFlaggedCompleted
-local GetActivities = C_WeeklyRewards.GetActivities
+local WeeklyRewards = C_WeeklyRewards or {} -- absent namespace must not error at load; vault fields are gated on Supports("greatVault") below
+local GetActivities = WeeklyRewards.GetActivities
 local GetOwnedKeystoneLevel = C_MythicPlus.GetOwnedKeystoneLevel
 local GetOwnedKeystoneChallengeMapID = C_MythicPlus.GetOwnedKeystoneChallengeMapID
 
@@ -164,7 +165,7 @@ Weekly.fields = {
       for _, a in ipairs(acts) do
         local ilvl
         if a.progress >= a.threshold then
-          local link = C_WeeklyRewards.GetExampleRewardItemHyperlinks(a.id)
+          local link = WeeklyRewards.GetExampleRewardItemHyperlinks(a.id)
           if link then ilvl = C_Item.GetDetailedItemLevelInfo(link) end
         end
         raw[#raw + 1] = { type = a.type, threshold = a.threshold, progress = a.progress, ilvl = ilvl }
@@ -180,7 +181,7 @@ Weekly.fields = {
     missing = false,
     maxLevel = true,
     resetOn = ns.RESET_WEEKLY,
-    get = function() return C_WeeklyRewards.HasAvailableRewards() end,
+    get = function() return WeeklyRewards.HasAvailableRewards() end,
     -- must run BEFORE vault is reset (it reads last week's vault.best, and vault declares no reset,
     -- so broker.lua's default nils it); safe because "hasUnclaimedVault" < "vault" in the
     -- alphabetical fieldOrder. The comment used to state this dependency backwards (#745-2).
