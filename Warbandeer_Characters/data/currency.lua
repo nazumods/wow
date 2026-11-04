@@ -10,6 +10,8 @@ Currency.fields = {
   RestoredCofferKey = {
     missing = false,
     id = 3028,
+    event = "CURRENCY_DISPLAY_UPDATE",
+    eventFilter = function(self, _, currencyID) return currencyID == self.id end,
     -- GetCurrencyInfo returns nil for a currency the character hasn't discovered yet,
     -- so guard the index (consumers coalesce nil → 0).
     get = function(self)
@@ -27,6 +29,8 @@ Currency.fields = {
   CofferKeyShard = {
     missing = false,
     id = 3310, -- Coffer Key Shard
+    event = "CURRENCY_DISPLAY_UPDATE",
+    eventFilter = function(self, _, currencyID) return currencyID == self.id end,
     get = function(self)
       local info = GetCurrencyInfo(self.id)
       if not info then return nil end
@@ -70,6 +74,8 @@ Currency.fields = {
   HeroDawncrest = {
     missing = { label = "hero dawncrest", maxLevel = true, order = 180 },
     id = 3345,
+    event = "CURRENCY_DISPLAY_UPDATE",
+    eventFilter = function(self, _, currencyID) return currencyID == self.id end,
     get = function(self)
       local info = GetCurrencyInfo(self.id)
       if not info then return {quantity = 0, earned = 0, max = 0, capped = false} end
@@ -121,6 +127,8 @@ Currency.fields = {
   FieldAccolade = {
     missing = { label = "field accolade", maxLevel = true, order = 240 },
     id = 3405,
+    event = "CURRENCY_DISPLAY_UPDATE",
+    eventFilter = function(self, _, currencyID) return currencyID == self.id end,
     get = function(self)
       local info = GetCurrencyInfo(self.id)
       return info and info.quantity
@@ -129,6 +137,8 @@ Currency.fields = {
   UnalloyedAbundance = {
     missing = { label = "unalloyed abundance", maxLevel = true, order = 250 },
     id = 3377,
+    event = "CURRENCY_DISPLAY_UPDATE",
+    eventFilter = function(self, _, currencyID) return currencyID == self.id end,
     get = function(self)
       local info = GetCurrencyInfo(self.id)
       return info and info.quantity
@@ -137,6 +147,8 @@ Currency.fields = {
   MythDawncrest = {
     missing = { label = "myth dawncrest", maxLevel = true, order = 190 },
     id = 3347,
+    event = "CURRENCY_DISPLAY_UPDATE",
+    eventFilter = function(self, _, currencyID) return currencyID == self.id end,
     get = function(self)
       local info = GetCurrencyInfo(self.id)
       if not info then return {quantity = 0, earned = 0, max = 0, capped = false} end
@@ -159,6 +171,8 @@ Currency.fields = {
   UntaintedManaCrystal = {
     missing = { label = "untainted mana-crystals", maxLevel = true, order = 220 },
     id = 3356, -- weekly earn cap (maxWeeklyQuantity 250); hard cap 1000
+    event = "CURRENCY_DISPLAY_UPDATE",
+    eventFilter = function(self, _, currencyID) return currencyID == self.id end,
     get = function(self)
       local info = GetCurrencyInfo(self.id)
       if not info then return {quantity = 0, earned = 0, max = 0, capped = false} end
