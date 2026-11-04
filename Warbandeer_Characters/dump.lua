@@ -11,7 +11,7 @@ local function formatTime(seconds, fmt)
   local days = 0
   local hours = math.floor(seconds / 3600)
   local minutes = math.floor((seconds % 3600) / 60)
-  if hours > 24 then
+  if hours >= 24 then
     days = math.floor(hours / 24)
     hours = hours % 24
   end

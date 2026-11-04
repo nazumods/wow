@@ -164,6 +164,16 @@ ns.Professions.fields.gear = {
   end,
 }
 
+-- Same as equipment.lua: the custom eventHandler skips Broker:Init's `eventDelay` debounce, so coalesce an
+-- equipment-swap burst into one scan (#1051). The stored value is re-read when it fires, not captured now.
+do
+  local gear = ns.Professions.fields.gear
+  local scan = gear.eventHandler
+  gear.eventHandler = function(field)
+    ns:debounce("professions.gear", gear.eventDelay, function() scan(field, field.get_live()) end)
+  end
+end
+
 -- Refresh gear once all profession-slot item data has loaded.
 ns:registerEvent("ITEM_DATA_LOAD_RESULT", function(self, itemID)
   if not self.profGearPending then return end

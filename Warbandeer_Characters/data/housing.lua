@@ -68,8 +68,9 @@ end
 -- nothing synchronously). Cache each house's identity + neighborhood, then kick a favor
 -- request per house so HOUSE_LEVEL_FAVOR_UPDATED fills in level/favor.
 ns:registerEvent("PLAYER_HOUSE_LIST_UPDATED", function(_, houseInfos)
-  if not houseInfos then return end
+  if not houseInfos or #houseInfos == 0 then return end
   local acct = account()
+  local listed, factions = {}, {}
   for _, h in ipairs(houseInfos) do
     if h.houseGUID then
       local house = acct.houses[h.houseGUID]
@@ -77,8 +78,20 @@ ns:registerEvent("PLAYER_HOUSE_LIST_UPDATED", function(_, houseInfos)
       house.neighborhoodGUID = h.neighborhoodGUID
       house.name = h.houseName
       recordNeighborhood(h.neighborhoodGUID, h.neighborhoodName)
+      listed[h.houseGUID] = true
+      local nb = h.neighborhoodGUID and acct.neighborhoods[h.neighborhoodGUID]
+      if nb and nb.isAlliance ~= nil then factions[nb.isAlliance] = true end
       if GetCurrentHouseLevelFavor then GetCurrentHouseLevelFavor(h.houseGUID) end
     end
+  end
+  -- A relinquished house that stays in `houses` can shadow the current one of the same faction in
+  -- ShapeHouses (it picks by `pairs` order). Drop only stored houses missing from this list whose
+  -- neighborhood is on a faction the list covers: the list is not shown to be account-wide, so the other
+  -- faction's house (listed only by that faction's characters) is left alone (#1051). Relinquishing a
+  -- faction's only house yields an empty list, which is ignored above, so that stale house remains.
+  for guid, house in pairs(acct.houses) do
+    local nb = not listed[guid] and house.neighborhoodGUID and acct.neighborhoods[house.neighborhoodGUID]
+    if nb and nb.isAlliance ~= nil and factions[nb.isAlliance] then acct.houses[guid] = nil end
   end
 end)
 

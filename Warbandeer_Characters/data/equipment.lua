@@ -210,6 +210,17 @@ Equipment.fields = {
   },
 }
 
+-- A custom eventHandler bypasses Broker:Init's `eventDelay` debounce, so a set swap (up to 16
+-- PLAYER_EQUIPMENT_CHANGED) would run the full scan once per event; coalesce the burst here (#1051).
+do
+  local slots = Equipment.fields.slots
+  local scan = slots.eventHandler
+  slots.eventHandler = function(...)
+    local args = { ... }
+    ns:debounce("equipment.slots", slots.eventDelay, function() scan(unpack(args)) end)
+  end
+end
+
 ---@class Warbandeer_Characters
 ---@field equipmentPending table
 

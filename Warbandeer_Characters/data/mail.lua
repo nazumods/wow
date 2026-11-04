@@ -34,7 +34,11 @@ ns.MAIL_WARN_DAYS = 3
 local function scanInbox()
   local toon = ns.currentData
   if not toon then return end
-  local num = GetInboxNumItems() or 0
+  -- GetInboxNumItems returns (shown, total): the inbox lists at most 50 but can hold more, so `count`
+  -- reports the total while the walk below covers only what is shown.
+  local num, total = GetInboxNumItems()
+  num = num or 0
+  total = total or num
   local now = GetServerTime()
   local expiries, items, money = {}, {}, 0
   for index = 1, num do
@@ -50,7 +54,7 @@ local function scanInbox()
   end
   sort(expiries)
   toon.mail = {
-    scannedAt = now, count = num, expiries = expiries, items = items, money = money,
+    scannedAt = now, count = total, expiries = expiries, items = items, money = money,
     hasMail = HasNewMail() or nil,
   }
 end
@@ -91,7 +95,11 @@ function ns:WarnExpiringMail()
   local soon = {}
   for name, c in pairs(self.db.characters) do
     local m = c.mail
-    local first = m and m.expiries and m.expiries[1]
+    -- first expiry still in the future: a cached already-expired mail would otherwise warn every login
+    local first
+    for _, e in ipairs(m and m.expiries or {}) do
+      if e > now then first = e; break end
+    end
     if first and first <= threshold then
       insert(soon, { name = name, days = max(0, floor((first - now) / DAY)), ts = first })
     end

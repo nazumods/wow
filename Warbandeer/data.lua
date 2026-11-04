@@ -129,7 +129,7 @@ function ns.IlvlTooltipLines(t)
         local color  = trackColors[slot.track]
         suffix = " (" .. (color and color:WrapTextInColorCode(letter) or letter) .. slot.trackLevel .. ")"
       end
-      table.insert(lines, slotName .. " " .. ns.IlvlColor(slot.ilvl) .. suffix)
+      table.insert(lines, slotName .. " " .. (slot.ilvl and ns.IlvlColor(slot.ilvl) or "?") .. suffix)
     end
   end
   return lines
