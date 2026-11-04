@@ -5,7 +5,7 @@
 -- test loads it fresh against a chosen "now" and seconds-until-weekly-reset. warband.lua is
 -- loaded into the same ns so RolloverWarbandWeek sees the real LAST_RESET / RESET_SLACK.
 
--- luacheck: globals GetServerTime C_DateAndTime C_Bank Enum
+-- luacheck: globals GetServerTime C_DateAndTime C_Bank C_Timer Enum
 
 local libn = require("LibNAddOn.spec.libn")
 
@@ -22,6 +22,7 @@ local function load(now, untilWeekly)
     GetSecondsUntilDailyReset = function() return 3600 end,
     GetSecondsUntilWeeklyReset = function() return untilWeekly end,
   }
+  _G.C_Timer = { After = function() end } -- InitBrokers arms the in-session reset timer (#1107)
   _G.C_Bank = { FetchDepositedMoney = function() return 0 end }
   _G.Enum = { BankType = { Account = 2 } }
   local ns = { lua = { Class = libn.load().lua.Class } }

@@ -35,10 +35,24 @@ Instances.fields = {
   locks = {
     missing = false,
     resetOn = ns.RESET_WEEKLY,
-    get = function()
+    get = function(_, _, current)
+      local numLocks = GetNumSavedInstances()
       local locks = {}
       local time = GetServerTime()
-      local numLocks = GetNumSavedInstances()
+      -- Saved-instance info is requested from the server; read before it arrives, the list is empty. Keep the
+      -- stored locks then rather than storing {} (#1046) -- but only those still running: this field also holds
+      -- non-weekly (dungeon) locks, which expire mid-week, and a zero read must not keep a dead one.
+      if numLocks == 0 and current then
+        for id, byDifficulty in pairs(current) do
+          for d, l in pairs(byDifficulty) do
+            if (l.reset or 0) > time then
+              locks[id] = locks[id] or {}
+              locks[id][d] = l
+            end
+          end
+        end
+        return locks
+      end
       for i=1,numLocks do
         local name, _, resetSeconds, difficultyId, locked, extended, _, isRaid,
           _, _, numEncounters, encounterProgress, _, instanceID = GetSavedInstanceInfo(i)
@@ -56,6 +70,10 @@ Instances.fields = {
       end
       return locks
     end,
-    event = "INSTANCE_LOCK_STOP",
+    event = { "INSTANCE_LOCK_STOP", "UPDATE_INSTANCE_INFO" },
   },
 }
+
+-- UPDATE_INSTANCE_INFO is the answer to RequestRaidInfo (Blizzard asks on every zone-in), so the lockouts
+-- refresh when it arrives. A boss kill in an already-locked raid fires no lock event: ask for fresh info (#1046).
+ns:registerEvent("BOSS_KILL", function() RequestRaidInfo() end)

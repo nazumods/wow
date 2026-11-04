@@ -18,9 +18,7 @@ local LAST_RESET = GetServerTime() + DateAndTime.GetSecondsUntilWeeklyReset() - 
 -- day-of-week is deterministic (1970-01-01 was a Thursday) and needs no calendar
 -- API, so this anchor is always valid and identical across every realm/timezone.
 local SECONDS_PER_DAY = 24 * 60 * 60
-local nowEpoch = GetServerTime()
-local epochDays = math.floor(nowEpoch / SECONDS_PER_DAY)
-local sundayOffset = (epochDays + 4) % 7 -- 0 = Sunday; +4 aligns the Thursday epoch
+local SECONDS_PER_WEEK = 7 * SECONDS_PER_DAY
 -- DMF doesn't reset at Sunday 00:00 UTC: it resets at midnight US Pacific, which is
 -- 08:00 UTC under PST (07:00 under PDT). Anchoring at 00:00 UTC fired the reset 7-8h
 -- early — during that Sunday-morning window the quests are still flagged complete, so
@@ -31,10 +29,18 @@ local sundayOffset = (epochDays + 4) % 7 -- 0 = Sunday; +4 aligns the Thursday e
 -- below is this week's Sunday 08:00 UTC; if that's still in the future, fall back a week
 -- so the anchor stays a PAST Sunday reset (the invariant the InitBrokers logic relies on).
 local SUNDAY_RESET_OFFSET = 8 * 60 * 60 -- midnight US Pacific (PST) in UTC
-local LAST_SUNDAY_RESET = (epochDays - sundayOffset) * SECONDS_PER_DAY + SUNDAY_RESET_OFFSET
-if LAST_SUNDAY_RESET > nowEpoch then
-  LAST_SUNDAY_RESET = LAST_SUNDAY_RESET - 7 * SECONDS_PER_DAY
+
+---The Sunday DMF reset that most recently happened as of `now`, from the epoch alone.
+---@param now integer server time
+---@return integer
+local function sundayAnchor(now)
+  local epochDays = math.floor(now / SECONDS_PER_DAY)
+  local sundayOffset = (epochDays + 4) % 7 -- 0 = Sunday; +4 aligns the Thursday epoch
+  local anchor = (epochDays - sundayOffset) * SECONDS_PER_DAY + SUNDAY_RESET_OFFSET
+  if anchor > now then anchor = anchor - SECONDS_PER_WEEK end
+  return anchor
 end
+local LAST_SUNDAY_RESET = sundayAnchor(GetServerTime())
 
 -- The daily/weekly anchors are recomputed every login from the seconds-until APIs,
 -- which can skew by a second between sessions. A genuine new boundary advances by
@@ -229,33 +235,44 @@ function ns:InitBrokers()
     self.brokers[name]:Init(self.currentData)
   end
 
+  self:ApplyResets()
+  self:ScheduleResets()
+end
+
+---Reset every character's data for one cadence.
+---@param self Warbandeer_Characters
+---@param cadence integer
+local function resetAll(self, cadence)
+  for _,t in pairs(self.db.characters) do
+    for _,name in ipairs(self.brokerOrder) do
+      self.brokers[name]:Reset(cadence, t)
+    end
+  end
+end
+
+---Apply any daily/weekly/Sunday resets whose anchor has moved past the stored one (with clock-skew
+---slack), stamping the new anchor. Returns true if any cadence reset.
+---@class Warbandeer_Characters
+---@field ApplyResets fun(self): boolean
+function ns:ApplyResets()
+  local fired = false
   if self.db.lastDailyReset == nil or LAST_DAILY_RESET - self.db.lastDailyReset > RESET_SLACK then
     self.db.lastDailyReset = LAST_DAILY_RESET
-    for _,t in pairs(self.db.characters) do
-      for _,name in ipairs(self.brokerOrder) do
-        self.brokers[name]:Reset(ns.RESET_DAILY, t)
-      end
-    end
+    resetAll(self, ns.RESET_DAILY)
+    fired = true
   end
 
   if self.db.lastReset == nil or LAST_RESET - self.db.lastReset > RESET_SLACK then
     self.db.lastReset = LAST_RESET
     -- new week, reset data
-    for _,t in pairs(self.db.characters) do
-      for _,name in ipairs(self.brokerOrder) do
-        self.brokers[name]:Reset(ns.RESET_WEEKLY, t)
-      end
-    end
+    resetAll(self, ns.RESET_WEEKLY)
+    fired = true
   end
 
   if self.db.lastSundayReset == nil or LAST_SUNDAY_RESET - self.db.lastSundayReset > RESET_SLACK then
     self.db.lastSundayReset = LAST_SUNDAY_RESET
-    -- new week, reset data
-    for _,t in pairs(self.db.characters) do
-      for _,name in ipairs(self.brokerOrder) do
-        self.brokers[name]:Reset(ns.RESET_SUNDAY, t)
-      end
-    end
+    resetAll(self, ns.RESET_SUNDAY)
+    fired = true
   elseif self.db.lastSundayReset > LAST_SUNDAY_RESET then
     -- The Sunday anchor is always a past Sunday midnight; a stored value in the
     -- future is corrupt (e.g. written by the old formula when a zeroed calendar
@@ -263,4 +280,48 @@ function ns:InitBrokers()
     -- next genuine boundary still fires on time instead of being skipped.
     self.db.lastSundayReset = LAST_SUNDAY_RESET
   end
+  return fired
+end
+
+-- A session that spans a reset (#1107): the anchors above are fixed at file load and ApplyResets otherwise
+-- runs only at login, so a character online across the reset keeps last week's data (sticky `get`s carry
+-- it) and, once it logs out, the NEXT login wipes the data it earned after the reset. A timer fires just
+-- after the nearest boundary, recomputes the anchors, applies the resets and re-reads the live character.
+local RESET_TIMER_PAD = 5 -- seconds after the boundary, so the server's own reset has happened
+local resetTimerGen = 0
+
+---Recompute the three anchors from the live clock (what a fresh login would see).
+function ns:RefreshResetAnchors()
+  local now = GetServerTime()
+  LAST_DAILY_RESET = now + DateAndTime.GetSecondsUntilDailyReset() - SECONDS_PER_DAY
+  LAST_RESET = now + DateAndTime.GetSecondsUntilWeeklyReset() - SECONDS_PER_WEEK
+  LAST_SUNDAY_RESET = sundayAnchor(now)
+  ns.LAST_DAILY_RESET, ns.LAST_RESET, ns.LAST_SUNDAY_RESET = LAST_DAILY_RESET, LAST_RESET, LAST_SUNDAY_RESET
+end
+
+---Seconds until the nearest daily/weekly/Sunday boundary.
+---@return integer
+local function secondsUntilNextReset()
+  local untilSunday = LAST_SUNDAY_RESET + SECONDS_PER_WEEK - GetServerTime()
+  return math.min(DateAndTime.GetSecondsUntilDailyReset(), DateAndTime.GetSecondsUntilWeeklyReset(), untilSunday)
+end
+
+---(Re)arm the single reset timer; a newer call supersedes an armed one.
+---@class Warbandeer_Characters
+---@field ScheduleResets fun(self)
+function ns:ScheduleResets()
+  resetTimerGen = resetTimerGen + 1
+  local gen = resetTimerGen
+  C_Timer.After(math.max(secondsUntilNextReset(), 0) + RESET_TIMER_PAD, function()
+    if gen ~= resetTimerGen then return end
+    self:RefreshResetAnchors()
+    if self:ApplyResets() then
+      if self.RolloverWarbandWeek then self:RolloverWarbandWeek() end
+      -- The client's saved-instance list is still last week's until asked again; the answer
+      -- (UPDATE_INSTANCE_INFO) re-reads the lockouts (#1046).
+      RequestRaidInfo()
+      self:refresh()
+    end
+    self:ScheduleResets()
+  end)
 end

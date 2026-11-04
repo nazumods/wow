@@ -494,6 +494,7 @@ std = {
     "PlayerIsTimerunning",
     "QueryGuildBankTab",
     "QueryGuildRecipes",
+    "RequestRaidInfo",
     "RequestTimePlayed",
     "RunNextFrame",
     "SaveBindings",

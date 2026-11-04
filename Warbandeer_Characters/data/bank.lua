@@ -151,9 +151,12 @@ end
 -- Both use the modern C_Bank tab model: FetchPurchasedBankTabIDs hands back the
 -- container bag IDs, which C_Container reads slot-by-slot while the bank is open.
 
+-- Returns nil when that bank can't be viewed (e.g. the warband bank at a character-only banker, or any
+-- bank once its frame has closed): an unreadable bank is not an empty one, so callers keep the cached
+-- store instead of overwriting it with empty lists (#1016).
 local function scanBankType(bankType)
   local gear, equip, counts = {}, {}, {}
-  if not C_Bank.CanViewBank(bankType) then return toList(gear), equip, counts end
+  if not C_Bank.CanViewBank(bankType) then return nil end
   for _, bagID in ipairs(C_Bank.FetchPurchasedBankTabIDs(bankType) or {}) do
     for slot = 1, (C_Container.GetContainerNumSlots(bagID) or 0) do
       local info = C_Container.GetContainerItemInfo(bagID, slot)
@@ -174,12 +177,14 @@ local function scanPersonalBanks()
   local now = GetServerTime()
   cold = {}
   local charGear, charEquip, charCounts = scanBankType(BankType.Character)
-  b.characters[ns.currentPlayer] = { scannedAt = now, gear = charGear, equip = charEquip, items = charCounts }
+  if charGear then
+    b.characters[ns.currentPlayer] = { scannedAt = now, gear = charGear, equip = charEquip, items = charCounts }
+  end
   -- The account (warband) bank is a Mainline system; where the feature table says Forever lacks it, record no
   -- `b.warband` (the character bank above is unchanged).
   if ns:Supports("warbandBank") then
     local wbGear, wbEquip, wbCounts = scanBankType(BankType.Account)
-    b.warband = { scannedAt = now, gear = wbGear, equip = wbEquip, items = wbCounts }
+    if wbGear then b.warband = { scannedAt = now, gear = wbGear, equip = wbEquip, items = wbCounts } end
   end
   local pending = cold
   cold = nil
@@ -259,7 +264,12 @@ local function scanGuildBank()
       end
     end
   end
-  store().guilds[key] = { scannedAt = GetServerTime(), gear = toList(gear), items = counts }
+  -- Tab contents arrive asynchronously, so a read before they load finds 0 items. That is not a real empty
+  -- bank: keep the cached record rather than wiping it (#1017). A genuinely emptied bank is rewritten on
+  -- the first visit that reads any item.
+  local guilds = store().guilds
+  if next(counts) == nil and guilds[key] then return end
+  guilds[key] = { scannedAt = GetServerTime(), gear = toList(gear), items = counts }
 end
 
 -- Request item data for every tab so a subsequent scan sees populated slots.
@@ -276,8 +286,8 @@ end
 local guildBankOpen = false
 ns:registerEvent("GUILDBANKFRAME_OPENED", function()
   guildBankOpen = true
+  -- No scan here: the tabs are only requested, and GUILDBANKBAGSLOTS_CHANGED scans as each arrives (#1017).
   queryAllGuildTabs()
-  scanGuildBank()
 end)
 ns:registerEvent("GUILDBANKFRAME_CLOSED", function() guildBankOpen = false end)
 ns:registerEvent("GUILDBANKBAGSLOTS_CHANGED", function()
