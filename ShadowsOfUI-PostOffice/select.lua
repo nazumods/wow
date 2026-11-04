@@ -10,6 +10,9 @@ local ns = select(2, ...)
 local ROWS = 7
 local checked = {} ---@type table<number, boolean> mail index -> selected
 local lastCheck ---@type number? anchor for shift-click range select
+local lastCount ---@type number? inbox letter count the ticks were made against
+
+local mode ---@type "open"|"return"|nil
 
 local open, returnBtn ---@type Button?, Button?
 local checkboxes = {} ---@type CheckButton[]
@@ -33,10 +36,26 @@ local function applyLayout(on)
 end
 
 --------------------------------------------------------------------------------
+-- Ticks are keyed by inbox INDEX, and indices shift whenever a letter above them leaves (an Express
+-- return, a DoNotWant delete, a looted letter auto-deleting) or arrives. So when the letter count has
+-- changed and no batch is running, every tick is stale: drop them rather than let the checkmarks
+-- slide onto letters nobody ticked (#1011). Returns true when it cleared.
+--------------------------------------------------------------------------------
+local function syncChecked()
+  if mode then return false end -- mid-batch the queue owns the indices; it re-checks per step
+  local n = GetInboxNumItems()
+  local stale = lastCount ~= nil and n ~= lastCount
+  lastCount = n
+  if stale then wipe(checked); lastCheck = nil end
+  return stale
+end
+
+--------------------------------------------------------------------------------
 -- Multi-select: plain toggle, shift = range from the last click, ctrl = every
 -- letter from the same sender.
 --------------------------------------------------------------------------------
 local function toggleMail(cb)
+  syncChecked()
   local index = cb:GetID() + (InboxFrame.pageNum - 1) * ROWS
   if lastCheck and IsShiftKeyDown() then
     for i = lastCheck, index, lastCheck <= index and 1 or -1 do checked[i] = true end
@@ -70,12 +89,14 @@ local function tick(after)
   ticker:Show()
 end
 
-local mode ---@type "open"|"return"|nil
 local queue ---@type number[]?  selected indices, descending
 local qi ---@type number?
 local startCount ---@type number?  inbox letter count when the current letter began draining
 
 local band = bit.band
+
+local MAX_TAKES = 7 -- tries on one attachment slot before the letter is skipped
+local takes ---@type { index: number, slot: number, n: number }?  the take in flight, for the retry cap
 
 -- True if the letter's attachment in `slot` can actually be placed — some bag has a free
 -- slot that accepts it: a general bag (bagFamily 0 holds anything) or a specialized bag
@@ -98,7 +119,7 @@ local function attachmentFits(index, slot)
 end
 
 local function finish()
-  mode, queue, qi, startCount = nil, nil, nil, nil
+  mode, queue, qi, startCount, lastCount = nil, nil, nil, nil, GetInboxNumItems()
   if open then open:SetText("Open"); open:Enable(); open:Show() end
   if returnBtn then returnBtn:SetText("Return"); returnBtn:Enable(); returnBtn:Show() end
   ns.RefreshInbox()
@@ -124,14 +145,21 @@ function ns._selectStep()
   -- this index — advance instead of draining it. (New mail only increases the count; that
   -- rare front-insert re-index stays deferred, per CONTEXT's Select notes.)
   if startCount == nil then startCount = GetInboxNumItems() end
-  if GetInboxNumItems() < startCount then checked[index] = nil; qi = qi + 1; startCount = nil; tick(); return end
+  if GetInboxNumItems() < startCount then checked[index] = nil; qi = qi + 1; startCount, takes = nil, nil; tick(); return end
   local money, cod = select(5, GetInboxHeaderInfo(index))
-  if cod and cod > 0 then checked[index] = nil; qi = qi + 1; startCount = nil; tick(); return end -- never pay CoD
+  if cod and cod > 0 then checked[index] = nil; qi = qi + 1; startCount, takes = nil, nil; tick(); return end -- never pay CoD
   local slot
   for a = ATTACHMENTS_MAX_RECEIVE, 1, -1 do
     if GetInboxItem(index, a) then slot = a; break end
   end
+  -- A take the server keeps refusing (a unique item already owned) leaves the attachment in place
+  -- forever; give up on the letter after MAX_TAKES tries on the same slot so the batch moves on (#1037).
+  if slot and takes and takes.index == index and takes.slot == slot and takes.n >= MAX_TAKES then
+    checked[index] = nil; qi = qi + 1; startCount, takes = nil, nil; tick(); return
+  end
   if slot and attachmentFits(index, slot) then
+    if takes and takes.index == index and takes.slot == slot then takes.n = takes.n + 1
+    else takes = { index = index, slot = slot, n = 1 } end
     TakeInboxItem(index, slot)
     tick()
   elseif money and money > 0 then
@@ -140,17 +168,18 @@ function ns._selectStep()
   else
     checked[index] = nil
     qi = qi + 1
-    startCount = nil
+    startCount, takes = nil, nil
     tick()
   end
 end
 
 local function startBatch(m)
+  if syncChecked() then ns.RefreshInbox() return end -- the ticks were stale: they are gone now, nothing to run
   local q = {}
   for index in pairs(checked) do q[#q + 1] = index end
   if #q == 0 then return end
   table.sort(q, function(a, b) return a > b end) -- highest first
-  mode, queue, qi, startCount = m, q, 1, nil
+  mode, queue, qi, startCount, takes = m, q, 1, nil, nil
   local busy = m == "return" and returnBtn or open
   local hide = m == "return" and open or returnBtn
   busy:SetText("Working…"); busy:Disable()
@@ -199,6 +228,7 @@ end
 ns.OnInboxRow(function(row)
   local cb = checkboxes[row.i]
   if not cb then return end
+  syncChecked() -- before reading any tick: a changed inbox invalidates them all
   if not ns.db.select or not row.present or mode then -- hidden while batch-processing
     cb:Hide()
     return
@@ -215,7 +245,7 @@ ns.OnMailShow(function()
 end)
 ns.OnMailHide(function()
   ticker:Hide() -- abort any in-flight batch; the inbox is gone
-  mode, queue, qi, startCount = nil, nil, nil, nil
+  mode, queue, qi, startCount, takes, lastCount = nil, nil, nil, nil, nil, nil
   wipe(checked)
   lastCheck = nil
 end)

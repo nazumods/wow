@@ -168,6 +168,11 @@ local function onChar(editbox)
   if text == "" or editbox:GetCursorPosition() < #text then return end
   if not candidates then buildCandidates() end
   local upper = text:upper()
+  -- An exact match is already the name the player means: don't extend it to a longer one
+  -- ("Ann" must not fill "Annabel" when "Ann" is itself a saved name) (#1037).
+  for _, name in ipairs(candidates) do
+    if name:upper() == upper then return end
+  end
   for _, name in ipairs(candidates) do
     if name:upper():sub(1, #upper) == upper and #name > #text then
       editbox:SetText(name)

@@ -24,6 +24,7 @@ return {
       "ShadowsOfUI-Delves/spec",
       "ShadowsOfUI-Castbar/spec",
       "MouselookToggle/spec",
+      "Recycle/spec",
     },
     lpath = "?.lua",
     verbose = true,

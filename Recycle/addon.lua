@@ -16,15 +16,56 @@ end
 
 -- ─── Sell decision ────────────────────────────────────────────────────────────
 
+-- Manual marks come in two shapes (#1009):
+--   * `db.itemsToSell[itemID] = true`      every copy of the item: stackables, and every mark made
+--                                          before per-copy marks existed (kept as-is, so an old
+--                                          mark reads exactly as it always did);
+--   * `db.copiesToSell[copyKey] = true`    ONE copy of an equippable item. Normal / Heroic / Mythic
+--                                          drops and most world gear share an itemID and differ only
+--                                          in the bonus ids and item context inside the link.
+-- `copiesToSell` is created lazily (a MigrateDB seed would not rerun on an existing DB).
+
+--- Identity of one copy of an item, from its hyperlink: `itemID:context:bonusID:...`. The enchant,
+--- gems, the linking player's level and spec are deliberately left out so the same copy keeps the same
+--- key across gemming, re-linking and levelling.
+---@param link string?
+---@return string?
+local function copyKey(link)
+  local body = link and link:match("item:([%-%d:]*)")
+  if not body then return nil end
+  local f = {}
+  for v in (body .. ":"):gmatch("([^:]*):") do f[#f + 1] = v end
+  -- 1 itemID, 2 enchant, 3-6 gems, 7 suffix, 8 unique, 9 linkLevel, 10 spec, 11 modifiers,
+  -- 12 context, 13 numBonusIDs, 14.. bonus ids
+  local parts = { f[1] or "", f[12] or "" }
+  for i = 1, tonumber(f[13]) or 0 do parts[#parts + 1] = f[13 + i] or "" end
+  return table.concat(parts, ":")
+end
+
+--- Weapons and armor are marked per copy; everything else (trade goods, consumables) per item.
+---@param itemID number
+---@return boolean
+local function isEquippable(itemID)
+  local classID = select(6, C_Item.GetItemInfoInstant(itemID))
+  return classID == Enum.ItemClass.Weapon or classID == Enum.ItemClass.Armor
+end
+
 --- Returns true if the item should be sold at the next vendor visit.
 --- `quality` is the container-info quality when the caller has it (avoids a
 --- `GetItemInfo` cache miss on a cold login); falls back to `GetItemInfo`.
+--- `link` is the item's hyperlink (container info's `hyperlink`), needed to honour a per-copy mark.
 ---@param itemID number
 ---@param quality number? container-info quality, if known
+---@param link string? the item's hyperlink, if known
 ---@return boolean
-local function shouldSell(itemID, quality)
+local function shouldSell(itemID, quality, link)
   if not itemID then return false end
   if ns.db.itemsToSell[itemID] then return true end
+  local copies = ns.db.copiesToSell
+  if copies and link and next(copies) then
+    local key = copyKey(link)
+    if key and copies[key] then return true end
+  end
   if ns.db.settings.sellGrey then
     if quality == nil then quality = select(3, GetItemInfo(itemID)) end
     if quality == 0 then return true end
@@ -42,11 +83,27 @@ local function toggle(bag, slot)
   if not info or not info.itemID then return end
   local id = info.itemID
   if ns.db.itemsToSell[id] then
+    -- An all-copies mark (a stackable, or one made before per-copy marks): clearing it is what the
+    -- bag mark on this item was showing.
     ns.db.itemsToSell[id] = nil
+  elseif isEquippable(id) then
+    -- No usable key means no way to tell this copy from the others, and falling back to the
+    -- all-copies mark would arm every copy of the item: mark nothing and say so.
+    local key = copyKey(info.hyperlink)
+    if not key then
+      print("|cffffcc00Recycle:|r Couldn't read this item's link, so it was not marked. Try again in a moment.")
+      return
+    end
+    ns.db.copiesToSell = ns.db.copiesToSell or {}
+    ns.db.copiesToSell[key] = (not ns.db.copiesToSell[key]) or nil
   else
     ns.db.itemsToSell[id] = true
   end
 end
+
+-- Exposed for the specs (Recycle/spec).
+ns.ShouldSell = shouldSell
+ns.ToggleMark = toggle
 
 -- ─── Sell at vendor ───────────────────────────────────────────────────────────
 
@@ -68,11 +125,19 @@ local soldThisVisit = 0
 local function sellItems()
   local sold, total = 0, 0
   local deferred = false
+  -- Per-copy marks expire with their copy: count the copies of each marked key that are still in the
+  -- bags after this pass, and drop a key with none left (sold, destroyed, or its bonus ids changed on an
+  -- upgrade), so a later identical drop isn't sold on a stale mark.
+  local copies = ns.db.copiesToSell
+  local left = (copies and next(copies)) and {} or nil
+  local complete = true
   for bag = 0, 4 do
     for slot = 1, C_Container.GetContainerNumSlots(bag) do
-      if soldThisVisit >= BUYBACK_LIMIT then break end
+      if soldThisVisit >= BUYBACK_LIMIT then complete = false; break end
       local info = C_Container.GetContainerItemInfo(bag, slot)
-      if info and shouldSell(info.itemID, info.quality) then
+      local key = left and info and copyKey(info.hyperlink)
+      if key and copies[key] then left[key] = (left[key] or 0) + 1 end
+      if info and shouldSell(info.itemID, info.quality, info.hyperlink) then
         local price = select(11, GetItemInfo(info.itemID))
         if price == nil then
           -- Price not cached yet (cold login); ask for the data and retry later.
@@ -81,13 +146,20 @@ local function sellItems()
         elseif price > 0 then
           C_Container.PickupContainerItem(bag, slot)
           PickupMerchantItem()
+          if key and copies[key] then left[key] = left[key] - 1 end
           soldThisVisit = soldThisVisit + 1
           sold = sold + 1
           total = total + price * (info.stackCount or 1)
         end
       end
     end
-    if soldThisVisit >= BUYBACK_LIMIT then break end
+    if soldThisVisit >= BUYBACK_LIMIT then complete = false; break end
+  end
+  -- Only on a full walk of the bags: a pass cut short by the buyback cap hasn't seen every copy.
+  if left and complete then
+    for key in pairs(copies) do
+      if (left[key] or 0) <= 0 then copies[key] = nil end
+    end
   end
   if sold > 0 and not ns.db.settings.silent then
     print("|cffffcc00Recycle:|r Sold " .. sold .. " item(s) for " .. goldStr(total) .. ".")
@@ -102,6 +174,8 @@ local function sellItems()
     end)
   end
 end
+
+ns.SellItems = sellItems -- exposed for the specs
 
 -- ─── Visual marks (default WoW bags) ─────────────────────────────────────────
 
@@ -130,7 +204,7 @@ local function refreshDefaultBags()
     for _, btn in ipairs(combined.Items) do
       local slot, bag = btn:GetSlotAndBagID()
       local info = C_Container.GetContainerItemInfo(bag, slot)
-      setMark(btn, info and shouldSell(info.itemID, info.quality))
+      setMark(btn, info and shouldSell(info.itemID, info.quality, info.hyperlink))
     end
   else
     local container = _G["ContainerFrameContainer"]
@@ -139,7 +213,7 @@ local function refreshDefaultBags()
         for _, btn in ipairs(bagFrame.Items) do
           local slot, bag = btn:GetSlotAndBagID()
           local info = C_Container.GetContainerItemInfo(bag, slot)
-          setMark(btn, info and shouldSell(info.itemID, info.quality))
+          setMark(btn, info and shouldSell(info.itemID, info.quality, info.hyperlink))
         end
       end
     end
@@ -158,8 +232,8 @@ end
 
 local function setupBaganator()
   if not Baganator or not Baganator.API or not Baganator.API.RegisterJunkPlugin then return end
-  Baganator.API.RegisterJunkPlugin("Recycle", "recycle", function(_, _, itemID, _)
-    return shouldSell(itemID)
+  Baganator.API.RegisterJunkPlugin("Recycle", "recycle", function(_, _, itemID, itemLink)
+    return shouldSell(itemID, nil, itemLink)
   end)
 end
 
@@ -230,6 +304,7 @@ function ns:onLoad()
 
   ns:registerCommand("clear", nil, function()
     ns.db.itemsToSell = {}
+    ns.db.copiesToSell = {}
     ns:refreshMarks()
     print("|cffffcc00Recycle:|r Sell list cleared.")
   end, "Clear manually-marked items")
