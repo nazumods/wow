@@ -66,7 +66,12 @@ QuestLog.fields = {
   -- login + on the (debounced) turn-in event, which coalesces quest-chain bursts.
   completed = {
     missing = false,
-    get = function() return pack(C_QuestLog.GetAllCompletedQuestIDs() or {}) end,
+    get = function(_, _, current)
+      local ids = C_QuestLog.GetAllCompletedQuestIDs()
+      -- An empty read at login (quest data not loaded yet) must not replace the stored bitmap.
+      if (not ids or #ids == 0) and current then return current end
+      return pack(ids or {})
+    end,
     event = "QUEST_TURNED_IN",
     eventDelay = 3000,
   },

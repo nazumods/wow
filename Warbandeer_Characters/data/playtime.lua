@@ -21,11 +21,25 @@ local Playtime = ns:RegisterBroker("playtime")
 -- Bounds both crash-loss and midnight-split error to a single interval.
 local ACCRUE_INTERVAL = 60 -- seconds
 
--- Suppress the CHAT_MSG_SYSTEM that fires alongside the automatic login query.
-local suppressTimePlayed = false
-ChatFrameUtil.AddMessageEventFilter("CHAT_MSG_SYSTEM", function(_, _, _)
-  if suppressTimePlayed then suppressTimePlayed = false; return true end
-end)
+-- Retail prints /played through TIME_PLAYED_MSG, which every chat frame listens to. To keep the automatic
+-- login query quiet, the chat frames drop that event around our own RequestTimePlayed() and get it back
+-- once the answer lands (or after a safety timeout, so a lost reply can't silence /played for the session).
+-- Filtering CHAT_MSG_SYSTEM instead leaves the lines printing and eats the next unrelated system message.
+local muted = {}
+local function unmuteTimePlayed()
+  for frame in pairs(muted) do frame:RegisterEvent("TIME_PLAYED_MSG") end
+  muted = {}
+end
+local function muteTimePlayed()
+  for i = 1, NUM_CHAT_WINDOWS or 0 do
+    local frame = _G["ChatFrame" .. i]
+    if frame and frame:IsEventRegistered("TIME_PLAYED_MSG") then
+      frame:UnregisterEvent("TIME_PLAYED_MSG")
+      muted[frame] = true
+    end
+  end
+  C_Timer.After(5, unmuteTimePlayed)
+end
 
 -- Split the interval [from, now] (server-epoch seconds) across LOCAL midnight
 -- boundaries, adding each day's share to `byDay`. Keyed by local date so the
@@ -60,6 +74,7 @@ function Playtime:Init(toon)
   local patch = select(1, GetBuildInfo())
 
   ns:registerEvent("TIME_PLAYED_MSG", function(_, totalTime)
+    unmuteTimePlayed()
     toon.playtime.total = totalTime
     if not toon.playtime.byPatch then toon.playtime.byPatch = {} end
     if not toon.playtime.byPatch[patch] then
@@ -67,7 +82,7 @@ function Playtime:Init(toon)
     end
   end)
 
-  suppressTimePlayed = true
+  muteTimePlayed()
   RequestTimePlayed()
 
   -- Per-day session accounting (wall-clock, which equals logged-in time — exactly

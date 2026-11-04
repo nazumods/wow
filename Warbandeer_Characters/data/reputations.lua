@@ -116,7 +116,7 @@ local scanning = false
 Reputations.fields = {
   factions = {
     missing = { label = "reputations", order = 90 },
-    get = function()
+    get = function(_, _, current)
       if C_Reputation.ExpandAllFactionHeaders then
         scanning = true
         local ok, err = pcall(C_Reputation.ExpandAllFactionHeaders)
@@ -138,6 +138,8 @@ Reputations.fields = {
           end
         end
       end
+      -- An empty read at login (faction list not loaded yet) must not replace the stored standings.
+      if next(reps) == nil and current then return current end
       return reps
     end,
     event = "UPDATE_FACTION",

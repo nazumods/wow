@@ -65,6 +65,10 @@ end
 
 local Titles = ns:RegisterBroker("titles")
 
+-- UNIT_NAME_UPDATE fires for every unit (party, raid, nameplates); only the player's own matters. Applies to
+-- KNOWN_TITLES_UPDATE too, which carries no unit (nil passes). Args: (field, currentValue, unit).
+local function onlyPlayerUnit(_, _, unit) return unit == nil or unit == "player" end
+
 Titles.fields = {
   -- KNOWN_TITLES_UPDATE fires when the set of earned titles changes; debounce a burst into one
   -- scan. The login refresh() queues this field too, so an alt's list is captured the next time
@@ -81,6 +85,7 @@ Titles.fields = {
     missing = false,
     get = function() return currentTitle() end,
     event = { "KNOWN_TITLES_UPDATE", "UNIT_NAME_UPDATE" },
+    eventFilter = onlyPlayerUnit,
     eventDelay = 1000,
   },
   -- The featured title's display name, captured beside `current` so the Summary column renders an
@@ -89,6 +94,7 @@ Titles.fields = {
     missing = false,
     get = function() return currentTitleName() end,
     event = { "KNOWN_TITLES_UPDATE", "UNIT_NAME_UPDATE" },
+    eventFilter = onlyPlayerUnit,
     eventDelay = 1000,
   },
 }
