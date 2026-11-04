@@ -22,7 +22,7 @@ data through the `WarbandeerApi` global.
 | `/wbc stat` | Warband-wide playtime/class statistics |
 | `/wbc missing [me]` | Report characters/fields with incomplete data |
 | `/wbc wmissing` | Same report in a copyable window |
-| `/wbc cleanup`, `/wbc clear delves\|dungeons`, `/wbc dump …`, `/wbc wdump …` | Maintenance/developer tools (`wdump` renders any `dump` in a copyable window; bare `wdump` dumps everything) |
+| `/wbc cleanup`, `/wbc cleanup professions [preview|apply]` (deletes saved recipes, gear, concentration, Moxie and weekly knowledge for professions a character no longer has; never runs automatically), `/wbc clear delves\|dungeons`, `/wbc dump …`, `/wbc wdump …` | Maintenance/developer tools (`wdump` renders any `dump` in a copyable window; bare `wdump` dumps everything) |
 
 ## Notes
 

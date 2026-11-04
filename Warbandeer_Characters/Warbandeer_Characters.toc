@@ -40,6 +40,7 @@ data/gearbag.lua
 data/professioninfo.lua
 data/professions.lua
 data/professions_gear.lua
+data/professionprune.lua
 data/recipegear.lua
 data/races.lua
 data/quests.lua
