@@ -350,8 +350,7 @@ function GearView:updateFilter()
 end
 
 function GearView:OnBeforeShow()
-  for _, armorType in ipairs(Armor.types) do
-    self._tables[armorType]:OnBeforeShow()
-  end
+  -- layout() shows the active armor table, which runs its OnBeforeShow; the other three are
+  -- hidden and rebuild when selectArmor brings them up, so there's no need to rebuild all four (#1054).
   self:layout()
 end

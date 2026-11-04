@@ -6,8 +6,6 @@ if not ns:Supports("legion") then return end
 ---@type LibNUI
 local ui = ns.ui
 local Class, Frame, TableFrame = ns.lua.Class, ui.Frame, ui.TableFrame
--- 12.1.0 renamed OpenAchievementFrameToAchievement -> ShowAchievementFrameForAchievement
-local OpenAchievement = ShowAchievementFrameForAchievement or OpenAchievementFrameToAchievement
 
 ---@type WarbandeerAPI
 local api = ns.api
@@ -176,27 +174,7 @@ end, {
   autosize = true,
   headerHeight = 0,
   headerWidth = 0,
-  GetData = function(self)
-    -- Catalog lives in Warbandeer_Characters (data/achievementcatalog.lua) since the persistence
-    -- layer needs the full id set regardless of whether this view is open. Read here rather than
-    -- at file scope so a missing or stale producer costs this view when opened, not three files
-    -- at load (#746).
-    return ns.lua.maps.map(
-      ns.lua.lists.fold(api:GetAchievementCatalog().legion, 3),
-      function(ids)
-        return ns.lua.lists.map(ids, function(achievementId)
-          local _, name = GetAchievementInfo(achievementId)
-          return {
-            text = name,
-            color = api:IsAchievementComplete(achievementId) and DIM_GREEN_FONT_COLOR or DIM_RED_FONT_COLOR,
-            onClick = function()
-              OpenAchievement(achievementId)
-            end,
-          }
-        end)
-      end
-    )
-  end,
+  GetData = function() return ns.AchievementGridData("legion", 3) end,
 })
 
 
@@ -238,4 +216,5 @@ function Legion:OnBeforeShow()
   self.collected:update()
   self.collected:Autosize()
   self:Width(self.collected:Width() + 4)
+  ns.RefreshAchievementGrid(self.achievements)
 end

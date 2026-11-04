@@ -23,7 +23,12 @@ local GetItemTex = C_Item.GetItemIconByID
 -- computes lazily off the render frame: a cold cell shows a muted placeholder and
 -- enqueues a compute (one character per tick); when the queue drains the view
 -- refreshes once with the real counts.  Results are cached per character and reused
--- until the data layer rescans that character (keyed on `lastRefresh`).
+-- until the data layer rescans that character (keyed on `lastRefresh`) or CACHE_TTL passes.
+-- `lastRefresh` is stamped only when the login broker queue drains, so event rescans (bag /
+-- equipment changes) and warband-bank changes never move it; the TTL bounds how long a count
+-- can stay stale in a session (#1028). Past the TTL the old count is shown while a fresh one
+-- computes, so the cell doesn't flicker back to the placeholder.
+local CACHE_TTL = 30
 local PLACEHOLDER = {
   text = "…", color = theme.colors.muted,
   justifyH = ui.justify.Right, fontInfo = theme.fonts.number,
@@ -113,22 +118,23 @@ local function pump()
     return
   end
   local data = ns.api:GetCharacterData(name)
-  if data then cache[name] = { refresh = data.lastRefresh, payload = buildPayload(data) } end
+  if data then cache[name] = { refresh = data.lastRefresh, t = GetTime(), payload = buildPayload(data) } end
   pending[name] = nil
   ns:after(STEP, pump)
 end
 
 local getUpgrades = function(toon)
   local c = cache[toon.name]
-  if c and c.refresh == toon.lastRefresh then return c.payload end
-  -- Cold (or stale after a rescan): enqueue an off-frame compute and show a
-  -- placeholder for now.
+  local fresh = c and c.refresh == toon.lastRefresh
+  if fresh and GetTime() - c.t < CACHE_TTL then return c.payload end
+  -- Cold, stale after a rescan, or past the TTL: enqueue an off-frame compute. A merely
+  -- aged entry keeps showing its count meanwhile; otherwise show a placeholder.
   if not pending[toon.name] then
     pending[toon.name] = true
     insert(queue, toon.name)
     if not pumping then pumping = true; ns:after(0, pump) end
   end
-  return PLACEHOLDER
+  return fresh and c.payload or PLACEHOLDER
 end
 
 insert(
