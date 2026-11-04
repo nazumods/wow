@@ -6,9 +6,10 @@ local Class, Frame, Texture = ns.lua.Class, ui.Frame, ui.Texture
 local LabeledBar = ns.LabeledBar
 local theme = ns.theme
 local BottomLeft = ui.edge.BottomLeft
-local GetMajorFactionIDs = C_MajorFactions.GetMajorFactionIDs
-local GetMajorFactionData, GetFactionDataByID = C_MajorFactions.GetMajorFactionData, C_Reputation.GetFactionDataByID
-local GetRenownLevels = C_MajorFactions.GetRenownLevels
+local MajorFactions = C_MajorFactions or {} -- absent namespace must not error at load
+local GetMajorFactionIDs = MajorFactions.GetMajorFactionIDs
+local GetMajorFactionData, GetFactionDataByID = MajorFactions.GetMajorFactionData, C_Reputation.GetFactionDataByID
+local GetRenownLevels = MajorFactions.GetRenownLevels
 local GetFriendshipReputation = C_GossipInfo.GetFriendshipReputation
 local GetFriendshipReputationRanks = C_GossipInfo.GetFriendshipReputationRanks
 local IsFactionParagon = C_Reputation.IsFactionParagon
@@ -132,6 +133,7 @@ end
 -- table logic, plus a fill pct and paragon handling.
 local function gatherFactions(expansionLevel, extraFactionIDs)
   local rows, seen = {}, {}
+  if not (GetMajorFactionIDs and GetMajorFactionData and GetRenownLevels) then return rows end
 
   local function pushFaction(factionID)
     local info = GetMajorFactionData(factionID)
