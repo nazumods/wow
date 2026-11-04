@@ -6,6 +6,11 @@ local ns = select(2, ...)
 -- conventional-commit grouping used for the GitHub/CurseForge release notes.
 ---@type { version: string, notes: string }[]
 ns.changelog = {
+  { version = "12.1.5-r3", notes = [==[
+### Bug Fixes
+- batch of six XS audit fixes (#1055, #1056, #1062, #1065, #1081, #1095) (#1150)
+
+]==] },
   { version = "12.1.5-r2", notes = [==[
 ### Features
 - 12 TOC-only addons load on Forever (16001); HideBagBar skips a missing frame and hides the key ring (#956, merge after #955) (#973)
