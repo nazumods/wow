@@ -137,6 +137,13 @@ describe("outfit codec", function()
       assert.matches("expected 17 values", err)
     end)
 
+    -- #1039: the count check bails once past 17 fields instead of building the whole table.
+    it("rejects too many values without reading the rest", function()
+      local list, err = ns.DecodeOutfit("/customset v1 " .. ("1,"):rep(100000) .. "1")
+      assert.is_nil(list)
+      assert.matches("expected 17 values", err)
+    end)
+
     it("rejects a non-numeric value", function()
       local list, err = ns.DecodeOutfit(payload({}):gsub("^(/customset v1 )0", "%1abc"))
       assert.is_nil(list)
@@ -204,6 +211,26 @@ describe("outfit codec", function()
       local list, err = ns.DecodeOutfit(nil)
       assert.is_nil(list)
       assert.matches("string", err)
+    end)
+  end)
+
+  -- #1039: linear-time trim, shared by the share box and the library's name cleanup.
+  describe("Trim", function()
+    it("strips surrounding whitespace only", function()
+      assert.equal("a b", ns.Trim("  \t a b \n "))
+    end)
+
+    it("turns whitespace-only and nil into the empty string", function()
+      assert.equal("", ns.Trim(" \t\n "))
+      assert.equal("", ns.Trim(nil))
+    end)
+
+    it("leaves an already-clean string alone", function()
+      assert.equal("x", ns.Trim("x"))
+    end)
+
+    it("handles a long run of whitespace", function()
+      assert.equal("x", ns.Trim(("  "):rep(50000) .. "x" .. ("  "):rep(50000)))
     end)
   end)
 

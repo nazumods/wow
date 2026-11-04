@@ -28,9 +28,10 @@ local GetInspectList = C_TransmogCollection.GetInspectItemTransmogInfoList
 -- "try again while data streams" tail, so the poll below doubles as the deadline: 20 attempts a
 -- quarter-second apart is ~5s, long enough for a server round-trip and short enough that a target
 -- who walked out of range is reported rather than waited on forever. `INSPECT_READY` short-circuits
--- it by polling immediately, so the normal path resolves on the event and the timer is only the
--- tail. Not `ns.delay`: LibNAddOn keeps one timer per addon, and the room's own retries run
--- alongside this while a look is being read.
+-- it by marking the pending ask ready and polling immediately, so the normal path resolves on the
+-- event and the timer is only the tail (and the deadline if the event never comes). Not `ns.delay`:
+-- LibNAddOn keeps one timer per addon, and the room's own retries run alongside this while a look
+-- is being read.
 local RETRY_KEY = "inspectOutfit"
 local TRIES, DELAY = 20, 0.25
 
@@ -91,12 +92,21 @@ local function finish(list)
 end
 
 ---Try to read the inspected list, scheduling another attempt while the budget lasts.
+---
+---**Nothing is read until `INSPECT_READY` has matched the pending GUID (`_pending.ready`, #1112).**
+---`GetInspectItemTransmogInfoList` answers for whoever the client inspected LAST, and
+---`release()` deliberately skips `ClearInspectPlayer` while the inspect window is open, so an
+---un-gated read right after `NotifyInspect` returned the previous player's cached list, which
+---`finish` then labelled with the new target's name and imported. Before the event this only
+---keeps the retry clock running; it never finishes.
 local function poll()
   if not _pending then return end
   -- Declared `MayReturnNothing`, and an empty table is the same "not yet" as a nil one — the data
   -- streams in after the handshake, so both are ordinary states rather than failures.
-  local list = GetInspectList()
-  if list and next(list) then return finish(list) end
+  if _pending.ready then
+    local list = GetInspectList()
+    if list and next(list) then return finish(list) end
+  end
   if ns.Retry(ns, RETRY_KEY, { again = poll, tries = TRIES, delay = DELAY }) then return end
 
   local who = _pending.who
@@ -132,8 +142,8 @@ function ns.GrabTargetOutfit()
   -- cross-realm player, which is the only thing that tells two same-named targets apart in chat.
   _pending = { guid = UnitGUID("target"), who = GetUnitName("target", true) }
   NotifyInspect("target")
-  -- Immediately, not only on the event: the data is often already cached for someone recently
-  -- inspected, and a miss here is what arms the timeout.
+  -- Arms the timeout. Not a read: until INSPECT_READY matches the GUID, whatever the client holds
+  -- belongs to whoever it inspected last (#1112).
   poll()
 end
 
@@ -141,5 +151,8 @@ end
 -- `InspectGuildFrame`): the event fires for whoever the client last inspected, which need not be who
 -- we asked about if another addon inspected someone in between.
 ns:registerEvent("INSPECT_READY", function(_, inspecteeGUID)
-  if _pending and inspecteeGUID == _pending.guid then poll() end
+  if _pending and inspecteeGUID == _pending.guid then
+    _pending.ready = true
+    poll()
+  end
 end)

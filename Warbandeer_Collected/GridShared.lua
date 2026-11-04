@@ -36,6 +36,7 @@ local GameTooltip = GameTooltip
 ---@field EnsureRowVisible fun(scroll: table, rowTop: number, rowH: number)
 ---@field GridRowOrder fun(view: table, source: table[], wantedFn: fun(grp: table): boolean): number[]
 ---@field EnsureDressedCursor fun(grid: table)
+---@field LiveSlots fun(grid: table): number  how many of `grid.cells`' slots hold a shown row
 ---@field HighlightGridCell fun(grid: table, match: (fun(data: table): boolean)?, scroll: boolean?)
 ---@field expansionBadgeOptions fun(source: table[]): table[]
 ---@field filterToggle fun(strip: table, theme: table, spec: table): table, table
@@ -444,13 +445,16 @@ function ns.baseName(name) return (name:gsub("%s*%b()%s*$", "")) end
 ---@param source table[]
 ---@param reverse boolean?
 function ns.sortByExpansion(order, source, reverse)
+  -- `baseName` is a gsub: computed once per row here rather than twice per comparison (#1039).
+  local names = {}
+  for _, i in ipairs(order) do names[i] = ns.baseName(source[i].name) end
   table.sort(order, function(a, b)
     local ra, rb = source[a].release or 0, source[b].release or 0
     if ra ~= rb then
       if reverse then return ra > rb end
       return ra < rb
     end
-    local na, nb = ns.baseName(source[a].name), ns.baseName(source[b].name)
+    local na, nb = names[a], names[b]
     if na ~= nb then return na < nb end
     return a < b
   end)
@@ -603,6 +607,19 @@ local function matchedDataRow(grid, match)
   end
 end
 
+-- How many of `grid.cells`' slots hold a live (shown) row right now. Virtual: the resident window,
+-- whose size the rebind recorded; static: one slot per data row. Pooled slots beyond that are hidden
+-- but keep their last `.data`, so anything that walks `cells` must stop here.
+---@param grid table
+---@return number
+function ns.LiveSlots(grid)
+  if grid.virtual then
+    local first, last = grid._residentFirst, grid._residentLast
+    return (first and last) and (last - first + 1) or 0
+  end
+  return #(grid.data or {})
+end
+
 -- Re-anchor the dressed-cell cursor onto whichever RESIDENT cell matches, or hide it when none does.
 --
 -- Split out of `HighlightGridCell` for virtualisation (#843): the box anchors to a cell, and a cell is
@@ -616,7 +633,9 @@ end
 function ns.AnchorDressedCursor(grid)
   local match = grid._cursorMatch
   if match then
-    for r = 1, #grid.cells do
+    -- Only LIVE slots: a pooled slot past the current data keeps its old `.data` while hidden, so a
+    -- filter from 400 rows to 5 used to box a hidden slot (#1039).
+    for r = 1, ns.LiveSlots(grid) do
       local row = grid.cells[r]
       for c = 1, #grid.cols do
         local cell = row[c]
@@ -697,7 +716,7 @@ function ns.ResidentCell(grid, dataRow, colN)
   local slot = dataRow
   if grid.virtual then
     local first = grid._residentFirst
-    if not first then return nil end
+    if not first or dataRow > (grid._residentLast or 0) then return nil end
     slot = dataRow - first + 1
   end
   local row = grid.cells[slot]
@@ -714,7 +733,7 @@ function ns.ResidentRow(grid, dataRow)
   local slot = dataRow
   if grid.virtual then
     local first = grid._residentFirst
-    if not first then return nil end
+    if not first or dataRow > (grid._residentLast or 0) then return nil end
     slot = dataRow - first + 1
   end
   return grid.rows[slot]

@@ -90,3 +90,66 @@ describe("grid filtering", function()
     end)
   end)
 end)
+
+-- The pooled-slot bookkeeping (#1039). A recycled slot that falls outside the live window keeps its
+-- last `.data` while hidden, so anything that walks `cells` or maps a data index to a slot has to
+-- stop at the window's edge.
+describe("resident slots", function()
+  local ns
+
+  before_each(function()
+    ns = collected.loadGridShared(collected.load())
+  end)
+
+  local function virtual(first, last)
+    return { virtual = true, _residentFirst = first, _residentLast = last, cells = { {}, {}, {}, {}, {} }, rows = { 1, 2, 3, 4, 5 } }
+  end
+
+  describe("LiveSlots", function()
+    it("is the resident window's size when virtual", function()
+      assert.equal(3, ns.LiveSlots(virtual(10, 12)))
+    end)
+
+    it("is zero before the first rebind", function()
+      assert.equal(0, ns.LiveSlots({ virtual = true, cells = {} }))
+    end)
+
+    it("is the data row count when static", function()
+      assert.equal(2, ns.LiveSlots({ data = { {}, {} }, cells = { {}, {}, {}, {} } }))
+    end)
+  end)
+
+  describe("ResidentCell / ResidentRow", function()
+    it("map a data index inside the window to its slot", function()
+      local g = virtual(10, 12)
+      g.cells[2][1] = "cell"
+      assert.equal("cell", ns.ResidentCell(g, 11, 1))
+      assert.equal(2, ns.ResidentRow(g, 11))
+    end)
+
+    it("return nil past the window even when a stale pooled slot exists", function()
+      local g = virtual(10, 12)
+      g.cells[4][1] = "stale"
+      assert.is_nil(ns.ResidentCell(g, 13, 1))
+      assert.is_nil(ns.ResidentRow(g, 13))
+    end)
+  end)
+
+  describe("AnchorDressedCursor", function()
+    local function cell(data)
+      return { data = data }
+    end
+
+    it("hides the box rather than anchoring to a stale hidden slot", function()
+      local hidden = 0
+      local g = virtual(1, 2)
+      g.cols = { 1 }
+      g.cells = { { cell({ id = 1 }) }, { cell({ id = 2 }) }, { cell({ id = 9 }) } }   -- slot 3 is pooled, hidden
+      g._cursorMatch = function(d) return d.id == 9 end
+      g._dressedBox = { Hide = function() hidden = hidden + 1 end }
+      ns.EnsureDressedCursor = function() error("must not anchor to a hidden slot") end
+      ns.AnchorDressedCursor(g)
+      assert.equal(1, hidden)
+    end)
+  end)
+end)

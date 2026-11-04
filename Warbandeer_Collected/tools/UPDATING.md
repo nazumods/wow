@@ -391,6 +391,8 @@ toc; fenced `-- >>> AUTO-EXPAND … -- <<< AUTO-EXPAND`, the whole file rewritte
 pwsh ./update-sets.ps1 -Expand          # regenerates from expand-groups.txt
 ```
 
+**`-Expand` refuses to write a file that lost rows (#1069).** It throws, leaving `sets_expand.lua` untouched, when any group/merge/mergeset/mergelabels/eachset/assemble was skipped (the warnings are collected and listed; pass **`-AllowSkips`** to write anyway, e.g. after a set was renumbered and you'll fix the directive next; a `mergeseason` group already emptied by an earlier merge is only a warning), when a label column (`Description_lang` / `Name_lang`) is missing from the wago CSV, when it emitted 0 rows, when a generated line has a control character, or when the row count would drop by more than `-MaxDeletePct` (default 5%) against the file on disk. After a deliberate group removal, pass a larger `-MaxDeletePct`.
+
 The canonical group list is **`expand-groups.txt`** — one **`id:Category[:byset]`** line per
 group (`'#'` comments). To add a mega-set, add a line and re-run `-Expand`; to refresh after a
 patch, just re-run `-Expand`. For each group it buckets sets by **label** (default — one row

@@ -92,6 +92,25 @@ function M.loadOutfitCommands(ns)
   return handler
 end
 
+---Load outfitinspect.lua into a bare `ns`, returning the INSPECT_READY handler it registers. The
+---caller installs the WoW globals the file touches (`C_TransmogCollection`, `UnitExists`,
+---`UnitIsPlayer`, `CanInspect`, `UnitGUID`, `GetUnitName`, `NotifyInspect`, `ClearInspectPlayer`)
+---and the `ns.*` it calls at run time BEFORE this: the file captures `GetInspectItemTransmogInfoList`
+---as an upvalue at load, and registers its handler through `ns.registerEvent`.
+---
+---It earns a loader for the #1112 handshake: the inspect list must never be read for a GUID that
+---`INSPECT_READY` has not confirmed, or the previous inspectee's cached look gets labelled as the
+---new target's.
+---@param ns table
+---@return fun(event: any, guid: string)  the INSPECT_READY handler
+function M.loadInspect(ns)
+  ns.ui = ns.ui or {}
+  local handler
+  ns.registerEvent = function(_, event, fn) if event == "INSPECT_READY" then handler = fn end end
+  loadInto(ns, "outfitinspect.lua")
+  return handler
+end
+
 ---Load GridShared.lua into an already-loaded `ns`, over a stub of the `ns.ui` widgets it
 ---destructures at load time.
 ---
