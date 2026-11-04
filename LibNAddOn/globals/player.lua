@@ -10,8 +10,10 @@ local UnitPower, UnitPowerMax, UnitPowerType, UnitRace = UnitPower, UnitPowerMax
 local InCombatLockdown, IsResting, GetShapeshiftFormID = InCombatLockdown, IsResting, GetShapeshiftFormID
 local GetInventoryItemID = GetInventoryItemID
 local ContainerIDToInventoryID = C_Container.ContainerIDToInventoryID
-local GetActivities = C_WeeklyRewards.GetActivities
-local GetExampleRewardItemHyperlinks = C_WeeklyRewards.GetExampleRewardItemHyperlinks
+-- Absent namespace must not error at load; the GreatVault reader is gated on Supports("greatVault") below.
+local WeeklyRewards = C_WeeklyRewards or {}
+local GetActivities = WeeklyRewards.GetActivities
+local GetExampleRewardItemHyperlinks = WeeklyRewards.GetExampleRewardItemHyperlinks
 local GetDetailedItemLevelInfo = C_Item.GetDetailedItemLevelInfo
 local UnitLevel, UnitName = UnitLevel, UnitName
 
