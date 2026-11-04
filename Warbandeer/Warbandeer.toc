@@ -96,6 +96,7 @@ views\consumablesSettings.lua
 
 views\RoleView.lua
 views\RaceView.lua
+views\AchievementGrid.lua
 views\Legion.lua
 views\Milestones.lua
 views\profs\ProfsData.lua

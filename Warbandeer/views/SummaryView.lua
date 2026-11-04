@@ -402,8 +402,7 @@ function SummaryView:setFaction(mode)
   if self._faction == mode then return end
   self._faction = mode
   self:updateFilter()
-  self:_activeTable():OnBeforeShow()  -- refresh the newly shown roster before sizing
-  self:layout()
+  self:layout()   -- showing the active roster runs its OnBeforeShow (the refresh) before the sizing below
   self:_healFaction(mode)             -- heal now that this roster is visible (see below)
   if ns.MainWindow then ns.MainWindow:Fit() end
 end
@@ -530,8 +529,8 @@ function SummaryView:OnBeforeShow()
   -- DMF has no live event handler, so refresh it on show or the column stays
   -- stale after completing the faire quests this session
   ns.api:RefreshCurrentCharacterField("weeklies", "DMF")
-  -- Only the visible roster needs a rebuild; setFaction refreshes the others as
-  -- they become active.
-  self:_activeTable():OnBeforeShow()
+  -- Only the visible roster needs a rebuild; setFaction refreshes the others as they become
+  -- active. layout() shows the active roster, and showing it runs its OnBeforeShow, so no
+  -- explicit call here (it rebuilt the roster twice, #1054).
   self:layout()
 end

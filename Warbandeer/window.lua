@@ -251,13 +251,18 @@ end
 ---@class Warbandeer
 ---@field MainWindow MainWindow?  the main window (constructed lazily by Open)
 
--- Open the main window (constructing it on first use).
-function ns:Open()
-  if not self.MainWindow then
-    self.MainWindow = MainWindow:new{}
+-- Show the main window (constructing it on first use) without touching the current view.
+local function showWindow()
+  if not ns.MainWindow then
+    ns.MainWindow = MainWindow:new{}
   end
+  ns.MainWindow:Show()
+end
 
-  self.MainWindow:Show()
+-- Open the main window (constructing it on first use). Re-shows the current view so its
+-- OnBeforeShow refreshes it: showing the window alone doesn't run that for an already-shown child.
+function ns:Open()
+  showWindow()
   self.MainWindow._view:Show()
 end
 
@@ -280,7 +285,9 @@ function ns:view(name)
     w:Hide()
     return
   end
-  self:Open()
+  -- Not ns:Open: that re-shows (and so rebuilds) the CURRENT view, which MainWindow:view hides
+  -- again a line later (#1054).
+  showWindow()
   -- slash commands are direct navigation too — same view reset as the icon rail
   local v = self.MainWindow:getView(name)
   if v.OnNavigate then v:OnNavigate() end
