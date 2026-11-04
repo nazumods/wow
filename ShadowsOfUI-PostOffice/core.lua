@@ -46,6 +46,18 @@ ns._atMailbox = false
 ns._onShow = {} ---@type function[]
 ns._onHide = {} ---@type function[]
 
+-- Shared by Forward and QuickAttach (#1037, one copy instead of two): the last bag index to walk
+-- (backpack 0, bags 1-4, reagent bag 5) and the first outgoing attachment slot that is still free.
+ns.LAST_BAG = (NUM_BAG_SLOTS or 4) + 1
+
+---@return integer? slot  nil when all outgoing slots are occupied (the caller must bail)
+function ns.FirstFreeSendSlot()
+  for i = 1, ATTACHMENTS_MAX_SEND do
+    if not HasSendMailItem(i) then return i end
+  end
+  return nil
+end
+
 function ns.OnMailShow(fn) table.insert(ns._onShow, fn) end
 function ns.OnMailHide(fn) table.insert(ns._onHide, fn) end
 

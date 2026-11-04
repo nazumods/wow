@@ -12,7 +12,7 @@ local ns = select(2, ...)
 -- existing one we simply split our amount back off. A mail attachment never exceeds
 -- the item's max stack, so after taking there is always a slot holding >= that count.
 local ATTACH_MAX = ATTACHMENTS_MAX_SEND
-local LAST_BAG = (NUM_BAG_SLOTS or 4) + 1 -- backpack(0), four bags(1-4), reagent bag(5)
+local LAST_BAG = ns.LAST_BAG
 
 local button ---@type Button?
 local pending ---@type { id: number, count: number }?  the attachment currently in flight
@@ -36,15 +36,12 @@ local function freeBagSlots()
   return n
 end
 
+local TAKE_TIMEOUT_MS = 3000 -- how long a take may stay silent before the shuttle gives up
+
 local takeNext -- forward declaration
 local reset    -- forward declaration (defined below; used by depositWholeAndContinue's bail)
 
-local function firstFreeSendSlot()
-  for i = 1, ATTACH_MAX do
-    if not HasSendMailItem(i) then return i end
-  end
-  return nil -- all outgoing slots occupied; caller must bail (never attach onto slot 1)
-end
+local firstFreeSendSlot = ns.FirstFreeSendSlot -- nil when all outgoing slots are occupied: caller must bail (never attach onto slot 1)
 
 local function findEmptyBagSlot()
   for b = 0, LAST_BAG do
@@ -140,6 +137,12 @@ function takeNext()
       pending = { id = itemID, count = count or 1 }
       ns:registerEvent("BAG_UPDATE_DELAYED", onBagUpdate)
       TakeInboxItem(mailID, i)
+      -- A take the server refuses (a unique item already owned, say) never fires BAG_UPDATE_DELAYED, so
+      -- without this `active` stayed true and the button was dead until the mailbox closed (#1037).
+      local attempt = pending
+      ns:after(TAKE_TIMEOUT_MS, function()
+        if active and pending == attempt then reset() end
+      end)
       return
     end
   end

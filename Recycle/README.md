@@ -9,8 +9,15 @@ Hold the modifier key (**Ctrl** by default) and **right-click** an item in your 
 mark it. Marked items show a coin overlay in your bags and are sold at the next
 merchant visit. Mark the same item again to unmark it.
 
-Marks apply to the item, not the stack — every copy of a marked item is sold. Items
-with no vendor price are never sold.
+Marks on gear (weapons and armor) apply to that *variant* of the item: its item ID, item
+context and bonus IDs, as shown in the item link. A Normal and a Mythic copy of the same ring are
+different variants, so marking one leaves the other alone — but two identical copies share one
+mark, and both are sold. A gear mark is dropped automatically at the next merchant visit once no
+copy of it is left in your bags (sold, destroyed, upgraded or banked), so a later identical drop
+is not sold by an old mark; `/recycle clear` resets everything. Marks on anything else (trade
+goods and the like) apply to the item, so every stack is sold, and marks made before this change
+keep that meaning. If an item's link can't be read, it is not marked. Items with no vendor price
+are never sold.
 
 ## Commands
 

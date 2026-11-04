@@ -26,15 +26,11 @@ local CATEGORIES = {
   { sub = ALL, icon = [[Interface\Icons\Ability_Ensnare]],         label = "All Trade Goods" },
 }
 
-local LAST_BAG = (NUM_BAG_SLOTS or 4) + 1 -- backpack(0), four bags(1-4), reagent bag(5)
+local LAST_BAG = ns.LAST_BAG
 local BUTTON = 28
 local buttons ---@type Button[]?
 
-local function firstFreeSendSlot()
-  for i = 1, ATTACHMENTS_MAX_SEND do
-    if not HasSendMailItem(i) then return i end
-  end
-end
+local firstFreeSendSlot = ns.FirstFreeSendSlot
 
 -- Attach every matching, mailable stack until the letter's attachment slots fill up.
 local function attachCategory(subclass)
