@@ -4,7 +4,8 @@ local C_Reputation = C_Reputation
 local GetTime = GetTime
 local IsMajorFaction, IsFactionParagon = C_Reputation.IsMajorFaction, C_Reputation.IsFactionParagon
 local GetFactionParagonInfo = C_Reputation.GetFactionParagonInfo
-local GetMajorFactionData, HasMaximumRenown = C_MajorFactions.GetMajorFactionData, C_MajorFactions.HasMaximumRenown
+local MajorFactions = C_MajorFactions or {} -- absent namespace must not error at load
+local GetMajorFactionData, HasMaximumRenown = MajorFactions.GetMajorFactionData, MajorFactions.HasMaximumRenown
 local GetFriendshipReputation, GetFriendshipReputationRanks = C_GossipInfo.GetFriendshipReputation, C_GossipInfo.GetFriendshipReputationRanks
 
 ---@class FactionStanding
@@ -32,7 +33,7 @@ local GetFriendshipReputation, GetFriendshipReputationRanks = C_GossipInfo.GetFr
 local function resolve(data)
   local fid = data.factionID
   local e = { name = data.name }
-  if IsMajorFaction(fid) then
+  if IsMajorFaction(fid) and GetMajorFactionData and HasMaximumRenown then
     local mf = GetMajorFactionData(fid)
     local level = (mf and mf.renownLevel) or 0
     -- RENOWN_LEVEL_LABEL is the format string "Renown %d", not a literal prefix —
