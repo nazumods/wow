@@ -54,7 +54,7 @@ Every surface cleans then repaints its buttons, calling `ns.DecorEntryFor(link)`
 - **Bank** (`bags.lua`) — `BankPanel` `GenerateItemSlotsForSelectedTab` / `RefreshAllItemsForSelectedTab`, gated on `db.bank and C_Bank.CanUseBank(...)`; link via bank-tab id + container slot id.
 - **Bagnon / Bagnonium** (`bagnon.lua`) — chains `<frontend>.Item.UpdateSecondary` via `EventUtil.ContinueOnAddOnLoaded`, using `button.info.hyperlink`; gated on `db.bagnon`. Refresher = `<frontend>.Frames:Update()`. Same Wildpants rationale as `ShadowsOfUI-Ilvl/bagnon.lua`.
 
-`ns:onLogin` calls `C_HousingCatalog.CreateCatalogSearcher()` to prime owned-state (unavailable immediately after login). Three decor-change events (in `core.lua`) — `HOUSING_STORAGE_UPDATED`, its per-entry sibling `HOUSING_STORAGE_ENTRY_UPDATED`, and `NEW_HOUSING_ITEM_ACQUIRED` (learning a brand-new decor from the bags — a first acquisition the coarse storage event doesn't fire for) — each wipe the shared cache and call `ns.Refresh()`, repainting **every** visible surface (each refresher no-ops when its frame is hidden), not just the merchant.
+`ns:onLogin` calls `C_HousingCatalog.CreateCatalogSearcher()` to prime owned-state (unavailable immediately after login). Three decor-change events (in `core.lua`) — `HOUSING_STORAGE_UPDATED`, its per-entry sibling `HOUSING_STORAGE_ENTRY_UPDATED`, and `NEW_HOUSING_ITEM_ACQUIRED` (learning a brand-new decor from the bags — a first acquisition the coarse storage event doesn't fire for) — each wipe the shared cache and call `ns.Refresh()` — coalesced via `ns:coalesce("decor", 100, ...)` so a placement burst repaints once (#1065) — repainting **every** visible surface (each refresher no-ops when its frame is hidden), not just the merchant.
 
 ## Gotchas
 

@@ -88,12 +88,12 @@ local CollectedPanel = Class(Frame, function(self)
     colInfo = ns.DataView.BuildColInfo(),
     infoTipAnchor = self.infoTipAnchor,
     onWantedToggle = function() self:RefreshWanted() end,
-    onFilterChanged = function() self:Render() end,
+    onFilterChanged = function() self:_renderFiltered() end,
     onResized = function() self:_fitToGrid() end,
     onEnsureVisible = function(_, rowTop, rowH) ns.EnsureRowVisible(self.scroll, rowTop, rowH) end,
   }
 
-  self.strip = self.grid:BuildFilterStrip(self, function() self:Render() end)
+  self.strip = self.grid:BuildFilterStrip(self, function() self:_renderFiltered() end)
   self.strip:Position({ TopLeft = {0, 0} })
   -- Both dropdowns' option lists walk the whole row source to build themselves, so the strip is a
   -- deferral candidate in its own right rather than a rounding error on the grid (see profile.lua).
@@ -326,14 +326,14 @@ function CollectedPanel:_ensureWeapons()
     colInfo = ns.WeaponView.BuildColInfo(),
     virtual = true,   -- see the armour grid's note (#843); 244 rows x 18 cols was 4,392 cells
     infoTipAnchor = self.infoTipAnchor,
-    onFilterChanged = function() self:Render() end,
+    onFilterChanged = function() self:_renderFiltered() end,
     onResized = function() self:_fitToGrid() end,
     -- weaponScroll is assigned just below; the closure only reads it at highlight time.
     onEnsureVisible = function(_, rowTop, rowH) ns.EnsureRowVisible(self.weaponScroll, rowTop, rowH) end,
   }
   self.weaponGrid:Hide()
 
-  self.weaponStrip = self.weaponGrid:BuildFilterStrip(self, function() self:Render() end)
+  self.weaponStrip = self.weaponGrid:BuildFilterStrip(self, function() self:_renderFiltered() end)
   self.weaponStrip:Position({ TopLeft = {self._stripX, 0} })
   self.weaponStrip:Hide()
   ns.prof:Mark("strip")
@@ -583,6 +583,15 @@ end
 function CollectedPanel:_showGrid(shown)
   self.grid:SetShown(shown)
   self.scroll:SetShown(shown)
+end
+
+---Render after a grid control (PTR / expansion / category / ★) has already re-filtered the grid:
+---those handlers rebuild the cells themselves (`_refilter` / `SetPtr`) before calling the host, so
+---flag the cells as current and let Render redo only the counter and tally (#1055). Without the
+---flag every filter click built the ~473 rows twice.
+function CollectedPanel:_renderFiltered()
+  self._gridFresh = true
+  self:Render()
 end
 
 ---Refresh the counter, the wanted tally and the active grid's data. PTR PREVIEW shows only the

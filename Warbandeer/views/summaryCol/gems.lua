@@ -51,7 +51,6 @@ local getData = function(toon)
       ui.tip:Show()
     end,
     onLeave = function() ui.tip:Hide() end,
-    onClick = function() ns:view("detail") end,
   }
 end
 

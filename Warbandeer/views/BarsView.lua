@@ -120,10 +120,14 @@ end
 -- ─── Spec dropdown (rebuilt per class) ───────────────────────────────────────
 
 function BarsView:_buildSpecDD()
-  if self._specDD then self._specDD:Hide() end
   local opts = {{ key = nil, label = "All Specs" }}
   for _, s in ipairs(self:_specsForClass(self._classID)) do
     insert(opts, { key = s.id, label = s.name })
+  end
+  -- Build once and repoint: WoW frames are never freed, and this runs on every show and class change.
+  if self._specDD then
+    self._specDD:SetOptions(opts, self._specID)
+    return
   end
   self._specDD = FilterDropdown:new{
     parent    = self,
