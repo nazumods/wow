@@ -5,8 +5,9 @@ local Player = ns.wow.Player
 local IsQuestFlaggedCompleted = C_QuestLog.IsQuestFlaggedCompleted
 local WeeklyRewards = C_WeeklyRewards or {} -- absent namespace must not error at load; vault fields are gated on Supports("greatVault") below
 local GetActivities = WeeklyRewards.GetActivities
-local GetOwnedKeystoneLevel = C_MythicPlus.GetOwnedKeystoneLevel
-local GetOwnedKeystoneChallengeMapID = C_MythicPlus.GetOwnedKeystoneChallengeMapID
+local MythicPlus = C_MythicPlus or {} -- absent namespace must not error at load; keystone fields are gated on Supports("mythicPlus") below
+local GetOwnedKeystoneLevel = MythicPlus.GetOwnedKeystoneLevel
+local GetOwnedKeystoneChallengeMapID = MythicPlus.GetOwnedKeystoneChallengeMapID
 
 local DMFQuests = {
   Alchemy = 29506,
