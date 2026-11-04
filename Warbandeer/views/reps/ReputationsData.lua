@@ -65,7 +65,7 @@ end
 -- The faction's own emblem: major-faction texture kit, friendship icon, else a generic
 -- reputation icon.  Resolved live by ID (works for offline alts' factions too).
 local function factionIconSpec(fid)
-  if C_Reputation.IsMajorFaction and C_Reputation.IsMajorFaction(fid) then
+  if C_MajorFactions and C_MajorFactions.GetMajorFactionData and C_Reputation.IsMajorFaction and C_Reputation.IsMajorFaction(fid) then
     local mf = C_MajorFactions.GetMajorFactionData(fid)
     if mf and mf.textureKit then
       local atlas = ("majorfactions_icons_%s512"):format(mf.textureKit)
