@@ -32,6 +32,19 @@ local function recipeBucketKey(child)
   return nil
 end
 
+-- True while the open trade-skill window shows someone else's data: a linked profession (shift-click in
+-- chat), the guild crafter view, NPC crafting, or Runeforging. Each predicate is guarded by existence
+-- since a client flavor may lack one; absent means "not that view".
+---@return boolean
+local function isForeignTradeSkill()
+  local T = C_TradeSkillUI
+  if not T then return false end
+  for _, name in ipairs({ "IsTradeSkillLinked", "IsTradeSkillGuild", "IsNPCCrafting", "IsRuneforging" }) do
+    if T[name] and T[name]() then return true end
+  end
+  return false
+end
+
 -- Profession display name of the current expansion.  A character that has trained
 -- this expansion's skill line is expected to have recipe data captured; missing.lua
 -- uses this to tell "never scanned / capture gap" apart from "just hasn't trained it".
@@ -182,6 +195,10 @@ ns.Professions.fields = {
     -- keyed by skillLineID so each profession's data is updated independently.
     event = "TRADE_SKILL_SHOW",
     eventHandler = function(self, currentValue)
+      -- The window also opens on someone else's data (a linked profession, the guild crafter view,
+      -- NPC crafting, Runeforging); the queries then return THEIR recipes, which must not be stored
+      -- as ours (#1042).  Blizzard_ProfessionsFrame checks the same four.
+      if isForeignTradeSkill() then return end
       -- Capture which profession was opened NOW, before any timer delay.
       -- Reading GetBaseProfessionInfo() inside the timer is unreliable: if the
       -- player switches professions before the timer fires, the wrong profession
@@ -193,6 +210,12 @@ ns.Professions.fields = {
 
       -- Small delay ensures child profession info is fully populated before querying.
       C_Timer.After(0.5, function()
+        -- The window may have switched to a foreign view (#1042) or to another profession (#1045)
+        -- during the delay; the queries below read whatever is open NOW, so bail rather than file
+        -- it under the wrong key.
+        if isForeignTradeSkill() then return end
+        local open = C_TradeSkillUI.GetBaseProfessionInfo()
+        if not open or open.professionID ~= skillLineID then return end
         local profData = {}
 
         -- Per-expansion skill levels.  Primary professions return one child per
