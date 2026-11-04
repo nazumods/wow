@@ -111,12 +111,14 @@ local function makeToggle(strip, theme, spec)
     position = { All = true }, color = spec.active and gold or divider }
   Texture:new{ parent = b, layer = ui.layer.Border, color = { 0.05, 0.05, 0.06, 0.92 },
     position = { TopLeft = { 1, -1 }, BottomRight = { -1, 1 } } }
-  local btn = Button:new{ parent = b, position = { All = true }, glow = false, OnClick = spec.onClick,
-    OnEnter = spec.tip and function(s)
+  local btn = Button:new{ parent = b, position = { All = true }, glow = false, OnClick = spec.onClick }
+  -- Assigned after construction: :new options never override same-named class methods.
+  if spec.tip then
+    btn.OnEnter = function(s)
       GameTooltip:SetOwner(s._widget, "ANCHOR_BOTTOMRIGHT"); GameTooltip:SetText(spec.tip()); GameTooltip:Show()
-    end or nil,
-    OnLeave = spec.tip and function() GameTooltip:Hide() end or nil,
-  }
+    end
+    btn.OnLeave = function() GameTooltip:Hide() end
+  end
   if isIcon then
     -- `tint = false` keeps the already-gold star at its native color.
     Texture:new{ parent = btn, layer = ui.layer.Artwork, atlas = spec.atlas,
