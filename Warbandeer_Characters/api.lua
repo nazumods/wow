@@ -198,7 +198,7 @@ function API:GetItemCounts(itemID)
     local sum = bags + bank + mail
     if sum > 0 then
       insert(chars, {
-        name = name,
+        name = c.displayName or name, -- plain name for labels; the db key can be "Name-Realm" (#1013)
         classKey = c.classKey,
         realm = (c.realm and c.realm ~= myRealm) and c.realm or nil,
         bags = bags, bank = bank, mail = mail, total = sum,

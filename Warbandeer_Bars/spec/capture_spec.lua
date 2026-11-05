@@ -19,6 +19,7 @@ describe("Warbandeer_Bars capture", function()
         end,
       },
       UnitName             = function() return "Lurias" end,
+      UnitGUID             = function() return "Player-1-AAA" end,
       UnitClass            = function() return "Mage", "MAGE", 8 end,
       UnitLevel            = function() return 80 end,
       GetRealmName         = function() return "Draenor" end,
@@ -117,6 +118,7 @@ describe("Warbandeer_Bars capture", function()
         C_ActionBar   = { GetActionText = function() return opts.text end },
         GetMacroIndexByName = function(name) return (opts.byName or {})[name] or 0 end,
         UnitName = function() return "Lurias" end,
+        UnitGUID = function() return "Player-1-AAA" end,
         UnitClass = function() return "Mage", "MAGE", 8 end,
         GetRealmName = function() return "Draenor" end,
         -- capture.lua upvalues these from C_SpecializationInfo at load (its `_G.` fallback bypasses `env`).

@@ -28,14 +28,14 @@ local function resolveChar(name)
   return name
 end
 
-function API:GetCurrentCharacter() return UnitName("player") end
+function API:GetCurrentCharacter() return ns.CurrentProfileKey() end
 function API:GetCurrentSpecID()    return currentSpecID() end
 
 ---All profiles for a character, keyed by specID.
 ---@param char string? defaults to current character
 ---@return table<number, table>?
 function API:GetProfiles(char)
-  return ns.db.profiles[resolveChar(char or UnitName("player"))]
+  return ns.db.profiles[resolveChar(char or ns.CurrentProfileKey())]
 end
 
 ---A single stored profile.
@@ -43,7 +43,7 @@ end
 ---@param specID number? defaults to current spec
 ---@return table?
 function API:GetProfile(char, specID)
-  local byChar = ns.db.profiles[resolveChar(char or UnitName("player"))]
+  local byChar = ns.db.profiles[resolveChar(char or ns.CurrentProfileKey())]
   return byChar and byChar[specID or currentSpecID()]
 end
 

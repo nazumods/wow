@@ -6,7 +6,7 @@ local UnitClassBase = UnitClassBase
 
 ---@class WarbandeerCharactersDB
 ---@field version integer
----@field characters table<string, Character> Character data indexed by character name
+---@field characters table<string, Character> Character data indexed by character name; "Name-Realm" only for a character whose bare name was already taken by a different one (#1013)
 ---@field numCharacters integer total number of characters
 ---@field warband WarbandData account-wide warband bank gold + weekly wealth tracking
 ---@field travelersLog TravelersLogData account-wide monthly Traveler's Log progress + rewards-waiting
@@ -78,7 +78,8 @@ ns:registerCommand("cleanup", "", function(self)
 end, "Repair stored data (recount characters)")
 
 ---@class Character
----@field name string
+---@field name string  the unique `db.characters` key: the plain name, or "Name-Realm" for a same-named character on another realm (#1013)
+---@field displayName string?  the plain character name, for mail targets and labels (backfilled at login)
 ---@field classId string
 ---@field classKey string
 ---@field className string
@@ -443,19 +444,59 @@ end
 ---@field currentPlayer string Name of currently active character
 ---@field currentData Character Data for currently active character
 
+-- Which `db.characters` key holds the logged-in character (#1013). The key is the bare name, as it
+-- always was, so existing saves load untouched and an older revision (which only knows bare names)
+-- keeps working. The bare key is only passed over when it holds a DIFFERENT character with the same
+-- name, which takes three signals together: another realm, another GUID, and another class or race.
+-- The last one is what separates two same-named alts from a paid realm transfer (a transfer changes the
+-- realm and the GUID but keeps class and race, so the transferred character keeps its record). Two
+-- same-named alts of the SAME class and race on different realms cannot be told from a transfer and still
+-- share a record, as before. A different GUID on the same realm is a re-created character: same record.
+-- The conflicting character gets its own `Name-Realm` key.
+---@param characters table<string, Character>
+---@param name string
+---@param realm string?  normalized realm name
+---@param guid string?   UnitGUID("player")
+---@param classId integer?
+---@param raceId integer?
+---@return string key
+---@return boolean conflict  true when a different same-named character already holds the bare key
+function ns.ResolveCharacterKey(characters, name, realm, guid, classId, raceId)
+  local qualified = realm and (name .. "-" .. realm) or nil
+  if qualified and characters[qualified] then return qualified, false end
+  local bare = characters[name]
+  if not bare or not qualified then return name, false end
+  local realmDiffers = bare.realm ~= nil
+    and bare.realm:gsub("[%s'%-]", "") ~= realm:gsub("[%s'%-]", "")
+  local guidDiffers = bare.guid == nil or guid == nil or bare.guid ~= guid
+  local identityDiffers = (bare.classId ~= nil and classId ~= nil and bare.classId ~= classId)
+    or (bare.raceId ~= nil and raceId ~= nil and bare.raceId ~= raceId)
+  if realmDiffers and guidDiffers and identityDiffers then return qualified, true end
+  return name, false
+end
+
 ---@class Warbandeer_Characters
 ---@field initialize fun(self) Initialize character data for the current player and set up brokers
 function ns:initialize()
-  self.currentPlayer = Player:GetName()
+  local name = Player:GetName()
+  local realm = GetNormalizedRealmName and GetNormalizedRealmName() or nil
+  local _, raceId = Player:GetRace()
+  local key, conflict = ns.ResolveCharacterKey(self.db.characters, name, realm, UnitGUID("player"),
+    Player:GetClassId(), raceId)
+  if conflict then
+    ns.Print(("%s on %s is a different character from the saved %s; tracking it separately as %s.")
+      :format(name, realm, name, key))
+  end
+  self.currentPlayer = key
   local c = self.db.characters[self.currentPlayer]
   if not c then
     -- initialize new character
     local _, classToken = UnitClassBase("player")
     local className = Player:GetClassName()
-    local raceFile, raceId = Player:GetRace()
+    local raceFile = Player:GetRace() -- raceId: read above for the key lookup
     local raceIndex, isAlliance = ns.NormalizeRaceId(raceId)
     c = {
-      name = self.currentPlayer,
+      name = self.currentPlayer, -- the db key (unique); `displayName` below is the plain character name
       classId = Player:GetClassId(),
       className = className,
       classKey = ns.wow.ClassKeyByToken[classToken] or gsub(className, " ", ""),
@@ -471,6 +512,8 @@ function ns:initialize()
   self.currentData = c
   -- Refresh each login so characters created before `sex`/`guid` existed are backfilled
   -- the next time they log in (alts not yet seen default to male at render time).
+  c.displayName = name -- the bare character name (mail targets, labels); `name` is the unique key
+  c.realm = GetRealmName() -- follows a realm transfer
   c.sex = UnitSex("player")
   c.guid = UnitGUID("player")
   c.guild = GetGuildInfo("player")

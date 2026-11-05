@@ -447,6 +447,7 @@ std = {
     "GetQuestLogRewardXP",
     "GetProfessionInfo",
     "GetProfessions",
+    "GetNormalizedRealmName",
     "GetRealmName",
     "GetRestState",
     "GetSavedInstanceInfo",

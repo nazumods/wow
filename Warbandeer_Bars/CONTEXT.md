@@ -12,7 +12,7 @@ character/spec's setup and import it onto the current character. Profiles are st
 | File | Purpose |
 |---|---|
 | `init.lua` | Assignment-form bootstrap; `MigrateDB` (v1 seeds `profiles={}`; v2 adds `layouts={}`), `DefaultSettings`, `onLoad` per-char settings init |
-| `capture.lua` | `ns.Capture(include, accountMacros, charMacros, cursorFree?)` → profile table; per-section capture + spell/flyout override resolution |
+| `capture.lua` | `ns.ProfileKey`/`ns.CurrentProfileKey` (the `db.profiles` key is the bare name; a same-named character on another realm with another GUID AND class gets `Name-Realm`; defers to `WarbandeerApi:GetCurrentCharacter()` when Characters is loaded so both agree, #1014), `ns.Capture(include, accountMacros, charMacros, cursorFree?)` → profile table; per-section capture + spell/flyout override resolution |
 | `restore.lua` | `ns.Restore(profile, include, silent?, barFilter?)` — applies a profile, recreating macros on import; flyouts-first pre-pass, spellbook fallbacks, per-bar filter |
 | `tracker.lua` | `ns.Snapshot(guardSparse?, cursorFree?)` + `ns.shouldStore` + auto-capture triggers (login / spec change / a 10 s fingerprint check of bars, macro names and icons, and bindings, saving on a change that held for a full check; none at logout); combat- & cursor-guarded. `capture.lua` holds `ns.Fingerprint()` |
 | `api.lua` | `WarbandeerBarsApi` methods |
