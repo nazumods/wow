@@ -31,8 +31,10 @@ local function altList()
   if not ns.api.GetAllCharacters then return alts end
   local me, myRealm = UnitName("player"), GetRealmName()
   for _, c in ipairs(ns.api:GetAllCharacters()) do
-    if not (c.name == me and (c.realm or myRealm) == myRealm) then
-      local target = (c.realm and c.realm ~= myRealm) and (c.name .. "-" .. c.realm) or c.name
+    -- `name` is the unique db key ("Foo-RealmB" for a same-named alt, #1013); mail wants the plain name
+    local plain = c.displayName or c.name
+    if not (plain == me and (c.realm or myRealm) == myRealm) then
+      local target = (c.realm and c.realm ~= myRealm) and (plain .. "-" .. c.realm:gsub("%s", "")) or plain
       alts[#alts + 1] = { target = target, classKey = c.classKey }
     end
   end

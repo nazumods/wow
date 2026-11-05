@@ -392,6 +392,7 @@
     "GetQuestLogItemLink",
     "GetQuestLogRewardInfo",
     "GetQuestLogRewardXP",
+    "GetNormalizedRealmName",
     "GetRealmName",
     "GetRestState",
     "GetSavedInstanceInfo",

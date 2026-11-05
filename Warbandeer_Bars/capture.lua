@@ -242,6 +242,47 @@ local function CaptureOutfits()
   return outfits
 end
 
+local function normalizeRealm(realm) return (realm:gsub("[%s'%-]", "")) end
+
+-- The `ns.db.profiles` key for a character (#1014). It is the bare name, as it always was, so existing
+-- saves keep working and an older revision (which only knows bare names) can still read them. The bare
+-- key is only passed over when it holds a DIFFERENT character with the same name: another realm, another
+-- GUID (or none stored) AND another class. The class check is what keeps a paid realm transfer (new realm,
+-- new GUID, same class) on its existing profiles; two same-class alts of one name on different realms
+-- cannot be told from a transfer and still share profiles, as before. The conflicting character gets its
+-- own `Name-Realm` key. Mirrors Warbandeer_Characters' ns.ResolveCharacterKey.
+---@param profiles table<string, table<number, table>>
+---@param name string
+---@param realm string? normalized realm name
+---@param guid string?
+---@param class string? class file token, e.g. "MAGE"
+---@return string
+function ns.ProfileKey(profiles, name, realm, guid, class)
+  local qualified = realm and (name .. "-" .. realm) or nil
+  if qualified and profiles[qualified] then return qualified end
+  local byChar = profiles[name]
+  if not byChar or not qualified then return name end
+  local _, stored = next(byChar)
+  if not stored then return name end
+  local realmDiffers = stored.realm ~= nil and normalizeRealm(stored.realm) ~= normalizeRealm(realm)
+  local guidDiffers = stored.guid == nil or guid == nil or stored.guid ~= guid
+  local classDiffers = stored.class ~= nil and class ~= nil and stored.class ~= class
+  return (realmDiffers and guidDiffers and classDiffers) and qualified or name
+end
+
+---The key the logged-in character's profiles are stored under. Warbandeer_Characters, when loaded and
+---initialised, owns the answer so both addons always agree (a character is never "Foo" in one and
+---"Foo-RealmB" in the other); otherwise the same rule is applied to this addon's own table.
+---@return string
+function ns.CurrentProfileKey()
+  local characters = _G.WarbandeerApi
+  local key = characters and characters.GetCurrentCharacter and characters:GetCurrentCharacter()
+  if key then return key end
+  local realm = GetNormalizedRealmName and GetNormalizedRealmName() or nil
+  local _, class = UnitClass("player")
+  return ns.ProfileKey(ns.db and ns.db.profiles or {}, UnitName("player"), realm, UnitGUID("player"), class)
+end
+
 -- Build profile metadata from current character
 local function ProfileMeta()
   local specIndex = GetSpec and GetSpec()
@@ -252,7 +293,8 @@ local function ProfileMeta()
   end
   local _, class, classID = UnitClass("player")
   return {
-    char       = UnitName("player"),
+    char       = ns.CurrentProfileKey(), -- the profiles key: the bare name, or Name-Realm for a same-named alt (#1014)
+    guid       = UnitGUID("player"),
     realm      = GetRealmName(),
     class      = class,                 -- class file token, e.g. "MAGE"
     classID    = classID,
