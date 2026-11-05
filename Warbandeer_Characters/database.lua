@@ -31,6 +31,12 @@ ns:registerCommand("list", "", function(self)
 end, "List all characters")
 
 ns:registerCommand("delete", "", function(self, args)
+  -- The logged-in character is live: deleting it would leave `ns.currentData` pointing at an unsaved table
+  -- that the brokers keep writing to, and the views would lose their row (#1111).
+  if args == ns.currentPlayer then
+    ns.Print("Can't delete the character you're logged in on. Log in on another character first.")
+    return
+  end
   if not ns.db.characters[args] then
     ns.Print(args .. " not found. Use /wbc list for exact names (case-sensitive).")
     return

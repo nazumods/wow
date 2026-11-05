@@ -93,23 +93,3 @@ ns:registerDump("bank", "Bank Expansion Info", "Dump bank expansion info", funct
   out:line("Num Bank Guild Tabs:", FetchNumPurchasedBankTabs(guild))
   out:line("Num Bank Character Tabs:", FetchNumPurchasedBankTabs(character))
 end)
-
-local gt = {
-  explorer = 253,
-  adventurer = 266,
-  veteran = 279,
-  champion = 292,
-  hero = 305,
-  mythic = 318,
-}
-
-ns:registerDump("gt", "Gear Tiers", "Gear Tier ilvl info", function(_, out)
-  --local gt = ns.data.gearTiers
-  out:line("Gear Tier ilvl info:")
-  out:line("Explorer: "..gt.explorer)
-  out:line("Adventurer: "..gt.adventurer)
-  out:line("Veteran: "..gt.veteran)
-  out:line("Champion: "..gt.champion)
-  out:line("Hero: "..gt.hero)
-  out:line("Mythic: "..gt.mythic)
-end)
