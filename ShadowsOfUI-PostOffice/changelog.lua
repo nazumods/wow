@@ -6,6 +6,12 @@ local ns = select(2, ...)
 -- conventional-commit grouping used for the GitHub/CurseForge release notes.
 ---@type { version: string, notes: string }[]
 ns.changelog = {
+  { version = "12.1.5-r3", notes = [==[
+### Bug Fixes
+- keep same-named characters on different realms apart (#1013, #1014) (#1160)
+- Recycle per-variant marks, mail select ticks, PostOffice chores (#1009, #1011, #1037) (#1156)
+
+]==] },
   { version = "12.1.5-r2", notes = [==[
 ### Bug Fixes
 - hook the mail frame's Update methods where Forever dropped the globals (Part of Epic #951) (#974)
