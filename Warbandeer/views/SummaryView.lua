@@ -45,6 +45,12 @@ local FACTION_COLOR = {
 -- catch-up column's larger group spacer).
 local COL_GUTTER = 5
 
+-- Forever's UI font is wider than Retail's, so the fixed pixel widths (tuned on Retail) clip
+-- the short headers ("Lvl", "iLvl", "<180") and tight number cells there. On Forever only, each
+-- fixed-width column is grown (never shrunk) to fit its header and widest cell; Retail keeps its
+-- declared widths untouched.
+local FIT_FIXED = ns.flavor and ns.flavor.isForever or false
+
 local function buildColInfo(cols)
   return ns.lua.lists.map(cols, function(c, i)
     local info = {}
@@ -107,7 +113,7 @@ local ClassSummary = Class(TableFrame, function(self)
   -- per-column gutters this view inserts (COL_GUTTER) — under-sizing the frame and spilling the
   -- last column past the window edge.
   for i, info in ipairs(self.colInfo) do
-    if info.autosize then self:AutosizeColumn(i) end
+    if info.autosize then self:AutosizeColumn(i) elseif FIT_FIXED then self:AutosizeColumn(i, true) end
   end
 
   -- Dev-only column-boundary guides (toggled by /wb debug); off by default. Built last so
@@ -127,7 +133,8 @@ end, {
 -- aligned (see the call site for why TableFrame:Autosize can't be used here). Cells and the footer
 -- cell anchor to their column's edges, so the resize reflows them and every column after it.
 ---@param i integer  column index to size
-function ClassSummary:AutosizeColumn(i)
+---@param growOnly? boolean  never shrink below the declared width (the Forever header/cell fit)
+function ClassSummary:AutosizeColumn(i, growOnly)
   local col = self.cols[i]
   if not col then return end
   local widest = (col.header.label and col.header.label:UnboundedWidth()) or 0
@@ -141,6 +148,17 @@ function ClassSummary:AutosizeColumn(i)
   -- footer total to its left whenever the Titles buffer column is visible (#540).
   local minW = self.colInfo[i] and self.colInfo[i].minWidth
   if minW and target < minW then target = minW end
+  if growOnly then
+    -- Cells are inset by hPadL/hPadR (the first and last columns carry 8px each, buildColInfo) and
+    -- the header by `padding`; the fit above measured bare text, so add the insets back or the
+    -- outer columns come out ~8px short of their text.
+    local info = self.colInfo[i]
+    if info then
+      local hPad = info.hPad or self.hPad or 0
+      target = target + (info.hPadL or hPad) + (info.hPadR or hPad)
+    end
+    if target < col:Width() then target = col:Width() end
+  end
   local delta = target - col:Width()
   if delta == 0 then return end
   col:Width(target)
@@ -279,7 +297,7 @@ function ClassSummary:OnBeforeShow()
   -- Re-fit opted-in columns (Gold, Titles) to the refreshed cells: a gold total that gained a
   -- digit since the build would otherwise overflow its column until /reload.
   for i, info in ipairs(self.colInfo) do
-    if info.autosize then self:AutosizeColumn(i) end
+    if info.autosize then self:AutosizeColumn(i) elseif FIT_FIXED then self:AutosizeColumn(i, true) end
   end
   -- Re-sorting can move characters between rows, so refresh resting backdrops.
   for i in ipairs(self.rows) do self:restRow(i) end
